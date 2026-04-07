@@ -1,0 +1,19 @@
+{
+  "name": "GymBrat",
+  "short_name": "GymBrat",
+  "description": "Premium fitness OS — training, cardio, macros, AI-ready.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#07080d",
+  "theme_color": "#07080d",
+  "icons": [
+    {
+      "src": "/next.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
