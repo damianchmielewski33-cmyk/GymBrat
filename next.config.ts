@@ -1,7 +1,13 @@
+import path from "path";
+import { fileURLToPath } from "url";
 import type { NextConfig } from "next";
 
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  reactStrictMode: true,
+  outputFileTracingRoot: path.join(projectRoot),
+  turbopack: {},
 };
 
 export default nextConfig;
