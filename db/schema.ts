@@ -88,7 +88,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   settings: one(userSettings),
   trainingSessions: many(trainingSessions),
   workouts: many(workouts),
-  workoutPlan: one(workoutPlans),
+  workoutPlans: many(workoutPlans),
   weightLogs: many(weightLogs),
   bodyReports: many(bodyReports),
 }));
@@ -128,10 +128,16 @@ export const userSettingsRelations = relations(userSettings, ({ one }) => ({
 }));
 
 export const workoutPlans = sqliteTable("workout_plans", {
-  userId: text("user_id")
+  id: text("id")
     .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   planJson: text("plan_json").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),

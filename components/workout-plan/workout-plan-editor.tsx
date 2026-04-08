@@ -2,18 +2,31 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ChevronDown,
   ChevronLeft,
+  ChevronRight,
   Dumbbell,
   Lock,
+  Pencil,
   Plus,
   Save,
   Search,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
+import {
+  deleteWorkoutPlan,
   saveWorkoutPlan,
+  type WorkoutPlanListItemDTO,
   type WorkoutPlanExercise,
   type WorkoutPlanPayload,
 } from "@/actions/workout-plan";
@@ -29,10 +42,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  CATALOG_EXERCISES,
   MUSCLE_CATEGORIES,
   categoryLabel,
-  exercisesForCategory,
+  findBestCatalogMatch,
+  searchCatalogForPicker,
 } from "@/lib/workout-exercise-catalog";
 import { cn } from "@/lib/utils";
 
@@ -50,19 +63,28 @@ function createEmptyPlan(): WorkoutPlanPayload {
   };
 }
 
-type Screen = "choice" | "custom";
+function formatPlanDate(iso: string) {
+  try {
+    return new Intl.DateTimeFormat("pl-PL", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+type EditorMode = "closed" | "new" | { id: string };
 
 export function WorkoutPlanEditor({
-  initialPlan,
+  initialPlans,
 }: {
-  initialPlan: WorkoutPlanPayload | null;
+  initialPlans: WorkoutPlanListItemDTO[];
 }) {
-  const [screen, setScreen] = useState<Screen>(() =>
-    initialPlan ? "custom" : "choice",
-  );
-  const [plan, setPlan] = useState<WorkoutPlanPayload>(
-    initialPlan ?? createEmptyPlan(),
-  );
+  const router = useRouter();
+  const [editorMode, setEditorMode] = useState<EditorMode>("closed");
+  const [plan, setPlan] = useState<WorkoutPlanPayload>(createEmptyPlan());
+  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedPulse, setSavedPulse] = useState(0);
@@ -73,19 +95,27 @@ export function WorkoutPlanEditor({
   const [customName, setCustomName] = useState("");
   const [showCustomRow, setShowCustomRow] = useState(false);
 
-  useEffect(() => {
-    if (initialPlan) {
-      setPlan(initialPlan);
-      setScreen("custom");
-    }
-  }, [initialPlan]);
+  const editorOpen = editorMode !== "closed";
 
-  const filteredCatalog = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const base = exercisesForCategory(addCategoryId);
-    if (!q) return base;
-    return base.filter((e) => e.name.toLowerCase().includes(q));
-  }, [addCategoryId, search]);
+  useEffect(() => {
+    if (editorMode !== "closed" && editorMode !== "new" && "id" in editorMode) {
+      const found = initialPlans.find((p) => p.id === editorMode.id);
+      if (found) {
+        setPlan(structuredClone(found.plan));
+      }
+    }
+  }, [initialPlans, editorMode]);
+
+  const filteredCatalog = useMemo(
+    () => searchCatalogForPicker(addCategoryId, search),
+    [addCategoryId, search],
+  );
+
+  const customMatchPreview = useMemo(() => {
+    const t = customName.trim();
+    if (t.length < 2) return null;
+    return findBestCatalogMatch(t);
+  }, [customName]);
 
   const customNamesForCategory = useMemo(() => {
     return plan.userCustomExerciseNames.filter((name) => {
@@ -138,6 +168,11 @@ export function WorkoutPlanEditor({
   const addCustomExercise = useCallback(() => {
     const trimmed = customName.trim();
     if (!trimmed) return;
+    const catalogHit = findBestCatalogMatch(trimmed);
+    if (catalogHit) {
+      addFromCatalog(catalogHit.name, catalogHit.categoryId);
+      return;
+    }
     setPlan((prev) => ({
       ...prev,
       userCustomExerciseNames: prev.userCustomExerciseNames.includes(trimmed)
@@ -157,7 +192,7 @@ export function WorkoutPlanEditor({
     setCustomName("");
     setShowCustomRow(false);
     setSearch("");
-  }, [addCategoryId, customName]);
+  }, [addCategoryId, customName, addFromCatalog]);
 
   function onSave() {
     setSaveError(null);
@@ -165,23 +200,60 @@ export function WorkoutPlanEditor({
       setSaveError("Podaj nazwę planu.");
       return;
     }
+    const planId =
+      editorMode === "closed" || editorMode === "new"
+        ? undefined
+        : editorMode.id;
     startTransition(async () => {
-      const res = await saveWorkoutPlan(plan);
+      const res = await saveWorkoutPlan(plan, planId);
       if (!res.ok) {
         setSaveError(res.error);
         return;
       }
       setSavedPulse((x) => x + 1);
+      setEditorMode("closed");
+      router.refresh();
     });
   }
 
-  function goToCustom() {
-    setScreen("custom");
-    setPlan((p) => (p.version === 2 ? p : createEmptyPlan()));
+  function startNewPlan() {
+    setEditorMode("new");
+    setPlan(createEmptyPlan());
+    setSaveError(null);
   }
 
-  function goToChoice() {
-    setScreen("choice");
+  function openEditPlan(id: string) {
+    const row = initialPlans.find((p) => p.id === id);
+    if (!row) return;
+    setEditorMode({ id });
+    setPlan(structuredClone(row.plan));
+    setSaveError(null);
+  }
+
+  function closeEditor() {
+    setEditorMode("closed");
+    setSaveError(null);
+  }
+
+  async function onDeletePlan(id: string) {
+    if (
+      !window.confirm(
+        "Czy na pewno usunąć ten plan treningowy? Tej operacji nie można cofnąć.",
+      )
+    ) {
+      return;
+    }
+    const res = await deleteWorkoutPlan(id);
+    if (!res.ok) return;
+    if (typeof editorMode === "object" && editorMode !== null && editorMode.id === id) {
+      setEditorMode("closed");
+    }
+    setExpandedPlanId((e) => (e === id ? null : e));
+    router.refresh();
+  }
+
+  function toggleExpand(id: string) {
+    setExpandedPlanId((prev) => (prev === id ? null : id));
   }
 
   return (
@@ -195,13 +267,13 @@ export function WorkoutPlanEditor({
             Plan treningowy
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-white/65">
-            {screen === "choice"
-              ? "Wybierz sposób utworzenia planu albo przejdź do własnego planu poniżej."
-              : "Nadaj nazwę planu, przypisz partie mięśniowe, ćwiczenia i liczbę powtórzeń."}
+            {editorOpen
+              ? "Nadaj nazwę planu, przypisz partie mięśniowe, ćwiczenia i liczbę powtórzeń. Zapis zwija edytor i dodaje plan do listy."
+              : "Twórz wiele planów — każdy zapis pojawia się na liście poniżej."}
           </p>
         </div>
 
-        {screen === "custom" ? (
+        {editorOpen ? (
           <div className="flex flex-wrap items-center gap-3">
             <AnimatePresence>
               {saveError ? (
@@ -224,7 +296,7 @@ export function WorkoutPlanEditor({
               className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70 md:inline-flex"
             >
               <Sparkles className="h-4 w-4 text-[var(--neon)]" />
-              Plan v2
+              {editorMode === "new" ? "Nowy plan" : "Edycja planu"}
             </motion.div>
 
             <Button
@@ -240,8 +312,116 @@ export function WorkoutPlanEditor({
         ) : null}
       </header>
 
+      <section className="space-y-3">
+        <h2 className="font-heading text-lg font-semibold text-white">
+          Lista planów
+        </h2>
+        {initialPlans.length === 0 ? (
+          <div className="glass-panel rounded-2xl border border-dashed border-white/15 p-8 text-center text-sm text-white/55">
+            Nie masz jeszcze zapisanego planu. Wybierz „Dodaj swój plan
+            treningowy” poniżej — po zapisie plan pojawi się tutaj.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {initialPlans.map((item) => {
+              const expanded = expandedPlanId === item.id;
+              const name =
+                item.plan.planName.trim() || "Plan bez nazwy";
+              return (
+                <li key={item.id} className="glass-panel overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggleExpand(item.id)}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/5"
+                  >
+                    {expanded ? (
+                      <ChevronDown className="h-4 w-4 shrink-0 text-white/50" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 shrink-0 text-white/50" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-white">{name}</p>
+                      <p className="text-xs text-white/45">
+                        {item.plan.exercises.length}{" "}
+                        {item.plan.exercises.length === 1
+                          ? "ćwiczenie"
+                          : item.plan.exercises.length < 5
+                            ? "ćwiczenia"
+                            : "ćwiczeń"}{" "}
+                        · {formatPlanDate(item.updatedAt)}
+                      </p>
+                    </div>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {expanded ? (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="border-t border-white/10"
+                      >
+                        <div className="space-y-3 px-4 py-3 pl-11">
+                          {item.plan.exercises.length === 0 ? (
+                            <p className="text-sm text-white/45">
+                              Brak ćwiczeń w tym planie.
+                            </p>
+                          ) : (
+                            <ol className="list-decimal space-y-1 pl-4 text-sm text-white/75">
+                              {item.plan.exercises.map((ex) => (
+                                <li key={ex.id}>
+                                  <span className="text-white/50">
+                                    {categoryLabel(ex.categoryId)} ·{" "}
+                                  </span>
+                                  {ex.name}{" "}
+                                  <span className="text-white/40">
+                                    ({ex.reps} powt.)
+                                  </span>
+                                </li>
+                              ))}
+                            </ol>
+                          )}
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="border-white/15"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditPlan(item.id);
+                              }}
+                            >
+                              <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                              Edytuj
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="border-red-500/30 text-red-300 hover:bg-red-500/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void onDeletePlan(item.id);
+                              }}
+                            >
+                              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                              Usuń
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
       <AnimatePresence mode="wait">
-        {screen === "choice" ? (
+        {!editorOpen ? (
           <motion.div
             key="choice"
             initial={{ opacity: 0, y: 12 }}
@@ -251,7 +431,7 @@ export function WorkoutPlanEditor({
           >
             <button
               type="button"
-              onClick={goToCustom}
+              onClick={startNewPlan}
               className="glass-panel group relative overflow-hidden rounded-2xl p-8 text-left transition hover:border-[var(--neon)]/40"
             >
               <div className="pointer-events-none absolute inset-0 opacity-70 [background-image:linear-gradient(120deg,rgba(255,255,255,0.10),transparent_55%),radial-gradient(540px_260px_at_10%_10%,rgba(255,45,85,0.16),transparent_60%)]" />
@@ -262,7 +442,7 @@ export function WorkoutPlanEditor({
                 </h2>
                 <p className="text-sm text-white/65">
                   Nazwa planu, partie mięśniowe, ćwiczenia z listy lub własne,
-                  liczba powtórzeń dla każdego ruchu.
+                  liczba powtórzeń. Po zapisie plan trafi na listę powyżej.
                 </p>
               </div>
             </button>
@@ -292,7 +472,7 @@ export function WorkoutPlanEditor({
           </motion.div>
         ) : (
           <motion.div
-            key="custom"
+            key="editor"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
@@ -300,11 +480,11 @@ export function WorkoutPlanEditor({
           >
             <button
               type="button"
-              onClick={goToChoice}
+              onClick={closeEditor}
               className="inline-flex items-center gap-2 text-sm text-white/60 transition hover:text-white"
             >
               <ChevronLeft className="h-4 w-4" />
-              Wróć do wyboru sposobu
+              Zamknij edytor
             </button>
 
             <div className="glass-panel p-6">
@@ -411,8 +591,10 @@ export function WorkoutPlanEditor({
           <SheetHeader>
             <SheetTitle>Dodaj ćwiczenie</SheetTitle>
             <SheetDescription>
-              Wybierz partię mięśniową, potem ćwiczenie z listy. Możesz też
-              dodać własną nazwę, jeśli nie ma jej w katalogu.
+              Wyszukiwarka rozumie nazwy po polsku i po angielsku — w planie
+              zapisuje się polska nazwa z katalogu (np. „Single arm cable row” →
+              wiosłowanie na wyciągu). Możesz też dodać własną nazwę, jeśli nie
+              ma jej w słowniku.
             </SheetDescription>
           </SheetHeader>
 
@@ -450,25 +632,36 @@ export function WorkoutPlanEditor({
                   id="search-ex"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Filtruj po nazwie…"
+                  placeholder="Np. bench press, wyciskanie, cable row…"
                   className="h-10 border-white/15 bg-black/25 pl-9 text-white placeholder:text-white/35"
                 />
               </div>
             </div>
 
             <div className="max-h-52 space-y-1 overflow-y-auto rounded-xl border border-white/10 bg-black/20 p-2">
-              {filteredCatalog.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => addFromCatalog(item.name, item.categoryId)}
-                  className={cn(
-                    "flex w-full rounded-lg px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10",
-                  )}
-                >
-                  {item.name}
-                </button>
-              ))}
+              {filteredCatalog.map((item) => {
+                const otherPart =
+                  item.categoryId !== addCategoryId
+                    ? categoryLabel(item.categoryId)
+                    : null;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => addFromCatalog(item.name, item.categoryId)}
+                    className={cn(
+                      "flex w-full flex-col gap-0.5 rounded-lg px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10",
+                    )}
+                  >
+                    <span>{item.name}</span>
+                    {otherPart ? (
+                      <span className="text-[11px] text-white/45">
+                        Partia: {otherPart}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
               {filteredCatalog.length === 0 ? (
                 <p className="px-2 py-3 text-center text-xs text-white/45">
                   Brak wyników — zmień wyszukiwanie lub dodaj własne ćwiczenie
@@ -510,12 +703,22 @@ export function WorkoutPlanEditor({
                   <Input
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
-                    placeholder="Np. wyciskanie na maszynie Smitha"
+                    placeholder="Po polsku lub angielsku — dopasujemy do katalogu"
                     className="h-10 border-white/15 bg-black/25 text-white placeholder:text-white/35"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") addCustomExercise();
                     }}
                   />
+                  {customMatchPreview ? (
+                    <p className="text-xs text-white/55">
+                      Rozpoznano:{" "}
+                      <span className="font-medium text-[var(--neon)]">
+                        {customMatchPreview.name}
+                      </span>
+                      {" · "}
+                      {categoryLabel(customMatchPreview.categoryId)}
+                    </p>
+                  ) : null}
                   <Button
                     type="button"
                     size="sm"
@@ -523,7 +726,9 @@ export function WorkoutPlanEditor({
                     disabled={!customName.trim()}
                     className="bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
                   >
-                    Dodaj do planu (partia: {categoryLabel(addCategoryId)})
+                    {customMatchPreview
+                      ? "Dodaj rozpoznane ćwiczenie"
+                      : `Dodaj do planu (partia: ${categoryLabel(addCategoryId)})`}
                   </Button>
                 </div>
               ) : null}

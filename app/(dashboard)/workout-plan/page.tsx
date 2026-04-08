@@ -1,18 +1,16 @@
-import { getWorkoutPlan } from "@/actions/workout-plan";
+import { getWorkoutPlans } from "@/actions/workout-plan";
 import { WorkoutPlanEditor } from "@/components/workout-plan/workout-plan-editor";
 
 export default function WorkoutPlanPage() {
-  const planPromise = getWorkoutPlan();
-  return (
-    <WorkoutPlanPageInner planPromise={planPromise} />
-  );
+  const plansPromise = getWorkoutPlans();
+  return <WorkoutPlanPageInner plansPromise={plansPromise} />;
 }
 
 async function WorkoutPlanPageInner({
-  planPromise,
+  plansPromise,
 }: {
-  planPromise: ReturnType<typeof getWorkoutPlan>;
+  plansPromise: ReturnType<typeof getWorkoutPlans>;
 }) {
-  const initialPlan = await planPromise;
-  return <WorkoutPlanEditor initialPlan={initialPlan} />;
+  const initialPlans = await plansPromise;
+  return <WorkoutPlanEditor initialPlans={initialPlans} />;
 }
