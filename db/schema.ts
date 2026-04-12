@@ -78,6 +78,8 @@ export const workouts = sqliteTable("workouts", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  /** Ostatnio zapisany trening z planu — do sortowania i historii. */
+  workoutPlanId: text("workout_plan_id"),
   /** Local calendar day as YYYY-MM-DD */
   date: text("date").notNull(),
   cardioMinutes: integer("cardio_minutes").notNull().default(0),
@@ -143,11 +145,12 @@ export const workoutPlans = sqliteTable("workout_plans", {
     .$defaultFn(() => new Date()),
 });
 
-export const workoutPlansRelations = relations(workoutPlans, ({ one }) => ({
+export const workoutPlansRelations = relations(workoutPlans, ({ one, many }) => ({
   user: one(users, {
     fields: [workoutPlans.userId],
     references: [users.id],
   }),
+  workouts: many(workouts),
 }));
 
 export const weightLogs = sqliteTable("weight_logs", {
@@ -200,5 +203,9 @@ export const workoutsRelations = relations(workouts, ({ one }) => ({
   user: one(users, {
     fields: [workouts.userId],
     references: [users.id],
+  }),
+  workoutPlan: one(workoutPlans, {
+    fields: [workouts.workoutPlanId],
+    references: [workoutPlans.id],
   }),
 }));
