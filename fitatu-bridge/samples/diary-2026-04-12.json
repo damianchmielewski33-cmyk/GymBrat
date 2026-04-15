@@ -1,0 +1,21 @@
+{
+  "calories": 1920,
+  "caloriesGoal": 2300,
+  "proteinG": 140,
+  "proteinGoalG": 175,
+  "fatG": 62,
+  "fatGoalG": 78,
+  "carbsG": 205,
+  "carbsGoalG": 255,
+  "meals": [
+    {
+      "id": "a",
+      "name": "Owsianka",
+      "calories": 410,
+      "proteinG": 16,
+      "fatG": 10,
+      "carbsG": 58,
+      "loggedAt": "2026-04-12T08:00:00.000Z"
+    }
+  ]
+}

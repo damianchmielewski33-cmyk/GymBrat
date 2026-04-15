@@ -3,10 +3,85 @@ import { refreshFitatuMacros } from "@/actions/fitatu";
 import { Button } from "@/components/ui/button";
 import type { FitatuDaySummary } from "@/types/fitatu";
 
+function fmtDelta(n: number, unit: string) {
+  const r = Math.round(n);
+  if (r > 0) return `+${r} ${unit}`;
+  if (r < 0) return `${r} ${unit}`;
+  return `0 ${unit}`;
+}
+
+function RemainingBlock({
+  label,
+  remaining,
+  consumed,
+  goal,
+  unit,
+  hint,
+}: {
+  label: string;
+  remaining: number | null;
+  consumed: number;
+  goal?: number;
+  unit: string;
+  hint: string;
+}) {
+  const over =
+    remaining != null && remaining < 0 ? Math.abs(remaining) : 0;
+  const displayRemaining =
+    remaining == null ? null : remaining < 0 ? 0 : remaining;
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/55">
+        {label}
+      </p>
+      <p className="font-heading mt-2 text-3xl font-semibold tracking-tight">
+        {displayRemaining == null ? (
+          "—"
+        ) : (
+          <>
+            {Math.round(displayRemaining)}
+            <span className="ml-1 text-base font-normal text-white/55">{unit}</span>
+          </>
+        )}
+      </p>
+      <p className="mt-2 text-xs text-white/45">
+        {goal != null && Number.isFinite(goal) ? (
+          <>
+            Spożyte {Math.round(consumed)} / cel {Math.round(goal)} {unit}
+            {over > 0 ? (
+              <span className="ml-1 text-rose-300/90">
+                (nadwyżka {Math.round(over)} {unit})
+              </span>
+            ) : null}
+          </>
+        ) : (
+          <>Spożyte: {Math.round(consumed)} {unit}</>
+        )}
+      </p>
+      <p className="mt-1 text-xs text-white/35">{hint}</p>
+    </div>
+  );
+}
+
 export function TodaysMacrosSection({ data }: { data: FitatuDaySummary }) {
-  const protein = data.macros.protein;
-  const fat = data.macros.fat;
-  const carbs = data.macros.carbs;
+  const consumed = data.macros;
+  const goals = data.macroGoals;
+
+  const calGoal = data.caloriesGoal;
+  const calRem =
+    calGoal != null && Number.isFinite(calGoal)
+      ? calGoal - data.caloriesConsumed
+      : null;
+
+  const pRem =
+    goals != null && goals.protein > 0
+      ? goals.protein - consumed.protein
+      : null;
+  const fRem =
+    goals != null && goals.fat > 0 ? goals.fat - consumed.fat : null;
+  const cRem =
+    goals != null && goals.carbs > 0 ? goals.carbs - consumed.carbs : null;
 
   return (
     <div className="glass-panel relative overflow-hidden p-6">
@@ -14,13 +89,17 @@ export function TodaysMacrosSection({ data }: { data: FitatuDaySummary }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-            Dzisiejsze makra
+            Fitatu
           </p>
-          <h2 className="font-heading mt-1 text-xl font-semibold">Paliwo na dziś</h2>
+          <h2 className="font-heading mt-1 text-xl font-semibold">
+            Makra na dziś — pozostało do spożycia
+          </h2>
           <p className="mt-1 text-sm text-white/60">
-            {data.source === "mock"
-              ? "Pokazuję dane demo — skonfiguruj proxy Fitatu w env, aby pobierać na żywo."
-              : "Pobrane z integracji Fitatu (cache na edge)."}
+            {data.source === "error" && data.errorMessage
+              ? data.errorMessage
+              : data.source === "mock"
+                ? "Tryb demo — ustaw proxy i token w profilu, aby zobaczyć dane na żywo."
+                : "Dane z integracji Fitatu (cache serwera, odśwież po posiłku)."}
           </p>
         </div>
         <form action={refreshFitatuMacros}>
@@ -36,57 +115,55 @@ export function TodaysMacrosSection({ data }: { data: FitatuDaySummary }) {
         </form>
       </div>
 
-      <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/55">
-            Calories
-          </p>
-          <p className="font-heading mt-2 text-3xl font-semibold tracking-tight">
-            {Math.round(data.caloriesConsumed)}
-            <span className="ml-1 text-base font-normal text-white/55">kcal</span>
-          </p>
-          {data.caloriesGoal ? (
-            <p className="mt-2 text-xs text-white/45">
-              Cel ~{Math.round(data.caloriesGoal)} kcal
-            </p>
-          ) : (
-            <p className="mt-2 text-xs text-white/45">Brak ustawionego celu</p>
-          )}
+      {data.source === "error" ? null : (
+        <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <RemainingBlock
+            label="Kalorie"
+            remaining={calRem}
+            consumed={data.caloriesConsumed}
+            goal={calGoal}
+            unit="kcal"
+            hint="Energia na regenerację i trening"
+          />
+          <RemainingBlock
+            label="Białko"
+            remaining={pRem}
+            consumed={consumed.protein}
+            goal={goals?.protein}
+            unit="g"
+            hint="Regeneracja mięśni"
+          />
+          <RemainingBlock
+            label="Węglowodany"
+            remaining={cRem}
+            consumed={consumed.carbs}
+            goal={goals?.carbs}
+            unit="g"
+            hint="Paliwo na wysiłek"
+          />
+          <RemainingBlock
+            label="Tłuszcz"
+            remaining={fRem}
+            consumed={consumed.fat}
+            goal={goals?.fat}
+            unit="g"
+            hint="Hormony i sytość"
+          />
         </div>
+      )}
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/55">
-            Protein
-          </p>
-          <p className="font-heading mt-2 text-3xl font-semibold tracking-tight">
-            {Math.round(protein)}
-            <span className="ml-1 text-base font-normal text-white/55">g</span>
-          </p>
-          <p className="mt-2 text-xs text-white/45">Budowa i regeneracja</p>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/55">
-            Tłuszcze
-          </p>
-          <p className="font-heading mt-2 text-3xl font-semibold tracking-tight">
-            {Math.round(fat)}
-            <span className="ml-1 text-base font-normal text-white/55">g</span>
-          </p>
-          <p className="mt-2 text-xs text-white/45">Hormony i sytość</p>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/55">
-            Carbs
-          </p>
-          <p className="font-heading mt-2 text-3xl font-semibold tracking-tight">
-            {Math.round(carbs)}
-            <span className="ml-1 text-base font-normal text-white/55">g</span>
-          </p>
-          <p className="mt-2 text-xs text-white/45">Paliwo do wysiłku</p>
-        </div>
-      </div>
+      {data.source !== "error" &&
+      calRem != null &&
+      goals == null &&
+      calGoal != null ? (
+        <p className="relative mt-4 text-xs text-amber-200/80">
+          Proxy nie zwróciło celów makro (
+          <span className="font-mono">proteinGoalG</span>,{" "}
+          <span className="font-mono">carbsGoalG</span>,{" "}
+          <span className="font-mono">fatGoalG</span>) — pokazuję pełny bilans tylko dla
+          kalorii. Bilans: {fmtDelta(calRem, "kcal")} względem celu {Math.round(calGoal)} kcal.
+        </p>
+      ) : null}
     </div>
   );
 }
