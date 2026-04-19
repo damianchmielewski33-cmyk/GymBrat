@@ -137,6 +137,26 @@
     }
   }
 
+  @keyframes conic-rotate {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  @keyframes page-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .conic-spin {
+    background: conic-gradient(from 0deg, rgba(230,0,35,0.42), transparent, rgba(255,255,255,0.14), transparent);
+    animation: conic-rotate 28s linear infinite;
+    will-change: transform;
+  }
+
+  .animate-page-enter {
+    animation: page-enter 0.22s ease forwards;
+  }
+
   .glass-panel {
     @apply rounded-2xl border border-white/10 bg-white/[0.06] shadow-[0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl;
   }

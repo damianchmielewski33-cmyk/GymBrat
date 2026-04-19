@@ -8,6 +8,18 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(projectRoot),
   turbopack: {},
+
+  compress: true,
+  poweredByHeader: false,
+
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "framer-motion",
+      "@base-ui/react",
+    ],
+  },
 };
 
 export default nextConfig;

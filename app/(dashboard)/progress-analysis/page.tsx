@@ -1,7 +1,21 @@
 import { auth } from "@/auth";
 import { StatCard } from "@/components/reports/stat-card";
-import { ProgressCharts } from "@/components/progress-analysis/progress-charts";
+import dynamic from "next/dynamic";
 import { WeighInCard } from "@/components/progress-analysis/weigh-in-card";
+
+const ProgressCharts = dynamic(
+  () => import("@/components/progress-analysis/progress-charts").then((m) => m.ProgressCharts),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="glass-panel neon-glow h-[360px] animate-pulse" />
+        <div className="glass-panel neon-glow h-[360px] animate-pulse" />
+        <div className="glass-panel neon-glow h-[360px] animate-pulse lg:col-span-2" />
+      </div>
+    ),
+  },
+);
 import { getProgressAnalysisData } from "@/lib/progress-analysis";
 import { BrainCircuit, ChartLine, Dumbbell, Layers3, Sparkles } from "lucide-react";
 

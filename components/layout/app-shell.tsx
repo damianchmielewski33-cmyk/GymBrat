@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
   BarChart3,
@@ -135,18 +134,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <AnimatePresence mode="wait">
-        <motion.main
-          key={pathname}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.22 }}
-          className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 pb-28 md:pb-8"
-        >
-          {children}
-        </motion.main>
-      </AnimatePresence>
+      <main
+        key={pathname}
+        className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 pb-28 md:pb-8 animate-page-enter"
+      >
+        {children}
+      </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-black/35 backdrop-blur-xl md:hidden">
         <div className="mx-auto grid max-w-6xl grid-cols-5 gap-1 px-2 py-2">
