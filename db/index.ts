@@ -26,12 +26,8 @@ function createLibsqlClient(): Client {
 export function getDb(): Database {
   if (globalForDb.drizzle) return globalForDb.drizzle;
   const client = globalForDb.libsql ?? createLibsqlClient();
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.libsql = client;
-  }
+  globalForDb.libsql = client;
   const db = drizzle(client, { schema });
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.drizzle = db;
-  }
+  globalForDb.drizzle = db;
   return db;
 }
