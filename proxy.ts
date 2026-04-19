@@ -3,6 +3,14 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { getAuthSecret } from "@/lib/auth-secret";
 
+/** Musi być zgodne z Auth.js: na HTTPS sesja jest w `__Secure-authjs.session-token`, nie w `authjs.session-token`. */
+function isSecureSessionCookie(req: NextRequest): boolean {
+  const forwarded = req.headers.get("x-forwarded-proto");
+  if (forwarded === "https") return true;
+  if (forwarded === "http") return false;
+  return req.nextUrl.protocol === "https:";
+}
+
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
@@ -13,10 +21,16 @@ export async function proxy(req: NextRequest) {
 
   const publicPaths = new Set(["/login", "/register"]);
 
-  const token = await getToken({
-    req,
-    secret: getAuthSecret(),
-  });
+  const secret = getAuthSecret();
+  const secureCookie = isSecureSessionCookie(req);
+
+  const token =
+    secret &&
+    (await getToken({
+      req,
+      secret,
+      secureCookie,
+    }));
 
   if (publicPaths.has(pathname)) {
     if (token) {
