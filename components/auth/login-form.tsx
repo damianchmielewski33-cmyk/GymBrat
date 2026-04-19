@@ -59,21 +59,41 @@ export function LoginForm() {
         const password = String(fd.get("password") ?? "");
         setError(null);
         start(async () => {
-          const res = await signIn("credentials", {
-            email,
-            password,
-            role,
-            redirect: false,
-            callbackUrl,
-          });
-          if (res?.error) {
+          try {
+            const res = await signIn("credentials", {
+              email,
+              password,
+              role,
+              redirect: false,
+              callbackUrl,
+            });
+            if (!res) {
+              setError("Brak odpowiedzi serwera przy logowaniu.");
+              return;
+            }
+            if (res.error) {
+              setError(
+                "Nieprawidłowy e-mail lub hasło, albo typ konta (zawodnik / trener) nie zgadza się z profilem.",
+              );
+              return;
+            }
+            if (!res.ok) {
+              setError(
+                "Serwer nie zakończył logowania. Na produkcji ustaw zmienne AUTH_SECRET oraz NEXTAUTH_URL (pełny adres https aplikacji).",
+              );
+              return;
+            }
+            try {
+              const target = new URL(callbackUrl, window.location.origin).href;
+              window.location.assign(target);
+            } catch {
+              window.location.assign(`${window.location.origin}/`);
+            }
+          } catch {
             setError(
-              "Nieprawidłowy e-mail lub hasło, albo typ konta (zawodnik / trener) nie zgadza się z profilem.",
+              "Logowanie nie powiodło się (błąd klienta lub serwera). Jeśli to produkcja, sprawdź AUTH_SECRET i NEXTAUTH_URL w ustawieniach hostingu.",
             );
-            return;
           }
-          router.push(callbackUrl);
-          router.refresh();
         });
       }}
     >

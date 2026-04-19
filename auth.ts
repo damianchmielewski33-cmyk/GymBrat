@@ -72,7 +72,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             : typeof token.sub === "string"
               ? token.sub
               : undefined;
-      if (uid) token.id = uid;
+      if (uid) {
+        token.id = uid;
+        token.sub = uid;
+      }
       if (user && "role" in user && user.role) {
         token.role = user.role as "zawodnik" | "trener" | "admin";
       }

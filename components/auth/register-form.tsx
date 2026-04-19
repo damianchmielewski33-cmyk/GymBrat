@@ -96,18 +96,28 @@ export function RegisterForm() {
       return;
     }
 
-    const sign = await signIn("credentials", {
-      email: values.email.trim().toLowerCase(),
-      password: values.password,
-      role: values.role,
-      redirect: false,
-    });
-    if (sign?.error) {
-      setRootError("Konto utworzone, ale logowanie się nie powiodło. Spróbuj zalogować się ręcznie.");
+    let sign: Awaited<ReturnType<typeof signIn>> | null = null;
+    try {
+      sign = await signIn("credentials", {
+        email: values.email.trim().toLowerCase(),
+        password: values.password,
+        role: values.role,
+        redirect: false,
+        callbackUrl: "/active-workout",
+      });
+    } catch {
+      setRootError(
+        "Konto utworzone, ale logowanie się nie powiodło (błąd sesji). Ustaw AUTH_SECRET i NEXTAUTH_URL na produkcji, albo zaloguj się ręcznie.",
+      );
       return;
     }
-    router.push("/active-workout");
-    router.refresh();
+    if (!sign?.ok || sign.error) {
+      setRootError(
+        "Konto utworzone, ale logowanie się nie powiodło. Sprawdź AUTH_SECRET / NEXTAUTH_URL albo zaloguj się ręcznie.",
+      );
+      return;
+    }
+    window.location.assign(`${window.location.origin}/active-workout`);
   }
 
   return (
