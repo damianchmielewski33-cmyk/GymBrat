@@ -1,3 +1,5 @@
+"use client";
+
 import { updateWeeklyCardioGoalForm } from "@/actions/workout";
 import { ProfileGoalFormFields } from "@/components/profile/profile-goal-form-fields";
 

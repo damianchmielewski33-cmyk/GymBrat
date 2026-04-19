@@ -15,7 +15,7 @@ import { getDb } from "@/db";
 import { users, userSettings, workouts } from "@/db/schema";
 import { getReportsData } from "@/lib/reports";
 import { getWeeklyCardioProgress as getWeeklyCardioProgressData } from "@/lib/cardio";
-import { localDateKey } from "@/lib/local-date";
+import { calendarDateKey } from "@/lib/local-date";
 import { activityLevels } from "@/lib/validations/register";
 import { getTodaysMacrosCached } from "@/services/fitatu";
 
@@ -104,8 +104,8 @@ const saveWorkoutSessionSchema = z.object({
 
 function resolveWorkoutDateKey(raw: unknown): string {
   if (typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-  if (raw instanceof Date && !Number.isNaN(raw.getTime())) return localDateKey(raw);
-  return localDateKey(new Date());
+  if (raw instanceof Date && !Number.isNaN(raw.getTime())) return calendarDateKey(raw);
+  return calendarDateKey(new Date());
 }
 
 export async function saveWorkoutSession(input: unknown) {

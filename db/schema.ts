@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id")
@@ -14,7 +14,7 @@ export const users = sqliteTable("users", {
   heightCm: integer("height_cm"),
   age: integer("age"),
   activityLevel: text("activity_level"),
-  /** Konto zawodnika lub trenera — musi zgadzać się z wyborem przy logowaniu. */
+  /** Konto zawodnika lub trenera — administrator to zawsze pierwszy zarejestrowany użytkownik. */
   appRole: text("app_role").notNull().default("zawodnik"),
   fitatuAccessToken: text("fitatu_access_token"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
@@ -86,6 +86,64 @@ export const workouts = sqliteTable("workouts", {
   exercises: text("exercises").notNull(),
 });
 
+/** Wejścia na ekrany — agregacja w panelu administratora (por. page_views). */
+export const pageViews = sqliteTable(
+  "page_views",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    screenKey: text("screen_key").notNull(),
+    pathname: text("pathname").notNull(),
+    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+    visitorId: text("visitor_id").notNull(),
+    /** Przechowywane jako ISO 8601 (UTC) dla porównań z zakresem dat. */
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => [
+    index("idx_page_views_created").on(t.createdAt),
+    index("idx_page_views_screen_created").on(t.screenKey, t.createdAt),
+    index("idx_page_views_user_created").on(t.userId, t.createdAt),
+  ],
+);
+
+/** Dziennik zdarzeń (logowanie, rejestracja, akcje) do analizy zachowań. */
+export const siteActivityLog = sqliteTable("site_activity_log", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(),
+  metaJson: text("meta_json"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+/** Wpisy posiłków dodane ręcznie na stronie Start — źródło spożycia makro. */
+export const mealLogs = sqliteTable(
+  "meal_logs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** YYYY-MM-DD — dzień kalendarzowy jak w treningach / Fitatu */
+    date: text("date").notNull(),
+    name: text("name"),
+    calories: real("calories").notNull(),
+    proteinG: real("protein_g").notNull(),
+    fatG: real("fat_g").notNull(),
+    carbsG: real("carbs_g").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("idx_meal_logs_user_date").on(t.userId, t.date)],
+);
+
 export const usersRelations = relations(users, ({ many, one }) => ({
   settings: one(userSettings),
   trainingSessions: many(trainingSessions),
@@ -93,6 +151,14 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   workoutPlans: many(workoutPlans),
   weightLogs: many(weightLogs),
   bodyReports: many(bodyReports),
+  mealLogs: many(mealLogs),
+}));
+
+export const mealLogsRelations = relations(mealLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [mealLogs.userId],
+    references: [users.id],
+  }),
 }));
 
 export const bodyReportsRelations = relations(bodyReports, ({ one, many }) => ({
@@ -117,6 +183,12 @@ export const userSettings = sqliteTable("user_settings", {
   weeklyCardioGoalMinutes: integer("weekly_cardio_goal_minutes")
     .notNull()
     .default(150),
+  /** JSON: { calories, proteinG, fatG, carbsG } — cele na dzień treningowy */
+  trainingNutritionGoalsJson: text("training_nutrition_goals_json"),
+  /** JSON: { calories, proteinG, fatG, carbsG } — cele na dzień nietreningowy */
+  restNutritionGoalsJson: text("rest_nutrition_goals_json"),
+  /** JSON: Record<YYYY-MM-DD, "training" | "rest"> — brak wpisu = dzień nietreningowy */
+  nutritionDayTypesJson: text("nutrition_day_types_json"),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),

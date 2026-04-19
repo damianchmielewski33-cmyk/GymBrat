@@ -6,8 +6,9 @@ import { ProfileGoalForm } from "@/components/profile/profile-goal-form";
 import { BodyParamsForm } from "@/components/profile/body-params-form";
 import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { LogoutButton } from "@/components/profile/logout-button";
-import { Shield, User as UserIcon, UtensilsCrossed } from "lucide-react";
-import { FitatuConnectForm } from "@/components/profile/fitatu-connect-form";
+import { CalendarRange, Shield, User as UserIcon } from "lucide-react";
+import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
+import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -24,17 +25,29 @@ export default async function ProfilePage() {
       heightCm: users.heightCm,
       age: users.age,
       activityLevel: users.activityLevel,
-      fitatuAccessToken: users.fitatuAccessToken,
     })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
 
   const [s] = await db
-    .select({ goal: userSettings.weeklyCardioGoalMinutes })
+    .select({
+      goal: userSettings.weeklyCardioGoalMinutes,
+      trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
+      restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
+      nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
+    })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
     .limit(1);
+
+  const nutritionInitial = nutritionSettingsFromDbRow(
+    s ?? {
+      trainingNutritionGoalsJson: null,
+      restNutritionGoalsJson: null,
+      nutritionDayTypesJson: null,
+    },
+  );
 
   return (
     <div className="space-y-8">
@@ -106,27 +119,32 @@ export default async function ProfilePage() {
           </div>
         </section>
 
-        <section className="glass-panel relative overflow-hidden p-8">
-          <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(200deg,rgba(255,255,255,0.06),transparent_50%),radial-gradient(640px_280px_at_50%_0%,rgba(255,45,85,0.12),transparent_55%)]" />
+        <section className="glass-panel relative overflow-hidden p-8 lg:col-span-2">
+          <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(160deg,rgba(255,255,255,0.07),transparent_52%),radial-gradient(680px_300px_at_20%_90%,rgba(255,45,85,0.10),transparent_58%)]" />
           <div className="relative space-y-6">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-                  Dieta
+                  Makra i kalendarz
                 </p>
                 <h2 className="font-heading mt-2 text-xl font-semibold">
-                  Fitatu
+                  Cele dzienne trening / odpoczynek
                 </h2>
                 <p className="mt-2 text-sm text-white/60">
-                  Połącz konto Fitatu przez proxy (email i hasło lub token). Na stronie Start
-                  zobaczysz dzienne makra i to, ile zostało do wykorzystania względem celu.
+                  Ustal kalorie i makra dla obu typów dni oraz klikaj dni w kalendarzu,
+                  aby oznaczyć trening lub odpoczynek (domyślnie: odpoczynek). Spożycie
+                  na stronie Start wynika z Twoich wpisów posiłków; tutaj definiujesz cele.
                 </p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">
-                <UtensilsCrossed className="h-5 w-5 text-[var(--neon)]" />
+                <CalendarRange className="h-5 w-5 text-[var(--neon)]" />
               </div>
             </div>
-            <FitatuConnectForm connected={Boolean(u?.fitatuAccessToken)} />
+            <NutritionPlanSection
+              initialTraining={nutritionInitial.training}
+              initialRest={nutritionInitial.rest}
+              initialDayTypes={nutritionInitial.dayTypes}
+            />
           </div>
         </section>
 

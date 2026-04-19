@@ -64,7 +64,14 @@ function RemainingBlock({
   );
 }
 
-export function TodaysMacrosSection({ data }: { data: FitatuDaySummary }) {
+export function TodaysMacrosSection({
+  data,
+  consumptionHint,
+}: {
+  data: FitatuDaySummary;
+  /** Opcjonalny tekst pod nagłówkiem (np. cele z profilu). */
+  consumptionHint?: string;
+}) {
   const consumed = data.macros;
   const goals = data.macroGoals;
 
@@ -89,7 +96,7 @@ export function TodaysMacrosSection({ data }: { data: FitatuDaySummary }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-            Fitatu
+            Żywienie
           </p>
           <h2 className="font-heading mt-1 text-xl font-semibold">
             Makra na dziś — pozostało do spożycia
@@ -97,9 +104,11 @@ export function TodaysMacrosSection({ data }: { data: FitatuDaySummary }) {
           <p className="mt-1 text-sm text-white/60">
             {data.source === "error" && data.errorMessage
               ? data.errorMessage
-              : data.source === "mock"
-                ? "Tryb demo — ustaw proxy i token w profilu, aby zobaczyć dane na żywo."
-                : "Dane z integracji Fitatu (cache serwera, odśwież po posiłku)."}
+              : consumptionHint
+                ? consumptionHint
+                : data.source === "mock"
+                  ? "Tryb demo — dodaj posiłek lub ustaw proxy i token w profilu, aby zobaczyć dane na żywo."
+                  : "Dodawaj posiłki przyciskiem na górze strony; bez wpisów — dane z integracji Fitatu (cache, odśwież po posiłku)."}
           </p>
         </div>
         <form action={refreshFitatuMacros}>

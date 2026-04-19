@@ -1,4 +1,4 @@
-export type AppRole = "zawodnik" | "trener";
+export type AppRole = "zawodnik" | "trener" | "admin";
 
 export function roleFromSearchParam(value: string | null): AppRole {
   return value === "trener" ? "trener" : "zawodnik";

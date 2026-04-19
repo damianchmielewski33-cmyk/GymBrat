@@ -3,7 +3,7 @@
 import { hash } from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { userSettings, users } from "@/db/schema";
+import { siteActivityLog, userSettings, users } from "@/db/schema";
 import {
   registerSchema,
   type RegisterInput,
@@ -45,6 +45,7 @@ export async function registerUser(
   const userId = crypto.randomUUID();
   const displayName = `${data.firstName} ${data.lastName}`.trim();
 
+  const now = new Date();
   await db.insert(users).values({
     id: userId,
     email,
@@ -57,10 +58,17 @@ export async function registerUser(
     age: data.age,
     activityLevel: data.activityLevel,
     appRole: data.role,
+    createdAt: now,
   });
   await db.insert(userSettings).values({
     userId,
     weeklyCardioGoalMinutes: 150,
+  });
+
+  await db.insert(siteActivityLog).values({
+    userId,
+    action: "Rejestracja konta",
+    metaJson: JSON.stringify({ role: data.role }),
   });
 
   return { ok: true };

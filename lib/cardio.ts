@@ -1,7 +1,7 @@
 import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { trainingSessions, userSettings, workouts } from "@/db/schema";
-import { localDateKey } from "@/lib/local-date";
+import { calendarDateKey } from "@/lib/local-date";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -22,8 +22,8 @@ export async function getWeeklyCardioProgress(userId: string) {
 
   const weeklyGoal = goalRow?.goal ?? 150;
 
-  const todayKey = localDateKey(now);
-  const minWorkoutDateKey = localDateKey(weekAgo);
+  const todayKey = calendarDateKey(now);
+  const minWorkoutDateKey = calendarDateKey(weekAgo);
 
   const [fromWorkouts] = await db
     .select({

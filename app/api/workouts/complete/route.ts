@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { workoutPlans, workouts } from "@/db/schema";
-import { localDateKey } from "@/lib/local-date";
+import { calendarDateKey } from "@/lib/local-date";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     }
   }
 
-  const dateKey = localDateKey(startedAt);
+  const dateKey = calendarDateKey(startedAt);
   await db.insert(workouts).values({
     userId: session.user.id,
     workoutPlanId: rawPlanId,

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { userSettings, workouts } from "@/db/schema";
-import { localDateKey } from "@/lib/local-date";
+import { calendarDateKey } from "@/lib/local-date";
 
 export async function logCardioFormAction(formData: FormData) {
   const title = String(formData.get("title") ?? "Cardio").trim() || "Cardio";
@@ -22,7 +22,7 @@ export async function logTrainingSession(input: {
   if (!session?.user?.id) return { ok: false as const, error: "Unauthorized" };
 
   const db = getDb();
-  const dateKey = localDateKey(new Date());
+  const dateKey = calendarDateKey(new Date());
   await db.insert(workouts).values({
     userId: session.user.id,
     date: dateKey,

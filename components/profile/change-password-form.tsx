@@ -1,16 +1,13 @@
-import { changePasswordFormAction } from "@/actions/profile";
+"use client";
+
+import { changePasswordFormActionVoid } from "@/actions/profile";
 import { SubmitButton } from "@/components/home/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function ChangePasswordForm() {
   return (
-    <form
-      className="space-y-5"
-      action={async (formData) => {
-        await changePasswordFormAction(formData);
-      }}
-    >
+    <form className="space-y-5" action={changePasswordFormActionVoid}>
       <div className="space-y-2">
         <Label htmlFor="currentPassword">Obecne hasło</Label>
         <Input

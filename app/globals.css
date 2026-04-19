@@ -49,60 +49,65 @@
 }
 
 :root {
-  --gym-black: #0d0d0d;
-  --gym-gray: #1a1a1a;
-  --gym-red: #e60023;
-  --gym-metal: #2b2b2b;
-  --gym-glass: rgba(255, 255, 255, 0.08);
+  /* Core gym palette — raw iron & street */
+  --gym-black:   #070708;
+  --gym-gray:    #141416;
+  --gym-red:     #e60023;
+  --gym-iron:    #1c1c1f;
+  --gym-chrome:  #2e2e33;
+  --gym-glass:   rgba(255, 255, 255, 0.07);
 
-  --neon: var(--gym-red);
+  --neon:    var(--gym-red);
   --metal-1: var(--gym-gray);
   --metal-2: var(--gym-black);
-  --glass: var(--gym-glass);
+  --glass:   var(--gym-glass);
 
-  --background: var(--gym-black);
-  --foreground: rgba(255, 255, 255, 0.92);
+  --background:         var(--gym-black);
+  --foreground:         rgba(255, 255, 255, 0.92);
 
-  --card: rgba(255, 255, 255, 0.04);
-  --card-foreground: var(--foreground);
-  --popover: rgba(13, 13, 13, 0.85);
+  --card:               rgba(255, 255, 255, 0.038);
+  --card-foreground:    var(--foreground);
+  --popover:            rgba(10, 10, 12, 0.92);
   --popover-foreground: var(--foreground);
 
-  --primary: var(--gym-red);
+  --primary:            var(--gym-red);
   --primary-foreground: #ffffff;
-  --secondary: rgba(255, 255, 255, 0.06);
+  --secondary:          rgba(255, 255, 255, 0.055);
   --secondary-foreground: rgba(255, 255, 255, 0.92);
-  --muted: rgba(255, 255, 255, 0.06);
-  --muted-foreground: rgba(255, 255, 255, 0.68);
-  --accent: rgba(255, 255, 255, 0.08);
-  --accent-foreground: rgba(255, 255, 255, 0.92);
-  --destructive: #ff3347;
-  --border: rgba(255, 255, 255, 0.12);
-  --input: rgba(255, 255, 255, 0.14);
-  --ring: rgba(230, 0, 35, 0.55);
+  --muted:              rgba(255, 255, 255, 0.055);
+  --muted-foreground:   rgba(255, 255, 255, 0.62);
+  --accent:             rgba(255, 255, 255, 0.07);
+  --accent-foreground:  rgba(255, 255, 255, 0.92);
+  --destructive:        #ff3347;
+  --border:             rgba(255, 255, 255, 0.10);
+  --input:              rgba(255, 255, 255, 0.12);
+  --ring:               rgba(230, 0, 35, 0.60);
 
-  --chart-1: rgba(230, 0, 35, 0.95);
+  --chart-1: rgba(230, 0,  35,  0.95);
   --chart-2: rgba(255, 255, 255, 0.88);
-  --chart-3: rgba(255, 255, 255, 0.66);
-  --chart-4: rgba(255, 255, 255, 0.46);
-  --chart-5: rgba(255, 255, 255, 0.30);
+  --chart-3: rgba(255, 255, 255, 0.64);
+  --chart-4: rgba(255, 255, 255, 0.44);
+  --chart-5: rgba(255, 255, 255, 0.28);
+
   --radius: 0.625rem;
-  --sidebar: rgba(13, 13, 13, 0.75);
-  --sidebar-foreground: rgba(255, 255, 255, 0.92);
-  --sidebar-primary: var(--gym-red);
+
+  --sidebar:                   rgba(10, 10, 12, 0.82);
+  --sidebar-foreground:        rgba(255, 255, 255, 0.92);
+  --sidebar-primary:           var(--gym-red);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent:            rgba(255, 255, 255, 0.07);
   --sidebar-accent-foreground: rgba(255, 255, 255, 0.92);
-  --sidebar-border: rgba(255, 255, 255, 0.12);
-  --sidebar-ring: rgba(230, 0, 35, 0.55);
+  --sidebar-border:            rgba(255, 255, 255, 0.10);
+  --sidebar-ring:              rgba(230, 0, 35, 0.60);
 }
 
 .dark {
-  --gym-black: #0d0d0d;
-  --gym-gray: #1a1a1a;
-  --gym-red: #e60023;
-  --gym-metal: #2b2b2b;
-  --gym-glass: rgba(255, 255, 255, 0.08);
+  --gym-black:  #070708;
+  --gym-gray:   #141416;
+  --gym-red:    #e60023;
+  --gym-iron:   #1c1c1f;
+  --gym-chrome: #2e2e33;
+  --gym-glass:  rgba(255, 255, 255, 0.07);
 }
 
 @layer base {
@@ -112,9 +117,9 @@
   body {
     @apply min-h-screen bg-background text-foreground antialiased;
     background-image:
-      linear-gradient(180deg, rgba(26, 26, 26, 0.65) 0%, rgba(13, 13, 13, 0.98) 55%, rgba(13, 13, 13, 1) 100%),
-      radial-gradient(1100px 700px at 15% -12%, rgba(230, 0, 35, 0.22), transparent 60%),
-      radial-gradient(900px 560px at 88% 8%, rgba(255, 255, 255, 0.06), transparent 55%);
+      radial-gradient(ellipse 1600px 950px at -6% -12%, rgba(230, 0, 35, 0.26), transparent 58%),
+      radial-gradient(ellipse 900px 650px at 108% 108%, rgba(160, 18, 0, 0.13), transparent 56%),
+      linear-gradient(180deg, #111113 0%, #090909 35%, #070708 100%);
   }
   html {
     @apply font-sans;
@@ -122,19 +127,11 @@
 }
 
 @layer utilities {
+  /* ── Animations ── */
   @keyframes gym-ambient-shift {
-    0% {
-      transform: translate3d(-2%, -1%, 0) rotate(0deg);
-      filter: hue-rotate(0deg);
-    }
-    50% {
-      transform: translate3d(2%, 1%, 0) rotate(6deg);
-      filter: hue-rotate(6deg);
-    }
-    100% {
-      transform: translate3d(-2%, -1%, 0) rotate(0deg);
-      filter: hue-rotate(0deg);
-    }
+    0%   { transform: translate3d(-2%, -1%, 0) rotate(0deg);  filter: hue-rotate(0deg); }
+    50%  { transform: translate3d(2%,   1%, 0) rotate(6deg);  filter: hue-rotate(5deg); }
+    100% { transform: translate3d(-2%, -1%, 0) rotate(0deg);  filter: hue-rotate(0deg); }
   }
 
   @keyframes conic-rotate {
@@ -143,62 +140,146 @@
   }
 
   @keyframes page-enter {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  @keyframes iron-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 0 1px rgba(230, 0, 35, 0.40),
+        0 0 40px rgba(230, 0, 35, 0.20);
+    }
+    50% {
+      box-shadow:
+        0 0 0 1px rgba(230, 0, 35, 0.60),
+        0 0 70px rgba(230, 0, 35, 0.32);
+    }
+  }
+
+  /* ── Spin utility ── */
   .conic-spin {
-    background: conic-gradient(from 0deg, rgba(230,0,35,0.42), transparent, rgba(255,255,255,0.14), transparent);
-    animation: conic-rotate 28s linear infinite;
+    background: conic-gradient(
+      from 0deg,
+      rgba(230, 0, 35, 0.45),
+      transparent,
+      rgba(255, 255, 255, 0.12),
+      transparent
+    );
+    animation: conic-rotate 30s linear infinite;
     will-change: transform;
   }
 
   .animate-page-enter {
-    animation: page-enter 0.22s ease forwards;
+    animation: page-enter 0.24s ease forwards;
   }
 
+  /* ── Panels ── */
   .glass-panel {
-    @apply rounded-2xl border border-white/10 bg-white/[0.06] shadow-[0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-top-color: rgba(255, 255, 255, 0.22);
+    border-left-color: rgba(255, 255, 255, 0.14);
+    background: linear-gradient(
+      148deg,
+      rgba(255, 255, 255, 0.078) 0%,
+      rgba(255, 255, 255, 0.028) 100%
+    );
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.10) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.40) inset,
+      0 14px 56px rgba(0, 0, 0, 0.60),
+      0 2px 8px rgba(0, 0, 0, 0.40);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
   }
+
+  /* Iron plate panel — heavier, less transparent, like a steel surface */
+  .iron-panel {
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top-color: rgba(255, 255, 255, 0.18);
+    background: linear-gradient(
+      148deg,
+      rgba(40, 40, 44, 0.96) 0%,
+      rgba(18, 18, 21, 0.98) 100%
+    );
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.08) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.55) inset,
+      0 10px 40px rgba(0, 0, 0, 0.65);
+  }
+
+  /* ── Glow effects ── */
   .neon-glow {
     box-shadow:
-      0 0 0 1px rgba(230, 0, 35, 0.38),
-      0 0 46px rgba(230, 0, 35, 0.22);
+      0 0 0 1px rgba(230, 0, 35, 0.45),
+      0 0 28px rgba(230, 0, 35, 0.26),
+      0 0 80px rgba(230, 0, 35, 0.10);
   }
 
+  .street-glow {
+    box-shadow:
+      0 0 0 1px rgba(230, 0, 35, 0.55),
+      0 0 20px rgba(230, 0, 35, 0.35),
+      0 0 60px rgba(230, 0, 35, 0.18),
+      0 0 120px rgba(230, 0, 35, 0.07);
+  }
+
+  .neon-pulse {
+    animation: iron-pulse 2.4s ease-in-out infinite;
+  }
+
+  /* ── Text effects ── */
   .metallic-text {
     background-image: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.92) 0%,
-      rgba(255, 255, 255, 0.55) 35%,
-      rgba(200, 200, 220, 0.85) 60%,
-      rgba(255, 255, 255, 0.75) 100%
+      165deg,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(210, 210, 225, 0.82) 22%,
+      rgba(255, 255, 255, 0.62) 40%,
+      rgba(185, 185, 210, 0.90) 58%,
+      rgba(255, 255, 255, 0.88) 74%,
+      rgba(200, 200, 225, 0.72) 100%
     );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.08),
-      0 18px 60px rgba(0, 0, 0, 0.55),
-      0 0 30px rgba(230, 0, 35, 0.30);
+    filter: drop-shadow(0 0 22px rgba(230, 0, 35, 0.28));
   }
 
+  /* ── Background surfaces ── */
   .metal-surface {
     background-image:
-      radial-gradient(1200px 900px at 20% 10%, rgba(255, 255, 255, 0.06), transparent 60%),
-      radial-gradient(900px 700px at 85% 15%, rgba(230, 0, 35, 0.10), transparent 60%),
-      linear-gradient(180deg, rgba(43, 43, 43, 0.55), rgba(13, 13, 13, 0.85));
+      radial-gradient(1200px 900px at 20% 10%, rgba(255, 255, 255, 0.055), transparent 60%),
+      radial-gradient(900px 700px at 85% 15%, rgba(230, 0, 35, 0.09), transparent 60%),
+      linear-gradient(180deg, rgba(46, 46, 51, 0.55), rgba(10, 10, 12, 0.85));
   }
 
   .animated-ambient {
-    animation: gym-ambient-shift 18s ease-in-out infinite;
+    animation: gym-ambient-shift 20s ease-in-out infinite;
     will-change: transform, filter;
   }
 
   .grain-overlay {
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
-    background-size: 140px 140px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.4'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
     mix-blend-mode: overlay;
+  }
+
+  /* ── Hazard accent ── diagonal danger stripe used as a decorative edge ── */
+  .hazard-accent {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(230, 0, 35, 0.75) 0px,
+      rgba(230, 0, 35, 0.75) 3px,
+      transparent 3px,
+      transparent 18px
+    );
+  }
+
+  /* ── Chrome edge ── top highlight simulating machined metal ── */
+  .chrome-edge {
+    border-top: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
   }
 }

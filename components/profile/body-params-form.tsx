@@ -1,3 +1,5 @@
+"use client";
+
 import { updateBodyParamsFormActionVoid } from "@/actions/profile";
 import { BodyParamsFormFields } from "@/components/profile/body-params-form-fields";
 

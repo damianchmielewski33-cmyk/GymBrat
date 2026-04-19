@@ -3,7 +3,31 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { fitatuTag } from "@/lib/cache-tags";
+import { kcalFromMacros } from "@/lib/kcal-from-macros";
+import { calendarDateKey } from "@/lib/local-date";
 import type { FitatuDaySummary } from "@/types/fitatu";
+
+/** Spójnie z resztą aplikacji: kcal tylko z makr (dzień i posiłki). */
+function normalizeFitatuSummary(s: FitatuDaySummary): FitatuDaySummary {
+  const mg = s.macroGoals;
+  const caloriesGoal =
+    mg != null && mg.protein + mg.fat + mg.carbs > 0
+      ? kcalFromMacros(mg.protein, mg.fat, mg.carbs)
+      : s.caloriesGoal;
+  return {
+    ...s,
+    caloriesConsumed: kcalFromMacros(
+      s.macros.protein,
+      s.macros.fat,
+      s.macros.carbs,
+    ),
+    caloriesGoal,
+    meals: s.meals.map((m) => ({
+      ...m,
+      calories: kcalFromMacros(m.proteinG, m.fatG, m.carbsG),
+    })),
+  };
+}
 
 function errorSummary(date: string, message: string): FitatuDaySummary {
   return {
@@ -110,16 +134,16 @@ async function fetchFitatuDayFromRemote(
     data.meals?.map((m, i) => ({
       id: m.id ?? `meal-${i}`,
       name: m.name ?? "Posiłek",
-      calories: Number(m.calories ?? 0),
+      calories: 0,
       proteinG: Number(m.proteinG ?? 0),
       fatG: Number(m.fatG ?? 0),
       carbsG: Number(m.carbsG ?? 0),
       loggedAt: m.loggedAt ?? `${date}T12:00:00.000Z`,
     })) ?? [];
 
-  return {
+  const raw: FitatuDaySummary = {
     date,
-    caloriesConsumed: Number(data.calories ?? 0),
+    caloriesConsumed: 0,
     caloriesGoal:
       data.caloriesGoal != null ? Number(data.caloriesGoal) : undefined,
     macros: {
@@ -137,12 +161,14 @@ async function fetchFitatuDayFromRemote(
     meals,
     source: "live",
   };
+
+  return normalizeFitatuSummary(raw);
 }
 
 function mockSummary(date: string): FitatuDaySummary {
-  return {
+  const raw: FitatuDaySummary = {
     date,
-    caloriesConsumed: 1840,
+    caloriesConsumed: 0,
     caloriesGoal: 2200,
     macros: { protein: 142, fat: 58, carbs: 198 },
     macroGoals: { protein: 180, fat: 75, carbs: 250 },
@@ -150,7 +176,7 @@ function mockSummary(date: string): FitatuDaySummary {
       {
         id: "1",
         name: "Owsianka z owocami",
-        calories: 420,
+        calories: 0,
         proteinG: 18,
         fatG: 12,
         carbsG: 58,
@@ -159,7 +185,7 @@ function mockSummary(date: string): FitatuDaySummary {
       {
         id: "2",
         name: "Bowl z kurczakiem",
-        calories: 720,
+        calories: 0,
         proteinG: 62,
         fatG: 22,
         carbsG: 64,
@@ -168,7 +194,7 @@ function mockSummary(date: string): FitatuDaySummary {
       {
         id: "3",
         name: "Jogurt grecki",
-        calories: 180,
+        calories: 0,
         proteinG: 18,
         fatG: 4,
         carbsG: 14,
@@ -177,17 +203,24 @@ function mockSummary(date: string): FitatuDaySummary {
     ],
     source: "mock",
   };
+  return normalizeFitatuSummary(raw);
 }
 
-export function getTodaysMacrosCached(userId: string) {
-  const date = new Date().toISOString().slice(0, 10);
+/** Dziennik Fitatu dla dowolnej daty YYYY-MM-DD (cache per dzień). */
+export function getFitatuDayCached(userId: string, date: string) {
   return unstable_cache(
     async () => {
       const remote = await fetchFitatuDayFromRemote(userId, date);
       if (remote) return remote;
       return mockSummary(date);
     },
-    ["fitatu-today", userId, date],
+    ["fitatu-day", userId, date],
     { revalidate: 300, tags: [fitatuTag(userId)] },
   )();
+}
+
+/** Dzisiejszy dzień w kalendarzu lokalnym serwera (spójnie z treningami / profilem). */
+export function getTodaysMacrosCached(userId: string) {
+  const date = calendarDateKey(new Date());
+  return getFitatuDayCached(userId, date);
 }

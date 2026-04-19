@@ -2,7 +2,8 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { siteActivityLog, users } from "@/db/schema";
+import { getFounderUserId } from "@/lib/admin-session";
 import { getAuthSecret } from "@/lib/auth-secret";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -36,9 +37,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await compare(password, user.passwordHash);
         if (!valid) return null;
 
-        const storedRole =
-          (user.appRole as "zawodnik" | "trener" | null | undefined) ??
-          "zawodnik";
+        const founderId = await getFounderUserId();
+        if (founderId === user.id) {
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name ?? undefined,
+            role: "admin",
+          };
+        }
+
+        const storedRaw = user.appRole ?? "zawodnik";
+        const storedRole = storedRaw === "trener" ? "trener" : "zawodnik";
+
         if (storedRole !== role) return null;
 
         return {
@@ -53,19 +64,46 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30 },
   callbacks: {
     jwt({ token, user }) {
-      if (user?.id) token.id = user.id;
+      const uid =
+        typeof user?.id === "string"
+          ? user.id
+          : typeof token.id === "string"
+            ? token.id
+            : typeof token.sub === "string"
+              ? token.sub
+              : undefined;
+      if (uid) token.id = uid;
       if (user && "role" in user && user.role) {
-        token.role = user.role as "zawodnik" | "trener";
+        token.role = user.role as "zawodnik" | "trener" | "admin";
       }
       return token;
     },
     session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
+      if (session.user) {
+        const id =
+          (typeof token.id === "string" ? token.id : undefined) ??
+          (typeof token.sub === "string" ? token.sub : undefined);
+        if (id) session.user.id = id;
         session.user.role =
-          (token.role as "zawodnik" | "trener" | undefined) ?? "zawodnik";
+          (token.role as "zawodnik" | "trener" | "admin" | undefined) ??
+          "zawodnik";
       }
       return session;
+    },
+  },
+  events: {
+    async signIn({ user }) {
+      try {
+        const id = user?.id;
+        if (!id || typeof id !== "string") return;
+        const db = getDb();
+        await db.insert(siteActivityLog).values({
+          userId: id,
+          action: "Logowanie",
+        });
+      } catch {
+        /* nie blokuj logowania przy błędzie zapisu */
+      }
     },
   },
 });

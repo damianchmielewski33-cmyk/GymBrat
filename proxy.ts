@@ -5,6 +5,12 @@ import { getAuthSecret } from "@/lib/auth-secret";
 
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
+
+  /** Anonimowe zliczanie wejść — bez JWT (por. tracker klienta). */
+  if (pathname.startsWith("/api/analytics/")) {
+    return NextResponse.next();
+  }
+
   const publicPaths = new Set(["/login", "/register"]);
 
   const token = await getToken({
