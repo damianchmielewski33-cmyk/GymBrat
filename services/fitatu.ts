@@ -207,16 +207,39 @@ function mockSummary(date: string): FitatuDaySummary {
 }
 
 /** Dziennik Fitatu dla dowolnej daty YYYY-MM-DD (cache per dzień). */
-export function getFitatuDayCached(userId: string, date: string) {
-  return unstable_cache(
-    async () => {
+export async function getFitatuDayCached(
+  userId: string,
+  date: string,
+): Promise<FitatuDaySummary> {
+  try {
+    return await unstable_cache(
+      async () => {
+        try {
+          const remote = await fetchFitatuDayFromRemote(userId, date);
+          if (remote) return remote;
+          return mockSummary(date);
+        } catch (err) {
+          console.error("[fitatu] load inside cache", { userId, date, err });
+          return mockSummary(date);
+        }
+      },
+      ["fitatu-day", userId, date],
+      { revalidate: 300, tags: [fitatuTag(userId)] },
+    )();
+  } catch (err) {
+    console.error("[fitatu] unstable_cache failed, fallback bez cache", {
+      userId,
+      date,
+      err,
+    });
+    try {
       const remote = await fetchFitatuDayFromRemote(userId, date);
       if (remote) return remote;
-      return mockSummary(date);
-    },
-    ["fitatu-day", userId, date],
-    { revalidate: 300, tags: [fitatuTag(userId)] },
-  )();
+    } catch (e2) {
+      console.error("[fitatu] direct fetch after cache error", e2);
+    }
+    return mockSummary(date);
+  }
 }
 
 /** Dzisiejszy dzień w kalendarzu lokalnym serwera (spójnie z treningami / profilem). */

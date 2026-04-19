@@ -17,6 +17,7 @@ import { resolveProfileDayGoals } from "@/lib/nutrition-goals";
 import { buildWeekNutritionRows } from "@/lib/week-nutrition-rows";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Zap, Activity } from "lucide-react";
 
 function kcalProgress(consumed: number, goal: number) {
@@ -26,8 +27,14 @@ function kcalProgress(consumed: number, goal: number) {
 }
 
 export default async function HomePage() {
-  const session = await auth();
-  const userId = session!.user!.id;
+  const session = await auth().catch((err) => {
+    console.error("[home] auth()", err);
+    return null;
+  });
+  const userId = session?.user?.id;
+  if (!userId) {
+    redirect("/login?callbackUrl=/");
+  }
 
   const db = getDb();
   const [settingsRow] = await db
