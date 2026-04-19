@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { PieChart, Target } from "lucide-react";
 import type { WeekDayNutritionRow } from "@/lib/week-nutrition-rows";
 import type { NutritionWeekRollup } from "@/lib/nutrition-goals";
+import type { PreviousWeekNutritionSheetWeek } from "@/lib/nutrition-dashboard";
 import {
   Sheet,
   SheetContent,
@@ -37,7 +38,10 @@ type Props = {
     | "sumFatConsumed"
     | "sumCarbsGoal"
     | "sumCarbsConsumed"
+    | "sumCaloriesGoal"
+    | "sumCaloriesConsumed"
   >;
+  previousWeeks?: PreviousWeekNutritionSheetWeek[];
 };
 
 function BarBlock({
@@ -107,6 +111,7 @@ export function NutritionProgressBars({
   weekDayRows,
   sheetTodayKey,
   weekNutritionRollup,
+  previousWeeks,
 }: Props) {
   const weekBlock = (
     <BarBlock
@@ -153,6 +158,7 @@ export function NutritionProgressBars({
                 rows={weekDayRows}
                 todayKey={sheetTodayKey}
                 weekRollup={weekNutritionRollup}
+                previousWeeks={previousWeeks}
               />
             </div>
           </SheetContent>

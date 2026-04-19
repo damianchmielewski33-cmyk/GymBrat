@@ -9,7 +9,10 @@ import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { getHomeStats } from "@/lib/home-stats";
 import { listMealLogsForDay } from "@/lib/meal-logs";
-import { loadNutritionDashboard } from "@/lib/nutrition-dashboard";
+import {
+  loadNutritionDashboard,
+  loadPreviousWeeksForSheet,
+} from "@/lib/nutrition-dashboard";
 import { resolveProfileDayGoals } from "@/lib/nutrition-goals";
 import { buildWeekNutritionRows } from "@/lib/week-nutrition-rows";
 import { eq } from "drizzle-orm";
@@ -38,6 +41,11 @@ export default async function HomePage() {
     .limit(1);
 
   const dash = await loadNutritionDashboard(userId, settingsRow);
+  const previousWeeks = await loadPreviousWeeksForSheet(
+    userId,
+    dash.settings,
+    dash.todayKey,
+  );
   const profileGoalsToday = resolveProfileDayGoals(
     dash.settings,
     dash.todayKey,
@@ -121,7 +129,10 @@ export default async function HomePage() {
             sumFatConsumed: dash.week.sumFatConsumed,
             sumCarbsGoal: dash.week.sumCarbsGoal,
             sumCarbsConsumed: dash.week.sumCarbsConsumed,
+            sumCaloriesGoal: dash.week.sumCaloriesGoal,
+            sumCaloriesConsumed: dash.week.sumCaloriesConsumed,
           }}
+          previousWeeks={previousWeeks}
         />
       </section>
 

@@ -110,3 +110,31 @@ export function weekDateKeysMondayFirst(anchorDateKey: string): string[] {
   }
   return keys;
 }
+
+/** Etykieta zakresu „7–13 kwietnia 2026” / „28 kwietnia 2026 – 4 maja 2026” (kalendarz PL). */
+export function formatPlCalendarRange(weekStart: string, weekEnd: string): string {
+  const parse = (k: string) => {
+    const [y, m, d] = k.split("-").map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0, 0);
+  };
+  const a = parse(weekStart);
+  const b = parse(weekEnd);
+  const sameMonthYear =
+    a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+
+  const dayNum = (dt: Date) =>
+    new Intl.DateTimeFormat("pl-PL", { day: "numeric" }).format(dt);
+  const monthYear = (dt: Date) =>
+    new Intl.DateTimeFormat("pl-PL", { month: "long", year: "numeric" }).format(dt);
+  const full = (dt: Date) =>
+    new Intl.DateTimeFormat("pl-PL", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(dt);
+
+  if (sameMonthYear) {
+    return `${dayNum(a)}–${dayNum(b)} ${monthYear(a)}`;
+  }
+  return `${full(a)} – ${full(b)}`;
+}
