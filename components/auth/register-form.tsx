@@ -6,7 +6,7 @@ import { Dumbbell, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { registerUser, sendRegisterCode, type RegisterState } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ export function RegisterForm() {
   const roleFromUrl = roleFromSearchParam(searchParams.get("role"));
   const role = trainerEnabled ? roleFromUrl : "zawodnik";
   const [rootError, setRootError] = useState<string | null>(null);
+  const passwordRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (trainerEnabled) return;
@@ -80,8 +81,36 @@ export function RegisterForm() {
 
   const activityLevel = watch("activityLevel");
   const emailValue = watch("email");
+  const emailCodeValue = watch("emailCode");
   const [codeInfo, setCodeInfo] = useState<string | null>(null);
   const [sendingCode, setSendingCode] = useState(false);
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+
+  const cooldownSeconds = useMemo(() => {
+    if (!cooldownUntil) return 0;
+    const diffMs = cooldownUntil - Date.now();
+    return diffMs > 0 ? Math.ceil(diffMs / 1000) : 0;
+  }, [cooldownUntil]);
+
+  useEffect(() => {
+    if (!cooldownUntil) return;
+    if (cooldownSeconds <= 0) return;
+    const t = window.setInterval(() => {
+      setCooldownUntil((v) => (v && v > Date.now() ? v : null));
+    }, 250);
+    return () => window.clearInterval(t);
+  }, [cooldownUntil, cooldownSeconds]);
+
+  useEffect(() => {
+    const raw = (emailCodeValue ?? "").toString();
+    const digits = raw.replace(/\D/g, "").slice(0, 6);
+    if (digits !== raw) {
+      setValue("emailCode", digits, { shouldValidate: digits.length === 6 });
+    }
+    if (digits.length === 6) {
+      queueMicrotask(() => passwordRef.current?.focus());
+    }
+  }, [emailCodeValue, setValue]);
 
   async function onSubmit(values: RegisterFormValues) {
     setRootError(null);
@@ -124,6 +153,8 @@ export function RegisterForm() {
     }
     window.location.assign(`${window.location.origin}/active-workout`);
   }
+
+  const { ref: passwordRhfRef, ...passwordRegister } = register("password");
 
   return (
     <motion.div
@@ -245,7 +276,7 @@ export function RegisterForm() {
                   </div>
                   <Button
                     type="button"
-                    disabled={sendingCode || !emailValue?.trim()}
+                    disabled={sendingCode || !emailValue?.trim() || cooldownSeconds > 0}
                     className="h-10 shrink-0 bg-white/10 text-white hover:bg-white/15"
                     onClick={async () => {
                       setRootError(null);
@@ -263,6 +294,7 @@ export function RegisterForm() {
                           return;
                         }
                         setCodeInfo("Kod wysłany. Sprawdź skrzynkę (oraz SPAM) i wpisz 6 cyfr.");
+                        setCooldownUntil(Date.now() + 60_000);
                       } catch {
                         setRootError(
                           "Nie udało się wysłać kodu. Sprawdź konfigurację e-mail na produkcji (RESEND_API_KEY, EMAIL_FROM).",
@@ -272,7 +304,11 @@ export function RegisterForm() {
                       }
                     }}
                   >
-                    {sendingCode ? "Wysyłanie…" : "Wyślij kod"}
+                    {sendingCode
+                      ? "Wysyłanie…"
+                      : cooldownSeconds > 0
+                        ? `Wyślij ponownie (${cooldownSeconds}s)`
+                        : "Wyślij kod"}
                   </Button>
                 </div>
                 {codeInfo ? (
@@ -290,8 +326,12 @@ export function RegisterForm() {
                   id="password"
                   type="password"
                   autoComplete="new-password"
+                  ref={(el) => {
+                    passwordRef.current = el;
+                    passwordRhfRef(el);
+                  }}
                   className={cn(inputClass, errors.password && "border-destructive")}
-                  {...register("password")}
+                  {...passwordRegister}
                 />
                 {errors.password ? (
                   <p className="text-xs text-red-300">{errors.password.message}</p>

@@ -1,13 +1,17 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useActionState, useState } from "react";
 import { saveNutritionPlanAction } from "@/actions/nutrition-settings";
 import type { NutritionGoalsPayload } from "@/lib/nutrition-goals";
 import { kcalFromMacros } from "@/lib/kcal-from-macros";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  calendarDateKey,
+  formatPlCalendarRange,
+  weekDateKeysMondayFirst,
+} from "@/lib/local-date";
 
 type DayMap = Record<string, "training" | "rest">;
 
@@ -84,30 +88,6 @@ function readGoalsFromFields(f: {
   return { calories, proteinG, fatG, carbsG };
 }
 
-/** Siatka miesiąca: pon.–niedz., pierwszy dzień miesiąca dopasowany do poniedziałku. */
-function useMonthCells(viewMonth: Date) {
-  return useMemo(() => {
-    const y = viewMonth.getFullYear();
-    const m = viewMonth.getMonth();
-    const first = new Date(y, m, 1, 12, 0, 0, 0);
-    const last = new Date(y, m + 1, 0, 12, 0, 0, 0);
-    const startPad = first.getDay() === 0 ? 6 : first.getDay() - 1;
-    const daysInMonth = last.getDate();
-    const cells: Array<{ dateKey: string | null; inMonth: boolean }> = [];
-    for (let i = 0; i < startPad; i++) {
-      cells.push({ dateKey: null, inMonth: false });
-    }
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateKey = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      cells.push({ dateKey, inMonth: true });
-    }
-    while (cells.length % 7 !== 0) {
-      cells.push({ dateKey: null, inMonth: false });
-    }
-    return cells;
-  }, [viewMonth]);
-}
-
 export function NutritionPlanSection({
   initialTraining,
   initialRest,
@@ -128,20 +108,9 @@ export function NutritionPlanSection({
   }));
   const [clientError, setClientError] = useState<string | null>(null);
 
-  const [viewMonth, setViewMonth] = useState(() => {
-    const n = new Date();
-    return new Date(n.getFullYear(), n.getMonth(), 1, 12, 0, 0, 0);
-  });
-
-  const monthCells = useMonthCells(viewMonth);
-
   const [state, formAction, isPending] = useActionState(saveNutritionPlanAction, {
     ok: true,
   });
-
-  function shiftMonth(delta: number) {
-    setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1, 12, 0, 0, 0));
-  }
 
   function toggleDay(dateKey: string) {
     setDayTypes((prev) => {
@@ -197,10 +166,9 @@ export function NutritionPlanSection({
     formAction(fd);
   }
 
-  const monthLabel = viewMonth.toLocaleDateString("pl-PL", {
-    month: "long",
-    year: "numeric",
-  });
+  const todayKey = calendarDateKey();
+  const weekKeys = weekDateKeysMondayFirst(todayKey);
+  const weekLabel = formatPlCalendarRange(weekKeys[0]!, weekKeys[6]!);
 
   return (
     <form className="space-y-8" onSubmit={onSubmit}>
@@ -229,29 +197,9 @@ export function NutritionPlanSection({
             Kliknij dzień, aby przełączyć tryb trening / odpoczynek. Dni bez
             oznaczenia domyślnie traktujemy jak nietreningowe.
           </p>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="border-white/15 bg-white/5"
-              onClick={() => shiftMonth(-1)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="min-w-[12rem] text-center text-sm font-medium capitalize text-white/85">
-              {monthLabel}
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="border-white/15 bg-white/5"
-              onClick={() => shiftMonth(1)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <span className="shrink-0 text-sm font-medium text-white/80">
+            {weekLabel}
+          </span>
         </div>
 
         <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium uppercase tracking-wide text-white/45">
@@ -265,26 +213,22 @@ export function NutritionPlanSection({
         </div>
 
         <div className="grid grid-cols-7 gap-1.5">
-          {monthCells.map((cell, idx) => {
-            if (!cell.dateKey) {
-              return (
-                <div key={`pad-${idx}`} className="aspect-square rounded-xl bg-white/[0.02]" />
-              );
-            }
-            const kind = dayTypes[cell.dateKey] ?? "rest";
+          {weekKeys.map((dateKey) => {
+            const kind = dayTypes[dateKey] ?? "rest";
             const isTraining = kind === "training";
+            const isToday = dateKey === todayKey;
             return (
               <button
-                key={cell.dateKey}
+                key={dateKey}
                 type="button"
-                onClick={() => toggleDay(cell.dateKey!)}
-                className={`aspect-square rounded-xl border text-sm font-medium transition ${
+                onClick={() => toggleDay(dateKey)}
+                className={`aspect-square rounded-xl border text-sm font-medium transition hover:border-white/25 ${
                   isTraining
                     ? "border-[var(--neon)]/55 bg-[var(--neon)]/18 text-white"
-                    : "border-white/12 bg-white/[0.04] text-white/70 hover:border-white/25"
-                }`}
+                    : "border-white/12 bg-white/[0.04] text-white/70"
+                } ${isToday ? "ring-2 ring-[var(--neon)]/35 ring-offset-0" : ""}`}
               >
-                {Number(cell.dateKey.slice(8))}
+                {Number(dateKey.slice(8))}
               </button>
             );
           })}
