@@ -10,7 +10,7 @@ import { GymPadSessionLayout } from "@/components/active-workout/gympad-session-
 import { PlanProgressHeader } from "@/components/active-workout/plan-progress-header";
 import { WorkoutPlanCard } from "@/components/active-workout/workout-plan-card";
 import { RestTimerBar } from "@/components/workout/RestTimerBar";
-import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
+import type { WorkoutExerciseState } from "@/components/workout/types";
 import { WorkoutSummary } from "@/components/workout/WorkoutSummary";
 import type { WorkoutPlanExercise } from "@/lib/workout-plan-types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
@@ -60,27 +60,28 @@ export function ActiveWorkoutView({
     workoutStartedAtMs,
     title,
     workoutPlanId,
+    cardioMinutes,
+    exercises,
+    selectedExerciseId,
     applyPlan,
     start,
     reset,
+    setCardioMinutes,
+    setExercises,
+    setSelectedExerciseId,
+    patchSet: patchSetInStore,
   } = useActiveWorkoutStore();
   const [now, setNow] = useState(() => Date.now());
   const router = useRouter();
 
-  const [cardioMinutes, setCardioMinutes] = useState<number>(20);
-  const [exercises, setExercises] = useState<WorkoutExerciseState[]>([]);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [restRemaining, setRestRemaining] = useState<number | null>(null);
-  /** Inkrementowane przy każdym starcie odpoczynku — stabilny interval w useEffect */
-  const [restSessionId, setRestSessionId] = useState(0);
 
   const hasLoadedPlan = workoutPlanId != null && exercises.length > 0;
 
   function startRest(seconds: number) {
     setRestRemaining(seconds);
-    setRestSessionId((x) => x + 1);
   }
 
   const sessionTotal = useMemo(() => sessionVolume(exercises), [exercises]);
@@ -100,7 +101,7 @@ export function ActiveWorkoutView({
       });
     }, 1000);
     return () => window.clearInterval(id);
-  }, [restSessionId]);
+  }, [restRemaining]);
 
   const elapsed = useMemo(() => {
     const running =
@@ -120,26 +121,30 @@ export function ActiveWorkoutView({
     return { done, total };
   }, [exercises]);
 
-  function patchSet(exerciseId: string, setIndex: number, patch: Partial<WorkoutSetState>) {
-    setExercises((prev) => {
-      const target = prev.find((e) => e.id === exerciseId);
-      const wasDone = target?.sets[setIndex]?.done;
-      if (patch.done === true && !wasDone) {
-        queueMicrotask(() => startRest(90));
-      }
-      return prev.map((ex) => {
-        if (ex.id !== exerciseId) return ex;
-        return {
-          ...ex,
-          sets: ex.sets.map((s, i) => (i === setIndex ? { ...s, ...patch } : s)),
-        };
-      });
-    });
+  function patchSet(exerciseId: string, setIndex: number, patch: Partial<{ reps: number | null; weight: number }>) {
+    const ex = exercises.find((e) => e.id === exerciseId);
+    const current = ex?.sets[setIndex];
+    const wasDone = current?.done ?? false;
+
+    patchSetInStore(exerciseId, setIndex, patch);
+
+    // Start odpoczynku tylko przy przejściu false -> true (auto-done po wpisaniu danych).
+    const nextReps = patch.reps !== undefined ? patch.reps : current?.reps ?? null;
+    const nextWeight = patch.weight !== undefined ? patch.weight : current?.weight ?? 0;
+    const isDoneNext =
+      nextReps != null &&
+      Number.isFinite(nextReps) &&
+      nextReps > 0 &&
+      Number.isFinite(nextWeight) &&
+      nextWeight > 0;
+    if (isDoneNext && !wasDone) {
+      queueMicrotask(() => startRest(90));
+    }
   }
 
   function addSet(exerciseId: string) {
-    setExercises((prev) =>
-      prev.map((ex) => {
+    setExercises(
+      exercises.map((ex) => {
         if (ex.id !== exerciseId) return ex;
         const last = ex.sets[ex.sets.length - 1];
         return {
@@ -158,8 +163,8 @@ export function ActiveWorkoutView({
   }
 
   function removeLastSet(exerciseId: string) {
-    setExercises((prev) =>
-      prev.map((ex) => {
+    setExercises(
+      exercises.map((ex) => {
         if (ex.id !== exerciseId) return ex;
         if (ex.sets.length <= 1) return ex;
         return { ...ex, sets: ex.sets.slice(0, -1) };
@@ -180,7 +185,6 @@ export function ActiveWorkoutView({
 
   function stopRest() {
     setRestRemaining(null);
-    setRestSessionId((x) => x + 1);
   }
 
   async function completeWorkout() {
@@ -223,7 +227,7 @@ export function ActiveWorkoutView({
       elapsedSeconds={elapsed}
       exercises={exercises}
       selectedExerciseId={selectedExerciseId}
-      onSelectExercise={setSelectedExerciseId}
+      onSelectExercise={(id) => setSelectedExerciseId(id)}
       onPatchSet={patchSet}
       onAddSet={addSet}
       onRemoveLastSet={removeLastSet}

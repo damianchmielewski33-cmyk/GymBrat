@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Minus, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Minus, Plus } from "lucide-react";
 import type { WorkoutSetState } from "@/components/workout/types";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +51,7 @@ export function SetRow({
         set.done && "bg-[#0f1f14]/40",
       )}
     >
-      <div className="grid grid-cols-1 gap-3 py-3 sm:grid-cols-[44px_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1fr)_48px] sm:items-center sm:gap-2 sm:py-2">
+      <div className="grid grid-cols-1 gap-3 py-3 sm:grid-cols-[44px_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1fr)] sm:items-center sm:gap-2 sm:py-2">
         {/* Nr serii */}
         <div className="flex items-center justify-between sm:block sm:text-center">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-white/35 sm:hidden">
@@ -115,24 +114,6 @@ export function SetRow({
               <Plus className="h-5 w-5" />
             </motion.button>
           </div>
-        </div>
-
-        {/* Ukończone */}
-        <div className="flex justify-end sm:justify-center">
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.92 }}
-            onClick={() => onChange({ done: !set.done })}
-            className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-full border-2 transition",
-              set.done
-                ? "border-[#34D399] bg-[#34D399]/15 text-[#34D399]"
-                : "border-white/15 bg-transparent text-white/30 hover:border-white/30 hover:text-white/50",
-            )}
-            aria-label={set.done ? "Cofnij serię" : "Oznacz serię"}
-          >
-            <Check className="h-6 w-6" strokeWidth={2.5} />
-          </motion.button>
         </div>
       </div>
     </motion.div>

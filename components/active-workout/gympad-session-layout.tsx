@@ -79,6 +79,8 @@ export function GymPadSessionLayout({
         patch.reps === null ? null : clampInt(patch.reps, 0, 999);
     }
     if (patch.weight !== undefined) next.weight = clampWeight(patch.weight);
+    // "done" jest wyliczane centralnie (auto po wpisaniu danych) — nie ustawiamy go z UI.
+    if ("done" in next) delete (next as Partial<WorkoutSetState>).done;
     onPatchSet(current.id, setIdx, next);
   }
 

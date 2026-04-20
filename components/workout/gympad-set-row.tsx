@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Copy } from "lucide-react";
+import { Copy } from "lucide-react";
 import type { WorkoutSetState } from "@/components/workout/types";
 import { formatVolumeKg, setVolume } from "@/lib/workout-session-calculations";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,7 @@ type GymPadSetRowProps = {
 /**
  * Wiersz serii jak w GymPad: powt. × kg = wynik · kopiuj.
  */
-export function GymPadSetRow({ setIndex: _setIndex, set, animationIndex, onChange }: GymPadSetRowProps) {
+export function GymPadSetRow({ set, animationIndex, onChange }: GymPadSetRowProps) {
   const lineVol = setVolume(set.reps, set.weight);
 
   function copyLine() {
@@ -41,22 +41,11 @@ export function GymPadSetRow({ setIndex: _setIndex, set, animationIndex, onChang
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, delay: animationIndex * 0.04 }}
-      className="flex flex-wrap items-center gap-2 border-b border-white/[0.07] py-3 last:border-b-0"
+      className={cn(
+        "flex flex-wrap items-center gap-2 border-b border-white/[0.07] py-3 last:border-b-0",
+        set.done && "bg-[#0f1f14]/35",
+      )}
     >
-      <button
-        type="button"
-        onClick={() => onChange({ done: !set.done })}
-        className={cn(
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition",
-          set.done
-            ? "border-[#84cc16] bg-[#84cc16]/15 text-[#84cc16]"
-            : "border-white/20 text-white/35 hover:border-white/35",
-        )}
-        aria-label={set.done ? "Cofnij" : "Oznacz"}
-      >
-        <Check className="h-5 w-5" strokeWidth={2.5} />
-      </button>
-
       <input
         type="number"
         inputMode="numeric"
