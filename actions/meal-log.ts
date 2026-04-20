@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
+import { ensureMealLogsTableOncePerProcess } from "@/db/ensure-schema";
 import { mealLogs } from "@/db/schema";
 import { kcalFromMacros } from "@/lib/kcal-from-macros";
 
@@ -82,6 +83,7 @@ export async function addMealLogAction(
   if (!check.ok) return { error: check.error };
 
   const { name, calories, proteinG, fatG, carbsG } = withKcal;
+  await ensureMealLogsTableOncePerProcess();
   const db = getDb();
   await db.insert(mealLogs).values({
     userId: session.user.id,
@@ -130,6 +132,7 @@ export async function updateMealLogAction(
   if (!check.ok) return { error: check.error };
 
   const { name, calories, proteinG, fatG, carbsG } = withKcal;
+  await ensureMealLogsTableOncePerProcess();
   const db = getDb();
 
   const updated = await db
@@ -172,6 +175,7 @@ async function deleteMealLogCore(
     return { error: "Nieprawidłowy identyfikator wpisu." };
   }
 
+  await ensureMealLogsTableOncePerProcess();
   const db = getDb();
   const removed = await db
     .delete(mealLogs)

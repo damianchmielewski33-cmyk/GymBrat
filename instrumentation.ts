@@ -10,4 +10,10 @@ export async function register() {
   } catch (err) {
     console.error("[instrumentation] Migracje Drizzle nie powiodły się:", err);
   }
+  try {
+    const { ensureCriticalSchema } = await import("./db/ensure-schema");
+    await ensureCriticalSchema();
+  } catch (err) {
+    console.error("[instrumentation] ensureCriticalSchema:", err);
+  }
 }

@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
+import { ensureMealLogsTableOncePerProcess } from "@/db/ensure-schema";
 import { mealLogs } from "@/db/schema";
 import { kcalFromMacros } from "@/lib/kcal-from-macros";
 import type { FitatuDaySummary } from "@/types/fitatu";
@@ -67,6 +68,7 @@ export async function getMealLogAggregatesForDates(
   dates: string[],
 ): Promise<Record<string, MealDayAggregate>> {
   if (dates.length === 0) return {};
+  await ensureMealLogsTableOncePerProcess();
   const db = getDb();
   const rows = await db
     .select({
@@ -107,6 +109,7 @@ export async function listMealLogsForDay(
   userId: string,
   date: string,
 ): Promise<MealLogDto[]> {
+  await ensureMealLogsTableOncePerProcess();
   const db = getDb();
   const rows = await db
     .select()
