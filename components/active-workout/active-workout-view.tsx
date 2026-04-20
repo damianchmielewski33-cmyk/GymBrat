@@ -321,6 +321,61 @@ export function ActiveWorkoutView({
     />
   );
 
+  const startPlansContent =
+    !hasLoadedPlan && entry === "start" ? (
+      <div className="flex flex-col gap-4">
+        <div className="shrink-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
+            Trening
+          </p>
+          <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight text-white sm:text-[1.65rem]">
+            Aktywny trening
+          </h1>
+          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-white/45">
+            Wybierz plan treningowy, aby rozpocząć sesję.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {initialPlans.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="sm:col-span-2 lg:col-span-3"
+            >
+              <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] p-4 text-sm text-white/55 backdrop-blur-[12px]">
+                Brak planów.{" "}
+                <Link
+                  href="/workout-plan"
+                  className="font-medium text-[#FF1A4B] underline-offset-2 hover:underline"
+                >
+                  Utwórz plan
+                </Link>
+                .
+              </div>
+            </motion.div>
+          ) : (
+            initialPlans.map((row, i) => {
+              const empty = row.plan.exercises.length === 0;
+              const active = workoutPlanId === row.id;
+              return (
+                <WorkoutPlanCard
+                  key={row.id}
+                  row={row}
+                  index={i}
+                  active={active}
+                  empty={empty}
+                  lastActivityLabel={formatLastWorkoutDate(row.lastWorkoutDate)}
+                  onStart={() => beginWorkoutFromPlan(row)}
+                  startLabel={active ? "Wczytaj ponownie" : "Rozpocznij trening"}
+                />
+              );
+            })
+          )}
+        </div>
+      </div>
+    ) : null;
+
   return (
     <div
       className={
@@ -410,6 +465,9 @@ export function ActiveWorkoutView({
             hasLoadedPlan={hasLoadedPlan}
             initialPlansEmpty={initialPlans.length === 0}
             emptyContent={
+              entry === "start" ? (
+                startPlansContent
+              ) : (
               entry === "active" ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
                   <div className="rounded-2xl border border-white/[0.08] bg-[#111] p-6">
@@ -431,6 +489,7 @@ export function ActiveWorkoutView({
                   </div>
                 </div>
               ) : undefined
+              )
             }
           >
             {hasLoadedPlan ? exerciseList : null}
@@ -441,7 +500,7 @@ export function ActiveWorkoutView({
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
-              className="flex max-h-[min(88vh,900px)] flex-col gap-4 lg:sticky lg:top-4"
+              className="hidden max-h-[min(88vh,900px)] flex-col gap-4 lg:sticky lg:top-4 lg:flex"
             >
               <div className="shrink-0 px-1">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">

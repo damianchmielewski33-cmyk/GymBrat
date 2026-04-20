@@ -28,7 +28,7 @@ export function ActiveSessionCard({
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
     >
       <div
-        className={`flex flex-col bg-black ${hasLoadedPlan ? "min-h-0 flex-1 rounded-none border-0 p-0 pb-2 sm:min-h-[min(72vh,820px)]" : "min-h-[min(85vh,880px)] rounded-2xl border border-white/[0.08] p-4 sm:p-5"}`}
+        className={`flex flex-col bg-black ${hasLoadedPlan ? "min-h-0 flex-1 rounded-none border-0 p-0 pb-2 sm:min-h-[min(72vh,820px)]" : "min-h-0 rounded-2xl border border-white/[0.08] p-4 sm:p-5"}`}
       >
         {!hasLoadedPlan ? (
           emptyContent ?? (
