@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { requireAdminApi } from "@/lib/admin-api";
+import {
+  analyticsDeploymentPredicate,
+  getAnalyticsDeployment,
+} from "@/lib/analytics-deployment";
 import { localYmdInclusiveUtcRange } from "@/lib/analytics-date-range";
 import { SCREEN_LABELS } from "@/lib/analytics-screen";
 import { formatActivityTimePl } from "@/lib/activity-display";
@@ -37,7 +41,8 @@ export async function GET(req: Request) {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
-  const range = parseRange(new URL(req.url).searchParams);
+  const url = new URL(req.url);
+  const range = parseRange(url.searchParams);
   if (!range.ok) {
     return NextResponse.json(
       { error: "Podaj zakres dat: from i to (YYYY-MM-DD)" },
@@ -45,6 +50,7 @@ export async function GET(req: Request) {
     );
   }
 
+  const includeUntagged = url.searchParams.get("include_untagged") === "1";
   const { fromDate, toDate, fromIso, toIso } = range;
   const db = getDb();
 
@@ -52,7 +58,11 @@ export async function GET(req: Request) {
     .select()
     .from(pageViews)
     .where(
-      and(gte(pageViews.createdAt, fromIso), lte(pageViews.createdAt, toIso)),
+      and(
+        gte(pageViews.createdAt, fromIso),
+        lte(pageViews.createdAt, toIso),
+        analyticsDeploymentPredicate(pageViews.deploymentEnv, includeUntagged),
+      ),
     );
 
   const screenMap = new Map<
@@ -114,6 +124,10 @@ export async function GET(req: Request) {
       and(
         gte(siteActivityLog.createdAt, new Date(fromIso)),
         lte(siteActivityLog.createdAt, new Date(toIso)),
+        analyticsDeploymentPredicate(
+          siteActivityLog.deploymentEnv,
+          includeUntagged,
+        ),
       ),
     )
     .orderBy(desc(siteActivityLog.createdAt))
@@ -132,6 +146,10 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     range: { from: fromDate, to: toDate },
+    deployment: {
+      filter: getAnalyticsDeployment(),
+      include_untagged: includeUntagged,
+    },
     totals,
     screens,
     accounts: {

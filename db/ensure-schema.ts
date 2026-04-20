@@ -11,7 +11,23 @@ type DbWithClient = LibSQLDatabase<typeof schema> & { $client: Client };
  */
 export async function ensureCriticalSchema(): Promise<void> {
   const db = getDb() as DbWithClient;
-  await db.$client.execute(`
+  const client = db.$client;
+  const tryAddColumn = async (sql: string) => {
+    try {
+      await client.execute(sql);
+    } catch (e) {
+      const msg = String(e);
+      if (!/duplicate column|already exists/i.test(msg)) throw e;
+    }
+  };
+  await tryAddColumn(
+    `ALTER TABLE "page_views" ADD COLUMN "deployment_env" text`,
+  );
+  await tryAddColumn(
+    `ALTER TABLE "site_activity_log" ADD COLUMN "deployment_env" text`,
+  );
+
+  await client.execute(`
 CREATE TABLE IF NOT EXISTS "meal_logs" (
   "id" text PRIMARY KEY NOT NULL,
   "user_id" text NOT NULL,

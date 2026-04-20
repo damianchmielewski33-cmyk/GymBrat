@@ -74,7 +74,10 @@ export function GymPadSessionLayout({
   function applyPatch(setIdx: number, patch: Partial<WorkoutSetState>) {
     if (!current) return;
     const next = { ...patch };
-    if (patch.reps !== undefined) next.reps = clampInt(patch.reps, 0, 999);
+    if (patch.reps !== undefined) {
+      next.reps =
+        patch.reps === null ? null : clampInt(patch.reps, 0, 999);
+    }
     if (patch.weight !== undefined) next.weight = clampWeight(patch.weight);
     onPatchSet(current.id, setIdx, next);
   }

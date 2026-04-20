@@ -58,8 +58,8 @@ export default async function HomePage() {
     dash.todayKey,
   );
   const consumptionHint = profileGoalsToday
-    ? "Cele kaloryczne i makro z profilu (kalendarz treningowy) — spożycie z Twoich wpisów posiłków."
-    : "Spożycie z Twoich wpisów posiłków; gdy nie masz żadnego wpisu na dziś, pokazywane są dane z integracji Fitatu (możesz odświeżyć).";
+    ? "Cele kaloryczne i makro z profilu (kalendarz treningowy). Spożycie na dziś to suma Twoich ręcznych wpisów posiłków."
+    : "Spożycie na dziś liczymy wyłącznie z wpisów posiłków na tej stronie. Cele mogą pochodzić z integracji Fitatu, jeśli ją skonfigurujesz w profilu.";
 
   const dayG = dash.today.caloriesGoal ?? 0;
   const dayC = dash.today.caloriesConsumed;
@@ -103,7 +103,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Makra i limity (cele z profilu + spożycie z wpisów użytkownika lub Fitatu) */}
+      {/* Makra: spożycie z ręcznych wpisów; cele z profilu lub Fitatu */}
       <section className="space-y-6">
         <TodaysMacrosSection
           data={dash.today}

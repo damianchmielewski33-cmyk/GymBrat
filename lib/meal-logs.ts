@@ -25,28 +25,7 @@ export type MealDayAggregate = {
   carbs: number;
 };
 
-/**
- * Gdy użytkownik ma co najmniej jeden wpis na dany dzień, spożycie na stronie Start
- * pochodzi wyłącznie z tych wpisów (zamiast integracji Fitatu / mock).
- */
-export function mergeMealLogsIntoSummary(
-  summary: FitatuDaySummary,
-  agg: MealDayAggregate | undefined,
-): FitatuDaySummary {
-  if (!agg || agg.entryCount === 0) return summary;
-  const kcal = kcalFromMacros(agg.protein, agg.fat, agg.carbs);
-  return {
-    ...summary,
-    caloriesConsumed: kcal,
-    macros: {
-      protein: agg.protein,
-      fat: agg.fat,
-      carbs: agg.carbs,
-    },
-  };
-}
-
-/** Widok tygodnia: spożycie tylko z wpisów posiłków (bez uzupełniania z Fitatu). */
+/** Spożycie na dashboardzie: wyłącznie z ręcznych wpisów (bez wpisów — zera, cele z profilu/Fitatu zostają). */
 export function replaceConsumptionWithMealLogs(
   summary: FitatuDaySummary,
   agg: MealDayAggregate | undefined,

@@ -24,7 +24,7 @@ export type FitatuDaySummary = {
   /** Cele dzienne w gramach — opcjonalne; jeśli brak, UI pokaże tylko spożycie. */
   macroGoals?: FitatuMacroGrams;
   meals: FitatuMealEntry[];
-  source: "live" | "mock" | "error";
+  source: "live" | "mock" | "error" | "unavailable";
   /** Gdy `source === "error"` — komunikat dla użytkownika. */
   errorMessage?: string;
 };

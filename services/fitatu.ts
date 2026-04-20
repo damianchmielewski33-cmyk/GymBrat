@@ -165,6 +165,18 @@ async function fetchFitatuDayFromRemote(
   return normalizeFitatuSummary(raw);
 }
 
+/** Brak integracji Fitatu / odpowiedzi — bez fałszywych posiłków (np. nowe konto na produkcji). */
+function emptyFitatuSummary(date: string): FitatuDaySummary {
+  const raw: FitatuDaySummary = {
+    date,
+    caloriesConsumed: 0,
+    macros: { protein: 0, fat: 0, carbs: 0 },
+    meals: [],
+    source: "unavailable",
+  };
+  return normalizeFitatuSummary(raw);
+}
+
 function mockSummary(date: string): FitatuDaySummary {
   const raw: FitatuDaySummary = {
     date,
@@ -206,6 +218,12 @@ function mockSummary(date: string): FitatuDaySummary {
   return normalizeFitatuSummary(raw);
 }
 
+function fallbackWhenNoRemote(date: string): FitatuDaySummary {
+  return process.env.NODE_ENV === "development"
+    ? mockSummary(date)
+    : emptyFitatuSummary(date);
+}
+
 /** Dziennik Fitatu dla dowolnej daty YYYY-MM-DD (cache per dzień). */
 export async function getFitatuDayCached(
   userId: string,
@@ -217,10 +235,10 @@ export async function getFitatuDayCached(
         try {
           const remote = await fetchFitatuDayFromRemote(userId, date);
           if (remote) return remote;
-          return mockSummary(date);
+          return fallbackWhenNoRemote(date);
         } catch (err) {
           console.error("[fitatu] load inside cache", { userId, date, err });
-          return mockSummary(date);
+          return fallbackWhenNoRemote(date);
         }
       },
       ["fitatu-day", userId, date],
@@ -238,7 +256,7 @@ export async function getFitatuDayCached(
     } catch (e2) {
       console.error("[fitatu] direct fetch after cache error", e2);
     }
-    return mockSummary(date);
+    return fallbackWhenNoRemote(date);
   }
 }
 

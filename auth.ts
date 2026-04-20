@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
+import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import { siteActivityLog, users } from "@/db/schema";
 import { getFounderUserId } from "@/lib/admin-session";
 import { getAuthSecret } from "@/lib/auth-secret";
@@ -103,6 +104,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         await db.insert(siteActivityLog).values({
           userId: id,
           action: "Logowanie",
+          deploymentEnv: getAnalyticsDeployment(),
         });
       } catch {
         /* nie blokuj logowania przy błędzie zapisu */

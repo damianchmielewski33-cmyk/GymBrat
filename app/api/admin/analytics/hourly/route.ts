@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { and, gte, lte } from "drizzle-orm";
 import { requireAdminApi } from "@/lib/admin-api";
 import {
+  analyticsDeploymentPredicate,
+  getAnalyticsDeployment,
+} from "@/lib/analytics-deployment";
+import {
   addCalendarDaysYmd,
   listLocalYmdsInclusive,
   localYmdInclusiveUtcRange,
@@ -16,10 +20,12 @@ export const runtime = "nodejs";
 
 const TZ = () => process.env.ANALYTICS_TIMEZONE?.trim() || "Europe/Warsaw";
 
-export async function GET() {
+export async function GET(req: Request) {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
+  const includeUntagged =
+    new URL(req.url).searchParams.get("include_untagged") === "1";
   const timeZone = TZ();
   const toYmd = nowLocalYmd(timeZone);
   const fromYmd = addCalendarDaysYmd(toYmd, -6);
@@ -57,7 +63,13 @@ export async function GET() {
   const rows = await db
     .select({ createdAt: pageViews.createdAt })
     .from(pageViews)
-    .where(and(gte(pageViews.createdAt, fromIso), lte(pageViews.createdAt, toIso)));
+    .where(
+      and(
+        gte(pageViews.createdAt, fromIso),
+        lte(pageViews.createdAt, toIso),
+        analyticsDeploymentPredicate(pageViews.deploymentEnv, includeUntagged),
+      ),
+    );
 
   const byHourTotal = new Array<number>(24).fill(0);
   const matrix = days.map(() => new Array<number>(24).fill(0));
@@ -125,6 +137,10 @@ export async function GET() {
   }));
 
   return NextResponse.json({
+    deployment: {
+      filter: getAnalyticsDeployment(),
+      include_untagged: includeUntagged,
+    },
     timezone: timeZone,
     range: { from: fromYmd, to: toYmd },
     utc_range: { from: fromIso, to: toIso },

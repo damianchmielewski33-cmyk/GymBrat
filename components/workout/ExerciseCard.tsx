@@ -42,7 +42,10 @@ export function ExerciseCard({
 
   function applyPatch(setIdx: number, patch: Partial<WorkoutSetState>) {
     const next: Partial<WorkoutSetState> = { ...patch };
-    if (patch.reps !== undefined) next.reps = clampIntLocal(patch.reps, 0, 999);
+    if (patch.reps !== undefined) {
+      next.reps =
+        patch.reps === null ? null : clampIntLocal(patch.reps, 0, 999);
+    }
     if (patch.weight !== undefined) next.weight = clampWeightLocal(patch.weight);
     onPatchSet(setIdx, next);
   }

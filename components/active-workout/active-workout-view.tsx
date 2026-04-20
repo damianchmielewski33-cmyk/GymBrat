@@ -21,13 +21,16 @@ function clampInt(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
-/** Domyślnie 3 serie: reps z planu, weight 0, done false. */
+/** Domyślnie 3 serie: puste powtórzenia (null); z planu można wypełnić przy starcie. */
 function planExercisesToSession(exercises: WorkoutPlanExercise[]): WorkoutExerciseState[] {
   return exercises.map((ex) => ({
     id: ex.id,
     name: ex.name,
     sets: Array.from({ length: 3 }, () => ({
-      reps: clampInt(ex.reps, 1, 99),
+      reps:
+        typeof ex.reps === "number" && Number.isFinite(ex.reps) && ex.reps > 0
+          ? clampInt(ex.reps, 1, 99)
+          : null,
       weight: 0,
       done: false,
     })),
@@ -144,7 +147,7 @@ export function ActiveWorkoutView({
           sets: [
             ...ex.sets,
             {
-              reps: last ? last.reps : 10,
+              reps: last ? last.reps : null,
               weight: last ? last.weight : 0,
               done: false,
             },

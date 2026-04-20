@@ -97,6 +97,8 @@ export const pageViews = sqliteTable(
     pathname: text("pathname").notNull(),
     userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
     visitorId: text("visitor_id").notNull(),
+    /** `production` | `preview` | `development` — zsynchronizowane z Vercel / NODE_ENV. */
+    deploymentEnv: text("deployment_env"),
     /** Przechowywane jako ISO 8601 (UTC) dla porównań z zakresem dat. */
     createdAt: text("created_at").notNull(),
   },
@@ -115,6 +117,7 @@ export const siteActivityLog = sqliteTable("site_activity_log", {
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
   action: text("action").notNull(),
   metaJson: text("meta_json"),
+  deploymentEnv: text("deployment_env"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),

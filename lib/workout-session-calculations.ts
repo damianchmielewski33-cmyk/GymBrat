@@ -8,12 +8,12 @@ export function safeNonNegative(n: number, fallback = 0): number {
 }
 
 /** Volume for a single set (Strong / Hevy style: reps × weight). */
-export function setVolume(reps: number, weight: number): number {
-  return safeNonNegative(reps) * safeNonNegative(weight);
+export function setVolume(reps: number | null, weight: number): number {
+  return safeNonNegative(reps ?? 0) * safeNonNegative(weight);
 }
 
 export function exerciseVolume(
-  sets: ReadonlyArray<{ reps: number; weight: number }>,
+  sets: ReadonlyArray<{ reps: number | null; weight: number }>,
 ): number {
   let sum = 0;
   for (const s of sets) {
@@ -23,16 +23,18 @@ export function exerciseVolume(
 }
 
 /** Suma powtórzeń we wszystkich seriach ćwiczenia. */
-export function exerciseTotalReps(sets: ReadonlyArray<{ reps: number }>): number {
+export function exerciseTotalReps(sets: ReadonlyArray<{ reps: number | null }>): number {
   let sum = 0;
   for (const s of sets) {
-    sum += safeNonNegative(s.reps);
+    sum += safeNonNegative(s.reps ?? 0);
   }
   return sum;
 }
 
 export function sessionVolume(
-  exercises: ReadonlyArray<{ sets: ReadonlyArray<{ reps: number; weight: number }> }>,
+  exercises: ReadonlyArray<{
+    sets: ReadonlyArray<{ reps: number | null; weight: number }>;
+  }>,
 ): number {
   let sum = 0;
   for (const ex of exercises) {

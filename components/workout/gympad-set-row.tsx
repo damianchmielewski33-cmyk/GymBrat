@@ -9,6 +9,13 @@ import { cn } from "@/lib/utils";
 const inputBox =
   "rounded-xl border border-white/10 bg-[#1a1a1a] px-3 py-2.5 text-center text-lg font-bold tabular-nums text-white outline-none focus:border-[#FF9500]/60 focus:ring-1 focus:ring-[#FF9500]/40";
 
+function parseOptionalReps(raw: string): number | null {
+  const t = raw.trim();
+  if (t === "") return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
 type GymPadSetRowProps = {
   setIndex: number;
   set: WorkoutSetState;
@@ -24,7 +31,7 @@ export function GymPadSetRow({ setIndex: _setIndex, set, animationIndex, onChang
 
   function copyLine() {
     const w = Number.isFinite(set.weight) ? set.weight : 0;
-    const r = Number.isFinite(set.reps) ? set.reps : 0;
+    const r = set.reps == null || !Number.isFinite(set.reps) ? "—" : String(set.reps);
     const text = `${r} × ${w} kg = ${formatVolumeKg(lineVol)} kg`;
     void navigator.clipboard?.writeText(text);
   }
@@ -53,9 +60,8 @@ export function GymPadSetRow({ setIndex: _setIndex, set, animationIndex, onChang
       <input
         type="number"
         inputMode="numeric"
-        min={0}
-        value={Number.isFinite(set.reps) ? set.reps : 0}
-        onChange={(e) => onChange({ reps: Number(e.target.value) })}
+        value={set.reps === null ? "" : set.reps}
+        onChange={(e) => onChange({ reps: parseOptionalReps(e.target.value) })}
         className={cn(inputBox, "w-[4.5rem]")}
       />
       <span className="text-lg font-medium text-white/50">×</span>

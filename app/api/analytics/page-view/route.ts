@@ -4,6 +4,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { pageViews, users } from "@/db/schema";
+import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import { getScreenFromPathname } from "@/lib/analytics-screen";
 import { checkRateLimit, rateLimitKey, RATE } from "@/lib/rate-limit";
 
@@ -62,6 +63,7 @@ export async function POST(req: Request) {
     pathname: pathname.slice(0, 512),
     userId,
     visitorId: visitorId.slice(0, 80),
+    deploymentEnv: getAnalyticsDeployment(),
     createdAt,
   });
 

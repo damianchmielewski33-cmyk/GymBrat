@@ -108,7 +108,9 @@ export function TodaysMacrosSection({
                 ? consumptionHint
                 : data.source === "mock"
                   ? "Tryb demo — dodaj posiłek lub ustaw proxy i token w profilu, aby zobaczyć dane na żywo."
-                  : "Dodawaj posiłki przyciskiem na górze strony; bez wpisów — dane z integracji Fitatu (cache, odśwież po posiłku)."}
+                  : data.source === "unavailable"
+                    ? "Bez integracji Fitatu nadal widzisz cele z profilu; spożycie to tylko Twoje wpisy posiłków (bez wpisów — zero)."
+                    : "Dodawaj posiłki powyżej — makra na dziś to suma wpisów. Przycisk Odśwież aktualizuje cache integracji (cele z Fitatu)."}
           </p>
         </div>
         <form action={refreshFitatuMacros}>

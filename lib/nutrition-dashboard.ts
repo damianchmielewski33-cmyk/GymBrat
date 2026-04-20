@@ -8,8 +8,8 @@ import {
 } from "@/lib/nutrition-goals";
 import {
   getMealLogAggregatesForDates,
-  mergeMealLogsIntoSummary,
   replaceConsumptionWithMealLogs,
+  type MealDayAggregate,
 } from "@/lib/meal-logs";
 import {
   addCalendarDays,
@@ -48,6 +48,45 @@ export type PreviousWeekNutritionSheetWeek = {
 
 const PREVIOUS_WEEKS_IN_SHEET = 8;
 
+export type TodaysNutritionSettingsRow = {
+  trainingNutritionGoalsJson: string | null;
+  restNutritionGoalsJson: string | null;
+  nutritionDayTypesJson: string | null;
+};
+
+function applyProfileGoalsAndManualConsumption(
+  raw: FitatuDaySummary,
+  settings: NutritionSettingsState,
+  dateKey: string,
+  mealAgg: MealDayAggregate | undefined,
+): FitatuDaySummary {
+  let row = mergeSummaryWithProfileGoals(raw, settings, dateKey);
+  return replaceConsumptionWithMealLogs(row, mealAgg);
+}
+
+/** Podsumowanie „dziś” jak na stronie Start: spożycie tylko z ręcznych wpisów, cele z profilu / Fitatu. */
+export async function loadTodaysNutritionSummary(
+  userId: string,
+  settingsRow: TodaysNutritionSettingsRow | undefined,
+): Promise<FitatuDaySummary> {
+  const settings = nutritionSettingsFromDbRow(
+    settingsRow ?? {
+      trainingNutritionGoalsJson: null,
+      restNutritionGoalsJson: null,
+      nutritionDayTypesJson: null,
+    },
+  );
+  const todayKey = calendarDateKey(new Date());
+  const mealAggs = await getMealLogAggregatesForDates(userId, [todayKey]);
+  const rawToday = await getFitatuDayCached(userId, todayKey);
+  return applyProfileGoalsAndManualConsumption(
+    rawToday,
+    settings,
+    todayKey,
+    mealAggs[todayKey],
+  );
+}
+
 /**
  * Tygodnie przed bieżącym (tylko pełne tygodnie kalendarzowe), do rozwinięcia w arkuszu.
  */
@@ -69,9 +108,12 @@ export async function loadPreviousWeeksForSheet(
 
   const loadDay = async (uid: string, dateKey: string) => {
     const raw = await getFitatuDayCached(uid, dateKey);
-    let row = mergeSummaryWithProfileGoals(raw, settings, dateKey);
-    row = replaceConsumptionWithMealLogs(row, mealAggs[dateKey]);
-    return row;
+    return applyProfileGoalsAndManualConsumption(
+      raw,
+      settings,
+      dateKey,
+      mealAggs[dateKey],
+    );
   };
 
   const weeksData = await Promise.all(
@@ -100,11 +142,7 @@ export async function loadPreviousWeeksForSheet(
 
 export async function loadNutritionDashboard(
   userId: string,
-  settingsRow: {
-    trainingNutritionGoalsJson: string | null;
-    restNutritionGoalsJson: string | null;
-    nutritionDayTypesJson: string | null;
-  } | undefined,
+  settingsRow: TodaysNutritionSettingsRow | undefined,
 ): Promise<NutritionDashboardLoad> {
   const settings = nutritionSettingsFromDbRow(
     settingsRow ?? {
@@ -119,8 +157,12 @@ export async function loadNutritionDashboard(
   const mealAggs = await getMealLogAggregatesForDates(userId, dateKeysForMeals);
 
   const rawToday = await getFitatuDayCached(userId, todayKey);
-  let today = mergeSummaryWithProfileGoals(rawToday, settings, todayKey);
-  today = mergeMealLogsIntoSummary(today, mealAggs[todayKey]);
+  const today = applyProfileGoalsAndManualConsumption(
+    rawToday,
+    settings,
+    todayKey,
+    mealAggs[todayKey],
+  );
 
   const week = await buildWeeklyNutritionRollup(
     userId,
@@ -128,9 +170,12 @@ export async function loadNutritionDashboard(
     settings,
     async (uid, dateKey) => {
       const raw = await getFitatuDayCached(uid, dateKey);
-      let row = mergeSummaryWithProfileGoals(raw, settings, dateKey);
-      row = replaceConsumptionWithMealLogs(row, mealAggs[dateKey]);
-      return row;
+      return applyProfileGoalsAndManualConsumption(
+        raw,
+        settings,
+        dateKey,
+        mealAggs[dateKey],
+      );
     },
   );
   return { todayKey, today, week, settings };

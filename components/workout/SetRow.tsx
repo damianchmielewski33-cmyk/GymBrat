@@ -23,6 +23,13 @@ const stepperBtn =
 const fieldInput =
   "h-12 w-full min-w-0 rounded-xl border border-white/[0.08] bg-[#0d0d0d] px-2 text-center text-lg font-semibold tabular-nums text-white outline-none transition focus:border-[#3B82F6]/50 focus:ring-2 focus:ring-[#3B82F6]/25";
 
+function parseOptionalReps(raw: string): number | null {
+  const t = raw.trim();
+  if (t === "") return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
 /**
  * Wiersz serii w stylu dziennika (GymPad / Strong): siatka, duże pola, subtelne linie.
  */
@@ -100,9 +107,8 @@ export function SetRow({
             <input
               type="number"
               inputMode="numeric"
-              min={0}
-              value={Number.isFinite(set.reps) ? set.reps : 0}
-              onChange={(e) => onChange({ reps: Number(e.target.value) })}
+              value={set.reps === null ? "" : set.reps}
+              onChange={(e) => onChange({ reps: parseOptionalReps(e.target.value) })}
               className={fieldInput}
             />
             <motion.button type="button" whileTap={{ scale: 0.92 }} className={stepperBtn} onClick={() => onAdjustReps(1)}>

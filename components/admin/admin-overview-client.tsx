@@ -24,6 +24,10 @@ const tooltipStyle = {
 
 type AnalyticsJson = {
   range: { from: string; to: string };
+  deployment?: {
+    filter: string;
+    include_untagged: boolean;
+  };
   totals: {
     total_views: number;
     unique_visitors: number;
@@ -49,6 +53,10 @@ type AnalyticsJson = {
 };
 
 type HourlyJson = {
+  deployment?: {
+    filter: string;
+    include_untagged: boolean;
+  };
   by_hour: { hour: number; label: string; views: number }[];
   total_views: number;
   peak: { hour: number; label: string; views: number };
@@ -68,14 +76,18 @@ export function AdminOverviewClient() {
   const [hourly, setHourly] = useState<HourlyJson | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [includeUntagged, setIncludeUntagged] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      const legacy = includeUntagged ? "&include_untagged=1" : "";
       const [aRes, hRes] = await Promise.all([
-        fetch(`/api/admin/analytics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
-        fetch(`/api/admin/analytics/hourly`),
+        fetch(
+          `/api/admin/analytics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${legacy}`,
+        ),
+        fetch(`/api/admin/analytics/hourly${includeUntagged ? "?include_untagged=1" : ""}`),
       ]);
       if (!aRes.ok) throw new Error("analytics");
       if (!hRes.ok) throw new Error("hourly");
@@ -86,7 +98,7 @@ export function AdminOverviewClient() {
     } finally {
       setLoading(false);
     }
-  }, [from, to]);
+  }, [from, to, includeUntagged]);
 
   useEffect(() => {
     void load();
@@ -142,6 +154,24 @@ export function AdminOverviewClient() {
             Odśwież dane
           </Button>
         </div>
+        <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-white/70">
+          <input
+            type="checkbox"
+            className="rounded border-white/20 bg-black/40"
+            checked={includeUntagged}
+            onChange={(e) => setIncludeUntagged(e.target.checked)}
+          />
+          Uwzględnij wpisy bez znacznika środowiska (np. sprzed migracji — może mieszać dev i prod)
+        </label>
+        {analytics?.deployment ? (
+          <p className="mt-2 text-xs text-white/45">
+            Aktywny filtr środowiska:{" "}
+            <span className="font-mono text-white/70">{analytics.deployment.filter}</span>
+            {analytics.deployment.include_untagged
+              ? " (łącznie z nieoznaczonymi)"
+              : " — tylko zdarzenia z tego wdrożenia"}
+          </p>
+        ) : null}
       </section>
 
       {error ? (
@@ -155,7 +185,10 @@ export function AdminOverviewClient() {
           {[
             { label: "Wejścia (odsłony)", value: analytics.totals.total_views },
             { label: "Unikalni odwiedzający", value: analytics.totals.unique_visitors },
-            { label: "Konta zarejestrowane", value: analytics.accounts.registered_total },
+            {
+              label: "Konta zarejestrowane (cała baza)",
+              value: analytics.accounts.registered_total,
+            },
             {
               label: "Aktywni zalogowani (zakres)",
               value: analytics.accounts.distinct_logged_in_visitors_in_range,

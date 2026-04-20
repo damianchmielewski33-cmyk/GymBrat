@@ -16,8 +16,8 @@ import { users, userSettings, workouts } from "@/db/schema";
 import { getReportsData } from "@/lib/reports";
 import { getWeeklyCardioProgress as getWeeklyCardioProgressData } from "@/lib/cardio";
 import { calendarDateKey } from "@/lib/local-date";
+import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
 import { activityLevels } from "@/lib/validations/register";
-import { getTodaysMacrosCached } from "@/services/fitatu";
 
 export async function loginUser(
   email: string,
@@ -196,7 +196,17 @@ export async function getFitatuData() {
   if (!session?.user?.id) {
     return { ok: false as const, error: "Unauthorized" };
   }
-  const data = await getTodaysMacrosCached(session.user.id);
+  const db = getDb();
+  const [settingsRow] = await db
+    .select({
+      trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
+      restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
+      nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
+    })
+    .from(userSettings)
+    .where(eq(userSettings.userId, session.user.id))
+    .limit(1);
+  const data = await loadTodaysNutritionSummary(session.user.id, settingsRow);
   return { ok: true as const, data };
 }
 
@@ -249,7 +259,20 @@ export async function aiGeneratePlan(overrides?: unknown) {
     };
   }
 
-  const fitatu = await getTodaysMacrosCached(session.user.id);
+  const db = getDb();
+  const [nutritionSettingsRow] = await db
+    .select({
+      trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
+      restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
+      nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
+    })
+    .from(userSettings)
+    .where(eq(userSettings.userId, session.user.id))
+    .limit(1);
+  const fitatu = await loadTodaysNutritionSummary(
+    session.user.id,
+    nutritionSettingsRow,
+  );
   const activityMap: Record<
     string,
     TrainingPlanInput["activityLevel"]

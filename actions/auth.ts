@@ -3,6 +3,7 @@
 import { hash } from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
+import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import { siteActivityLog, userSettings, users } from "@/db/schema";
 import {
   registerSchema,
@@ -69,6 +70,7 @@ export async function registerUser(
     userId,
     action: "Rejestracja konta",
     metaJson: JSON.stringify({ role: data.role }),
+    deploymentEnv: getAnalyticsDeployment(),
   });
 
   return { ok: true };

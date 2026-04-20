@@ -2,7 +2,8 @@
  * Client-side workout tracking state (sent as JSON in existing API — no backend change).
  */
 export type WorkoutSetState = {
-  reps: number;
+  /** `null` = pole puste (użytkownik może wyczyścić wpis); liczba = powtórzenia. */
+  reps: number | null;
   weight: number;
   done: boolean;
 };
