@@ -62,6 +62,20 @@ type HourlyJson = {
   peak: { hour: number; label: string; views: number };
 };
 
+type PurgeWorkoutsJson = {
+  ok: true;
+  deleted: { workouts: number; trainingSessions: number };
+};
+
+type PurgeMealsJson = {
+  ok: true;
+  deleted: { mealLogs: number };
+};
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v != null;
+}
+
 function defaultRange(): { from: string; to: string } {
   const to = new Date();
   const from = new Date(to);
@@ -77,6 +91,8 @@ export function AdminOverviewClient() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [includeUntagged, setIncludeUntagged] = useState(false);
+  const [purgeBusy, setPurgeBusy] = useState<"workouts" | "meals" | null>(null);
+  const [purgeMsg, setPurgeMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,6 +131,56 @@ export function AdminOverviewClient() {
   );
 
   const hourData = hourly?.by_hour ?? [];
+
+  const purge = useCallback(
+    async (kind: "workouts" | "meals") => {
+      if (purgeBusy) return;
+      const label =
+        kind === "workouts"
+          ? "wszystkie treningi (historię treningów)"
+          : "wszystkie posiłki (historię jedzenia)";
+      if (
+        !confirm(
+          `Na pewno wyczyścić ${label} z całej bazy? Tej operacji nie da się cofnąć.`,
+        )
+      ) {
+        return;
+      }
+
+      setPurgeBusy(kind);
+      setPurgeMsg(null);
+      try {
+        const endpoint =
+          kind === "workouts"
+            ? "/api/admin/purge/workouts"
+            : "/api/admin/purge/meals";
+        const res = await fetch(endpoint, { method: "POST" });
+        const json: unknown = await res.json();
+        if (!res.ok) throw new Error("request_failed");
+        if (!isRecord(json) || json.ok !== true) throw new Error("request_failed");
+
+        if (kind === "workouts") {
+          const j = json as Partial<PurgeWorkoutsJson>;
+          const deleted = isRecord(j.deleted) ? j.deleted : {};
+          const w = Number((deleted as Record<string, unknown>).workouts ?? 0);
+          const ts = Number((deleted as Record<string, unknown>).trainingSessions ?? 0);
+          setPurgeMsg(
+            `Wyczyszczono: treningi ${w}, sesje treningowe ${ts}.`,
+          );
+        } else {
+          const j = json as Partial<PurgeMealsJson>;
+          const deleted = isRecord(j.deleted) ? j.deleted : {};
+          const m = Number((deleted as Record<string, unknown>).mealLogs ?? 0);
+          setPurgeMsg(`Wyczyszczono: posiłki ${m}.`);
+        }
+      } catch {
+        setPurgeMsg("Nie udało się wykonać czyszczenia. Sprawdź, czy panel admina jest odblokowany.");
+      } finally {
+        setPurgeBusy(null);
+      }
+    },
+    [purgeBusy],
+  );
 
   return (
     <div className="space-y-8">
@@ -179,6 +245,49 @@ export function AdminOverviewClient() {
           {error}
         </p>
       ) : null}
+
+      <section className="glass-panel neon-glow p-5 sm:p-6">
+        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
+          Narzędzia administracyjne
+        </p>
+        <h2 className="font-heading mt-1 text-lg font-semibold text-white">
+          Czyszczenie historii
+        </h2>
+        <p className="mt-2 text-sm text-white/55">
+          Opcje poniżej usuwają dane z całej bazy. Używaj ostrożnie.
+        </p>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-rose-400/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+            disabled={purgeBusy != null}
+            onClick={() => void purge("workouts")}
+          >
+            {purgeBusy === "workouts"
+              ? "Czyszczenie…"
+              : "Wyczyść wszystkie treningi"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="border-rose-400/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+            disabled={purgeBusy != null}
+            onClick={() => void purge("meals")}
+          >
+            {purgeBusy === "meals"
+              ? "Czyszczenie…"
+              : "Wyczyść wszystkie posiłki"}
+          </Button>
+        </div>
+
+        {purgeMsg ? (
+          <p className="mt-3 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/75">
+            {purgeMsg}
+          </p>
+        ) : null}
+      </section>
 
       {!loading && analytics ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
