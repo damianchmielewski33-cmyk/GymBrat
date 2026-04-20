@@ -1,8 +1,9 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { workoutPlans, workouts } from "@/db/schema";
 import { calendarDateKey } from "@/lib/local-date";
+import { sessionVolume } from "@/lib/workout-session-calculations";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -14,6 +15,34 @@ type CompletedWorkoutPayload = {
   exercises: unknown;
   workoutPlanId?: string | null;
 };
+
+function parseCompletedWorkout(json: string): {
+  kind?: string;
+  startedAt?: number;
+  exercises?: unknown;
+} | null {
+  try {
+    const o = JSON.parse(json) as unknown;
+    if (!o || typeof o !== "object") return null;
+    return o as { kind?: string; startedAt?: number; exercises?: unknown };
+  } catch {
+    return null;
+  }
+}
+
+function safeSessionVolume(exercises: unknown): number {
+  if (!Array.isArray(exercises)) return 0;
+  return sessionVolume(
+    exercises as ReadonlyArray<{
+      sets: ReadonlyArray<{ reps: number | null; weight: number }>;
+    }>,
+  );
+}
+
+function deltaPct(current: number, prev: number): number | null {
+  if (!Number.isFinite(current) || !Number.isFinite(prev) || prev <= 0) return null;
+  return ((current - prev) / prev) * 100;
+}
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -65,6 +94,35 @@ export async function POST(req: Request) {
     }
   }
 
+  // Strength proxy: session volume compared to previous workout from the same plan.
+  let strengthDeltaPercent: number | null = null;
+  if (rawPlanId) {
+    const currentVol = safeSessionVolume(body.exercises);
+    const currentStartedAtMs = startedAt.getTime();
+
+    const recent = await db
+      .select({ exercises: workouts.exercises })
+      .from(workouts)
+      .where(and(eq(workouts.userId, session.user.id), eq(workouts.workoutPlanId, rawPlanId)))
+      .orderBy(desc(workouts.date))
+      .limit(12);
+
+    let prevVol: number | null = null;
+    for (const r of recent) {
+      const parsed = parseCompletedWorkout(r.exercises);
+      if (!parsed || parsed.kind !== "completed_session") continue;
+      const prevStartedAtMs = typeof parsed.startedAt === "number" ? parsed.startedAt : null;
+      if (prevStartedAtMs == null || !Number.isFinite(prevStartedAtMs)) continue;
+      if (prevStartedAtMs >= currentStartedAtMs) continue;
+      prevVol = safeSessionVolume(parsed.exercises);
+      break;
+    }
+
+    if (prevVol != null) {
+      strengthDeltaPercent = deltaPct(currentVol, prevVol);
+    }
+  }
+
   const dateKey = calendarDateKey(startedAt);
   await db.insert(workouts).values({
     userId: session.user.id,
@@ -85,6 +143,6 @@ export async function POST(req: Request) {
   revalidatePath("/reports");
   revalidatePath("/active-workout");
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, strengthDeltaPercent });
 }
 

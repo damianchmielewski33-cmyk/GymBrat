@@ -5,8 +5,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Pause, Play, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { cn } from "@/lib/utils";
+import { sessionVolume } from "@/lib/workout-session-calculations";
 
 function formatDuration(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -35,6 +43,8 @@ export function ActiveWorkoutGlobalBar() {
 
   const [now, setNow] = useState(() => Date.now());
   const [completing, setCompleting] = useState(false);
+  const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false);
+  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
 
   const hasSession = workoutPlanId != null && exercises.length > 0;
   const isRunning = hasSession && startedAt != null;
@@ -68,12 +78,19 @@ export function ActiveWorkoutGlobalBar() {
 
   async function completeWorkoutFromBar() {
     if (completing) return;
-    const ok = window.confirm("Zakończyć trening i zapisać do raportów?");
-    if (!ok) return;
-
     setCompleting(true);
     try {
       const endedAt = Date.now();
+      const baseSummary = {
+        title: title.trim() || "Trening",
+        endedAt,
+        durationSeconds: elapsedSeconds,
+        cardioMinutes,
+        exercisesCount: exercises.length,
+        setsDone: progress.done,
+        setsTotal: progress.total,
+        totalVolume: sessionVolume(exercises),
+      };
       const res = await fetch("/api/workouts/complete", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -86,11 +103,23 @@ export function ActiveWorkoutGlobalBar() {
           workoutPlanId,
         }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        strengthDeltaPercent?: number | null;
+      };
       if (!res.ok || !data.ok) {
         throw new Error(data.error || "Nie udało się zapisać treningu");
       }
       reset();
+      const completedSummary = {
+        ...baseSummary,
+        strengthDeltaPercent:
+          typeof data.strengthDeltaPercent === "number" && Number.isFinite(data.strengthDeltaPercent)
+            ? data.strengthDeltaPercent
+            : null,
+      };
+      sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
       router.push("/reports");
       router.refresh();
     } catch (e) {
@@ -174,7 +203,7 @@ export function ActiveWorkoutGlobalBar() {
               type="button"
               className="gap-2 bg-[#FF1A4B] text-white hover:bg-[#e61645] disabled:opacity-50"
               disabled={completing}
-              onClick={completeWorkoutFromBar}
+              onClick={() => setConfirmCompleteOpen(true)}
             >
               {completing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -210,13 +239,7 @@ export function ActiveWorkoutGlobalBar() {
               type="button"
               variant="outline"
               className="gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
-              onClick={() => {
-                const ok = window.confirm(
-                  "Odrzucić aktywny trening? Dane tej sesji zostaną usunięte z urządzenia.",
-                );
-                if (!ok) return;
-                reset();
-              }}
+              onClick={() => setConfirmDiscardOpen(true)}
             >
               <Trash2 className="h-4 w-4" />
               <span className="hidden sm:inline">Odrzuć</span>
@@ -224,6 +247,83 @@ export function ActiveWorkoutGlobalBar() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={confirmCompleteOpen} onOpenChange={setConfirmCompleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Zakończyć trening?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Zapiszemy sesję i przeniesiemy Cię do raportów.
+          </AlertDialogDescription>
+
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <AlertDialogClose
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
+                  disabled={completing}
+                />
+              }
+            >
+              Anuluj
+            </AlertDialogClose>
+
+            <Button
+              type="button"
+              className="bg-[#FF1A4B] text-white hover:bg-[#e61645] disabled:opacity-50"
+              disabled={completing}
+              onClick={async () => {
+                setConfirmCompleteOpen(false);
+                await completeWorkoutFromBar();
+              }}
+            >
+              {completing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Zapisywanie…
+                </>
+              ) : (
+                "Zakończ i zapisz"
+              )}
+            </Button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmDiscardOpen} onOpenChange={setConfirmDiscardOpen}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Odrzucić aktywny trening?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Dane tej sesji zostaną usunięte z tego urządzenia. Tej operacji nie można cofnąć.
+          </AlertDialogDescription>
+
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <AlertDialogClose
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
+                />
+              }
+            >
+              Anuluj
+            </AlertDialogClose>
+
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                setConfirmDiscardOpen(false);
+                reset();
+              }}
+            >
+              Odrzuć
+            </Button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { formatVolumeKg, setVolume } from "@/lib/workout-session-calculations";
 import { cn } from "@/lib/utils";
 
 const inputBox =
-  "rounded-xl border border-white/10 bg-[#1a1a1a] px-3 py-2.5 text-center text-lg font-bold tabular-nums text-white outline-none focus:border-[#FF9500]/60 focus:ring-1 focus:ring-[#FF9500]/40";
+  "h-11 w-full min-w-0 rounded-xl border border-white/[0.10] bg-white/[0.04] px-3 text-center text-base font-semibold tabular-nums text-white outline-none transition focus:border-[var(--neon)]/55 focus:ring-2 focus:ring-[var(--neon)]/20";
 
 function parseOptionalReps(raw: string): number | null {
   const t = raw.trim();
@@ -42,39 +42,61 @@ export function GymPadSetRow({ set, animationIndex, onChange }: GymPadSetRowProp
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, delay: animationIndex * 0.04 }}
       className={cn(
-        "flex flex-wrap items-center gap-2 border-b border-white/[0.07] py-3 last:border-b-0",
-        set.done && "bg-[#0f1f14]/35",
+        "grid grid-cols-[84px_18px_1fr_18px_1fr_44px] items-center gap-2 border-b border-white/[0.07] py-3 last:border-b-0",
+        "rounded-xl px-2",
+        set.done && "bg-emerald-500/5",
       )}
     >
-      <input
-        type="number"
-        inputMode="numeric"
-        value={set.reps === null ? "" : set.reps}
-        onChange={(e) => onChange({ reps: parseOptionalReps(e.target.value) })}
-        className={cn(inputBox, "w-[4.5rem]")}
-      />
-      <span className="text-lg font-medium text-white/50">×</span>
-      <div className="flex items-center gap-1">
+      <div className="grid gap-1">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          Powt.
+        </span>
         <input
           type="number"
-          inputMode="decimal"
-          min={0}
-          step="0.5"
-          value={Number.isFinite(set.weight) ? set.weight : 0}
-          onChange={(e) => onChange({ weight: Number(e.target.value) })}
-          className={cn(inputBox, "min-w-[5rem]")}
+          inputMode="numeric"
+          value={set.reps === null ? "" : set.reps}
+          onChange={(e) => onChange({ reps: parseOptionalReps(e.target.value) })}
+          className={inputBox}
         />
-        <span className="text-xs text-white/45">kg</span>
       </div>
-      <span className="text-lg text-white/40">=</span>
-      <span className="min-w-[5rem] border-b border-white/50 pb-0.5 text-center text-sm font-semibold tabular-nums text-[#bef264]">
-        {formatVolumeKg(lineVol)} kg
-      </span>
+
+      <span className="text-center text-lg font-medium text-white/45">×</span>
+
+      <div className="grid gap-1">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          Ciężar
+        </span>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.5"
+            value={Number.isFinite(set.weight) ? set.weight : 0}
+            onChange={(e) => onChange({ weight: Number(e.target.value) })}
+            className={inputBox}
+          />
+          <span className="shrink-0 text-xs font-medium text-white/45">kg</span>
+        </div>
+      </div>
+
+      <span className="text-center text-lg text-white/35">=</span>
+
+      <div className="grid gap-1">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          Wynik
+        </span>
+        <span className="inline-flex h-11 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.03] px-3 text-center text-sm font-semibold tabular-nums text-white/85">
+          {formatVolumeKg(lineVol)}{" "}
+          <span className="ml-1 text-xs font-medium text-white/45">kg</span>
+        </span>
+      </div>
+
       <motion.button
         type="button"
         whileTap={{ scale: 0.94 }}
         onClick={copyLine}
-        className="ml-auto flex h-10 w-10 items-center justify-center rounded-xl text-white/50 hover:bg-white/5 hover:text-[#FF9500]"
+        className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.03] text-white/55 transition hover:bg-white/[0.06] hover:text-[var(--neon)]"
         aria-label="Kopiuj serię"
       >
         <Copy className="h-5 w-5" />

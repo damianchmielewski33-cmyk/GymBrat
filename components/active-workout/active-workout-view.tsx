@@ -251,6 +251,16 @@ export function ActiveWorkoutView({
     setSaving(true);
     try {
       const endedAt = Date.now();
+      const baseSummary = {
+        title: title.trim() || "Trening",
+        endedAt,
+        durationSeconds: elapsed,
+        cardioMinutes,
+        exercisesCount: exercises.length,
+        setsDone: completedSets.done,
+        setsTotal: completedSets.total,
+        totalVolume: sessionTotal,
+      };
       const res = await fetch("/api/workouts/complete", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -263,7 +273,11 @@ export function ActiveWorkoutView({
           workoutPlanId,
         }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        strengthDeltaPercent?: number | null;
+      };
       if (!res.ok || !data.ok) {
         throw new Error(data.error || "Nie udało się zapisać treningu");
       }
@@ -271,6 +285,14 @@ export function ActiveWorkoutView({
       setExercises([]);
       setSelectedExerciseId(null);
       stopRest();
+      const completedSummary = {
+        ...baseSummary,
+        strengthDeltaPercent:
+          typeof data.strengthDeltaPercent === "number" && Number.isFinite(data.strengthDeltaPercent)
+            ? data.strengthDeltaPercent
+            : null,
+      };
+      sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
       router.push("/reports");
       router.refresh();
     } catch (e) {

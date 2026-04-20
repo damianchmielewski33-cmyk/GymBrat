@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { BodyReportImport } from "@/components/reports/body-report-import";
 import { BodyReportForm } from "@/components/reports/body-report-form";
 import { ReportPhotoToggle } from "@/components/reports/report-photo-toggle";
+import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
 import { getBodyReports } from "@/lib/body-reports";
 
 function formatTakNie(v: string | null) {
@@ -17,6 +18,7 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-8">
+      <WorkoutCompletePopup />
       <header>
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
           Dziennik postępów

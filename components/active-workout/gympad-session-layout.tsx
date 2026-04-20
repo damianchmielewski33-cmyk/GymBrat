@@ -85,7 +85,7 @@ export function GymPadSessionLayout({
   }
 
   return (
-    <div className="bg-black text-white">
+    <div className="text-white">
       <div className="flex items-end justify-between gap-3 border-b border-white/10 pb-3">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/45">
@@ -95,7 +95,7 @@ export function GymPadSessionLayout({
             {title.trim() || "Trening"}
           </p>
         </div>
-        <span className="shrink-0 font-mono text-[26px] font-semibold leading-none tabular-nums text-[#FF9500] sm:text-3xl">
+        <span className="shrink-0 font-mono text-[26px] font-semibold leading-none tabular-nums text-[var(--neon)] sm:text-3xl">
           {formatHMS(elapsedSeconds)}
         </span>
       </div>
@@ -167,7 +167,7 @@ export function GymPadSessionLayout({
               type="button"
               whileTap={{ scale: 0.98 }}
               onClick={() => onAddSet(current.id)}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#FF9500] px-5 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(255,149,0,0.22)] hover:brightness-110"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--neon)] px-5 py-3 text-sm font-bold text-white shadow-[0_0_24px_rgba(230,0,35,0.20)] hover:brightness-110"
             >
               <Plus className="h-5 w-5" strokeWidth={2.5} />
               Dodaj serię
