@@ -4,16 +4,11 @@ import { motion } from "framer-motion";
 import { ClipboardList } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 type ActiveSessionCardProps = {
   children: ReactNode;
   hasLoadedPlan: boolean;
   initialPlansEmpty: boolean;
-  cardioMinutes: number;
-  onCardioChange: (n: number) => void;
-  onResetSession: () => void;
 };
 
 /**
@@ -23,9 +18,6 @@ export function ActiveSessionCard({
   children,
   hasLoadedPlan,
   initialPlansEmpty,
-  cardioMinutes,
-  onCardioChange,
-  onResetSession,
 }: ActiveSessionCardProps) {
   return (
     <motion.div
@@ -75,20 +67,6 @@ export function ActiveSessionCard({
           <>
             <div className="min-h-0 flex-1 overflow-y-auto pr-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
               {children}
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/[0.08] pt-4">
-              <label className="text-[11px] text-white/45">Cardio (min)</label>
-              <Input
-                type="number"
-                min={0}
-                value={cardioMinutes}
-                onChange={(e) => onCardioChange(Number(e.target.value))}
-                className="h-10 w-24 rounded-xl border-white/[0.1] bg-[#141414] text-center text-white"
-              />
-              <Button type="button" variant="outline" size="sm" onClick={onResetSession}>
-                Resetuj sesję
-              </Button>
             </div>
           </>
         )}

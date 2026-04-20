@@ -60,6 +60,8 @@ export function ActiveWorkoutGlobalBar() {
 
   if (!hasSession) return null;
 
+  const canNavigate = !pathname.startsWith("/active-workout");
+
   return (
     <div className="fixed inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-[60] px-3 md:bottom-[calc(16px+env(safe-area-inset-bottom))]">
       <div
@@ -69,33 +71,65 @@ export function ActiveWorkoutGlobalBar() {
         }}
       >
         <div className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <div
-                className={cn(
-                  "h-2 w-2 rounded-full",
-                  isRunning ? "bg-[var(--neon)]" : "bg-white/35",
-                )}
-                aria-hidden
-              />
-              <p className="truncate text-sm font-semibold text-white/90">
-                {title || "Trening"}
-              </p>
-              <span className="shrink-0 text-xs text-white/50">
-                {formatDuration(elapsedSeconds)}
-              </span>
-              {progress.total > 0 ? (
-                <span className="shrink-0 text-xs text-white/45">
-                  • {progress.done}/{progress.total}
+          {canNavigate ? (
+            <Link
+              href="/active-workout"
+              className="min-w-0 flex-1 rounded-xl outline-none transition hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/40"
+              aria-label="Przejdź do aktywnego treningu"
+            >
+              <div className="min-w-0 px-1 py-1">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      "h-2 w-2 rounded-full",
+                      isRunning ? "bg-[var(--neon)]" : "bg-white/35",
+                    )}
+                    aria-hidden
+                  />
+                  <p className="truncate text-sm font-semibold text-white/90">
+                    {title || "Trening"}
+                  </p>
+                  <span className="shrink-0 text-xs text-white/50">
+                    {formatDuration(elapsedSeconds)}
+                  </span>
+                  {progress.total > 0 ? (
+                    <span className="shrink-0 text-xs text-white/45">
+                      • {progress.done}/{progress.total}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="truncate text-[11px] text-white/45">
+                  Masz aktywny trening — kliknij, aby wrócić
+                </p>
+              </div>
+            </Link>
+          ) : (
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    isRunning ? "bg-[var(--neon)]" : "bg-white/35",
+                  )}
+                  aria-hidden
+                />
+                <p className="truncate text-sm font-semibold text-white/90">
+                  {title || "Trening"}
+                </p>
+                <span className="shrink-0 text-xs text-white/50">
+                  {formatDuration(elapsedSeconds)}
                 </span>
-              ) : null}
+                {progress.total > 0 ? (
+                  <span className="shrink-0 text-xs text-white/45">
+                    • {progress.done}/{progress.total}
+                  </span>
+                ) : null}
+              </div>
+              <p className="truncate text-[11px] text-white/45">
+                Jesteś w widoku treningu
+              </p>
             </div>
-            <p className="truncate text-[11px] text-white/45">
-              {pathname.startsWith("/active-workout")
-                ? "Jesteś w widoku treningu"
-                : "Masz aktywny trening — możesz wrócić w dowolnym momencie"}
-            </p>
-          </div>
+          )}
 
           <div className="flex shrink-0 items-center gap-2">
             <Link

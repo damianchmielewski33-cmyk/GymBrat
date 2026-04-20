@@ -86,16 +86,22 @@ export function GymPadSessionLayout({
 
   return (
     <div className="bg-black text-white">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
-        <h2 className="min-w-0 flex-1 text-xl font-bold leading-tight tracking-tight text-white">
-          {title.trim() || "Trening"}
-        </h2>
-        <span className="shrink-0 font-mono text-2xl font-semibold tabular-nums text-[#FF9500] sm:text-3xl">
+      <div className="flex items-end justify-between gap-3 border-b border-white/10 pb-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/45">
+            Sesja
+          </p>
+          <p className="truncate text-sm font-semibold text-white/85" title={title}>
+            {title.trim() || "Trening"}
+          </p>
+        </div>
+        <span className="shrink-0 font-mono text-[26px] font-semibold leading-none tabular-nums text-[#FF9500] sm:text-3xl">
           {formatHMS(elapsedSeconds)}
         </span>
       </div>
 
-      <div className="-mx-1 flex gap-1 overflow-x-auto border-b border-white/10 pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mt-3">
+        <div className="-mx-1 flex gap-1 overflow-x-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {exercises.map((ex) => {
           const active = ex.id === current?.id;
           return (
@@ -104,19 +110,19 @@ export function GymPadSessionLayout({
               type="button"
               onClick={() => onSelectExercise(ex.id)}
               className={cn(
-                "relative shrink-0 whitespace-nowrap px-3 py-2.5 text-left text-sm font-medium transition",
+                "relative shrink-0 rounded-full px-3 py-2 text-left text-[13px] font-semibold transition",
                 active
-                  ? "text-[#FF9500]"
-                  : "text-white/45 hover:text-white/70",
+                  ? "bg-white/[0.08] text-white"
+                  : "bg-transparent text-white/45 hover:bg-white/[0.05] hover:text-white/75",
               )}
             >
-              {active ? (
-                <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-[#FF9500]" />
-              ) : null}
+              {active ? <span className="absolute inset-0 rounded-full ring-1 ring-white/10" /> : null}
               <span className="line-clamp-2 max-w-[200px]">{ex.name}</span>
             </button>
           );
         })}
+        </div>
+        <div className="mt-3 h-px w-full bg-white/10" />
       </div>
 
       {current ? (
@@ -128,27 +134,23 @@ export function GymPadSessionLayout({
           className="pt-4"
         >
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-[#84cc16]/35 bg-[#14220a]/80 px-3 py-4 text-center">
-              <p className="text-3xl font-bold tabular-nums text-[#bef264]">{totalReps}</p>
-              <p className="mt-1 text-xs font-medium text-[#84cc16]/90">powt.</p>
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3 py-4 text-center">
+              <p className="text-3xl font-bold tabular-nums text-white">{totalReps}</p>
+              <p className="mt-1 text-xs font-medium text-white/55">powt.</p>
             </div>
-            <div className="rounded-2xl border border-[#84cc16]/35 bg-[#14220a]/80 px-3 py-4 text-center">
-              <p className="text-2xl font-bold tabular-nums leading-tight text-[#bef264] sm:text-3xl">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3 py-4 text-center">
+              <p className="text-2xl font-bold tabular-nums leading-tight text-white sm:text-3xl">
                 {formatVolumeKg(vol).replace(/\s/g, " ")}
               </p>
-              <p className="mt-1 text-xs font-medium text-[#84cc16]/90">ciężar (kg)</p>
+              <p className="mt-1 text-xs font-medium text-white/55">objętość (kg)</p>
             </div>
           </div>
 
-          <p className="mt-4 text-center text-[13px] text-white/65">
-            <span className="text-white/90">Powt.:</span> {totalReps}
-            <span className="mx-2 text-white/30">·</span>
-            <span className="text-white/90">Ciężar:</span> {formatVolumeKg(vol)} kg
-            <span className="mx-2 text-white/30">·</span>
-            <span className="text-white/90">Serie:</span> {nSets}
+          <p className="mt-3 text-center text-[12px] text-white/55">
+            {nSets} {nSets === 1 ? "seria" : "serii"} • {totalReps} powt. • {formatVolumeKg(vol)} kg
           </p>
 
-          <div className="mt-2">
+          <div className="mt-3">
             {current.sets.map((set, idx) => (
               <GymPadSetRow
                 key={`${current.id}-${idx}`}
@@ -160,12 +162,12 @@ export function GymPadSessionLayout({
             ))}
           </div>
 
-          <div className="mt-4 flex items-center justify-between gap-4">
+          <div className="mt-4 flex items-center justify-between gap-3">
             <motion.button
               type="button"
               whileTap={{ scale: 0.98 }}
               onClick={() => onAddSet(current.id)}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#FF9500] px-5 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(255,149,0,0.25)]"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#FF9500] px-5 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(255,149,0,0.22)] hover:brightness-110"
             >
               <Plus className="h-5 w-5" strokeWidth={2.5} />
               Dodaj serię
@@ -175,7 +177,7 @@ export function GymPadSessionLayout({
               whileTap={{ scale: 0.98 }}
               disabled={current.sets.length <= 1}
               onClick={() => onRemoveLastSet(current.id)}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white/70 disabled:opacity-35"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white/70 hover:bg-white/[0.06] disabled:opacity-35"
             >
               <Minus className="h-5 w-5" />
               Usuń

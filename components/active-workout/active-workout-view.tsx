@@ -11,12 +11,16 @@ import { PlanProgressHeader } from "@/components/active-workout/plan-progress-he
 import { WorkoutPlanCard } from "@/components/active-workout/workout-plan-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { RestTimerBar } from "@/components/workout/RestTimerBar";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import { WorkoutSummary } from "@/components/workout/WorkoutSummary";
 import type { WorkoutPlanExercise } from "@/lib/workout-plan-types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
+import { SlidersHorizontal, RotateCcw } from "lucide-react";
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
@@ -103,8 +107,13 @@ export function ActiveWorkoutView({
     if (!raw) return;
 
     try {
-      const parsed = JSON.parse(raw) as { state?: unknown } | null;
-      const s = (parsed && typeof parsed === "object" ? (parsed as { state?: any }).state : null) as any;
+      const parsed = JSON.parse(raw) as unknown;
+      const state =
+        parsed && typeof parsed === "object" && "state" in parsed
+          ? (parsed as { state?: unknown }).state
+          : null;
+
+      const s = state && typeof state === "object" ? (state as Record<string, unknown>) : null;
       const hasPersistedSession =
         s &&
         typeof s === "object" &&
@@ -265,12 +274,60 @@ export function ActiveWorkoutView({
     <div
       className={
         hasLoadedPlan
-          ? "relative ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-x-hidden bg-black pb-28 pt-0 sm:pb-32"
+          ? "relative ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-x-hidden bg-black pb-36 pt-0 sm:pb-40"
           : "relative min-h-[calc(100dvh-6rem)] rounded-2xl bg-[#0f0f0f] p-4 sm:p-6 lg:min-h-[calc(100dvh-5rem)]"
       }
     >
       {hasLoadedPlan ? (
-        <PlanProgressHeader done={completedSets.done} total={completedSets.total} title={title} />
+        <Sheet>
+          <PlanProgressHeader
+            done={completedSets.done}
+            total={completedSets.total}
+            title={title}
+            actionsSlot={
+              <SheetTrigger
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/40"
+                aria-label="Ustawienia sesji"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+              </SheetTrigger>
+            }
+          />
+          <SheetContent side="bottom" className="border-white/10 bg-[#0a0a0f] text-white">
+            <SheetHeader>
+              <SheetTitle className="text-white">Sesja — ustawienia</SheetTitle>
+            </SheetHeader>
+            <div className="px-4 pb-6">
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label className="text-white/80">Cardio (min)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={cardioMinutes}
+                    onChange={(e) => setCardioMinutes(clampInt(Number(e.target.value), 0, 600))}
+                    className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white"
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 justify-center gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
+                  onClick={() => {
+                    reset();
+                    setExercises([]);
+                    setSelectedExerciseId(null);
+                    stopRest();
+                  }}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Resetuj sesję
+                </Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       ) : null}
 
       {hasLoadedPlan ? (
@@ -292,14 +349,6 @@ export function ActiveWorkoutView({
           <ActiveSessionCard
             hasLoadedPlan={hasLoadedPlan}
             initialPlansEmpty={initialPlans.length === 0}
-            cardioMinutes={cardioMinutes}
-            onCardioChange={(n) => setCardioMinutes(clampInt(n, 0, 600))}
-            onResetSession={() => {
-              reset();
-              setExercises([]);
-              setSelectedExerciseId(null);
-              stopRest();
-            }}
           >
             {hasLoadedPlan ? exerciseList : null}
           </ActiveSessionCard>
