@@ -79,7 +79,7 @@ export function LoginForm() {
             }
             if (!res.ok) {
               setError(
-                "Serwer nie zakończył logowania. Na produkcji ustaw zmienne AUTH_SECRET oraz NEXTAUTH_URL (pełny adres https aplikacji).",
+                "Nie udało się zalogować. Spróbuj ponownie za chwilę.",
               );
               return;
             }
@@ -91,7 +91,7 @@ export function LoginForm() {
             }
           } catch {
             setError(
-              "Logowanie nie powiodło się (błąd klienta lub serwera). Jeśli to produkcja, sprawdź AUTH_SECRET i NEXTAUTH_URL w ustawieniach hostingu.",
+              "Logowanie nie powiodło się. Spróbuj ponownie za chwilę.",
             );
           }
         });

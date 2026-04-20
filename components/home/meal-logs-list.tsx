@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import {
   deleteMealLogFormAction,
   updateMealLogAction,
@@ -52,20 +52,14 @@ export function MealLogsList({
   const [editC, setEditC] = useState("");
   const [editKcal, setEditKcal] = useState("");
 
-  useEffect(() => {
-    if (!editing) return;
-    setEditName(editing.name ?? "");
-    setEditP(editing.proteinG ? String(editing.proteinG) : "");
-    setEditF(editing.fatG ? String(editing.fatG) : "");
-    setEditC(editing.carbsG ? String(editing.carbsG) : "");
-    setEditKcal(editing.calories ? String(Math.round(editing.calories)) : "");
-  }, [editing]);
-
-  useEffect(() => {
-    if (updateState?.ok) {
-      setEditing(null);
-    }
-  }, [updateState?.ok]);
+  function beginEdit(m: MealLogDto) {
+    setEditing(m);
+    setEditName(m.name ?? "");
+    setEditP(m.proteinG ? String(m.proteinG) : "");
+    setEditF(m.fatG ? String(m.fatG) : "");
+    setEditC(m.carbsG ? String(m.carbsG) : "");
+    setEditKcal(m.calories ? String(Math.round(m.calories)) : "");
+  }
 
   const ep = parseMacroGrams(editP);
   const ef = parseMacroGrams(editF);
@@ -87,13 +81,13 @@ export function MealLogsList({
           Twoje posiłki ({dateKey})
         </h3>
         <p className="mt-1 text-sm text-white/50">
-          Lista wpisów liczących się do spożycia na dziś — edytuj lub usuń wpis. Kalorie z
-                    makr (4·B + 4·W + 9·T) albo nadpisane ręcznie.
+          Lista wpisów liczących się do spożycia na dziś — edytuj lub usuń wpis. Kalorie mogą być
+          policzone z makr (4·B + 4·W + 9·T) albo nadpisane ręcznie.
         </p>
 
         {entries.length === 0 ? (
           <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-6 text-center text-sm text-white/45">
-            Brak wpisów na ten dzień. Użyj przycisku „Dodaj Posiłek”, aby je dodać.
+            Brak wpisów na ten dzień. Użyj przycisku „Dodaj posiłek”, aby je dodać.
           </p>
         ) : (
           <ul className="mt-4 space-y-2">
@@ -120,7 +114,7 @@ export function MealLogsList({
                     variant="outline"
                     size="sm"
                     className="border-white/15 bg-white/5"
-                    onClick={() => setEditing(m)}
+                    onClick={() => beginEdit(m)}
                   >
                     <Pencil className="mr-1.5 h-3.5 w-3.5" />
                     Edytuj
@@ -323,6 +317,11 @@ export function MealLogsList({
               {updateState?.error ? (
                 <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200/95">
                   {updateState.error}
+                </div>
+              ) : null}
+              {updateState?.ok ? (
+                <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.08] px-3 py-2 text-sm text-emerald-100">
+                  Zapisano zmiany.
                 </div>
               ) : null}
 

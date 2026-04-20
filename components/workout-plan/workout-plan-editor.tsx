@@ -18,7 +18,6 @@ import {
 import { useRouter } from "next/navigation";
 import {
   useCallback,
-  useEffect,
   useMemo,
   useState,
   useTransition,
@@ -96,15 +95,6 @@ export function WorkoutPlanEditor({
   const [showCustomRow, setShowCustomRow] = useState(false);
 
   const editorOpen = editorMode !== "closed";
-
-  useEffect(() => {
-    if (editorMode !== "closed" && editorMode !== "new" && "id" in editorMode) {
-      const found = initialPlans.find((p) => p.id === editorMode.id);
-      if (found) {
-        setPlan(structuredClone(found.plan));
-      }
-    }
-  }, [initialPlans, editorMode]);
 
   const filteredCatalog = useMemo(
     () => searchCatalogForPicker(addCategoryId, search),

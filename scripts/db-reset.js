@@ -2,11 +2,13 @@
  * Usuwa wszystkie dane aplikacji (konta, treningi, statystyki, widoki stron).
  * Ładuje `.env.local` / `.env` tak jak drizzle.config.ts.
  */
-const { createClient } = require("@libsql/client");
-const { existsSync, readFileSync } = require("node:fs");
-const { resolve } = require("node:path");
+let existsSync;
+let readFileSync;
+let resolve;
 
-function loadEnvFiles() {
+async function loadEnvFiles() {
+  ({ existsSync, readFileSync } = await import("node:fs"));
+  ({ resolve } = await import("node:path"));
   for (const name of [".env.local", ".env"]) {
     const p = resolve(process.cwd(), name);
     if (!existsSync(p)) continue;
@@ -29,8 +31,6 @@ function loadEnvFiles() {
   }
 }
 
-loadEnvFiles();
-
 const url = process.env.TURSO_DATABASE_URL ?? "file:./local.db";
 
 const deletes = [
@@ -47,6 +47,9 @@ const deletes = [
 ];
 
 async function main() {
+  const { createClient } = await import("@libsql/client");
+  await loadEnvFiles();
+
   const client = createClient({
     url,
     ...(process.env.TURSO_AUTH_TOKEN

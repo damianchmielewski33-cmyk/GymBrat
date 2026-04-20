@@ -26,11 +26,11 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: {
-    default: "GymBrat — Premium training OS",
+    default: "GymBrat — centrum treningowe",
     template: "%s · GymBrat",
   },
   description:
-    "Nowoczesne śledzenie treningów: Turso, edge caching, makra z Fitatu i architektura gotowa na AI.",
+    "Nowoczesny dziennik treningowy i żywieniowy: plany, historia, raporty, makra i integracja z Fitatu.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

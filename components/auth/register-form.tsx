@@ -141,13 +141,13 @@ export function RegisterForm() {
       });
     } catch {
       setRootError(
-        "Konto utworzone, ale logowanie się nie powiodło (błąd sesji). Ustaw AUTH_SECRET i NEXTAUTH_URL na produkcji, albo zaloguj się ręcznie.",
+        "Konto zostało utworzone, ale nie udało się zalogować automatycznie. Zaloguj się ręcznie.",
       );
       return;
     }
     if (!sign?.ok || sign.error) {
       setRootError(
-        "Konto utworzone, ale logowanie się nie powiodło. Sprawdź AUTH_SECRET / NEXTAUTH_URL albo zaloguj się ręcznie.",
+        "Konto zostało utworzone, ale nie udało się zalogować automatycznie. Zaloguj się ręcznie.",
       );
       return;
     }
@@ -297,7 +297,7 @@ export function RegisterForm() {
                         setCooldownUntil(Date.now() + 60_000);
                       } catch {
                         setRootError(
-                          "Nie udało się wysłać kodu. Sprawdź konfigurację e-mail na produkcji (RESEND_API_KEY, EMAIL_FROM).",
+                          "Nie udało się wysłać kodu. Spróbuj ponownie za chwilę.",
                         );
                       } finally {
                         setSendingCode(false);

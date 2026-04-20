@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { addMealLogAction, type MealLogFormState } from "@/actions/meal-log";
 import { SubmitButton } from "@/components/home/submit-button";
 import { Button } from "@/components/ui/button";
@@ -44,26 +44,20 @@ export function AddMealSheet({ dateKey }: { dateKey: string }) {
     setKcal("");
   }
 
-  useEffect(() => {
-    if (state?.ok) {
-      resetFields();
-      setOpen(false);
-    }
-  }, [state?.ok]);
-
-  useEffect(() => {
-    if (!open) return;
-    resetFields();
-  }, [open]);
-
   const inputClass =
     "h-11 rounded-xl border-white/12 bg-white/[0.06] px-3.5 text-[15px] text-white shadow-inner shadow-black/20 outline-none transition placeholder:text-white/25 focus-visible:border-[var(--neon)]/40 focus-visible:ring-2 focus-visible:ring-[var(--neon)]/25";
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet
+      open={open}
+      onOpenChange={(next) => {
+        if (next) resetFields();
+        setOpen(next);
+      }}
+    >
       <SheetTrigger className="inline-flex h-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-5 text-sm font-medium text-white transition hover:bg-white/10">
         <UtensilsCrossed className="mr-2 h-4 w-4 opacity-90" />
-        Dodaj Posiłek
+        Dodaj posiłek
       </SheetTrigger>
       <SheetContent
         side="bottom"
@@ -98,6 +92,12 @@ export function AddMealSheet({ dateKey }: { dateKey: string }) {
           <input type="hidden" name="fatG" value={f ? String(f) : ""} />
           <input type="hidden" name="carbsG" value={c ? String(c) : ""} />
           <input type="hidden" name="calories" value={hasManualKcal ? String(finalKcal) : ""} />
+
+          {state?.ok ? (
+            <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.08] px-4 py-3 text-sm text-emerald-100">
+              Posiłek zapisany. Możesz dodać kolejny albo zamknąć okno.
+            </div>
+          ) : null}
 
           <div className="space-y-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-sm">
             <Label htmlFor="meal-name" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
@@ -262,7 +262,10 @@ export function AddMealSheet({ dateKey }: { dateKey: string }) {
               type="button"
               variant="outline"
               className="h-11 flex-1 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 sm:flex-none"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                resetFields();
+                setOpen(false);
+              }}
             >
               Anuluj
             </Button>

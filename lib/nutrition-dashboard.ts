@@ -60,7 +60,7 @@ function applyProfileGoalsAndManualConsumption(
   dateKey: string,
   mealAgg: MealDayAggregate | undefined,
 ): FitatuDaySummary {
-  let row = mergeSummaryWithProfileGoals(raw, settings, dateKey);
+  const row = mergeSummaryWithProfileGoals(raw, settings, dateKey);
   return replaceConsumptionWithMealLogs(row, mealAgg);
 }
 

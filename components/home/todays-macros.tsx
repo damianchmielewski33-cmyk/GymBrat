@@ -168,11 +168,8 @@ export function TodaysMacrosSection({
       goals == null &&
       calGoal != null ? (
         <p className="relative mt-4 text-xs text-amber-200/80">
-          Proxy nie zwróciło celów makro (
-          <span className="font-mono">proteinGoalG</span>,{" "}
-          <span className="font-mono">carbsGoalG</span>,{" "}
-          <span className="font-mono">fatGoalG</span>) — pokazuję pełny bilans tylko dla
-          kalorii. Bilans: {fmtDelta(calRem, "kcal")} względem celu {Math.round(calGoal)} kcal.
+          Nie udało się pobrać celów makro z integracji. W tej chwili pokazuję pełny bilans tylko
+          dla kalorii. Bilans: {fmtDelta(calRem, "kcal")} względem celu {Math.round(calGoal)} kcal.
         </p>
       ) : null}
     </div>
