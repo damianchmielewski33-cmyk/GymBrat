@@ -16,6 +16,14 @@ function parseOptionalReps(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function parseOptionalWeight(raw: string): number {
+  const t = raw.trim();
+  if (t === "") return 0;
+  const n = Number(t);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, n);
+}
+
 type GymPadSetRowProps = {
   setIndex: number;
   set: WorkoutSetState;
@@ -72,8 +80,8 @@ export function GymPadSetRow({ set, animationIndex, onChange }: GymPadSetRowProp
             inputMode="decimal"
             min={0}
             step="0.5"
-            value={Number.isFinite(set.weight) ? set.weight : 0}
-            onChange={(e) => onChange({ weight: Number(e.target.value) })}
+            value={Number.isFinite(set.weight) && set.weight > 0 ? set.weight : ""}
+            onChange={(e) => onChange({ weight: parseOptionalWeight(e.target.value) })}
             className={inputBox}
           />
           <span className="shrink-0 text-xs font-medium text-white/45">kg</span>

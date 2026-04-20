@@ -29,6 +29,14 @@ function parseOptionalReps(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function parseOptionalWeight(raw: string): number {
+  const t = raw.trim();
+  if (t === "") return 0;
+  const n = Number(t);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, n);
+}
+
 /**
  * Wiersz serii w stylu dziennika (GymPad / Strong): siatka, duże pola, subtelne linie.
  */
@@ -84,8 +92,8 @@ export function SetRow({
               inputMode="decimal"
               min={0}
               step="0.5"
-              value={Number.isFinite(set.weight) ? set.weight : 0}
-              onChange={(e) => onChange({ weight: Number(e.target.value) })}
+              value={Number.isFinite(set.weight) && set.weight > 0 ? set.weight : ""}
+              onChange={(e) => onChange({ weight: parseOptionalWeight(e.target.value) })}
               className={fieldInput}
             />
             <motion.button type="button" whileTap={{ scale: 0.92 }} className={stepperBtn} onClick={() => onAdjustWeight(2.5)}>

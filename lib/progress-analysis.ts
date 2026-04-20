@@ -1,30 +1,61 @@
 import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { trainingSessions, weightLogs } from "@/db/schema";
+import { workouts, weightLogs } from "@/db/schema";
+import {
+  estimated1RM,
+  safeNormalizeExercises,
+  safeParseCompletedSession,
+} from "@/lib/workout-history";
 
 export type WeightPoint = { date: string; kg: number };
-export type VolumePoint = { date: string; reps: number };
+export type VolumePoint = { date: string; kg: number };
 export type StrengthPoint = { date: string; score: number };
-
-type ParsedExercise = {
-  id?: string;
-  name?: string;
-  sets?: Array<{ reps?: number; done?: boolean }>;
-};
+export type RelativeStrengthPoint = { date: string; ratio: number };
 
 function dayKey(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-function safeParseExercises(json: string | null): ParsedExercise[] {
-  if (!json) return [];
-  try {
-    const x = JSON.parse(json) as unknown;
-    if (!Array.isArray(x)) return [];
-    return x as ParsedExercise[];
-  } catch {
-    return [];
+function clampNonNegative(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, n);
+}
+
+function safeRound1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+function volumeAndStrengthFromWorkoutExercises(exercises: unknown): {
+  volumeKg: number;
+  strengthScore: number;
+  bestE1rmAny: number;
+  totalRepsDone: number;
+} {
+  const ex = safeNormalizeExercises(exercises);
+  let volumeKg = 0;
+  let strengthScore = 0;
+  let bestE1rmAny = 0;
+  let totalRepsDone = 0;
+
+  for (const e of ex) {
+    let bestForExercise = 0;
+    for (const s of e.sets ?? []) {
+      const reps = typeof s.reps === "number" && Number.isFinite(s.reps) ? Math.round(s.reps) : null;
+      const weight = typeof s.weight === "number" && Number.isFinite(s.weight) ? s.weight : Number(s.weight ?? 0);
+      const w = clampNonNegative(weight);
+      const done = Boolean(s.done) && reps != null && reps > 0 && w > 0;
+      if (!done) continue;
+
+      totalRepsDone += reps!;
+      volumeKg += reps! * w;
+      const e1rm = estimated1RM(w, reps!);
+      bestForExercise = Math.max(bestForExercise, e1rm);
+      bestE1rmAny = Math.max(bestE1rmAny, e1rm);
+    }
+    strengthScore += bestForExercise;
   }
+
+  return { volumeKg, strengthScore, bestE1rmAny, totalRepsDone };
 }
 
 export async function getProgressAnalysisData(userId: string) {
@@ -33,16 +64,15 @@ export async function getProgressAnalysisData(userId: string) {
   const DAY_MS = 24 * 60 * 60 * 1000;
   const from = new Date(now - 90 * DAY_MS);
 
-  const sessions = await db
+  const recentWorkouts = await db
     .select({
-      startedAt: trainingSessions.startedAt,
-      exerciseDataJson: trainingSessions.exerciseDataJson,
-      cardioMinutes: trainingSessions.cardioMinutes,
+      date: workouts.date,
+      exercisesJson: workouts.exercises,
     })
-    .from(trainingSessions)
-    .where(and(eq(trainingSessions.userId, userId), gte(trainingSessions.startedAt, from)))
-    .orderBy(desc(trainingSessions.startedAt))
-    .limit(200);
+    .from(workouts)
+    .where(and(eq(workouts.userId, userId), gte(workouts.date, dayKey(from))))
+    .orderBy(desc(workouts.date))
+    .limit(250);
 
   const weighIns = await db
     .select({
@@ -54,30 +84,23 @@ export async function getProgressAnalysisData(userId: string) {
     .orderBy(desc(weightLogs.recordedAt))
     .limit(200);
 
-  const volumeByDay = new Map<string, number>();
+  const volumeByDay = new Map<string, number>(); // kg
   const strengthByDay = new Map<string, number>();
+  const bestE1rmByDay = new Map<string, number>();
+  const repsByDay = new Map<string, number>();
 
-  for (const s of sessions) {
-    const key = dayKey(s.startedAt);
-    const ex = safeParseExercises(s.exerciseDataJson);
+  for (const w of recentWorkouts) {
+    const parsed = safeParseCompletedSession(w.exercisesJson);
+    if (!parsed) continue;
 
-    let repsTotal = 0;
-    let bestSet = 0;
-    for (const e of ex) {
-      for (const set of e.sets ?? []) {
-        const reps = Math.max(0, Math.round(Number(set.reps ?? 0)));
-        const done = Boolean(set.done);
-        if (done) {
-          repsTotal += reps;
-          bestSet = Math.max(bestSet, reps);
-        }
-      }
-    }
+    const key = String(w.date);
+    const { volumeKg, strengthScore, bestE1rmAny, totalRepsDone } = volumeAndStrengthFromWorkoutExercises(parsed.exercises);
+    if (totalRepsDone <= 0) continue;
 
-    if (repsTotal > 0) {
-      volumeByDay.set(key, (volumeByDay.get(key) ?? 0) + repsTotal);
-      strengthByDay.set(key, Math.max(strengthByDay.get(key) ?? 0, bestSet));
-    }
+    volumeByDay.set(key, (volumeByDay.get(key) ?? 0) + volumeKg);
+    strengthByDay.set(key, Math.max(strengthByDay.get(key) ?? 0, strengthScore));
+    bestE1rmByDay.set(key, Math.max(bestE1rmByDay.get(key) ?? 0, bestE1rmAny));
+    repsByDay.set(key, (repsByDay.get(key) ?? 0) + totalRepsDone);
   }
 
   const weights: WeightPoint[] = weighIns
@@ -87,37 +110,57 @@ export async function getProgressAnalysisData(userId: string) {
 
   const volume: VolumePoint[] = Array.from(volumeByDay.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([date, reps]) => ({ date, reps }));
+    .map(([date, kg]) => ({ date, kg: safeRound1(kg) }));
 
   const strength: StrengthPoint[] = Array.from(strengthByDay.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([date, score]) => ({ date, score }));
+    .map(([date, score]) => ({ date, score: safeRound1(score) }));
+
+  const lastWeight = weights.length ? weights[weights.length - 1].kg : null;
+  const relativeStrength: RelativeStrengthPoint[] =
+    lastWeight != null && lastWeight > 0
+      ? strength.map((p) => ({ date: p.date, ratio: safeRound1(p.score / lastWeight) }))
+      : [];
 
   const [totals] = await db
     .select({
-      totalSessions: sql<number>`cast(count(*) as integer)`,
-      totalCardio: sql<number>`coalesce(sum(${trainingSessions.cardioMinutes}), 0)`,
+      totalWorkouts: sql<number>`cast(count(*) as integer)`,
     })
-    .from(trainingSessions)
-    .where(eq(trainingSessions.userId, userId));
+    .from(workouts)
+    .where(eq(workouts.userId, userId));
 
-  const lastWeight = weights.length ? weights[weights.length - 1].kg : null;
   const firstWeight = weights.length ? weights[0].kg : null;
   const deltaWeight =
     lastWeight != null && firstWeight != null ? Math.round((lastWeight - firstWeight) * 10) / 10 : null;
 
-  const lastVolume = volume.length ? volume[volume.length - 1].reps : 0;
+  const lastVolume = volume.length ? volume[volume.length - 1].kg : 0;
   const lastStrength = strength.length ? strength[strength.length - 1].score : 0;
+  const lastBestE1rm = bestE1rmByDay.size
+    ? safeRound1(
+        Array.from(bestE1rmByDay.entries())
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .at(-1)?.[1] ?? 0,
+      )
+    : 0;
+  const lastReps = repsByDay.size
+    ? Number(
+        Array.from(repsByDay.entries())
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .at(-1)?.[1] ?? 0,
+      )
+    : 0;
+  const avgLoadPerRep = lastReps > 0 ? safeRound1(lastVolume / lastReps) : null;
 
   return {
-    series: { weights, volume, strength },
+    series: { weights, volume, strength, relativeStrength },
     stats: {
-      totalSessions: Number(totals?.totalSessions ?? 0),
-      totalCardioMinutes: Number(totals?.totalCardio ?? 0),
+      totalSessions: Number(totals?.totalWorkouts ?? 0),
       lastWeightKg: lastWeight,
       weightDeltaKg90d: deltaWeight,
-      latestDailyVolumeReps: lastVolume,
+      latestDailyVolumeKg: lastVolume,
       latestStrengthScore: lastStrength,
+      latestBestE1rm: lastBestE1rm,
+      latestAvgLoadPerRepKg: avgLoadPerRep,
     },
   };
 }

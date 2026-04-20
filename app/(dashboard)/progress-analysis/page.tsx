@@ -21,7 +21,7 @@ export default async function ProgressAnalysisPage() {
           Analiza postępów
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-white/65">
-          Tygodniowe sygnały: trend wagi, objętość treningowa i przybliżony wskaźnik siły.
+          Tygodniowe sygnały: trend wagi, tonnage (∑reps×kg), e1RM oraz siła względna.
           Integracja AI jest gotowa — prawdziwy coaching dołączymy później.
         </p>
       </header>
@@ -35,15 +35,15 @@ export default async function ProgressAnalysisPage() {
         />
         <StatCard
           icon={ChartLine}
-          label="Ostatnia objętość"
-          value={`${stats.latestDailyVolumeReps} powt.`}
-          hint="Ostatni dzień z ukończonymi seriami"
+          label="Ostatni tonnage"
+          value={`${stats.latestDailyVolumeKg} kg`}
+          hint="Suma (reps×kg) w ostatnim dniu z treningiem"
         />
         <StatCard
           icon={Dumbbell}
           label="Wskaźnik siły"
-          value={`${stats.latestStrengthScore} powt.`}
-          hint="Najlepsza seria dnia (placeholder)"
+          value={`${stats.latestStrengthScore}`}
+          hint="Suma najlepszego e1RM na ćwiczenie"
         />
         <StatCard
           icon={Sparkles}
@@ -63,6 +63,7 @@ export default async function ProgressAnalysisPage() {
             weights={series.weights}
             volume={series.volume}
             strength={series.strength}
+            relativeStrength={series.relativeStrength}
           />
         </div>
         <div className="space-y-6">
@@ -122,9 +123,9 @@ export default async function ProgressAnalysisPage() {
               Co śledzimy
             </h2>
             <p className="mt-2 text-sm text-white/60">
-              Waga pochodzi z ważeń. Objętość i “siła” są liczone na podstawie ukończonych
-              serii zapisanych w JSON treningu. Następny krok: dodanie obciążenia (kg),
-              żeby policzyć realne krzywe siły.
+              Waga pochodzi z ważeń. Tonnage i siła są liczone z ukończonych serii (reps×kg)
+              oraz e1RM (Epley). Do pełnego monitoringu sportowego brakuje jeszcze m.in. RPE/RIR
+              i prędkości sztangi (VBT) — dodamy, gdy pojawią się pola w treningu.
             </p>
           </div>
         </div>

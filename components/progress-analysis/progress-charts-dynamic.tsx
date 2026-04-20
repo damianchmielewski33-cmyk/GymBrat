@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { StrengthPoint, VolumePoint, WeightPoint } from "@/lib/progress-analysis";
+import type { RelativeStrengthPoint, StrengthPoint, VolumePoint, WeightPoint } from "@/lib/progress-analysis";
 
 function ProgressChartsLoadingSkeleton() {
   return (
@@ -28,12 +28,19 @@ export function ProgressChartsDynamic({
   weights,
   volume,
   strength,
+  relativeStrength,
 }: {
   weights: WeightPoint[];
   volume: VolumePoint[];
   strength: StrengthPoint[];
+  relativeStrength: RelativeStrengthPoint[];
 }) {
   return (
-    <ProgressCharts weights={weights} volume={volume} strength={strength} />
+    <ProgressCharts
+      weights={weights}
+      volume={volume}
+      strength={strength}
+      relativeStrength={relativeStrength}
+    />
   );
 }

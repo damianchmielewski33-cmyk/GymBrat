@@ -20,7 +20,7 @@ import { WorkoutSummary } from "@/components/workout/WorkoutSummary";
 import type { WorkoutPlanExercise } from "@/lib/workout-plan-types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
-import { SlidersHorizontal, RotateCcw } from "lucide-react";
+import { SlidersHorizontal, RotateCcw, ScrollText } from "lucide-react";
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
@@ -300,7 +300,6 @@ export function ActiveWorkoutView({
       };
       sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
       router.push("/reports");
-      router.refresh();
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Nie udało się zapisać treningu");
       setSuppressRouteGate(false);
@@ -351,6 +350,15 @@ export function ActiveWorkoutView({
             </SheetHeader>
             <div className="px-4 pb-6">
               <div className="grid gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 justify-center gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
+                  onClick={() => router.push("/workout-history")}
+                >
+                  <ScrollText className="h-4 w-4" />
+                  Historia treningów
+                </Button>
                 <div className="grid gap-2">
                   <Label className="text-white/80">Cardio (min)</Label>
                   <Input

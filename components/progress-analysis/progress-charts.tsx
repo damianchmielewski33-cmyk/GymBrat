@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { StrengthPoint, VolumePoint, WeightPoint } from "@/lib/progress-analysis";
+import type { RelativeStrengthPoint, StrengthPoint, VolumePoint, WeightPoint } from "@/lib/progress-analysis";
 
 const tooltipStyle = {
   backgroundColor: "rgba(7, 8, 13, 0.92)",
@@ -32,10 +32,12 @@ export function ProgressCharts({
   weights,
   volume,
   strength,
+  relativeStrength,
 }: {
   weights: WeightPoint[];
   volume: VolumePoint[];
   strength: StrengthPoint[];
+  relativeStrength: RelativeStrengthPoint[];
 }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -101,13 +103,13 @@ export function ProgressCharts({
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(225deg,rgba(120,120,255,0.12),transparent_55%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-            Training volume
+            Training load
           </p>
           <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-            Completed reps / day
+            Tonnage (kg) / day
           </h2>
           <p className="mt-1 text-xs text-white/50">
-            Derived from saved exercise JSON (done sets only).
+            External load: ∑(reps × kg) z ukończonych serii.
           </p>
           <div className="mt-4 h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -140,11 +142,11 @@ export function ProgressCharts({
                 <Tooltip
                   contentStyle={tooltipStyle}
                   labelFormatter={(label) => formatShortDate(String(label))}
-                  formatter={(value) => [`${Number(value ?? 0)} reps`, "Volume"]}
+                  formatter={(value) => [`${Number(value ?? 0)} kg`, "Tonnage"]}
                 />
                 <Area
                   type="monotone"
-                  dataKey="reps"
+                  dataKey="kg"
                   stroke="#ff2d55"
                   strokeWidth={2}
                   fill="url(#neonVol)"
@@ -156,7 +158,7 @@ export function ProgressCharts({
           </div>
           {volume.length === 0 ? (
             <p className="mt-3 text-xs text-white/45">
-              Complete an active workout to start generating volume points.
+              Ukończ trening z wpisanym obciążeniem, aby zacząć generować punkty tonnage.
             </p>
           ) : null}
         </div>
@@ -169,10 +171,10 @@ export function ProgressCharts({
             Strength
           </p>
           <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-            Daily best-set reps
+            Strength score (e1RM) / day
           </h2>
           <p className="mt-1 text-xs text-white/50">
-            Placeholder metric until you track load (kg) — currently max reps in a completed set per day.
+            Suma najlepszego e1RM na ćwiczenie (Epley) w danym dniu.
           </p>
           <div className="mt-4 h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -199,7 +201,7 @@ export function ProgressCharts({
                 <Tooltip
                   contentStyle={tooltipStyle}
                   labelFormatter={(label) => formatShortDate(String(label))}
-                  formatter={(value) => [`${Number(value ?? 0)} reps`, "Best set"]}
+                  formatter={(value) => [`${Number(value ?? 0)}`, "Strength score"]}
                 />
                 <Bar
                   dataKey="score"
@@ -211,6 +213,64 @@ export function ProgressCharts({
               </BarChart>
             </ResponsiveContainer>
           </div>
+        </div>
+      </div>
+
+      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6 lg:col-span-2">
+        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(120,255,180,0.10),transparent_60%)]" />
+        <div className="relative">
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
+            Relative strength
+          </p>
+          <h2 className="font-heading mt-1 text-lg font-semibold text-white">
+            Strength / bodyweight
+          </h2>
+          <p className="mt-1 text-xs text-white/50">
+            Wskaźnik: strength score podzielony przez ostatnio zalogowaną masę ciała.
+          </p>
+          <div className="mt-4 h-[260px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={relativeStrength} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(255,255,255,0.06)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={formatShortDate}
+                  tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                  axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={44}
+                  domain={["auto", "auto"]}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  labelFormatter={(label) => formatShortDate(String(label))}
+                  formatter={(value) => [`${Number(value ?? 0)}`, "Strength/BW"]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="ratio"
+                  stroke="rgba(120, 255, 180, 0.95)"
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: "rgba(120, 255, 180, 0.95)", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "rgba(120, 255, 180, 1)", stroke: "#fff", strokeWidth: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          {relativeStrength.length === 0 ? (
+            <p className="mt-3 text-xs text-white/45">
+              Dodaj ważenie, aby zobaczyć wskaźnik siły względnej.
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

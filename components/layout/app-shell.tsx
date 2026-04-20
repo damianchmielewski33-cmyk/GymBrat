@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   Shield,
+  ScrollText,
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ const nav = [
   { href: "/start-workout", label: "Rozpocznij trening", icon: Activity, special: true },
   { href: "/reports", label: "Raporty", icon: BarChart3 },
   { href: "/progress-analysis", label: "Analiza", icon: LineChart },
+  { href: "/workout-history", label: "Historia", icon: ScrollText },
   { href: "/profile", label: "Profil", icon: User },
 ];
 
