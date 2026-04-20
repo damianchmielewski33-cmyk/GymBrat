@@ -2,7 +2,6 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { ensureMealLogsTableOncePerProcess } from "@/db/ensure-schema";
 import { mealLogs } from "@/db/schema";
-import { kcalFromMacros } from "@/lib/kcal-from-macros";
 import type { FitatuDaySummary } from "@/types/fitatu";
 
 /** Wpis posiłku na potrzeby UI (lista / edycja). */
@@ -34,7 +33,7 @@ export function replaceConsumptionWithMealLogs(
   const protein = has ? agg.protein : 0;
   const fat = has ? agg.fat : 0;
   const carbs = has ? agg.carbs : 0;
-  const kcal = kcalFromMacros(protein, fat, carbs);
+  const kcal = has ? agg.calories : 0;
   return {
     ...summary,
     caloriesConsumed: kcal,
@@ -78,7 +77,7 @@ export async function getMealLogAggregatesForDates(
     agg.protein += Number(r.proteinG);
     agg.fat += Number(r.fatG);
     agg.carbs += Number(r.carbsG);
-    agg.calories = kcalFromMacros(agg.protein, agg.fat, agg.carbs);
+    agg.calories += Number(r.calories);
   }
 
   return map;
@@ -100,11 +99,7 @@ export async function listMealLogsForDay(
     id: r.id,
     date: r.date,
     name: r.name,
-    calories: kcalFromMacros(
-      Number(r.proteinG),
-      Number(r.fatG),
-      Number(r.carbsG),
-    ),
+    calories: Number(r.calories),
     proteinG: Number(r.proteinG),
     fatG: Number(r.fatG),
     carbsG: Number(r.carbsG),

@@ -25,18 +25,23 @@ export function AddMealSheet({ dateKey }: { dateKey: string }) {
   const [protein, setProtein] = useState("");
   const [fat, setFat] = useState("");
   const [carbs, setCarbs] = useState("");
+  const [kcal, setKcal] = useState("");
 
   const p = parseMacroGrams(protein);
   const f = parseMacroGrams(fat);
   const c = parseMacroGrams(carbs);
   const hasMacros = p > 0 || f > 0 || c > 0;
   const computedKcal = hasMacros ? kcalFromMacros(p, f, c) : null;
+  const manualKcal = parseMacroGrams(kcal);
+  const hasManualKcal = manualKcal > 0;
+  const finalKcal = hasManualKcal ? Math.round(manualKcal) : computedKcal;
 
   function resetFields() {
     setName("");
     setProtein("");
     setFat("");
     setCarbs("");
+    setKcal("");
   }
 
   useEffect(() => {
@@ -77,8 +82,8 @@ export function AddMealSheet({ dateKey }: { dateKey: string }) {
                 Dodaj posiłek
               </SheetTitle>
               <SheetDescription className="text-[13px] leading-snug text-white/50">
-                Dzień <span className="font-mono text-white/70">{dateKey}</span>. Kalorie są zawsze
-                wyliczane z makr (4·B + 4·W + 9·T).
+                Dzień <span className="font-mono text-white/70">{dateKey}</span>. Kalorie możesz
+                policzyć z makr (4·B + 4·W + 9·T) albo wpisać ręcznie.
               </SheetDescription>
             </div>
           </div>
@@ -92,6 +97,7 @@ export function AddMealSheet({ dateKey }: { dateKey: string }) {
           <input type="hidden" name="proteinG" value={p ? String(p) : ""} />
           <input type="hidden" name="fatG" value={f ? String(f) : ""} />
           <input type="hidden" name="carbsG" value={c ? String(c) : ""} />
+          <input type="hidden" name="calories" value={hasManualKcal ? String(finalKcal) : ""} />
 
           <div className="space-y-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-sm">
             <Label htmlFor="meal-name" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
@@ -196,23 +202,53 @@ export function AddMealSheet({ dateKey }: { dateKey: string }) {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
                   Kalorie
                 </p>
-                {hasMacros ? (
+                {finalKcal != null ? (
                   <>
                     <p className="font-heading text-3xl font-semibold tabular-nums tracking-tight text-white">
-                      {computedKcal}{" "}
+                      {finalKcal}{" "}
                       <span className="text-lg font-normal text-white/45">kcal</span>
                     </p>
                     <p className="text-xs text-emerald-200/75">
-                      Wyliczone z makr · zmiana gramów aktualizuje wartość
+                      {hasManualKcal
+                        ? "Nadpisane ręcznie · zostanie zapisane jako kcal wpisu"
+                        : "Wyliczone z makr · zmiana gramów aktualizuje wartość"}
                     </p>
                   </>
                 ) : (
                   <p className="text-sm text-white/45">
-                    Uzupełnij makra powyżej — kcal pojawi się tutaj automatycznie.
+                    Uzupełnij makra lub wpisz kcal ręcznie.
                   </p>
                 )}
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-sm">
+            <Label
+              htmlFor="meal-kcal"
+              className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45"
+            >
+              Kcal (opcjonalnie)
+            </Label>
+            <div className="relative">
+              <Input
+                id="meal-kcal"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={kcal}
+                onChange={(e) => setKcal(e.target.value)}
+                placeholder={computedKcal != null ? String(computedKcal) : "—"}
+                className={`${inputClass} pr-16`}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/35">
+                kcal
+              </span>
+            </div>
+            <p className="text-xs text-white/45">
+              Jeśli wpiszesz kcal, aplikacja zapisze je dokładnie tak (np. z etykiety / Fitatu).
+              Jeśli zostawisz puste, policzymy z makr (4·B + 4·W + 9·T).
+            </p>
           </div>
 
           {state?.error ? (

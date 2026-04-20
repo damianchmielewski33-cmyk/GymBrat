@@ -9,6 +9,8 @@ import { ActiveSessionCard } from "@/components/active-workout/active-session-ca
 import { GymPadSessionLayout } from "@/components/active-workout/gympad-session-layout";
 import { PlanProgressHeader } from "@/components/active-workout/plan-progress-header";
 import { WorkoutPlanCard } from "@/components/active-workout/workout-plan-card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RestTimerBar } from "@/components/workout/RestTimerBar";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import { WorkoutSummary } from "@/components/workout/WorkoutSummary";
@@ -77,6 +79,7 @@ export function ActiveWorkoutView({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [restRemaining, setRestRemaining] = useState<number | null>(null);
+  const [resumePromptOpen, setResumePromptOpen] = useState(false);
 
   const hasLoadedPlan = workoutPlanId != null && exercises.length > 0;
 
@@ -91,6 +94,30 @@ export function ActiveWorkoutView({
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [startedAt]);
+
+  useEffect(() => {
+    const seenKey = "active-workout:resumePromptSeen";
+    if (sessionStorage.getItem(seenKey) === "1") return;
+
+    const raw = localStorage.getItem("active-workout");
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw) as { state?: unknown } | null;
+      const s = (parsed && typeof parsed === "object" ? (parsed as { state?: any }).state : null) as any;
+      const hasPersistedSession =
+        s &&
+        typeof s === "object" &&
+        typeof s.workoutPlanId === "string" &&
+        s.workoutPlanId.length > 0 &&
+        Array.isArray(s.exercises) &&
+        s.exercises.length > 0;
+
+      if (hasPersistedSession) setResumePromptOpen(true);
+    } catch {
+      // ignore malformed storage; user can start fresh
+    }
+  }, []);
 
   useEffect(() => {
     if (restRemaining === null || restRemaining <= 0) return;
@@ -342,6 +369,49 @@ export function ActiveWorkoutView({
           onComplete={completeWorkout}
           saveError={saveError}
         />
+      ) : null}
+
+      {resumePromptOpen ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Czy chcesz kontynuować trening?</CardTitle>
+              <CardDescription>
+                Wykryliśmy niedokończoną sesję. Twoje dane nie zostały utracone.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border border-foreground/10 bg-muted/40 p-3 text-xs text-muted-foreground">
+                Jeśli wybierzesz „Odrzuć”, usuniemy zapisany stan aktywnego treningu na tym urządzeniu.
+              </div>
+            </CardContent>
+            <CardFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  sessionStorage.setItem("active-workout:resumePromptSeen", "1");
+                  reset();
+                  setExercises([]);
+                  setSelectedExerciseId(null);
+                  setRestRemaining(null);
+                  setResumePromptOpen(false);
+                }}
+              >
+                Odrzuć
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  sessionStorage.setItem("active-workout:resumePromptSeen", "1");
+                  setResumePromptOpen(false);
+                }}
+              >
+                Kontynuuj
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       ) : null}
     </div>
   );

@@ -50,6 +50,7 @@ export function MealLogsList({
   const [editP, setEditP] = useState("");
   const [editF, setEditF] = useState("");
   const [editC, setEditC] = useState("");
+  const [editKcal, setEditKcal] = useState("");
 
   useEffect(() => {
     if (!editing) return;
@@ -57,6 +58,7 @@ export function MealLogsList({
     setEditP(editing.proteinG ? String(editing.proteinG) : "");
     setEditF(editing.fatG ? String(editing.fatG) : "");
     setEditC(editing.carbsG ? String(editing.carbsG) : "");
+    setEditKcal(editing.calories ? String(Math.round(editing.calories)) : "");
   }, [editing]);
 
   useEffect(() => {
@@ -69,7 +71,10 @@ export function MealLogsList({
   const ef = parseMacroGrams(editF);
   const ec = parseMacroGrams(editC);
   const editHasMacros = ep > 0 || ef > 0 || ec > 0;
-  const editKcal = editHasMacros ? kcalFromMacros(ep, ef, ec) : null;
+  const computedEditKcal = editHasMacros ? kcalFromMacros(ep, ef, ec) : null;
+  const manualEditKcal = parseMacroGrams(editKcal);
+  const hasManualEditKcal = manualEditKcal > 0;
+  const finalEditKcal = hasManualEditKcal ? Math.round(manualEditKcal) : computedEditKcal;
 
   const inputClass =
     "h-11 rounded-xl border-white/12 bg-white/[0.06] px-3.5 text-[15px] text-white shadow-inner shadow-black/20 outline-none transition placeholder:text-white/25 focus-visible:border-[var(--neon)]/40 focus-visible:ring-2 focus-visible:ring-[var(--neon)]/25";
@@ -83,7 +88,7 @@ export function MealLogsList({
         </h3>
         <p className="mt-1 text-sm text-white/50">
           Lista wpisów liczących się do spożycia na dziś — edytuj lub usuń wpis. Kalorie z
-          makr (4·B + 4·W + 9·T).
+                    makr (4·B + 4·W + 9·T) albo nadpisane ręcznie.
         </p>
 
         {entries.length === 0 ? (
@@ -162,7 +167,7 @@ export function MealLogsList({
               Edytuj posiłek
             </SheetTitle>
             <SheetDescription className="text-[13px] text-white/50">
-              Dzień {dateKey}. Kalorie wyłącznie z makr (4·B + 4·W + 9·T).
+              Dzień {dateKey}. Kalorie mogą być policzone z makr albo ustawione ręcznie.
             </SheetDescription>
           </SheetHeader>
 
@@ -201,6 +206,11 @@ export function MealLogsList({
                 <input type="hidden" name="proteinG" value={ep ? String(ep) : ""} />
                 <input type="hidden" name="fatG" value={ef ? String(ef) : ""} />
                 <input type="hidden" name="carbsG" value={ec ? String(ec) : ""} />
+                <input
+                  type="hidden"
+                  name="calories"
+                  value={hasManualEditKcal && finalEditKcal != null ? String(finalEditKcal) : ""}
+                />
 
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
@@ -272,18 +282,42 @@ export function MealLogsList({
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
                       Kalorie
                     </p>
-                    {editHasMacros ? (
+                    {finalEditKcal != null ? (
                       <p className="font-heading text-3xl font-semibold tabular-nums text-white">
-                        {editKcal}{" "}
+                        {finalEditKcal}{" "}
                         <span className="text-lg font-normal text-white/45">kcal</span>
                       </p>
                     ) : (
                       <p className="text-sm text-white/45">
-                        Uzupełnij makra — kcal wyliczymy automatycznie.
+                        Uzupełnij makra lub wpisz kcal ręcznie.
                       </p>
                     )}
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
+                <Label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                  Kcal (opcjonalnie)
+                </Label>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={editKcal}
+                    onChange={(e) => setEditKcal(e.target.value)}
+                    placeholder={computedEditKcal != null ? String(computedEditKcal) : "—"}
+                    className={`${inputClass} pr-16`}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/35">
+                    kcal
+                  </span>
+                </div>
+                <p className="text-xs text-white/45">
+                  Zostaw puste, żeby liczyć kcal z makr. Wpisz wartość, żeby nadpisać (np. Fitatu /
+                  etykieta).
+                </p>
               </div>
 
               {updateState?.error ? (

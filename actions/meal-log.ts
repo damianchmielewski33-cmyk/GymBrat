@@ -19,17 +19,25 @@ const nonneg = z.preprocess(
   z.number().finite().min(0),
 );
 
-/** Makra wpisu — kcal wyliczamy wyłącznie z makr (Atwater). */
+/** Makra wpisu — kcal można policzyć z makr lub nadpisać ręcznie. */
 const mealMacrosSchema = z.object({
   name: z.string().trim().max(120).optional(),
   proteinG: nonneg,
   fatG: nonneg,
   carbsG: nonneg,
+  calories: nonneg.optional(),
 });
 
 function finalizeMealMacros(data: z.infer<typeof mealMacrosSchema>) {
-  const calories = kcalFromMacros(data.proteinG, data.fatG, data.carbsG);
-  return { ...data, calories };
+  const computed = kcalFromMacros(data.proteinG, data.fatG, data.carbsG);
+  const manual =
+    typeof data.calories === "number" && Number.isFinite(data.calories) && data.calories > 0
+      ? Math.round(data.calories)
+      : null;
+  return {
+    ...data,
+    calories: manual ?? computed,
+  };
 }
 
 function validateMealMacros(data: {
@@ -38,10 +46,10 @@ function validateMealMacros(data: {
   carbsG: number;
   calories: number;
 }) {
-  if (data.proteinG + data.fatG + data.carbsG <= 0) {
+  if (data.proteinG + data.fatG + data.carbsG <= 0 && data.calories <= 0) {
     return {
       ok: false as const,
-      error: "Podaj makra posiłku (co najmniej jedno większe od zera).",
+      error: "Podaj makra posiłku lub wpisz kalorie.",
     };
   }
   if (data.calories <= 0) {
@@ -71,6 +79,7 @@ export async function addMealLogAction(
       proteinG: formData.get("proteinG"),
       fatG: formData.get("fatG"),
       carbsG: formData.get("carbsG"),
+      calories: formData.get("calories"),
     });
 
   if (!parsed.success) {
@@ -120,6 +129,7 @@ export async function updateMealLogAction(
     proteinG: formData.get("proteinG"),
     fatG: formData.get("fatG"),
     carbsG: formData.get("carbsG"),
+    calories: formData.get("calories"),
   });
 
   if (!parsed.success) {
