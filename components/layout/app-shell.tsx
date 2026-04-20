@@ -26,12 +26,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 const nav = [
-  { href: "/",                 label: "Start",   icon: Home      },
-  { href: "/active-workout",   label: "Trening", icon: Activity  },
-  { href: "/workout-plan",     label: "Plan",    icon: Dumbbell  },
-  { href: "/reports",          label: "Raporty", icon: BarChart3 },
-  { href: "/progress-analysis",label: "Analiza", icon: LineChart },
-  { href: "/profile",          label: "Profil",  icon: User      },
+  { href: "/", label: "Start", icon: Home },
+  { href: "/workout-plan", label: "Plan", icon: Dumbbell },
+  // Specjalny, ozdobiony przycisk startu treningu — między Plan i Raporty.
+  { href: "/start-workout", label: "Rozpocznij trening", icon: Activity, special: true },
+  { href: "/reports", label: "Raporty", icon: BarChart3 },
+  { href: "/progress-analysis", label: "Analiza", icon: LineChart },
+  { href: "/profile", label: "Profil", icon: User },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -95,30 +96,52 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span
                     className={cn(
                       "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
-                      active
-                        ? "text-white"
-                        : "text-white/55 hover:text-white/85 hover:bg-white/[0.06]",
+                      item.special
+                        ? "text-white hover:brightness-110"
+                        : active
+                          ? "text-white"
+                          : "text-white/55 hover:text-white/85 hover:bg-white/[0.06]",
                     )}
                     style={
-                      active
+                      item.special
                         ? {
                             background:
-                              "linear-gradient(145deg,rgba(230,0,35,0.20),rgba(230,0,35,0.08))",
-                            border: "1px solid rgba(230,0,35,0.35)",
-                            borderTopColor: "rgba(230,0,35,0.55)",
+                              "linear-gradient(145deg,rgba(230,0,35,0.38),rgba(230,0,35,0.14))",
+                            border: "1px solid rgba(230,0,35,0.55)",
+                            borderTopColor: "rgba(255,255,255,0.18)",
                             boxShadow:
-                              "0 0 12px rgba(230,0,35,0.20), inset 0 1px 0 rgba(255,255,255,0.07)",
+                              "0 0 18px rgba(230,0,35,0.24), inset 0 1px 0 rgba(255,255,255,0.10)",
                           }
-                        : undefined
+                        : active
+                          ? {
+                              background:
+                                "linear-gradient(145deg,rgba(230,0,35,0.20),rgba(230,0,35,0.08))",
+                              border: "1px solid rgba(230,0,35,0.35)",
+                              borderTopColor: "rgba(230,0,35,0.55)",
+                              boxShadow:
+                                "0 0 12px rgba(230,0,35,0.20), inset 0 1px 0 rgba(255,255,255,0.07)",
+                            }
+                          : undefined
                     }
                   >
                     <item.icon
                       className={cn(
                         "h-4 w-4",
-                        active ? "text-[var(--neon)]" : "text-white/45",
+                        item.special
+                          ? "text-[var(--neon)]"
+                          : active
+                            ? "text-[var(--neon)]"
+                            : "text-white/45",
                       )}
                     />
-                    {item.label}
+                    {item.special ? (
+                      <span className="hidden lg:inline">{item.label}</span>
+                    ) : (
+                      item.label
+                    )}
+                    {item.special ? (
+                      <span className="lg:hidden">Trening</span>
+                    ) : null}
                   </span>
                 </Link>
               );
@@ -223,24 +246,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <span
                           className={cn(
                             "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
-                            active
+                            item.special
                               ? "text-white"
-                              : "text-white/60 hover:bg-white/[0.06] hover:text-white/85",
+                              : active
+                                ? "text-white"
+                                : "text-white/60 hover:bg-white/[0.06] hover:text-white/85",
                           )}
                           style={
-                            active
+                            item.special
                               ? {
                                   background:
-                                    "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.07))",
-                                  border: "1px solid rgba(230,0,35,0.30)",
+                                    "linear-gradient(145deg,rgba(230,0,35,0.38),rgba(230,0,35,0.14))",
+                                  border: "1px solid rgba(230,0,35,0.55)",
+                                  boxShadow:
+                                    "0 0 18px rgba(230,0,35,0.18), inset 0 1px 0 rgba(255,255,255,0.08)",
                                 }
-                              : undefined
+                              : active
+                                ? {
+                                    background:
+                                      "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.07))",
+                                    border: "1px solid rgba(230,0,35,0.30)",
+                                  }
+                                : undefined
                           }
                         >
                           <item.icon
                             className={cn(
                               "h-4 w-4",
-                              active ? "text-[var(--neon)]" : "text-white/40",
+                              item.special
+                                ? "text-[var(--neon)]"
+                                : active
+                                  ? "text-[var(--neon)]"
+                                  : "text-white/40",
                             )}
                           />
                           {item.label}
@@ -294,7 +331,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         />
 
         <div className="mx-auto grid max-w-6xl grid-cols-5 gap-1 px-2 py-2">
-          {nav.slice(0, 5).map((item) => {
+          {nav.filter((i) => i.href !== "/profile").slice(0, 5).map((item) => {
             const active =
               item.href === "/"
                 ? pathname === "/"
@@ -305,25 +342,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-medium transition-all duration-150",
-                  active ? "text-white" : "text-white/50",
+                  item.special ? "text-white" : active ? "text-white" : "text-white/50",
                 )}
                 style={
-                  active
+                  item.special
                     ? {
                         background:
-                          "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.06))",
-                        border: "1px solid rgba(230,0,35,0.28)",
+                          "linear-gradient(145deg,rgba(230,0,35,0.45),rgba(230,0,35,0.14))",
+                        border: "1px solid rgba(230,0,35,0.55)",
+                        boxShadow: "0 0 14px rgba(230,0,35,0.18)",
                       }
-                    : undefined
+                    : active
+                      ? {
+                          background:
+                            "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.06))",
+                          border: "1px solid rgba(230,0,35,0.28)",
+                        }
+                      : undefined
                 }
               >
                 <item.icon
                   className={cn(
                     "h-5 w-5",
-                    active ? "text-[var(--neon)]" : "text-white/45",
+                    item.special
+                      ? "text-[var(--neon)]"
+                      : active
+                        ? "text-[var(--neon)]"
+                        : "text-white/45",
                   )}
                 />
-                <span className="leading-none">{item.label}</span>
+                <span className="leading-none">
+                  {item.special ? "Trening" : item.label}
+                </span>
               </Link>
             );
           })}

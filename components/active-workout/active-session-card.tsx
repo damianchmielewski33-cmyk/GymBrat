@@ -9,6 +9,7 @@ type ActiveSessionCardProps = {
   children: ReactNode;
   hasLoadedPlan: boolean;
   initialPlansEmpty: boolean;
+  emptyContent?: ReactNode;
 };
 
 /**
@@ -18,6 +19,7 @@ export function ActiveSessionCard({
   children,
   hasLoadedPlan,
   initialPlansEmpty,
+  emptyContent,
 }: ActiveSessionCardProps) {
   return (
     <motion.div
@@ -29,7 +31,8 @@ export function ActiveSessionCard({
         className={`flex flex-col bg-black ${hasLoadedPlan ? "min-h-0 flex-1 rounded-none border-0 p-0 pb-2 sm:min-h-[min(72vh,820px)]" : "min-h-[min(85vh,880px)] rounded-2xl border border-white/[0.08] p-4 sm:p-5"}`}
       >
         {!hasLoadedPlan ? (
-          <>
+          emptyContent ?? (
+            <>
             <div className="mb-6">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">
                 Trening
@@ -62,7 +65,8 @@ export function ActiveSessionCard({
                 </motion.div>
               ) : null}
             </div>
-          </>
+            </>
+          )
         ) : (
           <>
             <div className="min-h-0 flex-1 overflow-y-auto pr-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">

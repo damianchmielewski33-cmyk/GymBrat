@@ -57,8 +57,10 @@ function formatLastWorkoutDate(ymd: string | null) {
 
 export function ActiveWorkoutView({
   initialPlans,
+  entry = "active",
 }: {
   initialPlans: WorkoutPlanWithLastWorkoutDTO[];
+  entry?: "active" | "start";
 }) {
   const {
     startedAt,
@@ -86,6 +88,19 @@ export function ActiveWorkoutView({
   const [resumePromptOpen, setResumePromptOpen] = useState(false);
 
   const hasLoadedPlan = workoutPlanId != null && exercises.length > 0;
+
+  // Route gating:
+  // - `/active-workout` is a strict "session view" and must NOT be accessible without an active session.
+  // - `/start-workout` is the entry point that lets user pick a plan and begin a session.
+  useEffect(() => {
+    if (entry === "active" && !hasLoadedPlan) {
+      router.replace("/start-workout");
+      return;
+    }
+    if (entry === "start" && hasLoadedPlan) {
+      router.replace("/active-workout");
+    }
+  }, [entry, hasLoadedPlan, router]);
 
   function startRest(seconds: number) {
     setRestRemaining(seconds);
@@ -222,6 +237,9 @@ export function ActiveWorkoutView({
     setSaveError(null);
     stopRest();
     start();
+    if (entry === "start") {
+      router.push("/active-workout");
+    }
   }
 
   function stopRest() {
@@ -354,11 +372,34 @@ export function ActiveWorkoutView({
           <ActiveSessionCard
             hasLoadedPlan={hasLoadedPlan}
             initialPlansEmpty={initialPlans.length === 0}
+            emptyContent={
+              entry === "active" ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
+                  <div className="rounded-2xl border border-white/[0.08] bg-[#111] p-6">
+                    <RotateCcw className="mx-auto h-11 w-11 text-[#FF9500]" />
+                  </div>
+                  <div>
+                    <p className="text-[17px] font-semibold text-white">Trening jest wyłączony</p>
+                    <p className="mt-2 max-w-md text-[13px] text-white/45">
+                      Nie możesz wejść do ekranu treningu bez aktywnej sesji.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Button type="button" onClick={() => router.push("/start-workout")}>
+                      Rozpocznij trening
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => router.push("/workout-plan")}>
+                      Zobacz plany
+                    </Button>
+                  </div>
+                </div>
+              ) : undefined
+            }
           >
             {hasLoadedPlan ? exerciseList : null}
           </ActiveSessionCard>
 
-          {!hasLoadedPlan ? (
+          {!hasLoadedPlan && entry === "start" ? (
             <motion.aside
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -371,7 +412,7 @@ export function ActiveWorkoutView({
                 </p>
                 <h2 className="font-heading mt-1 text-xl font-semibold text-white">Plany treningowe</h2>
                 <p className="mt-1 text-xs leading-relaxed text-white/45">
-                  Od najnowszego do najdawniejszego treningu z planu.
+                  Wybierz plan, aby wystartować sesję.
                 </p>
               </div>
 

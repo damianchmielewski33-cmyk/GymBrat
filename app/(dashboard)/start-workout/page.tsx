@@ -1,8 +1,8 @@
 import { getWorkoutPlansWithLastWorkout } from "@/actions/workout-plan";
 import { ActiveWorkoutView } from "@/components/active-workout/active-workout-view";
 
-/** App Router: `/active-workout` (equivalent to a classic `pages/active-workout` route). */
-export default async function ActiveWorkoutPage() {
+export default async function StartWorkoutPage() {
   const initialPlans = await getWorkoutPlansWithLastWorkout();
-  return <ActiveWorkoutView entry="active" initialPlans={initialPlans} />;
+  return <ActiveWorkoutView entry="start" initialPlans={initialPlans} />;
 }
+

@@ -93,7 +93,7 @@ export default async function HomePage() {
           <div className="flex flex-wrap items-center gap-3">
             <AddMealSheet dateKey={dash.todayKey} />
             <Link
-              href="/active-workout"
+              href="/start-workout"
               className="inline-flex h-11 items-center justify-center rounded-xl bg-[var(--neon)] px-5 text-sm font-medium text-white transition hover:bg-[#ff4d6d]"
             >
               <Zap className="mr-2 h-4 w-4" />

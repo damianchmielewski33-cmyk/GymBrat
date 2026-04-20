@@ -137,7 +137,7 @@ export function RegisterForm() {
         password: values.password,
         role: values.role,
         redirect: false,
-        callbackUrl: "/active-workout",
+        callbackUrl: "/start-workout",
       });
     } catch {
       setRootError(
@@ -151,7 +151,7 @@ export function RegisterForm() {
       );
       return;
     }
-    window.location.assign(`${window.location.origin}/active-workout`);
+    window.location.assign(`${window.location.origin}/start-workout`);
   }
 
   const { ref: passwordRhfRef, ...passwordRegister } = register("password");
