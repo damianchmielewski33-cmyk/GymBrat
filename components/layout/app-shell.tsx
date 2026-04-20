@@ -38,6 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router   = useRouter();
   const { data } = useSession();
+  const reduceFixedBugs = pathname.startsWith("/active-workout");
 
   return (
     <div className="relative min-h-screen">
@@ -265,7 +266,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ── Main content ── */}
       <main
         key={pathname}
-        className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 pb-28 md:pb-8 animate-page-enter"
+        className={cn(
+          "mx-auto w-full max-w-6xl flex-1 px-4 py-8 pb-28 md:pb-8",
+          reduceFixedBugs ? "animate-page-enter-opacity" : "animate-page-enter",
+        )}
       >
         {children}
       </main>
