@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { registerUser, type RegisterState } from "@/actions/auth";
+import { registerUser, sendRegisterCode, type RegisterState } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,6 +59,7 @@ export function RegisterForm() {
       firstName: "",
       lastName: "",
       email: "",
+      emailCode: "",
       password: "",
       weightKg: "",
       heightCm: "",
@@ -78,9 +79,13 @@ export function RegisterForm() {
   } = form;
 
   const activityLevel = watch("activityLevel");
+  const emailValue = watch("email");
+  const [codeInfo, setCodeInfo] = useState<string | null>(null);
+  const [sendingCode, setSendingCode] = useState(false);
 
   async function onSubmit(values: RegisterFormValues) {
     setRootError(null);
+    setCodeInfo(null);
     const result: RegisterState = await registerUser(values);
     if (!result.ok) {
       if (result.fieldErrors) {
@@ -221,6 +226,60 @@ export function RegisterForm() {
                 />
                 {errors.email ? (
                   <p className="text-xs text-red-300">{errors.email.message}</p>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-end justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Label htmlFor="emailCode" className="text-white/80">
+                      Kod z e-maila
+                    </Label>
+                    <Input
+                      id="emailCode"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="123456"
+                      className={cn(inputClass, errors.emailCode && "border-destructive")}
+                      {...register("emailCode")}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    disabled={sendingCode || !emailValue?.trim()}
+                    className="h-10 shrink-0 bg-white/10 text-white hover:bg-white/15"
+                    onClick={async () => {
+                      setRootError(null);
+                      setCodeInfo(null);
+                      const email = (emailValue ?? "").trim().toLowerCase();
+                      if (!email) {
+                        setRootError("Wpisz e-mail, aby wysłać kod.");
+                        return;
+                      }
+                      setSendingCode(true);
+                      try {
+                        const res = await sendRegisterCode({ email });
+                        if (!res.ok) {
+                          setRootError(res.error);
+                          return;
+                        }
+                        setCodeInfo("Kod wysłany. Sprawdź skrzynkę (oraz SPAM) i wpisz 6 cyfr.");
+                      } catch {
+                        setRootError(
+                          "Nie udało się wysłać kodu. Sprawdź konfigurację e-mail na produkcji (RESEND_API_KEY, EMAIL_FROM).",
+                        );
+                      } finally {
+                        setSendingCode(false);
+                      }
+                    }}
+                  >
+                    {sendingCode ? "Wysyłanie…" : "Wyślij kod"}
+                  </Button>
+                </div>
+                {codeInfo ? (
+                  <p className="text-xs text-white/55">{codeInfo}</p>
+                ) : null}
+                {errors.emailCode ? (
+                  <p className="text-xs text-red-300">{errors.emailCode.message}</p>
                 ) : null}
               </div>
               <div className="space-y-2">

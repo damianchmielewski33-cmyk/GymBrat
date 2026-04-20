@@ -14,6 +14,10 @@ export const registerSchema = z.object({
     .min(1, "Nazwisko jest wymagane")
     .max(80, "Za długie"),
   email: z.string().trim().email("Wpisz poprawny adres e-mail"),
+  emailCode: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Wpisz 6-cyfrowy kod z e-maila"),
   password: z
     .string()
     .min(8, "Użyj minimum 8 znaków")

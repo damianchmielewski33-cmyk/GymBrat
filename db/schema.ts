@@ -22,6 +22,35 @@ export const users = sqliteTable("users", {
     .$defaultFn(() => new Date()),
 });
 
+/**
+ * Jednorazowe kody weryfikacyjne wysyłane e-mailem (rejestracja / reset hasła w przyszłości).
+ * Przechowujemy wyłącznie hash kodu (nigdy jawnego kodu).
+ */
+export const emailVerificationCodes = sqliteTable(
+  "email_verification_codes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    email: text("email").notNull(),
+    /** np. "register" (przyszłościowo: "reset_password") */
+    purpose: text("purpose").notNull().default("register"),
+    codeHash: text("code_hash").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    consumedAt: integer("consumed_at", { mode: "timestamp_ms" }),
+    sendCount: integer("send_count").notNull().default(1),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    lastSentAt: integer("last_sent_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [
+    index("idx_email_verification_codes_email_purpose").on(t.email, t.purpose),
+    index("idx_email_verification_codes_expires").on(t.expiresAt),
+  ],
+);
+
 export const bodyReports = sqliteTable("body_reports", {
   id: text("id")
     .primaryKey()

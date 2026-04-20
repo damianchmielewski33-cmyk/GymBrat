@@ -212,6 +212,11 @@ GymBrat is designed to run well on Vercel with Turso/libSQL.
   - `TURSO_AUTH_TOKEN`
   - `AUTH_SECRET`
   - `NEXTAUTH_URL` (set to your production URL)
+  - Email verification (registration code):
+    - `RESEND_API_KEY`
+    - `EMAIL_FROM`
+    - `EMAIL_REPLY_TO` (optional)
+    - `EMAIL_CODE_SECRET` (recommended; can reuse `AUTH_SECRET` but better separate)
   - Optional:
     - `FITATU_API_BASE_URL`
     - `FITATU_API_KEY` (or store per-user token in DB)

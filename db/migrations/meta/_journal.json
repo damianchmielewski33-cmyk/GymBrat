@@ -22,6 +22,13 @@
       "when": 1745185000000,
       "tag": "0002_analytics_deployment_env",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1776633712390,
+      "tag": "0003_email_verification_codes",
+      "breakpoints": true
     }
   ]
 }
