@@ -86,6 +86,7 @@ export function ActiveWorkoutView({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [restRemaining, setRestRemaining] = useState<number | null>(null);
   const [resumePromptOpen, setResumePromptOpen] = useState(false);
+  const [suppressRouteGate, setSuppressRouteGate] = useState(false);
 
   const hasLoadedPlan = workoutPlanId != null && exercises.length > 0;
 
@@ -93,6 +94,7 @@ export function ActiveWorkoutView({
   // - `/active-workout` is a strict "session view" and must NOT be accessible without an active session.
   // - `/start-workout` is the entry point that lets user pick a plan and begin a session.
   useEffect(() => {
+    if (suppressRouteGate) return;
     if (entry === "active" && !hasLoadedPlan) {
       router.replace("/start-workout");
       return;
@@ -100,7 +102,7 @@ export function ActiveWorkoutView({
     if (entry === "start" && hasLoadedPlan) {
       router.replace("/active-workout");
     }
-  }, [entry, hasLoadedPlan, router]);
+  }, [entry, hasLoadedPlan, router, suppressRouteGate]);
 
   function startRest(seconds: number) {
     setRestRemaining(seconds);
@@ -250,6 +252,10 @@ export function ActiveWorkoutView({
     setSaveError(null);
     setSaving(true);
     try {
+      // Prevent the `/active-workout` gate from overriding the redirect to `/reports`
+      // after we reset the active session state.
+      setSuppressRouteGate(true);
+
       const endedAt = Date.now();
       const baseSummary = {
         title: title.trim() || "Trening",
@@ -297,6 +303,7 @@ export function ActiveWorkoutView({
       router.refresh();
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Nie udało się zapisać treningu");
+      setSuppressRouteGate(false);
     } finally {
       setSaving(false);
     }
