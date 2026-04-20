@@ -99,7 +99,7 @@ export function TodaysMacrosSection({
             Żywienie
           </p>
           <h2 className="font-heading mt-1 text-xl font-semibold">
-            Makra na dziś — pozostało do spożycia
+            Wartości odżywcze na dziś — pozostało do spożycia
           </h2>
           <p className="mt-1 text-sm text-white/60">
             {data.source === "error" && data.errorMessage

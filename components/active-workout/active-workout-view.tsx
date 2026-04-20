@@ -122,7 +122,12 @@ export function ActiveWorkoutView({
         Array.isArray(s.exercises) &&
         s.exercises.length > 0;
 
-      if (hasPersistedSession) setResumePromptOpen(true);
+      if (hasPersistedSession) {
+        // Ustawiamy od razu, żeby popup nie wracał przy nawigacji między ekranami
+        // (np. gdy użytkownik przejdzie na inną stronę zanim kliknie w modal).
+        sessionStorage.setItem(seenKey, "1");
+        setResumePromptOpen(true);
+      }
     } catch {
       // ignore malformed storage; user can start fresh
     }

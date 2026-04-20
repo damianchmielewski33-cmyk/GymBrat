@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Pause, Play, Trash2 } from "lucide-react";
+import { Check, Loader2, Pause, Play, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { cn } from "@/lib/utils";
@@ -19,11 +19,14 @@ function formatDuration(totalSeconds: number) {
 
 export function ActiveWorkoutGlobalBar() {
   const pathname = usePathname();
+  const router = useRouter();
   const {
     startedAt,
     pausedElapsedSeconds,
+    workoutStartedAtMs,
     title,
     workoutPlanId,
+    cardioMinutes,
     exercises,
     start,
     stopTimer,
@@ -31,6 +34,7 @@ export function ActiveWorkoutGlobalBar() {
   } = useActiveWorkoutStore();
 
   const [now, setNow] = useState(() => Date.now());
+  const [completing, setCompleting] = useState(false);
 
   const hasSession = workoutPlanId != null && exercises.length > 0;
   const isRunning = hasSession && startedAt != null;
@@ -61,6 +65,40 @@ export function ActiveWorkoutGlobalBar() {
   if (!hasSession) return null;
 
   const canNavigate = !pathname.startsWith("/active-workout");
+
+  async function completeWorkoutFromBar() {
+    if (completing) return;
+    const ok = window.confirm("Zakończyć trening i zapisać do raportów?");
+    if (!ok) return;
+
+    setCompleting(true);
+    try {
+      const endedAt = Date.now();
+      const res = await fetch("/api/workouts/complete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          title,
+          startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),
+          endedAt,
+          cardioMinutes,
+          exercises,
+          workoutPlanId,
+        }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Nie udało się zapisać treningu");
+      }
+      reset();
+      router.push("/reports");
+      router.refresh();
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "Nie udało się zapisać treningu");
+    } finally {
+      setCompleting(false);
+    }
+  }
 
   return (
     <div className="fixed inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-[60] px-3 md:bottom-[calc(16px+env(safe-area-inset-bottom))]">
@@ -132,6 +170,22 @@ export function ActiveWorkoutGlobalBar() {
           )}
 
           <div className="flex shrink-0 items-center gap-2">
+            <Button
+              type="button"
+              className="gap-2 bg-[#FF1A4B] text-white hover:bg-[#e61645] disabled:opacity-50"
+              disabled={completing}
+              onClick={completeWorkoutFromBar}
+            >
+              {completing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">
+                {completing ? "Zapisywanie…" : "Zakończ trening"}
+              </span>
+            </Button>
+
             <Link
               href="/active-workout"
               className={cn(
