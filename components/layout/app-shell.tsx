@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="relative min-h-screen">
       {/* ── Header ── */}
       <header
-        className="sticky top-0 z-40 backdrop-blur-xl"
+        className="sticky top-0 z-40 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
         style={{
           background:
             "linear-gradient(180deg,rgba(10,10,12,0.88) 0%,rgba(8,8,9,0.80) 100%)",
@@ -65,7 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           }}
         />
 
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4">
           {/* Logo */}
           <Link href="/" className="group flex shrink-0 items-center gap-2.5">
             <span
@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <Dumbbell className="h-5 w-5 text-[var(--neon)]" />
             </span>
-            <span className="font-heading text-[17px] font-bold tracking-tight text-white/90">
+            <span className="font-heading text-[15px] font-bold tracking-tight text-white/90 sm:text-[17px]">
               GYM<span className="text-[var(--neon)]">BRAT</span>
             </span>
           </Link>
@@ -306,7 +306,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main
         key={pathname}
         className={cn(
-          "mx-auto w-full max-w-6xl flex-1 px-4 py-8 pb-28 md:pb-8",
+          "mx-auto w-full max-w-6xl flex-1 px-3 py-6 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-8 md:pb-8",
           reduceFixedBugs ? "animate-page-enter-opacity" : "animate-page-enter",
         )}
       >
@@ -315,7 +315,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Mobile bottom nav ── */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-50 backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
         style={{
           background:
             "linear-gradient(0deg,rgba(8,8,9,0.95) 0%,rgba(12,12,14,0.85) 100%)",
@@ -332,7 +332,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           }}
         />
 
-        <div className="mx-auto grid max-w-6xl grid-cols-5 gap-1 px-2 py-2">
+        <div className="mx-auto grid max-w-6xl grid-cols-5 gap-0.5 px-1.5 py-2 sm:gap-1 sm:px-2">
           {nav.filter((i) => i.href !== "/profile").slice(0, 5).map((item) => {
             const active =
               item.href === "/"

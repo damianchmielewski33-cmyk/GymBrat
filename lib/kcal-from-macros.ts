@@ -1,4 +1,4 @@
-/** Parsuje pole makro z formularza (puste → 0, przecinek jako separator). */
+/** Parsuje pole makroskładnika z formularza (puste → 0, przecinek jako separator). */
 export function parseMacroGrams(s: string): number {
   const t = s.trim().replace(",", ".");
   if (!t) return 0;
@@ -7,7 +7,7 @@ export function parseMacroGrams(s: string): number {
 }
 
 /**
- * Energia z makro (Atwater): białko i węgle 4 kcal/g, tłuszcz 9 kcal/g.
+ * Energia z makroskładników (Atwater): białko i węgle 4 kcal/g, tłuszcz 9 kcal/g.
  * Jedyna dozwolona definicja kcal w aplikacji — spójna z profilem i posiłkami.
  */
 export function kcalFromMacros(

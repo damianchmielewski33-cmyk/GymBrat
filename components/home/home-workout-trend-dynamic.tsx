@@ -11,7 +11,7 @@ const WorkoutTrendChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[280px] w-full animate-pulse rounded-2xl bg-white/5" />
+      <div className="h-[220px] w-full animate-pulse rounded-2xl bg-white/5 sm:h-[280px]" />
     ),
   },
 );

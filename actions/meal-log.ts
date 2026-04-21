@@ -19,7 +19,7 @@ const nonneg = z.preprocess(
   z.number().finite().min(0),
 );
 
-/** Makra wpisu — kcal można policzyć z makr lub nadpisać ręcznie. */
+/** Makroskładniki wpisu — kcal można wyliczyć z gramów B/W/T lub nadpisać ręcznie. */
 const mealMacrosSchema = z.object({
   name: z.string().trim().max(120).optional(),
   proteinG: nonneg,
@@ -49,13 +49,13 @@ function validateMealMacros(data: {
   if (data.proteinG + data.fatG + data.carbsG <= 0 && data.calories <= 0) {
     return {
       ok: false as const,
-      error: "Podaj makra posiłku lub wpisz kalorie.",
+      error: "Podaj makroskładniki posiłku lub wpisz kalorie.",
     };
   }
   if (data.calories <= 0) {
     return {
       ok: false as const,
-      error: "Nieprawidłowe makra — nie da się wyliczyć kalorii.",
+      error: "Nieprawidłowe wartości makroskładników — nie da się wyliczyć kalorii.",
     };
   }
   return { ok: true as const };
@@ -167,8 +167,11 @@ export async function updateMealLogAction(
 }
 
 /** Usuwanie wpisu — do `<form action={deleteMealLogFormAction}>`. */
-export async function deleteMealLogFormAction(formData: FormData) {
-  await deleteMealLogCore(formData);
+export async function deleteMealLogFormAction(
+  _prevState: unknown,
+  formData: FormData,
+): Promise<MealLogFormState> {
+  return deleteMealLogCore(formData);
 }
 
 async function deleteMealLogCore(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   deleteMealLogFormAction,
   updateMealLogAction,
@@ -20,7 +20,46 @@ import {
 } from "@/components/ui/sheet";
 import type { MealLogDto } from "@/lib/meal-logs";
 import { kcalFromMacros, parseMacroGrams } from "@/lib/kcal-from-macros";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Calculator, Flame, Pencil, Trash2 } from "lucide-react";
+
+function MealDeleteForm({ mealId }: { mealId: string }) {
+  const [state, formAction] = useActionState(
+    deleteMealLogFormAction,
+    {} as MealLogFormState,
+  );
+  const { notifySaved } = useSaveFeedback();
+
+  useEffect(() => {
+    if (state?.ok) notifySaved("Usunięto wpis posiłku.");
+  }, [state?.ok, notifySaved]);
+
+  return (
+    <form
+      action={formAction}
+      onSubmit={(e) => {
+        if (
+          !confirm(
+            "Usunąć ten wpis posiłku? Spożycie na dziś zostanie przeliczone.",
+          )
+        ) {
+          e.preventDefault();
+        }
+      }}
+    >
+      <input type="hidden" name="id" value={mealId} />
+      <Button
+        type="submit"
+        variant="outline"
+        size="sm"
+        className="border-rose-400/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+      >
+        <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+        Usuń
+      </Button>
+    </form>
+  );
+}
 
 function formatTime(ms: number) {
   try {
@@ -36,15 +75,23 @@ function formatTime(ms: number) {
 export function MealLogsList({
   entries,
   dateKey,
+  embedded,
 }: {
   entries: MealLogDto[];
   dateKey: string;
+  /** Treść bez zewnętrznej ramki glass (np. po rozwinięciu kafelka). */
+  embedded?: boolean;
 }) {
   const [editing, setEditing] = useState<MealLogDto | null>(null);
+  const { notifySaved } = useSaveFeedback();
   const [updateState, updateAction] = useActionState(
     updateMealLogAction,
     {} as MealLogFormState,
   );
+
+  useEffect(() => {
+    if (updateState?.ok) notifySaved("Zapisano zmiany posiłku.");
+  }, [updateState?.ok, notifySaved]);
 
   const [editName, setEditName] = useState("");
   const [editP, setEditP] = useState("");
@@ -73,17 +120,30 @@ export function MealLogsList({
   const inputClass =
     "h-11 rounded-xl border-white/12 bg-white/[0.06] px-3.5 text-[15px] text-white shadow-inner shadow-black/20 outline-none transition placeholder:text-white/25 focus-visible:border-[var(--neon)]/40 focus-visible:ring-2 focus-visible:ring-[var(--neon)]/25";
 
+  const shell = embedded
+    ? "relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-6"
+    : "glass-panel relative overflow-hidden p-6";
+
   return (
-    <div className="glass-panel relative overflow-hidden p-6">
+    <div className={shell}>
       <div className="pointer-events-none absolute -right-16 top-0 h-40 w-40 rounded-full bg-[var(--neon)]/8 blur-3xl" />
       <div className="relative">
-        <h3 className="font-heading text-lg font-semibold text-white">
-          Twoje posiłki ({dateKey})
-        </h3>
-        <p className="mt-1 text-sm text-white/50">
-          Lista wpisów liczących się do spożycia na dziś — edytuj lub usuń wpis. Kalorie mogą być
-          policzone z makr (4·B + 4·W + 9·T) albo nadpisane ręcznie.
-        </p>
+        {embedded ? (
+          <p className="text-sm text-white/50">
+            Dzień <span className="font-mono text-white/70">{dateKey}</span> — edytuj lub usuń wpis.
+            Kalorie z gramów makroskładników (4·B + 4·W + 9·T) lub ręcznie.
+          </p>
+        ) : (
+          <>
+            <h3 className="font-heading text-lg font-semibold text-white">
+              Twoje posiłki ({dateKey})
+            </h3>
+            <p className="mt-1 text-sm text-white/50">
+              Lista wpisów liczących się do spożycia na dziś — edytuj lub usuń wpis. Kalorie mogą być
+              wyliczone z makroskładników (4·B + 4·W + 9·T) albo nadpisane ręcznie.
+            </p>
+          </>
+        )}
 
         {entries.length === 0 ? (
           <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-6 text-center text-sm text-white/45">
@@ -119,29 +179,7 @@ export function MealLogsList({
                     <Pencil className="mr-1.5 h-3.5 w-3.5" />
                     Edytuj
                   </Button>
-                  <form
-                    action={deleteMealLogFormAction}
-                    onSubmit={(e) => {
-                      if (
-                        !confirm(
-                          "Usunąć ten wpis posiłku? Spożycie na dziś zostanie przeliczone.",
-                        )
-                      ) {
-                        e.preventDefault();
-                      }
-                    }}
-                  >
-                    <input type="hidden" name="id" value={m.id} />
-                    <Button
-                      type="submit"
-                      variant="outline"
-                      size="sm"
-                      className="border-rose-400/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
-                    >
-                      <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                      Usuń
-                    </Button>
-                  </form>
+                  <MealDeleteForm mealId={m.id} />
                 </div>
               </li>
             ))}
@@ -161,7 +199,7 @@ export function MealLogsList({
               Edytuj posiłek
             </SheetTitle>
             <SheetDescription className="text-[13px] text-white/50">
-              Dzień {dateKey}. Kalorie mogą być policzone z makr albo ustawione ręcznie.
+              Dzień {dateKey}. Kalorie mogą być wyliczone z makroskładników albo ustawione ręcznie.
             </SheetDescription>
           </SheetHeader>
 
@@ -190,7 +228,7 @@ export function MealLogsList({
               <div className="space-y-3 rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-transparent p-4">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                    Makra
+                    Wartości odżywcze
                   </p>
                   <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-white/40">
                     <Calculator className="h-3 w-3" />
@@ -283,7 +321,7 @@ export function MealLogsList({
                       </p>
                     ) : (
                       <p className="text-sm text-white/45">
-                        Uzupełnij makra lub wpisz kcal ręcznie.
+                        Uzupełnij makroskładniki lub wpisz kcal ręcznie.
                       </p>
                     )}
                   </div>
@@ -309,7 +347,7 @@ export function MealLogsList({
                   </span>
                 </div>
                 <p className="text-xs text-white/45">
-                  Zostaw puste, żeby liczyć kcal z makr. Wpisz wartość, żeby nadpisać (np. Fitatu /
+                  Zostaw puste, żeby liczyć kcal z makroskładników. Wpisz wartość, żeby nadpisać (np. Fitatu /
                   etykieta).
                 </p>
               </div>
@@ -319,12 +357,6 @@ export function MealLogsList({
                   {updateState.error}
                 </div>
               ) : null}
-              {updateState?.ok ? (
-                <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.08] px-3 py-2 text-sm text-emerald-100">
-                  Zapisano zmiany.
-                </div>
-              ) : null}
-
               <SheetFooter className="sticky bottom-0 mt-auto flex shrink-0 flex-row gap-2 border-t border-white/[0.06] bg-[#07070c]/95 pt-4 backdrop-blur-md sm:justify-end">
                 <Button
                   type="button"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import {
   Bar,
   BarChart,
@@ -85,6 +86,7 @@ function defaultRange(): { from: string; to: string } {
 }
 
 export function AdminOverviewClient() {
+  const { notifySaved, notifyError } = useSaveFeedback();
   const [{ from, to }, setRange] = useState(defaultRange);
   const [analytics, setAnalytics] = useState<AnalyticsJson | null>(null);
   const [hourly, setHourly] = useState<HourlyJson | null>(null);
@@ -92,29 +94,35 @@ export function AdminOverviewClient() {
   const [loading, setLoading] = useState(true);
   const [includeUntagged, setIncludeUntagged] = useState(false);
   const [purgeBusy, setPurgeBusy] = useState<"workouts" | "meals" | null>(null);
-  const [purgeMsg, setPurgeMsg] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const legacy = includeUntagged ? "&include_untagged=1" : "";
-      const [aRes, hRes] = await Promise.all([
-        fetch(
-          `/api/admin/analytics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${legacy}`,
-        ),
-        fetch(`/api/admin/analytics/hourly${includeUntagged ? "?include_untagged=1" : ""}`),
-      ]);
-      if (!aRes.ok) throw new Error("analytics");
-      if (!hRes.ok) throw new Error("hourly");
-      setAnalytics((await aRes.json()) as AnalyticsJson);
-      setHourly((await hRes.json()) as HourlyJson);
-    } catch {
-      setError("Nie udało się wczytać analityki (upewnij się, że jesteś zalogowany do panelu).");
-    } finally {
-      setLoading(false);
-    }
-  }, [from, to, includeUntagged]);
+  const load = useCallback(
+    async (showSuccessToast = false) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const legacy = includeUntagged ? "&include_untagged=1" : "";
+        const [aRes, hRes] = await Promise.all([
+          fetch(
+            `/api/admin/analytics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${legacy}`,
+          ),
+          fetch(`/api/admin/analytics/hourly${includeUntagged ? "?include_untagged=1" : ""}`),
+        ]);
+        if (!aRes.ok) throw new Error("analytics");
+        if (!hRes.ok) throw new Error("hourly");
+        setAnalytics((await aRes.json()) as AnalyticsJson);
+        setHourly((await hRes.json()) as HourlyJson);
+        if (showSuccessToast) notifySaved("Zaktualizowano dane analityki.");
+      } catch {
+        const msg =
+          "Nie udało się wczytać analityki (upewnij się, że jesteś zalogowany do panelu).";
+        setError(msg);
+        if (showSuccessToast) notifyError(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [from, to, includeUntagged, notifySaved, notifyError],
+  );
 
   useEffect(() => {
     void load();
@@ -148,7 +156,6 @@ export function AdminOverviewClient() {
       }
 
       setPurgeBusy(kind);
-      setPurgeMsg(null);
       try {
         const endpoint =
           kind === "workouts"
@@ -164,22 +171,22 @@ export function AdminOverviewClient() {
           const deleted = isRecord(j.deleted) ? j.deleted : {};
           const w = Number((deleted as Record<string, unknown>).workouts ?? 0);
           const ts = Number((deleted as Record<string, unknown>).trainingSessions ?? 0);
-          setPurgeMsg(
-            `Wyczyszczono: treningi ${w}, sesje treningowe ${ts}.`,
-          );
+          notifySaved(`Wyczyszczono: treningi ${w}, sesje treningowe ${ts}.`);
         } else {
           const j = json as Partial<PurgeMealsJson>;
           const deleted = isRecord(j.deleted) ? j.deleted : {};
           const m = Number((deleted as Record<string, unknown>).mealLogs ?? 0);
-          setPurgeMsg(`Wyczyszczono: posiłki ${m}.`);
+          notifySaved(`Wyczyszczono: posiłki ${m}.`);
         }
       } catch {
-        setPurgeMsg("Nie udało się wykonać czyszczenia. Sprawdź, czy panel admina jest odblokowany.");
+        notifyError(
+          "Nie udało się wykonać czyszczenia. Sprawdź, czy panel admina jest odblokowany.",
+        );
       } finally {
         setPurgeBusy(null);
       }
     },
-    [purgeBusy],
+    [purgeBusy, notifySaved, notifyError],
   );
 
   return (
@@ -213,7 +220,7 @@ export function AdminOverviewClient() {
           </div>
           <Button
             type="button"
-            onClick={() => void load()}
+            onClick={() => void load(true)}
             disabled={loading}
             className="bg-[var(--neon)] font-semibold text-white hover:bg-[#ff4d6d]"
           >
@@ -282,11 +289,6 @@ export function AdminOverviewClient() {
           </Button>
         </div>
 
-        {purgeMsg ? (
-          <p className="mt-3 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/75">
-            {purgeMsg}
-          </p>
-        ) : null}
       </section>
 
       {!loading && analytics ? (

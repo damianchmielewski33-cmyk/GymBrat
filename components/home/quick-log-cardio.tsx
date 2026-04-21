@@ -1,10 +1,25 @@
+"use client";
+
+import { useActionState, useEffect } from "react";
 import { logCardioFormAction } from "@/actions/workout";
 import { SubmitButton } from "@/components/home/submit-button";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 
 export function QuickLogCardio() {
+  const { notifySaved, notifyError } = useSaveFeedback();
+  const [state, formAction] = useActionState(logCardioFormAction, {} as {
+    ok?: boolean;
+    error?: string;
+  });
+
+  useEffect(() => {
+    if (state?.ok === true) notifySaved("Zapisano sesję cardio.");
+    else if (state?.ok === false && state.error) notifyError("Nie udało się zapisać sesji.");
+  }, [state, notifySaved, notifyError]);
+
   return (
     <div className="glass-panel p-6">
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
@@ -16,7 +31,7 @@ export function QuickLogCardio() {
       <p className="mt-1 text-sm text-white/60">
         Zapisuje w Turso i aktualizuje kroczącą sumę z 7 dni.
       </p>
-      <form className="mt-5 space-y-4" action={logCardioFormAction}>
+      <form className="mt-5 space-y-4" action={formAction}>
         <div className="space-y-2">
           <Label htmlFor="title">Opis</Label>
           <Input

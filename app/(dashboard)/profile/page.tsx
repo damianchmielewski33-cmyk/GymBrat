@@ -125,13 +125,13 @@ export default async function ProfilePage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-                  Makra i kalendarz
+                  Wartości odżywcze i kalendarz
                 </p>
                 <h2 className="font-heading mt-2 text-xl font-semibold">
                   Cele dzienne trening / odpoczynek
                 </h2>
                 <p className="mt-2 text-sm text-white/60">
-                  Ustal kalorie i makra dla obu typów dni oraz klikaj dni w kalendarzu,
+                  Ustal kalorie i makroskładniki dla obu typów dni oraz klikaj dni w kalendarzu,
                   aby oznaczyć trening lub odpoczynek (domyślnie: odpoczynek). Spożycie
                   na stronie Start wynika z Twoich wpisów posiłków; tutaj definiujesz cele.
                 </p>

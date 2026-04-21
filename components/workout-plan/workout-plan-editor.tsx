@@ -47,6 +47,7 @@ import {
   searchCatalogForPicker,
 } from "@/lib/workout-exercise-catalog";
 import { cn } from "@/lib/utils";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 
 function uid() {
   return crypto.randomUUID();
@@ -81,6 +82,7 @@ export function WorkoutPlanEditor({
   initialPlans: WorkoutPlanListItemDTO[];
 }) {
   const router = useRouter();
+  const { notifySaved } = useSaveFeedback();
   const [editorMode, setEditorMode] = useState<EditorMode>("closed");
   const [plan, setPlan] = useState<WorkoutPlanPayload>(createEmptyPlan());
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
@@ -200,6 +202,7 @@ export function WorkoutPlanEditor({
         setSaveError(res.error);
         return;
       }
+      notifySaved("Zapisano plan treningowy.");
       setSavedPulse((x) => x + 1);
       setEditorMode("closed");
       router.refresh();
@@ -235,6 +238,7 @@ export function WorkoutPlanEditor({
     }
     const res = await deleteWorkoutPlan(id);
     if (!res.ok) return;
+    notifySaved("Usunięto plan treningowy.");
     if (typeof editorMode === "object" && editorMode !== null && editorMode.id === id) {
       setEditorMode("closed");
     }

@@ -297,7 +297,7 @@ export function RegisterForm() {
                         setCooldownUntil(Date.now() + 60_000);
                       } catch {
                         setRootError(
-                          "Nie udało się wysłać kodu. Spróbuj ponownie za chwilę.",
+                          "Nie udało się wysłać kodu. Sprawdź SMTP w Vercel (SMTP_HOST, SMTP_USER, SMTP_PASS) i ewentualnie hasło aplikacji Gmail / MFA w Outlook.",
                         );
                       } finally {
                         setSendingCode(false);

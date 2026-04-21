@@ -3,11 +3,13 @@
 import { motion } from "framer-motion";
 import { Plus, Scale } from "lucide-react";
 import { useState } from "react";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { logWeighIn } from "@/actions/weight";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export function WeighInCard() {
+  const { notifySaved } = useSaveFeedback();
   const [weightKg, setWeightKg] = useState<number>(80);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +20,7 @@ export function WeighInCard() {
     try {
       const res = await logWeighIn({ weightKg });
       if (!res.ok) throw new Error(res.error);
+      notifySaved("Zapisano ważenie.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Nie udało się zapisać ważenia");
     } finally {

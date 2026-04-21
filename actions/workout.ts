@@ -7,10 +7,13 @@ import { getDb } from "@/db";
 import { userSettings, workouts } from "@/db/schema";
 import { calendarDateKey } from "@/lib/local-date";
 
-export async function logCardioFormAction(formData: FormData) {
+export async function logCardioFormAction(
+  _prevState: unknown,
+  formData: FormData,
+) {
   const title = String(formData.get("title") ?? "Cardio").trim() || "Cardio";
   const minutes = Number(formData.get("minutes") ?? 0);
-  await logTrainingSession({ title, cardioMinutes: minutes });
+  return logTrainingSession({ title, cardioMinutes: minutes });
 }
 
 export async function logTrainingSession(input: {
@@ -39,9 +42,12 @@ export async function logTrainingSession(input: {
   return { ok: true as const };
 }
 
-export async function updateWeeklyCardioGoalForm(formData: FormData) {
+export async function updateWeeklyCardioGoalForm(
+  _prevState: unknown,
+  formData: FormData,
+) {
   const raw = Number(formData.get("weeklyGoal") ?? 150);
-  await updateWeeklyCardioGoal(raw);
+  return updateWeeklyCardioGoal(raw);
 }
 
 export async function updateWeeklyCardioGoal(minutes: number) {

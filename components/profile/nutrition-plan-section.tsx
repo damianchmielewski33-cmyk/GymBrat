@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { saveNutritionPlanAction } from "@/actions/nutrition-settings";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import type { NutritionGoalsPayload } from "@/lib/nutrition-goals";
 import { kcalFromMacros } from "@/lib/kcal-from-macros";
 import { Button } from "@/components/ui/button";
@@ -111,6 +112,21 @@ export function NutritionPlanSection({
   const [state, formAction, isPending] = useActionState(saveNutritionPlanAction, {
     ok: true,
   });
+  const { notifySaved } = useSaveFeedback();
+  const saveCycleRef = useRef(false);
+
+  useEffect(() => {
+    if (isPending) {
+      saveCycleRef.current = true;
+      return;
+    }
+    if (saveCycleRef.current) {
+      saveCycleRef.current = false;
+      if (state?.ok === true) {
+        notifySaved("Zapisano cele żywieniowe i kalendarz.");
+      }
+    }
+  }, [isPending, state?.ok, notifySaved]);
 
   function toggleDay(dateKey: string) {
     setDayTypes((prev) => {
@@ -132,7 +148,7 @@ export function NutritionPlanSection({
       !training
     ) {
       setClientError(
-        "Sprawdź cele na dzień treningowy (makra ≥ 0, kcal z makr > 0).",
+        "Sprawdź cele na dzień treningowy (makroskładniki ≥ 0, kcal z gramów > 0).",
       );
       return null;
     }
@@ -143,7 +159,7 @@ export function NutritionPlanSection({
       !rest
     ) {
       setClientError(
-        "Sprawdź cele na dzień nietreningowy (makra ≥ 0, kcal z makr > 0).",
+        "Sprawdź cele na dzień nietreningowy (makroskładniki ≥ 0, kcal z gramów > 0).",
       );
       return null;
     }
@@ -298,7 +314,7 @@ function GoalFields({
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2 rounded-xl border border-white/10 bg-black/25 px-4 py-3">
         <p className="text-[11px] font-medium uppercase tracking-wide text-white/45">
-          Kalorie (wyliczone z makr)
+          Kalorie (wyliczone z makroskładników)
         </p>
         <p className="mt-1 font-heading text-2xl font-semibold tabular-nums text-white">
           {displayKcal ? `${displayKcal} kcal` : "—"}

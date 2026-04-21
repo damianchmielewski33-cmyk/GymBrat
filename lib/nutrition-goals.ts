@@ -4,7 +4,7 @@ import { weekDateKeysMondayFirst } from "@/lib/local-date";
 
 export { weekDateKeysMondayFirst };
 
-/** Cele makro zapisane w profilu (JSON w user_settings). */
+/** Cele makroskładników zapisane w profilu (JSON w user_settings). */
 export type NutritionGoalsPayload = {
   calories: number;
   proteinG: number;

@@ -2,18 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function BodyReportImport() {
   const router = useRouter();
+  const { notifySaved } = useSaveFeedback();
   const [pending, start] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
 
   return (
@@ -68,7 +69,6 @@ export function BodyReportImport() {
         onSubmit={(e) => {
           e.preventDefault();
           setError(null);
-          setSuccess(null);
           setWarnings([]);
           start(async () => {
             try {
@@ -88,7 +88,9 @@ export function BodyReportImport() {
               }
 
               setWarnings(json.warnings ?? []);
-              setSuccess(`Zaimportowano: ${json.imported}. Pominięto (duplikaty/limit): ${json.skipped}.`);
+              notifySaved(
+                `Zaimportowano wpisy: ${json.imported}. Pominięto: ${json.skipped}.`,
+              );
               setFile(null);
               setUrl("");
               router.refresh();
@@ -101,11 +103,6 @@ export function BodyReportImport() {
         {error ? (
           <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
             {error}
-          </p>
-        ) : null}
-        {success ? (
-          <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
-            {success}
           </p>
         ) : null}
         {warnings.length ? (

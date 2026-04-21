@@ -21,7 +21,7 @@ export function FitatuConnectForm({ connected }: { connected: boolean }) {
       {connected ? (
         <div className="space-y-4">
           <p className="text-sm text-emerald-200/90">
-            Konto Fitatu jest połączone — na stronie Start pobierane są dzienne makra
+            Konto Fitatu jest połączone — na stronie Start pobierane są dzienne wartości odżywcze
             (wymagany adres proxy w <span className="font-mono text-white/70">FITATU_API_BASE_URL</span>).
           </p>
           <form action={disconnectFitatuAction}>

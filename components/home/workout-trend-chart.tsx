@@ -35,11 +35,11 @@ export function WorkoutTrendChart({ data }: { data: WorkoutTrendPoint[] }) {
   }
 
   return (
-    <div className="h-[280px] w-full">
+    <div className="h-[220px] w-full min-w-0 sm:h-[280px]">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={data}
-          margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+          margin={{ top: 8, right: 6, left: 2, bottom: 6 }}
         >
           <defs>
             <linearGradient id="volGrad" x1="0" y1="0" x2="1" y2="0">

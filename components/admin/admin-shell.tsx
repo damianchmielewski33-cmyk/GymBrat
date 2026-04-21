@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, Shield, Users } from "lucide-react";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ const links = [
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { notifySaved, notifyError } = useSaveFeedback();
 
   return (
     <div className="space-y-8">
@@ -63,10 +65,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             size="sm"
             className="border-white/15 bg-white/[0.06]"
             onClick={() => {
-              void fetch("/api/admin/lock", { method: "POST" }).then(() => {
+              void (async () => {
+                const res = await fetch("/api/admin/lock", { method: "POST" });
+                if (!res.ok) {
+                  notifyError("Nie udało się zablokować panelu.");
+                  return;
+                }
+                notifySaved("Zablokowano panel administratora.");
                 router.push("/");
                 router.refresh();
-              });
+              })();
             }}
           >
             Wyjdź z panelu

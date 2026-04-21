@@ -7,7 +7,7 @@ import { kcalFromMacros } from "@/lib/kcal-from-macros";
 import { calendarDateKey } from "@/lib/local-date";
 import type { FitatuDaySummary } from "@/types/fitatu";
 
-/** Spójnie z resztą aplikacji: kcal tylko z makr (dzień i posiłki). */
+/** Spójnie z resztą aplikacji: kcal tylko z gramów makroskładników (dzień i posiłki). */
 function normalizeFitatuSummary(s: FitatuDaySummary): FitatuDaySummary {
   const mg = s.macroGoals;
   const caloriesGoal =

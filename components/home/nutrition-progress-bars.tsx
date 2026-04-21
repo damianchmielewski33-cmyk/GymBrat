@@ -29,7 +29,7 @@ type Props = {
   weekDayRows?: WeekDayNutritionRow[];
   /** Klucz dzisiejszej daty (YYYY-MM-DD) — do podziału dni w arkuszu. */
   sheetTodayKey?: string;
-  /** Sumy tygodnia do karty „ile zostało” makr. */
+  /** Sumy tygodnia do karty „ile zostało” makroskładników. */
   weekNutritionRollup?: Pick<
     NutritionWeekRollup,
     | "sumProteinGoal"
@@ -62,23 +62,23 @@ function BarBlock({
   const width = Math.min(100, Math.max(0, percent));
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl sm:p-5">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/55">
             {title}
           </p>
-          <p className="font-heading mt-1 text-2xl font-semibold tracking-tight">
+          <p className="font-heading mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
             <span className={isOver ? "text-rose-300" : "text-white"}>
               {percent.toFixed(1)}%
             </span>
-            <span className="ml-1 text-base font-normal text-white/45">
+            <span className="mt-0.5 block text-sm font-normal leading-snug text-white/45 sm:ml-1 sm:mt-0 sm:inline sm:text-base">
               realizacji celu kalorycznego
             </span>
           </p>
-          <p className="mt-2 text-xs text-white/55">{detail}</p>
+          <p className="mt-2 break-words text-xs text-white/55">{detail}</p>
         </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 sm:h-11 sm:w-11">
           {icon}
         </div>
       </div>
@@ -144,12 +144,12 @@ export function NutritionProgressBars({
           {weekBlock}
           <SheetContent
             side="bottom"
-            className="max-h-[90vh] border-white/10 bg-[#0a0a0f] text-white"
+            className="max-h-[90vh] border-white/10 bg-[#0a0a0f] pb-[env(safe-area-inset-bottom)] text-white"
           >
             <SheetHeader>
               <SheetTitle className="text-white">Ten tydzień — szczegóły</SheetTitle>
               <SheetDescription className="text-white/55">
-                Kalorie i makra z Twoich wpisów posiłków oraz odchylenie od celu —
+                Kalorie i makroskładniki z Twoich wpisów posiłków oraz odchylenie od celu —
                 każdy dzień (pon.–niedz.).
               </SheetDescription>
             </SheetHeader>

@@ -212,11 +212,12 @@ GymBrat is designed to run well on Vercel with Turso/libSQL.
   - `TURSO_AUTH_TOKEN`
   - `AUTH_SECRET`
   - `NEXTAUTH_URL` (set to your production URL)
-  - Email verification (registration code):
-    - `RESEND_API_KEY`
-    - `EMAIL_FROM`
+  - Email verification (registration code) — **Nodemailer + SMTP** (e.g. Gmail / Outlook):
+    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`
+    - `EMAIL_FROM` (optional; defaults to `SMTP_USER`)
     - `EMAIL_REPLY_TO` (optional)
     - `EMAIL_CODE_SECRET` (recommended; can reuse `AUTH_SECRET` but better separate)
+    - Szczegóły krok po kroku (Gmail: hasło aplikacji po włączeniu 2FA; Outlook: host `smtp-mail.outlook.com` lub firmowy `smtp.office365.com`) są w `env.example`.
   - Optional:
     - `FITATU_API_BASE_URL`
     - `FITATU_API_KEY` (or store per-user token in DB)

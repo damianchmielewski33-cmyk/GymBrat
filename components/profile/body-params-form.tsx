@@ -1,7 +1,9 @@
 "use client";
 
-import { updateBodyParamsFormActionVoid } from "@/actions/profile";
+import { useActionState, useEffect } from "react";
+import { updateBodyParamsFormAction } from "@/actions/profile";
 import { BodyParamsFormFields } from "@/components/profile/body-params-form-fields";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 
 export function BodyParamsForm({
   initial,
@@ -15,10 +17,21 @@ export function BodyParamsForm({
     activityLevel: string | null;
   };
 }) {
+  const { notifySaved, notifyError } = useSaveFeedback();
+  const [state, formAction] = useActionState(updateBodyParamsFormAction, {} as {
+    ok?: boolean;
+    error?: string;
+  });
+
+  useEffect(() => {
+    if (state?.ok === true) notifySaved("Zapisano dane profilu.");
+    else if (state?.ok === false && state.error)
+      notifyError("Nie udało się zapisać danych — sprawdź pola.");
+  }, [state, notifySaved, notifyError]);
+
   return (
-    <form className="space-y-5" action={updateBodyParamsFormActionVoid}>
+    <form action={formAction} className="space-y-5">
       <BodyParamsFormFields initial={initial} />
     </form>
   );
 }
-

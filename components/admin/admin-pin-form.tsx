@@ -2,12 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function AdminPinForm() {
   const router = useRouter();
+  const { notifySaved } = useSaveFeedback();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +32,7 @@ export function AdminPinForm() {
             setError(j?.error === "Invalid PIN" ? "Nieprawidłowy PIN." : "Spróbuj ponownie.");
             return;
           }
+          notifySaved("Panel administratora odblokowany.");
           router.push("/admin/overview");
           router.refresh();
         });

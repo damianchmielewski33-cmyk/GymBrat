@@ -152,7 +152,7 @@ export const siteActivityLog = sqliteTable("site_activity_log", {
     .$defaultFn(() => new Date()),
 });
 
-/** Wpisy posiłków dodane ręcznie na stronie Start — źródło spożycia makro. */
+/** Wpisy posiłków dodane ręcznie na stronie Start — źródło spożycia makroskładników. */
 export const mealLogs = sqliteTable(
   "meal_logs",
   {

@@ -19,7 +19,7 @@ export type FitatuDaySummary = {
   date: string;
   caloriesConsumed: number;
   caloriesGoal?: number;
-  /** Gramy makro spożyte (z dziennika). */
+  /** Gramy makroskładników spożyte (z dziennika). */
   macros: FitatuMacroGrams;
   /** Cele dzienne w gramach — opcjonalne; jeśli brak, UI pokaże tylko spożycie. */
   macroGoals?: FitatuMacroGrams;

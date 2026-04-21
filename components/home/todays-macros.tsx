@@ -67,10 +67,13 @@ function RemainingBlock({
 export function TodaysMacrosSection({
   data,
   consumptionHint,
+  embedded,
 }: {
   data: FitatuDaySummary;
   /** Opcjonalny tekst pod nagłówkiem (np. cele z profilu). */
   consumptionHint?: string;
+  /** Bez zewnętrznej ramki glass — np. pod kafelkiem na starcie. */
+  embedded?: boolean;
 }) {
   const consumed = data.macros;
   const goals = data.macroGoals;
@@ -90,15 +93,23 @@ export function TodaysMacrosSection({
   const cRem =
     goals != null && goals.carbs > 0 ? goals.carbs - consumed.carbs : null;
 
+  const shell = embedded
+    ? "relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-6"
+    : "glass-panel relative overflow-hidden p-4 sm:p-6";
+
   return (
-    <div className="glass-panel relative overflow-hidden p-6">
-      <div className="pointer-events-none absolute -left-24 -top-24 h-56 w-56 rounded-full bg-[var(--neon)]/10 blur-3xl" />
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+    <div className={shell}>
+      {!embedded ? (
+        <div className="pointer-events-none absolute -left-24 -top-24 h-56 w-56 rounded-full bg-[var(--neon)]/10 blur-3xl" />
+      ) : (
+        <div className="pointer-events-none absolute -left-24 -top-24 h-56 w-56 rounded-full bg-[var(--neon)]/8 blur-3xl opacity-70" />
+      )}
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
             Żywienie
           </p>
-          <h2 className="font-heading mt-1 text-xl font-semibold">
+          <h2 className="font-heading mt-1 text-lg font-semibold leading-snug sm:text-xl">
             Wartości odżywcze na dziś — pozostało do spożycia
           </h2>
           <p className="mt-1 text-sm text-white/60">
@@ -110,15 +121,15 @@ export function TodaysMacrosSection({
                   ? "Tryb demo — dodaj posiłek lub ustaw proxy i token w profilu, aby zobaczyć dane na żywo."
                   : data.source === "unavailable"
                     ? "Bez integracji Fitatu nadal widzisz cele z profilu; spożycie to tylko Twoje wpisy posiłków (bez wpisów — zero)."
-                    : "Dodawaj posiłki powyżej — makra na dziś to suma wpisów. Przycisk Odśwież aktualizuje cache integracji (cele z Fitatu)."}
+                    : "Dodawaj posiłki powyżej — wartości odżywcze na dziś to suma wpisów. Przycisk Odśwież aktualizuje cache integracji (cele z Fitatu)."}
           </p>
         </div>
-        <form action={refreshFitatuMacros}>
+        <form action={refreshFitatuMacros} className="shrink-0 sm:self-start">
           <Button
             type="submit"
             variant="outline"
             size="sm"
-            className="border-white/15 bg-white/5"
+            className="w-full border-white/15 bg-white/5 sm:w-auto"
           >
             <RefreshCw className="mr-2 h-4 w-4" />
             Odśwież
@@ -168,7 +179,7 @@ export function TodaysMacrosSection({
       goals == null &&
       calGoal != null ? (
         <p className="relative mt-4 text-xs text-amber-200/80">
-          Nie udało się pobrać celów makro z integracji. W tej chwili pokazuję pełny bilans tylko
+          Nie udało się pobrać celów makroskładników z integracji. W tej chwili pokazuję pełny bilans tylko
           dla kalorii. Bilans: {fmtDelta(calRem, "kcal")} względem celu {Math.round(calGoal)} kcal.
         </p>
       ) : null}

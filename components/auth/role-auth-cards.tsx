@@ -59,7 +59,7 @@ export function RoleAuthCards({
                 Zawodnik
               </span>
               <p className="mt-1.5 text-sm leading-snug text-white/55">
-                Śledź trening, makra i postępy w jednym miejscu.
+                Śledź trening, wartości odżywcze i postępy w jednym miejscu.
               </p>
             </div>
           </div>

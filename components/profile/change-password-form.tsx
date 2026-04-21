@@ -1,13 +1,34 @@
 "use client";
 
-import { changePasswordFormActionVoid } from "@/actions/profile";
+import { useActionState, useEffect } from "react";
+import { changePasswordFormAction } from "@/actions/profile";
 import { SubmitButton } from "@/components/home/submit-button";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function ChangePasswordForm() {
+  const { notifySaved, notifyError } = useSaveFeedback();
+  const [state, formAction] = useActionState(changePasswordFormAction, {} as {
+    ok?: boolean;
+    error?: string;
+  });
+
+  useEffect(() => {
+    if (state?.ok === true) notifySaved("Hasło zostało zmienione.");
+    else if (state?.ok === false && state.error) {
+      const msg =
+        state.error === "Current password is incorrect"
+          ? "Obecne hasło jest nieprawidłowe."
+          : state.error === "Invalid form data"
+            ? "Sprawdź poprawność pól."
+            : "Nie udało się zmienić hasła.";
+      notifyError(msg);
+    }
+  }, [state, notifySaved, notifyError]);
+
   return (
-    <form className="space-y-5" action={changePasswordFormActionVoid}>
+    <form action={formAction} className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="currentPassword">Obecne hasło</Label>
         <Input
@@ -34,4 +55,3 @@ export function ChangePasswordForm() {
     </form>
   );
 }
-

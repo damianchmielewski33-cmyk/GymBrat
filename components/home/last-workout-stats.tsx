@@ -134,10 +134,20 @@ function LastWorkoutMeta({
   );
 }
 
-export function LastWorkoutStats({ stats }: { stats: HomeStats }) {
+export function LastWorkoutStats({
+  stats,
+  embedded,
+}: {
+  stats: HomeStats;
+  embedded?: boolean;
+}) {
+  const shell = embedded
+    ? "rounded-2xl border border-white/10 bg-white/[0.02] p-5 text-center sm:p-6"
+    : "glass-panel p-6 text-center";
+
   if (!stats.lastWorkout) {
     return (
-      <div className="glass-panel p-6 text-center">
+      <div className={shell}>
         <p className="text-sm text-white/50">
           Nie masz jeszcze żadnych treningów.{" "}
           <span className="text-white/70">Zacznij pierwszy trening!</span>
@@ -149,7 +159,7 @@ export function LastWorkoutStats({ stats }: { stats: HomeStats }) {
   const { lastWorkout } = stats;
 
   return (
-    <div className="space-y-4">
+    <div className={embedded ? "space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6" : "space-y-4"}>
       <div className="flex flex-col gap-1">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/40">
           Ostatni trening

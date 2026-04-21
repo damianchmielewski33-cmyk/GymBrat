@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ async function fileToResizedDataUrl(
 
 export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
   const router = useRouter();
+  const { notifySaved } = useSaveFeedback();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -144,6 +146,7 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
                 setError(json.error ?? "Nie udało się zapisać raportu.");
                 return;
               }
+              notifySaved("Zapisano raport.");
               setWeightKg("");
               setWaistCm("");
               setChestCm("");

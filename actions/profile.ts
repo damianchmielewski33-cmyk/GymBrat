@@ -18,7 +18,10 @@ const bodyParamsSchema = z.object({
   activityLevel: z.enum(activityLevels),
 });
 
-export async function updateBodyParamsFormAction(formData: FormData) {
+export async function updateBodyParamsFormAction(
+  _prevState: unknown,
+  formData: FormData,
+) {
   const input = {
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
@@ -31,7 +34,7 @@ export async function updateBodyParamsFormAction(formData: FormData) {
 }
 
 export async function updateBodyParamsFormActionVoid(formData: FormData): Promise<void> {
-  await updateBodyParamsFormAction(formData);
+  await updateBodyParamsFormAction(null, formData);
 }
 
 export async function updateBodyParams(input: unknown) {
@@ -69,7 +72,10 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(8).max(128),
 });
 
-export async function changePasswordFormAction(formData: FormData) {
+export async function changePasswordFormAction(
+  _prevState: unknown,
+  formData: FormData,
+) {
   const input = {
     currentPassword: formData.get("currentPassword"),
     newPassword: formData.get("newPassword"),
@@ -78,7 +84,7 @@ export async function changePasswordFormAction(formData: FormData) {
 }
 
 export async function changePasswordFormActionVoid(formData: FormData): Promise<void> {
-  await changePasswordFormAction(formData);
+  await changePasswordFormAction(null, formData);
 }
 
 export async function changePassword(input: unknown) {

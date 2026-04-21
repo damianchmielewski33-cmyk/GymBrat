@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,7 @@ type UserRow = {
 };
 
 export function AdminUsersClient() {
+  const { notifySaved, notifyError } = useSaveFeedback();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [founderUserId, setFounderUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,9 +54,13 @@ export function AdminUsersClient() {
       body: JSON.stringify({ appRole }),
     });
     if (!res.ok) {
-      setError("Zmiana roli nie powiodła się.");
+      const msg = "Zmiana roli nie powiodła się.";
+      setError(msg);
+      notifyError(msg);
       return;
     }
+    notifySaved(`Zapisano rolę: ${appRole}.`);
+    setError(null);
     await load();
   }
 
@@ -67,9 +73,13 @@ export function AdminUsersClient() {
     });
     if (!res.ok) {
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
-      setError(j?.error ?? "Usunięcie nie powiodło się.");
+      const msg = j?.error ?? "Usunięcie nie powiodło się.";
+      setError(msg);
+      notifyError(msg);
       return;
     }
+    notifySaved("Usunięto konto użytkownika.");
+    setError(null);
     await load();
   }
 

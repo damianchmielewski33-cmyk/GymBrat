@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     template: "%s · GymBrat",
   },
   description:
-    "Nowoczesny dziennik treningowy i żywieniowy: plany, historia, raporty, makra i integracja z Fitatu.",
+    "Nowoczesny dziennik treningowy i żywieniowy: plany, historia, raporty, wartości odżywcze i integracja z Fitatu.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -41,6 +41,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#07080d",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

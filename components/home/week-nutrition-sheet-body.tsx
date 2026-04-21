@@ -202,7 +202,7 @@ function WeekMacroBalanceVisual({
   if (!hasMacroGoals && !hasKcalGoal) {
     return (
       <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-amber-100/90">
-        Ustaw cele makro w profilu (trening / odpoczynek), żeby zobaczyć bilans tygodnia na
+        Ustaw cele makroskładników w profilu (trening / odpoczynek), żeby zobaczyć bilans tygodnia na
         wykresach.
       </div>
     );
@@ -396,7 +396,7 @@ function pastDaysMacroSummary(pastRows: WeekDayNutritionRow[]): ReactNode {
   if (lines.length === 0) {
     return (
       <p className="text-xs text-white/45">
-        Brak minionych dni z ustawionymi celami makro — podpowiedź pojawi się po kolejnych
+        Brak minionych dni z ustawionymi celami makroskładników — podpowiedź pojawi się po kolejnych
         wpisach.
       </p>
     );
@@ -446,7 +446,7 @@ export function WeekNutritionSheetBody({
           </p>
           <p className="mt-2 text-xs text-white/55">
             Poniżej wskazówka wg bilansu (spożycie − cel) tylko za dni już minione — czy raczej
-            nadrobić makra, czy raczej je ograniczyć.
+            nadrobić makroskładniki, czy raczej je ograniczyć.
           </p>
           <div className="mt-3">{pastDaysMacroSummary(pastRows)}</div>
         </div>
