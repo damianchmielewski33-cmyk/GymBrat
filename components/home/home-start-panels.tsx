@@ -13,6 +13,7 @@ import {
   X,
   UtensilsCrossed,
 } from "lucide-react";
+import { releaseDocumentScrollLock } from "@/lib/document-scroll";
 import { cn } from "@/lib/utils";
 
 export type HomeStartSectionId =
@@ -120,6 +121,7 @@ export function HomeStartPanels({
 
   function closePanel() {
     setOpen(null);
+    queueMicrotask(() => releaseDocumentScrollLock());
   }
 
   const panel =
@@ -139,16 +141,18 @@ export function HomeStartPanels({
 
   useEffect(() => {
     if (!open) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const body = document.body;
+    const root = document.documentElement;
+    body.style.overflow = "hidden";
+    root.style.overflow = "hidden";
 
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") closePanel();
     }
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", onKey);
+      releaseDocumentScrollLock();
     };
   }, [open]);
 

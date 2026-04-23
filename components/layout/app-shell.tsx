@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useLayoutEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   Activity,
@@ -24,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { releaseDocumentScrollLock } from "@/lib/document-scroll";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -42,6 +44,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router   = useRouter();
   const { data } = useSession();
   const reduceFixedBugs = pathname.startsWith("/active-workout");
+
+  useLayoutEffect(() => {
+    releaseDocumentScrollLock();
+  }, [pathname]);
 
   return (
     <div className="relative min-h-screen">
