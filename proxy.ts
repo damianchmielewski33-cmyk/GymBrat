@@ -11,11 +11,17 @@ function isSecureSessionCookie(req: NextRequest): boolean {
   return req.nextUrl.protocol === "https:";
 }
 
+/** Ochrona tras (Next.js 16 — eksport musi nazywać się `proxy`). */
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
   /** Anonimowe zliczanie wejść — bez JWT (por. tracker klienta). */
   if (pathname.startsWith("/api/analytics/")) {
+    return NextResponse.next();
+  }
+
+  /** Token CSRF (double-submit) — publiczny GET, bez sesji. */
+  if (pathname === "/api/csrf") {
     return NextResponse.next();
   }
 

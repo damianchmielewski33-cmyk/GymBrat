@@ -2,6 +2,14 @@
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "edge") return;
+
+  try {
+    const { initSentryServer } = await import("./lib/sentry-init");
+    await initSentryServer();
+  } catch (err) {
+    console.error("[instrumentation] Sentry:", err);
+  }
+
   if (!process.env.TURSO_DATABASE_URL) return;
 
   try {
@@ -15,5 +23,13 @@ export async function register() {
     await ensureCriticalSchema();
   } catch (err) {
     console.error("[instrumentation] ensureCriticalSchema:", err);
+  }
+  try {
+    const { migrateSensitiveFieldsAtStartup } = await import(
+      "./lib/migrate-sensitive-encryption"
+    );
+    await migrateSensitiveFieldsAtStartup();
+  } catch (err) {
+    console.error("[instrumentation] migrate-sensitive-encryption:", err);
   }
 }

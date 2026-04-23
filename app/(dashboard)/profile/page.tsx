@@ -8,11 +8,14 @@ import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { LogoutButton } from "@/components/profile/logout-button";
 import { CalendarRange, Shield, User as UserIcon } from "lucide-react";
 import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
+import { DataRightsCard } from "@/components/profile/data-rights-card";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
+import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
   const session = await auth();
-  const userId = session!.user!.id;
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
   const db = getDb();
 
   const [u] = await db
@@ -200,6 +203,8 @@ export default async function ProfilePage() {
             <ChangePasswordForm />
           </div>
         </section>
+
+        <DataRightsCard />
       </div>
     </div>
   );

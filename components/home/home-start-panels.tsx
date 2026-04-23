@@ -246,47 +246,57 @@ export function HomeStartPanels({
         })}
 
         {panel && anchor ? (
-          <div
-            className="absolute z-30 rounded-2xl border border-white/10 bg-black/55 backdrop-blur-md"
-            role="dialog"
-            aria-modal="true"
-            onClick={closePanel}
-            style={{
-              top: anchor.top,
-              left: anchor.left,
-              width: anchor.width,
-              minHeight: anchor.minHeight,
-            }}
-          >
+          <>
+            {/* Backdrop over whole grid: separates panel from tiles */}
             <div
-              className="absolute inset-x-0 top-0 max-h-[min(80vh,780px)] overflow-y-auto p-2 sm:p-3"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="glass-panel neon-glow relative overflow-hidden p-4 sm:p-5">
-                <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(900px_420px_at_15%_0%,rgba(255,45,85,0.10),transparent_60%)]" />
-                <div className="relative flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/55">
-                      Szczegóły
-                    </p>
-                    <p className="font-heading mt-1 text-lg font-semibold text-white">
-                      {tiles.find((t) => t.id === open)?.title ?? "Panel"}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/12 bg-white/[0.05] text-white/70 transition hover:bg-white/[0.09] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/45"
-                    onClick={closePanel}
-                    aria-label="Zamknij"
-                  >
-                    <X className="h-5 w-5" aria-hidden />
-                  </button>
-                </div>
+              className="absolute inset-0 z-30 rounded-2xl bg-black/70 backdrop-blur-sm"
+              onClick={closePanel}
+              aria-hidden
+            />
 
-                <div className="relative mt-4">{panel}</div>
+            {/* Panel anchored on clicked tile */}
+            <div
+              className="absolute z-40 rounded-2xl border border-white/12 bg-[#07070c]/95 shadow-[0_18px_70px_rgba(0,0,0,0.75)] backdrop-blur-md"
+              role="dialog"
+              aria-modal="true"
+              onClick={closePanel}
+              style={{
+                top: anchor.top,
+                left: anchor.left,
+                width: anchor.width,
+                minHeight: anchor.minHeight,
+              }}
+            >
+              <div
+                className="absolute inset-x-0 top-0 max-h-[min(82vh,820px)] overflow-y-auto p-2 sm:p-3"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5">
+                  <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(900px_420px_at_15%_0%,rgba(255,45,85,0.12),transparent_60%)]" />
+                  <div className="relative flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/55">
+                        Szczegóły
+                      </p>
+                      <p className="font-heading mt-1 text-lg font-semibold text-white">
+                        {tiles.find((t) => t.id === open)?.title ?? "Panel"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] text-white/75 transition hover:bg-white/[0.10] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/45"
+                      onClick={closePanel}
+                      aria-label="Zamknij"
+                    >
+                      <X className="h-5 w-5" aria-hidden />
+                    </button>
+                  </div>
+
+                  <div className="relative mt-4">{panel}</div>
+                </div>
               </div>
             </div>
-          </div>
+          </>
         ) : null}
       </div>
     </section>

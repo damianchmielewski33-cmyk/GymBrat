@@ -6,6 +6,7 @@ import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 
 export function BodyReportImport() {
   const router = useRouter();
@@ -76,7 +77,13 @@ export function BodyReportImport() {
               if (file) fd.set("file", file);
               if (url.trim()) fd.set("url", url.trim());
 
-              const res = await fetch("/api/body-reports/import", { method: "POST", body: fd });
+              await ensureCsrfCookie();
+              const res = await fetch("/api/body-reports/import", {
+                method: "POST",
+                credentials: "include",
+                headers: { ...getXsrfHeaders() },
+                body: fd,
+              });
               const json = (await res.json()) as
                 | { ok: true; imported: number; skipped: number; warnings?: string[] }
                 | { ok: false; error: string; warnings?: string[] };

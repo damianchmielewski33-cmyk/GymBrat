@@ -133,7 +133,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           ? "text-[var(--neon)]"
                           : active
                             ? "text-[var(--neon)]"
-                            : "text-white/45",
+                            : "text-white/55",
                       )}
                     />
                     {item.special ? (
@@ -370,7 +370,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       ? "text-[var(--neon)]"
                       : active
                         ? "text-[var(--neon)]"
-                        : "text-white/45",
+                        : "text-white/55",
                   )}
                 />
                 <span className="leading-none">

@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 
 type BodyReportFormProps = {
   maxPhotos?: number;
@@ -121,9 +122,14 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
           setError(null);
           start(async () => {
             try {
+              await ensureCsrfCookie();
               const res = await fetch("/api/body-reports", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...getXsrfHeaders(),
+                },
                 body: JSON.stringify({
                   weightKg: weightKg ? Number(weightKg) : null,
                   waistCm: waistCm ? Number(waistCm) : null,

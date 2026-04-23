@@ -6,7 +6,8 @@ import { getDb } from "@/db";
 import { pageViews, users } from "@/db/schema";
 import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import { getScreenFromPathname } from "@/lib/analytics-screen";
-import { checkRateLimit, rateLimitKey, RATE } from "@/lib/rate-limit";
+import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
+import { assertAnalyticsOrigin } from "@/lib/csrf";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,10 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const rl = checkRateLimit(
+  const originGate = assertAnalyticsOrigin(req);
+  if (originGate) return originGate;
+
+  const rl = await checkRateLimitAsync(
     rateLimitKey("page-view", req),
     RATE.pageView.limit,
     RATE.pageView.windowMs,

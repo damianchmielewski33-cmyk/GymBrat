@@ -6,6 +6,7 @@ import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 
 export function AdminPinForm() {
   const router = useRouter();
@@ -22,9 +23,14 @@ export function AdminPinForm() {
         const pin = String(fd.get("pin") ?? "");
         setError(null);
         start(async () => {
+          await ensureCsrfCookie();
           const res = await fetch("/api/admin/unlock", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              ...getXsrfHeaders(),
+            },
             body: JSON.stringify({ pin }),
           });
           if (!res.ok) {

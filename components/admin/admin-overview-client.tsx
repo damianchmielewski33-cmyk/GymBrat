@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 
 const tooltipStyle = {
   backgroundColor: "rgba(7, 8, 13, 0.92)",
@@ -161,7 +162,12 @@ export function AdminOverviewClient() {
           kind === "workouts"
             ? "/api/admin/purge/workouts"
             : "/api/admin/purge/meals";
-        const res = await fetch(endpoint, { method: "POST" });
+        await ensureCsrfCookie();
+        const res = await fetch(endpoint, {
+          method: "POST",
+          credentials: "include",
+          headers: { ...getXsrfHeaders() },
+        });
         const json: unknown = await res.json();
         if (!res.ok) throw new Error("request_failed");
         if (!isRecord(json) || json.ok !== true) throw new Error("request_failed");

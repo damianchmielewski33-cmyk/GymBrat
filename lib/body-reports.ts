@@ -1,6 +1,7 @@
 import { desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { bodyReportPhotos, bodyReports } from "@/db/schema";
+import { encryptSensitiveField, maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
 
 export type BodyReport = {
   id: string;
@@ -45,7 +46,10 @@ export async function getBodyReports(userId: string): Promise<BodyReport[]> {
   const photosByReport = new Map<string, { id: string; dataUrl: string }[]>();
   for (const p of photos) {
     const arr = photosByReport.get(p.reportId) ?? [];
-    arr.push({ id: p.id, dataUrl: p.dataUrl });
+    arr.push({
+      id: p.id,
+      dataUrl: maybeDecryptSensitiveField(p.dataUrl) ?? "",
+    });
     photosByReport.set(p.reportId, arr);
   }
 
@@ -156,7 +160,7 @@ export async function createBodyReport(userId: string, input: CreateBodyReportIn
     await db.insert(bodyReportPhotos).values(
       dataUrls.map((dataUrl) => ({
         reportId,
-        dataUrl,
+        dataUrl: encryptSensitiveField(dataUrl),
       })),
     );
   }

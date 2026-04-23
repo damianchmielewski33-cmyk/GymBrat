@@ -15,6 +15,7 @@ import {
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { cn } from "@/lib/utils";
 import { sessionVolume } from "@/lib/workout-session-calculations";
+import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 
 function formatDuration(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -91,9 +92,14 @@ export function ActiveWorkoutGlobalBar() {
         setsTotal: progress.total,
         totalVolume: sessionVolume(exercises),
       };
+      await ensureCsrfCookie();
       const res = await fetch("/api/workouts/complete", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        credentials: "include",
+        headers: {
+          "content-type": "application/json",
+          ...getXsrfHeaders(),
+        },
         body: JSON.stringify({
           title,
           startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),

@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { getAdminPin } from "@/lib/admin-config";
-import { checkRateLimit, rateLimitKey, RATE } from "@/lib/rate-limit";
+import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import {
   ADMIN_UNLOCK_COOKIE,
   isAdminEligible,
   signAdminUnlockToken,
 } from "@/lib/admin-session";
 import { timingSafeEqual } from "node:crypto";
+import { assertCsrf } from "@/lib/csrf";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,10 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const rl = checkRateLimit(
+  const csrf = assertCsrf(req);
+  if (csrf) return csrf;
+
+  const rl = await checkRateLimitAsync(
     rateLimitKey("admin-unlock", req),
     RATE.adminUnlock.limit,
     RATE.adminUnlock.windowMs,

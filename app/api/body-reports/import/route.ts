@@ -3,7 +3,8 @@ import { importBodyReports } from "@/lib/body-reports";
 import { parseBodyReportsFromXlsx } from "@/lib/excel/body-report-import";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import { checkRateLimit, rateLimitKey, RATE } from "@/lib/rate-limit";
+import { assertCsrf } from "@/lib/csrf";
+import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import dns from "node:dns/promises";
 import net from "node:net";
 
@@ -94,7 +95,10 @@ async function readBufferFromUrl(url: URL): Promise<ArrayBuffer> {
 }
 
 export async function POST(req: Request) {
-  const rl = checkRateLimit(
+  const csrf = assertCsrf(req);
+  if (csrf) return csrf;
+
+  const rl = await checkRateLimitAsync(
     rateLimitKey("body-report-import", req),
     RATE.bodyReportImport.limit,
     RATE.bodyReportImport.windowMs,

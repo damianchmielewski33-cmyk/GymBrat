@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { getCompletedWorkoutsForUser, formatCompact } from "@/lib/workout-history";
+import { redirect } from "next/navigation";
 
 function formatDate(ymd: string) {
   try {
@@ -13,7 +14,8 @@ function formatDate(ymd: string) {
 
 export default async function WorkoutHistoryPage() {
   const session = await auth();
-  const userId = session!.user!.id;
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
   const items = await getCompletedWorkoutsForUser(userId, { limit: 200 });
 
   return (

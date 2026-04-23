@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 
 type UserRow = {
   id: string;
@@ -48,9 +49,14 @@ export function AdminUsersClient() {
   }, [load]);
 
   async function setRole(id: string, appRole: "zawodnik" | "trener") {
+    await ensureCsrfCookie();
     const res = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...getXsrfHeaders(),
+      },
       body: JSON.stringify({ appRole }),
     });
     if (!res.ok) {
@@ -68,8 +74,11 @@ export function AdminUsersClient() {
     if (!confirm("Na pewno usunąć to konto i powiązane dane? Ta operacja jest nieodwracalna.")) {
       return;
     }
+    await ensureCsrfCookie();
     const res = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {
       method: "DELETE",
+      credentials: "include",
+      headers: { ...getXsrfHeaders() },
     });
     if (!res.ok) {
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -88,8 +97,10 @@ export function AdminUsersClient() {
       <div className="glass-panel neon-glow p-5 sm:p-6">
         <h1 className="font-heading text-xl font-semibold text-white">Konta użytkowników</h1>
         <p className="mt-1 text-sm text-white/55">
-          Administratorem jest wyłącznie konto utworzone jako pierwsze w systemie. Pozostałym
-          kontom możesz nadać rolę zawodnika lub trenera oraz je usuwać.
+          Administratorem jest konto z rolą w bazie (`admin`) lub adres z listy{" "}
+          <span className="font-mono text-white/70">ADMIN_EMAILS</span>. Pozostałym kontom możesz
+          nadać rolę zawodnika lub trenera oraz je usuwać (pierwszy admin w bazie jest chroniony przed
+          utratą roli i usunięciem).
         </p>
       </div>
 
@@ -129,7 +140,7 @@ export function AdminUsersClient() {
                         {isFounder ? (
                           <span className="font-medium text-amber-200/95">
                             Administrator{" "}
-                            <span className="font-normal text-white/45">(pierwsze konto)</span>
+                            <span className="font-normal text-white/45">(pierwszy w bazie)</span>
                           </span>
                         ) : (
                           <span className="capitalize">{u.appRole ?? "—"}</span>

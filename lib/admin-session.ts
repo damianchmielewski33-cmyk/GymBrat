@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Session } from "next-auth";
 import { cookies } from "next/headers";
-import { asc, sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { getAuthSecret } from "@/lib/auth-secret";
@@ -10,12 +10,13 @@ export const ADMIN_UNLOCK_COOKIE = "gymbrat_admin_unlock";
 
 const SEP = "|";
 
-/** Id pierwszego wstawionego rekordu użytkownika (SQLite rowid jako tie-break przy tej samej ms w created_at). */
+/** Pierwsze konto z `app_role = admin` w bazie (chronione przed utratą roli / usunięciem z panelu). */
 export async function getFounderUserId(): Promise<string | null> {
   const db = getDb();
   const [row] = await db
     .select({ id: users.id })
     .from(users)
+    .where(eq(users.appRole, "admin"))
     .orderBy(asc(users.createdAt), asc(sql`rowid`))
     .limit(1);
   return row?.id ?? null;
@@ -24,9 +25,7 @@ export async function getFounderUserId(): Promise<string | null> {
 /** Konto ma prawo wejść do ścieżki /admin (bez PIN jeszcze bez cookie). */
 export async function isAdminEligible(session: Session | null): Promise<boolean> {
   if (!session?.user?.id) return false;
-  if (session.user.role === "admin") return true;
-  const founderId = await getFounderUserId();
-  return founderId !== null && session.user.id === founderId;
+  return session.user.role === "admin";
 }
 
 export function signAdminUnlockToken(userId: string): string {

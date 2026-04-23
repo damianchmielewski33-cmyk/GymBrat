@@ -6,6 +6,7 @@ import { fitatuTag } from "@/lib/cache-tags";
 import { kcalFromMacros } from "@/lib/kcal-from-macros";
 import { calendarDateKey } from "@/lib/local-date";
 import type { FitatuDaySummary } from "@/types/fitatu";
+import { maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
 
 /** Spójnie z resztą aplikacji: kcal tylko z gramów makroskładników (dzień i posiłki). */
 function normalizeFitatuSummary(s: FitatuDaySummary): FitatuDaySummary {
@@ -63,7 +64,7 @@ async function fetchFitatuDayFromRemote(
     .where(eq(users.id, userId))
     .limit(1);
 
-  const userToken = row?.token ?? null;
+  const userToken = maybeDecryptSensitiveField(row?.token ?? null);
   const bearer = userToken ?? apiKey;
 
   if (userToken && !base) {

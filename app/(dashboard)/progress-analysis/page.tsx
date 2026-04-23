@@ -1,14 +1,21 @@
 import { auth } from "@/auth";
 import { StatCard } from "@/components/reports/stat-card";
 import { ProgressChartsDynamic } from "@/components/progress-analysis/progress-charts-dynamic";
+import { ExerciseProgressDynamic } from "@/components/progress-analysis/exercise-progress-dynamic";
 import { WeighInCard } from "@/components/progress-analysis/weigh-in-card";
 import { getProgressAnalysisData } from "@/lib/progress-analysis";
+import { listExerciseNameSuggestions } from "@/lib/exercise-progress";
 import { BrainCircuit, ChartLine, Dumbbell, Layers3, Sparkles } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export default async function ProgressAnalysisPage() {
   const session = await auth();
-  const userId = session!.user!.id;
-  const data = await getProgressAnalysisData(userId);
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
+  const [data, exerciseSuggestions] = await Promise.all([
+    getProgressAnalysisData(userId),
+    listExerciseNameSuggestions(userId, { days: 180 }),
+  ]);
   const { series, stats } = data;
 
   return (
@@ -65,6 +72,7 @@ export default async function ProgressAnalysisPage() {
             strength={series.strength}
             relativeStrength={series.relativeStrength}
           />
+          <ExerciseProgressDynamic suggestions={exerciseSuggestions} />
         </div>
         <div className="space-y-6">
           <WeighInCard />

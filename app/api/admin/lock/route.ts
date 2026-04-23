@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ADMIN_UNLOCK_COOKIE } from "@/lib/admin-session";
+import { assertCsrf } from "@/lib/csrf";
 
-export async function POST() {
+export async function POST(req: Request) {
+  const csrf = assertCsrf(req);
+  if (csrf) return csrf;
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

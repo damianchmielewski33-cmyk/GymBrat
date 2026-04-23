@@ -20,6 +20,7 @@ import { WorkoutSummary } from "@/components/workout/WorkoutSummary";
 import type { WorkoutPlanExercise } from "@/lib/workout-plan-types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
+import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { SlidersHorizontal, RotateCcw, ScrollText } from "lucide-react";
 
 function clampInt(n: number, min: number, max: number) {
@@ -267,9 +268,14 @@ export function ActiveWorkoutView({
         setsTotal: completedSets.total,
         totalVolume: sessionTotal,
       };
+      await ensureCsrfCookie();
       const res = await fetch("/api/workouts/complete", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        credentials: "include",
+        headers: {
+          "content-type": "application/json",
+          ...getXsrfHeaders(),
+        },
         body: JSON.stringify({
           title,
           startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),

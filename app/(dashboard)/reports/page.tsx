@@ -4,6 +4,7 @@ import { BodyReportForm } from "@/components/reports/body-report-form";
 import { ReportPhotoToggle } from "@/components/reports/report-photo-toggle";
 import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
 import { getBodyReports } from "@/lib/body-reports";
+import { redirect } from "next/navigation";
 
 function formatTakNie(v: string | null) {
   if (v === "tak") return "TAK";
@@ -13,7 +14,8 @@ function formatTakNie(v: string | null) {
 
 export default async function ReportsPage() {
   const session = await auth();
-  const userId = session!.user!.id;
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
   const reports = await getBodyReports(userId);
 
   return (

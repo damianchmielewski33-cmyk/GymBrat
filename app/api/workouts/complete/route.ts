@@ -6,6 +6,7 @@ import { calendarDateKey } from "@/lib/local-date";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { assertCsrf } from "@/lib/csrf";
 
 type CompletedWorkoutPayload = {
   title: string;
@@ -45,6 +46,9 @@ function deltaPct(current: number, prev: number): number | null {
 }
 
 export async function POST(req: Request) {
+  const csrf = assertCsrf(req);
+  if (csrf) return csrf;
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json(

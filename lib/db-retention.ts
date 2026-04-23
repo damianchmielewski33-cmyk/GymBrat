@@ -42,11 +42,14 @@ export function getRetentionPolicy(): CleanupResult["policy"] {
   const pageViewsDays = envInt("RETENTION_PAGE_VIEWS_DAYS", 30);
   const activityLogDays = envInt("RETENTION_ACTIVITY_LOG_DAYS", 90);
   const emailCodesDays = envInt("RETENTION_EMAIL_CODES_DAYS", 14);
-  const photosDaysRaw = process.env.RETENTION_BODY_REPORT_PHOTOS_DAYS;
+  const photosDaysRaw = process.env.RETENTION_BODY_REPORT_PHOTOS_DAYS?.trim();
+  /** Domyślnie 365 dni (B2C). Pusta wartość = wyłączenie czyszczenia zdjęć. */
   const bodyReportPhotosDays =
-    photosDaysRaw == null || photosDaysRaw.trim() === ""
-      ? null
-      : envInt("RETENTION_BODY_REPORT_PHOTOS_DAYS", 0);
+    photosDaysRaw === undefined
+      ? 365
+      : photosDaysRaw === ""
+        ? null
+        : envInt("RETENTION_BODY_REPORT_PHOTOS_DAYS", 365);
 
   return {
     pageViewsDays,

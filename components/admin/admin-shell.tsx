@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, Shield, Users } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +67,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             className="border-white/15 bg-white/[0.06]"
             onClick={() => {
               void (async () => {
-                const res = await fetch("/api/admin/lock", { method: "POST" });
+                await ensureCsrfCookie();
+                const res = await fetch("/api/admin/lock", {
+                  method: "POST",
+                  credentials: "include",
+                  headers: { ...getXsrfHeaders() },
+                });
                 if (!res.ok) {
                   notifyError("Nie udało się zablokować panelu.");
                   return;

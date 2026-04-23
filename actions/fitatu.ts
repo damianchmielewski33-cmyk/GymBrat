@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { fitatuTag } from "@/lib/cache-tags";
+import { encryptSensitiveField } from "@/lib/app-field-crypto";
 
 export type FitatuFormState = {
   error?: string;
@@ -108,7 +109,7 @@ export async function connectFitatuLoginAction(
   const db = getDb();
   await db
     .update(users)
-    .set({ fitatuAccessToken: token })
+    .set({ fitatuAccessToken: encryptSensitiveField(token) })
     .where(eq(users.id, session.user.id));
 
   revalidateFitatu(session.user.id);
@@ -130,7 +131,7 @@ export async function saveFitatuTokenAction(
   const db = getDb();
   await db
     .update(users)
-    .set({ fitatuAccessToken: parsed.data.token })
+    .set({ fitatuAccessToken: encryptSensitiveField(parsed.data.token) })
     .where(eq(users.id, session.user.id));
 
   revalidateFitatu(session.user.id);

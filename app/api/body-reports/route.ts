@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { createBodyReport, getBodyReports, type CreateBodyReportInput } from "@/lib/body-reports";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { assertCsrf } from "@/lib/csrf";
 
 export async function GET() {
   const session = await auth();
@@ -13,6 +14,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const csrf = assertCsrf(req);
+  if (csrf) return csrf;
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Brak autoryzacji" }, { status: 401 });

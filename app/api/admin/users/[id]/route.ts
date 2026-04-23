@@ -5,6 +5,7 @@ import { requireAdminApi } from "@/lib/admin-api";
 import { getFounderUserId } from "@/lib/admin-session";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
+import { assertCsrf } from "@/lib/csrf";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,9 @@ export async function PATCH(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
+  const csrf = assertCsrf(req);
+  if (csrf) return csrf;
+
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
@@ -34,7 +38,7 @@ export async function PATCH(
   const founderId = await getFounderUserId();
   if (founderId !== null && id === founderId) {
     return NextResponse.json(
-      { error: "Nie można zmienić roli konta pierwszego użytkownika (administrator)." },
+      { error: "Nie można zmienić roli pierwszego administratora w bazie." },
       { status: 400 },
     );
   }
@@ -49,9 +53,12 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
+  const csrf = assertCsrf(req);
+  if (csrf) return csrf;
+
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
@@ -68,7 +75,7 @@ export async function DELETE(
   const founderId = await getFounderUserId();
   if (founderId !== null && id === founderId) {
     return NextResponse.json(
-      { error: "Nie można usunąć konta pierwszego użytkownika (administrator systemu)." },
+      { error: "Nie można usunąć pierwszego administratora w bazie." },
       { status: 400 },
     );
   }

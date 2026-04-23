@@ -4,8 +4,18 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import { siteActivityLog, users } from "@/db/schema";
-import { getFounderUserId } from "@/lib/admin-session";
 import { getAuthSecret } from "@/lib/auth-secret";
+
+function parseAdminEmails(): Set<string> {
+  const raw = process.env.ADMIN_EMAILS;
+  if (!raw) return new Set();
+  return new Set(
+    raw
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -38,8 +48,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await compare(password, user.passwordHash);
         if (!valid) return null;
 
-        const founderId = await getFounderUserId();
-        if (founderId === user.id) {
+        const adminEmails = parseAdminEmails();
+        const emailLower = user.email.toLowerCase();
+        const isEnvAdmin = adminEmails.has(emailLower);
+
+        if (user.appRole === "admin" || isEnvAdmin) {
+          if (isEnvAdmin && user.appRole !== "admin") {
+            await db
+              .update(users)
+              .set({ appRole: "admin" })
+              .where(eq(users.id, user.id));
+          }
           return {
             id: user.id,
             email: user.email,

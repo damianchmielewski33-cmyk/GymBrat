@@ -8,6 +8,7 @@ import {
   getCompletedWorkoutByIdForUser,
   getStrengthTrendForPlan,
 } from "@/lib/workout-history";
+import { redirect } from "next/navigation";
 
 function formatDateTime(ms: number | null) {
   if (ms == null || !Number.isFinite(ms)) return "—";
@@ -37,7 +38,8 @@ export default async function WorkoutHistoryDetailsPage({
 }) {
   const { id } = await params;
   const session = await auth();
-  const userId = session!.user!.id;
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
 
   const w = await getCompletedWorkoutByIdForUser(userId, id);
   if (!w) return notFound();
