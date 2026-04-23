@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { GymPadSetRow } from "@/components/workout/gympad-set-row";
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
 import {
@@ -11,6 +11,8 @@ import {
   formatVolumeKg,
 } from "@/lib/workout-session-calculations";
 import type { LastPlanHintsMap } from "@/lib/last-workout-hints";
+import type { ExercisePrs } from "@/lib/exercise-progress";
+import { estimated1RM } from "@/lib/workout-history";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -43,6 +45,25 @@ function formatLastHintLine(h?: LastPlanHintsMap[string]): string | null {
     .join(" · ");
 }
 
+function formatPreviousSetLabel(s: WorkoutSetState | undefined): string | null {
+  if (!s || !(s.weight > 0)) return null;
+  const r = s.reps != null ? String(s.reps) : "—";
+  const rp = s.rpe != null ? ` RPE${s.rpe}` : "";
+  return `${s.weight}×${r}${rp}`;
+}
+
+function computeSetPrBadge(set: WorkoutSetState, prs: ExercisePrs | null): string | null {
+  if (!set.done || set.reps == null || set.reps <= 0 || !(set.weight > 0)) return null;
+  if (!prs) return null;
+  const e1 = estimated1RM(set.weight, set.reps);
+  const hasHistory = prs.maxE1rm.value > 0 || prs.maxWeight.value > 0;
+  const eps = 0.05;
+  if (!hasHistory) return "Pierwszy zapis";
+  if (e1 > prs.maxE1rm.value + eps) return "Nowy rekord 1RM";
+  if (set.weight > prs.maxWeight.value + eps) return "Nowy rekord ciężaru";
+  return null;
+}
+
 type GymPadSessionLayoutProps = {
   title: string;
   elapsedSeconds: number;
@@ -71,10 +92,41 @@ export function GymPadSessionLayout({
   lastHints,
   onExerciseNoteChange,
 }: GymPadSessionLayoutProps) {
+  const [prsForExercise, setPrsForExercise] = useState<ExercisePrs | null>(null);
+
   const current = useMemo(
     () => exercises.find((e) => e.id === selectedExerciseId) ?? exercises[0] ?? null,
     [exercises, selectedExerciseId],
   );
+
+  useEffect(() => {
+    const name = current?.name?.trim();
+    if (!name) {
+      setPrsForExercise(null);
+      return;
+    }
+    let cancelled = false;
+    const tid = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch(
+            `/api/progress/exercise?q=${encodeURIComponent(name)}`,
+            { credentials: "include" },
+          );
+          const data = (await res.json()) as { ok?: boolean; prs?: ExercisePrs };
+          if (cancelled) return;
+          if (data.ok && data.prs) setPrsForExercise(data.prs);
+          else setPrsForExercise(null);
+        } catch {
+          if (!cancelled) setPrsForExercise(null);
+        }
+      })();
+    }, 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(tid);
+    };
+  }, [current?.name]);
 
   useEffect(() => {
     if (exercises.length === 0) return;
@@ -89,6 +141,9 @@ export function GymPadSessionLayout({
   const nSets = current?.sets.length ?? 0;
   const lastHintLine =
     current && lastHints ? formatLastHintLine(lastHints[current.id]) : null;
+
+  const hintSetsForCurrent =
+    current && lastHints ? lastHints[current.id]?.sets : undefined;
 
   function applyPatch(setIdx: number, patch: Partial<WorkoutSetState>) {
     if (!current) return;
@@ -183,6 +238,8 @@ export function GymPadSessionLayout({
                 set={set}
                 animationIndex={idx}
                 onChange={(patch) => applyPatch(idx, patch)}
+                previousLabel={formatPreviousSetLabel(hintSetsForCurrent?.[idx])}
+                prBadge={computeSetPrBadge(set, prsForExercise)}
               />
             ))}
           </div>

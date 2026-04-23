@@ -2,6 +2,17 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Timer, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { PlateCalculatorSheet } from "@/components/workout/plate-calculator-sheet";
+import {
+  readRestTimerPrefs,
+  writeRestAutoStart,
+  writeRestDefaultSeconds,
+} from "@/lib/rest-timer-prefs";
+import { cn } from "@/lib/utils";
+
+const PRESETS_SEC = [45, 60, 90, 120, 180] as const;
+const DEFAULT_OPTIONS_SEC = [45, 60, 90, 120, 180] as const;
 
 type RestTimerBarProps = {
   /** Pozostały czas w sekundach lub null gdy wyłączony */
@@ -18,14 +29,37 @@ export function RestTimerBar({ remaining, onStart, onStop }: RestTimerBarProps) 
   const mm = active ? String(Math.floor(remaining / 60)).padStart(2, "0") : "00";
   const ss = active ? String(remaining % 60).padStart(2, "0") : "00";
 
+  const [autoStart, setAutoStart] = useState(true);
+  const [defaultSec, setDefaultSec] = useState(90);
+
+  useEffect(() => {
+    const p = readRestTimerPrefs();
+    setAutoStart(p.autoStart);
+    setDefaultSec(p.defaultSeconds);
+  }, []);
+
+  function toggleAuto() {
+    const next = !autoStart;
+    setAutoStart(next);
+    writeRestAutoStart(next);
+  }
+
+  function pickDefault(sec: number) {
+    setDefaultSec(sec);
+    writeRestDefaultSeconds(sec);
+  }
+
   return (
     <div className="sticky top-16 z-[45] border-b border-white/[0.06] bg-[#111]/92 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
-        <div className="flex items-center gap-2 text-white/80">
-          <Timer className="h-4 w-4 text-[#3B82F6]" />
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-white/50">
-            Odpoczynek
-          </span>
+      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-y-2 px-3 py-2 sm:px-4">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 text-white/80">
+            <Timer className="h-4 w-4 shrink-0 text-[#3B82F6]" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-white/50">
+              Odpoczynek
+            </span>
+          </div>
+          <PlateCalculatorSheet />
         </div>
 
         <AnimatePresence mode="wait">
@@ -55,19 +89,53 @@ export function RestTimerBar({ remaining, onStart, onStop }: RestTimerBarProps) 
               key="idle"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-wrap items-center gap-1.5"
+              className="flex flex-col items-end gap-2 sm:flex-row sm:flex-wrap sm:items-center"
             >
-              {([60, 90, 120] as const).map((s) => (
-                <motion.button
-                  key={s}
+              <div className="flex flex-wrap items-center justify-end gap-1.5">
+                {PRESETS_SEC.map((s) => (
+                  <motion.button
+                    key={s}
+                    type="button"
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => onStart(s)}
+                    className="rounded-full border border-white/[0.1] bg-[#1e1e1e] px-3 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-[#262626]"
+                  >
+                    {s}s
+                  </motion.button>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/[0.06] pt-2 sm:border-t-0 sm:pt-0">
+                <button
                   type="button"
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => onStart(s)}
-                  className="rounded-full border border-white/[0.1] bg-[#1e1e1e] px-3 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-[#262626]"
+                  onClick={toggleAuto}
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition",
+                    autoStart
+                      ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-100"
+                      : "border-white/10 bg-white/[0.04] text-white/50",
+                  )}
                 >
-                  {s}s
-                </motion.button>
-              ))}
+                  Auto po serii: {autoStart ? "wł." : "wył."}
+                </button>
+                <span className="text-[10px] text-white/35">Domyślnie</span>
+                <div className="flex flex-wrap gap-1">
+                  {DEFAULT_OPTIONS_SEC.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => pickDefault(s)}
+                      className={cn(
+                        "rounded-md px-2 py-0.5 text-[10px] font-semibold tabular-nums",
+                        defaultSec === s
+                          ? "bg-[var(--neon)]/25 text-white ring-1 ring-[var(--neon)]/40"
+                          : "bg-white/[0.06] text-white/55 hover:bg-white/[0.1]",
+                      )}
+                    >
+                      {s}s
+                    </button>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

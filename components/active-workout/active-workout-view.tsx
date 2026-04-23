@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   fetchLastWorkoutHintsForPlan,
   type WorkoutPlanWithLastWorkoutDTO,
@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { RestTimerBar } from "@/components/workout/RestTimerBar";
+import { readRestTimerPrefs } from "@/lib/rest-timer-prefs";
+import { playRestTimerEndSignal } from "@/lib/rest-timer-signal";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import { WorkoutSummary } from "@/components/workout/WorkoutSummary";
 import type { WorkoutPlanExercise } from "@/lib/workout-plan-types";
@@ -97,8 +99,20 @@ export function ActiveWorkoutView({
   const [restRemaining, setRestRemaining] = useState<number | null>(null);
   const [resumePromptOpen, setResumePromptOpen] = useState(false);
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
+  /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/start-workout`. */
+  const [storeHydrated, setStoreHydrated] = useState(false);
 
   const hasLoadedPlan = workoutPlanId != null && exercises.length > 0;
+
+  useLayoutEffect(() => {
+    const api = useActiveWorkoutStore.persist;
+    if (api.hasHydrated()) {
+      setStoreHydrated(true);
+      return;
+    }
+    const unsub = api.onFinishHydration(() => setStoreHydrated(true));
+    return unsub;
+  }, []);
 
   useEffect(() => {
     hintsMergedRef.current = false;
@@ -134,7 +148,7 @@ export function ActiveWorkoutView({
   // - `/active-workout` is a strict "session view" and must NOT be accessible without an active session.
   // - `/start-workout` is the entry point that lets user pick a plan and begin a session.
   useEffect(() => {
-    if (suppressRouteGate) return;
+    if (suppressRouteGate || !storeHydrated) return;
     if (entry === "active" && !hasLoadedPlan) {
       router.replace("/start-workout");
       return;
@@ -142,7 +156,7 @@ export function ActiveWorkoutView({
     if (entry === "start" && hasLoadedPlan) {
       router.replace("/active-workout");
     }
-  }, [entry, hasLoadedPlan, router, suppressRouteGate]);
+  }, [entry, hasLoadedPlan, router, suppressRouteGate, storeHydrated]);
 
   function startRest(seconds: number) {
     setRestRemaining(seconds);
@@ -203,7 +217,13 @@ export function ActiveWorkoutView({
     if (restRemaining === null || restRemaining <= 0) return;
     const id = window.setInterval(() => {
       setRestRemaining((r) => {
-        if (r === null || r <= 1) return null;
+        if (r === null) return null;
+        if (r <= 1) {
+          if (r === 1) {
+            queueMicrotask(() => playRestTimerEndSignal());
+          }
+          return null;
+        }
         return r - 1;
       });
     }, 1000);
@@ -245,7 +265,10 @@ export function ActiveWorkoutView({
       Number.isFinite(nextWeight) &&
       nextWeight > 0;
     if (isDoneNext && !wasDone) {
-      queueMicrotask(() => startRest(90));
+      const { autoStart, defaultSeconds } = readRestTimerPrefs();
+      if (autoStart) {
+        queueMicrotask(() => startRest(defaultSeconds));
+      }
     }
   }
 
@@ -292,7 +315,7 @@ export function ActiveWorkoutView({
     start();
     if (entry === "start") {
       sessionStorage.setItem("active-workout:skipResumeOnce", "1");
-      router.push("/active-workout");
+      /** Nawigacja: wyłącznie efekt „route gate” (`start` + `hasLoadedPlan` → `replace`), żeby uniknąć podwójnego push/replace i wyścigów z hydracją. */
     }
   }
 
@@ -530,25 +553,32 @@ export function ActiveWorkoutView({
                 startPlansContent
               ) : (
               entry === "active" ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
-                  <div className="rounded-2xl border border-white/[0.08] bg-[#111] p-6">
-                    <RotateCcw className="mx-auto h-11 w-11 text-[#FF9500]" />
+                !storeHydrated ? (
+                  <div className="flex flex-1 flex-col items-center justify-center gap-2 px-2 py-16 text-center">
+                    <div className="h-9 w-9 animate-pulse rounded-full bg-white/[0.08]" />
+                    <p className="text-sm text-white/45">Wczytywanie sesji…</p>
                   </div>
-                  <div>
-                    <p className="text-[17px] font-semibold text-white">Trening jest wyłączony</p>
-                    <p className="mt-2 max-w-md text-[13px] text-white/45">
-                      Nie możesz wejść do ekranu treningu bez aktywnej sesji.
-                    </p>
+                ) : (
+                  <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
+                    <div className="rounded-2xl border border-white/[0.08] bg-[#111] p-6">
+                      <RotateCcw className="mx-auto h-11 w-11 text-[#FF9500]" />
+                    </div>
+                    <div>
+                      <p className="text-[17px] font-semibold text-white">Trening jest wyłączony</p>
+                      <p className="mt-2 max-w-md text-[13px] text-white/45">
+                        Nie możesz wejść do ekranu treningu bez aktywnej sesji.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      <Button type="button" onClick={() => router.push("/start-workout")}>
+                        Rozpocznij trening
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => router.push("/workout-plan")}>
+                        Zobacz plany
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    <Button type="button" onClick={() => router.push("/start-workout")}>
-                      Rozpocznij trening
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => router.push("/workout-plan")}>
-                      Zobacz plany
-                    </Button>
-                  </div>
-                </div>
+                )
               ) : undefined
               )
             }

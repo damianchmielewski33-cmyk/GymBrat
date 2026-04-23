@@ -29,6 +29,10 @@ type GymPadSetRowProps = {
   set: WorkoutSetState;
   animationIndex: number;
   onChange: (patch: Partial<WorkoutSetState>) => void;
+  /** Ostatnia sesja — ta sama seria (plan id). */
+  previousLabel?: string | null;
+  /** Rekord / pierwszy zapis — z API postępów. */
+  prBadge?: string | null;
 };
 
 /**
@@ -39,6 +43,8 @@ export function GymPadSetRow({
   set,
   animationIndex,
   onChange,
+  previousLabel,
+  prBadge,
 }: GymPadSetRowProps) {
   const lineVol = setVolume(set.reps, set.weight);
 
@@ -115,6 +121,12 @@ export function GymPadSetRow({
         <Copy className="h-5 w-5" />
       </motion.button>
 
+      {previousLabel ? (
+        <p className="col-span-full -mt-1 text-center text-[10px] leading-snug text-amber-200/80">
+          Ostatnio: {previousLabel}
+        </p>
+      ) : null}
+
       <div className="col-span-full flex flex-wrap items-center gap-2 border-t border-white/[0.05] pt-2">
         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
           RPE
@@ -135,6 +147,11 @@ export function GymPadSetRow({
             </option>
           ))}
         </select>
+        {prBadge ? (
+          <span className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-100">
+            {prBadge}
+          </span>
+        ) : null}
       </div>
     </motion.div>
   );
