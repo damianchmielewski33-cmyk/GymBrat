@@ -28,4 +28,6 @@ export function rateLimitKey(label: string, req: Request): string {
 
 export const RATE = {
   pageView: { limit: 120, windowMs: 60_000 },
+  adminUnlock: { limit: 8, windowMs: 10 * 60_000 },
+  bodyReportImport: { limit: 12, windowMs: 60_000 },
 } as const;

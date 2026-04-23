@@ -65,6 +65,27 @@ CREATE TABLE IF NOT EXISTS "email_verification_codes" (
   await db.$client.execute(
     `CREATE INDEX IF NOT EXISTS "idx_email_verification_codes_expires" ON "email_verification_codes" ("expires_at")`,
   );
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "daily_checkins" (
+  "id" text PRIMARY KEY NOT NULL,
+  "user_id" text NOT NULL,
+  "date" text NOT NULL,
+  "sleep_quality" integer,
+  "day_energy" integer,
+  "stress" integer,
+  "weight_kg" real,
+  "notes" text,
+  "day_closed_at" integer,
+  "summary_json" text,
+  "created_at" integer NOT NULL,
+  "updated_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "idx_daily_checkins_user_date" ON "daily_checkins" ("user_id","date")`,
+  );
 }
 
 let mealLogsEnsured = false;

@@ -6,6 +6,8 @@ import { AddMealSheet } from "@/components/home/add-meal-sheet";
 import { MealLogsList } from "@/components/home/meal-logs-list";
 import { TodaysMacrosSection } from "@/components/home/todays-macros";
 import { HomeStartPanels } from "@/components/home/home-start-panels";
+import { DailyCheckinPanel } from "@/components/home/daily-checkin-panel";
+import { StreakStrip } from "@/components/home/streak-strip";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { getHomeStats } from "@/lib/home-stats";
@@ -16,6 +18,8 @@ import {
 } from "@/lib/nutrition-dashboard";
 import { resolveProfileDayGoals } from "@/lib/nutrition-goals";
 import { buildWeekNutritionRows } from "@/lib/week-nutrition-rows";
+import { getDailyCheckin } from "@/lib/daily-checkin";
+import { getStreaks } from "@/lib/streaks";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -73,6 +77,10 @@ export default async function HomePage() {
   const stats = await getHomeStats(userId);
   const mealEntries = await listMealLogsForDay(userId, dash.todayKey);
   const weekDayRows = buildWeekNutritionRows(dash.week.days);
+  const [checkin, streaks] = await Promise.all([
+    getDailyCheckin(userId, dash.todayKey),
+    getStreaks(userId, dash.todayKey),
+  ]);
 
   const subtitleMacros =
     dash.today.source === "error"
@@ -85,6 +93,12 @@ export default async function HomePage() {
     mealEntries.length === 0
       ? `Brak wpisów · ${dash.todayKey}`
       : `${mealEntries.length} wpisów · ${dash.todayKey}`;
+
+  const subtitleCheckIn = checkin
+    ? checkin.dayClosedAtMs
+      ? "Zapisany · dzień zamknięty"
+      : "Zapisany · możesz zamknąć dzień"
+    : "Szybki check-in 30–60 s";
 
   const subtitleTargets =
     weekG > 0
@@ -132,6 +146,7 @@ export default async function HomePage() {
         subtitleMacros={subtitleMacros}
         subtitleMeals={subtitleMeals}
         subtitleTargets={subtitleTargets}
+        subtitleCheckIn={subtitleCheckIn}
         subtitleLastWorkout={subtitleLastWorkout}
         subtitleTrend={subtitleTrend}
         showTrend={showTrend}
@@ -150,38 +165,42 @@ export default async function HomePage() {
           />
         }
         targetsPanel={
-          <NutritionProgressBars
-            dayLabel="Dziś"
-            dayPercent={dayProg.pct}
-            dayDetail={
-              dayG > 0
-                ? `${Math.round(dayC)} / ${Math.round(dayG)} kcal`
-                : "Brak dziennego celu kcal — uzupełnij cele w profilu lub korzystaj z celu z Fitatu."
-            }
-            dayOver={dayProg.over}
-            weekLabel="Ten tydzień (pon.–niedz.)"
-            weekPercent={weekProg.pct}
-            weekDetail={
-              weekG > 0
-                ? `${Math.round(weekC)} / ${Math.round(weekG)} kcal (wpisy posiłków vs suma celów)`
-                : "Brak sumy celów tygodnia — ustaw makroskładniki w profilu dla treningu i odpoczynku."
-            }
-            weekOver={weekProg.over}
-            weekDayRows={weekDayRows}
-            sheetTodayKey={dash.todayKey}
-            weekNutritionRollup={{
-              sumProteinGoal: dash.week.sumProteinGoal,
-              sumProteinConsumed: dash.week.sumProteinConsumed,
-              sumFatGoal: dash.week.sumFatGoal,
-              sumFatConsumed: dash.week.sumFatConsumed,
-              sumCarbsGoal: dash.week.sumCarbsGoal,
-              sumCarbsConsumed: dash.week.sumCarbsConsumed,
-              sumCaloriesGoal: dash.week.sumCaloriesGoal,
-              sumCaloriesConsumed: dash.week.sumCaloriesConsumed,
-            }}
-            previousWeeks={previousWeeks}
-          />
+          <div className="space-y-4">
+            <StreakStrip data={streaks} />
+            <NutritionProgressBars
+              dayLabel="Dziś"
+              dayPercent={dayProg.pct}
+              dayDetail={
+                dayG > 0
+                  ? `${Math.round(dayC)} / ${Math.round(dayG)} kcal`
+                  : "Brak dziennego celu kcal — uzupełnij cele w profilu lub korzystaj z celu z Fitatu."
+              }
+              dayOver={dayProg.over}
+              weekLabel="Ten tydzień (pon.–niedz.)"
+              weekPercent={weekProg.pct}
+              weekDetail={
+                weekG > 0
+                  ? `${Math.round(weekC)} / ${Math.round(weekG)} kcal (wpisy posiłków vs suma celów)`
+                  : "Brak sumy celów tygodnia — ustaw makroskładniki w profilu dla treningu i odpoczynku."
+              }
+              weekOver={weekProg.over}
+              weekDayRows={weekDayRows}
+              sheetTodayKey={dash.todayKey}
+              weekNutritionRollup={{
+                sumProteinGoal: dash.week.sumProteinGoal,
+                sumProteinConsumed: dash.week.sumProteinConsumed,
+                sumFatGoal: dash.week.sumFatGoal,
+                sumFatConsumed: dash.week.sumFatConsumed,
+                sumCarbsGoal: dash.week.sumCarbsGoal,
+                sumCarbsConsumed: dash.week.sumCarbsConsumed,
+                sumCaloriesGoal: dash.week.sumCaloriesGoal,
+                sumCaloriesConsumed: dash.week.sumCaloriesConsumed,
+              }}
+              previousWeeks={previousWeeks}
+            />
+          </div>
         }
+        checkInPanel={<DailyCheckinPanel dateKey={dash.todayKey} existing={checkin} />}
         lastWorkoutPanel={<LastWorkoutStats stats={stats} embedded />}
         trendPanel={
           <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">

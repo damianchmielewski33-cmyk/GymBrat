@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { getAdminPin } from "@/lib/admin-config";
+import { checkRateLimit, rateLimitKey, RATE } from "@/lib/rate-limit";
 import {
   ADMIN_UNLOCK_COOKIE,
   isAdminEligible,
   signAdminUnlockToken,
 } from "@/lib/admin-session";
+import { timingSafeEqual } from "node:crypto";
 
 export const runtime = "nodejs";
 
@@ -15,6 +17,18 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const rl = checkRateLimit(
+    rateLimitKey("admin-unlock", req),
+    RATE.adminUnlock.limit,
+    RATE.adminUnlock.windowMs,
+  );
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Rate limit" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -35,7 +49,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  if (parsed.data.pin !== getAdminPin()) {
+  // Stałoczasowe porównanie (minimalizuje side-channel timing).
+  const expected = getAdminPin();
+  const a = Buffer.from(parsed.data.pin);
+  const b = Buffer.from(expected);
+  const ok =
+    a.length === b.length &&
+    (() => {
+      try {
+        return timingSafeEqual(a, b);
+      } catch {
+        return false;
+      }
+    })();
+
+  if (!ok) {
     return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
   }
 
@@ -43,7 +71,7 @@ export async function POST(req: Request) {
   const res = NextResponse.json({ ok: true });
   res.cookies.set(ADMIN_UNLOCK_COOKIE, token, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "strict",
     path: "/",
     secure: process.env.NODE_ENV === "production",
     maxAge: 12 * 60 * 60,

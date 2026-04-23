@@ -100,6 +100,37 @@ export const bodyReportPhotos = sqliteTable("body_report_photos", {
     .$defaultFn(() => new Date()),
 });
 
+export const dailyCheckins = sqliteTable(
+  "daily_checkins",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Local calendar day as YYYY-MM-DD */
+    date: text("date").notNull(),
+    /** 1-10 */
+    sleepQuality: integer("sleep_quality"),
+    /** 1-10 */
+    dayEnergy: integer("day_energy"),
+    /** 1-10 */
+    stress: integer("stress"),
+    weightKg: real("weight_kg"),
+    notes: text("notes"),
+    dayClosedAt: integer("day_closed_at", { mode: "timestamp_ms" }),
+    summaryJson: text("summary_json"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("idx_daily_checkins_user_date").on(t.userId, t.date)],
+);
+
 export const workouts = sqliteTable("workouts", {
   id: text("id")
     .primaryKey()
@@ -184,6 +215,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   weightLogs: many(weightLogs),
   bodyReports: many(bodyReports),
   mealLogs: many(mealLogs),
+  dailyCheckins: many(dailyCheckins),
 }));
 
 export const mealLogsRelations = relations(mealLogs, ({ one }) => ({
@@ -205,6 +237,13 @@ export const bodyReportPhotosRelations = relations(bodyReportPhotos, ({ one }) =
   report: one(bodyReports, {
     fields: [bodyReportPhotos.reportId],
     references: [bodyReports.id],
+  }),
+}));
+
+export const dailyCheckinsRelations = relations(dailyCheckins, ({ one }) => ({
+  user: one(users, {
+    fields: [dailyCheckins.userId],
+    references: [users.id],
   }),
 }));
 

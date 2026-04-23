@@ -228,6 +228,22 @@ GymBrat is designed to run well on Vercel with Turso/libSQL.
   - Proxy (edge) i dostęp sieciowy do libSQL są zgodne z wdrożeniami w stylu edge.
   - Ensure your Turso database is reachable from Vercel regions you deploy to.
 
+### Database retention (protect free Turso storage)
+
+Turso free tier storage is limited, and some tables grow indefinitely (especially analytics/log tables). GymBrat includes a built-in **cleanup** mechanism that enforces a retention policy.
+
+- **What gets cleaned by default**
+  - `page_views`: delete rows older than `RETENTION_PAGE_VIEWS_DAYS` (default 30)
+  - `site_activity_log`: delete rows older than `RETENTION_ACTIVITY_LOG_DAYS` (default 90)
+  - `email_verification_codes`: delete expired rows (always) and consumed rows older than `RETENTION_EMAIL_CODES_DAYS` (default 14)
+  - `body_report_photos`: optional (disabled by default) via `RETENTION_BODY_REPORT_PHOTOS_DAYS`
+
+- **How to run cleanup**
+  - **Admin-only**: `POST /api/admin/maintenance/cleanup` (requires admin unlock)
+  - **Cron**: `POST /api/cron/cleanup` with header `Authorization: Bearer <CRON_SECRET>`
+
+On Vercel you can wire this to Vercel Cron (daily) and keep storage growth bounded.
+
 ### PWA configuration
 
 GymBrat uses a **Web App Manifest** (`public/manifest.webmanifest`) and **committed static** service worker assets (`public/sw.js`, Workbox chunk) so the stack stays **Turbopack-only** (no `@ducanh2912/next-pwa` / Webpack plugin).

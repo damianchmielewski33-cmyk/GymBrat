@@ -3,18 +3,109 @@ import { importBodyReports } from "@/lib/body-reports";
 import { parseBodyReportsFromXlsx } from "@/lib/excel/body-report-import";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { checkRateLimit, rateLimitKey, RATE } from "@/lib/rate-limit";
+import dns from "node:dns/promises";
+import net from "node:net";
 
 export const runtime = "nodejs";
 
-async function readBufferFromUrl(url: string): Promise<ArrayBuffer> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Nie udało się pobrać pliku (HTTP ${res.status}).`);
+const MAX_REMOTE_BYTES = 5 * 1024 * 1024; // 5MB
+const FETCH_TIMEOUT_MS = 12_000;
+
+function isPrivateIp(ip: string): boolean {
+  if (ip === "127.0.0.1" || ip === "::1") return true;
+  // IPv4 ranges
+  if (/^10\./.test(ip)) return true;
+  if (/^192\.168\./.test(ip)) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(ip)) return true;
+  if (/^169\.254\./.test(ip)) return true; // link-local
+  if (/^0\./.test(ip)) return true;
+  // IPv6 ranges (basic block list)
+  if (/^fc/i.test(ip) || /^fd/i.test(ip)) return true; // unique local (fc00::/7)
+  if (/^fe8/i.test(ip) || /^fe9/i.test(ip) || /^fea/i.test(ip) || /^feb/i.test(ip))
+    return true; // link-local fe80::/10 (rough)
+  return false;
+}
+
+async function assertRemoteUrlSafe(raw: string): Promise<URL> {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    throw new Error("Nieprawidłowy URL.");
   }
-  return await res.arrayBuffer();
+  if (u.protocol !== "https:" && u.protocol !== "http:") {
+    throw new Error("URL musi używać http(s).");
+  }
+  if (!u.hostname) throw new Error("Brak hosta w URL.");
+  const host = u.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost")) {
+    throw new Error("Niedozwolony host.");
+  }
+
+  const ipDirect = net.isIP(host) ? host : null;
+  if (ipDirect && isPrivateIp(ipDirect)) {
+    throw new Error("Niedozwolony adres docelowy.");
+  }
+
+  if (!ipDirect) {
+    const addrs = await dns.lookup(host, { all: true, verbatim: true });
+    if (addrs.length === 0) throw new Error("Nie udało się rozwiązać hosta.");
+    if (addrs.some((a) => isPrivateIp(a.address))) {
+      throw new Error("Niedozwolony adres docelowy.");
+    }
+  }
+  return u;
+}
+
+async function readBufferFromUrl(url: URL): Promise<ArrayBuffer> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      redirect: "error",
+      headers: { Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+    });
+    if (!res.ok) {
+      throw new Error(`Nie udało się pobrać pliku (HTTP ${res.status}).`);
+    }
+    const lenRaw = res.headers.get("content-length");
+    if (lenRaw) {
+      const n = Number(lenRaw);
+      if (Number.isFinite(n) && n > MAX_REMOTE_BYTES) {
+        throw new Error("Plik jest za duży.");
+      }
+    }
+
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength > MAX_REMOTE_BYTES) {
+      throw new Error("Plik jest za duży.");
+    }
+    return buf;
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error("Timeout pobierania pliku.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 export async function POST(req: Request) {
+  const rl = checkRateLimit(
+    rateLimitKey("body-report-import", req),
+    RATE.bodyReportImport.limit,
+    RATE.bodyReportImport.windowMs,
+  );
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Rate limit" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Brak autoryzacji" }, { status: 401 });
@@ -48,7 +139,8 @@ export async function POST(req: Request) {
       );
     }
     try {
-      buf = await readBufferFromUrl(url);
+      const safeUrl = await assertRemoteUrlSafe(url);
+      buf = await readBufferFromUrl(safeUrl);
     } catch (e) {
       return NextResponse.json(
         { ok: false, error: e instanceof Error ? e.message : "Nie udało się pobrać pliku." },
