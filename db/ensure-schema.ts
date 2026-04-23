@@ -86,6 +86,13 @@ CREATE TABLE IF NOT EXISTS "daily_checkins" (
   await db.$client.execute(
     `CREATE INDEX IF NOT EXISTS "idx_daily_checkins_user_date" ON "daily_checkins" ("user_id","date")`,
   );
+
+  await tryAddColumn(`ALTER TABLE "user_settings" ADD COLUMN "reminders_json" text`);
+  await tryAddColumn(`ALTER TABLE "user_settings" ADD COLUMN "meal_templates_json" text`);
+  await tryAddColumn(`ALTER TABLE "user_settings" ADD COLUMN "fitness_goals_json" text`);
+  await tryAddColumn(
+    `ALTER TABLE "user_settings" ADD COLUMN "onboarding_completed_at" integer`,
+  );
 }
 
 let mealLogsEnsured = false;

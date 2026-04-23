@@ -20,6 +20,10 @@ type ActiveWorkoutState = {
   setSelectedExerciseId: (id: string | null) => void;
   setExercises: (exercises: WorkoutExerciseState[]) => void;
   patchSet: (exerciseId: string, setIndex: number, patch: Partial<WorkoutSetState>) => void;
+  patchExercise: (
+    exerciseId: string,
+    patch: Partial<Pick<WorkoutExerciseState, "note">>,
+  ) => void;
   start: () => void;
   stopTimer: () => void;
   applyPlan: (planId: string, plan: WorkoutPlanPayload) => void;
@@ -73,6 +77,12 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
             ),
           };
         }),
+      patchExercise: (exerciseId, patch) =>
+        set((s) => ({
+          exercises: s.exercises.map((e) =>
+            e.id !== exerciseId ? e : { ...e, ...patch },
+          ),
+        })),
       start: () =>
         set((s) => ({
           startedAt: Date.now(),

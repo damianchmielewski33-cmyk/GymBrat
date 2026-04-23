@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { StatCard } from "@/components/reports/stat-card";
 import { ProgressChartsDynamic } from "@/components/progress-analysis/progress-charts-dynamic";
 import { ExerciseProgressDynamic } from "@/components/progress-analysis/exercise-progress-dynamic";
+import { CoachChatPanel } from "@/components/coach/coach-chat-panel";
 import { WeighInCard } from "@/components/progress-analysis/weigh-in-card";
 import { getProgressAnalysisData } from "@/lib/progress-analysis";
 import { listExerciseNameSuggestions } from "@/lib/exercise-progress";
@@ -29,7 +30,8 @@ export default async function ProgressAnalysisPage() {
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-white/65">
           Tygodniowe sygnały: trend wagi, tonnage (∑reps×kg), e1RM oraz siła względna.
-          Integracja AI jest gotowa — prawdziwy coaching dołączymy później.
+          Czat coach używa kontekstu z aplikacji — ustaw <span className="font-mono">AI_API_KEY</span>, aby
+          włączyć odpowiedzi modelu.
         </p>
       </header>
 
@@ -76,6 +78,7 @@ export default async function ProgressAnalysisPage() {
         </div>
         <div className="space-y-6">
           <WeighInCard />
+          <CoachChatPanel />
           <div className="glass-panel neon-glow relative overflow-hidden p-6">
             <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(120deg,rgba(255,255,255,0.10),transparent_55%),radial-gradient(640px_280px_at_15%_10%,rgba(255,45,85,0.16),transparent_60%)]" />
             <div className="relative">
@@ -85,36 +88,17 @@ export default async function ProgressAnalysisPage() {
                     Integracja AI
                   </p>
                   <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-                    Wnioski trenerskie
+                    Auto-wnioski z trendów
                   </h2>
                   <p className="mt-2 text-sm text-white/60">
-                    Placeholder: podsumowanie trendów, wykrywanie stagnacji i rekomendacje
-                    korekt na następny tydzień.
+                    Podsumowania tygodniowe i wykrywanie stagnacji — rozszerzymy na bazie
+                    historii treningów i raportów.
                   </p>
                 </div>
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">
                   <BrainCircuit className="h-5 w-5 text-[var(--neon)]" />
                 </div>
               </div>
-
-              <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="text-xs uppercase tracking-[0.25em] text-white/45">
-                  W planach
-                </p>
-                <ul className="mt-3 space-y-2 text-sm text-white/70">
-                  <li>• Podsumowanie treningów (ostatnie 14 / 30 dni)</li>
-                  <li>• Skoki objętości i flagi ryzyka regeneracji</li>
-                  <li>• Propozycje korekt planu pod Twój cel</li>
-                </ul>
-              </div>
-
-              <button
-                type="button"
-                disabled
-                className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sm font-medium text-white/50"
-              >
-                Generuj wnioski (wkrótce)
-              </button>
             </div>
           </div>
         </div>
@@ -132,8 +116,7 @@ export default async function ProgressAnalysisPage() {
             </h2>
             <p className="mt-2 text-sm text-white/60">
               Waga pochodzi z ważeń. Tonnage i siła są liczone z ukończonych serii (reps×kg)
-              oraz e1RM (Epley). Do pełnego monitoringu sportowego brakuje jeszcze m.in. RPE/RIR
-              i prędkości sztangi (VBT) — dodamy, gdy pojawią się pola w treningu.
+              oraz e1RM (Epley).               RPE możesz już logować w aktywnym treningu; rozszerzenia typu VBT są w planach.
             </p>
           </div>
         </div>

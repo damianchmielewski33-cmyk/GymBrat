@@ -34,7 +34,12 @@ type GymPadSetRowProps = {
 /**
  * Wiersz serii jak w GymPad: powt. × kg = wynik · kopiuj.
  */
-export function GymPadSetRow({ set, animationIndex, onChange }: GymPadSetRowProps) {
+export function GymPadSetRow({
+  setIndex,
+  set,
+  animationIndex,
+  onChange,
+}: GymPadSetRowProps) {
   const lineVol = setVolume(set.reps, set.weight);
 
   function copyLine() {
@@ -109,6 +114,28 @@ export function GymPadSetRow({ set, animationIndex, onChange }: GymPadSetRowProp
       >
         <Copy className="h-5 w-5" />
       </motion.button>
+
+      <div className="col-span-full flex flex-wrap items-center gap-2 border-t border-white/[0.05] pt-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          RPE
+        </span>
+        <select
+          value={set.rpe == null ? "" : String(set.rpe)}
+          onChange={(e) => {
+            const v = e.target.value;
+            onChange({ rpe: v === "" ? null : Math.min(10, Math.max(1, Number(v))) });
+          }}
+          className="h-9 min-w-[4.5rem] rounded-lg border border-white/[0.12] bg-black/40 px-2 text-sm text-white outline-none focus:border-[var(--neon)]/45"
+          aria-label={`RPE seria ${setIndex + 1}`}
+        >
+          <option value="">—</option>
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </div>
     </motion.div>
   );
 }

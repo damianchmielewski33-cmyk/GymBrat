@@ -8,6 +8,11 @@ import { TodaysMacrosSection } from "@/components/home/todays-macros";
 import { HomeStartPanels } from "@/components/home/home-start-panels";
 import { DailyCheckinPanel } from "@/components/home/daily-checkin-panel";
 import { StreakStrip } from "@/components/home/streak-strip";
+import { DailyBriefingCard } from "@/components/home/daily-briefing-card";
+import { QuickMealStrip } from "@/components/home/quick-meal-strip";
+import { FitnessGoalsWidget } from "@/components/home/fitness-goals-widget";
+import { OnboardingBanner } from "@/components/home/onboarding-banner";
+import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { getHomeStats } from "@/lib/home-stats";
@@ -47,6 +52,8 @@ export default async function HomePage() {
       trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
       restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
       nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
+      onboardingCompletedAt: userSettings.onboardingCompletedAt,
+      mealTemplatesJson: userSettings.mealTemplatesJson,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
@@ -141,6 +148,17 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {!settingsRow?.onboardingCompletedAt ? <OnboardingBanner /> : null}
+
+      <DailyBriefingCard userId={userId} />
+
+      <QuickMealStrip
+        dateKey={dash.todayKey}
+        templates={parseMealTemplatesJson(settingsRow?.mealTemplatesJson ?? null)}
+      />
+
+      <FitnessGoalsWidget userId={userId} todayKey={dash.todayKey} />
 
       <HomeStartPanels
         subtitleMacros={subtitleMacros}

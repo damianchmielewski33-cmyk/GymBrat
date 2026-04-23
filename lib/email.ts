@@ -46,6 +46,29 @@ export function getEmailFrom(): string {
   return requireEnv("SMTP_USER");
 }
 
+/** Cron / przypomnienia — nie rzuca, jeśli SMTP nie jest skonfigurowane. */
+export async function sendOptionalDailyBriefEmail(params: {
+  to: string;
+  subject: string;
+  text: string;
+}): Promise<boolean> {
+  try {
+    const transport = createSmtpTransport();
+    const from = getEmailFrom();
+    const replyTo = process.env.EMAIL_REPLY_TO?.trim();
+    await transport.sendMail({
+      from,
+      to: params.to,
+      ...(replyTo ? { replyTo } : {}),
+      subject: params.subject,
+      text: params.text,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function sendRegisterVerificationCodeEmail(params: {
   to: string;
   code: string;

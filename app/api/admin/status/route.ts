@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import {
-  isAdminEligible,
-  readAdminUnlockVerified,
-} from "@/lib/admin-session";
+import { isAdminEligible } from "@/lib/admin-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,9 +11,7 @@ export async function GET() {
     return NextResponse.json({ eligible: false, unlocked: false });
   }
   const eligible = await isAdminEligible(session);
-  const unlocked =
-    eligible && (await readAdminUnlockVerified(session));
-  const res = NextResponse.json({ eligible, unlocked });
+  const res = NextResponse.json({ eligible, unlocked: eligible });
   res.headers.set("Cache-Control", "private, no-store");
   return res;
 }

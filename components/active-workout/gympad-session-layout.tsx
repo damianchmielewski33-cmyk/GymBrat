@@ -10,7 +10,9 @@ import {
   exerciseVolume,
   formatVolumeKg,
 } from "@/lib/workout-session-calculations";
+import type { LastPlanHintsMap } from "@/lib/last-workout-hints";
 import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 
 function formatHMS(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -30,6 +32,17 @@ function clampWeight(n: number) {
   return Math.max(0, Math.min(999, Math.round(n * 2) / 2));
 }
 
+function formatLastHintLine(h?: LastPlanHintsMap[string]): string | null {
+  if (!h?.sets?.length) return null;
+  return h.sets
+    .map((s) => {
+      const r = s.reps != null ? String(s.reps) : "—";
+      const rp = s.rpe != null ? ` RPE${s.rpe}` : "";
+      return `${s.weight}×${r}${rp}`;
+    })
+    .join(" · ");
+}
+
 type GymPadSessionLayoutProps = {
   title: string;
   elapsedSeconds: number;
@@ -39,6 +52,8 @@ type GymPadSessionLayoutProps = {
   onPatchSet: (exerciseId: string, setIndex: number, patch: Partial<WorkoutSetState>) => void;
   onAddSet: (exerciseId: string) => void;
   onRemoveLastSet: (exerciseId: string) => void;
+  lastHints?: LastPlanHintsMap;
+  onExerciseNoteChange?: (exerciseId: string, note: string) => void;
 };
 
 /**
@@ -53,6 +68,8 @@ export function GymPadSessionLayout({
   onPatchSet,
   onAddSet,
   onRemoveLastSet,
+  lastHints,
+  onExerciseNoteChange,
 }: GymPadSessionLayoutProps) {
   const current = useMemo(
     () => exercises.find((e) => e.id === selectedExerciseId) ?? exercises[0] ?? null,
@@ -70,6 +87,8 @@ export function GymPadSessionLayout({
   const totalReps = current ? exerciseTotalReps(current.sets) : 0;
   const vol = current ? exerciseVolume(current.sets) : 0;
   const nSets = current?.sets.length ?? 0;
+  const lastHintLine =
+    current && lastHints ? formatLastHintLine(lastHints[current.id]) : null;
 
   function applyPatch(setIdx: number, patch: Partial<WorkoutSetState>) {
     if (!current) return;
@@ -150,6 +169,12 @@ export function GymPadSessionLayout({
             {nSets} {nSets === 1 ? "seria" : "serii"} • {totalReps} powt. • {formatVolumeKg(vol)} kg
           </p>
 
+          {lastHintLine ? (
+            <p className="mt-2 text-center text-[11px] leading-snug text-amber-200/85">
+              Ostatnio: {lastHintLine}
+            </p>
+          ) : null}
+
           <div className="mt-3">
             {current.sets.map((set, idx) => (
               <GymPadSetRow
@@ -161,6 +186,20 @@ export function GymPadSessionLayout({
               />
             ))}
           </div>
+
+          {onExerciseNoteChange ? (
+            <div className="mt-4 space-y-1.5">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                Notatka do ćwiczenia
+              </label>
+              <Textarea
+                value={current.note ?? ""}
+                onChange={(e) => onExerciseNoteChange(current.id, e.target.value)}
+                placeholder="Technika, martwy punkt, zmiana maszyny…"
+                className="min-h-[72px] resize-none rounded-xl border-white/12 bg-white/[0.04] text-sm text-white placeholder:text-white/30"
+              />
+            </div>
+          ) : null}
 
           <div className="mt-4 flex items-center justify-between gap-3">
             <motion.button

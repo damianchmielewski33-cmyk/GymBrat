@@ -2,10 +2,7 @@ import type { ReactNode } from "react";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/admin-shell";
-import {
-  isAdminEligible,
-  readAdminUnlockVerified,
-} from "@/lib/admin-session";
+import { isAdminEligible } from "@/lib/admin-session";
 
 export const runtime = "nodejs";
 
@@ -28,10 +25,6 @@ export default async function AdminPanelLayout({
         </p>
       </div>
     );
-  }
-
-  if (!(await readAdminUnlockVerified(session))) {
-    redirect("/admin");
   }
 
   return <AdminShell>{children}</AdminShell>;

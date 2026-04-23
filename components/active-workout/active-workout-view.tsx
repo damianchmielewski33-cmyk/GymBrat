@@ -3,8 +3,13 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  fetchLastWorkoutHintsForPlan,
+  type WorkoutPlanWithLastWorkoutDTO,
+} from "@/actions/workout-plan";
+import { mergeHintsIntoExercises } from "@/lib/last-workout-hints";
+import type { LastPlanHintsMap } from "@/lib/last-workout-hints";
 import { ActiveSessionCard } from "@/components/active-workout/active-session-card";
 import { GymPadSessionLayout } from "@/components/active-workout/gympad-session-layout";
 import { PlanProgressHeader } from "@/components/active-workout/plan-progress-header";
@@ -40,6 +45,7 @@ function planExercisesToSession(exercises: WorkoutPlanExercise[]): WorkoutExerci
           : null,
       weight: 0,
       done: false,
+      rpe: null,
     })),
   }));
 }
@@ -79,9 +85,12 @@ export function ActiveWorkoutView({
     setExercises,
     setSelectedExerciseId,
     patchSet: patchSetInStore,
+    patchExercise,
   } = useActiveWorkoutStore();
   const [now, setNow] = useState(() => Date.now());
   const router = useRouter();
+  const [lastPlanHints, setLastPlanHints] = useState<LastPlanHintsMap>({});
+  const hintsMergedRef = useRef(false);
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -90,6 +99,36 @@ export function ActiveWorkoutView({
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
 
   const hasLoadedPlan = workoutPlanId != null && exercises.length > 0;
+
+  useEffect(() => {
+    hintsMergedRef.current = false;
+  }, [workoutPlanId]);
+
+  useEffect(() => {
+    if (!workoutPlanId) {
+      setLastPlanHints({});
+      return;
+    }
+    let cancelled = false;
+    void fetchLastWorkoutHintsForPlan(workoutPlanId).then((h) => {
+      if (!cancelled) setLastPlanHints(h);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [workoutPlanId]);
+
+  useEffect(() => {
+    if (!workoutPlanId || hintsMergedRef.current) return;
+    const ex = useActiveWorkoutStore.getState().exercises;
+    if (!ex.length) return;
+    if (!Object.keys(lastPlanHints).length) {
+      hintsMergedRef.current = true;
+      return;
+    }
+    setExercises(mergeHintsIntoExercises(ex, lastPlanHints));
+    hintsMergedRef.current = true;
+  }, [lastPlanHints, workoutPlanId, setExercises]);
 
   // Route gating:
   // - `/active-workout` is a strict "session view" and must NOT be accessible without an active session.
@@ -118,6 +157,15 @@ export function ActiveWorkoutView({
   }, [startedAt]);
 
   useEffect(() => {
+    /** Na ekranie wyboru planu nie pytamy o wznowienie — użytkownik świadomie zaczyna ścieżkę treningu. */
+    if (entry === "start") return;
+
+    const skipOnceKey = "active-workout:skipResumeOnce";
+    if (sessionStorage.getItem(skipOnceKey) === "1") {
+      sessionStorage.removeItem(skipOnceKey);
+      return;
+    }
+
     const seenKey = "active-workout:resumePromptSeen";
     if (sessionStorage.getItem(seenKey) === "1") return;
 
@@ -149,7 +197,7 @@ export function ActiveWorkoutView({
     } catch {
       // ignore malformed storage; user can start fresh
     }
-  }, []);
+  }, [entry]);
 
   useEffect(() => {
     if (restRemaining === null || restRemaining <= 0) return;
@@ -213,6 +261,7 @@ export function ActiveWorkoutView({
             {
               reps: last ? last.reps : null,
               weight: last ? last.weight : 0,
+              rpe: last?.rpe ?? null,
               done: false,
             },
           ],
@@ -233,6 +282,7 @@ export function ActiveWorkoutView({
 
   function beginWorkoutFromPlan(row: WorkoutPlanWithLastWorkoutDTO) {
     if (row.plan.exercises.length === 0) return;
+    hintsMergedRef.current = false;
     applyPlan(row.id, row.plan);
     const next = planExercisesToSession(row.plan.exercises);
     setExercises(next);
@@ -241,6 +291,7 @@ export function ActiveWorkoutView({
     stopRest();
     start();
     if (entry === "start") {
+      sessionStorage.setItem("active-workout:skipResumeOnce", "1");
       router.push("/active-workout");
     }
   }
@@ -324,6 +375,10 @@ export function ActiveWorkoutView({
       onPatchSet={patchSet}
       onAddSet={addSet}
       onRemoveLastSet={removeLastSet}
+      lastHints={lastPlanHints}
+      onExerciseNoteChange={(exerciseId, note) =>
+        patchExercise(exerciseId, { note })
+      }
     />
   );
 

@@ -260,6 +260,14 @@ export const userSettings = sqliteTable("user_settings", {
   restNutritionGoalsJson: text("rest_nutrition_goals_json"),
   /** JSON: Record<YYYY-MM-DD, "training" | "rest"> — brak wpisu = dzień nietreningowy */
   nutritionDayTypesJson: text("nutrition_day_types_json"),
+  /** JSON: przypomnienia przeglądarki / e-mail — patrz lib/reminders-types.ts */
+  remindersJson: text("reminders_json"),
+  /** JSON: szablony posiłków [{ id, name, calories, proteinG, fatG, carbsG }] */
+  mealTemplatesJson: text("meal_templates_json"),
+  /** JSON: cele treningowe — patrz lib/fitness-goals.ts */
+  fitnessGoalsJson: text("fitness_goals_json"),
+  /** Ukończony onboarding / kliknięto „Później” */
+  onboardingCompletedAt: integer("onboarding_completed_at", { mode: "timestamp_ms" }),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),

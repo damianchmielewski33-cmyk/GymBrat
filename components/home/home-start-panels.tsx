@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   Apple,
@@ -113,39 +114,12 @@ export function HomeStartPanels({
   );
 
   const [open, setOpen] = useState<HomeStartSectionId | null>(null);
-  const gridRef = useRef<HTMLDivElement | null>(null);
-  const tileRefs = useRef<Record<HomeStartSectionId, HTMLButtonElement | null>>(
-    {} as Record<HomeStartSectionId, HTMLButtonElement | null>,
-  );
-  const [anchor, setAnchor] = useState<{
-    top: number;
-    left: number;
-    width: number;
-    minHeight: number;
-  } | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  function measureAnchor(id: HomeStartSectionId) {
-    const grid = gridRef.current;
-    const btn = tileRefs.current[id];
-    if (!grid || !btn) return null;
-    const g = grid.getBoundingClientRect();
-    const b = btn.getBoundingClientRect();
-    return {
-      top: b.top - g.top,
-      left: b.left - g.left,
-      width: b.width,
-      minHeight: b.height,
-    };
-  }
-
-  function openPanel(id: HomeStartSectionId) {
-    setOpen(id);
-    setAnchor(measureAnchor(id));
-  }
+  useEffect(() => setMounted(true), []);
 
   function closePanel() {
     setOpen(null);
-    setAnchor(null);
   }
 
   const panel =
@@ -157,34 +131,91 @@ export function HomeStartPanels({
           ? targetsPanel
           : open === "check-in"
             ? checkInPanel
-          : open === "last-workout"
-            ? lastWorkoutPanel
-            : open === "trend" && showTrend
-              ? trendPanel
-              : null;
+            : open === "last-workout"
+              ? lastWorkoutPanel
+              : open === "trend" && showTrend
+                ? trendPanel
+                : null;
 
   useEffect(() => {
     if (!open) return;
-    function recalc() {
-      // `open` is narrowed by the guard above.
-      setAnchor(measureAnchor(open as HomeStartSectionId));
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") closePanel();
     }
-    recalc();
-    window.addEventListener("resize", recalc);
-    // Capture scroll from nested containers too.
-    window.addEventListener("scroll", recalc, true);
+    window.addEventListener("keydown", onKey);
     return () => {
-      window.removeEventListener("resize", recalc);
-      window.removeEventListener("scroll", recalc, true);
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
     };
   }, [open]);
 
+  const modal =
+    mounted &&
+    open &&
+    panel &&
+    createPortal(
+      <div
+        className="fixed inset-0 z-[100] flex flex-col justify-end md:items-center md:justify-center md:p-4"
+        role="presentation"
+      >
+        <button
+          type="button"
+          aria-label="Zamknij panel"
+          className="absolute inset-0 z-0 bg-black/80 backdrop-blur-[3px]"
+          onClick={closePanel}
+        />
+
+        <div
+          className={cn(
+            "relative z-[1] flex max-h-[min(92dvh,920px)] w-full flex-col overflow-hidden rounded-t-[1.35rem] border border-white/15 bg-[#07070c] shadow-[0_-12px_60px_rgba(0,0,0,0.85)] md:max-h-[min(85vh,820px)] md:w-[min(560px,94vw)] md:rounded-2xl md:shadow-[0_24px_80px_rgba(0,0,0,0.75)]",
+          )}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="home-start-panel-title"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.08] px-4 pb-3 pt-4 sm:px-5">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/55">
+                Szczegóły
+              </p>
+              <p
+                id="home-start-panel-title"
+                className="font-heading mt-1 text-lg font-semibold text-white"
+              >
+                {tiles.find((t) => t.id === open)?.title ?? "Panel"}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] text-white/75 transition hover:bg-white/[0.10] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/45"
+              onClick={closePanel}
+              aria-label="Zamknij"
+            >
+              <X className="h-5 w-5" aria-hidden />
+            </button>
+          </div>
+
+          {/* Jedno miejsce przewijania — ważne na iOS (touch wewnątrz modala) */}
+          <div
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 [-webkit-overflow-scrolling:touch] touch-pan-y sm:px-5 sm:pb-6"
+          >
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5">
+              <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(900px_420px_at_15%_0%,rgba(255,45,85,0.12),transparent_60%)]" />
+              <div className="relative">{panel}</div>
+            </div>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
+
   return (
     <section className="relative space-y-4">
-      <div
-        ref={gridRef}
-        className="relative grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
-      >
+      <div className="relative grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {tiles.map((tile) => {
           const Icon = tile.icon;
           const isOpen = open === tile.id;
@@ -192,11 +223,9 @@ export function HomeStartPanels({
             <button
               key={tile.id}
               type="button"
-              ref={(el) => {
-                tileRefs.current[tile.id] = el;
-              }}
-              onClick={() => (isOpen ? closePanel() : openPanel(tile.id))}
+              onClick={() => (isOpen ? closePanel() : setOpen(tile.id))}
               aria-expanded={isOpen}
+              aria-haspopup="dialog"
               className={cn(
                 "flex w-full flex-col gap-2 rounded-2xl border p-4 text-left transition-colors duration-150",
                 isOpen
@@ -244,61 +273,8 @@ export function HomeStartPanels({
             </button>
           );
         })}
-
-        {panel && anchor ? (
-          <>
-            {/* Backdrop over whole grid: separates panel from tiles */}
-            <div
-              className="absolute inset-0 z-30 rounded-2xl bg-black/70 backdrop-blur-sm"
-              onClick={closePanel}
-              aria-hidden
-            />
-
-            {/* Panel anchored on clicked tile */}
-            <div
-              className="absolute z-40 rounded-2xl border border-white/12 bg-[#07070c]/95 shadow-[0_18px_70px_rgba(0,0,0,0.75)] backdrop-blur-md"
-              role="dialog"
-              aria-modal="true"
-              onClick={closePanel}
-              style={{
-                top: anchor.top,
-                left: anchor.left,
-                width: anchor.width,
-                minHeight: anchor.minHeight,
-              }}
-            >
-              <div
-                className="absolute inset-x-0 top-0 max-h-[min(82vh,820px)] overflow-y-auto p-2 sm:p-3"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5">
-                  <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(900px_420px_at_15%_0%,rgba(255,45,85,0.12),transparent_60%)]" />
-                  <div className="relative flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/55">
-                        Szczegóły
-                      </p>
-                      <p className="font-heading mt-1 text-lg font-semibold text-white">
-                        {tiles.find((t) => t.id === open)?.title ?? "Panel"}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] text-white/75 transition hover:bg-white/[0.10] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/45"
-                      onClick={closePanel}
-                      aria-label="Zamknij"
-                    >
-                      <X className="h-5 w-5" aria-hidden />
-                    </button>
-                  </div>
-
-                  <div className="relative mt-4">{panel}</div>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : null}
       </div>
+      {modal}
     </section>
   );
 }

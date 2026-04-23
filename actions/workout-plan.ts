@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { workoutPlans, workouts } from "@/db/schema";
 import type { WorkoutPlanPayload } from "@/lib/workout-plan-types";
+import { getLastWorkoutHintsForPlan } from "@/lib/last-workout-hints";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
 
 export type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
@@ -161,6 +162,13 @@ export async function saveWorkoutPlan(plan: WorkoutPlanPayload, planId?: string)
   revalidatePath("/workout-plan");
   revalidatePath("/active-workout");
   return { ok: true as const };
+}
+
+/** Podpowiedzi z ostatniego treningu dla danego planu (ciężar / RPE). */
+export async function fetchLastWorkoutHintsForPlan(planId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return {} as Awaited<ReturnType<typeof getLastWorkoutHintsForPlan>>;
+  return getLastWorkoutHintsForPlan(session.user.id, planId);
 }
 
 export async function deleteWorkoutPlan(planId: string) {

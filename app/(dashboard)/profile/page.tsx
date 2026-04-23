@@ -9,7 +9,13 @@ import { LogoutButton } from "@/components/profile/logout-button";
 import { CalendarRange, Shield, User as UserIcon } from "lucide-react";
 import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
 import { DataRightsCard } from "@/components/profile/data-rights-card";
+import { ReminderSettingsCard } from "@/components/profile/reminder-settings-card";
+import { FitnessGoalsForm } from "@/components/profile/fitness-goals-form";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
+import { parseRemindersJson } from "@/lib/reminders-types";
+import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
+import { parseMealTemplatesJson } from "@/lib/meal-templates";
+import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
 import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
@@ -39,6 +45,9 @@ export default async function ProfilePage() {
       trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
       restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
       nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
+      remindersJson: userSettings.remindersJson,
+      fitnessGoalsJson: userSettings.fitnessGoalsJson,
+      mealTemplatesJson: userSettings.mealTemplatesJson,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
@@ -121,6 +130,15 @@ export default async function ProfilePage() {
             </div>
           </div>
         </section>
+
+        <div className="grid gap-6 lg:col-span-2 lg:grid-cols-2">
+          <ReminderSettingsCard initial={parseRemindersJson(s?.remindersJson ?? null)} />
+          <FitnessGoalsForm initial={parseFitnessGoalsJson(s?.fitnessGoalsJson ?? null)} />
+        </div>
+
+        <div className="lg:col-span-2">
+          <MealTemplatesCard initial={parseMealTemplatesJson(s?.mealTemplatesJson ?? null)} />
+        </div>
 
         <section className="glass-panel relative overflow-hidden p-8 lg:col-span-2">
           <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(160deg,rgba(255,255,255,0.07),transparent_52%),radial-gradient(680px_300px_at_20%_90%,rgba(255,45,85,0.10),transparent_58%)]" />

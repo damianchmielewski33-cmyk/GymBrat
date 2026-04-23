@@ -10,6 +10,7 @@ import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 export function DataRightsCard() {
   const { notifySaved, notifyError } = useSaveFeedback();
   const [pendingExport, startExport] = useTransition();
+  const [pendingCsv, startCsv] = useTransition();
   const [pendingDelete, startDelete] = useTransition();
 
   function downloadExport() {
@@ -29,6 +30,26 @@ export function DataRightsCard() {
         notifySaved("Pobrano plik eksportu (JSON).");
       } catch {
         notifyError("Nie udało się wygenerować eksportu.");
+      }
+    });
+  }
+
+  function downloadCsv() {
+    startCsv(async () => {
+      try {
+        const res = await fetch("/api/user/export?format=csv", { credentials: "include" });
+        if (!res.ok) throw new Error("export_failed");
+        const text = await res.text();
+        const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `gymbrat-export-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        notifySaved("Pobrano eksport CSV.");
+      } catch {
+        notifyError("Nie udało się wygenerować CSV.");
       }
     });
   }
@@ -80,7 +101,7 @@ export function DataRightsCard() {
           <Button
             type="button"
             variant="secondary"
-            disabled={pendingExport || pendingDelete}
+            disabled={pendingExport || pendingCsv || pendingDelete}
             className="border-white/15 bg-white/[0.06]"
             onClick={() => downloadExport()}
           >
@@ -89,8 +110,18 @@ export function DataRightsCard() {
           </Button>
           <Button
             type="button"
+            variant="secondary"
+            disabled={pendingExport || pendingCsv || pendingDelete}
+            className="border-white/15 bg-white/[0.06]"
+            onClick={() => downloadCsv()}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            {pendingCsv ? "Generowanie…" : "Pobierz CSV"}
+          </Button>
+          <Button
+            type="button"
             variant="destructive"
-            disabled={pendingExport || pendingDelete}
+            disabled={pendingExport || pendingCsv || pendingDelete}
             className="bg-red-600/90 hover:bg-red-600"
             onClick={() => deleteAccount()}
           >

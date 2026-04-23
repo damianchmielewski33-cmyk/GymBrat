@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { buildUserDataExport } from "@/lib/user-data-export";
+import { buildUserDataCsv } from "@/lib/user-data-csv";
 import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Brak autoryzacji" }, { status: 401 });
@@ -23,9 +24,22 @@ export async function GET() {
     );
   }
 
+  const format = new URL(req.url).searchParams.get("format");
+  const safeName = session.user.id.slice(0, 8);
+
   try {
+    if (format === "csv") {
+      const csv = await buildUserDataCsv(session.user.id);
+      return new NextResponse(csv, {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="gymbrat-export-${safeName}.csv"`,
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }
+
     const data = await buildUserDataExport(session.user.id);
-    const safeName = session.user.id.slice(0, 8);
     return NextResponse.json(data, {
       headers: {
         "Content-Disposition": `attachment; filename="gymbrat-export-${safeName}.json"`,
