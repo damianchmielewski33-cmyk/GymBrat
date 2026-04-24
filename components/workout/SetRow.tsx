@@ -17,10 +17,10 @@ type SetRowProps = {
 };
 
 const stepperBtn =
-  "flex h-12 min-w-12 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-[#0d0d0d] text-white/80 transition active:scale-95 hover:bg-white/[0.06] hover:text-white";
+  "flex h-12 min-w-12 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-[#0d0d0d] text-white/80 outline-none transition active:scale-95 hover:bg-white/[0.06] hover:text-white focus-visible:z-10 focus-visible:border-[rgba(255,72,98,0.55)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]";
 
 const fieldInput =
-  "h-12 w-full min-w-0 rounded-xl border border-white/[0.08] bg-[#0d0d0d] px-2 text-center text-lg font-semibold tabular-nums text-white outline-none transition focus:border-[#3B82F6]/50 focus:ring-2 focus:ring-[#3B82F6]/25";
+  "h-12 w-full min-w-0 min-h-12 rounded-xl border border-white/[0.08] bg-[#0d0d0d] px-2 text-center text-lg font-semibold tabular-nums text-white outline-none transition focus-visible:border-[rgba(255,72,98,0.5)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]";
 
 function parseOptionalReps(raw: string): number | null {
   const t = raw.trim();
@@ -80,46 +80,80 @@ export function SetRow({
 
         {/* Ciężar */}
         <div>
-          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
-            kg
-          </span>
+          <label
+            htmlFor={`set-${setIndex}-weight`}
+            className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-white/50"
+          >
+            Ciężar (kg)
+          </label>
           <div className="flex items-center gap-1.5">
-            <motion.button type="button" whileTap={{ scale: 0.92 }} className={stepperBtn} onClick={() => onAdjustWeight(-2.5)}>
-              <Minus className="h-5 w-5" />
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.92 }}
+              className={stepperBtn}
+              aria-label={`Seria ${setIndex + 1}: zmniejsz ciężar o 2,5 kg`}
+              onClick={() => onAdjustWeight(-2.5)}
+            >
+              <Minus className="h-5 w-5 shrink-0" aria-hidden />
             </motion.button>
             <input
+              id={`set-${setIndex}-weight`}
               type="number"
               inputMode="decimal"
               min={0}
               step="0.5"
+              aria-label={`Seria ${setIndex + 1}: ciężar w kilogramach`}
               value={Number.isFinite(set.weight) && set.weight > 0 ? set.weight : ""}
               onChange={(e) => onChange({ weight: parseOptionalWeight(e.target.value) })}
               className={fieldInput}
             />
-            <motion.button type="button" whileTap={{ scale: 0.92 }} className={stepperBtn} onClick={() => onAdjustWeight(2.5)}>
-              <Plus className="h-5 w-5" />
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.92 }}
+              className={stepperBtn}
+              aria-label={`Seria ${setIndex + 1}: zwiększ ciężar o 2,5 kg`}
+              onClick={() => onAdjustWeight(2.5)}
+            >
+              <Plus className="h-5 w-5 shrink-0" aria-hidden />
             </motion.button>
           </div>
         </div>
 
         {/* Powtórzenia */}
         <div>
-          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-white/35">
+          <label
+            htmlFor={`set-${setIndex}-reps`}
+            className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-white/50"
+          >
             Powtórzenia
-          </span>
+          </label>
           <div className="flex items-center gap-1.5">
-            <motion.button type="button" whileTap={{ scale: 0.92 }} className={stepperBtn} onClick={() => onAdjustReps(-1)}>
-              <Minus className="h-5 w-5" />
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.92 }}
+              className={stepperBtn}
+              aria-label={`Seria ${setIndex + 1}: odejmij jedno powtórzenie`}
+              onClick={() => onAdjustReps(-1)}
+            >
+              <Minus className="h-5 w-5 shrink-0" aria-hidden />
             </motion.button>
             <input
+              id={`set-${setIndex}-reps`}
               type="number"
               inputMode="numeric"
+              aria-label={`Seria ${setIndex + 1}: liczba powtórzeń`}
               value={set.reps === null ? "" : set.reps}
               onChange={(e) => onChange({ reps: parseOptionalReps(e.target.value) })}
               className={fieldInput}
             />
-            <motion.button type="button" whileTap={{ scale: 0.92 }} className={stepperBtn} onClick={() => onAdjustReps(1)}>
-              <Plus className="h-5 w-5" />
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.92 }}
+              className={stepperBtn}
+              aria-label={`Seria ${setIndex + 1}: dodaj jedno powtórzenie`}
+              onClick={() => onAdjustReps(1)}
+            >
+              <Plus className="h-5 w-5 shrink-0" aria-hidden />
             </motion.button>
           </div>
         </div>

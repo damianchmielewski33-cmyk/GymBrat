@@ -2,7 +2,13 @@
 
 import { motion } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { GymPadSetRow } from "@/components/workout/gympad-set-row";
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
 import {
@@ -102,7 +108,7 @@ export function GymPadSessionLayout({
   useEffect(() => {
     const name = current?.name?.trim();
     if (!name) {
-      setPrsForExercise(null);
+      queueMicrotask(() => setPrsForExercise(null));
       return;
     }
     let cancelled = false;
@@ -158,6 +164,60 @@ export function GymPadSessionLayout({
     onPatchSet(current.id, setIdx, next);
   }
 
+  const handleExerciseTabListKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      if (exercises.length === 0) return;
+      const tab = (e.target as HTMLElement | null)?.closest?.("button[role='tab']") as
+        | HTMLButtonElement
+        | null;
+      if (!tab || !e.currentTarget.contains(tab)) return;
+
+      const prefix = "ex-tab-";
+      if (!tab.id.startsWith(prefix)) return;
+      const fromId = tab.id.slice(prefix.length);
+      const idx = exercises.findIndex((x) => x.id === fromId);
+      if (idx < 0) return;
+
+      let nextIdx = idx;
+      switch (e.key) {
+        case "ArrowRight":
+        case "ArrowDown":
+          if (exercises.length <= 1) return;
+          e.preventDefault();
+          nextIdx = (idx + 1) % exercises.length;
+          break;
+        case "ArrowLeft":
+        case "ArrowUp":
+          if (exercises.length <= 1) return;
+          e.preventDefault();
+          nextIdx = (idx - 1 + exercises.length) % exercises.length;
+          break;
+        case "Home":
+          if (exercises.length <= 1) return;
+          e.preventDefault();
+          nextIdx = 0;
+          break;
+        case "End":
+          if (exercises.length <= 1) return;
+          e.preventDefault();
+          nextIdx = exercises.length - 1;
+          break;
+        default:
+          return;
+      }
+
+      const next = exercises[nextIdx];
+      if (!next) return;
+      onSelectExercise(next.id);
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`${prefix}${next.id}`) as HTMLButtonElement | null;
+        el?.focus({ preventScroll: true });
+        el?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" });
+      });
+    },
+    [exercises, onSelectExercise],
+  );
+
   return (
     <div className="text-white">
       <div className="flex items-end justify-between gap-3 border-b border-white/10 pb-3">
@@ -169,28 +229,42 @@ export function GymPadSessionLayout({
             {title.trim() || "Trening"}
           </p>
         </div>
-        <span className="shrink-0 font-mono text-[26px] font-semibold leading-none tabular-nums text-[var(--neon)] sm:text-3xl">
+        <span
+          className="shrink-0 font-mono text-[26px] font-semibold leading-none tabular-nums text-[var(--neon)] sm:text-3xl"
+          aria-label={`Czas trwania sesji: ${formatHMS(elapsedSeconds)}`}
+        >
           {formatHMS(elapsedSeconds)}
         </span>
       </div>
 
       <div className="mt-3">
-        <div className="-mx-1 flex gap-1 overflow-x-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          className="-mx-1 flex gap-1 overflow-x-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          role="tablist"
+          aria-label="Ćwiczenia w sesji"
+          aria-orientation="horizontal"
+          onKeyDown={handleExerciseTabListKeyDown}
+        >
         {exercises.map((ex) => {
           const active = ex.id === current?.id;
           return (
             <button
               key={ex.id}
+              id={`ex-tab-${ex.id}`}
               type="button"
+              role="tab"
+              aria-selected={active}
+              aria-controls={`ex-panel-${ex.id}`}
+              tabIndex={active ? 0 : -1}
               onClick={() => onSelectExercise(ex.id)}
               className={cn(
-                "relative shrink-0 rounded-full px-3 py-2 text-left text-[13px] font-semibold transition",
+                "relative min-h-11 shrink-0 rounded-full px-3 py-2 text-left text-[13px] font-semibold outline-none transition focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
                 active
                   ? "bg-white/[0.08] text-white"
                   : "bg-transparent text-white/45 hover:bg-white/[0.05] hover:text-white/75",
               )}
             >
-              {active ? <span className="absolute inset-0 rounded-full ring-1 ring-white/10" /> : null}
+              {active ? <span className="absolute inset-0 rounded-full ring-1 ring-white/10" aria-hidden /> : null}
               <span className="line-clamp-2 max-w-[200px]">{ex.name}</span>
             </button>
           );
@@ -202,10 +276,13 @@ export function GymPadSessionLayout({
       {current ? (
         <motion.div
           key={current.id}
+          id={`ex-panel-${current.id}`}
+          role="tabpanel"
+          aria-labelledby={`ex-tab-${current.id}`}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="pt-4"
+          className="pt-4 outline-none focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring/75 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
         >
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3 py-4 text-center">
@@ -246,14 +323,18 @@ export function GymPadSessionLayout({
 
           {onExerciseNoteChange ? (
             <div className="mt-4 space-y-1.5">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+              <label
+                htmlFor={`ex-note-${current.id}`}
+                className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55"
+              >
                 Notatka do ćwiczenia
               </label>
               <Textarea
+                id={`ex-note-${current.id}`}
                 value={current.note ?? ""}
                 onChange={(e) => onExerciseNoteChange(current.id, e.target.value)}
                 placeholder="Technika, martwy punkt, zmiana maszyny…"
-                className="min-h-[72px] resize-none rounded-xl border-white/12 bg-white/[0.04] text-sm text-white placeholder:text-white/30"
+                className="min-h-[72px] resize-none rounded-xl border-white/14 bg-white/[0.06] text-sm text-white placeholder:text-white/38 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
               />
             </div>
           ) : null}
@@ -263,9 +344,10 @@ export function GymPadSessionLayout({
               type="button"
               whileTap={{ scale: 0.98 }}
               onClick={() => onAddSet(current.id)}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--neon)] px-5 py-3 text-sm font-bold text-white shadow-[0_0_24px_rgba(230,0,35,0.20)] hover:brightness-110"
+              aria-label={`Dodaj serię dla ćwiczenia: ${current.name}`}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--neon)] px-5 py-3 text-sm font-bold text-white shadow-[0_0_24px_rgba(230,0,35,0.20)] outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
             >
-              <Plus className="h-5 w-5" strokeWidth={2.5} />
+              <Plus className="h-5 w-5 shrink-0" strokeWidth={2.5} aria-hidden />
               Dodaj serię
             </motion.button>
             <motion.button
@@ -273,9 +355,14 @@ export function GymPadSessionLayout({
               whileTap={{ scale: 0.98 }}
               disabled={current.sets.length <= 1}
               onClick={() => onRemoveLastSet(current.id)}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white/70 hover:bg-white/[0.06] disabled:opacity-35"
+              aria-label={
+                current.sets.length <= 1
+                  ? "Nie można usunąć jedynej serii"
+                  : `Usuń ostatnią serię ćwiczenia: ${current.name}`
+              }
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white/75 outline-none hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708] disabled:pointer-events-none disabled:opacity-35"
             >
-              <Minus className="h-5 w-5" />
+              <Minus className="h-5 w-5 shrink-0" aria-hidden />
               Usuń
             </motion.button>
           </div>

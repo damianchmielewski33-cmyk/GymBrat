@@ -48,10 +48,12 @@ export function LoginForm() {
   }
 
   const registerHref = "/register?role=zawodnik";
+  const hasBanner = Boolean(registered && !error) || Boolean(error);
 
   return (
     <form
       className="space-y-6"
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
@@ -104,29 +106,49 @@ export function LoginForm() {
         heading="Logujesz się jako"
       />
 
-      {registered ? (
-        <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
-          Konto utworzone. Zaloguj się, aby kontynuować.
-        </p>
-      ) : null}
-      {error ? (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-          {error}
-        </p>
+      {hasBanner ? (
+        <div className="space-y-2">
+          {registered && !error ? (
+            <p
+              id="login-banner"
+              role="status"
+              aria-live="polite"
+              className="rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100"
+            >
+              Konto utworzone. Zaloguj się, aby kontynuować.
+            </p>
+          ) : null}
+          {error ? (
+            <p
+              id="login-banner"
+              role="alert"
+              aria-live="assertive"
+              className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-100"
+            >
+              {error}
+            </p>
+          ) : null}
+        </div>
       ) : null}
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email" className="text-white/85">
+          Email
+        </Label>
         <Input
           id="email"
           name="email"
           type="email"
           required
           autoComplete="email"
-          className="h-10 border-white/15 bg-black/40"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={hasBanner ? "login-banner" : undefined}
+          className="min-h-11 border-white/20 bg-black/50 text-white placeholder:text-white/40"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Hasło</Label>
+        <Label htmlFor="password" className="text-white/85">
+          Hasło
+        </Label>
         <div className="relative">
           <Input
             id="password"
@@ -134,14 +156,16 @@ export function LoginForm() {
             type={showPassword ? "text" : "password"}
             required
             autoComplete="current-password"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={hasBanner ? "login-banner" : undefined}
             className={cn(
-              "h-10 border-white/15 bg-black/40 pr-11",
+              "min-h-11 border-white/20 bg-black/50 pr-12 text-white placeholder:text-white/40",
             )}
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/50"
+            className="absolute right-1 top-1/2 flex h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-md text-white/60 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
             aria-label={showPassword ? "Ukryj hasło" : "Pokaż hasło"}
             aria-pressed={showPassword}
           >
@@ -156,7 +180,8 @@ export function LoginForm() {
       <Button
         type="submit"
         disabled={pending}
-        className="h-11 w-full bg-[var(--neon)] text-base font-semibold text-white hover:bg-[#ff4d6d]"
+        aria-busy={pending}
+        className="h-11 w-full bg-[var(--neon)] text-base font-semibold text-white hover:bg-[#ff4d6d] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
       >
         {pending
           ? "Logowanie…"
@@ -166,7 +191,10 @@ export function LoginForm() {
       </Button>
       <p className="text-center text-sm text-white/55">
         Nie masz konta?{" "}
-        <Link href={registerHref} className="text-[var(--neon)] hover:underline">
+        <Link
+          href={registerHref}
+          className="rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+        >
           Utwórz konto
         </Link>
       </p>

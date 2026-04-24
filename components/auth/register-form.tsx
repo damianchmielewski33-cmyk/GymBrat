@@ -25,7 +25,7 @@ import {
 } from "@/lib/validations/register";
 
 const inputClass =
-  "border-white/15 bg-black/40 text-white placeholder:text-white/35 focus-visible:border-[var(--neon)]/50 focus-visible:ring-[var(--neon)]/25";
+  "min-h-11 border-white/18 bg-black/45 text-white placeholder:text-white/38 focus-visible:border-[var(--neon)]/55 focus-visible:ring-[3px] focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
 
 const activityCopy: Record<
   (typeof activityLevels)[number],
@@ -177,7 +177,11 @@ export function RegisterForm() {
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.12] to-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
               <Dumbbell className="h-6 w-6 text-[var(--neon)]" strokeWidth={1.75} />
             </div>
-            <Link href="/" className="font-heading text-2xl font-semibold tracking-tight">
+            <Link
+              href="/"
+              className="inline-block rounded-sm font-heading text-2xl font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+              aria-label="GymBrat — strona główna"
+            >
               Gym<span className="text-[var(--neon)]">Brat</span>
             </Link>
             <p className="mt-2 flex items-center gap-1.5 text-sm text-white/55">
@@ -201,8 +205,10 @@ export function RegisterForm() {
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
             {rootError ? (
               <p
+                id="register-root-error"
                 role="alert"
-                className="rounded-xl border border-red-500/35 bg-red-500/10 px-3 py-2.5 text-sm text-red-100"
+                aria-live="assertive"
+                className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-100"
               >
                 {rootError}
               </p>
@@ -210,8 +216,14 @@ export function RegisterForm() {
 
             <input type="hidden" {...register("role")} />
 
-            <div className="space-y-4 rounded-xl border border-white/[0.08] bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
-              <p className="metallic-text text-xs font-semibold uppercase tracking-[0.2em]">
+            <section
+              className="space-y-4 rounded-xl border border-white/[0.08] bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md"
+              aria-labelledby="register-heading-basic"
+            >
+              <p
+                id="register-heading-basic"
+                className="metallic-text text-xs font-semibold uppercase tracking-[0.2em]"
+              >
                 Dane podstawowe
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -222,11 +234,15 @@ export function RegisterForm() {
                   <Input
                     id="firstName"
                     autoComplete="given-name"
+                    aria-invalid={errors.firstName ? true : undefined}
+                    aria-describedby={errors.firstName ? "register-error-firstName" : undefined}
                     className={cn(inputClass, errors.firstName && "border-destructive")}
                     {...register("firstName")}
                   />
                   {errors.firstName ? (
-                    <p className="text-xs text-red-300">{errors.firstName.message}</p>
+                    <p id="register-error-firstName" className="text-xs text-red-100">
+                      {errors.firstName.message}
+                    </p>
                   ) : null}
                 </div>
                 <div className="space-y-2">
@@ -236,11 +252,15 @@ export function RegisterForm() {
                   <Input
                     id="lastName"
                     autoComplete="family-name"
+                    aria-invalid={errors.lastName ? true : undefined}
+                    aria-describedby={errors.lastName ? "register-error-lastName" : undefined}
                     className={cn(inputClass, errors.lastName && "border-destructive")}
                     {...register("lastName")}
                   />
                   {errors.lastName ? (
-                    <p className="text-xs text-red-300">{errors.lastName.message}</p>
+                    <p id="register-error-lastName" className="text-xs text-red-100">
+                      {errors.lastName.message}
+                    </p>
                   ) : null}
                 </div>
               </div>
@@ -252,11 +272,15 @@ export function RegisterForm() {
                   id="email"
                   type="email"
                   autoComplete="email"
+                  aria-invalid={errors.email ? true : undefined}
+                  aria-describedby={errors.email ? "register-error-email" : undefined}
                   className={cn(inputClass, errors.email && "border-destructive")}
                   {...register("email")}
                 />
                 {errors.email ? (
-                  <p className="text-xs text-red-300">{errors.email.message}</p>
+                  <p id="register-error-email" className="text-xs text-red-100">
+                    {errors.email.message}
+                  </p>
                 ) : null}
               </div>
               <div className="space-y-2">
@@ -270,6 +294,12 @@ export function RegisterForm() {
                       inputMode="numeric"
                       autoComplete="one-time-code"
                       placeholder="123456"
+                      aria-invalid={errors.emailCode ? true : undefined}
+                      aria-describedby={
+                        [codeInfo ? "register-code-info" : "", errors.emailCode ? "register-error-emailCode" : ""]
+                          .filter(Boolean)
+                          .join(" ") || undefined
+                      }
                       className={cn(inputClass, errors.emailCode && "border-destructive")}
                       {...register("emailCode")}
                     />
@@ -277,7 +307,8 @@ export function RegisterForm() {
                   <Button
                     type="button"
                     disabled={sendingCode || !emailValue?.trim() || cooldownSeconds > 0}
-                    className="h-10 shrink-0 bg-white/10 text-white hover:bg-white/15"
+                    aria-busy={sendingCode}
+                    className="h-11 min-h-11 shrink-0 bg-white/10 text-white hover:bg-white/15 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
                     onClick={async () => {
                       setRootError(null);
                       setCodeInfo(null);
@@ -312,10 +343,14 @@ export function RegisterForm() {
                   </Button>
                 </div>
                 {codeInfo ? (
-                  <p className="text-xs text-white/55">{codeInfo}</p>
+                  <p id="register-code-info" role="status" aria-live="polite" className="text-xs text-white/65">
+                    {codeInfo}
+                  </p>
                 ) : null}
                 {errors.emailCode ? (
-                  <p className="text-xs text-red-300">{errors.emailCode.message}</p>
+                  <p id="register-error-emailCode" className="text-xs text-red-100">
+                    {errors.emailCode.message}
+                  </p>
                 ) : null}
               </div>
               <div className="space-y-2">
@@ -326,6 +361,8 @@ export function RegisterForm() {
                   id="password"
                   type="password"
                   autoComplete="new-password"
+                  aria-invalid={errors.password ? true : undefined}
+                  aria-describedby={errors.password ? "register-error-password" : undefined}
                   ref={(el) => {
                     passwordRef.current = el;
                     passwordRhfRef(el);
@@ -334,13 +371,21 @@ export function RegisterForm() {
                   {...passwordRegister}
                 />
                 {errors.password ? (
-                  <p className="text-xs text-red-300">{errors.password.message}</p>
+                  <p id="register-error-password" className="text-xs text-red-100">
+                    {errors.password.message}
+                  </p>
                 ) : null}
               </div>
-            </div>
+            </section>
 
-            <div className="space-y-4 rounded-xl border border-white/[0.08] bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
-              <p className="metallic-text text-xs font-semibold uppercase tracking-[0.2em]">
+            <section
+              className="space-y-4 rounded-xl border border-white/[0.08] bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md"
+              aria-labelledby="register-heading-body"
+            >
+              <p
+                id="register-heading-body"
+                className="metallic-text text-xs font-semibold uppercase tracking-[0.2em]"
+              >
                 Parametry ciała
               </p>
               <div className="grid gap-4 sm:grid-cols-3">
@@ -355,11 +400,15 @@ export function RegisterForm() {
                     step="0.1"
                     min={30}
                     max={400}
+                    aria-invalid={errors.weightKg ? true : undefined}
+                    aria-describedby={errors.weightKg ? "register-error-weightKg" : undefined}
                     className={cn(inputClass, errors.weightKg && "border-destructive")}
                     {...register("weightKg")}
                   />
                   {errors.weightKg ? (
-                    <p className="text-xs text-red-300">{errors.weightKg.message}</p>
+                    <p id="register-error-weightKg" className="text-xs text-red-100">
+                      {errors.weightKg.message}
+                    </p>
                   ) : null}
                 </div>
                 <div className="space-y-2">
@@ -373,11 +422,15 @@ export function RegisterForm() {
                     step={1}
                     min={100}
                     max={250}
+                    aria-invalid={errors.heightCm ? true : undefined}
+                    aria-describedby={errors.heightCm ? "register-error-heightCm" : undefined}
                     className={cn(inputClass, errors.heightCm && "border-destructive")}
                     {...register("heightCm")}
                   />
                   {errors.heightCm ? (
-                    <p className="text-xs text-red-300">{errors.heightCm.message}</p>
+                    <p id="register-error-heightCm" className="text-xs text-red-100">
+                      {errors.heightCm.message}
+                    </p>
                   ) : null}
                 </div>
                 <div className="space-y-2">
@@ -390,21 +443,38 @@ export function RegisterForm() {
                     inputMode="numeric"
                     min={13}
                     max={120}
+                    aria-invalid={errors.age ? true : undefined}
+                    aria-describedby={errors.age ? "register-error-age" : undefined}
                     className={cn(inputClass, errors.age && "border-destructive")}
                     {...register("age")}
                   />
                   {errors.age ? (
-                    <p className="text-xs text-red-300">{errors.age.message}</p>
+                    <p id="register-error-age" className="text-xs text-red-100">
+                      {errors.age.message}
+                    </p>
                   ) : null}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="space-y-3 rounded-xl border border-white/[0.08] bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
-              <p className="metallic-text text-xs font-semibold uppercase tracking-[0.2em]">
+            <section
+              className="space-y-3 rounded-xl border border-white/[0.08] bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md"
+              aria-labelledby="register-heading-activity"
+            >
+              <p
+                id="register-heading-activity"
+                className="metallic-text text-xs font-semibold uppercase tracking-[0.2em]"
+              >
                 Poziom aktywności
               </p>
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div
+                className="grid gap-2 sm:grid-cols-3"
+                role="radiogroup"
+                aria-labelledby="register-heading-activity"
+                aria-describedby={
+                  errors.activityLevel ? "register-error-activityLevel" : undefined
+                }
+              >
                 {activityLevels.map((level) => {
                   const active = activityLevel === level;
                   const { label, hint } = activityCopy[level];
@@ -412,9 +482,11 @@ export function RegisterForm() {
                     <button
                       key={level}
                       type="button"
+                      role="radio"
+                      aria-checked={active}
                       onClick={() => setValue("activityLevel", level, { shouldValidate: true })}
                       className={cn(
-                        "rounded-xl border px-3 py-3 text-left transition-all",
+                        "min-h-[3.25rem] rounded-xl border px-3 py-3 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
                         active
                           ? "border-[var(--neon)]/60 bg-[var(--neon)]/15 shadow-[0_0_24px_rgba(255,45,85,0.22)]"
                           : "border-white/10 bg-black/30 hover:border-white/20 hover:bg-black/40",
@@ -428,21 +500,24 @@ export function RegisterForm() {
                       >
                         {label}
                       </span>
-                      <span className="mt-0.5 block text-xs text-white/45">{hint}</span>
+                      <span className="mt-0.5 block text-xs text-white/55">{hint}</span>
                     </button>
                   );
                 })}
               </div>
               <input type="hidden" {...register("activityLevel")} />
               {errors.activityLevel ? (
-                <p className="text-xs text-red-300">{errors.activityLevel.message}</p>
+                <p id="register-error-activityLevel" className="text-xs text-red-100">
+                  {errors.activityLevel.message}
+                </p>
               ) : null}
-            </div>
+            </section>
 
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-10 w-full bg-[var(--neon)] text-base font-semibold text-white shadow-[0_0_32px_rgba(255,45,85,0.25)] hover:bg-[#ff4d6d]"
+              aria-busy={isSubmitting}
+              className="h-11 min-h-11 w-full bg-[var(--neon)] text-base font-semibold text-white shadow-[0_0_32px_rgba(255,45,85,0.25)] hover:bg-[#ff4d6d] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
             >
               {isSubmitting ? "Tworzenie profilu…" : "Utwórz konto i trenuj"}
             </Button>
@@ -450,7 +525,7 @@ export function RegisterForm() {
               Masz już konto?{" "}
               <Link
                 href="/login?role=zawodnik"
-                className="text-[var(--neon)] hover:underline"
+                className="rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
               >
                 Zaloguj się
               </Link>

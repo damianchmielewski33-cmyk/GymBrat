@@ -85,7 +85,7 @@ function AddMealSheetForm({
   }
 
   const inputClass =
-    "h-11 rounded-xl border-white/12 bg-white/[0.06] px-3.5 text-[15px] text-white shadow-inner shadow-black/20 outline-none transition placeholder:text-white/25 focus-visible:border-[var(--neon)]/40 focus-visible:ring-2 focus-visible:ring-[var(--neon)]/25";
+    "h-11 min-h-11 rounded-xl border-white/14 bg-white/[0.08] px-3.5 text-[15px] text-white shadow-inner shadow-black/20 outline-none transition placeholder:text-white/38 focus-visible:border-[var(--neon)]/50 focus-visible:ring-[3px] focus-visible:ring-ring/85 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07070c]";
 
   return (
     <>
@@ -157,7 +157,10 @@ function AddMealSheetForm({
         <input type="hidden" name="calories" value={hasManualKcal ? String(finalKcal) : ""} />
 
         <div className="space-y-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-sm">
-          <Label htmlFor="meal-name" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+          <Label
+            htmlFor="meal-name"
+            className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60"
+          >
             Nazwa
           </Label>
           <Input
@@ -172,7 +175,7 @@ function AddMealSheetForm({
 
         <div className="space-y-3 rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-transparent p-4">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
               Wartości odżywcze
             </p>
             <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-white/40">
@@ -182,7 +185,7 @@ function AddMealSheetForm({
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="meal-p" className="text-xs text-white/65">
+              <Label htmlFor="meal-p" className="text-xs text-white/78">
                 Białko
               </Label>
               <div className="relative">
@@ -202,7 +205,7 @@ function AddMealSheetForm({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="meal-f" className="text-xs text-white/65">
+              <Label htmlFor="meal-f" className="text-xs text-white/78">
                 Tłuszcz
               </Label>
               <div className="relative">
@@ -222,7 +225,7 @@ function AddMealSheetForm({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="meal-c" className="text-xs text-white/65">
+              <Label htmlFor="meal-c" className="text-xs text-white/78">
                 Węgle
               </Label>
               <div className="relative">
@@ -256,7 +259,7 @@ function AddMealSheetForm({
               <Flame className="h-5 w-5 text-orange-300/90" />
             </div>
             <div className="min-w-0 flex-1 space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
                 Kalorie
               </p>
               {finalKcal != null ? (
@@ -283,7 +286,7 @@ function AddMealSheetForm({
         <div className="space-y-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-sm">
           <Label
             htmlFor="meal-kcal"
-            className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45"
+            className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60"
           >
             Kcal (opcjonalnie)
           </Label>
@@ -309,7 +312,12 @@ function AddMealSheetForm({
         </div>
 
         {state?.error ? (
-          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200/95">
+          <div
+            id="add-meal-form-error"
+            role="alert"
+            aria-live="assertive"
+            className="rounded-xl border border-rose-500/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-100"
+          >
             {state.error}
           </div>
         ) : null}
@@ -347,7 +355,7 @@ export function AddMealSheet({ dateKey }: { dateKey: string }) {
         setOpen(next);
       }}
     >
-      <SheetTrigger className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/15 bg-white/5 px-5 text-sm font-medium text-white transition hover:bg-white/10 sm:w-auto">
+      <SheetTrigger className="inline-flex h-11 min-h-11 w-full items-center justify-center rounded-xl border border-white/15 bg-white/5 px-5 text-sm font-medium text-white transition outline-none hover:bg-white/10 focus-visible:ring-[3px] focus-visible:ring-ring/85 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-auto">
         <UtensilsCrossed className="mr-2 h-4 w-4 opacity-90" />
         Dodaj posiłek
       </SheetTrigger>

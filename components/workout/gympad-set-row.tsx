@@ -7,7 +7,7 @@ import { formatVolumeKg, setVolume } from "@/lib/workout-session-calculations";
 import { cn } from "@/lib/utils";
 
 const inputBox =
-  "h-11 w-full min-w-0 rounded-xl border border-white/[0.10] bg-white/[0.04] px-3 text-center text-base font-semibold tabular-nums text-white outline-none transition focus:border-[var(--neon)]/55 focus:ring-2 focus:ring-[var(--neon)]/20";
+  "h-11 min-h-11 w-full min-w-0 rounded-xl border border-white/[0.12] bg-white/[0.06] px-3 text-center text-base font-semibold tabular-nums text-white outline-none transition focus-visible:border-[rgba(255,72,98,0.5)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
 
 function parseOptionalReps(raw: string): number | null {
   const t = raw.trim();
@@ -67,10 +67,14 @@ export function GymPadSetRow({
       )}
     >
       <div className="grid gap-1">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+        <label
+          htmlFor={`gympad-set-${setIndex}-reps`}
+          className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50"
+        >
           Powt.
-        </span>
+        </label>
         <input
+          id={`gympad-set-${setIndex}-reps`}
           type="number"
           inputMode="numeric"
           value={set.reps === null ? "" : set.reps}
@@ -82,11 +86,15 @@ export function GymPadSetRow({
       <span className="text-center text-lg font-medium text-white/45">×</span>
 
       <div className="grid gap-1">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
-          Ciężar
-        </span>
+        <label
+          htmlFor={`gympad-set-${setIndex}-weight`}
+          className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50"
+        >
+          Ciężar (kg)
+        </label>
         <div className="flex items-center gap-2">
           <input
+            id={`gympad-set-${setIndex}-weight`}
             type="number"
             inputMode="decimal"
             min={0}
@@ -102,10 +110,13 @@ export function GymPadSetRow({
       <span className="text-center text-lg text-white/35">=</span>
 
       <div className="grid gap-1">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
           Wynik
         </span>
-        <span className="inline-flex h-11 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.03] px-3 text-center text-sm font-semibold tabular-nums text-white/85">
+        <span
+          className="inline-flex h-11 min-h-11 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.03] px-3 text-center text-sm font-semibold tabular-nums text-white/85"
+          aria-label={`Seria ${setIndex + 1}: objętość ${formatVolumeKg(lineVol)} kg`}
+        >
           {formatVolumeKg(lineVol)}{" "}
           <span className="ml-1 text-xs font-medium text-white/45">kg</span>
         </span>
@@ -115,10 +126,10 @@ export function GymPadSetRow({
         type="button"
         whileTap={{ scale: 0.94 }}
         onClick={copyLine}
-        className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.03] text-white/55 transition hover:bg-white/[0.06] hover:text-[var(--neon)]"
-        aria-label="Kopiuj serię"
+        className="flex h-11 min-h-11 w-11 min-w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.03] text-white/55 outline-none transition hover:bg-white/[0.06] hover:text-[var(--neon)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+        aria-label={`Seria ${setIndex + 1}: kopiuj podsumowanie do schowka`}
       >
-        <Copy className="h-5 w-5" />
+        <Copy className="h-5 w-5 shrink-0" aria-hidden />
       </motion.button>
 
       {previousLabel ? (
@@ -128,17 +139,20 @@ export function GymPadSetRow({
       ) : null}
 
       <div className="col-span-full flex flex-wrap items-center gap-2 border-t border-white/[0.05] pt-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+        <label
+          htmlFor={`gympad-set-${setIndex}-rpe`}
+          className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50"
+        >
           RPE
-        </span>
+        </label>
         <select
+          id={`gympad-set-${setIndex}-rpe`}
           value={set.rpe == null ? "" : String(set.rpe)}
           onChange={(e) => {
             const v = e.target.value;
             onChange({ rpe: v === "" ? null : Math.min(10, Math.max(1, Number(v))) });
           }}
-          className="h-9 min-w-[4.5rem] rounded-lg border border-white/[0.12] bg-black/40 px-2 text-sm text-white outline-none focus:border-[var(--neon)]/45"
-          aria-label={`RPE seria ${setIndex + 1}`}
+          className="h-11 min-h-11 min-w-[4.75rem] rounded-lg border border-white/[0.14] bg-black/45 px-2 text-sm text-white outline-none focus-visible:border-[var(--neon)]/50 focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
         >
           <option value="">—</option>
           {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
@@ -148,7 +162,10 @@ export function GymPadSetRow({
           ))}
         </select>
         {prBadge ? (
-          <span className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-100">
+          <span
+            role="status"
+            className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-100"
+          >
             {prBadge}
           </span>
         ) : null}

@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Timer, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { PlateCalculatorSheet } from "@/components/workout/plate-calculator-sheet";
 import {
   readRestTimerPrefs,
@@ -13,6 +13,40 @@ import { cn } from "@/lib/utils";
 
 const PRESETS_SEC = [45, 60, 90, 120, 180] as const;
 const DEFAULT_OPTIONS_SEC = [45, 60, 90, 120, 180] as const;
+
+const REST_PREFS_SERVER = { autoStart: true, defaultSeconds: 90 } as const;
+
+/** Ten sam zakład nie wywołuje `storage` — emitujemy po zapisie, żeby odświeżyć UI. */
+const REST_PREFS_CHANGED = "gymbrat:rest-prefs-changed";
+
+function subscribeRestPrefs(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === "gymbrat:restAutoStart" || e.key === "gymbrat:restDefaultSeconds") {
+      onStoreChange();
+    }
+  };
+  const onLocal = () => onStoreChange();
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(REST_PREFS_CHANGED, onLocal);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(REST_PREFS_CHANGED, onLocal);
+  };
+}
+
+function getRestPrefsSnapshot() {
+  return readRestTimerPrefs();
+}
+
+function getRestPrefsServerSnapshot() {
+  return REST_PREFS_SERVER;
+}
+
+function useRestTimerPrefsFromStorage() {
+  return useSyncExternalStore(subscribeRestPrefs, getRestPrefsSnapshot, getRestPrefsServerSnapshot);
+}
 
 type RestTimerBarProps = {
   /** Pozostały czas w sekundach lub null gdy wyłączony */
@@ -29,24 +63,17 @@ export function RestTimerBar({ remaining, onStart, onStop }: RestTimerBarProps) 
   const mm = active ? String(Math.floor(remaining / 60)).padStart(2, "0") : "00";
   const ss = active ? String(remaining % 60).padStart(2, "0") : "00";
 
-  const [autoStart, setAutoStart] = useState(true);
-  const [defaultSec, setDefaultSec] = useState(90);
-
-  useEffect(() => {
-    const p = readRestTimerPrefs();
-    setAutoStart(p.autoStart);
-    setDefaultSec(p.defaultSeconds);
-  }, []);
+  const { autoStart, defaultSeconds: defaultSec } = useRestTimerPrefsFromStorage();
 
   function toggleAuto() {
     const next = !autoStart;
-    setAutoStart(next);
     writeRestAutoStart(next);
+    window.dispatchEvent(new Event(REST_PREFS_CHANGED));
   }
 
   function pickDefault(sec: number) {
-    setDefaultSec(sec);
     writeRestDefaultSeconds(sec);
+    window.dispatchEvent(new Event(REST_PREFS_CHANGED));
   }
 
   return (

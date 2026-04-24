@@ -81,7 +81,8 @@
   --destructive:        #ff3347;
   --border:             rgba(255, 255, 255, 0.10);
   --input:              rgba(255, 255, 255, 0.12);
-  --ring:               rgba(230, 0, 35, 0.60);
+  /* Focus ring: wyższy kontrast na ciemnym tle (klawiatura / WCAG perception) */
+  --ring:               rgba(255, 72, 98, 0.92);
 
   --chart-1: rgba(230, 0,  35,  0.95);
   --chart-2: rgba(255, 255, 255, 0.88);
@@ -112,7 +113,28 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+  }
+  /**
+   * Domyślny focus: widoczny na szkle / metalu; komponenty z własnym focus-visible
+   * nadpisują przez outline-none + ring (Input, Button).
+   */
+  :where(
+    a,
+    button,
+    input,
+    textarea,
+    select,
+    summary,
+    [role="button"],
+    [role="radio"],
+    [role="checkbox"],
+    [role="switch"],
+    [role="tab"],
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
   body {
     @apply min-h-screen bg-background text-foreground antialiased;

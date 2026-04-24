@@ -21,15 +21,25 @@ export function RoleAuthCards({
 }: Props) {
   return (
     <div className="space-y-4">
-      <p className="text-center text-xs font-medium uppercase tracking-[0.18em] text-white/55">
+      <p
+        className="text-center text-xs font-medium uppercase tracking-[0.18em] text-white/55"
+        id="role-auth-heading"
+      >
         {heading}
       </p>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+        role={trainerLocked ? "group" : "radiogroup"}
+        aria-labelledby="role-auth-heading"
+      >
         <button
           type="button"
+          {...(!trainerLocked
+            ? { role: "radio" as const, "aria-checked": role === "zawodnik" }
+            : {})}
           onClick={() => onSelectRole("zawodnik")}
           className={cn(
-            "group relative min-h-[168px] overflow-hidden rounded-2xl border px-5 py-6 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40",
+            "group relative min-h-[168px] overflow-hidden rounded-2xl border px-5 py-6 text-left transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
             role === "zawodnik"
               ? "border-[var(--neon)]/65 bg-gradient-to-br from-[var(--neon)]/20 via-white/[0.06] to-cyan-500/10 shadow-[0_0_40px_rgba(255,45,85,0.22)]"
               : "border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45",
@@ -74,7 +84,8 @@ export function RoleAuthCards({
         {trainerLocked ? (
           <div
             className="relative min-h-[168px] cursor-not-allowed overflow-hidden rounded-2xl border border-white/10 bg-black/25 px-5 py-6 text-left opacity-75"
-            aria-disabled="true"
+            role="note"
+            aria-label="Konto trenera jest na razie niedostępne. Możliwe jest wyłącznie konto zawodnika."
           >
             <div
               aria-hidden
@@ -107,9 +118,11 @@ export function RoleAuthCards({
         ) : (
           <button
             type="button"
+            role="radio"
+            aria-checked={role === "trener"}
             onClick={() => onSelectRole("trener")}
             className={cn(
-              "group relative min-h-[168px] overflow-hidden rounded-2xl border px-5 py-6 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40",
+              "group relative min-h-[168px] overflow-hidden rounded-2xl border px-5 py-6 text-left transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
               role === "trener"
                 ? "border-[var(--neon)]/65 bg-gradient-to-br from-[var(--neon)]/20 via-white/[0.06] to-violet-500/10 shadow-[0_0_40px_rgba(255,45,85,0.22)]"
                 : "border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45",
