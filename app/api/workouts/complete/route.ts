@@ -7,6 +7,8 @@ import { sessionVolume } from "@/lib/workout-session-calculations";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { assertCsrf } from "@/lib/csrf";
+import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
+import { z } from "zod";
 
 type CompletedWorkoutPayload = {
   title: string;
@@ -16,6 +18,24 @@ type CompletedWorkoutPayload = {
   exercises: unknown;
   workoutPlanId?: string | null;
 };
+
+const setSchema = z.object({
+  reps: z.number().int().min(0).max(500).nullable().optional(),
+  weight: z.number().min(0).max(2000),
+});
+
+const exerciseSchema = z.object({
+  sets: z.array(setSchema).min(0).max(200),
+});
+
+const bodySchema = z.object({
+  title: z.string().min(0).max(200).optional().nullable(),
+  startedAt: z.number().finite().optional().nullable(),
+  endedAt: z.number().finite().optional().nullable(),
+  cardioMinutes: z.number().finite().min(0).max(24 * 60).optional().nullable(),
+  workoutPlanId: z.string().min(1).max(128).optional().nullable(),
+  exercises: z.array(exerciseSchema).max(200).optional().nullable(),
+});
 
 function parseCompletedWorkout(json: string): {
   kind?: string;
@@ -49,6 +69,18 @@ export async function POST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
+  const rl = await checkRateLimitAsync(
+    rateLimitKey("workout-complete", req),
+    RATE.workoutComplete.limit,
+    RATE.workoutComplete.windowMs,
+  );
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Rate limit" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json(
@@ -67,20 +99,26 @@ export async function POST(req: Request) {
     );
   }
 
-  const title = String(body.title ?? "Sesja").trim() || "Sesja";
-  const cardioMinutes = Number(body.cardioMinutes ?? 0);
-  const startedAt =
-    typeof body.startedAt === "number" && Number.isFinite(body.startedAt)
-      ? new Date(body.startedAt)
-      : new Date();
-  const endedAt =
-    typeof body.endedAt === "number" && Number.isFinite(body.endedAt)
-      ? new Date(body.endedAt)
-      : new Date();
+  const parsed = bodySchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { ok: false, error: "Nieprawidłowe dane" },
+      { status: 400 },
+    );
+  }
+
+  const title = String(parsed.data.title ?? "Sesja").trim() || "Sesja";
+  const cardioMinutes = Number(parsed.data.cardioMinutes ?? 0);
+  const startedAt = typeof parsed.data.startedAt === "number"
+    ? new Date(parsed.data.startedAt)
+    : new Date();
+  const endedAt = typeof parsed.data.endedAt === "number"
+    ? new Date(parsed.data.endedAt)
+    : new Date();
 
   const rawPlanId =
-    typeof body.workoutPlanId === "string" && body.workoutPlanId.trim().length > 0
-      ? body.workoutPlanId.trim()
+    typeof parsed.data.workoutPlanId === "string" && parsed.data.workoutPlanId.trim().length > 0
+      ? parsed.data.workoutPlanId.trim()
       : null;
 
   const db = getDb();
@@ -101,7 +139,7 @@ export async function POST(req: Request) {
   // Strength proxy: session volume compared to previous workout from the same plan.
   let strengthDeltaPercent: number | null = null;
   if (rawPlanId) {
-    const currentVol = safeSessionVolume(body.exercises);
+    const currentVol = safeSessionVolume(parsed.data.exercises ?? null);
     const currentStartedAtMs = startedAt.getTime();
 
     const recent = await db
@@ -139,7 +177,7 @@ export async function POST(req: Request) {
       startedAt: startedAt.getTime(),
       endedAt: endedAt.getTime(),
       workoutPlanId: rawPlanId,
-      exercises: body.exercises ?? null,
+      exercises: parsed.data.exercises ?? null,
     }),
   });
 

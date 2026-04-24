@@ -25,6 +25,11 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  /** CSP raporty (Report-Only) — publiczny POST z przeglądarki. */
+  if (pathname === "/api/security/csp-report") {
+    return NextResponse.next();
+  }
+
   const publicPaths = new Set(["/login", "/register"]);
 
   const secret = getAuthSecret();
