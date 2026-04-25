@@ -6,7 +6,7 @@ import { CoachChatPanel } from "@/components/coach/coach-chat-panel";
 import { WeighInCard } from "@/components/progress-analysis/weigh-in-card";
 import { getProgressAnalysisData } from "@/lib/progress-analysis";
 import { listExerciseNameSuggestions } from "@/lib/exercise-progress";
-import { BrainCircuit, ChartLine, Dumbbell, Layers3, Sparkles } from "lucide-react";
+import { BrainCircuit, ChartLine, Dumbbell, Layers3, Ruler, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 
 export default async function ProgressAnalysisPage() {
@@ -65,6 +65,29 @@ export default async function ProgressAnalysisPage() {
           }
         />
       </section>
+
+      {(stats.lastWaistCm != null || stats.lastChestCm != null || stats.lastThighCm != null) ? (
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            icon={Ruler}
+            label="Pas"
+            value={stats.lastWaistCm != null ? `${stats.lastWaistCm} cm` : "—"}
+            hint={stats.lastBodyReportAt ? `Z raportu: ${stats.lastBodyReportAt.toLocaleDateString()}` : undefined}
+          />
+          <StatCard
+            icon={Ruler}
+            label="Klatka"
+            value={stats.lastChestCm != null ? `${stats.lastChestCm} cm` : "—"}
+            hint={stats.lastBodyReportAt ? `Z raportu: ${stats.lastBodyReportAt.toLocaleDateString()}` : undefined}
+          />
+          <StatCard
+            icon={Ruler}
+            label="Udo"
+            value={stats.lastThighCm != null ? `${stats.lastThighCm} cm` : "—"}
+            hint={stats.lastBodyReportAt ? `Z raportu: ${stats.lastBodyReportAt.toLocaleDateString()}` : undefined}
+          />
+        </section>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
         <div className="space-y-6">

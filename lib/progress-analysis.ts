@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { workouts, weightLogs } from "@/db/schema";
+import { getLatestBodyReportMetrics } from "@/lib/body-reports";
 import {
   estimated1RM,
   safeNormalizeExercises,
@@ -64,25 +65,27 @@ export async function getProgressAnalysisData(userId: string) {
   const DAY_MS = 24 * 60 * 60 * 1000;
   const from = new Date(now - 90 * DAY_MS);
 
-  const recentWorkouts = await db
-    .select({
-      date: workouts.date,
-      exercisesJson: workouts.exercises,
-    })
-    .from(workouts)
-    .where(and(eq(workouts.userId, userId), gte(workouts.date, dayKey(from))))
-    .orderBy(desc(workouts.date))
-    .limit(250);
-
-  const weighIns = await db
-    .select({
-      recordedAt: weightLogs.recordedAt,
-      weightKg: weightLogs.weightKg,
-    })
-    .from(weightLogs)
-    .where(and(eq(weightLogs.userId, userId), gte(weightLogs.recordedAt, from)))
-    .orderBy(desc(weightLogs.recordedAt))
-    .limit(200);
+  const [recentWorkouts, weighIns, latestBodyReport] = await Promise.all([
+    db
+      .select({
+        date: workouts.date,
+        exercisesJson: workouts.exercises,
+      })
+      .from(workouts)
+      .where(and(eq(workouts.userId, userId), gte(workouts.date, dayKey(from))))
+      .orderBy(desc(workouts.date))
+      .limit(250),
+    db
+      .select({
+        recordedAt: weightLogs.recordedAt,
+        weightKg: weightLogs.weightKg,
+      })
+      .from(weightLogs)
+      .where(and(eq(weightLogs.userId, userId), gte(weightLogs.recordedAt, from)))
+      .orderBy(desc(weightLogs.recordedAt))
+      .limit(200),
+    getLatestBodyReportMetrics(userId),
+  ]);
 
   const volumeByDay = new Map<string, number>(); // kg
   const strengthByDay = new Map<string, number>();
@@ -116,7 +119,8 @@ export async function getProgressAnalysisData(userId: string) {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([date, score]) => ({ date, score: safeRound1(score) }));
 
-  const lastWeight = weights.length ? weights[weights.length - 1].kg : null;
+  const lastWeightFromWeighIns = weights.length ? weights[weights.length - 1].kg : null;
+  const lastWeight = (latestBodyReport?.weightKg ?? lastWeightFromWeighIns) ?? null;
   const relativeStrength: RelativeStrengthPoint[] =
     lastWeight != null && lastWeight > 0
       ? strength.map((p) => ({ date: p.date, ratio: safeRound1(p.score / lastWeight) }))
@@ -161,6 +165,10 @@ export async function getProgressAnalysisData(userId: string) {
       latestStrengthScore: lastStrength,
       latestBestE1rm: lastBestE1rm,
       latestAvgLoadPerRepKg: avgLoadPerRep,
+      lastBodyReportAt: latestBodyReport?.createdAt ?? null,
+      lastWaistCm: latestBodyReport?.waistCm ?? null,
+      lastChestCm: latestBodyReport?.chestCm ?? null,
+      lastThighCm: latestBodyReport?.thighCm ?? null,
     },
   };
 }

@@ -5,6 +5,7 @@ import type { ChatCoachPromptInput } from "@/ai/prompts/chatCoach";
 import { getHomeStats } from "@/lib/home-stats";
 import { getStreaks } from "@/lib/streaks";
 import { loadNutritionDashboard } from "@/lib/nutrition-dashboard";
+import { getLatestBodyReportMetrics } from "@/lib/body-reports";
 
 export async function buildCoachRecentContext(
   userId: string,
@@ -45,21 +46,25 @@ export async function buildCoachUserProfile(
   userId: string,
 ): Promise<ChatCoachPromptInput["userProfile"]> {
   const db = getDb();
-  const [u] = await db
-    .select({
-      age: users.age,
-      weightKg: users.weightKg,
-      heightCm: users.heightCm,
-      activityLevel: users.activityLevel,
-    })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
+  const [u, latestReport] = await Promise.all([
+    db
+      .select({
+        age: users.age,
+        weightKg: users.weightKg,
+        heightCm: users.heightCm,
+        activityLevel: users.activityLevel,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+      .then((rows) => rows[0]),
+    getLatestBodyReportMetrics(userId),
+  ]);
 
   if (!u) return {};
   return {
     age: u.age ?? undefined,
-    weightKg: u.weightKg ?? undefined,
+    weightKg: (latestReport?.weightKg ?? u.weightKg) ?? undefined,
     heightCm: u.heightCm ?? undefined,
     activityLevel: u.activityLevel ?? undefined,
   };

@@ -22,6 +22,41 @@ export type BodyReport = {
   photos: { id: string; dataUrl: string }[];
 };
 
+export type LatestBodyReportMetrics = {
+  createdAt: Date;
+  weightKg: number | null;
+  waistCm: number | null;
+  chestCm: number | null;
+  thighCm: number | null;
+};
+
+export async function getLatestBodyReportMetrics(
+  userId: string,
+): Promise<LatestBodyReportMetrics | null> {
+  const db = getDb();
+  const [r] = await db
+    .select({
+      createdAt: bodyReports.createdAt,
+      weightKg: bodyReports.weightKg,
+      waistCm: bodyReports.waistCm,
+      chestCm: bodyReports.chestCm,
+      thighCm: bodyReports.thighCm,
+    })
+    .from(bodyReports)
+    .where(eq(bodyReports.userId, userId))
+    .orderBy(desc(bodyReports.createdAt), desc(bodyReports.id))
+    .limit(1);
+
+  if (!r?.createdAt) return null;
+  return {
+    createdAt: r.createdAt,
+    weightKg: r.weightKg ?? null,
+    waistCm: r.waistCm ?? null,
+    chestCm: r.chestCm ?? null,
+    thighCm: r.thighCm ?? null,
+  };
+}
+
 export async function getBodyReports(userId: string): Promise<BodyReport[]> {
   const db = getDb();
   const reports = await db
