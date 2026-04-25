@@ -1,8 +1,10 @@
 import { Sparkles } from "lucide-react";
 import { getDailyBriefingText } from "@/lib/daily-briefing";
+import { isAiConfigured } from "@/ai/client";
 
 export async function DailyBriefingCard({ userId }: { userId: string }) {
   const text = await getDailyBriefingText(userId);
+  const aiEnabled = isAiConfigured();
 
   return (
     <section className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
@@ -16,9 +18,9 @@ export async function DailyBriefingCard({ userId }: { userId: string }) {
             Briefing dnia
           </p>
           <p className="text-sm leading-relaxed text-white/80">{text}</p>
-          {!process.env.AI_API_KEY ? (
+          {!aiEnabled ? (
             <p className="text-xs text-white/40">
-              Włącz <span className="font-mono">AI_API_KEY</span>, aby dostać spersonalizowany tekst od modelu.
+              Włącz AI (np. lokalnie: <span className="font-mono">AI_PROVIDER=ollama</span>), aby dostać spersonalizowany tekst od modelu.
             </p>
           ) : null}
         </div>

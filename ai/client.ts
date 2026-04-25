@@ -1,6 +1,12 @@
 /**
- * Google Gemini `generateContent` API (text + multimodal).
- * Ustaw `AI_API_KEY`; opcjonalnie `AI_MODEL`.
+ * AI provider client.
+ *
+ * Supported providers:
+ * - Google Gemini (default): set `AI_PROVIDER=gemini` (or omit), requires `AI_API_KEY`.
+ * - Ollama (local, free): set `AI_PROVIDER=ollama`, set `AI_API_BASE_URL` (default http://127.0.0.1:11434).
+ *
+ * Optional:
+ * - `AI_MODEL`
  */
 
 export type AiMessage = { role: "system" | "user" | "assistant"; content: string };
@@ -16,6 +22,8 @@ export type CompleteChatOptions = {
   /** Optional: provider-specific model name */
   model?: string;
 };
+
+type Provider = "gemini" | "ollama";
 
 type GeminiPart =
   | { text: string }
@@ -36,10 +44,21 @@ function geminiBase(): string {
   return "https://generativelanguage.googleapis.com/v1beta";
 }
 
+function provider(): Provider {
+  const raw = process.env.AI_PROVIDER?.trim().toLowerCase();
+  return raw === "ollama" ? "ollama" : "gemini";
+}
+
+function openAiBase(): string {
+  const raw = process.env.AI_API_BASE_URL?.trim();
+  const base = raw || "http://127.0.0.1:11434";
+  return base.replace(/\/$/, "");
+}
+
 function defaultModel(): string {
-  // Good default for cost/speed; user can override via AI_MODEL.
-  // Note: some older model ids (e.g. gemini-1.5-flash) may be retired; keep this reasonably current.
-  return process.env.AI_MODEL?.trim() || "gemini-2.0-flash";
+  const m = process.env.AI_MODEL?.trim();
+  if (m) return m;
+  return provider() === "ollama" ? "llama3.1:8b" : "gemini-2.0-flash";
 }
 
 function pickTextFromGemini(json: GeminiGenerateContentResponse): string {
@@ -63,6 +82,11 @@ function normalizeMessagesForGemini(messages: AiMessage[]) {
   return { system, history };
 }
 
+export function isAiConfigured(): boolean {
+  if (provider() === "ollama") return true;
+  return Boolean(process.env.AI_API_KEY?.trim());
+}
+
 async function geminiGenerateContent(model: string, body: unknown): Promise<Response> {
   return fetch(
     `${geminiBase()}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.AI_API_KEY ?? "")}`,
@@ -77,6 +101,11 @@ async function geminiGenerateContent(model: string, body: unknown): Promise<Resp
 function isModelNotFoundMessage(msg: string | undefined): boolean {
   if (!msg) return false;
   return /is not found|not supported for generateContent|model.*not found/i.test(msg);
+}
+
+function isQuotaOrRateLimitMessage(msg: string | undefined): boolean {
+  if (!msg) return false;
+  return /quota exceeded|rate limit|too many requests/i.test(msg);
 }
 
 async function generateWithFallback(
@@ -114,15 +143,52 @@ async function generateWithFallback(
   return { res: lastRes ?? new Response(null, { status: 500 }), json: lastJson };
 }
 
+type OpenAiLikeChatResponse = {
+  choices?: Array<{ message?: { content?: string } }>;
+  error?: { message?: string };
+};
+
+async function openAiLikeChat(messages: AiMessage[], model: string): Promise<string> {
+  const res = await fetch(`${openAiBase()}/v1/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      temperature: 0.7,
+      max_tokens: 2048,
+    }),
+  });
+
+  const rawText = await res.text();
+  let json: OpenAiLikeChatResponse;
+  try {
+    json = JSON.parse(rawText) as OpenAiLikeChatResponse;
+  } catch {
+    throw new Error(`AI response parse error (HTTP ${res.status}).`);
+  }
+
+  if (!res.ok) {
+    throw new Error(json.error?.message ?? `AI request failed (HTTP ${res.status}).`);
+  }
+
+  const text = json.choices?.[0]?.message?.content?.trim() ?? "";
+  return text || "Empty model response.";
+}
+
 export async function completeChat(
   messages: AiMessage[],
   opts?: CompleteChatOptions,
 ): Promise<string> {
-  if (!process.env.AI_API_KEY) {
-    return "AI_API_KEY is not configured. Add a provider in ai/client.ts when ready.";
+  if (!isAiConfigured()) {
+    return "AI is not configured. Set AI_PROVIDER and required env vars.";
   }
 
   const model = opts?.model ?? defaultModel();
+  if (provider() === "ollama") {
+    // Ollama (local) exposes an OpenAI-compatible endpoint at /v1/chat/completions.
+    return openAiLikeChat(messages, model);
+  }
   const { system, history } = normalizeMessagesForGemini(messages);
 
   const body = {
@@ -141,7 +207,12 @@ export async function completeChat(
   const { res, json } = await generateWithFallback(model, body);
 
   if (!res.ok) {
-    return json.error?.message ?? `AI request failed (HTTP ${res.status}).`;
+    const msg = json.error?.message;
+    // Make callers fall back to heuristics instead of showing quota errors as "content".
+    if (res.status === 429 || isQuotaOrRateLimitMessage(msg)) {
+      throw new Error(msg ?? `AI rate limited (HTTP ${res.status}).`);
+    }
+    return msg ?? `AI request failed (HTTP ${res.status}).`;
   }
 
   return pickTextFromGemini(json) || "Empty model response.";
@@ -152,11 +223,15 @@ export async function completeVision(
   images: AiImage[],
   opts?: CompleteChatOptions,
 ): Promise<string> {
-  if (!process.env.AI_API_KEY) {
-    return "AI_API_KEY is not configured. Add a provider in ai/client.ts when ready.";
+  if (!isAiConfigured()) {
+    return "AI is not configured. Set AI_PROVIDER and required env vars.";
   }
 
   const model = opts?.model ?? defaultModel();
+  if (provider() === "ollama") {
+    // Keep it simple: if you want vision locally, wire a multimodal model + API here.
+    throw new Error("Vision is not supported for AI_PROVIDER=ollama.");
+  }
   const system = messages.find((m) => m.role === "system")?.content?.trim() ?? "";
   const userText = messages
     .filter((m) => m.role === "user")
@@ -186,7 +261,11 @@ export async function completeVision(
   const { res, json } = await generateWithFallback(model, body);
 
   if (!res.ok) {
-    return json.error?.message ?? `AI vision failed (HTTP ${res.status}).`;
+    const msg = json.error?.message;
+    if (res.status === 429 || isQuotaOrRateLimitMessage(msg)) {
+      throw new Error(msg ?? `AI rate limited (HTTP ${res.status}).`);
+    }
+    return msg ?? `AI vision failed (HTTP ${res.status}).`;
   }
 
   return pickTextFromGemini(json) || "Empty model response.";

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { chatCoach } from "@/ai/coach";
+import { isAiConfigured } from "@/ai/client";
 import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
 
 function heuristicBrief(rc: Awaited<ReturnType<typeof buildCoachRecentContext>>): string {
@@ -19,7 +20,7 @@ export async function getDailyBriefingText(userId: string): Promise<string> {
     buildCoachUserProfile(userId),
   ]);
 
-  if (!process.env.AI_API_KEY) {
+  if (!isAiConfigured()) {
     return heuristicBrief(rc);
   }
 
