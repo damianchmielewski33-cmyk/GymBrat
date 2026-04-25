@@ -1,6 +1,6 @@
 /**
- * OpenAI-compatible Chat Completions API (`/v1/chat/completions`).
- * Ustaw `AI_API_KEY`; opcjonalnie `AI_MODEL`, `AI_API_BASE_URL` (np. proxy Azure/OpenRouter).
+ * Google Gemini `generateContent` API (text + multimodal).
+ * Ustaw `AI_API_KEY`; opcjonalnie `AI_MODEL`.
  */
 
 export type AiMessage = { role: "system" | "user" | "assistant"; content: string };
@@ -17,32 +17,49 @@ export type CompleteChatOptions = {
   model?: string;
 };
 
-type OpenAiChatResponse = {
-  choices?: Array<{ message?: { content?: string | unknown } }>;
-  error?: { message?: string };
+type GeminiPart =
+  | { text: string }
+  | { inlineData: { mimeType: string; data: string } };
+
+type GeminiCandidate = {
+  content?: { parts?: Array<{ text?: string }> };
 };
 
-function apiBase(): string {
-  const raw = process.env.AI_API_BASE_URL?.trim();
-  return (raw || "https://api.openai.com/v1").replace(/\/$/, "");
+type GeminiError = { message?: string };
+
+type GeminiGenerateContentResponse = {
+  candidates?: GeminiCandidate[];
+  error?: GeminiError;
+};
+
+function geminiBase(): string {
+  return "https://generativelanguage.googleapis.com/v1beta";
 }
 
 function defaultModel(): string {
-  return process.env.AI_MODEL?.trim() || "gpt-4o-mini";
+  // Good default for cost/speed; user can override via AI_MODEL.
+  return process.env.AI_MODEL?.trim() || "gemini-1.5-flash";
 }
 
-function extractTextContent(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (Array.isArray(content)) {
-    const parts: string[] = [];
-    for (const c of content) {
-      if (c && typeof c === "object" && "text" in c && typeof (c as { text?: string }).text === "string") {
-        parts.push((c as { text: string }).text);
-      }
-    }
-    return parts.join("\n");
+function pickTextFromGemini(json: GeminiGenerateContentResponse): string {
+  const parts = json.candidates?.[0]?.content?.parts ?? [];
+  const texts: string[] = [];
+  for (const p of parts) {
+    if (p?.text) texts.push(p.text);
   }
-  return "";
+  return texts.join("\n").trim();
+}
+
+function normalizeMessagesForGemini(messages: AiMessage[]) {
+  const system = messages.find((m) => m.role === "system")?.content?.trim() ?? "";
+  const history = messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+
+  return { system, history };
 }
 
 export async function completeChat(
@@ -54,27 +71,31 @@ export async function completeChat(
   }
 
   const model = opts?.model ?? defaultModel();
-  const res = await fetch(`${apiBase()}/chat/completions`, {
+  const { system, history } = normalizeMessagesForGemini(messages);
+
+  const res = await fetch(`${geminiBase()}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.AI_API_KEY)}`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.AI_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model,
-      messages: messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-      temperature: 0.7,
-      max_tokens: 2048,
+      ...(system
+        ? {
+            systemInstruction: { parts: [{ text: system }] },
+          }
+        : {}),
+      contents: history.length ? history : [{ role: "user", parts: [{ text: "" }] }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+      },
     }),
   });
 
   const rawText = await res.text();
-  let json: OpenAiChatResponse;
+  let json: GeminiGenerateContentResponse;
   try {
-    json = JSON.parse(rawText) as OpenAiChatResponse;
+    json = JSON.parse(rawText) as GeminiGenerateContentResponse;
   } catch {
     return `AI response parse error (HTTP ${res.status}).`;
   }
@@ -83,9 +104,7 @@ export async function completeChat(
     return json.error?.message ?? `AI request failed (HTTP ${res.status}).`;
   }
 
-  const content = json.choices?.[0]?.message?.content;
-  const text = extractTextContent(content);
-  return text.trim() || "Empty model response.";
+  return pickTextFromGemini(json) || "Empty model response.";
 }
 
 export async function completeVision(
@@ -97,47 +116,43 @@ export async function completeVision(
     return "AI_API_KEY is not configured. Add a provider in ai/client.ts when ready.";
   }
 
-  const system = messages.find((m) => m.role === "system")?.content ?? "";
+  const model = opts?.model ?? defaultModel();
+  const system = messages.find((m) => m.role === "system")?.content?.trim() ?? "";
   const userText = messages
     .filter((m) => m.role === "user")
     .map((m) => m.content)
-    .join("\n\n");
+    .join("\n\n")
+    .trim();
 
-  const userParts: Array<
-    | { type: "text"; text: string }
-    | { type: "image_url"; image_url: { url: string } }
-  > = [{ type: "text", text: userText }];
-
+  const parts: GeminiPart[] = [];
+  if (userText) parts.push({ text: userText });
   for (const img of images) {
-    userParts.push({
-      type: "image_url",
-      image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
-    });
+    parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 } });
   }
 
-  const model = opts?.model ?? defaultModel();
-
-  const res = await fetch(`${apiBase()}/chat/completions`, {
+  const res = await fetch(`${geminiBase()}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.AI_API_KEY)}`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.AI_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: userParts },
-      ],
-      temperature: 0.5,
-      max_tokens: 4096,
+      ...(system
+        ? {
+            systemInstruction: { parts: [{ text: system }] },
+          }
+        : {}),
+      contents: [{ role: "user", parts: parts.length ? parts : [{ text: "" }] }],
+      generationConfig: {
+        temperature: 0.5,
+        maxOutputTokens: 4096,
+      },
     }),
   });
 
   const rawText = await res.text();
-  let json: OpenAiChatResponse;
+  let json: GeminiGenerateContentResponse;
   try {
-    json = JSON.parse(rawText) as OpenAiChatResponse;
+    json = JSON.parse(rawText) as GeminiGenerateContentResponse;
   } catch {
     return `AI vision parse error (HTTP ${res.status}).`;
   }
@@ -146,7 +161,5 @@ export async function completeVision(
     return json.error?.message ?? `AI vision failed (HTTP ${res.status}).`;
   }
 
-  const content = json.choices?.[0]?.message?.content;
-  const text = extractTextContent(content);
-  return text.trim() || "Empty model response.";
+  return pickTextFromGemini(json) || "Empty model response.";
 }
