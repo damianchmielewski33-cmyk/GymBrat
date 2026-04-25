@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { FitatuDaySummary } from "@/types/fitatu";
 import type { AiImage, AiMessage } from "@/ai/client";
 import { completeChat, completeVision } from "@/ai/client";
+import { isAiConfigured } from "@/ai/client";
 import {
   bodyAnalysisSystemPrompt,
   bodyAnalysisUserPrompt,
@@ -280,7 +281,7 @@ export async function generateTrainingPlan(input: TrainingPlanInput): Promise<Tr
     cardioPerformance: input.cardioPerformance,
   };
 
-  if (!process.env.AI_API_KEY) {
+  if (!isAiConfigured()) {
     return makeHeuristicPlan(input);
   }
 
@@ -302,7 +303,7 @@ export async function analyzeBodyPhoto(input: {
 }): Promise<BodyAnalysis> {
   const context = input.context ?? {};
 
-  if (!process.env.AI_API_KEY) {
+  if (!isAiConfigured()) {
     return {
       posture: {
         summary:
@@ -360,7 +361,7 @@ export async function compareProgressPhotos(input: {
 }): Promise<ProgressReport> {
   const context = input.context ?? null;
 
-  if (!process.env.AI_API_KEY) {
+  if (!isAiConfigured()) {
     return {
       summary:
         "AI is not configured yet. Once enabled, this will compare the two dates and generate a report.",

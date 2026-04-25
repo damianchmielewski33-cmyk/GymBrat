@@ -176,13 +176,18 @@ AI features are designed to be safe-by-default: if no provider key is present, G
     - Uses Fitatu snapshot (if available) to tailor nutrition hints
     - Validates model output with a strict Zod schema; falls back to a heuristic plan on parse failure
   - **Body photo analysis**: `analyzeBodyPhoto({ images })`
-    - Requires `AI_API_KEY` and a real `completeVision()` implementation
+    - Works with Gemini (cloud) or Ollama via self-hosted relay (recommended for free)
   - **Progress photo comparison**: `compareProgressPhotos({ earlier, later })`
   - **Chat coach**: `chatCoach({ messages, context })`
 
 - **Config**
-  - `AI_API_KEY`: enable provider calls (currently scaffolded)
-  - `AI_MODEL`: optional provider-specific model identifier
+  - `AI_PROVIDER`: `gemini` (cloud) or `ollama` (self-hosted, free)
+  - `AI_MODEL`: provider-specific model identifier
+  - For `gemini`:
+    - `AI_API_KEY`
+  - For `ollama` (recommended free setup):
+    - `AI_API_BASE_URL`: `http://localhost:11435` (AI relay; see `docker-compose.yml`)
+    - `AI_API_KEY`: relay token (shared secret)
 
 ### Weekly cardio tracking logic
 

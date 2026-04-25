@@ -44,6 +44,29 @@ function geminiBase(): string {
   return "https://generativelanguage.googleapis.com/v1beta";
 }
 
+function logGeminiError(input: {
+  stage: "request" | "parse" | "response";
+  model: string;
+  status?: number;
+  message: string;
+  rawText?: string;
+}) {
+  // Server-side only; avoid leaking secrets. Keep raw response short.
+  const raw =
+    typeof input.rawText === "string" && input.rawText.trim()
+      ? input.rawText.trim().slice(0, 1200)
+      : undefined;
+
+  // eslint-disable-next-line no-console
+  console.error("[AI][Gemini] Error", {
+    stage: input.stage,
+    model: input.model,
+    status: input.status,
+    message: input.message,
+    raw,
+  });
+}
+
 function provider(): Provider {
   const raw = process.env.AI_PROVIDER?.trim().toLowerCase();
   return raw === "ollama" ? "ollama" : "gemini";
@@ -88,14 +111,20 @@ export function isAiConfigured(): boolean {
 }
 
 async function geminiGenerateContent(model: string, body: unknown): Promise<Response> {
-  return fetch(
-    `${geminiBase()}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.AI_API_KEY ?? "")}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    },
-  );
+  try {
+    return await fetch(
+      `${geminiBase()}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.AI_API_KEY ?? "")}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logGeminiError({ stage: "request", model, message: msg });
+    throw err;
+  }
 }
 
 function isModelNotFoundMessage(msg: string | undefined): boolean {
@@ -130,6 +159,13 @@ async function generateWithFallback(
       json = JSON.parse(rawText) as GeminiGenerateContentResponse;
     } catch {
       // If JSON parsing fails, don't keep retrying other models: it's likely network/proxy/html.
+      logGeminiError({
+        stage: "parse",
+        model: m,
+        status: res.status,
+        message: "Failed to parse JSON response from Gemini.",
+        rawText,
+      });
       return { res, json: { error: { message: `AI response parse error (HTTP ${res.status}).` } } };
     }
 
@@ -137,6 +173,16 @@ async function generateWithFallback(
     lastRes = res;
 
     if (res.ok) return { res, json };
+
+    // Log any Gemini non-OK response.
+    logGeminiError({
+      stage: "response",
+      model: m,
+      status: res.status,
+      message: json.error?.message ?? `Gemini request failed (HTTP ${res.status}).`,
+      rawText,
+    });
+
     if (!isModelNotFoundMessage(json.error?.message)) return { res, json };
   }
 
@@ -170,6 +216,55 @@ async function openAiLikeChat(messages: AiMessage[], model: string): Promise<str
 
   if (!res.ok) {
     throw new Error(json.error?.message ?? `AI request failed (HTTP ${res.status}).`);
+  }
+
+  const text = json.choices?.[0]?.message?.content?.trim() ?? "";
+  return text || "Empty model response.";
+}
+
+async function openAiLikeVision(messages: AiMessage[], images: AiImage[], model: string): Promise<string> {
+  const system = messages.find((m) => m.role === "system")?.content ?? "";
+  const userText = messages
+    .filter((m) => m.role === "user")
+    .map((m) => m.content)
+    .join("\n\n");
+
+  const userParts: Array<
+    | { type: "text"; text: string }
+    | { type: "image_url"; image_url: { url: string } }
+  > = [{ type: "text", text: userText }];
+
+  for (const img of images) {
+    userParts.push({
+      type: "image_url",
+      image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
+    });
+  }
+
+  const res = await fetch(`${openAiBase()}/v1/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: userParts },
+      ],
+      temperature: 0.5,
+      max_tokens: 4096,
+    }),
+  });
+
+  const rawText = await res.text();
+  let json: OpenAiLikeChatResponse;
+  try {
+    json = JSON.parse(rawText) as OpenAiLikeChatResponse;
+  } catch {
+    throw new Error(`AI vision parse error (HTTP ${res.status}).`);
+  }
+
+  if (!res.ok) {
+    throw new Error(json.error?.message ?? `AI vision failed (HTTP ${res.status}).`);
   }
 
   const text = json.choices?.[0]?.message?.content?.trim() ?? "";
@@ -229,8 +324,8 @@ export async function completeVision(
 
   const model = opts?.model ?? defaultModel();
   if (provider() === "ollama") {
-    // Keep it simple: if you want vision locally, wire a multimodal model + API here.
-    throw new Error("Vision is not supported for AI_PROVIDER=ollama.");
+    // Requires an OpenAI-compatible endpoint that supports image_url (Ollama via relay can).
+    return openAiLikeVision(messages, images, model);
   }
   const system = messages.find((m) => m.role === "system")?.content?.trim() ?? "";
   const userText = messages
