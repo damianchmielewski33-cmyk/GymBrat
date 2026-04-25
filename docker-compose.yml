@@ -1,0 +1,26 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+
+  ai-relay:
+    build:
+      context: ./ai-server
+    restart: unless-stopped
+    environment:
+      PORT: 11435
+      OLLAMA_BASE_URL: http://ollama:11434
+      AI_RELAY_TOKEN: ${AI_RELAY_TOKEN}
+      AI_RELAY_RPM: ${AI_RELAY_RPM:-60}
+    ports:
+      - "11435:11435"
+    depends_on:
+      - ollama
+
+volumes:
+  ollama: {}
+
