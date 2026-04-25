@@ -38,7 +38,8 @@ function geminiBase(): string {
 
 function defaultModel(): string {
   // Good default for cost/speed; user can override via AI_MODEL.
-  return process.env.AI_MODEL?.trim() || "gemini-1.5-flash";
+  // Note: some older model ids (e.g. gemini-1.5-flash) may be retired; keep this reasonably current.
+  return process.env.AI_MODEL?.trim() || "gemini-2.0-flash";
 }
 
 function pickTextFromGemini(json: GeminiGenerateContentResponse): string {
@@ -62,6 +63,57 @@ function normalizeMessagesForGemini(messages: AiMessage[]) {
   return { system, history };
 }
 
+async function geminiGenerateContent(model: string, body: unknown): Promise<Response> {
+  return fetch(
+    `${geminiBase()}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.AI_API_KEY ?? "")}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+function isModelNotFoundMessage(msg: string | undefined): boolean {
+  if (!msg) return false;
+  return /is not found|not supported for generateContent|model.*not found/i.test(msg);
+}
+
+async function generateWithFallback(
+  preferredModel: string,
+  body: unknown,
+): Promise<{ res: Response; json: GeminiGenerateContentResponse }> {
+  const fallbacks = [
+    preferredModel,
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.5-pro",
+  ];
+
+  let lastJson: GeminiGenerateContentResponse = {};
+  let lastRes: Response | null = null;
+
+  for (const m of fallbacks) {
+    const res = await geminiGenerateContent(m, body);
+    const rawText = await res.text();
+    let json: GeminiGenerateContentResponse;
+    try {
+      json = JSON.parse(rawText) as GeminiGenerateContentResponse;
+    } catch {
+      // If JSON parsing fails, don't keep retrying other models: it's likely network/proxy/html.
+      return { res, json: { error: { message: `AI response parse error (HTTP ${res.status}).` } } };
+    }
+
+    lastJson = json;
+    lastRes = res;
+
+    if (res.ok) return { res, json };
+    if (!isModelNotFoundMessage(json.error?.message)) return { res, json };
+  }
+
+  return { res: lastRes ?? new Response(null, { status: 500 }), json: lastJson };
+}
+
 export async function completeChat(
   messages: AiMessage[],
   opts?: CompleteChatOptions,
@@ -73,32 +125,20 @@ export async function completeChat(
   const model = opts?.model ?? defaultModel();
   const { system, history } = normalizeMessagesForGemini(messages);
 
-  const res = await fetch(`${geminiBase()}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.AI_API_KEY)}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const body = {
+    ...(system
+      ? {
+          systemInstruction: { parts: [{ text: system }] },
+        }
+      : {}),
+    contents: history.length ? history : [{ role: "user", parts: [{ text: "" }] }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 2048,
     },
-    body: JSON.stringify({
-      ...(system
-        ? {
-            systemInstruction: { parts: [{ text: system }] },
-          }
-        : {}),
-      contents: history.length ? history : [{ role: "user", parts: [{ text: "" }] }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-      },
-    }),
-  });
+  };
 
-  const rawText = await res.text();
-  let json: GeminiGenerateContentResponse;
-  try {
-    json = JSON.parse(rawText) as GeminiGenerateContentResponse;
-  } catch {
-    return `AI response parse error (HTTP ${res.status}).`;
-  }
+  const { res, json } = await generateWithFallback(model, body);
 
   if (!res.ok) {
     return json.error?.message ?? `AI request failed (HTTP ${res.status}).`;
@@ -130,32 +170,20 @@ export async function completeVision(
     parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 } });
   }
 
-  const res = await fetch(`${geminiBase()}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.AI_API_KEY)}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const body = {
+    ...(system
+      ? {
+          systemInstruction: { parts: [{ text: system }] },
+        }
+      : {}),
+    contents: [{ role: "user", parts: parts.length ? parts : [{ text: "" }] }],
+    generationConfig: {
+      temperature: 0.5,
+      maxOutputTokens: 4096,
     },
-    body: JSON.stringify({
-      ...(system
-        ? {
-            systemInstruction: { parts: [{ text: system }] },
-          }
-        : {}),
-      contents: [{ role: "user", parts: parts.length ? parts : [{ text: "" }] }],
-      generationConfig: {
-        temperature: 0.5,
-        maxOutputTokens: 4096,
-      },
-    }),
-  });
+  };
 
-  const rawText = await res.text();
-  let json: GeminiGenerateContentResponse;
-  try {
-    json = JSON.parse(rawText) as GeminiGenerateContentResponse;
-  } catch {
-    return `AI vision parse error (HTTP ${res.status}).`;
-  }
+  const { res, json } = await generateWithFallback(model, body);
 
   if (!res.ok) {
     return json.error?.message ?? `AI vision failed (HTTP ${res.status}).`;
