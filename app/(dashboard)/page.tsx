@@ -4,6 +4,7 @@ import { LastWorkoutStats } from "@/components/home/last-workout-stats";
 import { NutritionProgressBars } from "@/components/home/nutrition-progress-bars";
 import { AddMealSheet } from "@/components/home/add-meal-sheet";
 import { MealLogsList } from "@/components/home/meal-logs-list";
+import { MealLogsBrowser } from "@/components/home/meal-logs-browser";
 import { TodaysMacrosSection } from "@/components/home/todays-macros";
 import { HomeStartPanels } from "@/components/home/home-start-panels";
 import { DailyCheckinPanel } from "@/components/home/daily-checkin-panel";
@@ -12,11 +13,12 @@ import { DailyBriefingCard } from "@/components/home/daily-briefing-card";
 import { QuickMealStrip } from "@/components/home/quick-meal-strip";
 import { FitnessGoalsWidget } from "@/components/home/fitness-goals-widget";
 import { OnboardingBanner } from "@/components/home/onboarding-banner";
+import { WeeklyDeficitPanel } from "@/components/home/weekly-deficit-panel";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { getDb } from "@/db";
-import { userSettings } from "@/db/schema";
+import { userSettings, users } from "@/db/schema";
 import { getHomeStats } from "@/lib/home-stats";
-import { listMealLogsForDay } from "@/lib/meal-logs";
+import { listMealLogsForDates } from "@/lib/meal-logs";
 import {
   loadNutritionDashboard,
   loadPreviousWeeksForSheet,
@@ -47,7 +49,8 @@ export default async function HomePage() {
   }
 
   const db = getDb();
-  const [settingsRow] = await db
+  const [[settingsRow], [userRow]] = await Promise.all([
+    db
     .select({
       trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
       restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
@@ -57,7 +60,13 @@ export default async function HomePage() {
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
-    .limit(1);
+      .limit(1),
+    db
+      .select({ weightKg: users.weightKg })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1),
+  ]);
 
   const dash = await loadNutritionDashboard(userId, settingsRow);
   const previousWeeks = await loadPreviousWeeksForSheet(
@@ -80,9 +89,12 @@ export default async function HomePage() {
   const weekG = dash.week.sumCaloriesGoal;
   const weekC = dash.week.sumCaloriesConsumed;
   const weekProg = kcalProgress(weekC, weekG);
+  const weekDeficitKcal = weekG > 0 ? weekG - weekC : null;
 
   const stats = await getHomeStats(userId);
-  const mealEntries = await listMealLogsForDay(userId, dash.todayKey);
+  const weekDateKeys = dash.week.days.map((d) => d.date);
+  const mealEntriesByDate = await listMealLogsForDates(userId, weekDateKeys);
+  const mealEntriesToday = mealEntriesByDate[dash.todayKey] ?? [];
   const weekDayRows = buildWeekNutritionRows(dash.week.days);
   const [checkin, streaks] = await Promise.all([
     getDailyCheckin(userId, dash.todayKey),
@@ -97,9 +109,9 @@ export default async function HomePage() {
         : `${Math.round(dayC)} kcal spożyte`;
 
   const subtitleMeals =
-    mealEntries.length === 0
+    mealEntriesToday.length === 0
       ? `Brak wpisów · ${dash.todayKey}`
-      : `${mealEntries.length} wpisów · ${dash.todayKey}`;
+      : `${mealEntriesToday.length} wpisów · ${dash.todayKey}`;
 
   const subtitleCheckIn = checkin
     ? checkin.dayClosedAtMs
@@ -111,6 +123,15 @@ export default async function HomePage() {
     weekG > 0
       ? `${dayProg.pct.toFixed(0)}% dziś · ${weekProg.pct.toFixed(0)}% tydzień`
       : `${dayProg.pct.toFixed(0)}% dziś`;
+
+  const subtitleWeeklyDeficit =
+    weekDeficitKcal == null
+      ? "Brak sumy celów kcal — ustaw cele w profilu"
+      : weekDeficitKcal > 0
+        ? `${Math.round(weekDeficitKcal)} kcal poniżej celu`
+        : weekDeficitKcal < 0
+          ? `${Math.round(Math.abs(weekDeficitKcal))} kcal nadwyżki`
+          : "Zgodnie z celem tygodnia";
 
   const subtitleLastWorkout = stats.lastWorkout
     ? `${stats.lastWorkout.title.slice(0, 42)}${stats.lastWorkout.title.length > 42 ? "…" : ""}`
@@ -164,6 +185,7 @@ export default async function HomePage() {
         subtitleMacros={subtitleMacros}
         subtitleMeals={subtitleMeals}
         subtitleTargets={subtitleTargets}
+          subtitleWeeklyDeficit={subtitleWeeklyDeficit}
         subtitleCheckIn={subtitleCheckIn}
         subtitleLastWorkout={subtitleLastWorkout}
         subtitleTrend={subtitleTrend}
@@ -176,10 +198,10 @@ export default async function HomePage() {
           />
         }
         mealsPanel={
-          <MealLogsList
-            entries={mealEntries}
-            dateKey={dash.todayKey}
-            embedded
+          <MealLogsBrowser
+            todayKey={dash.todayKey}
+            availableDateKeys={weekDateKeys}
+            entriesByDate={mealEntriesByDate}
           />
         }
         targetsPanel={
@@ -217,6 +239,13 @@ export default async function HomePage() {
               previousWeeks={previousWeeks}
             />
           </div>
+        }
+        weeklyDeficitPanel={
+          <WeeklyDeficitPanel
+            weekLabel="Ten tydzień (pon.–niedz.)"
+            deficitKcal={weekDeficitKcal}
+            weightKg={userRow?.weightKg ?? null}
+          />
         }
         checkInPanel={<DailyCheckinPanel dateKey={dash.todayKey} existing={checkin} />}
         lastWorkoutPanel={<LastWorkoutStats stats={stats} embedded />}

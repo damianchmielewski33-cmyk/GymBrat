@@ -10,6 +10,7 @@ import {
   Dumbbell,
   HeartPulse,
   PieChart,
+  TrendingDown,
   X,
   UtensilsCrossed,
 } from "lucide-react";
@@ -20,6 +21,7 @@ export type HomeStartSectionId =
   | "macros"
   | "meals"
   | "targets"
+  | "weekly-deficit"
   | "check-in"
   | "last-workout"
   | "trend";
@@ -35,6 +37,7 @@ export function HomeStartPanels({
   subtitleMacros,
   subtitleMeals,
   subtitleTargets,
+  subtitleWeeklyDeficit,
   subtitleCheckIn,
   subtitleLastWorkout,
   subtitleTrend,
@@ -42,6 +45,7 @@ export function HomeStartPanels({
   macrosPanel,
   mealsPanel,
   targetsPanel,
+  weeklyDeficitPanel,
   checkInPanel,
   lastWorkoutPanel,
   trendPanel,
@@ -49,6 +53,7 @@ export function HomeStartPanels({
   subtitleMacros: string;
   subtitleMeals: string;
   subtitleTargets: string;
+  subtitleWeeklyDeficit: string;
   subtitleCheckIn: string;
   subtitleLastWorkout: string;
   subtitleTrend: string;
@@ -56,6 +61,7 @@ export function HomeStartPanels({
   macrosPanel: ReactNode;
   mealsPanel: ReactNode;
   targetsPanel: ReactNode;
+  weeklyDeficitPanel: ReactNode;
   checkInPanel: ReactNode;
   lastWorkoutPanel: ReactNode;
   trendPanel: ReactNode;
@@ -79,6 +85,12 @@ export function HomeStartPanels({
         title: "Realizacja celów",
         subtitle: subtitleTargets,
         icon: PieChart,
+      },
+      {
+        id: "weekly-deficit",
+        title: "Deficyt tygodnia",
+        subtitle: subtitleWeeklyDeficit,
+        icon: TrendingDown,
       },
       {
         id: "check-in",
@@ -109,6 +121,7 @@ export function HomeStartPanels({
       subtitleMacros,
       subtitleMeals,
       subtitleTargets,
+      subtitleWeeklyDeficit,
       subtitleCheckIn,
       subtitleTrend,
     ],
@@ -131,6 +144,8 @@ export function HomeStartPanels({
         ? mealsPanel
         : open === "targets"
           ? targetsPanel
+          : open === "weekly-deficit"
+            ? weeklyDeficitPanel
           : open === "check-in"
             ? checkInPanel
             : open === "last-workout"

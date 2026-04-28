@@ -62,6 +62,9 @@ type HourlyJson = {
   by_hour: { hour: number; label: string; views: number }[];
   total_views: number;
   peak: { hour: number; label: string; views: number };
+  range?: { from: string; to: string };
+  timezone?: string;
+  by_day?: { ymd: string; label: string; hours: number[]; total: number }[];
 };
 
 type PurgeWorkoutsJson = {
@@ -140,6 +143,23 @@ export function AdminOverviewClient() {
   );
 
   const hourData = hourly?.by_hour ?? [];
+  const heatmapDays = hourly?.by_day ?? [];
+
+  const heatMax = useMemo(() => {
+    let m = 0;
+    for (const d of heatmapDays) {
+      for (const v of d.hours) m = Math.max(m, v);
+    }
+    return m;
+  }, [heatmapDays]);
+
+  const heatColor = useCallback((v: number) => {
+    if (v <= 0 || heatMax <= 0) return "rgba(255,255,255,0.04)";
+    const t = Math.min(1, v / heatMax);
+    // neon-ish scale: dark -> rose
+    const alpha = 0.12 + 0.62 * t;
+    return `rgba(255,45,85,${alpha.toFixed(3)})`;
+  }, [heatMax]);
 
   const purge = useCallback(
     async (kind: "workouts" | "meals") => {
@@ -366,6 +386,60 @@ export function AdminOverviewClient() {
                   <Bar dataKey="views" fill="#ff2d55" radius={[6, 6, 0, 0]} name="Wejścia" />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {!loading && hourly?.by_day?.length ? (
+        <div className="glass-panel neon-glow p-5 sm:p-6">
+          <h2 className="font-heading text-lg font-semibold text-white">
+            Mapa ciepła wejść (godzina × dzień)
+          </h2>
+          <p className="mt-1 text-xs text-white/50">
+            Ostatnie 7 dni w strefie {hourly.timezone ?? "Europe/Warsaw"}. Jaśniej = więcej wejść.
+          </p>
+
+          <div className="mt-4 overflow-auto">
+            <div className="min-w-[880px]">
+              <div className="grid grid-cols-[140px_repeat(24,minmax(0,1fr))] gap-1 text-[10px] text-white/45">
+                <div />
+                {Array.from({ length: 24 }, (_, h) => (
+                  <div key={h} className="text-center font-mono">
+                    {String(h).padStart(2, "0")}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-2 space-y-1">
+                {heatmapDays.map((d) => (
+                  <div
+                    key={d.ymd}
+                    className="grid grid-cols-[140px_repeat(24,minmax(0,1fr))] gap-1"
+                  >
+                    <div className="truncate pr-2 text-[11px] text-white/70">
+                      {d.label}
+                    </div>
+                    {d.hours.map((v, h) => (
+                      <div
+                        key={`${d.ymd}_${h}`}
+                        title={`${d.ymd} ${String(h).padStart(2, "0")}:00 — ${v} wejść`}
+                        className="h-6 rounded-md border border-white/10"
+                        style={{ backgroundColor: heatColor(v) }}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 flex items-center justify-between gap-3 text-xs text-white/45">
+                <span>
+                  Skala: 0 → {heatMax}
+                </span>
+                <span className="font-mono">
+                  {hourly.range?.from && hourly.range?.to ? `${hourly.range.from} → ${hourly.range.to}` : ""}
+                </span>
+              </div>
             </div>
           </div>
         </div>

@@ -107,3 +107,39 @@ export async function listMealLogsForDay(
       r.createdAt instanceof Date ? r.createdAt.getTime() : Number(r.createdAt),
   }));
 }
+
+export async function listMealLogsForDates(
+  userId: string,
+  dates: string[],
+): Promise<Record<string, MealLogDto[]>> {
+  const unique = [...new Set(dates)].filter(Boolean);
+  if (unique.length === 0) return {};
+
+  await ensureMealLogsTableOncePerProcess();
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(mealLogs)
+    .where(and(eq(mealLogs.userId, userId), inArray(mealLogs.date, unique)))
+    .orderBy(asc(mealLogs.date), asc(mealLogs.createdAt));
+
+  const out: Record<string, MealLogDto[]> = {};
+  for (const d of unique) out[d] = [];
+
+  for (const r of rows) {
+    const dto: MealLogDto = {
+      id: r.id,
+      date: r.date,
+      name: r.name,
+      calories: Number(r.calories),
+      proteinG: Number(r.proteinG),
+      fatG: Number(r.fatG),
+      carbsG: Number(r.carbsG),
+      createdAtMs:
+        r.createdAt instanceof Date ? r.createdAt.getTime() : Number(r.createdAt),
+    };
+    (out[r.date] ?? (out[r.date] = [])).push(dto);
+  }
+
+  return out;
+}
