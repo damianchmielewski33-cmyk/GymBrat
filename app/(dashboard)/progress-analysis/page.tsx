@@ -6,6 +6,7 @@ import { CoachChatPanel } from "@/components/coach/coach-chat-panel";
 import { WeighInCard } from "@/components/progress-analysis/weigh-in-card";
 import { getProgressAnalysisData } from "@/lib/progress-analysis";
 import { listExerciseNameSuggestions } from "@/lib/exercise-progress";
+import { isAiConfigured } from "@/ai/client";
 import { BrainCircuit, ChartLine, Dumbbell, Layers3, Ruler, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 
@@ -18,6 +19,7 @@ export default async function ProgressAnalysisPage() {
     listExerciseNameSuggestions(userId, { days: 180 }),
   ]);
   const { series, stats } = data;
+  const aiOn = isAiConfigured();
 
   return (
     <div className="space-y-8">
@@ -30,8 +32,19 @@ export default async function ProgressAnalysisPage() {
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-white/65">
           Tygodniowe sygnały: trend wagi, tonnage (∑reps×kg), e1RM oraz siła względna.
-          Czat coach używa kontekstu z aplikacji — ustaw <span className="font-mono">AI_API_KEY</span>, aby
-          włączyć odpowiedzi modelu.
+          {!aiOn ? (
+            <>
+              {" "}
+              Czat coach używa kontekstu z aplikacji — skonfiguruj AI (np.{" "}
+              <span className="font-mono">AI_PROVIDER</span> +{" "}
+              <span className="font-mono">AI_API_KEY</span> dla Gemini albo relaya), aby włączyć odpowiedzi modelu.
+            </>
+          ) : (
+            <>
+              {" "}
+              Czat coach jest podłączony do modelu (AI skonfigurowane).
+            </>
+          )}
         </p>
       </header>
 

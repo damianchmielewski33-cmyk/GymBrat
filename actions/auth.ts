@@ -50,6 +50,21 @@ function generate6DigitCode(): string {
   return String(n).padStart(6, "0");
 }
 
+function isRegisterEmailMockMode(): boolean {
+  // W produkcji chcemy przejściowo działać bez SMTP.
+  const explicit = process.env.MOCK_REGISTER_EMAIL_CODE?.trim();
+  if (explicit === "1" || explicit === "true") return true;
+  if (explicit === "0" || explicit === "false") return false;
+
+  // Auto: jeśli nie ma SMTP, nie próbujemy wysyłać e-maili.
+  const host = process.env.SMTP_HOST?.trim();
+  const user = process.env.SMTP_USER?.trim();
+  const pass = process.env.SMTP_PASS?.trim();
+  return !host || !user || !pass;
+}
+
+const MOCK_REGISTER_CODE = "1234";
+
 export async function sendRegisterCode(input: unknown): Promise<SendRegisterCodeState> {
   const parsed = sendRegisterCodeSchema.safeParse(input);
   if (!parsed.success) {
@@ -66,6 +81,12 @@ export async function sendRegisterCode(input: unknown): Promise<SendRegisterCode
     .limit(1);
   if (existingUser) {
     return { ok: false, error: "Konto z tym e-mailem już istnieje. Zaloguj się." };
+  }
+
+  if (isRegisterEmailMockMode()) {
+    // SMTP nie jest skonfigurowane — pozwalamy na rejestrację z kodem mock.
+    // Celowo nie zapisujemy nic do DB, żeby nie blokować rejestracji brakiem rekordów.
+    return { ok: true };
   }
 
   const now = new Date();
@@ -138,6 +159,55 @@ export async function registerUser(
 
   const data = parsed.data;
   const email = data.email.toLowerCase();
+
+  if (isRegisterEmailMockMode()) {
+    if (data.emailCode !== MOCK_REGISTER_CODE) {
+      return { ok: false, error: `Nieprawidłowy kod weryfikacyjny. Wpisz ${MOCK_REGISTER_CODE}.` };
+    }
+    // Dalej lecimy standardową ścieżką tworzenia konta, ale bez sprawdzania rekordu kodu w DB.
+    const db = getDb();
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    if (existing) {
+      return { ok: false, error: "An account with this email already exists." };
+    }
+
+    const now = new Date();
+    const passwordHash = await hash(data.password, 12);
+    const userId = crypto.randomUUID();
+    const displayName = `${data.firstName} ${data.lastName}`.trim();
+
+    await db.insert(users).values({
+      id: userId,
+      email,
+      passwordHash,
+      name: displayName,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      weightKg: data.weightKg,
+      heightCm: data.heightCm,
+      age: data.age,
+      activityLevel: data.activityLevel,
+      appRole: data.role,
+      createdAt: now,
+    });
+    await db.insert(userSettings).values({
+      userId,
+      weeklyCardioGoalMinutes: 150,
+    });
+
+    await db.insert(siteActivityLog).values({
+      userId,
+      action: "Rejestracja konta",
+      metaJson: JSON.stringify({ role: data.role, emailCodeMock: true }),
+      deploymentEnv: getAnalyticsDeployment(),
+    });
+
+    return { ok: true };
+  }
 
   const db = getDb();
 

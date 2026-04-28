@@ -78,6 +78,13 @@ function openAiBase(): string {
   return base.replace(/\/$/, "");
 }
 
+function isLikelyLocalOllamaBase(base: string): boolean {
+  // Default Ollama listens on 11434 locally. When talking to it directly,
+  // no shared-secret token is required.
+  const b = base.replace(/\/$/, "");
+  return b === "http://127.0.0.1:11434" || b === "http://localhost:11434";
+}
+
 function defaultModel(): string {
   const m = process.env.AI_MODEL?.trim();
   if (m) return m;
@@ -106,8 +113,14 @@ function normalizeMessagesForGemini(messages: AiMessage[]) {
 }
 
 export function isAiConfigured(): boolean {
-  if (provider() === "ollama") return true;
-  return Boolean(process.env.AI_API_KEY?.trim());
+  const key = process.env.AI_API_KEY?.trim();
+  if (provider() === "ollama") {
+    // If the base points to a relay / remote OpenAI-like endpoint, require a token.
+    // If it points to local Ollama directly, allow empty key.
+    const base = openAiBase();
+    return Boolean(key) || isLikelyLocalOllamaBase(base);
+  }
+  return Boolean(key);
 }
 
 async function geminiGenerateContent(model: string, body: unknown): Promise<Response> {
@@ -195,9 +208,13 @@ type OpenAiLikeChatResponse = {
 };
 
 async function openAiLikeChat(messages: AiMessage[], model: string): Promise<string> {
+  const key = process.env.AI_API_KEY?.trim();
   const res = await fetch(`${openAiBase()}/v1/chat/completions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(key ? { Authorization: `Bearer ${key}` } : {}),
+    },
     body: JSON.stringify({
       model,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
@@ -223,6 +240,7 @@ async function openAiLikeChat(messages: AiMessage[], model: string): Promise<str
 }
 
 async function openAiLikeVision(messages: AiMessage[], images: AiImage[], model: string): Promise<string> {
+  const key = process.env.AI_API_KEY?.trim();
   const system = messages.find((m) => m.role === "system")?.content ?? "";
   const userText = messages
     .filter((m) => m.role === "user")
@@ -243,7 +261,10 @@ async function openAiLikeVision(messages: AiMessage[], images: AiImage[], model:
 
   const res = await fetch(`${openAiBase()}/v1/chat/completions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(key ? { Authorization: `Bearer ${key}` } : {}),
+    },
     body: JSON.stringify({
       model,
       messages: [
