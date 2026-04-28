@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { saveFitnessGoalsAction, type FitnessGoals } from "@/actions/fitness-goals";
+import { saveFitnessGoalsAction } from "@/actions/fitness-goals";
+import type { FitnessGoals } from "@/lib/fitness-goals";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

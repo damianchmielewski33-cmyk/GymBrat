@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
-import { fitnessGoalsSchema, fitnessGoalsToJson, type FitnessGoals } from "@/lib/fitness-goals";
+import { fitnessGoalsSchema, fitnessGoalsToJson } from "@/lib/fitness-goals";
 
 export async function saveFitnessGoalsAction(input: unknown) {
   const session = await auth();
@@ -29,5 +29,3 @@ export async function saveFitnessGoalsAction(input: unknown) {
   revalidatePath("/progress-analysis");
   return { ok: true as const };
 }
-
-export type { FitnessGoals };
