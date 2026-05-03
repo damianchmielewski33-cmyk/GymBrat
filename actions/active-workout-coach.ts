@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { chatCoach } from "@/ai/coach";
 import { isAiConfigured } from "@/ai/client";
 import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
+import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import type { ChatCoachPromptInput } from "@/ai/prompts/chatCoach";
 
 const SetSchema = z.object({
@@ -137,7 +138,8 @@ export async function activeWorkoutCoachAction(input: unknown): Promise<ActiveWo
 
   const snapshot = buildSnapshot(parsed.data);
 
-  if (!isAiConfigured()) {
+  const userAiOff = await getUserAiFeaturesDisabled(session.user.id);
+  if (!isAiConfigured() || userAiOff) {
     return { ok: true, text: heuristicTip(snapshot), source: "heuristic" };
   }
 

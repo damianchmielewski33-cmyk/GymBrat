@@ -15,6 +15,7 @@ import { getDb } from "@/db";
 import { users, userSettings, workouts } from "@/db/schema";
 import { getReportsData } from "@/lib/reports";
 import { getLatestBodyReportMetrics } from "@/lib/body-reports";
+import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { getWeeklyCardioProgress as getWeeklyCardioProgressData } from "@/lib/cardio";
 import { calendarDateKey } from "@/lib/local-date";
 import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
@@ -304,7 +305,8 @@ export async function aiGeneratePlan(overrides?: unknown) {
     fitatuNutrition: fitatu,
   };
 
-  const plan = await generateTrainingPlan(input);
+  const userAiOff = await getUserAiFeaturesDisabled(session.user.id);
+  const plan = await generateTrainingPlan(input, { forceHeuristic: userAiOff });
   return { ok: true as const, plan };
 }
 
@@ -333,7 +335,8 @@ export async function aiAnalyzePhoto(input: unknown) {
     base64: im.base64,
   }));
 
-  const analysis = await analyzeBodyPhoto({ images });
+  const userAiOff = await getUserAiFeaturesDisabled(session.user.id);
+  const analysis = await analyzeBodyPhoto({ images, forceHeuristic: userAiOff });
   return { ok: true as const, analysis };
 }
 

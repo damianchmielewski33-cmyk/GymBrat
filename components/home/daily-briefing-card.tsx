@@ -4,7 +4,7 @@ import { getDailyBriefing } from "@/lib/daily-briefing";
 import { isAiConfigured } from "@/ai/client";
 
 export async function DailyBriefingCard({ userId }: { userId: string }) {
-  const { text, source } = await getDailyBriefing(userId);
+  const { text, source, aiDisabledByUser } = await getDailyBriefing(userId);
   const aiConfigured = isAiConfigured();
   const fromModel = source === "ai";
 
@@ -30,9 +30,11 @@ export async function DailyBriefingCard({ userId }: { userId: string }) {
             <p className="mt-1 text-xs text-white/45">
               {fromModel
                 ? "Krótka wiadomość od tego samego coacha co w czacie — na podstawie Twoich danych w aplikacji."
-                : aiConfigured
-                  ? "Dziś użyliśmy krótkiego skryptu z Twoich statystyk (model nie zwrócił treści). Spróbuj odświeżyć stronę później."
-                  : "Krótkie podsumowanie z Twoich liczb w aplikacji. Włącz dostawcę AI, aby dostać pełny, narracyjny briefing od modelu."}
+                : aiDisabledByUser
+                  ? "Wyłączyłeś funkcje AI w profilu — poniżej skrót z Twoich danych (bez modelu)."
+                  : aiConfigured
+                    ? "Dziś użyliśmy krótkiego skryptu z Twoich statystyk (model nie zwrócił treści). Spróbuj odświeżyć stronę później."
+                    : "Krótkie podsumowanie z Twoich liczb w aplikacji. Włącz dostawcę AI, aby dostać pełny, narracyjny briefing od modelu."}
             </p>
           </div>
 
@@ -53,7 +55,7 @@ export async function DailyBriefingCard({ userId }: { userId: string }) {
             >
               Rozwiń temat w Coach czat →
             </Link>
-            {!aiConfigured ? (
+            {!aiConfigured && !aiDisabledByUser ? (
               <p className="text-[11px] text-white/35">
                 Lokalnie: ustaw np.{" "}
                 <span className="font-mono text-white/50">AI_PROVIDER=ollama</span>

@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { chatCoach } from "@/ai/coach";
 import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
+import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 
 export async function coachChatAction(input: unknown): Promise<
   | { ok: true; reply: string }
@@ -10,6 +11,14 @@ export async function coachChatAction(input: unknown): Promise<
 > {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Brak sesji." };
+
+  if (await getUserAiFeaturesDisabled(session.user.id)) {
+    return {
+      ok: false,
+      error:
+        "Wyłączyłeś funkcje AI w profilu. Włącz je w sekcji „Funkcje AI”, aby z powrotem korzystać z czatu trenera.",
+    };
+  }
 
   const raw = input as { messages?: unknown };
   const messages = raw.messages;

@@ -15,6 +15,7 @@ type Props = {
   exercises: WorkoutExerciseState[];
   selectedExerciseId: string | null;
   restRemaining: number | null;
+  userAiFeaturesDisabled?: boolean;
 };
 
 function serializeExercises(exercises: WorkoutExerciseState[]) {
@@ -35,6 +36,7 @@ export function ActiveWorkoutCoachPanel({
   exercises,
   selectedExerciseId,
   restRemaining,
+  userAiFeaturesDisabled = false,
 }: Props) {
   const [text, setText] = useState<string | null>(null);
   const [source, setSource] = useState<"ai" | "heuristic" | null>(null);
@@ -174,7 +176,9 @@ export function ActiveWorkoutCoachPanel({
               <p className="text-[11px] text-white/40">
                 {source === "ai"
                   ? "Na podstawie Twojej bieżącej sesji i danych z aplikacji."
-                  : "Tryb offline / bez AI — krótki skrypt z Twojej sesji. Włącz dostawcę AI, aby dostać pełniejsze podpowiedzi."}
+                  : userAiFeaturesDisabled
+                    ? "Wyłączyłeś funkcje AI w profilu — bez modelu, tylko skrót z bieżącej sesji."
+                    : "Tryb offline / bez AI — krótki skrypt z Twojej sesji. Włącz dostawcę AI, aby dostać pełniejsze podpowiedzi."}
               </p>
             </>
           ) : loading ? (

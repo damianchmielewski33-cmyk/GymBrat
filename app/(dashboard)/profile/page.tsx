@@ -16,6 +16,7 @@ import { parseRemindersJson } from "@/lib/reminders-types";
 import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
+import { AiFeaturesSettingsCard } from "@/components/profile/ai-features-settings-card";
 import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
@@ -48,6 +49,7 @@ export default async function ProfilePage() {
       remindersJson: userSettings.remindersJson,
       fitnessGoalsJson: userSettings.fitnessGoalsJson,
       mealTemplatesJson: userSettings.mealTemplatesJson,
+      aiFeaturesDisabled: userSettings.aiFeaturesDisabled,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
@@ -134,6 +136,10 @@ export default async function ProfilePage() {
         <div className="grid gap-6 lg:col-span-2 lg:grid-cols-2">
           <ReminderSettingsCard initial={parseRemindersJson(s?.remindersJson ?? null)} />
           <FitnessGoalsForm initial={parseFitnessGoalsJson(s?.fitnessGoalsJson ?? null)} />
+        </div>
+
+        <div className="lg:col-span-2">
+          <AiFeaturesSettingsCard initialDisabled={Boolean(s?.aiFeaturesDisabled)} />
         </div>
 
         <div className="lg:col-span-2">

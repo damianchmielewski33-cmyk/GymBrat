@@ -35,6 +35,7 @@ export async function updateAiFeaturesDisabledAction(
       userId,
       weeklyCardioGoalMinutes: 150,
       aiFeaturesDisabled: disabled,
+      updatedAt: new Date(),
     });
   } else {
     await db

@@ -3,12 +3,15 @@ import "server-only";
 import { chatCoach } from "@/ai/coach";
 import { isAiConfigured } from "@/ai/client";
 import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
+import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 
 export type DailyBriefingSource = "ai" | "heuristic";
 
 export type DailyBriefing = {
   text: string;
   source: DailyBriefingSource;
+  /** Użytkownik wyłączył AI w profilu (tekst z heurystyki). */
+  aiDisabledByUser?: boolean;
 };
 
 function heuristicBrief(rc: Awaited<ReturnType<typeof buildCoachRecentContext>>): string {
@@ -27,13 +30,18 @@ Bez powitania typu „cześć” / „witaj”, bez podpisu, bez pytań na końc
 
 /** Krótki briefing na Start (Ten sam model co Coach czat — lub heurystyka bez klucza API). */
 export async function getDailyBriefing(userId: string): Promise<DailyBriefing> {
-  const [rc, profile] = await Promise.all([
+  const [userAiOff, rc, profile] = await Promise.all([
+    getUserAiFeaturesDisabled(userId),
     buildCoachRecentContext(userId),
     buildCoachUserProfile(userId),
   ]);
 
-  if (!isAiConfigured()) {
-    return { text: heuristicBrief(rc), source: "heuristic" };
+  if (!isAiConfigured() || userAiOff) {
+    return {
+      text: heuristicBrief(rc),
+      source: "heuristic",
+      aiDisabledByUser: userAiOff,
+    };
   }
 
   try {

@@ -7,6 +7,7 @@ import { WeighInCard } from "@/components/progress-analysis/weigh-in-card";
 import { getProgressAnalysisData } from "@/lib/progress-analysis";
 import { listExerciseNameSuggestions } from "@/lib/exercise-progress";
 import { isAiConfigured } from "@/ai/client";
+import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { BrainCircuit, ChartLine, Dumbbell, Layers3, Ruler, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 
@@ -14,12 +15,14 @@ export default async function ProgressAnalysisPage() {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) redirect("/login");
-  const [data, exerciseSuggestions] = await Promise.all([
+  const [data, exerciseSuggestions, userAiDisabled] = await Promise.all([
     getProgressAnalysisData(userId),
     listExerciseNameSuggestions(userId, { days: 180 }),
+    getUserAiFeaturesDisabled(userId),
   ]);
   const { series, stats } = data;
-  const aiOn = isAiConfigured();
+  const aiProviderOn = isAiConfigured();
+  const coachModelOn = aiProviderOn && !userAiDisabled;
 
   return (
     <div className="space-y-8">
@@ -32,7 +35,12 @@ export default async function ProgressAnalysisPage() {
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-white/65">
           Tygodniowe sygnały: trend wagi, tonnage (∑reps×kg), e1RM oraz siła względna.
-          {!aiOn ? (
+          {userAiDisabled ? (
+            <>
+              {" "}
+              Wyłączyłeś funkcje AI w profilu — czat trenera nie wywołuje modelu, dopóki tego nie zmienisz.
+            </>
+          ) : !aiProviderOn ? (
             <>
               {" "}
               Czat coach używa kontekstu z aplikacji — skonfiguruj AI (np.{" "}
@@ -114,7 +122,7 @@ export default async function ProgressAnalysisPage() {
         </div>
         <div className="space-y-6">
           <WeighInCard />
-          <CoachChatPanel />
+          <CoachChatPanel modelEnabled={coachModelOn} />
           <div className="glass-panel neon-glow relative overflow-hidden p-6">
             <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(120deg,rgba(255,255,255,0.10),transparent_55%),radial-gradient(640px_280px_at_15%_10%,rgba(255,45,85,0.16),transparent_60%)]" />
             <div className="relative">

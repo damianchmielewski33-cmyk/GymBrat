@@ -1,26 +1,38 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { coachChatAction } from "@/actions/coach-chat";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle } from "lucide-react";
+import Link from "next/link";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-export function CoachChatPanel() {
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      role: "assistant",
-      content:
-        "Cześć — jestem trenerem GymBrat. Zapytaj o trening, regenerację lub makra (krótko, po polsku).",
-    },
-  ]);
+const introOn = {
+  role: "assistant" as const,
+  content:
+    "Cześć — jestem trenerem GymBrat. Zapytaj o trening, regenerację lub makra (krótko, po polsku).",
+};
+
+const introOff = {
+  role: "assistant" as const,
+  content: "Funkcje AI są wyłączone w profilu — czat z modelem jest niedostępny.",
+};
+
+export function CoachChatPanel({ modelEnabled = true }: { modelEnabled?: boolean }) {
+  const [messages, setMessages] = useState<Msg[]>(() => (modelEnabled ? [introOn] : [introOff]));
   const [input, setInput] = useState("");
   const [pending, start] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    setMessages(modelEnabled ? [introOn] : [introOff]);
+    setInput("");
+  }, [modelEnabled]);
+
   function send() {
+    if (!modelEnabled) return;
     const t = input.trim();
     if (!t || pending) return;
     const nextUser: Msg = { role: "user", content: t };
@@ -55,6 +67,14 @@ export function CoachChatPanel() {
           <p className="font-heading text-lg font-semibold text-white">Coach czat</p>
         </div>
       </div>
+      {!modelEnabled ? (
+        <p className="relative text-sm text-white/55">
+          <Link href="/profile" className="font-medium text-[var(--neon)] underline-offset-4 hover:underline">
+            Otwórz profil
+          </Link>{" "}
+          i odznacz „Wyłącz wszystkie funkcje AI”, aby włączyć model (jeśli dostawca jest skonfigurowany).
+        </p>
+      ) : null}
       <div className="relative min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 text-sm">
         {messages.map((m, i) => (
           <div
@@ -75,7 +95,8 @@ export function CoachChatPanel() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Np. Jak rozłożyć białko na redukcji?"
-          className="min-h-[44px] resize-none border-white/12 bg-white/[0.05] text-white placeholder:text-white/35"
+          disabled={!modelEnabled}
+          className="min-h-[44px] resize-none border-white/12 bg-white/[0.05] text-white placeholder:text-white/35 disabled:cursor-not-allowed disabled:opacity-45"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -85,7 +106,7 @@ export function CoachChatPanel() {
         />
         <Button
           type="button"
-          disabled={pending || !input.trim()}
+          disabled={pending || !input.trim() || !modelEnabled}
           className="h-11 shrink-0 self-end bg-[var(--neon)] px-4 text-white hover:bg-[#ff4d6d]"
           onClick={send}
         >

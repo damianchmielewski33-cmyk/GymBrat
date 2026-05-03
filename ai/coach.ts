@@ -266,7 +266,10 @@ function makeHeuristicPlan(input: TrainingPlanInput): TrainingPlan {
   };
 }
 
-export async function generateTrainingPlan(input: TrainingPlanInput): Promise<TrainingPlan> {
+export async function generateTrainingPlan(
+  input: TrainingPlanInput,
+  options?: { forceHeuristic?: boolean },
+): Promise<TrainingPlan> {
   const promptInput: TrainingPlanPromptInput = {
     age: input.age,
     weightKg: input.weightKg,
@@ -281,7 +284,7 @@ export async function generateTrainingPlan(input: TrainingPlanInput): Promise<Tr
     cardioPerformance: input.cardioPerformance,
   };
 
-  if (!isAiConfigured()) {
+  if (!isAiConfigured() || options?.forceHeuristic === true) {
     return makeHeuristicPlan(input);
   }
 
@@ -300,14 +303,18 @@ export async function generateTrainingPlan(input: TrainingPlanInput): Promise<Tr
 export async function analyzeBodyPhoto(input: {
   images: AiImage[];
   context?: BodyAnalysisPromptInput["context"];
+  /** Użytkownik wyłączył AI w profilu — ten sam fallback co przy braku dostawcy. */
+  forceHeuristic?: boolean;
 }): Promise<BodyAnalysis> {
   const context = input.context ?? {};
 
-  if (!isAiConfigured()) {
+  if (!isAiConfigured() || input.forceHeuristic === true) {
+    const userDisabled = input.forceHeuristic === true && isAiConfigured();
     return {
       posture: {
-        summary:
-          "AI is not configured. Upload photos can be stored, but analysis requires an AI provider.",
+        summary: userDisabled
+          ? "Wyłączyłeś funkcje AI w profilu. Zdjęcia mogą być zapisane, ale analiza modelu jest niedostępna."
+          : "AI is not configured. Upload photos can be stored, but analysis requires an AI provider.",
         flags: [],
         confidence: "low",
       },
@@ -315,8 +322,9 @@ export async function analyzeBodyPhoto(input: {
       bodyFatEstimate: {
         percentRange: [0, 0],
         confidence: "low",
-        disclaimer:
-          "AI provider not configured. This feature will produce an approximate range once enabled.",
+        disclaimer: userDisabled
+          ? "Włącz funkcje AI w profilu, aby z powrotem korzystać z analizy zdjęć."
+          : "AI provider not configured. This feature will produce an approximate range once enabled.",
       },
       recommendations: {
         strengthPriorities: ["Full-body strength 2–4x/week"],
@@ -358,13 +366,16 @@ export async function compareProgressPhotos(input: {
   earlier: AiImage[];
   later: AiImage[];
   context?: ProgressComparisonPromptInput["context"];
+  forceHeuristic?: boolean;
 }): Promise<ProgressReport> {
   const context = input.context ?? null;
 
-  if (!isAiConfigured()) {
+  if (!isAiConfigured() || input.forceHeuristic === true) {
+    const userDisabled = input.forceHeuristic === true && isAiConfigured();
     return {
-      summary:
-        "AI is not configured yet. Once enabled, this will compare the two dates and generate a report.",
+      summary: userDisabled
+        ? "Wyłączyłeś funkcje AI w profilu — porównanie zdjęć przez model jest niedostępne."
+        : "AI is not configured yet. Once enabled, this will compare the two dates and generate a report.",
       observations: { composition: [], posture: [], symmetry: [], confidence: "low" },
       wins: [],
       focusNext: [],
