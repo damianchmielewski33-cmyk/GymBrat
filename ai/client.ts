@@ -6,7 +6,8 @@
  * - Ollama (local, free): set `AI_PROVIDER=ollama`, set `AI_API_BASE_URL` (default http://127.0.0.1:11434).
  *
  * Optional:
- * - `AI_MODEL`
+ * - `AI_MODEL` (Gemini: on free tier AI Studio may show 0 RPM/TPM/RPD for newer models like 2.0 Flash;
+ *   use a model row that has non-zero limits, e.g. `gemini-1.5-flash`, or enable billing.)
  */
 
 export type AiMessage = { role: "system" | "user" | "assistant"; content: string };
@@ -88,7 +89,8 @@ function isLikelyLocalOllamaBase(base: string): boolean {
 function defaultModel(): string {
   const m = process.env.AI_MODEL?.trim();
   if (m) return m;
-  return provider() === "ollama" ? "llama3.1:8b" : "gemini-2.0-flash";
+  // Default avoids gemini-2.0-flash: many free-tier projects show 0/0 quota for 2.0 in AI Studio.
+  return provider() === "ollama" ? "llama3.1:8b" : "gemini-1.5-flash";
 }
 
 function pickTextFromGemini(json: GeminiGenerateContentResponse): string {
@@ -159,6 +161,7 @@ function geminiFallbackModels(preferredModel: string): string[] {
     preferredModel.trim(),
     "gemini-2.5-flash",
     "gemini-2.0-flash",
+    "gemini-1.5-flash",
     "gemini-2.5-pro",
   ];
   const seen = new Set<string>();
