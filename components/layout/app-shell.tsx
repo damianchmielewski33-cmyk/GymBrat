@@ -7,6 +7,7 @@ import { signOut, useSession } from "next-auth/react";
 import {
   Activity,
   BarChart3,
+  ChefHat,
   Dumbbell,
   Home,
   LineChart,
@@ -30,6 +31,7 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "/", label: "Start", icon: Home },
+  { href: "/meal-suggestions", label: "Posiłki", icon: ChefHat },
   { href: "/workout-plan", label: "Plan", icon: Dumbbell },
   // Specjalny, ozdobiony przycisk startu treningu — między Plan i Raporty.
   { href: "/start-workout", label: "Rozpocznij trening", icon: Activity, special: true },
