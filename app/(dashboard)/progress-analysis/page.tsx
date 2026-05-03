@@ -122,7 +122,9 @@ export default async function ProgressAnalysisPage() {
         </div>
         <div className="space-y-6">
           <WeighInCard />
-          <CoachChatPanel modelEnabled={coachModelOn} />
+          <div id="coach-chat" className="scroll-mt-24">
+            <CoachChatPanel modelEnabled={coachModelOn} />
+          </div>
           <div className="glass-panel neon-glow relative overflow-hidden p-6">
             <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(120deg,rgba(255,255,255,0.10),transparent_55%),radial-gradient(640px_280px_at_15%_10%,rgba(255,45,85,0.16),transparent_60%)]" />
             <div className="relative">

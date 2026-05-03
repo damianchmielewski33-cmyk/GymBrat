@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { MessageCircle, Sparkles } from "lucide-react";
 import { getDailyBriefing } from "@/lib/daily-briefing";
 import { isAiConfigured } from "@/ai/client";
@@ -48,20 +47,12 @@ export async function DailyBriefingCard({ userId }: { userId: string }) {
             {text}
           </div>
 
-          <div className="flex flex-col gap-2 pt-0.5 sm:flex-row sm:items-center sm:justify-between">
-            <Link
-              href="/progress-analysis"
-              className="text-xs font-medium text-[var(--neon)] underline-offset-4 hover:underline"
-            >
-              Rozwiń temat w Coach czat →
-            </Link>
-            {!aiConfigured && !aiDisabledByUser ? (
-              <p className="text-[11px] text-white/35">
-                Lokalnie: ustaw np.{" "}
-                <span className="font-mono text-white/50">AI_PROVIDER=ollama</span>
-              </p>
-            ) : null}
-          </div>
+          {!aiConfigured && !aiDisabledByUser ? (
+            <p className="pt-0.5 text-[11px] text-white/35">
+              Lokalnie: ustaw np.{" "}
+              <span className="font-mono text-white/50">AI_PROVIDER=ollama</span>
+            </p>
+          ) : null}
         </div>
       </div>
     </section>

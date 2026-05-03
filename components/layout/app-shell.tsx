@@ -28,6 +28,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { releaseDocumentScrollLock } from "@/lib/document-scroll";
 import { cn } from "@/lib/utils";
+import { CoachChatFab } from "@/components/layout/coach-chat-fab";
 
 const nav = [
   { href: "/", label: "Start", icon: Home },
@@ -389,6 +390,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+
+      <CoachChatFab />
     </div>
   );
 }
