@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { isAiConfigured } from "@/ai/client";
 import { chatCoach } from "@/ai/coach";
 import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
+import { UserMessages, mapCoachAiThrowable } from "@/lib/user-facing-errors";
 import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 
 /** Stan UI czatu (np. pływający przycisk) — bez wywołania modelu. */
@@ -19,20 +20,20 @@ export async function coachChatAction(input: unknown): Promise<
   | { ok: false; error: string }
 > {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false, error: "Brak sesji." };
+  if (!session?.user?.id) return { ok: false, error: UserMessages.sessionExpired };
 
   if (await getUserAiFeaturesDisabled(session.user.id)) {
     return {
       ok: false,
       error:
-        "Wyłączyłeś funkcje AI w profilu. Włącz je w sekcji „Funkcje AI”, aby z powrotem korzystać z czatu trenera.",
+        "Funkcje AI są wyłączone w profilu. Włącz je w sekcji „Funkcje AI”, aby ponownie korzystać z czatu z trenerem.",
     };
   }
 
   const raw = input as { messages?: unknown };
   const messages = raw.messages;
   if (!Array.isArray(messages) || messages.length === 0) {
-    return { ok: false, error: "Brak wiadomości." };
+    return { ok: false, error: UserMessages.coachChatNoMessage };
   }
 
   const normalized: Array<{ role: "user" | "assistant"; content: string }> = [];
@@ -45,9 +46,9 @@ export async function coachChatAction(input: unknown): Promise<
     }
   }
 
-  if (normalized.length === 0) return { ok: false, error: "Nieprawidłowe wiadomości." };
+  if (normalized.length === 0) return { ok: false, error: UserMessages.coachChatBadThread };
   if (normalized[normalized.length - 1]?.role !== "user") {
-    return { ok: false, error: "Ostatnia wiadomość musi być od użytkownika." };
+    return { ok: false, error: UserMessages.coachChatLastMustBeUser };
   }
 
   const [rc, profile] = await Promise.all([
@@ -55,14 +56,17 @@ export async function coachChatAction(input: unknown): Promise<
     buildCoachUserProfile(session.user.id),
   ]);
 
-  const reply = await chatCoach({
-    messages: normalized,
-    context: {
-      userProfile: profile,
-      recentContext: rc,
-      guardrails: { tone: "supportive" },
-    },
-  });
-
-  return { ok: true, reply: reply.trim() || "Brak odpowiedzi modelu." };
+  try {
+    const reply = await chatCoach({
+      messages: normalized,
+      context: {
+        userProfile: profile,
+        recentContext: rc,
+        guardrails: { tone: "supportive" },
+      },
+    });
+    return { ok: true, reply: reply.trim() || UserMessages.coachChatEmptyReply };
+  } catch (e) {
+    return { ok: false, error: mapCoachAiThrowable(e) };
+  }
 }

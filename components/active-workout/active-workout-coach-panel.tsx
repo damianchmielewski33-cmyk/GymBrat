@@ -5,6 +5,7 @@ import {
   activeWorkoutCoachAction,
   type ActiveWorkoutCoachTrigger,
 } from "@/actions/active-workout-coach";
+import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import { Button } from "@/components/ui/button";
 import { Loader2, MessageCircle, RefreshCw } from "lucide-react";
@@ -116,8 +117,8 @@ export function ActiveWorkoutCoachPanel({
       if (myId !== tipRequestId.current) return;
       setError(
         e instanceof Error && e.message === "timeout"
-          ? "Trener AI nie odpowiedział na czas. Spróbuj „Odśwież” za chwilę."
-          : "Nie udało się połączyć z trenerem AI.",
+          ? UserMessages.coachAiTimeout
+          : mapUnknownFetchError(e, UserMessages.coachAiUnavailable),
       );
     } finally {
       if (myId === tipRequestId.current) {

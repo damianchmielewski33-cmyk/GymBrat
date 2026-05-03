@@ -5,6 +5,10 @@ import { auth } from "@/auth";
 import { chatCoach } from "@/ai/coach";
 import { isAiConfigured } from "@/ai/client";
 import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
+import {
+  UserMessages,
+  activeWorkoutCoachZodMessage,
+} from "@/lib/user-facing-errors";
 import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import type { ChatCoachPromptInput } from "@/ai/prompts/chatCoach";
 
@@ -145,13 +149,15 @@ const userPrompt =
 
 export async function activeWorkoutCoachAction(input: unknown): Promise<ActiveWorkoutCoachResult> {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false, error: "Brak sesji." };
+  if (!session?.user?.id) return { ok: false, error: UserMessages.sessionExpired };
 
   const parsed = InputSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Nieprawidłowe dane treningu." };
+  if (!parsed.success) {
+    return { ok: false, error: activeWorkoutCoachZodMessage(parsed.error) };
+  }
 
   const { exercises } = parsed.data;
-  if (exercises.length === 0) return { ok: false, error: "Brak ćwiczeń w sesji." };
+  if (exercises.length === 0) return { ok: false, error: UserMessages.coachNoExercises };
 
   const snapshot = buildSnapshot(parsed.data);
 

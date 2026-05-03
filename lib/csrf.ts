@@ -75,7 +75,13 @@ export function assertCsrf(req: Request): NextResponse | null {
 
   const origin = req.headers.get("origin");
   if (origin && !isAllowedRequestOrigin(origin)) {
-    return NextResponse.json({ error: "Niedozwolone Origin" }, { status: 403 });
+    return NextResponse.json(
+      {
+        error:
+          "Żądanie pochodzi z niedozwolonej witryny. Otwórz aplikację z adresu ustawionego w konfiguracji (np. produkcja lub localhost) i spróbuj ponownie.",
+      },
+      { status: 403 },
+    );
   }
 
   const cookieTok = parseCookieHeader(req.headers.get("cookie"), CSRF_COOKIE_NAME);
@@ -85,7 +91,13 @@ export function assertCsrf(req: Request): NextResponse | null {
     "";
 
   if (!cookieTok || !headerTok || !timingSafeEqStrings(cookieTok, headerTok)) {
-    return NextResponse.json({ error: "CSRF" }, { status: 403 });
+    return NextResponse.json(
+      {
+        error:
+          "Sesja bezpieczeństwa wygasła lub okno było otwarte zbyt długo. Odśwież stronę i wykonaj czynność jeszcze raz.",
+      },
+      { status: 403 },
+    );
   }
 
   return null;
@@ -97,11 +109,20 @@ export function assertCsrf(req: Request): NextResponse | null {
 export function assertAnalyticsOrigin(req: Request): NextResponse | null {
   const origin = req.headers.get("origin");
   if (origin && !isAllowedRequestOrigin(origin)) {
-    return NextResponse.json({ error: "Niedozwolone Origin" }, { status: 403 });
+    return NextResponse.json(
+      {
+        error:
+          "Źródło żądania nie jest na liście dozwolonych adresów. Sprawdź konfigurację środowiska.",
+      },
+      { status: 403 },
+    );
   }
   const secFetchSite = req.headers.get("sec-fetch-site");
   if (secFetchSite && !["same-origin", "same-site"].includes(secFetchSite)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json(
+      { error: "To żądanie nie może być wykonane z tej witryny (polityka przeglądarki)." },
+      { status: 403 },
+    );
   }
   return null;
 }

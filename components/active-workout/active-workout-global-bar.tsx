@@ -16,6 +16,11 @@ import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { cn } from "@/lib/utils";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
+import {
+  mapUnknownFetchError,
+  mapWorkoutCompleteClientError,
+  UserMessages,
+} from "@/lib/user-facing-errors";
 
 function formatDuration(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -115,7 +120,7 @@ export function ActiveWorkoutGlobalBar() {
         strengthDeltaPercent?: number | null;
       };
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || "Nie udało się zapisać treningu");
+        throw new Error(mapWorkoutCompleteClientError(res.status, data.error));
       }
       reset();
       const completedSummary = {
@@ -129,7 +134,7 @@ export function ActiveWorkoutGlobalBar() {
       router.push("/reports");
       router.refresh();
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : "Nie udało się zapisać treningu");
+      window.alert(mapUnknownFetchError(e, UserMessages.workoutSaveUnknown));
     } finally {
       setCompleting(false);
     }

@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { assertCsrf } from "@/lib/csrf";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
+import { UserMessages, workoutCompleteZodMessage } from "@/lib/user-facing-errors";
 import { z } from "zod";
 
 /** UI / input HTML mogą dać ułamkowe powtórzenia — zapisujemy zaokrąglone całkowite. */
@@ -118,7 +119,7 @@ export async function POST(req: Request) {
   );
   if (!rl.ok) {
     return NextResponse.json(
-      { ok: false, error: "Rate limit" },
+      { ok: false, error: UserMessages.rateLimited },
       { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
     );
   }
@@ -126,7 +127,7 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json(
-      { ok: false, error: "Brak autoryzacji" },
+      { ok: false, error: UserMessages.sessionExpired },
       { status: 401 },
     );
   }
@@ -136,7 +137,7 @@ export async function POST(req: Request) {
     body = (await req.json()) as CompletedWorkoutPayload;
   } catch {
     return NextResponse.json(
-      { ok: false, error: "Nieprawidłowy JSON" },
+      { ok: false, error: UserMessages.workoutJsonBroken },
       { status: 400 },
     );
   }
@@ -144,7 +145,7 @@ export async function POST(req: Request) {
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { ok: false, error: "Nieprawidłowe dane" },
+      { ok: false, error: workoutCompleteZodMessage(parsed.error) },
       { status: 400 },
     );
   }
@@ -172,7 +173,7 @@ export async function POST(req: Request) {
       .limit(1);
     if (!owned) {
       return NextResponse.json(
-        { ok: false, error: "Nieprawidłowy plan treningowy" },
+        { ok: false, error: UserMessages.workoutPlanMismatch },
         { status: 400 },
       );
     }

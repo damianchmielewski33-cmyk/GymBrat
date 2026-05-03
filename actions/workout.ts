@@ -22,7 +22,12 @@ export async function logTrainingSession(input: {
   notes?: string;
 }) {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false as const, error: "Unauthorized" };
+  if (!session?.user?.id) {
+    return {
+      ok: false as const,
+      error: "Sesja wygasła. Zaloguj się ponownie, aby zapisać wpis treningu.",
+    };
+  }
 
   const db = getDb();
   const dateKey = calendarDateKey(new Date());
@@ -52,7 +57,12 @@ export async function updateWeeklyCardioGoalForm(
 
 export async function updateWeeklyCardioGoal(minutes: number) {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false as const, error: "Unauthorized" };
+  if (!session?.user?.id) {
+    return {
+      ok: false as const,
+      error: "Sesja wygasła. Zaloguj się ponownie, aby zmienić cel cardio.",
+    };
+  }
 
   const db = getDb();
   const m = Math.max(1, Math.round(minutes));

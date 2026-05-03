@@ -11,6 +11,7 @@ import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
 import { getBriefingTimeContext } from "@/lib/briefing-time-context";
 import { computeMacroGaps, type MacroGaps } from "@/lib/meal-suggestions-gaps";
 import { getMealSuggestionsTimeRulesPl } from "@/lib/meal-suggestions-time-context";
+import { UserMessages } from "@/lib/user-facing-errors";
 import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 
 export type GenerateMealSuggestionsResult =
@@ -24,7 +25,7 @@ export type GenerateMealSuggestionsResult =
 
 export async function generateMealSuggestionsAction(): Promise<GenerateMealSuggestionsResult> {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false, error: "Brak sesji." };
+  if (!session?.user?.id) return { ok: false, error: UserMessages.mealSuggestionsNoSession };
 
   const userId = session.user.id;
   const db = getDb();

@@ -26,6 +26,11 @@ import type { WorkoutPlanExercise } from "@/lib/workout-plan-types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
+import {
+  mapUnknownFetchError,
+  mapWorkoutCompleteClientError,
+  UserMessages,
+} from "@/lib/user-facing-errors";
 import { SlidersHorizontal, RotateCcw, ScrollText } from "lucide-react";
 import { ActiveWorkoutCoachPanel } from "@/components/active-workout/active-workout-coach-panel";
 
@@ -354,7 +359,7 @@ export function ActiveWorkoutView({
         strengthDeltaPercent?: number | null;
       };
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || "Nie udało się zapisać treningu");
+        throw new Error(mapWorkoutCompleteClientError(res.status, data.error));
       }
       reset();
       setExercises([]);
@@ -370,7 +375,7 @@ export function ActiveWorkoutView({
       sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
       router.push("/reports");
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Nie udało się zapisać treningu");
+      setSaveError(mapUnknownFetchError(e, UserMessages.workoutSaveUnknown));
       setSuppressRouteGate(false);
     } finally {
       setSaving(false);
