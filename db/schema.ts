@@ -268,6 +268,8 @@ export const userSettings = sqliteTable("user_settings", {
   fitnessGoalsJson: text("fitness_goals_json"),
   /** Ukończony onboarding / kliknięto „Później” */
   onboardingCompletedAt: integer("onboarding_completed_at", { mode: "timestamp_ms" }),
+  /** 1 = użytkownik wyłączył wszystkie funkcje korzystające z modelu AI */
+  aiFeaturesDisabled: integer("ai_features_disabled").notNull().default(0),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),

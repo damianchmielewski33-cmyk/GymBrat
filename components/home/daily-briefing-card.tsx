@@ -1,28 +1,65 @@
-import { Sparkles } from "lucide-react";
-import { getDailyBriefingText } from "@/lib/daily-briefing";
+import Link from "next/link";
+import { MessageCircle, Sparkles } from "lucide-react";
+import { getDailyBriefing } from "@/lib/daily-briefing";
 import { isAiConfigured } from "@/ai/client";
 
 export async function DailyBriefingCard({ userId }: { userId: string }) {
-  const text = await getDailyBriefingText(userId);
-  const aiEnabled = isAiConfigured();
+  const { text, source } = await getDailyBriefing(userId);
+  const aiConfigured = isAiConfigured();
+  const fromModel = source === "ai";
 
   return (
     <section className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
       <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(720px_280px_at_10%_0%,rgba(255,45,85,0.14),transparent_58%)]" />
       <div className="relative flex gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">
-          <Sparkles className="h-5 w-5 text-[var(--neon)]" aria-hidden />
+          {fromModel ? (
+            <MessageCircle className="h-5 w-5 text-[var(--neon)]" aria-hidden />
+          ) : (
+            <Sparkles className="h-5 w-5 text-[var(--neon)]" aria-hidden />
+          )}
         </div>
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-            Briefing dnia
-          </p>
-          <p className="text-sm leading-relaxed text-white/80">{text}</p>
-          {!aiEnabled ? (
-            <p className="text-xs text-white/40">
-              Włącz AI (np. lokalnie: <span className="font-mono">AI_PROVIDER=ollama</span>), aby dostać spersonalizowany tekst od modelu.
+        <div className="min-w-0 flex-1 space-y-2">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">
+              Trener AI
             </p>
-          ) : null}
+            <p className="font-heading text-lg font-semibold leading-tight text-white">
+              Briefing dnia
+            </p>
+            <p className="mt-1 text-xs text-white/45">
+              {fromModel
+                ? "Krótka wiadomość od tego samego coacha co w czacie — na podstawie Twoich danych w aplikacji."
+                : aiConfigured
+                  ? "Dziś użyliśmy krótkiego skryptu z Twoich statystyk (model nie zwrócił treści). Spróbuj odświeżyć stronę później."
+                  : "Krótkie podsumowanie z Twoich liczb w aplikacji. Włącz dostawcę AI, aby dostać pełny, narracyjny briefing od modelu."}
+            </p>
+          </div>
+
+          <div
+            className={
+              fromModel
+                ? "rounded-2xl border border-[var(--neon)]/25 bg-black/35 px-4 py-3 text-sm leading-relaxed text-white/85"
+                : "rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-relaxed text-white/80"
+            }
+          >
+            {text}
+          </div>
+
+          <div className="flex flex-col gap-2 pt-0.5 sm:flex-row sm:items-center sm:justify-between">
+            <Link
+              href="/progress-analysis"
+              className="text-xs font-medium text-[var(--neon)] underline-offset-4 hover:underline"
+            >
+              Rozwiń temat w Coach czat →
+            </Link>
+            {!aiConfigured ? (
+              <p className="text-[11px] text-white/35">
+                Lokalnie: ustaw np.{" "}
+                <span className="font-mono text-white/50">AI_PROVIDER=ollama</span>
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
     </section>

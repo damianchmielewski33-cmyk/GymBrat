@@ -27,6 +27,7 @@ import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { SlidersHorizontal, RotateCcw, ScrollText } from "lucide-react";
+import { ActiveWorkoutCoachPanel } from "@/components/active-workout/active-workout-coach-panel";
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
@@ -481,6 +482,15 @@ export function ActiveWorkoutView({
         }
       >
         <div className={hasLoadedPlan ? "grid gap-0" : ""}>
+          {hasLoadedPlan ? (
+            <ActiveWorkoutCoachPanel
+              title={title}
+              elapsedSeconds={elapsed}
+              exercises={exercises}
+              selectedExerciseId={selectedExerciseId}
+              restRemaining={restRemaining}
+            />
+          ) : null}
           <ActiveSessionCard
             hasLoadedPlan={hasLoadedPlan}
             initialPlansEmpty={initialPlans.length === 0}
