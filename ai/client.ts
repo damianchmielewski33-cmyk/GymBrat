@@ -5,10 +5,16 @@
  * - Google Gemini (default): set `AI_PROVIDER=gemini` (or omit), requires `AI_API_KEY`.
  * - Ollama (local, free): set `AI_PROVIDER=ollama`, set `AI_API_BASE_URL` (default http://127.0.0.1:11434).
  *
- * Optional:
- * - `AI_MODEL` (Gemini: domyślnie `gemini-2.5-flash` dla REST generateContent. W AI Studio „nieograniczony”
- *   często dotyczy tylko **Live API** — inna ścieżka niż ta aplikacja. Ustaw `AI_MODEL` ręcznie, jeśli
- *   chcesz inny model z listy modeli w dokumentacji Google.)
+ * Gemini **REST** (`:generateContent`) — używane przez GymBrat (czat, briefing, plany tekstowe):
+ * - `AI_MODEL` domyślnie `gemini-2.5-flash`. Wybieraj modele oznaczone w dokumentacji jako obsługiwane
+ *   przez **generateContent** / Batch API.
+ *
+ * **Gemini 2.5 Flash Native Dialog Audio** (`gemini-2.5-flash-native-audio-preview-…`):
+ * - To **Gemini Live API** (WebSocket, strumień audio/wideo, odpowiedzi głosowe) — inny protokół niż HTTP
+ *   REST w tym pliku. W Google AI Studio „nieograniczony” / wysokie limity dotyczą często właśnie **Live**,
+ *   a nie endpointu `:generateContent` (który ma klasyczne limity i rozliczanie tokenów).
+ * - Podłączenie Native Audio wymagałoby osobnej integracji (WSS, tokeny efemeryczne z backendu, UI audio).
+ *   Nie da się go włączyć samym `AI_MODEL` bez przebudowy aplikacji.
  */
 
 export type AiMessage = { role: "system" | "user" | "assistant"; content: string };
@@ -23,6 +29,8 @@ export type AiImage = {
 export type CompleteChatOptions = {
   /** Optional: provider-specific model name */
   model?: string;
+  /** Domyślnie 2048 (Gemini) / odpowiednik u Ollamy — krótsze odpowiedzi = mniej tokenów wyjściowych. */
+  maxOutputTokens?: number;
 };
 
 type Provider = "gemini" | "ollama";
@@ -90,9 +98,7 @@ function isLikelyLocalOllamaBase(base: string): boolean {
 function defaultModel(): string {
   const m = process.env.AI_MODEL?.trim();
   if (m) return m;
-  // Google AI Studio pokazuje „Nieograniczony” dla wierszy **API na żywo (Live)** — to inny protokół
-  // niż REST `:generateContent`, którego używa ta aplikacja. Dla generateContent domyślnie bierzemy
-  // stabilny `gemini-2.5-flash` (ta sama rodzina 2.5 Flash co w konsoli, bez Live).
+  // Domyślny model pod REST :generateContent (nie Live / Native Audio).
   return provider() === "ollama" ? "llama3.1:8b" : "gemini-2.5-flash";
 }
 
@@ -251,7 +257,11 @@ type OpenAiLikeChatResponse = {
   error?: { message?: string };
 };
 
-async function openAiLikeChat(messages: AiMessage[], model: string): Promise<string> {
+async function openAiLikeChat(
+  messages: AiMessage[],
+  model: string,
+  maxTokens = 2048,
+): Promise<string> {
   const key = process.env.AI_API_KEY?.trim();
   const res = await fetch(`${openAiBase()}/v1/chat/completions`, {
     method: "POST",
@@ -263,7 +273,7 @@ async function openAiLikeChat(messages: AiMessage[], model: string): Promise<str
       model,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
       temperature: 0.7,
-      max_tokens: 2048,
+      max_tokens: maxTokens,
     }),
   });
 
@@ -345,9 +355,10 @@ export async function completeChat(
   }
 
   const model = opts?.model ?? defaultModel();
+  const maxOut = opts?.maxOutputTokens ?? 2048;
   if (provider() === "ollama") {
     // Ollama (local) exposes an OpenAI-compatible endpoint at /v1/chat/completions.
-    return openAiLikeChat(messages, model);
+    return openAiLikeChat(messages, model, maxOut);
   }
   const { system, history } = normalizeMessagesForGemini(messages);
 
@@ -360,7 +371,7 @@ export async function completeChat(
     contents: history.length ? history : [{ role: "user", parts: [{ text: "" }] }],
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 2048,
+      maxOutputTokens: maxOut,
     },
   };
 

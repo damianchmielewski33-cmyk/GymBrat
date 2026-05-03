@@ -24,8 +24,14 @@ import {
 } from "@/lib/nutrition-dashboard";
 import { resolveProfileDayGoals } from "@/lib/nutrition-goals";
 import { buildWeekNutritionRows } from "@/lib/week-nutrition-rows";
+import { getLatestBodyReportMetrics } from "@/lib/body-reports";
+import {
+  coachRecentContextFromDashboardParts,
+  coachUserProfileFromParts,
+} from "@/lib/coach-context";
 import { getDailyCheckin } from "@/lib/daily-checkin";
 import { getStreaks } from "@/lib/streaks";
+import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -64,7 +70,12 @@ export default async function HomePage() {
     .where(eq(userSettings.userId, userId))
       .limit(1),
     db
-      .select({ weightKg: users.weightKg })
+      .select({
+        age: users.age,
+        weightKg: users.weightKg,
+        heightCm: users.heightCm,
+        activityLevel: users.activityLevel,
+      })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1),
@@ -76,12 +87,15 @@ export default async function HomePage() {
   ]);
 
   const weekDateKeys = dash.week.days.map((d) => d.date);
-  const [previousWeeks, mealEntriesByDate, checkin, streaks] = await Promise.all([
-    loadPreviousWeeksForSheet(userId, dash.settings, dash.todayKey),
-    listMealLogsForDates(userId, weekDateKeys),
-    getDailyCheckin(userId, dash.todayKey),
-    getStreaks(userId, dash.todayKey),
-  ]);
+  const [previousWeeks, mealEntriesByDate, checkin, streaks, userAiOff, latestBodyReport] =
+    await Promise.all([
+      loadPreviousWeeksForSheet(userId, dash.settings, dash.todayKey),
+      listMealLogsForDates(userId, weekDateKeys),
+      getDailyCheckin(userId, dash.todayKey),
+      getStreaks(userId, dash.todayKey),
+      getUserAiFeaturesDisabled(userId),
+      getLatestBodyReportMetrics(userId),
+    ]);
 
   const profileGoalsToday = resolveProfileDayGoals(
     dash.settings,
@@ -175,7 +189,14 @@ export default async function HomePage() {
       {!settingsRow?.onboardingCompletedAt ? <OnboardingBanner /> : null}
 
       <Suspense fallback={<DailyBriefingSkeleton />}>
-        <DailyBriefingCard userId={userId} />
+        <DailyBriefingCard
+          userId={userId}
+          briefingPrefetch={{
+            recentContext: coachRecentContextFromDashboardParts(dash.today, stats, streaks),
+            userProfile: coachUserProfileFromParts(userRow, latestBodyReport),
+            userAiOff,
+          }}
+        />
       </Suspense>
 
       <QuickMealStrip

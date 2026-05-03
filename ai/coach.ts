@@ -418,6 +418,16 @@ export async function chatCoach(input: {
     { role: "system", content: system },
     ...input.messages.map((m) => ({ role: m.role, content: m.content }) as AiMessage),
   ];
-  return completeChat(msgs, { model: process.env.AI_MODEL });
+  const task = input.context?.task;
+  const maxOutputTokens =
+    task === "daily_briefing"
+      ? 384
+      : task === "active_session_tip"
+        ? 640
+        : undefined;
+  return completeChat(msgs, {
+    model: process.env.AI_MODEL,
+    ...(maxOutputTokens != null ? { maxOutputTokens } : {}),
+  });
 }
 

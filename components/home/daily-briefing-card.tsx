@@ -1,9 +1,19 @@
 import { MessageCircle, Sparkles } from "lucide-react";
-import { getDailyBriefing } from "@/lib/daily-briefing";
+import { getDailyBriefing, type DailyBriefingPrefetch } from "@/lib/daily-briefing";
 import { isAiConfigured } from "@/ai/client";
 
-export async function DailyBriefingCard({ userId }: { userId: string }) {
-  const { text, source, aiDisabledByUser, aiUnavailable } = await getDailyBriefing(userId);
+export async function DailyBriefingCard({
+  userId,
+  briefingPrefetch,
+}: {
+  userId: string;
+  /** Z `page.tsx` Start — ten sam kontekst co reszta strony, bez duplikacji zapytań. */
+  briefingPrefetch?: DailyBriefingPrefetch;
+}) {
+  const { text, source, aiDisabledByUser, aiUnavailable } = await getDailyBriefing(
+    userId,
+    briefingPrefetch,
+  );
   const aiConfigured = isAiConfigured();
   const fromModel = source === "ai";
 

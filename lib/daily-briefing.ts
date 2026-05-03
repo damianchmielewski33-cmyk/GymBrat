@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { ChatCoachPromptInput } from "@/ai/prompts/chatCoach";
 import { chatCoach } from "@/ai/coach";
 import { isAiConfigured } from "@/ai/client";
 import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
@@ -15,6 +16,13 @@ export type DailyBriefing = {
   aiDisabledByUser?: boolean;
   /** Próba wywołania modelu (Trener AI) nie powiodła się — treść z heurystyki + dopisek w tekście. */
   aiUnavailable?: boolean;
+};
+
+/** Dane już wczytane na stronie Start — bez powtórnych zapytań do DB przed briefingiem. */
+export type DailyBriefingPrefetch = {
+  recentContext: NonNullable<ChatCoachPromptInput["recentContext"]>;
+  userProfile: ChatCoachPromptInput["userProfile"];
+  userAiOff: boolean;
 };
 
 function heuristicBrief(
@@ -46,13 +54,27 @@ Bez powitania typu „cześć” / „witaj”, bez podpisu, bez pytań na końc
 const AI_UNAVAILABLE_SUFFIX = "\n\nAI niedostępny.";
 
 /** Krótki briefing na Start (Ten sam model co Coach czat — lub heurystyka bez klucza API). */
-export async function getDailyBriefing(userId: string): Promise<DailyBriefing> {
+export async function getDailyBriefing(
+  userId: string,
+  prefetch?: DailyBriefingPrefetch,
+): Promise<DailyBriefing> {
   const timeCtx = getBriefingTimeContext();
-  const [userAiOff, rc, profile] = await Promise.all([
-    getUserAiFeaturesDisabled(userId),
-    buildCoachRecentContext(userId),
-    buildCoachUserProfile(userId),
-  ]);
+
+  let userAiOff: boolean;
+  let rc: NonNullable<ChatCoachPromptInput["recentContext"]>;
+  let profile: ChatCoachPromptInput["userProfile"];
+
+  if (prefetch) {
+    userAiOff = prefetch.userAiOff;
+    rc = prefetch.recentContext;
+    profile = prefetch.userProfile;
+  } else {
+    [userAiOff, rc, profile] = await Promise.all([
+      getUserAiFeaturesDisabled(userId),
+      buildCoachRecentContext(userId),
+      buildCoachUserProfile(userId),
+    ]);
+  }
 
   if (!isAiConfigured() || userAiOff) {
     return {

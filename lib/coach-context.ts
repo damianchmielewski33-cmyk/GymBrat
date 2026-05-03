@@ -2,10 +2,57 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { userSettings, users } from "@/db/schema";
 import type { ChatCoachPromptInput } from "@/ai/prompts/chatCoach";
+import type { LatestBodyReportMetrics } from "@/lib/body-reports";
+import { getLatestBodyReportMetrics } from "@/lib/body-reports";
+import type { HomeStats } from "@/lib/home-stats";
 import { getHomeStats } from "@/lib/home-stats";
+import type { Streaks } from "@/lib/streaks";
 import { getStreaks } from "@/lib/streaks";
 import { loadNutritionDashboard } from "@/lib/nutrition-dashboard";
-import { getLatestBodyReportMetrics } from "@/lib/body-reports";
+import type { FitatuDaySummary } from "@/types/fitatu";
+
+/** Z już wczytanych danych Start — bez powtórnego SELECT / dashboardu. */
+export function coachRecentContextFromDashboardParts(
+  dashToday: Pick<FitatuDaySummary, "caloriesConsumed" | "caloriesGoal">,
+  stats: HomeStats,
+  streaks: Streaks,
+): NonNullable<ChatCoachPromptInput["recentContext"]> {
+  const nut = `${Math.round(dashToday.caloriesConsumed)} kcal / ${
+    dashToday.caloriesGoal != null ? Math.round(dashToday.caloriesGoal) : "?"
+  } kcal (cel)`;
+
+  const train = stats.lastWorkout
+    ? `Ostatni trening ${stats.lastWorkout.date}, objętość ${stats.lastWorkout.volumeKg} kg`
+    : "Brak zapisanych treningów.";
+
+  const streakLine = `Pasma: trening ${streaks.streak.workoutDays} dni · check-in ${streaks.streak.checkInDays} dni · posiłki ${streaks.streak.mealLoggedDays} dni`;
+
+  return {
+    nutritionSummary: nut,
+    trainingSummary: train,
+    streakLine,
+  };
+}
+
+export type CoachUserRow = {
+  age: number | null;
+  weightKg: number | null;
+  heightCm: number | null;
+  activityLevel: string | null;
+};
+
+export function coachUserProfileFromParts(
+  u: CoachUserRow | null | undefined,
+  latestReport: LatestBodyReportMetrics | null,
+): ChatCoachPromptInput["userProfile"] {
+  if (!u) return {};
+  return {
+    age: u.age ?? undefined,
+    weightKg: (latestReport?.weightKg ?? u.weightKg) ?? undefined,
+    heightCm: u.heightCm ?? undefined,
+    activityLevel: u.activityLevel ?? undefined,
+  };
+}
 
 export async function buildCoachRecentContext(
   userId: string,
@@ -22,24 +69,19 @@ export async function buildCoachRecentContext(
     .limit(1);
 
   const dash = await loadNutritionDashboard(userId, settingsRow);
-  const stats = await getHomeStats(userId);
-  const streaks = await getStreaks(userId, dash.todayKey);
+  const [stats, streaks] = await Promise.all([
+    getHomeStats(userId),
+    getStreaks(userId, dash.todayKey),
+  ]);
 
-  const nut = `${Math.round(dash.today.caloriesConsumed)} kcal / ${
-    dash.today.caloriesGoal != null ? Math.round(dash.today.caloriesGoal) : "?"
-  } kcal (cel)`;
-
-  const train = stats.lastWorkout
-    ? `Ostatni trening ${stats.lastWorkout.date}, objętość ${stats.lastWorkout.volumeKg} kg`
-    : "Brak zapisanych treningów.";
-
-  const streakLine = `Pasma: trening ${streaks.streak.workoutDays} dni · check-in ${streaks.streak.checkInDays} dni · posiłki ${streaks.streak.mealLoggedDays} dni`;
-
-  return {
-    nutritionSummary: nut,
-    trainingSummary: train,
-    streakLine,
-  };
+  return coachRecentContextFromDashboardParts(
+    {
+      caloriesConsumed: dash.today.caloriesConsumed,
+      caloriesGoal: dash.today.caloriesGoal,
+    },
+    stats,
+    streaks,
+  );
 }
 
 export async function buildCoachUserProfile(
@@ -61,11 +103,5 @@ export async function buildCoachUserProfile(
     getLatestBodyReportMetrics(userId),
   ]);
 
-  if (!u) return {};
-  return {
-    age: u.age ?? undefined,
-    weightKg: (latestReport?.weightKg ?? u.weightKg) ?? undefined,
-    heightCm: u.heightCm ?? undefined,
-    activityLevel: u.activityLevel ?? undefined,
-  };
+  return coachUserProfileFromParts(u, latestReport);
 }
