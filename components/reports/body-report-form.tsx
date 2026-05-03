@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import Image from "next/image";
@@ -230,27 +230,32 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <ScoreSlider
-            label="Energia w ciągu dnia"
-            value={scores.dayEnergy}
-            onChange={(v) => setScores((s) => ({ ...s, dayEnergy: v }))}
-          />
-          <ScoreSlider
-            label="Energia na treningu"
-            value={scores.trainingEnergy}
-            onChange={(v) => setScores((s) => ({ ...s, trainingEnergy: v }))}
-          />
-          <ScoreSlider
-            label="Trawienie"
-            value={scores.digestionScore}
-            onChange={(v) => setScores((s) => ({ ...s, digestionScore: v }))}
-          />
-          <ScoreSlider
-            label="Sen"
-            value={scores.sleepQuality}
-            onChange={(v) => setScores((s) => ({ ...s, sleepQuality: v }))}
-          />
+        <div className="space-y-3">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/45">
+            Samopoczucie — skala 1–10
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <ScoreSlider
+              label="Energia w ciągu dnia"
+              value={scores.dayEnergy}
+              onChange={(v) => setScores((s) => ({ ...s, dayEnergy: v }))}
+            />
+            <ScoreSlider
+              label="Energia na treningu"
+              value={scores.trainingEnergy}
+              onChange={(v) => setScores((s) => ({ ...s, trainingEnergy: v }))}
+            />
+            <ScoreSlider
+              label="Trawienie"
+              value={scores.digestionScore}
+              onChange={(v) => setScores((s) => ({ ...s, digestionScore: v }))}
+            />
+            <ScoreSlider
+              label="Sen"
+              value={scores.sleepQuality}
+              onChange={(v) => setScores((s) => ({ ...s, sleepQuality: v }))}
+            />
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -414,11 +419,12 @@ function ScoreSlider({
   value: number;
   onChange: (v: number) => void;
 }) {
+  const rangePct = `${((Math.min(10, Math.max(1, value)) - 1) / 9) * 100}%`;
   return (
-    <div className="rounded-xl border border-white/10 bg-black/25 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-white/85">{label}</p>
-        <p className="tabular-nums text-sm text-white/70">{value}/10</p>
+    <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-3 sm:px-4 sm:py-3.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="min-w-0 text-sm font-medium leading-snug text-white/85">{label}</p>
+        <p className="shrink-0 tabular-nums text-sm font-semibold text-[var(--neon)]">{value}</p>
       </div>
       <input
         type="range"
@@ -427,13 +433,13 @@ function ScoreSlider({
         step={1}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-3 w-full accent-[var(--neon)]"
+        className="score-range mt-3 block w-full"
+        style={{ "--range-pct": rangePct } as CSSProperties}
         aria-label={label}
+        aria-valuemin={1}
+        aria-valuemax={10}
+        aria-valuenow={value}
       />
-      <div className="mt-2 flex justify-between text-[11px] text-white/40">
-        <span>1</span>
-        <span>10</span>
-      </div>
     </div>
   );
 }

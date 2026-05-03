@@ -23,9 +23,9 @@ function serializeExercises(exercises: WorkoutExerciseState[]) {
     id: e.id,
     name: e.name,
     sets: e.sets.map((s) => ({
-      reps: s.reps,
-      weight: s.weight,
-      done: s.done,
+      reps: s.reps ?? null,
+      weight: Number.isFinite(s.weight) ? s.weight : 0,
+      done: Boolean(s.done),
     })),
   }));
 }
@@ -44,9 +44,27 @@ export function ActiveWorkoutCoachPanel({
   const [error, setError] = useState<string | null>(null);
 
   const inFlight = useRef(false);
+  const tipRequestId = useRef(0);
   const prevRest = useRef<number | null>(null);
   const prevDoneCount = useRef<number | null>(null);
   const setDoneTimer = useRef<number | null>(null);
+
+  const COACH_ACTION_TIMEOUT_MS = 28_000;
+
+  function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const t = window.setTimeout(() => reject(new Error("timeout")), ms);
+      promise
+        .then((v) => {
+          window.clearTimeout(t);
+          resolve(v);
+        })
+        .catch((e) => {
+          window.clearTimeout(t);
+          reject(e);
+        });
+    });
+  }
 
   const payloadRef = useRef({
     title,
@@ -73,29 +91,41 @@ export function ActiveWorkoutCoachPanel({
   const requestTip = useCallback(async (trigger: ActiveWorkoutCoachTrigger) => {
     const p = payloadRef.current;
     if (p.exercises.length === 0 || inFlight.current) return;
+    const myId = ++tipRequestId.current;
     inFlight.current = true;
     setLoading(true);
     setError(null);
     try {
-      const r = await activeWorkoutCoachAction({
-        title: p.title,
-        elapsedSeconds: p.elapsedSeconds,
-        selectedExerciseId: p.selectedExerciseId,
-        exercises: serializeExercises(p.exercises),
-        restRemaining: p.restRemaining,
-        trigger,
-      });
+      const r = await withTimeout(
+        activeWorkoutCoachAction({
+          title: p.title,
+          elapsedSeconds: Math.round(p.elapsedSeconds),
+          selectedExerciseId: p.selectedExerciseId,
+          exercises: serializeExercises(p.exercises),
+          restRemaining: p.restRemaining,
+          trigger,
+        }),
+        COACH_ACTION_TIMEOUT_MS,
+      );
+      if (myId !== tipRequestId.current) return;
       if (r.ok) {
         setText(r.text);
         setSource(r.source);
       } else {
         setError(r.error);
       }
-    } catch {
-      setError("Nie udało się połączyć z trenerem AI.");
+    } catch (e) {
+      if (myId !== tipRequestId.current) return;
+      setError(
+        e instanceof Error && e.message === "timeout"
+          ? "Trener AI nie odpowiedział na czas. Spróbuj „Odśwież” za chwilę."
+          : "Nie udało się połączyć z trenerem AI.",
+      );
     } finally {
-      setLoading(false);
-      inFlight.current = false;
+      if (myId === tipRequestId.current) {
+        setLoading(false);
+        inFlight.current = false;
+      }
     }
   }, []);
 
