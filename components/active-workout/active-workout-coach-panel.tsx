@@ -40,7 +40,7 @@ export function ActiveWorkoutCoachPanel({
   userAiFeaturesDisabled = false,
 }: Props) {
   const [text, setText] = useState<string | null>(null);
-  const [source, setSource] = useState<"ai" | "heuristic" | null>(null);
+  const [source, setSource] = useState<"ai" | "heuristic" | "web" | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -202,11 +202,13 @@ export function ActiveWorkoutCoachPanel({
             <>
               <p className="text-sm leading-relaxed text-white/85">{text}</p>
               <p className="text-[11px] text-white/40">
-                {source === "ai"
-                  ? "Na podstawie Twojej bieżącej sesji i danych z aplikacji."
-                  : userAiFeaturesDisabled
-                    ? "Wyłączyłeś funkcje AI w profilu — bez modelu, tylko skrót z bieżącej sesji."
-                    : "Tryb offline / bez AI — krótki skrypt z Twojej sesji. Włącz dostawcę AI, aby dostać pełniejsze podpowiedzi."}
+                {source === "web"
+                  ? "Model AI był niedostępny — skróty z publicznego wyszukiwania; sprawdź u źródeł."
+                  : source === "ai"
+                    ? "Na podstawie Twojej bieżącej sesji i danych z aplikacji."
+                    : userAiFeaturesDisabled
+                      ? "Wyłączyłeś funkcje AI w profilu — bez modelu, tylko skrót z bieżącej sesji."
+                      : "Tryb offline / bez AI — krótki skrypt z Twojej sesji. Włącz dostawcę AI, aby dostać pełniejsze podpowiedzi."}
               </p>
             </>
           ) : loading ? (

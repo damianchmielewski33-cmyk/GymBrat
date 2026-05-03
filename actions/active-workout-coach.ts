@@ -53,7 +53,7 @@ const InputSchema = z.object({
 export type ActiveWorkoutCoachTrigger = z.infer<typeof InputSchema>["trigger"];
 
 export type ActiveWorkoutCoachResult =
-  | { ok: true; text: string; source: "ai" | "heuristic" }
+  | { ok: true; text: string; source: "ai" | "heuristic" | "web" }
   | { ok: false; error: string };
 
 function triggerLabel(t: ActiveWorkoutCoachTrigger): string {
@@ -172,7 +172,7 @@ export async function activeWorkoutCoachAction(input: unknown): Promise<ActiveWo
       buildCoachUserProfile(session.user.id),
     ]);
 
-    const text = await chatCoach({
+    const reply = await chatCoach({
       messages: [
         {
           role: "user",
@@ -187,8 +187,14 @@ export async function activeWorkoutCoachAction(input: unknown): Promise<ActiveWo
         activeWorkout: snapshot,
       },
     });
-    const t = text.trim();
-    if (t.length > 24) return { ok: true, text: t, source: "ai" };
+    const t = reply.text.trim();
+    if (t.length > 24) {
+      return {
+        ok: true,
+        text: t,
+        source: reply.source === "web" ? "web" : "ai",
+      };
+    }
   } catch {
     /* fall through */
   }

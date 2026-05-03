@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 import type { FitatuDaySummary } from "@/types/fitatu";
-import type { AiImage, AiMessage } from "@/ai/client";
+import type { AiImage, AiMessage, CompleteChatOptions } from "@/ai/client";
 import { completeChat, completeVision } from "@/ai/client";
 import { isAiConfigured } from "@/ai/client";
 import {
@@ -18,6 +18,11 @@ import {
   type ProgressComparisonPromptInput,
   type ChatCoachPromptInput,
 } from "@/ai/prompts";
+import {
+  buildCoachSearchQuery,
+  fetchWebKnowledgeForCoachQuery,
+  isWebSearchKnowledgeConfigured,
+} from "@/lib/web-search-fallback";
 
 export type ActivityLevel =
   | "sedentary"
@@ -409,10 +414,55 @@ export async function compareProgressPhotos(input: {
   };
 }
 
+export type ChatCoachSource = "ai" | "web";
+
+export type ChatCoachReply = {
+  text: string;
+  source: ChatCoachSource;
+};
+
+/** Odpowiedź wygląda na komunikat błędu dostawcy zamiast treści coacha. */
+function isProviderFailureChatResponse(text: string): boolean {
+  const t = text.trim();
+  if (t.length === 0) return true;
+  if (t.length > 2800) return false;
+  if (/^AI is not configured\b/i.test(t)) return false;
+  if (/^Empty model response\b/i.test(t)) return true;
+  return (
+    /AI request failed|AI response parse error/i.test(t) ||
+    /\brate limited\b/i.test(t) ||
+    /\bquota\b|\bResource exhausted\b|\bPERMISSION_DENIED\b/i.test(t) ||
+    /\bAPI key\b|\binvalid api key\b|\bbilling\b/i.test(t) ||
+    /\bHTTP\s*[45]\d\d\b|\b422\b|\b429\b|\b500\b|\b503\b/i.test(t) ||
+    /\boverloaded\b|\bUNAVAILABLE\b|\bUNAUTHENTICATED\b/i.test(t) ||
+    /\bECONNREFUSED\b|\bfetch failed\b|\bFailed to fetch\b|\bnetwork\b/i.test(t)
+  );
+}
+
+async function completeChatWithOptionalWebFallback(
+  msgs: AiMessage[],
+  opts?: CompleteChatOptions,
+): Promise<ChatCoachReply> {
+  try {
+    const modelText = await completeChat(msgs, opts);
+    if (isProviderFailureChatResponse(modelText) && isWebSearchKnowledgeConfigured()) {
+      const web = await fetchWebKnowledgeForCoachQuery(buildCoachSearchQuery(msgs));
+      if (web) return { text: web, source: "web" };
+    }
+    return { text: modelText, source: "ai" };
+  } catch (err) {
+    if (isWebSearchKnowledgeConfigured()) {
+      const web = await fetchWebKnowledgeForCoachQuery(buildCoachSearchQuery(msgs));
+      if (web) return { text: web, source: "web" };
+    }
+    throw err;
+  }
+}
+
 export async function chatCoach(input: {
   messages: Array<{ role: "user" | "assistant"; content: string }>;
   context?: ChatCoachPromptInput;
-}): Promise<string> {
+}): Promise<ChatCoachReply> {
   const system = chatCoachSystemPrompt(input.context ?? {});
   const msgs: AiMessage[] = [
     { role: "system", content: system },
@@ -425,7 +475,7 @@ export async function chatCoach(input: {
       : task === "active_session_tip"
         ? 640
         : undefined;
-  return completeChat(msgs, {
+  return completeChatWithOptionalWebFallback(msgs, {
     model: process.env.AI_MODEL,
     ...(maxOutputTokens != null ? { maxOutputTokens } : {}),
   });

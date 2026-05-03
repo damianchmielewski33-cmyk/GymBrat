@@ -15,7 +15,7 @@ export async function DailyBriefingCard({
     briefingPrefetch,
   );
   const aiConfigured = isAiConfigured();
-  const fromModel = source === "ai";
+  const fromModel = source === "ai" || source === "web";
 
   return (
     <section className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
@@ -37,13 +37,15 @@ export async function DailyBriefingCard({
               Briefing dnia
             </p>
             <p className="mt-1 text-xs text-white/45">
-              {fromModel
-                ? "Krótka wiadomość od tego samego coacha co w czacie — na podstawie Twoich danych w aplikacji."
-                : aiDisabledByUser
-                  ? "Wyłączyłeś funkcje AI w profilu — poniżej skrót z Twoich danych (bez modelu)."
-                  : aiUnavailable
-                    ? "Integracja z modelem nie powiodła się — poniżej skrót z Twoich danych; na końcu treści dopisano „AI niedostępny”."
-                    : "Krótkie podsumowanie z Twoich liczb w aplikacji. Włącz dostawcę AI, aby dostać pełny, narracyjny briefing od modelu."}
+              {source === "web"
+                ? "Model AI był chwilowo niedostępny — poniżej skróty z publicznych wyników wyszukiwania; zweryfikuj informacje u źródeł."
+                : fromModel
+                  ? "Krótka wiadomość od tego samego coacha co w czacie — na podstawie Twoich danych w aplikacji."
+                  : aiDisabledByUser
+                    ? "Wyłączyłeś funkcje AI w profilu — poniżej skrót z Twoich danych (bez modelu)."
+                    : aiUnavailable
+                      ? "Integracja z modelem nie powiodła się — poniżej skrót z Twoich danych; na końcu treści dopisano „AI niedostępny”."
+                      : "Krótkie podsumowanie z Twoich liczb w aplikacji. Włącz dostawcę AI, aby dostać pełny, narracyjny briefing od modelu."}
             </p>
           </div>
 

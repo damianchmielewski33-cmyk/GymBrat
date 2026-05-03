@@ -16,7 +16,7 @@ export async function getCoachChatUiStatus(): Promise<{ modelEnabled: boolean }>
 }
 
 export async function coachChatAction(input: unknown): Promise<
-  | { ok: true; reply: string }
+  | { ok: true; reply: string; webFallback?: true }
   | { ok: false; error: string }
 > {
   const session = await auth();
@@ -57,7 +57,7 @@ export async function coachChatAction(input: unknown): Promise<
   ]);
 
   try {
-    const reply = await chatCoach({
+    const coach = await chatCoach({
       messages: normalized,
       context: {
         userProfile: profile,
@@ -65,7 +65,12 @@ export async function coachChatAction(input: unknown): Promise<
         guardrails: { tone: "supportive" },
       },
     });
-    return { ok: true, reply: reply.trim() || UserMessages.coachChatEmptyReply };
+    const reply = coach.text.trim() || UserMessages.coachChatEmptyReply;
+    return {
+      ok: true,
+      reply,
+      ...(coach.source === "web" ? { webFallback: true as const } : {}),
+    };
   } catch (e) {
     return { ok: false, error: mapCoachAiThrowable(e) };
   }

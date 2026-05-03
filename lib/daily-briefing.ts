@@ -7,7 +7,7 @@ import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-cont
 import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { getBriefingTimeContext } from "@/lib/briefing-time-context";
 
-export type DailyBriefingSource = "ai" | "heuristic";
+export type DailyBriefingSource = "ai" | "heuristic" | "web";
 
 export type DailyBriefing = {
   text: string;
@@ -85,7 +85,7 @@ export async function getDailyBriefing(
   }
 
   try {
-    const text = await chatCoach({
+    const reply = await chatCoach({
       messages: [{ role: "user", content: briefingUserPromptBody(timeCtx.linePl) }],
       context: {
         userProfile: profile,
@@ -97,7 +97,10 @@ export async function getDailyBriefing(
         task: "daily_briefing",
       },
     });
-    const t = text.trim();
+    const t = reply.text.trim();
+    if (reply.source === "web" && t.length > 40) {
+      return { text: t, source: "web" };
+    }
     if (t.length > 20) return { text: t, source: "ai" };
   } catch {
     /* fall through — integracja z modelem nie powiodła się */
