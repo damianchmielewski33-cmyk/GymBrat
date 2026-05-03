@@ -1,9 +1,18 @@
 "use server";
 
 import { auth } from "@/auth";
+import { isAiConfigured } from "@/ai/client";
 import { chatCoach } from "@/ai/coach";
 import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
 import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
+
+/** Stan UI czatu (np. pływający przycisk) — bez wywołania modelu. */
+export async function getCoachChatUiStatus(): Promise<{ modelEnabled: boolean }> {
+  const session = await auth();
+  if (!session?.user?.id) return { modelEnabled: false };
+  const userAiDisabled = await getUserAiFeaturesDisabled(session.user.id);
+  return { modelEnabled: isAiConfigured() && !userAiDisabled };
+}
 
 export async function coachChatAction(input: unknown): Promise<
   | { ok: true; reply: string }

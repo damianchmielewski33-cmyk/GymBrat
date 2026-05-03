@@ -3,7 +3,7 @@ import { getDailyBriefing } from "@/lib/daily-briefing";
 import { isAiConfigured } from "@/ai/client";
 
 export async function DailyBriefingCard({ userId }: { userId: string }) {
-  const { text, source, aiDisabledByUser } = await getDailyBriefing(userId);
+  const { text, source, aiDisabledByUser, aiUnavailable } = await getDailyBriefing(userId);
   const aiConfigured = isAiConfigured();
   const fromModel = source === "ai";
 
@@ -31,8 +31,8 @@ export async function DailyBriefingCard({ userId }: { userId: string }) {
                 ? "Krótka wiadomość od tego samego coacha co w czacie — na podstawie Twoich danych w aplikacji."
                 : aiDisabledByUser
                   ? "Wyłączyłeś funkcje AI w profilu — poniżej skrót z Twoich danych (bez modelu)."
-                  : aiConfigured
-                    ? "Dziś użyliśmy krótkiego skryptu z Twoich statystyk (model nie zwrócił treści). Spróbuj odświeżyć stronę później."
+                  : aiUnavailable
+                    ? "Integracja z modelem nie powiodła się — poniżej skrót z Twoich danych; na końcu treści dopisano „AI niedostępny”."
                     : "Krótkie podsumowanie z Twoich liczb w aplikacji. Włącz dostawcę AI, aby dostać pełny, narracyjny briefing od modelu."}
             </p>
           </div>

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -20,7 +21,14 @@ const introOff = {
   content: "Funkcje AI są wyłączone w profilu — czat z modelem jest niedostępny.",
 };
 
-export function CoachChatPanel({ modelEnabled = true }: { modelEnabled?: boolean }) {
+export function CoachChatPanel({
+  modelEnabled = true,
+  className,
+}: {
+  modelEnabled?: boolean;
+  /** Nadpisanie wysokości / layoutu (np. arkusz z boku ekranu). */
+  className?: string;
+}) {
   const [messages, setMessages] = useState<Msg[]>(() => (modelEnabled ? [introOn] : [introOff]));
   const [input, setInput] = useState("");
   const [pending, start] = useTransition();
@@ -56,7 +64,12 @@ export function CoachChatPanel({ modelEnabled = true }: { modelEnabled?: boolean
   }
 
   return (
-    <div className="glass-panel neon-glow relative flex max-h-[min(520px,70vh)] flex-col overflow-hidden p-5">
+    <div
+      className={cn(
+        "glass-panel neon-glow relative flex max-h-[min(520px,70vh)] flex-col overflow-hidden p-5",
+        className,
+      )}
+    >
       <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(560px_240px_at_50%_100%,rgba(255,45,85,0.14),transparent_60%)]" />
       <div className="relative mb-3 flex items-center gap-2 border-b border-white/10 pb-3">
         <MessageCircle className="h-5 w-5 text-[var(--neon)]" aria-hidden />
