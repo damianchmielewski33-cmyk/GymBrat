@@ -20,6 +20,7 @@ import { getWeeklyCardioProgress as getWeeklyCardioProgressData } from "@/lib/ca
 import { calendarDateKey } from "@/lib/local-date";
 import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
 import { activityLevels } from "@/lib/validations/register";
+import { UserMessages } from "@/lib/user-facing-errors";
 
 export async function loginUser(
   email: string,
@@ -116,11 +117,16 @@ function resolveWorkoutDateKey(raw: unknown): string {
 
 export async function saveWorkoutSession(input: unknown) {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false as const, error: "Unauthorized" };
+  if (!session?.user?.id) {
+    return { ok: false as const, error: UserMessages.sessionExpired };
+  }
 
   const parsed = saveWorkoutSessionSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false as const, error: "Invalid workout payload" };
+    return {
+      ok: false as const,
+      error: "Dane treningu są niepełne lub nieprawidłowe. Sprawdź formularz i spróbuj ponownie.",
+    };
   }
 
   const rawIn = input as Record<string, unknown>;
@@ -153,11 +159,16 @@ const updateProfileSchema = z.object({
 
 export async function updateProfile(input: unknown) {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false as const, error: "Unauthorized" };
+  if (!session?.user?.id) {
+    return { ok: false as const, error: UserMessages.sessionExpired };
+  }
 
   const parsed = updateProfileSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false as const, error: "Invalid profile data" };
+    return {
+      ok: false as const,
+      error: "Dane profilu są nieprawidłowe. Sprawdź wprowadzone wartości (waga, wzrost, wiek itd.).",
+    };
   }
 
   const data = parsed.data;
@@ -200,7 +211,7 @@ export async function updateProfile(input: unknown) {
 export async function getFitatuData() {
   const session = await auth();
   if (!session?.user?.id) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: UserMessages.sessionExpired };
   }
   const db = getDb();
   const [settingsRow] = await db
@@ -219,7 +230,7 @@ export async function getFitatuData() {
 export async function getWeeklyCardioProgress() {
   const session = await auth();
   if (!session?.user?.id) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: UserMessages.sessionExpired };
   }
   const progress = await getWeeklyCardioProgressData(session.user.id);
   return {
@@ -241,15 +252,23 @@ const aiPlanSchema = z.object({
 export async function aiGeneratePlan(overrides?: unknown) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: UserMessages.sessionExpired };
   }
 
   const user = await getUser();
-  if (!user) return { ok: false as const, error: "User not found" };
+  if (!user) {
+    return {
+      ok: false as const,
+      error: "Nie udało się wczytać profilu. Odśwież stronę i zaloguj się ponownie.",
+    };
+  }
 
   const parsed = aiPlanSchema.safeParse(overrides ?? {});
   if (!parsed.success) {
-    return { ok: false as const, error: "Invalid plan options" };
+    return {
+      ok: false as const,
+      error: "Opcje planu są nieprawidłowe. Sprawdź liczbę dni i pozostałe ustawienia.",
+    };
   }
 
   const o = parsed.data;
@@ -322,12 +341,15 @@ const aiPhotoSchema = z.object({
 export async function aiAnalyzePhoto(input: unknown) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: UserMessages.sessionExpired };
   }
 
   const parsed = aiPhotoSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false as const, error: "Invalid image payload" };
+    return {
+      ok: false as const,
+      error: "Nie udało się wczytać zdjęcia. Wybierz inny plik (obsługiwany format obrazu).",
+    };
   }
 
   const images: AiImage[] = parsed.data.images.map((im) => ({

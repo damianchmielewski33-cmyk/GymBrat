@@ -9,6 +9,7 @@ import { workoutPlans, workouts } from "@/db/schema";
 import type { WorkoutPlanPayload } from "@/lib/workout-plan-types";
 import { getLastWorkoutHintsForPlan } from "@/lib/last-workout-hints";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
+import { UserMessages } from "@/lib/user-facing-errors";
 
 export type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
 
@@ -124,7 +125,9 @@ export async function getWorkoutPlans(): Promise<WorkoutPlanListItemDTO[]> {
  */
 export async function saveWorkoutPlan(plan: WorkoutPlanPayload, planId?: string) {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false as const, error: "Unauthorized" };
+  if (!session?.user?.id) {
+    return { ok: false as const, error: UserMessages.sessionExpired };
+  }
 
   if (plan.version !== 2 || plan.path !== "custom") {
     return { ok: false as const, error: "Nieprawidłowy format planu" };
@@ -173,7 +176,9 @@ export async function fetchLastWorkoutHintsForPlan(planId: string) {
 
 export async function deleteWorkoutPlan(planId: string) {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false as const, error: "Unauthorized" };
+  if (!session?.user?.id) {
+    return { ok: false as const, error: UserMessages.sessionExpired };
+  }
 
   const db = getDb();
   await db

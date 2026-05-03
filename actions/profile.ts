@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { activityLevels } from "@/lib/validations/register";
+import { UserMessages } from "@/lib/user-facing-errors";
 
 const bodyParamsSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
@@ -39,11 +40,16 @@ export async function updateBodyParamsFormActionVoid(formData: FormData): Promis
 
 export async function updateBodyParams(input: unknown) {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false as const, error: "Unauthorized" };
+  if (!session?.user?.id) {
+    return { ok: false as const, error: UserMessages.sessionExpired };
+  }
 
   const parsed = bodyParamsSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false as const, error: "Invalid form data" };
+    return {
+      ok: false as const,
+      error: "Dane formularza są niepełne lub poza dozwolonym zakresem. Sprawdź pola i spróbuj ponownie.",
+    };
   }
 
   const db = getDb();
@@ -89,11 +95,16 @@ export async function changePasswordFormActionVoid(formData: FormData): Promise<
 
 export async function changePassword(input: unknown) {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false as const, error: "Unauthorized" };
+  if (!session?.user?.id) {
+    return { ok: false as const, error: UserMessages.sessionExpired };
+  }
 
   const parsed = changePasswordSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false as const, error: "Invalid form data" };
+    return {
+      ok: false as const,
+      error: "Hasło musi mieć co najmniej 8 znaków, a obecne hasło nie może być puste.",
+    };
   }
 
   const db = getDb();

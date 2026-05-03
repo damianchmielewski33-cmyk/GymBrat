@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import { isAllowedRequestOrigin } from "@/lib/csrf";
+import { UserMessages } from "@/lib/user-facing-errors";
 
 export const runtime = "nodejs";
 
@@ -23,7 +24,7 @@ async function maybeCaptureToSentry(payload: unknown): Promise<void> {
 export async function POST(req: Request) {
   const origin = req.headers.get("origin");
   if (origin && !isAllowedRequestOrigin(origin)) {
-    return NextResponse.json({ error: "Niedozwolone Origin" }, { status: 403 });
+    return NextResponse.json({ error: UserMessages.originBlocked }, { status: 403 });
   }
 
   const rl = await checkRateLimitAsync(
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
   );
   if (!rl.ok) {
     return NextResponse.json(
-      { error: "Rate limit" },
+      { error: UserMessages.rateLimited },
       { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
     );
   }

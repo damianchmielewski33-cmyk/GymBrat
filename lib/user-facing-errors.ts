@@ -107,7 +107,10 @@ function looksTechnical(s: string): boolean {
   return /HTTP\s*\d|JSON|Zod|ECONN|fetch|TypeError|SyntaxError|stack/i.test(s);
 }
 
-export function mapUnknownFetchError(err: unknown, fallback = UserMessages.networkOrServer): string {
+export function mapUnknownFetchError(
+  err: unknown,
+  fallback: string = UserMessages.networkOrServer,
+): string {
   if (!(err instanceof Error)) return fallback;
   const m = err.message;
   if (m === "timeout" || m.includes("timeout")) return UserMessages.coachAiTimeout;
