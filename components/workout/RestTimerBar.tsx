@@ -36,9 +36,11 @@ function subscribeRestPrefs(onStoreChange: () => void) {
   };
 }
 
+type RestTimerPrefs = ReturnType<typeof readRestTimerPrefs>;
+
 /** SSR i pierwszy render klienta bez localStorage — unikamy błędu hydratacji (`console.error`). */
 function useRestTimerPrefsFromStorage() {
-  const [prefs, setPrefs] = useState(() => ({ ...REST_PREFS_SERVER }));
+  const [prefs, setPrefs] = useState<RestTimerPrefs>(() => ({ ...REST_PREFS_SERVER }));
 
   useEffect(() => {
     setPrefs(readRestTimerPrefs());
