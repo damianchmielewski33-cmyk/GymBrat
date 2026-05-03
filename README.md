@@ -182,7 +182,7 @@ AI features are designed to be safe-by-default: if no provider key is present, G
 
 - **Config**
   - `AI_PROVIDER`: `gemini` (cloud) or `ollama` (self-hosted, free)
-  - `AI_MODEL`: provider-specific model identifier
+  - `AI_MODEL`: identyfikator modelu (Gemini: domyślnie `gemini-2.5-flash` dla REST `generateContent`). W Google AI Studio wiersze „nieograniczony” przy **API na żywo (Live)** dotyczą innego API niż to, z którego korzysta GymBrat — ustaw `AI_MODEL` wg [listy modeli](https://ai.google.dev/gemini-api/docs/models) pod `generateContent`.
   - For `gemini`:
     - `AI_API_KEY`
   - For `ollama` (recommended free setup):

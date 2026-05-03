@@ -6,8 +6,9 @@
  * - Ollama (local, free): set `AI_PROVIDER=ollama`, set `AI_API_BASE_URL` (default http://127.0.0.1:11434).
  *
  * Optional:
- * - `AI_MODEL` (Gemini: on free tier AI Studio may show 0 RPM/TPM/RPD for newer models like 2.0 Flash;
- *   use a model row that has non-zero limits, e.g. `gemini-1.5-flash`, or enable billing.)
+ * - `AI_MODEL` (Gemini: domyślnie `gemini-2.5-flash` dla REST generateContent. W AI Studio „nieograniczony”
+ *   często dotyczy tylko **Live API** — inna ścieżka niż ta aplikacja. Ustaw `AI_MODEL` ręcznie, jeśli
+ *   chcesz inny model z listy modeli w dokumentacji Google.)
  */
 
 export type AiMessage = { role: "system" | "user" | "assistant"; content: string };
@@ -89,8 +90,10 @@ function isLikelyLocalOllamaBase(base: string): boolean {
 function defaultModel(): string {
   const m = process.env.AI_MODEL?.trim();
   if (m) return m;
-  // Default avoids gemini-2.0-flash: many free-tier projects show 0/0 quota for 2.0 in AI Studio.
-  return provider() === "ollama" ? "llama3.1:8b" : "gemini-1.5-flash";
+  // Google AI Studio pokazuje „Nieograniczony” dla wierszy **API na żywo (Live)** — to inny protokół
+  // niż REST `:generateContent`, którego używa ta aplikacja. Dla generateContent domyślnie bierzemy
+  // stabilny `gemini-2.5-flash` (ta sama rodzina 2.5 Flash co w konsoli, bez Live).
+  return provider() === "ollama" ? "llama3.1:8b" : "gemini-2.5-flash";
 }
 
 function pickTextFromGemini(json: GeminiGenerateContentResponse): string {
@@ -155,11 +158,16 @@ function isQuotaOrRateLimitMessage(msg: string | undefined): boolean {
   );
 }
 
-/** Ordered unique list: user model first, then common alternates (separate quota buckets). */
+/**
+ * Kolejka modeli przy 429 / braku modelu / limicie.
+ * Wiersze „Gemini 3 Flash na żywo” / „Native Audio Dialog” w AI Studio to **Live API**; tutaj
+ * podajemy identyfikatory pod **generateContent**. `gemini-3-flash-preview` bywa dostępny osobną pulą.
+ */
 function geminiFallbackModels(preferredModel: string): string[] {
   const candidates = [
     preferredModel.trim(),
     "gemini-2.5-flash",
+    "gemini-3-flash-preview",
     "gemini-2.0-flash",
     "gemini-1.5-flash",
     "gemini-2.5-pro",
