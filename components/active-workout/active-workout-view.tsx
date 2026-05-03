@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
@@ -13,7 +11,7 @@ import type { LastPlanHintsMap } from "@/lib/last-workout-hints";
 import { ActiveSessionCard } from "@/components/active-workout/active-session-card";
 import { GymPadSessionLayout } from "@/components/active-workout/gympad-session-layout";
 import { PlanProgressHeader } from "@/components/active-workout/plan-progress-header";
-import { WorkoutPlanCard } from "@/components/active-workout/workout-plan-card";
+import { StartWorkoutScreen } from "@/components/active-workout/start-workout-screen";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -50,18 +48,6 @@ function planExercisesToSession(exercises: WorkoutPlanExercise[]): WorkoutExerci
       rpe: null,
     })),
   }));
-}
-
-function formatLastWorkoutDate(ymd: string | null) {
-  if (!ymd) return "Jeszcze nie trenowano";
-  try {
-    const d = new Date(`${ymd}T12:00:00`);
-    return new Intl.DateTimeFormat("pl-PL", {
-      dateStyle: "medium",
-    }).format(d);
-  } catch {
-    return ymd;
-  }
 }
 
 export function ActiveWorkoutView({
@@ -407,57 +393,11 @@ export function ActiveWorkoutView({
 
   const startPlansContent =
     !hasLoadedPlan && entry === "start" ? (
-      <div className="flex flex-col gap-4">
-        <div className="shrink-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
-            Trening
-          </p>
-          <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight text-white sm:text-[1.65rem]">
-            Aktywny trening
-          </h1>
-          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-white/45">
-            Wybierz plan treningowy, aby rozpocząć sesję.
-          </p>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {initialPlans.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="sm:col-span-2 lg:col-span-3"
-            >
-              <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] p-4 text-sm text-white/55 backdrop-blur-[12px]">
-                Brak planów.{" "}
-                <Link
-                  href="/workout-plan"
-                  className="font-medium text-[#FF1A4B] underline-offset-2 hover:underline"
-                >
-                  Utwórz plan
-                </Link>
-                .
-              </div>
-            </motion.div>
-          ) : (
-            initialPlans.map((row, i) => {
-              const empty = row.plan.exercises.length === 0;
-              const active = workoutPlanId === row.id;
-              return (
-                <WorkoutPlanCard
-                  key={row.id}
-                  row={row}
-                  index={i}
-                  active={active}
-                  empty={empty}
-                  lastActivityLabel={formatLastWorkoutDate(row.lastWorkoutDate)}
-                  onStart={() => beginWorkoutFromPlan(row)}
-                  startLabel={active ? "Wczytaj ponownie" : "Rozpocznij trening"}
-                />
-              );
-            })
-          )}
-        </div>
-      </div>
+      <StartWorkoutScreen
+        plans={initialPlans}
+        activePlanId={workoutPlanId}
+        onBegin={beginWorkoutFromPlan}
+      />
     ) : null;
 
   return (
@@ -540,11 +480,7 @@ export function ActiveWorkoutView({
             : "mx-auto max-w-[1400px]"
         }
       >
-        <div
-          className={
-            hasLoadedPlan ? "grid gap-0" : "grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,400px)] lg:items-start"
-          }
-        >
+        <div className={hasLoadedPlan ? "grid gap-0" : ""}>
           <ActiveSessionCard
             hasLoadedPlan={hasLoadedPlan}
             initialPlansEmpty={initialPlans.length === 0}
@@ -585,61 +521,6 @@ export function ActiveWorkoutView({
           >
             {hasLoadedPlan ? exerciseList : null}
           </ActiveSessionCard>
-
-          {!hasLoadedPlan && entry === "start" ? (
-            <motion.aside
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
-              className="hidden max-h-[min(88vh,900px)] flex-col gap-4 lg:sticky lg:top-4 lg:flex"
-            >
-              <div className="shrink-0 px-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
-                  Biblioteka
-                </p>
-                <h2 className="font-heading mt-1 text-xl font-semibold text-white">Plany treningowe</h2>
-                <p className="mt-1 text-xs leading-relaxed text-white/45">
-                  Wybierz plan, aby wystartować sesję.
-                </p>
-              </div>
-
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/12">
-                {initialPlans.length === 0 ? (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] p-4 text-sm text-white/55 backdrop-blur-[12px]"
-                  >
-                    Brak planów.{" "}
-                    <Link
-                      href="/workout-plan"
-                      className="font-medium text-[#FF1A4B] underline-offset-2 hover:underline"
-                    >
-                      Utwórz plan
-                    </Link>
-                    .
-                  </motion.p>
-                ) : (
-                  initialPlans.map((row, i) => {
-                    const empty = row.plan.exercises.length === 0;
-                    const active = workoutPlanId === row.id;
-                    return (
-                      <WorkoutPlanCard
-                        key={row.id}
-                        row={row}
-                        index={i}
-                        active={active}
-                        empty={empty}
-                        lastActivityLabel={formatLastWorkoutDate(row.lastWorkoutDate)}
-                        onStart={() => beginWorkoutFromPlan(row)}
-                        startLabel={active ? "Wczytaj ponownie" : "Rozpocznij trening"}
-                      />
-                    );
-                  })
-                )}
-              </div>
-            </motion.aside>
-          ) : null}
         </div>
       </div>
 

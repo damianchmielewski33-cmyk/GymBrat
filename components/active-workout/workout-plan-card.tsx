@@ -67,7 +67,7 @@ export function WorkoutPlanCard({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <span className="hidden rounded-full bg-[#FF1A4B] px-2.5 py-1 text-[11px] font-semibold text-white sm:inline">
+          <span className="max-w-[11rem] truncate rounded-full bg-[#FF1A4B] px-2 py-1 text-[10px] font-semibold text-white sm:max-w-none sm:px-2.5 sm:text-[11px]">
             {startLabel}
           </span>
           {empty ? null : (
