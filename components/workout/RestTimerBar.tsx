@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Timer, X } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { PlateCalculatorSheet } from "@/components/workout/plate-calculator-sheet";
 import {
   readRestTimerPrefs,
@@ -36,16 +36,16 @@ function subscribeRestPrefs(onStoreChange: () => void) {
   };
 }
 
-function getRestPrefsSnapshot() {
-  return readRestTimerPrefs();
-}
-
-function getRestPrefsServerSnapshot() {
-  return REST_PREFS_SERVER;
-}
-
+/** SSR i pierwszy render klienta bez localStorage — unikamy błędu hydratacji (`console.error`). */
 function useRestTimerPrefsFromStorage() {
-  return useSyncExternalStore(subscribeRestPrefs, getRestPrefsSnapshot, getRestPrefsServerSnapshot);
+  const [prefs, setPrefs] = useState(() => ({ ...REST_PREFS_SERVER }));
+
+  useEffect(() => {
+    setPrefs(readRestTimerPrefs());
+    return subscribeRestPrefs(() => setPrefs(readRestTimerPrefs()));
+  }, []);
+
+  return prefs;
 }
 
 type RestTimerBarProps = {
