@@ -147,24 +147,54 @@ function isModelNotFoundMessage(msg: string | undefined): boolean {
 
 function isQuotaOrRateLimitMessage(msg: string | undefined): boolean {
   if (!msg) return false;
-  return /quota exceeded|rate limit|too many requests/i.test(msg);
+  return (
+    /quota exceeded|rate limit|too many requests|resource_exhausted/i.test(msg) ||
+    /przekroczono limit|limit transferu|przekroczono aktualny limit|przekroczono swój/i.test(msg)
+  );
+}
+
+/** Ordered unique list: user model first, then common alternates (separate quota buckets). */
+function geminiFallbackModels(preferredModel: string): string[] {
+  const candidates = [
+    preferredModel.trim(),
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.5-pro",
+  ];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const m of candidates) {
+    if (!m || seen.has(m)) continue;
+    seen.add(m);
+    out.push(m);
+  }
+  return out;
+}
+
+function shouldTryNextGeminiModel(
+  res: Response,
+  msg: string | undefined,
+  modelIndex: number,
+  totalModels: number,
+): boolean {
+  if (modelIndex >= totalModels - 1) return false;
+  if (isModelNotFoundMessage(msg)) return true;
+  if (res.status === 429) return true;
+  if (isQuotaOrRateLimitMessage(msg)) return true;
+  return false;
 }
 
 async function generateWithFallback(
   preferredModel: string,
   body: unknown,
 ): Promise<{ res: Response; json: GeminiGenerateContentResponse }> {
-  const fallbacks = [
-    preferredModel,
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-2.5-pro",
-  ];
+  const fallbacks = geminiFallbackModels(preferredModel);
 
   let lastJson: GeminiGenerateContentResponse = {};
   let lastRes: Response | null = null;
 
-  for (const m of fallbacks) {
+  for (let i = 0; i < fallbacks.length; i++) {
+    const m = fallbacks[i]!;
     const res = await geminiGenerateContent(m, body);
     const rawText = await res.text();
     let json: GeminiGenerateContentResponse;
@@ -196,7 +226,10 @@ async function generateWithFallback(
       rawText,
     });
 
-    if (!isModelNotFoundMessage(json.error?.message)) return { res, json };
+    const msg = json.error?.message;
+    if (shouldTryNextGeminiModel(res, msg, i, fallbacks.length)) continue;
+
+    return { res, json };
   }
 
   return { res: lastRes ?? new Response(null, { status: 500 }), json: lastJson };
