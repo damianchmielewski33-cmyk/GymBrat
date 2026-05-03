@@ -3,7 +3,6 @@ import { HomeWorkoutTrendDynamic } from "@/components/home/home-workout-trend-dy
 import { LastWorkoutStats } from "@/components/home/last-workout-stats";
 import { NutritionProgressBars } from "@/components/home/nutrition-progress-bars";
 import { AddMealSheet } from "@/components/home/add-meal-sheet";
-import { MealLogsList } from "@/components/home/meal-logs-list";
 import { MealLogsBrowser } from "@/components/home/meal-logs-browser";
 import { TodaysMacrosSection } from "@/components/home/todays-macros";
 import { HomeStartPanels } from "@/components/home/home-start-panels";
@@ -30,7 +29,9 @@ import { getStreaks } from "@/lib/streaks";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { Activity, Zap } from "lucide-react";
+import { DailyBriefingSkeleton } from "@/components/home/daily-briefing-skeleton";
 
 function kcalProgress(consumed: number, goal: number) {
   if (!goal || goal <= 0) return { pct: 0, over: false };
@@ -57,6 +58,7 @@ export default async function HomePage() {
       nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
       onboardingCompletedAt: userSettings.onboardingCompletedAt,
       mealTemplatesJson: userSettings.mealTemplatesJson,
+      fitnessGoalsJson: userSettings.fitnessGoalsJson,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
@@ -68,12 +70,19 @@ export default async function HomePage() {
       .limit(1),
   ]);
 
-  const dash = await loadNutritionDashboard(userId, settingsRow);
-  const previousWeeks = await loadPreviousWeeksForSheet(
-    userId,
-    dash.settings,
-    dash.todayKey,
-  );
+  const [dash, stats] = await Promise.all([
+    loadNutritionDashboard(userId, settingsRow),
+    getHomeStats(userId),
+  ]);
+
+  const weekDateKeys = dash.week.days.map((d) => d.date);
+  const [previousWeeks, mealEntriesByDate, checkin, streaks] = await Promise.all([
+    loadPreviousWeeksForSheet(userId, dash.settings, dash.todayKey),
+    listMealLogsForDates(userId, weekDateKeys),
+    getDailyCheckin(userId, dash.todayKey),
+    getStreaks(userId, dash.todayKey),
+  ]);
+
   const profileGoalsToday = resolveProfileDayGoals(
     dash.settings,
     dash.todayKey,
@@ -91,15 +100,8 @@ export default async function HomePage() {
   const weekProg = kcalProgress(weekC, weekG);
   const weekDeficitKcal = weekG > 0 ? weekG - weekC : null;
 
-  const stats = await getHomeStats(userId);
-  const weekDateKeys = dash.week.days.map((d) => d.date);
-  const mealEntriesByDate = await listMealLogsForDates(userId, weekDateKeys);
   const mealEntriesToday = mealEntriesByDate[dash.todayKey] ?? [];
   const weekDayRows = buildWeekNutritionRows(dash.week.days);
-  const [checkin, streaks] = await Promise.all([
-    getDailyCheckin(userId, dash.todayKey),
-    getStreaks(userId, dash.todayKey),
-  ]);
 
   const subtitleMacros =
     dash.today.source === "error"
@@ -172,14 +174,20 @@ export default async function HomePage() {
 
       {!settingsRow?.onboardingCompletedAt ? <OnboardingBanner /> : null}
 
-      <DailyBriefingCard userId={userId} />
+      <Suspense fallback={<DailyBriefingSkeleton />}>
+        <DailyBriefingCard userId={userId} />
+      </Suspense>
 
       <QuickMealStrip
         dateKey={dash.todayKey}
         templates={parseMealTemplatesJson(settingsRow?.mealTemplatesJson ?? null)}
       />
 
-      <FitnessGoalsWidget userId={userId} todayKey={dash.todayKey} />
+      <FitnessGoalsWidget
+        userId={userId}
+        todayKey={dash.todayKey}
+        fitnessGoalsJson={settingsRow?.fitnessGoalsJson ?? null}
+      />
 
       <HomeStartPanels
         subtitleMacros={subtitleMacros}

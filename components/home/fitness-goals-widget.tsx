@@ -1,7 +1,4 @@
-import { eq } from "drizzle-orm";
 import { Target } from "lucide-react";
-import { getDb } from "@/db";
-import { userSettings } from "@/db/schema";
 import { addCalendarDays } from "@/lib/local-date";
 import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { countDistinctWorkoutDaysInRange } from "@/lib/weekly-sessions";
@@ -9,18 +6,14 @@ import { countDistinctWorkoutDaysInRange } from "@/lib/weekly-sessions";
 export async function FitnessGoalsWidget({
   userId,
   todayKey,
+  fitnessGoalsJson,
 }: {
   userId: string;
   todayKey: string;
+  /** Z pierwszego zapytania na stronie Start — bez dodatkowego SELECT. */
+  fitnessGoalsJson: string | null;
 }) {
-  const db = getDb();
-  const [row] = await db
-    .select({ fitnessGoalsJson: userSettings.fitnessGoalsJson })
-    .from(userSettings)
-    .where(eq(userSettings.userId, userId))
-    .limit(1);
-
-  const goals = parseFitnessGoalsJson(row?.fitnessGoalsJson ?? null);
+  const goals = parseFitnessGoalsJson(fitnessGoalsJson);
   const target = goals.weeklySessionsTarget;
   if (!target) return null;
 
