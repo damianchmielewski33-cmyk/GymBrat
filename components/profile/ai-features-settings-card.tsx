@@ -47,8 +47,8 @@ export function AiFeaturesSettingsCard({ initialDisabled }: { initialDisabled: b
             <p className="mt-2 max-w-2xl text-sm text-white/60">
               Gdy zaznaczysz opcję poniżej, GymBrat nie będzie wysyłał treści do modelu AI w Twoim
               imieniu: briefing dnia, czat trenera, podpowiedzi w aktywnym treningu, generowanie planu
-              treningowego ani analiza zdjęć — tam, gdzie korzystamy z modelu, zobaczysz komunikaty lub
-              prostsze wersje bez sieci neuronowej.
+              treningowego, analiza zdjęć oraz propozycje posiłków — tam, gdzie korzystamy z modelu,
+              zobaczysz komunikaty lub prostsze wersje bez sieci neuronowej.
             </p>
           </div>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">

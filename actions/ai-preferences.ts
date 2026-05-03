@@ -52,5 +52,6 @@ export async function updateAiFeaturesDisabledAction(
   revalidatePath("/progress-analysis");
   revalidatePath("/active-workout");
   revalidatePath("/start-workout");
+  revalidatePath("/meal-suggestions");
   return { ok: true };
 }
