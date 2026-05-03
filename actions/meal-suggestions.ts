@@ -8,7 +8,9 @@ import { isAiConfigured } from "@/ai/client";
 import { generateMealSuggestionsFromModel } from "@/ai/meal-suggestions";
 import { staticFallbackMeals, type MealSuggestionItem } from "@/lib/meal-suggestions-schema";
 import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
+import { getBriefingTimeContext } from "@/lib/briefing-time-context";
 import { computeMacroGaps, type MacroGaps } from "@/lib/meal-suggestions-gaps";
+import { getMealSuggestionsTimeRulesPl } from "@/lib/meal-suggestions-time-context";
 import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 
 export type GenerateMealSuggestionsResult =
@@ -84,9 +86,12 @@ export async function generateMealSuggestionsAction(): Promise<GenerateMealSugge
     };
   }
 
+  const timeCtx = getBriefingTimeContext();
   const meals = await generateMealSuggestionsFromModel({
     gapsJson,
     noGoalsHint,
+    localCalendarLinePl: timeCtx.linePl,
+    mealTimeRulesPl: getMealSuggestionsTimeRulesPl(timeCtx.hour),
   });
 
   return { ok: true, meals, source: "ai", gaps };

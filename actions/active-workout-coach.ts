@@ -10,14 +10,24 @@ import type { ChatCoachPromptInput } from "@/ai/prompts/chatCoach";
 
 const SetSchema = z.object({
   /** Klient może pominąć pole w JSON (undefined) — traktuj jak brak wpisu. */
-  reps: z.preprocess(
-    (v) => (v === undefined ? null : v),
-    z.union([z.number().finite(), z.null()]),
-  ),
-  weight: z.preprocess(
-    (v) => (typeof v === "number" && Number.isFinite(v) ? v : Number(v)),
-    z.number().finite().min(0).max(2000),
-  ),
+  reps: z.preprocess((v) => {
+    if (v === undefined) return null;
+    if (v === null) return null;
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string") {
+      const n = Number(String(v).replace(",", ".").trim());
+      return Number.isFinite(n) ? n : null;
+    }
+    return null;
+  }, z.union([z.number().finite(), z.null()])),
+  weight: z.preprocess((v) => {
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string") {
+      const n = Number(String(v).replace(",", ".").replace(/\s/g, ""));
+      return Number.isFinite(n) ? n : 0;
+    }
+    return 0;
+  }, z.number().finite().min(0).max(2000)),
   done: z.boolean(),
 });
 

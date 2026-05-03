@@ -43,7 +43,6 @@ export function ActiveWorkoutCoachPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const inFlight = useRef(false);
   const tipRequestId = useRef(0);
   const prevRest = useRef<number | null>(null);
   const prevDoneCount = useRef<number | null>(null);
@@ -90,9 +89,8 @@ export function ActiveWorkoutCoachPanel({
 
   const requestTip = useCallback(async (trigger: ActiveWorkoutCoachTrigger) => {
     const p = payloadRef.current;
-    if (p.exercises.length === 0 || inFlight.current) return;
+    if (p.exercises.length === 0) return;
     const myId = ++tipRequestId.current;
-    inFlight.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -124,7 +122,6 @@ export function ActiveWorkoutCoachPanel({
     } finally {
       if (myId === tipRequestId.current) {
         setLoading(false);
-        inFlight.current = false;
       }
     }
   }, []);

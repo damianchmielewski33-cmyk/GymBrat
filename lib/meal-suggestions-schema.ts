@@ -17,7 +17,8 @@ const MealItemSchema = z.object({
 });
 
 export const MealSuggestionsResponseSchema = z.object({
-  meals: z.array(MealItemSchema).min(2).max(6),
+  /** Cztery wyraźnie różne propozycje (zgodnie z promptem modelu). */
+  meals: z.array(MealItemSchema).length(4),
 });
 
 export type MealSuggestionItem = z.infer<typeof MealItemSchema>;
@@ -75,6 +76,24 @@ export function staticFallbackMeals(): MealSuggestionItem[] {
       ],
       approximateMacros: { calories: 520, proteinG: 45, fatG: 14, carbsG: 52 },
       imagePromptEn: "Buckwheat bowl grilled chicken vegetables, top view",
+    },
+    {
+      title: "Zupa krem z pieczonych pomidorów z soczewicą",
+      tagline: "Rozgrzewające białko roślinne",
+      ingredients: [
+        "500 g pomidorów malinowych",
+        "80 g czerwonej soczewicy suchej (lub 200 g z puszki odcedzonej)",
+        "1 cebula, 2 ząbki czosnku",
+        "500 ml bulionu warzywnego",
+        "1 łyżka oliwy, sól, pieprz, łyżeczka suszonego oregano",
+      ],
+      steps: [
+        "Pomidory zapiecz z oliwą i czosnkiem w 200 °C ok. 25 minut.",
+        "Soczewicę ugotuj do miękkości (jeśli susza).",
+        "Zblenduj pomidory z bulionem i soczewicą, dopraw, podawaj z grzanką pełnoziarnistą.",
+      ],
+      approximateMacros: { calories: 380, proteinG: 18, fatG: 12, carbsG: 48 },
+      imagePromptEn: "Tomato lentil soup cream bowl herbs, rustic spoon",
     },
   ];
 }
