@@ -4,6 +4,7 @@ import { chatCoach } from "@/ai/coach";
 import { isAiConfigured } from "@/ai/client";
 import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
 import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
+import { getBriefingTimeContext } from "@/lib/briefing-time-context";
 
 export type DailyBriefingSource = "ai" | "heuristic";
 
@@ -14,22 +15,35 @@ export type DailyBriefing = {
   aiDisabledByUser?: boolean;
 };
 
-function heuristicBrief(rc: Awaited<ReturnType<typeof buildCoachRecentContext>>): string {
+function heuristicBrief(
+  rc: Awaited<ReturnType<typeof buildCoachRecentContext>>,
+  time: ReturnType<typeof getBriefingTimeContext>,
+): string {
+  const late = time.hour >= 22 || time.hour < 5;
+  const tail = late
+    ? "Wieczorem skup się na regeneracji i spokojnym domknięciu makro — jutro zaczniesz na świeżo."
+    : "Utrzymaj rytuał — krótki trening pokonuje zerowy.";
   return [
+    time.linePl,
     `Dziś: ${rc.nutritionSummary}.`,
     rc.trainingSummary,
     `Nawyki: ${rc.streakLine}.`,
-    "Utrzymaj rytuał — krótki trening pokonuje zerowy.",
+    tail,
   ].join(" ");
 }
 
-const briefingUserPrompt = `Jesteś Trenerem AI GymBrat. To moduł „Briefing dnia” na stronie głównej — użytkownik widzi tylko Twój tekst (bez czatu).
+function briefingUserPromptBody(timeLine: string): string {
+  return `Jesteś Trenerem AI GymBrat. To moduł „Briefing dnia” na stronie głównej — użytkownik widzi tylko Twój tekst (bez czatu).
 
-Napisz briefing po polsku: 2–4 krótkie zdania. Wpleć przynajmniej jedną konkretną obserwację opartą wyłącznie na danych z kontekstu aplikacji (makra, trening, pasma). Dodaj jedną praktyczną wskazówkę na dziś.
+${timeLine}
+
+Napisz briefing po polsku: 2–4 krótkie zdania. Dopasuj treść do pory dnia (nie mów o „początku dnia” ani porannej rozgrzewce, jeśli jest późny wieczór/noc). Wpleć przynajmniej jedną konkretną obserwację opartą wyłącznie na danych z kontekstu aplikacji (makra, trening, pasma). Jedna realistyczna wskazówka na **teraz** lub na najbliższe godziny — bez wymyślania liczb spoza kontekstu.
 Bez powitania typu „cześć” / „witaj”, bez podpisu, bez pytań na końcu.`;
+}
 
 /** Krótki briefing na Start (Ten sam model co Coach czat — lub heurystyka bez klucza API). */
 export async function getDailyBriefing(userId: string): Promise<DailyBriefing> {
+  const timeCtx = getBriefingTimeContext();
   const [userAiOff, rc, profile] = await Promise.all([
     getUserAiFeaturesDisabled(userId),
     buildCoachRecentContext(userId),
@@ -38,7 +52,7 @@ export async function getDailyBriefing(userId: string): Promise<DailyBriefing> {
 
   if (!isAiConfigured() || userAiOff) {
     return {
-      text: heuristicBrief(rc),
+      text: heuristicBrief(rc, timeCtx),
       source: "heuristic",
       aiDisabledByUser: userAiOff,
     };
@@ -46,10 +60,13 @@ export async function getDailyBriefing(userId: string): Promise<DailyBriefing> {
 
   try {
     const text = await chatCoach({
-      messages: [{ role: "user", content: briefingUserPrompt }],
+      messages: [{ role: "user", content: briefingUserPromptBody(timeCtx.linePl) }],
       context: {
         userProfile: profile,
-        recentContext: rc,
+        recentContext: {
+          ...rc,
+          briefingLocalTime: timeCtx.linePl,
+        },
         guardrails: { tone: "supportive" },
         task: "daily_briefing",
       },
@@ -60,5 +77,5 @@ export async function getDailyBriefing(userId: string): Promise<DailyBriefing> {
     /* fall through */
   }
 
-  return { text: heuristicBrief(rc), source: "heuristic" };
+  return { text: heuristicBrief(rc, timeCtx), source: "heuristic" };
 }

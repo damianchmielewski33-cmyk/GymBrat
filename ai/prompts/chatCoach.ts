@@ -13,6 +13,8 @@ export type ChatCoachPromptInput = {
     nutritionSummary?: string;
     trainingSummary?: string;
     streakLine?: string;
+    /** Czas lokalny kalendarza aplikacji — briefing dnia ma uwzględniać porę dnia. */
+    briefingLocalTime?: string;
   };
   guardrails?: {
     tone?: "supportive" | "direct" | "strict";
@@ -41,6 +43,7 @@ export function chatCoachSystemPrompt(input: ChatCoachPromptInput) {
   const rc = input.recentContext;
   const ctxLine = rc
     ? [
+        rc.briefingLocalTime ? `Local calendar time: ${rc.briefingLocalTime}` : "",
         rc.nutritionSummary ? `Nutrition: ${rc.nutritionSummary}` : "",
         rc.trainingSummary ? `Training: ${rc.trainingSummary}` : "",
         rc.streakLine ? `Streaks: ${rc.streakLine}` : "",
@@ -55,7 +58,8 @@ export function chatCoachSystemPrompt(input: ChatCoachPromptInput) {
           "Task: Write ONLY the athlete's daily dashboard briefing (Polish).",
           "Length: 2–4 short sentences total.",
           "Ground at least one sentence in Recent app context (numbers/facts from context only; do not invent metrics).",
-          "Include one practical suggestion for today (training, food habit, or recovery).",
+          "If Local calendar time is present: calibrate ALL wording to that moment. Late evening/night (e.g. 22:00–04:59 local): do NOT say the day is «just starting», «early morning», or push intense training; prefer recovery, sleep routine, light hydration/snack if macros allow, brief recap of the day. Morning: day-ahead framing is OK. Stay realistic.",
+          "Include one practical suggestion that fits the actual time of day and the data (training, food habit, or recovery).",
           "No chat-style greeting (no «cześć», «witaj»). No signature line. No questions to the user unless critical.",
         ].join("\n")
       : "";
