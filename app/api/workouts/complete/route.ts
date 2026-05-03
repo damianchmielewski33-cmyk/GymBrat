@@ -10,6 +10,40 @@ import { assertCsrf } from "@/lib/csrf";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import { z } from "zod";
 
+/** UI / input HTML mogą dać ułamkowe powtórzenia — zapisujemy zaokrąglone całkowite. */
+function preprocessReps(val: unknown): unknown {
+  if (val === undefined) return undefined;
+  if (val === null) return null;
+  let n: number;
+  if (typeof val === "string") {
+    const t = String(val).replace(",", ".").trim();
+    if (t === "") return null;
+    n = Number(t);
+  } else if (typeof val === "number") {
+    n = val;
+  } else {
+    return null;
+  }
+  if (!Number.isFinite(n)) return null;
+  return Math.min(500, Math.max(0, Math.round(n)));
+}
+
+function preprocessWeightKg(val: unknown): unknown {
+  if (val === undefined || val === null) return 0;
+  let n: number;
+  if (typeof val === "string") {
+    const t = String(val).replace(",", ".").replace(/\s/g, "").trim();
+    if (t === "") return 0;
+    n = Number(t);
+  } else if (typeof val === "number") {
+    n = val;
+  } else {
+    return 0;
+  }
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(2000, Math.max(0, n));
+}
+
 type CompletedWorkoutPayload = {
   title: string;
   startedAt?: number | null;
@@ -20,11 +54,19 @@ type CompletedWorkoutPayload = {
 };
 
 const setSchema = z.object({
-  reps: z.number().int().min(0).max(500).nullable().optional(),
-  weight: z.number().min(0).max(2000),
+  reps: z.preprocess(
+    preprocessReps,
+    z.number().int().min(0).max(500).nullable().optional(),
+  ),
+  weight: z.preprocess(preprocessWeightKg, z.number().min(0).max(2000)),
+  done: z.boolean().optional(),
+  rpe: z.union([z.number().finite().min(1).max(10), z.null()]).optional(),
 });
 
 const exerciseSchema = z.object({
+  id: z.string().max(128).nullish(),
+  name: z.string().max(500).nullish(),
+  note: z.string().max(4000).nullish(),
   sets: z.array(setSchema).min(0).max(200),
 });
 
