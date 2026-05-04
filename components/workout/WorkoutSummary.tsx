@@ -16,7 +16,7 @@ type WorkoutSummaryProps = {
 };
 
 /**
- * Dolny pasek jak w mobilnych dziennikach: objętość + jeden główny przycisk.
+ * Dolny pasek jak w mobilnych dziennikach: tonaż + jeden główny przycisk.
  */
 export function WorkoutSummary({
   sessionTotal,
@@ -38,7 +38,7 @@ export function WorkoutSummary({
       <div className="mx-auto flex max-w-[1400px] flex-col gap-2 px-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/40">
-            Sesja — objętość
+            Sesja — tonaż
           </p>
           <p className="font-heading text-2xl font-bold tabular-nums tracking-tight text-white sm:text-[1.75rem]">
             {formatVolumeKg(sessionTotal)}{" "}

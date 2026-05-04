@@ -313,7 +313,7 @@ export default async function HomePage() {
                 Ostatnie treningi
               </h2>
               <p className="mt-1 text-xs text-white/50">
-                Wolumen (kg) i liczba powtórzeń z ostatnich {stats.trend.length}{" "}
+                Tonaż (kg) i liczba powtórzeń z ostatnich {stats.trend.length}{" "}
                 treningów.
               </p>
               <div className="mt-5">

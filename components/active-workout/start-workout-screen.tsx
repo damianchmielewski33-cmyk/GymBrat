@@ -282,7 +282,7 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
                 </span>
                 <span className="min-w-0">
                   <span className="block font-medium">Historia treningów</span>
-                  <span className="block text-[11px] text-white/45">Ostatnie sesje i wolumen</span>
+                  <span className="block text-[11px] text-white/45">Ostatnie sesje i tonaż</span>
                 </span>
               </Link>
             </div>

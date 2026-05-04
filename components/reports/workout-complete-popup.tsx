@@ -110,14 +110,14 @@ export function WorkoutCompletePopup() {
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="flex items-center gap-2 text-white/60">
               <Dumbbell className="h-4 w-4" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em]">Objętość</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em]">Tonaż</p>
             </div>
             <p className="mt-2 text-2xl font-bold tabular-nums text-white">
               {formatVolumeKg(summary.totalVolume)}{" "}
               <span className="text-base font-semibold text-white/45">kg</span>
             </p>
             <p className="mt-1 text-xs text-white/45">
-              Siła vs plan:{" "}
+              Wskaźnik siły vs poprzedni (plan):{" "}
               {strengthLabel ? (
                 <span
                   className={

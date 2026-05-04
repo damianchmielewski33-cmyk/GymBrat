@@ -89,7 +89,7 @@ export default async function WorkoutHistoryDetailsPage({
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="glass-panel neon-glow p-5">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">Objętość</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">Tonaż</p>
           <p className="mt-2 text-2xl font-semibold text-white">{formatCompact(w.volumeKg)}</p>
           <p className="mt-1 text-xs text-white/55">Δ vs poprzedni (plan): {formatPct(deltaVolume)}</p>
         </div>
@@ -129,7 +129,7 @@ export default async function WorkoutHistoryDetailsPage({
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-white/90">{ex.name}</p>
                   <p className="text-xs text-white/55">
-                    Objętość: {formatCompact(ex.volumeKg)} • Najlepszy e1RM: {formatCompact(ex.bestE1rm)}
+                    Tonaż: {formatCompact(ex.volumeKg)} • Najlepszy e1RM: {formatCompact(ex.bestE1rm)}
                   </p>
                 </div>
               </div>

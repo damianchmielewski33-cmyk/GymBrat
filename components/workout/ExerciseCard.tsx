@@ -92,7 +92,7 @@ export function ExerciseCard({
       <div className="flex flex-col gap-3 border-t border-white/[0.06] bg-[#151515] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
-            Objętość ćwiczenia
+            Tonaż ćwiczenia
           </p>
           <p className="mt-0.5 text-lg font-semibold tabular-nums text-white">
             {formatVolumeKg(exTotal)} <span className="text-sm font-normal text-white/45">kg</span>

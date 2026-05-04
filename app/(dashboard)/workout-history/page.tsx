@@ -60,7 +60,7 @@ export default async function WorkoutHistoryPage() {
                       </p>
                       <p className="text-sm font-semibold text-white/90">{w.title}</p>
                       <p className="text-xs text-white/55">
-                        Plan: {w.planName ?? "—"} • Objętość: {formatCompact(w.volumeKg)} • Siła:{" "}
+                        Plan: {w.planName ?? "—"} • Tonaż: {formatCompact(w.volumeKg)} • Wskaźnik siły:{" "}
                         {formatCompact(w.strengthScore)}
                       </p>
                     </div>

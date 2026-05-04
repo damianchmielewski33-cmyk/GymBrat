@@ -174,7 +174,7 @@ export function LastWorkoutStats({
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard
           icon={<Dumbbell className="h-4 w-4" />}
-          label="Wolumen"
+          label="Tonaż"
           value={lastWorkout.volumeKg}
           unit="kg"
           deltaPercent={stats.deltaVolumePercent}

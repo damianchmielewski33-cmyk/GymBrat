@@ -86,7 +86,7 @@ export function WorkoutTrendChart({ data }: { data: WorkoutTrendPoint[] }) {
             contentStyle={tooltipStyle}
             formatter={(value, name) => {
               if (name === "volumeKg")
-                return [`${Number(value).toLocaleString("pl-PL")} kg`, "Wolumen"];
+                return [`${Number(value).toLocaleString("pl-PL")} kg`, "Tonaż"];
               if (name === "totalReps")
                 return [`${Number(value)} pow.`, "Powtórzenia"];
               return [String(value), String(name)];
@@ -95,7 +95,7 @@ export function WorkoutTrendChart({ data }: { data: WorkoutTrendPoint[] }) {
           <Legend
             wrapperStyle={legendStyle}
             formatter={(value) => {
-              if (value === "volumeKg") return "Wolumen (kg)";
+              if (value === "volumeKg") return "Tonaż (kg)";
               if (value === "totalReps") return "Powtórzenia";
               return value;
             }}

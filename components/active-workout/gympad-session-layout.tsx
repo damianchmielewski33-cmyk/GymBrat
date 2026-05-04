@@ -65,7 +65,7 @@ function computeSetPrBadge(set: WorkoutSetState, prs: ExercisePrs | null): strin
   const hasHistory = prs.maxE1rm.value > 0 || prs.maxWeight.value > 0;
   const eps = 0.05;
   if (!hasHistory) return "Pierwszy zapis";
-  if (e1 > prs.maxE1rm.value + eps) return "Nowy rekord 1RM";
+  if (e1 > prs.maxE1rm.value + eps) return "Nowy rekord e1RM";
   if (set.weight > prs.maxWeight.value + eps) return "Nowy rekord ciężaru";
   return null;
 }
@@ -293,7 +293,7 @@ export function GymPadSessionLayout({
               <p className="text-2xl font-bold tabular-nums leading-tight text-white sm:text-3xl">
                 {formatVolumeKg(vol).replace(/\s/g, " ")}
               </p>
-              <p className="mt-1 text-xs font-medium text-white/55">objętość (kg)</p>
+              <p className="mt-1 text-xs font-medium text-white/55">tonaż (kg)</p>
             </div>
           </div>
 

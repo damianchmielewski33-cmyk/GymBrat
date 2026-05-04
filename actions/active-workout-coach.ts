@@ -140,7 +140,7 @@ function heuristicTip(snapshot: NonNullable<ChatCoachPromptInput["activeWorkout"
   }
   return [
     `Startujesz z ${currentExercise} — ustaw stabilną pozycję stóp, świadomy zakres ruchu i spójny rytm powtórzeń.`,
-    "Pierwsze serie traktuj jako rozgrzewkę pod docelowy ciężar; zapisuj każdą ukończoną serię, żeby śledzić objętość.",
+    "Pierwsze serie traktuj jako rozgrzewkę pod docelowy ciężar; zapisuj każdą ukończoną serię, żeby śledzić tonaż.",
     `W sesji masz ${snapshot.exerciseCount} ćwiczeń — skup się na jednym ruchu naraz.`,
   ].join(" ");
 }

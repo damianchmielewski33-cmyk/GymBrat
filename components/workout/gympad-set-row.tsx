@@ -115,7 +115,7 @@ export function GymPadSetRow({
         </span>
         <span
           className="inline-flex h-11 min-h-11 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.03] px-3 text-center text-sm font-semibold tabular-nums text-white/85"
-          aria-label={`Seria ${setIndex + 1}: objętość ${formatVolumeKg(lineVol)} kg`}
+          aria-label={`Seria ${setIndex + 1}: tonaż ${formatVolumeKg(lineVol)} kg`}
         >
           {formatVolumeKg(lineVol)}{" "}
           <span className="ml-1 text-xs font-medium text-white/45">kg</span>

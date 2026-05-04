@@ -49,12 +49,12 @@ export function coachRecentContextFromDashboardParts(
       : "Posiłki dziś: 0 (brak wpisów)";
 
   const train = stats.lastWorkout
-    ? `Ostatni trening ${stats.lastWorkout.date}: „${stats.lastWorkout.title}”, objętość ${stats.lastWorkout.volumeKg} kg, powt. ${stats.lastWorkout.totalReps}`
+    ? `Ostatni trening ${stats.lastWorkout.date}: „${stats.lastWorkout.title}”, tonaż ${stats.lastWorkout.volumeKg} kg, powt. ${stats.lastWorkout.totalReps}`
     : "Brak zapisanych treningów.";
 
   const trendLine =
     stats.lastWorkout && stats.deltaVolumePercent != null
-      ? `Vs średnia ostatnich sesji: objętość ${stats.deltaVolumePercent > 0 ? "+" : ""}${stats.deltaVolumePercent}%`
+      ? `Vs średnia ostatnich sesji: tonaż ${stats.deltaVolumePercent > 0 ? "+" : ""}${stats.deltaVolumePercent}%`
       : "";
 
   const progressSummary =

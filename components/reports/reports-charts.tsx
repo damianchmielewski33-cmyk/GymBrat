@@ -33,7 +33,7 @@ export function ReportsCharts({ dailyCardio, weeklySessions }: ReportsChartsProp
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(255,45,85,0.12),transparent_50%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-            Objętość cardio
+            Czas cardio
           </p>
           <h2 className="font-heading mt-1 text-lg font-semibold text-white">
             Ostatnie 14 dni
