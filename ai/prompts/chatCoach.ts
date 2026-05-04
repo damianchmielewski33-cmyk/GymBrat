@@ -11,7 +11,11 @@ export type ChatCoachPromptInput = {
   /** Skrót danych z aplikacji (makra, trening, streak). */
   recentContext?: {
     nutritionSummary?: string;
+    nutritionMacrosLine?: string;
+    nutritionMealsLine?: string;
     trainingSummary?: string;
+    trainingTrendLine?: string;
+    progressSummary?: string;
     streakLine?: string;
     /** Czas lokalny kalendarza aplikacji — briefing dnia ma uwzględniać porę dnia. */
     briefingLocalTime?: string;
@@ -44,8 +48,12 @@ export function chatCoachSystemPrompt(input: ChatCoachPromptInput) {
   const ctxLine = rc
     ? [
         rc.briefingLocalTime ? `Local calendar time: ${rc.briefingLocalTime}` : "",
-        rc.nutritionSummary ? `Nutrition: ${rc.nutritionSummary}` : "",
-        rc.trainingSummary ? `Training: ${rc.trainingSummary}` : "",
+        rc.nutritionSummary ? `Nutrition calories: ${rc.nutritionSummary}` : "",
+        rc.nutritionMacrosLine ? `Nutrition macros: ${rc.nutritionMacrosLine}` : "",
+        rc.nutritionMealsLine ? `Nutrition meals: ${rc.nutritionMealsLine}` : "",
+        rc.trainingSummary ? `Training last: ${rc.trainingSummary}` : "",
+        rc.trainingTrendLine ? `Training trend: ${rc.trainingTrendLine}` : "",
+        rc.progressSummary ? `Progress: ${rc.progressSummary}` : "",
         rc.streakLine ? `Streaks: ${rc.streakLine}` : "",
       ]
         .filter(Boolean)

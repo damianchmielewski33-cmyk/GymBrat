@@ -30,13 +30,29 @@ function heuristicBrief(
   time: ReturnType<typeof getBriefingTimeContext>,
 ): string {
   const late = time.hour >= 22 || time.hour < 5;
+  const nutritionBits = [
+    rc.nutritionSummary ? `Kalorie: ${rc.nutritionSummary}.` : "",
+    rc.nutritionMacrosLine ? `Makro: ${rc.nutritionMacrosLine}.` : "",
+    rc.nutritionMealsLine ? `${rc.nutritionMealsLine}.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const trainingBits = [
+    rc.trainingSummary ? `Trening: ${rc.trainingSummary}.` : "",
+    rc.trainingTrendLine ? `${rc.trainingTrendLine}.` : "",
+    rc.progressSummary ? `${rc.progressSummary}.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   const tail = late
-    ? "Wieczorem skup się na regeneracji i spokojnym domknięciu makro — jutro zaczniesz na świeżo."
-    : "Utrzymaj rytuał — krótki trening pokonuje zerowy.";
+    ? "Na teraz: domknij białko/kalorie spokojnym posiłkiem, zaplanuj sen i zostaw ciężkie rzeczy na jutro."
+    : "Na teraz: wybierz jeden mały krok — dopnij białko w kolejnym posiłku albo zrób krótki trening/aktywność, jeśli jeszcze nic nie było.";
   return [
     time.linePl,
-    `Dziś: ${rc.nutritionSummary}.`,
-    rc.trainingSummary,
+    nutritionBits,
+    trainingBits,
     `Nawyki: ${rc.streakLine}.`,
     tail,
   ].join(" ");
@@ -47,7 +63,7 @@ function briefingUserPromptBody(timeLine: string): string {
 
 ${timeLine}
 
-Napisz briefing po polsku: 2–4 krótkie zdania. Dopasuj treść do pory dnia (nie mów o „początku dnia” ani porannej rozgrzewce, jeśli jest późny wieczór/noc). Wpleć przynajmniej jedną konkretną obserwację opartą wyłącznie na danych z kontekstu aplikacji (makra, trening, pasma). Jedna realistyczna wskazówka na **teraz** lub na najbliższe godziny — bez wymyślania liczb spoza kontekstu.
+Napisz briefing po polsku: 2–4 krótkie zdania. Ma być praktyczny i oparty o dane z aplikacji (kalorie, makro, posiłki, trening, trend, pasma). Dopasuj treść do pory dnia (nie mów o „początku dnia” ani porannej rozgrzewce, jeśli jest późny wieczór/noc). Wpleć przynajmniej jedną konkretną obserwację z liczb (wyłącznie z kontekstu). Dodaj 1 wskazówkę na **teraz** / najbliższe godziny (żywienie albo trening albo regeneracja) — bez wymyślania liczb spoza kontekstu.
 Bez powitania typu „cześć” / „witaj”, bez podpisu, bez pytań na końcu.`;
 }
 
