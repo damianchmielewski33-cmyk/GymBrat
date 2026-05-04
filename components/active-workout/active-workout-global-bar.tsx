@@ -12,6 +12,7 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ActiveWorkoutView } from "@/components/active-workout/active-workout-view";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { cn } from "@/lib/utils";
 import { sessionVolume } from "@/lib/workout-session-calculations";
@@ -51,6 +52,7 @@ export function ActiveWorkoutGlobalBar() {
   const [completing, setCompleting] = useState(false);
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false);
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
+  const [sessionPopupOpen, setSessionPopupOpen] = useState(false);
 
   const hasSession = workoutPlanId != null && exercises.length > 0;
   const isRunning = hasSession && startedAt != null;
@@ -80,7 +82,7 @@ export function ActiveWorkoutGlobalBar() {
 
   if (!hasSession) return null;
 
-  const canNavigate = !pathname.startsWith("/active-workout");
+  const canShowPopup = !pathname.startsWith("/active-workout");
 
   async function completeWorkoutFromBar() {
     if (completing) return;
@@ -149,11 +151,12 @@ export function ActiveWorkoutGlobalBar() {
         }}
       >
         <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
-          {canNavigate ? (
-            <Link
-              href="/active-workout"
-              className="min-w-0 flex-1 rounded-xl outline-none transition hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/40"
-              aria-label="Przejdź do aktywnego treningu"
+          {canShowPopup ? (
+            <button
+              type="button"
+              className="min-w-0 flex-1 rounded-xl text-left outline-none transition hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/40"
+              aria-label="Otwórz aktywny trening"
+              onClick={() => setSessionPopupOpen(true)}
             >
               <div className="min-w-0 px-1 py-1">
                 <div className="flex items-center gap-2">
@@ -177,10 +180,10 @@ export function ActiveWorkoutGlobalBar() {
                   ) : null}
                 </div>
                 <p className="truncate text-[11px] text-white/45">
-                  Masz aktywny trening — kliknij, aby wrócić
+                  Masz aktywny trening — kliknij, aby otworzyć
                 </p>
               </div>
-            </Link>
+            </button>
           ) : (
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
@@ -332,6 +335,34 @@ export function ActiveWorkoutGlobalBar() {
             >
               Odrzuć
             </Button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={sessionPopupOpen} onOpenChange={setSessionPopupOpen}>
+        <AlertDialogContent className="w-[min(96vw,1100px)] p-0">
+          <div className="flex max-h-[min(88dvh,860px)] min-h-[min(70dvh,640px)] flex-col overflow-hidden rounded-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-zinc-950/80 px-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white/90">{title || "Trening"}</p>
+                <p className="text-[11px] text-white/45">Aktywny trening</p>
+              </div>
+              <AlertDialogClose
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
+                  />
+                }
+              >
+                Zamknij
+              </AlertDialogClose>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto bg-black">
+              <ActiveWorkoutView initialPlans={[]} entry="active" userAiFeaturesDisabled={false} display="modal" />
+            </div>
           </div>
         </AlertDialogContent>
       </AlertDialog>

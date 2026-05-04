@@ -29,13 +29,12 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { releaseDocumentScrollLock } from "@/lib/document-scroll";
 import { cn } from "@/lib/utils";
 import { CoachChatFab } from "@/components/layout/coach-chat-fab";
+import { StartWorkoutFab } from "@/components/layout/start-workout-fab";
 
 const nav = [
   { href: "/", label: "Start", icon: Home },
   { href: "/meal-suggestions", label: "Posiłki", icon: ChefHat },
   { href: "/workout-plan", label: "Plan", icon: Dumbbell },
-  // Specjalny, ozdobiony przycisk startu treningu — między Plan i Raporty.
-  { href: "/start-workout", label: "Rozpocznij trening", icon: Activity, special: true },
   { href: "/reports", label: "Raporty", icon: BarChart3 },
   { href: "/progress-analysis", label: "Analiza", icon: LineChart },
   { href: "/workout-history", label: "Historia", icon: ScrollText },
@@ -107,52 +106,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span
                     className={cn(
                       "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
-                      item.special
-                        ? "text-white hover:brightness-110"
-                        : active
-                          ? "text-white"
-                          : "text-white/55 hover:text-white/85 hover:bg-white/[0.06]",
+                      active ? "text-white" : "text-white/55 hover:text-white/85 hover:bg-white/[0.06]",
                     )}
                     style={
-                      item.special
+                      active
                         ? {
                             background:
-                              "linear-gradient(145deg,rgba(230,0,35,0.38),rgba(230,0,35,0.14))",
-                            border: "1px solid rgba(230,0,35,0.55)",
-                            borderTopColor: "rgba(255,255,255,0.18)",
+                              "linear-gradient(145deg,rgba(230,0,35,0.20),rgba(230,0,35,0.08))",
+                            border: "1px solid rgba(230,0,35,0.35)",
+                            borderTopColor: "rgba(230,0,35,0.55)",
                             boxShadow:
-                              "0 0 18px rgba(230,0,35,0.24), inset 0 1px 0 rgba(255,255,255,0.10)",
+                              "0 0 12px rgba(230,0,35,0.20), inset 0 1px 0 rgba(255,255,255,0.07)",
                           }
-                        : active
-                          ? {
-                              background:
-                                "linear-gradient(145deg,rgba(230,0,35,0.20),rgba(230,0,35,0.08))",
-                              border: "1px solid rgba(230,0,35,0.35)",
-                              borderTopColor: "rgba(230,0,35,0.55)",
-                              boxShadow:
-                                "0 0 12px rgba(230,0,35,0.20), inset 0 1px 0 rgba(255,255,255,0.07)",
-                            }
-                          : undefined
+                        : undefined
                     }
                   >
                     <item.icon
                       className={cn(
                         "h-4 w-4",
-                        item.special
-                          ? "text-[var(--neon)]"
-                          : active
-                            ? "text-[var(--neon)]"
-                            : "text-white/55",
+                        active ? "text-[var(--neon)]" : "text-white/55",
                       )}
                     />
-                    {item.special ? (
-                      <span className="hidden lg:inline">{item.label}</span>
-                    ) : (
-                      item.label
-                    )}
-                    {item.special ? (
-                      <span className="lg:hidden">Trening</span>
-                    ) : null}
+                    {item.label}
                   </span>
                 </Link>
               );
@@ -257,38 +232,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <span
                           className={cn(
                             "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
-                            item.special
-                              ? "text-white"
-                              : active
-                                ? "text-white"
-                                : "text-white/60 hover:bg-white/[0.06] hover:text-white/85",
+                            active ? "text-white" : "text-white/60 hover:bg-white/[0.06] hover:text-white/85",
                           )}
                           style={
-                            item.special
+                            active
                               ? {
                                   background:
-                                    "linear-gradient(145deg,rgba(230,0,35,0.38),rgba(230,0,35,0.14))",
-                                  border: "1px solid rgba(230,0,35,0.55)",
-                                  boxShadow:
-                                    "0 0 18px rgba(230,0,35,0.18), inset 0 1px 0 rgba(255,255,255,0.08)",
+                                    "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.07))",
+                                  border: "1px solid rgba(230,0,35,0.30)",
                                 }
-                              : active
-                                ? {
-                                    background:
-                                      "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.07))",
-                                    border: "1px solid rgba(230,0,35,0.30)",
-                                  }
-                                : undefined
+                              : undefined
                           }
                         >
                           <item.icon
                             className={cn(
                               "h-4 w-4",
-                              item.special
-                                ? "text-[var(--neon)]"
-                                : active
-                                  ? "text-[var(--neon)]"
-                                  : "text-white/40",
+                              active ? "text-[var(--neon)]" : "text-white/40",
                             )}
                           />
                           {item.label}
@@ -353,37 +312,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-medium transition-all duration-150",
-                  item.special ? "text-white" : active ? "text-white" : "text-white/50",
+                  active ? "text-white" : "text-white/50",
                 )}
                 style={
-                  item.special
+                  active
                     ? {
                         background:
-                          "linear-gradient(145deg,rgba(230,0,35,0.45),rgba(230,0,35,0.14))",
-                        border: "1px solid rgba(230,0,35,0.55)",
-                        boxShadow: "0 0 14px rgba(230,0,35,0.18)",
+                          "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.06))",
+                        border: "1px solid rgba(230,0,35,0.28)",
                       }
-                    : active
-                      ? {
-                          background:
-                            "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.06))",
-                          border: "1px solid rgba(230,0,35,0.28)",
-                        }
-                      : undefined
+                    : undefined
                 }
               >
                 <item.icon
                   className={cn(
                     "h-5 w-5",
-                    item.special
-                      ? "text-[var(--neon)]"
-                      : active
-                        ? "text-[var(--neon)]"
-                        : "text-white/55",
+                    active ? "text-[var(--neon)]" : "text-white/55",
                   )}
                 />
                 <span className="leading-none">
-                  {item.special ? "Trening" : item.label}
+                  {item.label}
                 </span>
               </Link>
             );
@@ -392,6 +340,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       <CoachChatFab />
+      <StartWorkoutFab />
     </div>
   );
 }

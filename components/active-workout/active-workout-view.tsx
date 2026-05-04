@@ -60,10 +60,12 @@ export function ActiveWorkoutView({
   initialPlans,
   entry = "active",
   userAiFeaturesDisabled = false,
+  display = "page",
 }: {
   initialPlans: WorkoutPlanWithLastWorkoutDTO[];
   entry?: "active" | "start";
   userAiFeaturesDisabled?: boolean;
+  display?: "page" | "modal";
 }) {
   const {
     startedAt,
@@ -142,6 +144,7 @@ export function ActiveWorkoutView({
   // - `/active-workout` is a strict "session view" and must NOT be accessible without an active session.
   // - `/start-workout` is the entry point that lets user pick a plan and begin a session.
   useEffect(() => {
+    if (display !== "page") return;
     if (suppressRouteGate || !storeHydrated) return;
     if (entry === "active" && !hasLoadedPlan) {
       router.replace("/start-workout");
@@ -150,7 +153,7 @@ export function ActiveWorkoutView({
     if (entry === "start" && hasLoadedPlan) {
       router.replace("/active-workout");
     }
-  }, [entry, hasLoadedPlan, router, suppressRouteGate, storeHydrated]);
+  }, [display, entry, hasLoadedPlan, router, suppressRouteGate, storeHydrated]);
 
   function startRest(seconds: number) {
     setRestRemaining(seconds);
@@ -412,7 +415,9 @@ export function ActiveWorkoutView({
     <div
       className={
         hasLoadedPlan
-          ? "relative ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-x-hidden bg-black pb-36 pt-0 sm:pb-40"
+          ? display === "modal"
+            ? "relative bg-black"
+            : "relative ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-x-hidden bg-black pb-36 pt-0 sm:pb-40"
           : "relative min-h-[calc(100dvh-6rem)] rounded-2xl bg-[#0f0f0f] p-4 sm:p-6 lg:min-h-[calc(100dvh-5rem)]"
       }
     >
@@ -484,7 +489,9 @@ export function ActiveWorkoutView({
       <div
         className={
           hasLoadedPlan
-            ? "mx-auto w-full max-w-[min(100%,720px)] px-4 pb-4 pt-2 sm:px-6"
+            ? display === "modal"
+              ? "mx-auto w-full max-w-[min(100%,720px)] px-4 pb-4 pt-2 sm:px-6"
+              : "mx-auto w-full max-w-[min(100%,720px)] px-4 pb-4 pt-2 sm:px-6"
             : "mx-auto max-w-[1400px]"
         }
       >

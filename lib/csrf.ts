@@ -74,14 +74,31 @@ export function assertCsrf(req: Request): NextResponse | null {
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) return null;
 
   const origin = req.headers.get("origin");
-  if (origin && !isAllowedRequestOrigin(origin)) {
-    return NextResponse.json(
-      {
-        error:
-          "Żądanie pochodzi z niedozwolonej witryny. Otwórz aplikację z adresu ustawionego w konfiguracji (np. produkcja lub localhost) i spróbuj ponownie.",
-      },
-      { status: 403 },
-    );
+  if (origin) {
+    try {
+      // Always allow same-origin requests, even if env allowlist is stale/misconfigured.
+      const reqOrigin = new URL(req.url).origin;
+      const gotOrigin = new URL(origin).origin;
+      if (gotOrigin !== reqOrigin && !isAllowedRequestOrigin(origin)) {
+        return NextResponse.json(
+          {
+            error:
+              "Żądanie pochodzi z niedozwolonej witryny. Otwórz aplikację z adresu ustawionego w konfiguracji (np. produkcja lub localhost) i spróbuj ponownie.",
+          },
+          { status: 403 },
+        );
+      }
+    } catch {
+      if (!isAllowedRequestOrigin(origin)) {
+        return NextResponse.json(
+          {
+            error:
+              "Żądanie pochodzi z niedozwolonej witryny. Otwórz aplikację z adresu ustawionego w konfiguracji (np. produkcja lub localhost) i spróbuj ponownie.",
+          },
+          { status: 403 },
+        );
+      }
+    }
   }
 
   const cookieTok = parseCookieHeader(req.headers.get("cookie"), CSRF_COOKIE_NAME);
