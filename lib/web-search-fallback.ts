@@ -1,5 +1,7 @@
 import "server-only";
 
+import { isWebSearchConfigured } from "@/lib/web-search-env";
+
 const CUSTOM_SEARCH_URL = "https://www.googleapis.com/customsearch/v1";
 
 function searchApiKey(): string | undefined {
@@ -20,7 +22,7 @@ function searchEngineId(): string | undefined {
 
 /** Fallback tylko gdy ustawisz klucz API + identyfikator silnika (cx) z Programmable Search Engine. */
 export function isWebSearchKnowledgeConfigured(): boolean {
-  return Boolean(searchApiKey() && searchEngineId());
+  return isWebSearchConfigured();
 }
 
 export type CoachSearchMessage = { role: string; content: string };

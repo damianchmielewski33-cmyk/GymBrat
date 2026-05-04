@@ -5,8 +5,13 @@ test("strona logowania wyświetla markę GymBrat", async ({ page }) => {
   await expect(page.getByRole("link", { name: /gym.?brat/i }).first()).toBeVisible();
 });
 
-test("chroniona strona przekierowuje na logowanie", async ({ page }) => {
+test("changelog jest dostępny bez logowania", async ({ page }) => {
   await page.goto("/changelog");
+  await expect(page.getByRole("heading", { name: /nowości i plan/i })).toBeVisible();
+});
+
+test("chroniona strona przekierowuje na logowanie", async ({ page }) => {
+  await page.goto("/reports");
   await expect(page).toHaveURL(/\/login/);
 });
 

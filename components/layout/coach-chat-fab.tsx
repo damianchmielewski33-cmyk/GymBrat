@@ -90,9 +90,15 @@ export function CoachChatFab() {
         className="flex w-full flex-col border-white/10 bg-[#0a0a0f] p-0 text-white sm:max-w-md"
       >
         <SheetHeader className="sr-only">
-          <SheetTitle>Trener AI — Coach czat</SheetTitle>
+          <SheetTitle>
+            {mode === "web"
+              ? "Trener — czat (internet)"
+              : "Trener AI — czat"}
+          </SheetTitle>
           <SheetDescription>
-            Czat z trenerem AI na podstawie danych z aplikacji. Zamknij panel, aby wrócić do bieżącego ekranu.
+            {mode === "web"
+              ? "Podpowiedzi na podstawie publicznych źródeł z sieci i danych z aplikacji."
+              : "Czat z trenerem na podstawie danych z aplikacji. Zamknij panel, aby wrócić do bieżącego ekranu."}
           </SheetDescription>
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-4 pt-2 sm:px-4">

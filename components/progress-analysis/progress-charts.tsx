@@ -25,7 +25,7 @@ const tooltipStyle = {
 
 function formatShortDate(iso: string) {
   const d = new Date(`${iso}T12:00:00`);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return d.toLocaleDateString("pl-PL", { month: "short", day: "numeric" });
 }
 
 export function ProgressCharts({
@@ -45,13 +45,13 @@ export function ProgressCharts({
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(255,45,85,0.12),transparent_55%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-            Weight
+            Masa ciała
           </p>
           <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-            Weigh-ins (90d)
+            Pomiary masy (90 dni)
           </h2>
           <p className="mt-1 text-xs text-white/50">
-            Logged to Turso via weigh-ins.
+            Zapisane ważenia z aplikacji.
           </p>
           <div className="mt-4 h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -78,7 +78,7 @@ export function ProgressCharts({
                 <Tooltip
                   contentStyle={tooltipStyle}
                   labelFormatter={(label) => formatShortDate(String(label))}
-                  formatter={(value) => [`${Number(value ?? 0)} kg`, "Weight"]}
+                  formatter={(value) => [`${Number(value ?? 0)} kg`, "Masa"]}
                 />
                 <Line
                   type="monotone"
@@ -93,7 +93,7 @@ export function ProgressCharts({
           </div>
           {weights.length === 0 ? (
             <p className="mt-3 text-xs text-white/45">
-              No weigh-ins yet — add one below to start this chart.
+              Brak pomiarów — wpisz masę w karcie obok, aby wypełnić wykres.
             </p>
           ) : null}
         </div>
@@ -103,13 +103,13 @@ export function ProgressCharts({
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(225deg,rgba(120,120,255,0.12),transparent_55%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-            Training load
+            Obciążenie
           </p>
           <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-            Tonnage (kg) / day
+            Tonaż (kg) wg dni
           </h2>
           <p className="mt-1 text-xs text-white/50">
-            External load: ∑(reps × kg) z ukończonych serii.
+            Suma obciążenia z ukończonych serii: ∑(powtórzenia × kg).
           </p>
           <div className="mt-4 h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -142,7 +142,7 @@ export function ProgressCharts({
                 <Tooltip
                   contentStyle={tooltipStyle}
                   labelFormatter={(label) => formatShortDate(String(label))}
-                  formatter={(value) => [`${Number(value ?? 0)} kg`, "Tonnage"]}
+                  formatter={(value) => [`${Number(value ?? 0)} kg`, "Tonaż"]}
                 />
                 <Area
                   type="monotone"
@@ -158,7 +158,7 @@ export function ProgressCharts({
           </div>
           {volume.length === 0 ? (
             <p className="mt-3 text-xs text-white/45">
-              Ukończ trening z wpisanym obciążeniem, aby zacząć generować punkty tonnage.
+              Ukończ trening z zapisanym ciężarem w seriach, aby pojawiły się pierwsze punkty tonażu.
             </p>
           ) : null}
         </div>
@@ -168,13 +168,13 @@ export function ProgressCharts({
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(900px_420px_at_15%_0%,rgba(255,45,85,0.14),transparent_60%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-            Strength
+            Siła
           </p>
           <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-            Strength score (e1RM) / day
+            Wskaźnik siły (e1RM) wg dni
           </h2>
           <p className="mt-1 text-xs text-white/50">
-            Suma najlepszego e1RM na ćwiczenie (Epley) w danym dniu.
+            W każdym dniu sumujemy najlepszy szacunek e1RM (wzór Epleya) z każdego ćwiczenia.
           </p>
           <div className="mt-4 h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -201,7 +201,7 @@ export function ProgressCharts({
                 <Tooltip
                   contentStyle={tooltipStyle}
                   labelFormatter={(label) => formatShortDate(String(label))}
-                  formatter={(value) => [`${Number(value ?? 0)}`, "Strength score"]}
+                  formatter={(value) => [`${Number(value ?? 0)}`, "Wskaźnik"]}
                 />
                 <Bar
                   dataKey="score"
@@ -220,13 +220,14 @@ export function ProgressCharts({
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(120,255,180,0.10),transparent_60%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-            Relative strength
+            Siła względna
           </p>
           <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-            Strength / bodyweight
+            Siła w odniesieniu do masy ciała
           </h2>
           <p className="mt-1 text-xs text-white/50">
-            Wskaźnik: strength score podzielony przez ostatnio zalogowaną masę ciała.
+            Stosunek wskaźnika siły do zapisanej masy ciała — im wyżej na wykresie, tym większa siła w
+            przeliczeniu na kilogram masy własnej.
           </p>
           <div className="mt-4 h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -253,7 +254,7 @@ export function ProgressCharts({
                 <Tooltip
                   contentStyle={tooltipStyle}
                   labelFormatter={(label) => formatShortDate(String(label))}
-                  formatter={(value) => [`${Number(value ?? 0)}`, "Strength/BW"]}
+                  formatter={(value) => [`${Number(value ?? 0)}`, "Siła / masa"]}
                 />
                 <Line
                   type="monotone"
@@ -268,7 +269,7 @@ export function ProgressCharts({
           </div>
           {relativeStrength.length === 0 ? (
             <p className="mt-3 text-xs text-white/45">
-              Dodaj ważenie, aby zobaczyć wskaźnik siły względnej.
+              Zapisz przynajmniej jedno ważenie, aby policzyć siłę względem masy ciała.
             </p>
           ) : null}
         </div>

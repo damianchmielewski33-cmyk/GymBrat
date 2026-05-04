@@ -16,12 +16,11 @@ import { ActiveWorkoutView } from "@/components/active-workout/active-workout-vi
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { cn } from "@/lib/utils";
 import { sessionVolume } from "@/lib/workout-session-calculations";
-import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import {
   mapUnknownFetchError,
-  mapWorkoutCompleteClientError,
   UserMessages,
 } from "@/lib/user-facing-errors";
+import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 
 function formatDuration(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -99,41 +98,32 @@ export function ActiveWorkoutGlobalBar() {
         setsTotal: progress.total,
         totalVolume: sessionVolume(exercises),
       };
-      await ensureCsrfCookie();
-      const res = await fetch("/api/workouts/complete", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "content-type": "application/json",
-          ...getXsrfHeaders(),
-        },
-        body: JSON.stringify({
-          title,
-          startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),
-          endedAt,
-          cardioMinutes,
-          exercises,
-          workoutPlanId,
-        }),
+      const result = await submitCompletedWorkout({
+        title,
+        startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),
+        endedAt,
+        cardioMinutes,
+        exercises,
+        workoutPlanId,
       });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        error?: string;
-        strengthDeltaPercent?: number | null;
-      };
-      if (!res.ok || !data.ok) {
-        throw new Error(mapWorkoutCompleteClientError(res.status, data.error));
+      if (result.status === "error") {
+        throw new Error(result.message);
       }
       reset();
       const completedSummary = {
         ...baseSummary,
         strengthDeltaPercent:
-          typeof data.strengthDeltaPercent === "number" && Number.isFinite(data.strengthDeltaPercent)
-            ? data.strengthDeltaPercent
+          result.status === "saved"
+            ? result.strengthDeltaPercent
             : null,
       };
       sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
-      router.push("/reports");
+      if (result.status === "queued") {
+        sessionStorage.setItem("gymbrat:workoutQueued", "1");
+      } else {
+        sessionStorage.removeItem("gymbrat:workoutQueued");
+      }
+      router.push(result.status === "queued" ? "/reports?queued=1" : "/reports");
       router.refresh();
     } catch (e) {
       window.alert(mapUnknownFetchError(e, UserMessages.workoutSaveUnknown));

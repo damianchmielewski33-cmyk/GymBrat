@@ -1,12 +1,14 @@
 import { auth } from "@/auth";
 import { BodyReportImport } from "@/components/reports/body-report-import";
 import { BodyReportForm } from "@/components/reports/body-report-form";
+import { QueuedWorkoutBanner } from "@/components/reports/queued-workout-banner";
 import { ReportPhotoToggle } from "@/components/reports/report-photo-toggle";
 import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import { getBodyReports } from "@/lib/body-reports";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 function formatTakNie(v: string | null) {
   if (v === "tak") return "TAK";
@@ -22,6 +24,9 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-8">
+      <Suspense fallback={null}>
+        <QueuedWorkoutBanner />
+      </Suspense>
       <WorkoutCompletePopup />
       <header>
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">

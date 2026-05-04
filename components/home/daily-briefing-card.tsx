@@ -10,7 +10,7 @@ export async function DailyBriefingCard({
   /** Z `page.tsx` Start — ten sam kontekst co reszta strony, bez duplikacji zapytań. */
   briefingPrefetch?: DailyBriefingPrefetch;
 }) {
-  const { text, source, aiDisabledByUser, aiUnavailable } = await getDailyBriefing(
+  const { text, source, aiEntitled, aiDisabledByUser, aiUnavailable } = await getDailyBriefing(
     userId,
     briefingPrefetch,
   );
@@ -31,7 +31,7 @@ export async function DailyBriefingCard({
         <div className="min-w-0 flex-1 space-y-2">
           <div>
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">
-              Trener AI
+              {aiEntitled ? "Trener AI" : "Twój dzień"}
             </p>
             <p className="font-heading text-lg font-semibold leading-tight text-white">
               Briefing dnia
@@ -45,7 +45,9 @@ export async function DailyBriefingCard({
                     ? "Wyłączyłeś funkcje AI w profilu — poniżej skrót z Twoich danych (bez modelu)."
                     : aiUnavailable
                       ? "Integracja z modelem nie powiodła się — poniżej skrót z Twoich danych; na końcu treści dopisano „AI niedostępny”."
-                      : "Krótkie podsumowanie z Twoich liczb w aplikacji. Włącz dostawcę AI, aby dostać pełny, narracyjny briefing od modelu."}
+                      : aiEntitled
+                      ? "Krótkie podsumowanie z Twoich liczb w aplikacji. Włącz dostawcę AI, aby dostać pełny, narracyjny briefing od modelu."
+                      : "Skrót z Twoich danych w aplikacji (bez modelu — konto nie ma uprawnień do funkcji AI)."}
             </p>
           </div>
 
@@ -59,7 +61,7 @@ export async function DailyBriefingCard({
             <div className="whitespace-pre-line">{text}</div>
           </div>
 
-          {!aiConfigured && !aiDisabledByUser ? (
+          {!aiConfigured && !aiDisabledByUser && aiEntitled ? (
             <p className="pt-0.5 text-[11px] text-white/35">
               Lokalnie: ustaw np.{" "}
               <span className="font-mono text-white/50">AI_PROVIDER=ollama</span>

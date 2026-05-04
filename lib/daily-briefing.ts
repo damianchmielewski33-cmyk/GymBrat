@@ -14,6 +14,8 @@ export type DailyBriefingSource = "ai" | "heuristic" | "web";
 export type DailyBriefing = {
   text: string;
   source: DailyBriefingSource;
+  /** Nadanie funkcji AI przez administratora — przy false nie pokazujemy brandingu „Trener AI”. */
+  aiEntitled: boolean;
   /** Użytkownik wyłączył AI w profilu (tekst z heurystyki). */
   aiDisabledByUser?: boolean;
   /** Próba wywołania modelu (Trener AI) nie powiodła się — treść z heurystyki + dopisek w tekście. */
@@ -69,11 +71,16 @@ export async function getDailyBriefing(
     return {
       text: buildHeuristicBriefText(rc, timeCtx),
       source: "heuristic",
+      aiEntitled: entitled,
       aiDisabledByUser: userAiOff,
     };
   }
   if (!entitled) {
-    return { text: buildHeuristicBriefText(rc, timeCtx), source: "heuristic" };
+    return {
+      text: buildHeuristicBriefText(rc, timeCtx),
+      source: "heuristic",
+      aiEntitled: false,
+    };
   }
 
   try {
@@ -91,9 +98,9 @@ export async function getDailyBriefing(
     });
     const t = reply.text.trim();
     if (reply.source === "web" && t.length > 40) {
-      return { text: t, source: "web" };
+      return { text: t, source: "web", aiEntitled: true };
     }
-    if (t.length > 20) return { text: t, source: "ai" };
+    if (t.length > 20) return { text: t, source: "ai", aiEntitled: true };
   } catch {
     /* fall through — integracja z modelem nie powiodła się */
   }
@@ -101,6 +108,7 @@ export async function getDailyBriefing(
   return {
     text: buildHeuristicBriefText(rc, timeCtx) + AI_UNAVAILABLE_SUFFIX,
     source: "heuristic",
+    aiEntitled: true,
     aiUnavailable: true,
   };
 }

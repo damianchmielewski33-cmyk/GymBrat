@@ -118,13 +118,14 @@ export function ExerciseProgressClient({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-                Per-ćwiczenie
+                Wybrane ćwiczenie
               </p>
               <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-                Progres e1RM i PR-y
+                Postęp: e1RM i rekordy osobiste
               </h2>
               <p className="mt-2 text-sm text-white/60">
-                Wybierz ćwiczenie po nazwie. Liczymy TOP set (najlepszy e1RM) oraz tonnage tego ćwiczenia.
+                Wpisz lub wybierz nazwę ćwiczenia. Dla każdego dnia pokazujemy najlepszy zestaw (szacowane
+                e1RM) oraz tonaż (suma powtórzeń × kg) w obrębie tego ruchu.
               </p>
             </div>
 
@@ -135,7 +136,7 @@ export function ExerciseProgressClient({
                   list="exercise-suggestions"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Szukaj ćwiczenia (np. Bench, Przysiad...)"
+                  placeholder="Np. wyciskanie, przysiad…"
                   className="h-11 rounded-xl border-white/15 bg-black/25 pl-9 pr-3 text-white placeholder:text-white/30"
                 />
                 <datalist id="exercise-suggestions">
@@ -145,7 +146,13 @@ export function ExerciseProgressClient({
                 </datalist>
               </div>
               <p className="mt-2 text-xs text-white/45">
-                {loading ? "Ładowanie…" : error ? error : latest ? `Ostatni punkt: ${latest.date}` : "—"}
+                {loading
+                  ? "Wczytywanie…"
+                  : error
+                    ? error
+                    : latest
+                      ? `Ostatni trening w zestawieniu: ${latest.date}`
+                      : "—"}
               </p>
             </div>
           </div>
@@ -176,19 +183,19 @@ export function ExerciseProgressClient({
         <section className="grid gap-4 sm:grid-cols-3">
           <StatCard
             icon={Trophy}
-            label="PR e1RM"
+            label="Rekord e1RM"
             value={`${data.prs.maxE1rm.value} kg`}
             hint={data.prs.maxE1rm.date ? fmtDate(data.prs.maxE1rm.date) : "—"}
           />
           <StatCard
             icon={Dumbbell}
-            label="PR ciężar"
+            label="Rekord ciężaru"
             value={`${data.prs.maxWeight.value} kg`}
             hint={data.prs.maxWeight.date ? fmtDate(data.prs.maxWeight.date) : "—"}
           />
           <StatCard
             icon={Flame}
-            label="PR tonnage"
+            label="Rekord tonażu"
             value={`${data.prs.maxTonnageKg.value} kg`}
             hint={data.prs.maxTonnageKg.date ? fmtDate(data.prs.maxTonnageKg.date) : "—"}
           />
@@ -200,13 +207,13 @@ export function ExerciseProgressClient({
           <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(120,120,255,0.12),transparent_55%)]" />
           <div className="relative">
             <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-              Strength
+              Szacowana siła
             </p>
             <h3 className="font-heading mt-1 text-lg font-semibold text-white">
-              e1RM (TOP set) / dzień
+              e1RM (najlepszy zestaw) wg dni
             </h3>
             <p className="mt-1 text-xs text-white/50">
-              Najlepszy e1RM z danego dnia (z ukończonego seta).
+              W każdym dniu bierzemy najwyższy szacunek e1RM spośród ukończonych serii.
             </p>
             <div className="mt-4 h-[260px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -237,7 +244,7 @@ export function ExerciseProgressClient({
                                 "—",
                             )
                           : "—";
-                      return [`${Number(value ?? 0)} kg ( ${reps}×${w} )`, "e1RM"];
+                      return [`${Number(value ?? 0)} kg (${reps} × ${w} kg)`, "e1RM"];
                     }}
                   />
                   <Line type="monotone" dataKey="bestE1rm" stroke="#ff2d55" strokeWidth={2} dot={{ r: 2.5, fill: "#ff2d55", strokeWidth: 0 }} activeDot={{ r: 5, fill: "#ff2d55", stroke: "#fff", strokeWidth: 2 }} />
@@ -251,13 +258,13 @@ export function ExerciseProgressClient({
           <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(225deg,rgba(255,45,85,0.12),transparent_55%)]" />
           <div className="relative">
             <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-              Load
+              Obciążenie
             </p>
             <h3 className="font-heading mt-1 text-lg font-semibold text-white">
-              Tonnage ćwiczenia / dzień
+              Tonaż ćwiczenia wg dni
             </h3>
             <p className="mt-1 text-xs text-white/50">
-              Suma (reps×kg) tylko dla tego ćwiczenia.
+              Suma (powtórzenia × kg) wyłącznie dla wybranego ruchu.
             </p>
             <div className="mt-4 h-[260px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -271,7 +278,7 @@ export function ExerciseProgressClient({
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                   <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} axisLine={{ stroke: "rgba(255,255,255,0.1)" }} tickLine={false} />
                   <YAxis allowDecimals={false} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} axisLine={false} tickLine={false} width={44} />
-                  <Tooltip contentStyle={tooltipStyle} labelFormatter={(label) => formatShortDate(String(label))} formatter={(value) => [`${Number(value ?? 0)} kg`, "Tonnage"]} />
+                  <Tooltip contentStyle={tooltipStyle} labelFormatter={(label) => formatShortDate(String(label))} formatter={(value) => [`${Number(value ?? 0)} kg`, "Tonaż"]} />
                   <Area type="monotone" dataKey="tonnageKg" stroke="#ff2d55" strokeWidth={2} fill="url(#exTon)" dot={{ r: 2.5, fill: "#ff2d55", strokeWidth: 0 }} activeDot={{ r: 5, fill: "#ff2d55", stroke: "#fff", strokeWidth: 2 }} />
                 </AreaChart>
               </ResponsiveContainer>

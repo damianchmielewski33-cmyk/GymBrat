@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   BarChart3,
@@ -30,19 +30,24 @@ import { releaseDocumentScrollLock } from "@/lib/document-scroll";
 import { cn } from "@/lib/utils";
 import { CoachChatFab } from "@/components/layout/coach-chat-fab";
 import { StartWorkoutFab } from "@/components/layout/start-workout-fab";
-
-const nav = [
-  { href: "/", label: "Start", icon: Home },
-  { href: "/meal-suggestions", label: "Posiłki", icon: ChefHat },
-  { href: "/workout-plan", label: "Plan", icon: Dumbbell },
-  { href: "/reports", label: "Raporty", icon: BarChart3 },
-  { href: "/progress-analysis", label: "Analiza", icon: LineChart },
-  { href: "/workout-history", label: "Historia", icon: ScrollText },
-  { href: "/changelog", label: "Nowości", icon: Sparkles },
-  { href: "/profile", label: "Profil", icon: User },
-];
+import { useI18n } from "@/components/i18n/i18n-provider";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
+  const nav = useMemo(
+    () => [
+      { href: "/", label: t("nav.start"), icon: Home },
+      { href: "/meal-suggestions", label: t("nav.meals"), icon: ChefHat },
+      { href: "/workout-plan", label: t("nav.plan"), icon: Dumbbell },
+      { href: "/reports", label: t("nav.reports"), icon: BarChart3 },
+      { href: "/progress-analysis", label: t("nav.analysis"), icon: LineChart },
+      { href: "/workout-history", label: t("nav.history"), icon: ScrollText },
+      { href: "/changelog", label: t("nav.news"), icon: Sparkles },
+      { href: "/profile", label: t("nav.profile"), icon: User },
+    ],
+    [t],
+  );
+
   const pathname = usePathname();
   const router   = useRouter();
   const { data } = useSession();

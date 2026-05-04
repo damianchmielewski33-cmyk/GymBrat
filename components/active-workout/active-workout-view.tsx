@@ -25,12 +25,8 @@ import { WorkoutSummary } from "@/components/workout/WorkoutSummary";
 import type { WorkoutPlanExercise } from "@/lib/workout-plan-types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
-import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
-import {
-  mapUnknownFetchError,
-  mapWorkoutCompleteClientError,
-  UserMessages,
-} from "@/lib/user-facing-errors";
+import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
+import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 import { SlidersHorizontal, RotateCcw, ScrollText } from "lucide-react";
 import { ActiveWorkoutCoachPanel } from "@/components/active-workout/active-workout-coach-panel";
 
@@ -341,30 +337,16 @@ export function ActiveWorkoutView({
         setsTotal: completedSets.total,
         totalVolume: sessionTotal,
       };
-      await ensureCsrfCookie();
-      const res = await fetch("/api/workouts/complete", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "content-type": "application/json",
-          ...getXsrfHeaders(),
-        },
-        body: JSON.stringify({
-          title,
-          startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),
-          endedAt,
-          cardioMinutes,
-          exercises,
-          workoutPlanId,
-        }),
+      const result = await submitCompletedWorkout({
+        title,
+        startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),
+        endedAt,
+        cardioMinutes,
+        exercises,
+        workoutPlanId,
       });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        error?: string;
-        strengthDeltaPercent?: number | null;
-      };
-      if (!res.ok || !data.ok) {
-        throw new Error(mapWorkoutCompleteClientError(res.status, data.error));
+      if (result.status === "error") {
+        throw new Error(result.message);
       }
       reset();
       setExercises([]);
@@ -373,12 +355,17 @@ export function ActiveWorkoutView({
       const completedSummary = {
         ...baseSummary,
         strengthDeltaPercent:
-          typeof data.strengthDeltaPercent === "number" && Number.isFinite(data.strengthDeltaPercent)
-            ? data.strengthDeltaPercent
+          result.status === "saved"
+            ? result.strengthDeltaPercent
             : null,
       };
       sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
-      router.push("/reports");
+      if (result.status === "queued") {
+        sessionStorage.setItem("gymbrat:workoutQueued", "1");
+      } else {
+        sessionStorage.removeItem("gymbrat:workoutQueued");
+      }
+      router.push(result.status === "queued" ? "/reports?queued=1" : "/reports");
     } catch (e) {
       setSaveError(mapUnknownFetchError(e, UserMessages.workoutSaveUnknown));
       setSuppressRouteGate(false);
@@ -505,7 +492,8 @@ export function ActiveWorkoutView({
               exercises={exercises}
               selectedExerciseId={selectedExerciseId}
               restRemaining={restRemaining}
-              userAiFeaturesDisabled={userAiFeaturesDisabled || !userAiEntitled}
+              userAiOff={userAiFeaturesDisabled}
+              notEntitledToAi={!userAiEntitled}
             />
           ) : null}
           <ActiveSessionCard

@@ -16,7 +16,10 @@ type Props = {
   exercises: WorkoutExerciseState[];
   selectedExerciseId: string | null;
   restRemaining: number | null;
-  userAiFeaturesDisabled?: boolean;
+  /** Użytkownik wyłączył AI w profilu */
+  userAiOff?: boolean;
+  /** Administrator odebrał dostęp do funkcji AI */
+  notEntitledToAi?: boolean;
 };
 
 function serializeExercises(exercises: WorkoutExerciseState[]) {
@@ -37,8 +40,10 @@ export function ActiveWorkoutCoachPanel({
   exercises,
   selectedExerciseId,
   restRemaining,
-  userAiFeaturesDisabled = false,
+  userAiOff = false,
+  notEntitledToAi = false,
 }: Props) {
+  const heuristicOnly = userAiOff || notEntitledToAi;
   const [text, setText] = useState<string | null>(null);
   const [source, setSource] = useState<"ai" | "heuristic" | "web" | null>(null);
   const [loading, setLoading] = useState(false);
@@ -175,7 +180,7 @@ export function ActiveWorkoutCoachPanel({
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">
-                Trener AI
+                {heuristicOnly ? "Podpowiedzi" : "Trener AI"}
               </p>
               <p className="font-heading text-base font-semibold text-white">Rady na żywo</p>
             </div>
@@ -206,15 +211,17 @@ export function ActiveWorkoutCoachPanel({
                   ? "Model AI był niedostępny — skróty z publicznego wyszukiwania; sprawdź u źródeł."
                   : source === "ai"
                     ? "Na podstawie Twojej bieżącej sesji i danych z aplikacji."
-                    : userAiFeaturesDisabled
+                    : userAiOff
                       ? "Wyłączyłeś funkcje AI w profilu — bez modelu, tylko skrót z bieżącej sesji."
-                      : "Tryb offline / bez AI — krótki skrypt z Twojej sesji. Włącz dostawcę AI, aby dostać pełniejsze podpowiedzi."}
+                      : notEntitledToAi
+                        ? "To konto nie ma uprawnień do funkcji AI — poniżej skrót wyłącznie z bieżącej sesji."
+                        : "Tryb offline / bez AI — krótki skrypt z Twojej sesji. Włącz dostawcę AI, aby dostać pełniejsze podpowiedzi."}
               </p>
             </>
           ) : loading ? (
             <p className="flex items-center gap-2 text-sm text-white/55">
               <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
-              Trener AI przygotowuje wskazówkę…
+              {heuristicOnly ? "Przygotowuję skrót z sesji…" : "Trener AI przygotowuje wskazówkę…"}
             </p>
           ) : (
             <p className="text-sm text-white/50">Ładowanie wskazówki…</p>

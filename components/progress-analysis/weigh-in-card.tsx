@@ -46,7 +46,7 @@ export function WeighInCard() {
               Ważenie
             </h3>
             <p className="mt-1 text-sm text-white/60">
-              Dodaje punkt do wykresu wagi.
+              Każdy wpis pojawia się na wykresie masy ciała w analizie.
             </p>
           </div>
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">

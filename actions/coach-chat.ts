@@ -11,6 +11,7 @@ import {
   fetchWebKnowledgeForCoachQuery,
   isWebSearchKnowledgeConfigured,
 } from "@/lib/web-search-fallback";
+import { isWebSearchConfigured } from "@/lib/web-search-env";
 
 /** Stan UI czatu (np. pływający przycisk) — bez wywołania modelu. */
 export async function getCoachChatUiStatus(): Promise<{ mode: "hidden" | "ai" | "web" }> {
@@ -26,7 +27,9 @@ export async function getCoachChatUiStatus(): Promise<{ mode: "hidden" | "ai" | 
 
   if (!entitled || userOff) return { mode: "hidden" };
 
-  if (globalOff) return { mode: "web" };
+  if (globalOff) {
+    return isWebSearchConfigured() ? { mode: "web" } : { mode: "hidden" };
+  }
 
   return { mode: (await isAiEnabledForUser(userId)) ? "ai" : "web" };
 }
