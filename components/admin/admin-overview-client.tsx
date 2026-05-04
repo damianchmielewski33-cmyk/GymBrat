@@ -98,6 +98,8 @@ export function AdminOverviewClient() {
   const [loading, setLoading] = useState(true);
   const [includeUntagged, setIncludeUntagged] = useState(false);
   const [purgeBusy, setPurgeBusy] = useState<"workouts" | "meals" | null>(null);
+  const [aiGloballyDisabled, setAiGloballyDisabled] = useState<boolean | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
 
   const load = useCallback(
     async (showSuccessToast = false) => {
@@ -131,6 +133,49 @@ export function AdminOverviewClient() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/admin/ai", { credentials: "include" });
+        const json = (await res.json()) as { ok?: boolean; aiGloballyDisabled?: boolean };
+        if (!cancelled) {
+          setAiGloballyDisabled(Boolean(json.aiGloballyDisabled));
+        }
+      } catch {
+        if (!cancelled) setAiGloballyDisabled(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function toggleAiGlobal(nextDisabled: boolean) {
+    if (aiBusy) return;
+    setAiBusy(true);
+    try {
+      await ensureCsrfCookie();
+      const res = await fetch("/api/admin/ai", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json", ...getXsrfHeaders() },
+        body: JSON.stringify({ disabled: nextDisabled }),
+      });
+      if (!res.ok) throw new Error("request_failed");
+      setAiGloballyDisabled(nextDisabled);
+      notifySaved(
+        nextDisabled
+          ? "Wyłączono AI globalnie (UI ukryje funkcje AI i włączy fallback)."
+          : "Włączono AI globalnie (jeśli dostawca jest skonfigurowany).",
+      );
+    } catch {
+      notifyError("Nie udało się zapisać ustawienia AI. Sprawdź, czy panel admina jest odblokowany.");
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   const chartData = useMemo(
     () =>
@@ -217,6 +262,36 @@ export function AdminOverviewClient() {
 
   return (
     <div className="space-y-8">
+      <section className="glass-panel neon-glow p-5 sm:p-6">
+        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
+          Funkcje globalne
+        </p>
+        <h2 className="font-heading mt-1 text-lg font-semibold text-white">
+          Dostępność AI
+        </h2>
+        <p className="mt-2 text-sm text-white/55">
+          Gdy wyłączysz AI tutaj, aplikacja ukryje przyciski/opcje AI dla wszystkich użytkowników i będzie
+          używać rozwiązań zastępczych wbudowanych w kod.
+        </p>
+        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 sm:p-5">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 rounded border-white/20 bg-black/40"
+            disabled={aiBusy || aiGloballyDisabled == null}
+            checked={Boolean(aiGloballyDisabled)}
+            onChange={(e) => void toggleAiGlobal(e.target.checked)}
+          />
+          <span className="min-w-0">
+            <span className="block text-base font-semibold text-white">
+              Wyłącz AI globalnie
+            </span>
+            <span className="mt-1 block text-sm text-white/55">
+              Dotyczy briefingu, coach czatu, podpowiedzi w treningu oraz generatorów korzystających z modelu.
+            </span>
+          </span>
+        </label>
+      </section>
+
       <section className="glass-panel neon-glow p-5 sm:p-6">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
           Zakres raportu

@@ -4,8 +4,9 @@ import type { ChatCoachPromptInput } from "@/ai/prompts/chatCoach";
 import { chatCoach } from "@/ai/coach";
 import { isAiConfigured } from "@/ai/client";
 import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
-import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
+import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { getBriefingTimeContext } from "@/lib/briefing-time-context";
+import { isAiGloballyDisabled } from "@/lib/ai-availability";
 
 export type DailyBriefingSource = "ai" | "heuristic" | "web";
 
@@ -92,12 +93,19 @@ export async function getDailyBriefing(
     ]);
   }
 
-  if (!isAiConfigured() || userAiOff) {
+  const [globalOff, entitled] = await Promise.all([
+    isAiGloballyDisabled(),
+    getUserAiEntitled(userId),
+  ]);
+  if (!isAiConfigured() || userAiOff || globalOff) {
     return {
       text: heuristicBrief(rc, timeCtx),
       source: "heuristic",
       aiDisabledByUser: userAiOff,
     };
+  }
+  if (!entitled) {
+    return { text: heuristicBrief(rc, timeCtx), source: "heuristic" };
   }
 
   try {

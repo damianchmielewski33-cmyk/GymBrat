@@ -1,18 +1,17 @@
 "use server";
 
 import { auth } from "@/auth";
-import { isAiConfigured } from "@/ai/client";
 import { chatCoach } from "@/ai/coach";
 import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
 import { UserMessages, mapCoachAiThrowable } from "@/lib/user-facing-errors";
-import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
+import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
+import { isAiEnabledForUser, isAiGloballyDisabled } from "@/lib/ai-availability";
 
 /** Stan UI czatu (np. pływający przycisk) — bez wywołania modelu. */
 export async function getCoachChatUiStatus(): Promise<{ modelEnabled: boolean }> {
   const session = await auth();
   if (!session?.user?.id) return { modelEnabled: false };
-  const userAiDisabled = await getUserAiFeaturesDisabled(session.user.id);
-  return { modelEnabled: isAiConfigured() && !userAiDisabled };
+  return { modelEnabled: await isAiEnabledForUser(session.user.id) };
 }
 
 export async function coachChatAction(input: unknown): Promise<
@@ -21,6 +20,17 @@ export async function coachChatAction(input: unknown): Promise<
 > {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: UserMessages.sessionExpired };
+
+  if (await isAiGloballyDisabled()) {
+    return {
+      ok: false,
+      error: "Funkcje AI są wyłączone przez administratora. Spróbuj ponownie później.",
+    };
+  }
+
+  if (!(await getUserAiEntitled(session.user.id))) {
+    return { ok: false, error: "Twoje konto nie ma aktywnych funkcji AI." };
+  }
 
   if (await getUserAiFeaturesDisabled(session.user.id)) {
     return {

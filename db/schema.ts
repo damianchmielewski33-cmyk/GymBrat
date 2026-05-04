@@ -1,6 +1,15 @@
 import { relations } from "drizzle-orm";
 import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+export const appSettings = sqliteTable("app_settings", {
+  id: text("id").primaryKey(),
+  /** 1 = admin wyłączył AI globalnie w aplikacji */
+  aiGloballyDisabled: integer("ai_globally_disabled").notNull().default(0),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const users = sqliteTable("users", {
   id: text("id")
     .primaryKey()
@@ -268,6 +277,8 @@ export const userSettings = sqliteTable("user_settings", {
   fitnessGoalsJson: text("fitness_goals_json"),
   /** Ukończony onboarding / kliknięto „Później” */
   onboardingCompletedAt: integer("onboarding_completed_at", { mode: "timestamp_ms" }),
+  /** 1 = admin nadał dostęp do funkcji AI; 0 = użytkownik nie widzi opcji AI i API blokuje wywołania */
+  aiEntitled: integer("ai_entitled").notNull().default(1),
   /** 1 = użytkownik wyłączył wszystkie funkcje korzystające z modelu AI */
   aiFeaturesDisabled: integer("ai_features_disabled").notNull().default(0),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })

@@ -115,8 +115,8 @@ export function MealSuggestionsView({
                 </>
               ) : (
                 <>
-                  <Sparkles className="mr-2 h-4 w-4" aria-hidden />
-                  Wygeneruj propozycje
+                  {modelAllowed ? <Sparkles className="mr-2 h-4 w-4" aria-hidden /> : null}
+                  {modelAllowed ? "Wygeneruj propozycje" : "Pokaż propozycje"}
                 </>
               )}
             </Button>
@@ -171,9 +171,7 @@ export function MealSuggestionsView({
 
           {!modelAllowed ? (
             <p className="text-sm text-white/55">
-              Funkcje AI są wyłączone lub dostawca nie jest skonfigurowany — po kliknięciu zobaczysz
-              statyczne przykładowe przepisy. Włącz AI w profilu i ustaw zmienne środowiskowe, aby
-              generować spersonalizowane propozycje.
+              AI jest niedostępne — po kliknięciu zobaczysz statyczne przykładowe przepisy z kodu.
             </p>
           ) : null}
 

@@ -15,6 +15,7 @@ type UserRow = {
   email: string;
   name: string | null;
   appRole: string | null;
+  aiEntitled: number | null;
   createdAt: Date | string | number;
 };
 
@@ -70,6 +71,28 @@ export function AdminUsersClient() {
     await load();
   }
 
+  async function setAiEntitled(id: string, aiEntitled: boolean) {
+    await ensureCsrfCookie();
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...getXsrfHeaders(),
+      },
+      body: JSON.stringify({ aiEntitled }),
+    });
+    if (!res.ok) {
+      const msg = "Zmiana dostępu do AI nie powiodła się.";
+      setError(msg);
+      notifyError(msg);
+      return;
+    }
+    notifySaved(aiEntitled ? "Nadano dostęp do AI." : "Zabrano dostęp do AI.");
+    setError(null);
+    await load();
+  }
+
   async function removeUser(id: string) {
     if (!confirm("Na pewno usunąć to konto i powiązane dane? Ta operacja jest nieodwracalna.")) {
       return;
@@ -118,6 +141,7 @@ export function AdminUsersClient() {
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Nazwa</th>
                 <th className="px-4 py-3 font-medium">Rola</th>
+                <th className="px-4 py-3 font-medium">AI</th>
                 <th className="px-4 py-3 font-medium">Utworzono</th>
                 <th className="px-4 py-3 font-medium text-right">Akcje</th>
               </tr>
@@ -125,13 +149,14 @@ export function AdminUsersClient() {
             <tbody className="divide-y divide-white/10 text-white/85">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-white/50">
+                  <td colSpan={6} className="px-4 py-8 text-center text-white/50">
                     Ładowanie…
                   </td>
                 </tr>
               ) : (
                 users.map((u) => {
                   const isFounder = founderUserId !== null && u.id === founderUserId;
+                  const entitled = (u.aiEntitled ?? 1) === 1;
                   return (
                     <tr key={u.id} className="hover:bg-white/[0.03]">
                       <td className="whitespace-nowrap px-4 py-3">{u.email}</td>
@@ -144,6 +169,13 @@ export function AdminUsersClient() {
                           </span>
                         ) : (
                           <span className="capitalize">{u.appRole ?? "—"}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {entitled ? (
+                          <span className="text-xs font-medium text-emerald-200/90">AI: włączone</span>
+                        ) : (
+                          <span className="text-xs font-medium text-white/45">AI: wyłączone</span>
                         )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-white/60">
@@ -172,6 +204,11 @@ export function AdminUsersClient() {
                               <DropdownMenuItem onClick={() => void setRole(u.id, "trener")}>
                                 Ustaw: trener
                               </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => void setAiEntitled(u.id, !entitled)}
+                                >
+                                  {entitled ? "Zabierz: funkcje AI" : "Nadaj: funkcje AI"}
+                                </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-300 focus:text-red-200"
                                 onClick={() => void removeUser(u.id)}

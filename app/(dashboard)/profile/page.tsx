@@ -17,6 +17,7 @@ import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
 import { AiFeaturesSettingsCard } from "@/components/profile/ai-features-settings-card";
+import { getUserAiEntitled } from "@/lib/user-ai-preference";
 import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
@@ -50,10 +51,13 @@ export default async function ProfilePage() {
       fitnessGoalsJson: userSettings.fitnessGoalsJson,
       mealTemplatesJson: userSettings.mealTemplatesJson,
       aiFeaturesDisabled: userSettings.aiFeaturesDisabled,
+      aiEntitled: userSettings.aiEntitled,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
     .limit(1);
+
+  const entitled = s ? Boolean(s.aiEntitled) : await getUserAiEntitled(userId);
 
   const nutritionInitial = nutritionSettingsFromDbRow(
     s ?? {
@@ -139,7 +143,7 @@ export default async function ProfilePage() {
         </div>
 
         <div className="lg:col-span-2">
-          <AiFeaturesSettingsCard initialDisabled={Boolean(s?.aiFeaturesDisabled)} />
+          {entitled ? <AiFeaturesSettingsCard initialDisabled={Boolean(s?.aiFeaturesDisabled)} /> : null}
         </div>
 
         <div className="lg:col-span-2">

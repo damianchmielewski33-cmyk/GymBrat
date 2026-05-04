@@ -96,6 +96,17 @@ CREATE TABLE IF NOT EXISTS "daily_checkins" (
   await tryAddColumn(
     `ALTER TABLE "user_settings" ADD COLUMN "ai_features_disabled" integer NOT NULL DEFAULT 0`,
   );
+  await tryAddColumn(
+    `ALTER TABLE "user_settings" ADD COLUMN "ai_entitled" integer NOT NULL DEFAULT 1`,
+  );
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "app_settings" (
+  "id" text PRIMARY KEY NOT NULL,
+  "ai_globally_disabled" integer NOT NULL DEFAULT 0,
+  "updated_at" integer NOT NULL
+);
+`);
 }
 
 let mealLogsEnsured = false;

@@ -6,6 +6,7 @@ import { Loader2, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getCoachChatUiStatus } from "@/actions/coach-chat";
 import { CoachChatPanel } from "@/components/coach/coach-chat-panel";
+import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import {
   Sheet,
   SheetContent,
@@ -19,10 +20,25 @@ export function CoachChatFab() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [modelEnabled, setModelEnabled] = useState<boolean | null>(null);
+  const [visible, setVisible] = useState<boolean | null>(null);
+  const { workoutPlanId, exercises } = useActiveWorkoutStore();
 
   if (pathname.startsWith("/progress-analysis")) return null;
 
   const activeWorkout = pathname.startsWith("/active-workout");
+  const hasActiveSession = workoutPlanId != null && exercises.length > 0;
+
+  useEffect(() => {
+    // Fetch once to decide if FAB should exist at all.
+    if (visible !== null) return;
+    let cancelled = false;
+    void getCoachChatUiStatus().then((r) => {
+      if (!cancelled) setVisible(r.modelEnabled);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible]);
 
   useEffect(() => {
     if (!open) return;
@@ -35,6 +51,9 @@ export function CoachChatFab() {
       cancelled = true;
     };
   }, [open]);
+
+  if (visible === false) return null;
+  if (visible === null) return null;
 
   return (
     <Sheet
@@ -51,7 +70,9 @@ export function CoachChatFab() {
           "right-3 sm:right-4",
           activeWorkout
             ? "top-[calc(4.25rem+env(safe-area-inset-top))] md:top-[calc(4.5rem+env(safe-area-inset-top))]"
-            : "bottom-[5.75rem] md:bottom-8",
+            : hasActiveSession
+              ? "bottom-[calc(9.25rem+env(safe-area-inset-bottom))] md:bottom-[calc(6.5rem+env(safe-area-inset-bottom))]"
+              : "bottom-[5.75rem] md:bottom-8",
         )}
         aria-label="Otwórz czat z trenerem AI"
       >

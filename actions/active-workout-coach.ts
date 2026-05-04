@@ -9,8 +9,9 @@ import {
   UserMessages,
   activeWorkoutCoachZodMessage,
 } from "@/lib/user-facing-errors";
-import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
+import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import type { ChatCoachPromptInput } from "@/ai/prompts/chatCoach";
+import { isAiGloballyDisabled } from "@/lib/ai-availability";
 
 const SetSchema = z.object({
   /** Klient może pominąć pole w JSON (undefined) — traktuj jak brak wpisu. */
@@ -161,8 +162,10 @@ export async function activeWorkoutCoachAction(input: unknown): Promise<ActiveWo
 
   const snapshot = buildSnapshot(parsed.data);
 
+  const entitled = await getUserAiEntitled(session.user.id);
   const userAiOff = await getUserAiFeaturesDisabled(session.user.id);
-  if (!isAiConfigured() || userAiOff) {
+  const globalOff = await isAiGloballyDisabled();
+  if (!isAiConfigured() || !entitled || userAiOff || globalOff) {
     return { ok: true, text: heuristicTip(snapshot), source: "heuristic" };
   }
 

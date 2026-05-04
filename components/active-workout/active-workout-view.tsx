@@ -60,11 +60,13 @@ export function ActiveWorkoutView({
   initialPlans,
   entry = "active",
   userAiFeaturesDisabled = false,
+  userAiEntitled = true,
   display = "page",
 }: {
   initialPlans: WorkoutPlanWithLastWorkoutDTO[];
   entry?: "active" | "start";
   userAiFeaturesDisabled?: boolean;
+  userAiEntitled?: boolean;
   display?: "page" | "modal";
 }) {
   const {
@@ -503,7 +505,7 @@ export function ActiveWorkoutView({
               exercises={exercises}
               selectedExerciseId={selectedExerciseId}
               restRemaining={restRemaining}
-              userAiFeaturesDisabled={userAiFeaturesDisabled}
+              userAiFeaturesDisabled={userAiFeaturesDisabled || !userAiEntitled}
             />
           ) : null}
           <ActiveSessionCard

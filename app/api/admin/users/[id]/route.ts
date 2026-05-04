@@ -4,14 +4,19 @@ import { z } from "zod";
 import { requireAdminApi } from "@/lib/admin-api";
 import { getFounderUserId } from "@/lib/admin-session";
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { userSettings, users } from "@/db/schema";
 import { assertCsrf } from "@/lib/csrf";
 
 export const runtime = "nodejs";
 
-const patchSchema = z.object({
-  appRole: z.enum(["zawodnik", "trener"]),
-});
+const patchSchema = z
+  .object({
+    appRole: z.enum(["zawodnik", "trener"]).optional(),
+    aiEntitled: z.boolean().optional(),
+  })
+  .refine((v) => v.appRole !== undefined || v.aiEntitled !== undefined, {
+    message: "No changes",
+  });
 
 export async function PATCH(
   req: Request,
@@ -44,10 +49,34 @@ export async function PATCH(
   }
 
   const db = getDb();
-  await db
-    .update(users)
-    .set({ appRole: parsed.data.appRole })
-    .where(eq(users.id, id));
+  if (parsed.data.appRole) {
+    await db
+      .update(users)
+      .set({ appRole: parsed.data.appRole })
+      .where(eq(users.id, id));
+  }
+
+  if (parsed.data.aiEntitled !== undefined) {
+    const entitledInt = parsed.data.aiEntitled ? 1 : 0;
+    const [existing] = await db
+      .select({ userId: userSettings.userId })
+      .from(userSettings)
+      .where(eq(userSettings.userId, id))
+      .limit(1);
+    if (!existing) {
+      await db.insert(userSettings).values({
+        userId: id,
+        weeklyCardioGoalMinutes: 150,
+        aiEntitled: entitledInt,
+        updatedAt: new Date(),
+      });
+    } else {
+      await db
+        .update(userSettings)
+        .set({ aiEntitled: entitledInt, updatedAt: new Date() })
+        .where(eq(userSettings.userId, id));
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }

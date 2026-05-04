@@ -12,7 +12,8 @@ import { getBriefingTimeContext } from "@/lib/briefing-time-context";
 import { computeMacroGaps, type MacroGaps } from "@/lib/meal-suggestions-gaps";
 import { getMealSuggestionsTimeRulesPl } from "@/lib/meal-suggestions-time-context";
 import { UserMessages } from "@/lib/user-facing-errors";
-import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
+import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
+import { isAiGloballyDisabled } from "@/lib/ai-availability";
 
 export type GenerateMealSuggestionsResult =
   | {
@@ -69,6 +70,24 @@ export async function generateMealSuggestionsAction(): Promise<GenerateMealSugge
     : "Uwaga: użytkownik nie ma ustawionych pełnych celów makro w profilu na dziś — zaproponuj 3 zrównoważone posiłki domowe o sensownych makrach.";
 
   const userAiOff = await getUserAiFeaturesDisabled(userId);
+  const entitled = await getUserAiEntitled(userId);
+  const globalOff = await isAiGloballyDisabled();
+  if (globalOff) {
+    return {
+      ok: true,
+      meals: staticFallbackMeals(),
+      source: "static",
+      gaps,
+    };
+  }
+  if (!entitled) {
+    return {
+      ok: true,
+      meals: staticFallbackMeals(),
+      source: "static",
+      gaps,
+    };
+  }
   if (userAiOff) {
     return {
       ok: true,

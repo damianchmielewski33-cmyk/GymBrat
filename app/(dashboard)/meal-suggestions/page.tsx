@@ -6,8 +6,9 @@ import { userSettings } from "@/db/schema";
 import { isAiConfigured } from "@/ai/client";
 import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
 import { computeMacroGaps } from "@/lib/meal-suggestions-gaps";
-import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
+import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { MealSuggestionsView } from "@/components/meal-suggestions/meal-suggestions-view";
+import { isAiGloballyDisabled } from "@/lib/ai-availability";
 
 export default async function MealSuggestionsPage() {
   const session = await auth();
@@ -27,10 +28,12 @@ export default async function MealSuggestionsPage() {
       .limit(1),
     getUserAiFeaturesDisabled(userId),
   ]);
+  const entitled = await getUserAiEntitled(userId);
 
   const summary = await loadTodaysNutritionSummary(userId, settingsRow);
   const gaps = computeMacroGaps(summary);
-  const modelAllowed = isAiConfigured() && !userAiOff;
+  const globalOff = await isAiGloballyDisabled();
+  const modelAllowed = isAiConfigured() && entitled && !userAiOff && !globalOff;
 
   return (
     <MealSuggestionsView
