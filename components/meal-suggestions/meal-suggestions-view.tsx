@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { FitatuDaySummary } from "@/types/fitatu";
 import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
 import { mealIllustrationUrl } from "@/lib/meal-suggestions-gaps";
@@ -10,6 +10,12 @@ import { Button } from "@/components/ui/button";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import { ChefHat, Loader2, Sparkles } from "lucide-react";
 import type { WebMealInspiration } from "@/lib/web-meal-inspirations";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { addMealLogAction, type MealLogFormState } from "@/actions/meal-log";
+import { useActionState } from "react";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 
 function fmtVal(n: number, kind: "kcal" | "g") {
   if (!Number.isFinite(n)) return "—";
@@ -55,6 +61,99 @@ function fmtMacro(n: number, unit: string) {
   return `${Math.round(n * 10) / 10} ${unit}`;
 }
 
+function AddToMealLogSheet({
+  dateKey,
+  presetName,
+  triggerLabel = "Dodaj do dziennika",
+}: {
+  dateKey: string;
+  presetName: string;
+  triggerLabel?: string;
+}) {
+  const { notifySaved, notifyError } = useSaveFeedback();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(presetName);
+  const [kcal, setKcal] = useState("");
+  const [state, formAction] = useActionState(addMealLogAction, {} as MealLogFormState);
+
+  useEffect(() => {
+    if (!open) return;
+    setName(presetName);
+    setKcal("");
+  }, [open, presetName]);
+
+  useEffect(() => {
+    if (state?.ok) {
+      notifySaved("Posiłek dodany do dziennika.");
+      setOpen(false);
+    } else if (state?.error) {
+      notifyError(state.error);
+    }
+  }, [state, notifyError, notifySaved]);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex h-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] px-3 text-xs font-semibold text-white/85 transition hover:bg-white/[0.07]"
+      >
+        {triggerLabel}
+      </button>
+      <SheetContent side="bottom" className="border-white/10 bg-[#07070c] text-white">
+        <SheetHeader>
+          <SheetTitle className="text-white">Dodaj posiłek</SheetTitle>
+          <SheetDescription className="text-white/55">
+            Szybki wpis do dziennika na dzień <span className="font-mono">{dateKey}</span>.
+          </SheetDescription>
+        </SheetHeader>
+        <form action={formAction} className="space-y-4 px-4 pb-6">
+          <input type="hidden" name="date" value={dateKey} />
+          <input type="hidden" name="proteinG" value="0" />
+          <input type="hidden" name="fatG" value="0" />
+          <input type="hidden" name="carbsG" value="0" />
+          <div className="space-y-2">
+            <Label className="text-white/75">Nazwa</Label>
+            <Input
+              name="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-11 border-white/12 bg-white/[0.05] text-white"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-white/75">Kalorie (kcal)</Label>
+            <Input
+              name="calories"
+              inputMode="decimal"
+              value={kcal}
+              onChange={(e) => setKcal(e.target.value)}
+              placeholder="np. 550"
+              className="h-11 border-white/12 bg-white/[0.05] text-white"
+            />
+            <p className="text-xs text-white/45">
+              Jeśli nie znasz makro, wystarczy kcal. Makro uzupełnisz później w edycji wpisu na stronie Start.
+            </p>
+          </div>
+          <SheetFooter className="flex flex-row gap-2 px-0">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 flex-1 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+              onClick={() => setOpen(false)}
+            >
+              Anuluj
+            </Button>
+            <Button type="submit" className="h-11 flex-[1.2] bg-[var(--neon)] text-white hover:bg-[#ff4d6d]">
+              Dodaj
+            </Button>
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export function MealSuggestionsView({
   initialSummary,
   initialGaps,
@@ -73,6 +172,25 @@ export function MealSuggestionsView({
   const [source, setSource] = useState<"ai" | "static" | "user_disabled" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [inspirationFilter, setInspirationFilter] = useState<"all" | "high_protein" | "low_calorie" | "fast">("all");
+  const [inspirationQuery, setInspirationQuery] = useState("");
+  const cacheKeyRef = useRef(`meal-suggestions:last:${initialGaps.dateKey}`);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(cacheKeyRef.current);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { meals?: MealSuggestionItem[]; source?: string };
+      if (Array.isArray(parsed.meals) && parsed.meals.length > 0) {
+        setMeals(parsed.meals);
+        if (parsed.source === "ai" || parsed.source === "static" || parsed.source === "user_disabled") {
+          setSource(parsed.source);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   function generate() {
     setError(null);
@@ -85,8 +203,32 @@ export function MealSuggestionsView({
       setMeals(r.meals);
       setSource(r.source);
       setGaps(r.gaps);
+      try {
+        localStorage.setItem(cacheKeyRef.current, JSON.stringify({ meals: r.meals, source: r.source }));
+      } catch {
+        /* ignore */
+      }
     });
   }
+
+  const filteredInspirations = useMemo(() => {
+    const list = webInspirations ?? [];
+    const q = inspirationQuery.trim().toLowerCase();
+    const protein = gaps.proteinRemaining ?? 0;
+    const calories = gaps.caloriesRemaining ?? 99999;
+    return list
+      .filter((it) => {
+        if (!q) return true;
+        return (it.title + " " + it.snippet).toLowerCase().includes(q);
+      })
+      .filter((it) => {
+        if (inspirationFilter === "all") return true;
+        if (inspirationFilter === "fast") return /15|minut|szybk|ekspres/i.test(it.title + " " + it.snippet);
+        if (inspirationFilter === "high_protein") return protein >= 30;
+        if (inspirationFilter === "low_calorie") return calories <= 500;
+        return true;
+      });
+  }, [webInspirations, inspirationQuery, inspirationFilter, gaps.proteinRemaining, gaps.caloriesRemaining]);
 
   return (
     <div className="space-y-8">
@@ -128,9 +270,9 @@ export function MealSuggestionsView({
           </div>
 
           {initialSummary.source === "error" ? (
-            <p className="text-sm text-amber-200/90">
+            <InlineBanner variant="warning">
               {initialSummary.errorMessage ?? "Nie udało się pobrać danych odżywczych."}
-            </p>
+            </InlineBanner>
           ) : (
             <div className="space-y-2">
               <GapRow
@@ -208,9 +350,39 @@ export function MealSuggestionsView({
             </div>
           </div>
 
-          {webInspirations && webInspirations.length > 0 ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "all" as const, label: "Wszystkie" },
+                { id: "high_protein" as const, label: "Białko" },
+                { id: "low_calorie" as const, label: "Lekko" },
+                { id: "fast" as const, label: "Szybkie" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setInspirationFilter(f.id)}
+                  className={
+                    inspirationFilter === f.id
+                      ? "rounded-full border border-[var(--neon)]/40 bg-[var(--neon)]/15 px-3 py-1.5 text-xs font-semibold text-white"
+                      : "rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-white/[0.07]"
+                  }
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <Input
+              value={inspirationQuery}
+              onChange={(e) => setInspirationQuery(e.target.value)}
+              placeholder="Szukaj w inspiracjach…"
+              className="h-10 border-white/12 bg-white/[0.05] text-white placeholder:text-white/35 sm:max-w-[320px]"
+            />
+          </div>
+
+          {filteredInspirations.length > 0 ? (
             <div className="grid gap-2">
-              {webInspirations.map((it) => (
+              {filteredInspirations.map((it) => (
                 <a
                   key={it.url}
                   href={it.url}
@@ -267,19 +439,29 @@ export function MealSuggestionsView({
                 </div>
               </div>
               <div className="flex flex-1 flex-col gap-4 p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap gap-2 text-xs text-white/70">
+                    <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1">
+                      {Math.round(meal.approximateMacros.calories)} kcal
+                    </span>
+                    <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1">
+                      B {fmtMacro(meal.approximateMacros.proteinG, "g")}
+                    </span>
+                    <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1">
+                      T {fmtMacro(meal.approximateMacros.fatG, "g")}
+                    </span>
+                    <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1">
+                      W {fmtMacro(meal.approximateMacros.carbsG, "g")}
+                    </span>
+                  </div>
+                  <AddToMealLogSheet
+                    dateKey={gaps.dateKey}
+                    presetName={meal.title}
+                    triggerLabel="Dodaj"
+                  />
+                </div>
                 <div className="flex flex-wrap gap-2 text-xs text-white/70">
-                  <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1">
-                    {Math.round(meal.approximateMacros.calories)} kcal
-                  </span>
-                  <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1">
-                    B {fmtMacro(meal.approximateMacros.proteinG, "g")}
-                  </span>
-                  <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1">
-                    T {fmtMacro(meal.approximateMacros.fatG, "g")}
-                  </span>
-                  <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1">
-                    W {fmtMacro(meal.approximateMacros.carbsG, "g")}
-                  </span>
+                  {/* spacer */}
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">

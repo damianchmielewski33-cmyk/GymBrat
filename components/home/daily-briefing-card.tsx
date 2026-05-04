@@ -56,7 +56,7 @@ export async function DailyBriefingCard({
                 : "rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-relaxed text-white/80"
             }
           >
-            {text}
+            <div className="whitespace-pre-line">{text}</div>
           </div>
 
           {!aiConfigured && !aiDisabledByUser ? (

@@ -54,9 +54,8 @@ function heuristicBrief(
   const s3 = streaks;
 
   // 2–4 krótkie zdania, bez „AI niedostępny” i bez technikaliów.
-  const sentences = [s1, s2, s3, cue].filter(Boolean);
-  const trimmed = sentences.slice(0, 4).join(" ");
-  return `${time.linePl} ${trimmed}`.trim();
+  const sentences = [s1, s2, s3, cue].filter(Boolean).slice(0, 4);
+  return [time.linePl, ...sentences].join("\n").trim();
 }
 
 function briefingUserPromptBody(timeLine: string): string {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   Activity,
@@ -47,6 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data } = useSession();
   const reduceFixedBugs = pathname.startsWith("/active-workout");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   useLayoutEffect(() => {
     releaseDocumentScrollLock();
@@ -56,6 +57,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // Close mobile menu on navigation (RWD).
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    // Scroll lock only while menu open.
+    if (typeof document === "undefined") return;
+    const body = document.body;
+    const root = document.documentElement;
+    if (mobileMenuOpen) {
+      body.style.overflow = "hidden";
+      root.style.overflow = "hidden";
+      return;
+    }
+    body.style.overflow = "";
+    root.style.overflow = "";
+    // Restore focus for keyboard users.
+    queueMicrotask(() => mobileMenuTriggerRef.current?.focus());
+  }, [mobileMenuOpen]);
 
   return (
     <div className="relative min-h-screen">
@@ -205,6 +222,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger
+                ref={mobileMenuTriggerRef}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white/70 outline-none transition-colors hover:text-white md:hidden"
                 style={{
                   background: "rgba(255,255,255,0.05)",

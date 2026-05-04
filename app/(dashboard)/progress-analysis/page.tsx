@@ -11,6 +11,7 @@ import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { BrainCircuit, ChartLine, Dumbbell, Layers3, Ruler, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 import { isAiGloballyDisabled } from "@/lib/ai-availability";
+import { InlineBanner } from "@/components/ui/inline-banner";
 
 export default async function ProgressAnalysisPage() {
   const session = await auth();
@@ -62,6 +63,12 @@ export default async function ProgressAnalysisPage() {
           )}
         </p>
       </header>
+
+      {globalOff ? (
+        <InlineBanner variant="warning">
+          Administrator wyłączył AI. W analizie ukrywamy elementy AI, a coach czat działa w trybie internetowym (publiczne źródła).
+        </InlineBanner>
+      ) : null}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -132,6 +139,37 @@ export default async function ProgressAnalysisPage() {
           <div id="coach-chat" className="scroll-mt-24">
             <CoachChatPanel mode={coachMode} />
           </div>
+          {globalOff ? (
+            <div className="glass-panel neon-glow relative overflow-hidden p-6">
+              <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(720px_260px_at_15%_0%,rgba(255,45,85,0.12),transparent_60%)]" />
+              <div className="relative">
+                <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
+                  Wnioski (bez AI)
+                </p>
+                <h2 className="font-heading mt-1 text-lg font-semibold text-white">
+                  Sygnały z Twoich danych
+                </h2>
+                <ul className="mt-3 space-y-2 text-sm text-white/75">
+                  <li>
+                    Ostatni tonnage: <span className="font-semibold text-white">{stats.latestDailyVolumeKg} kg</span>
+                  </li>
+                  <li>
+                    Wskaźnik siły: <span className="font-semibold text-white">{stats.latestStrengthScore}</span>
+                  </li>
+                  <li>
+                    Waga:{" "}
+                    <span className="font-semibold text-white">
+                      {stats.lastWeightKg != null ? `${stats.lastWeightKg} kg` : "—"}
+                    </span>{" "}
+                    {stats.weightDeltaKg90d != null ? <span className="text-white/45">· Δ {stats.weightDeltaKg90d} kg (90d)</span> : null}
+                  </li>
+                </ul>
+                <p className="mt-3 text-xs text-white/45">
+                  Te wnioski są liczone heurystycznie. Jeśli chcesz narracyjne podsumowania, włącz AI w panelu administratora.
+                </p>
+              </div>
+            </div>
+          ) : null}
           {!globalOff ? (
             <div className="glass-panel neon-glow relative overflow-hidden p-6">
               <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(120deg,rgba(255,255,255,0.10),transparent_55%),radial-gradient(640px_280px_at_15%_10%,rgba(255,45,85,0.16),transparent_60%)]" />
