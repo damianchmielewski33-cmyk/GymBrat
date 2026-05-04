@@ -7,6 +7,7 @@ export const SCREEN_LABELS: Record<string, string> = {
   reports: "Raporty ciała",
   progress_analysis: "Analiza postępów",
   workout_history: "Historia treningów",
+  changelog: "Nowości / changelog",
   profile: "Profil",
   login: "Logowanie",
   register: "Rejestracja",
@@ -33,6 +34,8 @@ export function getScreenFromPathname(
     return { key: "progress_analysis", label: SCREEN_LABELS.progress_analysis };
   if (path.startsWith("/workout-history"))
     return { key: "workout_history", label: SCREEN_LABELS.workout_history };
+  if (path.startsWith("/changelog"))
+    return { key: "changelog", label: SCREEN_LABELS.changelog };
   if (path.startsWith("/profile"))
     return { key: "profile", label: SCREEN_LABELS.profile };
   if (path.startsWith("/login"))

@@ -192,6 +192,25 @@ export const siteActivityLog = sqliteTable("site_activity_log", {
     .$defaultFn(() => new Date()),
 });
 
+/** Zmiany w panelu administratora (kto, co, kiedy). */
+export const adminAuditLog = sqliteTable(
+  "admin_audit_log",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    actorUserId: text("actor_user_id").notNull(),
+    action: text("action").notNull(),
+    targetUserId: text("target_user_id"),
+    metaJson: text("meta_json"),
+    deploymentEnv: text("deployment_env"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("idx_admin_audit_created").on(t.createdAt)],
+);
+
 /** Wpisy posiłków dodane ręcznie na stronie Start — źródło spożycia makroskładników. */
 export const mealLogs = sqliteTable(
   "meal_logs",

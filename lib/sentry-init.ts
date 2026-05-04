@@ -1,3 +1,11 @@
+function sentryRelease(): string | undefined {
+  const sha = process.env.VERCEL_GIT_COMMIT_SHA?.trim();
+  if (sha) return `gymbrat@${sha.slice(0, 7)}`;
+  const ver = process.env.npm_package_version?.trim();
+  if (ver) return `gymbrat@${ver}`;
+  return undefined;
+}
+
 /** Inicjalizacja Sentry po stronie serwera — wywoływana z `instrumentation.ts`. */
 export async function initSentryServer(): Promise<void> {
   const dsn =
@@ -6,9 +14,15 @@ export async function initSentryServer(): Promise<void> {
   if (!dsn) return;
 
   const Sentry = await import("@sentry/nextjs");
+  const release = sentryRelease();
   Sentry.init({
     dsn,
     tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? "0.05"),
-    environment: process.env.NODE_ENV,
+    environment:
+      process.env.SENTRY_ENVIRONMENT?.trim() ||
+      process.env.VERCEL_ENV ||
+      process.env.NODE_ENV,
+    release,
+    sendDefaultPii: false,
   });
 }

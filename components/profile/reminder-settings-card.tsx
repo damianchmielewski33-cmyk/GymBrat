@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveRemindersPrefsAction } from "@/actions/reminders";
 import type { RemindersPrefs } from "@/lib/reminders-types";
@@ -30,6 +30,17 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
     Boolean(initial.emailDailyBrief),
   );
   const [days, setDays] = useState<number[]>(() => initial.daysOfWeek ?? []);
+  const [notifPerm, setNotifPerm] = useState<NotificationPermission | "unsupported">(
+    "unsupported",
+  );
+
+  useEffect(() => {
+    if (typeof Notification === "undefined") {
+      setNotifPerm("unsupported");
+      return;
+    }
+    setNotifPerm(Notification.permission);
+  }, []);
 
   const payload = useMemo((): RemindersPrefs => {
     const p: RemindersPrefs = {};
@@ -47,6 +58,7 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
       return;
     }
     const r = await Notification.requestPermission();
+    setNotifPerm(r);
     if (r === "granted") notifySaved("Powiadomienia włączone.");
     else notifyError("Brak zgody na powiadomienia.");
   }
@@ -66,6 +78,17 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
             <p className="mt-2 text-sm text-white/60">
               Godziny w strefie kalendarza ({`Europe/Warsaw`} domyślnie). Działa, gdy karta lub
               PWA jest uruchomiona i masz zgodę na powiadomienia.
+            </p>
+            <p className="mt-2 text-xs text-white/45" aria-live="polite">
+              Status przeglądarki:{" "}
+              {notifPerm === "unsupported"
+                ? "brak Notification API"
+                : notifPerm === "granted"
+                  ? "zgoda na powiadomienia"
+                  : notifPerm === "denied"
+                    ? "powiadomienia zablokowane — zmień w ustawieniach przeglądarki"
+                    : "nie wybrano jeszcze zgody"}
+              .
             </p>
           </div>
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">

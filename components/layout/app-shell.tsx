@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
-  Activity,
   BarChart3,
   ChefHat,
   Dumbbell,
@@ -15,6 +14,7 @@ import {
   Menu,
   Shield,
   ScrollText,
+  Sparkles,
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ const nav = [
   { href: "/reports", label: "Raporty", icon: BarChart3 },
   { href: "/progress-analysis", label: "Analiza", icon: LineChart },
   { href: "/workout-history", label: "Historia", icon: ScrollText },
+  { href: "/changelog", label: "Nowości", icon: Sparkles },
   { href: "/profile", label: "Profil", icon: User },
 ];
 

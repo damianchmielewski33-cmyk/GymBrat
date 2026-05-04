@@ -6,6 +6,7 @@ import { isAiConfigured } from "@/ai/client";
 import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
 import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { getBriefingTimeContext } from "@/lib/briefing-time-context";
+import { buildHeuristicBriefText } from "@/lib/briefing-heuristic";
 import { isAiGloballyDisabled } from "@/lib/ai-availability";
 
 export type DailyBriefingSource = "ai" | "heuristic" | "web";
@@ -25,38 +26,6 @@ export type DailyBriefingPrefetch = {
   userProfile: ChatCoachPromptInput["userProfile"];
   userAiOff: boolean;
 };
-
-function heuristicBrief(
-  rc: Awaited<ReturnType<typeof buildCoachRecentContext>>,
-  time: ReturnType<typeof getBriefingTimeContext>,
-): string {
-  const late = time.hour >= 22 || time.hour < 5;
-  const morning = time.hour >= 5 && time.hour < 10;
-
-  const calories = rc.nutritionSummary ? `Kalorie: ${rc.nutritionSummary}.` : "";
-  const macros = rc.nutritionMacrosLine ? `Makro: ${rc.nutritionMacrosLine}.` : "";
-  const meals = rc.nutritionMealsLine ? `${rc.nutritionMealsLine}.` : "";
-
-  const training = rc.trainingSummary ? `Trening: ${rc.trainingSummary}.` : "";
-  const deltas = [rc.trainingTrendLine, rc.progressSummary].filter(Boolean).join(" · ");
-  const trend = deltas ? `Sygnał: ${deltas}.` : "";
-
-  const streaks = rc.streakLine ? `Nawyki: ${rc.streakLine}.` : "";
-
-  const cue = late
-    ? "Na teraz: domknij dzień spokojnie — lekki posiłek pod cele, woda i priorytet na sen."
-    : morning
-      ? "Na teraz: ustaw plan na 3 najważniejsze rzeczy — białko w 1. posiłku, woda i konkretny slot na trening/spacer."
-      : "Na teraz: wybierz 1 ruch, który dowozi wynik — dopnij białko w kolejnym posiłku albo zrób 20–30 min aktywności, jeśli dziś jeszcze nie było.";
-
-  const s1 = [calories, macros, meals].filter(Boolean).join(" ");
-  const s2 = [training, trend].filter(Boolean).join(" ");
-  const s3 = streaks;
-
-  // 2–4 krótkie zdania, bez „AI niedostępny” i bez technikaliów.
-  const sentences = [s1, s2, s3, cue].filter(Boolean).slice(0, 4);
-  return [time.linePl, ...sentences].join("\n").trim();
-}
 
 function briefingUserPromptBody(timeLine: string): string {
   return `Jesteś Trenerem AI GymBrat. To moduł „Briefing dnia” na stronie głównej — użytkownik widzi tylko Twój tekst (bez czatu).
@@ -98,13 +67,13 @@ export async function getDailyBriefing(
   ]);
   if (!isAiConfigured() || userAiOff || globalOff) {
     return {
-      text: heuristicBrief(rc, timeCtx),
+      text: buildHeuristicBriefText(rc, timeCtx),
       source: "heuristic",
       aiDisabledByUser: userAiOff,
     };
   }
   if (!entitled) {
-    return { text: heuristicBrief(rc, timeCtx), source: "heuristic" };
+    return { text: buildHeuristicBriefText(rc, timeCtx), source: "heuristic" };
   }
 
   try {
@@ -130,7 +99,7 @@ export async function getDailyBriefing(
   }
 
   return {
-    text: heuristicBrief(rc, timeCtx) + AI_UNAVAILABLE_SUFFIX,
+    text: buildHeuristicBriefText(rc, timeCtx) + AI_UNAVAILABLE_SUFFIX,
     source: "heuristic",
     aiUnavailable: true,
   };

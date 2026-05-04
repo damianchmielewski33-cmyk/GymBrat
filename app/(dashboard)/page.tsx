@@ -12,10 +12,11 @@ import { DailyBriefingCard } from "@/components/home/daily-briefing-card";
 import { QuickMealStrip } from "@/components/home/quick-meal-strip";
 import { FitnessGoalsWidget } from "@/components/home/fitness-goals-widget";
 import { OnboardingBanner } from "@/components/home/onboarding-banner";
+import { EmptyAppGuide } from "@/components/home/empty-app-guide";
 import { WeeklyDeficitPanel } from "@/components/home/weekly-deficit-panel";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { getDb } from "@/db";
-import { userSettings, users } from "@/db/schema";
+import { userSettings, users, workoutPlans } from "@/db/schema";
 import { getHomeStats } from "@/lib/home-stats";
 import { listMealLogsForDates } from "@/lib/meal-logs";
 import {
@@ -81,9 +82,14 @@ export default async function HomePage() {
       .limit(1),
   ]);
 
-  const [dash, stats] = await Promise.all([
+  const [dash, stats, planPeek] = await Promise.all([
     loadNutritionDashboard(userId, settingsRow),
     getHomeStats(userId),
+    db
+      .select({ id: workoutPlans.id })
+      .from(workoutPlans)
+      .where(eq(workoutPlans.userId, userId))
+      .limit(1),
   ]);
 
   const weekDateKeys = dash.week.days.map((d) => d.date);
@@ -156,6 +162,13 @@ export default async function HomePage() {
   const showTrend = stats.trend.length > 0;
   const subtitleTrend = `${stats.trend.length} treningów na wykresie`;
 
+  const profileFilled = Boolean(
+    userRow?.weightKg != null && userRow?.heightCm != null && userRow?.age != null,
+  );
+  const planExists = planPeek.length > 0;
+  const hasWorkoutHistory = stats.lastWorkout != null;
+  const showEmptyGuide = !hasWorkoutHistory && stats.trend.length === 0;
+
   return (
     <div className="space-y-8">
       {/* Hero */}
@@ -187,6 +200,14 @@ export default async function HomePage() {
       </section>
 
       {!settingsRow?.onboardingCompletedAt ? <OnboardingBanner /> : null}
+
+      {showEmptyGuide ? (
+        <EmptyAppGuide
+          profileFilled={profileFilled}
+          planExists={planExists}
+          hasWorkoutHistory={hasWorkoutHistory}
+        />
+      ) : null}
 
       <Suspense fallback={<DailyBriefingSkeleton />}>
         <DailyBriefingCard

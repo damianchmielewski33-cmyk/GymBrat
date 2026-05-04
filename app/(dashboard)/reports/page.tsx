@@ -3,7 +3,9 @@ import { BodyReportImport } from "@/components/reports/body-report-import";
 import { BodyReportForm } from "@/components/reports/body-report-form";
 import { ReportPhotoToggle } from "@/components/reports/report-photo-toggle";
 import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
+import { InlineBanner } from "@/components/ui/inline-banner";
 import { getBodyReports } from "@/lib/body-reports";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 function formatTakNie(v: string | null) {
@@ -31,6 +33,14 @@ export default async function ReportsPage() {
         <p className="mt-2 max-w-2xl text-sm text-white/65">
           Dodaj raport z efektów ćwiczeń: pomiary, samopoczucie i zdjęcia sylwetki.
         </p>
+        <InlineBanner variant="info" className="mt-4">
+          <strong className="font-semibold text-white/90">Eksport danych.</strong> Pełną kopię
+          treningów, raportów i ustawień pobierzesz w formacie JSON lub CSV w{" "}
+          <Link href="/profile#export-data" className="text-[var(--neon)] underline">
+            Profilu (sekcja eksportu)
+          </Link>
+          .
+        </InlineBanner>
       </header>
 
       <BodyReportImport />

@@ -77,6 +77,10 @@ Copy `env.example` to `.env.local` and fill values:
 copy env.example .env.local
 ```
 
+Na górze pliku `env.example` jest skrócona tabela ważniejszych zmiennych (wymagane vs opcjonalne). W produkcji ustaw **`ADMIN_EMAILS`** (CSV) dla kont, które mają dostać rolę administratora przy pierwszym logowaniu; panel `/admin` wymaga też **`ADMIN_PIN`**. Dla Sentry ustaw `NEXT_PUBLIC_SENTRY_DSN` i opcjonalnie `NEXT_PUBLIC_APP_VERSION` / `NEXT_PUBLIC_SENTRY_RELEASE`, żeby zgadzały się wersje z deployem.
+
+Interfejs użytkownika jest **po polsku**; pełna wielojęzyczność nie jest na ten moment wdrożona.
+
 ### Turso database setup (libSQL)
 
 GymBrat uses Turso/libSQL via `TURSO_DATABASE_URL` (and optional `TURSO_AUTH_TOKEN`).
@@ -125,6 +129,18 @@ npm run dev
 
 ```bash
 npm run lint
+```
+
+- **Unit tests (Vitest)**
+
+```bash
+npm test
+```
+
+- **E2E (Playwright; wymaga uruchomionego `npm run dev` lub `PLAYWRIGHT_BASE_URL`)**
+
+```bash
+npm run test:e2e
 ```
 
 ### Folder structure (high level)

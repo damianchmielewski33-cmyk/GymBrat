@@ -107,6 +107,21 @@ CREATE TABLE IF NOT EXISTS "app_settings" (
   "updated_at" integer NOT NULL
 );
 `);
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "admin_audit_log" (
+  "id" text PRIMARY KEY NOT NULL,
+  "actor_user_id" text NOT NULL,
+  "action" text NOT NULL,
+  "target_user_id" text,
+  "meta_json" text,
+  "deployment_env" text,
+  "created_at" integer NOT NULL
+);
+`);
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "idx_admin_audit_created" ON "admin_audit_log" ("created_at")`,
+  );
 }
 
 let mealLogsEnsured = false;

@@ -79,7 +79,10 @@ export const RATE = {
   cspReport: { limit: 60, windowMs: 60_000 },
   workoutComplete: { limit: 30, windowMs: 60_000 },
   adminUnlock: { limit: 8, windowMs: 10 * 60_000 },
+  adminMutation: { limit: 120, windowMs: 60_000 },
   bodyReportImport: { limit: 12, windowMs: 60_000 },
+  bodyReportCreate: { limit: 24, windowMs: 60_000 },
+  progressExercise: { limit: 60, windowMs: 60_000 },
   userExport: { limit: 12, windowMs: 60 * 60_000 },
   accountDelete: { limit: 5, windowMs: 24 * 60 * 60_000 },
 } as const;

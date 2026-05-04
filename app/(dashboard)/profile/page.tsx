@@ -6,7 +6,7 @@ import { ProfileGoalForm } from "@/components/profile/profile-goal-form";
 import { BodyParamsForm } from "@/components/profile/body-params-form";
 import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { LogoutButton } from "@/components/profile/logout-button";
-import { CalendarRange, Shield, User as UserIcon } from "lucide-react";
+import { CalendarRange, ScrollText, Shield, User as UserIcon } from "lucide-react";
 import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
 import { DataRightsCard } from "@/components/profile/data-rights-card";
 import { ReminderSettingsCard } from "@/components/profile/reminder-settings-card";
@@ -18,6 +18,7 @@ import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
 import { AiFeaturesSettingsCard } from "@/components/profile/ai-features-settings-card";
 import { getUserAiEntitled } from "@/lib/user-ai-preference";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
@@ -81,6 +82,15 @@ export default async function ProfilePage() {
             <p className="mt-2 max-w-2xl text-sm text-white/65">
               Twoje dane i ustawienia treningowe są w Turso — możesz w każdej chwili
               zaktualizować parametry ciała, cel i hasło.
+            </p>
+            <p className="mt-2 text-sm">
+              <Link
+                href="/changelog"
+                className="inline-flex items-center gap-1.5 text-[var(--neon)] underline-offset-4 hover:underline"
+              >
+                <ScrollText className="h-4 w-4" aria-hidden />
+                Nowości w aplikacji
+              </Link>
             </p>
           </div>
           <LogoutButton className="h-11" />

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { getExerciseProgressSeries } from "@/lib/exercise-progress";
+import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,18 @@ export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rl = await checkRateLimitAsync(
+    `progress-exercise:${session.user.id}`,
+    RATE.progressExercise.limit,
+    RATE.progressExercise.windowMs,
+  );
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Rate limit" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
   }
 
   const url = new URL(req.url);

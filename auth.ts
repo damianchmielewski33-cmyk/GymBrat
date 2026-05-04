@@ -6,11 +6,9 @@ import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import { siteActivityLog, users } from "@/db/schema";
 import { getAuthSecret } from "@/lib/auth-secret";
 
-const HARD_CODED_ADMIN_EMAILS = new Set(["damianchmielewski33@gmail.com"]);
-
 function parseAdminEmails(): Set<string> {
   const raw = process.env.ADMIN_EMAILS;
-  const out = new Set<string>([...HARD_CODED_ADMIN_EMAILS].map((s) => s.trim().toLowerCase()));
+  const out = new Set<string>();
   if (!raw) return out;
   for (const s of raw.split(",")) {
     const t = s.trim().toLowerCase();

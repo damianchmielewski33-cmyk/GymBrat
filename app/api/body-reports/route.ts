@@ -3,6 +3,7 @@ import { createBodyReport, getBodyReports, type CreateBodyReportInput } from "@/
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { assertCsrf } from "@/lib/csrf";
+import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
 import { z } from "zod";
 
 export async function GET() {
@@ -38,6 +39,18 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Brak autoryzacji" }, { status: 401 });
+  }
+
+  const rl = await checkRateLimitAsync(
+    `body-report-create:${session.user.id}`,
+    RATE.bodyReportCreate.limit,
+    RATE.bodyReportCreate.windowMs,
+  );
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Zbyt wiele żądań. Spróbuj za chwilę." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
   }
 
   let body: unknown;

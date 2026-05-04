@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Shield, Users } from "lucide-react";
+import { LayoutDashboard, ScrollText, Shield, Users } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/admin/overview", label: "Analityka", icon: LayoutDashboard },
   { href: "/admin/users", label: "Użytkownicy", icon: Users },
+  { href: "/admin/audit", label: "Dziennik", icon: ScrollText },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

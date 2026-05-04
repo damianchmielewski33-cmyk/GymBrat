@@ -84,7 +84,7 @@ export function DataRightsCard() {
   }
 
   return (
-    <section className="glass-panel relative overflow-hidden p-8 lg:col-span-2">
+    <section id="export-data" className="glass-panel relative overflow-hidden p-8 lg:col-span-2">
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:radial-gradient(900px_420px_at_50%_100%,rgba(255,45,85,0.12),transparent_60%)]" />
       <div className="relative space-y-6">
         <div>
