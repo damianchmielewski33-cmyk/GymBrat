@@ -6,15 +6,17 @@ import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import { siteActivityLog, users } from "@/db/schema";
 import { getAuthSecret } from "@/lib/auth-secret";
 
+const HARD_CODED_ADMIN_EMAILS = new Set(["damianchmielewski33@gmail.com"]);
+
 function parseAdminEmails(): Set<string> {
   const raw = process.env.ADMIN_EMAILS;
-  if (!raw) return new Set();
-  return new Set(
-    raw
-      .split(",")
-      .map((s) => s.trim().toLowerCase())
-      .filter(Boolean),
-  );
+  const out = new Set<string>([...HARD_CODED_ADMIN_EMAILS].map((s) => s.trim().toLowerCase()));
+  if (!raw) return out;
+  for (const s of raw.split(",")) {
+    const t = s.trim().toLowerCase();
+    if (t) out.add(t);
+  }
+  return out;
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
