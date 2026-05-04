@@ -19,8 +19,7 @@ import {
 export function CoachChatFab() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [modelEnabled, setModelEnabled] = useState<boolean | null>(null);
-  const [visible, setVisible] = useState<boolean | null>(null);
+  const [mode, setMode] = useState<"hidden" | "ai" | "web" | null>(null);
   const { workoutPlanId, exercises } = useActiveWorkoutStore();
 
   if (pathname.startsWith("/progress-analysis")) return null;
@@ -29,38 +28,37 @@ export function CoachChatFab() {
   const hasActiveSession = workoutPlanId != null && exercises.length > 0;
 
   useEffect(() => {
-    // Fetch once to decide if FAB should exist at all.
-    if (visible !== null) return;
+    if (mode !== null) return;
     let cancelled = false;
     void getCoachChatUiStatus().then((r) => {
-      if (!cancelled) setVisible(r.modelEnabled);
+      if (!cancelled) setMode(r.mode);
     });
     return () => {
       cancelled = true;
     };
-  }, [visible]);
+  }, [mode]);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setModelEnabled(null);
+    setMode(null);
     void getCoachChatUiStatus().then((r) => {
-      if (!cancelled) setModelEnabled(r.modelEnabled);
+      if (!cancelled) setMode(r.mode);
     });
     return () => {
       cancelled = true;
     };
   }, [open]);
 
-  if (visible === false) return null;
-  if (visible === null) return null;
+  if (mode === "hidden") return null;
+  if (mode === null) return null;
 
   return (
     <Sheet
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (!next) setModelEnabled(null);
+        if (!next) setMode(null);
       }}
     >
       <SheetTrigger
@@ -74,14 +72,14 @@ export function CoachChatFab() {
               ? "bottom-[calc(9.25rem+env(safe-area-inset-bottom))] md:bottom-[calc(6.5rem+env(safe-area-inset-bottom))]"
               : "bottom-[5.75rem] md:bottom-8",
         )}
-        aria-label="Otwórz czat z trenerem AI"
+        aria-label="Otwórz czat z trenerem"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-black/25">
           <MessageCircle className="h-4 w-4 text-[var(--neon)]" aria-hidden />
         </span>
         <span className="min-w-0 pr-0.5">
           <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-white/70">
-            Trener AI
+            {mode === "web" ? "Trener (web)" : "Trener AI"}
           </span>
           <span className="mt-0.5 block text-[13px] font-semibold tracking-tight">Coach czat</span>
         </span>
@@ -98,7 +96,7 @@ export function CoachChatFab() {
           </SheetDescription>
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-4 pt-2 sm:px-4">
-          {modelEnabled === null ? (
+          {mode === null ? (
             <div
               className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-white/55"
               aria-busy="true"
@@ -109,7 +107,7 @@ export function CoachChatFab() {
             </div>
           ) : (
             <CoachChatPanel
-              modelEnabled={modelEnabled}
+              mode={mode}
               className="max-h-none min-h-0 flex-1 border-white/10 shadow-none"
             />
           )}

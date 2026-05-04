@@ -7,6 +7,7 @@ import { mealIllustrationUrl } from "@/lib/meal-suggestions-gaps";
 import type { MealSuggestionItem } from "@/lib/meal-suggestions-schema";
 import { generateMealSuggestionsAction } from "@/actions/meal-suggestions";
 import { Button } from "@/components/ui/button";
+import { InlineBanner } from "@/components/ui/inline-banner";
 import { ChefHat, Loader2, Sparkles } from "lucide-react";
 
 function fmtVal(n: number, kind: "kcal" | "g") {
@@ -170,9 +171,9 @@ export function MealSuggestionsView({
           ) : null}
 
           {!modelAllowed ? (
-            <p className="text-sm text-white/55">
+            <InlineBanner variant="info">
               AI jest niedostępne — po kliknięciu zobaczysz statyczne przykładowe przepisy z kodu.
-            </p>
+            </InlineBanner>
           ) : null}
 
           {error ? <p className="text-sm text-amber-200">{error}</p> : null}

@@ -5,15 +5,21 @@ import { coachChatAction } from "@/actions/coach-chat";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle } from "lucide-react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { InlineBanner } from "@/components/ui/inline-banner";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const introOn = {
+const introAi = {
   role: "assistant" as const,
   content:
     "Cześć — jestem trenerem GymBrat. Zapytaj o trening, regenerację lub makra (krótko, po polsku).",
+};
+
+const introWeb = {
+  role: "assistant" as const,
+  content:
+    "Tryb internetowy: nie używamy modelu AI. Podaję skróty z publicznych wyników wyszukiwania — warto weryfikować u źródeł.",
 };
 
 const introOff = {
@@ -22,25 +28,26 @@ const introOff = {
 };
 
 export function CoachChatPanel({
-  modelEnabled = true,
+  mode = "ai",
   className,
 }: {
-  modelEnabled?: boolean;
+  mode?: "ai" | "web";
   /** Nadpisanie wysokości / layoutu (np. arkusz z boku ekranu). */
   className?: string;
 }) {
-  const [messages, setMessages] = useState<Msg[]>(() => (modelEnabled ? [introOn] : [introOff]));
+  const [messages, setMessages] = useState<Msg[]>(() =>
+    mode === "ai" ? [introAi] : [introWeb],
+  );
   const [input, setInput] = useState("");
   const [pending, start] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMessages(modelEnabled ? [introOn] : [introOff]);
+    setMessages(mode === "ai" ? [introAi] : [introWeb]);
     setInput("");
-  }, [modelEnabled]);
+  }, [mode]);
 
   function send() {
-    if (!modelEnabled) return;
     const t = input.trim();
     if (!t || pending) return;
     const nextUser: Msg = { role: "user", content: t };
@@ -75,18 +82,16 @@ export function CoachChatPanel({
         <MessageCircle className="h-5 w-5 text-[var(--neon)]" aria-hidden />
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">
-            AI
+            {mode === "web" ? "Internet" : "AI"}
           </p>
           <p className="font-heading text-lg font-semibold text-white">Coach czat</p>
         </div>
       </div>
-      {!modelEnabled ? (
-        <p className="relative text-sm text-white/55">
-          <Link href="/profile" className="font-medium text-[var(--neon)] underline-offset-4 hover:underline">
-            Otwórz profil
-          </Link>{" "}
-          i odznacz „Wyłącz wszystkie funkcje AI”, aby włączyć model (jeśli dostawca jest skonfigurowany).
-        </p>
+      {mode === "web" ? (
+        <InlineBanner variant="warning" className="relative mb-3">
+          Tryb internetowy: odpowiedzi powstają ze skrótów publicznych wyników wyszukiwania. Warto
+          weryfikować informacje u źródeł.
+        </InlineBanner>
       ) : null}
       <div className="relative min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 text-sm">
         {messages.map((m, i) => (
@@ -108,7 +113,6 @@ export function CoachChatPanel({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Np. Jak rozłożyć białko na redukcji?"
-          disabled={!modelEnabled}
           className="min-h-[44px] resize-none border-white/12 bg-white/[0.05] text-white placeholder:text-white/35 disabled:cursor-not-allowed disabled:opacity-45"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -119,7 +123,7 @@ export function CoachChatPanel({
         />
         <Button
           type="button"
-          disabled={pending || !input.trim() || !modelEnabled}
+          disabled={pending || !input.trim()}
           className="h-11 shrink-0 self-end bg-[var(--neon)] px-4 text-white hover:bg-[#ff4d6d]"
           onClick={send}
         >

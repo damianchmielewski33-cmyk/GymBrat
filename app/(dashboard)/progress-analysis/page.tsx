@@ -10,19 +10,21 @@ import { isAiConfigured } from "@/ai/client";
 import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { BrainCircuit, ChartLine, Dumbbell, Layers3, Ruler, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
+import { isAiGloballyDisabled } from "@/lib/ai-availability";
 
 export default async function ProgressAnalysisPage() {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) redirect("/login");
-  const [data, exerciseSuggestions, userAiDisabled] = await Promise.all([
+  const [data, exerciseSuggestions, userAiDisabled, globalOff] = await Promise.all([
     getProgressAnalysisData(userId),
     listExerciseNameSuggestions(userId, { days: 180 }),
     getUserAiFeaturesDisabled(userId),
+    isAiGloballyDisabled(),
   ]);
   const { series, stats } = data;
   const aiProviderOn = isAiConfigured();
-  const coachModelOn = aiProviderOn && !userAiDisabled;
+  const coachMode = globalOff ? "web" : aiProviderOn && !userAiDisabled ? "ai" : "web";
 
   return (
     <div className="space-y-8">
@@ -35,7 +37,12 @@ export default async function ProgressAnalysisPage() {
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-white/65">
           Tygodniowe sygnały: trend wagi, tonnage (∑reps×kg), e1RM oraz siła względna.
-          {userAiDisabled ? (
+          {globalOff ? (
+            <>
+              {" "}
+              Administrator wyłączył AI — czat trenera działa w trybie internetowym.
+            </>
+          ) : userAiDisabled ? (
             <>
               {" "}
               Wyłączyłeś funkcje AI w profilu — czat trenera nie wywołuje modelu, dopóki tego nie zmienisz.
@@ -123,30 +130,32 @@ export default async function ProgressAnalysisPage() {
         <div className="space-y-6">
           <WeighInCard />
           <div id="coach-chat" className="scroll-mt-24">
-            <CoachChatPanel modelEnabled={coachModelOn} />
+            <CoachChatPanel mode={coachMode} />
           </div>
-          <div className="glass-panel neon-glow relative overflow-hidden p-6">
-            <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(120deg,rgba(255,255,255,0.10),transparent_55%),radial-gradient(640px_280px_at_15%_10%,rgba(255,45,85,0.16),transparent_60%)]" />
-            <div className="relative">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-                    Integracja AI
-                  </p>
-                  <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-                    Auto-wnioski z trendów
-                  </h2>
-                  <p className="mt-2 text-sm text-white/60">
-                    Podsumowania tygodniowe i wykrywanie stagnacji — rozszerzymy na bazie
-                    historii treningów i raportów.
-                  </p>
-                </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">
-                  <BrainCircuit className="h-5 w-5 text-[var(--neon)]" />
+          {!globalOff ? (
+            <div className="glass-panel neon-glow relative overflow-hidden p-6">
+              <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(120deg,rgba(255,255,255,0.10),transparent_55%),radial-gradient(640px_280px_at_15%_10%,rgba(255,45,85,0.16),transparent_60%)]" />
+              <div className="relative">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
+                      Integracja AI
+                    </p>
+                    <h2 className="font-heading mt-1 text-lg font-semibold text-white">
+                      Auto-wnioski z trendów
+                    </h2>
+                    <p className="mt-2 text-sm text-white/60">
+                      Podsumowania tygodniowe i wykrywanie stagnacji — rozszerzymy na bazie
+                      historii treningów i raportów.
+                    </p>
+                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">
+                    <BrainCircuit className="h-5 w-5 text-[var(--neon)]" />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
 

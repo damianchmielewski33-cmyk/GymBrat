@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   Activity,
@@ -46,9 +46,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router   = useRouter();
   const { data } = useSession();
   const reduceFixedBugs = pathname.startsWith("/active-workout");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useLayoutEffect(() => {
     releaseDocumentScrollLock();
+  }, [pathname]);
+
+  useEffect(() => {
+    // Close mobile menu on navigation (RWD).
+    setMobileMenuOpen(false);
   }, [pathname]);
 
   return (
@@ -197,7 +203,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Sheet>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger
                 className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white/70 outline-none transition-colors hover:text-white md:hidden"
                 style={{
@@ -228,7 +234,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         ? pathname === "/"
                         : pathname.startsWith(item.href);
                     return (
-                      <Link key={item.href} href={item.href}>
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
                         <span
                           className={cn(
                             "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
@@ -258,7 +268,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <Button
                     variant="secondary"
                     className="mt-4"
-                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      signOut({ callbackUrl: "/login" });
+                    }}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     Wyloguj się

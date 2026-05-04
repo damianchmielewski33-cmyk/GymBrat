@@ -31,32 +31,32 @@ function heuristicBrief(
   time: ReturnType<typeof getBriefingTimeContext>,
 ): string {
   const late = time.hour >= 22 || time.hour < 5;
-  const nutritionBits = [
-    rc.nutritionSummary ? `Kalorie: ${rc.nutritionSummary}.` : "",
-    rc.nutritionMacrosLine ? `Makro: ${rc.nutritionMacrosLine}.` : "",
-    rc.nutritionMealsLine ? `${rc.nutritionMealsLine}.` : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const morning = time.hour >= 5 && time.hour < 10;
 
-  const trainingBits = [
-    rc.trainingSummary ? `Trening: ${rc.trainingSummary}.` : "",
-    rc.trainingTrendLine ? `${rc.trainingTrendLine}.` : "",
-    rc.progressSummary ? `${rc.progressSummary}.` : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const calories = rc.nutritionSummary ? `Kalorie: ${rc.nutritionSummary}.` : "";
+  const macros = rc.nutritionMacrosLine ? `Makro: ${rc.nutritionMacrosLine}.` : "";
+  const meals = rc.nutritionMealsLine ? `${rc.nutritionMealsLine}.` : "";
 
-  const tail = late
-    ? "Na teraz: domknij białko/kalorie spokojnym posiłkiem, zaplanuj sen i zostaw ciężkie rzeczy na jutro."
-    : "Na teraz: wybierz jeden mały krok — dopnij białko w kolejnym posiłku albo zrób krótki trening/aktywność, jeśli jeszcze nic nie było.";
-  return [
-    time.linePl,
-    nutritionBits,
-    trainingBits,
-    `Nawyki: ${rc.streakLine}.`,
-    tail,
-  ].join(" ");
+  const training = rc.trainingSummary ? `Trening: ${rc.trainingSummary}.` : "";
+  const deltas = [rc.trainingTrendLine, rc.progressSummary].filter(Boolean).join(" · ");
+  const trend = deltas ? `Sygnał: ${deltas}.` : "";
+
+  const streaks = rc.streakLine ? `Nawyki: ${rc.streakLine}.` : "";
+
+  const cue = late
+    ? "Na teraz: domknij dzień spokojnie — lekki posiłek pod cele, woda i priorytet na sen."
+    : morning
+      ? "Na teraz: ustaw plan na 3 najważniejsze rzeczy — białko w 1. posiłku, woda i konkretny slot na trening/spacer."
+      : "Na teraz: wybierz 1 ruch, który dowozi wynik — dopnij białko w kolejnym posiłku albo zrób 20–30 min aktywności, jeśli dziś jeszcze nie było.";
+
+  const s1 = [calories, macros, meals].filter(Boolean).join(" ");
+  const s2 = [training, trend].filter(Boolean).join(" ");
+  const s3 = streaks;
+
+  // 2–4 krótkie zdania, bez „AI niedostępny” i bez technikaliów.
+  const sentences = [s1, s2, s3, cue].filter(Boolean);
+  const trimmed = sentences.slice(0, 4).join(" ");
+  return `${time.linePl} ${trimmed}`.trim();
 }
 
 function briefingUserPromptBody(timeLine: string): string {

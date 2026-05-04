@@ -10,6 +10,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 import { RoleAuthCards } from "@/components/auth/role-auth-cards";
+import { InlineBanner } from "@/components/ui/inline-banner";
 import {
   isTrainerFlowEnabled,
   roleFromSearchParam,
@@ -109,24 +110,22 @@ export function LoginForm() {
       {hasBanner ? (
         <div className="space-y-2">
           {registered && !error ? (
-            <p
+            <InlineBanner
               id="login-banner"
               role="status"
-              aria-live="polite"
-              className="rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100"
+              variant="success"
             >
               Konto utworzone. Zaloguj się, aby kontynuować.
-            </p>
+            </InlineBanner>
           ) : null}
           {error ? (
-            <p
+            <InlineBanner
               id="login-banner"
               role="alert"
-              aria-live="assertive"
-              className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-100"
+              variant="error"
             >
               {error}
-            </p>
+            </InlineBanner>
           ) : null}
         </div>
       ) : null}
