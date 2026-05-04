@@ -9,6 +9,7 @@ import { computeMacroGaps } from "@/lib/meal-suggestions-gaps";
 import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { MealSuggestionsView } from "@/components/meal-suggestions/meal-suggestions-view";
 import { isAiGloballyDisabled } from "@/lib/ai-availability";
+import { getWebMealInspirations } from "@/lib/web-meal-inspirations";
 
 export default async function MealSuggestionsPage() {
   const session = await auth();
@@ -34,12 +35,14 @@ export default async function MealSuggestionsPage() {
   const gaps = computeMacroGaps(summary);
   const globalOff = await isAiGloballyDisabled();
   const modelAllowed = isAiConfigured() && entitled && !userAiOff && !globalOff;
+  const webInspirations = await getWebMealInspirations(gaps);
 
   return (
     <MealSuggestionsView
       initialSummary={summary}
       initialGaps={gaps}
       modelAllowed={modelAllowed}
+      webInspirations={webInspirations}
     />
   );
 }

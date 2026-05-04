@@ -9,6 +9,7 @@ import { generateMealSuggestionsAction } from "@/actions/meal-suggestions";
 import { Button } from "@/components/ui/button";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import { ChefHat, Loader2, Sparkles } from "lucide-react";
+import type { WebMealInspiration } from "@/lib/web-meal-inspirations";
 
 function fmtVal(n: number, kind: "kcal" | "g") {
   if (!Number.isFinite(n)) return "—";
@@ -58,11 +59,14 @@ export function MealSuggestionsView({
   initialSummary,
   initialGaps,
   modelAllowed,
+  webInspirations,
 }: {
   initialSummary: FitatuDaySummary;
   initialGaps: MacroGaps;
   /** Dostawca AI skonfigurowany i użytkownik nie wyłączył AI w profilu */
   modelAllowed: boolean;
+  /** Regularnie odświeżane inspiracje z internetu (linki do przepisów) */
+  webInspirations: WebMealInspiration[] | null;
 }) {
   const [gaps, setGaps] = useState(initialGaps);
   const [meals, setMeals] = useState<MealSuggestionItem[] | null>(null);
@@ -184,6 +188,55 @@ export function MealSuggestionsView({
               otrzymywać propozycje dopasowane do Twoich braków.
             </p>
           ) : null}
+        </div>
+      </section>
+
+      <section className="glass-panel relative overflow-hidden p-6 sm:p-8">
+        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(720px_280px_at_90%_0%,rgba(59,130,246,0.16),transparent_58%)]" />
+        <div className="relative space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">
+                Inspiracje
+              </p>
+              <h2 className="font-heading text-lg font-semibold text-white">
+                Propozycje z internetu
+              </h2>
+              <p className="mt-1 text-sm text-white/55">
+                Linki do przepisów dopasowane do Twoich braków. Lista odświeża się automatycznie co kilka godzin.
+              </p>
+            </div>
+          </div>
+
+          {webInspirations && webInspirations.length > 0 ? (
+            <div className="grid gap-2">
+              {webInspirations.map((it) => (
+                <a
+                  key={it.url}
+                  href={it.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 transition hover:border-white/20 hover:bg-white/[0.05]"
+                >
+                  <p className="text-sm font-semibold text-white/90 group-hover:text-white">
+                    {it.title}
+                  </p>
+                  {it.snippet ? (
+                    <p className="mt-1 text-xs leading-relaxed text-white/55">
+                      {it.snippet}
+                    </p>
+                  ) : null}
+                  <p className="mt-2 text-[11px] text-[var(--neon)]/85">
+                    Otwórz przepis →
+                  </p>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <InlineBanner variant="info">
+              Brak inspiracji z internetu (albo integracja wyszukiwarki nie jest skonfigurowana). Nadal możesz użyć propozycji z aplikacji.
+            </InlineBanner>
+          )}
         </div>
       </section>
 
