@@ -181,7 +181,7 @@ export default async function HomePage() {
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
               Start
             </p>
-            <h1 className="font-heading metallic-text mt-2 text-3xl font-semibold sm:text-4xl">
+            <h1 className="font-heading metallic-text mt-2 text-2xl font-semibold sm:text-4xl">
               Gotowy na trening?
             </h1>
           </div>

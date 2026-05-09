@@ -12,8 +12,8 @@ function DeltaBadge({
 }) {
   if (percent === null || absolute === null) {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-white/40">
-        <Minus className="h-3 w-3" />
+      <span className="inline-flex min-w-0 flex-wrap items-center gap-1 text-xs text-white/40">
+        <Minus className="h-3 w-3 shrink-0" />
         brak danych porównawczych
       </span>
     );
@@ -24,8 +24,8 @@ function DeltaBadge({
 
   if (isNeutral) {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-white/50">
-        <Minus className="h-3 w-3" />
+      <span className="inline-flex min-w-0 flex-wrap items-center gap-1 text-xs text-white/50">
+        <Minus className="h-3 w-3 shrink-0" />
         bez zmian vs. średnia
       </span>
     );
@@ -33,18 +33,20 @@ function DeltaBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1 text-xs font-medium ${
+      className={`inline-flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5 text-xs font-medium ${
         isPositive ? "text-emerald-400" : "text-rose-400"
       }`}
     >
       {isPositive ? (
-        <TrendingUp className="h-3.5 w-3.5" />
+        <TrendingUp className="h-3.5 w-3.5 shrink-0" />
       ) : (
-        <TrendingDown className="h-3.5 w-3.5" />
+        <TrendingDown className="h-3.5 w-3.5 shrink-0" />
       )}
-      {isPositive ? "+" : ""}
-      {percent}% ({isPositive ? "+" : ""}
-      {absolute}&nbsp;{unit}) vs. średnia
+      <span className="min-w-0">
+        {isPositive ? "+" : ""}
+        {percent}% ({isPositive ? "+" : ""}
+        {absolute}&nbsp;{unit}) vs. średnia
+      </span>
     </span>
   );
 }
@@ -73,15 +75,15 @@ function StatCard({
       <div
         className={`pointer-events-none absolute inset-0 opacity-40 ${gradient}`}
       />
-      <div className="relative flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-white/50">
+      <div className="relative flex min-w-0 flex-col gap-3">
+        <div className="flex min-w-0 items-center gap-2 text-white/50">
           {icon}
-          <span className="text-[11px] font-medium uppercase tracking-[0.22em]">
+          <span className="min-w-0 text-[11px] font-medium uppercase tracking-[0.22em]">
             {label}
           </span>
         </div>
-        <div className="flex items-baseline gap-1.5">
-          <span className="font-heading text-3xl font-semibold text-white">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-1.5">
+          <span className="font-heading text-2xl font-semibold tabular-nums text-white sm:text-3xl">
             {value.toLocaleString("pl-PL")}
           </span>
           <span className="text-sm text-white/50">{unit}</span>

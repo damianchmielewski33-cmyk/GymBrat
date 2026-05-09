@@ -311,7 +311,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main
         key={pathname}
         className={cn(
-          "mx-auto w-full max-w-6xl flex-1 px-3 py-6 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-8 md:pb-8",
+          "mx-auto min-w-0 max-w-6xl flex-1 overflow-x-clip px-3 py-6 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-8 md:pb-8",
           reduceFixedBugs ? "animate-page-enter-opacity" : "animate-page-enter",
         )}
       >
@@ -337,7 +337,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           }}
         />
 
-        <div className="mx-auto grid max-w-6xl grid-cols-5 gap-0.5 px-1.5 py-2 sm:gap-1 sm:px-2">
+        <div className="mx-auto grid min-w-0 max-w-6xl grid-cols-5 gap-0 px-0.5 py-1.5 sm:gap-0.5 sm:px-2 sm:py-2">
           {nav.filter((i) => i.href !== "/profile").slice(0, 5).map((item) => {
             const active =
               item.href === "/"
@@ -348,7 +348,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-medium transition-all duration-150",
+                  "flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-2 text-center text-[9px] font-medium leading-tight transition-all duration-150 sm:gap-1 sm:rounded-xl sm:px-2 sm:py-2.5 sm:text-[11px]",
                   active ? "text-white" : "text-white/50",
                 )}
                 style={
@@ -363,11 +363,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <item.icon
                   className={cn(
-                    "h-5 w-5",
+                    "h-4 w-4 shrink-0 sm:h-5 sm:w-5",
                     active ? "text-[var(--neon)]" : "text-white/55",
                   )}
                 />
-                <span className="leading-none">
+                <span className="line-clamp-2 max-w-full break-words leading-[1.15] sm:line-clamp-none sm:leading-none">
                   {item.label}
                 </span>
               </Link>

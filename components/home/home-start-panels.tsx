@@ -273,10 +273,10 @@ export function HomeStartPanels({
                     <Icon className="h-4 w-4" aria-hidden />
                   </span>
                   <span className="min-w-0">
-                    <span className="font-heading block text-[15px] font-semibold leading-snug text-white">
+                    <span className="font-heading block text-[14px] font-semibold leading-snug text-white sm:text-[15px]">
                       {tile.title}
                     </span>
-                    <span className="mt-0.5 block text-xs leading-snug text-white/45">
+                    <span className="mt-0.5 block line-clamp-2 text-xs leading-snug text-white/45 sm:line-clamp-none">
                       {tile.subtitle}
                     </span>
                   </span>

@@ -33,10 +33,10 @@ export default async function ProgressAnalysisPage() {
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
           Podsumowanie
         </p>
-        <h1 className="font-heading metallic-text mt-2 text-3xl font-semibold">
+        <h1 className="font-heading metallic-text mt-2 text-2xl font-semibold sm:text-3xl">
           Analiza postępów
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-white/65">
+        <p className="mt-2 max-w-2xl text-pretty text-sm text-white/65">
           Zestawienie z ostatnich treningów: trend masy ciała, tonaż (suma powtórzeń × kilogramy),
           szacowane maksimum na jedno powtórzenie (e1RM, wzór Epleya) oraz siła względem masy ciała.
           {globalOff ? (

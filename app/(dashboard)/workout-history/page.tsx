@@ -24,16 +24,16 @@ export default async function WorkoutHistoryPage() {
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
           Trening
         </p>
-        <h1 className="font-heading metallic-text mt-2 text-3xl font-semibold">
+        <h1 className="font-heading metallic-text mt-2 text-2xl font-semibold sm:text-3xl">
           Historia treningów
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-white/65">
+        <p className="mt-2 max-w-2xl text-pretty text-sm text-white/65">
           Wszystkie zakończone treningi wraz ze szczegółami, miarami i porównaniem siły w ramach tego samego planu.
         </p>
       </header>
 
       <section className="glass-panel neon-glow overflow-hidden">
-        <div className="border-b border-white/10 px-6 py-4">
+        <div className="border-b border-white/10 px-4 py-4 sm:px-6">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
             Lista
           </p>
@@ -43,7 +43,7 @@ export default async function WorkoutHistoryPage() {
         </div>
 
         {items.length === 0 ? (
-          <div className="px-6 py-12 text-center text-sm text-white/55">
+          <div className="px-4 py-12 text-center text-sm text-white/55 sm:px-6">
             Brak zakończonych treningów — ukończ pierwszy trening, aby zobaczyć historię.
           </div>
         ) : (
@@ -52,17 +52,24 @@ export default async function WorkoutHistoryPage() {
               .slice()
               .sort((a, b) => b.date.localeCompare(a.date))
               .map((w) => (
-                <li key={w.id} className="p-6">
+                <li key={w.id} className="p-4 sm:p-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="space-y-1">
+                    <div className="min-w-0 space-y-1">
                       <p className="text-xs uppercase tracking-wide text-white/45">
                         {formatDate(w.date)}
                       </p>
-                      <p className="text-sm font-semibold text-white/90">{w.title}</p>
-                      <p className="text-xs text-white/55">
-                        Plan: {w.planName ?? "—"} • Tonaż: {formatCompact(w.volumeKg)} • Wskaźnik siły:{" "}
-                        {formatCompact(w.strengthScore)}
+                      <p className="break-words text-sm font-semibold text-white/90">{w.title}</p>
+                      <p className="hidden text-xs text-white/55 sm:block">
+                        Plan: {w.planName ?? "—"} • Tonaż: {formatCompact(w.volumeKg)} • Wskaźnik
+                        siły: {formatCompact(w.strengthScore)}
                       </p>
+                      <div className="space-y-1 text-xs text-white/55 sm:hidden">
+                        <p className="break-words">Plan: {w.planName ?? "—"}</p>
+                        <p>
+                          Tonaż: {formatCompact(w.volumeKg)} · Wskaźnik siły:{" "}
+                          {formatCompact(w.strengthScore)}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Link
