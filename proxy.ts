@@ -57,7 +57,10 @@ export async function proxy(req: NextRequest) {
 
   if (!token) {
     const login = new URL("/login", req.url);
-    login.searchParams.set("callbackUrl", pathname);
+    const dest = `${pathname}${req.nextUrl.search}`;
+    login.searchParams.set("callbackUrl", dest);
+    const from = req.nextUrl.searchParams.get("from");
+    if (from) login.searchParams.set("from", from);
     return NextResponse.redirect(login);
   }
 
