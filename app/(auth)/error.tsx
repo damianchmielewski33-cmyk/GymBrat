@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ScreenCard, ScreenHeading } from "@/components/layout/screen";
 
 export default function AuthError({
   reset,
@@ -9,11 +10,16 @@ export default function AuthError({
   reset: () => void;
 }) {
   return (
-    <div className="mx-auto max-w-md space-y-4 rounded-2xl border border-red-500/35 bg-red-950/35 p-6 text-center">
-      <p className="text-sm text-white/75">Nie udało się wczytać formularza.</p>
-      <Button type="button" onClick={() => reset()} variant="secondary">
+    <ScreenCard>
+      <ScreenHeading
+        showBrand
+        className="mb-8"
+        title="Nie udało się wczytać formularza"
+        description="Spróbuj ponownie za chwilę."
+      />
+      <Button type="button" variant="cta" className="w-full" onClick={() => reset()}>
         Spróbuj ponownie
       </Button>
-    </div>
+    </ScreenCard>
   );
 }

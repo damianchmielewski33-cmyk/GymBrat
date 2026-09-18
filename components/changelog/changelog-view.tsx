@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CHANGELOG_ENTRIES } from "@/components/changelog/changelog-data";
+import { ScreenCard, ScreenHeader, screenLinkClass } from "@/components/layout/screen";
 
 export function ChangelogView({
   variant,
@@ -9,43 +10,39 @@ export function ChangelogView({
 }) {
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-          Produkt
-        </p>
-        <h1 className="font-heading metallic-text mt-2 text-3xl font-semibold">
-          Nowości i plan
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-white/65">
-          Krótki changelog GymBrat — aktualizujemy go wraz z wdrożeniami.
-          {variant === "app" ? (
-            <>
-              {" "}
-              Pełna kopia danych:
-              <Link href="/profile#export-data" className="ml-1 text-[var(--neon)] underline">
-                Profil → eksport
-              </Link>
-              .
-            </>
-          ) : (
-            <>
-              {" "}
-              Po zalogowaniu możesz pobrać swoje dane w Profilu (JSON / CSV).
-            </>
-          )}
-        </p>
-      </header>
+      <ScreenHeader
+        showBrand={variant === "public"}
+        kicker="Produkt"
+        title="Nowości i plan"
+        description={
+          <>
+            Krótki changelog GymBrat — aktualizujemy go wraz z wdrożeniami.
+            {variant === "app" ? (
+              <>
+                {" "}
+                Pełna kopia danych:{" "}
+                <Link href="/profile#export-data" className={screenLinkClass}>
+                  Profil → eksport
+                </Link>
+                .
+              </>
+            ) : (
+              <> Po zalogowaniu możesz pobrać swoje dane w Profilu (JSON / CSV).</>
+            )}
+          </>
+        }
+      />
 
       <div className="space-y-6">
         {CHANGELOG_ENTRIES.map((e) => (
-          <section key={e.title} className="glass-panel neon-glow p-6">
-            <h2 className="font-heading text-lg font-semibold text-white">{e.title}</h2>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-white/75">
+          <ScreenCard key={e.title}>
+            <h2 className="font-heading text-center text-2xl font-semibold text-white">{e.title}</h2>
+            <ul className="mt-6 list-disc space-y-2 pl-5 text-sm text-white/75">
               {e.bullets.map((b) => (
                 <li key={b}>{b}</li>
               ))}
             </ul>
-          </section>
+          </ScreenCard>
         ))}
       </div>
     </div>

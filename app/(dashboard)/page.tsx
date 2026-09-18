@@ -39,6 +39,9 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Activity, Zap } from "lucide-react";
 import { DailyBriefingSkeleton } from "@/components/home/daily-briefing-skeleton";
+import { ScreenHeader } from "@/components/layout/screen";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function kcalProgress(consumed: number, goal: number) {
   if (!goal || goal <= 0) return { pct: 0, over: false };
@@ -171,33 +174,23 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8">
-      {/* Hero */}
-      <section className="glass-panel neon-glow relative overflow-hidden px-4 py-7 sm:px-6 sm:py-8 md:p-10">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[var(--neon)]/10 via-transparent to-transparent" />
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[var(--neon)]/18 blur-3xl" />
-
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-              Start
-            </p>
-            <h1 className="font-heading metallic-text mt-2 text-2xl font-semibold sm:text-4xl">
-              Gotowy na trening?
-            </h1>
-          </div>
-
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+      <ScreenHeader
+        kicker="Start"
+        title="Gotowy na trening?"
+        description="Twoje centrum treningowe — posiłki, plan i sesja w jednym miejscu."
+        actions={
+          <>
             <AddMealSheet dateKey={dash.todayKey} />
             <Link
               href="/start-workout"
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--neon)] px-5 text-sm font-medium text-white transition hover:bg-[#ff4d6d] sm:w-auto"
+              className={cn(buttonVariants({ variant: "cta" }), "w-full sm:w-auto")}
             >
               <Zap className="mr-2 h-4 w-4" />
               Rozpocznij trening
             </Link>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
 
       {!settingsRow?.onboardingCompletedAt ? <OnboardingBanner /> : null}
 

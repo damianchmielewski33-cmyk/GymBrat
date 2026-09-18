@@ -39,8 +39,8 @@ function AlertDialogContent({
       <AlertDialogPrimitive.Popup
         data-slot="alert-dialog-content"
         className={cn(
-          "fixed left-1/2 top-1/2 z-[1001] w-[min(92vw,460px)] -translate-x-1/2 -translate-y-1/2",
-          "rounded-2xl border border-white/10 bg-zinc-950/95 p-5 text-white shadow-[0_18px_60px_rgba(0,0,0,0.65)] outline-none",
+          "glass-panel fixed left-1/2 top-1/2 z-[1001] w-[min(92vw,460px)] -translate-x-1/2 -translate-y-1/2",
+          "p-8 text-white outline-none",
           "data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:scale-95 data-starting-style:scale-95 transition duration-150",
           className,
         )}

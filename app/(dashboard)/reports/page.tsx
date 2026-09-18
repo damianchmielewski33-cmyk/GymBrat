@@ -4,6 +4,7 @@ import { BodyReportForm } from "@/components/reports/body-report-form";
 import { QueuedWorkoutBanner } from "@/components/reports/queued-workout-banner";
 import { ReportPhotoToggle } from "@/components/reports/report-photo-toggle";
 import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
+import { ScreenHeader } from "@/components/layout/screen";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import { getBodyReports } from "@/lib/body-reports";
 import Link from "next/link";
@@ -28,17 +29,12 @@ export default async function ReportsPage() {
         <QueuedWorkoutBanner />
       </Suspense>
       <WorkoutCompletePopup />
-      <header>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-          Dziennik postępów
-        </p>
-        <h1 className="font-heading metallic-text mt-2 text-3xl font-semibold">
-          Raport
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-white/65">
-          Dodaj raport z efektów ćwiczeń: pomiary, samopoczucie i zdjęcia sylwetki.
-        </p>
-        <InlineBanner variant="info" className="mt-4">
+      <ScreenHeader
+        kicker="Dziennik postępów"
+        title="Raport"
+        description="Dodaj raport z efektów ćwiczeń: pomiary, samopoczucie i zdjęcia sylwetki."
+      />
+      <InlineBanner variant="info">
           <strong className="font-semibold text-white/90">Eksport danych.</strong> Pełną kopię
           treningów, raportów i ustawień pobierzesz w formacie JSON lub CSV w{" "}
           <Link href="/profile#export-data" className="text-[var(--neon)] underline">
@@ -46,7 +42,6 @@ export default async function ReportsPage() {
           </Link>
           .
         </InlineBanner>
-      </header>
 
       <BodyReportImport />
 

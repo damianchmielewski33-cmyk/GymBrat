@@ -15,16 +15,14 @@ export function ProfileGoalFormFields({ initialGoal }: { initialGoal: number }) 
           type="number"
           min={1}
           defaultValue={initialGoal}
-          className="max-w-xs border-white/15 bg-black/30"
+          className="max-w-xs"
         />
         <p className="text-xs text-white/45">
           Zapisane w Turso. Postęp na stronie Start = suma cardio z ostatnich 7 dni ÷ ten
           cel × 100%.
         </p>
       </div>
-      <SubmitButton className="bg-[var(--neon)] text-white hover:bg-[#ff4d6d]">
-        Zaktualizuj cel
-      </SubmitButton>
+      <SubmitButton>Zaktualizuj cel</SubmitButton>
     </>
   );
 }

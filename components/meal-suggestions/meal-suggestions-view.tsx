@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { addMealLogAction, type MealLogFormState } from "@/actions/meal-log";
 import { useActionState } from "react";
+import { ScreenHeader } from "@/components/layout/screen";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 
 function fmtVal(n: number, kind: "kcal" | "g") {
@@ -118,7 +119,6 @@ function AddToMealLogSheet({
               name="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-11 border-white/12 bg-white/[0.05] text-white"
             />
           </div>
           <div className="space-y-2">
@@ -129,7 +129,6 @@ function AddToMealLogSheet({
               value={kcal}
               onChange={(e) => setKcal(e.target.value)}
               placeholder="np. 550"
-              className="h-11 border-white/12 bg-white/[0.05] text-white"
             />
             <p className="text-xs text-white/45">
               Jeśli nie znasz makro, wystarczy kcal. Makro uzupełnisz później w edycji wpisu na stronie Start.
@@ -139,12 +138,12 @@ function AddToMealLogSheet({
             <Button
               type="button"
               variant="outline"
-              className="h-11 flex-1 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+              className="flex-1"
               onClick={() => setOpen(false)}
             >
               Anuluj
             </Button>
-            <Button type="submit" className="h-11 flex-[1.2] bg-[var(--neon)] text-white hover:bg-[#ff4d6d]">
+            <Button type="submit" variant="cta" className="flex-[1.2]">
               Dodaj
             </Button>
           </SheetFooter>
@@ -232,14 +231,11 @@ export function MealSuggestionsView({
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">Odżywianie</p>
-        <h1 className="font-heading metallic-text mt-2 text-3xl font-semibold">Propozycje posiłków</h1>
-        <p className="mt-2 max-w-2xl text-sm text-white/65">
-          Na podstawie Twojego dziennego bilansu (spożycie vs cele) wygenerujemy propozycje posiłków z
-          przepisami. Ilustracje są poglądowe (zewnętrzny generator obrazu z opisu dania).
-        </p>
-      </header>
+      <ScreenHeader
+        kicker="Odżywianie"
+        title="Propozycje posiłków"
+        description="Na podstawie Twojego dziennego bilansu (spożycie vs cele) wygenerujemy propozycje posiłków z przepisami. Ilustracje są poglądowe."
+      />
 
       <section className="glass-panel relative overflow-hidden p-6 sm:p-8">
         <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(720px_280px_at_10%_0%,rgba(255,45,85,0.12),transparent_58%)]" />
@@ -251,9 +247,9 @@ export function MealSuggestionsView({
             </div>
             <Button
               type="button"
+              variant="cta"
               disabled={pending}
               onClick={() => generate()}
-              className="bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
             >
               {pending ? (
                 <>

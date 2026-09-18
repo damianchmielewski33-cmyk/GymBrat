@@ -54,7 +54,6 @@ export function FitnessGoalsForm({ initial }: { initial: FitnessGoals }) {
               value={weekly}
               onChange={(e) => setWeekly(e.target.value)}
               placeholder="np. 4"
-              className="h-11 border-white/12 bg-white/[0.05] text-white"
             />
           </div>
         </div>
@@ -66,7 +65,6 @@ export function FitnessGoalsForm({ initial }: { initial: FitnessGoals }) {
               value={exName}
               onChange={(e) => setExName(e.target.value)}
               placeholder="np. Przysiad"
-              className="h-11 border-white/12 bg-white/[0.05] text-white"
             />
           </div>
           <div className="space-y-2">
@@ -78,7 +76,6 @@ export function FitnessGoalsForm({ initial }: { initial: FitnessGoals }) {
               value={exKg}
               onChange={(e) => setExKg(e.target.value)}
               placeholder="np. 100"
-              className="h-11 border-white/12 bg-white/[0.05] text-white"
             />
           </div>
         </div>
@@ -86,7 +83,7 @@ export function FitnessGoalsForm({ initial }: { initial: FitnessGoals }) {
         <Button
           type="button"
           disabled={pending}
-          className="h-11 bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
+          variant="cta"
           onClick={() => {
             start(async () => {
               const wn = Number(weekly);

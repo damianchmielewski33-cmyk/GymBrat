@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 import { RoleAuthCards } from "@/components/auth/role-auth-cards";
 import { InlineBanner } from "@/components/ui/inline-banner";
@@ -130,7 +129,7 @@ export function LoginForm() {
         </div>
       ) : null}
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-white/85">
+        <Label htmlFor="email">
           Email
         </Label>
         <Input
@@ -141,11 +140,10 @@ export function LoginForm() {
           autoComplete="email"
           aria-invalid={error ? true : undefined}
           aria-describedby={hasBanner ? "login-banner" : undefined}
-          className="min-h-11 border-white/20 bg-black/50 text-white placeholder:text-white/40"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password" className="text-white/85">
+        <Label htmlFor="password">
           Hasło
         </Label>
         <div className="relative">
@@ -157,9 +155,7 @@ export function LoginForm() {
             autoComplete="current-password"
             aria-invalid={error ? true : undefined}
             aria-describedby={hasBanner ? "login-banner" : undefined}
-            className={cn(
-              "min-h-11 border-white/20 bg-black/50 pr-12 text-white placeholder:text-white/40",
-            )}
+            className="pr-12"
           />
           <button
             type="button"
@@ -178,9 +174,10 @@ export function LoginForm() {
       </div>
       <Button
         type="submit"
+        variant="cta"
         disabled={pending}
         aria-busy={pending}
-        className="h-11 w-full bg-[var(--neon)] text-base font-semibold text-white hover:bg-[#ff4d6d] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+        className="w-full"
       >
         {pending
           ? "Logowanie…"
