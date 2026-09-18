@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { Bebas_Neue } from "next/font/google";
+import { connection } from "next/server";
 import { SisterSiteArrivalBanner } from "@/components/sister-site-arrival-banner";
 import { AuthShell } from "@/components/auth/auth-shell";
 
@@ -10,11 +11,12 @@ const bebasNeue = Bebas_Neue({
   display: "swap",
 });
 
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await connection();
   return (
     <div className={bebasNeue.variable}>
       <Suspense fallback={null}>
