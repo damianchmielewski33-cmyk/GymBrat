@@ -41,9 +41,13 @@ const nextConfig: NextConfig = {
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       { key: "Content-Security-Policy", value: `frame-ancestors ${frameAncestors}` },
       { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-      { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-      /** Domyślnie blokuje „hotlinking” zasobów między originami. */
-      { key: "Cross-Origin-Resource-Policy", value: "same-site" },
+      /**
+       * AWP osadza GymBrat w iframe z innego site (vercel.app jest na PSL).
+       * COOP: same-origin + CORP: same-site potrafią zostawić pustą ramkę
+       * w Safari/Firefox — wtedy użytkownicy widzą starą/pustą produkcję.
+       */
+      { key: "Cross-Origin-Opener-Policy", value: "unsafe-none" },
+      { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
       /** Utrudnia wstrzykiwanie polityk w starych pluginach/Flash. */
       { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
     ];
@@ -92,6 +96,21 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: [...base, ...prodOnly],
+      },
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, max-age=0" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
+        source: "/login",
+        headers: [{ key: "Cache-Control", value: "private, no-store, no-cache, must-revalidate" }],
+      },
+      {
+        source: "/register",
+        headers: [{ key: "Cache-Control", value: "private, no-store, no-cache, must-revalidate" }],
       },
     ];
   },

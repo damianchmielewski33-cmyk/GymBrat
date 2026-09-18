@@ -268,7 +268,7 @@ On Vercel you can wire this to Vercel Cron (daily) and keep storage growth bound
 
 ### PWA configuration
 
-GymBrat uses a **Web App Manifest** (`public/manifest.webmanifest`) and **committed static** service worker assets (`public/sw.js`, Workbox chunk) so the stack stays **Turbopack-only** (no `@ducanh2912/next-pwa` / Webpack plugin).
+GymBrat uses a **Web App Manifest** (`public/manifest.webmanifest`) for installability. `public/sw.js` is a **kill-switch** (not a Workbox precache): it unregisters leftover next-pwa workers and deletes Cache Storage so production deploys are not hidden behind hashed `/_next/static` files from an old build.
 
 - **Dev vs prod**
-  - Service worker files in `public/` are not regenerated on each build; update them manually if you change caching strategy, or add a Turbopack-compatible tooling step separately.
+  - Do not commit a Workbox precache of `/_next/static/*` — those hashes change every deploy and will freeze an old UI for returning visitors and the AWP iframe.

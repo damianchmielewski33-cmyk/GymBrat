@@ -5,6 +5,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — produkcja zawsze na najnowszej wersji",
+    bullets: [
+      "Strona startowa (logowanie/rejestracja) w motywie czarno-złotym ze zdjęciami siłowni.",
+      "Usunięty stary service worker next-pwa, który serwował zcache’owane, nieaktualne pliki po deployu.",
+      "GymBrat w ramce Akademii (AWP) ładuje aktualny front zamiast pustej/starej wersji.",
+    ],
+  },
+  {
     title: "2026-05 — stabilność, dostępność, offline",
     bullets: [
       "Limitowanie zapytań API (trening, raporty, panel admina).",
