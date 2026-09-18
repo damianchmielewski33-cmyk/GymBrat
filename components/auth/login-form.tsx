@@ -180,7 +180,7 @@ export function LoginForm() {
         type="submit"
         disabled={pending}
         aria-busy={pending}
-        className="h-11 w-full bg-[var(--neon)] text-base font-semibold text-white hover:bg-[#ff4d6d] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+        className="h-11 w-full bg-[var(--neon)] text-base font-semibold text-[var(--neon-fg,#070708)] hover:bg-[var(--neon-hover,#ff4d6d)] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
       >
         {pending
           ? "Logowanie…"

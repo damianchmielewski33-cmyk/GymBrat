@@ -10,6 +10,7 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-space);
+  --font-display: var(--font-bebas), var(--font-space), sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -100,6 +101,26 @@
   --sidebar-accent-foreground: rgba(255, 255, 255, 0.92);
   --sidebar-border:            rgba(255, 255, 255, 0.10);
   --sidebar-ring:              rgba(230, 0, 35, 0.60);
+
+  /* Accent helpers — overridden on auth (black–gold) */
+  --neon-rgb:   230, 0, 35;
+  --neon-hover: #ff4d6d;
+  --neon-fg:    #ffffff;
+}
+
+.theme-black-gold {
+  --gym-gold:        #d4af37;
+  --gym-gold-bright: #e8c547;
+  --gym-gold-deep:   #a68520;
+  --neon:            var(--gym-gold);
+  --neon-rgb:        212, 175, 55;
+  --neon-hover:      var(--gym-gold-bright);
+  --neon-fg:         #0a0906;
+  --primary:         var(--gym-gold);
+  --primary-foreground: #0a0906;
+  --ring:            rgba(232, 197, 71, 0.92);
+  --sidebar-primary: var(--gym-gold);
+  --sidebar-ring:    rgba(212, 175, 55, 0.55);
 }
 
 .dark {
@@ -239,6 +260,17 @@
       0 1px 0 rgba(255, 255, 255, 0.08) inset,
       0 -1px 0 rgba(0, 0, 0, 0.55) inset,
       0 10px 40px rgba(0, 0, 0, 0.65);
+  }
+
+  /* Auth panels — gold edge instead of street-red */
+  .theme-black-gold .gold-panel {
+    border-color: rgba(212, 175, 55, 0.22);
+    border-top-color: rgba(232, 197, 71, 0.38);
+    box-shadow:
+      0 1px 0 rgba(232, 197, 71, 0.14) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.45) inset,
+      0 14px 56px rgba(0, 0, 0, 0.62),
+      0 0 40px rgba(212, 175, 55, 0.08);
   }
 
   /* ── Glow effects ── */

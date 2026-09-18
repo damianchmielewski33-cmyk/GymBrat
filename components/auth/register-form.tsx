@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Dumbbell, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -165,31 +164,14 @@ export function RegisterForm() {
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute -inset-px rounded-[1.05rem] bg-gradient-to-br from-[var(--neon)]/25 via-white/[0.07] to-cyan-400/10 opacity-90 blur-[1px]"
+        className="pointer-events-none absolute -inset-px rounded-[1.05rem] bg-gradient-to-br from-[var(--neon)]/30 via-white/[0.06] to-[var(--neon)]/10 opacity-90 blur-[1px]"
       />
-      <div className="glass-panel relative overflow-hidden rounded-2xl border border-white/[0.12] bg-gradient-to-b from-white/[0.09] to-black/25 p-6 shadow-[0_12px_60px_rgba(0,0,0,0.55)] sm:p-8">
+      <div className="glass-panel gold-panel relative overflow-hidden rounded-2xl border border-white/[0.12] bg-gradient-to-b from-white/[0.09] to-black/25 p-6 shadow-[0_12px_60px_rgba(0,0,0,0.55)] sm:p-8">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-[0.12] [background-image:repeating-linear-gradient(-12deg,rgba(255,255,255,0.04)_0px,rgba(255,255,255,0.04)_1px,transparent_1px,transparent_8px)]"
         />
         <div className="relative">
-          <div className="mb-8 flex flex-col items-center text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.12] to-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
-              <Dumbbell className="h-6 w-6 text-[var(--neon)]" strokeWidth={1.75} />
-            </div>
-            <Link
-              href="/"
-              className="inline-block rounded-sm font-heading text-2xl font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
-              aria-label="GymBrat — strona główna"
-            >
-              Gym<span className="text-[var(--neon)]">Brat</span>
-            </Link>
-            <p className="mt-2 flex items-center gap-1.5 text-sm text-white/55">
-              <Sparkles className="h-3.5 w-3.5 text-[var(--neon)]/80" />
-              Zbuduj swój profil sportowca
-            </p>
-          </div>
-
           <RoleAuthCards
             role={role}
             onSelectRole={(next) => {
@@ -488,7 +470,7 @@ export function RegisterForm() {
                       className={cn(
                         "min-h-[3.25rem] rounded-xl border px-3 py-3 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
                         active
-                          ? "border-[var(--neon)]/60 bg-[var(--neon)]/15 shadow-[0_0_24px_rgba(255,45,85,0.22)]"
+                          ? "border-[var(--neon)]/60 bg-[var(--neon)]/15 shadow-[0_0_24px_rgba(var(--neon-rgb,230,0,35),0.22)]"
                           : "border-white/10 bg-black/30 hover:border-white/20 hover:bg-black/40",
                       )}
                     >
@@ -517,7 +499,7 @@ export function RegisterForm() {
               type="submit"
               disabled={isSubmitting}
               aria-busy={isSubmitting}
-              className="h-11 min-h-11 w-full bg-[var(--neon)] text-base font-semibold text-white shadow-[0_0_32px_rgba(255,45,85,0.25)] hover:bg-[#ff4d6d] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+              className="h-11 min-h-11 w-full bg-[var(--neon)] text-base font-semibold text-[var(--neon-fg,#070708)] shadow-[0_0_32px_rgba(var(--neon-rgb,230,0,35),0.28)] hover:bg-[var(--neon-hover,#ff4d6d)] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
             >
               {isSubmitting ? "Tworzenie profilu…" : "Utwórz konto i trenuj"}
             </Button>

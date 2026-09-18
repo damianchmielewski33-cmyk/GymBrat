@@ -41,7 +41,7 @@ export function RoleAuthCards({
           className={cn(
             "group relative min-h-[168px] overflow-hidden rounded-2xl border px-5 py-6 text-left transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
             role === "zawodnik"
-              ? "border-[var(--neon)]/65 bg-gradient-to-br from-[var(--neon)]/20 via-white/[0.06] to-cyan-500/10 shadow-[0_0_40px_rgba(255,45,85,0.22)]"
+              ? "border-[var(--neon)]/65 bg-gradient-to-br from-[var(--neon)]/20 via-white/[0.06] to-[var(--neon)]/10 shadow-[0_0_40px_rgba(var(--neon-rgb,230,0,35),0.22)]"
               : "border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45",
           )}
         >
@@ -124,13 +124,13 @@ export function RoleAuthCards({
             className={cn(
               "group relative min-h-[168px] overflow-hidden rounded-2xl border px-5 py-6 text-left transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
               role === "trener"
-                ? "border-[var(--neon)]/65 bg-gradient-to-br from-[var(--neon)]/20 via-white/[0.06] to-violet-500/10 shadow-[0_0_40px_rgba(255,45,85,0.22)]"
+                ? "border-[var(--neon)]/65 bg-gradient-to-br from-[var(--neon)]/20 via-white/[0.06] to-[var(--neon)]/10 shadow-[0_0_40px_rgba(var(--neon-rgb,230,0,35),0.22)]"
                 : "border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45",
             )}
           >
             <div
               aria-hidden
-              className="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full bg-violet-500/12 blur-2xl transition-opacity group-hover:opacity-100"
+              className="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full bg-[var(--neon)]/12 blur-2xl transition-opacity group-hover:opacity-100"
             />
             <div
               aria-hidden
