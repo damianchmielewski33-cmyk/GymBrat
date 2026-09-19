@@ -35,6 +35,11 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  /** Publiczny provenance wdrożenia — wyłącznie z repozytorium GymBrat. */
+  if (pathname === "/api/version") {
+    return NextResponse.next();
+  }
+
   const publicPaths = new Set(["/login", "/register"]);
 
   const secret = getAuthSecret();
