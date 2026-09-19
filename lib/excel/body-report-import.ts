@@ -164,6 +164,8 @@ export function parseBodyReportsFromXlsx(buffer: ArrayBuffer): {
   const waistKey = pickKey(keys, ["pas", "talia", "waist", "waist cm"]);
   const chestKey = pickKey(keys, ["klatka", "chest", "chest cm"]);
   const thighKey = pickKey(keys, ["udo", "thigh", "thigh cm"]);
+  const armKey = pickKey(keys, ["ramie", "ramię", "arm", "arm cm", "biceps"]);
+  const abdomenKey = pickKey(keys, ["brzuch", "abdomen", "abdomen cm", "belly"]);
   const trainingEnergyKey = pickKey(keys, [
     "energia na treningu",
     "energia podczas cwiczen",
@@ -211,6 +213,8 @@ export function parseBodyReportsFromXlsx(buffer: ArrayBuffer): {
       waistCm: waistKey ? parseNumber(r[waistKey]) : null,
       chestCm: chestKey ? parseNumber(r[chestKey]) : null,
       thighCm: thighKey ? parseNumber(r[thighKey]) : null,
+      armCm: armKey ? parseNumber(r[armKey]) : null,
+      abdomenCm: abdomenKey ? parseNumber(r[abdomenKey]) : null,
       trainingEnergy: trainingEnergyKey ? parseNumber(r[trainingEnergyKey]) : null,
       sleepQuality: sleepKey ? parseNumber(r[sleepKey]) : null,
       dayEnergy: dayEnergyKey ? parseNumber(r[dayEnergyKey]) : null,
@@ -228,6 +232,8 @@ export function parseBodyReportsFromXlsx(buffer: ArrayBuffer): {
       row.waistCm != null ||
       row.chestCm != null ||
       row.thighCm != null ||
+      row.armCm != null ||
+      row.abdomenCm != null ||
       row.trainingEnergy != null ||
       row.sleepQuality != null ||
       row.dayEnergy != null ||

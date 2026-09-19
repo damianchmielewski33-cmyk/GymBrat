@@ -20,6 +20,8 @@ const createSchema = z.object({
   waistCm: z.number().finite().min(0).max(500).nullable().optional(),
   chestCm: z.number().finite().min(0).max(500).nullable().optional(),
   thighCm: z.number().finite().min(0).max(500).nullable().optional(),
+  armCm: z.number().finite().min(0).max(500).nullable().optional(),
+  abdomenCm: z.number().finite().min(0).max(500).nullable().optional(),
   trainingEnergy: z.number().finite().min(1).max(10).nullable().optional(),
   sleepQuality: z.number().finite().min(1).max(10).nullable().optional(),
   dayEnergy: z.number().finite().min(1).max(10).nullable().optional(),
@@ -67,6 +69,7 @@ export async function POST(req: Request) {
 
   const id = await createBodyReport(session.user.id, parsed.data as CreateBodyReportInput);
   revalidatePath("/reports");
+  revalidatePath("/");
   return NextResponse.json({ ok: true, id });
 }
 

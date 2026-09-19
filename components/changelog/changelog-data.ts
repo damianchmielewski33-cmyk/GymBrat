@@ -5,6 +5,19 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — nowy ekran Start i wymiary w raporcie",
+    date: "2026-09-19",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Ekran Start pokazuje powitanie z imieniem, następny trening z przyciskiem Rozpocznij oraz mini-statystyki tygodnia i serii.",
+      "Na Starcie są kafle Waga, Tempo i Waga od startu oraz liniowy wykres masy z zakresami od tygodnia do roku.",
+      "Sekcja Twoja przemiana porównuje pierwsze i ostatnie zdjęcie z raportów suwakiem, a kafle wymiarów pokazują wagę, pas, ramię i brzuch.",
+      "Ze Startu usunięto stare kafle posiłków, makro, check-inu i deficytu — te dane zostają w innych ekranach aplikacji.",
+      "W raporcie można zapisać obwód ramienia i brzucha (pola armCm oraz abdomenCm) obok dotychczasowych pomiarów.",
+    ],
+  },
+  {
     title: "2026-09 — poprawki produkcji (Analiza, Android, PWA, UI)",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
