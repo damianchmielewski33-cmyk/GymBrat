@@ -250,6 +250,17 @@ GymBrat is designed to run well on Vercel with Turso/libSQL.
   - Proxy (edge) i dostęp sieciowy do libSQL są zgodne z wdrożeniami w stylu edge.
   - Ensure your Turso database is reachable from Vercel regions you deploy to.
 
+### Deploy Guardian (agent + CI)
+
+Zmiany GymBrat mają być **jasno opisane** i iść **z tego repozytorium** (`damianchmielewski33-cmyk/GymBrat`), nie z AWP.
+
+- Agent Cursor: `.cursor/agents/deploy-guardian.md` (wywołaj przy PR / deployu)
+- Reguła: `.cursor/rules/gymbrat-wdrozenie.mdc`
+- Prompt automatyzacji (do wklejenia w Cursor Automations): `.cursor/automations/deploy-guardian.md`
+- CI: `.github/workflows/deploy-guardian.yml` — blokuje obce repo i PR-y UI bez changelogu
+- Lokalnie: `npm run deploy:check`
+- Produkcja: publiczny `GET /api/version` oraz karta źródła na `/changelog`
+
 ### Database retention (protect free Turso storage)
 
 Turso free tier storage is limited, and some tables grow indefinitely (especially analytics/log tables). GymBrat includes a built-in **cleanup** mechanism that enforces a retention policy.

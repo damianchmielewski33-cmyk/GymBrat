@@ -4,6 +4,21 @@ import type { NextConfig } from "next";
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
+/** Origin Akademii — AWP osadza GymBrat w iframe na /gymbrat. */
+const DEFAULT_AWP_ORIGIN = "https://akademia-wielkich-pilkarzy.vercel.app";
+
+function awpFrameAncestor(): string {
+  const raw = process.env.NEXT_PUBLIC_AWP_URL?.trim();
+  if (raw) {
+    try {
+      return new URL(raw).origin;
+    } catch {
+      /* ignore */
+    }
+  }
+  return DEFAULT_AWP_ORIGIN;
+}
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(projectRoot),
@@ -14,15 +29,20 @@ const nextConfig: NextConfig = {
 
   async headers() {
     const isProd = process.env.NODE_ENV === "production";
+    const awpOrigin = awpFrameAncestor();
+    /**
+     * AWP otwiera GymBrat w iframe. X-Frame-Options: DENY blokowało ten embed.
+     * Kontrola przez CSP frame-ancestors. Cache /sw.js i /login — bez starego PWA.
+     */
+    const frameAncestors = `'self' ${awpOrigin}`;
+
     const base = [
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Content-Security-Policy", value: `frame-ancestors ${frameAncestors}` },
       { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-      { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-      /** Domyślnie blokuje „hotlinking” zasobów między originami. */
-      { key: "Cross-Origin-Resource-Policy", value: "same-site" },
-      /** Utrudnia wstrzykiwanie polityk w starych pluginach/Flash. */
+      { key: "Cross-Origin-Opener-Policy", value: "unsafe-none" },
+      { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
       { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
     ];
 
@@ -44,7 +64,7 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       "base-uri 'self'",
       "object-src 'none'",
-      "frame-ancestors 'none'",
+      `frame-ancestors ${frameAncestors}`,
       "form-action 'self'",
       // Next/Tailwind często wymagają inline styles; na start zbieramy raporty.
       "style-src 'self' 'unsafe-inline'",
@@ -69,6 +89,21 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: [...base, ...prodOnly],
+      },
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, max-age=0" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
+        source: "/login",
+        headers: [{ key: "Cache-Control", value: "private, no-store, no-cache, must-revalidate" }],
+      },
+      {
+        source: "/register",
+        headers: [{ key: "Cache-Control", value: "private, no-store, no-cache, must-revalidate" }],
       },
     ];
   },

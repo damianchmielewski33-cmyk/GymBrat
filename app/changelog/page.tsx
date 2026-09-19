@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { ChangelogView } from "@/components/changelog/changelog-view";
+import { readDeployProvenance } from "@/lib/gymbrat-source";
+
+export const dynamic = "force-dynamic";
 
 export default async function ChangelogPage() {
   const session = await auth();
+  const provenance = readDeployProvenance();
 
   return (
     <div className="relative min-h-screen">
@@ -30,7 +34,10 @@ export default async function ChangelogPage() {
             </Link>
           </nav>
         ) : null}
-        <ChangelogView variant={session ? "app" : "public"} />
+        <ChangelogView
+          variant={session ? "app" : "public"}
+          provenance={provenance}
+        />
       </div>
     </div>
   );

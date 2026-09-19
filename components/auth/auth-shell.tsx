@@ -43,7 +43,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
         <motion.section
           aria-label="Atmosfera siłowni"
           className="mt-14 grid grid-cols-2 gap-3 sm:mt-20 sm:gap-4"
-          initial={{ opacity: 0, y: 28 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-40px" }}
           transition={{ duration: 0.7, ease: easeOut }}

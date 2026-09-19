@@ -1,0 +1,12 @@
+---
+description: Wdrożenia i changelog GymBrat tylko z tego repozytorium
+alwaysApply: true
+---
+
+# Wdrożenia GymBrat
+
+- Jedyne źródło zmian produkcyjnych: `github.com/damianchmielewski33-cmyk/GymBrat`.
+- Nie przenoś changelogu, numeru wersji ani opisu wdrożenia z AWP ani innego repo.
+- Przy zmianie UI, API publicznego, `proxy.ts`, `next.config.ts` albo `public/` zaktualizuj `components/changelog/changelog-data.ts`: data, `sourceRepo: GYMBRAT_GITHUB_SLUG`, jasne pełnozdaniowe punkty po polsku.
+- Przed ogłoszeniem deployu uruchom agenta `deploy-guardian` albo `npm run deploy:check`.
+- Publiczny kontrakt wersji: `GET /api/version` (to repo, nie AWP).

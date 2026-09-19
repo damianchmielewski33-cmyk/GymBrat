@@ -16,6 +16,7 @@ import { parseRemindersJson } from "@/lib/reminders-types";
 import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { LocaleSwitchCard } from "@/components/profile/locale-switch-card";
+import { AndroidAppVersionCard } from "@/components/android-app-version-card";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
 import { AiFeaturesSettingsCard } from "@/components/profile/ai-features-settings-card";
 import { getUserAiEntitled } from "@/lib/user-ai-preference";
