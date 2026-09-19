@@ -16,6 +16,7 @@ import { parseRemindersJson } from "@/lib/reminders-types";
 import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { LocaleSwitchCard } from "@/components/profile/locale-switch-card";
+import { AndroidAppVersionCard } from "@/components/android-app-version-card";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
 import { AiFeaturesSettingsCard } from "@/components/profile/ai-features-settings-card";
 import { getUserAiEntitled } from "@/lib/user-ai-preference";
@@ -99,6 +100,10 @@ export default async function ProfilePage() {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        <div className="lg:col-span-2">
+          <AndroidAppVersionCard />
+        </div>
+
         <section className="glass-panel relative overflow-hidden p-8">
           <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(120deg,rgba(255,255,255,0.10),transparent_55%),radial-gradient(700px_320px_at_10%_10%,rgba(255,45,85,0.16),transparent_60%)]" />
           <div className="relative space-y-6">

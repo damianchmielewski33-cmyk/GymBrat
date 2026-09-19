@@ -20,6 +20,14 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  /**
+   * Aktualizacje APK: natywna aplikacja Android nie ma sesji NextAuth.
+   * Bez tego GET /api/android/version ląduje na HTML logowania.
+   */
+  if (pathname.startsWith("/api/android/") || pathname === "/android-version.json") {
+    return NextResponse.next();
+  }
+
   /** Token CSRF (double-submit) — publiczny GET, bez sesji. */
   if (pathname === "/api/csrf") {
     return NextResponse.next();
@@ -69,6 +77,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|workbox.*|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/auth|api/android|_next/static|_next/image|favicon.ico|manifest.webmanifest|android-version.json|sw.js|workbox.*|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
