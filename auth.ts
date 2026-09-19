@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
+import { authCookiesForEmbed } from "@/lib/auth-cookies";
 import { siteActivityLog, users } from "@/db/schema";
 import { getAuthSecret } from "@/lib/auth-secret";
 
@@ -20,6 +21,8 @@ function parseAdminEmails(): Set<string> {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   secret: getAuthSecret(),
+  /** CHIPS / SameSite=None — sesja działa w iframe AWP (third-party cookie partition). */
+  cookies: authCookiesForEmbed(),
   providers: [
     Credentials({
       name: "Credentials",

@@ -18,6 +18,18 @@ function parseCookieHeader(cookieHeader: string | null, name: string): string | 
   return null;
 }
 
+function awpOrigin(): string {
+  const raw = process.env.NEXT_PUBLIC_AWP_URL?.trim();
+  if (raw) {
+    try {
+      return new URL(raw).origin;
+    } catch {
+      /* ignore */
+    }
+  }
+  return "https://akademia-wielkich-pilkarzy.vercel.app";
+}
+
 function allowedOrigins(): Set<string> {
   const out = new Set<string>();
   const add = (raw?: string | null) => {
@@ -30,9 +42,12 @@ function allowedOrigins(): Set<string> {
     }
   };
   add(process.env.NEXTAUTH_URL);
+  add(process.env.AUTH_URL);
   add(process.env.NEXT_PUBLIC_APP_URL);
   const vercel = process.env.VERCEL_URL?.trim();
   if (vercel) add(`https://${vercel}`);
+  /** AWP osadza GymBrat w iframe — Origin rodzica może pojawić się w metadanych. */
+  add(awpOrigin());
   const extra = process.env.CSRF_ALLOWED_ORIGINS?.split(",") ?? [];
   for (const x of extra) add(x.trim());
   if (out.size === 0 && process.env.NODE_ENV !== "production") {
@@ -125,17 +140,51 @@ export function assertCsrf(req: Request): NextResponse | null {
  */
 export function assertAnalyticsOrigin(req: Request): NextResponse | null {
   const origin = req.headers.get("origin");
-  if (origin && !isAllowedRequestOrigin(origin)) {
-    return NextResponse.json(
-      {
-        error:
-          "Źródło żądania nie jest na liście dozwolonych adresów. Sprawdź konfigurację środowiska.",
-      },
-      { status: 403 },
-    );
+  let reqOrigin = "";
+  try {
+    reqOrigin = new URL(req.url).origin;
+  } catch {
+    /* ignore */
   }
+
+  if (origin) {
+    try {
+      const got = new URL(origin).origin;
+      // Dokument iframe (gym-brat) → własne API: Origin = nasz origin.
+      if (got !== reqOrigin && !isAllowedRequestOrigin(origin)) {
+        return NextResponse.json(
+          {
+            error:
+              "Źródło żądania nie jest na liście dozwolonych adresów. Sprawdź konfigurację środowiska.",
+          },
+          { status: 403 },
+        );
+      }
+    } catch {
+      if (!isAllowedRequestOrigin(origin)) {
+        return NextResponse.json(
+          {
+            error:
+              "Źródło żądania nie jest na liście dozwolonych adresów. Sprawdź konfigurację środowiska.",
+          },
+          { status: 403 },
+        );
+      }
+    }
+  }
+
   const secFetchSite = req.headers.get("sec-fetch-site");
   if (secFetchSite && !["same-origin", "same-site"].includes(secFetchSite)) {
+    // W cross-origin iframe przeglądarka bywa oznacza żądanie do własnego API jako cross-site
+    // względem top-level (AWP). Gdy Origin to nasz host — przepuszczamy.
+    if (origin && reqOrigin) {
+      try {
+        if (new URL(origin).origin === reqOrigin) return null;
+      } catch {
+        /* fall through */
+      }
+    }
+    if (isAllowedRequestOrigin(origin)) return null;
     return NextResponse.json(
       { error: "To żądanie nie może być wykonane z tej witryny (polityka przeglądarki)." },
       { status: 403 },
