@@ -44,12 +44,25 @@ test("chroniona strona przekierowuje na logowanie", async ({ page }) => {
   await expect(page).toHaveURL(/\/login/);
 });
 
+test("strona logowania pokazuje wspólne konto z Akademią (imię / PIN)", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await expect(page.getByLabel("Imię")).toBeVisible();
+  await expect(page.getByLabel("Nazwisko")).toBeVisible();
+  await expect(page.getByLabel("PIN")).toBeVisible();
+  await expect(
+    page.getByText(/te same dane co w akademii/i).first(),
+  ).toBeVisible();
+});
+
 test("opcja: smoke po zalogowaniu (E2E_EMAIL / E2E_PASSWORD)", async ({ page }) => {
   const email = process.env.E2E_EMAIL?.trim();
   const password = process.env.E2E_PASSWORD?.trim();
   test.skip(!email || !password, "Ustaw E2E_EMAIL i E2E_PASSWORD dla pełnego smoke.");
 
   await page.goto("/login");
+  await page.getByRole("button", { name: /zaloguj e-mailem i hasłem/i }).click();
   await page.getByLabel("Email").fill(email!);
   await page.getByLabel("Hasło", { exact: true }).fill(password!);
   await page.getByRole("button", { name: /zaloguj się jako zawodnik/i }).click();

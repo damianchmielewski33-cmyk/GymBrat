@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/login-form";
+import { AwpSsoBridge } from "@/components/auth/awp-sso-bridge";
 import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
 
 export default function LoginPage() {
@@ -7,7 +8,7 @@ export default function LoginPage() {
     <div>
       <AuthHeroBrand
         headline="Twoje centrum treningowe"
-        support="Plany, historie, makro i coaching — w czerni żelaza i złocie ciężarów."
+        support="Jedno konto z Akademią Wielkich Piłkarzy — imię, nazwisko i PIN jak na stronie Akademii."
       />
 
       <div className="glass-panel gold-panel relative overflow-hidden p-6 sm:p-8">
@@ -21,6 +22,7 @@ export default function LoginPage() {
         />
         <div className="relative">
           <Suspense fallback={<div className="text-sm text-white/50">Ładowanie…</div>}>
+            <AwpSsoBridge />
             <LoginForm />
           </Suspense>
         </div>

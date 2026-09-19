@@ -5,6 +5,19 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — wspólne konto i logowanie jak w Akademii",
+    date: "2026-09-19",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Logowanie w GymBrat używa tych samych danych co Akademia Wielkich Piłkarzy: imię, nazwisko i PIN.",
+      "Po poprawnym logowaniu PIN-em konto GymBrat jest powiązane z kontem Akademii i synchronizuje imię oraz nazwisko.",
+      "Most SSO przyjmuje token sesji Akademii (parametr awp_token albo postMessage) i ustawia sesję GymBrat bez ponownego wpisywania PIN-u.",
+      "Cookies Auth.js działają w iframe Akademii (SameSite=None, Partitioned), żeby wspólne konto działało też w osadzeniu.",
+      "Nadal dostępne jest logowanie e-mailem i hasłem dla wcześniejszych kont lokalnych oraz kont Akademii z włączonym e-mailem.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
