@@ -74,6 +74,10 @@ export async function proxy(req: NextRequest) {
     login.searchParams.set("callbackUrl", dest);
     const from = req.nextUrl.searchParams.get("from");
     if (from) login.searchParams.set("from", from);
+    const awpToken =
+      req.nextUrl.searchParams.get("awp_token") ??
+      req.nextUrl.searchParams.get("awpToken");
+    if (awpToken) login.searchParams.set("awp_token", awpToken);
     return NextResponse.redirect(login);
   }
 

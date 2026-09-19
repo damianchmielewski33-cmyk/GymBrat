@@ -36,6 +36,13 @@
       "when": 1779200000000,
       "tag": "0005_body_report_arm_abdomen",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789843500000,
+      "tag": "0006_users_awp_user_id",
+      "breakpoints": true
     }
   ]
 }

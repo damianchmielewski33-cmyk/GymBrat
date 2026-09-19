@@ -102,6 +102,15 @@ CREATE TABLE IF NOT EXISTS "daily_checkins" (
 
   await tryAddColumn(`ALTER TABLE "body_reports" ADD COLUMN "arm_cm" real`);
   await tryAddColumn(`ALTER TABLE "body_reports" ADD COLUMN "abdomen_cm" real`);
+  await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "awp_user_id" text`);
+  try {
+    await client.execute(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "users_awp_user_id_unique" ON "users" ("awp_user_id")`,
+    );
+  } catch (e) {
+    const msg = String(e);
+    if (!/already exists|duplicate/i.test(msg)) throw e;
+  }
 
   await client.execute(`
 CREATE TABLE IF NOT EXISTS "app_settings" (

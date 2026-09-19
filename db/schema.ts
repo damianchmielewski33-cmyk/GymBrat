@@ -25,6 +25,11 @@ export const users = sqliteTable("users", {
   activityLevel: text("activity_level"),
   /** `zawodnik` | `trener` | `admin` — admin ustawiany przez ADMIN_EMAILS, bootstrap lub panel. */
   appRole: text("app_role").notNull().default("zawodnik"),
+  /**
+   * Id użytkownika w Akademii Wielkich Piłkarzy (wspólne konto).
+   * Ustawiane przy logowaniu PIN/e-mail przez API AWP albo most SSO.
+   */
+  awpUserId: text("awp_user_id").unique(),
   fitatuAccessToken: text("fitatu_access_token"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()

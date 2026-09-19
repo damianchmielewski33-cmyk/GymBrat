@@ -163,10 +163,12 @@ public/                      Static assets (manifest, icons, PWA output)
 
 GymBrat uses **NextAuth v5 (beta)** with a **Credentials provider** and **JWT sessions**.
 
+Konto jest **wspólne z Akademią Wielkich Piłkarzy**: domyślne logowanie to **imię + nazwisko + PIN** (weryfikacja przez API AWP, potem lokalny profil GymBrat z `awp_user_id`). Opcjonalnie e-mail/hasło (konta lokalne albo e-mail w AWP). Most SSO: `POST /api/auth/awp-bridge` wymienia Bearer JWT Akademii na sesję GymBrat.
+
 - **Login**
-  - UI submits credentials → `signIn("credentials", { redirect: false })` (see `actions/backend.ts`)
-  - Provider validates email/password against `users` in SQLite/libSQL (see `auth.ts`)
-  - Password verification uses `bcryptjs` (`users.passwordHash`)
+  - UI: `components/auth/login-form.tsx` → `signIn("credentials")` (tryb `pin` albo `email`)
+  - Provider: `auth.ts` — PIN przez `lib/awp-account.ts`, e-mail lokalnie (`bcryptjs`) z fallbackiem do API AWP
+  - Cookies pod iframe AWP: `lib/auth-cookies.ts` (SameSite=None + Partitioned)
 
 - **Registration**
   - `registerUser()` (see `actions/auth.ts`) validates input (Zod) and stores:
