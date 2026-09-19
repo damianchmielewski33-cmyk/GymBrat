@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — gęstszy układ kafelków na Starcie",
+    date: "2026-09-19",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Ekran Start ma ciaśniejsze odstępy i układ bento zamiast rzadkiej kolumny pustych paneli.",
+      "Kafelek wagi jest większy od Tempo i Od startu, a wymiary sylwetki siedzą w jednym panelu zamiast czterech osobnych kart.",
+      "Wykres masy i przemiana stoją obok siebie na szerszym ekranie, żeby lepiej wypełnić szerokość widoku.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

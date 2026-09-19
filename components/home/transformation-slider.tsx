@@ -15,23 +15,24 @@ export function TransformationSlider({
   const canCompare = Boolean(firstPhotoUrl && latestPhotoUrl);
 
   return (
-    <section className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
+    <section className="glass-panel neon-glow relative flex h-full min-h-0 flex-col overflow-hidden p-4 sm:p-5">
       <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:radial-gradient(800px_360px_at_80%_0%,rgba(255,45,85,0.12),transparent_55%)]" />
-      <div className="relative">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
           Postęp
         </p>
-        <h2 className="font-heading mt-1 text-lg font-semibold text-white">
+        <h2 className="font-heading mt-1 text-base font-semibold text-white sm:text-lg">
           Twoja przemiana
         </h2>
         <p className="mt-1 text-xs text-white/50">
-          Pierwsze zdjęcie w aplikacji porównane z ostatnim z raportu.
+          Pierwsze zdjęcie porównane z ostatnim z raportu.
         </p>
 
         {!canCompare ? (
-          <div className="mt-5 rounded-xl border border-dashed border-white/15 bg-black/25 px-4 py-10 text-center">
+          <div className="mt-4 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-black/25 px-4 py-6 text-center">
             <p className="text-sm text-white/60">
-              Dodaj zdjęcia sylwetki w raporcie, żeby zobaczyć porównanie suwakiem.
+              Dodaj zdjęcia sylwetki w raporcie, żeby zobaczyć porównanie
+              suwakiem.
             </p>
             <Link
               href="/reports"
@@ -41,15 +42,15 @@ export function TransformationSlider({
             </Link>
           </div>
         ) : (
-          <div className="mt-5 space-y-3">
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-white/10 bg-black/40 sm:aspect-[16/10]">
+          <div className="mt-4 flex min-h-0 flex-1 flex-col space-y-3">
+            <div className="relative aspect-[4/5] min-h-[14rem] w-full flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/40 sm:aspect-auto sm:min-h-[16rem]">
               <Image
                 src={latestPhotoUrl!}
                 alt="Ostatnie zdjęcie z raportu"
                 fill
                 unoptimized
                 className="object-cover"
-                sizes="(max-width: 768px) 100vw, 720px"
+                sizes="(max-width: 768px) 100vw, 420px"
               />
               <div
                 className="absolute inset-0"
@@ -61,7 +62,7 @@ export function TransformationSlider({
                   fill
                   unoptimized
                   className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 720px"
+                  sizes="(max-width: 768px) 100vw, 420px"
                 />
               </div>
               <div

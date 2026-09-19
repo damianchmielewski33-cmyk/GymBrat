@@ -48,15 +48,15 @@ export function WeightRangeChart({ data }: { data: HomeStartWeightPoint[] }) {
   }, [data, range]);
 
   return (
-    <section className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
+    <section className="glass-panel neon-glow relative flex h-full min-h-0 flex-col overflow-hidden p-4 sm:p-5">
       <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(255,45,85,0.12),transparent_55%)]" />
-      <div className="relative">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
               Masa ciała
             </p>
-            <h2 className="font-heading mt-1 text-lg font-semibold text-white">
+            <h2 className="font-heading mt-1 text-base font-semibold text-white sm:text-lg">
               Wykres wagi
             </h2>
             <p className="mt-1 text-xs text-white/50">
@@ -78,7 +78,7 @@ export function WeightRangeChart({ data }: { data: HomeStartWeightPoint[] }) {
                   aria-selected={active}
                   onClick={() => setRange(r.id)}
                   className={cn(
-                    "rounded-lg border px-2.5 py-1.5 text-xs font-medium transition",
+                    "rounded-lg border px-2 py-1 text-[11px] font-medium transition sm:px-2.5 sm:py-1.5 sm:text-xs",
                     active
                       ? "border-[var(--neon)]/50 bg-[var(--neon)]/15 text-white"
                       : "border-white/12 bg-black/30 text-white/55 hover:bg-white/[0.06] hover:text-white/80",
@@ -91,7 +91,7 @@ export function WeightRangeChart({ data }: { data: HomeStartWeightPoint[] }) {
           </div>
         </div>
 
-        <div className="mt-4 h-[240px] w-full sm:h-[280px]">
+        <div className="mt-3 h-[200px] w-full flex-1 sm:h-[220px] lg:min-h-[240px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={filtered} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid
@@ -131,7 +131,7 @@ export function WeightRangeChart({ data }: { data: HomeStartWeightPoint[] }) {
         </div>
 
         {filtered.length === 0 ? (
-          <p className="mt-3 text-xs text-white/45">
+          <p className="mt-2 text-xs text-white/45">
             Brak pomiarów w tym zakresie — dodaj ważenie w Analizie albo w raporcie.
           </p>
         ) : null}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Dumbbell, Zap } from "lucide-react";
+import { Dumbbell, Flame, Timer, Zap } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,20 +18,27 @@ function MiniStat({
   label,
   value,
   unit,
+  icon: Icon,
 }: {
   label: string;
   value: string;
   unit?: string;
+  icon: typeof Flame;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-black/35 px-3 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">
-        {label}
-      </p>
-      <p className="mt-1 font-heading text-xl font-semibold tabular-nums text-white">
+    <div className="rounded-xl border border-white/10 bg-black/35 px-2.5 py-2.5 sm:px-3 sm:py-3">
+      <div className="flex items-center justify-between gap-1">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">
+          {label}
+        </p>
+        <Icon className="h-3 w-3 shrink-0 text-white/30" aria-hidden />
+      </div>
+      <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-white sm:text-xl">
         {value}
         {unit ? (
-          <span className="ml-1 text-sm font-medium text-white/45">{unit}</span>
+          <span className="ml-1 text-xs font-medium text-white/45 sm:text-sm">
+            {unit}
+          </span>
         ) : null}
       </p>
     </div>
@@ -54,10 +61,10 @@ export function NextWorkoutTile({
   workoutStreakDays: number;
 }) {
   return (
-    <section className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
+    <section className="glass-panel neon-glow relative overflow-hidden p-4 sm:p-5">
       <div className="pointer-events-none absolute inset-0 opacity-45 [background-image:radial-gradient(900px_420px_at_10%_0%,rgba(255,45,85,0.14),transparent_55%)]" />
-      <div className="relative space-y-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="relative space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-white/50">
               <Dumbbell className="h-4 w-4" aria-hidden />
@@ -65,7 +72,7 @@ export function NextWorkoutTile({
                 Następny trening
               </p>
             </div>
-            <h2 className="font-heading mt-2 text-2xl font-semibold text-white sm:text-3xl">
+            <h2 className="font-heading mt-1.5 text-2xl font-semibold text-white sm:text-3xl">
               {planName ?? "Dodaj plan treningowy"}
             </h2>
             <p className="mt-1 text-sm text-white/55">
@@ -78,7 +85,7 @@ export function NextWorkoutTile({
             href={planName ? "/start-workout" : "/workout-plan"}
             className={cn(
               buttonVariants({ variant: "cta" }),
-              "h-12 w-full shrink-0 sm:w-auto sm:min-w-[11rem]",
+              "h-11 w-full shrink-0 sm:h-12 sm:w-auto sm:min-w-[11rem]",
             )}
           >
             <Zap className="mr-2 h-4 w-4" aria-hidden />
@@ -86,15 +93,21 @@ export function NextWorkoutTile({
           </Link>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <MiniStat label="Treningi w tygodniu" value={String(workoutsThisWeek)} />
+        <div className="grid grid-cols-3 gap-2">
           <MiniStat
-            label="Cardio w tygodniu"
+            icon={Dumbbell}
+            label="Treningi / tydz."
+            value={String(workoutsThisWeek)}
+          />
+          <MiniStat
+            icon={Timer}
+            label="Cardio / tydz."
             value={String(Math.round(cardioThisWeekMinutes))}
             unit="min"
           />
           <MiniStat
-            label="Treningi z rzędu"
+            icon={Flame}
+            label="Seria dni"
             value={String(workoutStreakDays)}
           />
         </div>
