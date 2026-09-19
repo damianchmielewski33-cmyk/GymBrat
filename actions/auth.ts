@@ -15,11 +15,12 @@ import {
   type RegisterInput,
 } from "@/lib/validations/register";
 import { sendRegisterVerificationCodeEmail } from "@/lib/email";
+import { establishCredentialsSession } from "@/lib/establish-session";
 import { createHash, randomInt } from "node:crypto";
 import { z } from "zod";
 
 export type RegisterState =
-  | { ok: true }
+  | { ok: true; signedIn: boolean }
   | { ok: false; error: string; fieldErrors?: Partial<Record<keyof RegisterInput, string[]>> };
 
 export type SendRegisterCodeState =
@@ -206,7 +207,14 @@ export async function registerUser(
       deploymentEnv: getAnalyticsDeployment(),
     });
 
-    return { ok: true };
+    const signedIn = await establishCredentialsSession({
+      id: userId,
+      email,
+      name: displayName,
+      role: data.role,
+    });
+
+    return { ok: true, signedIn };
   }
 
   const db = getDb();
@@ -291,5 +299,12 @@ export async function registerUser(
     deploymentEnv: getAnalyticsDeployment(),
   });
 
-  return { ok: true };
+  const signedIn = await establishCredentialsSession({
+    id: userId,
+    email,
+    name: displayName,
+    role: data.role,
+  });
+
+  return { ok: true, signedIn };
 }
