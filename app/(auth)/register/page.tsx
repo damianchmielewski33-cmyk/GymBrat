@@ -7,9 +7,9 @@ export default function RegisterPage() {
     <div>
       <AuthHeroBrand
         headline="Dołącz do GymBrat"
-        support="Załóż profil zawodnika i prowadź treningi w czarno-złotym rytmie siłowni."
+        support="Załóż profil zawodnika i prowadź treningi w jasnym stylu Akademii."
       />
-      <Suspense fallback={<div className="text-center text-sm text-white/50">Ładowanie…</div>}>
+      <Suspense fallback={<div className="text-center text-sm text-zinc-500">Ładowanie…</div>}>
         <RegisterForm />
       </Suspense>
     </div>

@@ -9,11 +9,11 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        cta: "h-11 bg-[var(--neon)] text-base font-semibold text-white hover:bg-[#ff4d6d] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
+        cta: "h-11 bg-[var(--neon)] text-base font-semibold text-white hover:bg-[var(--neon-hover)] focus-visible:ring-2 focus-visible:ring-[var(--mp-teal)]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         outline:
-          "h-11 border-white/20 bg-black/50 text-white hover:bg-white/10 aria-expanded:bg-white/10",
+          "h-11 border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 aria-expanded:bg-zinc-50",
         secondary:
-          "h-11 border border-white/15 bg-white/5 text-white hover:bg-white/10 aria-expanded:bg-white/10",
+          "h-11 border border-zinc-200 bg-zinc-50 text-zinc-900 hover:bg-zinc-100 aria-expanded:bg-zinc-100",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:

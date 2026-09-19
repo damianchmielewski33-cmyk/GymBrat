@@ -285,7 +285,7 @@ export function RegisterForm() {
                     type="button"
                     disabled={sendingCode || !emailValue?.trim() || cooldownSeconds > 0}
                     aria-busy={sendingCode}
-                    className="h-11 min-h-11 shrink-0 bg-white/10 text-white hover:bg-white/15 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+                    className="h-11 min-h-11 shrink-0 bg-white/10 text-white hover:bg-white/15 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     onClick={async () => {
                       setRootError(null);
                       setCodeInfo(null);
@@ -463,7 +463,7 @@ export function RegisterForm() {
                       aria-checked={active}
                       onClick={() => setValue("activityLevel", level, { shouldValidate: true })}
                       className={cn(
-                        "min-h-[3.25rem] rounded-xl border px-3 py-3 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
+                        "min-h-[3.25rem] rounded-xl border px-3 py-3 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                         active
                           ? "border-[var(--neon)]/60 bg-[var(--neon)]/15 shadow-[0_0_24px_rgba(var(--neon-rgb,230,0,35),0.22)]"
                           : "border-white/10 bg-black/30 hover:border-white/20 hover:bg-black/40",
@@ -503,7 +503,7 @@ export function RegisterForm() {
               Masz już konto?{" "}
               <Link
                 href="/login?role=zawodnik"
-                className="rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+                className="rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 Zaloguj się
               </Link>

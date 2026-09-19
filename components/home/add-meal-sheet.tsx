@@ -117,7 +117,7 @@ function AddMealSheetForm({
             </Button>
             <Button
               type="button"
-              className="h-11 bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
+              className="h-11 bg-[var(--neon)] text-white hover:bg-[#00a394]"
               onClick={handleAddAnother}
             >
               Tak, dodaj kolejny
@@ -334,7 +334,7 @@ function AddMealSheetForm({
           >
             Anuluj
           </Button>
-          <SubmitButton className="h-11 flex-[1.2] bg-[var(--neon)] text-white hover:bg-[#ff4d6d] sm:flex-none sm:min-w-[10rem]">
+          <SubmitButton className="h-11 flex-[1.2] bg-[var(--neon)] text-white hover:bg-[#00a394] sm:flex-none sm:min-w-[10rem]">
             Zapisz posiłek
           </SubmitButton>
         </SheetFooter>
@@ -355,7 +355,7 @@ export function AddMealSheet({ dateKey }: { dateKey: string }) {
         setOpen(next);
       }}
     >
-      <SheetTrigger className="inline-flex h-11 min-h-11 w-full items-center justify-center rounded-lg border border-white/15 bg-white/5 px-5 text-sm font-medium text-white transition outline-none hover:bg-white/10 focus-visible:ring-[3px] focus-visible:ring-ring/85 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708] sm:w-auto">
+      <SheetTrigger className="inline-flex h-11 min-h-11 w-full items-center justify-center rounded-lg border border-white/15 bg-white/5 px-5 text-sm font-medium text-white transition outline-none hover:bg-white/10 focus-visible:ring-[3px] focus-visible:ring-ring/85 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-auto">
         <UtensilsCrossed className="mr-2 h-4 w-4 opacity-90" />
         Dodaj posiłek
       </SheetTrigger>

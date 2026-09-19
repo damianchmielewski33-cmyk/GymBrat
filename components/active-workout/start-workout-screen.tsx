@@ -166,7 +166,7 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
                     </div>
                     <Link
                       href="/workout-plan"
-                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--neon)] px-5 text-base font-semibold text-white transition hover:bg-[#ff4d6d]"
+                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--neon)] px-5 text-base font-semibold text-white transition hover:bg-[#00a394]"
                     >
                       Utwórz plan
                     </Link>

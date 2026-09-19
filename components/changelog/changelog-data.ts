@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — wygląd zbliżony do Akademii (marketplace)",
+    date: "2026-09-19",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Cała aplikacja przeszła na jasny motyw marketplace: tło #f4f5f7, akcent teal (#00C9B1) i białe karty w stylu boiska.",
+      "Nagłówek, dolna nawigacja, FAB-y, formularze i logowanie używają tego samego języka wizualnego co Akademia (bez osadzania treści AWP).",
+      "Dodano font display Teko oraz subtelne tło z liniami boiska — themeColor PWA to teal Akademii.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

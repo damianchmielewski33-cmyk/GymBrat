@@ -178,7 +178,7 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
         <Button
           type="button"
           disabled={pending}
-          className="h-11 bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
+          className="h-11 bg-[var(--neon)] text-white hover:bg-[#00a394]"
           onClick={() => {
             start(async () => {
               const r = await saveRemindersPrefsAction(payload);

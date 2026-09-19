@@ -64,7 +64,7 @@ function ToastBar({
         isSuccess
           ? {
               boxShadow:
-                "0 0 0 1px rgba(16,185,129,0.15), 0 16px 48px rgba(0,0,0,0.55), 0 0 28px rgba(230,0,35,0.08)",
+                "0 0 0 1px rgba(16,185,129,0.15), 0 16px 48px rgba(0,0,0,0.55), 0 0 28px rgba(0, 201, 177,0.08)",
             }
           : {
               boxShadow:

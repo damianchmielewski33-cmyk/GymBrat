@@ -87,7 +87,7 @@ function BarBlock({
           className={`h-full rounded-full ${
             isOver
               ? "bg-gradient-to-r from-rose-400 to-rose-600"
-              : "bg-gradient-to-r from-[#ff4d6d] via-[#ff2d55] to-[#ff7aa1]"
+              : "bg-gradient-to-r from-[#00a394] via-[#ff2d55] to-[#ff7aa1]"
           }`}
           initial={{ width: 0 }}
           animate={{ width: `${width}%` }}
@@ -144,7 +144,7 @@ export function NutritionProgressBars({
           {weekBlock}
           <SheetContent
             side="bottom"
-            className="max-h-[90vh] border-white/10 bg-[#0a0a0f] pb-[env(safe-area-inset-bottom)] text-white"
+            className="max-h-[90vh] border-white/10 bg-white pb-[env(safe-area-inset-bottom)] text-white"
           >
             <SheetHeader>
               <SheetTitle className="text-white">Ten tydzień — szczegóły</SheetTitle>

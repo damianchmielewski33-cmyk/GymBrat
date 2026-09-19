@@ -11,9 +11,9 @@ export function BrandMark({
   as?: "link" | "span";
 }) {
   const classes = cn(
-    "inline-block rounded-sm font-heading text-2xl font-semibold text-white",
+    "inline-block rounded-sm font-heading text-2xl font-semibold tracking-tight text-zinc-950",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
-    "focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]/80",
+    "focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     className,
   );
   const content = (

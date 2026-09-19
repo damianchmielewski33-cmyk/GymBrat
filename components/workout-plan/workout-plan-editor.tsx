@@ -701,7 +701,7 @@ export function WorkoutPlanEditor({
                     size="sm"
                     onClick={addCustomExercise}
                     disabled={!customName.trim()}
-                    className="bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
+                    className="bg-[var(--neon)] text-white hover:bg-[#00a394]"
                   >
                     {customMatchPreview
                       ? "Dodaj rozpoznane ćwiczenie"

@@ -11,7 +11,7 @@ function Textarea({
     <textarea
       data-slot="textarea"
       className={cn(
-        "min-h-20 w-full rounded-lg border border-white/20 bg-black/50 px-3 py-2 text-base text-white transition-colors outline-none placeholder:text-white/40 focus-visible:border-[var(--neon)]/55 focus-visible:ring-3 focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708] disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-black/30 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:disabled:bg-black/40 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+        "min-h-20 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-900 transition-colors outline-none placeholder:text-zinc-400 focus-visible:border-[var(--neon)]/70 focus-visible:ring-3 focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm",
         className,
       )}
       {...props}

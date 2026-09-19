@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react";
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { AppProviders } from "@/components/providers/app-providers";
 import { MetalBackdrop } from "@/components/layout/metal-backdrop";
@@ -17,11 +19,13 @@ const geistMono = Geist_Mono({
   display: "optional",
 });
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const displayFont = localFont({
+  variable: "--font-display",
   display: "swap",
+  src: [
+    { path: "../public/fonts/teko-latin-ext.woff2", weight: "400 700", style: "normal" },
+    { path: "../public/fonts/teko-latin.woff2", weight: "400 700", style: "normal" },
+  ],
 });
 
 export const metadata: Metadata = {
@@ -34,13 +38,13 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "GymBrat",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#07080d",
+  themeColor: "#00C9B1",
   viewportFit: "cover",
 };
 
@@ -52,14 +56,20 @@ export default function RootLayout({
   return (
     <html
       lang="pl"
-      className={`dark ${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} h-full`}
+      className={`${geistSans.variable} ${geistMono.variable} ${displayFont.variable} h-full`}
+      style={
+        {
+          "--awp-bg-stadium": 'url("/stadium-bg.svg")',
+          "--awp-bg-pitch-lines": 'url("/pitch-lines.svg")',
+        } as CSSProperties
+      }
     >
-      <body className="min-h-full font-sans antialiased">
+      <body className="marketplace-bg min-h-full font-sans antialiased">
         <MetalBackdrop />
-      <AppProviders>
-        {children}
-        <ActiveWorkoutGlobalBar />
-      </AppProviders>
+        <AppProviders>
+          {children}
+          <ActiveWorkoutGlobalBar />
+        </AppProviders>
       </body>
     </html>
   );

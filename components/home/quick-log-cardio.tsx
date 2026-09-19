@@ -52,7 +52,7 @@ export function QuickLogCardio() {
             className="border-white/15 bg-black/30"
           />
         </div>
-        <SubmitButton className="w-full bg-[var(--neon)] text-white hover:bg-[#ff4d6d]">
+        <SubmitButton className="w-full bg-[var(--neon)] text-white hover:bg-[#00a394]">
           <Plus className="mr-2 h-4 w-4" />
           Zapisz do bazy
         </SubmitButton>
