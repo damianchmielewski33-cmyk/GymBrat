@@ -11,8 +11,9 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     sha: undefined,
     bullets: [
       "Ekran Start ma ciaśniejsze odstępy i układ bento zamiast rzadkiej kolumny pustych paneli.",
-      "Kafelek wagi jest większy od Tempo i Od startu, a wymiary sylwetki siedzą w jednym panelu zamiast czterech osobnych kart.",
-      "Wykres masy i przemiana stoją obok siebie na szerszym ekranie, żeby lepiej wypełnić szerokość widoku.",
+      "Na szerokim ekranie trening stoi obok kafelków wagi, a wykres masy dostaje pełną szerokość, gdy nie ma jeszcze zdjęć przemiany.",
+      "Kafelek wagi jest wyróżniony względem Tempo i Od startu, a wymiary sylwetki siedzą w jednym panelu zamiast czterech osobnych kart.",
+      "Pusty stan przemiany to niski pasek z linkiem do raportów, a nie wysoki pusty kafelek obok wykresu.",
     ],
   },
   {

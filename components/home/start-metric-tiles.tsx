@@ -8,6 +8,7 @@ function MetricTile({
   icon: Icon,
   className,
   accent,
+  dense,
 }: {
   label: string;
   value: string;
@@ -15,6 +16,7 @@ function MetricTile({
   icon: typeof Scale;
   className?: string;
   accent?: "neon" | "steel" | "ember";
+  dense?: boolean;
 }) {
   const glow =
     accent === "neon"
@@ -26,7 +28,8 @@ function MetricTile({
   return (
     <div
       className={cn(
-        "glass-panel relative flex min-h-[7.5rem] flex-col overflow-hidden p-3.5 sm:min-h-[8.25rem] sm:p-4",
+        "glass-panel relative flex flex-col overflow-hidden",
+        dense ? "min-h-[4.75rem] p-3" : "min-h-[6.5rem] p-3.5 sm:min-h-[7.25rem] sm:p-4",
         className,
       )}
     >
@@ -38,10 +41,15 @@ function MetricTile({
           </p>
           <Icon className="h-3.5 w-3.5 shrink-0 text-white/35" aria-hidden />
         </div>
-        <p className="font-heading mt-auto pt-3 text-2xl font-semibold tabular-nums text-white sm:text-3xl">
+        <p
+          className={cn(
+            "font-heading mt-auto font-semibold tabular-nums text-white",
+            dense ? "pt-1.5 text-xl sm:text-2xl" : "pt-2 text-2xl sm:text-3xl",
+          )}
+        >
           {value}
         </p>
-        {hint ? <p className="mt-1 text-[11px] text-white/45">{hint}</p> : null}
+        {hint ? <p className="mt-0.5 text-[11px] text-white/45">{hint}</p> : null}
       </div>
     </div>
   );
@@ -58,11 +66,45 @@ export function StartMetricTiles({
   weightKg,
   tempoKgPerMin,
   weightFromStartKg,
+  stacked = false,
 }: {
   weightKg: number | null;
   tempoKgPerMin: number | null;
   weightFromStartKg: number | null;
+  /** Na xl: kolumna obok treningu zamiast rzędu 2+1+1 */
+  stacked?: boolean;
 }) {
+  if (stacked) {
+    return (
+      <section className="grid h-full grid-cols-2 gap-2 xl:grid-cols-1 xl:gap-2.5">
+        <MetricTile
+          className="col-span-2 xl:col-span-1 xl:flex-1"
+          accent="neon"
+          icon={Scale}
+          label="Waga"
+          value={weightKg != null ? `${weightKg} kg` : "—"}
+          hint="Ostatni pomiar"
+        />
+        <MetricTile
+          dense
+          accent="steel"
+          icon={Activity}
+          label="Tempo"
+          value={tempoKgPerMin != null ? `${tempoKgPerMin}` : "—"}
+          hint="kg / min sesji"
+        />
+        <MetricTile
+          dense
+          accent="ember"
+          icon={ArrowUpDown}
+          label="Od startu"
+          value={formatSignedKg(weightFromStartKg)}
+          hint="Od pierwszego ważenia"
+        />
+      </section>
+    );
+  }
+
   return (
     <section className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
       <MetricTile

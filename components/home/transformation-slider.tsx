@@ -3,19 +3,53 @@
 import Image from "next/image";
 import { useState, type CSSProperties } from "react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export function TransformationSlider({
   firstPhotoUrl,
   latestPhotoUrl,
+  compactEmpty = false,
 }: {
   firstPhotoUrl: string | null;
   latestPhotoUrl: string | null;
+  /** Gdy brak zdjęć — niski pasek zamiast wysokiego pustego panelu */
+  compactEmpty?: boolean;
 }) {
   const [pos, setPos] = useState(50);
   const canCompare = Boolean(firstPhotoUrl && latestPhotoUrl);
 
+  if (!canCompare && compactEmpty) {
+    return (
+      <section className="glass-panel relative overflow-hidden px-4 py-3.5 sm:px-5 sm:py-4">
+        <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:radial-gradient(700px_280px_at_90%_0%,rgba(255,45,85,0.12),transparent_55%)]" />
+        <div className="relative flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
+              Postęp · przemiana
+            </p>
+            <p className="mt-1 text-sm text-white/65">
+              Dodaj zdjęcia sylwetki w raporcie, żeby zobaczyć porównanie
+              suwakiem.
+            </p>
+          </div>
+          <Link
+            href="/reports"
+            className="inline-flex shrink-0 text-sm font-medium text-[var(--neon)] underline-offset-4 hover:underline"
+          >
+            Przejdź do raportów
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="glass-panel neon-glow relative flex h-full min-h-0 flex-col overflow-hidden p-4 sm:p-5">
+    <section
+      className={cn(
+        "glass-panel neon-glow relative flex min-h-0 flex-col overflow-hidden p-4 sm:p-5",
+        canCompare ? "h-full" : null,
+      )}
+    >
       <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:radial-gradient(800px_360px_at_80%_0%,rgba(255,45,85,0.12),transparent_55%)]" />
       <div className="relative flex min-h-0 flex-1 flex-col">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
@@ -29,7 +63,7 @@ export function TransformationSlider({
         </p>
 
         {!canCompare ? (
-          <div className="mt-4 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-black/25 px-4 py-6 text-center">
+          <div className="mt-4 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-black/25 px-4 py-5 text-center">
             <p className="text-sm text-white/60">
               Dodaj zdjęcia sylwetki w raporcie, żeby zobaczyć porównanie
               suwakiem.

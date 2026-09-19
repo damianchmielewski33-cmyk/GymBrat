@@ -8,6 +8,7 @@ import { WeightRangeChartDynamic } from "@/components/home/weight-range-chart-dy
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { getHomeStartDashboard } from "@/lib/home-start";
+import { cn } from "@/lib/utils";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
@@ -35,8 +36,12 @@ export default async function HomePage() {
     ? `Cześć ${dash.firstName.trim()} 💪`
     : "Cześć 💪";
 
+  const hasTransformation = Boolean(
+    dash.transformation.firstPhotoUrl && dash.transformation.latestPhotoUrl,
+  );
+
   return (
-    <div className="space-y-3 sm:space-y-4">
+    <div className="space-y-3 sm:space-y-3.5">
       <header className="flex items-end justify-between gap-3 px-0.5 pt-0.5">
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
@@ -53,29 +58,45 @@ export default async function HomePage() {
 
       {!settingsRow?.onboardingCompletedAt ? <OnboardingBanner /> : null}
 
-      <NextWorkoutTile
-        planName={dash.nextWorkout?.planName ?? null}
-        exerciseCount={dash.nextWorkout?.exerciseCount ?? 0}
-        lastWorkoutDate={dash.nextWorkout?.lastWorkoutDate ?? null}
-        workoutsThisWeek={dash.workoutsThisWeek}
-        cardioThisWeekMinutes={dash.cardioThisWeekMinutes}
-        workoutStreakDays={dash.workoutStreakDays}
-      />
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-5 xl:items-stretch">
+        <div className="xl:col-span-3">
+          <NextWorkoutTile
+            planName={dash.nextWorkout?.planName ?? null}
+            exerciseCount={dash.nextWorkout?.exerciseCount ?? 0}
+            lastWorkoutDate={dash.nextWorkout?.lastWorkoutDate ?? null}
+            workoutsThisWeek={dash.workoutsThisWeek}
+            cardioThisWeekMinutes={dash.cardioThisWeekMinutes}
+            workoutStreakDays={dash.workoutStreakDays}
+          />
+        </div>
+        <div className="xl:col-span-2">
+          <StartMetricTiles
+            weightKg={dash.currentWeightKg}
+            tempoKgPerMin={dash.tempoKgPerMin}
+            weightFromStartKg={dash.weightFromStartKg}
+            stacked
+          />
+        </div>
+      </div>
 
-      <StartMetricTiles
-        weightKg={dash.currentWeightKg}
-        tempoKgPerMin={dash.tempoKgPerMin}
-        weightFromStartKg={dash.weightFromStartKg}
-      />
-
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-5 lg:items-stretch">
-        <div className="min-h-0 lg:col-span-3">
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-3 lg:items-stretch",
+          hasTransformation ? "lg:grid-cols-5" : "lg:grid-cols-1",
+        )}
+      >
+        <div
+          className={cn("min-h-0", hasTransformation ? "lg:col-span-3" : null)}
+        >
           <WeightRangeChartDynamic data={dash.weightSeries} />
         </div>
-        <div className="min-h-0 lg:col-span-2">
+        <div
+          className={cn("min-h-0", hasTransformation ? "lg:col-span-2" : null)}
+        >
           <TransformationSlider
             firstPhotoUrl={dash.transformation.firstPhotoUrl}
             latestPhotoUrl={dash.transformation.latestPhotoUrl}
+            compactEmpty={!hasTransformation}
           />
         </div>
       </div>
