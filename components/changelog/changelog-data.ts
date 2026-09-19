@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — auto-login po rejestracji w iframe Akademii",
+    date: "2026-09-19",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Po utworzeniu konta sesja jest ustawiana od razu po stronie serwera, bez zależności od drugiego round-tripu logowania.",
+      "Cookies Auth.js i CSRF działają w osadzeniu GymBrat w iframe Akademii (SameSite=None, Partitioned / CHIPS).",
+      "Gdy automatyczne logowanie się nie uda, aplikacja przekierowuje na ekran logowania z komunikatem o utworzonym koncie — także poza iframe.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
