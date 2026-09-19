@@ -1,4 +1,4 @@
-import { encode } from "@auth/core/jwt";
+import { encode } from "next-auth/jwt";
 import { cookies } from "next/headers";
 import { getAuthSecret } from "@/lib/auth-secret";
 import { authCookiesForEmbed, useSecureAuthCookies } from "@/lib/auth-cookies";
