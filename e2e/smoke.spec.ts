@@ -10,6 +10,20 @@ test("changelog jest dostępny bez logowania", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /nowości i plan/i })).toBeVisible();
 });
 
+test("endpoint wersji Androida jest publiczny i zwraca JSON", async ({ request }) => {
+  const res = await request.get("/api/android/version");
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"] ?? "").toMatch(/application\/json/i);
+  const json = (await res.json()) as {
+    versionCode?: number;
+    versionName?: string;
+    apkUrl?: string;
+  };
+  expect(json.versionCode).toBeGreaterThan(0);
+  expect(json.versionName).toBeTruthy();
+  expect(json.apkUrl).toMatch(/^https?:\/\//);
+});
+
 test("chroniona strona przekierowuje na logowanie", async ({ page }) => {
   await page.goto("/reports");
   await expect(page).toHaveURL(/\/login/);

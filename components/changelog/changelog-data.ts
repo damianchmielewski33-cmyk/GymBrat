@@ -5,6 +5,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — produkcja GymBrat",
+    bullets: [
+      "Strona startowa (logowanie/rejestracja) w motywie czarno-złotym ze zdjęciami siłowni.",
+      "Usunięty stary service worker next-pwa, który serwował zcache’owane, nieaktualne pliki po deployu.",
+      "GymBrat działa samodzielnie — bez kafelków i osadzania w ramce innej witryny.",
+      "Publiczny endpoint wersji Androida (bez logowania) oraz poprawka crashu przy wejściu w Analizę.",
+    ],
+  },
+  {
     title: "2026-05 — stabilność, dostępność, offline",
     bullets: [
       "Limitowanie zapytań API (trening, raporty, panel admina).",

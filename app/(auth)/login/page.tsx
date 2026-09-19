@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/login-form";
 import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
-import { AwpCrossLink } from "@/components/awp-cross-link";
 
 export default function LoginPage() {
   return (
@@ -24,12 +23,6 @@ export default function LoginPage() {
           <Suspense fallback={<div className="text-sm text-white/50">Ładowanie…</div>}>
             <LoginForm />
           </Suspense>
-          <div className="mt-8 border-t border-[var(--neon)]/15 pt-6">
-            <p className="mb-2 text-center text-[10px] font-bold uppercase tracking-wider text-white/35">
-              Siostrzana aplikacja
-            </p>
-            <AwpCrossLink variant="banner" />
-          </div>
         </div>
       </div>
     </div>

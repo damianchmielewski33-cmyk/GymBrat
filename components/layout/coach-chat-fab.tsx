@@ -22,12 +22,14 @@ export function CoachChatFab() {
   const [mode, setMode] = useState<"hidden" | "ai" | "web" | null>(null);
   const { workoutPlanId, exercises } = useActiveWorkoutStore();
 
-  if (pathname.startsWith("/progress-analysis")) return null;
-
+  // Must stay after all hooks — early return before useEffect breaks Rules of Hooks
+  // when navigating to /progress-analysis (embedded coach chat lives on that page).
+  const hideOnProgressAnalysis = pathname.startsWith("/progress-analysis");
   const activeWorkout = pathname.startsWith("/active-workout");
   const hasActiveSession = workoutPlanId != null && exercises.length > 0;
 
   useEffect(() => {
+    if (hideOnProgressAnalysis) return;
     if (mode !== null) return;
     let cancelled = false;
     void getCoachChatUiStatus().then((r) => {
@@ -36,9 +38,10 @@ export function CoachChatFab() {
     return () => {
       cancelled = true;
     };
-  }, [mode]);
+  }, [mode, hideOnProgressAnalysis]);
 
   useEffect(() => {
+    if (hideOnProgressAnalysis) return;
     if (!open) return;
     let cancelled = false;
     setMode(null);
@@ -48,8 +51,9 @@ export function CoachChatFab() {
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, hideOnProgressAnalysis]);
 
+  if (hideOnProgressAnalysis) return null;
   if (mode === "hidden") return null;
   if (mode === null) return null;
 

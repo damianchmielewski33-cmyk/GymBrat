@@ -1,0 +1,11 @@
+---
+description: To repozytorium to tylko GymBrat
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# GymBrat
+
+- Kod, tytuły stron, PR i commitów dotyczą wyłącznie GymBrat.
+- Nie dodawaj kafelków, bannerów, iframe ani zmiennych innej aplikacji.
