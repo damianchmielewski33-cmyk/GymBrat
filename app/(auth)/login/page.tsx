@@ -7,7 +7,7 @@ export default function LoginPage() {
     <div>
       <AuthHeroBrand
         headline="Twoje centrum treningowe"
-        support="Plany, historie, makro i coaching — w czerni żelaza i złocie ciężarów."
+        support="Plany, historia, makro i coaching — w jasnym stylu Akademii."
       />
 
       <div className="glass-panel gold-panel relative overflow-hidden p-6 sm:p-8">
@@ -20,7 +20,7 @@ export default function LoginPage() {
           className="pointer-events-none absolute -bottom-24 -right-16 h-48 w-48 rounded-full bg-[var(--neon)]/8 blur-3xl"
         />
         <div className="relative">
-          <Suspense fallback={<div className="text-sm text-white/50">Ładowanie…</div>}>
+          <Suspense fallback={<div className="text-sm text-zinc-500">Ładowanie…</div>}>
             <LoginForm />
           </Suspense>
         </div>

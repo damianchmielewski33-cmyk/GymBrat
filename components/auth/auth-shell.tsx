@@ -27,7 +27,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col px-4 py-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))] sm:px-6 sm:py-14">
-        <div className="glass-panel mx-auto w-full max-w-xl p-6 sm:p-8">{children}</div>
+        {children}
 
         <motion.section
           aria-label="Atmosfera treningu"
