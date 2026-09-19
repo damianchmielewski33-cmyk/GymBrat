@@ -29,10 +29,18 @@ function allowedOrigins(): Set<string> {
       /* ignore */
     }
   };
+  /** Host bez schematu (typowe zmienne Vercel) → https://… */
+  const addHost = (host?: string | null) => {
+    const t = host?.trim();
+    if (!t) return;
+    add(t.includes("://") ? t : `https://${t}`);
+  };
   add(process.env.NEXTAUTH_URL);
   add(process.env.NEXT_PUBLIC_APP_URL);
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) add(`https://${vercel}`);
+  addHost(process.env.VERCEL_URL);
+  /** Alias produkcyjny / branch — inaczej gym-brat.vercel.app dostaje 403 na analytics. */
+  addHost(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+  addHost(process.env.VERCEL_BRANCH_URL);
   const extra = process.env.CSRF_ALLOWED_ORIGINS?.split(",") ?? [];
   for (const x of extra) add(x.trim());
   if (out.size === 0 && process.env.NODE_ENV !== "production") {
@@ -122,20 +130,37 @@ export function assertCsrf(req: Request): NextResponse | null {
 
 /**
  * Publiczny endpoint analytics — bez sesji; wymuszamy sensowny Origin / Sec-Fetch-Site.
+ * Same-origin (jak CSRF) zawsze OK — alias Vercel nie musi być w NEXTAUTH_URL.
  */
 export function assertAnalyticsOrigin(req: Request): NextResponse | null {
   const origin = req.headers.get("origin");
-  if (origin && !isAllowedRequestOrigin(origin)) {
-    return NextResponse.json(
-      {
-        error:
-          "Źródło żądania nie jest na liście dozwolonych adresów. Sprawdź konfigurację środowiska.",
-      },
-      { status: 403 },
-    );
+  if (origin && origin !== "null") {
+    try {
+      const reqOrigin = new URL(req.url).origin;
+      const gotOrigin = new URL(origin).origin;
+      if (gotOrigin !== reqOrigin && !isAllowedRequestOrigin(origin)) {
+        return NextResponse.json(
+          {
+            error:
+              "Źródło żądania nie jest na liście dozwolonych adresów. Sprawdź konfigurację środowiska.",
+          },
+          { status: 403 },
+        );
+      }
+    } catch {
+      if (!isAllowedRequestOrigin(origin)) {
+        return NextResponse.json(
+          {
+            error:
+              "Źródło żądania nie jest na liście dozwolonych adresów. Sprawdź konfigurację środowiska.",
+          },
+          { status: 403 },
+        );
+      }
+    }
   }
   const secFetchSite = req.headers.get("sec-fetch-site");
-  if (secFetchSite && !["same-origin", "same-site"].includes(secFetchSite)) {
+  if (secFetchSite && !["same-origin", "same-site", "none"].includes(secFetchSite)) {
     return NextResponse.json(
       { error: "To żądanie nie może być wykonane z tej witryny (polityka przeglądarki)." },
       { status: 403 },

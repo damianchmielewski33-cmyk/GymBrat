@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertCsrf } from "@/lib/csrf";
+import { assertAnalyticsOrigin, assertCsrf } from "@/lib/csrf";
 import { CSRF_COOKIE_NAME } from "@/lib/csrf-constants";
 
 function post(url: string, init: { origin?: string | null; cookie?: string; token?: string }) {
@@ -36,5 +36,36 @@ describe("assertCsrf", () => {
       token: tok,
     });
     expect(assertCsrf(r)).toBeNull();
+  });
+});
+
+describe("assertAnalyticsOrigin", () => {
+  it("pozwala na same-origin nawet gdy Origin nie jest w NEXTAUTH_URL", () => {
+    const req = new Request("https://gym-brat.vercel.app/api/analytics/page-view", {
+      method: "POST",
+      headers: { origin: "https://gym-brat.vercel.app" },
+    });
+    expect(assertAnalyticsOrigin(req)).toBeNull();
+  });
+
+  it("odrzuca obcy Origin", () => {
+    const req = new Request("https://gym-brat.vercel.app/api/analytics/page-view", {
+      method: "POST",
+      headers: { origin: "https://evil.example" },
+    });
+    const res = assertAnalyticsOrigin(req);
+    expect(res).not.toBeNull();
+    expect(res!.status).toBe(403);
+  });
+
+  it("akceptuje Sec-Fetch-Site: none (WebView / nawigacja najwyższego poziomu)", () => {
+    const req = new Request("https://gym-brat.vercel.app/api/analytics/page-view", {
+      method: "POST",
+      headers: {
+        origin: "https://gym-brat.vercel.app",
+        "sec-fetch-site": "none",
+      },
+    });
+    expect(assertAnalyticsOrigin(req)).toBeNull();
   });
 });
