@@ -80,7 +80,7 @@ export function WeightRangeChart({ data }: { data: HomeStartWeightPoint[] }) {
                   className={cn(
                     "rounded-lg border px-2.5 py-1.5 text-xs font-medium transition",
                     active
-                      ? "border-[var(--neon)]/50 bg-[var(--neon)]/15 text-white"
+                      ? "border-[var(--neon)]/50 bg-[var(--neon)]/15 text-[var(--neon)]"
                       : "border-white/12 bg-black/30 text-white/55 hover:bg-white/[0.06] hover:text-white/80",
                   )}
                 >
@@ -121,10 +121,10 @@ export function WeightRangeChart({ data }: { data: HomeStartWeightPoint[] }) {
               <Line
                 type="monotone"
                 dataKey="kg"
-                stroke="#ff2d55"
+                stroke="#d4af37"
                 strokeWidth={2}
-                dot={{ r: 3, fill: "#ff2d55", strokeWidth: 0 }}
-                activeDot={{ r: 5, fill: "#ff2d55", stroke: "#fff", strokeWidth: 2 }}
+                dot={{ r: 3, fill: "#d4af37", strokeWidth: 0 }}
+                activeDot={{ r: 5, fill: "#d4af37", stroke: "#fff", strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>

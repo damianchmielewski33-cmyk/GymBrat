@@ -137,7 +137,7 @@ export function ActiveWorkoutGlobalBar() {
       <div
         className="mx-auto max-w-6xl rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-xl"
         style={{
-          boxShadow: "0 10px 30px rgba(0,0,0,0.55), 0 0 0 1px rgba(230,0,35,0.10) inset",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.55), 0 0 0 1px rgba(var(--neon-rgb),0.10) inset",
         }}
       >
         <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
@@ -205,7 +205,7 @@ export function ActiveWorkoutGlobalBar() {
           <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
             <Button
               type="button"
-              className="gap-2 bg-[#FF1A4B] text-white hover:bg-[#e61645] disabled:opacity-50"
+              className="gap-2 bg-[var(--neon)] text-[var(--neon-fg)] hover:bg-[var(--neon-hover)] disabled:opacity-50"
               disabled={completing}
               onClick={() => setConfirmCompleteOpen(true)}
             >
@@ -275,7 +275,7 @@ export function ActiveWorkoutGlobalBar() {
 
             <Button
               type="button"
-              className="bg-[#FF1A4B] text-white hover:bg-[#e61645] disabled:opacity-50"
+              className="bg-[var(--neon)] text-[var(--neon-fg)] hover:bg-[var(--neon-hover)] disabled:opacity-50"
               disabled={completing}
               onClick={async () => {
                 setConfirmCompleteOpen(false);

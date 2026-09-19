@@ -360,7 +360,7 @@ export function MealSuggestionsView({
                   onClick={() => setInspirationFilter(f.id)}
                   className={
                     inspirationFilter === f.id
-                      ? "rounded-full border border-[var(--neon)]/40 bg-[var(--neon)]/15 px-3 py-1.5 text-xs font-semibold text-white"
+                      ? "rounded-full border border-[var(--neon)]/40 bg-[var(--neon)]/15 px-3 py-1.5 text-xs font-semibold text-[var(--neon)]"
                       : "rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-white/[0.07]"
                   }
                 >

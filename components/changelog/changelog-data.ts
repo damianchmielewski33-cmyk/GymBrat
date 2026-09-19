@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — czarno-złoty motyw siłowni na całej stronie",
+    date: "2026-09-19",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Cała aplikacja GymBrat używa domyślnie motywu czarno-złotego zamiast czerwonego neonu — akcenty, przyciski, wykresy i focus ringi są w złocie.",
+      "Tło dostało wyrazistsze sylwetki sztangi, talerzy, hantli, kettlebell i stojaka, z złotym oświetleniem i matą heksagonalną.",
+      "Logo GymBrat w belce ma ikonę hantli, a przycisk startu treningu podkreśla klimat siłowni złotą ramką i etykietą Siłownia.",
+      "Panele glass mają złotą krawędź, żeby ekrany aplikacji były spójne z logowaniem i atmosferą ciężarów.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
