@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, ScrollText, Shield, Users } from "lucide-react";
+import { LayoutDashboard, ScrollText, Users } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { Button } from "@/components/ui/button";
@@ -21,23 +21,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="space-y-8">
-      <header className="glass-panel neon-glow flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span
-            className="flex h-11 w-11 items-center justify-center rounded-xl"
-            style={{
-              background:
-                "linear-gradient(145deg,rgba(230,0,35,0.22),rgba(230,0,35,0.08))",
-              border: "1px solid rgba(230,0,35,0.45)",
-            }}
-          >
-            <Shield className="h-5 w-5 text-[var(--neon)]" />
-          </span>
-          <div>
-            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">
+      <header className="glass-panel flex flex-col gap-6 p-8 text-center sm:text-left">
+        <div className="flex flex-col items-center gap-3 sm:flex-row">
+          <div className="text-center sm:text-left">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
               GymBrat
             </p>
-            <h1 className="font-heading text-lg font-semibold text-white">
+            <h1 className="font-heading mt-2 text-2xl font-semibold text-white">
               Administrator
             </h1>
           </div>

@@ -26,7 +26,6 @@ export function BodyParamsFormFields({
             id="firstName"
             name="firstName"
             defaultValue={initial.firstName ?? ""}
-            className="h-11 rounded-xl border-white/15 bg-black/30 px-4"
           />
         </div>
         <div className="space-y-2">
@@ -35,7 +34,6 @@ export function BodyParamsFormFields({
             id="lastName"
             name="lastName"
             defaultValue={initial.lastName ?? ""}
-            className="h-11 rounded-xl border-white/15 bg-black/30 px-4"
           />
         </div>
       </div>
@@ -51,7 +49,6 @@ export function BodyParamsFormFields({
             min={30}
             max={400}
             defaultValue={initial.weightKg ?? 80}
-            className="h-11 rounded-xl border-white/15 bg-black/30 px-4"
           />
         </div>
         <div className="space-y-2">
@@ -63,7 +60,6 @@ export function BodyParamsFormFields({
             min={100}
             max={250}
             defaultValue={initial.heightCm ?? 180}
-            className="h-11 rounded-xl border-white/15 bg-black/30 px-4"
           />
         </div>
         <div className="space-y-2">
@@ -75,7 +71,6 @@ export function BodyParamsFormFields({
             min={13}
             max={120}
             defaultValue={initial.age ?? 25}
-            className="h-11 rounded-xl border-white/15 bg-black/30 px-4"
           />
         </div>
       </div>
@@ -86,7 +81,7 @@ export function BodyParamsFormFields({
           id="activityLevel"
           name="activityLevel"
           defaultValue={initial.activityLevel ?? "medium"}
-          className="h-11 w-full rounded-xl border border-white/15 bg-black/30 px-4 text-sm text-white/90 outline-none ring-[var(--neon)]/30 focus:ring-2"
+          className="h-11 min-h-11 w-full rounded-lg border border-white/20 bg-black/50 px-3 text-sm text-white outline-none focus-visible:border-[var(--neon)]/55 focus-visible:ring-[3px] focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
         >
           {activityLevels.map((l) => (
             <option key={l} value={l}>
@@ -99,9 +94,7 @@ export function BodyParamsFormFields({
         </p>
       </div>
 
-      <SubmitButton className="bg-[var(--neon)] text-white hover:bg-[#ff4d6d]">
-        Zapisz parametry ciała
-      </SubmitButton>
+      <SubmitButton>Zapisz parametry ciała</SubmitButton>
     </>
   );
 }

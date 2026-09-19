@@ -1,23 +1,22 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ScreenCard, ScreenHeading } from "@/components/layout/screen";
 
 export default function DashboardNotFound() {
   return (
-    <div className="mx-auto max-w-lg space-y-6 rounded-2xl border border-white/15 bg-black/35 p-8 text-center">
-      <h2 className="font-heading text-xl font-semibold text-white">Brak strony</h2>
-      <p className="text-sm text-white/65">
-        Nie znaleziono tego adresu w panelu aplikacji.
-      </p>
+    <ScreenCard className="mx-auto max-w-lg">
+      <ScreenHeading
+        className="mb-8"
+        title="Brak strony"
+        description="Nie znaleziono tego adresu w panelu aplikacji."
+      />
       <Link
         href="/"
-        className={cn(
-          buttonVariants({ variant: "secondary" }),
-          "mx-auto inline-flex border-white/15 bg-white/[0.06]",
-        )}
+        className={cn(buttonVariants({ variant: "cta" }), "w-full")}
       >
         Wróć na start
       </Link>
-    </div>
+    </ScreenCard>
   );
 }

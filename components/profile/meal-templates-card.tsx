@@ -58,31 +58,30 @@ export function MealTemplatesCard({ initial }: { initial: MealTemplate[] }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="np. Koktajl proteinowy"
-              className="border-white/12 bg-white/[0.05] text-white"
             />
           </div>
           <div className="space-y-2">
             <Label>Białko (g)</Label>
-            <Input value={p} onChange={(e) => setP(e.target.value)} className="border-white/12 bg-white/[0.05] text-white" />
+            <Input value={p} onChange={(e) => setP(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>Tłuszcz (g)</Label>
-            <Input value={f} onChange={(e) => setF(e.target.value)} className="border-white/12 bg-white/[0.05] text-white" />
+            <Input value={f} onChange={(e) => setF(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>Węgle (g)</Label>
-            <Input value={c} onChange={(e) => setC(e.target.value)} className="border-white/12 bg-white/[0.05] text-white" />
+            <Input value={c} onChange={(e) => setC(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>Kcal (opcjonalnie)</Label>
-            <Input value={kcal} onChange={(e) => setKcal(e.target.value)} className="border-white/12 bg-white/[0.05] text-white" />
+            <Input value={kcal} onChange={(e) => setKcal(e.target.value)} />
           </div>
         </div>
 
         <Button
           type="button"
           disabled={pending}
-          className="bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
+          variant="cta"
           onClick={() => {
             start(async () => {
               const proteinG = Number(p) || 0;

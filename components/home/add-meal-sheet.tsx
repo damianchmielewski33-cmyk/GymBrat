@@ -355,7 +355,7 @@ export function AddMealSheet({ dateKey }: { dateKey: string }) {
         setOpen(next);
       }}
     >
-      <SheetTrigger className="inline-flex h-11 min-h-11 w-full items-center justify-center rounded-xl border border-white/15 bg-white/5 px-5 text-sm font-medium text-white transition outline-none hover:bg-white/10 focus-visible:ring-[3px] focus-visible:ring-ring/85 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-auto">
+      <SheetTrigger className="inline-flex h-11 min-h-11 w-full items-center justify-center rounded-lg border border-white/15 bg-white/5 px-5 text-sm font-medium text-white transition outline-none hover:bg-white/10 focus-visible:ring-[3px] focus-visible:ring-ring/85 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708] sm:w-auto">
         <UtensilsCrossed className="mr-2 h-4 w-4 opacity-90" />
         Dodaj posiłek
       </SheetTrigger>

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { ScreenCard, ScreenHeading } from "@/components/layout/screen";
 
 export default function DashboardError({
   error,
@@ -15,14 +16,15 @@ export default function DashboardError({
   }, [error]);
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 rounded-2xl border border-red-500/35 bg-red-950/35 p-8 text-center">
-      <h2 className="font-heading text-xl font-semibold text-white">Coś poszło nie tak</h2>
-      <p className="text-sm text-white/65">
-        Spróbuj ponownie. Jeśli problem się powtarza, odśwież sesję lub wróć na stronę startową.
-      </p>
-      <Button type="button" onClick={() => reset()} className="mx-auto">
+    <ScreenCard className="mx-auto max-w-lg">
+      <ScreenHeading
+        className="mb-8"
+        title="Coś poszło nie tak"
+        description="Spróbuj ponownie. Jeśli problem się powtarza, odśwież sesję lub wróć na stronę startową."
+      />
+      <Button type="button" variant="cta" className="w-full" onClick={() => reset()}>
         Spróbuj ponownie
       </Button>
-    </div>
+    </ScreenCard>
   );
 }

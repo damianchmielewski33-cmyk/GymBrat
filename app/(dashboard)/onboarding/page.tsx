@@ -8,6 +8,7 @@ import { userSettings } from "@/db/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScreenCard, ScreenHeading, screenLinkClass } from "@/components/layout/screen";
 
 async function submitOnboarding(formData: FormData) {
   "use server";
@@ -35,49 +36,39 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-8">
-      <header>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-          Start
-        </p>
-        <h1 className="font-heading metallic-text mt-2 text-3xl font-semibold">
-          Konfiguracja
-        </h1>
-        <p className="mt-2 text-sm text-white/65">
-          Ile dni w tygodniu chcesz trenować? Możesz doprecyzować cele później w profilu.
-        </p>
-      </header>
-
-      <form className="glass-panel space-y-6 p-8" action={submitOnboarding}>
-        <div className="space-y-2">
-          <Label htmlFor="weekly" className="text-white/80">
-            Dni treningowych / tydzień
-          </Label>
-          <Input
-            id="weekly"
-            name="weekly"
-            type="number"
-            min={1}
-            max={7}
-            defaultValue={4}
-            required
-            className="h-11 border-white/12 bg-white/[0.05] text-white"
-          />
-        </div>
-        <p className="text-xs text-white/45">
-          Token Fitatu i makra ustawisz w{" "}
-          <Link href="/profile" className="text-[var(--neon)] underline-offset-2 hover:underline">
-            profilu
-          </Link>
-          .
-        </p>
-        <Button
-          type="submit"
-          className="h-11 w-full bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
-        >
-          Zapisz i przejdź do Start
-        </Button>
-      </form>
+    <div className="mx-auto max-w-lg">
+      <ScreenCard>
+        <ScreenHeading
+          className="mb-8"
+          kicker="Start"
+          title="Konfiguracja"
+          description="Ile dni w tygodniu chcesz trenować? Cele doprecyzujesz później w profilu."
+        />
+        <form className="space-y-6" action={submitOnboarding}>
+          <div className="space-y-2">
+            <Label htmlFor="weekly">Dni treningowych / tydzień</Label>
+            <Input
+              id="weekly"
+              name="weekly"
+              type="number"
+              min={1}
+              max={7}
+              defaultValue={4}
+              required
+            />
+          </div>
+          <p className="text-xs text-white/45">
+            Token Fitatu i makra ustawisz w{" "}
+            <Link href="/profile" className={screenLinkClass}>
+              profilu
+            </Link>
+            .
+          </p>
+          <Button type="submit" variant="cta" className="w-full">
+            Zapisz i przejdź do Start
+          </Button>
+        </form>
+      </ScreenCard>
     </div>
   );
 }
