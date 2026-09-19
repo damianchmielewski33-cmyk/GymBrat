@@ -8,6 +8,21 @@ test("strona logowania wyświetla markę GymBrat", async ({ page }) => {
 test("changelog jest dostępny bez logowania", async ({ page }) => {
   await page.goto("/changelog");
   await expect(page.getByRole("heading", { name: /nowości i plan/i })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /źródło tej wersji: repozytorium gymbrat/i }),
+  ).toBeVisible();
+  await expect(page.getByText("damianchmielewski33-cmyk/GymBrat").first()).toBeVisible();
+});
+
+test("publiczny JSON wersji pochodzi z repozytorium GymBrat", async ({ request }) => {
+  const res = await request.get("/api/version");
+  expect(res.ok()).toBeTruthy();
+  const body = await res.json();
+  expect(body.app).toBe("gymbrat");
+  expect(body.slug).toBe("damianchmielewski33-cmyk/GymBrat");
+  expect(Array.isArray(body.changelog)).toBeTruthy();
+  expect(body.changelog.length).toBeGreaterThan(0);
+  expect(body.changelog[0].sourceRepo).toBe("damianchmielewski33-cmyk/GymBrat");
 });
 
 test("chroniona strona przekierowuje na logowanie", async ({ page }) => {
