@@ -73,6 +73,8 @@ export default async function ReportsPage() {
                       {[
                         r.weightKg != null ? `Waga: ${r.weightKg} kg` : null,
                         r.waistCm != null ? `Pas: ${r.waistCm} cm` : null,
+                        r.armCm != null ? `Ramię: ${r.armCm} cm` : null,
+                        r.abdomenCm != null ? `Brzuch: ${r.abdomenCm} cm` : null,
                         r.chestCm != null ? `Klatka: ${r.chestCm} cm` : null,
                         r.thighCm != null ? `Udo: ${r.thighCm} cm` : null,
                       ]

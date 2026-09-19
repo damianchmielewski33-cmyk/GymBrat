@@ -54,6 +54,8 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
   const [waistCm, setWaistCm] = useState<string>("");
   const [chestCm, setChestCm] = useState<string>("");
   const [thighCm, setThighCm] = useState<string>("");
+  const [armCm, setArmCm] = useState<string>("");
+  const [abdomenCm, setAbdomenCm] = useState<string>("");
   const [scores, setScores] = useState<Scores>({
     trainingEnergy: 6,
     sleepQuality: 6,
@@ -135,6 +137,8 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
                   waistCm: waistCm ? Number(waistCm) : null,
                   chestCm: chestCm ? Number(chestCm) : null,
                   thighCm: thighCm ? Number(thighCm) : null,
+                  armCm: armCm ? Number(armCm) : null,
+                  abdomenCm: abdomenCm ? Number(abdomenCm) : null,
                   trainingEnergy: scores.trainingEnergy,
                   sleepQuality: scores.sleepQuality,
                   dayEnergy: scores.dayEnergy,
@@ -157,6 +161,8 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
               setWaistCm("");
               setChestCm("");
               setThighCm("");
+              setArmCm("");
+              setAbdomenCm("");
               setScores({
                 trainingEnergy: 6,
                 sleepQuality: 6,
@@ -183,7 +189,7 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
           </p>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
           <div className="space-y-2">
             <Label htmlFor="weightKg">Waga (kg)</Label>
             <Input
@@ -203,6 +209,28 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
               value={waistCm}
               onChange={(e) => setWaistCm(e.target.value)}
               placeholder="np. 84"
+              className="h-10 border-white/15 bg-black/40"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="armCm">Ramię (cm)</Label>
+            <Input
+              id="armCm"
+              inputMode="decimal"
+              value={armCm}
+              onChange={(e) => setArmCm(e.target.value)}
+              placeholder="np. 38"
+              className="h-10 border-white/15 bg-black/40"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="abdomenCm">Brzuch (cm)</Label>
+            <Input
+              id="abdomenCm"
+              inputMode="decimal"
+              value={abdomenCm}
+              onChange={(e) => setAbdomenCm(e.target.value)}
+              placeholder="np. 86"
               className="h-10 border-white/15 bg-black/40"
             />
           </div>

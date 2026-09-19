@@ -29,6 +29,13 @@
       "when": 1776633712390,
       "tag": "0003_email_verification_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1779200000000,
+      "tag": "0005_body_report_arm_abdomen",
+      "breakpoints": true
     }
   ]
 }
