@@ -127,28 +127,57 @@ export function RegisterForm() {
       return;
     }
 
-    let sign: Awaited<ReturnType<typeof signIn>> | null = null;
-    try {
-      sign = await signIn("credentials", {
-        email: values.email.trim().toLowerCase(),
-        password: values.password,
-        role: values.role,
+    const goStart = () => {
+      window.location.assign(`${window.location.origin}/start-workout`);
+    };
+
+    if (result.signedIn) {
+      goStart();
+      return;
+    }
+
+    const email = values.email.trim().toLowerCase();
+    const password = values.password;
+    const loginRole = "zawodnik" as const;
+
+    const trySignIn = async () => {
+      const sign = await signIn("credentials", {
+        email,
+        password,
+        role: loginRole,
         redirect: false,
         callbackUrl: "/start-workout",
       });
+      return Boolean(sign?.ok && !sign.error);
+    };
+
+    // Kilka prób — Turso / cold start czasem nie widzi świeżo utworzonego użytkownika od razu.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        if (await trySignIn()) {
+          goStart();
+          return;
+        }
+      } catch {
+        /* kolejna próba */
+      }
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 350 * (attempt + 1)));
+      }
+    }
+
+    // Fallback: banner na logowaniu + wyjście z iframe AWP (third-party cookies).
+    const loginUrl = `/login?registered=1&role=${loginRole}`;
+    try {
+      const target = new URL(loginUrl, window.location.origin);
+      if (window.top && window.top !== window) {
+        window.top.location.assign(target.href);
+      } else {
+        window.location.assign(target.href);
+      }
     } catch {
-      setRootError(
-        "Konto zostało utworzone, ale nie udało się zalogować automatycznie. Zaloguj się ręcznie.",
-      );
-      return;
+      window.location.assign(loginUrl);
     }
-    if (!sign?.ok || sign.error) {
-      setRootError(
-        "Konto zostało utworzone, ale nie udało się zalogować automatycznie. Zaloguj się ręcznie.",
-      );
-      return;
-    }
-    window.location.assign(`${window.location.origin}/start-workout`);
   }
 
   const { ref: passwordRhfRef, ...passwordRegister } = register("password");
