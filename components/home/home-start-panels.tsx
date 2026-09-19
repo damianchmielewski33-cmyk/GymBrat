@@ -189,7 +189,7 @@ export function HomeStartPanels({
 
         <div
           className={cn(
-            "relative z-[1] flex max-h-[min(92dvh,920px)] w-full flex-col overflow-hidden rounded-t-[1.35rem] border border-white/15 bg-[#07070c] shadow-[0_-12px_60px_rgba(0,0,0,0.85)] md:max-h-[min(85vh,820px)] md:w-[min(560px,94vw)] md:rounded-2xl md:shadow-[0_24px_80px_rgba(0,0,0,0.75)]",
+            "glass-panel relative z-[1] flex max-h-[min(92dvh,920px)] w-full flex-col overflow-hidden rounded-t-[1.35rem] md:max-h-[min(85vh,820px)] md:w-[min(560px,94vw)] md:rounded-[14px]",
           )}
           role="dialog"
           aria-modal="true"
@@ -198,12 +198,12 @@ export function HomeStartPanels({
         >
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.08] px-4 pb-3 pt-4 sm:px-5">
             <div className="min-w-0">
-              <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/55">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
                 Szczegóły
               </p>
               <p
                 id="home-start-panel-title"
-                className="font-heading mt-1 text-lg font-semibold text-white"
+                className="font-heading mt-2 text-2xl font-semibold text-white"
               >
                 {tiles.find((t) => t.id === open)?.title ?? "Panel"}
               </p>
@@ -246,10 +246,10 @@ export function HomeStartPanels({
               aria-expanded={isOpen}
               aria-haspopup="dialog"
               className={cn(
-                "flex w-full flex-col gap-2 rounded-2xl border p-4 text-left transition-colors duration-150",
+                "glass-panel flex w-full flex-col gap-2 p-6 text-left transition-colors duration-150",
                 isOpen
-                  ? "border-[var(--neon)]/45 bg-white/[0.07] shadow-[0_0_24px_rgba(230,0,35,0.12)]"
-                  : "border-white/10 bg-white/[0.03] hover:border-white/18 hover:bg-white/[0.055]",
+                  ? "border-[var(--neon)]/45"
+                  : "hover:bg-white/[0.06]",
               )}
               style={
                 isOpen

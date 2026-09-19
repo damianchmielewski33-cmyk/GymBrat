@@ -113,7 +113,7 @@ export function CoachChatPanel({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Np. Jak rozłożyć białko na redukcji?"
-          className="min-h-[44px] resize-none border-white/12 bg-white/[0.05] text-white placeholder:text-white/35 disabled:cursor-not-allowed disabled:opacity-45"
+          className="min-h-[44px] resize-none"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -124,7 +124,8 @@ export function CoachChatPanel({
         <Button
           type="button"
           disabled={pending || !input.trim()}
-          className="h-11 shrink-0 self-end bg-[var(--neon)] px-4 text-white hover:bg-[#ff4d6d]"
+          variant="cta"
+          className="shrink-0 self-end px-4"
           onClick={send}
         >
           {pending ? "…" : "Wyślij"}

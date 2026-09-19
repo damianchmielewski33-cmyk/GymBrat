@@ -31,8 +31,8 @@ const nextConfig: NextConfig = {
     const isProd = process.env.NODE_ENV === "production";
     const awpOrigin = awpFrameAncestor();
     /**
-     * AWP otwiera GymBrat w iframe. X-Frame-Options: DENY blokowało ten embed
-     * (użytkownicy widzieli pustą / starą ramkę). Kontrola przez CSP frame-ancestors.
+     * AWP otwiera GymBrat w iframe. X-Frame-Options: DENY blokowało ten embed.
+     * Kontrola przez CSP frame-ancestors. Cache /sw.js i /login — bez starego PWA.
      */
     const frameAncestors = `'self' ${awpOrigin}`;
 
@@ -41,17 +41,14 @@ const nextConfig: NextConfig = {
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       { key: "Content-Security-Policy", value: `frame-ancestors ${frameAncestors}` },
       { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-      { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-      /** Domyślnie blokuje „hotlinking” zasobów między originami. */
-      { key: "Cross-Origin-Resource-Policy", value: "same-site" },
-      /** Utrudnia wstrzykiwanie polityk w starych pluginach/Flash. */
+      { key: "Cross-Origin-Opener-Policy", value: "unsafe-none" },
+      { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
       { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
     ];
 
     /**
      * CSP (Report-Only): start od zbierania raportów, bez blokowania.
      * Po zebraniu danych można przełączyć na `Content-Security-Policy` (enforce).
-     * frame-ancestors jest w osobnym nagłówku enforce powyżej (AWP iframe).
      */
     const cspReportEndpointPath = "/api/security/csp-report";
     const reportGroup = "csp-endpoint";
@@ -92,6 +89,21 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: [...base, ...prodOnly],
+      },
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, max-age=0" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
+        source: "/login",
+        headers: [{ key: "Cache-Control", value: "private, no-store, no-cache, must-revalidate" }],
+      },
+      {
+        source: "/register",
+        headers: [{ key: "Cache-Control", value: "private, no-store, no-cache, must-revalidate" }],
       },
     ];
   },

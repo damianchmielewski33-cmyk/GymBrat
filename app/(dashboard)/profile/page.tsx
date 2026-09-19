@@ -7,6 +7,7 @@ import { BodyParamsForm } from "@/components/profile/body-params-form";
 import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { LogoutButton } from "@/components/profile/logout-button";
 import { CalendarRange, ScrollText, Shield, User as UserIcon } from "lucide-react";
+import { ScreenHeader } from "@/components/layout/screen";
 import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
 import { DataRightsCard } from "@/components/profile/data-rights-card";
 import { ReminderSettingsCard } from "@/components/profile/reminder-settings-card";
@@ -16,6 +17,7 @@ import { parseRemindersJson } from "@/lib/reminders-types";
 import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { LocaleSwitchCard } from "@/components/profile/locale-switch-card";
+import { AndroidAppVersionCard } from "@/components/android-app-version-card";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
 import { AiFeaturesSettingsCard } from "@/components/profile/ai-features-settings-card";
 import { getUserAiEntitled } from "@/lib/user-ai-preference";
@@ -71,34 +73,29 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-          Zawodnik
-        </p>
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="font-heading metallic-text mt-2 text-3xl font-semibold">
-              Profil
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-white/65">
-              Twoje dane i ustawienia treningowe są w Turso — możesz w każdej chwili
-              zaktualizować parametry ciała, cel i hasło.
-            </p>
-            <p className="mt-2 text-sm">
-              <Link
-                href="/changelog"
-                className="inline-flex items-center gap-1.5 text-[var(--neon)] underline-offset-4 hover:underline"
-              >
-                <ScrollText className="h-4 w-4" aria-hidden />
-                Nowości w aplikacji
-              </Link>
-            </p>
-          </div>
-          <LogoutButton className="h-11" />
-        </div>
-      </header>
+      <ScreenHeader
+        kicker="Zawodnik"
+        title="Profil"
+        description="Twoje dane i ustawienia treningowe — parametry ciała, cele i hasło."
+        actions={
+          <>
+            <Link
+              href="/changelog"
+              className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-medium text-white hover:bg-white/10 sm:w-auto"
+            >
+              <ScrollText className="h-4 w-4" aria-hidden />
+              Nowości w aplikacji
+            </Link>
+            <LogoutButton className="w-full sm:w-auto" />
+          </>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
+        <div className="lg:col-span-2">
+          <AndroidAppVersionCard />
+        </div>
+
         <section className="glass-panel relative overflow-hidden p-8">
           <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(120deg,rgba(255,255,255,0.10),transparent_55%),radial-gradient(700px_320px_at_10%_10%,rgba(255,45,85,0.16),transparent_60%)]" />
           <div className="relative space-y-6">

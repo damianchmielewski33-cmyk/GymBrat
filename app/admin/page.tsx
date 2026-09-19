@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { isAdminEligible } from "@/lib/admin-session";
+import { ScreenCard, ScreenHeading } from "@/components/layout/screen";
 
 export default async function AdminGatePage() {
   const session = await auth();
@@ -14,11 +15,12 @@ export default async function AdminGatePage() {
   }
 
   return (
-    <div className="glass-panel neon-glow p-8 text-center">
-      <h1 className="font-heading text-xl text-white">Brak dostępu</h1>
-      <p className="mt-2 text-sm text-white/60">
-        Panel administratora jest dostępny tylko dla kont z rolą administratora.
-      </p>
-    </div>
+    <ScreenCard className="mx-auto max-w-lg">
+      <ScreenHeading
+        showBrand
+        title="Brak dostępu"
+        description="Panel administratora jest dostępny tylko dla kont z rolą administratora."
+      />
+    </ScreenCard>
   );
 }

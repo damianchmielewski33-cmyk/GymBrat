@@ -19,8 +19,9 @@ export default async function AdminPanelLayout({
   const eligible = await isAdminEligible(session);
   if (!eligible) {
     return (
-      <div className="glass-panel neon-glow p-8 text-center">
-        <p className="text-white/70">
+      <div className="glass-panel mx-auto max-w-lg p-8 text-center">
+        <p className="font-heading text-2xl font-semibold text-white">Brak dostępu</p>
+        <p className="mt-2 text-sm text-white/60">
           Panel jest dostępny tylko dla konta pierwszego użytkownika.
         </p>
       </div>

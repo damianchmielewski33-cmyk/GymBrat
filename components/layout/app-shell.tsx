@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   BarChart3,
@@ -31,8 +31,7 @@ import { cn } from "@/lib/utils";
 import { CoachChatFab } from "@/components/layout/coach-chat-fab";
 import { StartWorkoutFab } from "@/components/layout/start-workout-fab";
 import { useI18n } from "@/components/i18n/i18n-provider";
-import { AwpCrossLink, AwpHeaderChip } from "@/components/awp-cross-link";
-import { SisterSiteArrivalBanner } from "@/components/sister-site-arrival-banner";
+import { BrandMark } from "@/components/layout/brand-mark";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
@@ -84,9 +83,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative min-h-screen">
-      <Suspense fallback={null}>
-        <SisterSiteArrivalBanner />
-      </Suspense>
       {/* ── Header ── */}
       <header
         className="sticky top-0 z-40 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
@@ -108,25 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         />
 
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4">
-          {/* Logo */}
-          <Link href="/" className="group flex shrink-0 items-center gap-2.5">
-            <span
-              className="flex h-9 w-9 items-center justify-center rounded-xl"
-              style={{
-                background:
-                  "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.08))",
-                border: "1px solid rgba(230,0,35,0.50)",
-                borderTopColor: "rgba(230,0,35,0.70)",
-                boxShadow:
-                  "0 0 18px rgba(230,0,35,0.30), inset 0 1px 0 rgba(255,255,255,0.10)",
-              }}
-            >
-              <Dumbbell className="h-5 w-5 text-[var(--neon)]" />
-            </span>
-            <span className="font-heading text-[15px] font-bold tracking-tight text-white/90 sm:text-[17px]">
-              GYM<span className="text-[var(--neon)]">BRAT</span>
-            </span>
-          </Link>
+          <BrandMark className="shrink-0 text-[17px] sm:text-xl" />
 
           {/* Desktop nav — środek belki */}
           <nav className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 md:flex">
@@ -168,9 +146,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          {/* Prawa strona belki: AWP + admin + menu użytkownika */}
+          {/* Prawa strona belki: admin + menu użytkownika */}
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <AwpHeaderChip />
             {data?.user?.role === "admin" ? (
               <Link
                 href="/admin"
@@ -295,15 +272,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       </Link>
                     );
                   })}
-                  <div className="mt-4 border-t border-white/10 pt-4">
-                    <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-white/35">
-                      Siostrzana aplikacja
-                    </p>
-                    <AwpCrossLink variant="sheet" onClick={() => setMobileMenuOpen(false)} />
-                  </div>
                   <Button
-                    variant="secondary"
-                    className="mt-4"
+                    variant="cta"
+                    className="mt-4 w-full"
                     onClick={() => {
                       setMobileMenuOpen(false);
                       signOut({ callbackUrl: "/login" });
@@ -328,14 +299,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         {children}
-        {!reduceFixedBugs ? (
-          <div className="mt-10 border-t border-white/10 pt-6 md:mt-12">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-white/35">
-              Siostrzana aplikacja
-            </p>
-            <AwpCrossLink variant="footer" />
-          </div>
-        ) : null}
       </main>
 
       {/* ── Mobile bottom nav ── */}

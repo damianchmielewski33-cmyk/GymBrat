@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { ScreenCard, ScreenHeading } from "@/components/layout/screen";
 import {
   isTrainerFlowEnabled,
   roleFromSearchParam,
@@ -22,9 +23,6 @@ import {
   registerSchema,
   type RegisterFormValues,
 } from "@/lib/validations/register";
-
-const inputClass =
-  "min-h-11 border-white/18 bg-black/45 text-white placeholder:text-white/38 focus-visible:border-[var(--neon)]/55 focus-visible:ring-[3px] focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
 
 const activityCopy: Record<
   (typeof activityLevels)[number],
@@ -160,18 +158,15 @@ export function RegisterForm() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="relative"
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -inset-px rounded-[1.05rem] bg-gradient-to-br from-[var(--neon)]/30 via-white/[0.06] to-[var(--neon)]/10 opacity-90 blur-[1px]"
-      />
-      <div className="glass-panel gold-panel relative overflow-hidden rounded-2xl border border-white/[0.12] bg-gradient-to-b from-white/[0.09] to-black/25 p-6 shadow-[0_12px_60px_rgba(0,0,0,0.55)] sm:p-8">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.12] [background-image:repeating-linear-gradient(-12deg,rgba(255,255,255,0.04)_0px,rgba(255,255,255,0.04)_1px,transparent_1px,transparent_8px)]"
+      <ScreenCard>
+        <ScreenHeading
+          showBrand
+          className="mb-8"
+          description="Zbuduj swój profil sportowca"
         />
-        <div className="relative">
+
+        <div className="space-y-6">
           <RoleAuthCards
             role={role}
             onSelectRole={(next) => {
@@ -204,7 +199,7 @@ export function RegisterForm() {
             >
               <p
                 id="register-heading-basic"
-                className="metallic-text text-xs font-semibold uppercase tracking-[0.2em]"
+                className="text-[10px] font-bold uppercase tracking-wider text-white/35"
               >
                 Dane podstawowe
               </p>
@@ -218,7 +213,7 @@ export function RegisterForm() {
                     autoComplete="given-name"
                     aria-invalid={errors.firstName ? true : undefined}
                     aria-describedby={errors.firstName ? "register-error-firstName" : undefined}
-                    className={cn(inputClass, errors.firstName && "border-destructive")}
+                    className={cn(errors.firstName && "border-destructive")}
                     {...register("firstName")}
                   />
                   {errors.firstName ? (
@@ -236,7 +231,7 @@ export function RegisterForm() {
                     autoComplete="family-name"
                     aria-invalid={errors.lastName ? true : undefined}
                     aria-describedby={errors.lastName ? "register-error-lastName" : undefined}
-                    className={cn(inputClass, errors.lastName && "border-destructive")}
+                    className={cn(errors.lastName && "border-destructive")}
                     {...register("lastName")}
                   />
                   {errors.lastName ? (
@@ -256,7 +251,7 @@ export function RegisterForm() {
                   autoComplete="email"
                   aria-invalid={errors.email ? true : undefined}
                   aria-describedby={errors.email ? "register-error-email" : undefined}
-                  className={cn(inputClass, errors.email && "border-destructive")}
+                  className={cn(errors.email && "border-destructive")}
                   {...register("email")}
                 />
                 {errors.email ? (
@@ -282,7 +277,7 @@ export function RegisterForm() {
                           .filter(Boolean)
                           .join(" ") || undefined
                       }
-                      className={cn(inputClass, errors.emailCode && "border-destructive")}
+                      className={cn(errors.emailCode && "border-destructive")}
                       {...register("emailCode")}
                     />
                   </div>
@@ -349,7 +344,7 @@ export function RegisterForm() {
                     passwordRef.current = el;
                     passwordRhfRef(el);
                   }}
-                  className={cn(inputClass, errors.password && "border-destructive")}
+                  className={cn(errors.password && "border-destructive")}
                   {...passwordRegister}
                 />
                 {errors.password ? (
@@ -366,7 +361,7 @@ export function RegisterForm() {
             >
               <p
                 id="register-heading-body"
-                className="metallic-text text-xs font-semibold uppercase tracking-[0.2em]"
+                className="text-[10px] font-bold uppercase tracking-wider text-white/35"
               >
                 Parametry ciała
               </p>
@@ -384,7 +379,7 @@ export function RegisterForm() {
                     max={400}
                     aria-invalid={errors.weightKg ? true : undefined}
                     aria-describedby={errors.weightKg ? "register-error-weightKg" : undefined}
-                    className={cn(inputClass, errors.weightKg && "border-destructive")}
+                    className={cn(errors.weightKg && "border-destructive")}
                     {...register("weightKg")}
                   />
                   {errors.weightKg ? (
@@ -406,7 +401,7 @@ export function RegisterForm() {
                     max={250}
                     aria-invalid={errors.heightCm ? true : undefined}
                     aria-describedby={errors.heightCm ? "register-error-heightCm" : undefined}
-                    className={cn(inputClass, errors.heightCm && "border-destructive")}
+                    className={cn(errors.heightCm && "border-destructive")}
                     {...register("heightCm")}
                   />
                   {errors.heightCm ? (
@@ -427,7 +422,7 @@ export function RegisterForm() {
                     max={120}
                     aria-invalid={errors.age ? true : undefined}
                     aria-describedby={errors.age ? "register-error-age" : undefined}
-                    className={cn(inputClass, errors.age && "border-destructive")}
+                    className={cn(errors.age && "border-destructive")}
                     {...register("age")}
                   />
                   {errors.age ? (
@@ -445,7 +440,7 @@ export function RegisterForm() {
             >
               <p
                 id="register-heading-activity"
-                className="metallic-text text-xs font-semibold uppercase tracking-[0.2em]"
+                className="text-[10px] font-bold uppercase tracking-wider text-white/35"
               >
                 Poziom aktywności
               </p>
@@ -497,9 +492,10 @@ export function RegisterForm() {
 
             <Button
               type="submit"
+              variant="cta"
               disabled={isSubmitting}
               aria-busy={isSubmitting}
-              className="h-11 min-h-11 w-full bg-[var(--neon)] text-base font-semibold text-[var(--neon-fg,#070708)] shadow-[0_0_32px_rgba(var(--neon-rgb,230,0,35),0.28)] hover:bg-[var(--neon-hover,#ff4d6d)] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+              className="w-full"
             >
               {isSubmitting ? "Tworzenie profilu…" : "Utwórz konto i trenuj"}
             </Button>
@@ -514,7 +510,7 @@ export function RegisterForm() {
             </p>
           </form>
         </div>
-      </div>
+      </ScreenCard>
     </motion.div>
   );
 }

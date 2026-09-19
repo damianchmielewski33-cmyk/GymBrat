@@ -75,6 +75,7 @@ export function rateLimitKey(label: string, req: Request): string {
 }
 
 export const RATE = {
+  version: { limit: 60, windowMs: 60_000 },
   pageView: { limit: 120, windowMs: 60_000 },
   cspReport: { limit: 60, windowMs: 60_000 },
   workoutComplete: { limit: 30, windowMs: 60_000 },
@@ -85,4 +86,6 @@ export const RATE = {
   progressExercise: { limit: 60, windowMs: 60_000 },
   userExport: { limit: 12, windowMs: 60 * 60_000 },
   accountDelete: { limit: 5, windowMs: 24 * 60 * 60_000 },
+  androidVersion: { limit: 120, windowMs: 60_000 },
+  androidDownload: { limit: 60, windowMs: 60 * 60_000 },
 } as const;

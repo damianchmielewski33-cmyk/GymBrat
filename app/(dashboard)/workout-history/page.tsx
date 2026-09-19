@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { getCompletedWorkoutsForUser, formatCompact } from "@/lib/workout-history";
+import { ScreenHeader } from "@/components/layout/screen";
 import { redirect } from "next/navigation";
 
 function formatDate(ymd: string) {
@@ -20,17 +21,11 @@ export default async function WorkoutHistoryPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-          Trening
-        </p>
-        <h1 className="font-heading metallic-text mt-2 text-2xl font-semibold sm:text-3xl">
-          Historia treningów
-        </h1>
-        <p className="mt-2 max-w-2xl text-pretty text-sm text-white/65">
-          Wszystkie zakończone treningi wraz ze szczegółami, miarami i porównaniem siły w ramach tego samego planu.
-        </p>
-      </header>
+      <ScreenHeader
+        kicker="Trening"
+        title="Historia treningów"
+        description="Wszystkie zakończone treningi wraz ze szczegółami, miarami i porównaniem siły w ramach tego samego planu."
+      />
 
       <section className="glass-panel neon-glow overflow-hidden">
         <div className="border-b border-white/10 px-4 py-4 sm:px-6">
@@ -74,7 +69,7 @@ export default async function WorkoutHistoryPage() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/workout-history/${w.id}`}
-                        className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-white/85 transition hover:bg-white/[0.07]"
+                        className="inline-flex h-11 items-center justify-center rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-medium text-white/85 transition hover:bg-white/10"
                       >
                         Szczegóły
                       </Link>

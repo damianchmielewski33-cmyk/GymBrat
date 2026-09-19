@@ -15,7 +15,7 @@ export function AuthHeroBrand({
   return (
     <div className="mb-8 text-center sm:mb-10">
       <motion.div
-        initial={{ opacity: 0, y: 18 }}
+        initial={{ opacity: 1, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: easeOut }}
       >
@@ -31,7 +31,7 @@ export function AuthHeroBrand({
 
       <motion.h1
         className="mt-5 font-heading text-xl font-semibold tracking-tight text-white/95 sm:text-2xl"
-        initial={{ opacity: 0, y: 14 }}
+        initial={{ opacity: 1, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, delay: 0.12, ease: easeOut }}
       >
@@ -40,7 +40,7 @@ export function AuthHeroBrand({
 
       <motion.p
         className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-white/60 sm:text-base"
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 1, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, delay: 0.22, ease: easeOut }}
       >

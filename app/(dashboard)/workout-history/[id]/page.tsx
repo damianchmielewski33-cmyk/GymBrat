@@ -8,6 +8,7 @@ import {
   getCompletedWorkoutByIdForUser,
   getStrengthTrendForPlan,
 } from "@/lib/workout-history";
+import { ScreenHeader } from "@/components/layout/screen";
 import { redirect } from "next/navigation";
 
 function formatDateTime(ms: number | null) {
@@ -63,37 +64,25 @@ export default async function WorkoutHistoryDetailsPage({
 
   return (
     <div className="space-y-8">
-      <header className="space-y-3">
-        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-              {formatDate(w.date)}
-            </p>
-            <h1 className="font-heading metallic-text mt-2 break-words text-2xl font-semibold sm:text-3xl">
-              {w.title}
-            </h1>
-            <div className="mt-2 space-y-1.5 text-sm text-white/65">
-              <p className="break-words">
-                <span className="text-white/45">Plan: </span>
-                {w.planName ?? "—"}
-              </p>
-              <p className="text-xs text-white/55 sm:text-sm">
-                <span className="block sm:inline">Start: {formatDateTime(w.startedAt)}</span>
-                <span className="hidden sm:inline"> · </span>
-                <span className="block sm:inline">Koniec: {formatDateTime(w.endedAt)}</span>
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2 sm:pt-1">
-            <Link
-              href="/workout-history"
-              className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-white/85 transition hover:bg-white/[0.07] sm:w-auto"
-            >
-              Wróć
-            </Link>
-          </div>
-        </div>
-      </header>
+      <ScreenHeader
+        kicker={formatDate(w.date)}
+        title={w.title}
+        description={
+          <>
+            Plan: {w.planName ?? "—"}
+            <br />
+            Start: {formatDateTime(w.startedAt)} · Koniec: {formatDateTime(w.endedAt)}
+          </>
+        }
+        actions={
+          <Link
+            href="/workout-history"
+            className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-medium text-white/85 transition hover:bg-white/10 sm:w-auto"
+          >
+            Wróć do historii
+          </Link>
+        }
+      />
 
       <section className="grid gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="glass-panel neon-glow p-4 sm:p-5">

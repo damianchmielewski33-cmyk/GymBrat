@@ -112,7 +112,7 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
               type="time"
               value={workoutTime}
               onChange={(e) => setWorkoutTime(e.target.value)}
-              className="h-11 w-full rounded-xl border border-white/12 bg-white/[0.05] px-3 text-white"
+              className="h-11 min-h-11 w-full rounded-lg border border-white/20 bg-black/50 px-3 text-white"
             />
           </div>
           <div className="space-y-2">
@@ -121,7 +121,7 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
               type="time"
               value={mealTime}
               onChange={(e) => setMealTime(e.target.value)}
-              className="h-11 w-full rounded-xl border border-white/12 bg-white/[0.05] px-3 text-white"
+              className="h-11 min-h-11 w-full rounded-lg border border-white/20 bg-black/50 px-3 text-white"
             />
           </div>
           <div className="space-y-2">
@@ -130,7 +130,7 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
               type="time"
               value={checkinTime}
               onChange={(e) => setCheckinTime(e.target.value)}
-              className="h-11 w-full rounded-xl border border-white/12 bg-white/[0.05] px-3 text-white"
+              className="h-11 min-h-11 w-full rounded-lg border border-white/20 bg-black/50 px-3 text-white"
             />
           </div>
         </div>

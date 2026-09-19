@@ -71,42 +71,28 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#141418] via-[#0f0f12] to-[#0a0a0c] p-5 sm:p-7">
-        <div
-          className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full opacity-[0.35]"
-          style={{
-            background:
-              "radial-gradient(circle at center, rgba(255,26,75,0.35) 0%, transparent 70%)",
-          }}
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-16 h-52 w-52 rounded-full opacity-25"
-          style={{
-            background:
-              "radial-gradient(circle at center, rgba(59,130,246,0.4) 0%, transparent 70%)",
-          }}
-        />
-        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
+      <div className="glass-panel p-8">
+        <div className="text-center">
+          <div className="mx-auto max-w-lg">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
               Przed treningiem
             </p>
-            <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
+            <h1 className="font-heading mt-2 text-2xl font-semibold text-white">
               Rozpocznij sesję
             </h1>
-            <p className="mt-2 text-[13px] leading-relaxed text-white/50 sm:text-[14px]">
+            <p className="mt-2 text-sm text-white/60">
               Wybierz plan — wczytamy ćwiczenia, serie i podpowiedzi z ostatniego treningu. Możesz od
               razu przejść do zapisu serii na ekranie treningu.
             </p>
           </div>
           {plans.length > 0 ? (
-            <div className="flex shrink-0 flex-wrap gap-2 text-[12px] text-white/55">
-              <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5">
-                <span className="font-semibold text-white/80">{plans.length}</span>{" "}
+            <div className="mt-6 flex flex-wrap justify-center gap-2 text-sm text-white/55">
+              <span className="rounded-lg border border-white/15 bg-black/50 px-3 py-2">
+                <span className="font-semibold text-white">{plans.length}</span>{" "}
                 {polishPlansLabel(plans.length)}
               </span>
-              <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5">
-                <span className="font-semibold text-white/80">{totalExercises}</span>{" "}
+              <span className="rounded-lg border border-white/15 bg-black/50 px-3 py-2">
+                <span className="font-semibold text-white">{totalExercises}</span>{" "}
                 {polishExercisesWord(totalExercises)} w planach
               </span>
             </div>
@@ -125,13 +111,13 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 * i, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                className="rounded-xl border border-white/[0.06] bg-black/30 px-3 py-3 backdrop-blur-sm sm:px-4"
+                className="rounded-lg border border-white/15 bg-black/50 px-4 py-4 text-center"
               >
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#FF1A4B]/90">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
                   Krok {item.step}
                 </p>
-                <p className="mt-1 text-[13px] font-semibold text-white">{item.title}</p>
-                <p className="mt-1 text-[11px] leading-snug text-white/45">{item.body}</p>
+                <p className="mt-2 font-heading text-base font-semibold text-white">{item.title}</p>
+                <p className="mt-1 text-sm text-white/60">{item.body}</p>
               </motion.div>
             ))}
           </div>
@@ -153,7 +139,7 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
                 placeholder="Szukaj planu po nazwie…"
                 autoComplete="off"
                 aria-label="Szukaj planu treningowego"
-                className="h-11 rounded-xl border-white/[0.1] bg-white/[0.05] pl-10 text-white placeholder:text-white/35 focus-visible:ring-[#FF1A4B]/30"
+                className="pl-10"
               />
             </div>
           ) : null}
@@ -180,7 +166,7 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
                     </div>
                     <Link
                       href="/workout-plan"
-                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#FF1A4B] px-5 text-sm font-semibold text-white transition hover:brightness-110"
+                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--neon)] px-5 text-base font-semibold text-white transition hover:bg-[#ff4d6d]"
                     >
                       Utwórz plan
                     </Link>

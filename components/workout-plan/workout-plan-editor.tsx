@@ -47,6 +47,7 @@ import {
   searchCatalogForPicker,
 } from "@/lib/workout-exercise-catalog";
 import { cn } from "@/lib/utils";
+import { ScreenHeader } from "@/components/layout/screen";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 
 function uid() {
@@ -88,7 +89,6 @@ export function WorkoutPlanEditor({
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [savedPulse, setSavedPulse] = useState(0);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [addCategoryId, setAddCategoryId] = useState(MUSCLE_CATEGORIES[0]!.id);
@@ -203,7 +203,6 @@ export function WorkoutPlanEditor({
         return;
       }
       notifySaved("Zapisano plan treningowy.");
-      setSavedPulse((x) => x + 1);
       setEditorMode("closed");
       router.refresh();
     });
@@ -252,59 +251,43 @@ export function WorkoutPlanEditor({
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-            Trening
-          </p>
-          <h1 className="font-heading metallic-text mt-1 text-3xl font-semibold">
-            Plan treningowy
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-white/65">
-            {editorOpen
-              ? "Nadaj nazwę planu, przypisz partie mięśniowe, ćwiczenia i liczbę powtórzeń. Zapis zwija edytor i dodaje plan do listy."
-              : "Twórz wiele planów — każdy zapis pojawia się na liście poniżej."}
-          </p>
-        </div>
-
-        {editorOpen ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <AnimatePresence>
-              {saveError ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  className="rounded-full border border-red-500/25 bg-red-500/10 px-4 py-2 text-xs text-red-200"
-                >
-                  {saveError}
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-
-            <motion.div
-              key={savedPulse}
-              initial={{ opacity: 0.85, scale: 1 }}
-              animate={{ opacity: 1, scale: 1.02 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70 md:inline-flex"
-            >
-              <Sparkles className="h-4 w-4 text-[var(--neon)]" />
-              {editorMode === "new" ? "Nowy plan" : "Edycja planu"}
-            </motion.div>
-
-            <Button
-              type="button"
-              onClick={onSave}
-              disabled={isPending}
-              className="bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {isPending ? "Zapisywanie…" : "Zapisz plan"}
-            </Button>
-          </div>
-        ) : null}
-      </header>
+      <ScreenHeader
+        kicker="Trening"
+        title="Plan treningowy"
+        description={
+          editorOpen
+            ? "Nadaj nazwę planu, przypisz partie mięśniowe, ćwiczenia i liczbę powtórzeń. Zapis zwija edytor i dodaje plan do listy."
+            : "Twórz wiele planów — każdy zapis pojawia się na liście poniżej."
+        }
+        actions={
+          editorOpen ? (
+            <>
+              <AnimatePresence>
+                {saveError ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="w-full rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-3 text-center text-sm text-red-200 sm:w-auto"
+                  >
+                    {saveError}
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+              <Button
+                type="button"
+                variant="cta"
+                onClick={onSave}
+                disabled={isPending}
+                className="w-full sm:w-auto"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {isPending ? "Zapisywanie…" : "Zapisz plan"}
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
 
       <section className="space-y-3">
         <h2 className="font-heading text-lg font-semibold text-white">

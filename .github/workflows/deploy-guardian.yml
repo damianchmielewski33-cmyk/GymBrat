@@ -1,0 +1,38 @@
+name: Deploy guardian
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gymbrat_source:
+    name: Źródło i opis zmian GymBrat
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Tylko repozytorium GymBrat + jasny changelog
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: node scripts/check-gymbrat-deploy.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Walidacja changelogu i provenance
+        run: npx vitest run lib/gymbrat-source.test.ts lib/deploy-changelog.test.ts
