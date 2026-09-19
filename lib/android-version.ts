@@ -1,5 +1,4 @@
 import bundled from "@/public/android-version.json";
-import { getAwpUrl } from "@/lib/sister-sites";
 
 export type AndroidVersionInfo = {
   versionCode: number;
@@ -15,6 +14,20 @@ const DEFAULT_GITHUB_VERSION_JSON =
 
 const DEFAULT_GITHUB_APK =
   "https://github.com/damianchmielewski33-cmyk/Akademia-Wielkich-Pi-karzy/releases/download/android-latest/akademia-wp.apk";
+
+const DEFAULT_AWP_ORIGIN = "https://akademia-wielkich-pilkarzy.vercel.app";
+
+function awpOrigin(): string {
+  const raw = process.env.NEXT_PUBLIC_AWP_URL?.trim();
+  if (raw) {
+    try {
+      return new URL(raw).origin;
+    } catch {
+      /* ignore */
+    }
+  }
+  return DEFAULT_AWP_ORIGIN;
+}
 
 function asPositiveInt(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
@@ -91,7 +104,7 @@ function versionJsonUrls(): string[] {
   const fromEnv = asHttpUrl(process.env.ANDROID_VERSION_JSON_URL);
   if (fromEnv) urls.push(fromEnv);
   urls.push(DEFAULT_GITHUB_VERSION_JSON);
-  const awp = getAwpUrl().replace(/\/$/, "");
+  const awp = awpOrigin();
   urls.push(`${awp}/android-version.json`);
   urls.push(`${awp}/api/android/version`);
   return [...new Set(urls)];
