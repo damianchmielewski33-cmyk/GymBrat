@@ -4,6 +4,19 @@ import { CSRF_COOKIE_NAME } from "@/lib/csrf-constants";
 
 export { CSRF_COOKIE_NAME };
 
+/** Kanoniczna produkcja GymBrat (Vercel). */
+export const GYMBRAT_PRODUCTION_ORIGIN = "https://gym-brat.vercel.app";
+
+/** AWP osadza GymBrat — analytics może mieć Origin z Akademii. */
+export const DEFAULT_AWP_ORIGIN = "https://akademia-wielkich-pilkarzy.vercel.app";
+
+const LOCAL_DEV_ORIGINS = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3001",
+] as const;
+
 function parseCookieHeader(cookieHeader: string | null, name: string): string | null {
   if (!cookieHeader) return null;
   const parts = cookieHeader.split("; ");
@@ -18,27 +31,51 @@ function parseCookieHeader(cookieHeader: string | null, name: string): string | 
   return null;
 }
 
-function allowedOrigins(): Set<string> {
-  const out = new Set<string>();
-  const add = (raw?: string | null) => {
-    const t = raw?.trim();
-    if (!t) return;
+function addOrigin(out: Set<string>, raw?: string | null) {
+  const t = raw?.trim();
+  if (!t) return;
+  try {
+    out.add(new URL(t).origin);
+  } catch {
+    /* ignore */
+  }
+}
+
+function awpOriginFromEnv(): string {
+  const raw = process.env.NEXT_PUBLIC_AWP_URL?.trim();
+  if (raw) {
     try {
-      out.add(new URL(t).origin);
+      return new URL(raw).origin;
     } catch {
       /* ignore */
     }
-  };
-  add(process.env.NEXTAUTH_URL);
-  add(process.env.NEXT_PUBLIC_APP_URL);
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) add(`https://${vercel}`);
-  const extra = process.env.CSRF_ALLOWED_ORIGINS?.split(",") ?? [];
-  for (const x of extra) add(x.trim());
-  if (out.size === 0 && process.env.NODE_ENV !== "production") {
-    add("http://localhost:3000");
-    add("http://127.0.0.1:3000");
   }
+  return DEFAULT_AWP_ORIGIN;
+}
+
+function allowedOrigins(): Set<string> {
+  const out = new Set<string>();
+  addOrigin(out, process.env.NEXTAUTH_URL);
+  addOrigin(out, process.env.NEXT_PUBLIC_APP_URL);
+  addOrigin(out, GYMBRAT_PRODUCTION_ORIGIN);
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) addOrigin(out, `https://${vercel}`);
+  const extra = process.env.CSRF_ALLOWED_ORIGINS?.split(",") ?? [];
+  for (const x of extra) addOrigin(out, x.trim());
+  if (process.env.NODE_ENV !== "production") {
+    for (const o of LOCAL_DEV_ORIGINS) addOrigin(out, o);
+  }
+  return out;
+}
+
+/** Allowlista Origin dla publicznego analytics (same-site + osadzenie AWP). */
+function analyticsAllowedOrigins(): Set<string> {
+  const out = allowedOrigins();
+  addOrigin(out, awpOriginFromEnv());
+  addOrigin(out, DEFAULT_AWP_ORIGIN);
+  for (const o of LOCAL_DEV_ORIGINS) addOrigin(out, o);
+  const extra = process.env.ANALYTICS_ALLOWED_ORIGINS?.split(",") ?? [];
+  for (const x of extra) addOrigin(out, x.trim());
   return out;
 }
 
@@ -52,6 +89,28 @@ export function isAllowedRequestOrigin(origin: string | null): boolean {
   } catch {
     return false;
   }
+}
+
+function isSameOriginRequest(req: Request, origin: string): boolean {
+  try {
+    return new URL(origin).origin === new URL(req.url).origin;
+  } catch {
+    return false;
+  }
+}
+
+function isAnalyticsAllowedOrigin(req: Request, origin: string): boolean {
+  if (isSameOriginRequest(req, origin)) return true;
+  try {
+    return analyticsAllowedOrigins().has(new URL(origin).origin);
+  } catch {
+    return false;
+  }
+}
+
+/** Soft-fail analytics: pusty 204 zamiast 403/500 (Android WebView potrafi pokazać body jako „stronę”). */
+function analyticsSoftReject(): NextResponse {
+  return new NextResponse(null, { status: 204 });
 }
 
 function timingSafeEqStrings(a: string, b: string): boolean {
@@ -121,25 +180,21 @@ export function assertCsrf(req: Request): NextResponse | null {
 }
 
 /**
- * Publiczny endpoint analytics — bez sesji; wymuszamy sensowny Origin / Sec-Fetch-Site.
+ * Publiczny endpoint analytics — bez sesji; Origin / Sec-Fetch-Site.
+ * Przy odrzuceniu zwraca 204 (soft-fail), nie 403 — zepsuty WebView czasem
+ * nawiguje główną ramkę na POST /api/analytics/* i pokazuje JSON jako błąd strony.
  */
 export function assertAnalyticsOrigin(req: Request): NextResponse | null {
   const origin = req.headers.get("origin");
-  if (origin && !isAllowedRequestOrigin(origin)) {
-    return NextResponse.json(
-      {
-        error:
-          "Źródło żądania nie jest na liście dozwolonych adresów. Sprawdź konfigurację środowiska.",
-      },
-      { status: 403 },
-    );
+  if (origin && origin !== "null") {
+    if (!isAnalyticsAllowedOrigin(req, origin)) {
+      return analyticsSoftReject();
+    }
+    return null;
   }
   const secFetchSite = req.headers.get("sec-fetch-site");
-  if (secFetchSite && !["same-origin", "same-site"].includes(secFetchSite)) {
-    return NextResponse.json(
-      { error: "To żądanie nie może być wykonane z tej witryny (polityka przeglądarki)." },
-      { status: 403 },
-    );
+  if (secFetchSite === "cross-site") {
+    return analyticsSoftReject();
   }
   return null;
 }
