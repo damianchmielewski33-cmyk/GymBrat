@@ -7,7 +7,7 @@ import { formatVolumeKg, setVolume } from "@/lib/workout-session-calculations";
 import { cn } from "@/lib/utils";
 
 const inputBox =
-  "h-11 min-h-11 w-full min-w-0 rounded-xl border border-white/[0.12] bg-white/[0.06] px-3 text-center text-base font-semibold tabular-nums text-white outline-none transition focus-visible:border-[rgba(255,72,98,0.5)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
+  "h-11 min-h-11 w-full min-w-0 rounded-xl border border-white/[0.12] bg-white/[0.06] px-3 text-center text-base font-semibold tabular-nums text-white outline-none transition focus-visible:border-[rgba(232,197,71,0.5)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
 
 function parseOptionalReps(raw: string): number | null {
   const t = raw.trim();

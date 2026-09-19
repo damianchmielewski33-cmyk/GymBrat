@@ -76,7 +76,7 @@ export function PlateCalculatorSheet() {
                   className={cn(
                     "flex-1 rounded-xl border px-3 py-2.5 text-sm font-semibold transition",
                     barKg === kg
-                      ? "border-[var(--neon)]/50 bg-[var(--neon)]/15 text-white"
+                      ? "border-[var(--neon)]/50 bg-[var(--neon)]/15 text-[var(--neon)]"
                       : "border-white/12 bg-white/[0.04] text-white/70 hover:bg-white/[0.07]",
                   )}
                 >

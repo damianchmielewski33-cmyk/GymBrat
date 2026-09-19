@@ -87,7 +87,7 @@ function BarBlock({
           className={`h-full rounded-full ${
             isOver
               ? "bg-gradient-to-r from-rose-400 to-rose-600"
-              : "bg-gradient-to-r from-[#ff4d6d] via-[#ff2d55] to-[#ff7aa1]"
+              : "bg-gradient-to-r from-[var(--neon-hover)] via-[#d4af37] to-[#c9a227]"
           }`}
           initial={{ width: 0 }}
           animate={{ width: `${width}%` }}

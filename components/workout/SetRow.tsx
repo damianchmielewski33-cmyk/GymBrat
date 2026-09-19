@@ -17,10 +17,10 @@ type SetRowProps = {
 };
 
 const stepperBtn =
-  "flex h-12 min-w-12 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-[#0d0d0d] text-white/80 outline-none transition active:scale-95 hover:bg-white/[0.06] hover:text-white focus-visible:z-10 focus-visible:border-[rgba(255,72,98,0.55)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]";
+  "flex h-12 min-w-12 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-[#0d0d0d] text-white/80 outline-none transition active:scale-95 hover:bg-white/[0.06] hover:text-white focus-visible:z-10 focus-visible:border-[rgba(232,197,71,0.55)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]";
 
 const fieldInput =
-  "h-12 w-full min-w-0 min-h-12 rounded-xl border border-white/[0.08] bg-[#0d0d0d] px-2 text-center text-lg font-semibold tabular-nums text-white outline-none transition focus-visible:border-[rgba(255,72,98,0.5)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]";
+  "h-12 w-full min-w-0 min-h-12 rounded-xl border border-white/[0.08] bg-[#0d0d0d] px-2 text-center text-lg font-semibold tabular-nums text-white outline-none transition focus-visible:border-[rgba(232,197,71,0.5)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]";
 
 function parseOptionalReps(raw: string): number | null {
   const t = raw.trim();

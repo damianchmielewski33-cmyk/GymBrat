@@ -91,15 +91,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             "linear-gradient(180deg,rgba(10,10,12,0.88) 0%,rgba(8,8,9,0.80) 100%)",
           borderBottom: "1px solid rgba(255,255,255,0.08)",
           boxShadow:
-            "0 1px 0 rgba(230,0,35,0.22), 0 4px 24px rgba(0,0,0,0.55)",
+            "0 1px 0 rgba(var(--neon-rgb),0.22), 0 4px 24px rgba(0,0,0,0.55)",
         }}
       >
-        {/* Red accent stripe at very top */}
+        {/* Gold accent stripe at very top */}
         <div
           className="absolute top-0 left-0 right-0 h-[2px]"
           style={{
             background:
-              "linear-gradient(90deg,transparent 0%,rgba(230,0,35,0.7) 30%,rgba(230,0,35,0.9) 50%,rgba(230,0,35,0.7) 70%,transparent 100%)",
+              "linear-gradient(90deg,transparent 0%,rgba(var(--neon-rgb),0.7) 30%,rgba(var(--neon-rgb),0.9) 50%,rgba(var(--neon-rgb),0.7) 70%,transparent 100%)",
           }}
         />
 
@@ -124,11 +124,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       active
                         ? {
                             background:
-                              "linear-gradient(145deg,rgba(230,0,35,0.20),rgba(230,0,35,0.08))",
-                            border: "1px solid rgba(230,0,35,0.35)",
-                            borderTopColor: "rgba(230,0,35,0.55)",
+                              "linear-gradient(145deg,rgba(var(--neon-rgb),0.20),rgba(var(--neon-rgb),0.08))",
+                            border: "1px solid rgba(var(--neon-rgb),0.35)",
+                            borderTopColor: "rgba(var(--neon-rgb),0.55)",
                             boxShadow:
-                              "0 0 12px rgba(230,0,35,0.20), inset 0 1px 0 rgba(255,255,255,0.07)",
+                              "0 0 12px rgba(var(--neon-rgb),0.20), inset 0 1px 0 rgba(255,255,255,0.07)",
                           }
                         : undefined
                     }
@@ -231,7 +231,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className="absolute top-0 left-0 right-0 h-[2px]"
                   style={{
                     background:
-                      "linear-gradient(90deg,transparent,rgba(230,0,35,0.8) 40%,rgba(230,0,35,0.8) 60%,transparent)",
+                      "linear-gradient(90deg,transparent,rgba(var(--neon-rgb),0.8) 40%,rgba(var(--neon-rgb),0.8) 60%,transparent)",
                   }}
                 />
                 <div className="mt-8 flex flex-col gap-1.5">
@@ -255,8 +255,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             active
                               ? {
                                   background:
-                                    "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.07))",
-                                  border: "1px solid rgba(230,0,35,0.30)",
+                                    "linear-gradient(145deg,rgba(var(--neon-rgb),0.18),rgba(var(--neon-rgb),0.07))",
+                                  border: "1px solid rgba(var(--neon-rgb),0.30)",
                                 }
                               : undefined
                           }
@@ -308,15 +308,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           background:
             "linear-gradient(0deg,rgba(8,8,9,0.95) 0%,rgba(12,12,14,0.85) 100%)",
           borderTop: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 -1px 0 rgba(230,0,35,0.18), 0 -8px 32px rgba(0,0,0,0.50)",
+          boxShadow: "0 -1px 0 rgba(var(--neon-rgb),0.18), 0 -8px 32px rgba(0,0,0,0.50)",
         }}
       >
-        {/* Red accent stripe at very bottom-top edge */}
+        {/* Gold accent stripe at very bottom-top edge */}
         <div
           className="absolute top-0 left-0 right-0 h-[1.5px]"
           style={{
             background:
-              "linear-gradient(90deg,transparent 0%,rgba(230,0,35,0.55) 30%,rgba(230,0,35,0.75) 50%,rgba(230,0,35,0.55) 70%,transparent 100%)",
+              "linear-gradient(90deg,transparent 0%,rgba(var(--neon-rgb),0.55) 30%,rgba(var(--neon-rgb),0.75) 50%,rgba(var(--neon-rgb),0.55) 70%,transparent 100%)",
           }}
         />
 
@@ -338,8 +338,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   active
                     ? {
                         background:
-                          "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.06))",
-                        border: "1px solid rgba(230,0,35,0.28)",
+                          "linear-gradient(145deg,rgba(var(--neon-rgb),0.18),rgba(var(--neon-rgb),0.06))",
+                        border: "1px solid rgba(var(--neon-rgb),0.28)",
                       }
                     : undefined
                 }

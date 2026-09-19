@@ -71,7 +71,7 @@ export function WeighInCard() {
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="h-11 bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
+            className="h-11 bg-[var(--neon)] text-[var(--neon-fg)] hover:bg-[var(--neon-hover)]"
           >
             <Plus className="mr-2 h-4 w-4" />
             {saving ? "Zapisywanie…" : "Dodaj"}

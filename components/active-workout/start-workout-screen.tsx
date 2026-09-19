@@ -166,7 +166,7 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
                     </div>
                     <Link
                       href="/workout-plan"
-                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--neon)] px-5 text-base font-semibold text-white transition hover:bg-[#ff4d6d]"
+                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--neon)] px-5 text-base font-semibold text-[var(--neon-fg)] transition hover:bg-[var(--neon-hover)]"
                     >
                       Utwórz plan
                     </Link>
@@ -179,7 +179,7 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
                 <button
                   type="button"
                   onClick={() => setQuery("")}
-                  className="mt-3 text-[13px] font-medium text-[#FF1A4B] underline-offset-2 hover:underline"
+                  className="mt-3 text-[13px] font-medium text-[var(--neon)] underline-offset-2 hover:underline"
                 >
                   Wyczyść wyszukiwanie
                 </button>
@@ -221,12 +221,12 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
         >
           <WorkoutGlassCard className="p-4">
             <div className="flex items-center gap-2 text-white">
-              <Sparkles className="h-4 w-4 text-[#FF1A4B]" aria-hidden />
+              <Sparkles className="h-4 w-4 text-[var(--neon)]" aria-hidden />
               <p className="text-sm font-semibold">Przed startem</p>
             </div>
             <ul className="mt-3 space-y-2.5 text-[12px] leading-relaxed text-white/55">
               <li className="flex gap-2">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#FF1A4B]/80" />
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--neon)]/80" />
                 Krótka rozgrzewka poprawia jakość pierwszych serii.
               </li>
               <li className="flex gap-2">

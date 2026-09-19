@@ -56,7 +56,7 @@ export function WorkoutSummary({
             type="button"
             onClick={onComplete}
             disabled={saving || !canComplete}
-            className="h-[52px] w-full rounded-2xl bg-[#FF1A4B] text-[15px] font-semibold text-white shadow-sm hover:bg-[#e61645] disabled:opacity-40"
+            className="h-[52px] w-full rounded-2xl bg-[var(--neon)] text-[15px] font-semibold text-[var(--neon-fg)] shadow-sm hover:bg-[var(--neon-hover)] disabled:opacity-40"
           >
             {saving ? (
               <>
