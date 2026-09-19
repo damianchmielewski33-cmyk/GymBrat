@@ -7,7 +7,7 @@ import { formatVolumeKg, setVolume } from "@/lib/workout-session-calculations";
 import { cn } from "@/lib/utils";
 
 const inputBox =
-  "h-11 min-h-11 w-full min-w-0 rounded-xl border border-white/[0.12] bg-white/[0.06] px-3 text-center text-base font-semibold tabular-nums text-white outline-none transition focus-visible:border-[rgba(255,72,98,0.5)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
+  "h-11 min-h-11 w-full min-w-0 rounded-xl border border-white/[0.12] bg-white/[0.06] px-3 text-center text-base font-semibold tabular-nums text-white outline-none transition focus-visible:border-[rgba(255,72,98,0.5)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 function parseOptionalReps(raw: string): number | null {
   const t = raw.trim();
@@ -126,7 +126,7 @@ export function GymPadSetRow({
         type="button"
         whileTap={{ scale: 0.94 }}
         onClick={copyLine}
-        className="flex h-11 min-h-11 w-11 min-w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.03] text-white/55 outline-none transition hover:bg-white/[0.06] hover:text-[var(--neon)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+        className="flex h-11 min-h-11 w-11 min-w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.10] bg-white/[0.03] text-white/55 outline-none transition hover:bg-white/[0.06] hover:text-[var(--neon)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label={`Seria ${setIndex + 1}: kopiuj podsumowanie do schowka`}
       >
         <Copy className="h-5 w-5 shrink-0" aria-hidden />
@@ -152,7 +152,7 @@ export function GymPadSetRow({
             const v = e.target.value;
             onChange({ rpe: v === "" ? null : Math.min(10, Math.max(1, Number(v))) });
           }}
-          className="h-11 min-h-11 min-w-[4.75rem] rounded-lg border border-white/[0.14] bg-black/45 px-2 text-sm text-white outline-none focus-visible:border-[var(--neon)]/50 focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+          className="h-11 min-h-11 min-w-[4.75rem] rounded-lg border border-white/[0.14] bg-black/45 px-2 text-sm text-white outline-none focus-visible:border-[var(--neon)]/50 focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <option value="">—</option>
           {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (

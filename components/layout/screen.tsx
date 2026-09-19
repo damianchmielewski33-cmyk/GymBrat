@@ -3,21 +3,21 @@ import { BrandMark } from "@/components/layout/brand-mark";
 import { cn } from "@/lib/utils";
 
 export const screenKickerClass =
-  "text-[10px] font-bold uppercase tracking-wider text-white/35";
+  "text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--mp-teal-dark)]";
 
 export const screenTitleClass =
-  "font-heading text-2xl font-semibold text-white";
+  "font-heading text-2xl font-semibold tracking-tight text-zinc-950";
 
-export const screenSubtitleClass = "text-sm text-white/60";
+export const screenSubtitleClass = "text-sm text-zinc-500";
 
 export const screenLinkClass =
-  "rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
+  "rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export const screenCtaClass =
-  "h-11 bg-[var(--neon)] text-base font-semibold text-white hover:bg-[#ff4d6d] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
+  "h-11 bg-[var(--neon)] text-base font-semibold text-white hover:bg-[var(--neon-hover)] focus-visible:ring-2 focus-visible:ring-[var(--mp-teal)]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export const screenInputClass =
-  "min-h-11 border-white/20 bg-black/50 text-white placeholder:text-white/40";
+  "min-h-11 border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400";
 
 export function ScreenCard({
   children,
@@ -32,7 +32,7 @@ export function ScreenCard({
     <section className={cn("glass-panel p-8", className)}>
       {children}
       {footer ? (
-        <div className="mt-8 border-t border-white/10 pt-6">{footer}</div>
+        <div className="mt-8 border-t border-zinc-200 pt-6">{footer}</div>
       ) : null}
     </section>
   );
@@ -122,7 +122,7 @@ export function ScreenLoading({
     <ScreenCard className="mx-auto max-w-md text-center">
       <BrandMark as="span" />
       <div
-        className="mx-auto mt-6 h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-[var(--neon)]"
+        className="mx-auto mt-6 h-9 w-9 animate-spin rounded-full border-2 border-zinc-200 border-t-[var(--neon)]"
         aria-hidden
       />
       <p className={cn(screenSubtitleClass, "mt-4")}>{label}</p>

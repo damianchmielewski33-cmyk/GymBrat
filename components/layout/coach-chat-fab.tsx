@@ -68,7 +68,7 @@ export function CoachChatFab() {
       <SheetTrigger
         type="button"
         className={cn(
-          "fixed z-[55] flex max-w-[min(calc(100vw-1.5rem),14rem)] items-center gap-2 rounded-2xl border border-[var(--neon)]/45 bg-[linear-gradient(145deg,rgba(230,0,35,0.42),rgba(230,0,35,0.16))] px-3.5 py-3 text-left text-xs font-semibold leading-snug text-white shadow-[0_8px_32px_rgba(0,0,0,0.45),0_0_24px_rgba(230,0,35,0.22)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]",
+          "fixed z-[55] flex max-w-[min(calc(100vw-1.5rem),14rem)] items-center gap-2 rounded-2xl border border-[var(--mp-teal)]/40 bg-[var(--mp-teal)] px-3.5 py-3 text-left text-xs font-semibold leading-snug text-white shadow-[0_12px_28px_-10px_rgba(0,163,148,0.65)] transition hover:bg-[var(--mp-teal-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "right-3 sm:right-4",
           activeWorkout
             ? "top-[calc(4.25rem+env(safe-area-inset-top))] md:top-[calc(4.5rem+env(safe-area-inset-top))]"
@@ -78,11 +78,11 @@ export function CoachChatFab() {
         )}
         aria-label="Otwórz czat z trenerem"
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-black/25">
-          <MessageCircle className="h-4 w-4 text-[var(--neon)]" aria-hidden />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15">
+          <MessageCircle className="h-4 w-4 text-white" aria-hidden />
         </span>
         <span className="min-w-0 pr-0.5">
-          <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-white/70">
+          <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-white/85">
             {mode === "web" ? "Trener (web)" : "Trener AI"}
           </span>
           <span className="mt-0.5 block text-[13px] font-semibold tracking-tight">Coach czat</span>
@@ -91,7 +91,7 @@ export function CoachChatFab() {
       <SheetContent
         side="right"
         showCloseButton
-        className="flex w-full flex-col border-white/10 bg-[#0a0a0f] p-0 text-white sm:max-w-md"
+        className="flex w-full flex-col border-zinc-200 bg-white p-0 text-zinc-900 sm:max-w-md"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>
@@ -108,7 +108,7 @@ export function CoachChatFab() {
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-4 pt-2 sm:px-4">
           {mode === null ? (
             <div
-              className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-white/55"
+              className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-zinc-500"
               aria-busy="true"
               aria-label="Ładowanie czatu"
             >
@@ -118,7 +118,7 @@ export function CoachChatFab() {
           ) : (
             <CoachChatPanel
               mode={mode}
-              className="max-h-none min-h-0 flex-1 border-white/10 shadow-none"
+              className="max-h-none min-h-0 flex-1 border-zinc-200 shadow-none"
             />
           )}
         </div>

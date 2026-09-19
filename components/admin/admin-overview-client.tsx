@@ -323,7 +323,7 @@ export function AdminOverviewClient() {
             type="button"
             onClick={() => void load(true)}
             disabled={loading}
-            className="bg-[var(--neon)] font-semibold text-white hover:bg-[#ff4d6d]"
+            className="bg-[var(--neon)] font-semibold text-white hover:bg-[#00a394]"
           >
             Odśwież dane
           </Button>

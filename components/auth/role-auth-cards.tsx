@@ -39,7 +39,7 @@ export function RoleAuthCards({
             : {})}
           onClick={() => onSelectRole("zawodnik")}
           className={cn(
-            "group relative min-h-[168px] overflow-hidden rounded-2xl border px-5 py-6 text-left transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
+            "group relative min-h-[168px] overflow-hidden rounded-2xl border px-5 py-6 text-left transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             role === "zawodnik"
               ? "border-[var(--neon)]/65 bg-gradient-to-br from-[var(--neon)]/20 via-white/[0.06] to-[var(--neon)]/10 shadow-[0_0_40px_rgba(var(--neon-rgb,230,0,35),0.22)]"
               : "border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45",
@@ -122,7 +122,7 @@ export function RoleAuthCards({
             aria-checked={role === "trener"}
             onClick={() => onSelectRole("trener")}
             className={cn(
-              "group relative min-h-[168px] overflow-hidden rounded-2xl border px-5 py-6 text-left transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
+              "group relative min-h-[168px] overflow-hidden rounded-2xl border px-5 py-6 text-left transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               role === "trener"
                 ? "border-[var(--neon)]/65 bg-gradient-to-br from-[var(--neon)]/20 via-white/[0.06] to-[var(--neon)]/10 shadow-[0_0_40px_rgba(var(--neon-rgb,230,0,35),0.22)]"
                 : "border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45",

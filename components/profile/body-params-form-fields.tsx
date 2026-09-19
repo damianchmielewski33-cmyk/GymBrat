@@ -81,7 +81,7 @@ export function BodyParamsFormFields({
           id="activityLevel"
           name="activityLevel"
           defaultValue={initial.activityLevel ?? "medium"}
-          className="h-11 min-h-11 w-full rounded-lg border border-white/20 bg-black/50 px-3 text-sm text-white outline-none focus-visible:border-[var(--neon)]/55 focus-visible:ring-[3px] focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+          className="h-11 min-h-11 w-full rounded-lg border border-white/20 bg-black/50 px-3 text-sm text-white outline-none focus-visible:border-[var(--neon)]/55 focus-visible:ring-[3px] focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {activityLevels.map((l) => (
             <option key={l} value={l}>

@@ -258,7 +258,7 @@ export function GymPadSessionLayout({
               tabIndex={active ? 0 : -1}
               onClick={() => onSelectExercise(ex.id)}
               className={cn(
-                "relative min-h-11 shrink-0 rounded-full px-3 py-2 text-left text-[13px] font-semibold outline-none transition focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
+                "relative min-h-11 shrink-0 rounded-full px-3 py-2 text-left text-[13px] font-semibold outline-none transition focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 active
                   ? "bg-white/[0.08] text-white"
                   : "bg-transparent text-white/45 hover:bg-white/[0.05] hover:text-white/75",
@@ -282,7 +282,7 @@ export function GymPadSessionLayout({
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="pt-4 outline-none focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring/75 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+          className="pt-4 outline-none focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring/75 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3 py-4 text-center">
@@ -334,7 +334,7 @@ export function GymPadSessionLayout({
                 value={current.note ?? ""}
                 onChange={(e) => onExerciseNoteChange(current.id, e.target.value)}
                 placeholder="Technika, martwy punkt, zmiana maszyny…"
-                className="min-h-[72px] resize-none rounded-xl border-white/14 bg-white/[0.06] text-sm text-white placeholder:text-white/38 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+                className="min-h-[72px] resize-none rounded-xl border-white/14 bg-white/[0.06] text-sm text-white placeholder:text-white/38 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               />
             </div>
           ) : null}
@@ -345,7 +345,7 @@ export function GymPadSessionLayout({
               whileTap={{ scale: 0.98 }}
               onClick={() => onAddSet(current.id)}
               aria-label={`Dodaj serię dla ćwiczenia: ${current.name}`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--neon)] px-5 py-3 text-sm font-bold text-white shadow-[0_0_24px_rgba(230,0,35,0.20)] outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--neon)] px-5 py-3 text-sm font-bold text-white shadow-[0_0_24px_rgba(0, 201, 177,0.20)] outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <Plus className="h-5 w-5 shrink-0" strokeWidth={2.5} aria-hidden />
               Dodaj serię
@@ -360,7 +360,7 @@ export function GymPadSessionLayout({
                   ? "Nie można usunąć jedynej serii"
                   : `Usuń ostatnią serię ćwiczenia: ${current.name}`
               }
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white/75 outline-none hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708] disabled:pointer-events-none disabled:opacity-35"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white/75 outline-none hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-35"
             >
               <Minus className="h-5 w-5 shrink-0" aria-hidden />
               Usuń

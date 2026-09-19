@@ -425,7 +425,7 @@ export function ActiveWorkoutView({
               </SheetTrigger>
             }
           />
-          <SheetContent side="bottom" className="border-white/10 bg-[#0a0a0f] text-white">
+          <SheetContent side="bottom" className="border-white/10 bg-white text-white">
             <SheetHeader>
               <SheetTitle className="text-white">Sesja — ustawienia</SheetTitle>
             </SheetHeader>

@@ -48,7 +48,7 @@ export function PlateCalculatorSheet() {
         <Disc3 className="h-3.5 w-3.5 text-[#3B82F6]" />
         Talerze
       </SheetTrigger>
-      <SheetContent side="bottom" className="border-white/10 bg-[#0a0a0f] text-white">
+      <SheetContent side="bottom" className="border-white/10 bg-white text-white">
         <SheetHeader>
           <SheetTitle className="text-white">Kalkulator talerzy</SheetTitle>
         </SheetHeader>
