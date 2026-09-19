@@ -12,6 +12,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     bullets: [
       "Start serwera nie pada już na błędzie duplicate column name arm_cm, gdy baza Turso była wcześniej używana przez aplikację APK.",
       "Migracje Drizzle są stosowane zdanie po zdaniu i pomijają już istniejące kolumny oraz tabele, a potem zapisują je w dzienniku migracji.",
+      "POST /api/analytics/page-view nie zwraca już 403 na aliasie produkcyjnym gym-brat.vercel.app (same-origin i adresy Vercel w allowliście).",
     ],
   },
   {
