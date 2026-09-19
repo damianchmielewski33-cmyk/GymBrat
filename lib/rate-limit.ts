@@ -85,4 +85,6 @@ export const RATE = {
   progressExercise: { limit: 60, windowMs: 60_000 },
   userExport: { limit: 12, windowMs: 60 * 60_000 },
   accountDelete: { limit: 5, windowMs: 24 * 60 * 60_000 },
+  androidVersion: { limit: 120, windowMs: 60_000 },
+  androidDownload: { limit: 60, windowMs: 60 * 60_000 },
 } as const;
