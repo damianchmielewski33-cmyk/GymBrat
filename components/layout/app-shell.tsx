@@ -29,7 +29,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { releaseDocumentScrollLock } from "@/lib/document-scroll";
 import { cn } from "@/lib/utils";
 import { CoachChatFab } from "@/components/layout/coach-chat-fab";
-import { StartWorkoutFab } from "@/components/layout/start-workout-fab";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { BrandMark } from "@/components/layout/brand-mark";
 
@@ -82,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [mobileMenuOpen]);
 
   return (
-    <div className="relative min-h-screen">
+    <div className="theme-black-gold relative min-h-screen">
       {/* ── Header ── */}
       <header
         className="sticky top-0 z-40 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
@@ -91,15 +90,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             "linear-gradient(180deg,rgba(10,10,12,0.88) 0%,rgba(8,8,9,0.80) 100%)",
           borderBottom: "1px solid rgba(255,255,255,0.08)",
           boxShadow:
-            "0 1px 0 rgba(230,0,35,0.22), 0 4px 24px rgba(0,0,0,0.55)",
+            "0 1px 0 rgba(var(--neon-rgb),0.22), 0 4px 24px rgba(0,0,0,0.55)",
         }}
       >
-        {/* Red accent stripe at very top */}
+        {/* Gold accent stripe at very top */}
         <div
           className="absolute top-0 left-0 right-0 h-[2px]"
           style={{
             background:
-              "linear-gradient(90deg,transparent 0%,rgba(230,0,35,0.7) 30%,rgba(230,0,35,0.9) 50%,rgba(230,0,35,0.7) 70%,transparent 100%)",
+              "linear-gradient(90deg,transparent 0%,rgba(var(--neon-rgb),0.7) 30%,rgba(var(--neon-rgb),0.9) 50%,rgba(var(--neon-rgb),0.7) 70%,transparent 100%)",
           }}
         />
 
@@ -124,11 +123,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       active
                         ? {
                             background:
-                              "linear-gradient(145deg,rgba(230,0,35,0.20),rgba(230,0,35,0.08))",
-                            border: "1px solid rgba(230,0,35,0.35)",
-                            borderTopColor: "rgba(230,0,35,0.55)",
+                              "linear-gradient(145deg,rgba(var(--neon-rgb),0.20),rgba(var(--neon-rgb),0.08))",
+                            border: "1px solid rgba(var(--neon-rgb),0.35)",
+                            borderTopColor: "rgba(var(--neon-rgb),0.55)",
                             boxShadow:
-                              "0 0 12px rgba(230,0,35,0.20), inset 0 1px 0 rgba(255,255,255,0.07)",
+                              "0 0 12px rgba(var(--neon-rgb),0.20), inset 0 1px 0 rgba(255,255,255,0.07)",
                           }
                         : undefined
                     }
@@ -154,27 +153,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className={cn(
                   "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
                   pathname.startsWith("/admin")
-                    ? "text-amber-100"
-                    : "text-amber-200/95 hover:bg-amber-500/15 hover:text-amber-50",
+                    ? "text-[var(--neon-fg)]"
+                    : "text-[var(--gym-gold-bright)]/95 hover:bg-[var(--neon)]/15 hover:text-[var(--gym-gold-bright)]",
                 )}
                 style={{
                   background:
                     pathname.startsWith("/admin")
-                      ? "linear-gradient(145deg,rgba(245,158,11,0.22),rgba(245,158,11,0.08))"
-                      : "rgba(245,158,11,0.06)",
+                      ? "linear-gradient(145deg,rgba(var(--neon-rgb),0.22),rgba(var(--neon-rgb),0.08))"
+                      : "rgba(var(--neon-rgb),0.06)",
                   border: pathname.startsWith("/admin")
-                    ? "1px solid rgba(245,158,11,0.45)"
-                    : "1px solid rgba(245,158,11,0.22)",
+                    ? "1px solid rgba(var(--neon-rgb),0.45)"
+                    : "1px solid rgba(var(--neon-rgb),0.22)",
                   borderTopColor:
                     pathname.startsWith("/admin")
-                      ? "rgba(251,191,36,0.55)"
-                      : "rgba(245,158,11,0.35)",
+                      ? "rgba(212,175,55,0.55)"
+                      : "rgba(var(--neon-rgb),0.35)",
                   boxShadow: pathname.startsWith("/admin")
-                    ? "0 0 14px rgba(245,158,11,0.18), inset 0 1px 0 rgba(255,255,255,0.06)"
+                    ? "0 0 14px rgba(var(--neon-rgb),0.18), inset 0 1px 0 rgba(255,255,255,0.06)"
+                    : undefined,
+                  color: pathname.startsWith("/admin")
+                    ? "rgba(255,236,180,0.98)"
                     : undefined,
                 }}
               >
-                <Shield className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
+                <Shield className="h-4 w-4 shrink-0 text-[var(--neon)]" aria-hidden />
                 <span className="max-[380px]:sr-only">Panel admina</span>
               </Link>
             ) : null}
@@ -231,7 +233,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className="absolute top-0 left-0 right-0 h-[2px]"
                   style={{
                     background:
-                      "linear-gradient(90deg,transparent,rgba(230,0,35,0.8) 40%,rgba(230,0,35,0.8) 60%,transparent)",
+                      "linear-gradient(90deg,transparent,rgba(var(--neon-rgb),0.8) 40%,rgba(var(--neon-rgb),0.8) 60%,transparent)",
                   }}
                 />
                 <div className="mt-8 flex flex-col gap-1.5">
@@ -255,8 +257,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             active
                               ? {
                                   background:
-                                    "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.07))",
-                                  border: "1px solid rgba(230,0,35,0.30)",
+                                    "linear-gradient(145deg,rgba(var(--neon-rgb),0.18),rgba(var(--neon-rgb),0.07))",
+                                  border: "1px solid rgba(var(--neon-rgb),0.30)",
                                 }
                               : undefined
                           }
@@ -308,15 +310,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           background:
             "linear-gradient(0deg,rgba(8,8,9,0.95) 0%,rgba(12,12,14,0.85) 100%)",
           borderTop: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 -1px 0 rgba(230,0,35,0.18), 0 -8px 32px rgba(0,0,0,0.50)",
+          boxShadow: "0 -1px 0 rgba(var(--neon-rgb),0.18), 0 -8px 32px rgba(0,0,0,0.50)",
         }}
       >
-        {/* Red accent stripe at very bottom-top edge */}
+        {/* Gold accent stripe at very bottom-top edge */}
         <div
           className="absolute top-0 left-0 right-0 h-[1.5px]"
           style={{
             background:
-              "linear-gradient(90deg,transparent 0%,rgba(230,0,35,0.55) 30%,rgba(230,0,35,0.75) 50%,rgba(230,0,35,0.55) 70%,transparent 100%)",
+              "linear-gradient(90deg,transparent 0%,rgba(var(--neon-rgb),0.55) 30%,rgba(var(--neon-rgb),0.75) 50%,rgba(var(--neon-rgb),0.55) 70%,transparent 100%)",
           }}
         />
 
@@ -338,8 +340,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   active
                     ? {
                         background:
-                          "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.06))",
-                        border: "1px solid rgba(230,0,35,0.28)",
+                          "linear-gradient(145deg,rgba(var(--neon-rgb),0.18),rgba(var(--neon-rgb),0.06))",
+                        border: "1px solid rgba(var(--neon-rgb),0.28)",
                       }
                     : undefined
                 }
@@ -360,7 +362,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       <CoachChatFab />
-      <StartWorkoutFab />
     </div>
   );
 }

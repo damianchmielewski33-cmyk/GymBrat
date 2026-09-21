@@ -83,10 +83,10 @@ export function ProgressCharts({
                 <Line
                   type="monotone"
                   dataKey="kg"
-                  stroke="#ff2d55"
+                  stroke="#b8860b"
                   strokeWidth={2}
-                  dot={{ r: 3, fill: "#ff2d55", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#ff2d55", stroke: "#fff", strokeWidth: 2 }}
+                  dot={{ r: 3, fill: "#b8860b", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#b8860b", stroke: "#fff", strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -116,8 +116,8 @@ export function ProgressCharts({
               <AreaChart data={volume} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="neonVol" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ff2d55" stopOpacity={0.38} />
-                    <stop offset="95%" stopColor="#ff2d55" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#b8860b" stopOpacity={0.38} />
+                    <stop offset="95%" stopColor="#b8860b" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -147,11 +147,11 @@ export function ProgressCharts({
                 <Area
                   type="monotone"
                   dataKey="kg"
-                  stroke="#ff2d55"
+                  stroke="#b8860b"
                   strokeWidth={2}
                   fill="url(#neonVol)"
-                  dot={{ r: 2.5, fill: "#ff2d55", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#ff2d55", stroke: "#fff", strokeWidth: 2 }}
+                  dot={{ r: 2.5, fill: "#b8860b", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#b8860b", stroke: "#fff", strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>

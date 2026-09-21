@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — czarno-złoty motyw w całej aplikacji",
+    date: "2026-09-21",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Wszystkie ekrany po zalogowaniu używają tego samego czarno-złotego motywu co logowanie: nawigacja, tło, przyciski i wykresy.",
+      "Odcień złota jest metaliczny i bursztynowy (darkgoldenrod #b8860b), mniej cytrynowo-żółty niż wcześniejszy akcent.",
+      "Usunięto pływający przycisk Rozpocznij trening — start sesji zostaje na ekranie Start i w planie treningowym.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

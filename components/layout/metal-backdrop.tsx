@@ -147,18 +147,18 @@ export function MetalBackdrop() {
           LIGHTING & ATMOSPHERE
           ══════════════════════════════════════════════ */}
 
-      {/* Dramatic red spotlight — top-left origin (like a single gym lamp) */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_1600px_1000px_at_-8%_-14%,rgba(230,0,35,0.30),transparent_58%)]" />
+      {/* Dramatic gold spotlight — top-left origin (like a single gym lamp) */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_1600px_1000px_at_-8%_-14%,rgba(var(--neon-rgb),0.26),transparent_58%)]" />
 
-      {/* Warm ember glow — bottom centre */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_1000px_600px_at_50%_112%,rgba(170,22,0,0.14),transparent_62%)]" />
+      {/* Warm metallic glow — bottom centre */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_1000px_600px_at_50%_112%,rgba(138,112,24,0.14),transparent_62%)]" />
 
-      {/* ── Diagonal hazard stripes — very subtle red ── */}
+      {/* ── Diagonal hazard stripes — very subtle gold ── */}
       <div
         className="absolute inset-0 opacity-[0.032]"
         style={{
           backgroundImage:
-            "repeating-linear-gradient(45deg,rgba(230,0,35,1) 0px,rgba(230,0,35,1) 2px,transparent 2px,transparent 58px)",
+            "repeating-linear-gradient(45deg,rgba(var(--neon-rgb),1) 0px,rgba(var(--neon-rgb),1) 2px,transparent 2px,transparent 58px)",
         }}
       />
 

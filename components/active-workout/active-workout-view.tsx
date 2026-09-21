@@ -512,7 +512,7 @@ export function ActiveWorkoutView({
                 ) : (
                   <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
                     <div className="rounded-2xl border border-white/[0.08] bg-[#111] p-6">
-                      <RotateCcw className="mx-auto h-11 w-11 text-[#FF9500]" />
+                      <RotateCcw className="mx-auto h-11 w-11 text-[var(--neon)]" />
                     </div>
                     <div>
                       <p className="text-[17px] font-semibold text-white">Trening jest wyłączony</p>

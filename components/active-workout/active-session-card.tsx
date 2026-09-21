@@ -46,19 +46,19 @@ export function ActiveSessionCard({
             </div>
             <div className="flex flex-1 flex-col items-center justify-center gap-5 px-2 py-10 text-center">
               <div className="rounded-2xl border border-white/[0.08] bg-[#111] p-6">
-                <ClipboardList className="mx-auto h-11 w-11 text-[#FF9500]" />
+                <ClipboardList className="mx-auto h-11 w-11 text-[var(--neon)]" />
               </div>
               <div>
                 <p className="text-[17px] font-semibold text-white">Wybierz plan</p>
                 <p className="mt-2 max-w-md text-[13px] text-white/45">
-                  Po prawej kliknij <span className="text-[#FF9500]">Rozpocznij trening</span>.
+                  Wybierz plan treningowy z listy, aby wczytać ćwiczenia i zacząć sesję.
                 </p>
               </div>
               {initialPlansEmpty ? (
                 <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
                   <Link
                     href="/workout-plan"
-                    className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#FF9500] px-8 text-sm font-bold text-black hover:brightness-110"
+                    className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--neon)] px-8 text-sm font-bold text-[var(--neon-fg)] hover:brightness-110"
                   >
                     Dodaj plan treningowy
                   </Link>

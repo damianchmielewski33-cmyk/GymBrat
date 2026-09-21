@@ -247,7 +247,7 @@ export function ExerciseProgressClient({
                       return [`${Number(value ?? 0)} kg (${reps} × ${w} kg)`, "e1RM"];
                     }}
                   />
-                  <Line type="monotone" dataKey="bestE1rm" stroke="#ff2d55" strokeWidth={2} dot={{ r: 2.5, fill: "#ff2d55", strokeWidth: 0 }} activeDot={{ r: 5, fill: "#ff2d55", stroke: "#fff", strokeWidth: 2 }} />
+                  <Line type="monotone" dataKey="bestE1rm" stroke="#b8860b" strokeWidth={2} dot={{ r: 2.5, fill: "#b8860b", strokeWidth: 0 }} activeDot={{ r: 5, fill: "#b8860b", stroke: "#fff", strokeWidth: 2 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -271,15 +271,15 @@ export function ExerciseProgressClient({
                 <AreaChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="exTon" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ff2d55" stopOpacity={0.34} />
-                      <stop offset="95%" stopColor="#ff2d55" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#b8860b" stopOpacity={0.34} />
+                      <stop offset="95%" stopColor="#b8860b" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                   <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} axisLine={{ stroke: "rgba(255,255,255,0.1)" }} tickLine={false} />
                   <YAxis allowDecimals={false} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} axisLine={false} tickLine={false} width={44} />
                   <Tooltip contentStyle={tooltipStyle} labelFormatter={(label) => formatShortDate(String(label))} formatter={(value) => [`${Number(value ?? 0)} kg`, "Tonaż"]} />
-                  <Area type="monotone" dataKey="tonnageKg" stroke="#ff2d55" strokeWidth={2} fill="url(#exTon)" dot={{ r: 2.5, fill: "#ff2d55", strokeWidth: 0 }} activeDot={{ r: 5, fill: "#ff2d55", stroke: "#fff", strokeWidth: 2 }} />
+                  <Area type="monotone" dataKey="tonnageKg" stroke="#b8860b" strokeWidth={2} fill="url(#exTon)" dot={{ r: 2.5, fill: "#b8860b", strokeWidth: 0 }} activeDot={{ r: 5, fill: "#b8860b", stroke: "#fff", strokeWidth: 2 }} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
