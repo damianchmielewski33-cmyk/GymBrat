@@ -11,7 +11,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     sha: undefined,
     bullets: [
       "Wszystkie ekrany po zalogowaniu używają tego samego czarno-złotego motywu co logowanie: nawigacja, tło, przyciski i wykresy.",
-      "Odcień złota jest bardziej metaliczny (klasyczne złoto), mniej cytrynowo-żółty niż wcześniejszy akcent.",
+      "Odcień złota jest metaliczny i bursztynowy (darkgoldenrod #b8860b), mniej cytrynowo-żółty niż wcześniejszy akcent.",
       "Usunięto pływający przycisk Rozpocznij trening — start sesji zostaje na ekranie Start i w planie treningowym.",
     ],
   },

@@ -43,7 +43,7 @@ export function WorkoutTrendChart({ data }: { data: WorkoutTrendPoint[] }) {
         >
           <defs>
             <linearGradient id="volGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#c5a028" />
+              <stop offset="0%" stopColor="#b8860b" />
               <stop offset="100%" stopColor="#ff6b8a" />
             </linearGradient>
             <linearGradient id="repsGrad" x1="0" y1="0" x2="1" y2="0">
@@ -104,10 +104,10 @@ export function WorkoutTrendChart({ data }: { data: WorkoutTrendPoint[] }) {
             yAxisId="volume"
             type="monotone"
             dataKey="volumeKg"
-            stroke="#c5a028"
+            stroke="#b8860b"
             strokeWidth={2}
-            dot={{ r: 3, fill: "#c5a028", strokeWidth: 0 }}
-            activeDot={{ r: 5, fill: "#c5a028", stroke: "#fff", strokeWidth: 2 }}
+            dot={{ r: 3, fill: "#b8860b", strokeWidth: 0 }}
+            activeDot={{ r: 5, fill: "#b8860b", stroke: "#fff", strokeWidth: 2 }}
           />
           <Line
             yAxisId="reps"

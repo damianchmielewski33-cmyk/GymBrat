@@ -54,10 +54,10 @@
   --gym-black:   #070708;
   --gym-gray:    #141416;
   --gym-red:     #e60023;
-  /* Classical metallic gold (less lemon-yellow than #e8c547) */
-  --gym-gold:        #c5a028;
-  --gym-gold-bright: #d4af37;
-  --gym-gold-deep:   #8a7018;
+  /* Classical metallic gold — amber/antique, not lemon yellow */
+  --gym-gold:        #b8860b;
+  --gym-gold-bright: #c9a227;
+  --gym-gold-deep:   #7a6210;
   --gym-iron:    #1c1c1f;
   --gym-chrome:  #2e2e33;
   --gym-glass:   rgba(255, 255, 255, 0.07);
@@ -87,9 +87,9 @@
   --border:             rgba(255, 255, 255, 0.10);
   --input:              rgba(255, 255, 255, 0.12);
   /* Focus ring: wyższy kontrast na ciemnym tle (klawiatura / WCAG perception) */
-  --ring:               rgba(212, 175, 55, 0.92);
+  --ring:               rgba(201, 162, 39, 0.92);
 
-  --chart-1: rgba(197, 160, 40, 0.95);
+  --chart-1: rgba(184, 134, 11, 0.95);
   --chart-2: rgba(255, 255, 255, 0.88);
   --chart-3: rgba(255, 255, 255, 0.64);
   --chart-4: rgba(255, 255, 255, 0.44);
@@ -104,27 +104,27 @@
   --sidebar-accent:            rgba(255, 255, 255, 0.07);
   --sidebar-accent-foreground: rgba(255, 255, 255, 0.92);
   --sidebar-border:            rgba(255, 255, 255, 0.10);
-  --sidebar-ring:              rgba(197, 160, 40, 0.55);
+  --sidebar-ring:              rgba(184, 134, 11, 0.55);
 
-  --neon-rgb:   197, 160, 40;
+  --neon-rgb:   184, 134, 11;
   --neon-hover: var(--gym-gold-bright);
   --neon-fg:    #0a0906;
 }
 
 /* Alias kept for auth / panels that already use this class */
 .theme-black-gold {
-  --gym-gold:        #c5a028;
-  --gym-gold-bright: #d4af37;
-  --gym-gold-deep:   #8a7018;
+  --gym-gold:        #b8860b;
+  --gym-gold-bright: #c9a227;
+  --gym-gold-deep:   #7a6210;
   --neon:            var(--gym-gold);
-  --neon-rgb:        197, 160, 40;
+  --neon-rgb:        184, 134, 11;
   --neon-hover:      var(--gym-gold-bright);
   --neon-fg:         #0a0906;
   --primary:         var(--gym-gold);
   --primary-foreground: #0a0906;
-  --ring:            rgba(212, 175, 55, 0.92);
+  --ring:            rgba(201, 162, 39, 0.92);
   --sidebar-primary: var(--gym-gold);
-  --sidebar-ring:    rgba(197, 160, 40, 0.55);
+  --sidebar-ring:    rgba(184, 134, 11, 0.55);
 }
 
 .dark {
@@ -269,9 +269,9 @@
   /* Gold-edged panels (login + app) */
   .gold-panel {
     border-color: rgba(var(--neon-rgb), 0.22);
-    border-top-color: rgba(212, 175, 55, 0.38);
+    border-top-color: rgba(201, 162, 39, 0.38);
     box-shadow:
-      0 1px 0 rgba(212, 175, 55, 0.14) inset,
+      0 1px 0 rgba(201, 162, 39, 0.14) inset,
       0 -1px 0 rgba(0, 0, 0, 0.45) inset,
       0 14px 56px rgba(0, 0, 0, 0.62),
       0 0 40px rgba(var(--neon-rgb), 0.08);
@@ -409,7 +409,7 @@
 
   input[type="range"].score-range:focus-visible::-webkit-slider-thumb {
     box-shadow:
-      0 0 0 3px rgba(212, 175, 55, 0.55),
+      0 0 0 3px rgba(201, 162, 39, 0.55),
       0 1px 3px rgba(0, 0, 0, 0.45),
       0 0 0 1px rgba(0, 0, 0, 0.2) inset;
   }
@@ -437,7 +437,7 @@
 
   input[type="range"].score-range:focus-visible::-moz-range-thumb {
     box-shadow:
-      0 0 0 3px rgba(212, 175, 55, 0.55),
+      0 0 0 3px rgba(201, 162, 39, 0.55),
       0 1px 3px rgba(0, 0, 0, 0.45);
   }
 }

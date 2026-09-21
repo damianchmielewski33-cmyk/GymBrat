@@ -121,10 +121,10 @@ export function WeightRangeChart({ data }: { data: HomeStartWeightPoint[] }) {
               <Line
                 type="monotone"
                 dataKey="kg"
-                stroke="#c5a028"
+                stroke="#b8860b"
                 strokeWidth={2}
-                dot={{ r: 3, fill: "#c5a028", strokeWidth: 0 }}
-                activeDot={{ r: 5, fill: "#c5a028", stroke: "#fff", strokeWidth: 2 }}
+                dot={{ r: 3, fill: "#b8860b", strokeWidth: 0 }}
+                activeDot={{ r: 5, fill: "#b8860b", stroke: "#fff", strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>

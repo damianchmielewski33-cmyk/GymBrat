@@ -46,8 +46,8 @@ export function ReportsCharts({ dailyCardio, weeklySessions }: ReportsChartsProp
               <AreaChart data={dailyCardio} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="neonCardio" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#c5a028" stopOpacity={0.45} />
-                    <stop offset="95%" stopColor="#c5a028" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#b8860b" stopOpacity={0.45} />
+                    <stop offset="95%" stopColor="#b8860b" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -83,11 +83,11 @@ export function ReportsCharts({ dailyCardio, weeklySessions }: ReportsChartsProp
                 <Area
                   type="monotone"
                   dataKey="minutes"
-                  stroke="#c5a028"
+                  stroke="#b8860b"
                   strokeWidth={2}
                   fill="url(#neonCardio)"
-                  dot={{ r: 3, fill: "#c5a028", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#c5a028", stroke: "#fff", strokeWidth: 2 }}
+                  dot={{ r: 3, fill: "#b8860b", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#b8860b", stroke: "#fff", strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
