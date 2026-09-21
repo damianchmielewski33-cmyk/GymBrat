@@ -5,10 +5,7 @@ import { Suspense } from "react";
 export default function RegisterPage() {
   return (
     <div>
-      <AuthHeroBrand
-        headline="Dołącz do GymBrat"
-        support="Załóż profil zawodnika i prowadź treningi w czarno-złotym rytmie siłowni."
-      />
+      <AuthHeroBrand headline="Dołącz do GymBrat" />
       <Suspense fallback={<div className="text-center text-sm text-white/50">Ładowanie…</div>}>
         <RegisterForm />
       </Suspense>

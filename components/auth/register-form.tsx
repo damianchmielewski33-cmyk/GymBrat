@@ -3,7 +3,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -13,11 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ScreenCard, ScreenHeading } from "@/components/layout/screen";
-import {
-  isTrainerFlowEnabled,
-  roleFromSearchParam,
-} from "@/lib/auth-role";
-import { RoleAuthCards } from "@/components/auth/role-auth-cards";
 import {
   activityLevels,
   registerSchema,
@@ -34,22 +28,8 @@ const activityCopy: Record<
 };
 
 export function RegisterForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const trainerEnabled = isTrainerFlowEnabled();
-  const roleFromUrl = roleFromSearchParam(searchParams.get("role"));
-  const role = trainerEnabled ? roleFromUrl : "zawodnik";
   const [rootError, setRootError] = useState<string | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (trainerEnabled) return;
-    if (searchParams.get("role") === "trener") {
-      const next = new URLSearchParams(searchParams.toString());
-      next.set("role", "zawodnik");
-      router.replace(`/register?${next.toString()}`);
-    }
-  }, [trainerEnabled, searchParams, router]);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -132,7 +112,6 @@ export function RegisterForm() {
       sign = await signIn("credentials", {
         email: values.email.trim().toLowerCase(),
         password: values.password,
-        role: values.role,
         redirect: false,
         callbackUrl: "/start-workout",
       });
@@ -167,18 +146,6 @@ export function RegisterForm() {
         />
 
         <div className="space-y-6">
-          <RoleAuthCards
-            role={role}
-            onSelectRole={(next) => {
-              if (!trainerEnabled && next === "trener") return;
-              const nextParams = new URLSearchParams(searchParams.toString());
-              nextParams.set("role", next);
-              router.replace(`/register?${nextParams.toString()}`);
-            }}
-            trainerLocked={!trainerEnabled}
-            heading="Tworzysz konto jako"
-          />
-
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
             {rootError ? (
               <p
@@ -502,7 +469,7 @@ export function RegisterForm() {
             <p className="text-center text-sm text-white/55">
               Masz już konto?{" "}
               <Link
-                href="/login?role=zawodnik"
+                href="/login"
                 className="rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
               >
                 Zaloguj się

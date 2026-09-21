@@ -10,7 +10,7 @@ export function AuthHeroBrand({
   support,
 }: {
   headline: string;
-  support: string;
+  support?: string;
 }) {
   return (
     <div className="mb-8 text-center sm:mb-10">
@@ -38,14 +38,16 @@ export function AuthHeroBrand({
         {headline}
       </motion.h1>
 
-      <motion.p
-        className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-white/60 sm:text-base"
-        initial={{ opacity: 1, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, delay: 0.22, ease: easeOut }}
-      >
-        {support}
-      </motion.p>
+      {support ? (
+        <motion.p
+          className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-white/60 sm:text-base"
+          initial={{ opacity: 1, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.22, ease: easeOut }}
+        >
+          {support}
+        </motion.p>
+      ) : null}
 
       <motion.div
         aria-hidden

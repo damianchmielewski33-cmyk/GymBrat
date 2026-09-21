@@ -125,6 +125,11 @@ CREATE TABLE IF NOT EXISTS "admin_audit_log" (
   await db.$client.execute(
     `CREATE INDEX IF NOT EXISTS "idx_admin_audit_created" ON "admin_audit_log" ("created_at")`,
   );
+
+  // Rola konta „trener” została usunięta z produktu — normalizacja do zawodnika.
+  await client.execute(
+    `UPDATE "users" SET "app_role" = 'zawodnik' WHERE "app_role" = 'trener'`,
+  );
 }
 
 let mealLogsEnsured = false;

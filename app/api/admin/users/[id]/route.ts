@@ -13,7 +13,7 @@ export const runtime = "nodejs";
 
 const patchSchema = z
   .object({
-    appRole: z.enum(["zawodnik", "trener"]).optional(),
+    appRole: z.enum(["zawodnik"]).optional(),
     aiEntitled: z.boolean().optional(),
   })
   .refine((v) => v.appRole !== undefined || v.aiEntitled !== undefined, {

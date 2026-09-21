@@ -1,53 +1,23 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
-import { RoleAuthCards } from "@/components/auth/role-auth-cards";
 import { InlineBanner } from "@/components/ui/inline-banner";
-import {
-  isTrainerFlowEnabled,
-  roleFromSearchParam,
-  type AppRole,
-} from "@/lib/auth-role";
-
-/** @deprecated użyj AppRole z @/lib/auth-role */
-export type LoginRole = AppRole;
 
 export function LoginForm() {
-  const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") ?? "/";
   const registered = params.get("registered");
-  const trainerEnabled = isTrainerFlowEnabled();
-  const roleFromUrl = roleFromSearchParam(params.get("role"));
-  const role: AppRole = trainerEnabled ? roleFromUrl : "zawodnik";
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
 
-  useEffect(() => {
-    if (trainerEnabled) return;
-    if (params.get("role") === "trener") {
-      const next = new URLSearchParams(params.toString());
-      next.set("role", "zawodnik");
-      router.replace(`/login?${next.toString()}`);
-    }
-  }, [trainerEnabled, params, router]);
-
-  function onSelectRole(next: AppRole) {
-    if (!trainerEnabled && next === "trener") return;
-    const nextParams = new URLSearchParams(params.toString());
-    nextParams.set("role", next);
-    router.replace(`/login?${nextParams.toString()}`);
-  }
-
-  const registerHref = "/register?role=zawodnik";
   const hasBanner = Boolean(registered && !error) || Boolean(error);
 
   return (
@@ -65,7 +35,6 @@ export function LoginForm() {
             const res = await signIn("credentials", {
               email,
               password,
-              role,
               redirect: false,
               callbackUrl,
             });
@@ -74,9 +43,7 @@ export function LoginForm() {
               return;
             }
             if (res.error) {
-              setError(
-                "Nieprawidłowy e-mail lub hasło, albo typ konta (zawodnik / trener) nie zgadza się z profilem.",
-              );
+              setError("Nieprawidłowy e-mail lub hasło.");
               return;
             }
             if (!res.ok) {
@@ -99,13 +66,6 @@ export function LoginForm() {
         });
       }}
     >
-      <RoleAuthCards
-        role={role}
-        onSelectRole={onSelectRole}
-        trainerLocked={!trainerEnabled}
-        heading="Logujesz się jako"
-      />
-
       {hasBanner ? (
         <div className="space-y-2">
           {registered && !error ? (
@@ -179,16 +139,12 @@ export function LoginForm() {
         aria-busy={pending}
         className="w-full"
       >
-        {pending
-          ? "Logowanie…"
-          : role === "trener"
-            ? "Zaloguj się jako trener"
-            : "Zaloguj się jako zawodnik"}
+        {pending ? "Logowanie…" : "Zaloguj się"}
       </Button>
       <p className="text-center text-sm text-white/55">
         Nie masz konta?{" "}
         <Link
-          href={registerHref}
+          href="/register"
           className="rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
         >
           Utwórz konto

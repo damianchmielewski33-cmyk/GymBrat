@@ -26,14 +26,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        role: { label: "Role", type: "text" },
       },
       async authorize(credentials) {
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
-        const rawRole = credentials?.role as string | undefined;
-        const role: "zawodnik" | "trener" =
-          rawRole === "trener" ? "trener" : "zawodnik";
         if (!email || !password) return null;
 
         const db = getDb();
@@ -67,16 +63,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           };
         }
 
-        const storedRaw = user.appRole ?? "zawodnik";
-        const storedRole = storedRaw === "trener" ? "trener" : "zawodnik";
-
-        if (storedRole !== role) return null;
+        // Legacy „trener” → zawodnik (rola konta trenera została usunięta).
+        if (user.appRole === "trener") {
+          await db
+            .update(users)
+            .set({ appRole: "zawodnik" })
+            .where(eq(users.id, user.id));
+        }
 
         return {
           id: user.id,
           email: user.email,
           name: user.name ?? undefined,
-          role: storedRole,
+          role: "zawodnik",
         };
       },
     }),
@@ -97,7 +96,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.sub = uid;
       }
       if (user && "role" in user && user.role) {
-        token.role = user.role as "zawodnik" | "trener" | "admin";
+        token.role = user.role as "zawodnik" | "admin";
+      } else if ((token.role as string | undefined) === "trener") {
+        token.role = "zawodnik";
       }
       return token;
     },
@@ -107,9 +108,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           (typeof token.id === "string" ? token.id : undefined) ??
           (typeof token.sub === "string" ? token.sub : undefined);
         if (id) session.user.id = id;
-        session.user.role =
-          (token.role as "zawodnik" | "trener" | "admin" | undefined) ??
-          "zawodnik";
+        const raw = token.role as string | undefined;
+        session.user.role = raw === "admin" ? "admin" : "zawodnik";
       }
       return session;
     },

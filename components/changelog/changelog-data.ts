@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — usunięcie konta trenera",
+    date: "2026-09-21",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Z logowania i rejestracji usunięto wybór roli trenera — zostaje wyłącznie konto zawodnika.",
+      "W panelu administratora nie można już nadawać roli trenera; istniejące konta trenera są normalizowane do zawodnika.",
+      "Logowanie nie wymaga już dopasowania typu konta zawodnik/trener — autoryzacja opiera się na e-mailu i haśle.",
+      "Z ekranów logowania i rejestracji usunięto marketingowy podpis pod marką (m.in. tekst o planach, historii, makro i coachingu).",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -5,10 +5,7 @@ import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
 export default function LoginPage() {
   return (
     <div>
-      <AuthHeroBrand
-        headline="Twoje centrum treningowe"
-        support="Plany, historie, makro i coaching — w czerni żelaza i złocie ciężarów."
-      />
+      <AuthHeroBrand headline="Twoje centrum treningowe" />
 
       <div className="glass-panel gold-panel relative overflow-hidden p-6 sm:p-8">
         <div
