@@ -29,8 +29,8 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
         {/* Black–gold atmosphere overlays */}
         <div className="absolute inset-0 bg-[#070708]/72" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_1200px_800px_at_12%_18%,rgba(212,175,55,0.28),transparent_58%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_900px_700px_at_88%_88%,rgba(180,140,40,0.16),transparent_55%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_1200px_800px_at_12%_18%,rgba(var(--neon-rgb),0.28),transparent_58%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_900px_700px_at_88%_88%,rgba(138,112,24,0.16),transparent_55%)]" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/55 to-[#070708]/35" />
         <div className="absolute inset-0 opacity-[0.09] grain-overlay" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.55)_100%)]" />

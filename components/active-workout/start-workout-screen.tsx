@@ -166,7 +166,7 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
                     </div>
                     <Link
                       href="/workout-plan"
-                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--neon)] px-5 text-base font-semibold text-white transition hover:bg-[#ff4d6d]"
+                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--neon)] px-5 text-base font-semibold text-[var(--neon-fg)] transition hover:bg-[var(--neon-hover)]"
                     >
                       Utwórz plan
                     </Link>
@@ -249,7 +249,7 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
                 )}
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.06]">
-                  <Pencil className="h-4 w-4 text-[#FF9500]" aria-hidden />
+                  <Pencil className="h-4 w-4 text-[var(--neon)]" aria-hidden />
                 </span>
                 <span className="min-w-0">
                   <span className="block font-medium">Edytuj plany</span>

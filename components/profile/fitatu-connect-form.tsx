@@ -67,7 +67,7 @@ export function FitatuConnectForm({ connected }: { connected: boolean }) {
             {loginState?.error ? (
               <p className="text-sm text-rose-300/90">{loginState.error}</p>
             ) : null}
-            <SubmitButton className="bg-[var(--neon)] text-white hover:bg-[#ff4d6d]">
+            <SubmitButton className="bg-[var(--neon)] text-[var(--neon-fg)] hover:bg-[var(--neon-hover)]">
               <Link2 className="mr-2 h-4 w-4" />
               Zaloguj i połącz
             </SubmitButton>
