@@ -23,7 +23,7 @@ export const users = sqliteTable("users", {
   heightCm: integer("height_cm"),
   age: integer("age"),
   activityLevel: text("activity_level"),
-  /** `zawodnik` | `trener` | `admin` — admin ustawiany przez ADMIN_EMAILS, bootstrap lub panel. */
+  /** `zawodnik` | `admin` — admin ustawiany przez ADMIN_EMAILS, bootstrap lub panel. */
   appRole: text("app_role").notNull().default("zawodnik"),
   fitatuAccessToken: text("fitatu_access_token"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })

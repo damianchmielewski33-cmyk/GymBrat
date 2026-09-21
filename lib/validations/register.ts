@@ -41,7 +41,7 @@ export const registerSchema = z.object({
   activityLevel: z.enum(activityLevels, {
     message: "Wybierz poziom aktywności",
   }),
-  /** Na razie rejestracja tylko jako zawodnik (trener — w przyszłości). */
+  /** Na razie rejestracja wyłącznie jako zawodnik. */
   role: z.literal("zawodnik"),
 });
 

@@ -49,7 +49,7 @@ export function AdminUsersClient() {
     void load();
   }, [load]);
 
-  async function setRole(id: string, appRole: "zawodnik" | "trener") {
+  async function setRole(id: string, appRole: "zawodnik") {
     await ensureCsrfCookie();
     const res = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {
       method: "PATCH",
@@ -122,7 +122,7 @@ export function AdminUsersClient() {
         <p className="mt-1 text-sm text-white/55">
           Administratorem jest konto z rolą w bazie (`admin`) lub adres z listy{" "}
           <span className="font-mono text-white/70">ADMIN_EMAILS</span>. Pozostałym kontom możesz
-          nadać rolę zawodnika lub trenera oraz je usuwać (pierwszy admin w bazie jest chroniony przed
+          nadać rolę zawodnika oraz je usuwać (pierwszy admin w bazie jest chroniony przed
           utratą roli i usunięciem).
         </p>
       </div>
@@ -200,9 +200,6 @@ export function AdminUsersClient() {
                             >
                               <DropdownMenuItem onClick={() => void setRole(u.id, "zawodnik")}>
                                 Ustaw: zawodnik
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => void setRole(u.id, "trener")}>
-                                Ustaw: trener
                               </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => void setAiEntitled(u.id, !entitled)}
