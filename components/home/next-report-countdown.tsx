@@ -19,19 +19,22 @@ export function NextReportCountdown({
   daysUntil,
   isDue,
   lastReportDateKey,
+  intervalDays,
 }: {
   daysUntil: number;
   isDue: boolean;
   lastReportDateKey: string | null;
+  intervalDays: number;
 }) {
   const lastLabel = formatLastReport(lastReportDateKey);
   const unit = formatDaysUntilLabel(daysUntil);
+  const cycleUnit = formatDaysUntilLabel(intervalDays);
 
   const hint = !lastReportDateKey
     ? "Brak raportu — dodaj pierwszy pomiar sylwetki."
     : isDue
       ? `Ostatni raport: ${lastLabel}. Czas na kolejny.`
-      : `Ostatni raport: ${lastLabel}. Cykl co 7 dni.`;
+      : `Ostatni raport: ${lastLabel}. Cykl co ${intervalDays} ${cycleUnit}.`;
 
   return (
     <section className="glass-panel relative overflow-hidden p-5 sm:p-6">

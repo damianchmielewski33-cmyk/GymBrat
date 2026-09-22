@@ -286,6 +286,10 @@ export const userSettings = sqliteTable("user_settings", {
   weeklyCardioGoalMinutes: integer("weekly_cardio_goal_minutes")
     .notNull()
     .default(150),
+  /** Co ile dni kalendarzowych tworzyć kolejny raport ciała (suwak w Profilu). */
+  bodyReportIntervalDays: integer("body_report_interval_days")
+    .notNull()
+    .default(7),
   /** JSON: { calories, proteinG, fatG, carbsG } — cele na dzień treningowy */
   trainingNutritionGoalsJson: text("training_nutrition_goals_json"),
   /** JSON: { calories, proteinG, fatG, carbsG } — cele na dzień nietreningowy */

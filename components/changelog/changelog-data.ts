@@ -10,7 +10,8 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     sha: undefined,
     bullets: [
-      "Po zalogowaniu na ekranie Start widać odliczanie dni do kolejnego raportu ciała (cykl co 7 dni od ostatniego raportu).",
+      "Po zalogowaniu na ekranie Start widać odliczanie dni do kolejnego raportu ciała od daty ostatniego raportu.",
+      "W Profilu suwakiem ustawiasz, co ile dni ma powstawać raport (od 3 do 28) — Start korzysta z tego cyklu.",
       "Gdy termin minął albo nie ma jeszcze raportu, kafelek zachęca do dodania raportu i prowadzi do sekcji Raporty.",
     ],
   },

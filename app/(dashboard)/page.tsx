@@ -62,6 +62,7 @@ export default async function HomePage() {
         daysUntil={dash.nextReport.daysUntil}
         isDue={dash.nextReport.isDue}
         lastReportDateKey={dash.nextReport.lastReportDateKey}
+        intervalDays={dash.nextReport.intervalDays}
       />
 
       <StartMetricTiles

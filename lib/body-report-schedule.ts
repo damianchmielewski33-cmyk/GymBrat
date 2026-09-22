@@ -2,17 +2,31 @@ import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
 
 /** Domyślny odstęp między raportami ciała (dni kalendarzowe). */
 export const BODY_REPORT_INTERVAL_DAYS = 7;
+export const BODY_REPORT_INTERVAL_MIN = 3;
+export const BODY_REPORT_INTERVAL_MAX = 28;
 
 export type NextBodyReportCountdown = {
   /** Ile pełnych dni zostało do terminu (≥ 0). */
   daysUntil: number;
   /** Termin minął albo nigdy nie było raportu. */
   isDue: boolean;
+  /** Użyty cykl (po clamp). */
+  intervalDays: number;
   /** YYYY-MM-DD ostatniego raportu albo null. */
   lastReportDateKey: string | null;
   /** YYYY-MM-DD planowanego kolejnego raportu albo null (gdy brak historii). */
   nextReportDateKey: string | null;
 };
+
+export function clampBodyReportIntervalDays(n: unknown): number {
+  if (n == null || n === "") return BODY_REPORT_INTERVAL_DAYS;
+  const v = typeof n === "number" ? n : Number(n);
+  if (!Number.isFinite(v)) return BODY_REPORT_INTERVAL_DAYS;
+  return Math.min(
+    BODY_REPORT_INTERVAL_MAX,
+    Math.max(BODY_REPORT_INTERVAL_MIN, Math.round(v)),
+  );
+}
 
 /** Różnica dni kalendarzowych: toKey − fromKey. */
 export function calendarDaysBetween(fromKey: string, toKey: string): number {
@@ -39,12 +53,15 @@ export function getNextBodyReportCountdown(
   },
 ): NextBodyReportCountdown {
   const todayKey = opts?.todayKey ?? calendarDateKey();
-  const intervalDays = opts?.intervalDays ?? BODY_REPORT_INTERVAL_DAYS;
+  const intervalDays = clampBodyReportIntervalDays(
+    opts?.intervalDays ?? BODY_REPORT_INTERVAL_DAYS,
+  );
 
   if (lastReportAt == null) {
     return {
       daysUntil: 0,
       isDue: true,
+      intervalDays,
       lastReportDateKey: null,
       nextReportDateKey: null,
     };
@@ -58,6 +75,7 @@ export function getNextBodyReportCountdown(
     return {
       daysUntil: 0,
       isDue: true,
+      intervalDays,
       lastReportDateKey: null,
       nextReportDateKey: null,
     };
@@ -71,6 +89,7 @@ export function getNextBodyReportCountdown(
   return {
     daysUntil,
     isDue: daysUntil === 0,
+    intervalDays,
     lastReportDateKey,
     nextReportDateKey,
   };

@@ -4,6 +4,7 @@ import {
   bodyReportPhotos,
   bodyReports,
   trainingSessions,
+  userSettings,
   users,
   weightLogs,
   workoutPlans,
@@ -325,6 +326,7 @@ export async function getHomeStartDashboard(
     transformation,
     dimensions,
     latestReport,
+    settingsInterval,
   ] = await Promise.all([
     db
       .select({
@@ -347,6 +349,12 @@ export async function getHomeStartDashboard(
     getTransformationPhotos(userId),
     getLatestDimensions(userId),
     getLatestBodyReportMetrics(userId),
+    db
+      .select({ bodyReportIntervalDays: userSettings.bodyReportIntervalDays })
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
   ]);
 
   const firstName =
@@ -386,6 +394,7 @@ export async function getHomeStartDashboard(
     },
     nextReport: getNextBodyReportCountdown(latestReport?.createdAt ?? null, {
       todayKey,
+      intervalDays: settingsInterval?.bodyReportIntervalDays,
     }),
   };
 }
