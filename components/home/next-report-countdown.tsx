@@ -45,8 +45,8 @@ export function NextReportCountdown({
             </p>
           </div>
           <p className="font-heading mt-2 text-3xl font-semibold tabular-nums text-white sm:text-4xl">
-            {daysUntil}
-            <span className="ml-2 text-lg font-medium text-white/50 sm:text-xl">
+            {daysUntil}{" "}
+            <span className="text-lg font-medium text-white/50 sm:text-xl">
               {unit}
             </span>
           </p>
