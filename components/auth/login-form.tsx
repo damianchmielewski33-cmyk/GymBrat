@@ -1,8 +1,10 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +17,11 @@ import {
   roleFromSearchParam,
   type AppRole,
 } from "@/lib/auth-role";
+import { cn } from "@/lib/utils";
+import {
+  loginSchema,
+  type LoginFormValues,
+} from "@/lib/validations/login";
 
 /** @deprecated użyj AppRole z @/lib/auth-role */
 export type LoginRole = AppRole;
@@ -28,8 +35,21 @@ export function LoginForm() {
   const roleFromUrl = roleFromSearchParam(params.get("role"));
   const role: AppRole = trainerEnabled ? roleFromUrl : "zawodnik";
   const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
+
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = form;
 
   useEffect(() => {
     if (trainerEnabled) return;
@@ -47,57 +67,61 @@ export function LoginForm() {
     router.replace(`/login?${nextParams.toString()}`);
   }
 
+  async function onSubmit(values: LoginFormValues) {
+    setError(null);
+    try {
+      const res = await signIn("credentials", {
+        email: values.email.trim(),
+        password: values.password,
+        role,
+        redirect: false,
+        callbackUrl,
+      });
+      if (!res) {
+        setError("Brak odpowiedzi serwera przy logowaniu.");
+        return;
+      }
+      if (res.error) {
+        setError(
+          "Nieprawidłowy e-mail lub hasło, albo typ konta (zawodnik / trener) nie zgadza się z profilem.",
+        );
+        return;
+      }
+      if (!res.ok) {
+        setError("Nie udało się zalogować. Spróbuj ponownie za chwilę.");
+        return;
+      }
+      try {
+        const target = new URL(callbackUrl, window.location.origin).href;
+        window.location.assign(target);
+      } catch {
+        window.location.assign(`${window.location.origin}/`);
+      }
+    } catch {
+      setError("Logowanie nie powiodło się. Spróbuj ponownie za chwilę.");
+    }
+  }
+
   const registerHref = "/register?role=zawodnik";
   const hasBanner = Boolean(registered && !error) || Boolean(error);
+  const emailDescribedBy = [
+    errors.email ? "login-error-email" : "",
+    hasBanner ? "login-banner" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const passwordDescribedBy = [
+    errors.password ? "login-error-password" : "",
+    hasBanner ? "login-banner" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <form
       className="space-y-6"
       noValidate
-      onSubmit={(e) => {
-        e.preventDefault();
-        const fd = new FormData(e.currentTarget);
-        const email = String(fd.get("email") ?? "");
-        const password = String(fd.get("password") ?? "");
-        setError(null);
-        start(async () => {
-          try {
-            const res = await signIn("credentials", {
-              email,
-              password,
-              role,
-              redirect: false,
-              callbackUrl,
-            });
-            if (!res) {
-              setError("Brak odpowiedzi serwera przy logowaniu.");
-              return;
-            }
-            if (res.error) {
-              setError(
-                "Nieprawidłowy e-mail lub hasło, albo typ konta (zawodnik / trener) nie zgadza się z profilem.",
-              );
-              return;
-            }
-            if (!res.ok) {
-              setError(
-                "Nie udało się zalogować. Spróbuj ponownie za chwilę.",
-              );
-              return;
-            }
-            try {
-              const target = new URL(callbackUrl, window.location.origin).href;
-              window.location.assign(target);
-            } catch {
-              window.location.assign(`${window.location.origin}/`);
-            }
-          } catch {
-            setError(
-              "Logowanie nie powiodło się. Spróbuj ponownie za chwilę.",
-            );
-          }
-        });
-      }}
+      onSubmit={handleSubmit(onSubmit)}
     >
       <RoleAuthCards
         role={role}
@@ -134,13 +158,18 @@ export function LoginForm() {
         </Label>
         <Input
           id="email"
-          name="email"
           type="email"
-          required
           autoComplete="email"
-          aria-invalid={error ? true : undefined}
-          aria-describedby={hasBanner ? "login-banner" : undefined}
+          aria-invalid={errors.email ? true : undefined}
+          aria-describedby={emailDescribedBy || undefined}
+          className={cn(errors.email && "border-destructive")}
+          {...register("email")}
         />
+        {errors.email ? (
+          <p id="login-error-email" className="text-xs text-red-100">
+            {errors.email.message}
+          </p>
+        ) : null}
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">
@@ -149,13 +178,12 @@ export function LoginForm() {
         <div className="relative">
           <Input
             id="password"
-            name="password"
             type={showPassword ? "text" : "password"}
-            required
             autoComplete="current-password"
-            aria-invalid={error ? true : undefined}
-            aria-describedby={hasBanner ? "login-banner" : undefined}
-            className="pr-12"
+            aria-invalid={errors.password ? true : undefined}
+            aria-describedby={passwordDescribedBy || undefined}
+            className={cn("pr-12", errors.password && "border-destructive")}
+            {...register("password")}
           />
           <button
             type="button"
@@ -171,15 +199,20 @@ export function LoginForm() {
             )}
           </button>
         </div>
+        {errors.password ? (
+          <p id="login-error-password" className="text-xs text-red-100">
+            {errors.password.message}
+          </p>
+        ) : null}
       </div>
       <Button
         type="submit"
         variant="cta"
-        disabled={pending}
-        aria-busy={pending}
+        disabled={isSubmitting}
+        aria-busy={isSubmitting}
         className="w-full"
       >
-        {pending
+        {isSubmitting
           ? "Logowanie…"
           : role === "trener"
             ? "Zaloguj się jako trener"

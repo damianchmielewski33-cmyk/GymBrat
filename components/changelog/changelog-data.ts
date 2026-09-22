@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — walidacja pól na logowaniu",
+    date: "2026-09-22",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Na ekranie logowania e-mail i hasło są sprawdzane przed wysłaniem formularza.",
+      "Puste hasło oraz niepoprawny lub pusty e-mail pokazują jasny komunikat przy polu, bez odpytywania serwera.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
