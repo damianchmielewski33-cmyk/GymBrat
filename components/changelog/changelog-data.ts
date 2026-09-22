@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — dni do kolejnego raportu na Starcie",
+    date: "2026-09-22",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Po zalogowaniu na ekranie Start widać odliczanie dni do kolejnego raportu ciała od daty ostatniego raportu.",
+      "W Profilu suwakiem ustawiasz, co ile dni ma powstawać raport (od 3 do 28) — Start korzysta z tego cyklu.",
+      "Gdy termin minął albo nie ma jeszcze raportu, kafelek zachęca do dodania raportu i prowadzi do sekcji Raporty.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

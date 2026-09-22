@@ -12,9 +12,14 @@ import { NutritionPlanSection } from "@/components/profile/nutrition-plan-sectio
 import { DataRightsCard } from "@/components/profile/data-rights-card";
 import { ReminderSettingsCard } from "@/components/profile/reminder-settings-card";
 import { FitnessGoalsForm } from "@/components/profile/fitness-goals-form";
+import { BodyReportIntervalCard } from "@/components/profile/body-report-interval-card";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { parseRemindersJson } from "@/lib/reminders-types";
 import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
+import {
+  BODY_REPORT_INTERVAL_DAYS,
+  clampBodyReportIntervalDays,
+} from "@/lib/body-report-schedule";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { LocaleSwitchCard } from "@/components/profile/locale-switch-card";
 import { AndroidAppVersionCard } from "@/components/android-app-version-card";
@@ -48,6 +53,7 @@ export default async function ProfilePage() {
   const [s] = await db
     .select({
       goal: userSettings.weeklyCardioGoalMinutes,
+      bodyReportIntervalDays: userSettings.bodyReportIntervalDays,
       trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
       restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
       nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
@@ -152,6 +158,14 @@ export default async function ProfilePage() {
         <div className="grid gap-6 lg:col-span-2 lg:grid-cols-2">
           <ReminderSettingsCard initial={parseRemindersJson(s?.remindersJson ?? null)} />
           <FitnessGoalsForm initial={parseFitnessGoalsJson(s?.fitnessGoalsJson ?? null)} />
+        </div>
+
+        <div className="lg:col-span-2">
+          <BodyReportIntervalCard
+            initialIntervalDays={clampBodyReportIntervalDays(
+              s?.bodyReportIntervalDays ?? BODY_REPORT_INTERVAL_DAYS,
+            )}
+          />
         </div>
 
         <div className="lg:col-span-2">

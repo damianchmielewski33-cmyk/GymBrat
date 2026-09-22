@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { DimensionTiles } from "@/components/home/dimension-tiles";
+import { NextReportCountdown } from "@/components/home/next-report-countdown";
 import { NextWorkoutTile } from "@/components/home/next-workout-tile";
 import { OnboardingBanner } from "@/components/home/onboarding-banner";
 import { StartMetricTiles } from "@/components/home/start-metric-tiles";
@@ -55,6 +56,13 @@ export default async function HomePage() {
         workoutsThisWeek={dash.workoutsThisWeek}
         cardioThisWeekMinutes={dash.cardioThisWeekMinutes}
         workoutStreakDays={dash.workoutStreakDays}
+      />
+
+      <NextReportCountdown
+        daysUntil={dash.nextReport.daysUntil}
+        isDue={dash.nextReport.isDue}
+        lastReportDateKey={dash.nextReport.lastReportDateKey}
+        intervalDays={dash.nextReport.intervalDays}
       />
 
       <StartMetricTiles
