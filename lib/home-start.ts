@@ -10,6 +10,11 @@ import {
   workouts,
 } from "@/db/schema";
 import { maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
+import {
+  getNextBodyReportCountdown,
+  type NextBodyReportCountdown,
+} from "@/lib/body-report-schedule";
+import { getLatestBodyReportMetrics } from "@/lib/body-reports";
 import { getWeeklyCardioProgress } from "@/lib/cardio";
 import { getHomeStats } from "@/lib/home-stats";
 import {
@@ -49,6 +54,7 @@ export type HomeStartDashboard = {
     armCm: number | null;
     abdomenCm: number | null;
   };
+  nextReport: NextBodyReportCountdown;
 };
 
 async function sumCardioMinutesInCalendarWeek(
@@ -318,6 +324,7 @@ export async function getHomeStartDashboard(
     weightSeries,
     transformation,
     dimensions,
+    latestReport,
   ] = await Promise.all([
     db
       .select({
@@ -339,6 +346,7 @@ export async function getHomeStartDashboard(
     getWeightSeries(userId),
     getTransformationPhotos(userId),
     getLatestDimensions(userId),
+    getLatestBodyReportMetrics(userId),
   ]);
 
   const firstName =
@@ -376,6 +384,9 @@ export async function getHomeStartDashboard(
       armCm: dimensions.armCm,
       abdomenCm: dimensions.abdomenCm,
     },
+    nextReport: getNextBodyReportCountdown(latestReport?.createdAt ?? null, {
+      todayKey,
+    }),
   };
 }
 
