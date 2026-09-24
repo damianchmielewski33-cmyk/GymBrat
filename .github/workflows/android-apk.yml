@@ -105,25 +105,13 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk dist/gymbrat.apk
+          cp dist/gymbrat.apk public/gymbrat.apk
           VERSION_CODE=$(grep -E '^\s*versionCode\s*=' android/app/build.gradle.kts | head -1 | grep -oE '[0-9]+')
           VERSION_NAME=$(grep -E '^\s*versionName\s*=' android/app/build.gradle.kts | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
-          APK_URL="https://github.com/${{ github.repository }}/releases/download/android-latest/gymbrat.apk"
-          python3 - <<PY
-          import json
-          info = {
-            "versionCode": int("${VERSION_CODE}"),
-            "versionName": "${VERSION_NAME}",
-            "apkUrl": "${APK_URL}",
-            "releasedAt": __import__("datetime").datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "commit": "${{ github.sha }}",
-            "notes": "Aplikacja Android GymBrat (WebView, Java).",
-          }
-          open("dist/android-version.json","w",encoding="utf-8").write(json.dumps(info, indent=2)+"\n")
-          open("public/android-version.json","w",encoding="utf-8").write(json.dumps(info, indent=2)+"\n")
-          open("java-backend/src/main/resources/android-version.json","w",encoding="utf-8").write(json.dumps(info, indent=2)+"\n")
-          print(json.dumps(info, indent=2))
-          PY
-          ls -lh dist/gymbrat.apk
+          export VERSION_CODE VERSION_NAME
+          export GIT_SHA="${{ github.sha }}"
+          python3 scripts/write-android-version.py
+          ls -lh dist/gymbrat.apk public/gymbrat.apk public/android-version.json
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4

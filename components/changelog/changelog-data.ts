@@ -5,13 +5,24 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — Android APK 0.1.1 na produkcji",
+    date: "2026-09-24",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Opublikowano gymbrat.apk w wersji 0.1.1 (versionCode 2) pod https://gym-brat.vercel.app/gymbrat.apk — start od /login i trwała sesja cookies.",
+      "Zaktualizowano /.well-known/assetlinks.json pod podpis tej kompilacji oraz public/android-version.json.",
+      "Workflow GitHub Actions „Build Android APK” jest w repozytorium; po merge do master zbuduje Release android-latest automatycznie.",
+    ],
+  },
+  {
     title: "2026-09 — Android start bez zbędnego 307 na /",
     date: "2026-09-24",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     sha: undefined,
     bullets: [
       "GET / bez sesji w WebView GymBrat nie robi już 307 na /login w logach Vercel — serwer oddaje ekran logowania przez rewrite (200).",
-      "W kodzie APK (android/) start bez sesji idzie od razu na /login, a CookieManager.flush zapisuje sesję NextAuth po restarcie (wymaga przebudowy APK).",
+      "W kodzie APK start bez sesji idzie od razu na /login, a CookieManager.flush zapisuje sesję NextAuth po restarcie.",
       "Sam 307 dla zwykłej przeglądarki bez logowania nadal jest zamierzony: chronione trasy wymagają konta.",
     ],
   },
