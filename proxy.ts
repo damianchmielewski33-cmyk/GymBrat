@@ -22,9 +22,14 @@ export async function proxy(req: NextRequest) {
 
   /**
    * Aktualizacje APK: natywna aplikacja Android nie ma sesji NextAuth.
-   * Bez tego GET /api/android/version ląduje na HTML logowania.
+   * Bez tego GET /api/android/version i /gymbrat.apk lądują na HTML logowania
+   * (wtedy „APK” to strona logowania i instalacja / uruchomienie pada).
    */
-  if (pathname.startsWith("/api/android/") || pathname === "/android-version.json") {
+  if (
+    pathname.startsWith("/api/android/") ||
+    pathname === "/android-version.json" ||
+    pathname.endsWith(".apk")
+  ) {
     return NextResponse.next();
   }
 
@@ -82,6 +87,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth|api/android|_next/static|_next/image|favicon.ico|manifest.webmanifest|android-version.json|sw.js|workbox.*|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/auth|api/android|_next/static|_next/image|favicon.ico|manifest.webmanifest|android-version.json|sw.js|workbox.*|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|apk)$).*)",
   ],
 };
