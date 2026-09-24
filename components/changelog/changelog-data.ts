@@ -6,7 +6,7 @@ export type ChangelogEntry = ChangelogSourceEntry;
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     title: "2026-09 — analytics i WebView Android bez błędu Origin",
-    date: "2026-09-19",
+    date: "2026-09-24",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     sha: undefined,
     bullets: [
