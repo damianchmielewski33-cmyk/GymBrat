@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — publiczne Asset Links dla Android",
+    date: "2026-09-24",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "GET /.well-known/assetlinks.json jest publiczny (bez 307 na logowanie), żeby GoogleAssociationService mógł zweryfikować App Links GymBrat.",
+      "Plik zawiera package_name pl.gymbrat.app oraz odcisk SHA-256 certyfikatu podpisu aktualnego gymbrat.apk.",
+    ],
+  },
+  {
     title: "2026-09 — Android WebView bez fałszywego błędu",
     date: "2026-09-24",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

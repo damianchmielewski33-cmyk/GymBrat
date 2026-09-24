@@ -33,6 +33,14 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  /**
+   * Digital Asset Links / App Links — GoogleAssociationService musi dostać 200 JSON,
+   * nie 307 na /login (inaczej weryfikacja App Links pada).
+   */
+  if (pathname.startsWith("/.well-known/")) {
+    return NextResponse.next();
+  }
+
   /** Publiczny provenance wdrożenia — wyłącznie z repozytorium GymBrat. */
   if (pathname === "/api/version") {
     return NextResponse.next();
@@ -87,6 +95,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth|api/android|_next/static|_next/image|favicon.ico|manifest.webmanifest|android-version.json|sw.js|workbox.*|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|apk)$).*)",
+    "/((?!api/auth|api/android|_next/static|_next/image|favicon.ico|manifest.webmanifest|android-version.json|sw.js|workbox.*|\\.well-known/.*|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|apk)$).*)",
   ],
 };
