@@ -17,6 +17,7 @@ import { parseRemindersJson } from "@/lib/reminders-types";
 import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { LocaleSwitchCard } from "@/components/profile/locale-switch-card";
+import { AndroidAppDownloadCard } from "@/components/android-app-download-card";
 import { AndroidAppVersionCard } from "@/components/android-app-version-card";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
 import { AiFeaturesSettingsCard } from "@/components/profile/ai-features-settings-card";
@@ -93,6 +94,7 @@ export default async function ProfilePage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="lg:col-span-2">
+          <AndroidAppDownloadCard />
           <AndroidAppVersionCard />
         </div>
 
