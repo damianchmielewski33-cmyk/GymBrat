@@ -10,7 +10,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     sha: undefined,
     bullets: [
-      "Opublikowano gymbrat.apk w wersji 0.1.1 (versionCode 2) pod https://gym-brat.vercel.app/gymbrat.apk — start od /login i trwała sesja cookies.",
+      "Opublikowano gymbrat.apk w wersji 0.1.1 (versionCode 2) w GitHub Release android-latest oraz w public/ — start od /login i trwała sesja cookies.",
       "Zaktualizowano /.well-known/assetlinks.json pod podpis tej kompilacji oraz public/android-version.json.",
       "Workflow GitHub Actions „Build Android APK” jest w repozytorium; po merge do master zbuduje Release android-latest automatycznie.",
     ],

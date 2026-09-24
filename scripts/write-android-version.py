@@ -14,7 +14,7 @@ git_sha = os.environ.get("GIT_SHA") or None
 info = {
     "versionCode": version_code,
     "versionName": version_name,
-    "apkUrl": "https://gym-brat.vercel.app/gymbrat.apk",
+    "apkUrl": "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk",
     "releasedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     "commit": git_sha,
     "notes": "Aplikacja Android GymBrat (WebView, Java).",
