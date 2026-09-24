@@ -11,7 +11,7 @@ describe("parseAndroidVersionInfo", () => {
         versionCode: 41,
         versionName: "1.11.5",
         apkUrl:
-          "https://github.com/damianchmielewski33-cmyk/Akademia-Wielkich-Pi-karzy/releases/download/android-latest/akademia-wp.apk",
+          "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk",
         notes: "fix",
       }),
     ).toMatchObject({

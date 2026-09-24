@@ -1,0 +1,12 @@
+server:
+  port: ${PORT:8080}
+
+gymbrat:
+  android:
+    # Nadpisz w produkcji adresem GitHub Releases GymBrat albo CDN.
+    apk-url: ${ANDROID_APK_URL:https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk}
+    version-json: classpath:android-version.json
+    # Opcjonalne nadpisania (0 / puste = z pliku JSON)
+    version-code: ${ANDROID_VERSION_CODE:0}
+    version-name: ${ANDROID_VERSION_NAME:}
+    notes: ${ANDROID_NOTES:}

@@ -5,6 +5,19 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — aplikacja Android GymBrat do pobrania",
+    date: "2026-09-24",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "W repozytorium jest natywna aplikacja Android w Javie z pełnoekranowym WebView otwierającym GymBrat.",
+      "Most JavaScript GymBratAndroid zgłasza wersję APK i uruchamia aktualizację z poziomu profilu oraz popupu w aplikacji.",
+      "Backend Java (Spring Boot) serwuje publiczne GET /api/android/version oraz przekierowanie pobierania APK.",
+      "GitHub Actions buduje plik gymbrat.apk i publikuje go w Releases pod tagiem android-latest.",
+      "Endpointy wersji Androida wskazują na Releases GymBrat zamiast na APK Akademii Wielkich Piłkarzy.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

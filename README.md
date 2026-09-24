@@ -157,7 +157,17 @@ components/                  UI components (home, profile, layout, etc.)
 services/                    External integrations (Fitatu)
 lib/                         Shared logic (cardio calc, reports, validation, stores, utils)
 public/                      Static assets (manifest, icons, PWA output)
+android/                     Natywna aplikacja Android (Java + WebView)
+java-backend/                Backend Java (Spring Boot) — wersja/APK Androida
 ```
+
+### Aplikacja Android (WebView + Java)
+
+- Kod aplikacji: `android/` (Java, pełnoekranowy WebView → `https://gym-brat.vercel.app`)
+- Backend Java aktualizacji: `java-backend/` (`GET /api/android/version`, redirect pobierania APK)
+- Budowanie APK: GitHub Actions → **Build Android APK** (workflow `.github/workflows/android-apk.yml`)
+- Pobranie: Releases (`gymbrat.apk`) albo w Profilu przycisk **Pobierz APK** (`/api/android/download`)
+- Szczegóły: `android/README.md` i `java-backend/README.md`
 
 ### Authentication flow
 

@@ -4,5 +4,5 @@
   "apkUrl": "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk",
   "releasedAt": "2026-09-24T00:00:00Z",
   "commit": null,
-  "notes": "Pierwsza aplikacja Android GymBrat (WebView + Java). Zbuduj APK w GitHub Actions → Build Android APK."
+  "notes": "Pierwsza aplikacja Android GymBrat (WebView + Java)."
 }
