@@ -12,7 +12,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     bullets: [
       "GET / → 307 /login bez sesji to zamierzone zachowanie proxy (wymagane logowanie), nie awaria serwera.",
       "Aplikacja Android zapisuje cookies NextAuth na dysk (CookieManager.flush) po załadowaniu strony i przy pauzie, żeby logowanie przetrwało restart.",
-      "Bez ciasteczka sesji APK otwiera od razu /login zamiast najpierw / i przekierowania 307.",
+      "Bez ciasteczka sesji APK otwiera od razu /login zamiast najpierw / i przekierowania 307 (wymaga przebudowy APK z android/).",
     ],
   },
   {
