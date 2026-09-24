@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — publiczne pobieranie APK GymBrat",
+    date: "2026-09-24",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Pliki .apk (w tym /gymbrat.apk) są dostępne bez logowania — proxy nie przekierowuje ich już na ekran logowania.",
+      "Dzięki temu pobranie APK z /api/android/download i bezpośredni link do pliku zwracają prawdziwy instalator zamiast HTML strony logowania.",
+    ],
+  },
+  {
     title: "2026-09 — aplikacja Android GymBrat do pobrania",
     date: "2026-09-24",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
