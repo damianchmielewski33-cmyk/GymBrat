@@ -5,6 +5,27 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — analytics i WebView Android bez błędu Origin",
+    date: "2026-09-24",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "POST /api/analytics/page-view akceptuje własne pochodzenie GymBrat (https://gym-brat.vercel.app) oraz Akademię, zamiast odpowiadać 403 przy nagłówku Origin.",
+      "Przy niedozwolonym Origin albo błędzie zapisu analytics zwraca cichy 204, żeby Android WebView nie pokazywał okienka z komunikatem o liście dozwolonych adresów.",
+      "CSP frame-ancestors nadal pozwala osadzić GymBrat w Akademii oraz lokalnie na localhost:3000 i 127.0.0.1:3000.",
+    ],
+  },
+  {
+    title: "2026-09 — publiczne pobieranie APK GymBrat",
+    date: "2026-09-24",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Pliki .apk (w tym /gymbrat.apk) są dostępne bez logowania — proxy nie przekierowuje ich już na ekran logowania.",
+      "Dzięki temu pobranie APK z /api/android/download i bezpośredni link do pliku zwracają prawdziwy instalator zamiast HTML strony logowania.",
+    ],
+  },
+  {
     title: "2026-09 — aplikacja Android GymBrat do pobrania",
     date: "2026-09-24",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
