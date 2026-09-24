@@ -58,8 +58,15 @@ function allowedOrigins(): Set<string> {
   addOrigin(out, process.env.NEXTAUTH_URL);
   addOrigin(out, process.env.NEXT_PUBLIC_APP_URL);
   addOrigin(out, GYMBRAT_PRODUCTION_ORIGIN);
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) addOrigin(out, `https://${vercel}`);
+  /** Host bez schematu (typowe zmienne Vercel) → https://… */
+  const addHost = (host?: string | null) => {
+    const t = host?.trim();
+    if (!t) return;
+    addOrigin(out, t.includes("://") ? t : `https://${t}`);
+  };
+  addHost(process.env.VERCEL_URL);
+  addHost(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+  addHost(process.env.VERCEL_BRANCH_URL);
   const extra = process.env.CSRF_ALLOWED_ORIGINS?.split(",") ?? [];
   for (const x of extra) addOrigin(out, x.trim());
   if (process.env.NODE_ENV !== "production") {
