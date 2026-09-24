@@ -12,8 +12,7 @@ export type AndroidVersionInfo = {
 const DEFAULT_GITHUB_VERSION_JSON =
   "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/android-version.json";
 
-const DEFAULT_GITHUB_APK =
-  "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk";
+const DEFAULT_GITHUB_APK = "https://gym-brat.vercel.app/gymbrat.apk";
 
 function asPositiveInt(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {

@@ -4,7 +4,7 @@ server:
 gymbrat:
   android:
     # Nadpisz w produkcji adresem GitHub Releases GymBrat albo CDN.
-    apk-url: ${ANDROID_APK_URL:https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk}
+    apk-url: ${ANDROID_APK_URL:https://gym-brat.vercel.app/gymbrat.apk}
     version-json: classpath:android-version.json
     # Opcjonalne nadpisania (0 / puste = z pliku JSON)
     version-code: ${ANDROID_VERSION_CODE:0}

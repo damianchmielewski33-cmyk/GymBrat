@@ -1,8 +1,8 @@
 {
   "versionCode": 1,
   "versionName": "0.1.0",
-  "apkUrl": "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk",
-  "releasedAt": "2026-09-24T00:00:00Z",
+  "apkUrl": "https://gym-brat.vercel.app/gymbrat.apk",
+  "releasedAt": "2026-09-24T08:15:00Z",
   "commit": null,
-  "notes": "Pierwsza aplikacja Android GymBrat (WebView + Java)."
+  "notes": "Aplikacja Android GymBrat (WebView + Java) — pobierz i zainstaluj na telefonie."
 }

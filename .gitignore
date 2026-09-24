@@ -53,4 +53,5 @@ android/build/
 java-backend/target/
 *.apk
 *.aab
+!public/gymbrat.apk
 build.log
