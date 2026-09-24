@@ -3,6 +3,6 @@
   "versionName": "0.1.1",
   "apkUrl": "https://gym-brat.vercel.app/gymbrat.apk",
   "releasedAt": "2026-09-24T18:11:35Z",
-  "commit": "f5004f7e4d4467a6f71844f8028d5f526584cfc7",
+  "commit": "77b8f15eaf28d5b0fd233077b7b9fbc025763f60",
   "notes": "GymBrat Android 0.1.1: start od /login bez zb\u0119dnego 307, trwa\u0142a sesja (CookieManager.flush), poprawki WebView."
 }
