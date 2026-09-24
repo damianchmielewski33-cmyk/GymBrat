@@ -62,14 +62,19 @@ export async function POST(req: Request) {
   }
 
   const createdAt = new Date().toISOString();
-  await db.insert(pageViews).values({
-    screenKey: screen.key,
-    pathname: pathname.slice(0, 512),
-    userId,
-    visitorId: visitorId.slice(0, 80),
-    deploymentEnv: getAnalyticsDeployment(),
-    createdAt,
-  });
+  try {
+    await db.insert(pageViews).values({
+      screenKey: screen.key,
+      pathname: pathname.slice(0, 512),
+      userId,
+      visitorId: visitorId.slice(0, 80),
+      deploymentEnv: getAnalyticsDeployment(),
+      createdAt,
+    });
+  } catch {
+    /** Soft-fail: błąd DB nie może wywalić WebView jako „strona błędu”. */
+    return new NextResponse(null, { status: 204 });
+  }
 
   return new NextResponse(null, { status: 204 });
 }

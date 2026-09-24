@@ -9,25 +9,7 @@ export type AndroidVersionInfo = {
   notes?: string | null;
 };
 
-const DEFAULT_GITHUB_VERSION_JSON =
-  "https://github.com/damianchmielewski33-cmyk/Akademia-Wielkich-Pi-karzy/releases/download/android-latest/android-version.json";
-
-const DEFAULT_GITHUB_APK =
-  "https://github.com/damianchmielewski33-cmyk/Akademia-Wielkich-Pi-karzy/releases/download/android-latest/akademia-wp.apk";
-
-const DEFAULT_AWP_ORIGIN = "https://akademia-wielkich-pilkarzy.vercel.app";
-
-function awpOrigin(): string {
-  const raw = process.env.NEXT_PUBLIC_AWP_URL?.trim();
-  if (raw) {
-    try {
-      return new URL(raw).origin;
-    } catch {
-      /* ignore */
-    }
-  }
-  return DEFAULT_AWP_ORIGIN;
-}
+const DEFAULT_GYMBRAT_APK = "https://gym-brat.vercel.app/gymbrat.apk";
 
 function asPositiveInt(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
@@ -83,7 +65,7 @@ export function defaultApkUrl(): string {
   return (
     asHttpUrl(process.env.ANDROID_APK_URL) ||
     asHttpUrl(process.env.NEXT_PUBLIC_ANDROID_APK_URL) ||
-    DEFAULT_GITHUB_APK
+    DEFAULT_GYMBRAT_APK
   );
 }
 
@@ -99,14 +81,14 @@ export function bundledAndroidVersion(): AndroidVersionInfo {
   };
 }
 
+/**
+ * Tylko źródła GymBrat: opcjonalny ANDROID_VERSION_JSON_URL, potem bundled.
+ * Nie pobieramy wersji siostrzanej AWP — to psuje popup aktualizacji w APK GymBrat.
+ */
 function versionJsonUrls(): string[] {
   const urls: string[] = [];
   const fromEnv = asHttpUrl(process.env.ANDROID_VERSION_JSON_URL);
   if (fromEnv) urls.push(fromEnv);
-  urls.push(DEFAULT_GITHUB_VERSION_JSON);
-  const awp = awpOrigin();
-  urls.push(`${awp}/android-version.json`);
-  urls.push(`${awp}/api/android/version`);
   return [...new Set(urls)];
 }
 
@@ -137,7 +119,7 @@ async function fetchVersionCandidate(url: string): Promise<AndroidVersionInfo | 
 }
 
 /**
- * Źródła (kolejno): env → GitHub Releases AWP → pliki AWP → bundled JSON.
+ * Źródła (kolejno): env ANDROID_VERSION_JSON_URL → bundled public/android-version.json.
  * Bundled zawsze kończy łańcuch, żeby aplikacja Android nie dostała 503 / HTML logowania.
  */
 export async function resolveAndroidVersion(): Promise<AndroidVersionInfo> {

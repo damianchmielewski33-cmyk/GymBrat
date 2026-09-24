@@ -5,13 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
-    title: "2026-09 — bez fałszywego popupu błędu",
+    title: "2026-09 — Android WebView bez fałszywego błędu",
     date: "2026-09-24",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     sha: undefined,
     bullets: [
-      "Usunięto globalny popup „Zmieniamy się na lepsze”, który pokazywał się przy zwykłych logach console.error mimo że aplikacja działała poprawnie.",
-      "Komunikaty awaryjne Next.js (error / global-error) mają teraz jasny tekst „Coś poszło nie tak” zamiast mylącego hasła marketingowego.",
+      "Usunięto globalny popup „Zmieniamy się na lepsze”, który w aplikacji Android odpalał się przy zwykłych logach console.error mimo że aplikacja działała.",
+      "POST /api/analytics/page-view przy złym Origin zwraca pusty 204 zamiast 403 JSON — WebView nie pokazuje już tego jako strony błędu (w przeglądarce problem nie występował).",
+      "Metadane wersji APK to wyłącznie GymBrat 0.1.0 (nie AWP 1.11.5), więc popup „Wymagana aktualizacja” nie blokuje startu zainstalowanej aplikacji.",
+      "Plik /gymbrat.apk jest publiczny bez logowania, a allowlista Origin obejmuje gym-brat.vercel.app i same-origin.",
     ],
   },
   {
