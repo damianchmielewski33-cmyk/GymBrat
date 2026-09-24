@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — bez fałszywego popupu błędu",
+    date: "2026-09-24",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Usunięto globalny popup „Zmieniamy się na lepsze”, który pokazywał się przy zwykłych logach console.error mimo że aplikacja działała poprawnie.",
+      "Komunikaty awaryjne Next.js (error / global-error) mają teraz jasny tekst „Coś poszło nie tak” zamiast mylącego hasła marketingowego.",
+    ],
+  },
+  {
     title: "2026-09 — analytics i WebView Android bez błędu Origin",
     date: "2026-09-24",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
@@ -50,8 +60,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Ze Startu usunięto stare kafle posiłków, makro, check-inu i deficytu — te dane zostają w innych ekranach aplikacji.",
       "W raporcie można zapisać obwód ramienia i brzucha (pola armCm oraz abdomenCm) obok dotychczasowych pomiarów.",
     ],
-  },
-  {
+  },  {
     title: "2026-09 — poprawki produkcji (Analiza, Android, PWA, UI)",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
