@@ -11,6 +11,12 @@ function isSecureSessionCookie(req: NextRequest): boolean {
   return req.nextUrl.protocol === "https:";
 }
 
+/** Natywny WebView GymBrat (UA doklejane w MainActivity). */
+function isGymBratAndroidWebView(req: NextRequest): boolean {
+  const ua = req.headers.get("user-agent") ?? "";
+  return ua.includes("GymBratAndroidApp");
+}
+
 /** Ochrona tras (Next.js 16 — eksport musi nazywać się `proxy`). */
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
@@ -87,6 +93,16 @@ export async function proxy(req: NextRequest) {
     login.searchParams.set("callbackUrl", dest);
     const from = req.nextUrl.searchParams.get("from");
     if (from) login.searchParams.set("from", from);
+
+    /**
+     * APK 0.1.0 ładuje startowy URL `/` bez ciasteczka sesji.
+     * Zwykły 307 → /login jest poprawny auth, ale w logach Vercel wygląda jak błąd.
+     * Dla WebView GymBrat: rewrite (200 + ekran logowania) zamiast redirect.
+     */
+    if (isGymBratAndroidWebView(req) && pathname === "/") {
+      return NextResponse.rewrite(login);
+    }
+
     return NextResponse.redirect(login);
   }
 

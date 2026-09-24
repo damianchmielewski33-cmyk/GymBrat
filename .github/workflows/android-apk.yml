@@ -1,0 +1,150 @@
+# Buduje APK GymBrat (WebView) bez Android Studio.
+# GitHub → Actions → „Build Android APK” → Run workflow
+# Potem: Releases → gymbrat.apk albo /api/android/download
+
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: "Adres produkcyjnej strony GymBrat (https://…/ z ukośnikiem na końcu)"
+        required: true
+        type: string
+        default: "https://gym-brat.vercel.app/"
+  push:
+    branches: [master, main]
+    paths:
+      - "android/**"
+      - ".github/workflows/android-apk.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-35 build-tools;35.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Resolve API base URL
+        id: api
+        shell: bash
+        run: |
+          URL="${{ github.event.inputs.api_base_url }}"
+          if [ -z "$URL" ] || [ "$URL" = "https://" ]; then
+            URL="${{ secrets.ANDROID_API_BASE_URL }}"
+          fi
+          if [ -z "$URL" ]; then
+            URL=$(grep -E '^API_BASE_URL=' android/gradle.properties | cut -d= -f2- || true)
+          fi
+          if [ -z "$URL" ] || [ "$URL" = "https://" ]; then
+            echo "::error::Ustaw adres strony w Run workflow albo API_BASE_URL w android/gradle.properties"
+            exit 1
+          fi
+          case "$URL" in
+            */) ;;
+            *) URL="${URL}/" ;;
+          esac
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Używam API: $URL"
+
+      - name: Write local.properties
+        shell: bash
+        run: |
+          echo "sdk.dir=${ANDROID_HOME}" > android/local.properties
+          echo "api.base.url=${{ steps.api.outputs.url }}" >> android/local.properties
+          cat android/local.properties
+
+      - name: Build release APK
+        working-directory: android
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! gradle :app:assembleRelease --stacktrace 2>&1 | tee ../build.log; then
+            echo "=== Gradle failure (last 80 lines) ==="
+            tail -n 80 ../build.log || true
+            exit 1
+          fi
+
+      - name: Verify APK exists
+        working-directory: android
+        run: |
+          set -euo pipefail
+          OUT_DIR="app/build/outputs/apk/release"
+          APK="$OUT_DIR/app-release.apk"
+          if [ ! -f "$APK" ]; then
+            echo "Brak $APK"; ls -la "$OUT_DIR" || true; exit 1
+          fi
+          ls -lh "$APK"
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          BUILD_TOOLS=$(ls -1d "$SDK"/build-tools/* | sort -V | tail -n1)
+          if [ -x "$BUILD_TOOLS/apksigner" ]; then
+            "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK" || true
+          fi
+
+      - name: Prepare APK artifact + version.json
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release.apk dist/gymbrat.apk
+          VERSION_CODE=$(grep -E '^\s*versionCode\s*=' android/app/build.gradle.kts | head -1 | grep -oE '[0-9]+')
+          VERSION_NAME=$(grep -E '^\s*versionName\s*=' android/app/build.gradle.kts | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          APK_URL="https://github.com/${{ github.repository }}/releases/download/android-latest/gymbrat.apk"
+          python3 - <<PY
+          import json
+          info = {
+            "versionCode": int("${VERSION_CODE}"),
+            "versionName": "${VERSION_NAME}",
+            "apkUrl": "${APK_URL}",
+            "releasedAt": __import__("datetime").datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "commit": "${{ github.sha }}",
+            "notes": "Aplikacja Android GymBrat (WebView, Java).",
+          }
+          open("dist/android-version.json","w",encoding="utf-8").write(json.dumps(info, indent=2)+"\n")
+          open("public/android-version.json","w",encoding="utf-8").write(json.dumps(info, indent=2)+"\n")
+          open("java-backend/src/main/resources/android-version.json","w",encoding="utf-8").write(json.dumps(info, indent=2)+"\n")
+          print(json.dumps(info, indent=2))
+          PY
+          ls -lh dist/gymbrat.apk
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gymbrat-apk
+          path: |
+            dist/gymbrat.apk
+            dist/android-version.json
+
+      - name: Publish GitHub Release android-latest
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          name: Android APK (latest)
+          files: |
+            dist/gymbrat.apk
+            dist/android-version.json
+          body: |
+            GymBrat Android WebView APK.
+            Pobierz `gymbrat.apk` i zainstaluj na telefonie.
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

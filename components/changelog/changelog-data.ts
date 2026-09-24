@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — Android start bez zbędnego 307 na /",
+    date: "2026-09-24",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "GET / bez sesji w WebView GymBrat nie robi już 307 na /login w logach Vercel — serwer oddaje ekran logowania przez rewrite (200).",
+      "W kodzie APK (android/) start bez sesji idzie od razu na /login, a CookieManager.flush zapisuje sesję NextAuth po restarcie (wymaga przebudowy APK).",
+      "Sam 307 dla zwykłej przeglądarki bez logowania nadal jest zamierzony: chronione trasy wymagają konta.",
+    ],
+  },
+  {
     title: "2026-09 — publiczne Asset Links dla Android",
     date: "2026-09-24",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
