@@ -7,6 +7,11 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 /** Origin Akademii — AWP osadza GymBrat w iframe na /gymbrat. */
 const DEFAULT_AWP_ORIGIN = "https://akademia-wielkich-pilkarzy.vercel.app";
 
+const LOCAL_AWP_FRAME_ANCESTORS = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+] as const;
+
 function awpFrameAncestor(): string {
   const raw = process.env.NEXT_PUBLIC_AWP_URL?.trim();
   if (raw) {
@@ -17,6 +22,22 @@ function awpFrameAncestor(): string {
     }
   }
   return DEFAULT_AWP_ORIGIN;
+}
+
+/** Extra hosty AWP (preview Vercel) — CSV w FRAME_ANCESTORS_EXTRA. */
+function extraFrameAncestors(): string[] {
+  const raw = process.env.FRAME_ANCESTORS_EXTRA?.split(",") ?? [];
+  const out: string[] = [];
+  for (const x of raw) {
+    const t = x.trim();
+    if (!t) continue;
+    try {
+      out.push(new URL(t).origin);
+    } catch {
+      /* ignore */
+    }
+  }
+  return out;
 }
 
 const nextConfig: NextConfig = {
@@ -33,8 +54,16 @@ const nextConfig: NextConfig = {
     /**
      * AWP otwiera GymBrat w iframe. X-Frame-Options: DENY blokowało ten embed.
      * Kontrola przez CSP frame-ancestors. Cache /sw.js i /login — bez starego PWA.
+     * Localhost + opcjonalne previewy AWP (FRAME_ANCESTORS_EXTRA).
      */
-    const frameAncestors = `'self' ${awpOrigin}`;
+    const frameAncestors = [
+      "'self'",
+      awpOrigin,
+      ...LOCAL_AWP_FRAME_ANCESTORS,
+      ...extraFrameAncestors(),
+    ]
+      .filter((v, i, arr) => arr.indexOf(v) === i)
+      .join(" ");
 
     const base = [
       { key: "X-Content-Type-Options", value: "nosniff" },
