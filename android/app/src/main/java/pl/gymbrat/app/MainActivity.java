@@ -53,11 +53,27 @@ public final class MainActivity extends AppCompatActivity {
             }
         });
 
-        String startUrl = AppUpdater.siteBaseWithSlash();
+        String startUrl = resolveStartUrl();
         if (getIntent() != null && getIntent().getData() != null) {
             startUrl = getIntent().getData().toString();
         }
         webView.loadUrl(startUrl);
+    }
+
+    /**
+     * Bez ciasteczka sesji NextAuth od razu otwieramy /login — unikamy zbędnego
+     * GET / → 307 → /login w logach Vercel. Z sesją idziemy na /.
+     */
+    private String resolveStartUrl() {
+        String base = AppUpdater.siteBase();
+        String withSlash = AppUpdater.siteBaseWithSlash();
+        String cookies = CookieManager.getInstance().getCookie(base);
+        if (cookies != null
+                && (cookies.contains("__Secure-authjs.session-token")
+                || cookies.contains("authjs.session-token"))) {
+            return withSlash;
+        }
+        return base + "/login";
     }
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
@@ -65,6 +81,8 @@ public final class MainActivity extends AppCompatActivity {
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
         cookieManager.setAcceptThirdPartyCookies(webView, true);
+        // Zapis na dysk — bez flush sesja NextAuth często znika po zabiciu aplikacji.
+        cookieManager.flush();
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -114,6 +132,7 @@ public final class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 progressBar.setVisibility(View.GONE);
+                CookieManager.getInstance().flush();
                 view.postDelayed(() -> {
                     if (!contentReady) markContentReady();
                 }, 2500);
@@ -142,7 +161,14 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        CookieManager.getInstance().flush();
+        super.onPause();
+    }
+
+    @Override
     protected void onDestroy() {
+        CookieManager.getInstance().flush();
         if (updateInstaller != null) {
             updateInstaller.shutdown();
         }
