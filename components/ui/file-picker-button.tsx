@@ -1,7 +1,6 @@
 "use client";
 
-import { useId, useRef, type ChangeEventHandler, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { useId, type ChangeEventHandler, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type FilePickerButtonProps = {
@@ -18,8 +17,10 @@ type FilePickerButtonProps = {
 };
 
 /**
- * Niezawodny wybór pliku: ukryty input type=file + widoczny Button.
- * Unika przycięcia / martwej strefy natywnego „Wybierz plik” (h-10 + overflow-hidden + WebView).
+ * Wybór pliku odporny na Android WebView:
+ * klik musi trafiać w prawdziwy input type=file (nakładka opacity-0),
+ * a nie w Button wywołujący input.click() — wtedy po powrocie z galerii
+ * plik często nie trafia do inputa.
  */
 export function FilePickerButton({
   id,
@@ -35,7 +36,6 @@ export function FilePickerButton({
 }: FilePickerButtonProps) {
   const autoId = useId();
   const inputId = id ?? autoId;
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleChange: ChangeEventHandler<HTMLInputElement> = (e) => {
     const files = Array.from(e.target.files ?? []);
@@ -44,32 +44,33 @@ export function FilePickerButton({
     e.target.value = "";
   };
 
+  const text = label ?? (valueLabel ? valueLabel : emptyLabel);
+
   return (
-    <div className={cn("relative z-10 flex flex-col gap-2", className)}>
+    <div className={cn("relative z-10 inline-flex w-full sm:w-auto", className)}>
+      <div
+        className={cn(
+          "gym-btn-outline pointer-events-none relative flex h-11 w-full min-w-0 items-center justify-center rounded-2xl px-5 text-sm sm:min-w-[12rem]",
+          disabled && "opacity-45",
+          buttonClassName,
+        )}
+        aria-hidden
+      >
+        {text}
+      </div>
       <input
-        ref={inputRef}
         id={inputId}
         type="file"
         accept={accept}
         multiple={multiple}
         disabled={disabled}
-        className="sr-only"
-        tabIndex={-1}
+        aria-label={typeof text === "string" ? text : "Wybierz plik"}
+        className={cn(
+          "absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0",
+          disabled && "pointer-events-none",
+        )}
         onChange={handleChange}
       />
-      <Button
-        type="button"
-        variant="outline"
-        disabled={disabled}
-        aria-controls={inputId}
-        className={cn("h-11 w-full justify-center sm:w-auto sm:min-w-[12rem]", buttonClassName)}
-        onClick={() => {
-          if (disabled) return;
-          inputRef.current?.click();
-        }}
-      >
-        {label ?? (valueLabel ? valueLabel : emptyLabel)}
-      </Button>
     </div>
   );
 }
