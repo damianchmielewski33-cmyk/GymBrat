@@ -6,14 +6,14 @@ function Score({
   value: number | null;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-[#1c1c1e] px-2 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]/80">
+    <div className="rounded-2xl border border-white/12 bg-[#222226] px-2 py-3 text-center shadow-[0_4px_16px_rgba(0,0,0,0.35)]">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
         {label}
       </p>
       <p className="mt-2 font-display text-[26px] leading-none tracking-wide text-white">
         {value != null ? value : "—"}
       </p>
-      <p className="mt-1.5 text-[9px] uppercase tracking-wider text-white/30">
+      <p className="mt-1.5 text-[9px] uppercase tracking-wider text-white/35">
         / 10
       </p>
     </div>

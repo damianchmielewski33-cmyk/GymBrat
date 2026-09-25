@@ -2,10 +2,9 @@
 
 import { useMemo, useState } from "react";
 import {
-  Area,
   CartesianGrid,
-  ComposedChart,
   Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -114,21 +113,11 @@ export function WeightRangeChart({
 
       <div className="mt-4 h-[220px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
+          <LineChart
             key={range}
             data={filtered}
             margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
           >
-            <defs>
-              <linearGradient id="weightFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#d4af37" stopOpacity={0.28} />
-                <stop offset="100%" stopColor="#d4af37" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="waistFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#86efac" stopOpacity={0.18} />
-                <stop offset="100%" stopColor="#86efac" stopOpacity={0} />
-              </linearGradient>
-            </defs>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
             <XAxis
               dataKey="date"
@@ -168,28 +157,6 @@ export function WeightRangeChart({
                 return [n, name];
               }}
             />
-            <Area
-              yAxisId="kg"
-              type="monotone"
-              dataKey="kg"
-              fill="url(#weightFill)"
-              stroke="none"
-              connectNulls
-              isAnimationActive
-              animationDuration={750}
-              animationEasing="ease-in-out"
-            />
-            <Area
-              yAxisId="waist"
-              type="monotone"
-              dataKey="waist"
-              fill="url(#waistFill)"
-              stroke="none"
-              connectNulls
-              isAnimationActive
-              animationDuration={750}
-              animationEasing="ease-in-out"
-            />
             <Line
               yAxisId="kg"
               type="monotone"
@@ -218,7 +185,7 @@ export function WeightRangeChart({
               animationDuration={750}
               animationEasing="ease-in-out"
             />
-          </ComposedChart>
+          </LineChart>
         </ResponsiveContainer>
       </div>
 

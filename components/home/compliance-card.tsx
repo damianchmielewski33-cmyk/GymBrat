@@ -12,14 +12,14 @@ function Ring({
   const c = 2 * Math.PI * r;
   const dash = (Math.min(100, Math.max(0, value)) / 100) * c;
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border border-white/[0.08] bg-[#1c1c1e] px-2 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-white/12 bg-[#222226] px-2 py-3 shadow-[0_4px_16px_rgba(0,0,0,0.35)]">
       <svg viewBox="0 0 72 72" className="h-16 w-16" aria-hidden>
         <circle
           cx="36"
           cy="36"
           r={r}
           fill="none"
-          stroke="rgba(255,255,255,0.1)"
+          stroke="rgba(255,255,255,0.12)"
           strokeWidth="5"
         />
         <circle
