@@ -262,7 +262,7 @@ export function AdminOverviewClient() {
 
   return (
     <div className="space-y-8">
-      <section className="glass-panel neon-glow p-5 sm:p-6">
+      <section className="app-card p-5 sm:p-6">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
           Funkcje globalne
         </p>
@@ -292,7 +292,7 @@ export function AdminOverviewClient() {
         </label>
       </section>
 
-      <section className="glass-panel neon-glow p-5 sm:p-6">
+      <section className="app-card p-5 sm:p-6">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
           Zakres raportu
         </p>
@@ -323,7 +323,7 @@ export function AdminOverviewClient() {
             type="button"
             onClick={() => void load(true)}
             disabled={loading}
-            className="bg-[var(--neon)] font-semibold text-white hover:bg-[#ff4d6d]"
+           
           >
             Odśwież dane
           </Button>
@@ -354,7 +354,7 @@ export function AdminOverviewClient() {
         </p>
       ) : null}
 
-      <section className="glass-panel neon-glow p-5 sm:p-6">
+      <section className="app-card p-5 sm:p-6">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
           Narzędzia administracyjne
         </p>
@@ -416,7 +416,7 @@ export function AdminOverviewClient() {
 
       {!loading && analytics ? (
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="glass-panel neon-glow p-5 sm:p-6">
+          <div className="app-card p-5 sm:p-6">
             <h2 className="font-heading text-lg font-semibold text-white">
               Najczęstsze ekrany
             </h2>
@@ -435,13 +435,13 @@ export function AdminOverviewClient() {
                     tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
                   />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="views" fill="#ff2d55" radius={[0, 6, 6, 0]} name="Wejścia" />
+                  <Bar dataKey="views" fill="#d4af37" radius={[0, 6, 6, 0]} name="Wejścia" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="glass-panel neon-glow p-5 sm:p-6">
+          <div className="app-card p-5 sm:p-6">
             <h2 className="font-heading text-lg font-semibold text-white">
               Ruch wg godzin (ostatnie 7 dni)
             </h2>
@@ -458,7 +458,7 @@ export function AdminOverviewClient() {
                   />
                   <YAxis tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} width={36} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="views" fill="#ff2d55" radius={[6, 6, 0, 0]} name="Wejścia" />
+                  <Bar dataKey="views" fill="#d4af37" radius={[6, 6, 0, 0]} name="Wejścia" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -467,7 +467,7 @@ export function AdminOverviewClient() {
       ) : null}
 
       {!loading && hourly?.by_day?.length ? (
-        <div className="glass-panel neon-glow p-5 sm:p-6">
+        <div className="app-card p-5 sm:p-6">
           <h2 className="font-heading text-lg font-semibold text-white">
             Mapa ciepła wejść (godzina × dzień)
           </h2>
@@ -521,7 +521,7 @@ export function AdminOverviewClient() {
       ) : null}
 
       {!loading && analytics ? (
-        <div className="glass-panel neon-glow overflow-hidden">
+        <div className="app-card overflow-hidden">
           <div className="border-b border-white/10 px-5 py-4">
             <h2 className="font-heading text-lg font-semibold text-white">
               Dziennik zachowań

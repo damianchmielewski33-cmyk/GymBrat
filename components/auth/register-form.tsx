@@ -465,7 +465,7 @@ export function RegisterForm() {
                       className={cn(
                         "min-h-[3.25rem] rounded-xl border px-3 py-3 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
                         active
-                          ? "border-[var(--neon)]/60 bg-[var(--neon)]/15 shadow-[0_0_24px_rgba(var(--neon-rgb,230,0,35),0.22)]"
+                          ? "border-[var(--neon)]/60 bg-[var(--neon)]/15 shadow-[0_0_24px_rgba(var(--neon-rgb),0.22)]"
                           : "border-white/10 bg-black/30 hover:border-white/20 hover:bg-black/40",
                       )}
                     >
