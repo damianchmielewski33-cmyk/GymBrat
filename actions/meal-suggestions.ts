@@ -24,7 +24,7 @@ export type GenerateMealSuggestionsResult =
   | {
       ok: true;
       meals: MealSuggestionItem[];
-      /** Zawsze lokalna baza GymBrat — bez AI i bez internetu. */
+      /** Dobór z lokalnego katalogu przepisów GymBrat. */
       source: "catalog";
       gaps: MacroGaps;
     }

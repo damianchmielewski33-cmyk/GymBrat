@@ -30,15 +30,22 @@ const emptyGaps: MacroGaps = {
 };
 
 describe("meal-catalog", () => {
-  it("ma kilkaset unikalnych posiłków we wszystkich slotach", () => {
-    expect(MEAL_CATALOG_GENERATED_COUNT).toBeGreaterThanOrEqual(300);
+  it("ma unikalne posiłki we wszystkich slotach (bez klonów kombinatorów)", () => {
+    expect(MEAL_CATALOG_GENERATED_COUNT).toBeGreaterThanOrEqual(70);
     expect(MEAL_CATALOG.length).toBe(MEAL_CATALOG_GENERATED_COUNT);
     const ids = new Set(MEAL_CATALOG.map((m) => m.id));
     expect(ids.size).toBe(MEAL_CATALOG.length);
+    const titles = new Set(MEAL_CATALOG.map((m) => m.title.toLowerCase()));
+    expect(titles.size).toBe(MEAL_CATALOG.length);
     for (const slot of MEAL_SLOTS) {
-      expect(getMealsBySlot(slot).length).toBeGreaterThanOrEqual(40);
+      expect(getMealsBySlot(slot).length).toBeGreaterThanOrEqual(10);
       expect(MEAL_SLOT_LABELS[slot].length).toBeGreaterThan(3);
     }
+    // Brak typowych klonów „jajecznica z dodatkiem: …”
+    const cloneish = MEAL_CATALOG.filter((m) =>
+      /jajecznica z .* z dodatkiem:/i.test(m.title),
+    );
+    expect(cloneish.length).toBe(0);
   });
 
   it("każdy posiłek ma makro, składniki, przepis i prompt grafiki", () => {

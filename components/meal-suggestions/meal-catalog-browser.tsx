@@ -50,13 +50,13 @@ export function MealCatalogBrowser({ dateKey }: { dateKey: string }) {
   return (
     <section className="app-card space-y-4 p-5">
       <div>
-        <p className="app-label">Baza posiłków</p>
+        <p className="app-label">Katalog posiłków</p>
         <h2 className="mt-1 text-lg font-semibold text-white">
           {MEAL_CATALOG.length} przepisów z makro i instrukcją
         </h2>
         <p className="mt-1 text-sm text-white/55">
-          Wyłącznie lokalna baza GymBrat: śniadanie, drugie śniadanie, obiad, podwieczorek i kolacja.
-          Każde danie ma makro, grafikę, składniki i przepis — bez AI i bez internetu.
+          Śniadanie, drugie śniadanie, obiad, podwieczorek i kolacja — każde danie ma makro, składniki
+          i krótki przepis.
         </p>
       </div>
 

@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — dieta bez AI i bogatszy katalog przepisów",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Aplikacja nie oferuje już funkcji AI: ukryto czat trenera, ustawienia AI w profilu i panelu admina oraz kartę „plan z AI”; briefing dnia i propozycje posiłków działają wyłącznie na danych z aplikacji i lokalnym katalogu.",
+      "Katalog diety ma ponad sto unikalnych przepisów (śniadanie–kolacja) zamiast klonów typu jajecznica z różnymi dodatkami — każde danie z makro, składnikami i krótkim przepisem.",
+    ],
+  },
+  {
     title: "2026-09 — start raportu z paska + naprawa zapisu zdjęć",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

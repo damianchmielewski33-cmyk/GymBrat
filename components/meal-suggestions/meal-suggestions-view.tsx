@@ -111,7 +111,7 @@ export function MealSuggestionsView({
           Twój plan żywieniowy
         </h1>
         <p className="mt-2 text-sm text-white/55">
-          Przepisy pochodzą wyłącznie z lokalnej bazy GymBrat — bez AI i bez linków z internetu.
+          Przepisy i propozycje dnia pochodzą z katalogu GymBrat — wybierz danie i dodaj do dziennika.
         </p>
       </header>
 
@@ -129,7 +129,7 @@ export function MealSuggestionsView({
                   Dobieram…
                 </>
               ) : (
-                "Propozycje z bazy"
+                "Propozycje na dziś"
               )}
             </Button>
           </div>
@@ -245,7 +245,7 @@ export function MealSuggestionsView({
               <a href="/profile" className="text-[var(--neon)] underline-offset-4 hover:underline">
                 profilu
               </a>
-              , żeby propozycje z bazy lepiej domykały braki dnia.
+              , żeby propozycje na dziś lepiej domykały braki makro.
             </p>
           ) : null}
 
@@ -260,10 +260,10 @@ export function MealSuggestionsView({
           <div className="px-0.5">
             <p className="app-label">Na teraz</p>
             <h2 className="mt-1 text-lg font-semibold text-white">
-              Dobór z bazy do Twoich makro
+              Propozycje dopasowane do makro
             </h2>
             <p className="mt-1 text-sm text-white/55">
-              Cztery dania z katalogu GymBrat dopasowane do pory dnia i braków białka, węgli oraz tłuszczu.
+              Cztery dania dopasowane do pory dnia oraz braków białka, węgli i tłuszczu.
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-2">
@@ -338,7 +338,7 @@ export function MealSuggestionsView({
                     </ol>
                   </div>
                   <p className="mt-auto text-[11px] text-white/40">
-                    Makro przybliżone dla jednej porcji. Przepis z lokalnej bazy GymBrat.
+                    Makro przybliżone dla jednej porcji.
                   </p>
                 </div>
               </article>
@@ -347,7 +347,7 @@ export function MealSuggestionsView({
         </section>
       ) : (
         <section className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-10 text-center text-sm text-white/50">
-          Kliknij „Propozycje z bazy”, żeby dobrać 4 dania do makro, albo przeglądaj pełną bazę powyżej.
+          Kliknij „Propozycje na dziś”, żeby dobrać 4 dania do makro, albo przeglądaj katalog powyżej.
         </section>
       )}
     </div>

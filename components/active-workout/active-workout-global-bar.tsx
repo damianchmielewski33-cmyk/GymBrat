@@ -351,7 +351,7 @@ export function ActiveWorkoutGlobalBar() {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto bg-black">
-              <ActiveWorkoutView initialPlans={[]} entry="active" userAiFeaturesDisabled={false} display="modal" />
+              <ActiveWorkoutView initialPlans={[]} entry="active" display="modal" />
             </div>
           </div>
         </AlertDialogContent>
