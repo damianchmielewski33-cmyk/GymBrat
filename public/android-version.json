@@ -1,8 +1,8 @@
 {
   "versionCode": 3,
   "versionName": "0.1.2",
-  "apkUrl": "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk",
-  "releasedAt": "2026-09-25T13:00:00Z",
-  "commit": "pending",
-  "notes": "GymBrat Android 0.1.2 — wybór zdjęć i plików w WebView (raport sylwetki) znów otwiera galerię."
+  "apkUrl": "https://gym-brat.vercel.app/gymbrat.apk",
+  "releasedAt": "2026-09-25T13:10:35Z",
+  "commit": "d1e9f24",
+  "notes": "GymBrat Android 0.1.2 — wybór zdjęć w raporcie otwiera galerię (onShowFileChooser). Zainstaluj ten APK na telefonie."
 }
