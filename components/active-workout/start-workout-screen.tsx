@@ -71,16 +71,8 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="app-card p-8">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[var(--neon)]/12 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-24 -right-16 h-48 w-48 rounded-full bg-[var(--neon)]/8 blur-3xl"
-        />
-        <div className="relative text-center">
+      <div className="app-card p-6">
+        <div className="text-center">
           <div className="mx-auto max-w-lg">
             <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
               Przed treningiem
