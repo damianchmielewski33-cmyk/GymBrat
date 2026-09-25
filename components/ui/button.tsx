@@ -9,7 +9,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        cta: "h-11 bg-[var(--neon)] text-base font-semibold text-[var(--neon-fg)] hover:bg-[var(--neon-hover)] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
+        cta: "h-12 rounded-full bg-[var(--neon)] text-base font-semibold text-[var(--neon-fg)] hover:bg-[var(--neon-hover)] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
         outline:
           "h-11 border-white/20 bg-black/50 text-white hover:bg-white/10 aria-expanded:bg-white/10",
         secondary:

@@ -19,7 +19,7 @@ export function BodyReportImport() {
   const [warnings, setWarnings] = useState<string[]>([]);
 
   return (
-    <div className="glass-panel neon-glow overflow-hidden">
+    <div className="app-card overflow-hidden">
       {!isOpen ? (
         <div className="flex flex-col gap-3 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>

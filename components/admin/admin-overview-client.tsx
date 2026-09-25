@@ -262,7 +262,7 @@ export function AdminOverviewClient() {
 
   return (
     <div className="space-y-8">
-      <section className="glass-panel neon-glow p-5 sm:p-6">
+      <section className="app-card p-5 sm:p-6">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
           Funkcje globalne
         </p>
@@ -292,7 +292,7 @@ export function AdminOverviewClient() {
         </label>
       </section>
 
-      <section className="glass-panel neon-glow p-5 sm:p-6">
+      <section className="app-card p-5 sm:p-6">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
           Zakres raportu
         </p>
@@ -354,7 +354,7 @@ export function AdminOverviewClient() {
         </p>
       ) : null}
 
-      <section className="glass-panel neon-glow p-5 sm:p-6">
+      <section className="app-card p-5 sm:p-6">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
           Narzędzia administracyjne
         </p>
@@ -416,7 +416,7 @@ export function AdminOverviewClient() {
 
       {!loading && analytics ? (
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="glass-panel neon-glow p-5 sm:p-6">
+          <div className="app-card p-5 sm:p-6">
             <h2 className="font-heading text-lg font-semibold text-white">
               Najczęstsze ekrany
             </h2>
@@ -441,7 +441,7 @@ export function AdminOverviewClient() {
             </div>
           </div>
 
-          <div className="glass-panel neon-glow p-5 sm:p-6">
+          <div className="app-card p-5 sm:p-6">
             <h2 className="font-heading text-lg font-semibold text-white">
               Ruch wg godzin (ostatnie 7 dni)
             </h2>
@@ -467,7 +467,7 @@ export function AdminOverviewClient() {
       ) : null}
 
       {!loading && hourly?.by_day?.length ? (
-        <div className="glass-panel neon-glow p-5 sm:p-6">
+        <div className="app-card p-5 sm:p-6">
           <h2 className="font-heading text-lg font-semibold text-white">
             Mapa ciepła wejść (godzina × dzień)
           </h2>
@@ -521,7 +521,7 @@ export function AdminOverviewClient() {
       ) : null}
 
       {!loading && analytics ? (
-        <div className="glass-panel neon-glow overflow-hidden">
+        <div className="app-card overflow-hidden">
           <div className="border-b border-white/10 px-5 py-4">
             <h2 className="font-heading text-lg font-semibold text-white">
               Dziennik zachowań

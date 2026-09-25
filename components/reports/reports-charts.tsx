@@ -29,7 +29,7 @@ type ReportsChartsProps = {
 export function ReportsCharts({ dailyCardio, weeklySessions }: ReportsChartsProps) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
+      <div className="app-card p-5 sm:p-6">
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(255,45,85,0.12),transparent_50%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
@@ -95,7 +95,7 @@ export function ReportsCharts({ dailyCardio, weeklySessions }: ReportsChartsProp
         </div>
       </div>
 
-      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
+      <div className="app-card p-5 sm:p-6">
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(225deg,rgba(120,120,255,0.12),transparent_50%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">

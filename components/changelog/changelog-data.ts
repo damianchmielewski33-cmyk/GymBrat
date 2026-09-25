@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — pulpit i ekrany jak w aplikacji mobilnej",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Ekrany po zalogowaniu mają czarne tło, płaskie ciemne karty i złote liczby — ten sam rytm co na zdjęciach referencyjnych.",
+      "Na dole jest pasek Pulpit, Dieta, Treningi i Wiadomości oraz złoty przycisk Raport na środku.",
+      "Start pokazuje powitanie, następny trening z przyciskiem Zacznij trening, wagę, tempo, formę, przemianę i wymiary ze wykresami.",
+      "Dieta ma układ planu żywieniowego z kafelkami makro, a logowanie nadal zostaje przy zdjęciu siłowni.",
+    ],
+  },
+  {
     title: "2026-09 — czarno-złoty styl logowania w całej aplikacji",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

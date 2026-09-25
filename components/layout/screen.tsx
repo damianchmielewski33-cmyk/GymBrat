@@ -28,7 +28,7 @@ export function ScreenCard({
   footer?: ReactNode;
 }) {
   return (
-    <section className={cn("glass-panel gold-panel p-8", className)}>
+    <section className={cn("app-card p-6 sm:p-8", className)}>
       {children}
       {footer ? (
         <div className="mt-8 border-t border-white/10 pt-6">{footer}</div>
@@ -95,16 +95,8 @@ export function ScreenHeader({
   className?: string;
 }) {
   return (
-    <ScreenCard className={cn("relative overflow-hidden", className)}>
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[var(--neon)]/12 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-24 -right-16 h-48 w-48 rounded-full bg-[var(--neon)]/8 blur-3xl"
-      />
-      <div className="relative">
+    <ScreenCard className={className}>
+      <div>
         <ScreenHeading
           kicker={kicker}
           title={title}

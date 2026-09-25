@@ -424,7 +424,7 @@ export function WorkoutPlanEditor({
               </div>
             </button>
 
-            <div className="glass-panel relative overflow-hidden rounded-2xl p-8 opacity-60">
+            <div className="app-card rounded-2xl p-8 opacity-60">
               <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:linear-gradient(120deg,rgba(255,255,255,0.06),transparent_55%)]" />
               <div className="relative space-y-3">
                 <div className="flex items-center gap-2">

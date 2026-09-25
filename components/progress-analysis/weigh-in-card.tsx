@@ -33,7 +33,7 @@ export function WeighInCard() {
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.99 }}
       transition={{ type: "spring", stiffness: 420, damping: 32 }}
-      className="glass-panel relative overflow-hidden p-6"
+      className="app-card p-6"
     >
       <div className="pointer-events-none absolute inset-0 opacity-55 [background-image:radial-gradient(520px_240px_at_10%_10%,rgba(255,45,85,0.18),transparent_60%)]" />
       <div className="relative">

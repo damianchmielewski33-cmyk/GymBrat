@@ -64,7 +64,7 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
   }
 
   return (
-    <section className="glass-panel relative overflow-hidden p-8">
+    <section className="app-card p-8">
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:radial-gradient(700px_280px_at_80%_0%,rgba(255,45,85,0.12),transparent_55%)]" />
       <div className="relative space-y-6">
         <div className="flex items-start justify-between gap-3">

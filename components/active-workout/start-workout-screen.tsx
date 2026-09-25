@@ -71,7 +71,7 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="glass-panel gold-panel relative overflow-hidden p-8">
+      <div className="app-card p-8">
         <div
           aria-hidden
           className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[var(--neon)]/12 blur-3xl"

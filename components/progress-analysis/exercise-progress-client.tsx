@@ -112,7 +112,7 @@ export function ExerciseProgressClient({
 
   return (
     <div className="space-y-6">
-      <div className="glass-panel neon-glow relative overflow-hidden p-6">
+      <div className="app-card p-6">
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(900px_420px_at_15%_0%,rgba(255,45,85,0.12),transparent_60%)]" />
         <div className="relative">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -203,7 +203,7 @@ export function ExerciseProgressClient({
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
+        <div className="app-card p-5 sm:p-6">
           <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(120,120,255,0.12),transparent_55%)]" />
           <div className="relative">
             <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
@@ -254,7 +254,7 @@ export function ExerciseProgressClient({
           </div>
         </div>
 
-        <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
+        <div className="app-card p-5 sm:p-6">
           <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(225deg,rgba(255,45,85,0.12),transparent_55%)]" />
           <div className="relative">
             <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">

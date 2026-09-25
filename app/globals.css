@@ -161,10 +161,7 @@
   }
   body {
     @apply min-h-screen bg-background text-foreground antialiased;
-    background-image:
-      radial-gradient(ellipse 1600px 950px at -6% -12%, rgba(var(--neon-rgb), 0.22), transparent 58%),
-      radial-gradient(ellipse 900px 650px at 108% 108%, rgba(166, 133, 32, 0.12), transparent 56%),
-      linear-gradient(180deg, #111113 0%, #090909 35%, #070708 100%);
+    background: #050505;
   }
   html {
     @apply font-sans;
@@ -346,6 +343,26 @@
   .chrome-edge {
     border-top: 1px solid rgba(255, 255, 255, 0.28);
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  }
+
+  /* Flat dark cards — język ekranów jak na referencji mobilnej */
+  .app-card {
+    border-radius: 22px;
+    background: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.045);
+  }
+
+  .app-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.38);
+  }
+
+  .app-value {
+    font-variant-numeric: tabular-nums;
+    color: var(--neon);
   }
 }
 
