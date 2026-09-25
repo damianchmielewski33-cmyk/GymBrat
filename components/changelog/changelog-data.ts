@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — baza posiłków w diecie",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "W zakładce Dieta jest lokalna baza około 590 przepisów z makro (białko, węglowodany, tłuszcz) oraz grafiką i instrukcją przygotowania.",
+      "Posiłki są podzielone na śniadanie, drugie śniadanie, obiad, podwieczorek i kolację — możesz filtrować, wyszukiwać i dodawać je do dziennika.",
+      "Gdy AI jest niedostępne, propozycje dnia biorą się z tej bazy i dopasowują się do pory oraz braków makro.",
+    ],
+  },
+  {
     title: "2026-09 — aktualizacja APK tylko dla GymBrat",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

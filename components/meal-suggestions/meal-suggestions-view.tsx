@@ -6,17 +6,14 @@ import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
 import { mealIllustrationUrl } from "@/lib/meal-suggestions-gaps";
 import type { MealSuggestionItem } from "@/lib/meal-suggestions-schema";
 import { generateMealSuggestionsAction } from "@/actions/meal-suggestions";
+import { AddToMealLogSheet } from "@/components/meal-suggestions/add-to-meal-log-sheet";
+import { MealCatalogBrowser } from "@/components/meal-suggestions/meal-catalog-browser";
 import { Button } from "@/components/ui/button";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import { ChefHat, Loader2, Sparkles } from "lucide-react";
 import type { WebMealInspiration } from "@/lib/web-meal-inspirations";
 import type { MealTemplate } from "@/lib/meal-templates";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { addMealLogAction, type MealLogFormState } from "@/actions/meal-log";
-import { useActionState } from "react";
-import { useSaveFeedback } from "@/components/feedback/save-feedback";
 
 function fmtVal(n: number, kind: "kcal" | "g") {
   if (!Number.isFinite(n)) return "—";
@@ -60,97 +57,6 @@ function GapRow({
 
 function fmtMacro(n: number, unit: string) {
   return `${Math.round(n * 10) / 10} ${unit}`;
-}
-
-function AddToMealLogSheet({
-  dateKey,
-  presetName,
-  triggerLabel = "Dodaj do dziennika",
-}: {
-  dateKey: string;
-  presetName: string;
-  triggerLabel?: string;
-}) {
-  const { notifySaved, notifyError } = useSaveFeedback();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState(presetName);
-  const [kcal, setKcal] = useState("");
-  const [state, formAction] = useActionState(addMealLogAction, {} as MealLogFormState);
-
-  useEffect(() => {
-    if (!open) return;
-    setName(presetName);
-    setKcal("");
-  }, [open, presetName]);
-
-  useEffect(() => {
-    if (state?.ok) {
-      notifySaved("Posiłek dodany do dziennika.");
-      setOpen(false);
-    } else if (state?.error) {
-      notifyError(state.error);
-    }
-  }, [state, notifyError, notifySaved]);
-
-  return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex h-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] px-3 text-xs font-semibold text-white/85 transition hover:bg-white/[0.07]"
-      >
-        {triggerLabel}
-      </button>
-      <SheetContent side="bottom" className="border-white/10 bg-[#07070c] text-white">
-        <SheetHeader>
-          <SheetTitle className="text-white">Dodaj posiłek</SheetTitle>
-          <SheetDescription className="text-white/55">
-            Szybki wpis do dziennika na dzień <span className="font-mono">{dateKey}</span>.
-          </SheetDescription>
-        </SheetHeader>
-        <form action={formAction} className="space-y-4 px-4 pb-6">
-          <input type="hidden" name="date" value={dateKey} />
-          <input type="hidden" name="proteinG" value="0" />
-          <input type="hidden" name="fatG" value="0" />
-          <input type="hidden" name="carbsG" value="0" />
-          <div className="space-y-2">
-            <Label className="text-white/75">Nazwa</Label>
-            <Input
-              name="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-white/75">Kalorie (kcal)</Label>
-            <Input
-              name="calories"
-              inputMode="decimal"
-              value={kcal}
-              onChange={(e) => setKcal(e.target.value)}
-              placeholder="np. 550"
-            />
-            <p className="text-xs text-white/45">
-              Jeśli nie znasz makro, wystarczy kcal. Makro uzupełnisz później w edycji wpisu na stronie Start.
-            </p>
-          </div>
-          <SheetFooter className="flex flex-row gap-2 px-0">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => setOpen(false)}
-            >
-              Anuluj
-            </Button>
-            <Button type="submit" variant="cta" className="flex-[1.2]">
-              Dodaj
-            </Button>
-          </SheetFooter>
-        </form>
-      </SheetContent>
-    </Sheet>
-  );
 }
 
 export function MealSuggestionsView({
@@ -402,6 +308,8 @@ export function MealSuggestionsView({
         </div>
       </section>
 
+      <MealCatalogBrowser dateKey={gaps.dateKey} />
+
       <section className="app-card p-5">
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
@@ -526,6 +434,10 @@ export function MealSuggestionsView({
                     dateKey={gaps.dateKey}
                     presetName={meal.title}
                     triggerLabel="Dodaj"
+                    calories={meal.approximateMacros.calories}
+                    proteinG={meal.approximateMacros.proteinG}
+                    fatG={meal.approximateMacros.fatG}
+                    carbsG={meal.approximateMacros.carbsG}
                   />
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs text-white/70">

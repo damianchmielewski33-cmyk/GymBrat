@@ -7,6 +7,10 @@ import { userSettings } from "@/db/schema";
 import { isAiConfigured } from "@/ai/client";
 import { generateMealSuggestionsFromModel } from "@/ai/meal-suggestions";
 import { staticFallbackMeals, type MealSuggestionItem } from "@/lib/meal-suggestions-schema";
+import {
+  catalogMealToSuggestion,
+  pickCatalogMealsForGaps,
+} from "@/lib/meal-catalog";
 import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
 import { getBriefingTimeContext } from "@/lib/briefing-time-context";
 import { computeMacroGaps, type MacroGaps } from "@/lib/meal-suggestions-gaps";
@@ -14,6 +18,12 @@ import { getMealSuggestionsTimeRulesPl } from "@/lib/meal-suggestions-time-conte
 import { UserMessages } from "@/lib/user-facing-errors";
 import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { isAiGloballyDisabled } from "@/lib/ai-availability";
+
+function catalogFallback(gaps: MacroGaps, hour: number): MealSuggestionItem[] {
+  const picked = pickCatalogMealsForGaps(gaps, { hour, limit: 4 });
+  if (picked.length > 0) return picked.map(catalogMealToSuggestion);
+  return staticFallbackMeals();
+}
 
 export type GenerateMealSuggestionsResult =
   | {
@@ -72,10 +82,12 @@ export async function generateMealSuggestionsAction(): Promise<GenerateMealSugge
   const userAiOff = await getUserAiFeaturesDisabled(userId);
   const entitled = await getUserAiEntitled(userId);
   const globalOff = await isAiGloballyDisabled();
+  const timeCtx = getBriefingTimeContext();
+
   if (globalOff) {
     return {
       ok: true,
-      meals: staticFallbackMeals(),
+      meals: catalogFallback(gaps, timeCtx.hour),
       source: "static",
       gaps,
     };
@@ -83,7 +95,7 @@ export async function generateMealSuggestionsAction(): Promise<GenerateMealSugge
   if (!entitled) {
     return {
       ok: true,
-      meals: staticFallbackMeals(),
+      meals: catalogFallback(gaps, timeCtx.hour),
       source: "static",
       gaps,
     };
@@ -91,7 +103,7 @@ export async function generateMealSuggestionsAction(): Promise<GenerateMealSugge
   if (userAiOff) {
     return {
       ok: true,
-      meals: staticFallbackMeals(),
+      meals: catalogFallback(gaps, timeCtx.hour),
       source: "user_disabled",
       gaps,
     };
@@ -100,13 +112,12 @@ export async function generateMealSuggestionsAction(): Promise<GenerateMealSugge
   if (!isAiConfigured()) {
     return {
       ok: true,
-      meals: staticFallbackMeals(),
+      meals: catalogFallback(gaps, timeCtx.hour),
       source: "static",
       gaps,
     };
   }
 
-  const timeCtx = getBriefingTimeContext();
   const meals = await generateMealSuggestionsFromModel({
     gapsJson,
     noGoalsHint,
