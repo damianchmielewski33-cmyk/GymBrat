@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — trening jak na zrzutach: plany, start, sesja",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Ekran Plany pokazuje listę z liczbą ćwiczeń i serii, „+ Nowy plan” oraz „Moje ćwiczenia”; w edytorze ustawiasz serie i kolejność, a zapis/anulowanie jest jak w aplikacji treningowej.",
+      "Start treningu ma kafle ostatniej sesji (postęp/suma kg i powtórzeń), pasek dni tygodnia, wykres Ciężar/Powt. oraz duży przycisk Rozpocznij trening z wyborem planu (data ostatniego użycia).",
+      "W sesji widać porównanie do poprzedniego treningu (−/+ powt. i ciężar), ptaszki przy seriach, menu ćwiczenia (notatka, dodaj/zamień, historia) oraz Anuluj / Zakończ — w czarno-złotym stylu GymBrat.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

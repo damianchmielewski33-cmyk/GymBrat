@@ -1,21 +1,29 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Dumbbell, History, Pencil, Search, Sparkles } from "lucide-react";
+import { Check, Dumbbell, History, Pencil, Search } from "lucide-react";
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
+import type { HomeStats } from "@/lib/home-stats";
 import { Input } from "@/components/ui/input";
-import { WorkoutGlassCard } from "@/components/active-workout/workout-glass-card";
-import { WorkoutPlanCard } from "@/components/active-workout/workout-plan-card";
+import { WorkoutTrendChart } from "@/components/home/workout-trend-chart";
 import { cn } from "@/lib/utils";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 function formatLastWorkoutDate(ymd: string | null) {
-  if (!ymd) return "Jeszcze nie trenowano";
+  if (!ymd) return null;
   try {
     const d = new Date(`${ymd}T12:00:00`);
     return new Intl.DateTimeFormat("pl-PL", {
-      dateStyle: "medium",
+      weekday: "long",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     }).format(d);
   } catch {
     return ymd;
@@ -30,30 +38,50 @@ function normalizeSearch(s: string) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-function polishPlansLabel(n: number) {
-  if (n === 1) return "plan";
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return "plany";
-  return "planów";
-}
-
-function polishExercisesWord(n: number) {
-  if (n === 1) return "ćwiczenie";
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return "ćwiczenia";
-  return "ćwiczeń";
+function StatTile({
+  value,
+  label,
+  tone,
+}: {
+  value: string;
+  label: string;
+  tone: "gold" | "mint";
+}) {
+  return (
+    <div className="rounded-[16px] border border-white/[0.08] bg-[#161616] px-3 py-3 text-center">
+      <p
+        className={cn(
+          "font-display text-[26px] leading-none tabular-nums",
+          tone === "gold" ? "text-[var(--gym-gold)]" : "text-emerald-300",
+        )}
+      >
+        {value}
+      </p>
+      <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wide text-white/45">
+        {label}
+      </p>
+    </div>
+  );
 }
 
 type StartWorkoutScreenProps = {
   plans: WorkoutPlanWithLastWorkoutDTO[];
   activePlanId: string | null;
   onBegin: (row: WorkoutPlanWithLastWorkoutDTO) => void;
+  homeStats?: HomeStats | null;
+  workoutDaysThisWeek?: boolean[];
 };
 
-export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkoutScreenProps) {
+export function StartWorkoutScreen({
+  plans,
+  activePlanId,
+  onBegin,
+  homeStats = null,
+  workoutDaysThisWeek = [false, false, false, false, false, false, false],
+}: StartWorkoutScreenProps) {
   const [query, setQuery] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [trendMode, setTrendMode] = useState<"volume" | "reps">("volume");
 
   const filtered = useMemo(() => {
     const q = normalizeSearch(query);
@@ -64,222 +92,254 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
     });
   }, [plans, query]);
 
-  const totalExercises = useMemo(
-    () => plans.reduce((acc, p) => acc + p.plan.exercises.length, 0),
-    [plans],
-  );
+  const last = homeStats?.lastWorkout ?? null;
+  const dayLabels = ["Pon.", "Wt.", "Śr.", "Czw.", "Pt.", "Sob.", "Niedz."];
+
+  const trendData = useMemo(() => {
+    if (!homeStats?.trend?.length) return [];
+    return homeStats.trend;
+  }, [homeStats]);
+
+  function beginFromPicker(row: WorkoutPlanWithLastWorkoutDTO) {
+    setPickerOpen(false);
+    onBegin(row);
+  }
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="glass-panel p-8">
-        <div className="text-center">
-          <div className="mx-auto max-w-lg">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
-              Przed treningiem
-            </p>
-            <h1 className="font-heading mt-2 text-2xl font-semibold text-white">
-              Rozpocznij sesję
-            </h1>
-            <p className="mt-2 text-sm text-white/60">
-              Wybierz plan — wczytamy ćwiczenia, serie i podpowiedzi z ostatniego treningu. Możesz od
-              razu przejść do zapisu serii na ekranie treningu.
-            </p>
-          </div>
-          {plans.length > 0 ? (
-            <div className="mt-6 flex flex-wrap justify-center gap-2 text-sm text-white/55">
-              <span className="rounded-lg border border-white/15 bg-black/50 px-3 py-2">
-                <span className="font-semibold text-white">{plans.length}</span>{" "}
-                {polishPlansLabel(plans.length)}
-              </span>
-              <span className="rounded-lg border border-white/15 bg-black/50 px-3 py-2">
-                <span className="font-semibold text-white">{totalExercises}</span>{" "}
-                {polishExercisesWord(totalExercises)} w planach
-              </span>
-            </div>
+    <div className="mx-auto flex max-w-lg flex-col gap-5 pb-8">
+      <header className="px-0.5 pt-1">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--gym-gold)]">
+          Start
+        </p>
+        <h1 className="font-heading mt-1 text-3xl font-semibold text-white">Trening</h1>
+      </header>
+
+      <section className="rounded-[22px] border border-white/[0.1] bg-[#121214] p-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+            Ostatni trening
+          </p>
+          {last ? (
+            <Link href="/workout-history" className="text-xs text-[var(--gym-gold)]">
+              Historia ›
+            </Link>
           ) : null}
         </div>
+        {last ? (
+          <>
+            <p className="mt-1 text-sm text-white/70">{last.title}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <StatTile
+                value={
+                  homeStats?.deltaVolumeKg != null
+                    ? `${homeStats.deltaVolumeKg > 0 ? "+" : ""}${Math.round(homeStats.deltaVolumeKg)}`
+                    : "—"
+                }
+                label="postęp kg"
+                tone="mint"
+              />
+              <StatTile
+                value={Math.round(last.volumeKg).toLocaleString("pl-PL")}
+                label="suma kg"
+                tone="gold"
+              />
+              <StatTile
+                value={
+                  homeStats?.deltaTotalReps != null
+                    ? `${homeStats.deltaTotalReps > 0 ? "+" : ""}${homeStats.deltaTotalReps}`
+                    : "—"
+                }
+                label="postęp powt."
+                tone="mint"
+              />
+              <StatTile
+                value={String(last.totalReps)}
+                label="suma powt."
+                tone="gold"
+              />
+            </div>
+          </>
+        ) : (
+          <p className="mt-3 text-sm text-white/45">
+            Brak zakończonych sesji — rozpocznij pierwszy trening.
+          </p>
+        )}
+      </section>
 
-        {plans.length > 0 ? (
-          <div className="relative mt-6 grid gap-3 sm:grid-cols-3">
-            {[
-              { step: "1", title: "Wybierz plan", body: "Kliknij kartę poniżej — od razu startujesz sesję." },
-              { step: "2", title: "Zapisuj serie", body: "Wpisy powtórzeń i ciężaru zapisują postęp." },
-              { step: "3", title: "Zakończ", body: "Podsumowanie trafi do raportów i historii." },
-            ].map((item, i) => (
-              <motion.div
-                key={item.step}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 * i, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                className="rounded-lg border border-white/15 bg-black/50 px-4 py-4 text-center"
-              >
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
-                  Krok {item.step}
-                </p>
-                <p className="mt-2 font-heading text-base font-semibold text-white">{item.title}</p>
-                <p className="mt-1 text-sm text-white/60">{item.body}</p>
-              </motion.div>
-            ))}
+      <section className="rounded-[22px] border border-white/[0.1] bg-[#121214] px-2 py-3">
+        <div className="flex items-end justify-between gap-1">
+          {dayLabels.map((label, i) => {
+            const on = workoutDaysThisWeek[i] ?? false;
+            return (
+              <div key={label} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+                <span
+                  className={cn(
+                    "text-[10px] font-medium uppercase",
+                    on ? "text-[var(--gym-gold)]" : "text-white/35",
+                  )}
+                >
+                  {label}
+                </span>
+                <span
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border",
+                    on
+                      ? "border-[var(--gym-gold)] bg-[var(--gym-gold)] text-black"
+                      : "border-white/15 text-transparent",
+                  )}
+                >
+                  <Check className="h-4 w-4" strokeWidth={2.5} />
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="rounded-[22px] border border-white/[0.1] bg-[#121214] p-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+            Ostatnie treningi
+          </p>
+          <div className="flex gap-1 rounded-full bg-white/[0.04] p-0.5">
+            <button
+              type="button"
+              onClick={() => setTrendMode("volume")}
+              className={cn(
+                "rounded-full px-3 py-1 text-[11px] font-semibold",
+                trendMode === "volume"
+                  ? "bg-[var(--gym-gold)] text-black"
+                  : "text-white/45",
+              )}
+            >
+              Ciężar
+            </button>
+            <button
+              type="button"
+              onClick={() => setTrendMode("reps")}
+              className={cn(
+                "rounded-full px-3 py-1 text-[11px] font-semibold",
+                trendMode === "reps"
+                  ? "bg-[var(--gym-gold)] text-black"
+                  : "text-white/45",
+              )}
+            >
+              Powt.
+            </button>
           </div>
-        ) : null}
+        </div>
+        <div className="mt-2">
+          {trendMode === "volume" ? (
+            <WorkoutTrendChart data={trendData} />
+          ) : (
+            <WorkoutTrendChart
+              data={trendData.map((p) => ({
+                ...p,
+                volumeKg: p.totalReps,
+              }))}
+            />
+          )}
+        </div>
+      </section>
+
+      <button
+        type="button"
+        disabled={plans.length === 0}
+        onClick={() => setPickerOpen(true)}
+        className="gym-btn-primary inline-flex h-14 w-full items-center justify-center rounded-full text-base font-bold uppercase tracking-wide disabled:opacity-40"
+      >
+        Rozpocznij trening
+      </button>
+
+      <div className="flex items-center justify-between gap-3 px-1">
+        <Link
+          href="/workout-plan"
+          className="inline-flex items-center gap-2 text-sm text-white/55 hover:text-white/80"
+        >
+          <Pencil className="h-4 w-4" />
+          Plany
+        </Link>
+        <Link
+          href="/workout-history"
+          className="inline-flex items-center gap-2 text-sm text-white/55 hover:text-white/80"
+        >
+          <History className="h-4 w-4" />
+          Historia
+        </Link>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] lg:items-start">
-        <div className="min-w-0 space-y-4">
-          {plans.length > 0 ? (
+      {plans.length === 0 ? (
+        <div className="rounded-[18px] border border-dashed border-white/15 bg-[#161616] p-5 text-center">
+          <Dumbbell className="mx-auto h-8 w-8 text-[var(--gym-gold)]" />
+          <p className="mt-3 text-sm font-semibold text-white">Brak planów</p>
+          <p className="mt-1 text-sm text-white/45">
+            Najpierw utwórz plan z ćwiczeniami.
+          </p>
+          <Link
+            href="/workout-plan"
+            className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-[var(--gym-gold)] px-5 text-sm font-semibold text-black"
+          >
+            Nowy plan
+          </Link>
+        </div>
+      ) : null}
+
+      <Sheet open={pickerOpen} onOpenChange={setPickerOpen}>
+        <SheetContent side="bottom" className="max-h-[85dvh] border-white/10 bg-[#0c0c0c] text-white">
+          <SheetHeader>
+            <SheetTitle className="text-white">Wybierz plan</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-3 overflow-y-auto px-4 pb-8">
             <div className="relative">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35"
-                aria-hidden
-              />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
               <Input
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Szukaj planu po nazwie…"
-                autoComplete="off"
-                aria-label="Szukaj planu treningowego"
+                placeholder="Szukaj planu…"
                 className="pl-10"
               />
             </div>
-          ) : null}
-
-          <div
-            role="region"
-            aria-label="Lista planów treningowych"
-            className="grid gap-3 sm:grid-cols-2"
-          >
-            {plans.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="sm:col-span-2"
-              >
-                <WorkoutGlassCard className="p-5">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-white">Brak planów treningowych</p>
-                      <p className="mt-1 max-w-md text-[13px] leading-relaxed text-white/55">
-                        Utwórz pierwszy plan z ćwiczeniami — wtedy pojawi się tutaj i będziesz mógł
-                        wystartować sesję jednym kliknięciem.
-                      </p>
-                    </div>
-                    <Link
-                      href="/workout-plan"
-                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--neon)] px-5 text-base font-semibold text-white transition hover:bg-[#ff4d6d]"
-                    >
-                      Utwórz plan
-                    </Link>
-                  </div>
-                </WorkoutGlassCard>
-              </motion.div>
-            ) : filtered.length === 0 ? (
-              <div className="sm:col-span-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-8 text-center">
-                <p className="text-sm font-medium text-white/80">Brak wyników dla „{query.trim()}”</p>
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  className="mt-3 text-[13px] font-medium text-[#FF1A4B] underline-offset-2 hover:underline"
-                >
-                  Wyczyść wyszukiwanie
-                </button>
-              </div>
-            ) : (
-              filtered.map((row, i) => {
+            <ul className="divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/10">
+              {filtered.map((row) => {
+                const name = row.plan.planName.trim() || "Plan bez nazwy";
+                const used = formatLastWorkoutDate(row.lastWorkoutDate);
                 const empty = row.plan.exercises.length === 0;
                 const active = activePlanId === row.id;
                 return (
-                  <WorkoutPlanCard
-                    key={row.id}
-                    row={row}
-                    index={i}
-                    active={active}
-                    empty={empty}
-                    lastActivityLabel={formatLastWorkoutDate(row.lastWorkoutDate)}
-                    onStart={() => onBegin(row)}
-                    startLabel={active ? "Wczytaj ponownie" : "Rozpocznij trening"}
-                  />
+                  <li key={row.id}>
+                    <button
+                      type="button"
+                      disabled={empty}
+                      onClick={() => beginFromPicker(row)}
+                      className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left disabled:opacity-40"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-white">
+                          {name}
+                          {active ? (
+                            <span className="ml-2 text-[10px] font-medium text-[var(--gym-gold)]">
+                              AKTYWNY
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="mt-0.5 text-xs text-white/40">
+                          {empty
+                            ? "Brak ćwiczeń — uzupełnij plan"
+                            : used
+                              ? `Użyto: ${used}`
+                              : "Jeszcze nie trenowano"}
+                        </p>
+                      </div>
+                      <span className="text-white/35">›</span>
+                    </button>
+                  </li>
                 );
-              })
-            )}
-          </div>
-
-          {plans.length > 0 ? (
-            <p className="text-center text-[11px] text-white/35 lg:text-left" aria-live="polite">
-              {filtered.length === plans.length
-                ? `Wszystkie plany (${plans.length}).`
-                : `Widoczne: ${filtered.length} z ${plans.length} planów.`}
-            </p>
-          ) : null}
-        </div>
-
-        <motion.aside
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.06 }}
-          className="flex flex-col gap-4 lg:sticky lg:top-4"
-        >
-          <WorkoutGlassCard className="p-4">
-            <div className="flex items-center gap-2 text-white">
-              <Sparkles className="h-4 w-4 text-[#FF1A4B]" aria-hidden />
-              <p className="text-sm font-semibold">Przed startem</p>
-            </div>
-            <ul className="mt-3 space-y-2.5 text-[12px] leading-relaxed text-white/55">
-              <li className="flex gap-2">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#FF1A4B]/80" />
-                Krótka rozgrzewka poprawia jakość pierwszych serii.
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-white/25" />
-                Timer odpoczynku włącza się po uzupełnieniu serii (ustawienia na ekranie treningu).
-              </li>
+              })}
             </ul>
-          </WorkoutGlassCard>
-
-          <div className="rounded-xl border border-white/[0.08] bg-[#121216] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-              Skróty
-            </p>
-            <div className="mt-3 grid gap-2">
-              <Link
-                href="/workout-plan"
-                className={cn(
-                  "flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5",
-                  "text-[13px] text-white/85 transition hover:border-white/[0.12] hover:bg-white/[0.06]",
-                )}
-              >
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.06]">
-                  <Pencil className="h-4 w-4 text-[#FF9500]" aria-hidden />
-                </span>
-                <span className="min-w-0">
-                  <span className="block font-medium">Edytuj plany</span>
-                  <span className="block text-[11px] text-white/45">Dodaj ćwiczenia i nazwy dni</span>
-                </span>
-              </Link>
-              <Link
-                href="/workout-history"
-                className={cn(
-                  "flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5",
-                  "text-[13px] text-white/85 transition hover:border-white/[0.12] hover:bg-white/[0.06]",
-                )}
-              >
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.06]">
-                  <History className="h-4 w-4 text-sky-400/90" aria-hidden />
-                </span>
-                <span className="min-w-0">
-                  <span className="block font-medium">Historia treningów</span>
-                  <span className="block text-[11px] text-white/45">Ostatnie sesje i tonaż</span>
-                </span>
-              </Link>
-            </div>
           </div>
-
-          <div className="hidden items-center gap-3 rounded-xl border border-dashed border-white/[0.1] px-4 py-3 text-[12px] text-white/40 lg:flex">
-            <Dumbbell className="h-5 w-5 shrink-0 text-white/25" aria-hidden />
-            <span>Plan z pustą listą ćwiczeń nie uruchomi sesji — uzupełnij go w edytorze.</span>
-          </div>
-        </motion.aside>
-      </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -35,21 +35,27 @@ function clampInt(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
-/** Domyślnie 3 serie: puste powtórzenia (null); z planu można wypełnić przy starcie. */
+/** Serie z planu (domyślnie 3); powtórzenia startowe z planu. */
 function planExercisesToSession(exercises: WorkoutPlanExercise[]): WorkoutExerciseState[] {
-  return exercises.map((ex) => ({
-    id: ex.id,
-    name: ex.name,
-    sets: Array.from({ length: 3 }, () => ({
-      reps:
-        typeof ex.reps === "number" && Number.isFinite(ex.reps) && ex.reps > 0
-          ? clampInt(ex.reps, 1, 99)
-          : null,
-      weight: 0,
-      done: false,
-      rpe: null,
-    })),
-  }));
+  return exercises.map((ex) => {
+    const setCount =
+      typeof ex.sets === "number" && Number.isFinite(ex.sets) && ex.sets > 0
+        ? clampInt(ex.sets, 1, 20)
+        : 3;
+    return {
+      id: ex.id,
+      name: ex.name,
+      sets: Array.from({ length: setCount }, () => ({
+        reps:
+          typeof ex.reps === "number" && Number.isFinite(ex.reps) && ex.reps > 0
+            ? clampInt(ex.reps, 1, 99)
+            : null,
+        weight: 0,
+        done: false,
+        rpe: null,
+      })),
+    };
+  });
 }
 
 export function ActiveWorkoutView({
@@ -58,12 +64,16 @@ export function ActiveWorkoutView({
   userAiFeaturesDisabled = false,
   userAiEntitled = true,
   display = "page",
+  homeStats = null,
+  workoutDaysThisWeek = [false, false, false, false, false, false, false],
 }: {
   initialPlans: WorkoutPlanWithLastWorkoutDTO[];
   entry?: "active" | "start";
   userAiFeaturesDisabled?: boolean;
   userAiEntitled?: boolean;
   display?: "page" | "modal";
+  homeStats?: import("@/lib/home-stats").HomeStats | null;
+  workoutDaysThisWeek?: boolean[];
 }) {
   const {
     startedAt,
@@ -243,7 +253,11 @@ export function ActiveWorkoutView({
     return { done, total };
   }, [exercises]);
 
-  function patchSet(exerciseId: string, setIndex: number, patch: Partial<{ reps: number | null; weight: number }>) {
+  function patchSet(
+    exerciseId: string,
+    setIndex: number,
+    patch: Partial<{ reps: number | null; weight: number; done: boolean; rpe: number | null }>,
+  ) {
     const ex = exercises.find((e) => e.id === exerciseId);
     const current = ex?.sets[setIndex];
     const wasDone = current?.done ?? false;
@@ -254,11 +268,13 @@ export function ActiveWorkoutView({
     const nextReps = patch.reps !== undefined ? patch.reps : current?.reps ?? null;
     const nextWeight = patch.weight !== undefined ? patch.weight : current?.weight ?? 0;
     const isDoneNext =
-      nextReps != null &&
-      Number.isFinite(nextReps) &&
-      nextReps > 0 &&
-      Number.isFinite(nextWeight) &&
-      nextWeight > 0;
+      patch.done !== undefined
+        ? patch.done
+        : nextReps != null &&
+          Number.isFinite(nextReps) &&
+          nextReps > 0 &&
+          Number.isFinite(nextWeight) &&
+          nextWeight > 0;
     if (isDoneNext && !wasDone) {
       const { autoStart, defaultSeconds } = readRestTimerPrefs();
       if (autoStart) {
@@ -388,6 +404,26 @@ export function ActiveWorkoutView({
       onExerciseNoteChange={(exerciseId, note) =>
         patchExercise(exerciseId, { note })
       }
+      onCancelSession={() => {
+        if (
+          !window.confirm(
+            "Anulować sesję? Postęp z tej sesji nie zostanie zapisany.",
+          )
+        ) {
+          return;
+        }
+        reset();
+        setExercises([]);
+        setSelectedExerciseId(null);
+        stopRest();
+        router.push("/start-workout");
+      }}
+      onFinishSession={() => {
+        void completeWorkout();
+      }}
+      finishPending={saving}
+      onAddExercise={() => router.push("/workout-plan")}
+      onReplaceExercise={() => router.push("/workout-plan")}
     />
   );
 
@@ -397,6 +433,8 @@ export function ActiveWorkoutView({
         plans={initialPlans}
         activePlanId={workoutPlanId}
         onBegin={beginWorkoutFromPlan}
+        homeStats={homeStats}
+        workoutDaysThisWeek={workoutDaysThisWeek}
       />
     ) : null;
 
