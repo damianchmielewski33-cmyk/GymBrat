@@ -1,8 +1,8 @@
 {
   "versionCode": 3,
   "versionName": "0.1.2",
-  "apkUrl": "https://gym-brat.vercel.app/gymbrat.apk",
-  "releasedAt": "2026-09-25T13:10:35Z",
-  "commit": "d1e9f24",
-  "notes": "GymBrat Android 0.1.2 — wybór zdjęć w raporcie otwiera galerię (onShowFileChooser). Zainstaluj ten APK na telefonie."
+  "apkUrl": "https://raw.githubusercontent.com/damianchmielewski33-cmyk/GymBrat/cursor/fix-android-file-chooser-9f08/public/gymbrat.apk",
+  "releasedAt": "2026-09-25T13:23:00Z",
+  "commit": "00cddea",
+  "notes": "GymBrat Android 0.1.2 — wybór zdjęć w raporcie otwiera galerię. Pobierz APK z GitHub (raw), nie z Vercel /gymbrat.apk."
 }
