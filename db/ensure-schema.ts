@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS "meal_logs" (
   "user_id" text NOT NULL,
   "date" text NOT NULL,
   "name" text,
+  "slot" text,
+  "barcode" text,
   "calories" real NOT NULL,
   "protein_g" real NOT NULL,
   "fat_g" real NOT NULL,
@@ -41,6 +43,8 @@ CREATE TABLE IF NOT EXISTS "meal_logs" (
   FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 `);
+  await tryAddColumn(`ALTER TABLE "meal_logs" ADD COLUMN "slot" text`);
+  await tryAddColumn(`ALTER TABLE "meal_logs" ADD COLUMN "barcode" text`);
   await db.$client.execute(
     `CREATE INDEX IF NOT EXISTS "idx_meal_logs_user_date" ON "meal_logs" ("user_id","date")`,
   );

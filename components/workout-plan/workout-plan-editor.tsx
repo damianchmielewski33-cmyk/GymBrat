@@ -6,12 +6,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Dumbbell,
-  Lock,
   Pencil,
   Plus,
   Save,
   Search,
-  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -404,7 +402,7 @@ export function WorkoutPlanEditor({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            className="grid gap-4 md:grid-cols-2"
+            className="grid gap-4 md:grid-cols-1 max-w-xl"
           >
             <button
               type="button"
@@ -423,29 +421,6 @@ export function WorkoutPlanEditor({
                 </p>
               </div>
             </button>
-
-            <div className="glass-panel relative overflow-hidden rounded-2xl p-8 opacity-60">
-              <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:linear-gradient(120deg,rgba(255,255,255,0.06),transparent_55%)]" />
-              <div className="relative space-y-3">
-                <div className="flex items-center gap-2">
-                  <Lock className="h-8 w-8 text-white/40" />
-                  <span className="rounded-full border border-white/15 bg-black/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white/50">
-                    Wkrótce
-                  </span>
-                </div>
-                <h2 className="font-heading text-xl font-semibold text-white/80">
-                  Stwórz plan treningowy z AI
-                </h2>
-                <p className="text-sm text-white/50">
-                  Ta opcja będzie dostępna w przyszłości — automatyczne układanie
-                  planu na podstawie celów i sprzętu.
-                </p>
-                <Button type="button" disabled variant="outline" className="mt-2">
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Niedostępne
-                </Button>
-              </div>
-            </div>
           </motion.div>
         ) : (
           <motion.div
@@ -701,7 +676,7 @@ export function WorkoutPlanEditor({
                     size="sm"
                     onClick={addCustomExercise}
                     disabled={!customName.trim()}
-                    className="bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
+                   
                   >
                     {customMatchPreview
                       ? "Dodaj rozpoznane ćwiczenie"

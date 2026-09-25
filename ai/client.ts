@@ -124,14 +124,8 @@ function normalizeMessagesForGemini(messages: AiMessage[]) {
 }
 
 export function isAiConfigured(): boolean {
-  const key = process.env.AI_API_KEY?.trim();
-  if (provider() === "ollama") {
-    // If the base points to a relay / remote OpenAI-like endpoint, require a token.
-    // If it points to local Ollama directly, allow empty key.
-    const base = openAiBase();
-    return Boolean(key) || isLikelyLocalOllamaBase(base);
-  }
-  return Boolean(key);
+  // GymBrat nie oferuje funkcji AI — zawsze wyłączone (heurystyki / lokalna baza).
+  return false;
 }
 
 async function geminiGenerateContent(model: string, body: unknown): Promise<Response> {

@@ -29,7 +29,7 @@ type ReportsChartsProps = {
 export function ReportsCharts({ dailyCardio, weeklySessions }: ReportsChartsProps) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
+      <div className="app-card p-5 sm:p-6">
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(255,45,85,0.12),transparent_50%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
@@ -46,8 +46,8 @@ export function ReportsCharts({ dailyCardio, weeklySessions }: ReportsChartsProp
               <AreaChart data={dailyCardio} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="neonCardio" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ff2d55" stopOpacity={0.45} />
-                    <stop offset="95%" stopColor="#ff2d55" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#d4af37" stopOpacity={0.45} />
+                    <stop offset="95%" stopColor="#d4af37" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -83,11 +83,11 @@ export function ReportsCharts({ dailyCardio, weeklySessions }: ReportsChartsProp
                 <Area
                   type="monotone"
                   dataKey="minutes"
-                  stroke="#ff2d55"
+                  stroke="#d4af37"
                   strokeWidth={2}
                   fill="url(#neonCardio)"
-                  dot={{ r: 3, fill: "#ff2d55", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#ff2d55", stroke: "#fff", strokeWidth: 2 }}
+                  dot={{ r: 3, fill: "#d4af37", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#d4af37", stroke: "#fff", strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -95,7 +95,7 @@ export function ReportsCharts({ dailyCardio, weeklySessions }: ReportsChartsProp
         </div>
       </div>
 
-      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
+      <div className="app-card p-5 sm:p-6">
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(225deg,rgba(120,120,255,0.12),transparent_50%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
