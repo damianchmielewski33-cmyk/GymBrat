@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { assertCsrf } from "@/lib/csrf";
 import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
+import { fetchJavaApi, isJavaApiEnabled, passThroughJavaResponse } from "@/lib/java-api";
 import { z } from "zod";
 
 export async function GET() {
@@ -11,6 +12,12 @@ export async function GET() {
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Brak autoryzacji" }, { status: 401 });
   }
+
+  if (isJavaApiEnabled()) {
+    const javaRes = await fetchJavaApi("/api/body-reports", { userId: session.user.id });
+    if (javaRes) return passThroughJavaResponse(javaRes);
+  }
+
   const reports = await getBodyReports(session.user.id);
   return NextResponse.json({ ok: true, reports });
 }
@@ -65,6 +72,22 @@ export async function POST(req: Request) {
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: "Nieprawidłowe dane" }, { status: 400 });
+  }
+
+  if (isJavaApiEnabled()) {
+    const javaRes = await fetchJavaApi("/api/body-reports", {
+      method: "POST",
+      userId: session.user.id,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parsed.data),
+    });
+    if (javaRes) {
+      if (javaRes.ok) {
+        revalidatePath("/reports");
+        revalidatePath("/");
+      }
+      return passThroughJavaResponse(javaRes);
+    }
   }
 
   const id = await createBodyReport(session.user.id, parsed.data as CreateBodyReportInput);
