@@ -366,7 +366,7 @@ export function MealLogsList({
                 >
                   Anuluj
                 </Button>
-                <SubmitButton className="h-11 flex-[1.2] bg-[var(--neon)] text-white hover:bg-[#ff4d6d] sm:flex-none sm:min-w-[10rem]">
+                <SubmitButton className="h-11 flex-[1.2] sm:flex-none sm:min-w-[10rem]">
                   Zapisz zmiany
                 </SubmitButton>
               </SheetFooter>
