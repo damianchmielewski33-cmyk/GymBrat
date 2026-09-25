@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — wyraźniejsze złote przyciski",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Przyciski na wszystkich ekranach mają jaśniejsze złoto, metaliczny gradient i wyraźniejszy cień — wyglądają nowocześniej i bardziej wyróżniają się na czarnym tle.",
+      "Wspólne style gym-btn-primary, gym-btn-outline i gym-btn-secondary obejmują CTA w nawigacji, na startcie treningu, w diecie, profilu i raportach.",
+    ],
+  },
+  {
     title: "2026-09 — dieta tylko z lokalnej bazy przepisów",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -117,7 +117,7 @@ function AddMealSheetForm({
             </Button>
             <Button
               type="button"
-              className="h-11 bg-[var(--neon)] text-[var(--neon-fg)] hover:bg-[var(--neon-hover)]"
+              className="h-11"
               onClick={handleAddAnother}
             >
               Tak, dodaj kolejny
@@ -334,7 +334,7 @@ function AddMealSheetForm({
           >
             Anuluj
           </Button>
-          <SubmitButton className="h-11 flex-[1.2] bg-[var(--neon)] text-[var(--neon-fg)] hover:bg-[var(--neon-hover)] sm:flex-none sm:min-w-[10rem]">
+          <SubmitButton className="h-11 flex-[1.2] sm:flex-none sm:min-w-[10rem]">
             Zapisz posiłek
           </SubmitButton>
         </SheetFooter>

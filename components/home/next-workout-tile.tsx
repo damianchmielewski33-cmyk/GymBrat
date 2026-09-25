@@ -60,7 +60,7 @@ export function NextWorkoutTile({
 
       <Link
         href={planName ? "/start-workout" : "/workout-plan"}
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--neon)] text-sm font-semibold text-[var(--neon-fg)]"
+        className="gym-btn-primary inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm"
       >
         <Play className="h-4 w-4 fill-current" aria-hidden />
         {planName ? "Zacznij trening" : "Utwórz plan"}

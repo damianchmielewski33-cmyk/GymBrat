@@ -345,7 +345,7 @@ export function GymPadSessionLayout({
               whileTap={{ scale: 0.98 }}
               onClick={() => onAddSet(current.id)}
               aria-label={`Dodaj serię dla ćwiczenia: ${current.name}`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--neon)] px-5 py-3 text-sm font-bold text-[var(--neon-fg)] shadow-[0_0_24px_rgba(var(--neon-rgb),0.20)] outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+              className="gym-btn-primary inline-flex min-h-11 items-center gap-2 rounded-2xl px-5 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
             >
               <Plus className="h-5 w-5 shrink-0" strokeWidth={2.5} aria-hidden />
               Dodaj serię

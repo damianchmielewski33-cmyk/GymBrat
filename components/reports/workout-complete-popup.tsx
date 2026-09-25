@@ -161,10 +161,7 @@ export function WorkoutCompletePopup() {
         <div className="mt-5 flex justify-end gap-2">
           <AlertDialogClose
             render={
-              <Button
-                type="button"
-                className="bg-[var(--neon)] text-[var(--neon-fg)] hover:bg-[var(--neon-hover)]"
-              />
+              <Button type="button" />
             }
           >
             OK

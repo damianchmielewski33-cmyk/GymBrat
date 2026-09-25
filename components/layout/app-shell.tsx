@@ -172,7 +172,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="relative flex justify-center">
             <Link
               href="/reports"
-              className="absolute -top-6 inline-flex h-[3.35rem] min-w-[7.25rem] items-center justify-center gap-1 rounded-full bg-[var(--neon)] px-5 text-sm font-semibold text-[var(--neon-fg)] shadow-[0_10px_24px_rgba(0,0,0,0.45)]"
+              className="gym-btn-primary absolute -top-6 inline-flex h-[3.35rem] min-w-[7.25rem] items-center justify-center gap-1 rounded-full px-5 text-sm"
               aria-label="Dodaj raport"
             >
               <Plus className="h-4 w-4" aria-hidden />

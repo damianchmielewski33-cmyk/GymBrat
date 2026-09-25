@@ -81,7 +81,7 @@ export function WeightRangeChart({
               className={cn(
                 "rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide",
                 active
-                  ? "bg-[var(--neon)] text-[var(--neon-fg)]"
+                  ? "gym-btn-primary"
                   : "bg-white/[0.04] text-white/45",
               )}
             >
