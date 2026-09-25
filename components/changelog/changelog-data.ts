@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — Start: makro Od startu i poprawione kafle",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "W Następnym treningu kafle Treningi tyg., Cardio tyg. i Tyg. z rzędu mają wyraźne kolory, a seria liczy kolejne tygodnie z treningiem zamiast dni.",
+      "Kafelek Od startu to wykres liniowy makro dziennego (białko, węglowodany, tłuszcze) oraz pozostałych kalorii do spożycia względem celu z profilu.",
+      "W programie liczy dni od pierwszego raportu, a wykres wagi i pasa aktualizuje się po nowym raporcie sylwetki (waga z raportu trafia na wykres).",
+    ],
+  },
+  {
     title: "2026-09 — usuwanie produktu bez systemowego okna",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

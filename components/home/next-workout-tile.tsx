@@ -1,22 +1,39 @@
 import Link from "next/link";
 import { ChevronDown, Play } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function MiniStat({
   label,
   value,
   unit,
+  tone,
 }: {
   label: string;
   value: string;
   unit?: string;
+  tone: "gold" | "mint" | "sky";
 }) {
+  const toneClass =
+    tone === "gold"
+      ? "border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 text-[var(--gym-gold-bright)]"
+      : tone === "mint"
+        ? "border-emerald-400/35 bg-emerald-400/10 text-emerald-300"
+        : "border-sky-400/35 bg-sky-400/10 text-sky-300";
+
   return (
-    <div className="px-1 py-1 text-center">
-      <p className="app-label">{label}</p>
-      <p className="app-value mt-2 text-2xl font-semibold leading-none">
+    <div
+      className={cn(
+        "rounded-2xl border px-2 py-3 text-center",
+        toneClass,
+      )}
+    >
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/55">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-semibold leading-none tabular-nums">
         {value}
         {unit ? (
-          <span className="ml-1 text-xs font-medium text-white/40">{unit}</span>
+          <span className="ml-1 text-[11px] font-medium opacity-70">{unit}</span>
         ) : null}
       </p>
     </div>
@@ -30,7 +47,7 @@ export function NextWorkoutTile({
   firstTime,
   workoutsThisWeek,
   cardioThisWeekMinutes,
-  workoutStreakDays,
+  workoutStreakWeeks,
 }: {
   planName: string | null;
   exerciseCount: number;
@@ -39,7 +56,8 @@ export function NextWorkoutTile({
   lastWorkoutDate: string | null;
   workoutsThisWeek: number;
   cardioThisWeekMinutes: number;
-  workoutStreakDays: number;
+  /** Kolejne tygodnie kalendarzowe z ≥1 treningiem. */
+  workoutStreakWeeks: number;
 }) {
   const preview = exerciseNames.slice(0, 4).join(" · ");
   return (
@@ -77,13 +95,22 @@ export function NextWorkoutTile({
       ) : null}
 
       <div className="grid grid-cols-3 gap-2 border-t border-white/[0.05] pt-4">
-        <MiniStat label="Treningi tyg." value={String(workoutsThisWeek)} />
+        <MiniStat
+          label="Treningi tyg."
+          value={String(workoutsThisWeek)}
+          tone="gold"
+        />
         <MiniStat
           label="Cardio tyg."
           value={String(Math.round(cardioThisWeekMinutes))}
           unit="min"
+          tone="mint"
         />
-        <MiniStat label="Tyg. z rzędu" value={String(workoutStreakDays)} />
+        <MiniStat
+          label="Tyg. z rzędu"
+          value={String(workoutStreakWeeks)}
+          tone="sky"
+        />
       </div>
     </section>
   );

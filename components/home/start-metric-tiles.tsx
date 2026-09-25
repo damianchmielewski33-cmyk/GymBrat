@@ -2,7 +2,6 @@ import {
   Activity,
   CalendarDays,
   ClipboardList,
-  Footprints,
   Scale,
   type LucideIcon,
 } from "lucide-react";
@@ -105,6 +104,9 @@ export function StartMetricTiles({
     const down = weightDeltaFromPreviousKg < 0;
     weightHint = `${down ? "↓" : "↑"} ${abs} kg od raportu`;
     weightTone = down ? "good" : "bad";
+  } else if (weightFromStartKg != null && Number.isFinite(weightFromStartKg)) {
+    weightHint = `${formatSignedKg(weightFromStartKg)} kg od startu`;
+    weightTone = "muted";
   } else if (weightKg != null) {
     weightHint = "ostatni pomiar";
   }
@@ -121,14 +123,6 @@ export function StartMetricTiles({
           hintTone={weightTone}
         />
         <MetricTile
-          Icon={Footprints}
-          label="Od startu"
-          value={formatSignedKg(weightFromStartKg)}
-          unit={weightFromStartKg != null ? "kg" : undefined}
-          hint="cała współpraca"
-          hintTone="gold"
-        />
-        <MetricTile
           Icon={Activity}
           label="Tempo"
           value={tempoKgPerMin != null ? formatKg(tempoKgPerMin) : "—"}
@@ -141,17 +135,21 @@ export function StartMetricTiles({
           label="W programie"
           value={daysInProgram != null ? String(daysInProgram) : "—"}
           unit={daysInProgram != null ? "dni" : undefined}
-          hint={weeks != null ? `${weeks} tygodni` : undefined}
+          hint={
+            weeks != null
+              ? `${weeks} tygodni · od pierwszego raportu`
+              : "dodaj raport"
+          }
+          hintTone="gold"
+        />
+        <MetricTile
+          Icon={ClipboardList}
+          label="Raporty"
+          value={String(reportCount)}
+          hint="złożone"
           hintTone="muted"
         />
       </div>
-      <MetricTile
-        Icon={ClipboardList}
-        label="Raporty"
-        value={String(reportCount)}
-        hint="złożone"
-        hintTone="muted"
-      />
     </section>
   );
 }

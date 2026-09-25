@@ -109,6 +109,7 @@ export async function POST(req: Request) {
       if (javaRes.ok) {
         revalidatePath("/reports");
         revalidatePath("/");
+        revalidatePath("/progress-analysis");
       }
       return passThroughJavaResponse(javaRes);
     }
@@ -117,6 +118,7 @@ export async function POST(req: Request) {
   const id = await createBodyReport(session.user.id, parsed.data as CreateBodyReportInput);
   revalidatePath("/reports");
   revalidatePath("/");
+  revalidatePath("/progress-analysis");
   return NextResponse.json({ ok: true, id });
 }
 

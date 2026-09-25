@@ -7,6 +7,7 @@ import { NextWorkoutTile } from "@/components/home/next-workout-tile";
 import { OnboardingBanner } from "@/components/home/onboarding-banner";
 import { StartMetricTiles } from "@/components/home/start-metric-tiles";
 import { TransformationSlider } from "@/components/home/transformation-slider";
+import { MacrosFromStartChartDynamic } from "@/components/home/macros-from-start-chart-dynamic";
 import { WeightRangeChartDynamic } from "@/components/home/weight-range-chart-dynamic";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
@@ -69,7 +70,7 @@ export default async function HomePage() {
         lastWorkoutDate={dash.nextWorkout?.lastWorkoutDate ?? null}
         workoutsThisWeek={dash.workoutsThisWeek}
         cardioThisWeekMinutes={dash.cardioThisWeekMinutes}
-        workoutStreakDays={dash.workoutStreakDays}
+        workoutStreakWeeks={dash.workoutStreakWeeks}
       />
 
       <StartMetricTiles
@@ -79,6 +80,11 @@ export default async function HomePage() {
         weightDeltaFromPreviousKg={dash.weightDeltaFromPreviousKg}
         daysInProgram={dash.daysInProgram}
         reportCount={dash.reportCount}
+      />
+
+      <MacrosFromStartChartDynamic
+        data={dash.macroSeries}
+        weightFromStartKg={dash.weightFromStartKg}
       />
 
       <WeightRangeChartDynamic data={dash.weightSeries} waist={dash.waistSeries} />
