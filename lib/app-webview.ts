@@ -120,13 +120,15 @@ export function androidUpdateLaterStorageKey(versionCode: number): string {
   return `${ANDROID_UPDATE_LATER_STORAGE_PREFIX}${versionCode}`;
 }
 
-/** Popup tylko w zainstalowanym APK, gdy serwer ma nowszą kompilację. */
+/** Popup tylko w zainstalowanym APK po zalogowaniu, gdy serwer ma nowszą kompilację. */
 export function shouldShowAndroidUpdatePrompt(args: {
   inInstalledApp: boolean;
   current: AndroidAppIdentity | null;
   latest: AndroidLatestVersion | null;
   postponedVersionCode?: number | null;
+  signedIn?: boolean;
 }): boolean {
+  if (args.signedIn === false) return false;
   if (!args.inInstalledApp || !args.current || !args.latest) return false;
   if (compareAndroidAppVersion(args.current, args.latest) <= 0) return false;
   if (args.postponedVersionCode === args.latest.versionCode) return false;

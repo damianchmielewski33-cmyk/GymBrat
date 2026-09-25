@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { LoginScreen } from "@/components/auth/login-screen";
 import { DimensionTiles } from "@/components/home/dimension-tiles";
 import { NextWorkoutTile } from "@/components/home/next-workout-tile";
 import { OnboardingBanner } from "@/components/home/onboarding-banner";
@@ -9,7 +10,6 @@ import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { getHomeStartDashboard } from "@/lib/home-start";
 import { eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
 
 export default async function HomePage() {
   const session = await auth().catch((err) => {
@@ -18,7 +18,12 @@ export default async function HomePage() {
   });
   const userId = session?.user?.id;
   if (!userId) {
-    redirect("/login?callbackUrl=/");
+    /**
+     * APK ładuje `/`. 307 na /login oraz rewrite (URL `/`, HTML logowania)
+     * psuły WebView: krótki flash logowania, potem popup błędu.
+     * Ten sam drzewo React na `/` — GET / jest 200.
+     */
+    return <LoginScreen />;
   }
 
   const db = getDb();

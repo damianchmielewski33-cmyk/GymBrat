@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { getAuthSecret } from "@/lib/auth-secret";
+import {
+  isAnonymousPublicPath,
+  shouldBounceAuthenticatedFromAuthPage,
+} from "@/lib/auth-public-paths";
 
 /** Musi być zgodne z Auth.js: na HTTPS sesja jest w `__Secure-authjs.session-token`, nie w `authjs.session-token`. */
 function isSecureSessionCookie(req: NextRequest): boolean {
@@ -11,10 +15,19 @@ function isSecureSessionCookie(req: NextRequest): boolean {
   return req.nextUrl.protocol === "https:";
 }
 
-/** Natywny WebView GymBrat (UA doklejane w MainActivity). */
-function isGymBratAndroidWebView(req: NextRequest): boolean {
-  const ua = req.headers.get("user-agent") ?? "";
-  return ua.includes("GymBratAndroidApp");
+async function readSessionToken(req: NextRequest) {
+  const secret = getAuthSecret();
+  if (!secret) return null;
+  try {
+    return await getToken({
+      req,
+      secret,
+      secureCookie: isSecureSessionCookie(req),
+    });
+  } catch {
+    /** Uszkodzone ciasteczko nie może wywalić WebView jako 500 / popup błędu. */
+    return null;
+  }
 }
 
 /** Ochrona tras (Next.js 16 — eksport musi nazywać się `proxy`). */
@@ -67,21 +80,10 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const publicPaths = new Set(["/login", "/register"]);
+  const token = await readSessionToken(req);
 
-  const secret = getAuthSecret();
-  const secureCookie = isSecureSessionCookie(req);
-
-  const token =
-    secret &&
-    (await getToken({
-      req,
-      secret,
-      secureCookie,
-    }));
-
-  if (publicPaths.has(pathname)) {
-    if (token) {
+  if (isAnonymousPublicPath(pathname)) {
+    if (token && shouldBounceAuthenticatedFromAuthPage(pathname)) {
       return NextResponse.redirect(new URL("/", req.url));
     }
     return NextResponse.next();
@@ -93,16 +95,6 @@ export async function proxy(req: NextRequest) {
     login.searchParams.set("callbackUrl", dest);
     const from = req.nextUrl.searchParams.get("from");
     if (from) login.searchParams.set("from", from);
-
-    /**
-     * APK 0.1.0 ładuje startowy URL `/` bez ciasteczka sesji.
-     * Zwykły 307 → /login jest poprawny auth, ale w logach Vercel wygląda jak błąd.
-     * Dla WebView GymBrat: rewrite (200 + ekran logowania) zamiast redirect.
-     */
-    if (isGymBratAndroidWebView(req) && pathname === "/") {
-      return NextResponse.rewrite(login);
-    }
-
     return NextResponse.redirect(login);
   }
 

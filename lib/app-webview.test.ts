@@ -69,5 +69,21 @@ describe("app-webview", () => {
       }),
     ).toBe(false);
     expect(androidUpdateLaterStorageKey(27)).toBe("gymbrat-android-update-later:27");
+    expect(
+      shouldShowAndroidUpdatePrompt({
+        inInstalledApp: true,
+        current,
+        latest,
+        signedIn: false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowAndroidUpdatePrompt({
+        inInstalledApp: true,
+        current,
+        latest,
+        signedIn: true,
+      }),
+    ).toBe(true);
   });
 });

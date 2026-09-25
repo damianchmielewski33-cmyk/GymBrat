@@ -4,10 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useInstalledAndroidAppIdentity } from "@/hooks/use-android-app-identity";
-import {
-  isInstalledAndroidAppClient,
-  isRunningInAppWebView,
-} from "@/lib/app-webview";
+import { isRunningInAppWebView } from "@/lib/app-webview";
 import { CSRF_COOKIE_NAME } from "@/lib/csrf-constants";
 
 const MAX_LOG_LINES = 40;
@@ -88,8 +85,8 @@ export function LoginDiagnosticsPanel({ events = [] }: Props) {
   });
 
   useEffect(() => {
-    if (forceOpen || androidId || isInstalledAndroidAppClient()) setOpen(true);
-  }, [forceOpen, androidId]);
+    if (forceOpen) setOpen(true);
+  }, [forceOpen]);
 
   useEffect(() => {
     function refreshEnv() {
