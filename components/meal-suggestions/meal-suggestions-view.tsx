@@ -10,12 +10,12 @@ import { Button } from "@/components/ui/button";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import { ChefHat, Loader2, Sparkles } from "lucide-react";
 import type { WebMealInspiration } from "@/lib/web-meal-inspirations";
+import type { MealTemplate } from "@/lib/meal-templates";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { addMealLogAction, type MealLogFormState } from "@/actions/meal-log";
 import { useActionState } from "react";
-import { ScreenHeader } from "@/components/layout/screen";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 
 function fmtVal(n: number, kind: "kcal" | "g") {
@@ -158,6 +158,7 @@ export function MealSuggestionsView({
   initialGaps,
   modelAllowed,
   webInspirations,
+  mealTemplates = [],
 }: {
   initialSummary: FitatuDaySummary;
   initialGaps: MacroGaps;
@@ -165,6 +166,7 @@ export function MealSuggestionsView({
   modelAllowed: boolean;
   /** Regularnie odświeżane inspiracje z internetu (linki do przepisów) */
   webInspirations: WebMealInspiration[] | null;
+  mealTemplates?: MealTemplate[];
 }) {
   const [gaps, setGaps] = useState(initialGaps);
   const [meals, setMeals] = useState<MealSuggestionItem[] | null>(null);
@@ -230,20 +232,20 @@ export function MealSuggestionsView({
   }, [webInspirations, inspirationQuery, inspirationFilter, gaps.proteinRemaining, gaps.caloriesRemaining]);
 
   return (
-    <div className="space-y-8">
-      <ScreenHeader
-        kicker="Odżywianie"
-        title="Propozycje posiłków"
-        description="Na podstawie Twojego dziennego bilansu (spożycie vs cele) wygenerujemy propozycje posiłków z przepisami. Ilustracje są poglądowe."
-      />
+    <div className="space-y-3">
+      <header className="px-0.5 pb-1 pt-2">
+        <p className="app-label">Dieta</p>
+        <h1 className="mt-2 text-[32px] font-semibold leading-tight text-white">
+          Twój plan żywieniowy
+        </h1>
+      </header>
 
-      <section className="glass-panel relative overflow-hidden p-6 sm:p-8">
-        <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(720px_280px_at_10%_0%,rgba(255,45,85,0.12),transparent_58%)]" />
-        <div className="relative space-y-4">
+      <section className="app-card p-5">
+        <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <ChefHat className="h-5 w-5 text-[var(--neon)]" aria-hidden />
-              <h2 className="font-heading text-lg font-semibold text-white">Dziś ({gaps.dateKey})</h2>
+              <h2 className="text-lg font-semibold text-white">Dziś</h2>
             </div>
             <Button
               type="button"
@@ -270,37 +272,108 @@ export function MealSuggestionsView({
               {initialSummary.errorMessage ?? "Nie udało się pobrać danych odżywczych."}
             </InlineBanner>
           ) : (
-            <div className="space-y-2">
-              <GapRow
-                label="Kalorie"
-                consumed={gaps.caloriesConsumed}
-                goal={gaps.caloriesGoal}
-                remaining={gaps.caloriesRemaining}
-                kind="kcal"
-              />
-              <GapRow
-                label="Białko"
-                consumed={gaps.proteinConsumed}
-                goal={gaps.proteinGoal}
-                remaining={gaps.proteinRemaining}
-                kind="g"
-              />
-              <GapRow
-                label="Tłuszcz"
-                consumed={gaps.fatConsumed}
-                goal={gaps.fatGoal}
-                remaining={gaps.fatRemaining}
-                kind="g"
-              />
-              <GapRow
-                label="Węglowodany"
-                consumed={gaps.carbsConsumed}
-                goal={gaps.carbsGoal}
-                remaining={gaps.carbsRemaining}
-                kind="g"
-              />
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center">
+                  <p className="app-label">Białko</p>
+                  <p className="app-value mt-2 text-[28px] font-semibold">
+                    {gaps.proteinGoal != null ? `${Math.round(gaps.proteinGoal)}` : "—"}
+                    <span className="ml-1 text-sm text-white/35">g</span>
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="app-label">Węgle</p>
+                  <p className="app-value mt-2 text-[28px] font-semibold">
+                    {gaps.carbsGoal != null ? `${Math.round(gaps.carbsGoal)}` : "—"}
+                    <span className="ml-1 text-sm text-white/35">g</span>
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="app-label">Tłuszcz</p>
+                  <p className="app-value mt-2 text-[28px] font-semibold">
+                    {gaps.fatGoal != null ? `${Math.round(gaps.fatGoal)}` : "—"}
+                    <span className="ml-1 text-sm text-white/35">g</span>
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="app-label">Kalorie</p>
+                  <p className="app-value mt-2 text-[28px] font-semibold">
+                    {gaps.caloriesGoal != null ? `${Math.round(gaps.caloriesGoal)}` : "—"}
+                    <span className="ml-1 text-sm text-white/35">kcal</span>
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <GapRow
+                  label="Kalorie"
+                  consumed={gaps.caloriesConsumed}
+                  goal={gaps.caloriesGoal}
+                  remaining={gaps.caloriesRemaining}
+                  kind="kcal"
+                />
+                <GapRow
+                  label="Białko"
+                  consumed={gaps.proteinConsumed}
+                  goal={gaps.proteinGoal}
+                  remaining={gaps.proteinRemaining}
+                  kind="g"
+                />
+                <GapRow
+                  label="Tłuszcz"
+                  consumed={gaps.fatConsumed}
+                  goal={gaps.fatGoal}
+                  remaining={gaps.fatRemaining}
+                  kind="g"
+                />
+                <GapRow
+                  label="Węglowodany"
+                  consumed={gaps.carbsConsumed}
+                  goal={gaps.carbsGoal}
+                  remaining={gaps.carbsRemaining}
+                  kind="g"
+                />
+              </div>
             </div>
           )}
+
+          <div className="border-t border-white/[0.05] pt-4">
+            <p className="app-label">Rozkład posiłków</p>
+            <p className="mt-2 text-sm text-white/45">
+              Stuknij posiłek, żeby zobaczyć dopasowane dania.
+            </p>
+            <div className="mt-3 divide-y divide-white/[0.05]">
+              {(mealTemplates.length > 0
+                ? mealTemplates
+                : initialSummary.meals.map((m, i) => ({
+                    id: m.id,
+                    name: m.name || `Posiłek ${i + 1}`,
+                    calories: m.calories,
+                    proteinG: m.proteinG,
+                    fatG: m.fatG,
+                    carbsG: m.carbsG,
+                  }))
+              ).map((meal, i) => (
+                <div
+                  key={meal.id}
+                  className="flex items-center justify-between gap-3 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-white">
+                      {i + 1}. {meal.name}
+                    </p>
+                  </div>
+                  <p className="shrink-0 text-xs tabular-nums text-[var(--neon)]">
+                    {Math.round(meal.proteinG)}B · {Math.round(meal.carbsG)}W · {Math.round(meal.fatG)}T
+                  </p>
+                </div>
+              ))}
+              {mealTemplates.length === 0 && initialSummary.meals.length === 0 ? (
+                <p className="py-3 text-sm text-white/40">
+                  Dodaj szablony posiłków w profilu albo wpisz posiłek w dzienniku.
+                </p>
+              ) : null}
+            </div>
+          </div>
 
           {!gaps.hasAnyMacroGoal ? (
             <p className="text-sm text-white/55">
@@ -329,9 +402,8 @@ export function MealSuggestionsView({
         </div>
       </section>
 
-      <section className="glass-panel relative overflow-hidden p-6 sm:p-8">
-        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(720px_280px_at_90%_0%,rgba(59,130,246,0.16),transparent_58%)]" />
-        <div className="relative space-y-3">
+      <section className="app-card p-5">
+        <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">
