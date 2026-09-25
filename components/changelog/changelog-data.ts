@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — dieta jak Fitatu: skan i sekcje posiłków",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Na ekranie Dieta możesz wyszukać produkt w bazie albo zeskanować kod kreskowy — od razu widać białko, węglowodany, tłuszcz i kalorie przed dodaniem.",
+      "Na dole ekranu są sekcje śniadanie, drugie śniadanie, lunch, obiad i przekąska: dodajesz produkty do wybranej pory i widzisz sumę makro w każdej sekcji.",
+    ],
+  },
+  {
     title: "2026-09 — dieta bez AI i bogatszy katalog przepisów",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

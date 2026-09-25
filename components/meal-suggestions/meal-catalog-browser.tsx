@@ -20,6 +20,24 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { AddToMealLogSheet } from "@/components/meal-suggestions/add-to-meal-log-sheet";
+import type { DietDiarySlot } from "@/lib/diet-diary-slots";
+
+function catalogSlotToDiary(slot: MealSlot): DietDiarySlot {
+  switch (slot) {
+    case "sniadanie":
+      return "sniadanie";
+    case "drugie_sniadanie":
+      return "drugie_sniadanie";
+    case "obiad":
+      return "obiad";
+    case "podwieczorek":
+      return "przekaska";
+    case "kolacja":
+      return "lunch";
+    default:
+      return "obiad";
+  }
+}
 
 function fmtMacro(n: number, unit: string) {
   return `${Math.round(n * 10) / 10} ${unit}`;
@@ -232,6 +250,7 @@ export function MealCatalogBrowser({ dateKey }: { dateKey: string }) {
                   proteinG={selected.approximateMacros.proteinG}
                   fatG={selected.approximateMacros.fatG}
                   carbsG={selected.approximateMacros.carbsG}
+                  defaultSlot={catalogSlotToDiary(selected.slot)}
                 />
                 <p className="text-[11px] text-white/40">
                   Makro przybliżone dla jednej porcji. Ilustracja syntetyczna na podstawie nazwy dania.

@@ -5,6 +5,7 @@ import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
 import { computeMacroGaps } from "@/lib/meal-suggestions-gaps";
+import { listMealLogsForDay } from "@/lib/meal-logs";
 import { MealSuggestionsView } from "@/components/meal-suggestions/meal-suggestions-view";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 
@@ -27,11 +28,13 @@ export default async function MealSuggestionsPage() {
 
   const summary = await loadTodaysNutritionSummary(userId, settingsRow);
   const gaps = computeMacroGaps(summary);
+  const logs = await listMealLogsForDay(userId, gaps.dateKey);
 
   return (
     <MealSuggestionsView
       initialSummary={summary}
       initialGaps={gaps}
+      initialLogs={logs}
       mealTemplates={parseMealTemplatesJson(settingsRow?.mealTemplatesJson ?? null)}
     />
   );
