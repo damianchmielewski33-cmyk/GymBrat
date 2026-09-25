@@ -44,6 +44,15 @@ test("chroniona strona przekierowuje na logowanie", async ({ page }) => {
   await expect(page).toHaveURL(/\/login/);
 });
 
+test("start bez sesji pokazuje logowanie pod / z kodem 200", async ({ page }) => {
+  const res = await page.goto("/");
+  expect(res?.status()).toBe(200);
+  expect(new URL(page.url()).pathname).toBe("/");
+  await expect(
+    page.getByRole("button", { name: /zaloguj się jako zawodnik/i }),
+  ).toBeVisible();
+});
+
 test("opcja: smoke po zalogowaniu (E2E_EMAIL / E2E_PASSWORD)", async ({ page }) => {
   const email = process.env.E2E_EMAIL?.trim();
   const password = process.env.E2E_PASSWORD?.trim();

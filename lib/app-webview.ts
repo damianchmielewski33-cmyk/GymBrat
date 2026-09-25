@@ -81,6 +81,25 @@ export function readInstalledAndroidAppIdentity(): AndroidAppIdentity | null {
   return parseAndroidAppIdentity(typeof navigator === "undefined" ? "" : navigator.userAgent);
 }
 
+/**
+ * useSyncExternalStore wymaga tej samej referencji, gdy dane się nie zmieniły.
+ * Nowa instancja obiektu przy każdym odczycie UA = pętla setState i popup błędu w APK.
+ */
+export function stableAndroidIdentity(
+  current: AndroidAppIdentity | null,
+  previous: AndroidAppIdentity | null,
+): AndroidAppIdentity | null {
+  if (!current) return null;
+  if (
+    previous &&
+    previous.versionName === current.versionName &&
+    previous.versionCode === current.versionCode
+  ) {
+    return previous;
+  }
+  return current;
+}
+
 export function parseAndroidAppIdentity(ua: string | null | undefined): AndroidAppIdentity | null {
   if (!isAppWebViewUserAgent(ua)) return null;
   const name = ua?.match(APP_WEBVIEW_VERSION_RE)?.[1]?.trim();
@@ -120,13 +139,15 @@ export function androidUpdateLaterStorageKey(versionCode: number): string {
   return `${ANDROID_UPDATE_LATER_STORAGE_PREFIX}${versionCode}`;
 }
 
-/** Popup tylko w zainstalowanym APK, gdy serwer ma nowszą kompilację. */
+/** Popup tylko w zainstalowanym APK po zalogowaniu, gdy serwer ma nowszą kompilację. */
 export function shouldShowAndroidUpdatePrompt(args: {
   inInstalledApp: boolean;
   current: AndroidAppIdentity | null;
   latest: AndroidLatestVersion | null;
   postponedVersionCode?: number | null;
+  signedIn?: boolean;
 }): boolean {
+  if (args.signedIn === false) return false;
   if (!args.inInstalledApp || !args.current || !args.latest) return false;
   if (compareAndroidAppVersion(args.current, args.latest) <= 0) return false;
   if (args.postponedVersionCode === args.latest.versionCode) return false;
