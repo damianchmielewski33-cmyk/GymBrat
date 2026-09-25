@@ -10,7 +10,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     sha: undefined,
     bullets: [
-      "Aparat przy skanie etykiety ma stabilną ramkę, przycisk „Wyłącz aparat” i szybszy odczyt EAN — nie restartuje się już przy każdym renderze.",
+      "Aparat przy skanie etykiety zajmuje cały ekran (nad paskiem nawigacji), ma stabilny podgląd, przycisk „Wyłącz aparat” i szybszy odczyt EAN.",
       "Po skanie i po wyborze z wyszukiwania ustawiasz ilość w gramach, mililitrach albo sztukach, a makro przelicza się jak w Fitatu (baza na 100 g).",
       "Wpisanie nazwy (np. kiwi) wyszukuje na żywo w lokalnej bazie i Open Food Facts — uzupełniono typowe owoce i warzywa.",
     ],

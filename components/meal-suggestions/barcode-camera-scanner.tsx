@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { ChevronLeft, Flashlight, FlashlightOff, Loader2, X } from "lucide-react";
@@ -18,8 +19,8 @@ function supportsTorch(caps: MediaTrackCapabilities | undefined): boolean {
 }
 
 /**
- * Skaner etykiet: stabilna ramka, wyraźne Zamknij, szybsze formaty EAN/UPC.
- * onDetected trzymamy w ref — żeby nie restartować kamery przy każdym renderze rodzica.
+ * Pełnoekranowy skaner EAN przez portal do body (nad paskiem nawigacji).
+ * Podgląd aparatu edge-to-edge; sterowanie jako overlay.
  */
 export function BarcodeCameraScanner({
   open,
@@ -36,11 +37,14 @@ export function BarcodeCameraScanner({
   const handledRef = useRef(false);
   const onDetectedRef = useRef(onDetected);
   const onCloseRef = useRef(onClose);
+  const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState("");
   const [starting, setStarting] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchAvailable, setTorchAvailable] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     onDetectedRef.current = onDetected;
@@ -99,6 +103,9 @@ export function BarcodeCameraScanner({
       return;
     }
 
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     let cancelled = false;
     handledRef.current = false;
     setStarting(true);
@@ -116,11 +123,8 @@ export function BarcodeCameraScanner({
           audio: false,
           video: {
             facingMode: { ideal: "environment" },
-            // Niższa rozdzielczość = szybszy dekoder, mniej „latania” przy autofokusie.
-            width: { ideal: 1280, max: 1280 },
-            height: { ideal: 720, max: 720 },
-            // @ts-expect-error focusMode w niektórych WebView
-            focusMode: "continuous",
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
           },
         });
         if (cancelled) {
@@ -147,15 +151,37 @@ export function BarcodeCameraScanner({
           setTorchAvailable(supportsTorch(caps));
         }
 
-        const video = videoRef.current;
-        if (!video) {
+        // Krótka pauza — portal musi zamontować <video> zanim podepniemy stream.
+        await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+        if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
-        video.srcObject = stream;
+
+        const video = videoRef.current;
+        if (!video) {
+          stream.getTracks().forEach((t) => t.stop());
+          setError("Nie udało się przygotować podglądu aparatu.");
+          setStarting(false);
+          return;
+        }
+
         video.setAttribute("playsinline", "true");
+        video.setAttribute("webkit-playsinline", "true");
         video.muted = true;
-        await video.play();
+        video.playsInline = true;
+        video.srcObject = stream;
+        try {
+          await video.play();
+        } catch {
+          // Android WebView czasem wymaga drugiego play() po metadanych.
+          await new Promise<void>((resolve) => {
+            video.onloadedmetadata = () => {
+              void video.play().finally(() => resolve());
+            };
+            setTimeout(() => resolve(), 800);
+          });
+        }
         if (cancelled) return;
         setStarting(false);
 
@@ -170,8 +196,8 @@ export function BarcodeCameraScanner({
         hints.set(DecodeHintType.TRY_HARDER, true);
 
         const reader = new BrowserMultiFormatReader(hints, {
-          delayBetweenScanAttempts: 80,
-          delayBetweenScanSuccess: 800,
+          delayBetweenScanAttempts: 120,
+          delayBetweenScanSuccess: 600,
         });
         const controls = await reader.decodeFromVideoElement(video, (result) => {
           if (cancelled || handledRef.current) return;
@@ -207,75 +233,86 @@ export function BarcodeCameraScanner({
 
     return () => {
       cancelled = true;
+      document.body.style.overflow = prevOverflow;
       stop();
     };
   }, [open, stop]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-[90] flex flex-col bg-[#0a0a0a] text-white">
-      <div className="flex items-center justify-between px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[200] flex flex-col bg-black text-white"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Skaner kodu kreskowego"
+    >
+      {/* Pełny kadr aparatu */}
+      <div className="absolute inset-0 bg-black">
+        <video
+          ref={videoRef}
+          className="h-full w-full object-cover"
+          playsInline
+          muted
+          autoPlay
+          controls={false}
+          disablePictureInPicture
+        />
+        {/* Przyciemnienie poza obszarem skanu */}
+        <div className="pointer-events-none absolute inset-0 bg-black/35" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[min(42vw,220px)] w-[min(88vw,360px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[2px] w-[min(72vw,280px)] -translate-x-1/2 -translate-y-1/2 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.95)]" />
+        {starting ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60">
+            <Loader2 className="h-10 w-10 animate-spin text-white/85" />
+            <p className="text-sm text-white/70">Uruchamiam aparat…</p>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Górny pasek */}
+      <div className="relative z-[1] flex items-center justify-between px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <button
           type="button"
           aria-label="Zamknij aparat"
-          className="inline-flex h-11 items-center gap-1 rounded-full px-2 text-white/90"
+          className="inline-flex h-11 items-center gap-1 rounded-full bg-black/50 px-3 text-white backdrop-blur-sm"
           onClick={closeScanner}
         >
-          <ChevronLeft className="h-7 w-7" />
-          <span className="text-sm font-medium">Wróć</span>
+          <ChevronLeft className="h-6 w-6" />
+          <span className="text-sm font-semibold">Wróć</span>
         </button>
         <button
           type="button"
           aria-label={torchOn ? "Wyłącz latarkę" : "Włącz latarkę"}
           disabled={!torchAvailable}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full text-white/90 disabled:opacity-30"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm disabled:opacity-30"
           onClick={() => void setTorch(!torchOn)}
         >
-          {torchOn ? <FlashlightOff className="h-6 w-6" /> : <Flashlight className="h-6 w-6" />}
+          {torchOn ? <FlashlightOff className="h-5 w-5" /> : <Flashlight className="h-5 w-5" />}
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4">
-        {/* Stały rozmiar ramki — object-cover wypełnia bez „latania” layoutu. */}
-        <div
-          className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/60 bg-black"
-          style={{ aspectRatio: "4 / 3", maxHeight: "min(52vh, 420px)" }}
-        >
-          <video
-            ref={videoRef}
-            className="absolute inset-0 h-full w-full object-cover bg-black"
-            playsInline
-            muted
-            autoPlay
-          />
-          <div className="pointer-events-none absolute inset-[12%] rounded-xl border border-white/50" />
-          <div className="pointer-events-none absolute inset-x-[18%] top-1/2 h-[2px] -translate-y-1/2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
-          {starting ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-              <Loader2 className="h-8 w-8 animate-spin text-white/80" />
-            </div>
-          ) : null}
-        </div>
-        <p className="mt-4 max-w-sm text-center text-sm text-white/55">
-          Trzymaj kod w ramce — odczyt EAN. Potem ustawisz gramy, ml albo sztuki.
+      <div className="relative z-[1] mt-auto space-y-3 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3">
+        <p className="text-center text-sm text-white/80 drop-shadow">
+          Umieść kod EAN w ramce. Potem ustawisz g / ml / szt.
         </p>
-        {error ? <p className="mt-2 max-w-sm text-center text-sm text-amber-200">{error}</p> : null}
-      </div>
-
-      <div className="space-y-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
+        {error ? (
+          <p className="rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-center text-sm text-amber-100">
+            {error}
+          </p>
+        ) : null}
         <div className="flex gap-2">
           <input
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
             placeholder="Albo wpisz kod EAN"
             inputMode="numeric"
-            className="h-11 min-w-0 flex-1 rounded-xl border border-white/15 bg-white/5 px-3 text-sm text-white outline-none placeholder:text-white/35"
+            className="h-12 min-w-0 flex-1 rounded-xl border border-white/20 bg-black/55 px-3 text-sm text-white outline-none backdrop-blur-sm placeholder:text-white/40"
           />
           <button
             type="button"
             disabled={!manualCode.trim()}
-            className="h-11 shrink-0 rounded-xl bg-[var(--neon)] px-4 text-sm font-semibold text-black disabled:opacity-40"
+            className="h-12 shrink-0 rounded-xl bg-[var(--neon)] px-4 text-sm font-semibold text-black disabled:opacity-40"
             onClick={() => {
               const code = manualCode.replace(/\D/g, "");
               if (!code) return;
@@ -290,12 +327,13 @@ export function BarcodeCameraScanner({
         <button
           type="button"
           onClick={closeScanner}
-          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/[0.06] text-sm font-semibold text-white"
+          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/25 bg-black/60 text-sm font-semibold text-white backdrop-blur-sm"
         >
           <X className="h-4 w-4" />
           Wyłącz aparat
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
