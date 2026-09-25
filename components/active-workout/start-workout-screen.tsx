@@ -71,8 +71,16 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="glass-panel p-8">
-        <div className="text-center">
+      <div className="glass-panel gold-panel relative overflow-hidden p-8">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[var(--neon)]/12 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-24 -right-16 h-48 w-48 rounded-full bg-[var(--neon)]/8 blur-3xl"
+        />
+        <div className="relative text-center">
           <div className="mx-auto max-w-lg">
             <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
               Przed treningiem
@@ -166,7 +174,7 @@ export function StartWorkoutScreen({ plans, activePlanId, onBegin }: StartWorkou
                     </div>
                     <Link
                       href="/workout-plan"
-                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--neon)] px-5 text-base font-semibold text-white transition hover:bg-[#ff4d6d]"
+                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--neon)] px-5 text-base font-semibold text-[var(--neon-fg)] transition hover:bg-[var(--neon-hover)]"
                     >
                       Utwórz plan
                     </Link>

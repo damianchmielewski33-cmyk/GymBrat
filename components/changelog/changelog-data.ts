@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — czarno-złoty styl logowania w całej aplikacji",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Wszystkie ekrany korzystają z tego samego czarno-złotego języka co logowanie: złoty akcent, tło ze zdjęciem siłowni i panelami glass/gold.",
+      "Nawigacja, przyciski CTA, wykresy i paski postępu używają tokenów --neon zamiast twardej czerwieni ulicznej.",
+      "Marka GymBrat w nagłówku ma ten sam krój display (Bebas) co na ekranie logowania.",
+      "Ekran Start ma złoty panel powitalny spójny z resztą aplikacji.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

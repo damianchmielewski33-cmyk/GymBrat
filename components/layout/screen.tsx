@@ -14,8 +14,7 @@ export const screenLinkClass =
   "rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
 
 export const screenCtaClass =
-  "h-11 bg-[var(--neon)] text-base font-semibold text-white hover:bg-[#ff4d6d] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
-
+  "h-11 bg-[var(--neon)] text-base font-semibold text-[var(--neon-fg)] hover:bg-[var(--neon-hover)] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
 export const screenInputClass =
   "min-h-11 border-white/20 bg-black/50 text-white placeholder:text-white/40";
 
@@ -29,7 +28,7 @@ export function ScreenCard({
   footer?: ReactNode;
 }) {
   return (
-    <section className={cn("glass-panel p-8", className)}>
+    <section className={cn("glass-panel gold-panel p-8", className)}>
       {children}
       {footer ? (
         <div className="mt-8 border-t border-white/10 pt-6">{footer}</div>
@@ -96,19 +95,29 @@ export function ScreenHeader({
   className?: string;
 }) {
   return (
-    <ScreenCard className={className}>
-      <ScreenHeading
-        kicker={kicker}
-        title={title}
-        description={description}
-        showBrand={showBrand}
-        className={actions ? "mb-8" : undefined}
+    <ScreenCard className={cn("relative overflow-hidden", className)}>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[var(--neon)]/12 blur-3xl"
       />
-      {actions ? (
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-          {actions}
-        </div>
-      ) : null}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-24 -right-16 h-48 w-48 rounded-full bg-[var(--neon)]/8 blur-3xl"
+      />
+      <div className="relative">
+        <ScreenHeading
+          kicker={kicker}
+          title={title}
+          description={description}
+          showBrand={showBrand}
+          className={actions ? "mb-8" : undefined}
+        />
+        {actions ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            {actions}
+          </div>
+        ) : null}
+      </div>
     </ScreenCard>
   );
 }

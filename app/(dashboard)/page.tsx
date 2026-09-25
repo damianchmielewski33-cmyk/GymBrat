@@ -37,13 +37,27 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <header className="px-0.5 pt-1">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
-          Start
-        </p>
-        <h1 className="font-heading mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-          {greeting}
-        </h1>
+      <header className="glass-panel gold-panel relative overflow-hidden px-5 py-6 sm:px-8 sm:py-7">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-16 -top-20 h-44 w-44 rounded-full bg-[var(--neon)]/12 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-20 -right-12 h-40 w-40 rounded-full bg-[var(--neon)]/8 blur-3xl"
+        />
+        <div className="relative">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
+            Start
+          </p>
+          <h1 className="font-heading mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            {greeting}
+          </h1>
+          <div
+            aria-hidden
+            className="mt-5 h-px w-20 bg-gradient-to-r from-[var(--neon)] to-transparent"
+          />
+        </div>
       </header>
 
       {!settingsRow?.onboardingCompletedAt ? <OnboardingBanner /> : null}

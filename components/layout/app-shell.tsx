@@ -33,6 +33,27 @@ import { StartWorkoutFab } from "@/components/layout/start-workout-fab";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { BrandMark } from "@/components/layout/brand-mark";
 
+const neonActiveStyle = {
+  background:
+    "linear-gradient(145deg,rgba(var(--neon-rgb),0.20),rgba(var(--neon-rgb),0.08))",
+  border: "1px solid rgba(var(--neon-rgb),0.35)",
+  borderTopColor: "rgba(var(--neon-rgb),0.55)",
+  boxShadow:
+    "0 0 12px rgba(var(--neon-rgb),0.20), inset 0 1px 0 rgba(255,255,255,0.07)",
+} as const;
+
+const neonActiveSoftStyle = {
+  background:
+    "linear-gradient(145deg,rgba(var(--neon-rgb),0.18),rgba(var(--neon-rgb),0.07))",
+  border: "1px solid rgba(var(--neon-rgb),0.30)",
+} as const;
+
+const neonNavActiveStyle = {
+  background:
+    "linear-gradient(145deg,rgba(var(--neon-rgb),0.18),rgba(var(--neon-rgb),0.06))",
+  border: "1px solid rgba(var(--neon-rgb),0.28)",
+} as const;
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   const nav = useMemo(
@@ -61,12 +82,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
-    // Close mobile menu on navigation (RWD).
     setMobileMenuOpen(false);
   }, [pathname]);
 
   useEffect(() => {
-    // Scroll lock only while menu open.
     if (typeof document === "undefined") return;
     const body = document.body;
     const root = document.documentElement;
@@ -77,13 +96,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
     body.style.overflow = "";
     root.style.overflow = "";
-    // Restore focus for keyboard users.
     queueMicrotask(() => mobileMenuTriggerRef.current?.focus());
   }, [mobileMenuOpen]);
 
   return (
     <div className="relative min-h-screen">
-      {/* ── Header ── */}
       <header
         className="sticky top-0 z-40 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
         style={{
@@ -91,22 +108,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             "linear-gradient(180deg,rgba(10,10,12,0.88) 0%,rgba(8,8,9,0.80) 100%)",
           borderBottom: "1px solid rgba(255,255,255,0.08)",
           boxShadow:
-            "0 1px 0 rgba(230,0,35,0.22), 0 4px 24px rgba(0,0,0,0.55)",
+            "0 1px 0 rgba(var(--neon-rgb),0.22), 0 4px 24px rgba(0,0,0,0.55)",
         }}
       >
-        {/* Red accent stripe at very top */}
         <div
           className="absolute top-0 left-0 right-0 h-[2px]"
           style={{
             background:
-              "linear-gradient(90deg,transparent 0%,rgba(230,0,35,0.7) 30%,rgba(230,0,35,0.9) 50%,rgba(230,0,35,0.7) 70%,transparent 100%)",
+              "linear-gradient(90deg,transparent 0%,rgba(var(--neon-rgb),0.7) 30%,rgba(var(--neon-rgb),0.9) 50%,rgba(var(--neon-rgb),0.7) 70%,transparent 100%)",
           }}
         />
 
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4">
           <BrandMark className="shrink-0 text-[17px] sm:text-xl" />
 
-          {/* Desktop nav — środek belki */}
           <nav className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 md:flex">
             {nav.map((item) => {
               const active =
@@ -120,18 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                       active ? "text-white" : "text-white/55 hover:text-white/85 hover:bg-white/[0.06]",
                     )}
-                    style={
-                      active
-                        ? {
-                            background:
-                              "linear-gradient(145deg,rgba(230,0,35,0.20),rgba(230,0,35,0.08))",
-                            border: "1px solid rgba(230,0,35,0.35)",
-                            borderTopColor: "rgba(230,0,35,0.55)",
-                            boxShadow:
-                              "0 0 12px rgba(230,0,35,0.20), inset 0 1px 0 rgba(255,255,255,0.07)",
-                          }
-                        : undefined
-                    }
+                    style={active ? neonActiveStyle : undefined}
                   >
                     <item.icon
                       className={cn(
@@ -146,7 +150,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          {/* Prawa strona belki: admin + menu użytkownika */}
           <div className="ml-auto flex shrink-0 items-center gap-2">
             {data?.user?.role === "admin" ? (
               <Link
@@ -226,12 +229,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="border-white/10 text-white backdrop-blur-xl"
                 style={{ background: "rgba(8,8,9,0.96)" }}
               >
-                {/* Mobile sheet header stripe */}
                 <div
                   className="absolute top-0 left-0 right-0 h-[2px]"
                   style={{
                     background:
-                      "linear-gradient(90deg,transparent,rgba(230,0,35,0.8) 40%,rgba(230,0,35,0.8) 60%,transparent)",
+                      "linear-gradient(90deg,transparent,rgba(var(--neon-rgb),0.8) 40%,rgba(var(--neon-rgb),0.8) 60%,transparent)",
                   }}
                 />
                 <div className="mt-8 flex flex-col gap-1.5">
@@ -251,15 +253,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
                             active ? "text-white" : "text-white/60 hover:bg-white/[0.06] hover:text-white/85",
                           )}
-                          style={
-                            active
-                              ? {
-                                  background:
-                                    "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.07))",
-                                  border: "1px solid rgba(230,0,35,0.30)",
-                                }
-                              : undefined
-                          }
+                          style={active ? neonActiveSoftStyle : undefined}
                         >
                           <item.icon
                             className={cn(
@@ -290,7 +284,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* ── Main content ── */}
       <main
         key={pathname}
         className={cn(
@@ -301,22 +294,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      {/* ── Mobile bottom nav ── */}
       <nav
         className="fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
         style={{
           background:
             "linear-gradient(0deg,rgba(8,8,9,0.95) 0%,rgba(12,12,14,0.85) 100%)",
           borderTop: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 -1px 0 rgba(230,0,35,0.18), 0 -8px 32px rgba(0,0,0,0.50)",
+          boxShadow: "0 -1px 0 rgba(var(--neon-rgb),0.18), 0 -8px 32px rgba(0,0,0,0.50)",
         }}
       >
-        {/* Red accent stripe at very bottom-top edge */}
         <div
           className="absolute top-0 left-0 right-0 h-[1.5px]"
           style={{
             background:
-              "linear-gradient(90deg,transparent 0%,rgba(230,0,35,0.55) 30%,rgba(230,0,35,0.75) 50%,rgba(230,0,35,0.55) 70%,transparent 100%)",
+              "linear-gradient(90deg,transparent 0%,rgba(var(--neon-rgb),0.55) 30%,rgba(var(--neon-rgb),0.75) 50%,rgba(var(--neon-rgb),0.55) 70%,transparent 100%)",
           }}
         />
 
@@ -334,15 +325,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   "flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-2 text-center text-[9px] font-medium leading-tight transition-all duration-150 sm:gap-1 sm:rounded-xl sm:px-2 sm:py-2.5 sm:text-[11px]",
                   active ? "text-white" : "text-white/50",
                 )}
-                style={
-                  active
-                    ? {
-                        background:
-                          "linear-gradient(145deg,rgba(230,0,35,0.18),rgba(230,0,35,0.06))",
-                        border: "1px solid rgba(230,0,35,0.28)",
-                      }
-                    : undefined
-                }
+                style={active ? neonNavActiveStyle : undefined}
               >
                 <item.icon
                   className={cn(

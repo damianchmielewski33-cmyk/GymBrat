@@ -30,7 +30,7 @@ export function OnboardingBanner() {
         <div className="flex flex-wrap gap-2">
           <Link
             href="/onboarding"
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--neon)] px-5 text-sm font-medium text-white transition hover:bg-[#ff4d6d]"
+            className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--neon)] px-5 text-sm font-medium text-[var(--neon-fg)] transition hover:bg-[var(--neon-hover)]"
           >
             Start
           </Link>
