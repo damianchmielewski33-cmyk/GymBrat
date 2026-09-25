@@ -130,10 +130,67 @@ export function defaultPortionForProduct(product: FoodProduct): {
   amount: number;
   unit: FoodAmountUnit;
 } {
+  // 1) Opakowanie produktu (kubek 330 g, butelka 500 ml) — jak Fitatu po skanie.
+  if (
+    product.packageAmount != null &&
+    product.packageAmount > 0 &&
+    (product.packageUnit === "g" || product.packageUnit === "ml")
+  ) {
+    return { amount: product.packageAmount, unit: product.packageUnit };
+  }
+  // 2) Znana waga sztuki
+  if (product.gramsPerPiece != null && product.gramsPerPiece > 0) {
+    return { amount: product.gramsPerPiece, unit: "g" };
+  }
   const basis = resolveProductBasis(product);
-  // Fitatu-style: po skanie OFF zwykle baza 100 g — domyślnie 100 g.
-  if (product.source === "openfoodfacts" && (basis.unit === "g" || basis.unit === "ml")) {
+  // 3) Lokalna baza: porcja z etykiety (np. 150 g jogurtu)
+  if (product.source === "local") {
+    return { amount: basis.amount, unit: basis.unit };
+  }
+  // 4) OFF bez quantity — 100 g jako baza makro
+  if (basis.unit === "g" || basis.unit === "ml") {
     return { amount: 100, unit: basis.unit };
   }
   return { amount: basis.amount, unit: basis.unit };
+}
+
+/** Podpowiedzi porcji na ekranie dodawania (opakowanie + 100 g + sztuka). */
+export function portionPresetsForProduct(
+  product: FoodProduct,
+): Array<{ amount: number; unit: FoodAmountUnit; label?: string }> {
+  const list: Array<{ amount: number; unit: FoodAmountUnit; label?: string }> = [];
+  if (
+    product.packageAmount != null &&
+    product.packageAmount > 0 &&
+    (product.packageUnit === "g" || product.packageUnit === "ml")
+  ) {
+    list.push({
+      amount: product.packageAmount,
+      unit: product.packageUnit,
+      label: "opakowanie",
+    });
+  }
+  list.push({ amount: 100, unit: product.packageUnit === "ml" ? "ml" : "g" });
+  if (product.gramsPerPiece && product.gramsPerPiece !== product.packageAmount) {
+    list.push({ amount: product.gramsPerPiece, unit: "g" });
+    list.push({ amount: 1, unit: "pcs", label: "sztuka" });
+  } else if (product.packageAmount && product.packageUnit === "g") {
+    list.push({ amount: 1, unit: "pcs", label: "sztuka" });
+  }
+  const basis = resolveProductBasis(product);
+  if (
+    basis.unit === "g" &&
+    basis.amount !== 100 &&
+    basis.amount !== product.packageAmount &&
+    basis.amount !== product.gramsPerPiece
+  ) {
+    list.push({ amount: basis.amount, unit: "g" });
+  }
+  const seen = new Set<string>();
+  return list.filter((p) => {
+    const k = `${p.amount}-${p.unit}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }

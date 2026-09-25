@@ -98,7 +98,33 @@ describe("food-portion", () => {
     );
   });
 
-  it("domyślna porcja OFF to 100 g", () => {
+  it("domyślna porcja OFF to wielkość opakowania, gdy OFF ma quantity", () => {
+    const mapped = mapOpenFoodFactsProduct(
+      {
+        product_name: "Skyr wanilia",
+        brands: "Fruvita",
+        quantity: "330 g",
+        product_quantity: 330,
+        product_quantity_unit: "g",
+        nutriments: {
+          "energy-kcal_100g": 84,
+          proteins_100g: 7,
+          fat_100g: 1.7,
+          carbohydrates_100g: 10.2,
+        },
+      },
+      "5900000000330",
+    )!;
+    expect(mapped.name).toBe("Fruvita Skyr wanilia");
+    expect(mapped.packageAmount).toBe(330);
+    expect(mapped.packageUnit).toBe("g");
+    expect(mapped.basisAmount).toBe(100);
+    expect(defaultPortionForProduct(mapped)).toEqual({ amount: 330, unit: "g" });
+    const m = scaleFoodMacros(mapped, 330, "g");
+    expect(m.calories).toBe(Math.round(84 * 3.3));
+  });
+
+  it("domyślna porcja OFF bez quantity to 100 g", () => {
     const mapped = mapOpenFoodFactsProduct(
       {
         product_name: "Test",

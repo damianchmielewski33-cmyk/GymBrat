@@ -13,6 +13,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Ocena GymBrat uwzględnia kalorie, tłuszcz, cukier, sól, białko, błonnik oraz sygnały ultra-przetworzenia — chipsy dostają niską ocenę zamiast prawie 5/5.",
       "Pod oceną widać uzasadnienia (np. wysoka kaloryczność, dużo soli) oraz etykietę Świetny–Unikaj.",
       "Po skanie i wyszukiwaniu nazwa to marka + produkt (np. „Piątnica Twaróg chudy”), bez uciętych skrótów.",
+      "Na ekranie porcji domyślna ilość to gramatura opakowania z etykiety (np. kubek 330 g), z podpowiedzią „opakowanie” — nie zawsze 100 g.",
     ],
   },
   {

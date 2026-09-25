@@ -6,7 +6,7 @@ import { ChevronDown, ChevronLeft, Heart } from "lucide-react";
 import type { FoodAmountUnit, FoodProduct } from "@/lib/food-products-types";
 import {
   defaultPortionForProduct,
-  resolveProductBasis,
+  portionPresetsForProduct,
   scaleFoodMacros,
   type FoodPortionMacros,
 } from "@/lib/food-portion";
@@ -107,33 +107,8 @@ export function FoodPortionScreen({
   }, [product]);
 
   const presets = useMemo(() => {
-    if (!product) return [] as Array<{ amount: number; unit: FoodAmountUnit }>;
-    const basis = resolveProductBasis(product);
-    const list: Array<{ amount: number; unit: FoodAmountUnit }> = [
-      { amount: 100, unit: "g" },
-    ];
-    if (product.gramsPerPiece) {
-      list.push({ amount: product.gramsPerPiece, unit: "g" });
-      list.push({ amount: 1, unit: "pcs" });
-    }
-    if (
-      basis.unit === "g" &&
-      basis.amount !== 100 &&
-      basis.amount !== product.gramsPerPiece
-    ) {
-      list.push({ amount: basis.amount, unit: "g" });
-    }
-    if (basis.unit === "ml") {
-      list.push({ amount: 100, unit: "ml" });
-      if (basis.amount !== 100) list.push({ amount: basis.amount, unit: "ml" });
-    }
-    const seen = new Set<string>();
-    return list.filter((p) => {
-      const k = `${p.amount}-${p.unit}`;
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
+    if (!product) return [] as Array<{ amount: number; unit: FoodAmountUnit; label?: string }>;
+    return portionPresetsForProduct(product);
   }, [product]);
 
   if (!open || !mounted || !product) return null;
@@ -190,6 +165,9 @@ export function FoodPortionScreen({
               >
                 <span className="text-sm text-white/85">
                   {p.amount} {unitLabel(p.unit)}
+                  {p.label ? (
+                    <span className="ml-2 text-xs text-white/40">({p.label})</span>
+                  ) : null}
                 </span>
                 <span className="text-sm tabular-nums text-white/55">
                   {m.calories} kcal

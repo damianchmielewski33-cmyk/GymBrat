@@ -1,6 +1,6 @@
 import { FOOD_PRODUCTS_LOCAL } from "@/lib/food-products-data";
 import { emptyDetails, formatFoodDisplayName } from "@/lib/food-nutrition";
-import type { FoodNutritionDetails, FoodProduct } from "@/lib/food-products-types";
+import type { FoodNutritionDetails, FoodAmountUnit, FoodProduct } from "@/lib/food-products-types";
 
 function normalizeBarcode(raw: string): string {
   return raw.replace(/\D/g, "");
@@ -84,6 +84,10 @@ type OffProduct = {
   generic_name_pl?: string;
   brands?: string;
   serving_size?: string;
+  /** np. „330 g”, „250 ml”, „1 l” — wielkość opakowania. */
+  quantity?: string;
+  product_quantity?: number;
+  product_quantity_unit?: string;
   ingredients_text?: string;
   ingredients_text_pl?: string;
   nutriments?: OffNutriments;
@@ -101,6 +105,55 @@ function pickNullable(...vals: Array<number | undefined>): number | null {
     if (typeof v === "number" && Number.isFinite(v) && v >= 0) {
       return Math.round(v * 100) / 100;
     }
+  }
+  return null;
+}
+
+/** OFF: wielkość opakowania (quantity / product_quantity). */
+export function parsePackageQuantity(args: {
+  quantity?: string | null;
+  productQuantity?: number | null;
+  productQuantityUnit?: string | null;
+}): { amount: number; unit: FoodAmountUnit } | null {
+  const unitRaw = (args.productQuantityUnit ?? "").trim().toLowerCase();
+  const pq = args.productQuantity;
+  if (typeof pq === "number" && Number.isFinite(pq) && pq > 0) {
+    if (unitRaw === "g" || unitRaw === "gr" || unitRaw === "gram" || unitRaw === "grams") {
+      return { amount: Math.round(pq * 10) / 10, unit: "g" };
+    }
+    if (unitRaw === "ml" || unitRaw === "milliliter" || unitRaw === "millilitre") {
+      return { amount: Math.round(pq * 10) / 10, unit: "ml" };
+    }
+    if (unitRaw === "kg") {
+      return { amount: Math.round(pq * 1000 * 10) / 10, unit: "g" };
+    }
+    if (unitRaw === "l" || unitRaw === "liter" || unitRaw === "litre") {
+      return { amount: Math.round(pq * 1000 * 10) / 10, unit: "ml" };
+    }
+  }
+
+  const q = (args.quantity ?? "").trim().toLowerCase().replace(",", ".");
+  if (!q) return null;
+
+  const kg = q.match(/(\d+(?:\.\d+)?)\s*kg\b/);
+  if (kg) {
+    const n = Number(kg[1]);
+    if (Number.isFinite(n) && n > 0) return { amount: Math.round(n * 1000 * 10) / 10, unit: "g" };
+  }
+  const liter = q.match(/(\d+(?:\.\d+)?)\s*l\b/);
+  if (liter && !/\bml\b/.test(q)) {
+    const n = Number(liter[1]);
+    if (Number.isFinite(n) && n > 0) return { amount: Math.round(n * 1000 * 10) / 10, unit: "ml" };
+  }
+  const ml = q.match(/(\d+(?:\.\d+)?)\s*ml\b/);
+  if (ml) {
+    const n = Number(ml[1]);
+    if (Number.isFinite(n) && n > 0) return { amount: Math.round(n * 10) / 10, unit: "ml" };
+  }
+  const g = q.match(/(\d+(?:\.\d+)?)\s*g\b/);
+  if (g) {
+    const n = Number(g[1]);
+    if (Number.isFinite(n) && n > 0) return { amount: Math.round(n * 10) / 10, unit: "g" };
   }
   return null;
 }
@@ -180,13 +233,22 @@ export function mapOpenFoodFactsProduct(raw: OffProduct, barcode: string): FoodP
     (raw.ingredients_text_pl || raw.ingredients_text || "").trim() || null;
   const details = mapOffDetails(n, ingredientsText);
   const brand = raw.brands?.split(/[,;]/)[0]?.trim() || undefined;
+  const pkg = parsePackageQuantity({
+    quantity: raw.quantity,
+    productQuantity: raw.product_quantity,
+    productQuantityUnit: raw.product_quantity_unit,
+  });
 
   return {
     id: `off-${normalizeBarcode(barcode) || raw.code || name}`,
     barcode: normalizeBarcode(barcode) || raw.code || null,
     name,
     brand,
-    servingLabel: has100 ? "100 g" : raw.serving_size?.trim() || "1 porcja",
+    servingLabel: has100
+      ? "100 g"
+      : pkg
+        ? `${pkg.amount} ${pkg.unit}`
+        : raw.serving_size?.trim() || "1 porcja",
     calories: kcal,
     proteinG,
     fatG,
@@ -194,6 +256,13 @@ export function mapOpenFoodFactsProduct(raw: OffProduct, barcode: string): FoodP
     source: "openfoodfacts",
     basisAmount: has100 ? 100 : undefined,
     basisUnit: has100 ? "g" : undefined,
+    packageAmount: pkg?.amount,
+    packageUnit: pkg?.unit,
+    // Opakowanie jednostkowe (kubek/sztuka) — przydatne gdy quantity = 330 g
+    gramsPerPiece:
+      pkg && pkg.unit === "g" && pkg.amount >= 20 && pkg.amount <= 2000
+        ? pkg.amount
+        : undefined,
     details,
   };
 }
@@ -238,7 +307,7 @@ export async function searchOpenFoodFacts(query: string, limit = 12): Promise<Fo
     url.searchParams.set("page_size", String(Math.max(limit, 20)));
     url.searchParams.set(
       "fields",
-      "code,product_name,product_name_pl,generic_name,generic_name_pl,brands,serving_size,ingredients_text,ingredients_text_pl,nutriments",
+      "code,product_name,product_name_pl,generic_name,generic_name_pl,brands,serving_size,quantity,product_quantity,product_quantity_unit,ingredients_text,ingredients_text_pl,nutriments",
     );
     // Preferuj produkty z nazwą PL / sprzedawane w PL
     url.searchParams.set("tagtype_0", "countries");
@@ -263,7 +332,7 @@ export async function searchOpenFoodFacts(query: string, limit = 12): Promise<Fo
     url2.searchParams.set("page_size", String(Math.max(limit, 20)));
     url2.searchParams.set(
       "fields",
-      "code,product_name,product_name_pl,generic_name,generic_name_pl,brands,serving_size,ingredients_text,ingredients_text_pl,nutriments",
+      "code,product_name,product_name_pl,generic_name,generic_name_pl,brands,serving_size,quantity,product_quantity,product_quantity_unit,ingredients_text,ingredients_text_pl,nutriments",
     );
     const json2 = (await fetchOffJson(url2.toString())) as { products?: OffProduct[] } | null;
     for (const p of json2?.products ?? []) {

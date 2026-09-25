@@ -50,6 +50,12 @@ export type FoodProduct = {
   basisUnit?: FoodAmountUnit;
   /** Dla sztuk: ile gramów ma 1 sztuka (do przeliczenia na g). */
   gramsPerPiece?: number;
+  /**
+   * Gramatura / objętość opakowania z etykiety (np. kubek 330 g).
+   * Makro nadal są na `basisAmount` (zwykle 100 g) — to tylko podpowiedź porcji.
+   */
+  packageAmount?: number;
+  packageUnit?: FoodAmountUnit;
   /** Szczegóły mikro / tłuszcze / cukry — na 100 g. */
   details?: FoodNutritionDetails;
 };
