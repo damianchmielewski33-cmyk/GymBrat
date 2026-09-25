@@ -14,7 +14,7 @@ export const screenLinkClass =
   "rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
 
 export const screenCtaClass =
-  "h-11 bg-[var(--neon)] text-base font-semibold text-[var(--neon-fg)] hover:bg-[var(--neon-hover)] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
+  "gym-btn-primary h-11 rounded-2xl px-5 text-base focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
 export const screenInputClass =
   "min-h-11 border-white/20 bg-black/50 text-white placeholder:text-white/40";
 

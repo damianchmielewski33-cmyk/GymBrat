@@ -49,7 +49,7 @@ export function ChangePasswordForm() {
         <p className="text-xs text-white/45">Minimum 8 znaków.</p>
       </div>
 
-      <SubmitButton className="bg-[var(--neon)] text-[var(--neon-fg)] hover:bg-[var(--neon-hover)]">
+      <SubmitButton>
         Zmień hasło
       </SubmitButton>
     </form>

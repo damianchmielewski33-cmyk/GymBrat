@@ -151,7 +151,7 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
                   }
                   className={`h-9 min-w-[2.75rem] rounded-full px-3 text-xs font-semibold transition ${
                     on
-                      ? "bg-[var(--neon)]/90 text-[var(--neon-fg)]"
+                      ? "gym-btn-primary"
                       : "border border-white/15 bg-white/[0.04] text-white/55"
                   }`}
                 >
@@ -178,7 +178,7 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
         <Button
           type="button"
           disabled={pending}
-          className="h-11 bg-[var(--neon)] text-[var(--neon-fg)] hover:bg-[var(--neon-hover)]"
+          className="h-11"
           onClick={() => {
             start(async () => {
               const r = await saveRemindersPrefsAction(payload);

@@ -85,7 +85,7 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
           </div>
           <Button
             type="button"
-            className="h-11 bg-[var(--neon)] text-base font-semibold text-[var(--neon-fg)] hover:bg-[var(--neon-hover)]"
+            className="h-11 text-base"
             onClick={() => setIsOpen(true)}
           >
             Dodaj Raport
@@ -428,7 +428,7 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
           <Button
             type="submit"
             disabled={pending}
-            className="h-11 bg-[var(--neon)] text-base font-semibold text-[var(--neon-fg)] hover:bg-[var(--neon-hover)]"
+            className="h-11 text-base"
           >
             {pending ? "Zapisywanie…" : "Zapisz raport"}
           </Button>

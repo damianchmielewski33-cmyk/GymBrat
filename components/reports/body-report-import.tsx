@@ -163,7 +163,7 @@ export function BodyReportImport() {
           <Button
             type="submit"
             disabled={pending || (!file && !url.trim())}
-            className="h-11 bg-[var(--neon)] text-base font-semibold text-[var(--neon-fg)] hover:bg-[var(--neon-hover)]"
+            className="h-11 text-base"
           >
             {pending ? "Importuję…" : "Importuj raporty"}
           </Button>
