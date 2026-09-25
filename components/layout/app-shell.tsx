@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, Suspense } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   BarChart3,
@@ -170,14 +170,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <TabLink key={item.href} item={item} pathname={pathname} />
           ))}
           <div className="relative flex h-12 items-center justify-center">
-            <Link
-              href="/reports"
-              className="gym-btn-primary absolute left-1/2 top-1/2 z-10 inline-flex h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-[72%] items-center justify-center gap-1 rounded-full px-5 text-sm shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)]"
-              aria-label="Dodaj raport"
-            >
-              <Plus className="h-4 w-4" aria-hidden />
-              Raport
-            </Link>
+            <Suspense fallback={null}>
+              <ReportFab />
+            </Suspense>
           </div>
           {tabs.slice(2).map((item) => (
             <TabLink key={item.href} item={item} pathname={pathname} />
@@ -185,6 +180,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
     </div>
+  );
+}
+
+/** Środkowy FAB „Raport” — ukryty podczas aktywnego wizarda (`/reports?new=1`). */
+function ReportFab() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const wizardOpen =
+    pathname.startsWith("/reports") &&
+    (searchParams.get("new") === "1" || searchParams.get("new") === "true");
+
+  if (wizardOpen) {
+    return <span className="sr-only">Dodawanie raportu w toku</span>;
+  }
+
+  return (
+    <Link
+      href="/reports?new=1"
+      className="gym-btn-primary absolute left-1/2 top-1/2 z-10 inline-flex h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-[72%] items-center justify-center gap-1 rounded-full px-5 text-sm shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)]"
+      aria-label="Dodaj raport"
+    >
+      <Plus className="h-4 w-4" aria-hidden />
+      Raport
+    </Link>
   );
 }
 

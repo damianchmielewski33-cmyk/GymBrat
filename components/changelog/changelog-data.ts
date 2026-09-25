@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — start raportu z paska + naprawa zapisu zdjęć",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Przycisk Raport na dolnym pasku od razu otwiera wizard dodawania; podczas wypełniania środkowy przycisk jest ukryty.",
+      "Wpisane pomiary i odpowiedzi zostają po Wstecz między krokami, a zapis raportu nie pada już na zbyt dużych zdjęciach — widać też konkretny komunikat błędu.",
+    ],
+  },
+  {
     title: "2026-09 — przywrócenie produkcji + wizard raportów",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

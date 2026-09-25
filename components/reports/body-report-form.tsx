@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -9,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -41,6 +42,27 @@ const PHOTO_SLOTS: { key: PhotoSlot; label: string }[] = [
 ];
 
 const TOTAL_STEPS = 5;
+const DRAFT_KEY = "gymbrat:body-report-draft:v1";
+
+type DraftPayload = {
+  step: number;
+  weightKg: string;
+  waistCm: string;
+  chestCm: string;
+  thighCm: string;
+  armCm: string;
+  abdomenCm: string;
+  dayEnergy: number | null;
+  trainingEnergy: number | null;
+  digestionScore: number | null;
+  sleepQuality: number | null;
+  cardioCompliance: "" | "tak" | "nie";
+  dietCompliance: "" | "tak" | "nie";
+  trainingCompliance: "" | "tak" | "nie";
+  complianceNotes: string;
+  additionalInfo: string;
+  /** Zdjęcia w draftcie pomijamy (za duże na sessionStorage). */
+};
 
 async function fileToResizedDataUrl(
   file: File,
@@ -60,6 +82,21 @@ async function fileToResizedDataUrl(
   if (!ctx) throw new Error("Brak canvas context");
   ctx.drawImage(bitmap, 0, 0, w, h);
   return canvas.toDataURL("image/jpeg", opts.quality);
+}
+
+/** Kompresja pod limit API (~1.5M znaków na zdjęcie). */
+async function fileToReportPhotoDataUrl(file: File): Promise<string> {
+  const attempts = [
+    { maxSide: 960, quality: 0.72 },
+    { maxSide: 720, quality: 0.62 },
+    { maxSide: 560, quality: 0.55 },
+  ];
+  let last = "";
+  for (const opts of attempts) {
+    last = await fileToResizedDataUrl(file, opts);
+    if (last.length <= 1_200_000) return last;
+  }
+  return last;
 }
 
 function parseDecimal(raw: string): number | null {
@@ -393,11 +430,14 @@ export function BodyReportForm({
   daysUntilNext = null,
 }: BodyReportFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { notifySaved } = useSaveFeedback();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const wantNew =
+    searchParams.get("new") === "1" || searchParams.get("new") === "true";
+  const [isOpen, setIsOpen] = useState(wantNew);
   const [step, setStep] = useState(1);
 
   const [weightKg, setWeightKg] = useState("");
@@ -452,10 +492,124 @@ export function BodyReportForm({
     setSlotPhotos({ front: null, side: null, back: null });
   };
 
-  const closeWizard = () => {
-    resetForm();
-    setIsOpen(false);
+  const openWizard = (opts?: { restoreDraft?: boolean }) => {
+    if (opts?.restoreDraft !== false) {
+      try {
+        const raw = sessionStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          const d = JSON.parse(raw) as DraftPayload;
+          setStep(typeof d.step === "number" ? Math.min(TOTAL_STEPS, Math.max(1, d.step)) : 1);
+          setWeightKg(d.weightKg ?? "");
+          setWaistCm(d.waistCm ?? "");
+          setChestCm(d.chestCm ?? "");
+          setThighCm(d.thighCm ?? "");
+          setArmCm(d.armCm ?? "");
+          setAbdomenCm(d.abdomenCm ?? "");
+          setDayEnergy(d.dayEnergy ?? null);
+          setTrainingEnergy(d.trainingEnergy ?? null);
+          setDigestionScore(d.digestionScore ?? null);
+          setSleepQuality(d.sleepQuality ?? null);
+          setCardioCompliance(d.cardioCompliance ?? "");
+          setDietCompliance(d.dietCompliance ?? "");
+          setTrainingCompliance(d.trainingCompliance ?? "");
+          setComplianceNotes(d.complianceNotes ?? "");
+          setAdditionalInfo(d.additionalInfo ?? "");
+        }
+      } catch {
+        /* ignore broken draft */
+      }
+    }
+    setIsOpen(true);
+    router.replace("/reports?new=1", { scroll: false });
   };
+
+  const closeWizard = (opts?: { clearDraft?: boolean }) => {
+    if (opts?.clearDraft !== false) {
+      try {
+        sessionStorage.removeItem(DRAFT_KEY);
+      } catch {
+        /* ignore */
+      }
+      resetForm();
+    }
+    setIsOpen(false);
+    router.replace("/reports", { scroll: false });
+  };
+
+  // Wejście z FAB / linku ?new=1 — od razu start wizarda + przywróć wpisane pola.
+  useEffect(() => {
+    if (!wantNew) return;
+    setIsOpen(true);
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw) as DraftPayload;
+      setStep(typeof d.step === "number" ? Math.min(TOTAL_STEPS, Math.max(1, d.step)) : 1);
+      setWeightKg(d.weightKg ?? "");
+      setWaistCm(d.waistCm ?? "");
+      setChestCm(d.chestCm ?? "");
+      setThighCm(d.thighCm ?? "");
+      setArmCm(d.armCm ?? "");
+      setAbdomenCm(d.abdomenCm ?? "");
+      setDayEnergy(d.dayEnergy ?? null);
+      setTrainingEnergy(d.trainingEnergy ?? null);
+      setDigestionScore(d.digestionScore ?? null);
+      setSleepQuality(d.sleepQuality ?? null);
+      setCardioCompliance(d.cardioCompliance ?? "");
+      setDietCompliance(d.dietCompliance ?? "");
+      setTrainingCompliance(d.trainingCompliance ?? "");
+      setComplianceNotes(d.complianceNotes ?? "");
+      setAdditionalInfo(d.additionalInfo ?? "");
+    } catch {
+      /* ignore */
+    }
+  }, [wantNew]);
+
+  // Trzymaj wpisane wartości przy Wstecz / zmianie kroku (draft bez zdjęć).
+  useEffect(() => {
+    if (!isOpen) return;
+    const draft: DraftPayload = {
+      step,
+      weightKg,
+      waistCm,
+      chestCm,
+      thighCm,
+      armCm,
+      abdomenCm,
+      dayEnergy,
+      trainingEnergy,
+      digestionScore,
+      sleepQuality,
+      cardioCompliance,
+      dietCompliance,
+      trainingCompliance,
+      complianceNotes,
+      additionalInfo,
+    };
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      /* quota */
+    }
+  }, [
+    isOpen,
+    step,
+    weightKg,
+    waistCm,
+    chestCm,
+    thighCm,
+    armCm,
+    abdomenCm,
+    dayEnergy,
+    trainingEnergy,
+    digestionScore,
+    sleepQuality,
+    cardioCompliance,
+    dietCompliance,
+    trainingCompliance,
+    complianceNotes,
+    additionalInfo,
+  ]);
 
   const validateStep = (s: number): boolean => {
     setFieldError(null);
@@ -505,6 +659,7 @@ export function BodyReportForm({
   const goBack = () => {
     setFieldError(null);
     setError(null);
+    // Wartości pól zostają — tylko cofamy krok.
     setStep((s) => Math.max(1, s - 1));
   };
 
@@ -512,10 +667,7 @@ export function BodyReportForm({
     setError(null);
     start(async () => {
       try {
-        const dataUrl = await fileToResizedDataUrl(file, {
-          maxSide: 1280,
-          quality: 0.85,
-        });
+        const dataUrl = await fileToReportPhotoDataUrl(file);
         setSlotPhotos((prev) => ({ ...prev, [slot]: dataUrl }));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Nie udało się wczytać zdjęcia");
@@ -524,9 +676,11 @@ export function BodyReportForm({
   };
 
   const submit = () => {
-    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
-      setStep(1);
-      return;
+    for (const s of [1, 2, 3] as const) {
+      if (!validateStep(s)) {
+        setStep(s);
+        return;
+      }
     }
     setError(null);
     start(async () => {
@@ -567,7 +721,7 @@ export function BodyReportForm({
           return;
         }
         notifySaved("Zapisano raport.");
-        closeWizard();
+        closeWizard({ clearDraft: true });
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Nieznany błąd");
@@ -587,7 +741,10 @@ export function BodyReportForm({
               Pomiary, samopoczucie, zgodność z planem i zdjęcia — krok po kroku.
             </p>
           </div>
-          <GoldButton onClick={() => setIsOpen(true)} className="w-full sm:w-auto">
+          <GoldButton
+            onClick={() => openWizard({ restoreDraft: true })}
+            className="w-full sm:w-auto"
+          >
             Dodaj raport
           </GoldButton>
         </div>
@@ -612,7 +769,7 @@ export function BodyReportForm({
           ) : null}
           <button
             type="button"
-            onClick={closeWizard}
+            onClick={() => closeWizard({ clearDraft: true })}
             className="text-[11px] font-medium uppercase tracking-wide text-white/40 underline-offset-2 hover:text-white/70 hover:underline"
           >
             Anuluj

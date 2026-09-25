@@ -54,7 +54,15 @@ export default async function ReportsPage() {
 
       <BodyReportImport />
 
-      <BodyReportForm daysUntilNext={daysUntilNext} />
+      <Suspense
+        fallback={
+          <div className="rounded-3xl border border-white/10 bg-[#141416]/90 p-6 text-sm text-white/50">
+            Ładowanie formularza raportu…
+          </div>
+        }
+      >
+        <BodyReportForm daysUntilNext={daysUntilNext} />
+      </Suspense>
 
       <BodyReportHistory
         reports={reports.map((r) => ({
