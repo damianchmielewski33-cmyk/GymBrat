@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — przywrócenie produkcji + wizard raportów",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Produkcja znów zawiera cały dotychczasowy stack (złoty UI, kafle, Android, dieta) — Promote ze starego mastera został cofnięty przez ten deploy.",
+      "Dodawanie raportu to pięciostopniowy wizard: pomiary (waga wymagana), samopoczucie na złotych paskach, zgodność TAK/NIE, zdjęcia przód/bok/tył oraz podsumowanie.",
+      "Po kliknięciu „Dodaj raport” przycisk znika — zostaje karta kroków; historia pomiarów ma tabelę z deltami i widokami Pomiary / Samopoczucie / Plan.",
+    ],
+  },
+  {
     title: "2026-09 — backend Java oddzielony od frontu",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
