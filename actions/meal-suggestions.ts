@@ -4,8 +4,6 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
-import { isAiConfigured } from "@/ai/client";
-import { generateMealSuggestionsFromModel } from "@/ai/meal-suggestions";
 import { staticFallbackMeals, type MealSuggestionItem } from "@/lib/meal-suggestions-schema";
 import {
   catalogMealToSuggestion,
@@ -14,12 +12,9 @@ import {
 import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
 import { getBriefingTimeContext } from "@/lib/briefing-time-context";
 import { computeMacroGaps, type MacroGaps } from "@/lib/meal-suggestions-gaps";
-import { getMealSuggestionsTimeRulesPl } from "@/lib/meal-suggestions-time-context";
 import { UserMessages } from "@/lib/user-facing-errors";
-import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
-import { isAiGloballyDisabled } from "@/lib/ai-availability";
 
-function catalogFallback(gaps: MacroGaps, hour: number): MealSuggestionItem[] {
+function catalogSuggestions(gaps: MacroGaps, hour: number): MealSuggestionItem[] {
   const picked = pickCatalogMealsForGaps(gaps, { hour, limit: 4 });
   if (picked.length > 0) return picked.map(catalogMealToSuggestion);
   return staticFallbackMeals();
@@ -29,11 +24,13 @@ export type GenerateMealSuggestionsResult =
   | {
       ok: true;
       meals: MealSuggestionItem[];
-      source: "ai" | "static" | "user_disabled";
+      /** Zawsze lokalna baza GymBrat — bez AI i bez internetu. */
+      source: "catalog";
       gaps: MacroGaps;
     }
   | { ok: false; error: string };
 
+/** Propozycje dnia wyłącznie z lokalnej bazy posiłków GymBrat. */
 export async function generateMealSuggestionsAction(): Promise<GenerateMealSuggestionsResult> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: UserMessages.mealSuggestionsNoSession };
@@ -52,78 +49,12 @@ export async function generateMealSuggestionsAction(): Promise<GenerateMealSugge
 
   const summary = await loadTodaysNutritionSummary(userId, row);
   const gaps = computeMacroGaps(summary);
-
-  const gapsJson = JSON.stringify({
-    date: gaps.dateKey,
-    consumed: {
-      kcal: gaps.caloriesConsumed,
-      proteinG: gaps.proteinConsumed,
-      fatG: gaps.fatConsumed,
-      carbsG: gaps.carbsConsumed,
-    },
-    goals: {
-      kcal: gaps.caloriesGoal,
-      proteinG: gaps.proteinGoal,
-      fatG: gaps.fatGoal,
-      carbsG: gaps.carbsGoal,
-    },
-    remaining: {
-      kcal: gaps.caloriesRemaining,
-      proteinG: gaps.proteinRemaining,
-      fatG: gaps.fatRemaining,
-      carbsG: gaps.carbsRemaining,
-    },
-  });
-
-  const noGoalsHint = gaps.hasAnyMacroGoal
-    ? undefined
-    : "Uwaga: użytkownik nie ma ustawionych pełnych celów makro w profilu na dziś — zaproponuj 3 zrównoważone posiłki domowe o sensownych makrach.";
-
-  const userAiOff = await getUserAiFeaturesDisabled(userId);
-  const entitled = await getUserAiEntitled(userId);
-  const globalOff = await isAiGloballyDisabled();
   const timeCtx = getBriefingTimeContext();
 
-  if (globalOff) {
-    return {
-      ok: true,
-      meals: catalogFallback(gaps, timeCtx.hour),
-      source: "static",
-      gaps,
-    };
-  }
-  if (!entitled) {
-    return {
-      ok: true,
-      meals: catalogFallback(gaps, timeCtx.hour),
-      source: "static",
-      gaps,
-    };
-  }
-  if (userAiOff) {
-    return {
-      ok: true,
-      meals: catalogFallback(gaps, timeCtx.hour),
-      source: "user_disabled",
-      gaps,
-    };
-  }
-
-  if (!isAiConfigured()) {
-    return {
-      ok: true,
-      meals: catalogFallback(gaps, timeCtx.hour),
-      source: "static",
-      gaps,
-    };
-  }
-
-  const meals = await generateMealSuggestionsFromModel({
-    gapsJson,
-    noGoalsHint,
-    localCalendarLinePl: timeCtx.linePl,
-    mealTimeRulesPl: getMealSuggestionsTimeRulesPl(timeCtx.hour),
-  });
-
-  return { ok: true, meals, source: "ai", gaps };
+  return {
+    ok: true,
+    meals: catalogSuggestions(gaps, timeCtx.hour),
+    source: "catalog",
+    gaps,
+  };
 }
