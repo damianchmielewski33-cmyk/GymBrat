@@ -11,6 +11,12 @@ function isSecureSessionCookie(req: NextRequest): boolean {
   return req.nextUrl.protocol === "https:";
 }
 
+/** Natywny WebView GymBrat (UA doklejane w MainActivity). */
+function isGymBratAndroidWebView(req: NextRequest): boolean {
+  const ua = req.headers.get("user-agent") ?? "";
+  return ua.includes("GymBratAndroidApp");
+}
+
 /** Ochrona tras (Next.js 16 — eksport musi nazywać się `proxy`). */
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
@@ -22,9 +28,22 @@ export async function proxy(req: NextRequest) {
 
   /**
    * Aktualizacje APK: natywna aplikacja Android nie ma sesji NextAuth.
-   * Bez tego GET /api/android/version ląduje na HTML logowania.
+   * Bez tego GET /api/android/version i /gymbrat.apk lądują na HTML logowania
+   * (wtedy „APK” to strona logowania i instalacja / uruchomienie pada).
    */
-  if (pathname.startsWith("/api/android/") || pathname === "/android-version.json") {
+  if (
+    pathname.startsWith("/api/android/") ||
+    pathname === "/android-version.json" ||
+    pathname.endsWith(".apk")
+  ) {
+    return NextResponse.next();
+  }
+
+  /**
+   * Digital Asset Links / App Links — GoogleAssociationService musi dostać 200 JSON,
+   * nie 307 na /login (inaczej weryfikacja App Links pada).
+   */
+  if (pathname.startsWith("/.well-known/")) {
     return NextResponse.next();
   }
 
@@ -74,6 +93,16 @@ export async function proxy(req: NextRequest) {
     login.searchParams.set("callbackUrl", dest);
     const from = req.nextUrl.searchParams.get("from");
     if (from) login.searchParams.set("from", from);
+
+    /**
+     * APK 0.1.0 ładuje startowy URL `/` bez ciasteczka sesji.
+     * Zwykły 307 → /login jest poprawny auth, ale w logach Vercel wygląda jak błąd.
+     * Dla WebView GymBrat: rewrite (200 + ekran logowania) zamiast redirect.
+     */
+    if (isGymBratAndroidWebView(req) && pathname === "/") {
+      return NextResponse.rewrite(login);
+    }
+
     return NextResponse.redirect(login);
   }
 
@@ -82,6 +111,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth|api/android|_next/static|_next/image|favicon.ico|manifest.webmanifest|android-version.json|sw.js|workbox.*|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/auth|api/android|_next/static|_next/image|favicon.ico|manifest.webmanifest|android-version.json|sw.js|workbox.*|\\.well-known/.*|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|apk)$).*)",
   ],
 };

@@ -9,6 +9,10 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { RoleAuthCards } from "@/components/auth/role-auth-cards";
+import {
+  LoginDiagnosticsPanel,
+  type LoginDiagEvent,
+} from "@/components/auth/login-diagnostics-panel";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import {
   isTrainerFlowEnabled,
@@ -18,6 +22,14 @@ import {
 
 /** @deprecated użyj AppRole z @/lib/auth-role */
 export type LoginRole = AppRole;
+
+function diagNow() {
+  try {
+    return new Date().toISOString();
+  } catch {
+    return String(Date.now());
+  }
+}
 
 export function LoginForm() {
   const router = useRouter();
@@ -30,6 +42,18 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
+  const [diagEvents, setDiagEvents] = useState<LoginDiagEvent[]>([]);
+
+  function pushDiag(level: LoginDiagEvent["level"], message: string) {
+    setDiagEvents((prev) => [...prev.slice(-30), { at: diagNow(), level, message }]);
+    if (level === "error") {
+      console.error("[login]", message);
+    } else if (level === "warn") {
+      console.warn("[login]", message);
+    } else {
+      console.info("[login]", message);
+    }
+  }
 
   useEffect(() => {
     if (trainerEnabled) return;
@@ -57,10 +81,15 @@ export function LoginForm() {
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
-        const email = String(fd.get("email") ?? "");
+        const email = String(fd.get("email") ?? "").trim();
         const password = String(fd.get("password") ?? "");
         setError(null);
         start(async () => {
+          const started = performance.now();
+          pushDiag(
+            "info",
+            `start signIn credentials role=${role} emailLen=${email.length} callback=${callbackUrl} online=${navigator.onLine}`,
+          );
           try {
             const res = await signIn("credentials", {
               email,
@@ -69,32 +98,43 @@ export function LoginForm() {
               redirect: false,
               callbackUrl,
             });
+            const ms = Math.round(performance.now() - started);
             if (!res) {
+              pushDiag("error", `signIn: brak odpowiedzi (${ms}ms)`);
               setError("Brak odpowiedzi serwera przy logowaniu.");
               return;
             }
+            pushDiag(
+              "info",
+              `signIn wynik: ok=${String(res.ok)} status=${String(res.status)} error=${res.error ?? "null"} url=${res.url ?? "null"} (${ms}ms)`,
+            );
             if (res.error) {
+              pushDiag("error", `signIn.error=${res.error} status=${res.status}`);
               setError(
                 "Nieprawidłowy e-mail lub hasło, albo typ konta (zawodnik / trener) nie zgadza się z profilem.",
               );
               return;
             }
             if (!res.ok) {
-              setError(
-                "Nie udało się zalogować. Spróbuj ponownie za chwilę.",
-              );
+              pushDiag("error", `signIn !ok status=${res.status} url=${res.url ?? "null"}`);
+              setError("Nie udało się zalogować. Spróbuj ponownie za chwilę.");
               return;
             }
             try {
               const target = new URL(callbackUrl, window.location.origin).href;
+              pushDiag("info", `sukces — nawigacja do ${target}`);
               window.location.assign(target);
-            } catch {
+            } catch (navErr) {
+              pushDiag(
+                "warn",
+                `callbackUrl nieparsowalny (${String(navErr)}) — fallback /`,
+              );
               window.location.assign(`${window.location.origin}/`);
             }
-          } catch {
-            setError(
-              "Logowanie nie powiodło się. Spróbuj ponownie za chwilę.",
-            );
+          } catch (err) {
+            const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+            pushDiag("error", `wyjątek signIn: ${msg}`);
+            setError("Logowanie nie powiodło się. Spróbuj ponownie za chwilę.");
           }
         });
       }}
@@ -109,29 +149,19 @@ export function LoginForm() {
       {hasBanner ? (
         <div className="space-y-2">
           {registered && !error ? (
-            <InlineBanner
-              id="login-banner"
-              role="status"
-              variant="success"
-            >
+            <InlineBanner id="login-banner" role="status" variant="success">
               Konto utworzone. Zaloguj się, aby kontynuować.
             </InlineBanner>
           ) : null}
           {error ? (
-            <InlineBanner
-              id="login-banner"
-              role="alert"
-              variant="error"
-            >
+            <InlineBanner id="login-banner" role="alert" variant="error">
               {error}
             </InlineBanner>
           ) : null}
         </div>
       ) : null}
       <div className="space-y-2">
-        <Label htmlFor="email">
-          Email
-        </Label>
+        <Label htmlFor="email">Email</Label>
         <Input
           id="email"
           name="email"
@@ -143,9 +173,7 @@ export function LoginForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">
-          Hasło
-        </Label>
+        <Label htmlFor="password">Hasło</Label>
         <div className="relative">
           <Input
             id="password"
@@ -194,6 +222,8 @@ export function LoginForm() {
           Utwórz konto
         </Link>
       </p>
+
+      <LoginDiagnosticsPanel events={diagEvents} />
     </form>
   );
 }

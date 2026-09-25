@@ -44,3 +44,8 @@ next-env.d.ts
 # local sqlite (drizzle dev)
 local.db
 local.db-journal
+
+.android-sdk/
+android/local.properties
+android/app/build/
+android/.gradle/

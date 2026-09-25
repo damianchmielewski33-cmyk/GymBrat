@@ -5,6 +5,60 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — diagnostyka logowania w Android",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Na ekranie logowania jest panel Diagnostyka z logami frontowymi (signIn, console.error, sieć, cookies, wersja APK) — w aplikacji Android otwarty domyślnie.",
+      "Przycisk „Kopiuj logi” zbiera raport do wklejenia, żeby łatwo ustalić przyczynę błędu bez DevTools.",
+    ],
+  },
+  {
+    title: "2026-09 — Android APK 0.1.1 na produkcji",
+    date: "2026-09-24",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Opublikowano gymbrat.apk w wersji 0.1.1 (versionCode 2) w GitHub Release android-latest oraz w public/ — start od /login i trwała sesja cookies.",
+      "Zaktualizowano /.well-known/assetlinks.json pod podpis tej kompilacji oraz public/android-version.json.",
+      "Workflow GitHub Actions „Build Android APK” jest w repozytorium; po merge do master zbuduje Release android-latest automatycznie.",
+    ],
+  },
+  {
+    title: "2026-09 — Android start bez zbędnego 307 na /",
+    date: "2026-09-24",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "GET / bez sesji w WebView GymBrat nie robi już 307 na /login w logach Vercel — serwer oddaje ekran logowania przez rewrite (200).",
+      "W kodzie APK start bez sesji idzie od razu na /login, a CookieManager.flush zapisuje sesję NextAuth po restarcie.",
+      "Sam 307 dla zwykłej przeglądarki bez logowania nadal jest zamierzony: chronione trasy wymagają konta.",
+    ],
+  },
+  {
+    title: "2026-09 — publiczne Asset Links dla Android",
+    date: "2026-09-24",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "GET /.well-known/assetlinks.json jest publiczny (bez 307 na logowanie), żeby GoogleAssociationService mógł zweryfikować App Links GymBrat.",
+      "Plik zawiera package_name pl.gymbrat.app oraz odcisk SHA-256 certyfikatu podpisu aktualnego gymbrat.apk.",
+    ],
+  },
+  {
+    title: "2026-09 — Android WebView bez fałszywego błędu",
+    date: "2026-09-24",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Usunięto globalny popup „Zmieniamy się na lepsze”, który w aplikacji Android odpalał się przy zwykłych logach console.error mimo że aplikacja działała.",
+      "POST /api/analytics/page-view przy złym Origin zwraca pusty 204 zamiast 403 JSON — WebView nie pokazuje już tego jako strony błędu (w przeglądarce problem nie występował).",
+      "Metadane wersji APK to wyłącznie GymBrat 0.1.0 (nie AWP 1.11.5), więc popup „Wymagana aktualizacja” nie blokuje startu zainstalowanej aplikacji.",
+      "Plik /gymbrat.apk jest publiczny bez logowania, a allowlista Origin obejmuje gym-brat.vercel.app i same-origin.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
