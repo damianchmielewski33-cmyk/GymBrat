@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — analytics page-view z aplikacji Android",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "POST /api/analytics/page-view znów przyjmuje żądania z tego samego hosta (np. gym-brat.vercel.app), także gdy lista Origin w zmiennych środowiskowych nie zawiera aliasu produkcyjnego Vercel.",
+      "Beacony z WebView GymBratAndroidApp nie dostają już błędnego 403 przy Sec-Fetch-Site: none — zliczanie wejść w aplikacji Android działa.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
