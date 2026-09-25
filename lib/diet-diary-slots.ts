@@ -1,20 +1,21 @@
 /**
- * Sekcje dziennika diety w stylu Fitatu (na dole ekranu Dieta).
- * Osobne od slotów katalogu przepisów (`MealSlot` w meal-catalog-types).
+ * Sekcje dziennika diety w stylu Fitatu.
  */
 export type DietDiarySlot =
   | "sniadanie"
   | "drugie_sniadanie"
   | "lunch"
   | "obiad"
-  | "przekaska";
+  | "przekaska"
+  | "kolacja";
 
 export const DIET_DIARY_SLOT_LABELS: Record<DietDiarySlot, string> = {
   sniadanie: "Śniadanie",
-  drugie_sniadanie: "Drugie śniadanie",
+  drugie_sniadanie: "II Śniadanie",
   lunch: "Lunch",
   obiad: "Obiad",
   przekaska: "Przekąska",
+  kolacja: "Kolacja",
 };
 
 export const DIET_DIARY_SLOTS: DietDiarySlot[] = [
@@ -23,6 +24,7 @@ export const DIET_DIARY_SLOTS: DietDiarySlot[] = [
   "lunch",
   "obiad",
   "przekaska",
+  "kolacja",
 ];
 
 export function isDietDiarySlot(v: unknown): v is DietDiarySlot {
@@ -35,5 +37,6 @@ export function dietDiarySlotFromHour(hour: number): DietDiarySlot {
   if (hour < 12) return "drugie_sniadanie";
   if (hour < 15) return "lunch";
   if (hour < 18) return "obiad";
-  return "przekaska";
+  if (hour < 21) return "przekaska";
+  return "kolacja";
 }

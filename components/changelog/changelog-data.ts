@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — dziennik diety jak Fitatu: jadłospis, szukaj, porcja",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Jadłospis ma pasek dni tygodnia, sekcje Śniadanie–Kolacja z przyciskiem + oraz sticky makro dnia (kcal, białko, tłuszcz, węgle).",
+      "Dodawanie posiłku to pełny ekran Szukaj ze skanerem w pasku wyszukiwania; po wyborze ustawiasz gramy lub sztuki jak w Fitatu.",
+      "Skaner EAN jest pełnoekranowy z kwadratową ramką i przyciskiem Wyłącz aparat — nad paskiem nawigacji aplikacji.",
+    ],
+  },
+  {
     title: "2026-09 — skan diety: ilość g/ml/szt. i naprawione wyszukiwanie",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

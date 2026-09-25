@@ -15,13 +15,15 @@ import { FOOD_PRODUCTS_LOCAL } from "@/lib/food-products-data";
 import { defaultPortionForProduct, scaleFoodMacros } from "@/lib/food-portion";
 
 describe("diet-diary-slots", () => {
-  it("ma 5 sekcji Fitatu z polskimi etykietami", () => {
-    expect(DIET_DIARY_SLOTS).toHaveLength(5);
+  it("ma 6 sekcji Fitatu z polskimi etykietami", () => {
+    expect(DIET_DIARY_SLOTS).toHaveLength(6);
     expect(DIET_DIARY_SLOT_LABELS.sniadanie).toBe("Śniadanie");
+    expect(DIET_DIARY_SLOT_LABELS.drugie_sniadanie).toBe("II Śniadanie");
     expect(DIET_DIARY_SLOT_LABELS.lunch).toBe("Lunch");
     expect(DIET_DIARY_SLOT_LABELS.przekaska).toBe("Przekąska");
+    expect(DIET_DIARY_SLOT_LABELS.kolacja).toBe("Kolacja");
     expect(isDietDiarySlot("obiad")).toBe(true);
-    expect(isDietDiarySlot("kolacja")).toBe(false);
+    expect(isDietDiarySlot("kolacja")).toBe(true);
   });
 
   it("mapuje godzinę na sekcję", () => {
@@ -29,7 +31,8 @@ describe("diet-diary-slots", () => {
     expect(dietDiarySlotFromHour(11)).toBe("drugie_sniadanie");
     expect(dietDiarySlotFromHour(13)).toBe("lunch");
     expect(dietDiarySlotFromHour(16)).toBe("obiad");
-    expect(dietDiarySlotFromHour(21)).toBe("przekaska");
+    expect(dietDiarySlotFromHour(19)).toBe("przekaska");
+    expect(dietDiarySlotFromHour(22)).toBe("kolacja");
   });
 });
 

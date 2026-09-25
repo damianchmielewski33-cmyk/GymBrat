@@ -247,8 +247,8 @@ export function BarcodeCameraScanner({
       aria-modal="true"
       aria-label="Skaner kodu kreskowego"
     >
-      {/* Pełny kadr aparatu */}
-      <div className="absolute inset-0 bg-black">
+      {/* Pełny kadr aparatu — viewport jak Fitatu: kwadrat + ciemna maska */}
+      <div className="absolute inset-0 bg-[#1a1a1a]">
         <video
           ref={videoRef}
           className="h-full w-full object-cover"
@@ -258,10 +258,11 @@ export function BarcodeCameraScanner({
           controls={false}
           disablePictureInPicture
         />
-        {/* Przyciemnienie poza obszarem skanu */}
-        <div className="pointer-events-none absolute inset-0 bg-black/35" />
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[min(42vw,220px)] w-[min(88vw,360px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]" />
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[2px] w-[min(72vw,280px)] -translate-x-1/2 -translate-y-1/2 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.95)]" />
+        <div
+          className="pointer-events-none absolute left-1/2 top-[42%] h-[min(72vw,300px)] w-[min(72vw,300px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/70"
+          style={{ boxShadow: "0 0 0 9999px rgba(26,26,26,0.88)" }}
+        />
+        <div className="pointer-events-none absolute left-1/2 top-[42%] h-[2px] w-[min(62vw,260px)] -translate-x-1/2 -translate-y-1/2 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.95)]" />
         {starting ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60">
             <Loader2 className="h-10 w-10 animate-spin text-white/85" />
