@@ -5,6 +5,11 @@ import { createPortal } from "react-dom";
 import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { ChevronLeft, Flashlight, FlashlightOff, Loader2, X } from "lucide-react";
+import {
+  ensureAndroidCameraPermission,
+  isInstalledAndroidAppClient,
+  openAndroidAppSettings,
+} from "@/lib/app-webview";
 
 type ZoomCaps = { min: number; max: number; step?: number };
 
@@ -117,6 +122,19 @@ export function BarcodeCameraScanner({
           setError("To urządzenie nie udostępnia aparatu — wpisz kod EAN poniżej.");
           setStarting(false);
           return;
+        }
+
+        // APK: najpierw natywny dialog CAMERA — inaczej getUserMedia pada bez promptu.
+        if (isInstalledAndroidAppClient()) {
+          const granted = await ensureAndroidCameraPermission();
+          if (cancelled) return;
+          if (!granted) {
+            setError(
+              "Brak zgody na aparat. Zezwól na kamerę w ustawieniach aplikacji i spróbuj ponownie.",
+            );
+            setStarting(false);
+            return;
+          }
         }
 
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -298,9 +316,24 @@ export function BarcodeCameraScanner({
           Umieść kod EAN w ramce. Potem ustawisz g / ml / szt.
         </p>
         {error ? (
-          <p className="rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-center text-sm text-amber-100">
-            {error}
-          </p>
+          <div className="space-y-2 rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-center">
+            <p className="text-sm text-amber-100">{error}</p>
+            {isInstalledAndroidAppClient() ? (
+              <button
+                type="button"
+                className="text-sm font-semibold text-[var(--gym-gold-bright)] underline underline-offset-2"
+                onClick={() => {
+                  if (!openAndroidAppSettings()) {
+                    setError(
+                      "Otwórz Ustawienia → Aplikacje → GymBrat → Uprawnienia → Aparat.",
+                    );
+                  }
+                }}
+              >
+                Otwórz ustawienia aplikacji
+              </button>
+            ) : null}
+          </div>
         ) : null}
         <div className="flex gap-2">
           <input

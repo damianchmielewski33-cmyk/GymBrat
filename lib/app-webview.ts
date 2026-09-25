@@ -23,7 +23,12 @@ declare global {
       getVersionName: () => string;
       getVersionCode: () => number;
       checkUpdate: () => void;
+      hasCameraPermission?: () => boolean;
+      requestCameraPermission?: () => void;
+      openAppSettings?: () => void;
     };
+    /** Callback ustawiany przez ensureAndroidCameraPermission przed mostem. */
+    __gymbratOnCameraPermission?: (granted: boolean) => void;
   }
 }
 
@@ -167,6 +172,60 @@ export function requestNativeAndroidUpdate(): boolean {
     }
   } catch {
     /* most niedostępny */
+  }
+  return false;
+}
+
+/**
+ * W APK WebView: najpierw natywny dialog CAMERA, potem getUserMedia.
+ * Chromium często odrzuca getUserMedia z NotAllowedError bez pokazania
+ * WebChromeClient.onPermissionRequest, gdy runtime CAMERA nie jest jeszcze przyznane.
+ */
+export function ensureAndroidCameraPermission(): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(true);
+  const bridge = window.GymBratAndroid;
+  if (!bridge?.requestCameraPermission) return Promise.resolve(true);
+
+  try {
+    if (bridge.hasCameraPermission?.()) return Promise.resolve(true);
+  } catch {
+    /* most niedostępny */
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (granted: boolean) => {
+      if (settled) return;
+      settled = true;
+      try {
+        delete window.__gymbratOnCameraPermission;
+      } catch {
+        window.__gymbratOnCameraPermission = undefined;
+      }
+      resolve(granted);
+    };
+
+    window.__gymbratOnCameraPermission = finish;
+    try {
+      bridge.requestCameraPermission();
+    } catch {
+      finish(false);
+      return;
+    }
+    // Timeout — gdy APK stary / dialog nie wróci.
+    window.setTimeout(() => finish(false), 60_000);
+  });
+}
+
+export function openAndroidAppSettings(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    if (window.GymBratAndroid?.openAppSettings) {
+      window.GymBratAndroid.openAppSettings();
+      return true;
+    }
+  } catch {
+    /* ignore */
   }
   return false;
 }

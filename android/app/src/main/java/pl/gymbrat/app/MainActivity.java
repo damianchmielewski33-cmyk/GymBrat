@@ -9,7 +9,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.webkit.CookieManager;
@@ -41,6 +40,7 @@ public final class MainActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private View splash;
     private UpdateInstaller updateInstaller;
+    private GymBratAndroidJsBridge jsBridge;
     private boolean contentReady;
 
     /** Callback WebView dla input type=file — bez tego wybór zdjęć w APK milczy. */
@@ -49,17 +49,27 @@ public final class MainActivity extends AppCompatActivity {
     /** Oczekujące żądanie getUserMedia (skan etykiety) — po runtime CAMERA. */
     private PermissionRequest pendingWebPermissionRequest;
 
+    /** true = JS czeka na wynik dialogu CAMERA (przed getUserMedia). */
+    private boolean pendingJsCameraRequest;
+
     private final ActivityResultLauncher<String> cameraPermissionLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.RequestPermission(),
                     granted -> {
                         PermissionRequest req = pendingWebPermissionRequest;
                         pendingWebPermissionRequest = null;
-                        if (req == null) return;
-                        if (granted) {
-                            req.grant(req.getResources());
-                        } else {
-                            req.deny();
+                        boolean jsWaiting = pendingJsCameraRequest;
+                        pendingJsCameraRequest = false;
+
+                        if (req != null) {
+                            if (granted) {
+                                grantCameraToWeb(req);
+                            } else {
+                                req.deny();
+                            }
+                        }
+                        if (jsWaiting && jsBridge != null) {
+                            jsBridge.notifyCameraPermissionResult(granted);
                         }
                     }
             );
@@ -175,10 +185,8 @@ public final class MainActivity extends AppCompatActivity {
         settings.setUserAgentString(ua);
 
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        webView.addJavascriptInterface(
-                new GymBratAndroidJsBridge(this, updateInstaller, this::markContentReady),
-                "GymBratAndroid"
-        );
+        jsBridge = new GymBratAndroidJsBridge(this, updateInstaller, this::markContentReady);
+        webView.addJavascriptInterface(jsBridge, "GymBratAndroid");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -238,15 +246,12 @@ public final class MainActivity extends AppCompatActivity {
                 }
 
                 runOnUiThread(() -> {
-                    if (Build.VERSION.SDK_INT >= 23
-                            && ContextCompat.checkSelfPermission(
-                            MainActivity.this, Manifest.permission.CAMERA)
-                            != PackageManager.PERMISSION_GRANTED) {
+                    if (!hasCameraPermission()) {
                         pendingWebPermissionRequest = request;
                         cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
                         return;
                     }
-                    request.grant(request.getResources());
+                    grantCameraToWeb(request);
                 });
             }
 
@@ -289,6 +294,51 @@ public final class MainActivity extends AppCompatActivity {
                 return true;
             }
         });
+    }
+
+    /** Używane przez most JS przed getUserMedia. */
+    public boolean hasCameraPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * Prośba o CAMERA z JS (przed getUserMedia). Wynik idzie przez
+     * {@link GymBratAndroidJsBridge#notifyCameraPermissionResult(boolean)}.
+     */
+    public void requestCameraPermissionForWeb() {
+        runOnUiThread(() -> {
+            if (hasCameraPermission()) {
+                if (jsBridge != null) jsBridge.notifyCameraPermissionResult(true);
+                return;
+            }
+            pendingJsCameraRequest = true;
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+        });
+    }
+
+    public WebView getWebView() {
+        return webView;
+    }
+
+    /** Przyznaj WebView tylko kamerę (nie mikrofon). */
+    private static void grantCameraToWeb(PermissionRequest request) {
+        String[] resources = request.getResources();
+        if (resources == null || resources.length == 0) {
+            request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+            return;
+        }
+        java.util.ArrayList<String> granted = new java.util.ArrayList<>();
+        for (String r : resources) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r)) {
+                granted.add(r);
+            }
+        }
+        if (granted.isEmpty()) {
+            request.deny();
+            return;
+        }
+        request.grant(granted.toArray(new String[0]));
     }
 
     /** Fallback, gdy parseResult zwróci null (częste na OEM galeriach). */

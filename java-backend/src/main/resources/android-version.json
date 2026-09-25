@@ -1,8 +1,8 @@
 {
-  "versionCode": 5,
-  "versionName": "0.1.4",
+  "versionCode": 6,
+  "versionName": "0.1.5",
   "apkUrl": "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk",
-  "mandatory": false,
-  "minSupportedVersionCode": 1,
-  "notes": "GymBrat Android 0.1.4 — skan etykiety produktu aparatem na Diecie."
+  "releasedAt": "2026-09-25",
+  "commit": null,
+  "notes": "GymBrat Android 0.1.5 — skan EAN: systemowy dialog kamery przed getUserMedia."
 }

@@ -11,7 +11,10 @@ import android.os.Vibrator;
 import android.os.VibratorManager;
 import android.webkit.JavascriptInterface;
 
+import androidx.annotation.Nullable;
+
 import pl.gymbrat.app.BuildConfig;
+import pl.gymbrat.app.MainActivity;
 import pl.gymbrat.app.update.UpdateInstaller;
 
 /**
@@ -22,13 +25,16 @@ public final class GymBratAndroidJsBridge {
     private final Context appContext;
     private final Runnable onContentReady;
     private final UpdateInstaller updateInstaller;
+    @Nullable
+    private final MainActivity activity;
 
     public GymBratAndroidJsBridge(
-            Context appContext,
+            MainActivity activity,
             UpdateInstaller updateInstaller,
             Runnable onContentReady
     ) {
-        this.appContext = appContext.getApplicationContext();
+        this.activity = activity;
+        this.appContext = activity.getApplicationContext();
         this.updateInstaller = updateInstaller;
         this.onContentReady = onContentReady;
     }
@@ -41,6 +47,61 @@ public final class GymBratAndroidJsBridge {
     @JavascriptInterface
     public int getVersionCode() {
         return BuildConfig.VERSION_CODE;
+    }
+
+    /** true = runtime CAMERA już przyznane (przed getUserMedia). */
+    @JavascriptInterface
+    public boolean hasCameraPermission() {
+        MainActivity act = activity;
+        if (act == null) return false;
+        return act.hasCameraPermission();
+    }
+
+    /**
+     * Pokazuje systemowy dialog CAMERA (jeśli potrzeba), potem woła
+     * {@code window.__gymbratOnCameraPermission(true|false)} w WebView.
+     * Bez tego Chromium często odrzuca getUserMedia z NotAllowedError
+     * i w ogóle nie wywołuje WebChromeClient.onPermissionRequest.
+     */
+    @JavascriptInterface
+    public void requestCameraPermission() {
+        MainActivity act = activity;
+        if (act == null) {
+            notifyCameraPermissionResult(false);
+            return;
+        }
+        act.requestCameraPermissionForWeb();
+    }
+
+    /** Otwiera ustawienia aplikacji (gdy użytkownik wcześniej trwale odmówił kamery). */
+    @JavascriptInterface
+    public void openAppSettings() {
+        MainActivity act = activity;
+        Handler main = new Handler(Looper.getMainLooper());
+        main.post(() -> {
+            Intent intent = new Intent(
+                    android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+            );
+            intent.setData(Uri.parse("package:" + appContext.getPackageName()));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (act != null) {
+                act.startActivity(intent);
+            } else {
+                appContext.startActivity(intent);
+            }
+        });
+    }
+
+    public void notifyCameraPermissionResult(boolean granted) {
+        MainActivity act = activity;
+        if (act == null) return;
+        String js = "window.__gymbratOnCameraPermission && window.__gymbratOnCameraPermission("
+                + (granted ? "true" : "false") + ");";
+        act.runOnUiThread(() -> {
+            if (act.getWebView() != null) {
+                act.getWebView().evaluateJavascript(js, null);
+            }
+        });
     }
 
     @JavascriptInterface

@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — Android: dialog kamery przy skanie EAN",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "W aplikacji Android skaner EAN najpierw pokazuje systemowy dialog zgody na aparat (most GymBratAndroid), a dopiero potem uruchamia kamerę — naprawia brak pytania o uprawnienie w WebView.",
+      "Gdy kamera była wcześniej zablokowana, na ekranie skanu jest link „Otwórz ustawienia aplikacji”. Zainstaluj GymBrat Android 0.1.5.",
+    ],
+  },
+  {
     title: "2026-09 — karta produktu: szczegóły odżywcze jak Fitatu",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
