@@ -3,13 +3,10 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
-import { isAiConfigured } from "@/ai/client";
 import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
 import { computeMacroGaps } from "@/lib/meal-suggestions-gaps";
-import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { MealSuggestionsView } from "@/components/meal-suggestions/meal-suggestions-view";
-import { isAiGloballyDisabled } from "@/lib/ai-availability";
-import { getWebMealInspirations } from "@/lib/web-meal-inspirations";
+import { parseMealTemplatesJson } from "@/lib/meal-templates";
 
 export default async function MealSuggestionsPage() {
   const session = await auth();
@@ -17,32 +14,25 @@ export default async function MealSuggestionsPage() {
   if (!userId) redirect("/login?callbackUrl=/meal-suggestions");
 
   const db = getDb();
-  const [[settingsRow], userAiOff] = await Promise.all([
-    db
-      .select({
-        trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
-        restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
-        nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
-      })
-      .from(userSettings)
-      .where(eq(userSettings.userId, userId))
-      .limit(1),
-    getUserAiFeaturesDisabled(userId),
-  ]);
-  const entitled = await getUserAiEntitled(userId);
+  const [settingsRow] = await db
+    .select({
+      trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
+      restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
+      nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
+      mealTemplatesJson: userSettings.mealTemplatesJson,
+    })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
 
   const summary = await loadTodaysNutritionSummary(userId, settingsRow);
   const gaps = computeMacroGaps(summary);
-  const globalOff = await isAiGloballyDisabled();
-  const modelAllowed = isAiConfigured() && entitled && !userAiOff && !globalOff;
-  const webInspirations = await getWebMealInspirations(gaps);
 
   return (
     <MealSuggestionsView
       initialSummary={summary}
       initialGaps={gaps}
-      modelAllowed={modelAllowed}
-      webInspirations={webInspirations}
+      mealTemplates={parseMealTemplatesJson(settingsRow?.mealTemplatesJson ?? null)}
     />
   );
 }
