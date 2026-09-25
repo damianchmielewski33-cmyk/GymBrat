@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — start aplikacji bez 307 na logowanie",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Wejście na adres główny bez sesji oddaje ekran logowania z kodem 200 — Vercel i WebView nie widzą już przekierowania 307 na /login.",
+      "Tożsamość aplikacji Android jest cache’owana, żeby React nie wpadał w pętlę aktualizacji i nie pokazywał fałszywego błędu przy starcie APK.",
+    ],
+  },
+  {
     title: "2026-09 — bez fałszywego popupu o zmianach",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

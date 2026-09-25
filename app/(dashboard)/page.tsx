@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { LoginScreen } from "@/components/auth/login-screen";
 import { ComplianceCard } from "@/components/home/compliance-card";
 import { DimensionTiles } from "@/components/home/dimension-tiles";
 import { FormTodayCard } from "@/components/home/form-today-card";
@@ -12,7 +13,6 @@ import { userSettings } from "@/db/schema";
 import { getHomeStartDashboard } from "@/lib/home-start";
 import { Clock } from "lucide-react";
 import { eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
 
 export default async function HomePage() {
   const session = await auth().catch((err) => {
@@ -21,7 +21,11 @@ export default async function HomePage() {
   });
   const userId = session?.user?.id;
   if (!userId) {
-    redirect("/login?callbackUrl=/");
+    /**
+     * APK ładuje `/`. 307 na /login psuło logi Vercel i start WebView.
+     * Ten sam ekran logowania na `/` — GET / jest 200.
+     */
+    return <LoginScreen />;
   }
 
   const db = getDb();
