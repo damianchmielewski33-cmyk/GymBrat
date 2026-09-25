@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — wybór pliku w raporcie znów działa",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Na ekranie Dodaj raport przycisk wyboru zdjęć sylwetki znów otwiera selektor plików — nie jest już przycinany ani zasłonięty przez układ karty.",
+      "Ten sam niezawodny wybór pliku działa przy imporcie Excel z historią raportów.",
+    ],
+  },
+  {
     title: "2026-09 — wyraźniejsze złote przyciski",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

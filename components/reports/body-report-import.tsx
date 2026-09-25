@@ -6,6 +6,7 @@ import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FilePickerButton } from "@/components/ui/file-picker-button";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 
 export function BodyReportImport() {
@@ -128,15 +129,14 @@ export function BodyReportImport() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="xlsxFile">Plik Excel (.xlsx)</Label>
-            <Input
+            <FilePickerButton
               id="xlsxFile"
-              type="file"
               accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               disabled={pending}
-              className="h-10 border-white/15 bg-black/40 file:mr-4 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white/80 hover:file:bg-white/15"
-              onChange={(e) => {
-                const f = e.target.files?.[0] ?? null;
-                setFile(f);
+              emptyLabel="Wybierz plik Excel"
+              valueLabel={file ? file.name : undefined}
+              onFiles={(files) => {
+                setFile(files[0] ?? null);
               }}
             />
             <p className="text-xs text-white/45">

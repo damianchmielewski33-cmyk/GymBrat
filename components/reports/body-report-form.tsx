@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FilePickerButton } from "@/components/ui/file-picker-button";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 
 type BodyReportFormProps = {
@@ -360,15 +361,13 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
             <Label htmlFor="photos">Zdjęcia sylwetki</Label>
             <span className="text-xs text-white/50">{photosHint}</span>
           </div>
-          <Input
+          <FilePickerButton
             id="photos"
-            type="file"
             accept="image/*"
             multiple
             disabled={!canAddMorePhotos || pending}
-            className="h-10 border-white/15 bg-black/40 file:mr-4 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white/80 hover:file:bg-white/15"
-            onChange={(e) => {
-              const files = Array.from(e.target.files ?? []);
+            emptyLabel={canAddMorePhotos ? "Wybierz zdjęcia" : "Limit zdjęć osiągnięty"}
+            onFiles={(files) => {
               if (!files.length) return;
               const room = maxPhotos - photos.length;
               const picked = files.slice(0, Math.max(0, room));
@@ -385,8 +384,6 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
                   setError(
                     err instanceof Error ? err.message : "Nie udało się wczytać zdjęć",
                   );
-                } finally {
-                  e.target.value = "";
                 }
               });
             }}
