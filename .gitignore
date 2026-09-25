@@ -2,7 +2,6 @@
 
 # dependencies
 /node_modules
-**/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -33,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -41,16 +41,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local sqlite (drizzle dev)
+# sqlite / local db
+*.db
+*.db-journal
 local.db
-local.db-journal
 
-# Java / Maven
-java-backend/target/
-
-# Android local build
+# Local Android SDK / build junk
 .android-sdk/
-android/local.properties
-android/**/build/
 android/.gradle/
-dist/
+android/**/build/

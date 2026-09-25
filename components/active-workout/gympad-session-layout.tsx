@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Minus, Plus } from "lucide-react";
+import { Minus, MoreHorizontal, Plus } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -21,6 +21,13 @@ import type { ExercisePrs } from "@/lib/exercise-progress";
 import { estimated1RM } from "@/lib/workout-history";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import Link from "next/link";
 
 function formatHMS(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -81,6 +88,11 @@ type GymPadSessionLayoutProps = {
   onRemoveLastSet: (exerciseId: string) => void;
   lastHints?: LastPlanHintsMap;
   onExerciseNoteChange?: (exerciseId: string, note: string) => void;
+  onCancelSession?: () => void;
+  onFinishSession?: () => void;
+  finishPending?: boolean;
+  onAddExercise?: () => void;
+  onReplaceExercise?: () => void;
 };
 
 /**
@@ -97,8 +109,16 @@ export function GymPadSessionLayout({
   onRemoveLastSet,
   lastHints,
   onExerciseNoteChange,
+  onCancelSession,
+  onFinishSession,
+  finishPending,
+  onAddExercise,
+  onReplaceExercise,
 }: GymPadSessionLayoutProps) {
   const [prsForExercise, setPrsForExercise] = useState<ExercisePrs | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
 
   const current = useMemo(
     () => exercises.find((e) => e.id === selectedExerciseId) ?? exercises[0] ?? null,
@@ -151,6 +171,18 @@ export function GymPadSessionLayout({
   const hintSetsForCurrent =
     current && lastHints ? lastHints[current.id]?.sets : undefined;
 
+  const prevReps = hintSetsForCurrent
+    ? hintSetsForCurrent.reduce((a, s) => a + (s.reps ?? 0), 0)
+    : null;
+  const prevVol = hintSetsForCurrent
+    ? hintSetsForCurrent.reduce(
+        (a, s) => a + (s.reps != null && s.weight > 0 ? s.reps * s.weight : 0),
+        0,
+      )
+    : null;
+  const deltaReps = prevReps != null ? totalReps - prevReps : null;
+  const deltaVol = prevVol != null ? vol - prevVol : null;
+
   function applyPatch(setIdx: number, patch: Partial<WorkoutSetState>) {
     if (!current) return;
     const next = { ...patch };
@@ -159,8 +191,6 @@ export function GymPadSessionLayout({
         patch.reps === null ? null : clampInt(patch.reps, 0, 999);
     }
     if (patch.weight !== undefined) next.weight = clampWeight(patch.weight);
-    // "done" jest wyliczane centralnie (auto po wpisaniu danych) — nie ustawiamy go z UI.
-    if ("done" in next) delete (next as Partial<WorkoutSetState>).done;
     onPatchSet(current.id, setIdx, next);
   }
 
@@ -237,9 +267,9 @@ export function GymPadSessionLayout({
         </span>
       </div>
 
-      <div className="mt-3">
+      <div className="mt-3 flex items-center gap-2">
         <div
-          className="-mx-1 flex gap-1 overflow-x-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="-mx-1 min-w-0 flex-1 flex gap-1 overflow-x-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="tablist"
           aria-label="Ćwiczenia w sesji"
           aria-orientation="horizontal"
@@ -264,14 +294,27 @@ export function GymPadSessionLayout({
                   : "bg-transparent text-white/45 hover:bg-white/[0.05] hover:text-white/75",
               )}
             >
-              {active ? <span className="absolute inset-0 rounded-full ring-1 ring-white/10" aria-hidden /> : null}
+              {active ? (
+                <span
+                  className="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-[var(--gym-gold)]"
+                  aria-hidden
+                />
+              ) : null}
               <span className="line-clamp-2 max-w-[200px]">{ex.name}</span>
             </button>
           );
         })}
         </div>
-        <div className="mt-3 h-px w-full bg-white/10" />
+        <button
+          type="button"
+          aria-label="Menu ćwiczenia"
+          onClick={() => setMenuOpen(true)}
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/70"
+        >
+          <MoreHorizontal className="h-5 w-5" />
+        </button>
       </div>
+      <div className="mt-2 h-px w-full bg-white/10" />
 
       {current ? (
         <motion.div
@@ -282,29 +325,74 @@ export function GymPadSessionLayout({
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="pt-4 outline-none focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring/75 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+          className="pt-4 outline-none"
         >
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3 py-4 text-center">
-              <p className="text-3xl font-bold tabular-nums text-white">{totalReps}</p>
-              <p className="mt-1 text-xs font-medium text-white/55">powt.</p>
+          {(deltaReps != null || deltaVol != null) ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div
+                className={cn(
+                  "rounded-2xl border px-3 py-3 text-center",
+                  (deltaReps ?? 0) < 0
+                    ? "border-rose-400/40 bg-rose-500/10 text-rose-200"
+                    : (deltaReps ?? 0) > 0
+                      ? "border-emerald-400/35 bg-emerald-500/10 text-emerald-200"
+                      : "border-white/10 bg-white/[0.04] text-white/70",
+                )}
+              >
+                <p className="text-2xl font-bold tabular-nums">
+                  {(deltaReps ?? 0) > 0 ? "+" : ""}
+                  {deltaReps ?? 0}
+                </p>
+                <p className="mt-0.5 text-xs">powt. {deltaReps != null && deltaReps < 0 ? "↓" : deltaReps != null && deltaReps > 0 ? "↑" : ""}</p>
+              </div>
+              <div
+                className={cn(
+                  "rounded-2xl border px-3 py-3 text-center",
+                  (deltaVol ?? 0) < 0
+                    ? "border-rose-400/40 bg-rose-500/10 text-rose-200"
+                    : (deltaVol ?? 0) > 0
+                      ? "border-emerald-400/35 bg-emerald-500/10 text-emerald-200"
+                      : "border-white/10 bg-white/[0.04] text-white/70",
+                )}
+              >
+                <p className="text-xl font-bold tabular-nums sm:text-2xl">
+                  {(deltaVol ?? 0) > 0 ? "+" : ""}
+                  {formatVolumeKg(deltaVol ?? 0)}
+                </p>
+                <p className="mt-0.5 text-xs">ciężar (kg) {(deltaVol ?? 0) < 0 ? "↓" : (deltaVol ?? 0) > 0 ? "↑" : ""}</p>
+              </div>
             </div>
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3 py-4 text-center">
-              <p className="text-2xl font-bold tabular-nums leading-tight text-white sm:text-3xl">
-                {formatVolumeKg(vol).replace(/\s/g, " ")}
-              </p>
-              <p className="mt-1 text-xs font-medium text-white/55">tonaż (kg)</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3 py-4 text-center">
+                <p className="text-3xl font-bold tabular-nums text-white">{totalReps}</p>
+                <p className="mt-1 text-xs font-medium text-white/55">powt.</p>
+              </div>
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3 py-4 text-center">
+                <p className="text-2xl font-bold tabular-nums text-white sm:text-3xl">
+                  {formatVolumeKg(vol)}
+                </p>
+                <p className="mt-1 text-xs font-medium text-white/55">tonaż (kg)</p>
+              </div>
             </div>
-          </div>
+          )}
 
           <p className="mt-3 text-center text-[12px] text-white/55">
-            {nSets} {nSets === 1 ? "seria" : "serii"} • {totalReps} powt. • {formatVolumeKg(vol)} kg
+            Powt.: {totalReps}
+            <span className="mx-2 text-white/25">·</span>
+            Ciężar: {formatVolumeKg(vol)} kg
+            <span className="mx-2 text-white/25">·</span>
+            Serie: {nSets}
           </p>
 
           {lastHintLine ? (
-            <p className="mt-2 text-center text-[11px] leading-snug text-amber-200/85">
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(true)}
+              className="mt-2 block w-full text-center text-[11px] leading-snug text-[var(--gym-gold)]/90 underline-offset-2 hover:underline"
+            >
               Ostatnio: {lastHintLine}
-            </p>
+            </button>
           ) : null}
 
           <div className="mt-3">
@@ -321,7 +409,7 @@ export function GymPadSessionLayout({
             ))}
           </div>
 
-          {onExerciseNoteChange ? (
+          {(noteOpen || (current.note && current.note.trim())) && onExerciseNoteChange ? (
             <div className="mt-4 space-y-1.5">
               <label
                 htmlFor={`ex-note-${current.id}`}
@@ -334,7 +422,7 @@ export function GymPadSessionLayout({
                 value={current.note ?? ""}
                 onChange={(e) => onExerciseNoteChange(current.id, e.target.value)}
                 placeholder="Technika, martwy punkt, zmiana maszyny…"
-                className="min-h-[72px] resize-none rounded-xl border-white/14 bg-white/[0.06] text-sm text-white placeholder:text-white/38 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+                className="min-h-[72px] resize-none rounded-xl border-white/14 bg-white/[0.06] text-sm text-white placeholder:text-white/38"
               />
             </div>
           ) : null}
@@ -345,7 +433,7 @@ export function GymPadSessionLayout({
               whileTap={{ scale: 0.98 }}
               onClick={() => onAddSet(current.id)}
               aria-label={`Dodaj serię dla ćwiczenia: ${current.name}`}
-              className="gym-btn-primary inline-flex min-h-11 items-center gap-2 rounded-2xl px-5 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+              className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--gym-gold)]"
             >
               <Plus className="h-5 w-5 shrink-0" strokeWidth={2.5} aria-hidden />
               Dodaj serię
@@ -355,19 +443,144 @@ export function GymPadSessionLayout({
               whileTap={{ scale: 0.98 }}
               disabled={current.sets.length <= 1}
               onClick={() => onRemoveLastSet(current.id)}
-              aria-label={
-                current.sets.length <= 1
-                  ? "Nie można usunąć jedynej serii"
-                  : `Usuń ostatnią serię ćwiczenia: ${current.name}`
-              }
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white/75 outline-none hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708] disabled:pointer-events-none disabled:opacity-35"
+              className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-white/45 disabled:opacity-35"
             >
               <Minus className="h-5 w-5 shrink-0" aria-hidden />
               Usuń
             </motion.button>
           </div>
+
+          {(onCancelSession || onFinishSession) ? (
+            <div className="mt-6 flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+              {onCancelSession ? (
+                <button
+                  type="button"
+                  onClick={onCancelSession}
+                  className="text-sm font-medium text-white/70"
+                >
+                  Anuluj
+                </button>
+              ) : (
+                <span />
+              )}
+              {onFinishSession ? (
+                <button
+                  type="button"
+                  disabled={finishPending}
+                  onClick={onFinishSession}
+                  className="text-sm font-semibold text-[var(--gym-gold)] disabled:opacity-50"
+                >
+                  {finishPending ? "Zapisuję…" : "Zakończ"}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </motion.div>
       ) : null}
+
+      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+        <SheetContent side="bottom" className="border-white/10 bg-[#0c0c0c] text-white">
+          <SheetHeader>
+            <SheetTitle className="text-white">Ćwiczenie</SheetTitle>
+          </SheetHeader>
+          <div className="flex flex-col gap-1 px-2 pb-6">
+            {[
+              {
+                label: "Notatka",
+                onClick: () => {
+                  setNoteOpen(true);
+                  setMenuOpen(false);
+                },
+              },
+              {
+                label: "Dodaj ćwiczenie",
+                onClick: () => {
+                  setMenuOpen(false);
+                  onAddExercise?.();
+                },
+                disabled: !onAddExercise,
+              },
+              {
+                label: "Zamień ćwiczenie",
+                onClick: () => {
+                  setMenuOpen(false);
+                  onReplaceExercise?.();
+                },
+                disabled: !onReplaceExercise,
+              },
+              {
+                label: "Historia",
+                onClick: () => {
+                  setMenuOpen(false);
+                  setHistoryOpen(true);
+                },
+              },
+            ].map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                disabled={item.disabled}
+                onClick={item.onClick}
+                className="rounded-xl px-4 py-3.5 text-left text-base font-medium text-[var(--gym-gold)] disabled:text-white/30"
+              >
+                {item.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              className="mt-2 rounded-xl px-4 py-3.5 text-left text-base font-medium text-white/70"
+            >
+              Anuluj
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+        <SheetContent side="bottom" className="border-white/10 bg-[#0c0c0c] text-white">
+          <SheetHeader>
+            <SheetTitle className="text-[var(--gym-gold)]">
+              Dane z poprzedniej sesji
+            </SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-6">
+            {hintSetsForCurrent && hintSetsForCurrent.length > 0 ? (
+              <div className="overflow-hidden rounded-2xl border border-white/10">
+                <div className="grid grid-cols-3 gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-white/45">
+                  <span>Powt.</span>
+                  <span>Ciężar</span>
+                  <span>Suma</span>
+                </div>
+                {hintSetsForCurrent.map((s, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-3 gap-2 border-b border-white/[0.06] px-3 py-2.5 text-sm tabular-nums last:border-0"
+                  >
+                    <span>{s.reps ?? "—"}</span>
+                    <span>{s.weight > 0 ? `${s.weight} kg` : "—"}</span>
+                    <span>
+                      {s.reps != null && s.weight > 0
+                        ? `${formatVolumeKg(s.reps * s.weight)} kg`
+                        : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-white/45">
+                Brak zapisanej poprzedniej sesji dla tego ćwiczenia.
+              </p>
+            )}
+            <Link
+              href="/workout-history"
+              className="mt-4 inline-flex text-sm font-semibold text-[var(--gym-gold)]"
+            >
+              Historia treningów
+            </Link>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
