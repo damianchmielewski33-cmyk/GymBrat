@@ -10,6 +10,7 @@ import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-pref
 import { MealSuggestionsView } from "@/components/meal-suggestions/meal-suggestions-view";
 import { isAiGloballyDisabled } from "@/lib/ai-availability";
 import { getWebMealInspirations } from "@/lib/web-meal-inspirations";
+import { parseMealTemplatesJson } from "@/lib/meal-templates";
 
 export default async function MealSuggestionsPage() {
   const session = await auth();
@@ -23,6 +24,7 @@ export default async function MealSuggestionsPage() {
         trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
         restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
         nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
+        mealTemplatesJson: userSettings.mealTemplatesJson,
       })
       .from(userSettings)
       .where(eq(userSettings.userId, userId))
@@ -43,6 +45,7 @@ export default async function MealSuggestionsPage() {
       initialGaps={gaps}
       modelAllowed={modelAllowed}
       webInspirations={webInspirations}
+      mealTemplates={parseMealTemplatesJson(settingsRow?.mealTemplatesJson ?? null)}
     />
   );
 }

@@ -33,7 +33,7 @@ export function WeighInCard() {
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.99 }}
       transition={{ type: "spring", stiffness: 420, damping: 32 }}
-      className="glass-panel relative overflow-hidden p-6"
+      className="app-card p-6"
     >
       <div className="pointer-events-none absolute inset-0 opacity-55 [background-image:radial-gradient(520px_240px_at_10%_10%,rgba(255,45,85,0.18),transparent_60%)]" />
       <div className="relative">
@@ -71,7 +71,7 @@ export function WeighInCard() {
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="h-11 bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
+            className="h-11 bg-[var(--neon)] text-[var(--neon-fg)] hover:bg-[var(--neon-hover)]"
           >
             <Plus className="mr-2 h-4 w-4" />
             {saving ? "Zapisywanie…" : "Dodaj"}
