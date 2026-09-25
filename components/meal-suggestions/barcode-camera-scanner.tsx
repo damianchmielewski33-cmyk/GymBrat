@@ -2,13 +2,23 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Camera, Loader2, X } from "lucide-react";
+import { ChevronLeft, Flashlight, FlashlightOff, Loader2 } from "lucide-react";
+
+type ZoomCaps = { min: number; max: number; step?: number };
+
+function asZoomCaps(caps: MediaTrackCapabilities | undefined): ZoomCaps | null {
+  const z = (caps as { zoom?: ZoomCaps } | undefined)?.zoom;
+  if (!z || typeof z.min !== "number" || typeof z.max !== "number") return null;
+  return z;
+}
+
+function supportsTorch(caps: MediaTrackCapabilities | undefined): boolean {
+  return Boolean((caps as { torch?: boolean } | undefined)?.torch);
+}
 
 /**
- * Pełny podgląd kamery + odczyt EAN z etykiety (ZXing).
- * Działa w Chrome/Android i jako fallback gdy brak BarcodeDetector.
+ * Skaner jak w Getao: ciemne tło, ramka, czerwona linia, latarka.
+ * Bez object-cover / bez wymuszonego hi-res — żeby nie było sztucznego „przybliżenia”.
  */
 export function BarcodeCameraScanner({
   open,
@@ -21,10 +31,13 @@ export function BarcodeCameraScanner({
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
+  const trackRef = useRef<MediaStreamTrack | null>(null);
   const handledRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState("");
   const [starting, setStarting] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchAvailable, setTorchAvailable] = useState(false);
 
   const stop = useCallback(() => {
     try {
@@ -33,10 +46,31 @@ export function BarcodeCameraScanner({
       /* ignore */
     }
     controlsRef.current = null;
+    try {
+      trackRef.current?.stop();
+    } catch {
+      /* ignore */
+    }
+    trackRef.current = null;
     const video = videoRef.current;
     const stream = video?.srcObject as MediaStream | null;
     stream?.getTracks().forEach((t) => t.stop());
     if (video) video.srcObject = null;
+    setTorchOn(false);
+  }, []);
+
+  const setTorch = useCallback(async (on: boolean) => {
+    const track = trackRef.current;
+    if (!track) return;
+    try {
+      await track.applyConstraints({
+        // @ts-expect-error torch nie jest w standardowych typach DOM
+        advanced: [{ torch: on }],
+      });
+      setTorchOn(on);
+    } catch {
+      setTorchAvailable(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -45,6 +79,7 @@ export function BarcodeCameraScanner({
       handledRef.current = false;
       setError(null);
       setManualCode("");
+      setStarting(false);
       return;
     }
 
@@ -61,18 +96,37 @@ export function BarcodeCameraScanner({
           return;
         }
 
-        // Prośba o kamerę tylną (etykieta produktu).
+        // Niskie idealne rozdzielczości + environment — unikamy teleobiektywu / cropu.
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: {
             facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
           },
         });
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
+        }
+
+        const track = stream.getVideoTracks()[0] ?? null;
+        trackRef.current = track;
+
+        if (track) {
+          const caps = track.getCapabilities?.();
+          const zoom = asZoomCaps(caps);
+          if (zoom) {
+            try {
+              await track.applyConstraints({
+                // @ts-expect-error zoom w advanced constraints
+                advanced: [{ zoom: zoom.min }],
+              });
+            } catch {
+              /* niektóre WebView nie wspierają zoom */
+            }
+          }
+          setTorchAvailable(supportsTorch(caps));
         }
 
         const video = videoRef.current;
@@ -84,30 +138,23 @@ export function BarcodeCameraScanner({
         video.setAttribute("playsinline", "true");
         video.muted = true;
         await video.play();
+        if (cancelled) return;
         setStarting(false);
 
         const reader = new BrowserMultiFormatReader();
-        const controls = await reader.decodeFromVideoElement(video, (result, err) => {
+        const controls = await reader.decodeFromVideoElement(video, (result) => {
           if (cancelled || handledRef.current) return;
-          if (result) {
-            const text = result.getText()?.trim();
-            if (!text) return;
-            handledRef.current = true;
-            try {
-              if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-                navigator.vibrate?.(40);
-              }
-            } catch {
-              /* ignore */
-            }
-            stop();
-            onDetected(text.replace(/\s/g, ""));
-            return;
+          if (!result) return;
+          const text = result.getText()?.trim();
+          if (!text) return;
+          handledRef.current = true;
+          try {
+            navigator.vibrate?.(40);
+          } catch {
+            /* ignore */
           }
-          // NotFoundException i inne „puste” klatki — ignorujemy
-          if (err && err.name && !/NotFoundException/i.test(err.name)) {
-            /* ciche — ciągły skan */
-          }
+          stop();
+          onDetected(text.replace(/\s/g, ""));
         });
         if (cancelled) {
           controls.stop();
@@ -117,11 +164,13 @@ export function BarcodeCameraScanner({
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         if (/NotAllowed|Permission|denied/i.test(msg)) {
-          setError("Brak zgody na aparat. Zezwól na kamerę w ustawieniach przeglądarki / aplikacji i spróbuj ponownie.");
+          setError(
+            "Brak zgody na aparat. Zezwól na kamerę i spróbuj ponownie.",
+          );
         } else if (/NotFound|DevicesNotFound/i.test(msg)) {
-          setError("Nie znaleziono kamery na tym urządzeniu — wpisz kod EAN ręcznie.");
+          setError("Nie znaleziono kamery — wpisz kod EAN ręcznie.");
         } else {
-          setError("Nie udało się uruchomić aparatu. Wpisz kod EAN z etykiety poniżej.");
+          setError("Nie udało się uruchomić aparatu. Wpisz kod EAN poniżej.");
         }
         setStarting(false);
       }
@@ -136,74 +185,67 @@ export function BarcodeCameraScanner({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex flex-col bg-black">
-      <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <div className="min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">
-            Skan etykiety
-          </p>
-          <p className="truncate text-base font-semibold text-white">
-            Skieruj aparat na kod kreskowy
-          </p>
-        </div>
-        <Button
+    <div className="fixed inset-0 z-[90] flex flex-col bg-[#1a1a1a] text-white">
+      <div className="flex items-center justify-between px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
+        <button
           type="button"
-          variant="outline"
-          size="sm"
-          className="shrink-0 border-white/20 bg-white/10"
+          aria-label="Wróć"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full text-white/90"
           onClick={() => {
             stop();
             onClose();
           }}
         >
-          <X className="mr-1 h-4 w-4" />
-          Zamknij
-        </Button>
+          <ChevronLeft className="h-7 w-7" />
+        </button>
+        <button
+          type="button"
+          aria-label={torchOn ? "Wyłącz latarkę" : "Włącz latarkę"}
+          disabled={!torchAvailable}
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full text-white/90 disabled:opacity-30"
+          onClick={() => void setTorch(!torchOn)}
+        >
+          {torchOn ? <FlashlightOff className="h-6 w-6" /> : <Flashlight className="h-6 w-6" />}
+        </button>
       </div>
 
-      <div className="relative mx-4 min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/15 bg-zinc-950">
-        <video
-          ref={videoRef}
-          className="h-full w-full object-cover"
-          playsInline
-          muted
-          autoPlay
-        />
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-36 w-[78%] rounded-2xl border-2 border-[var(--neon)]/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
-        </div>
-        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[11px] text-white/85">
+      <div className="flex flex-1 flex-col items-center justify-center px-5">
+        {/* Ramka jak w Getao — landscape, bez object-cover (object-contain = pełny kadr, bez zoomu). */}
+        <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/70 bg-black shadow-[0_0_0_9999px_rgba(26,26,26,0.92)] aspect-[4/3]">
+          <video
+            ref={videoRef}
+            className="absolute inset-0 h-full w-full object-contain bg-black"
+            playsInline
+            muted
+            autoPlay
+          />
+          {/* Czerwona linia skanu */}
+          <div className="pointer-events-none absolute inset-x-6 top-1/2 h-[2px] -translate-y-1/2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
           {starting ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Uruchamiam aparat…
-            </>
-          ) : (
-            <>
-              <Camera className="h-3.5 w-3.5" />
-              Szukam kodu EAN…
-            </>
-          )}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+              <Loader2 className="h-8 w-8 animate-spin text-white/80" />
+            </div>
+          ) : null}
         </div>
+        <p className="mt-5 max-w-sm text-center text-sm text-white/55">
+          Umieść kod kreskowy w ramce. Po odczycie makro trafi do dziennika.
+        </p>
+        {error ? <p className="mt-2 max-w-sm text-center text-sm text-amber-200">{error}</p> : null}
       </div>
 
-      <div className="space-y-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
-        <p className="text-center text-sm text-white/55">
-          Po odczycie kodu makro (białko, węgle, tłuszcz) trafi do dziennika diety.
-        </p>
-        {error ? <p className="text-center text-sm text-amber-200">{error}</p> : null}
+      <div className="space-y-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
         <div className="flex gap-2">
-          <Input
+          <input
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
-            placeholder="Albo wpisz kod EAN z etykiety"
+            placeholder="Albo wpisz kod EAN"
             inputMode="numeric"
-            className="bg-white/5"
+            className="h-11 min-w-0 flex-1 rounded-xl border border-white/15 bg-white/5 px-3 text-sm text-white outline-none placeholder:text-white/35"
           />
-          <Button
+          <button
             type="button"
-            variant="cta"
             disabled={!manualCode.trim()}
+            className="h-11 shrink-0 rounded-xl bg-[var(--neon)] px-4 text-sm font-semibold text-black disabled:opacity-40"
             onClick={() => {
               const code = manualCode.replace(/\D/g, "");
               if (!code) return;
@@ -213,7 +255,7 @@ export function BarcodeCameraScanner({
             }}
           >
             OK
-          </Button>
+          </button>
         </div>
       </div>
     </div>

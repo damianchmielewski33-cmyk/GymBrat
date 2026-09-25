@@ -1,58 +1,94 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { FitatuDaySummary } from "@/types/fitatu";
-import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
-import type { MealLogDto } from "@/lib/meal-logs";
 import {
+  loadDietDayAction,
+  setDietDayKindAction,
+} from "@/actions/diet-day";
+import { addMealProductAction, deleteMealLogFormAction, type MealLogFormState } from "@/actions/meal-log";
+import { lookupFoodByBarcodeAction } from "@/actions/food-lookup";
+import { BarcodeCameraScanner } from "@/components/meal-suggestions/barcode-camera-scanner";
+import { MealCatalogBrowser } from "@/components/meal-suggestions/meal-catalog-browser";
+import { FoodSearchScan } from "@/components/meal-suggestions/food-search-scan";
+import {
+  DIET_DIARY_SLOT_LABELS,
+  DIET_DIARY_SLOTS,
   dietDiarySlotFromHour,
   type DietDiarySlot,
 } from "@/lib/diet-diary-slots";
-import { FoodSearchScan } from "@/components/meal-suggestions/food-search-scan";
-import { DietDiarySections } from "@/components/meal-suggestions/diet-diary-sections";
-import { MealCatalogBrowser } from "@/components/meal-suggestions/meal-catalog-browser";
-import { InlineBanner } from "@/components/ui/inline-banner";
-import { ChefHat } from "lucide-react";
+import type { MealLogDto } from "@/lib/meal-logs";
+import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
+import type { FitatuDaySummary } from "@/types/fitatu";
 import type { MealTemplate } from "@/lib/meal-templates";
+import type { NutritionDayType } from "@/lib/nutrition-goals";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { useActionState, useEffect } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Plus,
+  ScanBarcode,
+  Trash2,
+} from "lucide-react";
+import { calendarDateKey, addCalendarDays } from "@/lib/local-date";
 
-function fmtVal(n: number, kind: "kcal" | "g") {
-  if (!Number.isFinite(n)) return "—";
-  if (kind === "kcal") return `${Math.round(n)} kcal`;
-  return `${Math.round(n * 10) / 10} g`;
+function formatPlLong(dateKey: string): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const dt = new Date(y!, (m ?? 1) - 1, d ?? 1);
+  const today = calendarDateKey(new Date());
+  const weekday = dt.toLocaleDateString("pl-PL", { weekday: "long" });
+  const rest = dt.toLocaleDateString("pl-PL", { day: "numeric", month: "long" });
+  if (dateKey === today) return `Dziś ${weekday}, ${rest}`;
+  return `${weekday}, ${rest}`;
 }
 
-function fmtRem(n: number | null, kind: "kcal" | "g") {
-  if (n == null) return "—";
-  return fmtVal(n, kind);
-}
-
-function GapRow({
+function MacroLine({
   label,
   consumed,
   goal,
-  remaining,
-  kind,
 }: {
   label: string;
   consumed: number;
   goal: number | null;
-  remaining: number | null;
-  kind: "kcal" | "g";
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm sm:grid-cols-4">
-      <span className="font-medium text-white/90">{label}</span>
-      <span className="text-white/60">
-        Spożyte: <span className="text-white/85">{fmtVal(consumed, kind)}</span>
-      </span>
-      <span className="text-white/60">
-        Cel: <span className="text-white/85">{goal != null ? fmtVal(goal, kind) : "—"}</span>
-      </span>
-      <span className="text-[var(--neon)]">
-        Zostało: <span className="font-semibold">{fmtRem(remaining, kind)}</span>
-      </span>
-    </div>
+    <p className="text-sm tabular-nums text-white/85">
+      <span className="font-semibold text-white">{label}</span>{" "}
+      {Math.round(consumed)}
+      {goal != null ? ` / ${Math.round(goal)} g` : " g"}
+    </p>
+  );
+}
+
+function DeleteMealButton({ id, onDone }: { id: string; onDone: () => void }) {
+  const [state, action] = useActionState(deleteMealLogFormAction, {} as MealLogFormState);
+  const { notifySaved } = useSaveFeedback();
+
+  useEffect(() => {
+    if (state?.ok) {
+      notifySaved("Usunięto wpis.");
+      onDone();
+    }
+  }, [state?.ok, notifySaved, onDone]);
+
+  return (
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (!confirm("Usunąć ten produkt?")) e.preventDefault();
+      }}
+    >
+      <input type="hidden" name="id" value={id} />
+      <button
+        type="submit"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:bg-white/10 hover:text-rose-200"
+        aria-label="Usuń"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </form>
   );
 }
 
@@ -60,159 +96,412 @@ export function MealSuggestionsView({
   initialSummary,
   initialGaps,
   initialLogs,
+  initialDayKind = "rest",
   mealTemplates = [],
 }: {
   initialSummary: FitatuDaySummary;
   initialGaps: MacroGaps;
   initialLogs: MealLogDto[];
+  initialDayKind?: NutritionDayType;
   mealTemplates?: MealTemplate[];
 }) {
   const router = useRouter();
-  const [gaps] = useState(initialGaps);
-  const [defaultSlot, setDefaultSlot] = useState<DietDiarySlot>("sniadanie");
-  const [, start] = useTransition();
+  const { notifySaved, notifyError } = useSaveFeedback();
+  const [tab, setTab] = useState<"plan" | "dziennik">("dziennik");
+  const [dateKey, setDateKey] = useState(initialGaps.dateKey);
+  const [gaps, setGaps] = useState(initialGaps);
+  const [logs, setLogs] = useState(initialLogs);
+  const [dayKind, setDayKind] = useState<NutritionDayType>(initialDayKind);
+  const [pending, start] = useTransition();
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanSlot, setScanSlot] = useState<DietDiarySlot | null>(null);
+  const [addSheetSlot, setAddSheetSlot] = useState<DietDiarySlot | null>(null);
+  const [scanBusy, setScanBusy] = useState(false);
 
-  useEffect(() => {
-    setDefaultSlot(dietDiarySlotFromHour(new Date().getHours()));
-  }, []);
+  const refreshDay = useCallback(
+    (key: string) => {
+      start(async () => {
+        const r = await loadDietDayAction(key);
+        if (!r.ok) {
+          notifyError(r.error);
+          return;
+        }
+        setDateKey(r.data.dateKey);
+        setGaps(r.data.gaps);
+        setLogs(r.data.logs);
+        setDayKind(r.data.dayKind);
+      });
+    },
+    [notifyError],
+  );
+
+  const kcalGoal = gaps.caloriesGoal;
+  const kcalOver =
+    kcalGoal != null ? Math.round(gaps.caloriesConsumed - kcalGoal) : null;
+  const progressPct =
+    kcalGoal != null && kcalGoal > 0
+      ? Math.min(100, Math.round((gaps.caloriesConsumed / kcalGoal) * 100))
+      : 0;
+  const overGoal = kcalOver != null && kcalOver > 0;
+
+  const bySlot = useMemo(() => {
+    const map: Record<DietDiarySlot, MealLogDto[]> = {
+      sniadanie: [],
+      drugie_sniadanie: [],
+      lunch: [],
+      obiad: [],
+      przekaska: [],
+    };
+    for (const e of logs) {
+      if (e.slot && map[e.slot]) map[e.slot].push(e);
+    }
+    return map;
+  }, [logs]);
+
+  const unassigned = logs.filter((e) => e.slot == null);
+
+  function openScan(slot?: DietDiarySlot) {
+    setScanSlot(slot ?? dietDiarySlotFromHour(new Date().getHours()));
+    setScanOpen(true);
+  }
+
+  const handleBarcode = useCallback(
+    (code: string) => {
+      setScanOpen(false);
+      setScanBusy(true);
+      const targetSlot = scanSlot ?? dietDiarySlotFromHour(new Date().getHours());
+      start(async () => {
+        try {
+          const found = await lookupFoodByBarcodeAction(code);
+          if (!found.ok) {
+            notifyError(found.error);
+            return;
+          }
+          const p = found.product;
+          const added = await addMealProductAction({
+            date: dateKey,
+            slot: targetSlot,
+            barcode: p.barcode,
+            name: p.name,
+            proteinG: p.proteinG,
+            fatG: p.fatG,
+            carbsG: p.carbsG,
+            calories: p.calories,
+          });
+          if (!added.ok) {
+            notifyError(added.error ?? "Nie udało się dodać produktu.");
+            return;
+          }
+          notifySaved(
+            `Zeskanowano „${p.name}” — ${Math.round(p.proteinG)}B · ${Math.round(p.carbsG)}W · ${Math.round(p.fatG)}T · ${Math.round(p.calories)} kcal`,
+          );
+          refreshDay(dateKey);
+          router.refresh();
+        } finally {
+          setScanBusy(false);
+        }
+      });
+    },
+    [dateKey, notifyError, notifySaved, refreshDay, router, scanSlot],
+  );
 
   return (
-    <div className="space-y-3">
-      <header className="px-0.5 pb-1 pt-2">
-        <p className="app-label">Dieta</p>
-        <h1 className="mt-2 text-[32px] font-semibold leading-tight text-white">
-          Twój plan żywieniowy
-        </h1>
-        <p className="mt-2 text-sm text-white/55">
-          Szukaj i skanuj produkty z bazy — zobacz makro (B/W/T) i dodaj je do sekcji posiłków na dole
-          ekranu, jak w Fitatu.
-        </p>
+    <div className="space-y-4 pb-8">
+      <header className="px-0.5 pt-2">
+        <p className="app-label">Co zjadłeś</p>
+        <h1 className="mt-1 text-[34px] font-semibold leading-tight text-white">Dziennik</h1>
       </header>
 
-      <section className="app-card p-5">
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setTab("plan")}
+          className={
+            tab === "plan"
+              ? "rounded-full border border-[var(--neon)]/50 bg-[var(--neon)]/20 px-5 py-2 text-sm font-semibold text-white"
+              : "rounded-full border border-white/12 bg-white/[0.04] px-5 py-2 text-sm font-medium text-white/55"
+          }
+        >
+          Plan
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("dziennik")}
+          className={
+            tab === "dziennik"
+              ? "rounded-full border border-[var(--neon)]/50 bg-[var(--neon)]/20 px-5 py-2 text-sm font-semibold text-white"
+              : "rounded-full border border-white/12 bg-white/[0.04] px-5 py-2 text-sm font-medium text-white/55"
+          }
+        >
+          Dziennik
+        </button>
+      </div>
+
+      {tab === "plan" ? (
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <ChefHat className="h-5 w-5 text-[var(--neon)]" aria-hidden />
-            <h2 className="text-lg font-semibold text-white">Dziś</h2>
+          {mealTemplates.length > 0 ? (
+            <section className="app-card space-y-2 p-5">
+              <p className="app-label">Szablony posiłków</p>
+              {mealTemplates.map((m) => (
+                <div key={m.id} className="flex justify-between gap-3 border-b border-white/[0.05] py-2.5 last:border-0">
+                  <p className="text-sm text-white/85">{m.name}</p>
+                  <p className="shrink-0 text-xs tabular-nums text-[var(--neon)]">
+                    {Math.round(m.proteinG)}B · {Math.round(m.carbsG)}W · {Math.round(m.fatG)}T
+                  </p>
+                </div>
+              ))}
+            </section>
+          ) : (
+            <p className="text-sm text-white/45">
+              Ustaw szablony i cele makro w profilu — tu zobaczysz plan dnia.
+            </p>
+          )}
+          <MealCatalogBrowser dateKey={dateKey} />
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-2 px-1">
+            <button
+              type="button"
+              aria-label="Poprzedni dzień"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white/70 hover:bg-white/10"
+              onClick={() => refreshDay(addCalendarDays(dateKey, -1))}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <p className="text-center text-sm font-medium capitalize text-white/85">
+              {formatPlLong(dateKey)}
+            </p>
+            <button
+              type="button"
+              aria-label="Następny dzień"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white/70 hover:bg-white/10"
+              onClick={() => refreshDay(addCalendarDays(dateKey, 1))}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
           </div>
 
-          {initialSummary.source === "error" ? (
-            <InlineBanner variant="warning">
-              {initialSummary.errorMessage ?? "Nie udało się pobrać danych odżywczych."}
-            </InlineBanner>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="text-center">
-                  <p className="app-label">Białko</p>
-                  <p className="app-value mt-2 text-[28px] font-semibold">
-                    {gaps.proteinGoal != null ? `${Math.round(gaps.proteinGoal)}` : "—"}
-                    <span className="ml-1 text-sm text-white/35">g</span>
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="app-label">Węgle</p>
-                  <p className="app-value mt-2 text-[28px] font-semibold">
-                    {gaps.carbsGoal != null ? `${Math.round(gaps.carbsGoal)}` : "—"}
-                    <span className="ml-1 text-sm text-white/35">g</span>
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="app-label">Tłuszcz</p>
-                  <p className="app-value mt-2 text-[28px] font-semibold">
-                    {gaps.fatGoal != null ? `${Math.round(gaps.fatGoal)}` : "—"}
-                    <span className="ml-1 text-sm text-white/35">g</span>
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="app-label">Kalorie</p>
-                  <p className="app-value mt-2 text-[28px] font-semibold">
-                    {gaps.caloriesGoal != null ? `${Math.round(gaps.caloriesGoal)}` : "—"}
-                    <span className="ml-1 text-sm text-white/35">kcal</span>
-                  </p>
-                </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                start(async () => {
+                  const r = await setDietDayKindAction(dateKey, "training");
+                  if (!r.ok) {
+                    notifyError(r.error);
+                    return;
+                  }
+                  setDayKind("training");
+                  refreshDay(dateKey);
+                });
+              }}
+              className={
+                dayKind === "training"
+                  ? "rounded-full border border-[var(--neon)]/45 bg-[var(--neon)]/20 px-4 py-1.5 text-xs font-semibold text-white"
+                  : "rounded-full border border-white/12 bg-white/[0.04] px-4 py-1.5 text-xs font-medium text-white/55"
+              }
+            >
+              Treningowy
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                start(async () => {
+                  const r = await setDietDayKindAction(dateKey, "rest");
+                  if (!r.ok) {
+                    notifyError(r.error);
+                    return;
+                  }
+                  setDayKind("rest");
+                  refreshDay(dateKey);
+                });
+              }}
+              className={
+                dayKind === "rest"
+                  ? "rounded-full border border-[var(--neon)]/45 bg-[var(--neon)]/20 px-4 py-1.5 text-xs font-semibold text-white"
+                  : "rounded-full border border-white/12 bg-white/[0.04] px-4 py-1.5 text-xs font-medium text-white/55"
+              }
+            >
+              Nietreningowy
+            </button>
+            <span className="text-[11px] text-white/35">ustawione ręcznie</span>
+          </div>
+
+          <section className="rounded-2xl border border-[var(--neon)]/35 bg-[#0c0c0c] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[40px] font-semibold leading-none tabular-nums text-white">
+                  {Math.round(gaps.caloriesConsumed)}{" "}
+                  <span className="text-lg font-medium text-white/45">kcal</span>
+                </p>
+                <p className="mt-2 text-sm text-white/45">
+                  {kcalGoal != null ? (
+                    <>
+                      z {Math.round(kcalGoal)} kcal
+                      {kcalOver != null ? (
+                        <span className={overGoal ? "text-rose-300" : "text-emerald-300"}>
+                          {" "}
+                          {kcalOver >= 0 ? `+${kcalOver}` : kcalOver}
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    "Ustaw cele w profilu"
+                  )}
+                </p>
               </div>
-              <div className="space-y-2">
-                <GapRow
-                  label="Kalorie"
-                  consumed={gaps.caloriesConsumed}
-                  goal={gaps.caloriesGoal}
-                  remaining={gaps.caloriesRemaining}
-                  kind="kcal"
-                />
-                <GapRow
-                  label="Białko"
-                  consumed={gaps.proteinConsumed}
-                  goal={gaps.proteinGoal}
-                  remaining={gaps.proteinRemaining}
-                  kind="g"
-                />
-                <GapRow
-                  label="Tłuszcz"
-                  consumed={gaps.fatConsumed}
-                  goal={gaps.fatGoal}
-                  remaining={gaps.fatRemaining}
-                  kind="g"
-                />
-                <GapRow
-                  label="Węglowodany"
-                  consumed={gaps.carbsConsumed}
-                  goal={gaps.carbsGoal}
-                  remaining={gaps.carbsRemaining}
-                  kind="g"
-                />
+              <div className="space-y-1 text-right">
+                <MacroLine label="B" consumed={gaps.proteinConsumed} goal={gaps.proteinGoal} />
+                <MacroLine label="W" consumed={gaps.carbsConsumed} goal={gaps.carbsGoal} />
+                <MacroLine label="T" consumed={gaps.fatConsumed} goal={gaps.fatGoal} />
               </div>
             </div>
-          )}
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                className={`h-full rounded-full ${overGoal ? "bg-rose-500" : "bg-[var(--neon)]"}`}
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </section>
 
-          {!gaps.hasAnyMacroGoal ? (
-            <p className="text-sm text-white/55">
-              Uzupełnij cele kaloryczne i makro w{" "}
-              <a href="/profile" className="text-[var(--neon)] underline-offset-4 hover:underline">
-                profilu
-              </a>
-              , żeby widzieć braki dnia.
-            </p>
-          ) : null}
+          <button
+            type="button"
+            disabled={scanBusy || pending}
+            onClick={() => openScan()}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#c9a227] to-[#e8c547] text-base font-semibold text-black shadow-[0_8px_24px_rgba(201,162,39,0.25)]"
+          >
+            {scanBusy ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Odczytuję kod…
+              </>
+            ) : (
+              <>
+                <ScanBarcode className="h-5 w-5" />
+                Skanuj kod kreskowy
+              </>
+            )}
+          </button>
 
-          {mealTemplates.length > 0 ? (
-            <div className="border-t border-white/[0.05] pt-4">
-              <p className="app-label">Szablony z profilu</p>
-              <div className="mt-2 divide-y divide-white/[0.05]">
-                {mealTemplates.map((meal, i) => (
-                  <div key={meal.id} className="flex items-center justify-between gap-3 py-2.5">
-                    <p className="truncate text-sm text-white/85">
-                      {i + 1}. {meal.name}
-                    </p>
-                    <p className="shrink-0 text-xs tabular-nums text-[var(--neon)]">
-                      {Math.round(meal.proteinG)}B · {Math.round(meal.carbsG)}W ·{" "}
-                      {Math.round(meal.fatG)}T
-                    </p>
+          <div className="space-y-4">
+            {DIET_DIARY_SLOTS.map((slot) => {
+              const items = bySlot[slot];
+              const sumK = items.reduce((s, e) => s + e.calories, 0);
+              const sumP = items.reduce((s, e) => s + e.proteinG, 0);
+              const sumC = items.reduce((s, e) => s + e.carbsG, 0);
+              const sumF = items.reduce((s, e) => s + e.fatG, 0);
+              return (
+                <section key={slot} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h2 className="font-heading text-lg font-semibold text-white">
+                        {DIET_DIARY_SLOT_LABELS[slot]}
+                      </h2>
+                      <p className="text-xs tabular-nums text-white/45">
+                        {Math.round(sumK)} kcal · B {Math.round(sumP)} W {Math.round(sumC)} T{" "}
+                        {Math.round(sumF)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={`Skanuj do ${DIET_DIARY_SLOT_LABELS[slot]}`}
+                      onClick={() => openScan(slot)}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--neon)]/40 text-[var(--neon)]"
+                    >
+                      <ScanBarcode className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Dodaj do ${DIET_DIARY_SLOT_LABELS[slot]}`}
+                      onClick={() => setAddSheetSlot(slot)}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--neon)]/40 text-[var(--neon)]"
+                    >
+                      <Plus className="h-5 w-5" />
+                    </button>
                   </div>
-                ))}
-              </div>
+
+                  {items.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-white/10 px-3 py-4 text-sm text-white/35">
+                      Brak produktów — zeskanuj kod albo dodaj z bazy.
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-white/[0.06] rounded-2xl border border-white/10 bg-white/[0.02]">
+                      {items.map((e) => (
+                        <li key={e.id} className="flex items-start gap-2 px-3 py-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-white">
+                              {e.name?.trim() || "Posiłek"}
+                            </p>
+                            <p className="mt-0.5 text-xs tabular-nums text-white/45">
+                              {Math.round(e.calories)} kcal · B{Math.round(e.proteinG)} W
+                              {Math.round(e.carbsG)} T{Math.round(e.fatG)}
+                            </p>
+                          </div>
+                          <DeleteMealButton id={e.id} onDone={() => refreshDay(dateKey)} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
+
+            {unassigned.length > 0 ? (
+              <section className="space-y-2 opacity-80">
+                <h2 className="text-sm font-semibold text-white/70">Bez sekcji</h2>
+                <ul className="divide-y divide-white/[0.06] rounded-2xl border border-dashed border-white/15">
+                  {unassigned.map((e) => (
+                    <li key={e.id} className="flex items-center gap-2 px-3 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm text-white/80">{e.name ?? "Posiłek"}</p>
+                        <p className="text-xs tabular-nums text-white/40">
+                          {Math.round(e.calories)} kcal
+                        </p>
+                      </div>
+                      <DeleteMealButton id={e.id} onDone={() => refreshDay(dateKey)} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+          </div>
+        </>
+      )}
+
+      <BarcodeCameraScanner
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onDetected={handleBarcode}
+      />
+
+      {addSheetSlot ? (
+        <div className="fixed inset-0 z-[70] overflow-y-auto bg-black/80 p-3 pt-[max(1rem,env(safe-area-inset-top))]">
+          <div className="mx-auto max-w-lg">
+            <div className="mb-2 flex justify-end">
+              <button
+                type="button"
+                className="rounded-full border border-white/15 px-3 py-1.5 text-sm text-white/80"
+                onClick={() => setAddSheetSlot(null)}
+              >
+                Zamknij
+              </button>
             </div>
-          ) : null}
+            <FoodSearchScan
+              dateKey={dateKey}
+              defaultSlot={addSheetSlot}
+              lockedSlot={addSheetSlot}
+              initialOpen
+              onAdded={() => {
+                setAddSheetSlot(null);
+                refreshDay(dateKey);
+              }}
+            />
+          </div>
         </div>
-      </section>
-
-      <FoodSearchScan
-        dateKey={gaps.dateKey}
-        defaultSlot={defaultSlot}
-        onAdded={() => {
-          start(() => {
-            router.refresh();
-          });
-        }}
-      />
-
-      <MealCatalogBrowser dateKey={gaps.dateKey} />
-
-      <DietDiarySections
-        dateKey={gaps.dateKey}
-        entries={initialLogs}
-        defaultSlot={defaultSlot}
-      />
+      ) : null}
     </div>
   );
 }

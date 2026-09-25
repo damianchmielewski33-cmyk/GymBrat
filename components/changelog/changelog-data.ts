@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — dziennik diety jak Getao + naprawiony zoom skanera",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Ekran Dieta ma widok Dziennik jak w Getao: przełącznik Plan/Dziennik, data, dzień treningowy/nietreningowy, karta kcal/BWT oraz złoty przycisk „Skanuj kod kreskowy”.",
+      "Skaner otwiera aparat w ramce bez sztucznego przybliżenia (object-contain + minimalny zoom) — kod z etykiety da się wygodnie zeskanować, a makro trafia do sekcji posiłku.",
+    ],
+  },
+  {
     title: "2026-09 — skan etykiety aparatem na Diecie",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
