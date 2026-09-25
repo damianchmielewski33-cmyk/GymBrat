@@ -11,14 +11,15 @@ export function BrandMark({
   as?: "link" | "span";
 }) {
   const classes = cn(
-    "inline-block rounded-sm font-heading text-2xl font-semibold text-white",
+    "inline-flex flex-col rounded-sm font-display text-[13px] font-normal uppercase leading-[0.85] tracking-[0.14em] text-[var(--neon)]",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
     "focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]/80",
     className,
   );
   const content = (
     <>
-      Gym<span className="text-[var(--neon)]">Brat</span>
+      <span>Gym</span>
+      <span>Brat</span>
     </>
   );
 
