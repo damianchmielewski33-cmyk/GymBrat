@@ -47,7 +47,7 @@ export default async function ReportsPage() {
 
       <BodyReportForm />
 
-      <div className="glass-panel neon-glow overflow-hidden">
+      <div className="app-card overflow-hidden">
         <div className="border-b border-white/10 px-6 py-4">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
             Historia

@@ -175,7 +175,7 @@ export function DailyCheckinPanel({
         ) : null}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <SubmitButton className="h-11 bg-[var(--neon)] text-white hover:bg-[#ff4d6d] sm:min-w-[12rem]">
+          <SubmitButton className="h-11 bg-[var(--neon)] text-[var(--neon-fg)] hover:bg-[var(--neon-hover)] sm:min-w-[12rem]">
             Zapisz check-in
           </SubmitButton>
         </div>
