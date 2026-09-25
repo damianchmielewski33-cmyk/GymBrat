@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — usuwanie produktu bez systemowego okna",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Usuwanie produktu z dziennika diety otwiera ciemny dialog GymBrat (Anuluj / Usuń) zamiast komunikatu przeglądarki z adresem Vercel.",
+    ],
+  },
+  {
     title: "2026-09 — dziennik diety jak Getao + naprawiony zoom skanera",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -33,6 +33,13 @@ import {
   Trash2,
 } from "lucide-react";
 import { calendarDateKey, addCalendarDays } from "@/lib/local-date";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function formatPlLong(dateKey: string): string {
   const [y, m, d] = dateKey.split("-").map(Number);
@@ -62,33 +69,74 @@ function MacroLine({
   );
 }
 
-function DeleteMealButton({ id, onDone }: { id: string; onDone: () => void }) {
-  const [state, action] = useActionState(deleteMealLogFormAction, {} as MealLogFormState);
-  const { notifySaved } = useSaveFeedback();
+function DeleteMealButton({
+  id,
+  name,
+  onDone,
+}: {
+  id: string;
+  name?: string | null;
+  onDone: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [state, action, pending] = useActionState(
+    deleteMealLogFormAction,
+    {} as MealLogFormState,
+  );
+  const { notifySaved, notifyError } = useSaveFeedback();
 
   useEffect(() => {
     if (state?.ok) {
-      notifySaved("Usunięto wpis.");
+      notifySaved("Usunięto produkt z dziennika.");
+      setOpen(false);
       onDone();
+    } else if (state?.error) {
+      notifyError(state.error);
     }
-  }, [state?.ok, notifySaved, onDone]);
+  }, [state, notifySaved, notifyError, onDone]);
 
   return (
-    <form
-      action={action}
-      onSubmit={(e) => {
-        if (!confirm("Usunąć ten produkt?")) e.preventDefault();
-      }}
-    >
-      <input type="hidden" name="id" value={id} />
+    <>
       <button
-        type="submit"
+        type="button"
         className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:bg-white/10 hover:text-rose-200"
         aria-label="Usuń"
+        onClick={() => setOpen(true)}
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
-    </form>
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent className="border border-white/10 bg-[#0c0c0c] p-6">
+          <AlertDialogTitle>Usunąć produkt?</AlertDialogTitle>
+          <AlertDialogDescription className="mt-2 text-white/65">
+            {name?.trim()
+              ? `„${name.trim()}” zniknie z dziennika, a makro dnia zostanie przeliczone.`
+              : "Wpis zniknie z dziennika, a makro dnia zostanie przeliczone."}
+          </AlertDialogDescription>
+          <div className="mt-6 flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              disabled={pending}
+              onClick={() => setOpen(false)}
+            >
+              Anuluj
+            </Button>
+            <form action={action} className="flex-1">
+              <input type="hidden" name="id" value={id} />
+              <Button
+                type="submit"
+                className="w-full border-rose-400/30 bg-rose-500/90 text-white hover:bg-rose-500"
+                disabled={pending}
+              >
+                {pending ? "Usuwam…" : "Usuń"}
+              </Button>
+            </form>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -440,7 +488,11 @@ export function MealSuggestionsView({
                               {Math.round(e.carbsG)} T{Math.round(e.fatG)}
                             </p>
                           </div>
-                          <DeleteMealButton id={e.id} onDone={() => refreshDay(dateKey)} />
+                          <DeleteMealButton
+                            id={e.id}
+                            name={e.name}
+                            onDone={() => refreshDay(dateKey)}
+                          />
                         </li>
                       ))}
                     </ul>
@@ -461,7 +513,11 @@ export function MealSuggestionsView({
                           {Math.round(e.calories)} kcal
                         </p>
                       </div>
-                      <DeleteMealButton id={e.id} onDone={() => refreshDay(dateKey)} />
+                      <DeleteMealButton
+                        id={e.id}
+                        name={e.name}
+                        onDone={() => refreshDay(dateKey)}
+                      />
                     </li>
                   ))}
                 </ul>
