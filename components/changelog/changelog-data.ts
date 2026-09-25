@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — raporty krok po kroku jak na ekranie pomiarów",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Dodawanie raportu to pięciostopniowy wizard: pomiary (waga wymagana), samopoczucie na złotych paskach, zgodność TAK/NIE, zdjęcia przód/bok/tył oraz podsumowanie.",
+      "Po kliknięciu „Dodaj raport” przycisk znika — zostaje tylko karta kroków ze złotym Dalej i Wstecz.",
+      "Historia pomiarów ma tabelę w tym samym ciemno-złotym stylu, z deltami wagi/pasów, kolorowymi skalami samopoczucia i znacznikami zgodności z planem.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
