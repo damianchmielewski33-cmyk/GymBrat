@@ -47,6 +47,7 @@ export type HomeStartDashboard = {
   currentWeightKg: number | null;
   tempoKgPerMin: number | null;
   weightFromStartKg: number | null;
+  weightDeltaFromPreviousKg: number | null;
   weightSeries: HomeStartWeightPoint[];
   waistSeries: HomeStartWaistPoint[];
   formToday: {
@@ -230,6 +231,7 @@ async function getWeightSeries(userId: string): Promise<HomeStartWeightPoint[]> 
 async function getWeightFromStart(userId: string): Promise<{
   currentKg: number | null;
   deltaKg: number | null;
+  deltaFromPreviousKg: number | null;
 }> {
   const db = getDb();
   const [first] = await db
@@ -238,22 +240,29 @@ async function getWeightFromStart(userId: string): Promise<{
     .where(eq(weightLogs.userId, userId))
     .orderBy(asc(weightLogs.recordedAt))
     .limit(1);
-  const [last] = await db
+  const lastTwo = await db
     .select({ weightKg: weightLogs.weightKg })
     .from(weightLogs)
     .where(eq(weightLogs.userId, userId))
     .orderBy(desc(weightLogs.recordedAt))
-    .limit(1);
+    .limit(2);
 
   const firstKg = first?.weightKg != null ? Number(first.weightKg) : null;
-  const lastKg = last?.weightKg != null ? Number(last.weightKg) : null;
+  const lastKg =
+    lastTwo[0]?.weightKg != null ? Number(lastTwo[0].weightKg) : null;
+  const prevKg =
+    lastTwo[1]?.weightKg != null ? Number(lastTwo[1].weightKg) : null;
 
-  if (firstKg == null || lastKg == null) {
-    return { currentKg: lastKg, deltaKg: null };
+  if (lastKg == null) {
+    return { currentKg: null, deltaKg: null, deltaFromPreviousKg: null };
   }
+
   return {
     currentKg: Math.round(lastKg * 10) / 10,
-    deltaKg: Math.round((lastKg - firstKg) * 10) / 10,
+    deltaKg:
+      firstKg != null ? Math.round((lastKg - firstKg) * 10) / 10 : null,
+    deltaFromPreviousKg:
+      prevKg != null ? Math.round((lastKg - prevKg) * 10) / 10 : null,
   };
 }
 
@@ -511,6 +520,7 @@ export async function getHomeStartDashboard(
     currentWeightKg,
     tempoKgPerMin,
     weightFromStartKg: weightFromStart.deltaKg,
+    weightDeltaFromPreviousKg: weightFromStart.deltaFromPreviousKg,
     weightSeries,
     waistSeries: reportInsights.waistSeries,
     formToday: reportInsights.formToday,

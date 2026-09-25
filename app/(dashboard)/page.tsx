@@ -76,6 +76,7 @@ export default async function HomePage() {
         weightKg={dash.currentWeightKg}
         tempoKgPerMin={dash.tempoKgPerMin}
         weightFromStartKg={dash.weightFromStartKg}
+        weightDeltaFromPreviousKg={dash.weightDeltaFromPreviousKg}
         daysInProgram={dash.daysInProgram}
         reportCount={dash.reportCount}
       />

@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — kafelki wagi i wyższy przycisk Raport",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Kafelki Waga, Od startu, Tempo i W programie mają złote ikony, duże liczby i podpisy w stylu ekranu startu — w tym zmianę wagi względem poprzedniego raportu.",
+      "Złoty przycisk Raport na dolnej belce siedzi wyżej, w linii z ikonami nawigacji, a nie poniżej ich krawędzi.",
+    ],
+  },
+  {
     title: "2026-09 — kafelki wymiarów jak na ekranie startu",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
