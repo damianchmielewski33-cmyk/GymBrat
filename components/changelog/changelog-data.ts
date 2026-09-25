@@ -12,6 +12,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     bullets: [
       "GET / bez konta oddaje ten sam ekran logowania z kodem 200 — w aplikacji Android i w podglądzie Vercel nie ma już przekierowania 307 na /login.",
       "Usunięto rewrite / → /login, które zostawiało adres / przy treści logowania i w WebView psuło hydratację: krótko widać było logowanie, potem popup błędu.",
+      "W WebView Android tożsamość APK jest czytana ze stabilnej referencji — wcześniej nowy obiekt przy każdym renderze wywoływał pętlę React i popup „Coś poszło nie tak / Spróbuj ponownie”.",
       "Popup aktualizacji APK nie pokazuje się przed zalogowaniem, więc start aplikacji nie wygląda jak awaria.",
       "Panel Diagnostyka na logowaniu jest zwinięty; otwiera się tylko z parametrem ?diag=1.",
     ],

@@ -81,6 +81,25 @@ export function readInstalledAndroidAppIdentity(): AndroidAppIdentity | null {
   return parseAndroidAppIdentity(typeof navigator === "undefined" ? "" : navigator.userAgent);
 }
 
+/**
+ * useSyncExternalStore wymaga tej samej referencji, gdy dane się nie zmieniły.
+ * Nowa instancja obiektu przy każdym odczycie UA = pętla setState i popup błędu w APK.
+ */
+export function stableAndroidIdentity(
+  current: AndroidAppIdentity | null,
+  previous: AndroidAppIdentity | null,
+): AndroidAppIdentity | null {
+  if (!current) return null;
+  if (
+    previous &&
+    previous.versionName === current.versionName &&
+    previous.versionCode === current.versionCode
+  ) {
+    return previous;
+  }
+  return current;
+}
+
 export function parseAndroidAppIdentity(ua: string | null | undefined): AndroidAppIdentity | null {
   if (!isAppWebViewUserAgent(ua)) return null;
   const name = ua?.match(APP_WEBVIEW_VERSION_RE)?.[1]?.trim();

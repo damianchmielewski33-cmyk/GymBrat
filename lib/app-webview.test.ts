@@ -6,6 +6,7 @@ import {
   isAppWebViewUserAgent,
   parseAndroidAppIdentity,
   shouldShowAndroidUpdatePrompt,
+  stableAndroidIdentity,
 } from "@/lib/app-webview";
 
 describe("app-webview", () => {
@@ -85,5 +86,15 @@ describe("app-webview", () => {
         signedIn: true,
       }),
     ).toBe(true);
+  });
+
+  it("zwraca tę samą referencję tożsamości APK, gdy wersja się nie zmieniła", () => {
+    const first = { versionName: "0.1.0", versionCode: 1 };
+    const second = { versionName: "0.1.0", versionCode: 1 };
+    expect(stableAndroidIdentity(first, null)).toBe(first);
+    expect(stableAndroidIdentity(second, first)).toBe(first);
+    expect(stableAndroidIdentity(null, first)).toBeNull();
+    const newer = { versionName: "0.1.1", versionCode: 2 };
+    expect(stableAndroidIdentity(newer, first)).toBe(newer);
   });
 });
