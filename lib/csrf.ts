@@ -120,22 +120,63 @@ export function assertCsrf(req: Request): NextResponse | null {
   return null;
 }
 
+/** Origin z Host / X-Forwarded-* — alias produkcyjny Vercel bywa inny niż VERCEL_URL. */
+function originsFromRequest(req: Request): Set<string> {
+  const out = new Set<string>();
+  try {
+    out.add(new URL(req.url).origin);
+  } catch {
+    /* ignore */
+  }
+  const hostRaw = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  if (hostRaw) {
+    const host = hostRaw.split(",")[0]?.trim();
+    if (host) {
+      const protoRaw = req.headers.get("x-forwarded-proto") ?? "https";
+      const proto = protoRaw.split(",")[0]?.trim() || "https";
+      try {
+        out.add(new URL(`${proto}://${host}`).origin);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  return out;
+}
+
+function isSameRequestOrigin(req: Request, origin: string): boolean {
+  try {
+    const got = new URL(origin).origin;
+    return originsFromRequest(req).has(got);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Publiczny endpoint analytics — bez sesji; wymuszamy sensowny Origin / Sec-Fetch-Site.
+ * Same-origin (URL lub Host) jest zawsze OK — na Vercel alias `*.vercel.app` często
+ * nie trafia do NEXTAUTH_URL / VERCEL_URL preview deploymentu.
  */
 export function assertAnalyticsOrigin(req: Request): NextResponse | null {
   const origin = req.headers.get("origin");
-  if (origin && !isAllowedRequestOrigin(origin)) {
-    return NextResponse.json(
-      {
-        error:
-          "Źródło żądania nie jest na liście dozwolonych adresów. Sprawdź konfigurację środowiska.",
-      },
-      { status: 403 },
-    );
+  if (origin && origin !== "null") {
+    if (!isSameRequestOrigin(req, origin) && !isAllowedRequestOrigin(origin)) {
+      return NextResponse.json(
+        {
+          error:
+            "Źródło żądania nie jest na liście dozwolonych adresów. Sprawdź konfigurację środowiska.",
+        },
+        { status: 403 },
+      );
+    }
   }
   const secFetchSite = req.headers.get("sec-fetch-site");
-  if (secFetchSite && !["same-origin", "same-site"].includes(secFetchSite)) {
+  /** `none` — często WebView / pierwsze wejście; Origin już sprawdzony powyżej. */
+  if (
+    secFetchSite &&
+    !["same-origin", "same-site", "none"].includes(secFetchSite)
+  ) {
     return NextResponse.json(
       { error: "To żądanie nie może być wykonane z tej witryny (polityka przeglądarki)." },
       { status: 403 },
