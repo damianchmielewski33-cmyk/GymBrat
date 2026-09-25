@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — kafelki wymiarów jak na ekranie startu",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Kafelki Pas, Udo, Klatka i Ramię na Pulpicie mają wykres obszarowy, dużą liczbę, strzałkę zmiany oraz podpis startu i liczby pomiarów — w układzie zbliżonym do referencyjnego ekranu.",
+      "Kolory wykresów (zieleń, błękit, złoto, róż) i typografia wyróżniają każdy wymiar na ciemnym tle karty.",
+    ],
+  },
+  {
     title: "2026-09 — zdjęcia w raporcie wracają do APK",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
