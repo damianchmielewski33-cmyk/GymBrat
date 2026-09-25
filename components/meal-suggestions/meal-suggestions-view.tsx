@@ -11,12 +11,14 @@ import { lookupFoodByBarcodeAction } from "@/actions/food-lookup";
 import { BarcodeCameraScanner } from "@/components/meal-suggestions/barcode-camera-scanner";
 import { MealCatalogBrowser } from "@/components/meal-suggestions/meal-catalog-browser";
 import { FoodSearchScan } from "@/components/meal-suggestions/food-search-scan";
+import { FoodPortionSheet } from "@/components/meal-suggestions/food-portion-sheet";
 import {
   DIET_DIARY_SLOT_LABELS,
   DIET_DIARY_SLOTS,
   dietDiarySlotFromHour,
   type DietDiarySlot,
 } from "@/lib/diet-diary-slots";
+import type { FoodProduct } from "@/lib/food-products-types";
 import type { MealLogDto } from "@/lib/meal-logs";
 import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
 import type { FitatuDaySummary } from "@/types/fitatu";
@@ -165,6 +167,8 @@ export function MealSuggestionsView({
   const [scanSlot, setScanSlot] = useState<DietDiarySlot | null>(null);
   const [addSheetSlot, setAddSheetSlot] = useState<DietDiarySlot | null>(null);
   const [scanBusy, setScanBusy] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState<FoodProduct | null>(null);
+  const [portionSlot, setPortionSlot] = useState<DietDiarySlot>("obiad");
 
   const refreshDay = useCallback(
     (key: string) => {
@@ -225,32 +229,14 @@ export function MealSuggestionsView({
             notifyError(found.error);
             return;
           }
-          const p = found.product;
-          const added = await addMealProductAction({
-            date: dateKey,
-            slot: targetSlot,
-            barcode: p.barcode,
-            name: p.name,
-            proteinG: p.proteinG,
-            fatG: p.fatG,
-            carbsG: p.carbsG,
-            calories: p.calories,
-          });
-          if (!added.ok) {
-            notifyError(added.error ?? "Nie udało się dodać produktu.");
-            return;
-          }
-          notifySaved(
-            `Zeskanowano „${p.name}” — ${Math.round(p.proteinG)}B · ${Math.round(p.carbsG)}W · ${Math.round(p.fatG)}T · ${Math.round(p.calories)} kcal`,
-          );
-          refreshDay(dateKey);
-          router.refresh();
+          setPortionSlot(targetSlot);
+          setScannedProduct(found.product);
         } finally {
           setScanBusy(false);
         }
       });
     },
-    [dateKey, notifyError, notifySaved, refreshDay, router, scanSlot],
+    [notifyError, scanSlot],
   );
 
   return (
@@ -531,6 +517,41 @@ export function MealSuggestionsView({
         open={scanOpen}
         onClose={() => setScanOpen(false)}
         onDetected={handleBarcode}
+      />
+
+      <FoodPortionSheet
+        product={scannedProduct}
+        open={Boolean(scannedProduct)}
+        onOpenChange={(o) => {
+          if (!o) setScannedProduct(null);
+        }}
+        slot={portionSlot}
+        onSlotChange={setPortionSlot}
+        pending={pending}
+        onConfirm={({ product, macros }) => {
+          start(async () => {
+            const added = await addMealProductAction({
+              date: dateKey,
+              slot: portionSlot,
+              barcode: product.barcode,
+              name: `${product.name} (${macros.label})`,
+              proteinG: macros.proteinG,
+              fatG: macros.fatG,
+              carbsG: macros.carbsG,
+              calories: macros.calories,
+            });
+            if (!added.ok) {
+              notifyError(added.error ?? "Nie udało się dodać produktu.");
+              return;
+            }
+            notifySaved(
+              `Zeskanowano „${product.name}” (${macros.label}) — ${Math.round(macros.proteinG)}B · ${Math.round(macros.carbsG)}W · ${Math.round(macros.fatG)}T · ${Math.round(macros.calories)} kcal`,
+            );
+            setScannedProduct(null);
+            refreshDay(dateKey);
+            router.refresh();
+          });
+        }}
       />
 
       {addSheetSlot ? (

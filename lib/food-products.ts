@@ -5,6 +5,19 @@ function normalizeBarcode(raw: string): string {
   return raw.replace(/\D/g, "");
 }
 
+/** Normalizacja PL do wyszukiwania (kiwi = kiwi, jabłko = jablko). */
+export function normalizeFoodQuery(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/ł/g, "l")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function findLocalProductByBarcode(barcode: string): FoodProduct | null {
   const code = normalizeBarcode(barcode);
   if (!code) return null;
@@ -12,15 +25,19 @@ export function findLocalProductByBarcode(barcode: string): FoodProduct | null {
 }
 
 export function searchLocalProducts(query: string, limit = 20): FoodProduct[] {
-  const q = query.trim().toLowerCase();
+  const q = normalizeFoodQuery(query);
   if (!q) return FOOD_PRODUCTS_LOCAL.slice(0, limit);
+  const parts = q.split(" ").filter(Boolean);
   const scored = FOOD_PRODUCTS_LOCAL.map((p) => {
-    const hay = `${p.name} ${p.brand ?? ""} ${p.barcode ?? ""}`.toLowerCase();
+    const hay = normalizeFoodQuery(
+      `${p.name} ${p.brand ?? ""} ${p.barcode ?? ""} ${p.servingLabel}`,
+    );
     let score = 0;
-    if (hay.startsWith(q)) score += 3;
-    if (hay.includes(q)) score += 2;
-    for (const part of q.split(/\s+/)) {
-      if (part && hay.includes(part)) score += 1;
+    if (hay === q) score += 8;
+    if (hay.startsWith(q)) score += 5;
+    if (hay.includes(q)) score += 3;
+    for (const part of parts) {
+      if (part.length >= 2 && hay.includes(part)) score += 2;
     }
     return { p, score };
   })
@@ -56,73 +73,127 @@ function pickNum(...vals: Array<number | undefined>): number {
   return 0;
 }
 
+/**
+ * Mapowanie OFF → produkt GymBrat.
+ * Preferujemy makro na 100 g (jak Fitatu), nie na „serving” — różnice vs Fitatu
+ * często biorą się z mieszania porcji i 100 g.
+ */
 export function mapOpenFoodFactsProduct(raw: OffProduct, barcode: string): FoodProduct | null {
   const n = raw.nutriments ?? {};
-  const calories = pickNum(n["energy-kcal_serving"], n["energy-kcal_100g"]);
-  const proteinG = pickNum(n.proteins_serving, n.proteins_100g);
-  const fatG = pickNum(n.fat_serving, n.fat_100g);
-  const carbsG = pickNum(n.carbohydrates_serving, n.carbohydrates_100g);
+  const has100 =
+    n["energy-kcal_100g"] != null ||
+    n.proteins_100g != null ||
+    n.fat_100g != null ||
+    n.carbohydrates_100g != null;
+
+  const calories = has100
+    ? pickNum(n["energy-kcal_100g"])
+    : pickNum(n["energy-kcal_serving"], n["energy-kcal_100g"]);
+  const proteinG = has100
+    ? pickNum(n.proteins_100g)
+    : pickNum(n.proteins_serving, n.proteins_100g);
+  const fatG = has100 ? pickNum(n.fat_100g) : pickNum(n.fat_serving, n.fat_100g);
+  const carbsG = has100
+    ? pickNum(n.carbohydrates_100g)
+    : pickNum(n.carbohydrates_serving, n.carbohydrates_100g);
+
   const name = (raw.product_name_pl || raw.product_name || "").trim();
   if (!name) return null;
   if (calories <= 0 && proteinG + fatG + carbsG <= 0) return null;
 
-  const usedServing =
-    n["energy-kcal_serving"] != null ||
-    n.proteins_serving != null ||
-    n.fat_serving != null ||
-    n.carbohydrates_serving != null;
+  const kcal =
+    calories > 0 ? Math.round(calories) : Math.round(4 * proteinG + 4 * carbsG + 9 * fatG);
 
   return {
     id: `off-${normalizeBarcode(barcode) || raw.code || name}`,
     barcode: normalizeBarcode(barcode) || raw.code || null,
     name,
     brand: raw.brands?.split(",")[0]?.trim() || undefined,
-    servingLabel: usedServing
-      ? raw.serving_size?.trim() || "1 porcja"
-      : "100 g",
-    calories: calories > 0 ? Math.round(calories) : Math.round(4 * proteinG + 4 * carbsG + 9 * fatG),
+    servingLabel: has100 ? "100 g" : raw.serving_size?.trim() || "1 porcja",
+    calories: kcal,
     proteinG,
     fatG,
     carbsG,
     source: "openfoodfacts",
+    basisAmount: has100 ? 100 : undefined,
+    basisUnit: has100 ? "g" : undefined,
   };
+}
+
+async function fetchOffJson(url: string): Promise<unknown | null> {
+  const res = await fetch(url, {
+    headers: { "User-Agent": "GymBrat/1.0 (https://github.com/damianchmielewski33-cmyk/GymBrat)" },
+    next: { revalidate: 3600 },
+  });
+  if (!res.ok) return null;
+  return res.json();
 }
 
 export async function lookupBarcodeRemote(barcode: string): Promise<FoodProduct | null> {
   const code = normalizeBarcode(barcode);
   if (code.length < 8) return null;
-  const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": "GymBrat/1.0 (diet barcode lookup)" },
-    next: { revalidate: 86400 },
-  });
-  if (!res.ok) return null;
-  const json = (await res.json()) as { status?: number; product?: OffProduct };
-  if (json.status !== 1 || !json.product) return null;
-  return mapOpenFoodFactsProduct(json.product, code);
+
+  // PL mirror najpierw — lepsze nazwy PL; fallback world.
+  for (const host of ["https://pl.openfoodfacts.org", "https://world.openfoodfacts.org"]) {
+    const json = (await fetchOffJson(
+      `${host}/api/v2/product/${encodeURIComponent(code)}.json`,
+    )) as { status?: number; product?: OffProduct } | null;
+    if (json?.status === 1 && json.product) {
+      const mapped = mapOpenFoodFactsProduct(json.product, code);
+      if (mapped) return mapped;
+    }
+  }
+  return null;
 }
 
 export async function searchOpenFoodFacts(query: string, limit = 12): Promise<FoodProduct[]> {
   const q = query.trim();
   if (q.length < 2) return [];
-  const url = new URL("https://world.openfoodfacts.org/cgi/search.pl");
-  url.searchParams.set("search_terms", q);
-  url.searchParams.set("search_simple", "1");
-  url.searchParams.set("action", "process");
-  url.searchParams.set("json", "1");
-  url.searchParams.set("page_size", String(limit));
-  url.searchParams.set("fields", "code,product_name,product_name_pl,brands,serving_size,nutriments");
 
-  const res = await fetch(url.toString(), {
-    headers: { "User-Agent": "GymBrat/1.0 (diet product search)" },
-    next: { revalidate: 3600 },
-  });
-  if (!res.ok) return [];
-  const json = (await res.json()) as { products?: OffProduct[] };
-  const out: FoodProduct[] = [];
-  for (const p of json.products ?? []) {
-    const mapped = mapOpenFoodFactsProduct(p, p.code ?? "");
-    if (mapped) out.push(mapped);
+  const hosts = ["https://pl.openfoodfacts.org", "https://world.openfoodfacts.org"];
+  for (const host of hosts) {
+    const url = new URL(`${host}/cgi/search.pl`);
+    url.searchParams.set("search_terms", q);
+    url.searchParams.set("search_simple", "1");
+    url.searchParams.set("action", "process");
+    url.searchParams.set("json", "1");
+    url.searchParams.set("page_size", String(Math.max(limit, 20)));
+    url.searchParams.set(
+      "fields",
+      "code,product_name,product_name_pl,brands,serving_size,nutriments",
+    );
+    // Preferuj produkty z nazwą PL / sprzedawane w PL
+    url.searchParams.set("tagtype_0", "countries");
+    url.searchParams.set("tag_contains_0", "contains");
+    url.searchParams.set("tag_0", "poland");
+
+    const json = (await fetchOffJson(url.toString())) as { products?: OffProduct[] } | null;
+    const out: FoodProduct[] = [];
+    for (const p of json?.products ?? []) {
+      const mapped = mapOpenFoodFactsProduct(p, p.code ?? "");
+      if (mapped) out.push(mapped);
+      if (out.length >= limit) break;
+    }
+    if (out.length > 0) return out;
+
+    // Bez filtra kraju — szersze wyniki (np. „kiwi”)
+    const url2 = new URL(`${host}/cgi/search.pl`);
+    url2.searchParams.set("search_terms", q);
+    url2.searchParams.set("search_simple", "1");
+    url2.searchParams.set("action", "process");
+    url2.searchParams.set("json", "1");
+    url2.searchParams.set("page_size", String(Math.max(limit, 20)));
+    url2.searchParams.set(
+      "fields",
+      "code,product_name,product_name_pl,brands,serving_size,nutriments",
+    );
+    const json2 = (await fetchOffJson(url2.toString())) as { products?: OffProduct[] } | null;
+    for (const p of json2?.products ?? []) {
+      const mapped = mapOpenFoodFactsProduct(p, p.code ?? "");
+      if (mapped) out.push(mapped);
+      if (out.length >= limit) break;
+    }
+    if (out.length > 0) return out;
   }
-  return out;
+  return [];
 }
