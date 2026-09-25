@@ -9,7 +9,7 @@ function Dot({ on }: { on: boolean }) {
       className={cn(
         "h-2.5 w-2.5 rounded-full border",
         on
-          ? "border-[var(--neon)]/40 bg-[var(--neon)]/70 shadow-[0_0_14px_rgba(230,0,35,0.25)]"
+          ? "border-[var(--neon)]/40 bg-[var(--neon)]/70 shadow-[0_0_14px_rgba(var(--neon-rgb),0.25)]"
           : "border-white/12 bg-white/5",
       )}
       aria-hidden
