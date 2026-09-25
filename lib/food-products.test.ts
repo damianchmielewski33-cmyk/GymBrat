@@ -17,6 +17,7 @@ import {
   buildNutritionRows,
   carbohydrateExchanges,
   classifyIngredient,
+  formatFoodDisplayName,
   formatNutrientValue,
   gymbratNutritionScore,
   proteinFatExchanges,
@@ -128,43 +129,71 @@ describe("food-nutrition", () => {
     expect(splitIngredients("Mleko, woda, sól")).toEqual(["Mleko", "woda", "sól"]);
   });
 
-  it("mapuje OFF na szczegóły i score", () => {
+  it("składa pełną nazwę marka + produkt", () => {
+    expect(
+      formatFoodDisplayName({
+        productNamePl: "Twaróg chudy",
+        brands: "Piątnica",
+      }),
+    ).toBe("Piątnica Twaróg chudy");
+    expect(
+      formatFoodDisplayName({
+        productName: "Piątnica Twaróg chudy",
+        brands: "Piątnica",
+      }),
+    ).toBe("Piątnica Twaróg chudy");
+  });
+
+  it("mapuje OFF na szczegóły, pełną nazwę i score", () => {
     const mapped = mapOpenFoodFactsProduct(
       {
-        product_name: "Ser",
+        product_name_pl: "Twaróg chudy",
+        brands: "Piątnica, Inna",
         ingredients_text_pl: "Mleko pasteryzowane, sól, kwas cytrynowy",
         nutriments: {
-          "energy-kcal_100g": 238,
-          proteins_100g: 17,
-          fat_100g: 18,
-          carbohydrates_100g: 1,
-          "saturated-fat_100g": 13,
-          sugars_100g: 0.5,
-          salt_100g: 0.7,
-          calcium_100g: 500,
+          "energy-kcal_100g": 98,
+          proteins_100g: 18,
+          fat_100g: 0.5,
+          carbohydrates_100g: 3.5,
+          "saturated-fat_100g": 0.3,
+          sugars_100g: 3.5,
+          salt_100g: 0.1,
+          calcium_100g: 120,
         },
       },
       "5900000000099",
     )!;
-    expect(mapped.details?.saturatedFatG).toBe(13);
-    expect(mapped.details?.saltG).toBe(0.7);
-    expect(mapped.details?.calciumMg).toBe(500);
-    expect(mapped.details?.ingredientsText).toContain("Mleko");
+    expect(mapped.name).toBe("Piątnica Twaróg chudy");
+    expect(mapped.brand).toBe("Piątnica");
+    expect(mapped.details?.saltG).toBe(0.1);
     const score = gymbratNutritionScore(mapped);
-    expect(score).toBeTruthy();
-    expect(score!.score).toBeLessThanOrEqual(5);
-    expect(score!.score).toBeGreaterThanOrEqual(1);
-
-    const rows = buildNutritionRows(
-      {
-        calories: mapped.calories,
-        proteinG: mapped.proteinG,
-        fatG: mapped.fatG,
-        carbsG: mapped.carbsG,
-      },
-      mapped.details,
-    );
-    expect(rows.some((r) => r.id === "sat" && r.value === 13)).toBe(true);
+    expect(score.score).toBeGreaterThanOrEqual(4);
+    expect(score.reasons.length).toBeGreaterThan(0);
     expect(formatNutrientValue(null, "g")).toBe("b.d.");
+  });
+
+  it("karze chipsy niską oceną, a nie prawie 5/5", () => {
+    const chips = mapOpenFoodFactsProduct(
+      {
+        product_name: "Chipsy paprykowe",
+        brands: "Lays",
+        ingredients_text_pl: "Ziemniaki, olej palmowy, sól, aromaty, E621",
+        nutriments: {
+          "energy-kcal_100g": 536,
+          proteins_100g: 5.5,
+          fat_100g: 33,
+          carbohydrates_100g: 52,
+          "saturated-fat_100g": 3.5,
+          sugars_100g: 1.2,
+          salt_100g: 1.4,
+          fiber_100g: 4,
+        },
+      },
+      "5900000000111",
+    )!;
+    expect(chips.name).toBe("Lays Chipsy paprykowe");
+    const score = gymbratNutritionScore(chips);
+    expect(score.score).toBeLessThanOrEqual(2.5);
+    expect(score.label === "Słaby" || score.label === "Unikaj").toBe(true);
   });
 });

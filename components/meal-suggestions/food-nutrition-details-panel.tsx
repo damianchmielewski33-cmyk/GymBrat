@@ -156,17 +156,38 @@ export function FoodNutritionDetailsPanel({
               )}
             </div>
             {score ? (
-              <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-[var(--gym-gold)] text-center text-black shadow-sm">
-                <span className="text-[8px] font-semibold uppercase leading-tight tracking-wide opacity-80">
-                  GymBrat
-                </span>
-                <span className="text-lg font-bold leading-none tabular-nums">
-                  {String(score.score).replace(".", ",")}
-                </span>
-                <span className="text-[9px] opacity-70">/{score.max}</span>
+              <div className="flex shrink-0 flex-col items-center gap-1">
+                <div
+                  className={cn(
+                    "flex h-16 w-16 flex-col items-center justify-center rounded-xl text-center shadow-sm",
+                    score.score >= 3.5
+                      ? "bg-[var(--gym-gold)] text-black"
+                      : score.score >= 2.5
+                        ? "bg-amber-500/90 text-black"
+                        : "bg-rose-500/90 text-white",
+                  )}
+                >
+                  <span className="text-[8px] font-semibold uppercase leading-tight tracking-wide opacity-80">
+                    GymBrat
+                  </span>
+                  <span className="text-lg font-bold leading-none tabular-nums">
+                    {String(score.score).replace(".", ",")}
+                  </span>
+                  <span className="text-[9px] opacity-70">/{score.max}</span>
+                </div>
+                <span className="text-[10px] font-medium text-white/55">{score.label}</span>
               </div>
             ) : null}
           </div>
+          {score?.reasons?.length ? (
+            <ul className="mt-3 space-y-1 border-t border-white/8 pt-3">
+              {score.reasons.map((r) => (
+                <li key={r} className="text-[11px] leading-snug text-white/55">
+                  • {r}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <IngredientGroup kind="healthy" items={byKind.healthy} />
           <IngredientGroup kind="safe" items={byKind.safe} />
           <IngredientGroup kind="harmful" items={byKind.harmful} />

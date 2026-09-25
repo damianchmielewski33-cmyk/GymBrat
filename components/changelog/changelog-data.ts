@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — scoring produktów i pełne nazwy ze skanu",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Ocena GymBrat uwzględnia kalorie, tłuszcz, cukier, sól, białko, błonnik oraz sygnały ultra-przetworzenia — chipsy dostają niską ocenę zamiast prawie 5/5.",
+      "Pod oceną widać uzasadnienia (np. wysoka kaloryczność, dużo soli) oraz etykietę Świetny–Unikaj.",
+      "Po skanie i wyszukiwaniu nazwa to marka + produkt (np. „Piątnica Twaróg chudy”), bez uciętych skrótów.",
+    ],
+  },
+  {
     title: "2026-09 — Android 0.1.5: aktualizacja APK i dialog kamery",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

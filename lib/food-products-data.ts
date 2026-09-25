@@ -40,7 +40,7 @@ export const FOOD_PRODUCTS_LOCAL: FoodProduct[] = [
   {
     id: "local-twarog-chudy",
     barcode: "5900820001234",
-    name: "Twaróg chudy",
+    name: "Piątnica Twaróg chudy",
     brand: "Piątnica",
     servingLabel: "200 g",
     calories: 176,

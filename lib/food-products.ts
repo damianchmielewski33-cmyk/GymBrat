@@ -1,5 +1,5 @@
 import { FOOD_PRODUCTS_LOCAL } from "@/lib/food-products-data";
-import { emptyDetails } from "@/lib/food-nutrition";
+import { emptyDetails, formatFoodDisplayName } from "@/lib/food-nutrition";
 import type { FoodNutritionDetails, FoodProduct } from "@/lib/food-products-types";
 
 function normalizeBarcode(raw: string): string {
@@ -80,6 +80,8 @@ type OffProduct = {
   code?: string;
   product_name?: string;
   product_name_pl?: string;
+  generic_name?: string;
+  generic_name_pl?: string;
   brands?: string;
   serving_size?: string;
   ingredients_text?: string;
@@ -161,7 +163,13 @@ export function mapOpenFoodFactsProduct(raw: OffProduct, barcode: string): FoodP
     ? pickNum(n.carbohydrates_100g)
     : pickNum(n.carbohydrates_serving, n.carbohydrates_100g);
 
-  const name = (raw.product_name_pl || raw.product_name || "").trim();
+  const name = formatFoodDisplayName({
+    productName: raw.product_name,
+    productNamePl: raw.product_name_pl,
+    genericName: raw.generic_name,
+    genericNamePl: raw.generic_name_pl,
+    brands: raw.brands,
+  });
   if (!name) return null;
   if (calories <= 0 && proteinG + fatG + carbsG <= 0) return null;
 
@@ -171,12 +179,13 @@ export function mapOpenFoodFactsProduct(raw: OffProduct, barcode: string): FoodP
   const ingredientsText =
     (raw.ingredients_text_pl || raw.ingredients_text || "").trim() || null;
   const details = mapOffDetails(n, ingredientsText);
+  const brand = raw.brands?.split(/[,;]/)[0]?.trim() || undefined;
 
   return {
     id: `off-${normalizeBarcode(barcode) || raw.code || name}`,
     barcode: normalizeBarcode(barcode) || raw.code || null,
     name,
-    brand: raw.brands?.split(",")[0]?.trim() || undefined,
+    brand,
     servingLabel: has100 ? "100 g" : raw.serving_size?.trim() || "1 porcja",
     calories: kcal,
     proteinG,
@@ -229,7 +238,7 @@ export async function searchOpenFoodFacts(query: string, limit = 12): Promise<Fo
     url.searchParams.set("page_size", String(Math.max(limit, 20)));
     url.searchParams.set(
       "fields",
-      "code,product_name,product_name_pl,brands,serving_size,ingredients_text,ingredients_text_pl,nutriments",
+      "code,product_name,product_name_pl,generic_name,generic_name_pl,brands,serving_size,ingredients_text,ingredients_text_pl,nutriments",
     );
     // Preferuj produkty z nazwą PL / sprzedawane w PL
     url.searchParams.set("tagtype_0", "countries");
@@ -254,7 +263,7 @@ export async function searchOpenFoodFacts(query: string, limit = 12): Promise<Fo
     url2.searchParams.set("page_size", String(Math.max(limit, 20)));
     url2.searchParams.set(
       "fields",
-      "code,product_name,product_name_pl,brands,serving_size,ingredients_text,ingredients_text_pl,nutriments",
+      "code,product_name,product_name_pl,generic_name,generic_name_pl,brands,serving_size,ingredients_text,ingredients_text_pl,nutriments",
     );
     const json2 = (await fetchOffJson(url2.toString())) as { products?: OffProduct[] } | null;
     for (const p of json2?.products ?? []) {
