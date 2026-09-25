@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Download } from "lucide-react";
 import {
   AlertDialog,
@@ -35,6 +36,7 @@ function readPostponedVersionCode(versionCode: number | undefined): number | nul
  * Zwykła przeglądarka i PWA go nie widzą.
  */
 export function AndroidAppUpdatePrompt() {
+  const { status } = useSession();
   const installed = useInstalledAndroidAppIdentity();
   const [latest, setLatest] = useState<LatestInfo | null>(null);
   const [postponedVersionCode, setPostponedVersionCode] = useState<number | null>(null);
@@ -81,6 +83,7 @@ export function AndroidAppUpdatePrompt() {
     current: installed,
     latest,
     postponedVersionCode,
+    signedIn: status === "authenticated",
   });
 
   function postpone() {
