@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="relative min-h-screen bg-[#050505]">
       <header className="sticky top-0 z-40 bg-[#050505]/92 pt-[env(safe-area-inset-top)] backdrop-blur-md">
         <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
-          <BrandMark className="text-[15px] leading-none sm:text-base" />
+          <BrandMark />
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger
               ref={mobileMenuTriggerRef}
