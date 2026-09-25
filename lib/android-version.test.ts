@@ -10,15 +10,15 @@ describe("parseAndroidVersionInfo", () => {
   it("parsuje kompletny obiekt GymBrat", () => {
     expect(
       parseAndroidVersionInfo({
-        versionCode: 2,
-        versionName: "0.1.1",
+        versionCode: 3,
+        versionName: "0.1.2",
         apkUrl:
           "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk",
         notes: "GymBrat",
       }),
     ).toMatchObject({
-      versionCode: 2,
-      versionName: "0.1.1",
+      versionCode: 3,
+      versionName: "0.1.2",
       notes: "GymBrat",
     });
   });
@@ -36,11 +36,11 @@ describe("parseAndroidVersionInfo", () => {
 
   it("akceptuje versionCode jako string", () => {
     const parsed = parseAndroidVersionInfo({
-      versionCode: "2",
-      versionName: "0.1.1",
+      versionCode: "3",
+      versionName: "0.1.2",
       apkUrl: "https://example.com/gymbrat.apk",
     });
-    expect(parsed?.versionCode).toBe(2);
+    expect(parsed?.versionCode).toBe(3);
   });
 
   it("odrzuca brak nazwy wersji", () => {
@@ -54,8 +54,8 @@ describe("parseAndroidVersionInfo", () => {
 
   it("uzupełnia brakujący apkUrl adresem GymBrat", () => {
     const parsed = parseAndroidVersionInfo({
-      versionCode: 2,
-      versionName: "0.1.1",
+      versionCode: 3,
+      versionName: "0.1.2",
     });
     expect(parsed?.apkUrl).toMatch(/GymBrat\/releases\/download\/android-latest\/gymbrat\.apk/i);
   });
@@ -64,8 +64,8 @@ describe("parseAndroidVersionInfo", () => {
 describe("bundledAndroidVersion", () => {
   it("zwraca wersję GymBrat, nie Akademii", () => {
     const info = bundledAndroidVersion();
-    expect(info.versionCode).toBe(2);
-    expect(info.versionName).toBe("0.1.1");
+    expect(info.versionCode).toBe(3);
+    expect(info.versionName).toBe("0.1.2");
     expect(info.apkUrl).toMatch(/gymbrat\.apk/i);
     expect(isForeignAndroidArtifactUrl(info.apkUrl)).toBe(false);
     expect(info.apkUrl.toLowerCase()).not.toContain("akademia");
