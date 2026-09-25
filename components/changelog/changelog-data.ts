@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — dieta tylko z lokalnej bazy przepisów",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Zakładka Dieta pokazuje przepisy wyłącznie z lokalnej bazy GymBrat — bez generowania przez AI i bez linków z internetu.",
+      "Przycisk „Propozycje z bazy” dobiera dania do pory dnia oraz braków białka, węglowodanów i tłuszczu z Twojego planu.",
+    ],
+  },
+  {
     title: "2026-09 — baza posiłków w diecie",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
@@ -12,7 +22,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     bullets: [
       "W zakładce Dieta jest lokalna baza około 590 przepisów z makro (białko, węglowodany, tłuszcz) oraz grafiką i instrukcją przygotowania.",
       "Posiłki są podzielone na śniadanie, drugie śniadanie, obiad, podwieczorek i kolację — możesz filtrować, wyszukiwać i dodawać je do dziennika.",
-      "Gdy AI jest niedostępne, propozycje dnia biorą się z tej bazy i dopasowują się do pory oraz braków makro.",
+      "Propozycje dnia i przeglądanie katalogu biorą się z tej samej bazy aplikacji.",
     ],
   },
   {

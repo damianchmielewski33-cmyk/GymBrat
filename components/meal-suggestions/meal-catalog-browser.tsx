@@ -55,8 +55,8 @@ export function MealCatalogBrowser({ dateKey }: { dateKey: string }) {
           {MEAL_CATALOG.length} przepisów z makro i instrukcją
         </h2>
         <p className="mt-1 text-sm text-white/55">
-          Wybierz porę dnia — zobaczysz dania dopasowane do śniadania, drugiego śniadania, obiadu,
-          podwieczorka albo kolacji. Każde ma grafikę, składniki i krok po kroku.
+          Wyłącznie lokalna baza GymBrat: śniadanie, drugie śniadanie, obiad, podwieczorek i kolacja.
+          Każde danie ma makro, grafikę, składniki i przepis — bez AI i bez internetu.
         </p>
       </div>
 
