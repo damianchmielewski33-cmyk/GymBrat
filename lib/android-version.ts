@@ -1,4 +1,5 @@
 import bundled from "@/public/android-version.json";
+import { GYMBRAT_GITHUB_SLUG } from "@/lib/gymbrat-source";
 
 export type AndroidVersionInfo = {
   versionCode: number;
@@ -9,25 +10,14 @@ export type AndroidVersionInfo = {
   notes?: string | null;
 };
 
-const DEFAULT_GITHUB_VERSION_JSON =
-  "https://github.com/damianchmielewski33-cmyk/Akademia-Wielkich-Pi-karzy/releases/download/android-latest/android-version.json";
+const DEFAULT_GYMBRAT_VERSION_JSON = `https://github.com/${GYMBRAT_GITHUB_SLUG}/releases/download/android-latest/android-version.json`;
+const DEFAULT_GYMBRAT_APK = `https://github.com/${GYMBRAT_GITHUB_SLUG}/releases/download/android-latest/gymbrat.apk`;
 
-const DEFAULT_GITHUB_APK =
-  "https://github.com/damianchmielewski33-cmyk/Akademia-Wielkich-Pi-karzy/releases/download/android-latest/akademia-wp.apk";
-
-const DEFAULT_AWP_ORIGIN = "https://akademia-wielkich-pilkarzy.vercel.app";
-
-function awpOrigin(): string {
-  const raw = process.env.NEXT_PUBLIC_AWP_URL?.trim();
-  if (raw) {
-    try {
-      return new URL(raw).origin;
-    } catch {
-      /* ignore */
-    }
-  }
-  return DEFAULT_AWP_ORIGIN;
-}
+const FOREIGN_ANDROID_MARKERS = [
+  "akademia-wielkich-pi",
+  "akademia-wp.apk",
+  "akademia_wp",
+] as const;
 
 function asPositiveInt(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
@@ -58,13 +48,33 @@ function asHttpUrl(value: unknown): string | null {
   }
 }
 
+/** APK / JSON Akademii nie może sterować aktualizacją GymBrat. */
+export function isForeignAndroidArtifactUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return FOREIGN_ANDROID_MARKERS.some((marker) => lower.includes(marker));
+}
+
+export function isGymBratAndroidSourceUrl(url: string | null | undefined): boolean {
+  if (!url || isForeignAndroidArtifactUrl(url)) return false;
+  const lower = url.toLowerCase();
+  return (
+    lower.includes("github.com/damianchmielewski33-cmyk/gymbrat") ||
+    lower.includes("gym-brat.vercel.app") ||
+    lower.includes("/gymbrat.apk")
+  );
+}
+
 /** Akceptuje też versionCode jako string — GitHub/CDN bywa niekonsekwentny. */
 export function parseAndroidVersionInfo(raw: unknown): AndroidVersionInfo | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
   const versionCode = asPositiveInt(o.versionCode);
   const versionName = asNonEmptyString(o.versionName);
-  const apkUrl = asHttpUrl(o.apkUrl) ?? defaultApkUrl();
+  const rawApk = asHttpUrl(o.apkUrl);
+  if (isForeignAndroidArtifactUrl(rawApk)) return null;
+  const apkUrl = rawApk ?? defaultApkUrl();
+  if (isForeignAndroidArtifactUrl(apkUrl)) return null;
   if (versionCode == null || !versionName) return null;
   const releasedAt = asNonEmptyString(o.releasedAt);
   const commit = asNonEmptyString(o.commit);
@@ -80,37 +90,38 @@ export function parseAndroidVersionInfo(raw: unknown): AndroidVersionInfo | null
 }
 
 export function defaultApkUrl(): string {
-  return (
+  const fromEnv =
     asHttpUrl(process.env.ANDROID_APK_URL) ||
-    asHttpUrl(process.env.NEXT_PUBLIC_ANDROID_APK_URL) ||
-    DEFAULT_GITHUB_APK
-  );
+    asHttpUrl(process.env.NEXT_PUBLIC_ANDROID_APK_URL);
+  if (fromEnv && !isForeignAndroidArtifactUrl(fromEnv)) return fromEnv;
+  return DEFAULT_GYMBRAT_APK;
 }
 
 export function bundledAndroidVersion(): AndroidVersionInfo {
   const parsed = parseAndroidVersionInfo(bundled);
   if (parsed) return { ...parsed, apkUrl: parsed.apkUrl || defaultApkUrl() };
-  const pkg = process.env.NEXT_PUBLIC_APP_VERSION?.trim() || "0.1.0";
+  const pkg = process.env.NEXT_PUBLIC_APP_VERSION?.trim() || "0.1.1";
   return {
-    versionCode: 1,
+    versionCode: 2,
     versionName: pkg,
     apkUrl: defaultApkUrl(),
-    notes: "Wbudowana informacja o wersji (fallback).",
+    notes: "Wbudowana informacja o wersji GymBrat (fallback).",
   };
 }
 
+/**
+ * Tylko źródła GymBrat: env (jeśli nie AWP) → GitHub Release GymBrat → bundled.
+ */
 function versionJsonUrls(): string[] {
   const urls: string[] = [];
   const fromEnv = asHttpUrl(process.env.ANDROID_VERSION_JSON_URL);
-  if (fromEnv) urls.push(fromEnv);
-  urls.push(DEFAULT_GITHUB_VERSION_JSON);
-  const awp = awpOrigin();
-  urls.push(`${awp}/android-version.json`);
-  urls.push(`${awp}/api/android/version`);
+  if (fromEnv && isGymBratAndroidSourceUrl(fromEnv)) urls.push(fromEnv);
+  urls.push(DEFAULT_GYMBRAT_VERSION_JSON);
   return [...new Set(urls)];
 }
 
 async function fetchVersionCandidate(url: string): Promise<AndroidVersionInfo | null> {
+  if (isForeignAndroidArtifactUrl(url)) return null;
   try {
     const res = await fetch(url, {
       headers: {
@@ -130,15 +141,17 @@ async function fetchVersionCandidate(url: string): Promise<AndroidVersionInfo | 
     } catch {
       return null;
     }
-    return parseAndroidVersionInfo(parsed);
+    const info = parseAndroidVersionInfo(parsed);
+    if (!info || isForeignAndroidArtifactUrl(info.apkUrl)) return null;
+    return info;
   } catch {
     return null;
   }
 }
 
 /**
- * Źródła (kolejno): env → GitHub Releases AWP → pliki AWP → bundled JSON.
- * Bundled zawsze kończy łańcuch, żeby aplikacja Android nie dostała 503 / HTML logowania.
+ * Źródła: env → GitHub Release GymBrat → bundled public/android-version.json.
+ * Nigdy nie bierzemy wersji ani APK Akademii Wielkich Piłkarzy.
  */
 export async function resolveAndroidVersion(): Promise<AndroidVersionInfo> {
   for (const url of versionJsonUrls()) {

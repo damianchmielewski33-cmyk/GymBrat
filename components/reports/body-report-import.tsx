@@ -19,7 +19,7 @@ export function BodyReportImport() {
   const [warnings, setWarnings] = useState<string[]>([]);
 
   return (
-    <div className="glass-panel neon-glow overflow-hidden">
+    <div className="app-card overflow-hidden">
       {!isOpen ? (
         <div className="flex flex-col gap-3 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -163,7 +163,7 @@ export function BodyReportImport() {
           <Button
             type="submit"
             disabled={pending || (!file && !url.trim())}
-            className="h-11 bg-[var(--neon)] text-base font-semibold text-white hover:bg-[#ff4d6d]"
+            className="h-11 text-base"
           >
             {pending ? "Importuję…" : "Importuj raporty"}
           </Button>

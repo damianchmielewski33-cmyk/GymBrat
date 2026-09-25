@@ -72,7 +72,7 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
   const photosHint = useMemo(() => `${photos.length} / ${maxPhotos}`, [photos.length, maxPhotos]);
 
   return (
-    <div className="glass-panel neon-glow overflow-hidden">
+    <div className="app-card overflow-hidden">
       {!isOpen ? (
         <div className="flex flex-col gap-3 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -85,7 +85,7 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
           </div>
           <Button
             type="button"
-            className="h-11 bg-[var(--neon)] text-base font-semibold text-white hover:bg-[#ff4d6d]"
+            className="h-11 text-base"
             onClick={() => setIsOpen(true)}
           >
             Dodaj Raport
@@ -428,7 +428,7 @@ export function BodyReportForm({ maxPhotos = 8 }: BodyReportFormProps) {
           <Button
             type="submit"
             disabled={pending}
-            className="h-11 bg-[var(--neon)] text-base font-semibold text-white hover:bg-[#ff4d6d]"
+            className="h-11 text-base"
           >
             {pending ? "Zapisywanie…" : "Zapisz raport"}
           </Button>
