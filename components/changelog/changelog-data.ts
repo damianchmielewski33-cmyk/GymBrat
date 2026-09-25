@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — backend Java oddzielony od frontu",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Backend API GymBrat działa w Java (Spring Boot) w katalogu java-backend — health, version, Android APK, raporty sylwetki i domknięcie treningu.",
+      "Front zostaje w Next.js/TypeScript; gdy ustawisz JAVA_API_BASE_URL, trasy /api proxy’ują do Javy (sesja NextAuth + nagłówek użytkownika), a bez tej zmiennej działa dotychczasowa logika TypeScript.",
+    ],
+  },
+  {
     title: "2026-09 — kafelki wagi i wyższy przycisk Raport",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
