@@ -184,7 +184,8 @@ export function requestNativeAndroidUpdate(): boolean {
 export function ensureAndroidCameraPermission(): Promise<boolean> {
   if (typeof window === "undefined") return Promise.resolve(true);
   const bridge = window.GymBratAndroid;
-  if (!bridge?.requestCameraPermission) return Promise.resolve(true);
+  const request = bridge?.requestCameraPermission;
+  if (!request) return Promise.resolve(true);
 
   try {
     if (bridge.hasCameraPermission?.()) return Promise.resolve(true);
@@ -207,7 +208,7 @@ export function ensureAndroidCameraPermission(): Promise<boolean> {
 
     window.__gymbratOnCameraPermission = finish;
     try {
-      bridge.requestCameraPermission();
+      request.call(bridge);
     } catch {
       finish(false);
       return;
