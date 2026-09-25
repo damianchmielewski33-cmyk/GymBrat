@@ -165,14 +165,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className="fixed inset-x-0 bottom-0 z-50 bg-[#050505] pb-[env(safe-area-inset-bottom)]"
         aria-label="Nawigacja główna"
       >
-        <div className="mx-auto grid max-w-lg grid-cols-5 items-end px-2 pb-2 pt-1">
+        <div className="relative mx-auto grid max-w-lg grid-cols-5 items-center px-2 pb-2 pt-2">
           {tabs.slice(0, 2).map((item) => (
             <TabLink key={item.href} item={item} pathname={pathname} />
           ))}
-          <div className="relative flex justify-center">
+          <div className="relative flex h-12 items-center justify-center">
             <Link
               href="/reports"
-              className="gym-btn-primary absolute -top-6 inline-flex h-[3.35rem] min-w-[7.25rem] items-center justify-center gap-1 rounded-full px-5 text-sm"
+              className="gym-btn-primary absolute left-1/2 top-1/2 z-10 inline-flex h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-[72%] items-center justify-center gap-1 rounded-full px-5 text-sm shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)]"
               aria-label="Dodaj raport"
             >
               <Plus className="h-4 w-4" aria-hidden />
