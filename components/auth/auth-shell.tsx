@@ -8,8 +8,7 @@ const easeOut = [0.22, 1, 0.36, 1] as const;
 
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className="theme-black-gold relative min-h-[100dvh] overflow-x-hidden">
-      {/* Full-bleed gym hero */}
+    <div className="relative min-h-[100dvh] overflow-x-hidden">
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <motion.div
           className="absolute inset-0"
@@ -26,10 +25,8 @@ export function AuthShell({ children }: { children: ReactNode }) {
             className="object-cover object-center"
           />
         </motion.div>
-
-        {/* Black–gold atmosphere overlays */}
         <div className="absolute inset-0 bg-[#070708]/72" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_1200px_800px_at_12%_18%,rgba(212,175,55,0.28),transparent_58%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_1200px_800px_at_12%_18%,rgba(var(--neon-rgb),0.28),transparent_58%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_900px_700px_at_88%_88%,rgba(180,140,40,0.16),transparent_55%)]" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/55 to-[#070708]/35" />
         <div className="absolute inset-0 opacity-[0.09] grain-overlay" />
@@ -39,7 +36,6 @@ export function AuthShell({ children }: { children: ReactNode }) {
       <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col px-4 py-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))] sm:px-6 sm:py-14">
         {children}
 
-        {/* Atmosphere strip — real gym photos below the fold */}
         <motion.section
           aria-label="Atmosfera siłowni"
           className="mt-14 grid grid-cols-2 gap-3 sm:mt-20 sm:gap-4"

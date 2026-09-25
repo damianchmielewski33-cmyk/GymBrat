@@ -272,7 +272,7 @@ export function NutritionPlanSection({
       <Button
         type="submit"
         disabled={isPending}
-        className="bg-[var(--neon)] hover:bg-[#ff4d6d]"
+        className="bg-[var(--neon)] text-[var(--neon-fg)] hover:bg-[var(--neon-hover)]"
       >
         {isPending ? "Zapisywanie…" : "Zapisz cele i kalendarz"}
       </Button>
