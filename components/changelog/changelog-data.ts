@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — aktualizacja APK tylko dla GymBrat",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Popup „Wymagana aktualizacja” porównuje wersję zainstalowanego GymBrat z release’em GymBrat 0.1.1, a nie z wersją 1.11.5 Akademii Wielkich Piłkarzy.",
+      "Przycisk aktualizacji pobiera gymbrat.apk z GitHub Release tego repozytorium — instalator Akademii nie jest już podsuwany w aplikacji GymBrat.",
+    ],
+  },
+  {
     title: "2026-09 — start aplikacji bez 307 na logowanie",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
