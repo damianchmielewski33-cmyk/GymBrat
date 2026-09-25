@@ -154,7 +154,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main
         key={pathname}
         className={cn(
-          "mx-auto min-w-0 max-w-lg flex-1 overflow-x-clip px-4 py-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))]",
+          "mx-auto min-w-0 w-full max-w-lg flex-1 overflow-x-clip px-4 py-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-5",
           reduceFixedBugs ? "animate-page-enter-opacity" : "animate-page-enter",
         )}
       >

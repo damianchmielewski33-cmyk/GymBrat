@@ -1,11 +1,6 @@
-import {
-  Activity,
-  CalendarDays,
-  ClipboardList,
-  Scale,
-  type LucideIcon,
-} from "lucide-react";
+import { Activity, ClipboardList, Scale, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { HomeStartTodayMacros } from "@/lib/home-start";
 
 function formatKg(n: number | null): string {
   if (n == null || !Number.isFinite(n)) return "—";
@@ -17,6 +12,13 @@ function formatSignedKg(n: number | null): string {
   const rounded = Math.round(n * 10) / 10;
   const sign = rounded > 0 ? "+" : "";
   return `${sign}${String(rounded).replace(".", ",")}`;
+}
+
+function formatGrams(n: number | null): string {
+  if (n == null || !Number.isFinite(n)) return "—";
+  const rounded = Math.round(n);
+  const sign = rounded > 0 ? "" : "";
+  return `${sign}${rounded}`;
 }
 
 function MetricTile({
@@ -73,26 +75,118 @@ function MetricTile({
   );
 }
 
+function MacroRemainRow({
+  label,
+  remaining,
+  goal,
+  consumed,
+  barClass,
+}: {
+  label: string;
+  remaining: number | null;
+  goal: number | null;
+  consumed: number;
+  barClass: string;
+}) {
+  const pct =
+    goal != null && goal > 0
+      ? Math.min(100, Math.max(0, Math.round((consumed / goal) * 100)))
+      : 0;
+  const over = goal != null && consumed > goal;
+  const leftLabel =
+    remaining == null
+      ? "brak celu"
+      : remaining >= 0
+        ? `${formatGrams(remaining)} g`
+        : `+${formatGrams(Math.abs(remaining))} g`;
+
+  return (
+    <div className="min-w-0">
+      <div className="flex items-baseline justify-between gap-1">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-white/55">
+          {label}
+        </span>
+        <span
+          className={cn(
+            "text-[11px] font-semibold tabular-nums",
+            over ? "text-rose-400" : "text-white/90",
+          )}
+        >
+          {leftLabel}
+        </span>
+      </div>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
+        <div
+          className={cn(
+            "h-full rounded-full transition-[width] duration-700 ease-out",
+            over ? "bg-rose-400" : barClass,
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TodayMacroProgressTile({ macros }: { macros: HomeStartTodayMacros }) {
+  const hasGoals =
+    macros.proteinGoal != null ||
+    macros.carbsGoal != null ||
+    macros.fatGoal != null;
+
+  return (
+    <div className="flex min-h-[118px] flex-col rounded-[18px] bg-[#161616] px-3.5 py-3.5">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+        Makro dziś
+      </p>
+      <p className="mt-1 text-[10px] leading-snug text-white/40">
+        zostało do spożycia
+      </p>
+      <div className="mt-2.5 flex flex-1 flex-col justify-center gap-2">
+        <MacroRemainRow
+          label="B"
+          remaining={macros.proteinRemaining}
+          goal={macros.proteinGoal}
+          consumed={macros.proteinConsumed}
+          barClass="bg-sky-400"
+        />
+        <MacroRemainRow
+          label="W"
+          remaining={macros.carbsRemaining}
+          goal={macros.carbsGoal}
+          consumed={macros.carbsConsumed}
+          barClass="bg-violet-400"
+        />
+        <MacroRemainRow
+          label="T"
+          remaining={macros.fatRemaining}
+          goal={macros.fatGoal}
+          consumed={macros.fatConsumed}
+          barClass="bg-amber-400"
+        />
+      </div>
+      {!hasGoals ? (
+        <p className="mt-2 text-[10px] text-white/35">Ustaw cele w profilu</p>
+      ) : null}
+    </div>
+  );
+}
+
 export function StartMetricTiles({
   weightKg,
   tempoKgPerMin,
   weightFromStartKg,
   weightDeltaFromPreviousKg,
-  daysInProgram,
+  todayMacros,
   reportCount,
 }: {
   weightKg: number | null;
   tempoKgPerMin: number | null;
   weightFromStartKg: number | null;
   weightDeltaFromPreviousKg?: number | null;
-  daysInProgram: number | null;
+  todayMacros: HomeStartTodayMacros;
   reportCount: number;
 }) {
-  const weeks =
-    daysInProgram != null
-      ? Math.max(1, Math.round(daysInProgram / 7))
-      : null;
-
   let weightHint: string | undefined;
   let weightTone: "muted" | "good" | "bad" = "muted";
   if (
@@ -127,21 +221,10 @@ export function StartMetricTiles({
           label="Tempo"
           value={tempoKgPerMin != null ? formatKg(tempoKgPerMin) : "—"}
           unit="kg/tydz"
-          hint={weeks != null ? `śr. z ${weeks} tyg.` : "z ostatniej sesji"}
+          hint="z ostatniej sesji"
           hintTone="muted"
         />
-        <MetricTile
-          Icon={CalendarDays}
-          label="W programie"
-          value={daysInProgram != null ? String(daysInProgram) : "—"}
-          unit={daysInProgram != null ? "dni" : undefined}
-          hint={
-            weeks != null
-              ? `${weeks} tygodni · od pierwszego raportu`
-              : "dodaj raport"
-          }
-          hintTone="gold"
-        />
+        <TodayMacroProgressTile macros={todayMacros} />
         <MetricTile
           Icon={ClipboardList}
           label="Raporty"

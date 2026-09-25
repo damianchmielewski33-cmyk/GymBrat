@@ -162,9 +162,14 @@
   body {
     @apply min-h-screen bg-background text-foreground antialiased;
     background: #050505;
+    overflow-x: clip;
   }
   html {
     @apply font-sans;
+    /* iPhone: bez sztucznego powiększania tekstu / „przybliżonego” layoutu */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overflow-x: clip;
   }
 }
 

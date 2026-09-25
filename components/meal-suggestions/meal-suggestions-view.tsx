@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { useOverlayHistoryBack } from "@/hooks/use-overlay-history-back";
 
 function formatDateLabel(dateKey: string): string {
   const today = calendarDateKey();
@@ -236,6 +237,15 @@ export function MealSuggestionsView({
   const [portionProduct, setPortionProduct] = useState<FoodProduct | null>(null);
   const [portionSlot, setPortionSlot] = useState<DietDiarySlot>("sniadanie");
 
+  const mealOverlayOpen = Boolean(addSlot) || Boolean(portionProduct);
+  useOverlayHistoryBack(mealOverlayOpen, () => {
+    if (portionProduct) {
+      setPortionProduct(null);
+      return;
+    }
+    setAddSlot(null);
+  });
+
   const refreshDay = useCallback(
     (key: string) => {
       start(async () => {
@@ -387,7 +397,10 @@ export function MealSuggestionsView({
             </button>
           </div>
 
-          <div className="mt-2 min-h-0 flex-1 px-1 pb-28">
+          <div
+            key={dateKey}
+            className="mt-2 min-h-0 flex-1 animate-page-enter-opacity px-1 pb-28"
+          >
             {DIET_DIARY_SLOTS.map((slot) => (
               <MealSectionRow
                 key={slot}

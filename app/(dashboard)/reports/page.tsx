@@ -39,20 +39,15 @@ export default async function ReportsPage() {
           Raporty
         </p>
         <h1 className="font-heading text-3xl font-semibold tracking-tight text-white">
-          Twoje <span className="bg-gradient-to-r from-[#e8c547] to-[#d4af37] bg-clip-text text-transparent">raporty</span>
+          Dodaj{" "}
+          <span className="bg-gradient-to-r from-[#e8c547] to-[#d4af37] bg-clip-text text-transparent">
+            raport
+          </span>
         </h1>
+        <p className="text-sm text-white/45">
+          Wypełnij pomiary i samopoczucie — historia oraz eksport są niżej.
+        </p>
       </header>
-
-      <InlineBanner variant="info">
-        <strong className="font-semibold text-white/90">Eksport danych.</strong> Pełną kopię
-        treningów, raportów i ustawień pobierzesz w formacie JSON lub CSV w{" "}
-        <Link href="/profile#export-data" className="text-[#d4af37] underline">
-          Profilu (sekcja eksportu)
-        </Link>
-        .
-      </InlineBanner>
-
-      <BodyReportImport />
 
       <Suspense
         fallback={
@@ -64,26 +59,52 @@ export default async function ReportsPage() {
         <BodyReportForm daysUntilNext={daysUntilNext} />
       </Suspense>
 
-      <BodyReportHistory
-        reports={reports.map((r) => ({
-          id: r.id,
-          createdAt: r.createdAt.toISOString(),
-          weightKg: r.weightKg,
-          waistCm: r.waistCm,
-          chestCm: r.chestCm,
-          thighCm: r.thighCm,
-          armCm: r.armCm,
-          abdomenCm: r.abdomenCm,
-          trainingEnergy: r.trainingEnergy,
-          sleepQuality: r.sleepQuality,
-          dayEnergy: r.dayEnergy,
-          digestionScore: r.digestionScore,
-          cardioCompliance: r.cardioCompliance,
-          dietCompliance: r.dietCompliance,
-          trainingCompliance: r.trainingCompliance,
-          photos: r.photos,
-        }))}
-      />
+      {/* Historia / eksport / import — zawsze na dole ekranu */}
+      <div className="space-y-6 border-t border-white/10 pt-8">
+        <header className="space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#d4af37]/85">
+            Archiwum
+          </p>
+          <h2 className="font-heading text-2xl font-semibold tracking-tight text-white">
+            Twoje{" "}
+            <span className="bg-gradient-to-r from-[#e8c547] to-[#d4af37] bg-clip-text text-transparent">
+              raporty
+            </span>
+          </h2>
+        </header>
+
+        <InlineBanner variant="info">
+          <strong className="font-semibold text-white/90">Eksport danych.</strong> Pełną kopię
+          treningów, raportów i ustawień pobierzesz w formacie JSON lub CSV w{" "}
+          <Link href="/profile#export-data" className="text-[#d4af37] underline">
+            Profilu (sekcja eksportu)
+          </Link>
+          .
+        </InlineBanner>
+
+        <BodyReportImport />
+
+        <BodyReportHistory
+          reports={reports.map((r) => ({
+            id: r.id,
+            createdAt: r.createdAt.toISOString(),
+            weightKg: r.weightKg,
+            waistCm: r.waistCm,
+            chestCm: r.chestCm,
+            thighCm: r.thighCm,
+            armCm: r.armCm,
+            abdomenCm: r.abdomenCm,
+            trainingEnergy: r.trainingEnergy,
+            sleepQuality: r.sleepQuality,
+            dayEnergy: r.dayEnergy,
+            digestionScore: r.digestionScore,
+            cardioCompliance: r.cardioCompliance,
+            dietCompliance: r.dietCompliance,
+            trainingCompliance: r.trainingCompliance,
+            photos: r.photos,
+          }))}
+        />
+      </div>
     </div>
   );
 }

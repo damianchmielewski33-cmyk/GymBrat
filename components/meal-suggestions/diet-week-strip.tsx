@@ -52,17 +52,17 @@ export function DietWeekStrip({
             </span>
             <span
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold tabular-nums",
+                "flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold tabular-nums transition-all duration-300 ease-out",
                 active
-                  ? "bg-[var(--gym-gold)] text-black"
-                  : "bg-transparent text-white/75",
+                  ? "scale-105 bg-[var(--gym-gold)] text-black shadow-[0_4px_14px_rgba(212,175,55,0.35)]"
+                  : "scale-100 bg-transparent text-white/75",
               )}
             >
               {dayNum}
             </span>
             <span
               className={cn(
-                "h-1.5 w-1.5 rounded-full",
+                "h-1.5 w-1.5 rounded-full transition-colors duration-300",
                 isPastOrToday && !active ? "bg-[var(--gym-gold)]/70" : "bg-transparent",
               )}
               aria-hidden

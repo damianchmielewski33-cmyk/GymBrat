@@ -25,7 +25,10 @@ function MacroCol({
     <div className="min-w-0 flex-1">
       <div className="mb-1.5 h-1 overflow-hidden rounded-full bg-white/10">
         <div
-          className={cn("h-full rounded-full", over ? "bg-rose-400" : barClass)}
+          className={cn(
+            "h-full rounded-full transition-[width] duration-500 ease-out",
+            over ? "bg-rose-400" : barClass,
+          )}
           style={{ width: `${pct}%` }}
         />
       </div>

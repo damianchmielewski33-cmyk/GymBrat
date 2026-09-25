@@ -37,6 +37,19 @@ export type HomeStartMacroPoint = {
   remainingKcal: number | null;
 };
 
+/** Pozostałe B/W/T do spożycia w bieżącym dniu względem celu z profilu. */
+export type HomeStartTodayMacros = {
+  proteinConsumed: number;
+  carbsConsumed: number;
+  fatConsumed: number;
+  proteinGoal: number | null;
+  carbsGoal: number | null;
+  fatGoal: number | null;
+  proteinRemaining: number | null;
+  carbsRemaining: number | null;
+  fatRemaining: number | null;
+};
+
 export type HomeStartDashboard = {
   firstName: string | null;
   lastName: string | null;
@@ -64,6 +77,7 @@ export type HomeStartDashboard = {
   weightSeries: HomeStartWeightPoint[];
   waistSeries: HomeStartWaistPoint[];
   macroSeries: HomeStartMacroPoint[];
+  todayMacros: HomeStartTodayMacros;
   formToday: {
     energy: number | null;
     sleep: number | null;
@@ -319,7 +333,18 @@ async function getWeightFromStart(userId: string): Promise<{
   };
 }
 
-async function getMacroSeries(userId: string): Promise<HomeStartMacroPoint[]> {
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+function remainingOrNull(goal: number | null | undefined, consumed: number): number | null {
+  if (goal == null || !Number.isFinite(goal)) return null;
+  return round1(goal - consumed);
+}
+
+async function getMacroSeriesAndToday(
+  userId: string,
+): Promise<{ series: HomeStartMacroPoint[]; today: HomeStartTodayMacros }> {
   const todayKey = calendarDateKey();
   const days = 14;
   const keys: string[] = [];
@@ -348,11 +373,11 @@ async function getMacroSeries(userId: string): Promise<HomeStartMacroPoint[]> {
     nutritionDayTypesJson: settingsRow?.nutritionDayTypesJson ?? null,
   });
 
-  return keys.map((date) => {
+  const series = keys.map((date) => {
     const agg = aggregates[date];
-    const protein = Math.round((agg?.protein ?? 0) * 10) / 10;
-    const carbs = Math.round((agg?.carbs ?? 0) * 10) / 10;
-    const fat = Math.round((agg?.fat ?? 0) * 10) / 10;
+    const protein = round1(agg?.protein ?? 0);
+    const carbs = round1(agg?.carbs ?? 0);
+    const fat = round1(agg?.fat ?? 0);
     const consumed = Math.round(agg?.calories ?? 0);
     const goals = resolveProfileDayGoals(settings, date);
     const remainingKcal =
@@ -361,6 +386,30 @@ async function getMacroSeries(userId: string): Promise<HomeStartMacroPoint[]> {
         : null;
     return { date, protein, carbs, fat, remainingKcal };
   });
+
+  const todayAgg = aggregates[todayKey];
+  const proteinConsumed = round1(todayAgg?.protein ?? 0);
+  const carbsConsumed = round1(todayAgg?.carbs ?? 0);
+  const fatConsumed = round1(todayAgg?.fat ?? 0);
+  const todayGoals = resolveProfileDayGoals(settings, todayKey);
+  const proteinGoal = todayGoals?.macroGoals.protein ?? null;
+  const carbsGoal = todayGoals?.macroGoals.carbs ?? null;
+  const fatGoal = todayGoals?.macroGoals.fat ?? null;
+
+  return {
+    series,
+    today: {
+      proteinConsumed,
+      carbsConsumed,
+      fatConsumed,
+      proteinGoal,
+      carbsGoal,
+      fatGoal,
+      proteinRemaining: remainingOrNull(proteinGoal, proteinConsumed),
+      carbsRemaining: remainingOrNull(carbsGoal, carbsConsumed),
+      fatRemaining: remainingOrNull(fatGoal, fatConsumed),
+    },
+  };
 }
 
 /** Liczba kolejnych tygodni (pon–niedz.) z ≥1 dniem treningowym. */
@@ -627,7 +676,7 @@ export async function getHomeStartDashboard(
     stats,
     weightFromStart,
     weightSeries,
-    macroSeries,
+    macroBundle,
     transformation,
     dimensions,
     reportInsights,
@@ -653,7 +702,7 @@ export async function getHomeStartDashboard(
     getHomeStats(userId),
     getWeightFromStart(userId),
     getWeightSeries(userId),
-    getMacroSeries(userId),
+    getMacroSeriesAndToday(userId),
     getTransformationPhotos(userId),
     getLatestDimensions(userId),
     getReportInsights(userId),
@@ -712,7 +761,8 @@ export async function getHomeStartDashboard(
     weightDeltaFromPreviousKg: weightFromStart.deltaFromPreviousKg,
     weightSeries,
     waistSeries: reportInsights.waistSeries,
-    macroSeries,
+    macroSeries: macroBundle.series,
+    todayMacros: macroBundle.today,
     formToday: reportInsights.formToday,
     compliance: reportInsights.compliance,
     transformation,

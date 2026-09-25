@@ -5,6 +5,19 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — Start, raporty, dieta: układ i płynność",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Na Raportach sekcja Twoje raporty, eksport danych, import i historia są na samym dole ekranu — formularz nowego raportu zostaje u góry.",
+      "Na Pulpicie kafelek „W programie” zastępuje wykres postępu makro dnia (białko, węglowodany, tłuszcze — ile zostało do spożycia względem celu).",
+      "Usunięto diagram „Od startu”; wykres wagi i pasa ma czytelniejszy wygląd, legendę oraz płynną animację linii przy zmianie zakresu dni.",
+      "Sekcje Forma dziś i Trzymanie się założeń mają wyraźniejsze kafle odseparowane od tła, żeby nie zlewały się z pulpitem.",
+      "Systemowy wstecz w telefonie przy dodawaniu posiłku wraca do jadłospisu zamiast na Pulpit; poprawiono skalowanie viewportu na iPhone.",
+    ],
+  },
+  {
     title: "2026-09 — scoring produktów i pełne nazwy ze skanu",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -142,7 +142,7 @@ export function AddMealScreen({
             placeholder="Wpisz nazwę produktu…"
             autoFocus
             autoComplete="off"
-            className="h-12 w-full rounded-xl border border-white/12 bg-black/50 py-2 pl-10 pr-12 text-sm text-white outline-none placeholder:text-white/35"
+            className="h-12 w-full rounded-xl border border-white/12 bg-black/50 py-2 pl-10 pr-12 text-base text-white outline-none placeholder:text-white/35"
           />
           <button
             type="button"
