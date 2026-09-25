@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — bez fałszywego popupu o zmianach",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Aplikacja nie pokazuje już okna „Zmieniamy się na lepsze” przy zwykłym logu w konsoli albo nieudanym zliczeniu wejścia.",
+      "Komunikat o awarii pojawia się tylko przy prawdziwym błędzie ekranu i mówi „Coś poszło nie tak”.",
+    ],
+  },
+  {
     title: "2026-09 — analytics page-view z aplikacji Android",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
