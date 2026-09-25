@@ -41,7 +41,7 @@ export function ProgressCharts({
 }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
+      <div className="app-card p-5 sm:p-6">
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(255,45,85,0.12),transparent_55%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
@@ -83,10 +83,10 @@ export function ProgressCharts({
                 <Line
                   type="monotone"
                   dataKey="kg"
-                  stroke="#ff2d55"
+                  stroke="#d4af37"
                   strokeWidth={2}
-                  dot={{ r: 3, fill: "#ff2d55", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#ff2d55", stroke: "#fff", strokeWidth: 2 }}
+                  dot={{ r: 3, fill: "#d4af37", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#d4af37", stroke: "#fff", strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -99,7 +99,7 @@ export function ProgressCharts({
         </div>
       </div>
 
-      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
+      <div className="app-card p-5 sm:p-6">
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(225deg,rgba(120,120,255,0.12),transparent_55%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
@@ -116,8 +116,8 @@ export function ProgressCharts({
               <AreaChart data={volume} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="neonVol" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ff2d55" stopOpacity={0.38} />
-                    <stop offset="95%" stopColor="#ff2d55" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#d4af37" stopOpacity={0.38} />
+                    <stop offset="95%" stopColor="#d4af37" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -147,11 +147,11 @@ export function ProgressCharts({
                 <Area
                   type="monotone"
                   dataKey="kg"
-                  stroke="#ff2d55"
+                  stroke="#d4af37"
                   strokeWidth={2}
                   fill="url(#neonVol)"
-                  dot={{ r: 2.5, fill: "#ff2d55", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#ff2d55", stroke: "#fff", strokeWidth: 2 }}
+                  dot={{ r: 2.5, fill: "#d4af37", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#d4af37", stroke: "#fff", strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -164,7 +164,7 @@ export function ProgressCharts({
         </div>
       </div>
 
-      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6 lg:col-span-2">
+      <div className="app-card p-5 sm:p-6 lg:col-span-2">
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(900px_420px_at_15%_0%,rgba(255,45,85,0.14),transparent_60%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
@@ -216,7 +216,7 @@ export function ProgressCharts({
         </div>
       </div>
 
-      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6 lg:col-span-2">
+      <div className="app-card p-5 sm:p-6 lg:col-span-2">
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(120,255,180,0.10),transparent_60%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
