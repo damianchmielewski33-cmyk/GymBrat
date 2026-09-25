@@ -15,6 +15,30 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     ],
   },
   {
+    title: "2026-09 — pulpit i ekrany jak w aplikacji mobilnej",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Ekrany po zalogowaniu mają czarne tło, płaskie ciemne karty i złote liczby — ten sam rytm co na zdjęciach referencyjnych.",
+      "Na dole jest pasek Pulpit, Dieta, Treningi i Wiadomości oraz złoty przycisk Raport na środku.",
+      "Start pokazuje powitanie, następny trening z przyciskiem Zacznij trening, wagę, tempo, formę, przemianę i wymiary ze wykresami.",
+      "Dieta ma układ planu żywieniowego z kafelkami makro, a logowanie nadal zostaje przy zdjęciu siłowni.",
+    ],
+  },
+  {
+    title: "2026-09 — czarno-złoty styl logowania w całej aplikacji",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Wszystkie ekrany korzystają z tego samego czarno-złotego języka co logowanie: złoty akcent, tło ze zdjęciem siłowni i panelami glass/gold.",
+      "Nawigacja, przyciski CTA, wykresy i paski postępu używają tokenów --neon zamiast twardej czerwieni ulicznej.",
+      "Marka GymBrat w nagłówku ma ten sam krój display (Bebas) co na ekranie logowania.",
+      "Ekran Start ma złoty panel powitalny spójny z resztą aplikacji.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
