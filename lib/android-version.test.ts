@@ -50,8 +50,8 @@ describe("parseAndroidVersionInfo", () => {
 describe("bundledAndroidVersion", () => {
   it("zawsze zwraca poprawny fallback GymBrat z public/android-version.json", () => {
     const info = bundledAndroidVersion();
-    expect(info.versionCode).toBe(1);
-    expect(info.versionName).toBe("0.1.0");
+    expect(info.versionCode).toBe(2);
+    expect(info.versionName).toBe("0.1.1");
     expect(info.apkUrl).toMatch(/gymbrat\.apk/);
     expect(info.apkUrl).not.toMatch(/Akademia|akademia-wp/i);
   });

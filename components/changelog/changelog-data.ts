@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — diagnostyka logowania w Android",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Na ekranie logowania jest panel Diagnostyka z logami frontowymi (signIn, console.error, sieć, cookies, wersja APK) — w aplikacji Android otwarty domyślnie.",
+      "Przycisk „Kopiuj logi” zbiera raport do wklejenia, żeby łatwo ustalić przyczynę błędu bez DevTools.",
+    ],
+  },
+  {
     title: "2026-09 — Android APK 0.1.1 na produkcji",
     date: "2026-09-24",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
