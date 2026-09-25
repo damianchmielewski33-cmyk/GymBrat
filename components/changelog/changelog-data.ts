@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — wybór zdjęć w aplikacji Android",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Aplikacja GymBrat na telefonie (WebView) otwiera galerię przy „Wybierz zdjęcia” w raporcie — wcześniej klik w APK nic nie robił, bo brakowało obsługi wyboru pliku.",
+      "Zainstaluj aktualizację Android 0.1.2 (versionCode 3), żeby wybór zdjęć sylwetki działał tak jak w przeglądarce na komputerze.",
+    ],
+  },
+  {
     title: "2026-09 — wybór pliku w raporcie znów działa",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
