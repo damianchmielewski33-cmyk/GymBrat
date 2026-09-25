@@ -1,5 +1,6 @@
 import { FOOD_PRODUCTS_LOCAL } from "@/lib/food-products-data";
-import type { FoodProduct } from "@/lib/food-products-types";
+import { emptyDetails } from "@/lib/food-nutrition";
+import type { FoodNutritionDetails, FoodProduct } from "@/lib/food-products-types";
 
 function normalizeBarcode(raw: string): string {
   return raw.replace(/\D/g, "");
@@ -55,6 +56,24 @@ type OffNutriments = {
   fat_100g?: number;
   carbohydrates_serving?: number;
   carbohydrates_100g?: number;
+  "saturated-fat_100g"?: number;
+  "monounsaturated-fat_100g"?: number;
+  "polyunsaturated-fat_100g"?: number;
+  "omega-3-fat_100g"?: number;
+  "alpha-linolenic-acid_100g"?: number;
+  "omega-6-fat_100g"?: number;
+  "linoleic-acid_100g"?: number;
+  sugars_100g?: number;
+  fiber_100g?: number;
+  salt_100g?: number;
+  sodium_100g?: number;
+  cholesterol_100g?: number;
+  caffeine_100g?: number;
+  "vitamin-a_100g"?: number;
+  "vitamin-c_100g"?: number;
+  "vitamin-d_100g"?: number;
+  calcium_100g?: number;
+  iron_100g?: number;
 };
 
 type OffProduct = {
@@ -63,6 +82,8 @@ type OffProduct = {
   product_name_pl?: string;
   brands?: string;
   serving_size?: string;
+  ingredients_text?: string;
+  ingredients_text_pl?: string;
   nutriments?: OffNutriments;
 };
 
@@ -71,6 +92,49 @@ function pickNum(...vals: Array<number | undefined>): number {
     if (typeof v === "number" && Number.isFinite(v) && v >= 0) return Math.round(v * 10) / 10;
   }
   return 0;
+}
+
+function pickNullable(...vals: Array<number | undefined>): number | null {
+  for (const v of vals) {
+    if (typeof v === "number" && Number.isFinite(v) && v >= 0) {
+      return Math.round(v * 100) / 100;
+    }
+  }
+  return null;
+}
+
+/** OFF sodium_100g jest zwykle w gramach → mg. */
+function sodiumToMg(sodiumG: number | null): number | null {
+  if (sodiumG == null) return null;
+  return Math.round(sodiumG * 1000 * 10) / 10;
+}
+
+function mapOffDetails(
+  n: OffNutriments,
+  ingredientsText: string | null,
+): FoodNutritionDetails {
+  const salt = pickNullable(n.salt_100g);
+  const sodiumG = pickNullable(n.sodium_100g);
+  return {
+    ...emptyDetails(),
+    saturatedFatG: pickNullable(n["saturated-fat_100g"]),
+    monoFatG: pickNullable(n["monounsaturated-fat_100g"]),
+    polyFatG: pickNullable(n["polyunsaturated-fat_100g"]),
+    omega3G: pickNullable(n["omega-3-fat_100g"], n["alpha-linolenic-acid_100g"]),
+    omega6G: pickNullable(n["omega-6-fat_100g"], n["linoleic-acid_100g"]),
+    sugarsG: pickNullable(n.sugars_100g),
+    fiberG: pickNullable(n.fiber_100g),
+    saltG: salt ?? (sodiumG != null ? Math.round(sodiumG * 2.5 * 100) / 100 : null),
+    sodiumMg: sodiumToMg(sodiumG),
+    cholesterolMg: pickNullable(n.cholesterol_100g),
+    caffeineMg: pickNullable(n.caffeine_100g),
+    vitaminAUg: pickNullable(n["vitamin-a_100g"]),
+    vitaminCMg: pickNullable(n["vitamin-c_100g"]),
+    vitaminDUg: pickNullable(n["vitamin-d_100g"]),
+    calciumMg: pickNullable(n.calcium_100g),
+    ironMg: pickNullable(n.iron_100g),
+    ingredientsText,
+  };
 }
 
 /**
@@ -104,6 +168,10 @@ export function mapOpenFoodFactsProduct(raw: OffProduct, barcode: string): FoodP
   const kcal =
     calories > 0 ? Math.round(calories) : Math.round(4 * proteinG + 4 * carbsG + 9 * fatG);
 
+  const ingredientsText =
+    (raw.ingredients_text_pl || raw.ingredients_text || "").trim() || null;
+  const details = mapOffDetails(n, ingredientsText);
+
   return {
     id: `off-${normalizeBarcode(barcode) || raw.code || name}`,
     barcode: normalizeBarcode(barcode) || raw.code || null,
@@ -117,6 +185,7 @@ export function mapOpenFoodFactsProduct(raw: OffProduct, barcode: string): FoodP
     source: "openfoodfacts",
     basisAmount: has100 ? 100 : undefined,
     basisUnit: has100 ? "g" : undefined,
+    details,
   };
 }
 
@@ -160,7 +229,7 @@ export async function searchOpenFoodFacts(query: string, limit = 12): Promise<Fo
     url.searchParams.set("page_size", String(Math.max(limit, 20)));
     url.searchParams.set(
       "fields",
-      "code,product_name,product_name_pl,brands,serving_size,nutriments",
+      "code,product_name,product_name_pl,brands,serving_size,ingredients_text,ingredients_text_pl,nutriments",
     );
     // Preferuj produkty z nazwą PL / sprzedawane w PL
     url.searchParams.set("tagtype_0", "countries");
@@ -185,7 +254,7 @@ export async function searchOpenFoodFacts(query: string, limit = 12): Promise<Fo
     url2.searchParams.set("page_size", String(Math.max(limit, 20)));
     url2.searchParams.set(
       "fields",
-      "code,product_name,product_name_pl,brands,serving_size,nutriments",
+      "code,product_name,product_name_pl,brands,serving_size,ingredients_text,ingredients_text_pl,nutriments",
     );
     const json2 = (await fetchOffJson(url2.toString())) as { products?: OffProduct[] } | null;
     for (const p of json2?.products ?? []) {

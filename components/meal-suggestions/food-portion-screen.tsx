@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, Heart } from "lucide-react";
+import { ChevronDown, ChevronLeft, Heart } from "lucide-react";
 import type { FoodAmountUnit, FoodProduct } from "@/lib/food-products-types";
 import {
   defaultPortionForProduct,
@@ -11,6 +11,7 @@ import {
   type FoodPortionMacros,
 } from "@/lib/food-portion";
 import { DietDayMacrosBar } from "@/components/meal-suggestions/diet-day-macros-bar";
+import { FoodNutritionDetailsPanel } from "@/components/meal-suggestions/food-nutrition-details-panel";
 import {
   DIET_DIARY_SLOT_LABELS,
   type DietDiarySlot,
@@ -39,6 +40,11 @@ function CircleMacro({
       <p className="text-[10px] text-white/45">{label}</p>
     </div>
   );
+}
+
+function unitLabel(unit: FoodAmountUnit): string {
+  if (unit === "pcs") return "sztuka";
+  return unit;
 }
 
 export function FoodPortionScreen({
@@ -77,6 +83,7 @@ export function FoodPortionScreen({
   const [mounted, setMounted] = useState(false);
   const [amountStr, setAmountStr] = useState("100");
   const [unit, setUnit] = useState<FoodAmountUnit>("g");
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -85,6 +92,7 @@ export function FoodPortionScreen({
     const d = defaultPortionForProduct(product);
     setAmountStr(String(d.amount));
     setUnit(d.unit);
+    setDetailsOpen(false);
   }, [product, open]);
 
   const amount = Number(String(amountStr).replace(",", "."));
@@ -103,12 +111,22 @@ export function FoodPortionScreen({
     const basis = resolveProductBasis(product);
     const list: Array<{ amount: number; unit: FoodAmountUnit }> = [
       { amount: 100, unit: "g" },
-      { amount: basis.amount, unit: basis.unit },
     ];
     if (product.gramsPerPiece) {
+      list.push({ amount: product.gramsPerPiece, unit: "g" });
       list.push({ amount: 1, unit: "pcs" });
     }
-    // unique
+    if (
+      basis.unit === "g" &&
+      basis.amount !== 100 &&
+      basis.amount !== product.gramsPerPiece
+    ) {
+      list.push({ amount: basis.amount, unit: "g" });
+    }
+    if (basis.unit === "ml") {
+      list.push({ amount: 100, unit: "ml" });
+      if (basis.amount !== 100) list.push({ amount: basis.amount, unit: "ml" });
+    }
     const seen = new Set<string>();
     return list.filter((p) => {
       const k = `${p.amount}-${p.unit}`;
@@ -165,7 +183,7 @@ export function FoodPortionScreen({
                 )}
               >
                 <span className="text-sm text-white/85">
-                  {p.amount} × {p.unit === "pcs" ? "sztuka" : p.unit}
+                  {p.amount} {unitLabel(p.unit)}
                 </span>
                 <span className="text-sm tabular-nums text-white/55">
                   {m.calories} kcal
@@ -185,7 +203,7 @@ export function FoodPortionScreen({
             <select
               value={unit}
               onChange={(e) => setUnit(e.target.value as FoodAmountUnit)}
-              className="h-10 rounded-lg border border-white/15 bg-black/40 px-2 text-sm text-white outline-none"
+              className="h-10 rounded-lg border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/10 px-2 text-sm text-[var(--gym-gold-bright)] outline-none"
               aria-label="Jednostka"
             >
               <option value="g">g</option>
@@ -200,9 +218,26 @@ export function FoodPortionScreen({
 
         {per100 ? (
           <div className="mt-6">
-            <p className="mb-3 text-sm text-white/55">W 100 g:</p>
+            <button
+              type="button"
+              onClick={() => setDetailsOpen((v) => !v)}
+              className="mb-3 flex w-full items-center justify-between text-left"
+              aria-expanded={detailsOpen}
+            >
+              <p className="text-sm text-white/55">W 100 g:</p>
+              <ChevronDown
+                className={cn(
+                  "h-5 w-5 text-white/45 transition-transform",
+                  detailsOpen && "rotate-180",
+                )}
+              />
+            </button>
             <div className="flex justify-around">
-              <CircleMacro value={String(per100.calories)} label="kcal" ring="border-white/40" />
+              <CircleMacro
+                value={String(per100.calories)}
+                label="kcal"
+                ring="border-white/40"
+              />
               <CircleMacro
                 value={`${Math.round(per100.proteinG * 10) / 10} g`}
                 label="Białko"
@@ -219,6 +254,12 @@ export function FoodPortionScreen({
                 ring="border-violet-400/70"
               />
             </div>
+            {detailsOpen ? (
+              <FoodNutritionDetailsPanel
+                product={product}
+                macrosPer100={per100}
+              />
+            ) : null}
           </div>
         ) : null}
 

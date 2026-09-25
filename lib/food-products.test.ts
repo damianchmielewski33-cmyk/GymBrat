@@ -13,6 +13,15 @@ import {
 } from "@/lib/food-products";
 import { FOOD_PRODUCTS_LOCAL } from "@/lib/food-products-data";
 import { defaultPortionForProduct, scaleFoodMacros } from "@/lib/food-portion";
+import {
+  buildNutritionRows,
+  carbohydrateExchanges,
+  classifyIngredient,
+  formatNutrientValue,
+  gymbratNutritionScore,
+  proteinFatExchanges,
+  splitIngredients,
+} from "@/lib/food-nutrition";
 
 describe("diet-diary-slots", () => {
   it("ma 6 sekcji Fitatu z polskimi etykietami", () => {
@@ -60,6 +69,14 @@ describe("food-products local db", () => {
     expect(normalizeFoodQuery("Jabłko")).toBe("jablko");
     expect(searchLocalProducts("jablko").some((p) => /jabł/i.test(p.name))).toBe(true);
   });
+
+  it("banan i kiwi mają szczegóły odżywcze", () => {
+    const banan = searchLocalProducts("banan")[0]!;
+    expect(banan.details?.sugarsG).toBeGreaterThan(0);
+    expect(banan.details?.fiberG).toBeGreaterThan(0);
+    const kiwi = searchLocalProducts("kiwi")[0]!;
+    expect(kiwi.details?.vitaminCMg).toBeGreaterThan(50);
+  });
 });
 
 describe("food-portion", () => {
@@ -95,5 +112,59 @@ describe("food-portion", () => {
     )!;
     expect(mapped.servingLabel).toBe("100 g");
     expect(defaultPortionForProduct(mapped)).toEqual({ amount: 100, unit: "g" });
+  });
+});
+
+describe("food-nutrition", () => {
+  it("liczy WW i WBT", () => {
+    expect(carbohydrateExchanges(21.8)).toBe(2.2);
+    expect(proteinFatExchanges(17, 18)).toBe(2.3);
+  });
+
+  it("klasyfikuje składniki i dzieli tekst", () => {
+    expect(classifyIngredient("Mleko pasteryzowane")).toBe("healthy");
+    expect(classifyIngredient("Sól")).toBe("harmful");
+    expect(classifyIngredient("Kwas cytrynowy")).toBe("safe");
+    expect(splitIngredients("Mleko, woda, sól")).toEqual(["Mleko", "woda", "sól"]);
+  });
+
+  it("mapuje OFF na szczegóły i score", () => {
+    const mapped = mapOpenFoodFactsProduct(
+      {
+        product_name: "Ser",
+        ingredients_text_pl: "Mleko pasteryzowane, sól, kwas cytrynowy",
+        nutriments: {
+          "energy-kcal_100g": 238,
+          proteins_100g: 17,
+          fat_100g: 18,
+          carbohydrates_100g: 1,
+          "saturated-fat_100g": 13,
+          sugars_100g: 0.5,
+          salt_100g: 0.7,
+          calcium_100g: 500,
+        },
+      },
+      "5900000000099",
+    )!;
+    expect(mapped.details?.saturatedFatG).toBe(13);
+    expect(mapped.details?.saltG).toBe(0.7);
+    expect(mapped.details?.calciumMg).toBe(500);
+    expect(mapped.details?.ingredientsText).toContain("Mleko");
+    const score = gymbratNutritionScore(mapped);
+    expect(score).toBeTruthy();
+    expect(score!.score).toBeLessThanOrEqual(5);
+    expect(score!.score).toBeGreaterThanOrEqual(1);
+
+    const rows = buildNutritionRows(
+      {
+        calories: mapped.calories,
+        proteinG: mapped.proteinG,
+        fatG: mapped.fatG,
+        carbsG: mapped.carbsG,
+      },
+      mapped.details,
+    );
+    expect(rows.some((r) => r.id === "sat" && r.value === 13)).toBe(true);
+    expect(formatNutrientValue(null, "g")).toBe("b.d.");
   });
 });

@@ -1,6 +1,31 @@
 /** Jednostka ilości przy dodawaniu produktu (jak w Fitatu). */
 export type FoodAmountUnit = "g" | "ml" | "pcs";
 
+/** Wartość odżywcza — null = brak danych (b.d.). */
+export type NutrientValue = number | null;
+
+/** Szczegóły odżywcze na 100 g (lub 100 ml) — jak w karcie Fitatu. */
+export type FoodNutritionDetails = {
+  saturatedFatG: NutrientValue;
+  monoFatG: NutrientValue;
+  polyFatG: NutrientValue;
+  omega3G: NutrientValue;
+  omega6G: NutrientValue;
+  sugarsG: NutrientValue;
+  fiberG: NutrientValue;
+  saltG: NutrientValue;
+  sodiumMg: NutrientValue;
+  cholesterolMg: NutrientValue;
+  caffeineMg: NutrientValue;
+  vitaminAUg: NutrientValue;
+  vitaminCMg: NutrientValue;
+  vitaminDUg: NutrientValue;
+  calciumMg: NutrientValue;
+  ironMg: NutrientValue;
+  /** Składniki tekstowe (z etykiety / OFF). */
+  ingredientsText: string | null;
+};
+
 /** Produkt spożywczy w lokalnej bazie / wyniku skanu. */
 export type FoodProduct = {
   id: string;
@@ -25,4 +50,6 @@ export type FoodProduct = {
   basisUnit?: FoodAmountUnit;
   /** Dla sztuk: ile gramów ma 1 sztuka (do przeliczenia na g). */
   gramsPerPiece?: number;
+  /** Szczegóły mikro / tłuszcze / cukry — na 100 g. */
+  details?: FoodNutritionDetails;
 };

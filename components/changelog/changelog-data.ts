@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — karta produktu: szczegóły odżywcze jak Fitatu",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Na ekranie porcji rozwijasz „W 100 g” i widzisz tabelę makro/mikro (tłuszcze nasycone, cukry, błonnik, witaminy, minerały) z wartością „b.d.” gdy brak danych.",
+      "Pod tabelą są wymienniki WW i WBT, składniki z tagami Zdrowy / Bezpieczny / Szkodliwy oraz ocena GymBrat na podstawie soli, cukru i tłuszczu nasyconego.",
+      "Porcje g / ml / sztuka i sticky pasek makro dnia (kcal, białko, tłuszcz, węgle) zostają widoczne podczas przewijania szczegółów.",
+    ],
+  },
+  {
     title: "2026-09 — dziennik diety jak Fitatu: jadłospis, szukaj, porcja",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
