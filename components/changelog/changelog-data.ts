@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — skan etykiety aparatem na Diecie",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Przycisk „Skanuj etykietę produktu” na Diecie otwiera aparat — zeskanuj kod EAN z opakowania, a makro (białko, węgle, tłuszcz, kcal) trafi od razu do wybranej sekcji dziennika.",
+      "Aplikacja Android 0.1.4 prosi o dostęp do kamery w WebView, żeby skan działał też w APK.",
+    ],
+  },
+  {
     title: "2026-09 — dieta jak Fitatu: skan i sekcje posiłków",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

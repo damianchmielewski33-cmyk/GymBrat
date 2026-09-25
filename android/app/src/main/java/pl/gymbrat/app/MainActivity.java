@@ -1,15 +1,19 @@
 package pl.gymbrat.app;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.webkit.CookieManager;
+import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -23,6 +27,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import pl.gymbrat.app.bridge.GymBratAndroidJsBridge;
 import pl.gymbrat.app.update.AppUpdater;
@@ -40,6 +45,24 @@ public final class MainActivity extends AppCompatActivity {
 
     /** Callback WebView dla input type=file — bez tego wybór zdjęć w APK milczy. */
     private ValueCallback<Uri[]> filePathCallback;
+
+    /** Oczekujące żądanie getUserMedia (skan etykiety) — po runtime CAMERA. */
+    private PermissionRequest pendingWebPermissionRequest;
+
+    private final ActivityResultLauncher<String> cameraPermissionLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(),
+                    granted -> {
+                        PermissionRequest req = pendingWebPermissionRequest;
+                        pendingWebPermissionRequest = null;
+                        if (req == null) return;
+                        if (granted) {
+                            req.grant(req.getResources());
+                        } else {
+                            req.deny();
+                        }
+                    }
+            );
 
     private final ActivityResultLauncher<Intent> fileChooserLauncher =
             registerForActivityResult(
@@ -194,6 +217,37 @@ public final class MainActivity extends AppCompatActivity {
             public void onProgressChanged(WebView view, int newProgress) {
                 progressBar.setProgress(newProgress);
                 progressBar.setVisibility(newProgress >= 100 ? View.GONE : View.VISIBLE);
+            }
+
+            @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                if (request == null) return;
+                String[] resources = request.getResources();
+                boolean wantsCamera = false;
+                if (resources != null) {
+                    for (String r : resources) {
+                        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r)) {
+                            wantsCamera = true;
+                            break;
+                        }
+                    }
+                }
+                if (!wantsCamera) {
+                    request.deny();
+                    return;
+                }
+
+                runOnUiThread(() -> {
+                    if (Build.VERSION.SDK_INT >= 23
+                            && ContextCompat.checkSelfPermission(
+                            MainActivity.this, Manifest.permission.CAMERA)
+                            != PackageManager.PERMISSION_GRANTED) {
+                        pendingWebPermissionRequest = request;
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+                        return;
+                    }
+                    request.grant(request.getResources());
+                });
             }
 
             @Override

@@ -100,9 +100,9 @@ export function defaultApkUrl(): string {
 export function bundledAndroidVersion(): AndroidVersionInfo {
   const parsed = parseAndroidVersionInfo(bundled);
   if (parsed) return { ...parsed, apkUrl: parsed.apkUrl || defaultApkUrl() };
-  const pkg = process.env.NEXT_PUBLIC_APP_VERSION?.trim() || "0.1.3";
+  const pkg = process.env.NEXT_PUBLIC_APP_VERSION?.trim() || "0.1.4";
   return {
-    versionCode: 4,
+    versionCode: 5,
     versionName: pkg,
     apkUrl: defaultApkUrl(),
     notes: "Wbudowana informacja o wersji GymBrat (fallback).",
