@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — zdjęcia w raporcie wracają do APK",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Po wyborze zdjęcia w galerii telefonu wraca ono do formularza raportu w aplikacji Android — wcześniej galeria się otwierała, ale plik nie trafiał do pola zdjęć.",
+      "Zainstaluj GymBrat Android 0.1.3, a na stronie używany jest bezpośredni wybór pliku (bez sztucznego klikania inputa), żeby WebView poprawnie przyjął zdjęcie.",
+    ],
+  },
+  {
     title: "2026-09 — wybór zdjęć w aplikacji Android",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

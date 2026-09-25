@@ -1,7 +1,9 @@
 package pl.gymbrat.app;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -43,13 +45,36 @@ public final class MainActivity extends AppCompatActivity {
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     result -> {
-                        if (filePathCallback == null) return;
-                        Uri[] uris = WebChromeClient.FileChooserParams.parseResult(
-                                result.getResultCode(),
-                                result.getData()
-                        );
-                        filePathCallback.onReceiveValue(uris);
+                        ValueCallback<Uri[]> callback = filePathCallback;
                         filePathCallback = null;
+                        if (callback == null) return;
+
+                        Uri[] uris = null;
+                        if (result.getResultCode() == Activity.RESULT_OK) {
+                            Intent data = result.getData();
+                            uris = WebChromeClient.FileChooserParams.parseResult(
+                                    result.getResultCode(),
+                                    data
+                            );
+                            if ((uris == null || uris.length == 0) && data != null) {
+                                uris = extractUrisFromIntent(data);
+                            }
+                            if (uris != null) {
+                                for (Uri uri : uris) {
+                                    if (uri == null) continue;
+                                    try {
+                                        grantUriPermission(
+                                                getPackageName(),
+                                                uri,
+                                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                        );
+                                    } catch (Exception ignored) {
+                                        /* niektóre URI nie przyjmują grantUriPermission */
+                                    }
+                                }
+                            }
+                        }
+                        callback.onReceiveValue(uris);
                     }
             );
 
@@ -190,21 +215,42 @@ public final class MainActivity extends AppCompatActivity {
                     return false;
                 }
 
-                // Galeria / Dokumenty — WebView bez tego callbacka nie otwiera selektora.
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 if (fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) {
                     intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                 }
 
                 try {
-                    fileChooserLauncher.launch(Intent.createChooser(intent, "Wybierz plik"));
+                    // Bez zbędnego createChooser — część launcherów gubi ClipData w wyniku.
+                    fileChooserLauncher.launch(intent);
                 } catch (ActivityNotFoundException e) {
-                    MainActivity.this.filePathCallback.onReceiveValue(null);
-                    MainActivity.this.filePathCallback = null;
-                    return false;
+                    try {
+                        fileChooserLauncher.launch(Intent.createChooser(intent, "Wybierz plik"));
+                    } catch (ActivityNotFoundException e2) {
+                        MainActivity.this.filePathCallback.onReceiveValue(null);
+                        MainActivity.this.filePathCallback = null;
+                        return false;
+                    }
                 }
                 return true;
             }
         });
+    }
+
+    /** Fallback, gdy parseResult zwróci null (częste na OEM galeriach). */
+    private static Uri[] extractUrisFromIntent(Intent data) {
+        ClipData clip = data.getClipData();
+        if (clip != null && clip.getItemCount() > 0) {
+            Uri[] uris = new Uri[clip.getItemCount()];
+            for (int i = 0; i < clip.getItemCount(); i++) {
+                uris[i] = clip.getItemAt(i).getUri();
+            }
+            return uris;
+        }
+        if (data.getData() != null) {
+            return new Uri[]{data.getData()};
+        }
+        return null;
     }
 
     private void markContentReady() {
@@ -227,7 +273,8 @@ public final class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        if (filePathCallback != null) {
+        // Nie kasuj callbacka przy rotacji / odtworzeniu pod galerią — tylko przy prawdziwym zamknięciu.
+        if (isFinishing() && filePathCallback != null) {
             filePathCallback.onReceiveValue(null);
             filePathCallback = null;
         }
