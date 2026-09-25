@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "pl.gymbrat.app",
+      "sha256_cert_fingerprints": [
+        "A6:0B:52:C9:5A:BA:EF:6A:23:D6:EE:EE:48:D4:B5:59:06:D8:C3:AB:5E:44:7E:27:87:6E:28:65:61:E5:17:0B"
+      ]
+    }
+  }
+]
