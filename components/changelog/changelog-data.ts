@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — Android 0.1.5: aktualizacja APK i dialog kamery",
+    date: "2026-09-25",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "W profilu aplikacji Android „Sprawdź ponownie” porównuje Twoją wersję z najnowszym APK (0.1.5) i uruchamia pobieranie, gdy jest nowsza kompilacja.",
+      "Serwer nie bierze już starszego GitHub Release nad nowszą wersją z aplikacji — aktualizacja do 0.1.5 znów jest widoczna przy 0.1.3.",
+      "APK 0.1.5 naprawia brak systemowego pytania o aparat przy skanie EAN (most requestCameraPermission).",
+    ],
+  },
+  {
     title: "2026-09 — Android: dialog kamery przy skanie EAN",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

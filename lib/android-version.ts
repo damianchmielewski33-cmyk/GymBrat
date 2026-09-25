@@ -151,12 +151,21 @@ async function fetchVersionCandidate(url: string): Promise<AndroidVersionInfo | 
 
 /**
  * Źródła: env → GitHub Release GymBrat → bundled public/android-version.json.
+ * Bierzemy kandydata z najwyższym versionCode (stary release nie może
+ * zasłaniać nowszego bundled / odwrotnie).
  * Nigdy nie bierzemy wersji ani APK Akademii Wielkich Piłkarzy.
  */
 export async function resolveAndroidVersion(): Promise<AndroidVersionInfo> {
+  const candidates: AndroidVersionInfo[] = [];
   for (const url of versionJsonUrls()) {
     const info = await fetchVersionCandidate(url);
-    if (info) return info;
+    if (info) candidates.push(info);
   }
-  return bundledAndroidVersion();
+  candidates.push(bundledAndroidVersion());
+
+  let best = candidates[0]!;
+  for (const c of candidates) {
+    if (c.versionCode > best.versionCode) best = c;
+  }
+  return best;
 }

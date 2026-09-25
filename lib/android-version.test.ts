@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   bundledAndroidVersion,
   defaultApkUrl,
   isForeignAndroidArtifactUrl,
   parseAndroidVersionInfo,
+  resolveAndroidVersion,
 } from "@/lib/android-version";
 
 describe("parseAndroidVersionInfo", () => {
@@ -64,8 +65,8 @@ describe("parseAndroidVersionInfo", () => {
 describe("bundledAndroidVersion", () => {
   it("zwraca wersję GymBrat, nie Akademii", () => {
     const info = bundledAndroidVersion();
-    expect(info.versionCode).toBe(4);
-    expect(info.versionName).toBe("0.1.3");
+    expect(info.versionCode).toBe(6);
+    expect(info.versionName).toBe("0.1.5");
     expect(info.apkUrl).toMatch(/gymbrat\.apk/i);
     expect(isForeignAndroidArtifactUrl(info.apkUrl)).toBe(false);
     expect(info.apkUrl.toLowerCase()).not.toContain("akademia");
@@ -76,5 +77,32 @@ describe("defaultApkUrl", () => {
   it("wskazuje gymbrat.apk z repozytorium GymBrat", () => {
     expect(defaultApkUrl()).toMatch(/GymBrat\/releases\/download\/android-latest\/gymbrat\.apk/i);
     expect(isForeignAndroidArtifactUrl("https://example.com/akademia-wp.apk")).toBe(true);
+  });
+});
+
+describe("resolveAndroidVersion", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("wybiera wyższy versionCode niż stary GitHub Release", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              versionCode: 2,
+              versionName: "0.1.1",
+              apkUrl:
+                "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+      ),
+    );
+    const info = await resolveAndroidVersion();
+    expect(info.versionCode).toBeGreaterThanOrEqual(6);
+    expect(info.versionName).toBe("0.1.5");
   });
 });
