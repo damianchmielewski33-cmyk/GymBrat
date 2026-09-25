@@ -28,7 +28,6 @@ import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 import { SlidersHorizontal, RotateCcw, ScrollText } from "lucide-react";
-import { ActiveWorkoutCoachPanel } from "@/components/active-workout/active-workout-coach-panel";
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
@@ -55,14 +54,10 @@ function planExercisesToSession(exercises: WorkoutPlanExercise[]): WorkoutExerci
 export function ActiveWorkoutView({
   initialPlans,
   entry = "active",
-  userAiFeaturesDisabled = false,
-  userAiEntitled = true,
   display = "page",
 }: {
   initialPlans: WorkoutPlanWithLastWorkoutDTO[];
   entry?: "active" | "start";
-  userAiFeaturesDisabled?: boolean;
-  userAiEntitled?: boolean;
   display?: "page" | "modal";
 }) {
   const {
@@ -485,17 +480,6 @@ export function ActiveWorkoutView({
         }
       >
         <div className={hasLoadedPlan ? "grid gap-0" : ""}>
-          {hasLoadedPlan ? (
-            <ActiveWorkoutCoachPanel
-              title={title}
-              elapsedSeconds={elapsed}
-              exercises={exercises}
-              selectedExerciseId={selectedExerciseId}
-              restRemaining={restRemaining}
-              userAiOff={userAiFeaturesDisabled}
-              notEntitledToAi={!userAiEntitled}
-            />
-          ) : null}
           <ActiveSessionCard
             hasLoadedPlan={hasLoadedPlan}
             initialPlansEmpty={initialPlans.length === 0}

@@ -14,8 +14,7 @@ export const screenLinkClass =
   "rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
 
 export const screenCtaClass =
-  "h-11 bg-[var(--neon)] text-base font-semibold text-white hover:bg-[#ff4d6d] focus-visible:ring-2 focus-visible:ring-white/95 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
-
+  "gym-btn-primary h-11 rounded-2xl px-5 text-base focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
 export const screenInputClass =
   "min-h-11 border-white/20 bg-black/50 text-white placeholder:text-white/40";
 
@@ -29,7 +28,7 @@ export function ScreenCard({
   footer?: ReactNode;
 }) {
   return (
-    <section className={cn("glass-panel p-8", className)}>
+    <section className={cn("app-card p-6 sm:p-8", className)}>
       {children}
       {footer ? (
         <div className="mt-8 border-t border-white/10 pt-6">{footer}</div>
@@ -97,18 +96,20 @@ export function ScreenHeader({
 }) {
   return (
     <ScreenCard className={className}>
-      <ScreenHeading
-        kicker={kicker}
-        title={title}
-        description={description}
-        showBrand={showBrand}
-        className={actions ? "mb-8" : undefined}
-      />
-      {actions ? (
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-          {actions}
-        </div>
-      ) : null}
+      <div>
+        <ScreenHeading
+          kicker={kicker}
+          title={title}
+          description={description}
+          showBrand={showBrand}
+          className={actions ? "mb-8" : undefined}
+        />
+        {actions ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            {actions}
+          </div>
+        ) : null}
+      </div>
     </ScreenCard>
   );
 }

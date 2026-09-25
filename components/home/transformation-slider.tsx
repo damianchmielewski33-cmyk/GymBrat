@@ -1,95 +1,109 @@
 "use client";
 
 import Image from "next/image";
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { MoveHorizontal } from "lucide-react";
+
+function formatShort(iso: string | null) {
+  if (!iso) return "";
+  try {
+    return new Intl.DateTimeFormat("pl-PL", {
+      day: "numeric",
+      month: "short",
+      year: "2-digit",
+    }).format(new Date(`${iso}T12:00:00`));
+  } catch {
+    return iso;
+  }
+}
 
 export function TransformationSlider({
   firstPhotoUrl,
   latestPhotoUrl,
+  latestPhotoDate,
 }: {
   firstPhotoUrl: string | null;
   latestPhotoUrl: string | null;
+  latestPhotoDate?: string | null;
 }) {
   const [pos, setPos] = useState(50);
   const canCompare = Boolean(firstPhotoUrl && latestPhotoUrl);
 
   return (
-    <section className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
-      <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:radial-gradient(800px_360px_at_80%_0%,rgba(255,45,85,0.12),transparent_55%)]" />
-      <div className="relative">
-        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-          Postęp
-        </p>
-        <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-          Twoja przemiana
-        </h2>
-        <p className="mt-1 text-xs text-white/50">
-          Pierwsze zdjęcie w aplikacji porównane z ostatnim z raportu.
-        </p>
+    <section className="app-card p-5">
+      <p className="app-label">Twoja przemiana</p>
 
-        {!canCompare ? (
-          <div className="mt-5 rounded-xl border border-dashed border-white/15 bg-black/25 px-4 py-10 text-center">
-            <p className="text-sm text-white/60">
-              Dodaj zdjęcia sylwetki w raporcie, żeby zobaczyć porównanie suwakiem.
-            </p>
-            <Link
-              href="/reports"
-              className="mt-3 inline-flex text-sm font-medium text-[var(--neon)] underline-offset-4 hover:underline"
+      {!canCompare ? (
+        <div className="mt-4 rounded-2xl bg-black/30 px-4 py-10 text-center">
+          <p className="text-sm text-white/55">
+            Dodaj zdjęcia sylwetki w raporcie, żeby zobaczyć porównanie suwakiem.
+          </p>
+          <Link
+            href="/reports"
+            className="mt-3 inline-flex text-sm font-medium text-[var(--neon)]"
+          >
+            Przejdź do raportów
+          </Link>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-3">
+          <div className="relative aspect-square w-full overflow-hidden rounded-3xl bg-black">
+            <Image
+              src={latestPhotoUrl!}
+              alt="Ostatnie zdjęcie z raportu"
+              fill
+              unoptimized
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 430px"
+            />
+            <div
+              className="absolute inset-0"
+              style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
             >
-              Przejdź do raportów
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-5 space-y-3">
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-white/10 bg-black/40 sm:aspect-[16/10]">
               <Image
-                src={latestPhotoUrl!}
-                alt="Ostatnie zdjęcie z raportu"
+                src={firstPhotoUrl!}
+                alt="Pierwsze zdjęcie w aplikacji"
                 fill
                 unoptimized
                 className="object-cover"
-                sizes="(max-width: 768px) 100vw, 720px"
+                sizes="(max-width: 768px) 100vw, 430px"
               />
-              <div
-                className="absolute inset-0"
-                style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
-              >
-                <Image
-                  src={firstPhotoUrl!}
-                  alt="Pierwsze zdjęcie w aplikacji"
-                  fill
-                  unoptimized
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 720px"
-                />
-              </div>
-              <div
-                className="pointer-events-none absolute inset-y-0 w-0.5 bg-white/90 shadow-[0_0_12px_rgba(0,0,0,0.55)]"
-                style={{ left: `${pos}%` }}
-              />
-              <div className="pointer-events-none absolute left-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/85">
-                Start
-              </div>
-              <div className="pointer-events-none absolute right-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/85">
-                Teraz
-              </div>
             </div>
-            <label className="block">
-              <span className="sr-only">Porównanie przemiany</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={pos}
-                onChange={(e) => setPos(Number(e.target.value))}
-                className="score-range block w-full"
-                style={{ "--range-pct": `${pos}%` } as CSSProperties}
-              />
-            </label>
+            <div
+              className="pointer-events-none absolute inset-y-0 w-px bg-white/90"
+              style={{ left: `${pos}%` }}
+            />
+            <div
+              className="pointer-events-none absolute top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black"
+              style={{ left: `${pos}%` }}
+            >
+              <MoveHorizontal className="h-4 w-4" />
+            </div>
+            <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/85">
+              Start
+            </div>
+            <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/85">
+              Teraz{latestPhotoDate ? ` · ${formatShort(latestPhotoDate)}` : ""}
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={pos}
+              onChange={(e) => setPos(Number(e.target.value))}
+              className="absolute inset-0 z-10 cursor-ew-resize opacity-0"
+              aria-label="Porównanie przemiany"
+            />
           </div>
-        )}
-      </div>
+          <Link
+            href="/reports"
+            className="block text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40"
+          >
+            Zmień zdjęcie startowe
+          </Link>
+        </div>
+      )}
     </section>
   );
 }
