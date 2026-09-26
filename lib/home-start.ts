@@ -755,6 +755,7 @@ export async function getHomeStartDashboard(
 
   const [
     userRow,
+    settingsRow,
     nextWorkout,
     workoutsThisWeek,
     cardioThisWeekMinutes,
@@ -779,6 +780,12 @@ export async function getHomeStartDashboard(
       })
       .from(users)
       .where(eq(users.id, userId))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+    db
+      .select({ reportCadenceDays: userSettings.reportCadenceDays })
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
       .limit(1)
       .then((rows) => rows[0] ?? null),
     getNextWorkoutPlan(userId),
@@ -841,7 +848,10 @@ export async function getHomeStartDashboard(
     daysInProgram,
     reportCount: programMeta.reportCount,
     daysSinceLastReport: reportInsights.daysSinceLastReport,
-    reportCadenceDays: 14,
+    reportCadenceDays: Math.min(
+      90,
+      Math.max(3, settingsRow?.reportCadenceDays ?? 14),
+    ),
     currentWeightKg,
     tempoKgPerMin,
     weightFromStartKg: weightFromStart.deltaKg,

@@ -16,6 +16,7 @@ import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { LocaleSwitchCard } from "@/components/profile/locale-switch-card";
 import { AndroidAppVersionCard } from "@/components/android-app-version-card";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
+import { ReportCadenceForm } from "@/components/profile/report-cadence-form";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -75,6 +76,7 @@ export default async function ProfilePage() {
   const [s] = await db
     .select({
       goal: userSettings.weeklyCardioGoalMinutes,
+      reportCadenceDays: userSettings.reportCadenceDays,
       trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
       restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
       nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
@@ -168,6 +170,14 @@ export default async function ProfilePage() {
         description="Minuty cardio na tydzień — postęp widać na Pulpicie i w Treningach."
       >
         <ProfileGoalForm initialGoal={s?.goal ?? 150} />
+      </ProfileSection>
+
+      <ProfileSection
+        kicker="Raporty"
+        title="Cykl raportów"
+        description="Co ile dni chcesz dodawać raport sylwetki. Po każdym zapisie timer startuje od nowa."
+      >
+        <ReportCadenceForm initialDays={s?.reportCadenceDays ?? 14} />
       </ProfileSection>
 
       <ReminderSettingsCard initial={parseRemindersJson(s?.remindersJson ?? null)} />

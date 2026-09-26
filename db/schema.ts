@@ -287,9 +287,12 @@ export const userSettings = sqliteTable("user_settings", {
   userId: text("user_id")
     .primaryKey()
     .references(() => users.id, { onDelete: "cascade" }),
+  /** Cel minut cardio na tydzień */
   weeklyCardioGoalMinutes: integer("weekly_cardio_goal_minutes")
     .notNull()
     .default(150),
+  /** Co ile dni dodawać raport sylwetki (timer na Pulpicie restartuje się po zapisie). */
+  reportCadenceDays: integer("report_cadence_days").notNull().default(14),
   /** JSON: { calories, proteinG, fatG, carbsG } — cele na dzień treningowy */
   trainingNutritionGoalsJson: text("training_nutrition_goals_json"),
   /** JSON: { calories, proteinG, fatG, carbsG } — cele na dzień nietreningowy */

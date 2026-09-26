@@ -55,7 +55,7 @@ export default async function HomePage() {
           <Clock className="h-4 w-4 text-[var(--neon)]" aria-hidden />
           {daysLeft == null
             ? "Dodaj pierwszy raport, żeby pilnować rytmu."
-            : `Raport za ${daysLeft} dni · co dwa tygodnie`}
+            : `Raport za ${daysLeft} ${daysLeft === 1 ? "dzień" : "dni"} · co ${dash.reportCadenceDays} ${dash.reportCadenceDays === 1 ? "dzień" : "dni"}`}
         </p>
       </header>
 
@@ -112,7 +112,6 @@ export default async function HomePage() {
         weightKg={dash.dimensions.weightKg}
         waistCm={dash.dimensions.waistCm}
         armCm={dash.dimensions.armCm}
-        abdomenCm={dash.dimensions.abdomenCm}
         chestCm={dash.dimensions.chestCm}
         thighCm={dash.dimensions.thighCm}
         waistSpark={dash.dimensions.waistSpark}

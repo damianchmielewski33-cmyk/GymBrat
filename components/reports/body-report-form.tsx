@@ -46,7 +46,6 @@ export type BodyReportFieldHints = {
   chestCm?: number | null;
   thighCm?: number | null;
   armCm?: number | null;
-  abdomenCm?: number | null;
   dayEnergy?: number | null;
   trainingEnergy?: number | null;
   digestionScore?: number | null;
@@ -80,7 +79,6 @@ type DraftPayload = {
   chestCm: string;
   thighCm: string;
   armCm: string;
-  abdomenCm: string;
   dayEnergy: number | null;
   trainingEnergy: number | null;
   digestionScore: number | null;
@@ -551,7 +549,6 @@ export function BodyReportForm({
   const [chestCm, setChestCm] = useState("");
   const [thighCm, setThighCm] = useState("");
   const [armCm, setArmCm] = useState("");
-  const [abdomenCm, setAbdomenCm] = useState("");
 
   const [dayEnergy, setDayEnergy] = useState<number | null>(null);
   const [trainingEnergy, setTrainingEnergy] = useState<number | null>(null);
@@ -589,7 +586,6 @@ export function BodyReportForm({
     setChestCm("");
     setThighCm("");
     setArmCm("");
-    setAbdomenCm("");
     setDayEnergy(null);
     setTrainingEnergy(null);
     setDigestionScore(null);
@@ -614,7 +610,6 @@ export function BodyReportForm({
           setChestCm(d.chestCm ?? "");
           setThighCm(d.thighCm ?? "");
           setArmCm(d.armCm ?? "");
-          setAbdomenCm(d.abdomenCm ?? "");
           setDayEnergy(d.dayEnergy ?? null);
           setTrainingEnergy(d.trainingEnergy ?? null);
           setDigestionScore(d.digestionScore ?? null);
@@ -660,7 +655,6 @@ export function BodyReportForm({
       setChestCm(d.chestCm ?? "");
       setThighCm(d.thighCm ?? "");
       setArmCm(d.armCm ?? "");
-      setAbdomenCm(d.abdomenCm ?? "");
       setDayEnergy(d.dayEnergy ?? null);
       setTrainingEnergy(d.trainingEnergy ?? null);
       setDigestionScore(d.digestionScore ?? null);
@@ -685,7 +679,6 @@ export function BodyReportForm({
       chestCm,
       thighCm,
       armCm,
-      abdomenCm,
       dayEnergy,
       trainingEnergy,
       digestionScore,
@@ -709,7 +702,6 @@ export function BodyReportForm({
     chestCm,
     thighCm,
     armCm,
-    abdomenCm,
     dayEnergy,
     trainingEnergy,
     digestionScore,
@@ -758,6 +750,14 @@ export function BodyReportForm({
       }
       return true;
     }
+    if (s === 4) {
+      const missing = PHOTO_SLOTS.filter((slot) => !slotPhotos[slot.key]);
+      if (missing.length > 0) {
+        setFieldError("Dodaj zdjęcia: przód, bok i tył — wszystkie trzy są wymagane.");
+        return false;
+      }
+      return true;
+    }
     return true;
   };
 
@@ -786,7 +786,7 @@ export function BodyReportForm({
   };
 
   const submit = () => {
-    for (const s of [1, 2, 3] as const) {
+    for (const s of [1, 2, 3, 4] as const) {
       if (!validateStep(s)) {
         setStep(s);
         return;
@@ -823,7 +823,6 @@ export function BodyReportForm({
             chestCm: parseDecimal(chestCm),
             thighCm: parseDecimal(thighCm),
             armCm: parseDecimal(armCm),
-            abdomenCm: parseDecimal(abdomenCm),
             trainingEnergy,
             sleepQuality,
             dayEnergy,
@@ -978,13 +977,6 @@ export function BodyReportForm({
                 hint={formatHintNumber(lastHints?.armCm ?? null)}
               />
             </div>
-            <MeasureInput
-              id="abdomenCm"
-              label="Brzuch (cm)"
-              value={abdomenCm}
-              onChange={setAbdomenCm}
-              hint={formatHintNumber(lastHints?.abdomenCm ?? null)}
-            />
           </div>
         </div>
       ) : null}
@@ -1084,7 +1076,7 @@ export function BodyReportForm({
             icon={<ImageIcon className="h-5 w-5" />}
             step={4}
             title="Zdjęcia sylwetki"
-            subtitle="Prywatne, widzę je tylko ja."
+            subtitle="Przód, bok i tył — wszystkie trzy wymagane."
           />
           <div className="mt-5 grid grid-cols-3 gap-2.5">
             {PHOTO_SLOTS.map((slot) => (
@@ -1100,9 +1092,6 @@ export function BodyReportForm({
               />
             ))}
           </div>
-          <p className="mt-3 text-center text-xs italic text-white/45">
-            „Przód” napędza slider Twojej przemiany.
-          </p>
         </div>
       ) : null}
 
@@ -1123,7 +1112,6 @@ export function BodyReportForm({
                 ["Udo", parseDecimal(thighCm) != null ? `${parseDecimal(thighCm)} cm` : "—"],
                 ["Klatka", parseDecimal(chestCm) != null ? `${parseDecimal(chestCm)} cm` : "—"],
                 ["Ramię", parseDecimal(armCm) != null ? `${parseDecimal(armCm)} cm` : "—"],
-                ["Brzuch", parseDecimal(abdomenCm) != null ? `${parseDecimal(abdomenCm)} cm` : "—"],
               ] as const
             ).map(([label, val]) => (
               <div

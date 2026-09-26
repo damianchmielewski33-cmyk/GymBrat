@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — raport: wymagane zdjęcia, bez brzucha, cykl w profilu",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Przy dodawaniu raportu wymagane są zawsze trzy zdjęcia (przód, bok, tył); usunięto pole Brzuch (cm), bo dublowało pas.",
+      "W Profilu ustawiasz co ile dni dodawać raport — timer na Pulpicie i w Raportach restartuje się po każdym zapisie.",
+    ],
+  },
+  {
     title: "2026-09 — Pulpit, Profil, Analiza i pasek dolny",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

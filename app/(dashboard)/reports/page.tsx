@@ -1,4 +1,7 @@
 import { auth } from "@/auth";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { userSettings } from "@/db/schema";
 import { BodyReportImport } from "@/components/reports/body-report-import";
 import { BodyReportForm } from "@/components/reports/body-report-form";
 import { BodyReportHistory } from "@/components/reports/body-report-history";
@@ -10,12 +13,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-const REPORT_CYCLE_DAYS = 10;
-
-function daysUntilNextReport(latest: Date | null): number | null {
+function daysUntilNextReport(
+  latest: Date | null,
+  cadenceDays: number,
+): number | null {
   if (!latest) return null;
   const next = new Date(latest);
-  next.setDate(next.getDate() + REPORT_CYCLE_DAYS);
+  next.setDate(next.getDate() + cadenceDays);
   return Math.ceil((next.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
 }
 
@@ -23,9 +27,22 @@ export default async function ReportsPage() {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) redirect("/login");
-  const reports = await getBodyReports(userId);
+  const db = getDb();
+  const [reports, settingsRow] = await Promise.all([
+    getBodyReports(userId),
+    db
+      .select({ reportCadenceDays: userSettings.reportCadenceDays })
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+  ]);
+  const cadenceDays = Math.min(
+    90,
+    Math.max(3, settingsRow?.reportCadenceDays ?? 14),
+  );
   const latest = reports[0]?.createdAt ?? null;
-  const daysUntilNext = daysUntilNextReport(latest);
+  const daysUntilNext = daysUntilNextReport(latest, cadenceDays);
   const lastHints = reports[0]
     ? {
         weightKg: reports[0].weightKg,
@@ -33,7 +50,6 @@ export default async function ReportsPage() {
         chestCm: reports[0].chestCm,
         thighCm: reports[0].thighCm,
         armCm: reports[0].armCm,
-        abdomenCm: reports[0].abdomenCm,
         dayEnergy: reports[0].dayEnergy,
         trainingEnergy: reports[0].trainingEnergy,
         digestionScore: reports[0].digestionScore,
@@ -63,6 +79,13 @@ export default async function ReportsPage() {
         </h1>
         <p className="text-sm text-white/45">
           Wypełnij pomiary i samopoczucie — historia oraz eksport są niżej.
+          {daysUntilNext != null ? (
+            <>
+              {" "}
+              Kolejny wg cyklu ({cadenceDays} dni):{" "}
+              {daysUntilNext <= 0 ? "teraz" : `za ${daysUntilNext} dni`}.
+            </>
+          ) : null}
         </p>
       </header>
 
@@ -76,7 +99,6 @@ export default async function ReportsPage() {
         <BodyReportForm daysUntilNext={daysUntilNext} lastHints={lastHints} />
       </Suspense>
 
-      {/* Historia / eksport / import — zawsze na dole ekranu */}
       <div className="space-y-6 border-t border-white/10 pt-8">
         <header className="space-y-1">
           <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#d4af37]/85">

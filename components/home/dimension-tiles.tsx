@@ -130,7 +130,6 @@ export function DimensionTiles({
   weightKg: number | null;
   waistCm: number | null;
   armCm: number | null;
-  abdomenCm: number | null;
   chestCm: number | null;
   thighCm: number | null;
   waistSpark: HomeStartSpark[];
