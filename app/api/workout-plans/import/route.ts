@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { workoutPlans } from "@/db/schema";
 import { parseWorkoutPlansFromDoc, parseWorkoutPlansFromDocx } from "@/lib/docx/workout-plan-import";
 import { parseWorkoutPlansFromXlsx } from "@/lib/excel/workout-plan-import";
+import { parseWorkoutPlansFromPdf } from "@/lib/pdf/workout-plan-import";
 import {
   detectWorkoutPlanFileKind,
   type WorkoutPlanFileKind,
@@ -20,6 +21,7 @@ const MAX_BYTES = 8 * 1024 * 1024;
 async function parseByKind(kind: WorkoutPlanFileKind, buffer: Buffer) {
   if (kind === "docx") return parseWorkoutPlansFromDocx(buffer);
   if (kind === "doc") return parseWorkoutPlansFromDoc(buffer);
+  if (kind === "pdf") return parseWorkoutPlansFromPdf(buffer);
   return parseWorkoutPlansFromXlsx(buffer);
 }
 
@@ -59,7 +61,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Wybierz plik Word (.doc / .docx) albo Excel (.xlsx).",
+        error: "Wybierz plik Word (.doc / .docx), Excel (.xlsx) albo PDF.",
       },
       { status: 400 },
     );
@@ -109,7 +111,7 @@ export async function POST(req: Request) {
       {
         ok: false,
         error:
-          "Nie rozpoznano pliku. Wybierz .doc / .docx (Word) albo .xlsx / .xls (Excel). Na Androidzie: Pliki → Pobrane.",
+          "Nie rozpoznano pliku. Wybierz .doc / .docx (Word), .xlsx (Excel) albo .pdf. Na Androidzie: Pliki → Pobrane.",
         debug: { name: fileName || null, mime: mime || null, bytes: buffer.length },
       },
       { status: 400 },

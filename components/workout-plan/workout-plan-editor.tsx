@@ -274,7 +274,7 @@ export function WorkoutPlanEditor({
         description={
           editorOpen
             ? "Nadaj nazwę dnia (np. Push A), przypisz ćwiczenia, serie i powtórzenia. Start sesji jest w zakładce Treningi."
-            : "Tu ustawiasz plan — dni i ćwiczenia. Możesz też wgrać plan z Worda (.doc / .docx) lub Excela. Start treningu jest w Treningach."
+            : "Tu ustawiasz plan — dni i ćwiczenia. Możesz też wgrać plan z PDF, Worda lub Excela. Start treningu jest w Treningach."
         }
         actions={
           editorOpen ? (

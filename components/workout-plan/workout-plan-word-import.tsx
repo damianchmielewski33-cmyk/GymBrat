@@ -11,11 +11,12 @@ import { cn } from "@/lib/utils";
 
 /** Szeroki accept — Android WebView często ukrywa pliki przy wąskim MIME. */
 const PLAN_FILE_ACCEPT =
-  ".doc,.docx,.xlsx,.xls,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/octet-stream,*/*";
+  ".pdf,.doc,.docx,.xlsx,.xls,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/octet-stream,*/*";
 
 function isSupportedPlanFile(file: File): boolean {
   const n = (file.name || "").toLowerCase();
   if (
+    n.endsWith(".pdf") ||
     n.endsWith(".doc") ||
     n.endsWith(".docx") ||
     n.endsWith(".xlsx") ||
@@ -27,6 +28,7 @@ function isSupportedPlanFile(file: File): boolean {
   // Android WebView czasem oddaje pustą nazwę — wtedy polegamy na MIME / serwerze
   const mime = (file.type || "").toLowerCase();
   if (
+    mime.includes("pdf") ||
     mime.includes("spreadsheet") ||
     mime.includes("excel") ||
     mime.includes("msword") ||
@@ -40,10 +42,12 @@ function isSupportedPlanFile(file: File): boolean {
 }
 
 function namedUploadFile(file: File): File {
-  if (file.name && /\.(doc|docx|xlsx|xls|xlsm)$/i.test(file.name)) return file;
+  if (file.name && /\.(pdf|doc|docx|xlsx|xls|xlsm)$/i.test(file.name)) return file;
   const mime = (file.type || "").toLowerCase();
   let ext = "xlsx";
-  if (mime.includes("wordprocessingml") || mime === "application/msword") {
+  if (mime.includes("pdf")) {
+    ext = "pdf";
+  } else if (mime.includes("wordprocessingml") || mime === "application/msword") {
     ext = mime.includes("wordprocessingml") ? "docx" : "doc";
   } else if (mime.includes("spreadsheet") || mime.includes("excel")) {
     ext = "xlsx";
@@ -78,8 +82,8 @@ export function WorkoutPlanWordImport() {
               Import planu
             </p>
             <p className="mt-1.5 text-sm text-white/50">
-              Wgraj plan z Worda (.doc / .docx) albo Excela (.xlsx) — aplikacja
-              utworzy dni/plany z ćwiczeniami, seriami i powtórzeniami.
+              Wgraj plan z PDF, Worda (.doc / .docx) albo Excela (.xlsx) —
+              aplikacja utworzy dni/plany z ćwiczeniami, seriami i powtórzeniami.
             </p>
           </div>
           <button
@@ -88,7 +92,7 @@ export function WorkoutPlanWordImport() {
             className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-4 text-sm font-semibold text-[var(--gym-gold)] hover:bg-[var(--gym-gold)]/15"
           >
             <FileUp className="h-4 w-4" aria-hidden />
-            Importuj Word / Excel
+            Importuj PDF / Word / Excel
           </button>
         </div>
       ) : (
@@ -99,7 +103,7 @@ export function WorkoutPlanWordImport() {
             setError(null);
             setWarnings([]);
             if (!file) {
-              setError("Wybierz plik .doc, .docx albo .xlsx.");
+              setError("Wybierz plik .pdf, .doc, .docx albo .xlsx.");
               return;
             }
             if (isLikelyEmptyUpload(file)) {
@@ -110,7 +114,7 @@ export function WorkoutPlanWordImport() {
             }
             if (!isSupportedPlanFile(file)) {
               setError(
-                "Wybierz plik Word (.doc / .docx) albo Excel (.xlsx). Na telefonie: Pliki → Pobrane.",
+                "Wybierz PDF, Word (.doc / .docx) albo Excel (.xlsx). Na telefonie: Pliki → Pobrane.",
               );
               return;
             }
@@ -160,12 +164,12 @@ export function WorkoutPlanWordImport() {
                 Import planu
               </p>
               <h3 className="mt-1 text-base font-semibold text-white">
-                Word (.doc / .docx) lub Excel (.xlsx)
+                PDF, Word (.doc / .docx) lub Excel (.xlsx)
               </h3>
               <p className="mt-1 text-xs text-white/45">
-                Na Androidzie: wybierz plik z folderu Pobrane (nie z galerii). Word:
-                nagłówki dni + „Przysiady 4x8”. Excel: kolumny dzień / ćwiczenie /
-                serie / powtórzenia.
+                Na Androidzie: wybierz plik z folderu Pobrane (nie z galerii). PDF/Word:
+                nagłówki dni (Push, Pull, Nogi) + „2s 8-10p” albo „Przysiady 4x8”.
+                Excel: kolumny dzień / ćwiczenie / serie / powtórzenia.
               </p>
             </div>
             <button
@@ -195,12 +199,12 @@ export function WorkoutPlanWordImport() {
               }
               setError(
                 f && !isSupportedPlanFile(f)
-                  ? "Ten typ pliku nie jest obsługiwany — wybierz .doc, .docx lub .xlsx."
+                  ? "Ten typ pliku nie jest obsługiwany — wybierz .pdf, .doc, .docx lub .xlsx."
                   : null,
               );
             }}
             valueLabel={file ? file.name : undefined}
-            emptyLabel="Wybierz plik (.doc / .docx / .xlsx)"
+            emptyLabel="Wybierz plik (.pdf / .doc / .docx / .xlsx)"
           />
 
           {error ? <p className="text-sm text-rose-400">{error}</p> : null}

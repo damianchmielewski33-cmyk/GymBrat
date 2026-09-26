@@ -360,6 +360,8 @@ public final class MainActivity extends AppCompatActivity {
                     || t.contains(".xls")
                     || t.contains(".doc")
                     || t.contains(".docx")
+                    || t.contains("pdf")
+                    || t.contains(".pdf")
                     || t.equals("*/*")
                     || t.equals("application/octet-stream")) {
                 return true;
@@ -377,6 +379,7 @@ public final class MainActivity extends AppCompatActivity {
             open.putExtra(Intent.EXTRA_MIME_TYPES, types);
         } else {
             open.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
+                    "application/pdf",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     "application/msword",

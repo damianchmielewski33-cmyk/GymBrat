@@ -12,10 +12,13 @@ const WEEKDAY_RE =
   /^(poniedziałek|poniedzialek|wtorek|środa|sroda|czwartek|piątek|piatek|sobota|niedziela|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
 
 const DAY_HEADER_RE =
-  /^(dzie[nń]\s*[a-z0-9]+|day\s*[a-z0-9]+|trening\s*[a-z0-9]+|sesja\s*[a-z0-9]+|push(?:\s*[ab12])?|pull(?:\s*[ab12])?|legs?(?:\s*[ab12])?|upper(?:\s*[ab12])?|lower(?:\s*[ab12])?|full\s*body|fbw|a\/b|plan\s+.+)$/i;
+  /^(dzie[nń]\s*[a-z0-9]+|day\s*[a-z0-9]+|trening\s*[a-z0-9]+|sesja\s*[a-z0-9]+|push(?:\s*[ab12])?|pull(?:\s*[ab12])?|nogi|klatka(?:\s*\+\s*.+)?|barki(?:\s*\+\s*.+)?|legs?(?:\s*[ab12])?|upper(?:\s*[ab12])?|lower(?:\s*[ab12])?|full\s*body|fbw|a\/b|plan\s+.+)$/i;
 
 const SETS_REPS_RE =
   /(\d{1,2})\s*[x×]\s*(\d{1,3}(?:-\d{1,3})?)/i;
+
+/** Zapis trenerów: „2s 8-10p”, „3s 8-10”. */
+const SETS_P_RE = /(\d{1,2})\s*s\s+(\d{1,3}(?:-\d{1,3})?)\s*p?/i;
 
 function cleanLine(raw: string): string {
   return raw
@@ -58,6 +61,7 @@ function parseSetsReps(line: string): {
   if (isLikelyHeader(cleaned.replace(/:$/, ""))) return null;
 
   const match = cleaned.match(SETS_REPS_RE);
+  const coach = cleaned.match(SETS_P_RE);
   let sets = 3;
   let reps = 10;
   let name = cleaned;
@@ -71,6 +75,16 @@ function parseSetsReps(line: string): {
       : 10;
     name = cleaned
       .replace(SETS_REPS_RE, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  } else if (coach) {
+    sets = Math.min(20, Math.max(1, Number(coach[1])));
+    const repsFirst = Number(coach[2]!.split("-")[0]);
+    reps = Number.isFinite(repsFirst)
+      ? Math.min(100, Math.max(1, repsFirst))
+      : 10;
+    name = cleaned
+      .replace(SETS_P_RE, " ")
       .replace(/\s+/g, " ")
       .trim();
   }

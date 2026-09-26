@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — import planu treningowego z PDF",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "W Profilu → Plan treningowy możesz wgrać plan z PDF — aplikacja czyta dni (Push, Pull, Nogi, Klatka, Barki) oraz serie i powtórzenia w zapisie „2s 8-10p”.",
+      "Obsługiwane są też Word i Excel; na Androidzie wybierz plik z folderu Pobrane.",
+    ],
+  },
+  {
     title: "2026-09 — import Excela: pusty plik z Androida (400 w 16 ms)",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

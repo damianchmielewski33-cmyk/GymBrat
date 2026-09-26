@@ -1,4 +1,14 @@
-export type WorkoutPlanFileKind = "docx" | "doc" | "xlsx";
+export type WorkoutPlanFileKind = "docx" | "doc" | "xlsx" | "pdf";
+
+function isPdf(buf: Buffer): boolean {
+  return (
+    buf.length >= 4 &&
+    buf[0] === 0x25 &&
+    buf[1] === 0x50 &&
+    buf[2] === 0x44 &&
+    buf[3] === 0x46
+  );
+}
 
 /** OLE Compound File (stary .doc / .xls). */
 function isOle(buf: Buffer): boolean {
@@ -40,6 +50,7 @@ export function detectWorkoutPlanFileKind(opts: {
     .toLowerCase();
   const buf = opts.buffer;
 
+  if (name.endsWith(".pdf")) return "pdf";
   if (name.endsWith(".docx")) return "docx";
   if (name.endsWith(".doc")) return "doc";
   if (
@@ -66,6 +77,9 @@ export function detectWorkoutPlanFileKind(opts: {
     return "docx";
   }
   if (mime === "application/msword") return "doc";
+  if (mime === "application/pdf" || mime.includes("pdf")) return "pdf";
+
+  if (isPdf(buf)) return "pdf";
 
   if (isZip(buf)) {
     if (zipLooksLike(buf, "xl/") || zipLooksLike(buf, "workbook.xml")) {
