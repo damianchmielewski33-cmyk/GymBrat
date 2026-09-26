@@ -1,0 +1,18 @@
+server:
+  port: ${PORT:8080}
+
+gymbrat:
+  source-repo: ${GYMBRAT_SOURCE_REPO:damianchmielewski33-cmyk/GymBrat}
+  app-version: ${GYMBRAT_APP_VERSION:0.2.0}
+  git-sha: ${GYMBRAT_GIT_SHA:}
+  # Współdzielony sekret BFF: Next.js ustawia X-GymBrat-Proxy-Token przy proxy.
+  proxy-token: ${GYMBRAT_PROXY_TOKEN:}
+  cors-origins: ${GYMBRAT_CORS_ORIGINS:http://localhost:3000,https://gym-brat.vercel.app}
+  android:
+    # Nadpisz w produkcji adresem GitHub Releases GymBrat albo CDN.
+    apk-url: ${ANDROID_APK_URL:https://raw.githubusercontent.com/damianchmielewski33-cmyk/GymBrat/cursor/fix-android-file-chooser-9f08/public/gymbrat.apk}
+    version-json: classpath:android-version.json
+    # Opcjonalne nadpisania (0 / puste = z pliku JSON)
+    version-code: ${ANDROID_VERSION_CODE:0}
+    version-name: ${ANDROID_VERSION_NAME:}
+    notes: ${ANDROID_NOTES:}

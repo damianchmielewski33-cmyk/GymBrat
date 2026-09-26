@@ -25,9 +25,9 @@ export default function GlobalError({
       <body className="min-h-full font-sans antialiased">
         <AlertDialog open>
           <AlertDialogContent>
-            <AlertDialogTitle>Zmieniamy się na lepsze</AlertDialogTitle>
+            <AlertDialogTitle>Coś poszło nie tak</AlertDialogTitle>
             <AlertDialogDescription>
-              Zmieniamy się na lepsze
+              Spróbuj ponownie. Jeśli problem się powtarza, odśwież stronę.
             </AlertDialogDescription>
             <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
               <Button variant="outline" onClick={() => reset()}>
@@ -43,4 +43,3 @@ export default function GlobalError({
     </html>
   );
 }
-
