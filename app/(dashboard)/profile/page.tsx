@@ -6,7 +6,7 @@ import { ProfileGoalForm } from "@/components/profile/profile-goal-form";
 import { BodyParamsForm } from "@/components/profile/body-params-form";
 import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { LogoutButton } from "@/components/profile/logout-button";
-import { CalendarRange, ScrollText, Shield, User as UserIcon } from "lucide-react";
+import { CalendarRange, Dumbbell, ScrollText, Shield, User as UserIcon } from "lucide-react";
 import { ScreenHeader } from "@/components/layout/screen";
 import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
 import { DataRightsCard } from "@/components/profile/data-rights-card";
@@ -19,8 +19,6 @@ import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { LocaleSwitchCard } from "@/components/profile/locale-switch-card";
 import { AndroidAppVersionCard } from "@/components/android-app-version-card";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
-import { AiFeaturesSettingsCard } from "@/components/profile/ai-features-settings-card";
-import { getUserAiEntitled } from "@/lib/user-ai-preference";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -54,14 +52,10 @@ export default async function ProfilePage() {
       remindersJson: userSettings.remindersJson,
       fitnessGoalsJson: userSettings.fitnessGoalsJson,
       mealTemplatesJson: userSettings.mealTemplatesJson,
-      aiFeaturesDisabled: userSettings.aiFeaturesDisabled,
-      aiEntitled: userSettings.aiEntitled,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
     .limit(1);
-
-  const entitled = s ? Boolean(s.aiEntitled) : await getUserAiEntitled(userId);
 
   const nutritionInitial = nutritionSettingsFromDbRow(
     s ?? {
@@ -149,13 +143,32 @@ export default async function ProfilePage() {
           <LocaleSwitchCard />
         </div>
 
+        <section className="glass-panel relative overflow-hidden p-8 lg:col-span-2">
+          <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(120deg,rgba(255,255,255,0.08),transparent_55%),radial-gradient(700px_320px_at_90%_10%,rgba(235,196,74,0.12),transparent_60%)]" />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
+                Trening
+              </p>
+              <h2 className="font-heading mt-2 text-xl font-semibold">Plan treningowy</h2>
+              <p className="mt-2 max-w-xl text-sm text-white/60">
+                Tu ustawiasz dni planu i ćwiczenia. Start sesji, cardio i historia są w zakładce
+                Treningi.
+              </p>
+            </div>
+            <Link
+              href="/profile/workout-plan"
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-[rgba(var(--neon-rgb),0.45)] bg-[var(--gym-gold)]/10 px-5 text-sm font-semibold text-[var(--gym-gold)] hover:bg-[var(--gym-gold)]/15"
+            >
+              <Dumbbell className="h-4 w-4" aria-hidden />
+              Ustaw plan
+            </Link>
+          </div>
+        </section>
+
         <div className="grid gap-6 lg:col-span-2 lg:grid-cols-2">
           <ReminderSettingsCard initial={parseRemindersJson(s?.remindersJson ?? null)} />
           <FitnessGoalsForm initial={parseFitnessGoalsJson(s?.fitnessGoalsJson ?? null)} />
-        </div>
-
-        <div className="lg:col-span-2">
-          {entitled ? <AiFeaturesSettingsCard initialDisabled={Boolean(s?.aiFeaturesDisabled)} /> : null}
         </div>
 
         <div className="lg:col-span-2">

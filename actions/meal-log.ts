@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { ensureMealLogsTableOncePerProcess } from "@/db/ensure-schema";
 import { mealLogs } from "@/db/schema";
 import { kcalFromMacros } from "@/lib/kcal-from-macros";
+import { isDietDiarySlot } from "@/lib/diet-diary-slots";
 
 export type MealLogFormState = {
   error?: string;
@@ -71,10 +72,14 @@ export async function addMealLogAction(
   const parsed = z
     .object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      slot: z.string().trim().optional(),
+      barcode: z.string().trim().max(32).optional(),
     })
     .merge(mealMacrosSchema)
     .safeParse({
       date: formData.get("date"),
+      slot: formData.get("slot") || undefined,
+      barcode: formData.get("barcode") || undefined,
       name: formData.get("name") || undefined,
       proteinG: formData.get("proteinG"),
       fatG: formData.get("fatG"),
@@ -86,11 +91,12 @@ export async function addMealLogAction(
     return { error: "Sprawdź poprawność liczb i daty." };
   }
 
-  const { date, ...macroRest } = parsed.data;
+  const { date, slot: rawSlot, barcode, ...macroRest } = parsed.data;
   const withKcal = finalizeMealMacros(macroRest);
   const check = validateMealMacros(withKcal);
   if (!check.ok) return { error: check.error };
 
+  const slot = rawSlot && isDietDiarySlot(rawSlot) ? rawSlot : null;
   const { name, calories, proteinG, fatG, carbsG } = withKcal;
   await ensureMealLogsTableOncePerProcess();
   const db = getDb();
@@ -98,6 +104,8 @@ export async function addMealLogAction(
     userId: session.user.id,
     date,
     name: name?.length ? name : null,
+    slot,
+    barcode: barcode?.length ? barcode.replace(/\D/g, "") : null,
     calories,
     proteinG,
     fatG,
@@ -105,6 +113,68 @@ export async function addMealLogAction(
   });
 
   revalidatePath("/");
+  revalidatePath("/meal-suggestions");
+  return { ok: true };
+}
+
+/** Dodanie produktu ze skanu / bazy (bez FormData) — po odczycie kodu EAN. */
+export async function addMealProductAction(input: {
+  date: string;
+  slot?: string | null;
+  barcode?: string | null;
+  name: string;
+  proteinG: number;
+  fatG: number;
+  carbsG: number;
+  calories?: number;
+}): Promise<MealLogFormState> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Brak sesji." };
+
+  const parsed = z
+    .object({
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      slot: z.string().trim().optional().nullable(),
+      barcode: z.string().trim().max(32).optional().nullable(),
+      name: z.string().trim().min(1).max(120),
+      proteinG: z.number().finite().min(0),
+      fatG: z.number().finite().min(0),
+      carbsG: z.number().finite().min(0),
+      calories: z.number().finite().min(0).optional(),
+    })
+    .safeParse(input);
+
+  if (!parsed.success) return { error: "Sprawdź dane produktu." };
+
+  const withKcal = finalizeMealMacros({
+    name: parsed.data.name,
+    proteinG: parsed.data.proteinG,
+    fatG: parsed.data.fatG,
+    carbsG: parsed.data.carbsG,
+    calories: parsed.data.calories,
+  });
+  const check = validateMealMacros(withKcal);
+  if (!check.ok) return { error: check.error };
+
+  const slot =
+    parsed.data.slot && isDietDiarySlot(parsed.data.slot) ? parsed.data.slot : null;
+
+  await ensureMealLogsTableOncePerProcess();
+  const db = getDb();
+  await db.insert(mealLogs).values({
+    userId: session.user.id,
+    date: parsed.data.date,
+    name: withKcal.name ?? parsed.data.name,
+    slot,
+    barcode: parsed.data.barcode?.replace(/\D/g, "") || null,
+    calories: withKcal.calories,
+    proteinG: withKcal.proteinG,
+    fatG: withKcal.fatG,
+    carbsG: withKcal.carbsG,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/meal-suggestions");
   return { ok: true };
 }
 
@@ -163,6 +233,7 @@ export async function updateMealLogAction(
   }
 
   revalidatePath("/");
+  revalidatePath("/meal-suggestions");
   return { ok: true };
 }
 
@@ -205,5 +276,6 @@ async function deleteMealLogCore(
   }
 
   revalidatePath("/");
+  revalidatePath("/meal-suggestions");
   return { ok: true };
 }
