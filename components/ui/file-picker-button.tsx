@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, type ChangeEventHandler, type ReactNode } from "react";
+import { useId, useState, type ChangeEventHandler, type ReactNode } from "react";
+import { snapshotFiles } from "@/lib/file-snapshot";
 import { cn } from "@/lib/utils";
 
 type FilePickerButtonProps = {
@@ -18,9 +19,8 @@ type FilePickerButtonProps = {
 
 /**
  * Wybór pliku odporny na Android WebView:
- * klik musi trafiać w prawdziwy input type=file (nakładka opacity-0),
- * a nie w Button wywołujący input.click() — wtedy po powrocie z galerii
- * plik często nie trafia do inputa.
+ * klik musi trafiać w prawdziwy input type=file (nakładka opacity-0).
+ * Bajty kopiujemy ZANIM wyczyścimy input — inaczej File ma size 0.
  */
 export function FilePickerButton({
   id,
@@ -36,22 +36,39 @@ export function FilePickerButton({
 }: FilePickerButtonProps) {
   const autoId = useId();
   const inputId = id ?? autoId;
+  const [reading, setReading] = useState(false);
 
   const handleChange: ChangeEventHandler<HTMLInputElement> = (e) => {
-    const files = Array.from(e.target.files ?? []);
-    onFiles(files);
-    // Pozwala wybrać ten sam plik ponownie.
-    e.target.value = "";
+    const input = e.currentTarget;
+    const files = Array.from(input.files ?? []);
+    if (files.length === 0) {
+      onFiles([]);
+      return;
+    }
+    setReading(true);
+    void snapshotFiles(files)
+      .then((copies) => {
+        onFiles(copies);
+      })
+      .catch(() => {
+        onFiles(files);
+      })
+      .finally(() => {
+        input.value = "";
+        setReading(false);
+      });
   };
 
-  const text = label ?? (valueLabel ? valueLabel : emptyLabel);
+  const text =
+    label ??
+    (reading ? "Odczytywanie pliku…" : valueLabel ? valueLabel : emptyLabel);
 
   return (
     <div className={cn("relative z-10 inline-flex w-full sm:w-auto", className)}>
       <div
         className={cn(
           "gym-btn-outline pointer-events-none relative flex h-11 w-full min-w-0 items-center justify-center rounded-2xl px-5 text-sm sm:min-w-[12rem]",
-          disabled && "opacity-45",
+          (disabled || reading) && "opacity-45",
           buttonClassName,
         )}
         aria-hidden
@@ -63,11 +80,11 @@ export function FilePickerButton({
         type="file"
         accept={accept}
         multiple={multiple}
-        disabled={disabled}
+        disabled={disabled || reading}
         aria-label={typeof text === "string" ? text : "Wybierz plik"}
         className={cn(
           "absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0",
-          disabled && "pointer-events-none",
+          (disabled || reading) && "pointer-events-none",
         )}
         onChange={handleChange}
       />

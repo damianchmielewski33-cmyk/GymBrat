@@ -6,6 +6,7 @@ import { FileUp } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { FilePickerButton } from "@/components/ui/file-picker-button";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
+import { isLikelyEmptyUpload } from "@/lib/file-snapshot";
 import { cn } from "@/lib/utils";
 
 /** Szeroki accept — Android WebView często ukrywa pliki przy wąskim MIME. */
@@ -101,6 +102,12 @@ export function WorkoutPlanWordImport() {
               setError("Wybierz plik .doc, .docx albo .xlsx.");
               return;
             }
+            if (isLikelyEmptyUpload(file)) {
+              setError(
+                "Nie udało się odczytać pliku (pusty). Wybierz ponownie z folderu Pobrane.",
+              );
+              return;
+            }
             if (!isSupportedPlanFile(file)) {
               setError(
                 "Wybierz plik Word (.doc / .docx) albo Excel (.xlsx). Na telefonie: Pliki → Pobrane.",
@@ -110,8 +117,10 @@ export function WorkoutPlanWordImport() {
             start(async () => {
               try {
                 await ensureCsrfCookie();
+                const upload = namedUploadFile(file);
                 const fd = new FormData();
-                fd.set("file", namedUploadFile(file));
+                fd.set("file", upload);
+                fd.set("filename", upload.name || file.name || "plan.xlsx");
                 const res = await fetch("/api/workout-plans/import", {
                   method: "POST",
                   credentials: "include",
@@ -178,6 +187,12 @@ export function WorkoutPlanWordImport() {
             onFiles={(files) => {
               const f = files[0] ?? null;
               setFile(f);
+              if (f && isLikelyEmptyUpload(f)) {
+                setError(
+                  "Nie udało się odczytać pliku (pusty). Wybierz ponownie z folderu Pobrane.",
+                );
+                return;
+              }
               setError(
                 f && !isSupportedPlanFile(f)
                   ? "Ten typ pliku nie jest obsługiwany — wybierz .doc, .docx lub .xlsx."

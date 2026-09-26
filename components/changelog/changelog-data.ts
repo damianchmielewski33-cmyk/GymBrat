@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — import Excela: pusty plik z Androida (400 w 16 ms)",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Import planu z Excela na Androidzie nie wysyła już pustego pliku: bajty są kopiowane od razu po wyborze, zanim WebView wyczyści input.",
+      "API jasno zgłasza pusty upload; aplikacja Android kopiuje wybrany dokument do pamięci podręcznej, żeby serwer dostał treść .xlsx / .doc.",
+    ],
+  },
+  {
     title: "2026-09 — naprawa importu Excela (Android 400)",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

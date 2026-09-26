@@ -7,9 +7,11 @@ import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
@@ -20,6 +22,11 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -93,18 +100,7 @@ public final class MainActivity extends AppCompatActivity {
                                 uris = extractUrisFromIntent(data);
                             }
                             if (uris != null) {
-                                for (Uri uri : uris) {
-                                    if (uri == null) continue;
-                                    try {
-                                        grantUriPermission(
-                                                getPackageName(),
-                                                uri,
-                                                Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                        );
-                                    } catch (Exception ignored) {
-                                        /* niektóre URI nie przyjmują grantUriPermission */
-                                    }
-                                }
+                                persistAndCopyUris(data, uris);
                             }
                         }
                         callback.onReceiveValue(uris);
@@ -274,7 +270,12 @@ public final class MainActivity extends AppCompatActivity {
                     return false;
                 }
 
+                if (shouldPreferOpenDocument(fileChooserParams)) {
+                    intent = buildOpenDocumentIntent(fileChooserParams);
+                }
+
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
                 if (fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) {
                     intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                 }
@@ -339,6 +340,133 @@ public final class MainActivity extends AppCompatActivity {
             return;
         }
         request.grant(granted.toArray(new String[0]));
+    }
+
+    /**
+     * Excel/Word z Pobranych: ACTION_OPEN_DOCUMENT daje trwały odczyt URI.
+     * createIntent() WebView często idzie w GET_CONTENT i WebView dostaje pusty File.
+     */
+    private static boolean shouldPreferOpenDocument(WebChromeClient.FileChooserParams params) {
+        String[] types = params.getAcceptTypes();
+        if (types == null || types.length == 0) return true;
+        for (String raw : types) {
+            if (raw == null) continue;
+            String t = raw.toLowerCase();
+            if (t.contains("spreadsheet")
+                    || t.contains("excel")
+                    || t.contains("msword")
+                    || t.contains("wordprocessing")
+                    || t.contains(".xlsx")
+                    || t.contains(".xls")
+                    || t.contains(".doc")
+                    || t.contains(".docx")
+                    || t.equals("*/*")
+                    || t.equals("application/octet-stream")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Intent buildOpenDocumentIntent(WebChromeClient.FileChooserParams params) {
+        Intent open = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        open.addCategory(Intent.CATEGORY_OPENABLE);
+        open.setType("*/*");
+        String[] types = params.getAcceptTypes();
+        if (types != null && types.length > 0) {
+            open.putExtra(Intent.EXTRA_MIME_TYPES, types);
+        } else {
+            open.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "application/msword",
+                    "application/vnd.ms-excel",
+                    "application/octet-stream",
+                    "*/*"
+            });
+        }
+        return open;
+    }
+
+    private void persistAndCopyUris(@Nullable Intent data, Uri[] uris) {
+        int flags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
+        if (data != null) {
+            flags |= data.getFlags();
+        }
+        for (int i = 0; i < uris.length; i++) {
+            Uri uri = uris[i];
+            if (uri == null) continue;
+            try {
+                getContentResolver().takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                );
+            } catch (Exception ignored) {
+                /* GET_CONTENT nie wspiera persistable */
+            }
+            try {
+                grantUriPermission(
+                        getPackageName(),
+                        uri,
+                        flags | Intent.FLAG_GRANT_READ_URI_PERMISSION
+                );
+            } catch (Exception ignored) {
+                /* niektóre URI nie przyjmują grantUriPermission */
+            }
+            Uri cached = copyUriToCache(uri);
+            if (cached != null) {
+                uris[i] = cached;
+            }
+        }
+    }
+
+    /** Kopia do cache — WebView wtedy czyta prawdziwe bajty, nie pusty content://. */
+    @Nullable
+    private Uri copyUriToCache(Uri src) {
+        String name = queryDisplayName(src);
+        File dir = new File(getCacheDir(), "uploads");
+        if (!dir.exists() && !dir.mkdirs()) return null;
+        File dest = new File(dir, System.currentTimeMillis() + "-" + sanitizeFileName(name));
+        try (InputStream in = getContentResolver().openInputStream(src);
+             OutputStream out = new FileOutputStream(dest)) {
+            if (in == null) return null;
+            byte[] buf = new byte[16 * 1024];
+            int n;
+            long total = 0;
+            while ((n = in.read(buf)) > 0) {
+                out.write(buf, 0, n);
+                total += n;
+            }
+            if (total <= 0) return null;
+        } catch (Exception e) {
+            return null;
+        }
+        return Uri.fromFile(dest);
+    }
+
+    private String queryDisplayName(Uri uri) {
+        try (Cursor c = getContentResolver().query(
+                uri,
+                new String[]{OpenableColumns.DISPLAY_NAME},
+                null,
+                null,
+                null
+        )) {
+            if (c != null && c.moveToFirst()) {
+                String n = c.getString(0);
+                if (n != null && !n.trim().isEmpty()) return n.trim();
+            }
+        } catch (Exception ignored) {
+            /* fallback poniżej */
+        }
+        String last = uri.getLastPathSegment();
+        return last != null && !last.isEmpty() ? last : "plik.bin";
+    }
+
+    private static String sanitizeFileName(String name) {
+        String cleaned = name.replaceAll("[^a-zA-Z0-9._\\-ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]", "_");
+        if (cleaned.length() > 80) cleaned = cleaned.substring(cleaned.length() - 80);
+        return cleaned.isEmpty() ? "plik.bin" : cleaned;
     }
 
     /** Fallback, gdy parseResult zwróci null (częste na OEM galeriach). */

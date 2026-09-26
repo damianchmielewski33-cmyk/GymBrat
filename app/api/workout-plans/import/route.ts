@@ -7,6 +7,7 @@ import {
   detectWorkoutPlanFileKind,
   type WorkoutPlanFileKind,
 } from "@/lib/workout-plan-file-kind";
+import { pickUploadBlob, resolveUploadName } from "@/lib/workout-plan-upload";
 import { assertCsrf } from "@/lib/csrf";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
@@ -15,17 +16,6 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 const MAX_BYTES = 8 * 1024 * 1024;
-
-type UploadBlob = Blob & { name?: string; type?: string };
-
-function isUploadBlob(v: unknown): v is UploadBlob {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    typeof (v as Blob).arrayBuffer === "function" &&
-    typeof (v as Blob).size === "number"
-  );
-}
 
 async function parseByKind(kind: WorkoutPlanFileKind, buffer: Buffer) {
   if (kind === "docx") return parseWorkoutPlansFromDocx(buffer);
@@ -64,8 +54,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const raw = form.get("file");
-  if (!isUploadBlob(raw)) {
+  const { blob: raw, filenameHint } = pickUploadBlob(form);
+  if (!raw) {
     return NextResponse.json(
       {
         ok: false,
@@ -75,15 +65,37 @@ export async function POST(req: Request) {
     );
   }
 
-  if (raw.size <= 0 || raw.size > MAX_BYTES) {
+  if (raw.size <= 0) {
     return NextResponse.json(
-      { ok: false, error: "Plik jest pusty albo za duży (max 8 MB)." },
+      {
+        ok: false,
+        error:
+          "Plik przyszedł pusty — Android nie przekazał treści. Wybierz ponownie z folderu Pobrane (nie z galerii).",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (raw.size > MAX_BYTES) {
+    return NextResponse.json(
+      { ok: false, error: "Plik jest za duży (max 8 MB)." },
       { status: 400 },
     );
   }
 
   const buffer = Buffer.from(await raw.arrayBuffer());
-  const fileName = typeof raw.name === "string" ? raw.name : "";
+  if (buffer.length <= 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Plik przyszedł pusty — Android nie przekazał treści. Wybierz ponownie z folderu Pobrane.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const fileName = resolveUploadName(raw, filenameHint);
   const mime = typeof raw.type === "string" ? raw.type : "";
 
   let kind = detectWorkoutPlanFileKind({
