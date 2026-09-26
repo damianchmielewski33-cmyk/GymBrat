@@ -77,7 +77,7 @@ export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSh
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/75 sm:items-center sm:p-4">
       <button
         type="button"
         className="absolute inset-0 cursor-default"
@@ -88,7 +88,7 @@ export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSh
         role="dialog"
         aria-modal="true"
         aria-labelledby="cardio-sheet-title"
-        className="relative z-[1] flex max-h-[min(92dvh,calc(100dvh-env(safe-area-inset-bottom)))] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#0c0c0c] sm:rounded-[28px]"
+        className="relative z-[1] flex h-[min(88dvh,640px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#0c0c0c] sm:h-auto sm:max-h-[88dvh] sm:rounded-[28px]"
       >
         <div className="flex shrink-0 items-start justify-between gap-3 px-5 pb-2 pt-5">
           <div>
@@ -113,24 +113,14 @@ export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSh
           </button>
         </div>
 
-        <form
-          action={formAction}
-          className="flex min-h-0 flex-1 flex-col"
-          onSubmit={(e) => {
-            // upewnij się, że minutes w hiddoch są zaktualizowane przed submitem
-            const fd = new FormData(e.currentTarget);
-            if (!fd.get("minutes")) {
-              e.preventDefault();
-            }
-          }}
-        >
+        <form action={formAction} className="flex min-h-0 flex-1 flex-col">
           <input type="hidden" name="title" value={machine} />
           <input type="hidden" name="minutes" value={minutes} />
           <input type="hidden" name="distanceKm" value={distanceKm} />
           <input type="hidden" name="avgHr" value={avgHr} />
           <input type="hidden" name="notes" value={note} />
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-3">
             <div className="mt-3 grid grid-cols-4 gap-2">
               {MACHINES.map((m) => {
                 const active = m === machine;
@@ -213,7 +203,7 @@ export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSh
               </label>
             </div>
 
-            <label className="mt-4 block">
+            <label className="mt-4 mb-2 block">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
                 Notatka
               </span>
@@ -227,7 +217,8 @@ export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSh
             </label>
           </div>
 
-          <div className="shrink-0 border-t border-white/10 bg-[#0c0c0c] px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+          {/* Zawsze widoczny przycisk — nad systemowym home / belką aplikacji */}
+          <div className="shrink-0 border-t border-white/10 bg-[#0c0c0c] px-5 pt-3 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+0.75rem))]">
             <button
               type="submit"
               disabled={pending}

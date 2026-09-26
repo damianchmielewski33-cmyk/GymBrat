@@ -7,7 +7,6 @@ import {
   setDietDayKindAction,
 } from "@/actions/diet-day";
 import { addMealProductAction, deleteMealLogFormAction, type MealLogFormState } from "@/actions/meal-log";
-import { AddMealChoiceBar } from "@/components/meal-suggestions/add-meal-choice-bar";
 import { MealCatalogBrowser } from "@/components/meal-suggestions/meal-catalog-browser";
 import { AddMealScreen } from "@/components/meal-suggestions/add-meal-screen";
 import { FoodPortionScreen } from "@/components/meal-suggestions/food-portion-screen";
@@ -235,34 +234,19 @@ export function MealSuggestionsView({
   const [pending, start] = useTransition();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [addSlot, setAddSlot] = useState<DietDiarySlot | null>(null);
-  const [choiceOpen, setChoiceOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [dishPickerOpen, setDishPickerOpen] = useState(false);
   const [portionProduct, setPortionProduct] = useState<FoodProduct | null>(null);
   const [portionSlot, setPortionSlot] = useState<DietDiarySlot>("sniadanie");
 
   const mealOverlayOpen =
-    Boolean(addSlot) ||
-    Boolean(portionProduct) ||
-    choiceOpen ||
-    searchOpen ||
-    dishPickerOpen;
+    Boolean(addSlot) || Boolean(portionProduct) || dishPickerOpen;
   useOverlayHistoryBack(mealOverlayOpen, () => {
     if (portionProduct) {
       setPortionProduct(null);
       return;
     }
-    if (searchOpen) {
-      setSearchOpen(false);
-      return;
-    }
     if (dishPickerOpen) {
       setDishPickerOpen(false);
-      return;
-    }
-    if (choiceOpen) {
-      setChoiceOpen(false);
-      setAddSlot(null);
       return;
     }
     setAddSlot(null);
@@ -435,10 +419,7 @@ export function MealSuggestionsView({
                     [slot]: !(prev[slot] ?? bySlot[slot].length > 0),
                   }))
                 }
-                onAdd={() => {
-                  setAddSlot(slot);
-                  setChoiceOpen(true);
-                }}
+                onAdd={() => setAddSlot(slot)}
                 onDeleted={() => refreshDay(dateKey)}
               />
             ))}
@@ -476,41 +457,24 @@ export function MealSuggestionsView({
         </>
       )}
 
-      <AddMealChoiceBar
-        open={choiceOpen && Boolean(addSlot)}
+      <AddMealScreen
+        open={Boolean(addSlot)}
         slot={addSlot ?? "sniadanie"}
         dateKey={dateKey}
-        onClose={() => {
-          setChoiceOpen(false);
-          setAddSlot(null);
-        }}
-        onOpenSearch={() => {
-          setChoiceOpen(false);
-          setSearchOpen(true);
-        }}
+        dateLabel={dateLabel}
+        onClose={() => setAddSlot(null)}
         onOpenDish={() => {
-          setChoiceOpen(false);
+          setAddSlot(null);
           setDishPickerOpen(true);
         }}
         onSaved={() => {
           refreshDay(dateKey);
           router.refresh();
         }}
-      />
-
-      <AddMealScreen
-        open={searchOpen && Boolean(addSlot)}
-        slot={addSlot ?? "sniadanie"}
-        dateLabel={dateLabel}
-        onClose={() => {
-          setSearchOpen(false);
-          setAddSlot(null);
-        }}
         onPickProduct={(product) => {
           if (!addSlot) return;
           setPortionSlot(addSlot);
           setPortionProduct(product);
-          setSearchOpen(false);
           setAddSlot(null);
         }}
       />
