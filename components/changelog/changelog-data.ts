@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — import planu treningowego z Worda (.docx)",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "W Profilu → Plan treningowy możesz wgrać plan z pliku Word (.docx) — aplikacja tworzy dni/plany z ćwiczeniami, seriami i powtórzeniami.",
+      "Nagłówki typu „Dzień A” / „Push” stają się osobnymi planami; linie w stylu „Przysiady 4x8” trafiają jako ćwiczenia (z dopasowaniem do katalogu GymBrat).",
+    ],
+  },
+  {
     title: "2026-09 — raport: wymagane zdjęcia, bez brzucha, cykl w profilu",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
