@@ -96,6 +96,10 @@ export default async function HomePage() {
         cardioPct={dash.compliance.cardioPct}
         lastN={dash.compliance.lastN}
         doneN={dash.compliance.doneN}
+        historyWindow={dash.compliance.historyWindow}
+        dietHistory={dash.compliance.dietHistory}
+        trainingHistory={dash.compliance.trainingHistory}
+        cardioHistory={dash.compliance.cardioHistory}
       />
 
       <TransformationSlider

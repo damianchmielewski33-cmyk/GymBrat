@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — Trzymanie się założeń i podpowiedzi w raporcie",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Na Pulpicie sekcja Trzymanie się założeń ma pierścienie % (Dieta / Treningi / Cardio), paski historii (zielone = zrealizowane, czerwone = opuszczone), legendę oraz podpis „Ostatnie 24 z N”.",
+      "Przy dodawaniu raportu pola pomiarów, skali samopoczucia i Tak/Nie pokazują w tle wartości z ostatniego raportu jako podpowiedź.",
+    ],
+  },
+  {
     title: "2026-09 — Treningi: hub, sesja prowadzona, plan w profilu",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

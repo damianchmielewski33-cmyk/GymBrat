@@ -26,6 +26,23 @@ export default async function ReportsPage() {
   const reports = await getBodyReports(userId);
   const latest = reports[0]?.createdAt ?? null;
   const daysUntilNext = daysUntilNextReport(latest);
+  const lastHints = reports[0]
+    ? {
+        weightKg: reports[0].weightKg,
+        waistCm: reports[0].waistCm,
+        chestCm: reports[0].chestCm,
+        thighCm: reports[0].thighCm,
+        armCm: reports[0].armCm,
+        abdomenCm: reports[0].abdomenCm,
+        dayEnergy: reports[0].dayEnergy,
+        trainingEnergy: reports[0].trainingEnergy,
+        digestionScore: reports[0].digestionScore,
+        sleepQuality: reports[0].sleepQuality,
+        cardioCompliance: reports[0].cardioCompliance,
+        dietCompliance: reports[0].dietCompliance,
+        trainingCompliance: reports[0].trainingCompliance,
+      }
+    : null;
 
   return (
     <div className="theme-black-gold space-y-6">
@@ -56,7 +73,7 @@ export default async function ReportsPage() {
           </div>
         }
       >
-        <BodyReportForm daysUntilNext={daysUntilNext} />
+        <BodyReportForm daysUntilNext={daysUntilNext} lastHints={lastHints} />
       </Suspense>
 
       {/* Historia / eksport / import — zawsze na dole ekranu */}

@@ -90,6 +90,10 @@ export type HomeStartDashboard = {
     cardioPct: number | null;
     lastN: number;
     doneN: number;
+    historyWindow: number;
+    dietHistory: Array<"tak" | "nie" | null>;
+    trainingHistory: Array<"tak" | "nie" | null>;
+    cardioHistory: Array<"tak" | "nie" | null>;
   };
   transformation: {
     firstPhotoUrl: string | null;
@@ -589,6 +593,22 @@ function compliancePct(values: Array<string | null>): number | null {
   return Math.round((yes / known.length) * 100);
 }
 
+function toComplianceSlot(v: string | null | undefined): "tak" | "nie" | null {
+  if (v === "tak" || v === "nie") return v;
+  return null;
+}
+
+/** Ostatnie `windowSize` raportów, od najstarszego do najnowszego (lewo → prawo). */
+function complianceHistoryWindow(
+  valuesNewestFirst: Array<string | null>,
+  windowSize: number,
+): Array<"tak" | "nie" | null> {
+  const slice = valuesNewestFirst.slice(0, windowSize);
+  return slice.map(toComplianceSlot).reverse();
+}
+
+const COMPLIANCE_HISTORY_WINDOW = 24;
+
 async function getReportInsights(userId: string) {
   const db = getDb();
   const rows = await db
@@ -634,6 +654,10 @@ async function getReportInsights(userId: string) {
       })
       .filter((p): p is HomeStartSpark => p != null);
 
+  const dietValues = rows.map((r) => r.dietCompliance);
+  const trainingValues = rows.map((r) => r.trainingCompliance);
+  const cardioValues = rows.map((r) => r.cardioCompliance);
+
   return {
     daysSinceLastReport,
     formToday: {
@@ -643,11 +667,21 @@ async function getReportInsights(userId: string) {
       training: latest?.trainingEnergy ?? null,
     },
     compliance: {
-      dietPct: compliancePct(rows.map((r) => r.dietCompliance)),
-      trainingPct: compliancePct(rows.map((r) => r.trainingCompliance)),
-      cardioPct: compliancePct(rows.map((r) => r.cardioCompliance)),
+      dietPct: compliancePct(dietValues),
+      trainingPct: compliancePct(trainingValues),
+      cardioPct: compliancePct(cardioValues),
       lastN: rows.length,
       doneN: rows.filter((r) => r.dietCompliance === "tak").length,
+      historyWindow: COMPLIANCE_HISTORY_WINDOW,
+      dietHistory: complianceHistoryWindow(dietValues, COMPLIANCE_HISTORY_WINDOW),
+      trainingHistory: complianceHistoryWindow(
+        trainingValues,
+        COMPLIANCE_HISTORY_WINDOW,
+      ),
+      cardioHistory: complianceHistoryWindow(
+        cardioValues,
+        COMPLIANCE_HISTORY_WINDOW,
+      ),
     },
     waistSeries: spark((r) => r.waistCm).map((p) => ({ date: p.date, cm: p.value })),
     waistSpark: spark((r) => r.waistCm),

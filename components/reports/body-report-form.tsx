@@ -31,7 +31,31 @@ type BodyReportFormProps = {
   maxPhotos?: number;
   /** Dni do kolejnego raportu (np. z cyklu) — pokazywane w nagłówku karty. */
   daysUntilNext?: number | null;
+  /** Wartości z ostatniego raportu — podpowiedzi w tle pól (placeholder / ghost). */
+  lastHints?: BodyReportFieldHints | null;
 };
+
+export type BodyReportFieldHints = {
+  weightKg?: number | null;
+  waistCm?: number | null;
+  chestCm?: number | null;
+  thighCm?: number | null;
+  armCm?: number | null;
+  abdomenCm?: number | null;
+  dayEnergy?: number | null;
+  trainingEnergy?: number | null;
+  digestionScore?: number | null;
+  sleepQuality?: number | null;
+  cardioCompliance?: string | null;
+  dietCompliance?: string | null;
+  trainingCompliance?: string | null;
+};
+
+function formatHintNumber(n: number | null | undefined, digits = 1): string | undefined {
+  if (n == null || !Number.isFinite(n)) return undefined;
+  const rounded = Number(n.toFixed(digits));
+  return String(rounded).replace(".", ",");
+}
 
 type PhotoSlot = "front" | "side" | "back";
 
@@ -224,6 +248,7 @@ function MeasureInput({
   required,
   large,
   invalid,
+  hint,
 }: {
   id: string;
   label: string;
@@ -232,6 +257,8 @@ function MeasureInput({
   required?: boolean;
   large?: boolean;
   invalid?: boolean;
+  /** Podpowiedź z ostatniego raportu (placeholder w tle). */
+  hint?: string;
 }) {
   return (
     <div>
@@ -241,15 +268,18 @@ function MeasureInput({
         inputMode="decimal"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder=","
+        placeholder={hint ?? "—"}
         aria-invalid={invalid || undefined}
         className={cn(
-          "w-full rounded-xl border bg-black/50 px-3 text-white outline-none transition placeholder:text-white/25",
+          "w-full rounded-xl border bg-black/50 px-3 text-white outline-none transition placeholder:text-white/30",
           "focus-visible:border-[#d4af37]/55 focus-visible:ring-2 focus-visible:ring-[#d4af37]/25",
           large ? "h-14 text-2xl font-semibold tabular-nums" : "h-12 text-lg tabular-nums",
           invalid ? "border-red-500/55" : "border-[#d4af37]/22",
         )}
       />
+      {hint && !value.trim() ? (
+        <p className="mt-1 text-[10px] text-white/30">Ostatnio: {hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -259,26 +289,34 @@ function ScoreBars({
   value,
   onChange,
   invalid,
+  hint,
 }: {
   label: string;
   value: number | null;
   onChange: (v: number) => void;
   invalid?: boolean;
+  hint?: number | null;
 }) {
   return (
     <div>
-      <p
-        className={cn(
-          "mb-2 text-[10px] font-semibold uppercase tracking-[0.16em]",
-          invalid ? "text-red-300" : "text-white/55",
-        )}
-      >
-        {label}
-      </p>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p
+          className={cn(
+            "text-[10px] font-semibold uppercase tracking-[0.16em]",
+            invalid ? "text-red-300" : "text-white/55",
+          )}
+        >
+          {label}
+        </p>
+        {hint != null && value == null ? (
+          <p className="text-[10px] text-white/30">ostatnio {hint}</p>
+        ) : null}
+      </div>
       <div className="flex h-10 items-end gap-1" role="radiogroup" aria-label={label}>
         {Array.from({ length: 10 }, (_, i) => {
           const n = i + 1;
           const active = value != null && n <= value;
+          const ghost = value == null && hint != null && n <= hint;
           return (
             <button
               key={n}
@@ -291,7 +329,9 @@ function ScoreBars({
                 "h-full min-w-0",
                 active
                   ? "bg-gradient-to-t from-[#b8922a] to-[#e8c547] shadow-[0_0_10px_rgba(212,175,55,0.35)]"
-                  : "border border-white/18 bg-transparent hover:border-white/35",
+                  : ghost
+                    ? "border border-[#d4af37]/25 bg-[#d4af37]/10"
+                    : "border border-white/18 bg-transparent hover:border-white/35",
               )}
             />
           );
@@ -306,12 +346,16 @@ function TakNieToggle({
   value,
   onChange,
   invalid,
+  hint,
 }: {
   label: string;
   value: "" | "tak" | "nie";
   onChange: (v: "tak" | "nie") => void;
   invalid?: boolean;
+  hint?: string | null;
 }) {
+  const hintLabel =
+    hint === "tak" || hint === "nie" ? `ostatnio: ${hint}` : null;
   return (
     <div className="min-w-0 flex-1">
       <p
@@ -322,30 +366,39 @@ function TakNieToggle({
       >
         {label}
       </p>
+      {hintLabel && !value ? (
+        <p className="mb-1.5 text-center text-[9px] text-white/30">{hintLabel}</p>
+      ) : (
+        <p className="mb-1.5 h-[14px]" aria-hidden />
+      )}
       <div className="grid grid-cols-2 gap-1.5">
         <button
           type="button"
           onClick={() => onChange("tak")}
           className={cn(
-            "h-11 rounded-xl border text-sm font-semibold transition",
+            "h-11 rounded-xl text-sm font-semibold uppercase tracking-wide transition",
             value === "tak"
-              ? "border-emerald-400/70 bg-emerald-500/20 text-emerald-200"
-              : "border-white/15 bg-black/35 text-white/70 hover:bg-white/[0.06]",
+              ? "bg-[#7ddea0] text-black"
+              : hint === "tak" && !value
+                ? "border border-[#7ddea0]/40 bg-[#7ddea0]/10 text-white/70"
+                : "border border-white/15 bg-white/[0.04] text-white/70 hover:bg-white/[0.07]",
           )}
         >
-          TAK
+          Tak
         </button>
         <button
           type="button"
           onClick={() => onChange("nie")}
           className={cn(
-            "h-11 rounded-xl border text-sm font-semibold transition",
+            "h-11 rounded-xl text-sm font-semibold uppercase tracking-wide transition",
             value === "nie"
-              ? "border-red-400/70 bg-red-500/20 text-red-200"
-              : "border-white/15 bg-black/35 text-white/70 hover:bg-white/[0.06]",
+              ? "bg-[#e07a6a] text-black"
+              : hint === "nie" && !value
+                ? "border border-[#e07a6a]/40 bg-[#e07a6a]/10 text-white/70"
+                : "border border-white/15 bg-white/[0.04] text-white/70 hover:bg-white/[0.07]",
           )}
         >
-          NIE
+          Nie
         </button>
       </div>
     </div>
@@ -428,6 +481,7 @@ function PhotoSlotCard({
 export function BodyReportForm({
   maxPhotos = 8,
   daysUntilNext = null,
+  lastHints = null,
 }: BodyReportFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -805,18 +859,44 @@ export function BodyReportForm({
               required
               large
               invalid={Boolean(fieldError && !parseDecimal(weightKg))}
+              hint={formatHintNumber(lastHints?.weightKg ?? null)}
             />
             <div className="grid grid-cols-2 gap-3">
-              <MeasureInput id="waistCm" label="Pas (cm)" value={waistCm} onChange={setWaistCm} />
-              <MeasureInput id="thighCm" label="Udo (cm)" value={thighCm} onChange={setThighCm} />
-              <MeasureInput id="chestCm" label="Klatka (cm)" value={chestCm} onChange={setChestCm} />
-              <MeasureInput id="armCm" label="Ramię (cm)" value={armCm} onChange={setArmCm} />
+              <MeasureInput
+                id="waistCm"
+                label="Pas (cm)"
+                value={waistCm}
+                onChange={setWaistCm}
+                hint={formatHintNumber(lastHints?.waistCm ?? null)}
+              />
+              <MeasureInput
+                id="thighCm"
+                label="Udo (cm)"
+                value={thighCm}
+                onChange={setThighCm}
+                hint={formatHintNumber(lastHints?.thighCm ?? null)}
+              />
+              <MeasureInput
+                id="chestCm"
+                label="Klatka (cm)"
+                value={chestCm}
+                onChange={setChestCm}
+                hint={formatHintNumber(lastHints?.chestCm ?? null)}
+              />
+              <MeasureInput
+                id="armCm"
+                label="Ramię (cm)"
+                value={armCm}
+                onChange={setArmCm}
+                hint={formatHintNumber(lastHints?.armCm ?? null)}
+              />
             </div>
             <MeasureInput
               id="abdomenCm"
               label="Brzuch (cm)"
               value={abdomenCm}
               onChange={setAbdomenCm}
+              hint={formatHintNumber(lastHints?.abdomenCm ?? null)}
             />
           </div>
         </div>
@@ -836,24 +916,28 @@ export function BodyReportForm({
               value={dayEnergy}
               onChange={setDayEnergy}
               invalid={Boolean(fieldError) && dayEnergy == null}
+              hint={lastHints?.dayEnergy ?? null}
             />
             <ScoreBars
               label="Energia treningu"
               value={trainingEnergy}
               onChange={setTrainingEnergy}
               invalid={Boolean(fieldError) && trainingEnergy == null}
+              hint={lastHints?.trainingEnergy ?? null}
             />
             <ScoreBars
               label="Trawienie"
               value={digestionScore}
               onChange={setDigestionScore}
               invalid={Boolean(fieldError) && digestionScore == null}
+              hint={lastHints?.digestionScore ?? null}
             />
             <ScoreBars
               label="Sen"
               value={sleepQuality}
               onChange={setSleepQuality}
               invalid={Boolean(fieldError) && sleepQuality == null}
+              hint={lastHints?.sleepQuality ?? null}
             />
           </div>
         </div>
@@ -873,18 +957,21 @@ export function BodyReportForm({
               value={cardioCompliance}
               onChange={setCardioCompliance}
               invalid={Boolean(fieldError) && !cardioCompliance}
+              hint={lastHints?.cardioCompliance ?? null}
             />
             <TakNieToggle
               label="Dieta"
               value={dietCompliance}
               onChange={setDietCompliance}
               invalid={Boolean(fieldError) && !dietCompliance}
+              hint={lastHints?.dietCompliance ?? null}
             />
             <TakNieToggle
               label="Treningi"
               value={trainingCompliance}
               onChange={setTrainingCompliance}
               invalid={Boolean(fieldError) && !trainingCompliance}
+              hint={lastHints?.trainingCompliance ?? null}
             />
           </div>
           {cardioCompliance === "nie" ||
