@@ -21,7 +21,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="space-y-8">
-      <header className="glass-panel flex flex-col gap-6 p-8 text-center sm:text-left">
+      <header className="app-card flex flex-col gap-6 p-8 text-center sm:text-left">
         <div className="flex flex-col items-center gap-3 sm:flex-row">
           <div className="text-center sm:text-left">
             <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">

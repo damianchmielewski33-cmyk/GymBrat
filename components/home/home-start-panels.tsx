@@ -255,7 +255,7 @@ export function HomeStartPanels({
                 isOpen
                   ? {
                       boxShadow:
-                        "0 0 0 1px rgba(230,0,35,0.22), 0 8px 28px rgba(0,0,0,0.45)",
+                        "0 0 0 1px rgba(var(--neon-rgb),0.22), 0 8px 28px rgba(0,0,0,0.45)",
                     }
                   : undefined
               }

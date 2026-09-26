@@ -1,3 +1,5 @@
+import { auth } from "@/auth";
+import { AuthPageFrame } from "@/components/auth/auth-page-frame";
 import { AppShell } from "@/components/layout/app-shell";
 import { ReminderRunnerWrapper } from "@/components/reminders/reminder-runner-wrapper";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
@@ -10,7 +12,17 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await ensureCriticalSchema();
+  const session = await auth().catch(() => null);
+  if (!session?.user?.id) {
+    return <AuthPageFrame>{children}</AuthPageFrame>;
+  }
+
+  try {
+    await ensureCriticalSchema();
+  } catch (err) {
+    console.error("[dashboard layout] ensureCriticalSchema", err);
+  }
+
   return (
     <AppShell>
       <ReminderRunnerWrapper />
