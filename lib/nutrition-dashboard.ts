@@ -69,6 +69,19 @@ export async function loadTodaysNutritionSummary(
   userId: string,
   settingsRow: TodaysNutritionSettingsRow | undefined,
 ): Promise<FitatuDaySummary> {
+  return loadNutritionSummaryForDate(
+    userId,
+    calendarDateKey(new Date()),
+    settingsRow,
+  );
+}
+
+/** Podsumowanie dowolnego dnia: spożycie z meal_logs, cele wg typu dnia w profilu. */
+export async function loadNutritionSummaryForDate(
+  userId: string,
+  dateKey: string,
+  settingsRow: TodaysNutritionSettingsRow | undefined,
+): Promise<FitatuDaySummary> {
   const settings = nutritionSettingsFromDbRow(
     settingsRow ?? {
       trainingNutritionGoalsJson: null,
@@ -76,15 +89,28 @@ export async function loadTodaysNutritionSummary(
       nutritionDayTypesJson: null,
     },
   );
-  const todayKey = calendarDateKey(new Date());
-  const mealAggs = await getMealLogAggregatesForDates(userId, [todayKey]);
-  const rawToday = await getFitatuDayCached(userId, todayKey);
+  const mealAggs = await getMealLogAggregatesForDates(userId, [dateKey]);
+  const raw = await getFitatuDayCached(userId, dateKey);
   return applyProfileGoalsAndManualConsumption(
-    rawToday,
+    raw,
     settings,
-    todayKey,
-    mealAggs[todayKey],
+    dateKey,
+    mealAggs[dateKey],
   );
+}
+
+export function resolveNutritionDayKind(
+  settingsRow: TodaysNutritionSettingsRow | undefined,
+  dateKey: string,
+): "training" | "rest" {
+  const settings = nutritionSettingsFromDbRow(
+    settingsRow ?? {
+      trainingNutritionGoalsJson: null,
+      restNutritionGoalsJson: null,
+      nutritionDayTypesJson: null,
+    },
+  );
+  return settings.dayTypes[dateKey] ?? "rest";
 }
 
 /**

@@ -16,8 +16,6 @@ export default function ErrorPage({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  // Wymóg: gdy „poleci błąd” pokaż pop-up.
-  // Next i tak wyrenderuje ten komponent tylko w sytuacji błędu.
   useEffect(() => {
     console.error("[app/error.tsx]", error);
   }, [error]);
@@ -25,9 +23,9 @@ export default function ErrorPage({
   return (
     <AlertDialog open>
       <AlertDialogContent>
-        <AlertDialogTitle>Zmieniamy się na lepsze</AlertDialogTitle>
+        <AlertDialogTitle>Coś poszło nie tak</AlertDialogTitle>
         <AlertDialogDescription>
-          Zmieniamy się na lepsze
+          Spróbuj ponownie. Jeśli problem się powtarza, odśwież stronę.
         </AlertDialogDescription>
         <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
           <Button variant="outline" onClick={() => reset()}>
@@ -39,4 +37,3 @@ export default function ErrorPage({
     </AlertDialog>
   );
 }
-
