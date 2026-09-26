@@ -94,7 +94,7 @@ function toExercise(name: string, sets: number, reps: number): WorkoutPlanExerci
   const match = findBestCatalogMatch(name);
   return {
     id: randomUUID(),
-    name: match?.namePl ?? name,
+    name: match?.name ?? name,
     categoryId: match?.categoryId ?? "shoulders",
     sets,
     reps,

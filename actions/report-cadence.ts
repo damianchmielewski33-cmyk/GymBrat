@@ -3,18 +3,9 @@
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
+import { clampReportCadenceDays } from "@/lib/report-cadence";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-
-const MIN_DAYS = 3;
-const MAX_DAYS = 90;
-const DEFAULT_DAYS = 14;
-
-export function clampReportCadenceDays(raw: unknown): number {
-  const n = typeof raw === "number" ? raw : Number(raw);
-  if (!Number.isFinite(n)) return DEFAULT_DAYS;
-  return Math.min(MAX_DAYS, Math.max(MIN_DAYS, Math.round(n)));
-}
 
 export async function updateReportCadenceForm(
   _prev: { ok?: boolean; error?: string },

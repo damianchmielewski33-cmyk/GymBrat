@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   }
 
   const rl = await checkRateLimitAsync(
-    rateLimitKey("workout-plan-import", session.user.id),
+    rateLimitKey("workout-plan-import", req),
     RATE.bodyReportImport.limit,
     RATE.bodyReportImport.windowMs,
   );
