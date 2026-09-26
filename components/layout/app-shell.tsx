@@ -171,7 +171,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Suspense fallback={null}>
             <ReportFab />
           </Suspense>
-          <div className="grid grid-cols-5 items-end px-1 pb-2 pt-3">
+          <div className="grid grid-cols-5 items-end px-1 pb-2 pt-7">
             {tabs.map((item) => (
               <TabLink key={item.href} item={item} pathname={pathname} />
             ))}
