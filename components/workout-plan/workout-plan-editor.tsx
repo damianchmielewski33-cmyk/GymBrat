@@ -51,6 +51,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ScreenHeader } from "@/components/layout/screen";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { WorkoutPlanWordImport } from "@/components/workout-plan/workout-plan-word-import";
 
 function uid() {
   return crypto.randomUUID();
@@ -273,7 +274,7 @@ export function WorkoutPlanEditor({
         description={
           editorOpen
             ? "Nadaj nazwę dnia (np. Push A), przypisz ćwiczenia, serie i powtórzenia. Start sesji jest w zakładce Treningi."
-            : "Tu ustawiasz plan — dni i ćwiczenia. Rozpoczynanie treningu i cardio są w zakładce Treningi."
+            : "Tu ustawiasz plan — dni i ćwiczenia. Możesz też wgrać plan z Worda (.docx). Start treningu jest w Treningach."
         }
         actions={
           editorOpen ? (
@@ -304,6 +305,8 @@ export function WorkoutPlanEditor({
           ) : undefined
         }
       />
+
+      {!editorOpen ? <WorkoutPlanWordImport /> : null}
 
       <section className="space-y-3">
         <div className="flex items-end justify-between gap-3">
