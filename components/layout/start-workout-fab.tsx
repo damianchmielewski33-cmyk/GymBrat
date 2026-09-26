@@ -10,14 +10,14 @@ export function StartWorkoutFab() {
   const pathname = usePathname();
   const { workoutPlanId, exercises } = useActiveWorkoutStore();
 
-  if (pathname.startsWith("/start-workout")) return null;
+  if (pathname.startsWith("/workout-plan") || pathname.startsWith("/active-workout")) return null;
   if (pathname.startsWith("/active-workout")) return null;
 
   const hasActiveSession = workoutPlanId != null && exercises.length > 0;
 
   return (
     <Link
-      href="/start-workout"
+      href="/workout-plan"
       className={cn(
         "fixed z-[56] inline-flex items-center gap-2 rounded-2xl border border-[var(--neon)]/45",
         "bg-[linear-gradient(145deg,rgba(var(--neon-rgb),0.42),rgba(var(--neon-rgb),0.16))] px-4 py-3 text-xs font-semibold text-white",

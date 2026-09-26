@@ -268,12 +268,12 @@ export function WorkoutPlanEditor({
   return (
     <div className="space-y-8">
       <ScreenHeader
-        kicker="Trening"
+        kicker="Profil"
         title="Plan treningowy"
         description={
           editorOpen
-            ? "Nadaj nazwę planu, przypisz partie mięśniowe, ćwiczenia i liczbę powtórzeń. Zapis zwija edytor i dodaje plan do listy."
-            : "Twórz wiele planów — każdy zapis pojawia się na liście poniżej."
+            ? "Nadaj nazwę dnia (np. Push A), przypisz ćwiczenia, serie i powtórzenia. Start sesji jest w zakładce Treningi."
+            : "Tu ustawiasz plan — dni i ćwiczenia. Rozpoczynanie treningu i cardio są w zakładce Treningi."
         }
         actions={
           editorOpen ? (

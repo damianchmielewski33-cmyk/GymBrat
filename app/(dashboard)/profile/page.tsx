@@ -6,7 +6,7 @@ import { ProfileGoalForm } from "@/components/profile/profile-goal-form";
 import { BodyParamsForm } from "@/components/profile/body-params-form";
 import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { LogoutButton } from "@/components/profile/logout-button";
-import { CalendarRange, ScrollText, Shield, User as UserIcon } from "lucide-react";
+import { CalendarRange, Dumbbell, ScrollText, Shield, User as UserIcon } from "lucide-react";
 import { ScreenHeader } from "@/components/layout/screen";
 import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
 import { DataRightsCard } from "@/components/profile/data-rights-card";
@@ -142,6 +142,29 @@ export default async function ProfilePage() {
         <div className="lg:col-span-2">
           <LocaleSwitchCard />
         </div>
+
+        <section className="glass-panel relative overflow-hidden p-8 lg:col-span-2">
+          <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(120deg,rgba(255,255,255,0.08),transparent_55%),radial-gradient(700px_320px_at_90%_10%,rgba(235,196,74,0.12),transparent_60%)]" />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
+                Trening
+              </p>
+              <h2 className="font-heading mt-2 text-xl font-semibold">Plan treningowy</h2>
+              <p className="mt-2 max-w-xl text-sm text-white/60">
+                Tu ustawiasz dni planu i ćwiczenia. Start sesji, cardio i historia są w zakładce
+                Treningi.
+              </p>
+            </div>
+            <Link
+              href="/profile/workout-plan"
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-[rgba(var(--neon-rgb),0.45)] bg-[var(--gym-gold)]/10 px-5 text-sm font-semibold text-[var(--gym-gold)] hover:bg-[var(--gym-gold)]/15"
+            >
+              <Dumbbell className="h-4 w-4" aria-hidden />
+              Ustaw plan
+            </Link>
+          </div>
+        </section>
 
         <div className="grid gap-6 lg:col-span-2 lg:grid-cols-2">
           <ReminderSettingsCard initial={parseRemindersJson(s?.remindersJson ?? null)} />

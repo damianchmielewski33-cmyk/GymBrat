@@ -72,12 +72,12 @@ export function NextWorkoutTile({
             ? `${exerciseCount} ćwiczeń · ${
                 firstTime ? "pierwszy raz w tym planie" : "kolejna sesja"
               }${preview ? ` · ${preview}${exerciseNames.length > 4 ? " · …" : ""}` : ""}`
-            : "Utwórz plan, żeby szybko rozpocząć sesję ze Startu."}
+            : "Ustaw plan w Profilu, żeby szybko startować z Treningów."}
         </p>
       </div>
 
       <Link
-        href={planName ? "/start-workout" : "/workout-plan"}
+        href={planName ? "/workout-plan" : "/profile/workout-plan"}
         className="gym-btn-primary inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm"
       >
         <Play className="h-4 w-4 fill-current" aria-hidden />

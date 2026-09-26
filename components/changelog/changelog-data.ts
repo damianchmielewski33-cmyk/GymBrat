@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — Treningi: hub, sesja prowadzona, plan w profilu",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Zakładka Treningi to hub: wybór dnia planu, Rozpocznij trening, Dodaj cardio, statystyki tygodnia oraz ostatnie treningi i cardio — bez edycji planu.",
+      "Ustawianie planu treningowego (dni i ćwiczenia) jest w Profilu → Plan treningowy.",
+      "Sesja prowadzona ma steppery ciężaru i powtórzeń, RIR (w zapasie), Zalicz serię, listę ćwiczeń oraz ekran Trening zrobiony.",
+      "Dodaj cardio otwiera arkusz: maszyna, czas, dystans, tętno i notatka w stylu GymBrat.",
+    ],
+  },
+  {
     title: "2026-09 — trening jak na zrzutach: plany, start, sesja",
     date: "2026-09-25",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
