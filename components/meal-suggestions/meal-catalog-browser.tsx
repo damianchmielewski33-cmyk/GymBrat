@@ -39,7 +39,7 @@ function catalogSlotToDiary(slot: MealSlot): DietDiarySlot {
     case "podwieczorek":
       return "przekaska";
     case "kolacja":
-      return "lunch";
+      return "kolacja";
     default:
       return "obiad";
   }

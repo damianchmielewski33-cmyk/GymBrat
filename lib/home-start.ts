@@ -126,9 +126,11 @@ async function sumCardioMinutesInCalendarWeek(
   const start = weekKeys[0]!;
   const end = weekKeys[weekKeys.length - 1]!;
 
-  const [fromWorkouts] = await db
+  // Tylko wpisy cardio (kind: cardio_log) — trening siłowy nie zwiększa „wykonanego cardio”.
+  const workoutRows = await db
     .select({
-      total: sql<number>`coalesce(sum(${workouts.cardioMinutes}), 0)`,
+      cardioMinutes: workouts.cardioMinutes,
+      exercises: workouts.exercises,
     })
     .from(workouts)
     .where(
@@ -138,6 +140,18 @@ async function sumCardioMinutesInCalendarWeek(
         lte(workouts.date, end),
       ),
     );
+
+  let fromWorkouts = 0;
+  for (const row of workoutRows) {
+    try {
+      const parsed = JSON.parse(row.exercises) as { kind?: string };
+      if (parsed?.kind === "cardio_log") {
+        fromWorkouts += Number(row.cardioMinutes) || 0;
+      }
+    } catch {
+      /* pomiń uszkodzone */
+    }
+  }
 
   const weekStart = new Date(`${start}T00:00:00`);
   const weekEnd = new Date(`${end}T23:59:59`);
@@ -155,7 +169,7 @@ async function sumCardioMinutesInCalendarWeek(
       ),
     );
 
-  return Number(fromWorkouts?.total ?? 0) + Number(fromLegacy?.total ?? 0);
+  return fromWorkouts + Number(fromLegacy?.total ?? 0);
 }
 
 async function getNextWorkoutPlan(userId: string) {

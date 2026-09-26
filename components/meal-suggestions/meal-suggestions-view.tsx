@@ -7,6 +7,7 @@ import {
   setDietDayKindAction,
 } from "@/actions/diet-day";
 import { addMealProductAction, deleteMealLogFormAction, type MealLogFormState } from "@/actions/meal-log";
+import { AddMealChoiceBar } from "@/components/meal-suggestions/add-meal-choice-bar";
 import { MealCatalogBrowser } from "@/components/meal-suggestions/meal-catalog-browser";
 import { AddMealScreen } from "@/components/meal-suggestions/add-meal-screen";
 import { FoodPortionScreen } from "@/components/meal-suggestions/food-portion-screen";
@@ -234,13 +235,34 @@ export function MealSuggestionsView({
   const [pending, start] = useTransition();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [addSlot, setAddSlot] = useState<DietDiarySlot | null>(null);
+  const [choiceOpen, setChoiceOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [dishPickerOpen, setDishPickerOpen] = useState(false);
   const [portionProduct, setPortionProduct] = useState<FoodProduct | null>(null);
   const [portionSlot, setPortionSlot] = useState<DietDiarySlot>("sniadanie");
 
-  const mealOverlayOpen = Boolean(addSlot) || Boolean(portionProduct);
+  const mealOverlayOpen =
+    Boolean(addSlot) ||
+    Boolean(portionProduct) ||
+    choiceOpen ||
+    searchOpen ||
+    dishPickerOpen;
   useOverlayHistoryBack(mealOverlayOpen, () => {
     if (portionProduct) {
       setPortionProduct(null);
+      return;
+    }
+    if (searchOpen) {
+      setSearchOpen(false);
+      return;
+    }
+    if (dishPickerOpen) {
+      setDishPickerOpen(false);
+      return;
+    }
+    if (choiceOpen) {
+      setChoiceOpen(false);
+      setAddSlot(null);
       return;
     }
     setAddSlot(null);
@@ -399,7 +421,7 @@ export function MealSuggestionsView({
 
           <div
             key={dateKey}
-            className="mt-2 min-h-0 flex-1 animate-page-enter-opacity px-1 pb-28"
+            className="mt-2 min-h-0 flex-1 animate-page-enter-opacity px-1 pb-6"
           >
             {DIET_DIARY_SLOTS.map((slot) => (
               <MealSectionRow
@@ -413,10 +435,18 @@ export function MealSuggestionsView({
                     [slot]: !(prev[slot] ?? bySlot[slot].length > 0),
                   }))
                 }
-                onAdd={() => setAddSlot(slot)}
+                onAdd={() => {
+                  setAddSlot(slot);
+                  setChoiceOpen(true);
+                }}
                 onDeleted={() => refreshDay(dateKey)}
               />
             ))}
+
+            {/* Kcal / makro od razu pod kolacją — nie przy dolnej belce */}
+            <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
+              <DietDayMacrosBar {...dayMacros} />
+            </div>
 
             {unassigned.length > 0 ? (
               <section className="mt-3 space-y-2 opacity-80">
@@ -443,28 +473,63 @@ export function MealSuggestionsView({
               </section>
             ) : null}
           </div>
-
-          <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-40 px-0">
-            <div className="pointer-events-auto mx-auto max-w-lg">
-              <DietDayMacrosBar {...dayMacros} />
-            </div>
-          </div>
         </>
       )}
 
+      <AddMealChoiceBar
+        open={choiceOpen && Boolean(addSlot)}
+        slot={addSlot ?? "sniadanie"}
+        dateKey={dateKey}
+        onClose={() => {
+          setChoiceOpen(false);
+          setAddSlot(null);
+        }}
+        onOpenSearch={() => {
+          setChoiceOpen(false);
+          setSearchOpen(true);
+        }}
+        onOpenDish={() => {
+          setChoiceOpen(false);
+          setDishPickerOpen(true);
+        }}
+        onSaved={() => {
+          refreshDay(dateKey);
+          router.refresh();
+        }}
+      />
+
       <AddMealScreen
-        open={Boolean(addSlot)}
+        open={searchOpen && Boolean(addSlot)}
         slot={addSlot ?? "sniadanie"}
         dateLabel={dateLabel}
-        onClose={() => setAddSlot(null)}
+        onClose={() => {
+          setSearchOpen(false);
+          setAddSlot(null);
+        }}
         onPickProduct={(product) => {
           if (!addSlot) return;
           setPortionSlot(addSlot);
           setPortionProduct(product);
+          setSearchOpen(false);
           setAddSlot(null);
         }}
       />
 
+      {dishPickerOpen ? (
+        <div className="fixed inset-0 z-[170] overflow-y-auto bg-[#0c0c0c] px-3 pb-10 pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-base font-semibold text-white">Wybierz potrawę</p>
+            <button
+              type="button"
+              className="text-sm text-white/55"
+              onClick={() => setDishPickerOpen(false)}
+            >
+              Zamknij
+            </button>
+          </div>
+          <MealCatalogBrowser dateKey={dateKey} />
+        </div>
+      ) : null}
       <FoodPortionScreen
         product={portionProduct}
         open={Boolean(portionProduct)}

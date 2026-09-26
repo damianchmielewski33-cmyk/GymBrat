@@ -721,6 +721,26 @@ export function BodyReportForm({
         setFieldError("Podaj wagę, to pole jest wymagane.");
         return false;
       }
+      const waist = parseDecimal(waistCm);
+      const thigh = parseDecimal(thighCm);
+      const chest = parseDecimal(chestCm);
+      const arm = parseDecimal(armCm);
+      if (waist == null || waist <= 0) {
+        setFieldError("Podaj obwód pasa (cm).");
+        return false;
+      }
+      if (thigh == null || thigh <= 0) {
+        setFieldError("Podaj obwód uda (cm).");
+        return false;
+      }
+      if (chest == null || chest <= 0) {
+        setFieldError("Podaj obwód klatki (cm).");
+        return false;
+      }
+      if (arm == null || arm <= 0) {
+        setFieldError("Podaj obwód ramienia (cm).");
+        return false;
+      }
       return true;
     }
     if (s === 2) {
@@ -953,6 +973,8 @@ export function BodyReportForm({
                 label="Pas (cm)"
                 value={waistCm}
                 onChange={setWaistCm}
+                required
+                invalid={Boolean(fieldError && !parseDecimal(waistCm))}
                 hint={formatHintNumber(lastHints?.waistCm ?? null)}
               />
               <MeasureInput
@@ -960,6 +982,8 @@ export function BodyReportForm({
                 label="Udo (cm)"
                 value={thighCm}
                 onChange={setThighCm}
+                required
+                invalid={Boolean(fieldError && !parseDecimal(thighCm))}
                 hint={formatHintNumber(lastHints?.thighCm ?? null)}
               />
               <MeasureInput
@@ -967,6 +991,8 @@ export function BodyReportForm({
                 label="Klatka (cm)"
                 value={chestCm}
                 onChange={setChestCm}
+                required
+                invalid={Boolean(fieldError && !parseDecimal(chestCm))}
                 hint={formatHintNumber(lastHints?.chestCm ?? null)}
               />
               <MeasureInput
@@ -974,6 +1000,8 @@ export function BodyReportForm({
                 label="Ramię (cm)"
                 value={armCm}
                 onChange={setArmCm}
+                required
+                invalid={Boolean(fieldError && !parseDecimal(armCm))}
                 hint={formatHintNumber(lastHints?.armCm ?? null)}
               />
             </div>
@@ -1147,10 +1175,38 @@ export function BodyReportForm({
             </div>
           </div>
 
-          <p className="mt-3 text-center text-xs text-white/45">
-            Zdjęcia:{" "}
-            {PHOTO_SLOTS.filter((s) => slotPhotos[s.key]).map((s) => s.label).join(", ") || "brak"}
-          </p>
+          <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d4af37]/85">
+              Zdjęcia
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {PHOTO_SLOTS.map((s) => {
+                const src = slotPhotos[s.key];
+                return (
+                  <div
+                    key={s.key}
+                    className="overflow-hidden rounded-xl border border-white/12 bg-black/40"
+                  >
+                    {src ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={src}
+                        alt={s.label}
+                        className="aspect-[3/4] w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex aspect-[3/4] items-center justify-center text-[10px] text-white/35">
+                        Brak
+                      </div>
+                    )}
+                    <p className="px-1.5 py-1 text-center text-[10px] font-medium uppercase tracking-wide text-white/55">
+                      {s.label}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="mt-4">
             <FieldLabel>Informacje dodatkowe</FieldLabel>

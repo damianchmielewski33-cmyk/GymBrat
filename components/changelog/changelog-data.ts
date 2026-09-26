@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — pulpit, jadłospis, raport, cardio i Analiza w belce",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Na Pulpicie „wykonane cardio” liczy tylko wpisy cardio — trening siłowy nie podbija już minut.",
+      "W Jadłospisie przy dodawaniu do sekcji są trzy opcje: nowy produkt, nowa potrawa i szybkie dodawanie makro; pasek kcal jest od razu pod kolacją.",
+      "W belce dolnej jest Analiza; raport wymaga pasa, uda, klatki i ramienia, a w podsumowaniu widać trzy miniatury zdjęć.",
+      "Zapis cardio: edytowalne minuty i przycisk Zapisz nad dolną belką (nie pod nią).",
+    ],
+  },
+  {
     title: "2026-09 — PDF w imporcie planu nie jest już wyszarzony",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

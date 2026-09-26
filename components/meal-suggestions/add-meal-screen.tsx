@@ -160,7 +160,7 @@ export function AddMealScreen({
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto pb-28">
         <p className="px-4 pb-2 pt-4 text-xs font-medium uppercase tracking-wider text-white/40">
           {query.trim() ? "Wyniki" : "Popularne / ostatnie"}
         </p>

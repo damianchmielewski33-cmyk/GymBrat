@@ -33,6 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { href: "/", label: t("nav.desk"), icon: Home },
       { href: "/meal-suggestions", label: t("nav.diet"), icon: Utensils },
       { href: "/workout-plan", label: t("nav.training"), icon: Dumbbell },
+      { href: "/progress-analysis", label: t("nav.analysis"), icon: LineChart },
       { href: "/profile", label: t("nav.profile"), icon: User },
     ],
     [t],
@@ -171,11 +172,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className="fixed inset-x-0 bottom-0 z-50 bg-[#050505] pb-[env(safe-area-inset-bottom)]"
         aria-label="Nawigacja główna"
       >
-        <div className="relative mx-auto grid max-w-lg grid-cols-5 items-center px-2 pb-2 pt-2">
+        <div className="relative mx-auto grid max-w-lg grid-cols-6 items-center px-1 pb-2 pt-2">
           {tabs.slice(0, 2).map((item) => (
             <TabLink key={item.href} item={item} pathname={pathname} />
           ))}
-          <div className="relative flex h-12 items-center justify-center">
+          <div className="relative col-span-1 flex h-12 items-center justify-center">
             <Suspense fallback={null}>
               <ReportFab />
             </Suspense>

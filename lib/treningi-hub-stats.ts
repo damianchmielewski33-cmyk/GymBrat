@@ -136,7 +136,9 @@ export async function getTreningiHubStats(userId: string): Promise<TreningiHubSt
     const parsed = parseSession(row.exercises);
     const inThisWeek = row.date >= monday && row.date <= sunday;
     if (inThisWeek) {
-      cardioMinutesThisWeek += Math.max(0, row.cardioMinutes ?? 0);
+      if (isCardioLog(parsed, row.cardioMinutes)) {
+        cardioMinutesThisWeek += Math.max(0, row.cardioMinutes ?? 0);
+      }
       if (isGuidedStrength(parsed)) {
         workoutsThisWeek += 1;
         tonnageThisWeekKg += volumeFromExercises(parsed?.exercises);

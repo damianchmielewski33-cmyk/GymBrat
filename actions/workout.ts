@@ -77,6 +77,7 @@ export async function logTrainingSession(input: {
   revalidatePath("/");
   revalidatePath("/reports");
   revalidatePath("/workout-plan");
+  revalidatePath("/treningi");
   return { ok: true as const };
 }
 
