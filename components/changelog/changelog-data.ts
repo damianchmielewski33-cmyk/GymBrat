@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — Pulpit: Inny dzień + ekrany treningu jak na grafikach",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Na Pulpicie „Inny dzień” rozwija listę dni planu (Push A, Pull…) z przyciskiem Start →; „Zacznij trening” od razu uruchamia sesję prowadzoną.",
+      "Lista ćwiczeń w sesji ma kolory statusu (złoty = bieżące, zielony = zrobione) oraz kropki serii jak na screenach.",
+      "Po zaliczeniu serii pojawia się pełnoekranowa Przerwa z dużym timerem, presetami 1:00–3:00, kartą zaliczone/następne oraz przyciskiem Dalej.",
+    ],
+  },
+  {
     title: "2026-09 — belka Raport na środku, jadłospis Fitatu, zapis cardio",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

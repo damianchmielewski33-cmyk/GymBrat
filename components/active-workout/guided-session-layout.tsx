@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Check, List, Minus, Plus, X } from "lucide-react";
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
+import { formatExerciseTargetLine } from "@/lib/start-workout-session";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -23,22 +24,13 @@ function clampReps(n: number | null) {
   return Math.max(0, Math.min(99, Math.round(n)));
 }
 
-function targetLine(ex: WorkoutExerciseState): string {
-  const sets = ex.targetSets ?? ex.sets.length;
-  const reps = ex.targetReps;
-  const parts: string[] = [];
-  if (reps != null && reps > 0) parts.push(`${sets}s ${reps}`);
-  else parts.push(`${sets}s`);
-  if (ex.targetRir != null) parts.push(`RIR ${ex.targetRir}`);
-  if (ex.tempo) parts.push(`tempo ${ex.tempo}`);
-  return parts.join(" · ");
-}
-
 type GuidedSessionLayoutProps = {
   title: string;
   elapsedSeconds: number;
   exercises: WorkoutExerciseState[];
   selectedExerciseId: string | null;
+  listOpen?: boolean;
+  onListOpenChange?: (open: boolean) => void;
   onSelectExercise: (id: string) => void;
   onPatchSet: (exerciseId: string, setIndex: number, patch: Partial<WorkoutSetState>) => void;
   onExerciseNoteChange?: (exerciseId: string, note: string) => void;
@@ -53,6 +45,8 @@ export function GuidedSessionLayout({
   elapsedSeconds,
   exercises,
   selectedExerciseId,
+  listOpen: listOpenControlled,
+  onListOpenChange,
   onSelectExercise,
   onPatchSet,
   onExerciseNoteChange,
@@ -61,7 +55,12 @@ export function GuidedSessionLayout({
   finishPending,
   onDeferExercise,
 }: GuidedSessionLayoutProps) {
-  const [listOpen, setListOpen] = useState(false);
+  const [listOpenLocal, setListOpenLocal] = useState(false);
+  const listOpen = listOpenControlled ?? listOpenLocal;
+  function setListOpen(open: boolean) {
+    onListOpenChange?.(open);
+    if (listOpenControlled === undefined) setListOpenLocal(open);
+  }
   const [noteOpen, setNoteOpen] = useState(false);
 
   const selectedIndex = Math.max(
@@ -93,7 +92,6 @@ export function GuidedSessionLayout({
   function goPrev() {
     if (!exercise) return;
     if (activeSetIndex > 0) {
-      // stay on exercise, conceptually "back" to previous set display — reopen previous set
       onPatchSet(exercise.id, activeSetIndex - 1, { done: false });
       return;
     }
@@ -145,9 +143,24 @@ export function GuidedSessionLayout({
 
   const repsDisplay = set.reps != null ? set.reps : (exercise.targetReps ?? 0);
   const rirValue = set.rir ?? exercise.targetRir ?? 1;
+  const progress =
+    totals.total > 0 ? Math.min(1, totals.done / totals.total) : 0;
 
   return (
     <div className="relative mx-auto w-full max-w-lg pb-8">
+      <div
+        className="h-1 w-full bg-white/10"
+        role="progressbar"
+        aria-valuenow={Math.round(progress * 100)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <div
+          className="h-full bg-[var(--gym-gold)] transition-[width] duration-500"
+          style={{ width: `${progress * 100}%` }}
+        />
+      </div>
+
       <header className="sticky top-0 z-20 flex items-center justify-between gap-2 bg-black/95 px-2 py-3 backdrop-blur">
         <button
           type="button"
@@ -189,7 +202,9 @@ export function GuidedSessionLayout({
           </button>
         </div>
         <h2 className="mt-2 text-2xl font-semibold leading-tight text-white">{exercise.name}</h2>
-        <p className="mt-1 font-mono text-xs text-white/45">{targetLine(exercise)}</p>
+        <p className="mt-1 font-mono text-xs text-white/45">
+          {formatExerciseTargetLine(exercise)}
+        </p>
 
         <div className="mt-4 flex items-center gap-2">
           {exercise.sets.map((s, i) => (
@@ -197,11 +212,9 @@ export function GuidedSessionLayout({
               key={i}
               className={cn(
                 "h-2.5 flex-1 rounded-full",
-                i < activeSetIndex || s.done
+                s.done || i === activeSetIndex
                   ? "bg-[var(--gym-gold)]"
-                  : i === activeSetIndex
-                    ? "bg-[var(--gym-gold)]"
-                    : "bg-white/15",
+                  : "bg-white/15",
               )}
             />
           ))}
@@ -405,35 +418,33 @@ export function GuidedSessionLayout({
       </div>
 
       {listOpen ? (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 sm:items-center">
-          <button
-            type="button"
-            className="absolute inset-0"
-            aria-label="Zamknij listę"
-            onClick={() => setListOpen(false)}
-          />
-          <div className="relative z-[1] max-h-[85dvh] w-full max-w-lg overflow-hidden rounded-t-[28px] border border-white/10 bg-[#121212] sm:rounded-[28px]">
-            <div className="flex items-start justify-between px-5 pb-2 pt-5">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-                  Lista ćwiczeń
-                </p>
-                <h3 className="mt-1 text-2xl font-semibold text-white">{title}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setListOpen(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12"
-                aria-label="Zamknij"
-              >
-                <X className="h-4 w-4" />
-              </button>
+        <div className="fixed inset-0 z-[70] flex flex-col bg-black">
+          <header className="flex items-start justify-between px-5 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
+                Lista ćwiczeń
+              </p>
+              <h3 className="mt-1 text-3xl font-semibold text-white">{title}</h3>
             </div>
-            <ul className="max-h-[65dvh] overflow-y-auto px-2 pb-6">
+            <button
+              type="button"
+              onClick={() => setListOpen(false)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12"
+              aria-label="Zamknij"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </header>
+          <div className="mx-3 mb-4 min-h-0 flex-1 overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#141414]">
+            <ul className="h-full overflow-y-auto px-2 py-2">
               {exercises.map((ex, i) => {
                 const doneAll = ex.sets.every((s) => s.done);
-                const deferred = ex.sets.some((s) => !s.done) && i < selectedIndex;
                 const active = ex.id === exercise.id;
+                const nameClass = doneAll
+                  ? "text-emerald-400"
+                  : active
+                    ? "text-[var(--gym-gold)]"
+                    : "text-white";
                 return (
                   <li key={ex.id}>
                     <button
@@ -442,30 +453,30 @@ export function GuidedSessionLayout({
                         onSelectExercise(ex.id);
                         setListOpen(false);
                       }}
-                      className="flex w-full items-start gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-white/[0.04]"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-4 text-left hover:bg-white/[0.03]"
                     >
-                      <span className="mt-0.5 w-5 shrink-0 text-sm tabular-nums text-white/35">
-                        {i + 1}
-                      </span>
                       <span className="min-w-0 flex-1">
-                        <span
-                          className={cn(
-                            "block text-[15px] font-medium",
-                            active ? "text-[var(--gym-gold)]" : "text-white",
-                          )}
-                        >
-                          {ex.name}
+                        <span className={cn("block text-[16px] font-semibold", nameClass)}>
+                          {i + 1}. {ex.name}
                         </span>
-                        <span className="mt-0.5 block font-mono text-[11px] text-white/40">
-                          {targetLine(ex)}
-                          {doneAll ? " · zrobione" : ""}
-                          {deferred ? " · odłożone, wrócisz tu później" : ""}
+                        <span className="mt-1 block text-[13px] text-white/45">
+                          {formatExerciseTargetLine(ex)}
                         </span>
                       </span>
-                      <span className="mt-2 flex gap-0.5">
-                        <span className="h-1 w-1 rounded-full bg-white/30" />
-                        <span className="h-1 w-1 rounded-full bg-white/30" />
-                        <span className="h-1 w-1 rounded-full bg-white/30" />
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        {ex.sets.map((s, si) => (
+                          <span
+                            key={si}
+                            className={cn(
+                              "h-2 w-2 rounded-full",
+                              s.done
+                                ? "bg-emerald-400"
+                                : active
+                                  ? "bg-white/25"
+                                  : "bg-white/20",
+                            )}
+                          />
+                        ))}
                       </span>
                     </button>
                   </li>
