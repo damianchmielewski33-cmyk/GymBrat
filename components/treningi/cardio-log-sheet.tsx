@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Flame, Minus, Plus, X } from "lucide-react";
 import { logCardioDetailedAction } from "@/actions/workout";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
@@ -42,6 +43,7 @@ function clampMinutes(n: number): number {
 
 export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSheetProps) {
   const { notifySaved, notifyError } = useSaveFeedback();
+  const [mounted, setMounted] = useState(false);
   const [machine, setMachine] = useState<(typeof MACHINES)[number]>("Marsz");
   const [minutesText, setMinutesText] = useState("30");
   const [distanceKm, setDistanceKm] = useState("");
@@ -52,6 +54,8 @@ export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSh
     ok?: boolean;
     error?: string;
   });
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -74,9 +78,9 @@ export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSh
   const dateLine = useMemo(() => `zapisuję na dziś, ${todayLabelPl()}`, []);
   const minutes = clampMinutes(Number(String(minutesText).replace(",", ".")));
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/75 sm:items-center sm:p-4">
       <button
         type="button"
@@ -217,7 +221,7 @@ export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSh
             </label>
           </div>
 
-          {/* Zawsze widoczny przycisk — nad systemowym home / belką aplikacji */}
+          {/* Zawsze widoczny przycisk — portal nad belką aplikacji (z-[200]) */}
           <div className="shrink-0 border-t border-white/10 bg-[#0c0c0c] px-5 pt-3 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+0.75rem))]">
             <button
               type="submit"
@@ -230,6 +234,7 @@ export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSh
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
