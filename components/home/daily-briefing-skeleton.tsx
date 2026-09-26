@@ -1,4 +1,4 @@
-/** Placeholder podczas ładowania async `DailyBriefingCard` (np. wywołanie modelu AI). */
+/** Placeholder podczas ładowania async `DailyBriefingCard`. */
 export function DailyBriefingSkeleton() {
   return (
     <section className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6" aria-busy="true" aria-label="Ładowanie briefingu dnia">

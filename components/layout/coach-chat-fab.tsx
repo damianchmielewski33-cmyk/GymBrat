@@ -68,7 +68,7 @@ export function CoachChatFab() {
       <SheetTrigger
         type="button"
         className={cn(
-          "fixed z-[55] flex max-w-[min(calc(100vw-1.5rem),14rem)] items-center gap-2 rounded-2xl border border-[var(--neon)]/45 bg-[linear-gradient(145deg,rgba(230,0,35,0.42),rgba(230,0,35,0.16))] px-3.5 py-3 text-left text-xs font-semibold leading-snug text-white shadow-[0_8px_32px_rgba(0,0,0,0.45),0_0_24px_rgba(230,0,35,0.22)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]",
+          "fixed z-[55] flex max-w-[min(calc(100vw-1.5rem),14rem)] items-center gap-2 rounded-2xl gym-btn-primary px-3.5 py-3 text-left text-xs leading-snug focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]",
           "right-3 sm:right-4",
           activeWorkout
             ? "top-[calc(4.25rem+env(safe-area-inset-top))] md:top-[calc(4.5rem+env(safe-area-inset-top))]"
