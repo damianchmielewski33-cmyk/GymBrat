@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — raport: podsumowanie jak na screenie + popup sukcesu",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Krok Podsumowanie w raporcie pokazuje pomiary, złote paski samopoczucia i Tak/Nie jak na pierwotnym ekranie — zamiast samej listy tekstowej.",
+      "Po zapisie raportu pojawia się animowany popup (preloader, potem potwierdzenie sukcesu).",
+      "Na Pulpicie Forma dziś i Trzymanie się założeń mają złote nagłówki i czytelniejsze kafle jak w referencji.",
+    ],
+  },
+  {
     title: "2026-09 — baza produktów: poprawne nazwy (bez skyr→screw)",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
