@@ -21,6 +21,24 @@ services:
     depends_on:
       - ollama
 
+  java-backend:
+    image: maven:3.9.6-eclipse-temurin-17
+    working_dir: /app
+    volumes:
+      - ./java-backend:/app
+      - maven-repo:/root/.m2
+    command: mvn -q spring-boot:run
+    environment:
+      PORT: 8080
+      GYMBRAT_PROXY_TOKEN: ${GYMBRAT_PROXY_TOKEN:-}
+      GYMBRAT_CORS_ORIGINS: ${GYMBRAT_CORS_ORIGINS:-http://localhost:3000,https://gym-brat.vercel.app}
+      ANDROID_APK_URL: ${ANDROID_APK_URL:-}
+      ANDROID_VERSION_CODE: ${ANDROID_VERSION_CODE:-0}
+      ANDROID_VERSION_NAME: ${ANDROID_VERSION_NAME:-}
+    ports:
+      - "8080:8080"
+
 volumes:
   ollama: {}
+  maven-repo: {}
 

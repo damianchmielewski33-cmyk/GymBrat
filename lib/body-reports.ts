@@ -1,6 +1,6 @@
 import { desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
-import { bodyReportPhotos, bodyReports } from "@/db/schema";
+import { bodyReportPhotos, bodyReports, weightLogs } from "@/db/schema";
 import { encryptSensitiveField, maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
 
 export type BodyReport = {
@@ -199,6 +199,18 @@ export async function createBodyReport(userId: string, input: CreateBodyReportIn
 
   const [inserted] = await db.insert(bodyReports).values(row).returning();
   const reportId = inserted!.id;
+
+  // Sync wagi do weight_logs, żeby wykres Startu i Analiza odświeżały się po raporcie.
+  if (row.weightKg != null && Number.isFinite(row.weightKg) && row.weightKg > 0) {
+    await db.insert(weightLogs).values({
+      userId,
+      weightKg: Math.round(row.weightKg * 10) / 10,
+      notes: "raport sylwetki",
+      recordedAt: inserted!.createdAt instanceof Date
+        ? inserted!.createdAt
+        : new Date(),
+    });
+  }
 
   const dataUrls = (input.photoDataUrls ?? [])
     .map((s) => String(s ?? "").trim())

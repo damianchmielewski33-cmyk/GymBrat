@@ -1,11 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Plus, Scale } from "lucide-react";
+import { Scale } from "lucide-react";
 import { useState } from "react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { logWeighIn } from "@/actions/weight";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export function WeighInCard() {
@@ -29,62 +27,45 @@ export function WeighInCard() {
   }
 
   return (
-    <motion.div
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.99 }}
-      transition={{ type: "spring", stiffness: 420, damping: 32 }}
-      className="glass-panel relative overflow-hidden p-6"
-    >
-      <div className="pointer-events-none absolute inset-0 opacity-55 [background-image:radial-gradient(520px_240px_at_10%_10%,rgba(255,45,85,0.18),transparent_60%)]" />
-      <div className="relative">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-              Szybki wpis
-            </p>
-            <h3 className="font-heading mt-1 text-lg font-semibold text-white">
-              Ważenie
-            </h3>
-            <p className="mt-1 text-sm text-white/60">
-              Każdy wpis pojawia się na wykresie masy ciała w analizie.
-            </p>
-          </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">
-            <Scale className="h-5 w-5 text-[var(--neon)]" />
-          </div>
+    <section className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+            Szybki wpis
+          </p>
+          <h3 className="mt-1 text-base font-semibold text-white">Ważenie</h3>
+          <p className="mt-1 text-sm text-white/45">
+            Każdy wpis pojawia się na wykresie masy w Analizie i na Pulpicie.
+          </p>
         </div>
-
-        <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-          <div className="space-y-2">
-            <label className="text-xs text-white/55">Waga (kg)</label>
-            <Input
-              type="number"
-              step="0.1"
-              min={1}
-              max={600}
-              value={weightKg}
-              onChange={(e) => setWeightKg(Number(e.target.value))}
-              className="h-11 rounded-xl border-white/15 bg-black/30 px-4"
-            />
-          </div>
-          <Button
-            type="button"
-            onClick={onSave}
-            disabled={saving}
-            className="h-11 bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            {saving ? "Zapisywanie…" : "Dodaj"}
-          </Button>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10">
+          <Scale className="h-5 w-5 text-[var(--gym-gold)]" />
         </div>
-
-        {error ? (
-          <div className="mt-3 rounded-xl border border-red-500/25 bg-red-500/10 p-3 text-sm text-red-200">
-            {error}
-          </div>
-        ) : null}
       </div>
-    </motion.div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        <div className="space-y-2">
+          <label className="text-xs text-white/55">Waga (kg)</label>
+          <Input
+            type="number"
+            step="0.1"
+            min={30}
+            max={300}
+            value={Number.isFinite(weightKg) ? weightKg : ""}
+            onChange={(e) => setWeightKg(Number(e.target.value))}
+            className="h-11 rounded-xl border-white/15 bg-black/40"
+          />
+        </div>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => void onSave()}
+          className="inline-flex h-11 items-center justify-center rounded-2xl bg-gradient-to-b from-[#f0d56a] via-[#d4af37] to-[#b8922a] px-5 text-sm font-bold text-[#0a0906] disabled:opacity-50"
+        >
+          {saving ? "Zapis…" : "Zapisz"}
+        </button>
+      </div>
+      {error ? <p className="mt-2 text-sm text-rose-400">{error}</p> : null}
+    </section>
   );
 }
-
