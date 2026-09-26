@@ -137,7 +137,7 @@ export function ActiveWorkoutGlobalBar() {
       <div
         className="mx-auto max-w-6xl rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-xl"
         style={{
-          boxShadow: "0 10px 30px rgba(0,0,0,0.55), 0 0 0 1px rgba(230,0,35,0.10) inset",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.55), 0 0 0 1px rgba(var(--neon-rgb),0.10) inset",
         }}
       >
         <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
@@ -351,7 +351,7 @@ export function ActiveWorkoutGlobalBar() {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto bg-black">
-              <ActiveWorkoutView initialPlans={[]} entry="active" userAiFeaturesDisabled={false} display="modal" />
+              <ActiveWorkoutView initialPlans={[]} entry="active" display="modal" />
             </div>
           </div>
         </AlertDialogContent>

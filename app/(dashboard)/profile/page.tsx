@@ -19,8 +19,6 @@ import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { LocaleSwitchCard } from "@/components/profile/locale-switch-card";
 import { AndroidAppVersionCard } from "@/components/android-app-version-card";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
-import { AiFeaturesSettingsCard } from "@/components/profile/ai-features-settings-card";
-import { getUserAiEntitled } from "@/lib/user-ai-preference";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -54,14 +52,10 @@ export default async function ProfilePage() {
       remindersJson: userSettings.remindersJson,
       fitnessGoalsJson: userSettings.fitnessGoalsJson,
       mealTemplatesJson: userSettings.mealTemplatesJson,
-      aiFeaturesDisabled: userSettings.aiFeaturesDisabled,
-      aiEntitled: userSettings.aiEntitled,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
     .limit(1);
-
-  const entitled = s ? Boolean(s.aiEntitled) : await getUserAiEntitled(userId);
 
   const nutritionInitial = nutritionSettingsFromDbRow(
     s ?? {
@@ -152,10 +146,6 @@ export default async function ProfilePage() {
         <div className="grid gap-6 lg:col-span-2 lg:grid-cols-2">
           <ReminderSettingsCard initial={parseRemindersJson(s?.remindersJson ?? null)} />
           <FitnessGoalsForm initial={parseFitnessGoalsJson(s?.fitnessGoalsJson ?? null)} />
-        </div>
-
-        <div className="lg:col-span-2">
-          {entitled ? <AiFeaturesSettingsCard initialDisabled={Boolean(s?.aiFeaturesDisabled)} /> : null}
         </div>
 
         <div className="lg:col-span-2">
