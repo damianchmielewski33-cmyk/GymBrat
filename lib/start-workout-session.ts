@@ -1,6 +1,6 @@
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import type { WorkoutExerciseState } from "@/components/workout/types";
-import type { WorkoutPlanExercise } from "@/lib/workout-plan-types";
+import type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
@@ -40,7 +40,7 @@ export function planExercisesToSession(
 
 export type ActiveWorkoutStartApi = {
   reset: () => void;
-  applyPlan: (id: string, plan: WorkoutPlanWithLastWorkoutDTO["plan"]) => void;
+  applyPlan: (planId: string, plan: WorkoutPlanPayload) => void;
   setExercises: (exercises: WorkoutExerciseState[]) => void;
   setSelectedExerciseId: (id: string | null) => void;
   start: () => void;
