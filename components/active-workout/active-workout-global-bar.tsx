@@ -80,8 +80,9 @@ export function ActiveWorkoutGlobalBar() {
   }, [exercises]);
 
   if (!hasSession) return null;
+  if (pathname.startsWith("/active-workout")) return null;
 
-  const canShowPopup = !pathname.startsWith("/active-workout");
+  const canShowPopup = true;
 
   async function completeWorkoutFromBar() {
     if (completing) return;
