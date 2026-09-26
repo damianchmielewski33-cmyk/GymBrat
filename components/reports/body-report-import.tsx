@@ -131,9 +131,9 @@ export function BodyReportImport() {
             <Label htmlFor="xlsxFile">Plik Excel (.xlsx)</Label>
             <FilePickerButton
               id="xlsxFile"
-              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/octet-stream,*/*"
               disabled={pending}
-              emptyLabel="Wybierz plik Excel"
+              emptyLabel="Wybierz plik Excel (.xlsx)"
               valueLabel={file ? file.name : undefined}
               onFiles={(files) => {
                 setFile(files[0] ?? null);

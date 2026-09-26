@@ -8,6 +8,15 @@ import { FilePickerButton } from "@/components/ui/file-picker-button";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { cn } from "@/lib/utils";
 
+/** Szeroki accept — Android WebView często ukrywa .docx przy wąskim MIME. */
+const PLAN_FILE_ACCEPT =
+  ".docx,.xlsx,.xls,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/msword,application/vnd.ms-excel,application/octet-stream,*/*";
+
+function isSupportedPlanFile(file: File): boolean {
+  const n = (file.name || "").toLowerCase();
+  return n.endsWith(".docx") || n.endsWith(".xlsx") || n.endsWith(".xls");
+}
+
 export function WorkoutPlanWordImport() {
   const router = useRouter();
   const { notifySaved } = useSaveFeedback();
@@ -27,11 +36,11 @@ export function WorkoutPlanWordImport() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-              Import z Worda
+              Import planu
             </p>
             <p className="mt-1.5 text-sm text-white/50">
-              Wgraj plan treningowy z pliku .docx — aplikacja utworzy dni/plany z
-              ćwiczeniami, seriami i powtórzeniami.
+              Wgraj plan z Worda (.docx) albo Excela (.xlsx) — aplikacja utworzy
+              dni/plany z ćwiczeniami, seriami i powtórzeniami.
             </p>
           </div>
           <button
@@ -40,7 +49,7 @@ export function WorkoutPlanWordImport() {
             className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-4 text-sm font-semibold text-[var(--gym-gold)] hover:bg-[var(--gym-gold)]/15"
           >
             <FileUp className="h-4 w-4" aria-hidden />
-            Importuj z Worda
+            Importuj Word / Excel
           </button>
         </div>
       ) : (
@@ -51,7 +60,13 @@ export function WorkoutPlanWordImport() {
             setError(null);
             setWarnings([]);
             if (!file) {
-              setError("Wybierz plik .docx.");
+              setError("Wybierz plik .docx albo .xlsx.");
+              return;
+            }
+            if (!isSupportedPlanFile(file)) {
+              setError(
+                "Wybierz plik Word (.docx) albo Excel (.xlsx). Na telefonie: Pliki → Pobrane.",
+              );
               return;
             }
             start(async () => {
@@ -80,8 +95,8 @@ export function WorkoutPlanWordImport() {
                 setWarnings(json.warnings ?? []);
                 notifySaved(
                   json.imported === 1
-                    ? `Zaimportowano plan „${json.planNames?.[0] ?? "z Worda"}”.`
-                    : `Zaimportowano ${json.imported} planów z Worda.`,
+                    ? `Zaimportowano plan „${json.planNames?.[0] ?? "z pliku"}”.`
+                    : `Zaimportowano ${json.imported} planów.`,
                 );
                 setFile(null);
                 setOpen(false);
@@ -95,14 +110,15 @@ export function WorkoutPlanWordImport() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-                Import z Worda
+                Import planu
               </p>
               <h3 className="mt-1 text-base font-semibold text-white">
-                Utwórz plan z dokumentu
+                Word (.docx) lub Excel (.xlsx)
               </h3>
               <p className="mt-1 text-xs text-white/45">
-                Najlepiej: nagłówki dni (np. „Dzień A”, „Push”) i linie ćwiczeń z
-                seriami, np. „Przysiady 4x8”.
+                Na Androidzie: wybierz plik z folderu Pobrane (nie z galerii). Word:
+                nagłówki dni + „Przysiady 4x8”. Excel: kolumny dzień / ćwiczenie /
+                serie / powtórzenia.
               </p>
             </div>
             <button
@@ -119,14 +135,19 @@ export function WorkoutPlanWordImport() {
           </div>
 
           <FilePickerButton
-            accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            accept={PLAN_FILE_ACCEPT}
             disabled={pending}
             onFiles={(files) => {
-              setFile(files[0] ?? null);
-              setError(null);
+              const f = files[0] ?? null;
+              setFile(f);
+              setError(
+                f && !isSupportedPlanFile(f)
+                  ? "Ten typ pliku nie jest obsługiwany — wybierz .docx lub .xlsx."
+                  : null,
+              );
             }}
             valueLabel={file ? file.name : undefined}
-            emptyLabel="Wybierz plik .docx"
+            emptyLabel="Wybierz plik (.docx / .xlsx)"
           />
 
           {error ? <p className="text-sm text-rose-400">{error}</p> : null}
@@ -143,7 +164,7 @@ export function WorkoutPlanWordImport() {
             disabled={pending || !file}
             className="inline-flex h-11 w-full items-center justify-center rounded-2xl bg-gradient-to-b from-[#f0d56a] via-[#d4af37] to-[#b8922a] text-sm font-bold text-[#0a0906] disabled:opacity-45 sm:w-auto sm:px-6"
           >
-            {pending ? "Importowanie…" : "Utwórz plany z Worda"}
+            {pending ? "Importowanie…" : "Utwórz plany z pliku"}
           </button>
         </form>
       )}

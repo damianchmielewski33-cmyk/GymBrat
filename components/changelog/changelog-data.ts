@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — import planu z Excela/Worda na Androidzie + dokładny wykres wagi",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Import planu treningowego działa z Worda (.docx) i Excela (.xlsx); picker na Androidzie nie blokuje już plików z Pobranych przez zbyt wąski filtr MIME.",
+      "Na Pulpicie wykres Waga i pas pokazuje dokładne wartości (kafelki ostatniej wagi/pasa, etykiety przy punktach, pełna data w podpowiedzi).",
+    ],
+  },
+  {
     title: "2026-09 — import planu treningowego z Worda (.docx)",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

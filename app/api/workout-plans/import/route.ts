@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { workoutPlans } from "@/db/schema";
 import { parseWorkoutPlansFromDocx } from "@/lib/docx/workout-plan-import";
+import { parseWorkoutPlansFromXlsx } from "@/lib/excel/workout-plan-import";
 import { assertCsrf } from "@/lib/csrf";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
@@ -10,6 +11,13 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 const MAX_BYTES = 8 * 1024 * 1024;
+
+function fileKind(name: string): "docx" | "xlsx" | null {
+  const n = name.toLowerCase();
+  if (n.endsWith(".docx")) return "docx";
+  if (n.endsWith(".xlsx") || n.endsWith(".xls")) return "xlsx";
+  return null;
+}
 
 export async function POST(req: Request) {
   const csrf = assertCsrf(req);
@@ -42,17 +50,18 @@ export async function POST(req: Request) {
   const file = form.get("file");
   if (!(file instanceof File)) {
     return NextResponse.json(
-      { ok: false, error: "Wybierz plik Word (.docx)." },
+      { ok: false, error: "Wybierz plik Word (.docx) albo Excel (.xlsx)." },
       { status: 400 },
     );
   }
 
-  const name = (file.name || "").toLowerCase();
-  if (!name.endsWith(".docx")) {
+  const kind = fileKind(file.name || "");
+  if (!kind) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Obsługiwany jest format .docx (Word). Zapisz dokument jako .docx i spróbuj ponownie.",
+        error:
+          "Obsługiwane formaty: .docx (Word) i .xlsx (Excel). Na Androidzie wybierz plik z „Pliki” / Pobrane.",
       },
       { status: 400 },
     );
@@ -68,7 +77,10 @@ export async function POST(req: Request) {
   const buffer = Buffer.from(await file.arrayBuffer());
   let parsed;
   try {
-    parsed = await parseWorkoutPlansFromDocx(buffer);
+    parsed =
+      kind === "docx"
+        ? await parseWorkoutPlansFromDocx(buffer)
+        : parseWorkoutPlansFromXlsx(buffer);
   } catch (err) {
     return NextResponse.json(
       {
@@ -76,7 +88,7 @@ export async function POST(req: Request) {
         error:
           err instanceof Error
             ? err.message
-            : "Nie udało się odczytać pliku Word.",
+            : "Nie udało się odczytać pliku.",
       },
       { status: 400 },
     );
