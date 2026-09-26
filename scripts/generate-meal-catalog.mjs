@@ -811,19 +811,125 @@ for (const m of meals) {
   unique.push(m);
 }
 
+const AMOUNT_HINTS = [
+  [/^li[sś]cie\s+sałat/i, "40 g"],
+  [/^sałata/i, "60 g"],
+  [/^rukola/i, "40 g"],
+  [/^szpinak/i, "80 g"],
+  [/^pomidorki/i, "100 g"],
+  [/^pomidor(?!ów)/i, "120 g"],
+  [/^ogórek/i, "100 g"],
+  [/^papryka/i, "120 g"],
+  [/^cebula/i, "80 g"],
+  [/^czosnek/i, "1 ząbek"],
+  [/^marchew/i, "80 g"],
+  [/^brokuł/i, "150 g"],
+  [/^kalafior/i, "200 g"],
+  [/^cukinia/i, "150 g"],
+  [/^awokado/i, "1/2 szt. (~70 g)"],
+  [/^banan/i, "1 szt. (~120 g)"],
+  [/^jabłko/i, "1 szt. (~150 g)"],
+  [/^gruszka/i, "1 szt. (~160 g)"],
+  [/^malin/i, "50 g"],
+  [/^truskawk/i, "80 g"],
+  [/^jagód|borówk/i, "60 g"],
+  [/^kiwi/i, "1 szt. (~80 g)"],
+  [/^wiśni|wisien/i, "80 g"],
+  [/^cytryn/i, "1/2 szt. (sok)"],
+  [/^dressing/i, "30 g"],
+  [/^musztard/i, "1 łyżeczka (5 g)"],
+  [/^oliw[ay]/i, "1 łyżeczka (5 ml)"],
+  [/^olej/i, "1 łyżeczka (5 ml)"],
+  [/^miód/i, "1 łyżeczka (7 g)"],
+  [/^woda$/i, "200 ml"],
+  [/^espresso|kawa/i, "30–60 ml"],
+  [/^przypraw/i, "do smaku (ok. 2–3 g)"],
+  [/^sól|pieprz/i, "szczypta (~1 g)"],
+  [/^cynamon/i, "1 łyżeczka (2 g)"],
+  [/^kakao/i, "1 łyżeczka (5 g)"],
+  [/^sos\s+teriyaki/i, "20 ml"],
+  [/^płatki\s+owsiane/i, "30 g"],
+  [/^ryż/i, "50 g (suchej)"],
+  [/^zioł/i, "2 g"],
+  [/^koperek/i, "5 g"],
+  [/^natka|pietruszk/i, "5 g"],
+  [/^salsa/i, "40 g"],
+  [/^sok\s+z\s+cytryn/i, "10 ml"],
+  [/^kilka\s+malin/i, "50 g"],
+  [/^kilka\s+orzech/i, "15 g"],
+  [/^nerkowc/i, "15 g"],
+  [/^fasol/i, "80 g"],
+  [/^ser\b/i, "30 g"],
+];
+
+function hasQuantity(line) {
+  return /\d/.test(line) || /łyżk|łyżecz|szczypt|ząbek|kromk|szt/i.test(line);
+}
+
+function enrichIngredient(raw) {
+  const line = String(raw || "").trim();
+  if (!line) return line;
+  if (hasQuantity(line)) return line;
+  for (const [test, amount] of AMOUNT_HINTS) {
+    if (test.test(line)) return `${amount} ${line}`;
+  }
+  return `porcja do odważenia: ${line}`;
+}
+
+function expandStep(step, index) {
+  const s = String(step || "").trim();
+  if (s.length >= 55) return s;
+  const lower = s.toLowerCase();
+  if (/ugotuj|gotuj/.test(lower) && !/min|°/.test(lower)) {
+    return `${s} Gotuj we właściwej ilości płynu (zwykle 8–15 min), aż będzie miękki; odcedź, jeśli trzeba.`;
+  }
+  if (/smaż|usmaż|podsmaż/.test(lower) && !/min|średn|ogniu/.test(lower)) {
+    return `${s} Na średnim ogniu z 1 łyżeczką tłuszczu, 4–8 min, aż nabierze koloru.`;
+  }
+  if (/piecz|upiecz/.test(lower) && !/°|min/.test(lower)) {
+    return `${s} W piekarniku 180°C przez 12–20 min do zarumienienia.`;
+  }
+  if (/zblenduj|zmiksuj/.test(lower) && s.length < 45) {
+    return `${s} Miksuj 20–40 s, aż konsystencja będzie gładka; dolej odrobinę płynu, jeśli za gęste.`;
+  }
+  if (index === 0 && s.length < 40) {
+    return `Najpierw odważ składniki z listy. ${s}`;
+  }
+  return s;
+}
+
+function enrichMeal(m) {
+  const ingredients = m.ingredients.map(enrichIngredient);
+  let steps = m.steps.map((s, i) => expandStep(s, i));
+  if (steps.length < 3) {
+    steps.push(
+      "Na koniec sprawdź konsystencję i smak; dopraw szczyptą soli lub przyprawami z listy.",
+    );
+  }
+  if (steps.length < 4) {
+    steps = [
+      "Odważ dokładnie składniki wagą kuchenną i przygotuj naczynia (patelnia / garnek / piekarnik).",
+      ...steps,
+    ];
+  }
+  return { ...m, ingredients, steps: steps.slice(0, 10) };
+}
+
+const enrichedUnique = unique.map(enrichMeal);
+
 const bySlot = {};
-for (const m of unique) {
+for (const m of enrichedUnique) {
   bySlot[m.slot] = (bySlot[m.slot] ?? 0) + 1;
 }
 
 const lines = [
-  "/** Autogenerowane przez scripts/generate-meal-catalog.mjs — unikalne dania, bez kombinatorów. */",
+  "/** Autogenerowane przez scripts/generate-meal-catalog.mjs — unikalne dania, gramatura i kroki. */",
   'import type { CatalogMeal } from "@/lib/meal-catalog-types";',
   "",
   "export const MEAL_CATALOG_GENERATED: CatalogMeal[] = [",
 ];
 
-unique.forEach((m, i) => {
+enrichedUnique.forEach((m, i) => {
   const id = `${m.slot}-${String(i + 1).padStart(4, "0")}-${slug(m.title)}`;
   const cal = kcal(m.p, m.c, m.f);
   lines.push("  {");
@@ -843,9 +949,9 @@ unique.forEach((m, i) => {
 
 lines.push("];");
 lines.push("");
-lines.push(`export const MEAL_CATALOG_GENERATED_COUNT = ${unique.length};`);
+lines.push(`export const MEAL_CATALOG_GENERATED_COUNT = ${enrichedUnique.length};`);
 lines.push("");
 
 fs.writeFileSync(outPath, lines.join("\n"), "utf8");
-console.log(`Wrote ${unique.length} unique meals → ${outPath}`);
+console.log(`Wrote ${enrichedUnique.length} unique meals → ${outPath}`);
 console.log(bySlot);

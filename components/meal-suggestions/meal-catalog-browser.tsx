@@ -10,6 +10,10 @@ import {
   type MealSlot,
 } from "@/lib/meal-catalog";
 import { mealIllustrationUrl } from "@/lib/meal-suggestions-gaps";
+import {
+  enrichRecipeContent,
+  splitIngredientDisplay,
+} from "@/lib/meal-recipe-enrich";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +25,8 @@ import {
 } from "@/components/ui/sheet";
 import { AddToMealLogSheet } from "@/components/meal-suggestions/add-to-meal-log-sheet";
 import type { DietDiarySlot } from "@/lib/diet-diary-slots";
+import { Clock3, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function catalogSlotToDiary(slot: MealSlot): DietDiarySlot {
   switch (slot) {
@@ -65,6 +71,12 @@ export function MealCatalogBrowser({ dateKey }: { dateKey: string }) {
 
   const visible = filtered.slice(0, visibleCount);
 
+  const detail = useMemo(() => {
+    if (!selected) return null;
+    const enriched = enrichRecipeContent(selected);
+    return { meal: selected, ...enriched };
+  }, [selected]);
+
   return (
     <section className="app-card space-y-4 p-5">
       <div>
@@ -73,8 +85,7 @@ export function MealCatalogBrowser({ dateKey }: { dateKey: string }) {
           {MEAL_CATALOG.length} przepisów z makro i instrukcją
         </h2>
         <p className="mt-1 text-sm text-white/55">
-          Śniadanie, drugie śniadanie, obiad, podwieczorek i kolacja — każde danie ma makro, składniki
-          i krótki przepis.
+          Śniadanie–kolacja: dokładna gramatura składników, krok po kroku jak przygotować porcję.
         </p>
       </div>
 
@@ -189,72 +200,149 @@ export function MealCatalogBrowser({ dateKey }: { dateKey: string }) {
       ) : null}
 
       <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
-        <SheetContent className="overflow-y-auto sm:max-w-lg">
-          {selected ? (
+        <SheetContent
+          side="right"
+          showCloseButton={false}
+          className="flex h-full w-full max-w-[100vw] flex-col gap-0 overflow-hidden border-white/10 bg-[#07070c] p-0 text-white sm:max-w-md"
+        >
+          {detail ? (
             <>
-              <SheetHeader>
-                <SheetTitle>{selected.title}</SheetTitle>
-                <SheetDescription>
-                  {MEAL_SLOT_LABELS[selected.slot]}
-                  {selected.tagline ? ` · ${selected.tagline}` : ""}
-                </SheetDescription>
-              </SheetHeader>
-              <div className="mt-4 space-y-4">
-                <div className="relative aspect-[16/10] overflow-hidden rounded-xl bg-black/40">
+              <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.08] px-5 pb-4 pt-5">
+                <div className="min-w-0 flex-1 pr-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+                    {MEAL_SLOT_LABELS[detail.meal.slot]}
+                  </p>
+                  <SheetHeader className="space-y-1 p-0 text-left">
+                    <SheetTitle className="font-heading text-xl font-semibold leading-snug text-white">
+                      {detail.meal.title}
+                    </SheetTitle>
+                    {detail.meal.tagline ? (
+                      <SheetDescription className="text-sm text-white/50">
+                        {detail.meal.tagline}
+                      </SheetDescription>
+                    ) : null}
+                  </SheetHeader>
+                  <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-white/45">
+                    <Clock3 className="h-3.5 w-3.5" aria-hidden />
+                    ok. {detail.meal.prepMinutes} min · 1 porcja
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/80"
+                  aria-label="Zamknij"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+                <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-black/40">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={mealIllustrationUrl(selected.title, selected.imagePromptEn)}
+                    src={mealIllustrationUrl(detail.meal.title, detail.meal.imagePromptEn)}
                     alt=""
                     className="h-full w-full object-cover"
                   />
                 </div>
-                <div className="flex flex-wrap gap-2 text-xs text-white/70">
-                  <span className="rounded-full border border-white/15 px-2.5 py-1">
-                    {Math.round(selected.approximateMacros.calories)} kcal
-                  </span>
-                  <span className="rounded-full border border-white/15 px-2.5 py-1">
-                    B {fmtMacro(selected.approximateMacros.proteinG, "g")}
-                  </span>
-                  <span className="rounded-full border border-white/15 px-2.5 py-1">
-                    W {fmtMacro(selected.approximateMacros.carbsG, "g")}
-                  </span>
-                  <span className="rounded-full border border-white/15 px-2.5 py-1">
-                    T {fmtMacro(selected.approximateMacros.fatG, "g")}
-                  </span>
+
+                <div className="mt-4 grid grid-cols-4 gap-2">
+                  {(
+                    [
+                      {
+                        label: "kcal",
+                        value: String(Math.round(detail.meal.approximateMacros.calories)),
+                      },
+                      {
+                        label: "białko",
+                        value: fmtMacro(detail.meal.approximateMacros.proteinG, "g"),
+                      },
+                      {
+                        label: "węgle",
+                        value: fmtMacro(detail.meal.approximateMacros.carbsG, "g"),
+                      },
+                      {
+                        label: "tłuszcz",
+                        value: fmtMacro(detail.meal.approximateMacros.fatG, "g"),
+                      },
+                    ] as const
+                  ).map((m) => (
+                    <div
+                      key={m.label}
+                      className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-2 py-2.5 text-center"
+                    >
+                      <p className="font-display text-sm tabular-nums text-[var(--gym-gold)]">
+                        {m.value}
+                      </p>
+                      <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/40">
+                        {m.label}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
-                    Składniki
+
+                <div className="mt-6">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                    Składniki · gramatura
                   </p>
-                  <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-white/80">
-                    {selected.ingredients.map((ing) => (
-                      <li key={ing}>{ing}</li>
-                    ))}
+                  <ul className="mt-3 divide-y divide-white/[0.06] rounded-2xl border border-white/[0.08] bg-[#121214]">
+                    {detail.ingredients.map((ing) => {
+                      const { amount, name } = splitIngredientDisplay(ing);
+                      return (
+                        <li
+                          key={ing}
+                          className="flex items-start gap-3 px-3.5 py-3 text-sm leading-snug"
+                        >
+                          <span className="w-[5.5rem] shrink-0 font-mono text-[12px] tabular-nums text-[var(--gym-gold)]">
+                            {amount}
+                          </span>
+                          <span className="min-w-0 flex-1 text-white/85">{name}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
-                    Przepis
+
+                <div className="mt-6 pb-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                    Jak przygotować
                   </p>
-                  <ol className="mt-2 list-inside list-decimal space-y-2 text-sm text-white/80">
-                    {selected.steps.map((step, i) => (
-                      <li key={i}>{step}</li>
+                  <ol className="mt-3 space-y-3">
+                    {detail.steps.map((step, i) => (
+                      <li key={i} className="flex gap-3">
+                        <span
+                          className={cn(
+                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+                            "border border-[rgba(var(--neon-rgb),0.35)] bg-[var(--gym-gold)]/10",
+                            "text-xs font-semibold tabular-nums text-[var(--gym-gold)]",
+                          )}
+                        >
+                          {i + 1}
+                        </span>
+                        <p className="min-w-0 flex-1 pt-0.5 text-sm leading-relaxed text-white/80">
+                          {step}
+                        </p>
+                      </li>
                     ))}
                   </ol>
                 </div>
-                <AddToMealLogSheet
-                  dateKey={dateKey}
-                  presetName={selected.title}
-                  triggerLabel="Dodaj do dziennika"
-                  calories={selected.approximateMacros.calories}
-                  proteinG={selected.approximateMacros.proteinG}
-                  fatG={selected.approximateMacros.fatG}
-                  carbsG={selected.approximateMacros.carbsG}
-                  defaultSlot={catalogSlotToDiary(selected.slot)}
-                />
-                <p className="text-[11px] text-white/40">
-                  Makro przybliżone dla jednej porcji. Ilustracja syntetyczna na podstawie nazwy dania.
-                </p>
+
+                <div className="sticky bottom-0 border-t border-white/[0.08] bg-[#07070c]/95 pb-2 pt-3 backdrop-blur">
+                  <AddToMealLogSheet
+                    dateKey={dateKey}
+                    presetName={detail.meal.title}
+                    triggerLabel="Dodaj do dziennika"
+                    calories={detail.meal.approximateMacros.calories}
+                    proteinG={detail.meal.approximateMacros.proteinG}
+                    fatG={detail.meal.approximateMacros.fatG}
+                    carbsG={detail.meal.approximateMacros.carbsG}
+                    defaultSlot={catalogSlotToDiary(detail.meal.slot)}
+                  />
+                  <p className="mt-2 text-center text-[10px] text-white/35">
+                    Makro przybliżone dla jednej porcji. Odważ składniki wagą kuchenną.
+                  </p>
+                </div>
               </div>
             </>
           ) : null}

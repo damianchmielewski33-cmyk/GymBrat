@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — przepisy: gramatura, kroki i panel szczegółów",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "W katalogu posiłków składniki mają jasną gramaturę (co i ile odważyć), a kroki opisują jak przygotować porcję — nie tylko krótkie hasła.",
+      "Panel szczegółów przepisu ma poprawny układ (pełna szerokość, ciemne tło GymBrat, czytelna lista gramatur i numerowane kroki), bez rozjechanych tekstów.",
+    ],
+  },
+  {
     title: "2026-09 — Trzymanie się założeń i podpowiedzi w raporcie",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
