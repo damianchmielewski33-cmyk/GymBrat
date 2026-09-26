@@ -14,7 +14,7 @@ import { WorkoutFinishedScreen } from "@/components/active-workout/workout-finis
 import { StartWorkoutScreen } from "@/components/active-workout/start-workout-screen";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { RestTimerBar } from "@/components/workout/RestTimerBar";
+import { RestBreakScreen } from "@/components/active-workout/rest-break-screen";
 import { readRestTimerPrefs } from "@/lib/rest-timer-prefs";
 import { playRestTimerEndSignal } from "@/lib/rest-timer-signal";
 import type { WorkoutExerciseState } from "@/components/workout/types";
@@ -24,6 +24,16 @@ import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 import { RotateCcw } from "lucide-react";
+
+type LastCompletedSnap = {
+  exerciseName: string;
+  setIndex: number;
+  setCount: number;
+  weight: number;
+  reps: number;
+  nextLabel: string;
+  nextValue: string;
+};
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
@@ -99,6 +109,9 @@ export function ActiveWorkoutView({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [restRemaining, setRestRemaining] = useState<number | null>(null);
+  const [restSoundOn, setRestSoundOn] = useState(true);
+  const [lastCompleted, setLastCompleted] = useState<LastCompletedSnap | null>(null);
+  const [listOpen, setListOpen] = useState(false);
   const [resumePromptOpen, setResumePromptOpen] = useState(false);
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
   /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/start-workout`. */
@@ -165,6 +178,43 @@ export function ActiveWorkoutView({
     setRestRemaining(seconds);
   }
 
+  function stopRest() {
+    setRestRemaining(null);
+  }
+
+  function buildCompletedSnap(
+    exerciseId: string,
+    setIndex: number,
+    weight: number,
+    reps: number,
+  ): LastCompletedSnap | null {
+    const idx = exercises.findIndex((e) => e.id === exerciseId);
+    const ex = exercises[idx];
+    if (!ex) return null;
+    const nextSetIdx = setIndex + 1;
+    let nextLabel = "Następna seria";
+    let nextValue = `Seria ${nextSetIdx + 1} z ${ex.sets.length}`;
+    if (nextSetIdx >= ex.sets.length) {
+      const nextEx = exercises[idx + 1];
+      if (nextEx) {
+        nextLabel = "Następne ćwiczenie";
+        nextValue = nextEx.name;
+      } else {
+        nextLabel = "Koniec";
+        nextValue = "Ostatnia seria zaliczona";
+      }
+    }
+    return {
+      exerciseName: ex.name,
+      setIndex,
+      setCount: ex.sets.length,
+      weight,
+      reps,
+      nextLabel,
+      nextValue,
+    };
+  }
+
   const sessionTotal = useMemo(() => sessionVolume(exercises), [exercises]);
 
   useEffect(() => {
@@ -222,7 +272,7 @@ export function ActiveWorkoutView({
       setRestRemaining((r) => {
         if (r === null) return null;
         if (r <= 1) {
-          if (r === 1) {
+          if (r === 1 && restSoundOn) {
             queueMicrotask(() => playRestTimerEndSignal());
           }
           return null;
@@ -231,7 +281,7 @@ export function ActiveWorkoutView({
       });
     }, 1000);
     return () => window.clearInterval(id);
-  }, [restRemaining]);
+  }, [restRemaining, restSoundOn]);
 
   const elapsed = useMemo(() => {
     const running =
@@ -282,6 +332,13 @@ export function ActiveWorkoutView({
     if (isDoneNext && !wasDone) {
       const { autoStart, defaultSeconds } = readRestTimerPrefs();
       if (autoStart) {
+        const snap = buildCompletedSnap(
+          exerciseId,
+          setIndex,
+          Number(nextWeight) || 0,
+          Number(nextReps) || 0,
+        );
+        if (snap) setLastCompleted(snap);
         queueMicrotask(() => startRest(defaultSeconds));
       }
     }
@@ -301,10 +358,6 @@ export function ActiveWorkoutView({
       sessionStorage.setItem("active-workout:skipResumeOnce", "1");
       /** Nawigacja: wyłącznie efekt „route gate” (`start` + `hasLoadedPlan` → `replace`), żeby uniknąć podwójnego push/replace i wyścigów z hydracją. */
     }
-  }
-
-  function stopRest() {
-    setRestRemaining(null);
   }
 
   const [finishOpen, setFinishOpen] = useState(false);
@@ -372,6 +425,8 @@ export function ActiveWorkoutView({
       elapsedSeconds={elapsed}
       exercises={exercises}
       selectedExerciseId={selectedExerciseId}
+      listOpen={listOpen}
+      onListOpenChange={setListOpen}
       onSelectExercise={(id) => setSelectedExerciseId(id)}
       onPatchSet={patchSet}
       onExerciseNoteChange={(exerciseId, note) =>
@@ -422,8 +477,47 @@ export function ActiveWorkoutView({
           : "relative min-h-[calc(100dvh-6rem)] rounded-2xl bg-[#0f0f0f] p-4 sm:p-6 lg:min-h-[calc(100dvh-5rem)]"
       }
     >
-      {hasLoadedPlan ? (
-        <RestTimerBar remaining={restRemaining} onStart={startRest} onStop={stopRest} />
+      {hasLoadedPlan && restRemaining != null && restRemaining > 0 ? (
+        <RestBreakScreen
+          open
+          remaining={restRemaining}
+          title={title}
+          elapsedSeconds={elapsed}
+          setsDone={completedSets.done}
+          setsTotal={completedSets.total}
+          completedLine={
+            lastCompleted
+              ? `${lastCompleted.exerciseName} · seria ${lastCompleted.setIndex + 1}: ${lastCompleted.weight} kg × ${lastCompleted.reps}`
+              : null
+          }
+          nextLabel={lastCompleted?.nextLabel ?? "Następna seria"}
+          nextValue={lastCompleted?.nextValue ?? "—"}
+          soundOn={restSoundOn}
+          onToggleSound={() => setRestSoundOn((v) => !v)}
+          onAddSeconds={(sec) =>
+            setRestRemaining((r) => (r == null ? sec : r + sec))
+          }
+          onSetSeconds={(sec) => setRestRemaining(sec)}
+          onContinue={() => stopRest()}
+          onCloseSession={() => {
+            if (
+              !window.confirm(
+                "Anulować sesję? Postęp z tej sesji nie zostanie zapisany.",
+              )
+            ) {
+              return;
+            }
+            reset();
+            setExercises([]);
+            setSelectedExerciseId(null);
+            stopRest();
+            router.push("/workout-plan");
+          }}
+          onOpenList={() => {
+            stopRest();
+            setListOpen(true);
+          }}
+        />
       ) : null}
 
       <div

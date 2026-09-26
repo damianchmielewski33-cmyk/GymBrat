@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { getWorkoutPlansWithLastWorkout } from "@/actions/workout-plan";
 import { LoginScreen } from "@/components/auth/login-screen";
 import { ComplianceCard } from "@/components/home/compliance-card";
 import { DimensionTiles } from "@/components/home/dimension-tiles";
@@ -29,13 +30,14 @@ export default async function HomePage() {
   }
 
   const db = getDb();
-  const [[settingsRow], dash] = await Promise.all([
+  const [[settingsRow], dash, plans] = await Promise.all([
     db
       .select({ onboardingCompletedAt: userSettings.onboardingCompletedAt })
       .from(userSettings)
       .where(eq(userSettings.userId, userId))
       .limit(1),
     getHomeStartDashboard(userId),
+    getWorkoutPlansWithLastWorkout(),
   ]);
 
   const fullName = [dash.firstName, dash.lastName].filter(Boolean).join(" ");
@@ -44,6 +46,23 @@ export default async function HomePage() {
     dash.daysSinceLastReport == null
       ? null
       : Math.max(0, dash.reportCadenceDays - dash.daysSinceLastReport);
+
+  const dayOptions = plans.map((row) => ({
+    id: row.id,
+    name: row.plan.planName,
+    exerciseCount: row.plan.exercises.length,
+    lastWorkoutDate: row.lastWorkoutDate,
+    row,
+  }));
+
+  // Kolejka: rekomendowany dzień na górze, potem pozostałe w kolejności planu
+  const recommendedId = dash.nextWorkout?.planId ?? null;
+  const orderedDays = recommendedId
+    ? [
+        ...dayOptions.filter((d) => d.id === recommendedId),
+        ...dayOptions.filter((d) => d.id !== recommendedId),
+      ]
+    : dayOptions;
 
   return (
     <div className="space-y-3">
@@ -62,11 +81,13 @@ export default async function HomePage() {
       {!settingsRow?.onboardingCompletedAt ? <OnboardingBanner /> : null}
 
       <NextWorkoutTile
+        recommendedPlanId={recommendedId}
         planName={dash.nextWorkout?.planName ?? null}
         exerciseCount={dash.nextWorkout?.exerciseCount ?? 0}
         exerciseNames={dash.nextWorkout?.exerciseNames ?? []}
         firstTime={dash.nextWorkout?.firstTime ?? true}
         lastWorkoutDate={dash.nextWorkout?.lastWorkoutDate ?? null}
+        days={orderedDays}
         workoutsThisWeek={dash.workoutsThisWeek}
         cardioThisWeekMinutes={dash.cardioThisWeekMinutes}
         workoutStreakWeeks={dash.workoutStreakWeeks}
