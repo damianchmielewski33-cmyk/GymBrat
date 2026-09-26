@@ -184,7 +184,12 @@ export function AddMealScreen({
                   )}
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-white">{p.name}</p>
+                    <p
+                      className="notranslate truncate text-sm font-medium text-white"
+                      translate="no"
+                    >
+                      {p.name}
+                    </p>
                     <p className="mt-0.5 text-xs text-white/40">
                       {[p.brand, p.servingLabel].filter(Boolean).join(" · ")}
                     </p>

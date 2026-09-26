@@ -407,6 +407,114 @@ export function formatNutrientValue(value: number | null, unit: string): string 
   return unit ? `${n} ${unit}` : n;
 }
 
+const FOOD_NAME_NORM = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/ł/g, "l")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/**
+ * Znane pomyłki MT / złe „product_name_pl” z OFF (np. skyr → screw).
+ * Jeśli autentyczna nazwa zawiera `keep`, a kandydat PL wygląda jak `reject` — odrzucamy PL.
+ */
+const FOOD_NAME_MT_TRAPS: Array<{ keep: RegExp; reject: RegExp }> = [
+  { keep: /\bskyr\b/i, reject: /\b(screw|screws|shy|bolt|clear|skrew)\b/i },
+  { keep: /\bquark\b/i, reject: /\b(quark\s*star|strange)\b/i },
+  { keep: /\bmozzarella\b/i, reject: /\b(buffalo\s*bill|mozzarella\s*stickers)\b/i },
+  { keep: /\bricotta\b/i, reject: /\b(rich\s*otta|ricotta\s*cheese\s*cake)\b/i },
+  { keep: /\btwar[oó]g\b/i, reject: /\b(cottage\s*industry|curd\s*soap)\b/i },
+];
+
+/** Same „tłumaczenia” PL, które są oczywistym śmieciem (bez kontekstu). */
+const FOOD_NAME_PL_JUNK = new Set([
+  "screw",
+  "screws",
+  "shy",
+  "bolt",
+  "clear",
+  "skrew",
+  "strange",
+]);
+
+function cleanFoodNamePart(raw: string | null | undefined): string {
+  return (raw ?? "").trim().replace(/\s+/g, " ");
+}
+
+/** Czy kandydat PL wygląda na zepsute tłumaczenie względem pozostałych pól OFF. */
+export function isSuspiciousFoodNamePl(
+  candidate: string,
+  authenticHints: Array<string | null | undefined>,
+): boolean {
+  const c = cleanFoodNamePart(candidate);
+  if (!c) return true;
+  const cLow = FOOD_NAME_NORM(c);
+  if (FOOD_NAME_PL_JUNK.has(cLow)) return true;
+
+  const hintsJoined = authenticHints
+    .map((h) => cleanFoodNamePart(h))
+    .filter(Boolean)
+    .join(" ");
+  if (!hintsJoined) return false;
+
+  for (const trap of FOOD_NAME_MT_TRAPS) {
+    if (trap.keep.test(hintsJoined) && trap.reject.test(c)) return true;
+  }
+
+  // PL bez diacrytyków, krótkie angielskie słowo, a oryginał ma znany zapożyczenie spożywcze
+  if (
+    trapLoanwordLost(hintsJoined, c) &&
+    /^[a-z][a-z\s-]{1,14}$/i.test(c) &&
+    !/[ąćęłńóśźż]/i.test(c)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function trapLoanwordLost(hints: string, candidate: string): boolean {
+  for (const trap of FOOD_NAME_MT_TRAPS) {
+    if (trap.keep.test(hints) && !trap.keep.test(candidate)) return true;
+  }
+  return false;
+}
+
+/**
+ * Wybór nazwy produktu: preferuj PL, ale odrzuć śmieciowe product_name_pl
+ * (np. „Screw” zamiast „Skyr”).
+ */
+export function pickFoodProductName(args: {
+  productName?: string | null;
+  productNamePl?: string | null;
+  genericName?: string | null;
+  genericNamePl?: string | null;
+}): string {
+  const productName = cleanFoodNamePart(args.productName);
+  const productNamePl = cleanFoodNamePart(args.productNamePl);
+  const genericName = cleanFoodNamePart(args.genericName);
+  const genericNamePl = cleanFoodNamePart(args.genericNamePl);
+
+  const authentic = [productName, genericName, productNamePl, genericNamePl];
+
+  const ordered = [
+    { value: productNamePl, pl: true },
+    { value: productName, pl: false },
+    { value: genericNamePl, pl: true },
+    { value: genericName, pl: false },
+  ];
+
+  for (const item of ordered) {
+    if (!item.value) continue;
+    if (item.pl && isSuspiciousFoodNamePl(item.value, authentic)) continue;
+    return item.value;
+  }
+
+  return productName || productNamePl || genericName || genericNamePl || "";
+}
+
 /** Pełna nazwa: marka + nazwa produktu (bez duplikatu marki). */
 export function formatFoodDisplayName(args: {
   productName?: string | null;
@@ -415,33 +523,15 @@ export function formatFoodDisplayName(args: {
   genericNamePl?: string | null;
   brands?: string | null;
 }): string {
-  const brand = (args.brands ?? "")
-    .split(/[,;]/)[0]
-    ?.trim()
-    .replace(/\s+/g, " ");
-  const name = (
-    args.productNamePl ||
-    args.productName ||
-    args.genericNamePl ||
-    args.genericName ||
-    ""
-  )
-    .trim()
-    .replace(/\s+/g, " ");
+  const brand = cleanFoodNamePart((args.brands ?? "").split(/[,;]/)[0]);
+  const name = pickFoodProductName(args);
 
   if (!name && !brand) return "";
   if (!brand) return name;
   if (!name) return brand;
 
-  const norm = (s: string) =>
-    s
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/\p{M}/gu, "")
-      .replace(/ł/g, "l");
-
-  const nName = norm(name);
-  const nBrand = norm(brand);
+  const nName = FOOD_NAME_NORM(name);
+  const nBrand = FOOD_NAME_NORM(brand);
   if (nName.startsWith(nBrand) || nName.includes(` ${nBrand} `) || nName.includes(nBrand)) {
     return name;
   }

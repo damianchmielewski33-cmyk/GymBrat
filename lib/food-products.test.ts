@@ -170,6 +170,29 @@ describe("food-nutrition", () => {
     ).toBe("Piątnica Twaróg chudy");
   });
 
+  it("odrzuca złe tłumaczenie PL (skyr ≠ screw) i zostawia oryginał", () => {
+    expect(
+      formatFoodDisplayName({
+        productName: "Skyr naturalny",
+        productNamePl: "Screw",
+        brands: "Piątnica",
+      }),
+    ).toBe("Piątnica Skyr naturalny");
+    expect(
+      formatFoodDisplayName({
+        productName: "Skyr Wanilia",
+        productNamePl: "Shy",
+      }),
+    ).toBe("Skyr Wanilia");
+    expect(
+      formatFoodDisplayName({
+        productName: "Skyr",
+        productNamePl: "Skyr naturalny",
+        brands: "Łaciate",
+      }),
+    ).toBe("Łaciate Skyr naturalny");
+  });
+
   it("mapuje OFF na szczegóły, pełną nazwę i score", () => {
     const mapped = mapOpenFoodFactsProduct(
       {

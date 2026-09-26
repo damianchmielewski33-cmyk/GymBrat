@@ -89,7 +89,9 @@ export function FoodPortionSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="border-white/10 bg-[#07070c] text-white">
         <SheetHeader>
-          <SheetTitle className="text-white">{product.name}</SheetTitle>
+          <SheetTitle className="notranslate text-white" translate="no">
+            {product.name}
+          </SheetTitle>
           <SheetDescription className="text-white/55">
             {[product.brand, product.servingLabel].filter(Boolean).join(" · ")}
             {product.source === "openfoodfacts" ? " · Open Food Facts (na 100 g)" : " · baza GymBrat"}

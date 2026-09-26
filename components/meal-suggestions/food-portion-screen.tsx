@@ -136,7 +136,12 @@ export function FoodPortionScreen({
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
         <div className="flex items-start justify-between gap-3 rounded-2xl bg-[#1a1a14] px-4 py-4">
           <div className="min-w-0">
-            <h2 className="text-xl font-semibold leading-snug text-white">{product.name}</h2>
+            <h2
+              className="notranslate text-xl font-semibold leading-snug text-white"
+              translate="no"
+            >
+              {product.name}
+            </h2>
             {product.brand &&
             !product.name.toLowerCase().includes(product.brand.toLowerCase()) ? (
               <p className="mt-1 text-sm text-white/45">{product.brand}</p>

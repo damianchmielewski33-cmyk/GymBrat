@@ -248,7 +248,12 @@ export function FoodSearchScan({
                 className="flex w-full items-start justify-between gap-3 px-3 py-3 text-left transition hover:bg-white/[0.04]"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-white">{p.name}</p>
+                  <p
+                    className="notranslate truncate text-sm font-medium text-white"
+                    translate="no"
+                  >
+                    {p.name}
+                  </p>
                   <p className="mt-0.5 text-xs text-white/45">
                     {[p.brand, p.servingLabel, p.barcode ? `EAN ${p.barcode}` : null]
                       .filter(Boolean)

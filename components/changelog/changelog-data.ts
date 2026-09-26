@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — baza produktów: poprawne nazwy (bez skyr→screw)",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Przy wyszukiwaniu produktów do planu nazwy nie biorą już zepsutych tłumaczeń z Open Food Facts (np. „Screw” zamiast „Skyr”) — zostaje oryginalna / polska nazwa produktu.",
+      "Nazwy produktów w wynikach wyszukiwania i na ekranie porcji są chronione przed automatycznym tłumaczeniem przeglądarki.",
+    ],
+  },
+  {
     title: "2026-09 — przepisy: gramatura, kroki i panel szczegółów",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
