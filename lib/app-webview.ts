@@ -23,7 +23,12 @@ declare global {
       getVersionName: () => string;
       getVersionCode: () => number;
       checkUpdate: () => void;
+      hasCameraPermission?: () => boolean;
+      requestCameraPermission?: () => void;
+      openAppSettings?: () => void;
     };
+    /** Callback ustawiany przez ensureAndroidCameraPermission przed mostem. */
+    __gymbratOnCameraPermission?: (granted: boolean) => void;
   }
 }
 
@@ -81,6 +86,25 @@ export function readInstalledAndroidAppIdentity(): AndroidAppIdentity | null {
   return parseAndroidAppIdentity(typeof navigator === "undefined" ? "" : navigator.userAgent);
 }
 
+/**
+ * useSyncExternalStore wymaga tej samej referencji, gdy dane się nie zmieniły.
+ * Nowa instancja obiektu przy każdym odczycie UA = pętla setState i popup błędu w APK.
+ */
+export function stableAndroidIdentity(
+  current: AndroidAppIdentity | null,
+  previous: AndroidAppIdentity | null,
+): AndroidAppIdentity | null {
+  if (!current) return null;
+  if (
+    previous &&
+    previous.versionName === current.versionName &&
+    previous.versionCode === current.versionCode
+  ) {
+    return previous;
+  }
+  return current;
+}
+
 export function parseAndroidAppIdentity(ua: string | null | undefined): AndroidAppIdentity | null {
   if (!isAppWebViewUserAgent(ua)) return null;
   const name = ua?.match(APP_WEBVIEW_VERSION_RE)?.[1]?.trim();
@@ -120,13 +144,15 @@ export function androidUpdateLaterStorageKey(versionCode: number): string {
   return `${ANDROID_UPDATE_LATER_STORAGE_PREFIX}${versionCode}`;
 }
 
-/** Popup tylko w zainstalowanym APK, gdy serwer ma nowszą kompilację. */
+/** Popup tylko w zainstalowanym APK po zalogowaniu, gdy serwer ma nowszą kompilację. */
 export function shouldShowAndroidUpdatePrompt(args: {
   inInstalledApp: boolean;
   current: AndroidAppIdentity | null;
   latest: AndroidLatestVersion | null;
   postponedVersionCode?: number | null;
+  signedIn?: boolean;
 }): boolean {
+  if (args.signedIn === false) return false;
   if (!args.inInstalledApp || !args.current || !args.latest) return false;
   if (compareAndroidAppVersion(args.current, args.latest) <= 0) return false;
   if (args.postponedVersionCode === args.latest.versionCode) return false;
@@ -146,6 +172,61 @@ export function requestNativeAndroidUpdate(): boolean {
     }
   } catch {
     /* most niedostępny */
+  }
+  return false;
+}
+
+/**
+ * W APK WebView: najpierw natywny dialog CAMERA, potem getUserMedia.
+ * Chromium często odrzuca getUserMedia z NotAllowedError bez pokazania
+ * WebChromeClient.onPermissionRequest, gdy runtime CAMERA nie jest jeszcze przyznane.
+ */
+export function ensureAndroidCameraPermission(): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(true);
+  const bridge = window.GymBratAndroid;
+  const request = bridge?.requestCameraPermission;
+  if (!request) return Promise.resolve(true);
+
+  try {
+    if (bridge.hasCameraPermission?.()) return Promise.resolve(true);
+  } catch {
+    /* most niedostępny */
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (granted: boolean) => {
+      if (settled) return;
+      settled = true;
+      try {
+        delete window.__gymbratOnCameraPermission;
+      } catch {
+        window.__gymbratOnCameraPermission = undefined;
+      }
+      resolve(granted);
+    };
+
+    window.__gymbratOnCameraPermission = finish;
+    try {
+      request.call(bridge);
+    } catch {
+      finish(false);
+      return;
+    }
+    // Timeout — gdy APK stary / dialog nie wróci.
+    window.setTimeout(() => finish(false), 60_000);
+  });
+}
+
+export function openAndroidAppSettings(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    if (window.GymBratAndroid?.openAppSettings) {
+      window.GymBratAndroid.openAppSettings();
+      return true;
+    }
+  } catch {
+    /* ignore */
   }
   return false;
 }
