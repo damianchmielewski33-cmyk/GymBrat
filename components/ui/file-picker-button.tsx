@@ -78,7 +78,7 @@ export function FilePickerButton({
       <input
         id={inputId}
         type="file"
-        accept={accept}
+        {...(accept && accept !== "*/*" ? { accept } : {})}
         multiple={multiple}
         disabled={disabled || reading}
         aria-label={typeof text === "string" ? text : "Wybierz plik"}
