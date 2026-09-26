@@ -23,6 +23,7 @@ function migrateV1ToV2(legacy: LegacyWorkoutPlanV1): WorkoutPlanPayload {
         name: ex.name,
         categoryId: "shoulders",
         reps: 10,
+        sets: 3,
       });
     }
   }
@@ -57,6 +58,10 @@ export function normalizeWorkoutPlan(raw: unknown): WorkoutPlanPayload | null {
           typeof e.reps === "number" && Number.isFinite(e.reps) && e.reps > 0
             ? Math.round(e.reps)
             : 10,
+        sets:
+          typeof e.sets === "number" && Number.isFinite(e.sets) && e.sets > 0
+            ? Math.min(20, Math.round(e.sets))
+            : 3,
       }));
     return {
       version: 2,

@@ -64,7 +64,7 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
   }
 
   return (
-    <section className="glass-panel relative overflow-hidden p-8">
+    <section className="app-card p-8">
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:radial-gradient(700px_280px_at_80%_0%,rgba(255,45,85,0.12),transparent_55%)]" />
       <div className="relative space-y-6">
         <div className="flex items-start justify-between gap-3">
@@ -151,7 +151,7 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
                   }
                   className={`h-9 min-w-[2.75rem] rounded-full px-3 text-xs font-semibold transition ${
                     on
-                      ? "bg-[var(--neon)]/90 text-white"
+                      ? "gym-btn-primary"
                       : "border border-white/15 bg-white/[0.04] text-white/55"
                   }`}
                 >
@@ -178,7 +178,7 @@ export function ReminderSettingsCard({ initial }: { initial: RemindersPrefs }) {
         <Button
           type="button"
           disabled={pending}
-          className="h-11 bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
+          className="h-11"
           onClick={() => {
             start(async () => {
               const r = await saveRemindersPrefsAction(payload);

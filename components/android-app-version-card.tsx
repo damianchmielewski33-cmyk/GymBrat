@@ -60,6 +60,12 @@ export function AndroidAppVersionCard() {
     }
   }
 
+  async function checkAgain() {
+    await load();
+    // W APK: natywny Toast + ewentualne pobranie, gdy serwer ma nowszy versionCode.
+    requestNativeAndroidUpdate();
+  }
+
   return (
     <section className="glass-panel relative overflow-hidden p-8">
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:radial-gradient(720px_300px_at_85%_0%,rgba(255,45,85,0.14),transparent_58%)]" />
@@ -98,7 +104,7 @@ export function AndroidAppVersionCard() {
             <dd
               className={cn(
                 "mt-1 text-sm font-semibold",
-                error ? "text-rose-300" : "text-white",
+                error ? "text-rose-300" : updateAvailable ? "text-[var(--gym-gold-bright)]" : "text-white",
               )}
             >
               {checking && !latest && !error
@@ -129,7 +135,7 @@ export function AndroidAppVersionCard() {
             variant="outline"
             disabled={checking}
             className="rounded-full"
-            onClick={() => void load()}
+            onClick={() => void checkAgain()}
           >
             <RefreshCw className="h-4 w-4" />
             {checking ? "Sprawdzanie…" : "Sprawdź ponownie"}

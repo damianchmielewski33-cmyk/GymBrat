@@ -163,6 +163,8 @@ export async function saveWorkoutPlan(plan: WorkoutPlanPayload, planId?: string)
   }
 
   revalidatePath("/workout-plan");
+  revalidatePath("/profile/workout-plan");
+  revalidatePath("/profile");
   revalidatePath("/active-workout");
   return { ok: true as const };
 }
@@ -188,6 +190,8 @@ export async function deleteWorkoutPlan(planId: string) {
     );
 
   revalidatePath("/workout-plan");
+  revalidatePath("/profile/workout-plan");
+  revalidatePath("/profile");
   revalidatePath("/active-workout");
   return { ok: true as const };
 }
