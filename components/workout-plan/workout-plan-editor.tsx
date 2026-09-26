@@ -4,9 +4,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
   ChevronLeft,
-  ChevronRight,
+  ChevronUp,
   Dumbbell,
+  GripVertical,
   Lock,
+  MoreVertical,
   Pencil,
   Plus,
   Save,
@@ -49,6 +51,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ScreenHeader } from "@/components/layout/screen";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { WorkoutPlanWordImport } from "@/components/workout-plan/workout-plan-word-import";
 
 function uid() {
   return crypto.randomUUID();
@@ -62,17 +65,6 @@ function createEmptyPlan(): WorkoutPlanPayload {
     exercises: [],
     userCustomExerciseNames: [],
   };
-}
-
-function formatPlanDate(iso: string) {
-  try {
-    return new Intl.DateTimeFormat("pl-PL", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
 }
 
 type EditorMode = "closed" | "new" | { id: string };
@@ -135,6 +127,29 @@ export function WorkoutPlanEditor({
     }));
   }, []);
 
+  const moveExercise = useCallback((id: string, dir: -1 | 1) => {
+    setPlan((prev) => {
+      const idx = prev.exercises.findIndex((e) => e.id === id);
+      if (idx < 0) return prev;
+      const nextIdx = idx + dir;
+      if (nextIdx < 0 || nextIdx >= prev.exercises.length) return prev;
+      const exercises = [...prev.exercises];
+      const [item] = exercises.splice(idx, 1);
+      exercises.splice(nextIdx, 0, item!);
+      return { ...prev, exercises };
+    });
+  }, []);
+
+  function planSetCount(exercises: WorkoutPlanExercise[]) {
+    return exercises.reduce((acc, ex) => {
+      const n =
+        typeof ex.sets === "number" && Number.isFinite(ex.sets) && ex.sets > 0
+          ? Math.round(ex.sets)
+          : 3;
+      return acc + n;
+    }, 0);
+  }
+
   const addFromCatalog = useCallback(
     (name: string, categoryId: string) => {
       setPlan((prev) => ({
@@ -146,6 +161,7 @@ export function WorkoutPlanEditor({
             name,
             categoryId,
             reps: 10,
+            sets: 3,
           },
         ],
       }));
@@ -177,6 +193,7 @@ export function WorkoutPlanEditor({
           name: trimmed,
           categoryId: addCategoryId,
           reps: 10,
+          sets: 3,
         },
       ],
     }));
@@ -252,12 +269,12 @@ export function WorkoutPlanEditor({
   return (
     <div className="space-y-8">
       <ScreenHeader
-        kicker="Trening"
+        kicker="Profil"
         title="Plan treningowy"
         description={
           editorOpen
-            ? "Nadaj nazwę planu, przypisz partie mięśniowe, ćwiczenia i liczbę powtórzeń. Zapis zwija edytor i dodaje plan do listy."
-            : "Twórz wiele planów — każdy zapis pojawia się na liście poniżej."
+            ? "Nadaj nazwę dnia (np. Push A), przypisz ćwiczenia, serie i powtórzenia. Start sesji jest w zakładce Treningi."
+            : "Tu ustawiasz plan — dni i ćwiczenia. Możesz też wgrać plan z Worda (.doc / .docx) lub Excela. Start treningu jest w Treningach."
         }
         actions={
           editorOpen ? (
@@ -289,46 +306,58 @@ export function WorkoutPlanEditor({
         }
       />
 
+      {!editorOpen ? <WorkoutPlanWordImport /> : null}
+
       <section className="space-y-3">
-        <h2 className="font-heading text-lg font-semibold text-white">
-          Lista planów
-        </h2>
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
+              Plany
+            </p>
+            <h2 className="font-heading text-2xl font-semibold text-white">Twoje plany</h2>
+          </div>
+        </div>
         {initialPlans.length === 0 ? (
-          <div className="glass-panel rounded-2xl border border-dashed border-white/15 p-8 text-center text-sm text-white/55">
-            Nie masz jeszcze zapisanego planu. Wybierz „Dodaj swój plan
-            treningowy” poniżej — po zapisie plan pojawi się tutaj.
+          <div className="rounded-[22px] border border-dashed border-white/15 bg-[#121214] p-8 text-center text-sm text-white/55">
+            Nie masz jeszcze zapisanego planu. Wybierz „+ Nowy plan” poniżej.
           </div>
         ) : (
           <ul className="space-y-2">
             {initialPlans.map((item) => {
               const expanded = expandedPlanId === item.id;
-              const name =
-                item.plan.planName.trim() || "Plan bez nazwy";
+              const name = item.plan.planName.trim() || "Plan bez nazwy";
+              const exCount = item.plan.exercises.length;
+              const setCount = planSetCount(item.plan.exercises);
               return (
-                <li key={item.id} className="glass-panel overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => toggleExpand(item.id)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/5"
-                  >
-                    {expanded ? (
-                      <ChevronDown className="h-4 w-4 shrink-0 text-white/50" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 shrink-0 text-white/50" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-white">{name}</p>
-                      <p className="text-xs text-white/45">
-                        {item.plan.exercises.length}{" "}
-                        {item.plan.exercises.length === 1
-                          ? "ćwiczenie"
-                          : item.plan.exercises.length < 5
-                            ? "ćwiczenia"
-                            : "ćwiczeń"}{" "}
-                        · {formatPlanDate(item.updatedAt)}
+                <li
+                  key={item.id}
+                  className="overflow-hidden rounded-[18px] border border-white/[0.08] bg-[#161616]"
+                >
+                  <div className="flex w-full items-center gap-2 px-3 py-3.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(item.id)}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <p className="truncate text-[17px] font-semibold text-white">{name}</p>
+                      <p className="mt-0.5 text-sm text-white/45">
+                        Ćwiczenia: {exCount}
+                        <span className="mx-2 text-white/25">·</span>
+                        Serie: {setCount}
                       </p>
-                    </div>
-                  </button>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Edytuj plan ${name}`}
+                      onClick={() => openEditPlan(item.id)}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white/50 hover:bg-white/[0.06] hover:text-white"
+                    >
+                      <MoreVertical className="h-5 w-5" />
+                    </button>
+                    <span className="inline-flex h-10 w-10 items-center justify-center text-white/25" aria-hidden>
+                      <GripVertical className="h-5 w-5" />
+                    </span>
+                  </div>
                   <AnimatePresence initial={false}>
                     {expanded ? (
                       <motion.div
@@ -338,25 +367,29 @@ export function WorkoutPlanEditor({
                         transition={{ duration: 0.2 }}
                         className="border-t border-white/10"
                       >
-                        <div className="space-y-3 px-4 py-3 pl-11">
+                        <div className="space-y-3 px-4 py-3">
                           {item.plan.exercises.length === 0 ? (
-                            <p className="text-sm text-white/45">
-                              Brak ćwiczeń w tym planie.
-                            </p>
+                            <p className="text-sm text-white/45">Brak ćwiczeń w tym planie.</p>
                           ) : (
-                            <ol className="list-decimal space-y-1 pl-4 text-sm text-white/75">
+                            <ul className="space-y-2">
                               {item.plan.exercises.map((ex) => (
-                                <li key={ex.id}>
-                                  <span className="text-white/50">
-                                    {categoryLabel(ex.categoryId)} ·{" "}
-                                  </span>
-                                  {ex.name}{" "}
-                                  <span className="text-white/40">
-                                    ({ex.reps} powt.)
-                                  </span>
+                                <li
+                                  key={ex.id}
+                                  className="flex items-baseline justify-between gap-3 text-sm"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="truncate font-medium text-white">{ex.name}</p>
+                                    <p className="text-xs text-white/40">
+                                      {categoryLabel(ex.categoryId)}
+                                    </p>
+                                  </div>
+                                  <p className="shrink-0 tabular-nums text-white/45">
+                                    Serie:{" "}
+                                    {typeof ex.sets === "number" && ex.sets > 0 ? ex.sets : 3}
+                                  </p>
                                 </li>
                               ))}
-                            </ol>
+                            </ul>
                           )}
                           <div className="flex flex-wrap gap-2">
                             <Button
@@ -364,10 +397,7 @@ export function WorkoutPlanEditor({
                               size="sm"
                               variant="outline"
                               className="border-white/15"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditPlan(item.id);
-                              }}
+                              onClick={() => openEditPlan(item.id)}
                             >
                               <Pencil className="mr-1.5 h-3.5 w-3.5" />
                               Edytuj
@@ -376,11 +406,8 @@ export function WorkoutPlanEditor({
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="border-red-500/30 text-red-300 hover:bg-red-500/10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void onDeletePlan(item.id);
-                              }}
+                              className="border-rose-500/30 text-rose-300 hover:bg-rose-500/10"
+                              onClick={() => void onDeletePlan(item.id)}
                             >
                               <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                               Usuń
@@ -395,6 +422,29 @@ export function WorkoutPlanEditor({
             })}
           </ul>
         )}
+
+        {!editorOpen ? (
+          <div className="flex items-center justify-between gap-3 px-1 pt-2">
+            <button
+              type="button"
+              onClick={startNewPlan}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--gym-gold)]"
+            >
+              <Plus className="h-5 w-5" strokeWidth={2.5} />
+              Nowy plan
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                startNewPlan();
+                queueMicrotask(() => setSheetOpen(true));
+              }}
+              className="text-sm font-medium text-white/45 hover:text-white/70"
+            >
+              Moje ćwiczenia
+            </button>
+          </div>
+        ) : null}
       </section>
 
       <AnimatePresence mode="wait">
@@ -513,24 +563,69 @@ export function WorkoutPlanEditor({
                     layout
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="glass-panel flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-3 rounded-[18px] border border-white/[0.08] bg-[#161616] p-4"
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--neon)]">
-                        {categoryLabel(ex.categoryId)}
-                      </p>
-                      <p className="mt-1 truncate font-medium text-white">
-                        <span className="text-white/45">{idx + 1}. </span>
-                        {ex.name}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <Label
-                          htmlFor={`reps-${ex.id}`}
-                          className="whitespace-nowrap text-xs text-white/55"
+                    <div className="flex items-start gap-2">
+                      <div className="flex flex-col gap-1 pt-0.5">
+                        <button
+                          type="button"
+                          aria-label="Przenieś wyżej"
+                          disabled={idx === 0}
+                          onClick={() => moveExercise(ex.id, -1)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] disabled:opacity-25"
                         >
-                          Powtórzenia
+                          <ChevronUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Przenieś niżej"
+                          disabled={idx === plan.exercises.length - 1}
+                          onClick={() => moveExercise(ex.id, 1)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] disabled:opacity-25"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[17px] font-semibold text-white">{ex.name}</p>
+                        <p className="mt-0.5 text-sm text-white/40">
+                          {categoryLabel(ex.categoryId)}
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-sm tabular-nums text-white/50">
+                        Serie: {typeof ex.sets === "number" && ex.sets > 0 ? ex.sets : 3}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => removeExercise(ex.id)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-white"
+                        aria-label="Usuń ćwiczenie"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 pl-10">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`sets-${ex.id}`} className="text-xs text-white/55">
+                          Serie
+                        </Label>
+                        <Input
+                          id={`sets-${ex.id}`}
+                          type="number"
+                          min={1}
+                          max={20}
+                          value={typeof ex.sets === "number" && ex.sets > 0 ? ex.sets : 3}
+                          onChange={(e) => {
+                            const n = Number.parseInt(e.target.value, 10);
+                            if (!Number.isFinite(n) || n < 1) return;
+                            updateExercise(ex.id, { sets: Math.min(20, n) });
+                          }}
+                          className="h-9 w-16 border-white/15 bg-black/25 text-center text-white"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`reps-${ex.id}`} className="text-xs text-white/55">
+                          Powt.
                         </Label>
                         <Input
                           id={`reps-${ex.id}`}
@@ -543,22 +638,23 @@ export function WorkoutPlanEditor({
                             if (!Number.isFinite(n) || n < 1) return;
                             updateExercise(ex.id, { reps: n });
                           }}
-                          className="h-9 w-20 border-white/15 bg-black/25 text-center text-white"
+                          className="h-9 w-16 border-white/15 bg-black/25 text-center text-white"
                         />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removeExercise(ex.id)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/20 text-white/60 transition hover:border-white/20 hover:text-white"
-                        aria-label="Usuń ćwiczenie"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
                     </div>
                   </motion.li>
                 ))}
               </ul>
             )}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
+              <Button type="button" variant="ghost" onClick={closeEditor} className="text-white/70">
+                Anuluj
+              </Button>
+              <Button type="button" variant="cta" onClick={onSave} disabled={isPending}>
+                <Save className="mr-2 h-4 w-4" />
+                {isPending ? "Zapisywanie…" : "Zapisz"}
+              </Button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

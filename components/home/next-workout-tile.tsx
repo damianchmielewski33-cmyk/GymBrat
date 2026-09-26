@@ -1,37 +1,39 @@
 import Link from "next/link";
-import { Dumbbell, Zap } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import { ChevronDown, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-function formatLast(ymd: string | null) {
-  if (!ymd) return "Jeszcze nie trenowano";
-  try {
-    return new Intl.DateTimeFormat("pl-PL", { dateStyle: "medium" }).format(
-      new Date(`${ymd}T12:00:00`),
-    );
-  } catch {
-    return ymd;
-  }
-}
 
 function MiniStat({
   label,
   value,
   unit,
+  tone,
 }: {
   label: string;
   value: string;
   unit?: string;
+  tone: "gold" | "mint" | "sky";
 }) {
+  const toneClass =
+    tone === "gold"
+      ? "border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 text-[var(--gym-gold-bright)]"
+      : tone === "mint"
+        ? "border-emerald-400/35 bg-emerald-400/10 text-emerald-300"
+        : "border-sky-400/35 bg-sky-400/10 text-sky-300";
+
   return (
-    <div className="rounded-xl border border-white/10 bg-black/35 px-3 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">
+    <div
+      className={cn(
+        "rounded-2xl border px-2 py-3 text-center",
+        toneClass,
+      )}
+    >
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/55">
         {label}
       </p>
-      <p className="mt-1 font-heading text-xl font-semibold tabular-nums text-white">
+      <p className="mt-2 text-2xl font-semibold leading-none tabular-nums">
         {value}
         {unit ? (
-          <span className="ml-1 text-sm font-medium text-white/45">{unit}</span>
+          <span className="ml-1 text-[11px] font-medium opacity-70">{unit}</span>
         ) : null}
       </p>
     </div>
@@ -41,63 +43,74 @@ function MiniStat({
 export function NextWorkoutTile({
   planName,
   exerciseCount,
-  lastWorkoutDate,
+  exerciseNames,
+  firstTime,
   workoutsThisWeek,
   cardioThisWeekMinutes,
-  workoutStreakDays,
+  workoutStreakWeeks,
 }: {
   planName: string | null;
   exerciseCount: number;
+  exerciseNames: string[];
+  firstTime: boolean;
   lastWorkoutDate: string | null;
   workoutsThisWeek: number;
   cardioThisWeekMinutes: number;
-  workoutStreakDays: number;
+  /** Kolejne tygodnie kalendarzowe z ≥1 treningiem. */
+  workoutStreakWeeks: number;
 }) {
+  const preview = exerciseNames.slice(0, 4).join(" · ");
   return (
-    <section className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
-      <div className="pointer-events-none absolute inset-0 opacity-45 [background-image:radial-gradient(900px_420px_at_10%_0%,rgba(255,45,85,0.14),transparent_55%)]" />
-      <div className="relative space-y-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-white/50">
-              <Dumbbell className="h-4 w-4" aria-hidden />
-              <p className="text-[11px] font-medium uppercase tracking-[0.22em]">
-                Następny trening
-              </p>
-            </div>
-            <h2 className="font-heading mt-2 text-2xl font-semibold text-white sm:text-3xl">
-              {planName ?? "Dodaj plan treningowy"}
-            </h2>
-            <p className="mt-1 text-sm text-white/55">
-              {planName
-                ? `${exerciseCount} ćwiczeń · ostatnio: ${formatLast(lastWorkoutDate)}`
-                : "Utwórz plan, żeby szybko rozpocząć sesję ze Startu."}
-            </p>
-          </div>
-          <Link
-            href={planName ? "/start-workout" : "/workout-plan"}
-            className={cn(
-              buttonVariants({ variant: "cta" }),
-              "h-12 w-full shrink-0 sm:w-auto sm:min-w-[11rem]",
-            )}
-          >
-            <Zap className="mr-2 h-4 w-4" aria-hidden />
-            {planName ? "Rozpocznij" : "Utwórz plan"}
-          </Link>
-        </div>
+    <section className="app-card space-y-5 p-5">
+      <div>
+        <p className="app-label">Następny trening</p>
+        <h2 className="mt-2 text-[28px] font-semibold leading-tight text-white">
+          {planName ?? "Dodaj plan treningowy"}
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-white/50">
+          {planName
+            ? `${exerciseCount} ćwiczeń · ${
+                firstTime ? "pierwszy raz w tym planie" : "kolejna sesja"
+              }${preview ? ` · ${preview}${exerciseNames.length > 4 ? " · …" : ""}` : ""}`
+            : "Ustaw plan w Profilu, żeby szybko startować z Treningów."}
+        </p>
+      </div>
 
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <MiniStat label="Treningi w tygodniu" value={String(workoutsThisWeek)} />
-          <MiniStat
-            label="Cardio w tygodniu"
-            value={String(Math.round(cardioThisWeekMinutes))}
-            unit="min"
-          />
-          <MiniStat
-            label="Treningi z rzędu"
-            value={String(workoutStreakDays)}
-          />
-        </div>
+      <Link
+        href={planName ? "/workout-plan" : "/profile/workout-plan"}
+        className="gym-btn-primary inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm"
+      >
+        <Play className="h-4 w-4 fill-current" aria-hidden />
+        {planName ? "Zacznij trening" : "Utwórz plan"}
+      </Link>
+
+      {planName ? (
+        <Link
+          href="/workout-plan"
+          className="flex items-center justify-center gap-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40"
+        >
+          Inny dzień
+          <ChevronDown className="h-3.5 w-3.5" />
+        </Link>
+      ) : null}
+
+      <div className="grid grid-cols-3 gap-2 border-t border-white/[0.05] pt-4">
+        <MiniStat
+          label="Treningi tyg."
+          value={String(workoutsThisWeek)}
+          tone="gold"
+        />
+        <MiniStat
+          label="Cardio tyg."
+          value={String(Math.round(cardioThisWeekMinutes))}
+          unit="min"
+          tone="mint"
+        />
+        <MiniStat
+          label="Tren. tyg. z rzędu"
+          value={String(workoutStreakWeeks)}
+          tone="sky"
+        />
       </div>
     </section>
   );
