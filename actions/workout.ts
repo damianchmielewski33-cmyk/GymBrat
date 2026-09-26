@@ -16,10 +16,40 @@ export async function logCardioFormAction(
   return logTrainingSession({ title, cardioMinutes: minutes });
 }
 
+export async function logCardioDetailedAction(
+  _prevState: unknown,
+  formData: FormData,
+) {
+  const title = String(formData.get("title") ?? "Cardio").trim() || "Cardio";
+  const minutes = Number(formData.get("minutes") ?? 0);
+  const notesRaw = String(formData.get("notes") ?? "").trim();
+  const distanceRaw = String(formData.get("distanceKm") ?? "")
+    .trim()
+    .replace(",", ".");
+  const avgHrRaw = String(formData.get("avgHr") ?? "").trim();
+  const distanceKm = distanceRaw ? Number(distanceRaw) : null;
+  const avgHr = avgHrRaw ? Number(avgHrRaw) : null;
+  return logTrainingSession({
+    title,
+    cardioMinutes: minutes,
+    notes: notesRaw || undefined,
+    distanceKm:
+      distanceKm != null && Number.isFinite(distanceKm) && distanceKm > 0
+        ? distanceKm
+        : null,
+    avgHr:
+      avgHr != null && Number.isFinite(avgHr) && avgHr > 0
+        ? Math.round(avgHr)
+        : null,
+  });
+}
+
 export async function logTrainingSession(input: {
   title: string;
   cardioMinutes: number;
   notes?: string;
+  distanceKm?: number | null;
+  avgHr?: number | null;
 }) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -39,11 +69,14 @@ export async function logTrainingSession(input: {
       kind: "cardio_log",
       title: input.title,
       notes: input.notes ?? null,
+      distanceKm: input.distanceKm ?? null,
+      avgHr: input.avgHr ?? null,
     }),
   });
 
   revalidatePath("/");
   revalidatePath("/reports");
+  revalidatePath("/workout-plan");
   return { ok: true as const };
 }
 

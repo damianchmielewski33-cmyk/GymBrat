@@ -1,116 +1,148 @@
 import { auth } from "@/auth";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { userSettings } from "@/db/schema";
 import { BodyReportImport } from "@/components/reports/body-report-import";
 import { BodyReportForm } from "@/components/reports/body-report-form";
+import { BodyReportHistory } from "@/components/reports/body-report-history";
 import { QueuedWorkoutBanner } from "@/components/reports/queued-workout-banner";
-import { ReportPhotoToggle } from "@/components/reports/report-photo-toggle";
 import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
-import { ScreenHeader } from "@/components/layout/screen";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import { getBodyReports } from "@/lib/body-reports";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-function formatTakNie(v: string | null) {
-  if (v === "tak") return "TAK";
-  if (v === "nie") return "NIE";
-  return "—";
+function daysUntilNextReport(
+  latest: Date | null,
+  cadenceDays: number,
+): number | null {
+  if (!latest) return null;
+  const next = new Date(latest);
+  next.setDate(next.getDate() + cadenceDays);
+  return Math.ceil((next.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
 }
 
 export default async function ReportsPage() {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) redirect("/login");
-  const reports = await getBodyReports(userId);
+  const db = getDb();
+  const [reports, settingsRow] = await Promise.all([
+    getBodyReports(userId),
+    db
+      .select({ reportCadenceDays: userSettings.reportCadenceDays })
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+  ]);
+  const cadenceDays = Math.min(
+    90,
+    Math.max(3, settingsRow?.reportCadenceDays ?? 14),
+  );
+  const latest = reports[0]?.createdAt ?? null;
+  const daysUntilNext = daysUntilNextReport(latest, cadenceDays);
+  const lastHints = reports[0]
+    ? {
+        weightKg: reports[0].weightKg,
+        waistCm: reports[0].waistCm,
+        chestCm: reports[0].chestCm,
+        thighCm: reports[0].thighCm,
+        armCm: reports[0].armCm,
+        dayEnergy: reports[0].dayEnergy,
+        trainingEnergy: reports[0].trainingEnergy,
+        digestionScore: reports[0].digestionScore,
+        sleepQuality: reports[0].sleepQuality,
+        cardioCompliance: reports[0].cardioCompliance,
+        dietCompliance: reports[0].dietCompliance,
+        trainingCompliance: reports[0].trainingCompliance,
+      }
+    : null;
 
   return (
-    <div className="space-y-8">
+    <div className="theme-black-gold space-y-6">
       <Suspense fallback={null}>
         <QueuedWorkoutBanner />
       </Suspense>
       <WorkoutCompletePopup />
-      <ScreenHeader
-        kicker="Dziennik postępów"
-        title="Raport"
-        description="Dodaj raport z efektów ćwiczeń: pomiary, samopoczucie i zdjęcia sylwetki."
-      />
-      <InlineBanner variant="info">
+
+      <header className="space-y-1">
+        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#d4af37]/85">
+          Raporty
+        </p>
+        <h1 className="font-heading text-3xl font-semibold tracking-tight text-white">
+          Dodaj{" "}
+          <span className="bg-gradient-to-r from-[#e8c547] to-[#d4af37] bg-clip-text text-transparent">
+            raport
+          </span>
+        </h1>
+        <p className="text-sm text-white/45">
+          Wypełnij pomiary i samopoczucie — historia oraz eksport są niżej.
+          {daysUntilNext != null ? (
+            <>
+              {" "}
+              Kolejny wg cyklu ({cadenceDays} dni):{" "}
+              {daysUntilNext <= 0 ? "teraz" : `za ${daysUntilNext} dni`}.
+            </>
+          ) : null}
+        </p>
+      </header>
+
+      <Suspense
+        fallback={
+          <div className="rounded-3xl border border-white/10 bg-[#141416]/90 p-6 text-sm text-white/50">
+            Ładowanie formularza raportu…
+          </div>
+        }
+      >
+        <BodyReportForm daysUntilNext={daysUntilNext} lastHints={lastHints} />
+      </Suspense>
+
+      <div className="space-y-6 border-t border-white/10 pt-8">
+        <header className="space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#d4af37]/85">
+            Archiwum
+          </p>
+          <h2 className="font-heading text-2xl font-semibold tracking-tight text-white">
+            Twoje{" "}
+            <span className="bg-gradient-to-r from-[#e8c547] to-[#d4af37] bg-clip-text text-transparent">
+              raporty
+            </span>
+          </h2>
+        </header>
+
+        <InlineBanner variant="info">
           <strong className="font-semibold text-white/90">Eksport danych.</strong> Pełną kopię
           treningów, raportów i ustawień pobierzesz w formacie JSON lub CSV w{" "}
-          <Link href="/profile#export-data" className="text-[var(--neon)] underline">
+          <Link href="/profile#export-data" className="text-[#d4af37] underline">
             Profilu (sekcja eksportu)
           </Link>
           .
         </InlineBanner>
 
-      <BodyReportImport />
+        <BodyReportImport />
 
-      <BodyReportForm />
-
-      <div className="glass-panel neon-glow overflow-hidden">
-        <div className="border-b border-white/10 px-6 py-4">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-            Historia
-          </p>
-          <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-            Ostatnie raporty
-          </h2>
-        </div>
-        {reports.length === 0 ? (
-          <div className="px-6 py-12 text-center text-sm text-white/55">
-            Brak raportów — dodaj pierwszy raport powyżej.
-          </div>
-        ) : (
-          <ul className="divide-y divide-white/5">
-            {reports.map((r) => (
-              <li key={r.id} className="p-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-1">
-                    <p className="text-xs uppercase tracking-wide text-white/45">
-                      {r.createdAt.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-white/80">
-                      {[
-                        r.weightKg != null ? `Waga: ${r.weightKg} kg` : null,
-                        r.waistCm != null ? `Pas: ${r.waistCm} cm` : null,
-                        r.armCm != null ? `Ramię: ${r.armCm} cm` : null,
-                        r.abdomenCm != null ? `Brzuch: ${r.abdomenCm} cm` : null,
-                        r.chestCm != null ? `Klatka: ${r.chestCm} cm` : null,
-                        r.thighCm != null ? `Udo: ${r.thighCm} cm` : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" • ") || "Brak pomiarów"}
-                    </p>
-                    <p className="text-xs text-white/55">
-                      Dzień: {r.dayEnergy ?? "—"}/10 • Energia treningu:{" "}
-                      {r.trainingEnergy ?? "—"}/10 • Trawienie: {r.digestionScore ?? "—"}/10 • Sen:{" "}
-                      {r.sleepQuality ?? "—"}/10
-                    </p>
-                    <p className="text-xs text-white/55">
-                      Cardio: {formatTakNie(r.cardioCompliance)} • Dieta:{" "}
-                      {formatTakNie(r.dietCompliance)} • Trening (zgodność):{" "}
-                      {formatTakNie(r.trainingCompliance)}
-                    </p>
-                    {r.complianceNotes ? (
-                      <p className="text-xs text-white/70">
-                        <span className="text-white/45">Niezrealizowane / zakres: </span>
-                        {r.complianceNotes}
-                      </p>
-                    ) : null}
-                    {r.additionalInfo ? (
-                      <p className="text-xs text-white/70">
-                        <span className="text-white/45">Dodatkowo: </span>
-                        {r.additionalInfo}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <ReportPhotoToggle reportId={r.id} photos={r.photos} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+        <BodyReportHistory
+          reports={reports.map((r) => ({
+            id: r.id,
+            createdAt: r.createdAt.toISOString(),
+            weightKg: r.weightKg,
+            waistCm: r.waistCm,
+            chestCm: r.chestCm,
+            thighCm: r.thighCm,
+            armCm: r.armCm,
+            abdomenCm: r.abdomenCm,
+            trainingEnergy: r.trainingEnergy,
+            sleepQuality: r.sleepQuality,
+            dayEnergy: r.dayEnergy,
+            digestionScore: r.digestionScore,
+            cardioCompliance: r.cardioCompliance,
+            dietCompliance: r.dietCompliance,
+            trainingCompliance: r.trainingCompliance,
+            photos: r.photos,
+          }))}
+        />
       </div>
     </div>
   );

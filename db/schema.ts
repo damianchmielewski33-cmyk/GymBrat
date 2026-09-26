@@ -215,7 +215,7 @@ export const adminAuditLog = sqliteTable(
   (t) => [index("idx_admin_audit_created").on(t.createdAt)],
 );
 
-/** Wpisy posiłków dodane ręcznie na stronie Start — źródło spożycia makroskładników. */
+/** Wpisy posiłków dodane ręcznie / ze skanu — źródło spożycia makroskładników. */
 export const mealLogs = sqliteTable(
   "meal_logs",
   {
@@ -228,6 +228,10 @@ export const mealLogs = sqliteTable(
     /** YYYY-MM-DD — dzień kalendarzowy jak w treningach / Fitatu */
     date: text("date").notNull(),
     name: text("name"),
+    /** Sekcja dziennika Fitatu: śniadanie / drugie / lunch / obiad / przekąska */
+    slot: text("slot"),
+    /** Kod EAN produktu, jeśli dodano ze skanu / bazy */
+    barcode: text("barcode"),
     calories: real("calories").notNull(),
     proteinG: real("protein_g").notNull(),
     fatG: real("fat_g").notNull(),
@@ -283,9 +287,12 @@ export const userSettings = sqliteTable("user_settings", {
   userId: text("user_id")
     .primaryKey()
     .references(() => users.id, { onDelete: "cascade" }),
+  /** Cel minut cardio na tydzień */
   weeklyCardioGoalMinutes: integer("weekly_cardio_goal_minutes")
     .notNull()
     .default(150),
+  /** Co ile dni dodawać raport sylwetki (timer na Pulpicie restartuje się po zapisie). */
+  reportCadenceDays: integer("report_cadence_days").notNull().default(14),
   /** JSON: { calories, proteinG, fatG, carbsG } — cele na dzień treningowy */
   trainingNutritionGoalsJson: text("training_nutrition_goals_json"),
   /** JSON: { calories, proteinG, fatG, carbsG } — cele na dzień nietreningowy */

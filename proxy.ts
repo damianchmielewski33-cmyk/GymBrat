@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { getAuthSecret } from "@/lib/auth-secret";
+import {
+  isAnonymousPublicPath,
+  shouldBounceAuthenticatedFromAuthPage,
+} from "@/lib/auth-public-paths";
 
 /** Musi być zgodne z Auth.js: na HTTPS sesja jest w `__Secure-authjs.session-token`, nie w `authjs.session-token`. */
 function isSecureSessionCookie(req: NextRequest): boolean {
@@ -9,6 +13,21 @@ function isSecureSessionCookie(req: NextRequest): boolean {
   if (forwarded === "https") return true;
   if (forwarded === "http") return false;
   return req.nextUrl.protocol === "https:";
+}
+
+async function readSessionToken(req: NextRequest) {
+  const secret = getAuthSecret();
+  if (!secret) return null;
+  try {
+    return await getToken({
+      req,
+      secret,
+      secureCookie: isSecureSessionCookie(req),
+    });
+  } catch {
+    /** Uszkodzone ciasteczko nie może wywalić WebView jako 500 / popup błędu. */
+    return null;
+  }
 }
 
 /** Ochrona tras (Next.js 16 — eksport musi nazywać się `proxy`). */
@@ -22,9 +41,21 @@ export async function proxy(req: NextRequest) {
 
   /**
    * Aktualizacje APK: natywna aplikacja Android nie ma sesji NextAuth.
-   * Bez tego GET /api/android/version ląduje na HTML logowania.
+   * Bez tego GET /api/android/version i /gymbrat.apk lądują na HTML logowania.
    */
-  if (pathname.startsWith("/api/android/") || pathname === "/android-version.json") {
+  if (
+    pathname.startsWith("/api/android/") ||
+    pathname === "/android-version.json" ||
+    pathname.endsWith(".apk")
+  ) {
+    return NextResponse.next();
+  }
+
+  /**
+   * Digital Asset Links / App Links — GoogleAssociationService musi dostać 200 JSON,
+   * nie 307 na /login.
+   */
+  if (pathname.startsWith("/.well-known/")) {
     return NextResponse.next();
   }
 
@@ -48,21 +79,10 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const publicPaths = new Set(["/login", "/register"]);
+  const token = await readSessionToken(req);
 
-  const secret = getAuthSecret();
-  const secureCookie = isSecureSessionCookie(req);
-
-  const token =
-    secret &&
-    (await getToken({
-      req,
-      secret,
-      secureCookie,
-    }));
-
-  if (publicPaths.has(pathname)) {
-    if (token) {
+  if (isAnonymousPublicPath(pathname)) {
+    if (token && shouldBounceAuthenticatedFromAuthPage(pathname)) {
       return NextResponse.redirect(new URL("/", req.url));
     }
     return NextResponse.next();
@@ -82,6 +102,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth|api/android|_next/static|_next/image|favicon.ico|manifest.webmanifest|android-version.json|sw.js|workbox.*|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/auth|api/android|_next/static|_next/image|favicon.ico|manifest.webmanifest|android-version.json|sw.js|workbox.*|\\.well-known/.*|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|apk)$).*)",
   ],
 };
