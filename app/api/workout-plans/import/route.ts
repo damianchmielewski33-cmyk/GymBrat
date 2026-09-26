@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { workoutPlans } from "@/db/schema";
-import { parseWorkoutPlansFromDocx } from "@/lib/docx/workout-plan-import";
+import { parseWorkoutPlansFromDoc, parseWorkoutPlansFromDocx } from "@/lib/docx/workout-plan-import";
 import { parseWorkoutPlansFromXlsx } from "@/lib/excel/workout-plan-import";
 import { assertCsrf } from "@/lib/csrf";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
@@ -12,9 +12,10 @@ export const runtime = "nodejs";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 
-function fileKind(name: string): "docx" | "xlsx" | null {
+function fileKind(name: string): "docx" | "doc" | "xlsx" | null {
   const n = name.toLowerCase();
   if (n.endsWith(".docx")) return "docx";
+  if (n.endsWith(".doc")) return "doc";
   if (n.endsWith(".xlsx") || n.endsWith(".xls")) return "xlsx";
   return null;
 }
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
   const file = form.get("file");
   if (!(file instanceof File)) {
     return NextResponse.json(
-      { ok: false, error: "Wybierz plik Word (.docx) albo Excel (.xlsx)." },
+      { ok: false, error: "Wybierz plik Word (.doc / .docx) albo Excel (.xlsx)." },
       { status: 400 },
     );
   }
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
       {
         ok: false,
         error:
-          "Obsługiwane formaty: .docx (Word) i .xlsx (Excel). Na Androidzie wybierz plik z „Pliki” / Pobrane.",
+          "Obsługiwane formaty: .doc, .docx (Word) i .xlsx (Excel). Na Androidzie wybierz plik z „Pliki” / Pobrane.",
       },
       { status: 400 },
     );
@@ -80,7 +81,9 @@ export async function POST(req: Request) {
     parsed =
       kind === "docx"
         ? await parseWorkoutPlansFromDocx(buffer)
-        : parseWorkoutPlansFromXlsx(buffer);
+        : kind === "doc"
+          ? await parseWorkoutPlansFromDoc(buffer)
+          : parseWorkoutPlansFromXlsx(buffer);
   } catch (err) {
     return NextResponse.json(
       {

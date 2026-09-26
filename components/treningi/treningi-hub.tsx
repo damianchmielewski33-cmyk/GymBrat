@@ -111,14 +111,13 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
           <Printer className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
           PDF / drukuj
         </button>
-        <button
-          type="button"
-          onClick={() => flash("Eksport Word w przygotowaniu.")}
+        <Link
+          href="/profile/workout-plan"
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[#121212] text-xs font-medium text-white/80"
         >
           <Download className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
-          Word
-        </button>
+          Import Word
+        </Link>
         <button
           type="button"
           onClick={() => {

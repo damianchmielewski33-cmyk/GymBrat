@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — import planu także ze starego Worda (.doc)",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Import planu treningowego obsługuje też stary format Word (.doc), nie tylko .docx i Excel.",
+      "Na ekranie Treningi przycisk „Import Word” prowadzi do ustawienia planu w Profilu (zamiast pustego eksportu).",
+    ],
+  },
+  {
     title: "2026-09 — import planu z Excela/Worda na Androidzie + dokładny wykres wagi",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

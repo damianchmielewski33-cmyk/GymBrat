@@ -8,13 +8,18 @@ import { FilePickerButton } from "@/components/ui/file-picker-button";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { cn } from "@/lib/utils";
 
-/** Szeroki accept — Android WebView często ukrywa .docx przy wąskim MIME. */
+/** Szeroki accept — Android WebView często ukrywa pliki przy wąskim MIME. */
 const PLAN_FILE_ACCEPT =
-  ".docx,.xlsx,.xls,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/msword,application/vnd.ms-excel,application/octet-stream,*/*";
+  ".doc,.docx,.xlsx,.xls,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/octet-stream,*/*";
 
 function isSupportedPlanFile(file: File): boolean {
   const n = (file.name || "").toLowerCase();
-  return n.endsWith(".docx") || n.endsWith(".xlsx") || n.endsWith(".xls");
+  return (
+    n.endsWith(".doc") ||
+    n.endsWith(".docx") ||
+    n.endsWith(".xlsx") ||
+    n.endsWith(".xls")
+  );
 }
 
 export function WorkoutPlanWordImport() {
@@ -39,8 +44,8 @@ export function WorkoutPlanWordImport() {
               Import planu
             </p>
             <p className="mt-1.5 text-sm text-white/50">
-              Wgraj plan z Worda (.docx) albo Excela (.xlsx) — aplikacja utworzy
-              dni/plany z ćwiczeniami, seriami i powtórzeniami.
+              Wgraj plan z Worda (.doc / .docx) albo Excela (.xlsx) — aplikacja
+              utworzy dni/plany z ćwiczeniami, seriami i powtórzeniami.
             </p>
           </div>
           <button
@@ -60,12 +65,12 @@ export function WorkoutPlanWordImport() {
             setError(null);
             setWarnings([]);
             if (!file) {
-              setError("Wybierz plik .docx albo .xlsx.");
+              setError("Wybierz plik .doc, .docx albo .xlsx.");
               return;
             }
             if (!isSupportedPlanFile(file)) {
               setError(
-                "Wybierz plik Word (.docx) albo Excel (.xlsx). Na telefonie: Pliki → Pobrane.",
+                "Wybierz plik Word (.doc / .docx) albo Excel (.xlsx). Na telefonie: Pliki → Pobrane.",
               );
               return;
             }
@@ -113,7 +118,7 @@ export function WorkoutPlanWordImport() {
                 Import planu
               </p>
               <h3 className="mt-1 text-base font-semibold text-white">
-                Word (.docx) lub Excel (.xlsx)
+                Word (.doc / .docx) lub Excel (.xlsx)
               </h3>
               <p className="mt-1 text-xs text-white/45">
                 Na Androidzie: wybierz plik z folderu Pobrane (nie z galerii). Word:
@@ -142,12 +147,12 @@ export function WorkoutPlanWordImport() {
               setFile(f);
               setError(
                 f && !isSupportedPlanFile(f)
-                  ? "Ten typ pliku nie jest obsługiwany — wybierz .docx lub .xlsx."
+                  ? "Ten typ pliku nie jest obsługiwany — wybierz .doc, .docx lub .xlsx."
                   : null,
               );
             }}
             valueLabel={file ? file.name : undefined}
-            emptyLabel="Wybierz plik (.docx / .xlsx)"
+            emptyLabel="Wybierz plik (.doc / .docx / .xlsx)"
           />
 
           {error ? <p className="text-sm text-rose-400">{error}</p> : null}

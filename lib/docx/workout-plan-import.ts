@@ -182,3 +182,24 @@ export async function parseWorkoutPlansFromDocx(
   }
   return parsed;
 }
+
+/** Stary format Word (.doc) — OLE binary. */
+export async function parseWorkoutPlansFromDoc(
+  buffer: Buffer,
+): Promise<ParsedWorkoutPlanImport> {
+  const WordExtractor = (await import("word-extractor")).default;
+  const extractor = new WordExtractor();
+  const extracted = await extractor.extract(buffer);
+  const body = String(extracted.getBody?.() ?? "").trim();
+  const headers = String(extracted.getHeaders?.() ?? "").trim();
+  const text = [headers, body].filter(Boolean).join("\n").trim();
+  if (!text) {
+    return {
+      plans: [],
+      warnings: [
+        "Nie udało się odczytać tekstu z pliku .doc. Zapisz dokument jako .docx w Wordzie i wgraj ponownie.",
+      ],
+    };
+  }
+  return parseWorkoutPlansFromText(text);
+}
