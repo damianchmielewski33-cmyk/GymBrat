@@ -52,6 +52,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data } = useSession();
   const reduceFixedBugs = pathname.startsWith("/active-workout");
+  const sessionFullscreen = pathname.startsWith("/active-workout");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -79,6 +80,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative min-h-screen bg-[#050505]">
+      {sessionFullscreen ? null : (
       <header className="sticky top-0 z-40 bg-[#050505]/92 pt-[env(safe-area-inset-top)] backdrop-blur-md">
         <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
           <BrandMark />
@@ -150,17 +152,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Sheet>
         </div>
       </header>
+      )}
 
       <main
         key={pathname}
         className={cn(
-          "mx-auto min-w-0 w-full max-w-lg flex-1 overflow-x-clip px-4 py-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-5",
+          "mx-auto min-w-0 w-full max-w-lg flex-1 overflow-x-clip",
+          sessionFullscreen
+            ? "px-0 py-0 pb-[env(safe-area-inset-bottom)]"
+            : "px-4 py-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-5",
           reduceFixedBugs ? "animate-page-enter-opacity" : "animate-page-enter",
         )}
       >
         {children}
       </main>
 
+      {sessionFullscreen ? null : (
       <nav
         className="fixed inset-x-0 bottom-0 z-50 bg-[#050505] pb-[env(safe-area-inset-bottom)]"
         aria-label="Nawigacja główna"
@@ -179,6 +186,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </div>
       </nav>
+      )}
     </div>
   );
 }
