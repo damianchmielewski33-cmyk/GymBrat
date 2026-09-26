@@ -9,9 +9,8 @@ import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { isLikelyEmptyUpload } from "@/lib/file-snapshot";
 import { cn } from "@/lib/utils";
 
-/** Szeroki accept — Android WebView często ukrywa pliki przy wąskim MIME. */
-const PLAN_FILE_ACCEPT =
-  ".pdf,.doc,.docx,.xlsx,.xls,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/octet-stream,*/*";
+/** Android DocumentsUI wyszarzza PDF, gdy accept ma „.pdf” zamiast MIME — używamy * /*. */
+const PLAN_FILE_ACCEPT = "*/*";
 
 function isSupportedPlanFile(file: File): boolean {
   const n = (file.name || "").toLowerCase();

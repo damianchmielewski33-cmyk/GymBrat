@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — PDF w imporcie planu nie jest już wyszarzony",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Wybór pliku planu na Androidzie nie wyszarza już PDF — picker przyjmuje wszystkie pliki, a typ (.pdf / Word / Excel) sprawdza aplikacja po wyborze.",
+      "W Profilu → Plan treningowy możesz wgrać „Plan treningowy Damian masa.pdf” z folderu Pobrane.",
+    ],
+  },
+  {
     title: "2026-09 — import planu treningowego z PDF",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

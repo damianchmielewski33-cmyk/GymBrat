@@ -373,21 +373,9 @@ public final class MainActivity extends AppCompatActivity {
     private static Intent buildOpenDocumentIntent(WebChromeClient.FileChooserParams params) {
         Intent open = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         open.addCategory(Intent.CATEGORY_OPENABLE);
+        // Bez EXTRA_MIME_TYPES: Samsung/DocumentsUI wyszarzza PDF, gdy HTML
+        // podaje „.pdf” / „.doc” zamiast prawdziwych MIME.
         open.setType("*/*");
-        String[] types = params.getAcceptTypes();
-        if (types != null && types.length > 0) {
-            open.putExtra(Intent.EXTRA_MIME_TYPES, types);
-        } else {
-            open.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
-                    "application/pdf",
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    "application/msword",
-                    "application/vnd.ms-excel",
-                    "application/octet-stream",
-                    "*/*"
-            });
-        }
         return open;
     }
 
