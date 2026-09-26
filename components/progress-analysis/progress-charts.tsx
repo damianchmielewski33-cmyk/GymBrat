@@ -40,20 +40,15 @@ export function ProgressCharts({
   relativeStrength: RelativeStrengthPoint[];
 }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
-        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(255,45,85,0.12),transparent_55%)]" />
-        <div className="relative">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
+    <div className="grid gap-2.5 lg:grid-cols-2">
+      <div className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
             Masa ciała
           </p>
-          <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-            Pomiary masy (90 dni)
-          </h2>
-          <p className="mt-1 text-xs text-white/50">
-            Zapisane ważenia z aplikacji.
-          </p>
-          <div className="mt-4 h-[260px] w-full">
+          <h2 className="mt-1 text-base font-semibold text-white">Pomiary masy (90 dni)</h2>
+          <p className="mt-1 text-xs text-white/40">Zapisane ważenia z aplikacji.</p>
+          <div className="mt-4 h-[240px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={weights} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid
@@ -83,41 +78,38 @@ export function ProgressCharts({
                 <Line
                   type="monotone"
                   dataKey="kg"
-                  stroke="#ff2d55"
+                  stroke="#d4af37"
                   strokeWidth={2}
-                  dot={{ r: 3, fill: "#ff2d55", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#ff2d55", stroke: "#fff", strokeWidth: 2 }}
+                  dot={{ r: 3, fill: "#d4af37", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#d4af37", stroke: "#fff", strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
           {weights.length === 0 ? (
             <p className="mt-3 text-xs text-white/45">
-              Brak pomiarów — wpisz masę w karcie obok, aby wypełnić wykres.
+              Brak pomiarów — wpisz masę poniżej, aby wypełnić wykres.
             </p>
           ) : null}
         </div>
       </div>
 
-      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6">
-        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(225deg,rgba(120,120,255,0.12),transparent_55%)]" />
-        <div className="relative">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
+      <div className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
             Obciążenie
           </p>
-          <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-            Tonaż (kg) wg dni
-          </h2>
-          <p className="mt-1 text-xs text-white/50">
+          <h2 className="mt-1 text-base font-semibold text-white">Tonaż (kg) wg dni</h2>
+          <p className="mt-1 text-xs text-white/40">
             Suma obciążenia z ukończonych serii: ∑(powtórzenia × kg).
           </p>
-          <div className="mt-4 h-[260px] w-full">
+          <div className="mt-4 h-[240px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={volume} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="neonVol" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ff2d55" stopOpacity={0.38} />
-                    <stop offset="95%" stopColor="#ff2d55" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#d4af37" stopOpacity={0.38} />
+                    <stop offset="95%" stopColor="#d4af37" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -147,36 +139,33 @@ export function ProgressCharts({
                 <Area
                   type="monotone"
                   dataKey="kg"
-                  stroke="#ff2d55"
+                  stroke="#d4af37"
                   strokeWidth={2}
                   fill="url(#neonVol)"
-                  dot={{ r: 2.5, fill: "#ff2d55", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#ff2d55", stroke: "#fff", strokeWidth: 2 }}
+                  dot={{ r: 2.5, fill: "#d4af37", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#d4af37", stroke: "#fff", strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
           {volume.length === 0 ? (
             <p className="mt-3 text-xs text-white/45">
-              Ukończ trening z zapisanym ciężarem w seriach, aby pojawiły się pierwsze punkty tonażu.
+              Ukończ trening z zapisanym ciężarem w seriach, aby pojawiły się punkty tonażu.
             </p>
           ) : null}
         </div>
       </div>
 
-      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6 lg:col-span-2">
-        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(900px_420px_at_15%_0%,rgba(255,45,85,0.14),transparent_60%)]" />
-        <div className="relative">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
+      <div className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)] lg:col-span-2">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
             Siła
           </p>
-          <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-            Wskaźnik siły (e1RM) wg dni
-          </h2>
-          <p className="mt-1 text-xs text-white/50">
+          <h2 className="mt-1 text-base font-semibold text-white">Wskaźnik siły (e1RM) wg dni</h2>
+          <p className="mt-1 text-xs text-white/40">
             W każdym dniu sumujemy najlepszy szacunek e1RM (wzór Epleya) z każdego ćwiczenia.
           </p>
-          <div className="mt-4 h-[260px] w-full">
+          <div className="mt-4 h-[240px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={strength} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid
@@ -205,9 +194,9 @@ export function ProgressCharts({
                 />
                 <Bar
                   dataKey="score"
-                  fill="rgba(255, 45, 85, 0.85)"
+                  fill="#d4af37"
                   radius={[8, 8, 0, 0]}
-                  stroke="rgba(255,255,255,0.12)"
+                  stroke="rgba(255,255,255,0.08)"
                   strokeWidth={1}
                 />
               </BarChart>
@@ -216,20 +205,18 @@ export function ProgressCharts({
         </div>
       </div>
 
-      <div className="glass-panel neon-glow relative overflow-hidden p-5 sm:p-6 lg:col-span-2">
-        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(120,255,180,0.10),transparent_60%)]" />
-        <div className="relative">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
+      <div className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)] lg:col-span-2">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
             Siła względna
           </p>
-          <h2 className="font-heading mt-1 text-lg font-semibold text-white">
+          <h2 className="mt-1 text-base font-semibold text-white">
             Siła w odniesieniu do masy ciała
           </h2>
-          <p className="mt-1 text-xs text-white/50">
-            Stosunek wskaźnika siły do zapisanej masy ciała — im wyżej na wykresie, tym większa siła w
-            przeliczeniu na kilogram masy własnej.
+          <p className="mt-1 text-xs text-white/40">
+            Stosunek wskaźnika siły do zapisanej masy — im wyżej, tym większa siła na kg masy.
           </p>
-          <div className="mt-4 h-[260px] w-full">
+          <div className="mt-4 h-[240px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={relativeStrength} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid
@@ -259,10 +246,10 @@ export function ProgressCharts({
                 <Line
                   type="monotone"
                   dataKey="ratio"
-                  stroke="rgba(120, 255, 180, 0.95)"
+                  stroke="#7ddea0"
                   strokeWidth={2}
-                  dot={{ r: 3, fill: "rgba(120, 255, 180, 0.95)", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "rgba(120, 255, 180, 1)", stroke: "#fff", strokeWidth: 2 }}
+                  dot={{ r: 3, fill: "#7ddea0", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#7ddea0", stroke: "#fff", strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>

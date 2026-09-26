@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
+import { Bebas_Neue, Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/components/providers/app-providers";
 import { MetalBackdrop } from "@/components/layout/metal-backdrop";
@@ -24,6 +24,13 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 });
 
+const bebasNeue = Bebas_Neue({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-bebas",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
     default: "GymBrat — centrum treningowe",
@@ -40,6 +47,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
   themeColor: "#07080d",
   viewportFit: "cover",
 };
@@ -52,7 +63,7 @@ export default function RootLayout({
   return (
     <html
       lang="pl"
-      className={`dark ${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} h-full`}
+      className={`dark ${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${bebasNeue.variable} h-full`}
     >
       <body className="min-h-full font-sans antialiased">
         <MetalBackdrop />
