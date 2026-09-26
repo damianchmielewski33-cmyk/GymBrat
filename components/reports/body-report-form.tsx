@@ -24,6 +24,11 @@ import {
   Zap,
 } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import {
+  ReportSubmitPopup,
+  type ReportSubmitPhase,
+  type ReportSubmitSummary,
+} from "@/components/reports/report-submit-popup";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { cn } from "@/lib/utils";
 
@@ -290,12 +295,14 @@ function ScoreBars({
   onChange,
   invalid,
   hint,
+  readOnly,
 }: {
   label: string;
   value: number | null;
-  onChange: (v: number) => void;
+  onChange?: (v: number) => void;
   invalid?: boolean;
   hint?: number | null;
+  readOnly?: boolean;
 }) {
   return (
     <div>
@@ -308,25 +315,45 @@ function ScoreBars({
         >
           {label}
         </p>
-        {hint != null && value == null ? (
+        {value != null ? (
+          <p className="text-[11px] font-semibold tabular-nums text-[#e8c547]">
+            {value}/10
+          </p>
+        ) : hint != null && !readOnly ? (
           <p className="text-[10px] text-white/30">ostatnio {hint}</p>
         ) : null}
       </div>
-      <div className="flex h-10 items-end gap-1" role="radiogroup" aria-label={label}>
+      <div
+        className="flex h-10 items-end gap-1"
+        role={readOnly ? "img" : "radiogroup"}
+        aria-label={label}
+      >
         {Array.from({ length: 10 }, (_, i) => {
           const n = i + 1;
           const active = value != null && n <= value;
           const ghost = value == null && hint != null && n <= hint;
+          if (readOnly) {
+            return (
+              <div
+                key={n}
+                className={cn(
+                  "h-full min-w-0 flex-1 rounded-full",
+                  active
+                    ? "bg-gradient-to-t from-[#b8922a] to-[#e8c547] shadow-[0_0_10px_rgba(212,175,55,0.35)]"
+                    : "border border-white/12 bg-transparent",
+                )}
+              />
+            );
+          }
           return (
             <button
               key={n}
               type="button"
               role="radio"
               aria-checked={value === n}
-              onClick={() => onChange(n)}
+              onClick={() => onChange?.(n)}
               className={cn(
-                "flex-1 rounded-full transition",
-                "h-full min-w-0",
+                "h-full min-w-0 flex-1 rounded-full transition",
                 active
                   ? "bg-gradient-to-t from-[#b8922a] to-[#e8c547] shadow-[0_0_10px_rgba(212,175,55,0.35)]"
                   : ghost
@@ -347,15 +374,40 @@ function TakNieToggle({
   onChange,
   invalid,
   hint,
+  readOnly,
 }: {
   label: string;
   value: "" | "tak" | "nie";
-  onChange: (v: "tak" | "nie") => void;
+  onChange?: (v: "tak" | "nie") => void;
   invalid?: boolean;
   hint?: string | null;
+  readOnly?: boolean;
 }) {
   const hintLabel =
     hint === "tak" || hint === "nie" ? `ostatnio: ${hint}` : null;
+  if (readOnly) {
+    const tone =
+      value === "tak"
+        ? "bg-[#7ddea0] text-black"
+        : value === "nie"
+          ? "bg-[#e07a6a] text-black"
+          : "border border-white/15 bg-white/[0.04] text-white/50";
+    return (
+      <div className="min-w-0 flex-1">
+        <p className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
+          {label}
+        </p>
+        <div
+          className={cn(
+            "flex h-11 items-center justify-center rounded-xl text-sm font-semibold uppercase tracking-wide",
+            tone,
+          )}
+        >
+          {value === "tak" ? "Tak" : value === "nie" ? "Nie" : "—"}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-w-0 flex-1">
       <p
@@ -374,7 +426,7 @@ function TakNieToggle({
       <div className="grid grid-cols-2 gap-1.5">
         <button
           type="button"
-          onClick={() => onChange("tak")}
+          onClick={() => onChange?.("tak")}
           className={cn(
             "h-11 rounded-xl text-sm font-semibold uppercase tracking-wide transition",
             value === "tak"
@@ -388,7 +440,7 @@ function TakNieToggle({
         </button>
         <button
           type="button"
-          onClick={() => onChange("nie")}
+          onClick={() => onChange?.("nie")}
           className={cn(
             "h-11 rounded-xl text-sm font-semibold uppercase tracking-wide transition",
             value === "nie"
@@ -517,6 +569,10 @@ export function BodyReportForm({
     side: null,
     back: null,
   });
+  const [submitPhase, setSubmitPhase] = useState<ReportSubmitPhase>("idle");
+  const [submitSummary, setSubmitSummary] = useState<ReportSubmitSummary | null>(
+    null,
+  );
 
   const dueLabel = useMemo(() => {
     if (daysUntilNext == null) return null;
@@ -737,12 +793,23 @@ export function BodyReportForm({
       }
     }
     setError(null);
+    const photos = PHOTO_SLOTS.map((s) => slotPhotos[s.key]).filter(
+      (p): p is string => Boolean(p),
+    );
+    const summarySnapshot: ReportSubmitSummary = {
+      weightKg: parseDecimal(weightKg),
+      dayEnergy,
+      sleepQuality,
+      dietCompliance,
+      trainingCompliance,
+      cardioCompliance,
+      photosCount: photos.length,
+    };
+    setSubmitSummary(summarySnapshot);
+    setSubmitPhase("saving");
     start(async () => {
       try {
         await ensureCsrfCookie();
-        const photos = PHOTO_SLOTS.map((s) => slotPhotos[s.key]).filter(
-          (p): p is string => Boolean(p),
-        );
         const res = await fetch("/api/body-reports", {
           method: "POST",
           credentials: "include",
@@ -751,7 +818,7 @@ export function BodyReportForm({
             ...getXsrfHeaders(),
           },
           body: JSON.stringify({
-            weightKg: parseDecimal(weightKg),
+            weightKg: summarySnapshot.weightKg,
             waistCm: parseDecimal(waistCm),
             chestCm: parseDecimal(chestCm),
             thighCm: parseDecimal(thighCm),
@@ -771,42 +838,62 @@ export function BodyReportForm({
         });
         const json = (await res.json()) as { ok: boolean; error?: string };
         if (!json.ok) {
+          setSubmitPhase("idle");
           setError(json.error ?? "Nie udało się zapisać raportu.");
           return;
         }
-        notifySaved("Zapisano raport.");
         closeWizard({ clearDraft: true });
-        router.refresh();
+        setSubmitPhase("success");
+        notifySaved("Zapisano raport.");
       } catch (err) {
+        setSubmitPhase("idle");
         setError(err instanceof Error ? err.message : "Nieznany błąd");
       }
     });
   };
 
+  const submitPopup = (
+    <ReportSubmitPopup
+      phase={submitPhase}
+      summary={submitSummary}
+      onClose={() => {
+        setSubmitPhase("idle");
+        setSubmitSummary(null);
+        router.refresh();
+      }}
+    />
+  );
+
   if (!isOpen) {
     return (
-      <div className="theme-black-gold overflow-hidden rounded-3xl border border-white/10 bg-[#141416]/90 p-5 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d4af37]/80">
-              Nowy raport
-            </p>
-            <p className="mt-1 text-sm text-white/60">
-              Pomiary, samopoczucie, zgodność z planem i zdjęcia — krok po kroku.
-            </p>
+      <>
+        {submitPopup}
+        <div className="theme-black-gold overflow-hidden rounded-3xl border border-white/10 bg-[#141416]/90 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d4af37]/80">
+                Nowy raport
+              </p>
+              <p className="mt-1 text-sm text-white/60">
+                Pomiary, samopoczucie, zgodność z planem i zdjęcia — krok po kroku.
+              </p>
+            </div>
+            <GoldButton
+              onClick={() => openWizard({ restoreDraft: true })}
+              className="w-full sm:w-auto"
+              disabled={submitPhase === "saving"}
+            >
+              Dodaj raport
+            </GoldButton>
           </div>
-          <GoldButton
-            onClick={() => openWizard({ restoreDraft: true })}
-            className="w-full sm:w-auto"
-          >
-            Dodaj raport
-          </GoldButton>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
+    <>
+    {submitPopup}
     <div className="theme-black-gold overflow-hidden rounded-3xl border border-white/[0.08] bg-[#161618] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.55)] sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -1027,34 +1114,56 @@ export function BodyReportForm({
             title="Podsumowanie"
             subtitle="Sprawdź dane i zapisz raport."
           />
-          <ul className="mt-5 space-y-2 rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm text-white/75">
-            <li>
-              Waga:{" "}
-              <span className="font-semibold text-[#d4af37]">
-                {parseDecimal(weightKg) ?? "—"} kg
-              </span>
-            </li>
-            <li>
-              Pas / udo / klatka / ramię:{" "}
-              {[waistCm, thighCm, chestCm, armCm]
-                .map((v) => (parseDecimal(v) != null ? `${parseDecimal(v)}` : "—"))
-                .join(" / ")}{" "}
-              cm
-            </li>
-            <li>
-              Samopoczucie: dzień {dayEnergy}/10 · trening {trainingEnergy}/10 · trawienie{" "}
-              {digestionScore}/10 · sen {sleepQuality}/10
-            </li>
-            <li>
-              Plan: cardio {cardioCompliance.toUpperCase()} · dieta {dietCompliance.toUpperCase()} ·
-              treningi {trainingCompliance.toUpperCase()}
-            </li>
-            <li>
-              Zdjęcia:{" "}
-              {PHOTO_SLOTS.filter((s) => slotPhotos[s.key]).map((s) => s.label).join(", ") ||
-                "brak"}
-            </li>
-          </ul>
+
+          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {(
+              [
+                ["Waga", parseDecimal(weightKg) != null ? `${parseDecimal(weightKg)} kg` : "—"],
+                ["Pas", parseDecimal(waistCm) != null ? `${parseDecimal(waistCm)} cm` : "—"],
+                ["Udo", parseDecimal(thighCm) != null ? `${parseDecimal(thighCm)} cm` : "—"],
+                ["Klatka", parseDecimal(chestCm) != null ? `${parseDecimal(chestCm)} cm` : "—"],
+                ["Ramię", parseDecimal(armCm) != null ? `${parseDecimal(armCm)} cm` : "—"],
+                ["Brzuch", parseDecimal(abdomenCm) != null ? `${parseDecimal(abdomenCm)} cm` : "—"],
+              ] as const
+            ).map(([label, val]) => (
+              <div
+                key={label}
+                className="rounded-2xl border border-white/10 bg-black/35 px-3 py-2.5"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                  {label}
+                </p>
+                <p className="mt-1 text-sm font-semibold tabular-nums text-[#e8c547]">{val}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 space-y-4 rounded-2xl border border-white/10 bg-black/30 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d4af37]/85">
+              Ogólne — samopoczucie
+            </p>
+            <ScoreBars label="Energia dnia" value={dayEnergy} readOnly />
+            <ScoreBars label="Energia treningowa" value={trainingEnergy} readOnly />
+            <ScoreBars label="Trawienie" value={digestionScore} readOnly />
+            <ScoreBars label="Sen" value={sleepQuality} readOnly />
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d4af37]/85">
+              Zgodność z planem
+            </p>
+            <div className="flex gap-2">
+              <TakNieToggle label="Cardio" value={cardioCompliance} readOnly />
+              <TakNieToggle label="Dieta" value={dietCompliance} readOnly />
+              <TakNieToggle label="Treningi" value={trainingCompliance} readOnly />
+            </div>
+          </div>
+
+          <p className="mt-3 text-center text-xs text-white/45">
+            Zdjęcia:{" "}
+            {PHOTO_SLOTS.filter((s) => slotPhotos[s.key]).map((s) => s.label).join(", ") || "brak"}
+          </p>
+
           <div className="mt-4">
             <FieldLabel>Informacje dodatkowe</FieldLabel>
             <textarea
@@ -1086,5 +1195,6 @@ export function BodyReportForm({
         )}
       </div>
     </div>
+    </>
   );
 }

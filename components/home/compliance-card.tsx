@@ -118,11 +118,14 @@ export function ComplianceCard({
 
   return (
     <section className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
-      <div className="flex items-center justify-between gap-3">
-        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-white">
-          Trzymanie się założeń
-        </p>
-        <p className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+            Trzymanie się założeń
+          </p>
+          <p className="mt-1 text-xs text-white/40">Średnia z ostatnich raportów</p>
+        </div>
+        <p className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/55">
           {lastN} raportów
         </p>
       </div>
