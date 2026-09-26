@@ -2,6 +2,8 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { ensureMealLogsTableOncePerProcess } from "@/db/ensure-schema";
 import { mealLogs } from "@/db/schema";
+import type { DietDiarySlot } from "@/lib/diet-diary-slots";
+import { isDietDiarySlot } from "@/lib/diet-diary-slots";
 import type { FitatuDaySummary } from "@/types/fitatu";
 
 /** Wpis posiłku na potrzeby UI (lista / edycja). */
@@ -9,6 +11,8 @@ export type MealLogDto = {
   id: string;
   date: string;
   name: string | null;
+  slot: DietDiarySlot | null;
+  barcode: string | null;
   calories: number;
   proteinG: number;
   fatG: number;
@@ -99,6 +103,8 @@ export async function listMealLogsForDay(
     id: r.id,
     date: r.date,
     name: r.name,
+    slot: isDietDiarySlot(r.slot) ? r.slot : null,
+    barcode: r.barcode ?? null,
     calories: Number(r.calories),
     proteinG: Number(r.proteinG),
     fatG: Number(r.fatG),
@@ -131,6 +137,8 @@ export async function listMealLogsForDates(
       id: r.id,
       date: r.date,
       name: r.name,
+      slot: isDietDiarySlot(r.slot) ? r.slot : null,
+      barcode: r.barcode ?? null,
       calories: Number(r.calories),
       proteinG: Number(r.proteinG),
       fatG: Number(r.fatG),

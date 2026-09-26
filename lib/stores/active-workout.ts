@@ -38,7 +38,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
       workoutStartedAtMs: null,
       title: "Sesja",
       workoutPlanId: null,
-      cardioMinutes: 20,
+      cardioMinutes: 0,
       exercises: [],
       selectedExerciseId: null,
       setTitle: (title) => set({ title }),
@@ -56,15 +56,15 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
             ...patch,
           };
 
-          // Auto-ukończenie: wpisane powtórzenia + ciężar oznacza serię jako zakończoną.
-          const autoDone =
-            nextSet.reps != null &&
-            Number.isFinite(nextSet.reps) &&
-            nextSet.reps > 0 &&
-            Number.isFinite(nextSet.weight) &&
-            nextSet.weight > 0;
-
-          nextSet.done = autoDone;
+          if (patch.done === undefined) {
+            // Auto-ukończenie: wpisane powtórzenia + ciężar oznacza serię jako zakończoną.
+            nextSet.done =
+              nextSet.reps != null &&
+              Number.isFinite(nextSet.reps) &&
+              nextSet.reps > 0 &&
+              Number.isFinite(nextSet.weight) &&
+              nextSet.weight > 0;
+          }
 
           return {
             exercises: s.exercises.map((e) =>
@@ -104,7 +104,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           startedAt: null,
           pausedElapsedSeconds: 0,
           workoutStartedAtMs: null,
-          cardioMinutes: 20,
+          cardioMinutes: 0,
           exercises: [],
           selectedExerciseId: null,
         }),
@@ -115,7 +115,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           workoutStartedAtMs: null,
           title: "Sesja",
           workoutPlanId: null,
-          cardioMinutes: 20,
+          cardioMinutes: 0,
           exercises: [],
           selectedExerciseId: null,
         }),

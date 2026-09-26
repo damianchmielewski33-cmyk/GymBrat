@@ -25,9 +25,10 @@ export async function getWeeklyCardioProgress(userId: string) {
   const todayKey = calendarDateKey(now);
   const minWorkoutDateKey = calendarDateKey(weekAgo);
 
-  const [fromWorkouts] = await db
+  const workoutRows = await db
     .select({
-      total: sql<number>`coalesce(sum(${workouts.cardioMinutes}), 0)`,
+      cardioMinutes: workouts.cardioMinutes,
+      exercises: workouts.exercises,
     })
     .from(workouts)
     .where(
@@ -37,6 +38,18 @@ export async function getWeeklyCardioProgress(userId: string) {
         lte(workouts.date, todayKey),
       ),
     );
+
+  let fromWorkoutsTotal = 0;
+  for (const row of workoutRows) {
+    try {
+      const parsed = JSON.parse(row.exercises) as { kind?: string };
+      if (parsed?.kind === "cardio_log") {
+        fromWorkoutsTotal += Number(row.cardioMinutes) || 0;
+      }
+    } catch {
+      /* pomiń */
+    }
+  }
 
   const [fromLegacySessions] = await db
     .select({
@@ -51,7 +64,7 @@ export async function getWeeklyCardioProgress(userId: string) {
     );
 
   const minutesCompleted =
-    Number(fromWorkouts?.total ?? 0) + Number(fromLegacySessions?.total ?? 0);
+    fromWorkoutsTotal + Number(fromLegacySessions?.total ?? 0);
 
   const pct =
     weeklyGoal > 0

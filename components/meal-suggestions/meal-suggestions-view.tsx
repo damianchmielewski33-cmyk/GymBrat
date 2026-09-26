@@ -1,497 +1,568 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import type { FitatuDaySummary } from "@/types/fitatu";
+import { useCallback, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import {
+  loadDietDayAction,
+  setDietDayKindAction,
+} from "@/actions/diet-day";
+import { addMealProductAction, deleteMealLogFormAction, type MealLogFormState } from "@/actions/meal-log";
+import { AddMealChoiceBar } from "@/components/meal-suggestions/add-meal-choice-bar";
+import { MealCatalogBrowser } from "@/components/meal-suggestions/meal-catalog-browser";
+import { AddMealScreen } from "@/components/meal-suggestions/add-meal-screen";
+import { FoodPortionScreen } from "@/components/meal-suggestions/food-portion-screen";
+import { DietWeekStrip } from "@/components/meal-suggestions/diet-week-strip";
+import { DietDayMacrosBar } from "@/components/meal-suggestions/diet-day-macros-bar";
+import {
+  DIET_DIARY_SLOT_LABELS,
+  DIET_DIARY_SLOTS,
+  type DietDiarySlot,
+} from "@/lib/diet-diary-slots";
+import type { FoodProduct } from "@/lib/food-products-types";
+import type { MealLogDto } from "@/lib/meal-logs";
 import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
-import { mealIllustrationUrl } from "@/lib/meal-suggestions-gaps";
-import type { MealSuggestionItem } from "@/lib/meal-suggestions-schema";
-import { generateMealSuggestionsAction } from "@/actions/meal-suggestions";
-import { Button } from "@/components/ui/button";
-import { InlineBanner } from "@/components/ui/inline-banner";
-import { ChefHat, Loader2, Sparkles } from "lucide-react";
-import type { WebMealInspiration } from "@/lib/web-meal-inspirations";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { addMealLogAction, type MealLogFormState } from "@/actions/meal-log";
-import { useActionState } from "react";
-import { ScreenHeader } from "@/components/layout/screen";
+import type { FitatuDaySummary } from "@/types/fitatu";
+import type { MealTemplate } from "@/lib/meal-templates";
+import type { NutritionDayType } from "@/lib/nutrition-goals";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { useActionState, useEffect } from "react";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { calendarDateKey } from "@/lib/local-date";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
+import { useOverlayHistoryBack } from "@/hooks/use-overlay-history-back";
 
-function fmtVal(n: number, kind: "kcal" | "g") {
-  if (!Number.isFinite(n)) return "—";
-  if (kind === "kcal") return `${Math.round(n)} kcal`;
-  return `${Math.round(n * 10) / 10} g`;
+function formatDateLabel(dateKey: string): string {
+  const today = calendarDateKey();
+  if (dateKey === today) return "Dzisiaj";
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const dt = new Date(y!, (m ?? 1) - 1, d ?? 1);
+  return dt.toLocaleDateString("pl-PL", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
 }
 
-function fmtRem(n: number | null, kind: "kcal" | "g") {
-  if (n == null) return "—";
-  return fmtVal(n, kind);
-}
-
-function GapRow({
-  label,
-  consumed,
-  goal,
-  remaining,
-  kind,
+function DeleteMealButton({
+  id,
+  name,
+  onDone,
 }: {
-  label: string;
-  consumed: number;
-  goal: number | null;
-  remaining: number | null;
-  kind: "kcal" | "g";
+  id: string;
+  name?: string | null;
+  onDone: () => void;
 }) {
-  return (
-    <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm sm:grid-cols-4">
-      <span className="font-medium text-white/90">{label}</span>
-      <span className="text-white/60">
-        Spożyte: <span className="text-white/85">{fmtVal(consumed, kind)}</span>
-      </span>
-      <span className="text-white/60">
-        Cel: <span className="text-white/85">{goal != null ? fmtVal(goal, kind) : "—"}</span>
-      </span>
-      <span className="text-[var(--neon)]">
-        Zostało: <span className="font-semibold">{fmtRem(remaining, kind)}</span>
-      </span>
-    </div>
-  );
-}
-
-function fmtMacro(n: number, unit: string) {
-  return `${Math.round(n * 10) / 10} ${unit}`;
-}
-
-function AddToMealLogSheet({
-  dateKey,
-  presetName,
-  triggerLabel = "Dodaj do dziennika",
-}: {
-  dateKey: string;
-  presetName: string;
-  triggerLabel?: string;
-}) {
-  const { notifySaved, notifyError } = useSaveFeedback();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(presetName);
-  const [kcal, setKcal] = useState("");
-  const [state, formAction] = useActionState(addMealLogAction, {} as MealLogFormState);
-
-  useEffect(() => {
-    if (!open) return;
-    setName(presetName);
-    setKcal("");
-  }, [open, presetName]);
+  const [state, action, pending] = useActionState(
+    deleteMealLogFormAction,
+    {} as MealLogFormState,
+  );
+  const { notifySaved, notifyError } = useSaveFeedback();
 
   useEffect(() => {
     if (state?.ok) {
-      notifySaved("Posiłek dodany do dziennika.");
+      notifySaved("Usunięto produkt z dziennika.");
       setOpen(false);
+      onDone();
     } else if (state?.error) {
       notifyError(state.error);
     }
-  }, [state, notifyError, notifySaved]);
+  }, [state, notifySaved, notifyError, onDone]);
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <>
       <button
         type="button"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:bg-white/10 hover:text-rose-200"
+        aria-label="Usuń"
         onClick={() => setOpen(true)}
-        className="inline-flex h-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] px-3 text-xs font-semibold text-white/85 transition hover:bg-white/[0.07]"
       >
-        {triggerLabel}
+        <Trash2 className="h-3.5 w-3.5" />
       </button>
-      <SheetContent side="bottom" className="border-white/10 bg-[#07070c] text-white">
-        <SheetHeader>
-          <SheetTitle className="text-white">Dodaj posiłek</SheetTitle>
-          <SheetDescription className="text-white/55">
-            Szybki wpis do dziennika na dzień <span className="font-mono">{dateKey}</span>.
-          </SheetDescription>
-        </SheetHeader>
-        <form action={formAction} className="space-y-4 px-4 pb-6">
-          <input type="hidden" name="date" value={dateKey} />
-          <input type="hidden" name="proteinG" value="0" />
-          <input type="hidden" name="fatG" value="0" />
-          <input type="hidden" name="carbsG" value="0" />
-          <div className="space-y-2">
-            <Label className="text-white/75">Nazwa</Label>
-            <Input
-              name="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-white/75">Kalorie (kcal)</Label>
-            <Input
-              name="calories"
-              inputMode="decimal"
-              value={kcal}
-              onChange={(e) => setKcal(e.target.value)}
-              placeholder="np. 550"
-            />
-            <p className="text-xs text-white/45">
-              Jeśli nie znasz makro, wystarczy kcal. Makro uzupełnisz później w edycji wpisu na stronie Start.
-            </p>
-          </div>
-          <SheetFooter className="flex flex-row gap-2 px-0">
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent className="border border-white/10 bg-[#0c0c0c] p-6">
+          <AlertDialogTitle>Usunąć produkt?</AlertDialogTitle>
+          <AlertDialogDescription className="mt-2 text-white/65">
+            {name?.trim()
+              ? `„${name.trim()}” zniknie z dziennika, a makro dnia zostanie przeliczone.`
+              : "Wpis zniknie z dziennika, a makro dnia zostanie przeliczone."}
+          </AlertDialogDescription>
+          <div className="mt-6 flex gap-2">
             <Button
               type="button"
               variant="outline"
               className="flex-1"
+              disabled={pending}
               onClick={() => setOpen(false)}
             >
               Anuluj
             </Button>
-            <Button type="submit" variant="cta" className="flex-[1.2]">
-              Dodaj
-            </Button>
-          </SheetFooter>
-        </form>
-      </SheetContent>
-    </Sheet>
+            <form action={action} className="flex-1">
+              <input type="hidden" name="id" value={id} />
+              <Button
+                type="submit"
+                className="w-full border-rose-400/30 bg-rose-500/90 text-white hover:bg-rose-500"
+                disabled={pending}
+              >
+                {pending ? "Usuwam…" : "Usuń"}
+              </Button>
+            </form>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+function MealSectionRow({
+  slot,
+  items,
+  expanded,
+  onToggle,
+  onAdd,
+  onDeleted,
+}: {
+  slot: DietDiarySlot;
+  items: MealLogDto[];
+  expanded: boolean;
+  onToggle: () => void;
+  onAdd: () => void;
+  onDeleted: () => void;
+}) {
+  const sumK = items.reduce((s, e) => s + e.calories, 0);
+  const sumP = items.reduce((s, e) => s + e.proteinG, 0);
+  const sumF = items.reduce((s, e) => s + e.fatG, 0);
+  const sumC = items.reduce((s, e) => s + e.carbsG, 0);
+
+  return (
+    <section className="border-b border-white/[0.06]">
+      <div className="flex items-center gap-2 px-1 py-3.5">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="min-w-0 flex-1 text-left"
+        >
+          <div className="flex items-center gap-1.5">
+            <span className="text-[17px] font-semibold text-white">
+              {DIET_DIARY_SLOT_LABELS[slot]}
+            </span>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-white/40 transition",
+                expanded && "rotate-180",
+              )}
+            />
+          </div>
+          <p className="mt-0.5 text-sm tabular-nums text-white/50">
+            {Math.round(sumK)} kcal
+          </p>
+          {items.length > 0 ? (
+            <p className="mt-0.5 text-[11px] tabular-nums text-white/35">
+              {Math.round(sumP * 10) / 10} / {Math.round(sumF * 10) / 10} /{" "}
+              {Math.round(sumC * 10) / 10}
+            </p>
+          ) : null}
+        </button>
+        <button
+          type="button"
+          aria-label={`Dodaj do ${DIET_DIARY_SLOT_LABELS[slot]}`}
+          onClick={onAdd}
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--gym-gold)] text-black shadow-[0_4px_16px_rgba(235,196,74,0.28)]"
+        >
+          <Plus className="h-6 w-6" strokeWidth={2.5} />
+        </button>
+      </div>
+
+      {expanded ? (
+        items.length === 0 ? (
+          <p className="px-1 pb-4 text-sm text-white/35">
+            Brak produktów — kliknij + aby wyszukać lub zeskanować.
+          </p>
+        ) : (
+          <ul className="space-y-1 px-1 pb-4">
+            {items.map((e) => (
+              <li
+                key={e.id}
+                className="flex items-start gap-2 rounded-xl bg-white/[0.03] px-3 py-2.5"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-white">
+                    {e.name?.trim() || "Posiłek"}
+                  </p>
+                  <p className="mt-0.5 text-xs tabular-nums text-white/45">
+                    {Math.round(e.calories)} kcal · B{Math.round(e.proteinG)} W
+                    {Math.round(e.carbsG)} T{Math.round(e.fatG)}
+                  </p>
+                </div>
+                <DeleteMealButton id={e.id} name={e.name} onDone={onDeleted} />
+              </li>
+            ))}
+          </ul>
+        )
+      ) : null}
+    </section>
   );
 }
 
 export function MealSuggestionsView({
-  initialSummary,
+  initialSummary: _initialSummary,
   initialGaps,
-  modelAllowed,
-  webInspirations,
+  initialLogs,
+  initialDayKind = "rest",
+  mealTemplates = [],
 }: {
   initialSummary: FitatuDaySummary;
   initialGaps: MacroGaps;
-  /** Dostawca AI skonfigurowany i użytkownik nie wyłączył AI w profilu */
-  modelAllowed: boolean;
-  /** Regularnie odświeżane inspiracje z internetu (linki do przepisów) */
-  webInspirations: WebMealInspiration[] | null;
+  initialLogs: MealLogDto[];
+  initialDayKind?: NutritionDayType;
+  mealTemplates?: MealTemplate[];
 }) {
+  void _initialSummary;
+  const router = useRouter();
+  const { notifySaved, notifyError } = useSaveFeedback();
+  const [tab, setTab] = useState<"plan" | "dziennik">("dziennik");
+  const [dateKey, setDateKey] = useState(initialGaps.dateKey);
   const [gaps, setGaps] = useState(initialGaps);
-  const [meals, setMeals] = useState<MealSuggestionItem[] | null>(null);
-  const [source, setSource] = useState<"ai" | "static" | "user_disabled" | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [logs, setLogs] = useState(initialLogs);
+  const [dayKind, setDayKind] = useState<NutritionDayType>(initialDayKind);
   const [pending, start] = useTransition();
-  const [inspirationFilter, setInspirationFilter] = useState<"all" | "high_protein" | "low_calorie" | "fast">("all");
-  const [inspirationQuery, setInspirationQuery] = useState("");
-  const cacheKeyRef = useRef(`meal-suggestions:last:${initialGaps.dateKey}`);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [addSlot, setAddSlot] = useState<DietDiarySlot | null>(null);
+  const [choiceOpen, setChoiceOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [dishPickerOpen, setDishPickerOpen] = useState(false);
+  const [portionProduct, setPortionProduct] = useState<FoodProduct | null>(null);
+  const [portionSlot, setPortionSlot] = useState<DietDiarySlot>("sniadanie");
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(cacheKeyRef.current);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as { meals?: MealSuggestionItem[]; source?: string };
-      if (Array.isArray(parsed.meals) && parsed.meals.length > 0) {
-        setMeals(parsed.meals);
-        if (parsed.source === "ai" || parsed.source === "static" || parsed.source === "user_disabled") {
-          setSource(parsed.source);
-        }
-      }
-    } catch {
-      /* ignore */
+  const mealOverlayOpen =
+    Boolean(addSlot) ||
+    Boolean(portionProduct) ||
+    choiceOpen ||
+    searchOpen ||
+    dishPickerOpen;
+  useOverlayHistoryBack(mealOverlayOpen, () => {
+    if (portionProduct) {
+      setPortionProduct(null);
+      return;
     }
-  }, []);
+    if (searchOpen) {
+      setSearchOpen(false);
+      return;
+    }
+    if (dishPickerOpen) {
+      setDishPickerOpen(false);
+      return;
+    }
+    if (choiceOpen) {
+      setChoiceOpen(false);
+      setAddSlot(null);
+      return;
+    }
+    setAddSlot(null);
+  });
 
-  function generate() {
-    setError(null);
-    start(async () => {
-      const r = await generateMealSuggestionsAction();
-      if (!r.ok) {
-        setError(r.error);
-        return;
-      }
-      setMeals(r.meals);
-      setSource(r.source);
-      setGaps(r.gaps);
-      try {
-        localStorage.setItem(cacheKeyRef.current, JSON.stringify({ meals: r.meals, source: r.source }));
-      } catch {
-        /* ignore */
-      }
-    });
-  }
-
-  const filteredInspirations = useMemo(() => {
-    const list = webInspirations ?? [];
-    const q = inspirationQuery.trim().toLowerCase();
-    const protein = gaps.proteinRemaining ?? 0;
-    const calories = gaps.caloriesRemaining ?? 99999;
-    return list
-      .filter((it) => {
-        if (!q) return true;
-        return (it.title + " " + it.snippet).toLowerCase().includes(q);
-      })
-      .filter((it) => {
-        if (inspirationFilter === "all") return true;
-        if (inspirationFilter === "fast") return /15|minut|szybk|ekspres/i.test(it.title + " " + it.snippet);
-        if (inspirationFilter === "high_protein") return protein >= 30;
-        if (inspirationFilter === "low_calorie") return calories <= 500;
-        return true;
+  const refreshDay = useCallback(
+    (key: string) => {
+      start(async () => {
+        const r = await loadDietDayAction(key);
+        if (!r.ok) {
+          notifyError(r.error);
+          return;
+        }
+        setDateKey(r.data.dateKey);
+        setGaps(r.data.gaps);
+        setLogs(r.data.logs);
+        setDayKind(r.data.dayKind);
       });
-  }, [webInspirations, inspirationQuery, inspirationFilter, gaps.proteinRemaining, gaps.caloriesRemaining]);
+    },
+    [notifyError],
+  );
+
+  const bySlot = useMemo(() => {
+    const map: Record<DietDiarySlot, MealLogDto[]> = {
+      sniadanie: [],
+      drugie_sniadanie: [],
+      lunch: [],
+      obiad: [],
+      przekaska: [],
+      kolacja: [],
+    };
+    for (const e of logs) {
+      if (e.slot && map[e.slot]) map[e.slot].push(e);
+    }
+    return map;
+  }, [logs]);
+
+  const unassigned = logs.filter((e) => e.slot == null);
+  const dateLabel = formatDateLabel(dateKey);
+
+  const dayMacros = {
+    caloriesConsumed: gaps.caloriesConsumed,
+    caloriesGoal: gaps.caloriesGoal,
+    proteinConsumed: gaps.proteinConsumed,
+    proteinGoal: gaps.proteinGoal,
+    fatConsumed: gaps.fatConsumed,
+    fatGoal: gaps.fatGoal,
+    carbsConsumed: gaps.carbsConsumed,
+    carbsGoal: gaps.carbsGoal,
+  };
 
   return (
-    <div className="space-y-8">
-      <ScreenHeader
-        kicker="Odżywianie"
-        title="Propozycje posiłków"
-        description="Na podstawie Twojego dziennego bilansu (spożycie vs cele) wygenerujemy propozycje posiłków z przepisami. Ilustracje są poglądowe."
-      />
+    <div className="relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col pb-2">
+      <div className="flex gap-2 px-1 pt-2">
+        <button
+          type="button"
+          onClick={() => setTab("plan")}
+          className={
+            tab === "plan"
+              ? "rounded-full border border-[var(--neon)]/50 bg-[var(--neon)]/20 px-5 py-2 text-sm font-semibold text-white"
+              : "rounded-full border border-white/12 bg-white/[0.04] px-5 py-2 text-sm font-medium text-white/55"
+          }
+        >
+          Plan
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("dziennik")}
+          className={
+            tab === "dziennik"
+              ? "rounded-full border border-[var(--neon)]/50 bg-[var(--neon)]/20 px-5 py-2 text-sm font-semibold text-white"
+              : "rounded-full border border-white/12 bg-white/[0.04] px-5 py-2 text-sm font-medium text-white/55"
+          }
+        >
+          Jadłospis
+        </button>
+      </div>
 
-      <section className="glass-panel relative overflow-hidden p-6 sm:p-8">
-        <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(720px_280px_at_10%_0%,rgba(255,45,85,0.12),transparent_58%)]" />
-        <div className="relative space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <ChefHat className="h-5 w-5 text-[var(--neon)]" aria-hidden />
-              <h2 className="font-heading text-lg font-semibold text-white">Dziś ({gaps.dateKey})</h2>
-            </div>
-            <Button
-              type="button"
-              variant="cta"
-              disabled={pending}
-              onClick={() => generate()}
-            >
-              {pending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-                  Generuję…
-                </>
-              ) : (
-                <>
-                  {modelAllowed ? <Sparkles className="mr-2 h-4 w-4" aria-hidden /> : null}
-                  {modelAllowed ? "Wygeneruj propozycje" : "Pokaż propozycje"}
-                </>
-              )}
-            </Button>
-          </div>
-
-          {initialSummary.source === "error" ? (
-            <InlineBanner variant="warning">
-              {initialSummary.errorMessage ?? "Nie udało się pobrać danych odżywczych."}
-            </InlineBanner>
-          ) : (
-            <div className="space-y-2">
-              <GapRow
-                label="Kalorie"
-                consumed={gaps.caloriesConsumed}
-                goal={gaps.caloriesGoal}
-                remaining={gaps.caloriesRemaining}
-                kind="kcal"
-              />
-              <GapRow
-                label="Białko"
-                consumed={gaps.proteinConsumed}
-                goal={gaps.proteinGoal}
-                remaining={gaps.proteinRemaining}
-                kind="g"
-              />
-              <GapRow
-                label="Tłuszcz"
-                consumed={gaps.fatConsumed}
-                goal={gaps.fatGoal}
-                remaining={gaps.fatRemaining}
-                kind="g"
-              />
-              <GapRow
-                label="Węglowodany"
-                consumed={gaps.carbsConsumed}
-                goal={gaps.carbsGoal}
-                remaining={gaps.carbsRemaining}
-                kind="g"
-              />
-            </div>
-          )}
-
-          {!gaps.hasAnyMacroGoal ? (
-            <p className="text-sm text-white/55">
-              Uzupełnij cele kaloryczne i makro w{" "}
-              <a href="/profile" className="text-[var(--neon)] underline-offset-4 hover:underline">
-                profilu
-              </a>
-              , aby precyzyjniej domykać braki — model i tak zaproponuje zbilansowane posiłki.
-            </p>
-          ) : null}
-
-          {!modelAllowed ? (
-            <InlineBanner variant="info">
-              AI jest niedostępne — po kliknięciu zobaczysz statyczne przykładowe przepisy z kodu.
-            </InlineBanner>
-          ) : null}
-
-          {error ? <p className="text-sm text-amber-200">{error}</p> : null}
-
-          {source === "user_disabled" ? (
-            <p className="text-sm text-white/60">
-              Masz wyłączone funkcje AI w profilu — pokazujemy zestaw przykładowy. Włącz AI, aby
-              otrzymywać propozycje dopasowane do Twoich braków.
-            </p>
-          ) : null}
-        </div>
-      </section>
-
-      <section className="glass-panel relative overflow-hidden p-6 sm:p-8">
-        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(720px_280px_at_90%_0%,rgba(59,130,246,0.16),transparent_58%)]" />
-        <div className="relative space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">
-                Inspiracje
-              </p>
-              <h2 className="font-heading text-lg font-semibold text-white">
-                Propozycje z internetu
-              </h2>
-              <p className="mt-1 text-sm text-white/55">
-                Linki do przepisów dopasowane do Twoich braków. Lista odświeża się automatycznie co kilka godzin.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: "all" as const, label: "Wszystkie" },
-                { id: "high_protein" as const, label: "Białko" },
-                { id: "low_calorie" as const, label: "Lekko" },
-                { id: "fast" as const, label: "Szybkie" },
-              ].map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setInspirationFilter(f.id)}
-                  className={
-                    inspirationFilter === f.id
-                      ? "rounded-full border border-[var(--neon)]/40 bg-[var(--neon)]/15 px-3 py-1.5 text-xs font-semibold text-white"
-                      : "rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-white/[0.07]"
-                  }
+      {tab === "plan" ? (
+        <div className="mt-4 space-y-4 px-1">
+          {mealTemplates.length > 0 ? (
+            <section className="app-card space-y-2 p-5">
+              <p className="app-label">Szablony posiłków</p>
+              {mealTemplates.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex justify-between gap-3 border-b border-white/[0.05] py-2.5 last:border-0"
                 >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-            <Input
-              value={inspirationQuery}
-              onChange={(e) => setInspirationQuery(e.target.value)}
-              placeholder="Szukaj w inspiracjach…"
-              className="h-10 border-white/12 bg-white/[0.05] text-white placeholder:text-white/35 sm:max-w-[320px]"
-            />
-          </div>
-
-          {filteredInspirations.length > 0 ? (
-            <div className="grid gap-2">
-              {filteredInspirations.map((it) => (
-                <a
-                  key={it.url}
-                  href={it.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 transition hover:border-white/20 hover:bg-white/[0.05]"
-                >
-                  <p className="text-sm font-semibold text-white/90 group-hover:text-white">
-                    {it.title}
+                  <p className="text-sm text-white/85">{m.name}</p>
+                  <p className="shrink-0 text-xs tabular-nums text-[var(--neon)]">
+                    {Math.round(m.proteinG)}B · {Math.round(m.carbsG)}W ·{" "}
+                    {Math.round(m.fatG)}T
                   </p>
-                  {it.snippet ? (
-                    <p className="mt-1 text-xs leading-relaxed text-white/55">
-                      {it.snippet}
-                    </p>
-                  ) : null}
-                  <p className="mt-2 text-[11px] text-[var(--neon)]/85">
-                    Otwórz przepis →
-                  </p>
-                </a>
+                </div>
               ))}
-            </div>
+            </section>
           ) : (
-            <InlineBanner variant="info">
-              Brak inspiracji z internetu (albo integracja wyszukiwarki nie jest skonfigurowana). Nadal możesz użyć propozycji z aplikacji.
-            </InlineBanner>
+            <p className="text-sm text-white/45">
+              Ustaw szablony i cele makro w profilu — tu zobaczysz plan dnia.
+            </p>
           )}
-        </div>
-      </section>
-
-      {meals && meals.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2">
-          {meals.map((meal, idx) => (
-            <article
-              key={`${meal.title}-${idx}`}
-              className="glass-panel relative flex flex-col overflow-hidden border border-white/[0.08]"
-            >
-              <div className="relative aspect-[16/10] w-full overflow-hidden bg-black/40">
-                {/* eslint-disable-next-line @next/next/no-img-element -- zewnętrzny URL ilustracji */}
-                <img
-                  src={mealIllustrationUrl(meal.title, meal.imagePromptEn)}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h3 className="font-heading text-lg font-semibold text-white drop-shadow-md">
-                    {meal.title}
-                  </h3>
-                  {meal.tagline ? (
-                    <p className="mt-1 text-sm text-white/80 drop-shadow">{meal.tagline}</p>
-                  ) : null}
-                </div>
-              </div>
-              <div className="flex flex-1 flex-col gap-4 p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap gap-2 text-xs text-white/70">
-                    <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1">
-                      {Math.round(meal.approximateMacros.calories)} kcal
-                    </span>
-                    <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1">
-                      B {fmtMacro(meal.approximateMacros.proteinG, "g")}
-                    </span>
-                    <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1">
-                      T {fmtMacro(meal.approximateMacros.fatG, "g")}
-                    </span>
-                    <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1">
-                      W {fmtMacro(meal.approximateMacros.carbsG, "g")}
-                    </span>
-                  </div>
-                  <AddToMealLogSheet
-                    dateKey={gaps.dateKey}
-                    presetName={meal.title}
-                    triggerLabel="Dodaj"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2 text-xs text-white/70">
-                  {/* spacer */}
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
-                    Składniki
-                  </p>
-                  <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-white/80">
-                    {meal.ingredients.map((ing) => (
-                      <li key={ing}>{ing}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
-                    Przepis
-                  </p>
-                  <ol className="mt-2 list-inside list-decimal space-y-2 text-sm text-white/80">
-                    {meal.steps.map((step, i) => (
-                      <li key={i}>{step}</li>
-                    ))}
-                  </ol>
-                </div>
-                <p className="mt-auto text-[11px] text-white/40">
-                  Makro przybliżone dla jednej porcji. Ilustracja: syntetyczna wizualizacja na podstawie
-                  nazwy dania — nie jest zdjęciem realnego przygotowanego posiłku.
-                </p>
-              </div>
-            </article>
-          ))}
+          <MealCatalogBrowser dateKey={dateKey} />
         </div>
       ) : (
-        <section className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-10 text-center text-sm text-white/50">
-          Kliknij „Wygeneruj propozycje”, aby zobaczyć przepisy i ilustracje.
-        </section>
+        <>
+          <div className="mt-4 px-1">
+            <DietWeekStrip dateKey={dateKey} onSelect={(k) => refreshDay(k)} />
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2 px-1">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                start(async () => {
+                  const r = await setDietDayKindAction(dateKey, "training");
+                  if (!r.ok) {
+                    notifyError(r.error);
+                    return;
+                  }
+                  setDayKind("training");
+                  refreshDay(dateKey);
+                });
+              }}
+              className={
+                dayKind === "training"
+                  ? "rounded-full border border-[var(--neon)]/45 bg-[var(--neon)]/20 px-3 py-1 text-[11px] font-semibold text-white"
+                  : "rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-white/55"
+              }
+            >
+              Treningowy
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                start(async () => {
+                  const r = await setDietDayKindAction(dateKey, "rest");
+                  if (!r.ok) {
+                    notifyError(r.error);
+                    return;
+                  }
+                  setDayKind("rest");
+                  refreshDay(dateKey);
+                });
+              }}
+              className={
+                dayKind === "rest"
+                  ? "rounded-full border border-[var(--neon)]/45 bg-[var(--neon)]/20 px-3 py-1 text-[11px] font-semibold text-white"
+                  : "rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-white/55"
+              }
+            >
+              Nietreningowy
+            </button>
+          </div>
+
+          <div
+            key={dateKey}
+            className="mt-2 min-h-0 flex-1 animate-page-enter-opacity px-1 pb-6"
+          >
+            {DIET_DIARY_SLOTS.map((slot) => (
+              <MealSectionRow
+                key={slot}
+                slot={slot}
+                items={bySlot[slot]}
+                expanded={expanded[slot] ?? bySlot[slot].length > 0}
+                onToggle={() =>
+                  setExpanded((prev) => ({
+                    ...prev,
+                    [slot]: !(prev[slot] ?? bySlot[slot].length > 0),
+                  }))
+                }
+                onAdd={() => {
+                  setAddSlot(slot);
+                  setChoiceOpen(true);
+                }}
+                onDeleted={() => refreshDay(dateKey)}
+              />
+            ))}
+
+            {/* Kcal / makro od razu pod kolacją — nie przy dolnej belce */}
+            <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
+              <DietDayMacrosBar {...dayMacros} />
+            </div>
+
+            {unassigned.length > 0 ? (
+              <section className="mt-3 space-y-2 opacity-80">
+                <h2 className="text-sm font-semibold text-white/70">Bez sekcji</h2>
+                <ul className="divide-y divide-white/[0.06] rounded-2xl border border-dashed border-white/15">
+                  {unassigned.map((e) => (
+                    <li key={e.id} className="flex items-center gap-2 px-3 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm text-white/80">
+                          {e.name ?? "Posiłek"}
+                        </p>
+                        <p className="text-xs tabular-nums text-white/40">
+                          {Math.round(e.calories)} kcal
+                        </p>
+                      </div>
+                      <DeleteMealButton
+                        id={e.id}
+                        name={e.name}
+                        onDone={() => refreshDay(dateKey)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+          </div>
+        </>
       )}
+
+      <AddMealChoiceBar
+        open={choiceOpen && Boolean(addSlot)}
+        slot={addSlot ?? "sniadanie"}
+        dateKey={dateKey}
+        onClose={() => {
+          setChoiceOpen(false);
+          setAddSlot(null);
+        }}
+        onOpenSearch={() => {
+          setChoiceOpen(false);
+          setSearchOpen(true);
+        }}
+        onOpenDish={() => {
+          setChoiceOpen(false);
+          setDishPickerOpen(true);
+        }}
+        onSaved={() => {
+          refreshDay(dateKey);
+          router.refresh();
+        }}
+      />
+
+      <AddMealScreen
+        open={searchOpen && Boolean(addSlot)}
+        slot={addSlot ?? "sniadanie"}
+        dateLabel={dateLabel}
+        onClose={() => {
+          setSearchOpen(false);
+          setAddSlot(null);
+        }}
+        onPickProduct={(product) => {
+          if (!addSlot) return;
+          setPortionSlot(addSlot);
+          setPortionProduct(product);
+          setSearchOpen(false);
+          setAddSlot(null);
+        }}
+      />
+
+      {dishPickerOpen ? (
+        <div className="fixed inset-0 z-[170] overflow-y-auto bg-[#0c0c0c] px-3 pb-10 pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-base font-semibold text-white">Wybierz potrawę</p>
+            <button
+              type="button"
+              className="text-sm text-white/55"
+              onClick={() => setDishPickerOpen(false)}
+            >
+              Zamknij
+            </button>
+          </div>
+          <MealCatalogBrowser dateKey={dateKey} />
+        </div>
+      ) : null}
+      <FoodPortionScreen
+        product={portionProduct}
+        open={Boolean(portionProduct)}
+        onClose={() => setPortionProduct(null)}
+        slot={portionSlot}
+        dateLabel={dateLabel}
+        pending={pending}
+        dayMacros={dayMacros}
+        onConfirm={({ product, macros }) => {
+          start(async () => {
+            const added = await addMealProductAction({
+              date: dateKey,
+              slot: portionSlot,
+              barcode: product.barcode,
+              name: `${product.name} (${macros.label})`,
+              proteinG: macros.proteinG,
+              fatG: macros.fatG,
+              carbsG: macros.carbsG,
+              calories: macros.calories,
+            });
+            if (!added.ok) {
+              notifyError(added.error ?? "Nie udało się dodać produktu.");
+              return;
+            }
+            notifySaved(
+              `Dodano „${product.name}” (${macros.label}) do ${DIET_DIARY_SLOT_LABELS[portionSlot]}.`,
+            );
+            setPortionProduct(null);
+            refreshDay(dateKey);
+            router.refresh();
+          });
+        }}
+      />
     </div>
   );
 }
