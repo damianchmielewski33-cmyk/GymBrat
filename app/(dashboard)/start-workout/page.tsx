@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { getWorkoutPlansWithLastWorkout } from "@/actions/workout-plan";
 import { ActiveWorkoutView } from "@/components/active-workout/active-workout-view";
-import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { getHomeStats } from "@/lib/home-stats";
 import { calendarDateKey, addCalendarDays, calendarWeekdaySun0 } from "@/lib/local-date";
 import { getDb } from "@/db";
@@ -32,23 +31,17 @@ async function workoutDaysMonSun(userId: string): Promise<boolean[]> {
 export default async function StartWorkoutPage() {
   const session = await auth();
   const uid = session?.user?.id;
-  const [initialPlans, userAiFeaturesDisabled, userAiEntitled, homeStats, weekDays] =
-    await Promise.all([
-      getWorkoutPlansWithLastWorkout(),
-      uid ? getUserAiFeaturesDisabled(uid) : Promise.resolve(false),
-      uid ? getUserAiEntitled(uid) : Promise.resolve(true),
-      uid ? getHomeStats(uid) : Promise.resolve(null),
-      uid ? workoutDaysMonSun(uid) : Promise.resolve(Array(7).fill(false)),
-    ]);
+  const [initialPlans, homeStats, weekDays] = await Promise.all([
+    getWorkoutPlansWithLastWorkout(),
+    uid ? getHomeStats(uid) : Promise.resolve(null),
+    uid ? workoutDaysMonSun(uid) : Promise.resolve(Array(7).fill(false) as boolean[]),
+  ]);
   return (
     <ActiveWorkoutView
       entry="start"
       initialPlans={initialPlans}
-      userAiFeaturesDisabled={userAiFeaturesDisabled}
-      userAiEntitled={userAiEntitled}
       homeStats={homeStats}
       workoutDaysThisWeek={weekDays}
     />
   );
 }
-
