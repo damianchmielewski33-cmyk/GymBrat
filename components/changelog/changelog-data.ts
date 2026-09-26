@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — belka Raport na środku, jadłospis Fitatu, zapis cardio",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Przycisk „+ Raport” na dolnej belce jest wyśrodkowany względem całego paska, a nie przesunięty między Dietą a Treningami.",
+      "Dodawanie posiłku otwiera pełny ekran Szukaj z trzema przyciskami na dole: Nowy produkt, Nowa potrawa i Szybkie dodawanie (formularz nazwa + kcal/tłuszcze/węgle/białko).",
+      "Przycisk + przy sekcji posiłku znów otwiera ten ekran zamiast niedziałającego skrótu.",
+      "W arkuszu cardio przycisk „Zapisz N min” zostaje zawsze widoczny nad belką systemową.",
+    ],
+  },
+  {
     title: "2026-09 — pulpit, jadłospis, raport, cardio i Analiza w belce",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

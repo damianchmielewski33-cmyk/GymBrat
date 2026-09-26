@@ -108,43 +108,37 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       key={item.href}
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-white/[0.08] text-[var(--neon)]"
+                          : "text-white/75 hover:bg-white/[0.05]",
+                      )}
                     >
-                      <span
-                        className={cn(
-                          "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium",
-                          active
-                            ? "bg-white/[0.06] text-white"
-                            : "text-white/70 hover:bg-white/[0.04] hover:text-white",
-                        )}
-                      >
-                        <item.icon
-                          className={cn(
-                            "h-4 w-4",
-                            active ? "text-[var(--neon)]" : "text-white/40",
-                          )}
-                        />
-                        {item.label}
-                      </span>
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
                     </Link>
                   );
                 })}
                 {data?.user?.role === "admin" ? (
-                  <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
-                    <span className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium text-white/70 hover:bg-white/[0.04]">
-                      <Shield className="h-4 w-4 text-[var(--neon)]" />
-                      Panel admina
-                    </span>
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-white/75 hover:bg-white/[0.05]"
+                  >
+                    <Shield className="h-4 w-4" />
+                    Panel admina
                   </Link>
                 ) : null}
                 <Button
                   variant="ghost"
-                  className="mt-4 justify-start text-white/70"
+                  className="mt-4 justify-start gap-3 text-white/70"
                   onClick={() => {
                     setMobileMenuOpen(false);
                     void signOut({ callbackUrl: "/login" });
                   }}
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
+                  <LogOut className="h-4 w-4" />
                   Wyloguj się
                 </Button>
               </div>
@@ -172,18 +166,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className="fixed inset-x-0 bottom-0 z-50 bg-[#050505] pb-[env(safe-area-inset-bottom)]"
         aria-label="Nawigacja główna"
       >
-        <div className="relative mx-auto grid max-w-lg grid-cols-6 items-center px-1 pb-2 pt-2">
-          {tabs.slice(0, 2).map((item) => (
-            <TabLink key={item.href} item={item} pathname={pathname} />
-          ))}
-          <div className="relative col-span-1 flex h-12 items-center justify-center">
-            <Suspense fallback={null}>
-              <ReportFab />
-            </Suspense>
+        <div className="relative mx-auto max-w-lg">
+          {/* FAB wyśrodkowany względem całej belki, nie komórki siatki */}
+          <Suspense fallback={null}>
+            <ReportFab />
+          </Suspense>
+          <div className="grid grid-cols-5 items-end px-1 pb-2 pt-3">
+            {tabs.map((item) => (
+              <TabLink key={item.href} item={item} pathname={pathname} />
+            ))}
           </div>
-          {tabs.slice(2).map((item) => (
-            <TabLink key={item.href} item={item} pathname={pathname} />
-          ))}
         </div>
       </nav>
       )}
@@ -191,7 +183,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Środkowy FAB „Raport” — ukryty podczas aktywnego wizarda (`/reports?new=1`). */
+/** Środkowy FAB „Raport” — absolutnie na środku belki. */
 function ReportFab() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -206,7 +198,7 @@ function ReportFab() {
   return (
     <Link
       href="/reports?new=1"
-      className="gym-btn-primary absolute left-1/2 top-1/2 z-10 inline-flex h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-[72%] items-center justify-center gap-1 rounded-full px-5 text-sm shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)]"
+      className="gym-btn-primary absolute left-1/2 top-0 z-10 inline-flex h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 rounded-full px-5 text-sm shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)]"
       aria-label="Dodaj raport"
     >
       <Plus className="h-4 w-4" aria-hidden />
@@ -228,7 +220,7 @@ function TabLink({
     <Link
       href={item.href}
       className={cn(
-        "flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-center text-[10px] font-medium",
+        "flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-2 text-center text-[10px] font-medium",
         active ? "text-[var(--neon)]" : "text-white/45",
       )}
     >
