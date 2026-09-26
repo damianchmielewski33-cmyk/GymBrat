@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import {
   isInstalledAndroidAppClient,
   readInstalledAndroidAppIdentity,
+  stableAndroidIdentity,
   type AndroidAppIdentity,
 } from "@/lib/app-webview";
 
@@ -11,8 +12,12 @@ function subscribe() {
   return () => {};
 }
 
+let cachedSnapshot: AndroidAppIdentity | null = null;
+
 function getSnapshot(): AndroidAppIdentity | null {
-  return isInstalledAndroidAppClient() ? readInstalledAndroidAppIdentity() : null;
+  const next = isInstalledAndroidAppClient() ? readInstalledAndroidAppIdentity() : null;
+  cachedSnapshot = stableAndroidIdentity(next, cachedSnapshot);
+  return cachedSnapshot;
 }
 
 function getServerSnapshot(): AndroidAppIdentity | null {
