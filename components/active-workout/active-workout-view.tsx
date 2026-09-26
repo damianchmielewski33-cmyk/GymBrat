@@ -9,61 +9,68 @@ import {
 import { mergeHintsIntoExercises } from "@/lib/last-workout-hints";
 import type { LastPlanHintsMap } from "@/lib/last-workout-hints";
 import { ActiveSessionCard } from "@/components/active-workout/active-session-card";
-import { GymPadSessionLayout } from "@/components/active-workout/gympad-session-layout";
-import { PlanProgressHeader } from "@/components/active-workout/plan-progress-header";
+import { GuidedSessionLayout } from "@/components/active-workout/guided-session-layout";
+import { WorkoutFinishedScreen } from "@/components/active-workout/workout-finished-screen";
 import { StartWorkoutScreen } from "@/components/active-workout/start-workout-screen";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { RestTimerBar } from "@/components/workout/RestTimerBar";
 import { readRestTimerPrefs } from "@/lib/rest-timer-prefs";
 import { playRestTimerEndSignal } from "@/lib/rest-timer-signal";
 import type { WorkoutExerciseState } from "@/components/workout/types";
-import { WorkoutSummary } from "@/components/workout/WorkoutSummary";
 import type { WorkoutPlanExercise } from "@/lib/workout-plan-types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
-import { SlidersHorizontal, RotateCcw, ScrollText } from "lucide-react";
-import { ActiveWorkoutCoachPanel } from "@/components/active-workout/active-workout-coach-panel";
+import { RotateCcw } from "lucide-react";
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
-/** Domyślnie 3 serie: puste powtórzenia (null); z planu można wypełnić przy starcie. */
+/** Serie z planu (domyślnie 3); powtórzenia startowe z planu. */
 function planExercisesToSession(exercises: WorkoutPlanExercise[]): WorkoutExerciseState[] {
-  return exercises.map((ex) => ({
-    id: ex.id,
-    name: ex.name,
-    sets: Array.from({ length: 3 }, () => ({
-      reps:
-        typeof ex.reps === "number" && Number.isFinite(ex.reps) && ex.reps > 0
-          ? clampInt(ex.reps, 1, 99)
-          : null,
-      weight: 0,
-      done: false,
-      rpe: null,
-    })),
-  }));
+  return exercises.map((ex) => {
+    const setCount =
+      typeof ex.sets === "number" && Number.isFinite(ex.sets) && ex.sets > 0
+        ? clampInt(ex.sets, 1, 20)
+        : 3;
+    const reps =
+      typeof ex.reps === "number" && Number.isFinite(ex.reps) && ex.reps > 0
+        ? clampInt(ex.reps, 1, 99)
+        : null;
+    return {
+      id: ex.id,
+      name: ex.name,
+      targetSets: setCount,
+      targetReps: reps ?? undefined,
+      targetRir: 1,
+      tempo: null,
+      sets: Array.from({ length: setCount }, () => ({
+        reps,
+        weight: 0,
+        done: false,
+        rpe: null,
+        rir: 1,
+      })),
+    };
+  });
 }
 
 export function ActiveWorkoutView({
   initialPlans,
   entry = "active",
-  userAiFeaturesDisabled = false,
-  userAiEntitled = true,
   display = "page",
+  homeStats = null,
+  workoutDaysThisWeek = [false, false, false, false, false, false, false],
 }: {
   initialPlans: WorkoutPlanWithLastWorkoutDTO[];
   entry?: "active" | "start";
-  userAiFeaturesDisabled?: boolean;
-  userAiEntitled?: boolean;
   display?: "page" | "modal";
+  homeStats?: import("@/lib/home-stats").HomeStats | null;
+  workoutDaysThisWeek?: boolean[];
 }) {
   const {
     startedAt,
@@ -77,12 +84,13 @@ export function ActiveWorkoutView({
     applyPlan,
     start,
     reset,
-    setCardioMinutes,
+    setCardioMinutes: _setCardioMinutes,
     setExercises,
     setSelectedExerciseId,
     patchSet: patchSetInStore,
     patchExercise,
   } = useActiveWorkoutStore();
+  void _setCardioMinutes;
   const [now, setNow] = useState(() => Date.now());
   const router = useRouter();
   const [lastPlanHints, setLastPlanHints] = useState<LastPlanHintsMap>({});
@@ -145,7 +153,7 @@ export function ActiveWorkoutView({
     if (display !== "page") return;
     if (suppressRouteGate || !storeHydrated) return;
     if (entry === "active" && !hasLoadedPlan) {
-      router.replace("/start-workout");
+      router.replace("/workout-plan");
       return;
     }
     if (entry === "start" && hasLoadedPlan) {
@@ -243,7 +251,17 @@ export function ActiveWorkoutView({
     return { done, total };
   }, [exercises]);
 
-  function patchSet(exerciseId: string, setIndex: number, patch: Partial<{ reps: number | null; weight: number }>) {
+  function patchSet(
+    exerciseId: string,
+    setIndex: number,
+    patch: Partial<{
+      reps: number | null;
+      weight: number;
+      done: boolean;
+      rpe: number | null;
+      rir: number | null;
+    }>,
+  ) {
     const ex = exercises.find((e) => e.id === exerciseId);
     const current = ex?.sets[setIndex];
     const wasDone = current?.done ?? false;
@@ -254,48 +272,19 @@ export function ActiveWorkoutView({
     const nextReps = patch.reps !== undefined ? patch.reps : current?.reps ?? null;
     const nextWeight = patch.weight !== undefined ? patch.weight : current?.weight ?? 0;
     const isDoneNext =
-      nextReps != null &&
-      Number.isFinite(nextReps) &&
-      nextReps > 0 &&
-      Number.isFinite(nextWeight) &&
-      nextWeight > 0;
+      patch.done !== undefined
+        ? patch.done
+        : nextReps != null &&
+          Number.isFinite(nextReps) &&
+          nextReps > 0 &&
+          Number.isFinite(nextWeight) &&
+          nextWeight > 0;
     if (isDoneNext && !wasDone) {
       const { autoStart, defaultSeconds } = readRestTimerPrefs();
       if (autoStart) {
         queueMicrotask(() => startRest(defaultSeconds));
       }
     }
-  }
-
-  function addSet(exerciseId: string) {
-    setExercises(
-      exercises.map((ex) => {
-        if (ex.id !== exerciseId) return ex;
-        const last = ex.sets[ex.sets.length - 1];
-        return {
-          ...ex,
-          sets: [
-            ...ex.sets,
-            {
-              reps: last ? last.reps : null,
-              weight: last ? last.weight : 0,
-              rpe: last?.rpe ?? null,
-              done: false,
-            },
-          ],
-        };
-      }),
-    );
-  }
-
-  function removeLastSet(exerciseId: string) {
-    setExercises(
-      exercises.map((ex) => {
-        if (ex.id !== exerciseId) return ex;
-        if (ex.sets.length <= 1) return ex;
-        return { ...ex, sets: ex.sets.slice(0, -1) };
-      }),
-    );
   }
 
   function beginWorkoutFromPlan(row: WorkoutPlanWithLastWorkoutDTO) {
@@ -318,11 +307,13 @@ export function ActiveWorkoutView({
     setRestRemaining(null);
   }
 
+  const [finishOpen, setFinishOpen] = useState(false);
+
   async function completeWorkout() {
     setSaveError(null);
     setSaving(true);
     try {
-      // Prevent the `/active-workout` gate from overriding the redirect to `/reports`
+      // Prevent the `/active-workout` gate from overriding the redirect
       // after we reset the active session state.
       setSuppressRouteGate(true);
 
@@ -352,6 +343,7 @@ export function ActiveWorkoutView({
       setExercises([]);
       setSelectedExerciseId(null);
       stopRest();
+      setFinishOpen(false);
       const completedSummary = {
         ...baseSummary,
         strengthDeltaPercent:
@@ -365,7 +357,7 @@ export function ActiveWorkoutView({
       } else {
         sessionStorage.removeItem("gymbrat:workoutQueued");
       }
-      router.push(result.status === "queued" ? "/reports?queued=1" : "/reports");
+      router.push("/workout-plan");
     } catch (e) {
       setSaveError(mapUnknownFetchError(e, UserMessages.workoutSaveUnknown));
       setSuppressRouteGate(false);
@@ -375,19 +367,37 @@ export function ActiveWorkoutView({
   }
 
   const exerciseList = (
-    <GymPadSessionLayout
+    <GuidedSessionLayout
       title={title}
       elapsedSeconds={elapsed}
       exercises={exercises}
       selectedExerciseId={selectedExerciseId}
       onSelectExercise={(id) => setSelectedExerciseId(id)}
       onPatchSet={patchSet}
-      onAddSet={addSet}
-      onRemoveLastSet={removeLastSet}
-      lastHints={lastPlanHints}
       onExerciseNoteChange={(exerciseId, note) =>
         patchExercise(exerciseId, { note })
       }
+      onCancelSession={() => {
+        if (
+          !window.confirm(
+            "Anulować sesję? Postęp z tej sesji nie zostanie zapisany.",
+          )
+        ) {
+          return;
+        }
+        reset();
+        setExercises([]);
+        setSelectedExerciseId(null);
+        stopRest();
+        router.push("/workout-plan");
+      }}
+      onFinishSession={() => {
+        setFinishOpen(true);
+      }}
+      finishPending={saving}
+      onDeferExercise={() => {
+        /* lista / kolejność — „Wrócę później” przechodzi do następnego w GuidedSessionLayout */
+      }}
     />
   );
 
@@ -397,6 +407,8 @@ export function ActiveWorkoutView({
         plans={initialPlans}
         activePlanId={workoutPlanId}
         onBegin={beginWorkoutFromPlan}
+        homeStats={homeStats}
+        workoutDaysThisWeek={workoutDaysThisWeek}
       />
     ) : null;
 
@@ -411,67 +423,6 @@ export function ActiveWorkoutView({
       }
     >
       {hasLoadedPlan ? (
-        <Sheet>
-          <PlanProgressHeader
-            done={completedSets.done}
-            total={completedSets.total}
-            title={title}
-            actionsSlot={
-              <SheetTrigger
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/40"
-                aria-label="Ustawienia sesji"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-              </SheetTrigger>
-            }
-          />
-          <SheetContent side="bottom" className="border-white/10 bg-[#0a0a0f] text-white">
-            <SheetHeader>
-              <SheetTitle className="text-white">Sesja — ustawienia</SheetTitle>
-            </SheetHeader>
-            <div className="px-4 pb-6">
-              <div className="grid gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 justify-center gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
-                  onClick={() => router.push("/workout-history")}
-                >
-                  <ScrollText className="h-4 w-4" />
-                  Historia treningów
-                </Button>
-                <div className="grid gap-2">
-                  <Label className="text-white/80">Cardio (min)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={cardioMinutes}
-                    onChange={(e) => setCardioMinutes(clampInt(Number(e.target.value), 0, 600))}
-                    className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white"
-                  />
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 justify-center gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
-                  onClick={() => {
-                    reset();
-                    setExercises([]);
-                    setSelectedExerciseId(null);
-                    stopRest();
-                  }}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Resetuj sesję
-                </Button>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
-      ) : null}
-
-      {hasLoadedPlan ? (
         <RestTimerBar remaining={restRemaining} onStart={startRest} onStop={stopRest} />
       ) : null}
 
@@ -485,17 +436,6 @@ export function ActiveWorkoutView({
         }
       >
         <div className={hasLoadedPlan ? "grid gap-0" : ""}>
-          {hasLoadedPlan ? (
-            <ActiveWorkoutCoachPanel
-              title={title}
-              elapsedSeconds={elapsed}
-              exercises={exercises}
-              selectedExerciseId={selectedExerciseId}
-              restRemaining={restRemaining}
-              userAiOff={userAiFeaturesDisabled}
-              notEntitledToAi={!userAiEntitled}
-            />
-          ) : null}
           <ActiveSessionCard
             hasLoadedPlan={hasLoadedPlan}
             initialPlansEmpty={initialPlans.length === 0}
@@ -521,11 +461,11 @@ export function ActiveWorkoutView({
                       </p>
                     </div>
                     <div className="flex flex-wrap justify-center gap-2">
-                      <Button type="button" onClick={() => router.push("/start-workout")}>
+                      <Button type="button" onClick={() => router.push("/workout-plan")}>
                         Rozpocznij trening
                       </Button>
-                      <Button type="button" variant="outline" onClick={() => router.push("/workout-plan")}>
-                        Zobacz plany
+                      <Button type="button" variant="outline" onClick={() => router.push("/profile/workout-plan")}>
+                        Ustaw plan
                       </Button>
                     </div>
                   </div>
@@ -539,13 +479,25 @@ export function ActiveWorkoutView({
         </div>
       </div>
 
-      {hasLoadedPlan ? (
-        <WorkoutSummary
-          sessionTotal={sessionTotal}
-          canComplete={hasLoadedPlan}
+      {hasLoadedPlan && saveError ? (
+        <p className="fixed bottom-24 left-1/2 z-[60] w-[min(92vw,28rem)] -translate-x-1/2 rounded-xl border border-red-500/30 bg-red-950/90 px-4 py-2 text-center text-sm text-red-100">
+          {saveError}
+        </p>
+      ) : null}
+
+      {finishOpen && hasLoadedPlan ? (
+        <WorkoutFinishedScreen
+          title={title}
+          elapsedSeconds={elapsed}
+          setsDone={completedSets.done}
+          setsTotal={completedSets.total}
+          volumeKg={sessionTotal}
           saving={saving}
-          onComplete={completeWorkout}
-          saveError={saveError}
+          onDone={() => {
+            void completeWorkout();
+          }}
+          onReturn={() => setFinishOpen(false)}
+          onClose={() => setFinishOpen(false)}
         />
       ) : null}
 

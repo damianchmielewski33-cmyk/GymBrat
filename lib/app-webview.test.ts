@@ -1,14 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   androidUpdateLaterStorageKey,
   compareAndroidAppVersion,
   compareVersionName,
+  ensureAndroidCameraPermission,
   isAppWebViewUserAgent,
   parseAndroidAppIdentity,
   shouldShowAndroidUpdatePrompt,
+  stableAndroidIdentity,
 } from "@/lib/app-webview";
 
 describe("app-webview", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("rozpoznaje WebView aplikacji AWP i GymBrat", () => {
     expect(isAppWebViewUserAgent("Mozilla/5.0 AWPAndroidApp/1.10.3")).toBe(true);
     expect(isAppWebViewUserAgent("Mozilla/5.0 GymBratAndroidApp/0.1.0")).toBe(true);
@@ -69,5 +75,66 @@ describe("app-webview", () => {
       }),
     ).toBe(false);
     expect(androidUpdateLaterStorageKey(27)).toBe("gymbrat-android-update-later:27");
+    expect(
+      shouldShowAndroidUpdatePrompt({
+        inInstalledApp: true,
+        current,
+        latest,
+        signedIn: false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowAndroidUpdatePrompt({
+        inInstalledApp: true,
+        current,
+        latest,
+        signedIn: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("zwraca tę samą referencję tożsamości APK, gdy wersja się nie zmieniła", () => {
+    const first = { versionName: "0.1.0", versionCode: 1 };
+    const second = { versionName: "0.1.0", versionCode: 1 };
+    expect(stableAndroidIdentity(first, null)).toBe(first);
+    expect(stableAndroidIdentity(second, first)).toBe(first);
+    expect(stableAndroidIdentity(null, first)).toBeNull();
+    const newer = { versionName: "0.1.1", versionCode: 2 };
+    expect(stableAndroidIdentity(newer, first)).toBe(newer);
+  });
+
+  it("ensureAndroidCameraPermission prosi most APK o dialog CAMERA", async () => {
+    const requestCameraPermission = vi.fn(() => {
+      queueMicrotask(() => window.__gymbratOnCameraPermission?.(true));
+    });
+    vi.stubGlobal("window", {
+      GymBratAndroid: {
+        getVersionName: () => "0.1.5",
+        getVersionCode: () => 6,
+        checkUpdate: () => {},
+        hasCameraPermission: () => false,
+        requestCameraPermission,
+      },
+      setTimeout: globalThis.setTimeout.bind(globalThis),
+      __gymbratOnCameraPermission: undefined as ((g: boolean) => void) | undefined,
+    });
+
+    await expect(ensureAndroidCameraPermission()).resolves.toBe(true);
+    expect(requestCameraPermission).toHaveBeenCalledOnce();
+  });
+
+  it("ensureAndroidCameraPermission pomija dialog, gdy CAMERA już jest", async () => {
+    const requestCameraPermission = vi.fn();
+    vi.stubGlobal("window", {
+      GymBratAndroid: {
+        getVersionName: () => "0.1.5",
+        getVersionCode: () => 6,
+        checkUpdate: () => {},
+        hasCameraPermission: () => true,
+        requestCameraPermission,
+      },
+    });
+    await expect(ensureAndroidCameraPermission()).resolves.toBe(true);
+    expect(requestCameraPermission).not.toHaveBeenCalled();
   });
 });

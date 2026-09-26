@@ -86,7 +86,7 @@ export function WorkoutCompletePopup() {
           <div
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]"
             style={{
-              boxShadow: "0 0 18px rgba(230,0,35,0.12)",
+              boxShadow: "0 0 18px rgba(var(--neon-rgb),0.12)",
             }}
           >
             <CheckCircle2 className="h-6 w-6 text-[var(--neon)]" />
@@ -161,10 +161,7 @@ export function WorkoutCompletePopup() {
         <div className="mt-5 flex justify-end gap-2">
           <AlertDialogClose
             render={
-              <Button
-                type="button"
-                className="bg-[var(--neon)] text-white hover:bg-[#ff4d6d]"
-              />
+              <Button type="button" />
             }
           >
             OK

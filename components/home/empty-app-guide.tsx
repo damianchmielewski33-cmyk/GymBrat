@@ -31,7 +31,7 @@ export function EmptyAppGuide({
       done: hasWorkoutHistory,
       title: "Pierwszy trening",
       hint: "Uruchom sesję, zapisz serie i zakończ — pojawi się na wykresie.",
-      href: "/start-workout",
+      href: "/workout-plan",
       cta: "Trening",
     },
   ];
