@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — Pulpit, Profil, Analiza i pasek dolny",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Na Pulpicie etykieta streaku to „Tren. tyg. z rzędu”, a kafelek Raporty zastępuje Makro tydzień (analogicznie do Makro dziś).",
+      "W dolnym pasku zamiast Wiadomości jest Profil; Nowości zostają w menu i w Profilu.",
+      "Profil ma tylko ustawienia używane w aplikacji (plan, cardio, dieta, przypomnienia, szablony posiłków, pomiary, hasło, eksport) — bez zbędnych celów fitness niewidocznych nigdzie indziej.",
+      "Ekran Analiza ma układ i styl jak Pulpit: kafle statystyk, ważenie, wykresy wagi/tonażu/siły oraz postęp ćwiczeń — bez zdublowanych skrótów i bloku metodyki.",
+    ],
+  },
+  {
     title: "2026-09 — raport: podsumowanie jak na screenie + popup sukcesu",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
