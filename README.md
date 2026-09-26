@@ -4,16 +4,25 @@ GymBrat is a premium “fitness OS” built with the Next.js App Router: log tra
 
 ### Technologies used
 
-- **Next.js (App Router + RSC)**: server components, route handlers, caching/revalidation
+- **Next.js (App Router + RSC)**: front / BFF (UI, sesja NextAuth, proxy do Java)
+- **Java 17 + Spring Boot 3** (`java-backend/`): API domenowe (health, version, Android, body-reports, workouts)
 - **React 19**
 - **Tailwind CSS v4**
-- **Drizzle ORM + Drizzle Kit**: schema-first SQLite/libSQL migrations
+- **Drizzle ORM + Drizzle Kit**: schema-first SQLite/libSQL (legacy / fallback bez `JAVA_API_BASE_URL`)
 - **Turso (libSQL) + `@libsql/client`**: edge-friendly SQLite over the network
 - **NextAuth (Credentials provider)**: JWT sessions
 - **PWA**: Web App Manifest + statyczne pliki service workera w `public/` (bez Webpacka; build na Turbopack)
 - **AI (scaffolded)**: provider wiring placeholder + structured prompts + schema validation (Zod)
 
 > Note: the repository currently pins `next@16.2.2` in `package.json`. The architecture and docs below apply to Next.js App Router / RSC regardless of minor version.
+
+### Frontend vs backend (Java)
+
+- **Front**: TypeScript / Next.js — strony, komponenty, Auth.js.
+- **Backend**: `java-backend` (Spring Boot) — REST pod `/api/*`.
+- Ustaw `JAVA_API_BASE_URL` (np. `http://localhost:8080`) oraz opcjonalnie wspólny `GYMBRAT_PROXY_TOKEN`, żeby Next proxował `/api/android/*`, `/api/body-reports`, `/api/workouts/complete` i dołączał meta Javy do `/api/version`.
+- Bez tych zmiennych Next nadal serwuje legacy handlery TypeScript (wygodne na Vercel).
+- Szczegóły: [`java-backend/README.md`](./java-backend/README.md).
 
 ### Fitatu integration (how it works)
 
