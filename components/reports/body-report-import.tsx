@@ -6,6 +6,7 @@ import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FilePickerButton } from "@/components/ui/file-picker-button";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 
 export function BodyReportImport() {
@@ -19,7 +20,7 @@ export function BodyReportImport() {
   const [warnings, setWarnings] = useState<string[]>([]);
 
   return (
-    <div className="glass-panel neon-glow overflow-hidden">
+    <div className="app-card overflow-hidden">
       {!isOpen ? (
         <div className="flex flex-col gap-3 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -128,15 +129,14 @@ export function BodyReportImport() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="xlsxFile">Plik Excel (.xlsx)</Label>
-            <Input
+            <FilePickerButton
               id="xlsxFile"
-              type="file"
-              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/octet-stream,*/*"
               disabled={pending}
-              className="h-10 border-white/15 bg-black/40 file:mr-4 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white/80 hover:file:bg-white/15"
-              onChange={(e) => {
-                const f = e.target.files?.[0] ?? null;
-                setFile(f);
+              emptyLabel="Wybierz plik Excel (.xlsx)"
+              valueLabel={file ? file.name : undefined}
+              onFiles={(files) => {
+                setFile(files[0] ?? null);
               }}
             />
             <p className="text-xs text-white/45">
@@ -163,7 +163,7 @@ export function BodyReportImport() {
           <Button
             type="submit"
             disabled={pending || (!file && !url.trim())}
-            className="h-11 bg-[var(--neon)] text-base font-semibold text-white hover:bg-[#ff4d6d]"
+            className="h-11 text-base"
           >
             {pending ? "Importuję…" : "Importuj raporty"}
           </Button>

@@ -48,7 +48,7 @@ export function WeeklyCardioBar({
       </div>
       <div className="relative mt-6 h-3 w-full overflow-hidden rounded-full bg-white/10">
         <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-[#ff4d6d] via-[#ff2d55] to-[#ff7aa1]"
+          className="h-full rounded-full bg-gradient-to-r from-[var(--gym-gold-deep)] via-[var(--neon)] to-[var(--gym-gold-bright)]"
           initial={{ width: 0 }}
           animate={{ width: `${safe}%` }}
           transition={{ duration: 0.8, ease: "easeOut" }}

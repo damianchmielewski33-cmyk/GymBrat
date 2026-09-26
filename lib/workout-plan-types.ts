@@ -3,6 +3,8 @@ export type WorkoutPlanExercise = {
   name: string;
   categoryId: string;
   reps: number;
+  /** Liczba serii w planie (domyślnie 3 przy starcie sesji). */
+  sets: number;
 };
 
 /** Aktualny format planu (v2). */
