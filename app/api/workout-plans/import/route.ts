@@ -3,6 +3,10 @@ import { getDb } from "@/db";
 import { workoutPlans } from "@/db/schema";
 import { parseWorkoutPlansFromDoc, parseWorkoutPlansFromDocx } from "@/lib/docx/workout-plan-import";
 import { parseWorkoutPlansFromXlsx } from "@/lib/excel/workout-plan-import";
+import {
+  detectWorkoutPlanFileKind,
+  type WorkoutPlanFileKind,
+} from "@/lib/workout-plan-file-kind";
 import { assertCsrf } from "@/lib/csrf";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
@@ -12,12 +16,21 @@ export const runtime = "nodejs";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 
-function fileKind(name: string): "docx" | "doc" | "xlsx" | null {
-  const n = name.toLowerCase();
-  if (n.endsWith(".docx")) return "docx";
-  if (n.endsWith(".doc")) return "doc";
-  if (n.endsWith(".xlsx") || n.endsWith(".xls")) return "xlsx";
-  return null;
+type UploadBlob = Blob & { name?: string; type?: string };
+
+function isUploadBlob(v: unknown): v is UploadBlob {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    typeof (v as Blob).arrayBuffer === "function" &&
+    typeof (v as Blob).size === "number"
+  );
+}
+
+async function parseByKind(kind: WorkoutPlanFileKind, buffer: Buffer) {
+  if (kind === "docx") return parseWorkoutPlansFromDocx(buffer);
+  if (kind === "doc") return parseWorkoutPlansFromDoc(buffer);
+  return parseWorkoutPlansFromXlsx(buffer);
 }
 
 export async function POST(req: Request) {
@@ -45,45 +58,80 @@ export async function POST(req: Request) {
   try {
     form = await req.formData();
   } catch {
-    return NextResponse.json({ ok: false, error: "Nieprawidłowe dane formularza." }, { status: 400 });
-  }
-
-  const file = form.get("file");
-  if (!(file instanceof File)) {
     return NextResponse.json(
-      { ok: false, error: "Wybierz plik Word (.doc / .docx) albo Excel (.xlsx)." },
+      { ok: false, error: "Nieprawidłowe dane formularza." },
       { status: 400 },
     );
   }
 
-  const kind = fileKind(file.name || "");
-  if (!kind) {
+  const raw = form.get("file");
+  if (!isUploadBlob(raw)) {
     return NextResponse.json(
       {
         ok: false,
-        error:
-          "Obsługiwane formaty: .doc, .docx (Word) i .xlsx (Excel). Na Androidzie wybierz plik z „Pliki” / Pobrane.",
+        error: "Wybierz plik Word (.doc / .docx) albo Excel (.xlsx).",
       },
       { status: 400 },
     );
   }
 
-  if (file.size <= 0 || file.size > MAX_BYTES) {
+  if (raw.size <= 0 || raw.size > MAX_BYTES) {
     return NextResponse.json(
       { ok: false, error: "Plik jest pusty albo za duży (max 8 MB)." },
       { status: 400 },
     );
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = Buffer.from(await raw.arrayBuffer());
+  const fileName = typeof raw.name === "string" ? raw.name : "";
+  const mime = typeof raw.type === "string" ? raw.type : "";
+
+  let kind = detectWorkoutPlanFileKind({
+    name: fileName,
+    mime,
+    buffer,
+  });
+
+  if (!kind) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Nie rozpoznano pliku. Wybierz .doc / .docx (Word) albo .xlsx / .xls (Excel). Na Androidzie: Pliki → Pobrane.",
+        debug: { name: fileName || null, mime: mime || null, bytes: buffer.length },
+      },
+      { status: 400 },
+    );
+  }
+
   let parsed;
   try {
-    parsed =
-      kind === "docx"
-        ? await parseWorkoutPlansFromDocx(buffer)
-        : kind === "doc"
-          ? await parseWorkoutPlansFromDoc(buffer)
-          : parseWorkoutPlansFromXlsx(buffer);
+    parsed = await parseByKind(kind, buffer);
+    // OLE bywa mylone (.xls vs .doc) — spróbuj drugiej ścieżki gdy 0 planów
+    if (parsed.plans.length === 0 && kind === "doc") {
+      const asXlsx = parseWorkoutPlansFromXlsx(buffer);
+      if (asXlsx.plans.length > 0) {
+        parsed = asXlsx;
+        kind = "xlsx";
+      }
+    } else if (parsed.plans.length === 0 && kind === "xlsx") {
+      // ZIP bez xl/ mógł być docx; OLE .xls mógł być .doc
+      try {
+        const asDocx = await parseWorkoutPlansFromDocx(buffer);
+        if (asDocx.plans.length > 0) {
+          parsed = asDocx;
+          kind = "docx";
+        } else {
+          const asDoc = await parseWorkoutPlansFromDoc(buffer);
+          if (asDoc.plans.length > 0) {
+            parsed = asDoc;
+            kind = "doc";
+          }
+        }
+      } catch {
+        /* zostaw oryginalne ostrzeżenia */
+      }
+    }
   } catch (err) {
     return NextResponse.json(
       {
@@ -138,5 +186,6 @@ export async function POST(req: Request) {
     ids: insertedIds,
     warnings: parsed.warnings,
     planNames: parsed.plans.map((p) => p.planName),
+    kind,
   });
 }

@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — naprawa importu Excela (Android 400)",
+    date: "2026-09-26",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Import planu treningowego z Excela na Androidzie jest odporny na pustą nazwę pliku (rozpoznanie po MIME i magicznych bajtach) oraz na arkusze z tytułem w pierwszym wierszu.",
+      "Gdy w Excelu nie ma typowych nagłówków kolumn, aplikacja czyta też układ tekstowy typu „Przysiady 4x8”.",
+    ],
+  },
+  {
     title: "2026-09 — import planu także ze starego Worda (.doc)",
     date: "2026-09-26",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

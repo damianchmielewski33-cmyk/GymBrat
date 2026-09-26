@@ -14,12 +14,45 @@ const PLAN_FILE_ACCEPT =
 
 function isSupportedPlanFile(file: File): boolean {
   const n = (file.name || "").toLowerCase();
-  return (
+  if (
     n.endsWith(".doc") ||
     n.endsWith(".docx") ||
     n.endsWith(".xlsx") ||
-    n.endsWith(".xls")
-  );
+    n.endsWith(".xls") ||
+    n.endsWith(".xlsm")
+  ) {
+    return true;
+  }
+  // Android WebView czasem oddaje pustą nazwę — wtedy polegamy na MIME / serwerze
+  const mime = (file.type || "").toLowerCase();
+  if (
+    mime.includes("spreadsheet") ||
+    mime.includes("excel") ||
+    mime.includes("msword") ||
+    mime.includes("wordprocessingml") ||
+    mime === "application/octet-stream" ||
+    mime === ""
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function namedUploadFile(file: File): File {
+  if (file.name && /\.(doc|docx|xlsx|xls|xlsm)$/i.test(file.name)) return file;
+  const mime = (file.type || "").toLowerCase();
+  let ext = "xlsx";
+  if (mime.includes("wordprocessingml") || mime === "application/msword") {
+    ext = mime.includes("wordprocessingml") ? "docx" : "doc";
+  } else if (mime.includes("spreadsheet") || mime.includes("excel")) {
+    ext = "xlsx";
+  }
+  const base =
+    (file.name || "").replace(/\.[^.]+$/, "").trim() || "plan-treningowy";
+  return new File([file], `${base}.${ext}`, {
+    type: file.type || "application/octet-stream",
+    lastModified: file.lastModified,
+  });
 }
 
 export function WorkoutPlanWordImport() {
@@ -78,7 +111,7 @@ export function WorkoutPlanWordImport() {
               try {
                 await ensureCsrfCookie();
                 const fd = new FormData();
-                fd.set("file", file);
+                fd.set("file", namedUploadFile(file));
                 const res = await fetch("/api/workout-plans/import", {
                   method: "POST",
                   credentials: "include",
