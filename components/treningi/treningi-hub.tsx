@@ -275,7 +275,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
         </div>
         <div className="rounded-2xl border border-white/[0.08] bg-[#141414] p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
-            Tygodnie z rzędu
+            Tren. tyg. z rzędu
           </p>
           <p className="mt-2 font-display text-3xl tabular-nums text-[var(--gym-gold)]">
             {stats.streakWeeks}

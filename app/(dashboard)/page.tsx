@@ -78,7 +78,7 @@ export default async function HomePage() {
         weightFromStartKg={dash.weightFromStartKg}
         weightDeltaFromPreviousKg={dash.weightDeltaFromPreviousKg}
         todayMacros={dash.todayMacros}
-        reportCount={dash.reportCount}
+        weekMacros={dash.weekMacros}
       />
 
       <WeightRangeChartDynamic data={dash.weightSeries} waist={dash.waistSeries} />

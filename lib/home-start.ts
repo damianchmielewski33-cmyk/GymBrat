@@ -50,6 +50,9 @@ export type HomeStartTodayMacros = {
   fatRemaining: number | null;
 };
 
+/** Sumaryczne B/W/T w bieżącym tygodniu (pon–niedz.) vs suma celów dziennych. */
+export type HomeStartWeekMacros = HomeStartTodayMacros;
+
 export type HomeStartDashboard = {
   firstName: string | null;
   lastName: string | null;
@@ -78,6 +81,7 @@ export type HomeStartDashboard = {
   waistSeries: HomeStartWaistPoint[];
   macroSeries: HomeStartMacroPoint[];
   todayMacros: HomeStartTodayMacros;
+  weekMacros: HomeStartWeekMacros;
   formToday: {
     energy: number | null;
     sleep: number | null;
@@ -348,13 +352,19 @@ function remainingOrNull(goal: number | null | undefined, consumed: number): num
 
 async function getMacroSeriesAndToday(
   userId: string,
-): Promise<{ series: HomeStartMacroPoint[]; today: HomeStartTodayMacros }> {
+): Promise<{
+  series: HomeStartMacroPoint[];
+  today: HomeStartTodayMacros;
+  week: HomeStartWeekMacros;
+}> {
   const todayKey = calendarDateKey();
+  const weekKeys = weekDateKeysMondayFirst(todayKey);
   const days = 14;
-  const keys: string[] = [];
+  const keySet = new Set<string>(weekKeys);
   for (let i = days - 1; i >= 0; i--) {
-    keys.push(addCalendarDays(todayKey, -i));
+    keySet.add(addCalendarDays(todayKey, -i));
   }
+  const keys = [...keySet].sort();
 
   const db = getDb();
   const [settingsRow, aggregates] = await Promise.all([
@@ -377,19 +387,23 @@ async function getMacroSeriesAndToday(
     nutritionDayTypesJson: settingsRow?.nutritionDayTypesJson ?? null,
   });
 
-  const series = keys.map((date) => {
-    const agg = aggregates[date];
-    const protein = round1(agg?.protein ?? 0);
-    const carbs = round1(agg?.carbs ?? 0);
-    const fat = round1(agg?.fat ?? 0);
-    const consumed = Math.round(agg?.calories ?? 0);
-    const goals = resolveProfileDayGoals(settings, date);
-    const remainingKcal =
-      goals != null
-        ? Math.round(goals.caloriesGoal - consumed)
-        : null;
-    return { date, protein, carbs, fat, remainingKcal };
-  });
+  const series = keys
+    .filter((date) => {
+      // series: ostatnie 14 dni kalendarzowych
+      const oldest = addCalendarDays(todayKey, -(days - 1));
+      return date >= oldest && date <= todayKey;
+    })
+    .map((date) => {
+      const agg = aggregates[date];
+      const protein = round1(agg?.protein ?? 0);
+      const carbs = round1(agg?.carbs ?? 0);
+      const fat = round1(agg?.fat ?? 0);
+      const consumed = Math.round(agg?.calories ?? 0);
+      const goals = resolveProfileDayGoals(settings, date);
+      const remainingKcal =
+        goals != null ? Math.round(goals.caloriesGoal - consumed) : null;
+      return { date, protein, carbs, fat, remainingKcal };
+    });
 
   const todayAgg = aggregates[todayKey];
   const proteinConsumed = round1(todayAgg?.protein ?? 0);
@@ -399,6 +413,34 @@ async function getMacroSeriesAndToday(
   const proteinGoal = todayGoals?.macroGoals.protein ?? null;
   const carbsGoal = todayGoals?.macroGoals.carbs ?? null;
   const fatGoal = todayGoals?.macroGoals.fat ?? null;
+
+  let weekProtein = 0;
+  let weekCarbs = 0;
+  let weekFat = 0;
+  let weekProteinGoal = 0;
+  let weekCarbsGoal = 0;
+  let weekFatGoal = 0;
+  let weekGoalDays = 0;
+  for (const date of weekKeys) {
+    const agg = aggregates[date];
+    weekProtein += agg?.protein ?? 0;
+    weekCarbs += agg?.carbs ?? 0;
+    weekFat += agg?.fat ?? 0;
+    const goals = resolveProfileDayGoals(settings, date);
+    if (goals?.macroGoals) {
+      weekProteinGoal += goals.macroGoals.protein;
+      weekCarbsGoal += goals.macroGoals.carbs;
+      weekFatGoal += goals.macroGoals.fat;
+      weekGoalDays += 1;
+    }
+  }
+  const hasWeekGoals = weekGoalDays > 0;
+  const wProtein = round1(weekProtein);
+  const wCarbs = round1(weekCarbs);
+  const wFat = round1(weekFat);
+  const wProteinGoal = hasWeekGoals ? round1(weekProteinGoal) : null;
+  const wCarbsGoal = hasWeekGoals ? round1(weekCarbsGoal) : null;
+  const wFatGoal = hasWeekGoals ? round1(weekFatGoal) : null;
 
   return {
     series,
@@ -412,6 +454,17 @@ async function getMacroSeriesAndToday(
       proteinRemaining: remainingOrNull(proteinGoal, proteinConsumed),
       carbsRemaining: remainingOrNull(carbsGoal, carbsConsumed),
       fatRemaining: remainingOrNull(fatGoal, fatConsumed),
+    },
+    week: {
+      proteinConsumed: wProtein,
+      carbsConsumed: wCarbs,
+      fatConsumed: wFat,
+      proteinGoal: wProteinGoal,
+      carbsGoal: wCarbsGoal,
+      fatGoal: wFatGoal,
+      proteinRemaining: remainingOrNull(wProteinGoal, wProtein),
+      carbsRemaining: remainingOrNull(wCarbsGoal, wCarbs),
+      fatRemaining: remainingOrNull(wFatGoal, wFat),
     },
   };
 }
@@ -797,6 +850,7 @@ export async function getHomeStartDashboard(
     waistSeries: reportInsights.waistSeries,
     macroSeries: macroBundle.series,
     todayMacros: macroBundle.today,
+    weekMacros: macroBundle.week,
     formToday: reportInsights.formToday,
     compliance: reportInsights.compliance,
     transformation,

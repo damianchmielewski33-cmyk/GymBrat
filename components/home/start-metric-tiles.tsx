@@ -1,6 +1,6 @@
-import { Activity, ClipboardList, Scale, type LucideIcon } from "lucide-react";
+import { Activity, Scale, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { HomeStartTodayMacros } from "@/lib/home-start";
+import type { HomeStartTodayMacros, HomeStartWeekMacros } from "@/lib/home-start";
 
 function formatKg(n: number | null): string {
   if (n == null || !Number.isFinite(n)) return "—";
@@ -16,9 +16,7 @@ function formatSignedKg(n: number | null): string {
 
 function formatGrams(n: number | null): string {
   if (n == null || !Number.isFinite(n)) return "—";
-  const rounded = Math.round(n);
-  const sign = rounded > 0 ? "" : "";
-  return `${sign}${rounded}`;
+  return String(Math.round(n));
 }
 
 function MetricTile({
@@ -128,7 +126,15 @@ function MacroRemainRow({
   );
 }
 
-function TodayMacroProgressTile({ macros }: { macros: HomeStartTodayMacros }) {
+function MacroProgressTile({
+  title,
+  subtitle,
+  macros,
+}: {
+  title: string;
+  subtitle: string;
+  macros: HomeStartTodayMacros | HomeStartWeekMacros;
+}) {
   const hasGoals =
     macros.proteinGoal != null ||
     macros.carbsGoal != null ||
@@ -137,11 +143,9 @@ function TodayMacroProgressTile({ macros }: { macros: HomeStartTodayMacros }) {
   return (
     <div className="flex min-h-[118px] flex-col rounded-[18px] bg-[#161616] px-3.5 py-3.5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-        Makro dziś
+        {title}
       </p>
-      <p className="mt-1 text-[10px] leading-snug text-white/40">
-        zostało do spożycia
-      </p>
+      <p className="mt-1 text-[10px] leading-snug text-white/40">{subtitle}</p>
       <div className="mt-2.5 flex flex-1 flex-col justify-center gap-2">
         <MacroRemainRow
           label="B"
@@ -178,14 +182,14 @@ export function StartMetricTiles({
   weightFromStartKg,
   weightDeltaFromPreviousKg,
   todayMacros,
-  reportCount,
+  weekMacros,
 }: {
   weightKg: number | null;
   tempoKgPerMin: number | null;
   weightFromStartKg: number | null;
   weightDeltaFromPreviousKg?: number | null;
   todayMacros: HomeStartTodayMacros;
-  reportCount: number;
+  weekMacros: HomeStartWeekMacros;
 }) {
   let weightHint: string | undefined;
   let weightTone: "muted" | "good" | "bad" = "muted";
@@ -224,13 +228,15 @@ export function StartMetricTiles({
           hint="z ostatniej sesji"
           hintTone="muted"
         />
-        <TodayMacroProgressTile macros={todayMacros} />
-        <MetricTile
-          Icon={ClipboardList}
-          label="Raporty"
-          value={String(reportCount)}
-          hint="złożone"
-          hintTone="muted"
+        <MacroProgressTile
+          title="Makro dziś"
+          subtitle="zostało do spożycia"
+          macros={todayMacros}
+        />
+        <MacroProgressTile
+          title="Makro tydzień"
+          subtitle="zostało w tym tygodniu"
+          macros={weekMacros}
         />
       </div>
     </section>

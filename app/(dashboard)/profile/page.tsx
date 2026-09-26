@@ -7,20 +7,49 @@ import { BodyParamsForm } from "@/components/profile/body-params-form";
 import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { LogoutButton } from "@/components/profile/logout-button";
 import { CalendarRange, Dumbbell, ScrollText, Shield, User as UserIcon } from "lucide-react";
-import { ScreenHeader } from "@/components/layout/screen";
 import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
 import { DataRightsCard } from "@/components/profile/data-rights-card";
 import { ReminderSettingsCard } from "@/components/profile/reminder-settings-card";
-import { FitnessGoalsForm } from "@/components/profile/fitness-goals-form";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { parseRemindersJson } from "@/lib/reminders-types";
-import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { LocaleSwitchCard } from "@/components/profile/locale-switch-card";
 import { AndroidAppVersionCard } from "@/components/android-app-version-card";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+function ProfileSection({
+  kicker,
+  title,
+  description,
+  children,
+  action,
+}: {
+  kicker: string;
+  title: string;
+  description?: string;
+  children?: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)] sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
+            {kicker}
+          </p>
+          <h2 className="mt-1.5 text-lg font-semibold text-white">{title}</h2>
+          {description ? (
+            <p className="mt-1.5 text-sm leading-relaxed text-white/45">{description}</p>
+          ) : null}
+        </div>
+        {action}
+      </div>
+      {children ? <div className="mt-5">{children}</div> : null}
+    </section>
+  );
+}
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -50,7 +79,6 @@ export default async function ProfilePage() {
       restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
       nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
       remindersJson: userSettings.remindersJson,
-      fitnessGoalsJson: userSettings.fitnessGoalsJson,
       mealTemplatesJson: userSettings.mealTemplatesJson,
     })
     .from(userSettings)
@@ -66,199 +94,133 @@ export default async function ProfilePage() {
   );
 
   return (
-    <div className="space-y-8">
-      <ScreenHeader
-        kicker="Zawodnik"
-        title="Profil"
-        description="Twoje dane i ustawienia treningowe — parametry ciała, cele i hasło."
-        actions={
-          <>
-            <Link
-              href="/changelog"
-              className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-medium text-white hover:bg-white/10 sm:w-auto"
-            >
-              <ScrollText className="h-4 w-4" aria-hidden />
-              Nowości w aplikacji
-            </Link>
-            <LogoutButton className="w-full sm:w-auto" />
-          </>
+    <div className="space-y-3">
+      <header className="flex flex-wrap items-start justify-between gap-3 px-0.5 pb-1 pt-2">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
+            Zawodnik
+          </p>
+          <h1 className="mt-1 text-[28px] font-semibold leading-tight tracking-tight text-white">
+            Profil
+          </h1>
+          <p className="mt-2 text-sm text-white/45">
+            Ustawienia używane w Pulpicie, Diecie, Treningach i Raportach.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/changelog"
+            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-white/15 bg-white/[0.04] px-4 text-sm font-medium text-white/85 hover:bg-white/[0.08]"
+          >
+            <ScrollText className="h-4 w-4" aria-hidden />
+            Nowości
+          </Link>
+          <LogoutButton className="h-11 rounded-2xl" />
+        </div>
+      </header>
+
+      <AndroidAppVersionCard />
+
+      <ProfileSection
+        kicker="Konto"
+        title="Dane logowania"
+        description="Email i nazwa widoczne w aplikacji."
+        action={
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10">
+            <UserIcon className="h-5 w-5 text-[var(--gym-gold)]" />
+          </div>
+        }
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-[#1c1c20] p-4">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">Email</p>
+            <p className="mt-1 text-sm font-medium text-white/90">{u?.email}</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-[#1c1c20] p-4">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">
+              Nazwa wyświetlana
+            </p>
+            <p className="mt-1 text-sm font-medium text-white/90">{u?.name ?? "—"}</p>
+          </div>
+        </div>
+      </ProfileSection>
+
+      <LocaleSwitchCard />
+
+      <ProfileSection
+        kicker="Trening"
+        title="Plan treningowy"
+        description="Dni i ćwiczenia planu. Start sesji oraz cardio są w zakładce Treningi."
+        action={
+          <Link
+            href="/profile/workout-plan"
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-[#f0d56a] via-[#d4af37] to-[#b8922a] px-4 text-sm font-bold text-[#0a0906]"
+          >
+            <Dumbbell className="h-4 w-4" aria-hidden />
+            Ustaw plan
+          </Link>
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="lg:col-span-2">
-          <AndroidAppVersionCard />
-        </div>
+      <ProfileSection
+        kicker="Cardio"
+        title="Cel tygodniowy"
+        description="Minuty cardio na tydzień — postęp widać na Pulpicie i w Treningach."
+      >
+        <ProfileGoalForm initialGoal={s?.goal ?? 150} />
+      </ProfileSection>
 
-        <section className="glass-panel relative overflow-hidden p-8">
-          <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(120deg,rgba(255,255,255,0.10),transparent_55%),radial-gradient(700px_320px_at_10%_10%,rgba(255,45,85,0.16),transparent_60%)]" />
-          <div className="relative space-y-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-                  Dane
-                </p>
-                <h2 className="font-heading mt-2 text-xl font-semibold">
-                  Konto
-                </h2>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">
-                <UserIcon className="h-5 w-5 text-[var(--neon)]" />
-              </div>
-            </div>
+      <ReminderSettingsCard initial={parseRemindersJson(s?.remindersJson ?? null)} />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="text-xs text-white/45">Email</p>
-                <p className="mt-1 text-sm font-medium text-white/85">
-                  {u?.email}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="text-xs text-white/45">Nazwa wyświetlana</p>
-                <p className="mt-1 text-sm font-medium text-white/85">
-                  {u?.name ?? "—"}
-                </p>
-              </div>
-            </div>
+      <MealTemplatesCard initial={parseMealTemplatesJson(s?.mealTemplatesJson ?? null)} />
 
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-                Cel tygodniowy
-              </p>
-              <h3 className="font-heading mt-2 text-lg font-semibold">
-                Minuty cardio
-              </h3>
-              <p className="mt-1 text-sm text-white/60">
-                Zapisane w Turso. Postęp na stronie Start korzysta z kroczącej sumy 7 dni.
-              </p>
-              <div className="mt-4">
-                <ProfileGoalForm initialGoal={s?.goal ?? 150} />
-              </div>
-            </div>
+      <ProfileSection
+        kicker="Dieta"
+        title="Cele dzienne trening / odpoczynek"
+        description="Kalorie i makro B/W/T dla dni treningowych i wolnych oraz kalendarz typu dnia."
+        action={
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10">
+            <CalendarRange className="h-5 w-5 text-[var(--gym-gold)]" />
           </div>
-        </section>
+        }
+      >
+        <NutritionPlanSection
+          initialTraining={nutritionInitial.training}
+          initialRest={nutritionInitial.rest}
+          initialDayTypes={nutritionInitial.dayTypes}
+        />
+      </ProfileSection>
 
-        <div className="lg:col-span-2">
-          <LocaleSwitchCard />
-        </div>
+      <ProfileSection
+        kicker="Pomiary"
+        title="Parametry ciała"
+        description="Imię, waga, wzrost i aktywność — baza do raportów i pulpitu."
+      >
+        <BodyParamsForm
+          initial={{
+            firstName: u?.firstName ?? "",
+            lastName: u?.lastName ?? "",
+            weightKg: u?.weightKg ?? null,
+            heightCm: u?.heightCm ?? null,
+            age: u?.age ?? null,
+            activityLevel: u?.activityLevel ?? "medium",
+          }}
+        />
+      </ProfileSection>
 
-        <section className="glass-panel relative overflow-hidden p-8 lg:col-span-2">
-          <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(120deg,rgba(255,255,255,0.08),transparent_55%),radial-gradient(700px_320px_at_90%_10%,rgba(235,196,74,0.12),transparent_60%)]" />
-          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-                Trening
-              </p>
-              <h2 className="font-heading mt-2 text-xl font-semibold">Plan treningowy</h2>
-              <p className="mt-2 max-w-xl text-sm text-white/60">
-                Tu ustawiasz dni planu i ćwiczenia. Start sesji, cardio i historia są w zakładce
-                Treningi.
-              </p>
-            </div>
-            <Link
-              href="/profile/workout-plan"
-              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-[rgba(var(--neon-rgb),0.45)] bg-[var(--gym-gold)]/10 px-5 text-sm font-semibold text-[var(--gym-gold)] hover:bg-[var(--gym-gold)]/15"
-            >
-              <Dumbbell className="h-4 w-4" aria-hidden />
-              Ustaw plan
-            </Link>
+      <ProfileSection
+        kicker="Bezpieczeństwo"
+        title="Zmień hasło"
+        action={
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10">
+            <Shield className="h-5 w-5 text-[var(--gym-gold)]" />
           </div>
-        </section>
+        }
+      >
+        <ChangePasswordForm />
+      </ProfileSection>
 
-        <div className="grid gap-6 lg:col-span-2 lg:grid-cols-2">
-          <ReminderSettingsCard initial={parseRemindersJson(s?.remindersJson ?? null)} />
-          <FitnessGoalsForm initial={parseFitnessGoalsJson(s?.fitnessGoalsJson ?? null)} />
-        </div>
-
-        <div className="lg:col-span-2">
-          <MealTemplatesCard initial={parseMealTemplatesJson(s?.mealTemplatesJson ?? null)} />
-        </div>
-
-        <section className="glass-panel relative overflow-hidden p-8 lg:col-span-2">
-          <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(160deg,rgba(255,255,255,0.07),transparent_52%),radial-gradient(680px_300px_at_20%_90%,rgba(255,45,85,0.10),transparent_58%)]" />
-          <div className="relative space-y-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-                  Wartości odżywcze i kalendarz
-                </p>
-                <h2 className="font-heading mt-2 text-xl font-semibold">
-                  Cele dzienne trening / odpoczynek
-                </h2>
-                <p className="mt-2 text-sm text-white/60">
-                  Ustal kalorie i makroskładniki dla obu typów dni oraz klikaj dni w kalendarzu,
-                  aby oznaczyć trening lub odpoczynek (domyślnie: odpoczynek). Spożycie
-                  na stronie Start wynika z Twoich wpisów posiłków; tutaj definiujesz cele.
-                </p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">
-                <CalendarRange className="h-5 w-5 text-[var(--neon)]" />
-              </div>
-            </div>
-            <NutritionPlanSection
-              initialTraining={nutritionInitial.training}
-              initialRest={nutritionInitial.rest}
-              initialDayTypes={nutritionInitial.dayTypes}
-            />
-          </div>
-        </section>
-
-        <section className="glass-panel relative overflow-hidden p-8 lg:col-span-2">
-          <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(300deg,rgba(255,255,255,0.08),transparent_55%),radial-gradient(700px_320px_at_90%_0%,rgba(120,120,140,0.16),transparent_60%)]" />
-          <div className="relative space-y-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-                  Parametry ciała
-                </p>
-                <h2 className="font-heading mt-2 text-xl font-semibold">
-                  Pomiary
-                </h2>
-                <p className="mt-2 text-sm text-white/60">
-                  Wykorzystywane do przyszłych prognoz energii, regeneracji i postępów.
-                </p>
-              </div>
-            </div>
-
-            <BodyParamsForm
-              initial={{
-                firstName: u?.firstName ?? "",
-                lastName: u?.lastName ?? "",
-                weightKg: u?.weightKg ?? null,
-                heightCm: u?.heightCm ?? null,
-                age: u?.age ?? null,
-                activityLevel: u?.activityLevel ?? "medium",
-              }}
-            />
-          </div>
-        </section>
-
-        <section className="glass-panel relative overflow-hidden p-8 lg:col-span-2">
-          <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:radial-gradient(900px_420px_at_15%_0%,rgba(255,45,85,0.16),transparent_60%)]" />
-          <div className="relative space-y-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-                  Bezpieczeństwo
-                </p>
-                <h2 className="font-heading mt-2 text-xl font-semibold">
-                  Zmień hasło
-                </h2>
-                <p className="mt-2 text-sm text-white/60">
-                  Twoje hasło jest zapisane w Turso jako hash bcrypt.
-                </p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">
-                <Shield className="h-5 w-5 text-[var(--neon)]" />
-              </div>
-            </div>
-            <ChangePasswordForm />
-          </div>
-        </section>
-
-        <DataRightsCard />
-      </div>
+      <DataRightsCard />
     </div>
   );
 }

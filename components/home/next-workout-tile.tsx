@@ -107,7 +107,7 @@ export function NextWorkoutTile({
           tone="mint"
         />
         <MiniStat
-          label="Tyg. z rzędu"
+          label="Tren. tyg. z rzędu"
           value={String(workoutStreakWeeks)}
           tone="sky"
         />

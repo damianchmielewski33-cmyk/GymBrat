@@ -10,7 +10,6 @@ import {
   LineChart,
   LogOut,
   Menu,
-  MessageCircle,
   Plus,
   ScrollText,
   Shield,
@@ -34,7 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { href: "/", label: t("nav.desk"), icon: Home },
       { href: "/meal-suggestions", label: t("nav.diet"), icon: Utensils },
       { href: "/workout-plan", label: t("nav.training"), icon: Dumbbell },
-      { href: "/changelog", label: t("nav.messages"), icon: MessageCircle },
+      { href: "/profile", label: t("nav.profile"), icon: User },
     ],
     [t],
   );
