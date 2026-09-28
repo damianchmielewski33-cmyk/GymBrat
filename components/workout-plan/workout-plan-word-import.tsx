@@ -82,7 +82,7 @@ export function WorkoutPlanWordImport() {
             </p>
             <p className="mt-1.5 text-sm text-white/50">
               Wgraj plan z PDF, Worda (.doc / .docx) albo Excela (.xlsx) —
-              aplikacja utworzy dni/plany z ćwiczeniami, seriami i powtórzeniami.
+              potem możesz usuwać ćwiczenia, zmieniać serie i zapisać poprawki.
             </p>
           </div>
           <button
@@ -136,6 +136,7 @@ export function WorkoutPlanWordImport() {
                   imported?: number;
                   warnings?: string[];
                   planNames?: string[];
+                  ids?: string[];
                 };
                 if (!json.ok) {
                   setError(json.error ?? "Import nieudany.");
@@ -145,12 +146,20 @@ export function WorkoutPlanWordImport() {
                 setWarnings(json.warnings ?? []);
                 notifySaved(
                   json.imported === 1
-                    ? `Zaimportowano plan „${json.planNames?.[0] ?? "z pliku"}”.`
-                    : `Zaimportowano ${json.imported} planów.`,
+                    ? `Zaimportowano plan „${json.planNames?.[0] ?? "z pliku"}”. Możesz teraz edytować ćwiczenia.`
+                    : `Zaimportowano ${json.imported} planów. Możesz je edytować poniżej.`,
                 );
                 setFile(null);
                 setOpen(false);
-                router.refresh();
+                const firstId = json.ids?.[0];
+                if (firstId) {
+                  router.push(
+                    `/profile/workout-plan?edit=${encodeURIComponent(firstId)}`,
+                  );
+                  router.refresh();
+                } else {
+                  router.refresh();
+                }
               } catch (err) {
                 setError(err instanceof Error ? err.message : "Nieznany błąd");
               }

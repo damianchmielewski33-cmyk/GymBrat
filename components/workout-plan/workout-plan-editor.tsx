@@ -8,14 +8,12 @@ import {
   Dumbbell,
   GripVertical,
   Lock,
-  MoreVertical,
   Pencil,
   Plus,
   Save,
   Search,
   Sparkles,
   Trash2,
-  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -71,14 +69,29 @@ type EditorMode = "closed" | "new" | { id: string };
 
 export function WorkoutPlanEditor({
   initialPlans,
+  initialEditId = null,
 }: {
   initialPlans: WorkoutPlanListItemDTO[];
+  /** Po imporcie z pliku: od razu otwórz edytor tego planu. */
+  initialEditId?: string | null;
 }) {
   const router = useRouter();
   const { notifySaved } = useSaveFeedback();
-  const [editorMode, setEditorMode] = useState<EditorMode>("closed");
-  const [plan, setPlan] = useState<WorkoutPlanPayload>(createEmptyPlan());
-  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
+  const bootstrappedEdit = useMemo(() => {
+    if (!initialEditId) return null;
+    return initialPlans.find((p) => p.id === initialEditId) ?? null;
+  }, [initialEditId, initialPlans]);
+  const [editorMode, setEditorMode] = useState<EditorMode>(() =>
+    bootstrappedEdit ? { id: bootstrappedEdit.id } : "closed",
+  );
+  const [plan, setPlan] = useState<WorkoutPlanPayload>(() =>
+    bootstrappedEdit
+      ? structuredClone(bootstrappedEdit.plan)
+      : createEmptyPlan(),
+  );
+  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(
+    () => bootstrappedEdit?.id ?? null,
+  );
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -262,6 +275,32 @@ export function WorkoutPlanEditor({
     router.refresh();
   }
 
+  /** Szybkie usunięcie ćwiczenia z podglądu listy (m.in. po imporcie z pliku). */
+  function removeExerciseFromListedPlan(planId: string, exerciseId: string) {
+    const row = initialPlans.find((p) => p.id === planId);
+    if (!row) return;
+    const nextPlan: WorkoutPlanPayload = {
+      ...row.plan,
+      exercises: row.plan.exercises.filter((e) => e.id !== exerciseId),
+    };
+    startTransition(async () => {
+      const res = await saveWorkoutPlan(nextPlan, planId);
+      if (!res.ok) {
+        setSaveError(res.error);
+        return;
+      }
+      notifySaved("Usunięto ćwiczenie z planu.");
+      if (
+        typeof editorMode === "object" &&
+        editorMode !== null &&
+        editorMode.id === planId
+      ) {
+        setPlan(structuredClone(nextPlan));
+      }
+      router.refresh();
+    });
+  }
+
   function toggleExpand(id: string) {
     setExpandedPlanId((prev) => (prev === id ? null : id));
   }
@@ -274,7 +313,7 @@ export function WorkoutPlanEditor({
         description={
           editorOpen
             ? "Nadaj nazwę dnia (np. Push A), przypisz ćwiczenia, serie i powtórzenia. Start sesji jest w zakładce Treningi."
-            : "Tu ustawiasz plan — dni i ćwiczenia. Możesz też wgrać plan z PDF, Worda lub Excela. Start treningu jest w Treningach."
+            : "Tu ustawiasz plan — dni i ćwiczenia. Po imporcie z PDF/Word/Excel możesz edytować listę (usuwać ćwiczenia, zmieniać serie). Start treningu jest w Treningach."
         }
         actions={
           editorOpen ? (
@@ -349,10 +388,12 @@ export function WorkoutPlanEditor({
                     <button
                       type="button"
                       aria-label={`Edytuj plan ${name}`}
+                      title="Edytuj plan"
                       onClick={() => openEditPlan(item.id)}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white/50 hover:bg-white/[0.06] hover:text-white"
+                      className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-white/10 px-2.5 text-xs font-semibold text-white/70 hover:bg-white/[0.06] hover:text-white"
                     >
-                      <MoreVertical className="h-5 w-5" />
+                      <Pencil className="h-3.5 w-3.5" />
+                      Edytuj
                     </button>
                     <span className="inline-flex h-10 w-10 items-center justify-center text-white/25" aria-hidden>
                       <GripVertical className="h-5 w-5" />
@@ -375,18 +416,33 @@ export function WorkoutPlanEditor({
                               {item.plan.exercises.map((ex) => (
                                 <li
                                   key={ex.id}
-                                  className="flex items-baseline justify-between gap-3 text-sm"
+                                  className="flex items-center justify-between gap-3 text-sm"
                                 >
                                   <div className="min-w-0">
                                     <p className="truncate font-medium text-white">{ex.name}</p>
                                     <p className="text-xs text-white/40">
                                       {categoryLabel(ex.categoryId)}
+                                      <span className="mx-1.5 text-white/20">·</span>
+                                      Serie:{" "}
+                                      {typeof ex.sets === "number" && ex.sets > 0
+                                        ? ex.sets
+                                        : 3}
+                                      {" · "}
+                                      {ex.reps} powt.
                                     </p>
                                   </div>
-                                  <p className="shrink-0 tabular-nums text-white/45">
-                                    Serie:{" "}
-                                    {typeof ex.sets === "number" && ex.sets > 0 ? ex.sets : 3}
-                                  </p>
+                                  <button
+                                    type="button"
+                                    disabled={isPending}
+                                    aria-label={`Usuń ćwiczenie ${ex.name}`}
+                                    title="Usuń ćwiczenie"
+                                    onClick={() =>
+                                      removeExerciseFromListedPlan(item.id, ex.id)
+                                    }
+                                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-rose-300/80 hover:bg-rose-500/10 hover:text-rose-200 disabled:opacity-40"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
                                 </li>
                               ))}
                             </ul>
@@ -586,22 +642,30 @@ export function WorkoutPlanEditor({
                           <ChevronDown className="h-4 w-4" />
                         </button>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[17px] font-semibold text-white">{ex.name}</p>
-                        <p className="mt-0.5 text-sm text-white/40">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <Input
+                          value={ex.name}
+                          onChange={(e) =>
+                            updateExercise(ex.id, { name: e.target.value })
+                          }
+                          aria-label="Nazwa ćwiczenia"
+                          className="h-10 border-white/15 bg-black/25 text-[17px] font-semibold text-white"
+                        />
+                        <p className="text-sm text-white/40">
                           {categoryLabel(ex.categoryId)}
                         </p>
                       </div>
-                      <p className="shrink-0 text-sm tabular-nums text-white/50">
+                      <p className="shrink-0 pt-2 text-sm tabular-nums text-white/50">
                         Serie: {typeof ex.sets === "number" && ex.sets > 0 ? ex.sets : 3}
                       </p>
                       <button
                         type="button"
                         onClick={() => removeExercise(ex.id)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-white"
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-rose-500/25 px-2.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/10"
                         aria-label="Usuń ćwiczenie"
                       >
-                        <X className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Usuń
                       </button>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 pl-10">

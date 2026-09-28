@@ -5,13 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
-    title: "Zapowiedź — złote CTA, przerwa i edycja serii",
+    title: "Zapowiedź — złote CTA, edycja serii i planu z pliku",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
       "Przyciski w wizardzie raportu (Dalej, Zapisz, Dodaj raport, sloty zdjęć) mają jednolity złoty, wypełniony styl CTA.",
       "Ekran przerwy między seriami ma złote, wypełnione presety czasu oraz przyciski +30 s, dźwięk i Dalej w tym samym nowoczesnym wyglądzie.",
       "Podczas treningu ciężar i powtórzenia da się wpisać z klawiatury, a liczbę serii zmienić przyciskami + Seria / Usuń ostatnią.",
+      "Po imporcie planu z PDF/Word/Excel można od razu edytować ćwiczenia: usuwać je z listy, zmieniać nazwę, serie i powtórzenia.",
+      "Na Pulpicie w kafelku Makro dziś i Makro tydzień widać ile już zjedzono i ile zostało do spożycia (B/W/T).",
     ],
   },
   {

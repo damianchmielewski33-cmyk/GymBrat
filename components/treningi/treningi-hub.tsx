@@ -8,6 +8,7 @@ import {
   Grid2x2,
   HelpCircle,
   History,
+  Pencil,
   Play,
   Printer,
   Download,
@@ -117,6 +118,17 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
         >
           <Download className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
           Import Word
+        </Link>
+        <Link
+          href={
+            selected
+              ? `/profile/workout-plan?edit=${encodeURIComponent(selected.id)}`
+              : "/profile/workout-plan"
+          }
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[#121212] text-xs font-medium text-white/80"
+        >
+          <Pencil className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
+          Edytuj plan
         </Link>
         <button
           type="button"
@@ -343,9 +355,9 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
       </section>
 
       <p className="text-center text-xs text-white/35">
-        Ustawianie planu treningowego jest w{" "}
+        Import i edycja planu (usuwanie ćwiczeń, serie) są w{" "}
         <Link href="/profile/workout-plan" className="text-[var(--gym-gold)] underline-offset-2 hover:underline">
-          Profilu
+          Profilu → Plan treningowy
         </Link>
         .
       </p>

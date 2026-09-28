@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
-import { ChevronLeft, Flashlight, FlashlightOff, Loader2, X } from "lucide-react";
+import { ChevronLeft, Flashlight, FlashlightOff, X } from "lucide-react";
 import {
   ensureAndroidCameraPermission,
   isInstalledAndroidAppClient,
@@ -45,7 +45,6 @@ export function BarcodeCameraScanner({
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState("");
-  const [starting, setStarting] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchAvailable, setTorchAvailable] = useState(false);
 
@@ -104,7 +103,6 @@ export function BarcodeCameraScanner({
       handledRef.current = false;
       setError(null);
       setManualCode("");
-      setStarting(false);
       return;
     }
 
@@ -113,14 +111,12 @@ export function BarcodeCameraScanner({
 
     let cancelled = false;
     handledRef.current = false;
-    setStarting(true);
     setError(null);
 
     void (async () => {
       try {
         if (!navigator.mediaDevices?.getUserMedia) {
           setError("To urządzenie nie udostępnia aparatu — wpisz kod EAN poniżej.");
-          setStarting(false);
           return;
         }
 
@@ -132,7 +128,6 @@ export function BarcodeCameraScanner({
             setError(
               "Brak zgody na aparat. Zezwól na kamerę w ustawieniach aplikacji i spróbuj ponownie.",
             );
-            setStarting(false);
             return;
           }
         }
@@ -169,18 +164,11 @@ export function BarcodeCameraScanner({
           setTorchAvailable(supportsTorch(caps));
         }
 
-        // Krótka pauza — portal musi zamontować <video> zanim podepniemy stream.
-        await new Promise((r) => requestAnimationFrame(() => r(undefined)));
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-
+        // Effect odpala się po paint — <video> z portalu jest już w DOM.
         const video = videoRef.current;
         if (!video) {
           stream.getTracks().forEach((t) => t.stop());
           setError("Nie udało się przygotować podglądu aparatu.");
-          setStarting(false);
           return;
         }
 
@@ -201,7 +189,6 @@ export function BarcodeCameraScanner({
           });
         }
         if (cancelled) return;
-        setStarting(false);
 
         const hints = new Map();
         hints.set(DecodeHintType.POSSIBLE_FORMATS, [
@@ -245,7 +232,6 @@ export function BarcodeCameraScanner({
         } else {
           setError("Nie udało się uruchomić aparatu. Wpisz kod EAN poniżej.");
         }
-        setStarting(false);
       }
     })();
 
@@ -281,12 +267,6 @@ export function BarcodeCameraScanner({
           style={{ boxShadow: "0 0 0 9999px rgba(26,26,26,0.88)" }}
         />
         <div className="pointer-events-none absolute left-1/2 top-[42%] h-[2px] w-[min(62vw,260px)] -translate-x-1/2 -translate-y-1/2 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.95)]" />
-        {starting ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60">
-            <Loader2 className="h-10 w-10 animate-spin text-white/85" />
-            <p className="text-sm text-white/70">Uruchamiam aparat…</p>
-          </div>
-        ) : null}
       </div>
 
       {/* Górny pasek */}

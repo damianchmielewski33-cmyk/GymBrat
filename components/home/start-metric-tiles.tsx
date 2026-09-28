@@ -91,26 +91,36 @@ function MacroRemainRow({
       ? Math.min(100, Math.max(0, Math.round((consumed / goal) * 100)))
       : 0;
   const over = goal != null && consumed > goal;
-  const leftLabel =
+  const eaten = formatGrams(consumed);
+  const leftText =
     remaining == null
-      ? "brak celu"
+      ? null
       : remaining >= 0
-        ? `${formatGrams(remaining)} g`
-        : `+${formatGrams(Math.abs(remaining))} g`;
+        ? formatGrams(remaining)
+        : `+${formatGrams(Math.abs(remaining))}`;
 
   return (
     <div className="min-w-0">
-      <div className="flex items-baseline justify-between gap-1">
+      <div className="flex items-baseline justify-between gap-1.5">
         <span className="text-[10px] font-semibold uppercase tracking-wide text-white/55">
           {label}
         </span>
-        <span
-          className={cn(
-            "text-[11px] font-semibold tabular-nums",
-            over ? "text-rose-400" : "text-white/90",
-          )}
-        >
-          {leftLabel}
+        <span className="min-w-0 text-right text-[10px] leading-snug tabular-nums">
+          <span className="text-white/85">
+            {eaten}
+            <span className="font-normal text-white/40"> zjedzone</span>
+          </span>
+          {leftText != null ? (
+            <>
+              <span className="mx-1 text-white/25">·</span>
+              <span className={cn(over ? "text-rose-400" : "text-white/85")}>
+                {leftText}
+                <span className="font-normal text-white/40">
+                  {over ? " nadwyżka" : " zostało"}
+                </span>
+              </span>
+            </>
+          ) : null}
         </span>
       </div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
@@ -122,6 +132,11 @@ function MacroRemainRow({
           style={{ width: `${pct}%` }}
         />
       </div>
+      {goal != null && goal > 0 ? (
+        <p className="mt-0.5 text-[9px] tabular-nums text-white/30">
+          cel {formatGrams(goal)} g
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -230,12 +245,12 @@ export function StartMetricTiles({
         />
         <MacroProgressTile
           title="Makro dziś"
-          subtitle="zostało do spożycia"
+          subtitle="zjedzone · zostało do spożycia"
           macros={todayMacros}
         />
         <MacroProgressTile
           title="Makro tydzień"
-          subtitle="zostało w tym tygodniu"
+          subtitle="zjedzone · zostało w tym tygodniu"
           macros={weekMacros}
         />
       </div>
