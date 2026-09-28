@@ -21,6 +21,8 @@ import type { ExercisePrs } from "@/lib/exercise-progress";
 import { estimated1RM } from "@/lib/workout-history";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
+import { ExternalLink, Link2 } from "lucide-react";
+import { resolveExerciseVideoUrl } from "@/lib/exercise-video";
 
 function formatHMS(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -46,7 +48,8 @@ function formatLastHintLine(h?: LastPlanHintsMap[string]): string | null {
     .map((s) => {
       const r = s.reps != null ? String(s.reps) : "—";
       const rp = s.rpe != null ? ` RPE${s.rpe}` : "";
-      return `${s.weight}×${r}${rp}`;
+      const ri = s.rir != null ? ` RIR${s.rir}` : "";
+      return `${s.weight}×${r}${rp}${ri}`;
     })
     .join(" · ");
 }
@@ -55,7 +58,8 @@ function formatPreviousSetLabel(s: WorkoutSetState | undefined): string | null {
   if (!s || !(s.weight > 0)) return null;
   const r = s.reps != null ? String(s.reps) : "—";
   const rp = s.rpe != null ? ` RPE${s.rpe}` : "";
-  return `${s.weight}×${r}${rp}`;
+  const ri = s.rir != null ? ` RIR${s.rir}` : "";
+  return `${s.weight}×${r}${rp}${ri}`;
 }
 
 function computeSetPrBadge(set: WorkoutSetState, prs: ExercisePrs | null): string | null {
@@ -307,6 +311,48 @@ export function GymPadSessionLayout({
             </p>
           ) : null}
 
+          {current.suggestedWeightKg != null && current.suggestedWeightKg > 0 ? (
+            <p className="mt-1 text-center text-[11px] text-white/55">
+              Sugestia ciężaru:{" "}
+              <span className="font-semibold text-amber-200/90">
+                {current.suggestedWeightKg} kg
+              </span>
+            </p>
+          ) : null}
+
+          {current.supersetGroupId ? (
+            <p className="mt-2 inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-medium text-[var(--neon)]">
+              <Link2 className="h-3.5 w-3.5" aria-hidden />
+              Superseria
+              {exercises
+                .filter(
+                  (e) =>
+                    e.supersetGroupId === current.supersetGroupId && e.id !== current.id,
+                )
+                .map((e) => e.name)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((n) => ` · ${n}`)
+                .join("")}
+            </p>
+          ) : null}
+
+          <div className="mt-3 flex justify-center">
+            <a
+              href={resolveExerciseVideoUrl({
+                catalogId: current.catalogId,
+                name: current.name,
+                overrideUrl: current.videoUrl,
+              })}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/80 outline-none transition hover:bg-white/[0.07] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+            >
+              <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+              Film / technika
+            </a>
+          </div>
+
           <div className="mt-3">
             {current.sets.map((set, idx) => (
               <GymPadSetRow
@@ -317,6 +363,7 @@ export function GymPadSessionLayout({
                 onChange={(patch) => applyPatch(idx, patch)}
                 previousLabel={formatPreviousSetLabel(hintSetsForCurrent?.[idx])}
                 prBadge={computeSetPrBadge(set, prsForExercise)}
+                suggestedWeightKg={current.suggestedWeightKg}
               />
             ))}
           </div>

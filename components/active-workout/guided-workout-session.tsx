@@ -20,11 +20,9 @@ import {
 } from "@/lib/exercise-rest-prefs";
 import { readRestTimerPrefs, writeRestDefaultSeconds } from "@/lib/rest-timer-prefs";
 import { playRestTimerEndSignal } from "@/lib/rest-timer-signal";
-import {
-  countSessionSets,
-  findLastCompletedSet,
-  findNextIncompleteSet,
-} from "@/lib/session-cursor";
+import { NewMaxCelebration } from "@/components/progress-analysis/new-max-celebration";
+import { estimated1RM } from "@/lib/workout-history";
+import type { ExercisePrs } from "@/lib/exercise-progress";
 
 export function GuidedWorkoutSession({
   title,
@@ -61,6 +59,13 @@ export function GuidedWorkoutSession({
   const [remember, setRemember] = useState(true);
   const [muted, setMuted] = useState(false);
   const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
+  const [newMax, setNewMax] = useState<{
+    kind: "e1rm" | "weight" | "first";
+    exerciseName: string;
+    weight: number;
+    reps: number;
+  } | null>(null);
+  const [prsCache, setPrsCache] = useState<Record<string, ExercisePrs | null>>({});
 
   const next = useMemo(() => {
     if (focusExerciseId) {
@@ -131,9 +136,69 @@ export function GuidedWorkoutSession({
         : currentExercise.name;
   }
 
-  function confirmSet(weight: number, reps: number) {
+  function confirmSet(values: {
+    weight: number;
+    reps: number;
+    rpe: number | null;
+    rir: number | null;
+    tempo: string | null;
+  }) {
     if (!currentExercise || !next) return;
-    onPatchSet(currentExercise.id, next.setIndex, { weight, reps, done: true });
+    onPatchSet(currentExercise.id, next.setIndex, {
+      weight: values.weight,
+      reps: values.reps,
+      rpe: values.rpe,
+      rir: values.rir,
+      tempo: values.tempo,
+      done: true,
+    });
+
+    const name = currentExercise.name;
+    const checkPr = (prs: ExercisePrs | null) => {
+      if (!(values.weight > 0) || !(values.reps > 0)) return;
+      const e1 = estimated1RM(values.weight, values.reps);
+      if (!prs || (prs.maxE1rm.value <= 0 && prs.maxWeight.value <= 0)) {
+        setNewMax({
+          kind: "first",
+          exerciseName: name,
+          weight: values.weight,
+          reps: values.reps,
+        });
+        return;
+      }
+      if (e1 > prs.maxE1rm.value + 0.05) {
+        setNewMax({
+          kind: "e1rm",
+          exerciseName: name,
+          weight: values.weight,
+          reps: values.reps,
+        });
+      } else if (values.weight > prs.maxWeight.value + 0.05) {
+        setNewMax({
+          kind: "weight",
+          exerciseName: name,
+          weight: values.weight,
+          reps: values.reps,
+        });
+      }
+    };
+
+    const cached = prsCache[name];
+    if (cached !== undefined) {
+      checkPr(cached);
+    } else {
+      void fetch(`/api/progress/exercise?q=${encodeURIComponent(name)}`, {
+        credentials: "include",
+      })
+        .then((r) => r.json())
+        .then((data: { ok?: boolean; prs?: ExercisePrs }) => {
+          const prs = data.ok && data.prs ? data.prs : null;
+          setPrsCache((prev) => ({ ...prev, [name]: prs }));
+          checkPr(prs);
+        })
+        .catch(() => checkPr(null));
+    }
+
     startRestFor(currentExercise.id);
   }
 
@@ -241,10 +306,28 @@ export function GuidedWorkoutSession({
   const set = currentExercise.sets[next.setIndex]!;
   const hint = lastHints?.[currentExercise.id]?.sets[next.setIndex];
   const previousLabel =
-    hint && hint.weight > 0 ? `${hint.weight} kg × ${hint.reps ?? "—"}` : null;
+    hint && hint.weight > 0
+      ? `${hint.weight} kg × ${hint.reps ?? "—"}${hint.rir != null ? ` RIR${hint.rir}` : ""}`
+      : null;
+  const suggestedWeightKg =
+    currentExercise.suggestedWeightKg ??
+    lastHints?.[currentExercise.id]?.suggestedWeightKg ??
+    null;
+  const partners =
+    currentExercise.supersetGroupId != null
+      ? exercises
+          .filter(
+            (e) =>
+              e.supersetGroupId === currentExercise.supersetGroupId &&
+              e.id !== currentExercise.id,
+          )
+          .map((e) => e.name)
+      : [];
 
   return (
-    <SessionSetScreen
+    <>
+      <NewMaxCelebration payload={newMax} onClose={() => setNewMax(null)} />
+      <SessionSetScreen
       title={title.trim() || "Trening"}
       elapsedSeconds={elapsedSeconds}
       doneSets={counts.done}
@@ -254,9 +337,14 @@ export function GuidedWorkoutSession({
       setCount={currentExercise.sets.length}
       initial={set}
       previousLabel={previousLabel}
+      suggestedWeightKg={suggestedWeightKg}
+      videoUrl={currentExercise.videoUrl}
+      catalogId={currentExercise.catalogId}
+      supersetPartnerNames={partners}
       onClose={() => router.push("/")}
       onOpenList={() => setListOpen(true)}
       onConfirm={confirmSet}
     />
+    </>
   );
 }

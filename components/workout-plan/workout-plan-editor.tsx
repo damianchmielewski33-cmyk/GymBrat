@@ -12,6 +12,7 @@ import {
   Save,
   Search,
   Sparkles,
+  Link2,
   Trash2,
   X,
 } from "lucide-react";
@@ -136,7 +137,7 @@ export function WorkoutPlanEditor({
   }, []);
 
   const addFromCatalog = useCallback(
-    (name: string, categoryId: string) => {
+    (name: string, categoryId: string, catalogId?: string) => {
       setPlan((prev) => ({
         ...prev,
         exercises: [
@@ -146,6 +147,10 @@ export function WorkoutPlanEditor({
             name,
             categoryId,
             reps: 10,
+            catalogId: catalogId ?? null,
+            tempo: null,
+            videoUrl: null,
+            supersetGroupId: null,
           },
         ],
       }));
@@ -162,7 +167,7 @@ export function WorkoutPlanEditor({
     if (!trimmed) return;
     const catalogHit = findBestCatalogMatch(trimmed);
     if (catalogHit) {
-      addFromCatalog(catalogHit.name, catalogHit.categoryId);
+      addFromCatalog(catalogHit.name, catalogHit.categoryId, catalogHit.id);
       return;
     }
     setPlan((prev) => ({
@@ -177,6 +182,10 @@ export function WorkoutPlanEditor({
           name: trimmed,
           categoryId: addCategoryId,
           reps: 10,
+          catalogId: null,
+          tempo: null,
+          videoUrl: null,
+          supersetGroupId: null,
         },
       ],
     }));
@@ -185,6 +194,26 @@ export function WorkoutPlanEditor({
     setShowCustomRow(false);
     setSearch("");
   }, [addCategoryId, customName, addFromCatalog]);
+
+  const toggleSupersetWithNext = useCallback((index: number) => {
+    setPlan((prev) => {
+      const a = prev.exercises[index];
+      const b = prev.exercises[index + 1];
+      if (!a || !b) return prev;
+      const alreadyLinked =
+        a.supersetGroupId && a.supersetGroupId === b.supersetGroupId;
+      const groupId = alreadyLinked ? null : `ss-${a.id}`;
+      return {
+        ...prev,
+        exercises: prev.exercises.map((e, i) => {
+          if (i === index || i === index + 1) {
+            return { ...e, supersetGroupId: groupId };
+          }
+          return e;
+        }),
+      };
+    });
+  }, []);
 
   function onSave() {
     setSaveError(null);
@@ -513,47 +542,105 @@ export function WorkoutPlanEditor({
                     layout
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="glass-panel flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="glass-panel flex flex-col gap-4 p-4"
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--neon)]">
-                        {categoryLabel(ex.categoryId)}
-                      </p>
-                      <p className="mt-1 truncate font-medium text-white">
-                        <span className="text-white/45">{idx + 1}. </span>
-                        {ex.name}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <Label
-                          htmlFor={`reps-${ex.id}`}
-                          className="whitespace-nowrap text-xs text-white/55"
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--neon)]">
+                          {categoryLabel(ex.categoryId)}
+                          {ex.supersetGroupId ? " · superseria" : ""}
+                        </p>
+                        <p className="mt-1 truncate font-medium text-white">
+                          <span className="text-white/45">{idx + 1}. </span>
+                          {ex.name}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <Label
+                            htmlFor={`reps-${ex.id}`}
+                            className="whitespace-nowrap text-xs text-white/55"
+                          >
+                            Powtórzenia
+                          </Label>
+                          <Input
+                            id={`reps-${ex.id}`}
+                            type="number"
+                            min={1}
+                            max={999}
+                            value={ex.reps}
+                            onChange={(e) => {
+                              const n = Number.parseInt(e.target.value, 10);
+                              if (!Number.isFinite(n) || n < 1) return;
+                              updateExercise(ex.id, { reps: n });
+                            }}
+                            className="h-9 w-20 border-white/15 bg-black/25 text-center text-white"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeExercise(ex.id)}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/20 text-white/60 transition hover:border-white/20 hover:text-white"
+                          aria-label="Usuń ćwiczenie"
                         >
-                          Powtórzenia
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div className="grid gap-1">
+                        <Label htmlFor={`tempo-${ex.id}`} className="text-xs text-white/55">
+                          Tempo
                         </Label>
                         <Input
-                          id={`reps-${ex.id}`}
-                          type="number"
-                          min={1}
-                          max={999}
-                          value={ex.reps}
-                          onChange={(e) => {
-                            const n = Number.parseInt(e.target.value, 10);
-                            if (!Number.isFinite(n) || n < 1) return;
-                            updateExercise(ex.id, { reps: n });
-                          }}
-                          className="h-9 w-20 border-white/15 bg-black/25 text-center text-white"
+                          id={`tempo-${ex.id}`}
+                          placeholder="3-1-2-0"
+                          maxLength={16}
+                          value={ex.tempo ?? ""}
+                          onChange={(e) =>
+                            updateExercise(ex.id, {
+                              tempo: e.target.value.trim() || null,
+                            })
+                          }
+                          className="h-9 w-28 border-white/15 bg-black/25 text-center text-white"
                         />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removeExercise(ex.id)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/20 text-white/60 transition hover:border-white/20 hover:text-white"
-                        aria-label="Usuń ćwiczenie"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                      <div className="min-w-[12rem] flex-1 grid gap-1">
+                        <Label htmlFor={`video-${ex.id}`} className="text-xs text-white/55">
+                          Film (URL, opcjonalnie)
+                        </Label>
+                        <Input
+                          id={`video-${ex.id}`}
+                          type="url"
+                          placeholder="https://youtube.com/…"
+                          value={ex.videoUrl ?? ""}
+                          onChange={(e) =>
+                            updateExercise(ex.id, {
+                              videoUrl: e.target.value.trim() || null,
+                            })
+                          }
+                          className="h-9 border-white/15 bg-black/25 text-white"
+                        />
+                      </div>
+                      {idx < plan.exercises.length - 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleSupersetWithNext(idx)}
+                          className={cn(
+                            "inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition",
+                            ex.supersetGroupId &&
+                              ex.supersetGroupId === plan.exercises[idx + 1]?.supersetGroupId
+                              ? "border-[var(--neon)]/40 bg-[var(--neon)]/15 text-white"
+                              : "border-white/15 bg-black/20 text-white/70 hover:text-white",
+                          )}
+                        >
+                          <Link2 className="h-3.5 w-3.5" aria-hidden />
+                          {ex.supersetGroupId &&
+                          ex.supersetGroupId === plan.exercises[idx + 1]?.supersetGroupId
+                            ? "Rozłącz superserię"
+                            : "Superseria z następnym"}
+                        </button>
+                      ) : null}
                     </div>
                   </motion.li>
                 ))}
@@ -625,7 +712,7 @@ export function WorkoutPlanEditor({
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => addFromCatalog(item.name, item.categoryId)}
+                    onClick={() => addFromCatalog(item.name, item.categoryId, item.id)}
                     className={cn(
                       "flex w-full flex-col gap-0.5 rounded-lg px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10",
                     )}

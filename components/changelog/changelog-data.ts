@@ -5,6 +5,28 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — postępy: ekran ćwiczenia, prognozy, milestones, NOWY MAX",
+    date: "2026-09-28",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "W Analizie jest dedykowany ekran ćwiczenia z historią e1RM, tonażem i prognozą siły na 28 dni.",
+      "Kamienie milowe łączą cele z profilu z aktualnymi rekordami i postępem tygodniowym.",
+      "Po nowym rekordzie w trakcie treningu pojawia się ekran świętowania NOWY MAX.",
+    ],
+  },
+  {
+    title: "2026-09 — trening: RIR, tempo, superserie, PDF i edycja",
+    date: "2026-09-28",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "W sesji treningowej można zapisać RIR, RPE i tempo ruchu oraz otworzyć film techniki ćwiczenia.",
+      "Sugestia ciężaru liczy się z ostatniej sesji (RIR/RPE); w planie da się ustawić superserie, tempo i własny link do filmu.",
+      "Z historii treningu da się wyeksportować PDF (druk) oraz edytować zapis przez 7 dni od daty sesji.",
+    ],
+  },
+  {
     title: "2026-09 — wymiary i zdjęcie startowe przy rejestracji",
     date: "2026-09-28",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

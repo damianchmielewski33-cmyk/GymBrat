@@ -33,10 +33,12 @@ type GymPadSetRowProps = {
   previousLabel?: string | null;
   /** Rekord / pierwszy zapis — z API postępów. */
   prBadge?: string | null;
+  /** Sugestia ciężaru (kg) — pokazana przy pustym polu. */
+  suggestedWeightKg?: number | null;
 };
 
 /**
- * Wiersz serii jak w GymPad: powt. × kg = wynik · kopiuj.
+ * Wiersz serii jak w GymPad: powt. × kg = wynik · kopiuj · RPE/RIR/tempo.
  */
 export function GymPadSetRow({
   setIndex,
@@ -45,13 +47,15 @@ export function GymPadSetRow({
   onChange,
   previousLabel,
   prBadge,
+  suggestedWeightKg,
 }: GymPadSetRowProps) {
   const lineVol = setVolume(set.reps, set.weight);
 
   function copyLine() {
     const w = Number.isFinite(set.weight) ? set.weight : 0;
     const r = set.reps == null || !Number.isFinite(set.reps) ? "—" : String(set.reps);
-    const text = `${r} × ${w} kg = ${formatVolumeKg(lineVol)} kg`;
+    const rir = set.rir != null ? ` RIR${set.rir}` : "";
+    const text = `${r} × ${w} kg = ${formatVolumeKg(lineVol)} kg${rir}`;
     void navigator.clipboard?.writeText(text);
   }
 
@@ -99,6 +103,11 @@ export function GymPadSetRow({
             inputMode="decimal"
             min={0}
             step="0.5"
+            placeholder={
+              suggestedWeightKg != null && suggestedWeightKg > 0
+                ? String(suggestedWeightKg)
+                : undefined
+            }
             value={Number.isFinite(set.weight) && set.weight > 0 ? set.weight : ""}
             onChange={(e) => onChange({ weight: parseOptionalWeight(e.target.value) })}
             className={inputBox}
@@ -161,6 +170,57 @@ export function GymPadSetRow({
             </option>
           ))}
         </select>
+
+        <label
+          htmlFor={`gympad-set-${setIndex}-rir`}
+          className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50"
+        >
+          RIR
+        </label>
+        <select
+          id={`gympad-set-${setIndex}-rir`}
+          value={set.rir == null ? "" : String(set.rir)}
+          onChange={(e) => {
+            const v = e.target.value;
+            onChange({ rir: v === "" ? null : Math.min(5, Math.max(0, Number(v))) });
+          }}
+          className="h-11 min-h-11 min-w-[4.75rem] rounded-lg border border-white/[0.14] bg-black/45 px-2 text-sm text-white outline-none focus-visible:border-[var(--neon)]/50 focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+        >
+          <option value="">—</option>
+          {Array.from({ length: 6 }, (_, i) => i).map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+
+        <label
+          htmlFor={`gympad-set-${setIndex}-tempo`}
+          className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50"
+        >
+          Tempo
+        </label>
+        <input
+          id={`gympad-set-${setIndex}-tempo`}
+          type="text"
+          inputMode="numeric"
+          placeholder="3-1-2-0"
+          maxLength={16}
+          value={set.tempo ?? ""}
+          onChange={(e) => onChange({ tempo: e.target.value.trim() || null })}
+          className="h-11 min-h-11 w-[6.5rem] rounded-lg border border-white/[0.14] bg-black/45 px-2 text-center text-sm tabular-nums text-white outline-none focus-visible:border-[var(--neon)]/50 focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+        />
+
+        {suggestedWeightKg != null && suggestedWeightKg > 0 && !(set.weight > 0) ? (
+          <button
+            type="button"
+            onClick={() => onChange({ weight: suggestedWeightKg })}
+            className="rounded-md border border-amber-400/30 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-100 outline-none hover:bg-amber-500/20 focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+          >
+            Sugestia {suggestedWeightKg} kg
+          </button>
+        ) : null}
+
         {prBadge ? (
           <span
             role="status"

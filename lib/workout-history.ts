@@ -7,12 +7,20 @@ export type CompletedSessionSet = {
   reps?: number | null;
   weight?: number | null;
   done?: boolean;
+  rpe?: number | null;
+  rir?: number | null;
+  tempo?: string | null;
 };
 
 export type CompletedSessionExercise = {
   id?: string;
   name?: string;
+  note?: string;
   sets?: CompletedSessionSet[];
+  tempo?: string | null;
+  videoUrl?: string | null;
+  catalogId?: string | null;
+  supersetGroupId?: string | null;
 };
 
 export type CompletedSessionPayload = {
@@ -244,6 +252,39 @@ export async function getCompletedWorkoutByIdForUser(userId: string, workoutId: 
     workoutPlanId: row.workoutPlanId ?? null,
     planName,
   });
+}
+
+/** Surowy payload do formularza edycji (serie z RPE/RIR/tempo). */
+export async function getEditableWorkoutForUser(userId: string, workoutId: string) {
+  const db = getDb();
+  const [row] = await db
+    .select({
+      id: workouts.id,
+      date: workouts.date,
+      exercisesJson: workouts.exercises,
+    })
+    .from(workouts)
+    .where(and(eq(workouts.userId, userId), eq(workouts.id, workoutId)))
+    .limit(1);
+
+  if (!row) return null;
+  const parsed = safeParseCompletedSession(row.exercisesJson);
+  if (!parsed) return null;
+  const title = normalizeString(parsed.title, "Trening") || "Trening";
+  const exercises = safeNormalizeExercises(parsed.exercises).map((e, idx) => ({
+    id: normalizeString(e.id, `ex_${idx}`),
+    name: normalizeString(e.name, `Ćwiczenie ${idx + 1}`),
+    note: typeof e.note === "string" ? e.note : null,
+    sets: (e.sets ?? []).map((s) => ({
+      reps: safeNumber(s.reps),
+      weight: clampNonNegative(safeNumber(s.weight), 0),
+      done: Boolean(s.done),
+      rpe: safeNumber(s.rpe),
+      rir: safeNumber(s.rir),
+      tempo: typeof s.tempo === "string" ? s.tempo : null,
+    })),
+  }));
+  return { id: row.id, date: row.date, title, exercises };
 }
 
 export async function getStrengthTrendForPlan(userId: string, workoutPlanId: string, input?: { limit?: number }) {

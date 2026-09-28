@@ -57,6 +57,17 @@ export function normalizeWorkoutPlan(raw: unknown): WorkoutPlanPayload | null {
           typeof e.reps === "number" && Number.isFinite(e.reps) && e.reps > 0
             ? Math.round(e.reps)
             : 10,
+        tempo: typeof e.tempo === "string" && e.tempo.trim() ? e.tempo.trim() : null,
+        videoUrl:
+          typeof e.videoUrl === "string" && e.videoUrl.trim() ? e.videoUrl.trim() : null,
+        catalogId:
+          typeof e.catalogId === "string" && e.catalogId.trim()
+            ? e.catalogId.trim()
+            : null,
+        supersetGroupId:
+          typeof e.supersetGroupId === "string" && e.supersetGroupId.trim()
+            ? e.supersetGroupId.trim()
+            : null,
       }));
     return {
       version: 2,

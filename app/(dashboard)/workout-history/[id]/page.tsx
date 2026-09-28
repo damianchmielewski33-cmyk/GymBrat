@@ -6,10 +6,14 @@ import {
   formatCompact,
   formatPct,
   getCompletedWorkoutByIdForUser,
+  getEditableWorkoutForUser,
   getStrengthTrendForPlan,
 } from "@/lib/workout-history";
+import { isWorkoutEditable } from "@/lib/workout-edit-window";
 import { ScreenHeader } from "@/components/layout/screen";
 import { redirect } from "next/navigation";
+import { WorkoutHistoryEditForm } from "@/components/workout/workout-history-edit-form";
+import { WorkoutPdfButton } from "@/components/workout/workout-pdf-button";
 
 function formatDateTime(ms: number | null) {
   if (ms == null || !Number.isFinite(ms)) return "—";
@@ -45,6 +49,10 @@ export default async function WorkoutHistoryDetailsPage({
   const w = await getCompletedWorkoutByIdForUser(userId, id);
   if (!w) return notFound();
 
+  const editable = isWorkoutEditable(w.date)
+    ? await getEditableWorkoutForUser(userId, id)
+    : null;
+
   const trend =
     w.workoutPlanId != null ? await getStrengthTrendForPlan(userId, w.workoutPlanId, { limit: 30 }) : null;
 
@@ -75,15 +83,29 @@ export default async function WorkoutHistoryDetailsPage({
           </>
         }
         actions={
-          <Link
-            href="/workout-history"
-            className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-medium text-white/85 transition hover:bg-white/10 sm:w-auto"
-          >
-            Wróć do historii
-          </Link>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <WorkoutPdfButton workoutId={w.id} />
+            <Link
+              href="/workout-history"
+              className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-medium text-white/85 transition hover:bg-white/10 sm:w-auto"
+            >
+              Wróć do historii
+            </Link>
+          </div>
         }
       />
 
+      {editable ? (
+        <WorkoutHistoryEditForm
+          workoutId={editable.id}
+          initialTitle={editable.title}
+          initialExercises={editable.exercises}
+        />
+      ) : (
+        <p className="text-sm text-white/45">
+          Edycja dostępna do 7 dni od daty treningu.
+        </p>
+      )}
       <section className="grid gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="glass-panel neon-glow p-4 sm:p-5">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">Tonaż</p>

@@ -3,6 +3,13 @@ export type WorkoutPlanExercise = {
   name: string;
   categoryId: string;
   reps: number;
+  /** Tempo np. "3-1-2-0" — opcjonalne. */
+  tempo?: string | null;
+  /** Film instruktażowy — opcjonalnie nadpisuje link z katalogu. */
+  videoUrl?: string | null;
+  catalogId?: string | null;
+  /** Ćwiczenia z tym samym id tworzą superserię. */
+  supersetGroupId?: string | null;
 };
 
 /** Aktualny format planu (v2). */
