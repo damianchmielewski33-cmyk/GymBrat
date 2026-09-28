@@ -23,6 +23,7 @@ import {
   registerSchema,
   type RegisterFormValues,
 } from "@/lib/validations/register";
+import { Camera, X } from "lucide-react";
 
 const activityCopy: Record<
   (typeof activityLevels)[number],
@@ -32,6 +33,25 @@ const activityCopy: Record<
   medium: { label: "Średnia", hint: "3–5 treningów / tydzień" },
   high: { label: "Wysoka", hint: "Codziennie lub intensywnie" },
 };
+
+async function fileToResizedDataUrl(
+  file: File,
+  opts: { maxSide: number; quality: number },
+): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const { width, height } = bitmap;
+  const max = Math.max(width, height);
+  const scale = max > opts.maxSide ? opts.maxSide / max : 1;
+  const w = Math.max(1, Math.round(width * scale));
+  const h = Math.max(1, Math.round(height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Brak canvas");
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  return canvas.toDataURL("image/jpeg", opts.quality);
+}
 
 export function RegisterForm() {
   const router = useRouter();
@@ -62,6 +82,12 @@ export function RegisterForm() {
       weightKg: "",
       heightCm: "",
       age: "",
+      waistCm: "",
+      chestCm: "",
+      thighCm: "",
+      armCm: "",
+      abdomenCm: "",
+      startPhotoDataUrl: undefined,
       activityLevel: "medium",
       role: "zawodnik",
     },
@@ -82,6 +108,8 @@ export function RegisterForm() {
   const [codeInfo, setCodeInfo] = useState<string | null>(null);
   const [sendingCode, setSendingCode] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const startPhotoDataUrl = watch("startPhotoDataUrl");
 
   const cooldownSeconds = useMemo(() => {
     if (!cooldownUntil) return 0;
@@ -359,12 +387,18 @@ export function RegisterForm() {
               className="space-y-4 rounded-xl border border-white/[0.08] bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md"
               aria-labelledby="register-heading-body"
             >
-              <p
-                id="register-heading-body"
-                className="text-[10px] font-bold uppercase tracking-wider text-white/35"
-              >
-                Parametry ciała
-              </p>
+              <div>
+                <p
+                  id="register-heading-body"
+                  className="text-[10px] font-bold uppercase tracking-wider text-white/35"
+                >
+                  Parametry ciała
+                </p>
+                <p className="mt-1 text-xs text-white/50">
+                  Waga i obwody jak w raporcie sylwetki — to Twój punkt startowy do wykresów i
+                  przemiany.
+                </p>
+              </div>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="weightKg" className="text-white/80">
@@ -431,6 +465,113 @@ export function RegisterForm() {
                     </p>
                   ) : null}
                 </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {(
+                  [
+                    { id: "waistCm" as const, label: "Pas (cm)" },
+                    { id: "abdomenCm" as const, label: "Brzuch (cm)" },
+                    { id: "chestCm" as const, label: "Klatka (cm)" },
+                    { id: "armCm" as const, label: "Ramię (cm)" },
+                    { id: "thighCm" as const, label: "Udo (cm)" },
+                  ] as const
+                ).map((field) => (
+                  <div key={field.id} className="space-y-2">
+                    <Label htmlFor={field.id} className="text-white/80">
+                      {field.label}
+                    </Label>
+                    <Input
+                      id={field.id}
+                      type="number"
+                      inputMode="decimal"
+                      step="0.1"
+                      min={20}
+                      max={300}
+                      aria-invalid={errors[field.id] ? true : undefined}
+                      aria-describedby={
+                        errors[field.id] ? `register-error-${field.id}` : undefined
+                      }
+                      className={cn(errors[field.id] && "border-destructive")}
+                      {...register(field.id)}
+                    />
+                    {errors[field.id] ? (
+                      <p id={`register-error-${field.id}`} className="text-xs text-red-100">
+                        {errors[field.id]?.message}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-3 rounded-xl border border-dashed border-white/15 bg-black/25 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-white/90">Zdjęcie startowe</p>
+                    <p className="mt-0.5 text-xs text-white/50">
+                      Opcjonalnie — będzie pierwszym zdjęciem w suwaku przemiany.
+                    </p>
+                  </div>
+                  {startPhotoDataUrl ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-9 shrink-0 text-white/70 hover:bg-white/10 hover:text-white"
+                      onClick={() =>
+                        setValue("startPhotoDataUrl", undefined, { shouldValidate: true })
+                      }
+                    >
+                      <X className="mr-1 h-4 w-4" />
+                      Usuń
+                    </Button>
+                  ) : null}
+                </div>
+                {startPhotoDataUrl ? (
+                  <div className="relative mx-auto aspect-[3/4] w-full max-w-[180px] overflow-hidden rounded-xl border border-white/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- data URL z kamery */}
+                    <img
+                      src={startPhotoDataUrl}
+                      alt="Podgląd zdjęcia startowego"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-6 text-center transition hover:bg-white/[0.06]">
+                    <Camera className="h-6 w-6 text-[var(--neon)]" aria-hidden />
+                    <span className="text-sm font-medium text-white/85">
+                      {photoBusy ? "Przetwarzanie…" : "Dodaj zdjęcie"}
+                    </span>
+                    <span className="text-xs text-white/45">JPG / PNG, kompresja automatyczna</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="sr-only"
+                      disabled={photoBusy}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        setPhotoBusy(true);
+                        setRootError(null);
+                        try {
+                          const dataUrl = await fileToResizedDataUrl(file, {
+                            maxSide: 1280,
+                            quality: 0.82,
+                          });
+                          setValue("startPhotoDataUrl", dataUrl, { shouldValidate: true });
+                        } catch {
+                          setRootError("Nie udało się wczytać zdjęcia. Spróbuj inny plik.");
+                        } finally {
+                          setPhotoBusy(false);
+                        }
+                      }}
+                    />
+                  </label>
+                )}
+                {errors.startPhotoDataUrl ? (
+                  <p className="text-xs text-red-100">{errors.startPhotoDataUrl.message}</p>
+                ) : null}
               </div>
             </section>
 

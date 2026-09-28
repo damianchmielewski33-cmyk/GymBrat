@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { getWorkoutPlansWithLastWorkout } from "@/actions/workout-plan";
 import { ActiveWorkoutView } from "@/components/active-workout/active-workout-view";
@@ -13,11 +14,19 @@ export default async function ActiveWorkoutPage() {
     uid ? getUserAiEntitled(uid) : Promise.resolve(true),
   ]);
   return (
-    <ActiveWorkoutView
-      entry="active"
-      initialPlans={initialPlans}
-      userAiFeaturesDisabled={userAiFeaturesDisabled}
-      userAiEntitled={userAiEntitled}
-    />
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center text-sm text-white/45">
+          Wczytywanie sesji…
+        </div>
+      }
+    >
+      <ActiveWorkoutView
+        entry="active"
+        initialPlans={initialPlans}
+        userAiFeaturesDisabled={userAiFeaturesDisabled}
+        userAiEntitled={userAiEntitled}
+      />
+    </Suspense>
   );
 }

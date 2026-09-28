@@ -53,6 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router   = useRouter();
   const { data } = useSession();
   const reduceFixedBugs = pathname.startsWith("/active-workout");
+  const immersiveWorkout = pathname.startsWith("/active-workout");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -84,6 +85,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative min-h-screen">
       {/* ── Header ── */}
+      {!immersiveWorkout ? (
       <header
         className="sticky top-0 z-40 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
         style={{
@@ -289,12 +291,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
+      ) : null}
 
       {/* ── Main content ── */}
       <main
         key={pathname}
         className={cn(
-          "mx-auto min-w-0 max-w-6xl flex-1 overflow-x-clip px-3 py-6 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-8 md:pb-8",
+          "mx-auto min-w-0 max-w-6xl flex-1 overflow-x-clip",
+          immersiveWorkout
+            ? "max-w-none px-0 py-0 pb-0"
+            : "px-3 py-6 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-8 md:pb-8",
           reduceFixedBugs ? "animate-page-enter-opacity" : "animate-page-enter",
         )}
       >
@@ -302,6 +308,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* ── Mobile bottom nav ── */}
+      {!immersiveWorkout ? (
       <nav
         className="fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
         style={{
@@ -358,9 +365,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+      ) : null}
 
-      <CoachChatFab />
-      <StartWorkoutFab />
+      {!immersiveWorkout ? (
+        <>
+          <CoachChatFab />
+          <StartWorkoutFab />
+        </>
+      ) : null}
     </div>
   );
 }

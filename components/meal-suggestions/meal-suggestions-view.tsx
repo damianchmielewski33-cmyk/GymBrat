@@ -75,7 +75,12 @@ function AddToMealLogSheet({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(presetName);
   const [kcal, setKcal] = useState("");
-  const [state, formAction] = useActionState(addMealLogAction, {} as MealLogFormState);
+  const [state, formAction, isPending] = useActionState(
+    addMealLogAction,
+    {} as MealLogFormState,
+  );
+  const successHandledRef = useRef(false);
+  const errorHandledRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -84,13 +89,20 @@ function AddToMealLogSheet({
   }, [open, presetName]);
 
   useEffect(() => {
-    if (state?.ok) {
+    if (isPending) {
+      successHandledRef.current = false;
+      errorHandledRef.current = false;
+      return;
+    }
+    if (state?.ok && !successHandledRef.current) {
+      successHandledRef.current = true;
       notifySaved("Posiłek dodany do dziennika.");
       setOpen(false);
-    } else if (state?.error) {
+    } else if (state?.error && !errorHandledRef.current) {
+      errorHandledRef.current = true;
       notifyError(state.error);
     }
-  }, [state, notifyError, notifySaved]);
+  }, [isPending, state?.ok, state?.error, notifyError, notifySaved]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

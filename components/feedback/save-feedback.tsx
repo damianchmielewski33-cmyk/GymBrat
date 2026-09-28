@@ -131,7 +131,14 @@ export function SaveFeedbackProvider({ children }: { children: React.ReactNode }
 
   const notifySaved = useCallback((message = SAVE_FEEDBACK_DEFAULT) => {
     const id = ++idRef.current;
-    setToasts((prev) => [...prev.slice(-4), { id, message, variant: "success" }]);
+    setToasts((prev) => {
+      const last = prev[prev.length - 1];
+      // Unikaj lawiny identycznych toastów przy wielokrotnym odpaleniu efektu po sukcesie akcji.
+      if (last && last.variant === "success" && last.message === message) {
+        return prev;
+      }
+      return [...prev.slice(-4), { id, message, variant: "success" as const }];
+    });
   }, []);
 
   const notifyError = useCallback((message: string) => {

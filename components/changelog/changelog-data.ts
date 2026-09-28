@@ -5,6 +5,39 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — wymiary i zdjęcie startowe przy rejestracji",
+    date: "2026-09-28",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Przy rejestracji konta zbierane są waga, wzrost, wiek oraz obwody pas, brzuch, klatka, ramię i udo — tak jak w raporcie sylwetki.",
+      "Można dodać opcjonalne zdjęcie startowe, które trafia do pierwszego raportu i suwaka przemiany.",
+      "Po utworzeniu konta zapisujemy wagę startową w historii ważenia oraz raport startowy z wymiarami.",
+    ],
+  },
+  {
+    title: "2026-09 — aktualizacja Android tylko z GymBrat",
+    date: "2026-09-28",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Sprawdzanie wersji APK i pobieranie aktualizacji bierze dane wyłącznie z release’ów GymBrat, a nie z Akademii Wielkich Piłkarzy.",
+      "Wbudowany plik android-version.json ma wersję 0.1.5 i link do gymbrat.apk, żeby komunikat o aktualizacji nie wracał po instalacji.",
+    ],
+  },
+  {
+    title: "2026-09 — pulpit: Inny dzień i nowy flow treningu",
+    date: "2026-09-28",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Na Starcie lista dni treningowych ma przycisk Inny dzień, oznaczenie w kolejce oraz Start, który od razu uruchamia sesję wybranego dnia.",
+      "Główny przycisk Zacznij trening startuje dzień z kolejki; podgląd listy ćwiczeń pokazuje schemat serii i kropki postępu.",
+      "Ekran aktywnego treningu prowadzi serię po serii: zaliczanie ciężaru i powtórzeń, potem pełnoekranowa przerwa z presetami czasu, zapamiętaniem przy ćwiczeniu i przyciskiem Dalej.",
+      "Z listy ćwiczeń w trakcie sesji widać ukończone (zielone) i bieżące (złote) pozycje oraz można zakończyć lub zresetować trening.",
+    ],
+  },
+  {
     title: "2026-09 — nowy ekran Start i wymiary w raporcie",
     date: "2026-09-19",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

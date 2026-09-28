@@ -53,7 +53,6 @@ export function GuidedWorkoutSession({
 }) {
   const router = useRouter();
   const counts = useMemo(() => countSessionSets(exercises), [exercises]);
-  const next = useMemo(() => findNextIncompleteSet(exercises), [exercises]);
   const lastDone = useMemo(() => findLastCompletedSet(exercises), [exercises]);
 
   const [phase, setPhase] = useState<"log" | "rest">("log");
@@ -73,6 +72,8 @@ export function GuidedWorkoutSession({
     }
     return findNextIncompleteSet(exercises);
   }, [exercises, focusExerciseId]);
+
+  const currentExercise =
     (next ? exercises[next.exerciseIndex] : null) ??
     exercises.find((e) => e.id === selectedExerciseId) ??
     exercises[0] ??
@@ -137,11 +138,9 @@ export function GuidedWorkoutSession({
   }
 
   function continueFromRest() {
+    setFocusExerciseId(null);
     setPhase("log");
     setRestRemaining(0);
-    if (!findNextIncompleteSet(exercises) && lastDone) {
-      // ostatnia seria już zaliczona — zostajemy na log, finish UI poniżej
-    }
   }
 
   function pickDuration(seconds: number) {
@@ -185,7 +184,9 @@ export function GuidedWorkoutSession({
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-black px-6 text-center">
         <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-white/40">Gotowe</p>
-        <h1 className="font-heading mt-2 text-3xl font-semibold text-white">Wszystkie serie zaliczone</h1>
+        <h1 className="font-heading mt-2 text-3xl font-semibold text-white">
+          Wszystkie serie zaliczone
+        </h1>
         {saveError ? <p className="mt-3 text-sm text-red-400">{saveError}</p> : null}
         <button
           type="button"
@@ -207,7 +208,7 @@ export function GuidedWorkoutSession({
     );
   }
 
-  if (phase === "rest" && lastDone) {
+  if (phase === "rest") {
     return (
       <SessionRestScreen
         title={title.trim() || "Trening"}
@@ -235,12 +236,12 @@ export function GuidedWorkoutSession({
     );
   }
 
+  if (!currentExercise) return null;
+
   const set = currentExercise.sets[next.setIndex]!;
   const hint = lastHints?.[currentExercise.id]?.sets[next.setIndex];
   const previousLabel =
-    hint && hint.weight > 0
-      ? `${hint.weight} kg × ${hint.reps ?? "—"}`
-      : null;
+    hint && hint.weight > 0 ? `${hint.weight} kg × ${hint.reps ?? "—"}` : null;
 
   return (
     <SessionSetScreen

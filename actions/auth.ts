@@ -9,7 +9,9 @@ import {
   siteActivityLog,
   userSettings,
   users,
+  weightLogs,
 } from "@/db/schema";
+import { createBodyReport } from "@/lib/body-reports";
 import {
   registerSchema,
   type RegisterInput,
@@ -64,6 +66,68 @@ function isRegisterEmailMockMode(): boolean {
 }
 
 const MOCK_REGISTER_CODE = "1234";
+
+async function createAthleteAccount(
+  data: RegisterInput,
+  meta: Record<string, unknown>,
+): Promise<string> {
+  const db = getDb();
+  const now = new Date();
+  const email = data.email.toLowerCase();
+  const passwordHash = await hash(data.password, 12);
+  const userId = crypto.randomUUID();
+  const displayName = `${data.firstName} ${data.lastName}`.trim();
+
+  await db.insert(users).values({
+    id: userId,
+    email,
+    passwordHash,
+    name: displayName,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    weightKg: data.weightKg,
+    heightCm: data.heightCm,
+    age: data.age,
+    activityLevel: data.activityLevel,
+    appRole: data.role,
+    createdAt: now,
+  });
+  await db.insert(userSettings).values({
+    userId,
+    weeklyCardioGoalMinutes: 150,
+  });
+
+  await db.insert(weightLogs).values({
+    userId,
+    weightKg: Math.round(data.weightKg * 10) / 10,
+    notes: "Waga startowa (rejestracja)",
+    recordedAt: now,
+  });
+
+  await createBodyReport(userId, {
+    weightKg: data.weightKg,
+    waistCm: data.waistCm,
+    chestCm: data.chestCm,
+    thighCm: data.thighCm,
+    armCm: data.armCm,
+    abdomenCm: data.abdomenCm,
+    additionalInfo: "Raport startowy z rejestracji",
+    photoDataUrls: data.startPhotoDataUrl ? [data.startPhotoDataUrl] : [],
+  });
+
+  await db.insert(siteActivityLog).values({
+    userId,
+    action: "Rejestracja konta",
+    metaJson: JSON.stringify({
+      ...meta,
+      role: data.role,
+      hasStartPhoto: Boolean(data.startPhotoDataUrl),
+    }),
+    deploymentEnv: getAnalyticsDeployment(),
+  });
+
+  return userId;
+}
 
 export async function sendRegisterCode(input: unknown): Promise<SendRegisterCodeState> {
   const parsed = sendRegisterCodeSchema.safeParse(input);
@@ -152,20 +216,19 @@ export async function registerUser(
     >;
     return {
       ok: false,
-      error: "Invalid form data.",
+      error: "Sprawdź poprawność pól formularza.",
       fieldErrors,
     };
   }
 
   const data = parsed.data;
   const email = data.email.toLowerCase();
+  const db = getDb();
 
   if (isRegisterEmailMockMode()) {
     if (data.emailCode !== MOCK_REGISTER_CODE) {
       return { ok: false, error: `Nieprawidłowy kod weryfikacyjny. Wpisz ${MOCK_REGISTER_CODE}.` };
     }
-    // Dalej lecimy standardową ścieżką tworzenia konta, ale bez sprawdzania rekordu kodu w DB.
-    const db = getDb();
     const [existing] = await db
       .select({ id: users.id })
       .from(users)
@@ -175,41 +238,9 @@ export async function registerUser(
       return { ok: false, error: "An account with this email already exists." };
     }
 
-    const now = new Date();
-    const passwordHash = await hash(data.password, 12);
-    const userId = crypto.randomUUID();
-    const displayName = `${data.firstName} ${data.lastName}`.trim();
-
-    await db.insert(users).values({
-      id: userId,
-      email,
-      passwordHash,
-      name: displayName,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      weightKg: data.weightKg,
-      heightCm: data.heightCm,
-      age: data.age,
-      activityLevel: data.activityLevel,
-      appRole: data.role,
-      createdAt: now,
-    });
-    await db.insert(userSettings).values({
-      userId,
-      weeklyCardioGoalMinutes: 150,
-    });
-
-    await db.insert(siteActivityLog).values({
-      userId,
-      action: "Rejestracja konta",
-      metaJson: JSON.stringify({ role: data.role, emailCodeMock: true }),
-      deploymentEnv: getAnalyticsDeployment(),
-    });
-
+    await createAthleteAccount(data, { emailCodeMock: true });
     return { ok: true };
   }
-
-  const db = getDb();
 
   const now = new Date();
   const purpose = "register";
@@ -256,40 +287,11 @@ export async function registerUser(
     return { ok: false, error: "An account with this email already exists." };
   }
 
-  const passwordHash = await hash(data.password, 12);
-  const userId = crypto.randomUUID();
-  const displayName = `${data.firstName} ${data.lastName}`.trim();
-
   await db
     .update(emailVerificationCodes)
     .set({ consumedAt: now })
     .where(eq(emailVerificationCodes.id, codeRow.id));
 
-  await db.insert(users).values({
-    id: userId,
-    email,
-    passwordHash,
-    name: displayName,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    weightKg: data.weightKg,
-    heightCm: data.heightCm,
-    age: data.age,
-    activityLevel: data.activityLevel,
-    appRole: data.role,
-    createdAt: now,
-  });
-  await db.insert(userSettings).values({
-    userId,
-    weeklyCardioGoalMinutes: 150,
-  });
-
-  await db.insert(siteActivityLog).values({
-    userId,
-    action: "Rejestracja konta",
-    metaJson: JSON.stringify({ role: data.role }),
-    deploymentEnv: getAnalyticsDeployment(),
-  });
-
+  await createAthleteAccount(data, {});
   return { ok: true };
 }

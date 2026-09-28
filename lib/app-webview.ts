@@ -1,7 +1,7 @@
 /**
- * WebView aplikacji Android (Akademia Wielkich Piłkarzy) dokleja ten token do User-Agenta.
- * GymBrat jest otwierany z tej samej APK — rozpoznajemy ją, żeby pokazać kartę aktualizacji
- * i nie mylić zwykłej przeglądarki / PWA z zainstalowaną aplikacją.
+ * WebView aplikacji Android GymBrat (ew. legacy AWP) dokleja token do User-Agenta.
+ * Rozpoznajemy zainstalowany APK, żeby pokazać kartę aktualizacji
+ * i nie mylić zwykłej przeglądarki / PWA z aplikacją.
  */
 const APP_WEBVIEW_UA_MARKERS = ["AWPAndroidApp", "GymBratAndroidApp"] as const;
 const APP_WEBVIEW_VERSION_RE = /(?:AWPAndroidApp|GymBratAndroidApp)\/([^\s]+)/;

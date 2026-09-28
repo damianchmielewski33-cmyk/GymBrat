@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
 import { DimensionTiles } from "@/components/home/dimension-tiles";
-import { NextWorkoutTile } from "@/components/home/next-workout-tile";
+import { HomeWorkoutBoard } from "@/components/home/home-workout-board";
 import { OnboardingBanner } from "@/components/home/onboarding-banner";
-import { StartMetricTiles } from "@/components/home/start-metric-tiles";
 import { TransformationSlider } from "@/components/home/transformation-slider";
 import { WeightRangeChartDynamic } from "@/components/home/weight-range-chart-dynamic";
+import { getWorkoutPlansWithLastWorkout } from "@/actions/workout-plan";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { getHomeStartDashboard } from "@/lib/home-start";
@@ -22,44 +22,26 @@ export default async function HomePage() {
   }
 
   const db = getDb();
-  const [[settingsRow], dash] = await Promise.all([
+  const [[settingsRow], dash, plans] = await Promise.all([
     db
       .select({ onboardingCompletedAt: userSettings.onboardingCompletedAt })
       .from(userSettings)
       .where(eq(userSettings.userId, userId))
       .limit(1),
     getHomeStartDashboard(userId),
+    getWorkoutPlansWithLastWorkout(),
   ]);
-
-  const greeting = dash.firstName?.trim()
-    ? `Cześć ${dash.firstName.trim()} 💪`
-    : "Cześć 💪";
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <header className="px-0.5 pt-1">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
-          Start
-        </p>
-        <h1 className="font-heading mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-          {greeting}
-        </h1>
-      </header>
-
       {!settingsRow?.onboardingCompletedAt ? <OnboardingBanner /> : null}
 
-      <NextWorkoutTile
-        planName={dash.nextWorkout?.planName ?? null}
-        exerciseCount={dash.nextWorkout?.exerciseCount ?? 0}
-        lastWorkoutDate={dash.nextWorkout?.lastWorkoutDate ?? null}
+      <HomeWorkoutBoard
+        plans={plans}
         workoutsThisWeek={dash.workoutsThisWeek}
         cardioThisWeekMinutes={dash.cardioThisWeekMinutes}
         workoutStreakDays={dash.workoutStreakDays}
-      />
-
-      <StartMetricTiles
         weightKg={dash.currentWeightKg}
-        tempoKgPerMin={dash.tempoKgPerMin}
         weightFromStartKg={dash.weightFromStartKg}
       />
 

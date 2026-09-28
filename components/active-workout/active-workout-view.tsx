@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   fetchLastWorkoutHintsForPlan,
@@ -13,25 +13,19 @@ import { GuidedWorkoutSession } from "@/components/active-workout/guided-workout
 import { StartWorkoutScreen } from "@/components/active-workout/start-workout-screen";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import type { WorkoutExerciseState } from "@/components/workout/types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 import { planExercisesToSession } from "@/lib/session-from-plan";
-import { pickQueuedPlan } from "@/lib/workout-days";
+import { countSessionSets } from "@/lib/session-cursor";
 import { RotateCcw } from "lucide-react";
-
-function clampInt(n: number, min: number, max: number) {
-  if (!Number.isFinite(n)) return min;
-  return Math.max(min, Math.min(max, Math.round(n)));
-}
 
 export function ActiveWorkoutView({
   initialPlans,
   entry = "active",
-  userAiFeaturesDisabled = false,
-  userAiEntitled = true,
+  userAiFeaturesDisabled: _userAiFeaturesDisabled = false,
+  userAiEntitled: _userAiEntitled = true,
   display = "page",
 }: {
   initialPlans: WorkoutPlanWithLastWorkoutDTO[];
@@ -52,23 +46,21 @@ export function ActiveWorkoutView({
     applyPlan,
     start,
     reset,
-    setCardioMinutes,
     setExercises,
     setSelectedExerciseId,
     patchSet: patchSetInStore,
-    patchExercise,
   } = useActiveWorkoutStore();
   const [now, setNow] = useState(() => Date.now());
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [lastPlanHints, setLastPlanHints] = useState<LastPlanHintsMap>({});
   const hintsMergedRef = useRef(false);
+  const autostartDoneRef = useRef(false);
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [restRemaining, setRestRemaining] = useState<number | null>(null);
   const [resumePromptOpen, setResumePromptOpen] = useState(false);
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
-  /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/start-workout`. */
   const [storeHydrated, setStoreHydrated] = useState(false);
 
   const hasLoadedPlan = workoutPlanId != null && exercises.length > 0;
@@ -113,9 +105,6 @@ export function ActiveWorkoutView({
     hintsMergedRef.current = true;
   }, [lastPlanHints, workoutPlanId, setExercises]);
 
-  // Route gating:
-  // - `/active-workout` is a strict "session view" and must NOT be accessible without an active session.
-  // - `/start-workout` is the entry point that lets user pick a plan and begin a session.
   useEffect(() => {
     if (display !== "page") return;
     if (suppressRouteGate || !storeHydrated) return;
@@ -128,42 +117,6 @@ export function ActiveWorkoutView({
     }
   }, [display, entry, hasLoadedPlan, router, suppressRouteGate, storeHydrated]);
 
-  const autostartRef = useRef(false);
-
-  useEffect(() => {
-    if (autostartRef.current || !storeHydrated || hasLoadedPlan || entry !== "start") return;
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const planId = params.get("planId");
-    const autostart = params.get("autostart") === "1";
-    if (!autostart && !planId) return;
-    const row =
-      (planId ? initialPlans.find((p) => p.id === planId) : null) ??
-      (autostart ? pickQueuedPlan(initialPlans) : null);
-    if (!row || row.plan.exercises.length === 0) return;
-    autostartRef.current = true;
-    if (row.plan.exercises.length === 0) return;
-    hintsMergedRef.current = false;
-    applyPlan(row.id, row.plan);
-    const next = planExercisesToSession(row.plan.exercises);
-    setExercises(next);
-    setSelectedExerciseId(next[0]?.id ?? null);
-    setSaveError(null);
-    start();
-    sessionStorage.setItem("active-workout:skipResumeOnce", "1");
-  }, [
-    storeHydrated,
-    hasLoadedPlan,
-    entry,
-    initialPlans,
-    applyPlan,
-    setExercises,
-    setSelectedExerciseId,
-    start,
-  ]);
-
-  const sessionTotal = useMemo(() => sessionVolume(exercises), [exercises]);
-
   useEffect(() => {
     if (startedAt == null) return;
     const id = window.setInterval(() => setNow(Date.now()), 1000);
@@ -171,7 +124,6 @@ export function ActiveWorkoutView({
   }, [startedAt]);
 
   useEffect(() => {
-    /** Na ekranie wyboru planu nie pytamy o wznowienie — użytkownik świadomie zaczyna ścieżkę treningu. */
     if (entry === "start") return;
 
     const skipOnceKey = "active-workout:skipResumeOnce";
@@ -203,13 +155,11 @@ export function ActiveWorkoutView({
         s.exercises.length > 0;
 
       if (hasPersistedSession) {
-        // Ustawiamy od razu, żeby popup nie wracał przy nawigacji między ekranami
-        // (np. gdy użytkownik przejdzie na inną stronę zanim kliknie w modal).
         sessionStorage.setItem(seenKey, "1");
         setResumePromptOpen(true);
       }
     } catch {
-      // ignore malformed storage; user can start fresh
+      // ignore malformed storage
     }
   }, [entry]);
 
@@ -219,25 +169,8 @@ export function ActiveWorkoutView({
     return pausedElapsedSeconds + running;
   }, [now, startedAt, pausedElapsedSeconds]);
 
-  const completedSets = useMemo(() => {
-    let done = 0;
-    let total = 0;
-    for (const ex of exercises) {
-      for (const s of ex.sets) {
-        total += 1;
-        if (s.done) done += 1;
-      }
-    }
-    return { done, total };
-  }, [exercises]);
-
-  function patchSet(
-    exerciseId: string,
-    setIndex: number,
-    patch: Partial<{ reps: number | null; weight: number; done: boolean }>,
-  ) {
-    patchSetInStore(exerciseId, setIndex, patch);
-  }
+  const completedSets = useMemo(() => countSessionSets(exercises), [exercises]);
+  const sessionTotal = useMemo(() => sessionVolume(exercises), [exercises]);
 
   function beginWorkoutFromPlan(row: WorkoutPlanWithLastWorkoutDTO) {
     if (row.plan.exercises.length === 0) return;
@@ -253,12 +186,24 @@ export function ActiveWorkoutView({
     }
   }
 
+  // Autostart z pulpitu: /start-workout?planId=…&autostart=1
+  useEffect(() => {
+    if (entry !== "start" || !storeHydrated || autostartDoneRef.current) return;
+    if (hasLoadedPlan) return;
+    const planId = searchParams.get("planId");
+    const autostart = searchParams.get("autostart") === "1";
+    if (!planId || !autostart) return;
+    const row = initialPlans.find((p) => p.id === planId);
+    if (!row || row.plan.exercises.length === 0) return;
+    autostartDoneRef.current = true;
+    beginWorkoutFromPlan(row);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- start once from query
+  }, [entry, storeHydrated, hasLoadedPlan, searchParams, initialPlans]);
+
   async function completeWorkout() {
     setSaveError(null);
     setSaving(true);
     try {
-      // Prevent the `/active-workout` gate from overriding the redirect to `/reports`
-      // after we reset the active session state.
       setSuppressRouteGate(true);
 
       const endedAt = Date.now();
@@ -286,13 +231,10 @@ export function ActiveWorkoutView({
       reset();
       setExercises([]);
       setSelectedExerciseId(null);
-      stopRest();
       const completedSummary = {
         ...baseSummary,
         strengthDeltaPercent:
-          result.status === "saved"
-            ? result.strengthDeltaPercent
-            : null,
+          result.status === "saved" ? result.strengthDeltaPercent : null,
       };
       sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
       if (result.status === "queued") {
@@ -309,22 +251,11 @@ export function ActiveWorkoutView({
     }
   }
 
-  const exerciseList = (
-    <GymPadSessionLayout
-      title={title}
-      elapsedSeconds={elapsed}
-      exercises={exercises}
-      selectedExerciseId={selectedExerciseId}
-      onSelectExercise={(id) => setSelectedExerciseId(id)}
-      onPatchSet={patchSet}
-      onAddSet={addSet}
-      onRemoveLastSet={removeLastSet}
-      lastHints={lastPlanHints}
-      onExerciseNoteChange={(exerciseId, note) =>
-        patchExercise(exerciseId, { note })
-      }
-    />
-  );
+  function resetSession() {
+    reset();
+    setExercises([]);
+    setSelectedExerciseId(null);
+  }
 
   const startPlansContent =
     !hasLoadedPlan && entry === "start" ? (
@@ -335,197 +266,113 @@ export function ActiveWorkoutView({
       />
     ) : null;
 
-  return (
-    <div
-      className={
-        hasLoadedPlan
-          ? display === "modal"
-            ? "relative bg-black"
-            : "relative ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-x-hidden bg-black pb-36 pt-0 sm:pb-40"
-          : "relative min-h-[calc(100dvh-6rem)] rounded-2xl bg-[#0f0f0f] p-4 sm:p-6 lg:min-h-[calc(100dvh-5rem)]"
-      }
-    >
-      {hasLoadedPlan ? (
-        <Sheet>
-          <PlanProgressHeader
-            done={completedSets.done}
-            total={completedSets.total}
-            title={title}
-            actionsSlot={
-              <SheetTrigger
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/40"
-                aria-label="Ustawienia sesji"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-              </SheetTrigger>
-            }
-          />
-          <SheetContent side="bottom" className="border-white/10 bg-[#0a0a0f] text-white">
-            <SheetHeader>
-              <SheetTitle className="text-white">Sesja — ustawienia</SheetTitle>
-            </SheetHeader>
-            <div className="px-4 pb-6">
-              <div className="grid gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 justify-center gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
-                  onClick={() => router.push("/workout-history")}
-                >
-                  <ScrollText className="h-4 w-4" />
-                  Historia treningów
-                </Button>
-                <div className="grid gap-2">
-                  <Label className="text-white/80">Cardio (min)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={cardioMinutes}
-                    onChange={(e) => setCardioMinutes(clampInt(Number(e.target.value), 0, 600))}
-                    className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white"
-                  />
-                </div>
+  if (hasLoadedPlan) {
+    return (
+      <div className="relative bg-black">
+        <GuidedWorkoutSession
+          title={title}
+          elapsedSeconds={elapsed}
+          exercises={exercises}
+          selectedExerciseId={selectedExerciseId}
+          lastHints={lastPlanHints}
+          saving={saving}
+          saveError={saveError}
+          onSelectExercise={setSelectedExerciseId}
+          onPatchSet={(exerciseId, setIndex, patch) =>
+            patchSetInStore(exerciseId, setIndex, patch)
+          }
+          onReset={resetSession}
+          onComplete={completeWorkout}
+        />
 
+        {resumePromptOpen ? (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle>Czy chcesz kontynuować trening?</CardTitle>
+                <CardDescription>
+                  Wykryliśmy niedokończoną sesję. Twoje dane nie zostały utracone.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-foreground/10 bg-muted/40 p-3 text-xs text-muted-foreground">
+                  Jeśli wybierzesz „Odrzuć”, usuniemy zapisany stan aktywnego treningu na tym
+                  urządzeniu.
+                </div>
+              </CardContent>
+              <CardFooter className="gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-11 justify-center gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
                   onClick={() => {
-                    reset();
-                    setExercises([]);
-                    setSelectedExerciseId(null);
-                    stopRest();
+                    sessionStorage.setItem("active-workout:resumePromptSeen", "1");
+                    resetSession();
+                    setResumePromptOpen(false);
                   }}
                 >
-                  <RotateCcw className="h-4 w-4" />
-                  Resetuj sesję
+                  Odrzuć
                 </Button>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
-      ) : null}
-
-      {hasLoadedPlan ? (
-        <RestTimerBar remaining={restRemaining} onStart={startRest} onStop={stopRest} />
-      ) : null}
-
-      <div
-        className={
-          hasLoadedPlan
-            ? display === "modal"
-              ? "mx-auto w-full max-w-[min(100%,720px)] px-4 pb-4 pt-2 sm:px-6"
-              : "mx-auto w-full max-w-[min(100%,720px)] px-4 pb-4 pt-2 sm:px-6"
-            : "mx-auto max-w-[1400px]"
-        }
-      >
-        <div className={hasLoadedPlan ? "grid gap-0" : ""}>
-          {hasLoadedPlan ? (
-            <ActiveWorkoutCoachPanel
-              title={title}
-              elapsedSeconds={elapsed}
-              exercises={exercises}
-              selectedExerciseId={selectedExerciseId}
-              restRemaining={restRemaining}
-              userAiOff={userAiFeaturesDisabled}
-              notEntitledToAi={!userAiEntitled}
-            />
-          ) : null}
-          <ActiveSessionCard
-            hasLoadedPlan={hasLoadedPlan}
-            initialPlansEmpty={initialPlans.length === 0}
-            emptyContent={
-              entry === "start" ? (
-                startPlansContent
-              ) : (
-              entry === "active" ? (
-                !storeHydrated ? (
-                  <div className="flex flex-1 flex-col items-center justify-center gap-2 px-2 py-16 text-center">
-                    <div className="h-9 w-9 animate-pulse rounded-full bg-white/[0.08]" />
-                    <p className="text-sm text-white/45">Wczytywanie sesji…</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
-                    <div className="rounded-2xl border border-white/[0.08] bg-[#111] p-6">
-                      <RotateCcw className="mx-auto h-11 w-11 text-[#FF9500]" />
-                    </div>
-                    <div>
-                      <p className="text-[17px] font-semibold text-white">Trening jest wyłączony</p>
-                      <p className="mt-2 max-w-md text-[13px] text-white/45">
-                        Nie możesz wejść do ekranu treningu bez aktywnej sesji.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      <Button type="button" onClick={() => router.push("/start-workout")}>
-                        Rozpocznij trening
-                      </Button>
-                      <Button type="button" variant="outline" onClick={() => router.push("/workout-plan")}>
-                        Zobacz plany
-                      </Button>
-                    </div>
-                  </div>
-                )
-              ) : undefined
-              )
-            }
-          >
-            {hasLoadedPlan ? exerciseList : null}
-          </ActiveSessionCard>
-        </div>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    sessionStorage.setItem("active-workout:resumePromptSeen", "1");
+                    setResumePromptOpen(false);
+                  }}
+                >
+                  Kontynuuj
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        ) : null}
       </div>
+    );
+  }
 
-      {hasLoadedPlan ? (
-        <WorkoutSummary
-          sessionTotal={sessionTotal}
-          canComplete={hasLoadedPlan}
-          saving={saving}
-          onComplete={completeWorkout}
-          saveError={saveError}
-        />
-      ) : null}
-
-      {resumePromptOpen ? (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Czy chcesz kontynuować trening?</CardTitle>
-              <CardDescription>
-                Wykryliśmy niedokończoną sesję. Twoje dane nie zostały utracone.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border border-foreground/10 bg-muted/40 p-3 text-xs text-muted-foreground">
-                Jeśli wybierzesz „Odrzuć”, usuniemy zapisany stan aktywnego treningu na tym urządzeniu.
+  return (
+    <div className="relative min-h-[calc(100dvh-6rem)] rounded-2xl bg-[#0f0f0f] p-4 sm:p-6 lg:min-h-[calc(100dvh-5rem)]">
+      <div className="mx-auto max-w-[1400px]">
+        <ActiveSessionCard
+          hasLoadedPlan={false}
+          initialPlansEmpty={initialPlans.length === 0}
+          emptyContent={
+            entry === "start" ? (
+              startPlansContent
+            ) : !storeHydrated ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 px-2 py-16 text-center">
+                <div className="h-9 w-9 animate-pulse rounded-full bg-white/[0.08]" />
+                <p className="text-sm text-white/45">Wczytywanie sesji…</p>
               </div>
-            </CardContent>
-            <CardFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  sessionStorage.setItem("active-workout:resumePromptSeen", "1");
-                  reset();
-                  setExercises([]);
-                  setSelectedExerciseId(null);
-                  setRestRemaining(null);
-                  setResumePromptOpen(false);
-                }}
-              >
-                Odrzuć
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  sessionStorage.setItem("active-workout:resumePromptSeen", "1");
-                  setResumePromptOpen(false);
-                }}
-              >
-                Kontynuuj
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      ) : null}
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
+                <div className="rounded-2xl border border-white/[0.08] bg-[#111] p-6">
+                  <RotateCcw className="mx-auto h-11 w-11 text-[#FF9500]" />
+                </div>
+                <div>
+                  <p className="text-[17px] font-semibold text-white">Trening jest wyłączony</p>
+                  <p className="mt-2 max-w-md text-[13px] text-white/45">
+                    Nie możesz wejść do ekranu treningu bez aktywnej sesji.
+                  </p>
+                </div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button type="button" onClick={() => router.push("/start-workout")}>
+                    Rozpocznij trening
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.push("/workout-plan")}
+                  >
+                    Zobacz plany
+                  </Button>
+                </div>
+              </div>
+            )
+          }
+        >
+          {null}
+        </ActiveSessionCard>
+      </div>
     </div>
   );
 }

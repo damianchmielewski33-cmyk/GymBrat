@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   deleteMealLogFormAction,
   updateMealLogAction,
@@ -24,15 +24,23 @@ import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Calculator, Flame, Pencil, Trash2 } from "lucide-react";
 
 function MealDeleteForm({ mealId }: { mealId: string }) {
-  const [state, formAction] = useActionState(
+  const [state, formAction, isPending] = useActionState(
     deleteMealLogFormAction,
     {} as MealLogFormState,
   );
   const { notifySaved } = useSaveFeedback();
+  const handledRef = useRef(false);
 
   useEffect(() => {
-    if (state?.ok) notifySaved("Usunięto wpis posiłku.");
-  }, [state?.ok, notifySaved]);
+    if (isPending) {
+      handledRef.current = false;
+      return;
+    }
+    if (state?.ok && !handledRef.current) {
+      handledRef.current = true;
+      notifySaved("Usunięto wpis posiłku.");
+    }
+  }, [isPending, state?.ok, notifySaved]);
 
   return (
     <form
@@ -84,14 +92,22 @@ export function MealLogsList({
 }) {
   const [editing, setEditing] = useState<MealLogDto | null>(null);
   const { notifySaved } = useSaveFeedback();
-  const [updateState, updateAction] = useActionState(
+  const [updateState, updateAction, updatePending] = useActionState(
     updateMealLogAction,
     {} as MealLogFormState,
   );
+  const updateHandledRef = useRef(false);
 
   useEffect(() => {
-    if (updateState?.ok) notifySaved("Zapisano zmiany posiłku.");
-  }, [updateState?.ok, notifySaved]);
+    if (updatePending) {
+      updateHandledRef.current = false;
+      return;
+    }
+    if (updateState?.ok && !updateHandledRef.current) {
+      updateHandledRef.current = true;
+      notifySaved("Zapisano zmiany posiłku.");
+    }
+  }, [updatePending, updateState?.ok, notifySaved]);
 
   const [editName, setEditName] = useState("");
   const [editP, setEditP] = useState("");

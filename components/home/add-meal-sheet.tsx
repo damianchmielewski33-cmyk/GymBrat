@@ -28,14 +28,21 @@ import { Calculator, CheckCircle2, Flame, UtensilsCrossed } from "lucide-react";
 function AddMealSheetForm({
   dateKey,
   onCloseSheet,
+  onResetForm,
 }: {
   dateKey: string;
   onCloseSheet: () => void;
+  /** Remount formularza — czyści useActionState po sukcesie. */
+  onResetForm: () => void;
 }) {
   const { notifySaved } = useSaveFeedback();
-  const [state, formAction] = useActionState(addMealLogAction, {} as MealLogFormState);
+  const [state, formAction, isPending] = useActionState(
+    addMealLogAction,
+    {} as MealLogFormState,
+  );
   const [followUpOpen, setFollowUpOpen] = useState(false);
   const suppressSheetCloseRef = useRef(false);
+  const successHandledRef = useRef(false);
 
   const [name, setName] = useState("");
   const [protein, setProtein] = useState("");
@@ -61,16 +68,22 @@ function AddMealSheetForm({
   }
 
   useEffect(() => {
-    if (state?.ok) {
-      notifySaved("Posiłek został zapisany.");
-      setFollowUpOpen(true);
+    if (isPending) {
+      successHandledRef.current = false;
+      return;
     }
-  }, [state, notifySaved]);
+    if (!state?.ok || successHandledRef.current) return;
+    successHandledRef.current = true;
+    notifySaved("Posiłek został zapisany.");
+    setFollowUpOpen(true);
+  }, [isPending, state?.ok, notifySaved]);
 
   function handleAddAnother() {
     suppressSheetCloseRef.current = true;
     setFollowUpOpen(false);
     resetFields();
+    // Nowa instancja formularza = czysty stan akcji (bez ponownego ok).
+    onResetForm();
   }
 
   function handleFollowUpOpenChange(next: boolean) {
@@ -79,6 +92,7 @@ function AddMealSheetForm({
       if (suppressSheetCloseRef.current) {
         suppressSheetCloseRef.current = false;
       } else {
+        onResetForm();
         onCloseSheet();
       }
     }
@@ -363,7 +377,12 @@ export function AddMealSheet({ dateKey }: { dateKey: string }) {
         side="bottom"
         className="flex max-h-[min(92vh,760px)] flex-col border-white/10 bg-[#07070c] pb-[env(safe-area-inset-bottom)] text-white"
       >
-        <AddMealSheetForm key={mountKey} dateKey={dateKey} onCloseSheet={() => setOpen(false)} />
+        <AddMealSheetForm
+          key={mountKey}
+          dateKey={dateKey}
+          onCloseSheet={() => setOpen(false)}
+          onResetForm={() => setMountKey((k) => k + 1)}
+        />
       </SheetContent>
     </Sheet>
   );

@@ -2,6 +2,24 @@ import { z } from "zod";
 
 export const activityLevels = ["low", "medium", "high"] as const;
 
+const requiredCm = z.coerce
+  .number("Wpisz pomiar w cm")
+  .min(20, "Minimum 20 cm")
+  .max(300, "Maksimum 300 cm");
+
+const optionalPhoto = z.preprocess((v) => {
+  if (v == null) return undefined;
+  const s = String(v).trim();
+  return s.length ? s : undefined;
+}, z
+  .string()
+  .max(2_800_000, "Zdjęcie jest za duże — wybierz mniejsze lub zrób zdjęcie ponownie")
+  .refine(
+    (s) => s.startsWith("data:image/"),
+    "Nieprawidłowy format zdjęcia",
+  )
+  .optional());
+
 export const registerSchema = z.object({
   firstName: z
     .string()
@@ -38,6 +56,14 @@ export const registerSchema = z.object({
     .int("Użyj liczby całkowitej")
     .min(13, "Minimalny wiek: 13")
     .max(120, "Maksymalny wiek: 120"),
+  /** Obwody — ten sam zestaw co w raporcie sylwetki (punkt startowy). */
+  waistCm: requiredCm,
+  chestCm: requiredCm,
+  thighCm: requiredCm,
+  armCm: requiredCm,
+  abdomenCm: requiredCm,
+  /** Opcjonalne zdjęcie startowe (data URL JPEG/PNG, kompresja po stronie klienta). */
+  startPhotoDataUrl: optionalPhoto,
   activityLevel: z.enum(activityLevels, {
     message: "Wybierz poziom aktywności",
   }),
