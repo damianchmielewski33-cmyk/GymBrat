@@ -361,5 +361,3 @@ export async function aiAnalyzePhoto(input: unknown) {
   const analysis = await analyzeBodyPhoto({ images, forceHeuristic: userAiOff });
   return { ok: true as const, analysis };
 }
-
-export { registerUser, type RegisterState } from "@/actions/auth";

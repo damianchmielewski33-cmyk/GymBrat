@@ -80,6 +80,8 @@ export async function getExerciseProgressSeries(params: {
   matchedExerciseNames: string[];
   points: ExerciseProgressPoint[];
   prs: ExercisePrs;
+  newMax: { e1rm: boolean; weight: boolean; tonnage: boolean };
+  hasNewMax: boolean;
 }> {
   const q = params.exerciseQuery.trim();
   if (!q) {
@@ -92,6 +94,8 @@ export async function getExerciseProgressSeries(params: {
         maxWeight: { value: 0, date: null },
         maxTonnageKg: { value: 0, date: null },
       },
+      newMax: { e1rm: false, weight: false, tonnage: false },
+      hasNewMax: false,
     };
   }
 

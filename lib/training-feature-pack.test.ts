@@ -92,19 +92,13 @@ describe("NOWY MAX sesji", () => {
 
 describe("AI plan → payload", () => {
   it("mapuje dni strength na plany", () => {
-    const plan = {
-      overview: {
-        focus: ["siła"],
-        weeklyScheduleSummary: "4 dni",
-        safetyNotes: [],
-      },
+    const payloads = trainingPlanToWorkoutPayloads({
       days: [
         {
-          day: 1 as const,
+          day: 1,
           title: "Full Body A",
-          type: "strength" as const,
+          type: "strength",
           session: {
-            warmup: [],
             main: [
               {
                 name: "Squat",
@@ -114,30 +108,16 @@ describe("AI plan → payload", () => {
                 notes: "brace",
               },
             ],
-            cardio: null,
-            cooldown: [],
           },
         },
         {
-          day: 2 as const,
+          day: 2,
           title: "Rest",
-          type: "rest" as const,
-          session: {
-            warmup: [],
-            main: [],
-            cardio: null,
-            cooldown: [],
-          },
+          type: "rest",
+          session: { main: [] },
         },
       ],
-      nutritionGuidance: {
-        proteinGPerDay: 150,
-        calorieTargetHint: "ok",
-        habitTips: [],
-      },
-    } as const;
-
-    const payloads = trainingPlanToWorkoutPayloads(plan);
+    });
     expect(payloads).toHaveLength(1);
     expect(payloads[0]?.planName).toBe("Full Body A");
     expect(payloads[0]?.exercises[0]?.sets).toBe(3);
