@@ -27,6 +27,13 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
 
+  experimental: {
+    /** Rejestracja: opcjonalne zdjęcie startowe (data URL) + raporty sylwetki. */
+    serverActions: {
+      bodySizeLimit: "3mb",
+    },
+  },
+
   async headers() {
     const isProd = process.env.NODE_ENV === "production";
     const awpOrigin = awpFrameAncestor();

@@ -22,6 +22,7 @@ import {
   activityLevels,
   registerSchema,
   type RegisterFormValues,
+  type RegisterInput,
 } from "@/lib/validations/register";
 import { Camera, X } from "lucide-react";
 
@@ -71,7 +72,7 @@ export function RegisterForm() {
     }
   }, [trainerEnabled, searchParams, router]);
 
-  const form = useForm<RegisterFormValues>({
+  const form = useForm<RegisterFormValues, unknown, RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       firstName: "",
@@ -137,7 +138,7 @@ export function RegisterForm() {
     }
   }, [emailCodeValue, setValue]);
 
-  async function onSubmit(values: RegisterFormValues) {
+  async function onSubmit(values: RegisterInput) {
     setRootError(null);
     setCodeInfo(null);
     const result: RegisterState = await registerUser(values);

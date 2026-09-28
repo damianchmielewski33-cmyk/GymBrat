@@ -2,23 +2,66 @@ import { z } from "zod";
 
 export const activityLevels = ["low", "medium", "high"] as const;
 
-const requiredCm = z.coerce
-  .number("Wpisz pomiar w cm")
-  .min(20, "Minimum 20 cm")
-  .max(300, "Maksimum 300 cm");
+function requiredNumberField(opts: {
+  emptyMessage: string;
+  min: number;
+  max: number;
+  minMessage: string;
+  maxMessage: string;
+  int?: boolean;
+}) {
+  return z
+    .union([z.string(), z.number()])
+    .transform((v, ctx) => {
+      if (v === "" || v == null) {
+        ctx.addIssue({ code: "custom", message: opts.emptyMessage });
+        return z.NEVER;
+      }
+      const n = typeof v === "number" ? v : Number(String(v).replace(",", "."));
+      if (!Number.isFinite(n)) {
+        ctx.addIssue({ code: "custom", message: opts.emptyMessage });
+        return z.NEVER;
+      }
+      return n;
+    })
+    .pipe(
+      opts.int
+        ? z
+            .number()
+            .int("Użyj liczby całkowitej")
+            .min(opts.min, opts.minMessage)
+            .max(opts.max, opts.maxMessage)
+        : z.number().min(opts.min, opts.minMessage).max(opts.max, opts.maxMessage),
+    );
+}
 
-const optionalPhoto = z.preprocess((v) => {
-  if (v == null) return undefined;
-  const s = String(v).trim();
-  return s.length ? s : undefined;
-}, z
-  .string()
-  .max(2_800_000, "Zdjęcie jest za duże — wybierz mniejsze lub zrób zdjęcie ponownie")
-  .refine(
-    (s) => s.startsWith("data:image/"),
-    "Nieprawidłowy format zdjęcia",
-  )
-  .optional());
+const requiredCm = requiredNumberField({
+  emptyMessage: "Wpisz pomiar w cm",
+  min: 20,
+  max: 300,
+  minMessage: "Minimum 20 cm",
+  maxMessage: "Maksimum 300 cm",
+});
+
+const optionalPhoto = z
+  .union([z.string(), z.undefined()])
+  .optional()
+  .transform((s) => {
+    const t = (s ?? "").trim();
+    return t.length ? t : undefined;
+  })
+  .superRefine((s, ctx) => {
+    if (s == null) return;
+    if (!s.startsWith("data:image/")) {
+      ctx.addIssue({ code: "custom", message: "Nieprawidłowy format zdjęcia" });
+    }
+    if (s.length > 2_800_000) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Zdjęcie jest za duże — wybierz mniejsze lub zrób zdjęcie ponownie",
+      });
+    }
+  });
 
 export const registerSchema = z.object({
   firstName: z
@@ -42,20 +85,29 @@ export const registerSchema = z.object({
     .string()
     .min(8, "Użyj minimum 8 znaków")
     .max(128, "Hasło jest za długie"),
-  weightKg: z.coerce
-    .number("Wpisz swoją wagę")
-    .min(30, "Minimum 30 kg")
-    .max(400, "Maksimum 400 kg"),
-  heightCm: z.coerce
-    .number("Wpisz swój wzrost")
-    .int("Użyj pełnych centymetrów")
-    .min(100, "Minimum 100 cm")
-    .max(250, "Maksimum 250 cm"),
-  age: z.coerce
-    .number("Wpisz swój wiek")
-    .int("Użyj liczby całkowitej")
-    .min(13, "Minimalny wiek: 13")
-    .max(120, "Maksymalny wiek: 120"),
+  weightKg: requiredNumberField({
+    emptyMessage: "Wpisz swoją wagę",
+    min: 30,
+    max: 400,
+    minMessage: "Minimum 30 kg",
+    maxMessage: "Maksimum 400 kg",
+  }),
+  heightCm: requiredNumberField({
+    emptyMessage: "Wpisz swój wzrost",
+    min: 100,
+    max: 250,
+    minMessage: "Minimum 100 cm",
+    maxMessage: "Maksimum 250 cm",
+    int: true,
+  }),
+  age: requiredNumberField({
+    emptyMessage: "Wpisz swój wiek",
+    min: 13,
+    max: 120,
+    minMessage: "Minimalny wiek: 13",
+    maxMessage: "Maksymalny wiek: 120",
+    int: true,
+  }),
   /** Obwody — ten sam zestaw co w raporcie sylwetki (punkt startowy). */
   waistCm: requiredCm,
   chestCm: requiredCm,
@@ -71,5 +123,25 @@ export const registerSchema = z.object({
   role: z.literal("zawodnik"),
 });
 
-export type RegisterInput = z.infer<typeof registerSchema>;
-export type RegisterFormValues = z.input<typeof registerSchema>;
+/** Wartości po walidacji (serwer / onSubmit). */
+export type RegisterInput = z.output<typeof registerSchema>;
+
+/** Wartości formularza (stringi w polach liczbowych). */
+export type RegisterFormValues = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  emailCode: string;
+  password: string;
+  weightKg: string;
+  heightCm: string;
+  age: string;
+  waistCm: string;
+  chestCm: string;
+  thighCm: string;
+  armCm: string;
+  abdomenCm: string;
+  startPhotoDataUrl?: string;
+  activityLevel: (typeof activityLevels)[number];
+  role: "zawodnik";
+};
