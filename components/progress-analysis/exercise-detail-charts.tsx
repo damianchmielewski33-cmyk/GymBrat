@@ -43,7 +43,10 @@ export function ExerciseDetailCharts({
         <h3 className="font-heading mt-1 text-lg font-semibold text-white">e1RM</h3>
         <div className="mt-4 h-[280px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={forecast.length ? forecast : points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <LineChart
+              data={forecast.length ? (forecast as Array<Record<string, unknown>>) : (points as Array<Record<string, unknown>>)}
+              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
               <XAxis
                 dataKey="date"

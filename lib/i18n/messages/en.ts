@@ -4,6 +4,7 @@ export const en = {
     start: "Home",
     meals: "Meals",
     plan: "Plan",
+    cardio: "Cardio",
     reports: "Reports",
     analysis: "Analysis",
     history: "History",

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { kcalFromMacros, parseMacroGrams } from "@/lib/kcal-from-macros";
 import { Calculator, CheckCircle2, Flame, UtensilsCrossed } from "lucide-react";
+import { MealFoodTools } from "@/components/home/meal-food-tools";
 
 function AddMealSheetForm({
   dateKey,
@@ -169,6 +170,16 @@ function AddMealSheetForm({
         <input type="hidden" name="fatG" value={f ? String(f) : ""} />
         <input type="hidden" name="carbsG" value={c ? String(c) : ""} />
         <input type="hidden" name="calories" value={hasManualKcal ? String(finalKcal) : ""} />
+
+        <MealFoodTools
+          onFill={(v) => {
+            setName(v.name);
+            setProtein(v.protein);
+            setFat(v.fat);
+            setCarbs(v.carbs);
+            setKcal(v.kcal);
+          }}
+        />
 
         <div className="space-y-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-sm">
           <Label

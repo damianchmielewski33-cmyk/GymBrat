@@ -13,16 +13,19 @@ import { redirect } from "next/navigation";
 import { isAiGloballyDisabled } from "@/lib/ai-availability";
 import { ScreenHeader } from "@/components/layout/screen";
 import { InlineBanner } from "@/components/ui/inline-banner";
+import { MilestonesPanel } from "@/components/progress-analysis/milestones-panel";
+import { getMilestonesForUser } from "@/lib/milestones-for-user";
 
 export default async function ProgressAnalysisPage() {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) redirect("/login");
-  const [data, exerciseSuggestions, userAiDisabled, globalOff] = await Promise.all([
+  const [data, exerciseSuggestions, userAiDisabled, globalOff, milestones] = await Promise.all([
     getProgressAnalysisData(userId),
     listExerciseNameSuggestions(userId, { days: 180 }),
     getUserAiFeaturesDisabled(userId),
     isAiGloballyDisabled(),
+    getMilestonesForUser(userId),
   ]);
   const { series, stats } = data;
   const aiProviderOn = isAiConfigured();
@@ -125,6 +128,8 @@ export default async function ProgressAnalysisPage() {
           />
         </section>
       ) : null}
+
+      <MilestonesPanel milestones={milestones} />
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
         <div className="space-y-6">

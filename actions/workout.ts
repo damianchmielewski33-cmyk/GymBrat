@@ -13,13 +13,36 @@ export async function logCardioFormAction(
 ) {
   const title = String(formData.get("title") ?? "Cardio").trim() || "Cardio";
   const minutes = Number(formData.get("minutes") ?? 0);
-  return logTrainingSession({ title, cardioMinutes: minutes });
+  const machineId = String(formData.get("machineId") ?? "other").trim() || "other";
+  const distanceKmRaw = Number(formData.get("distanceKm") ?? 0);
+  const distanceKm =
+    Number.isFinite(distanceKmRaw) && distanceKmRaw > 0
+      ? Math.round(distanceKmRaw * 100) / 100
+      : null;
+  let routePoints: unknown = null;
+  try {
+    const raw = String(formData.get("routeJson") ?? "[]");
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) routePoints = parsed.slice(0, 2000);
+  } catch {
+    routePoints = null;
+  }
+  return logTrainingSession({
+    title,
+    cardioMinutes: minutes,
+    machineId,
+    distanceKm,
+    routePoints,
+  });
 }
 
 export async function logTrainingSession(input: {
   title: string;
   cardioMinutes: number;
   notes?: string;
+  machineId?: string;
+  distanceKm?: number | null;
+  routePoints?: unknown;
 }) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -39,10 +62,15 @@ export async function logTrainingSession(input: {
       kind: "cardio_log",
       title: input.title,
       notes: input.notes ?? null,
+      machineId: input.machineId ?? null,
+      distanceKm: input.distanceKm ?? null,
+      routePoints: input.routePoints ?? null,
+      loggedAt: Date.now(),
     }),
   });
 
   revalidatePath("/");
+  revalidatePath("/cardio");
   revalidatePath("/reports");
   return { ok: true as const };
 }

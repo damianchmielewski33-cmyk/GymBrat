@@ -23,6 +23,11 @@ import { playRestTimerEndSignal } from "@/lib/rest-timer-signal";
 import { NewMaxCelebration } from "@/components/progress-analysis/new-max-celebration";
 import { estimated1RM } from "@/lib/workout-history";
 import type { ExercisePrs } from "@/lib/exercise-progress";
+import {
+  countSessionSets,
+  findLastCompletedSet,
+  findNextIncompleteSet,
+} from "@/lib/session-cursor";
 
 export function GuidedWorkoutSession({
   title,

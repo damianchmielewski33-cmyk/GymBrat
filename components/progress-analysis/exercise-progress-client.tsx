@@ -12,7 +12,9 @@ import {
   Area,
   AreaChart,
 } from "recharts";
-import { Dumbbell, Flame, Search, Trophy } from "lucide-react";
+import { Dumbbell, Flame, Search, Trophy, ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { projectE1rmForecast } from "@/lib/progress-forecast";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { StatCard } from "@/components/reports/stat-card";
@@ -110,6 +112,8 @@ export function ExerciseProgressClient({
     [points],
   );
 
+  const forecast = useMemo(() => projectE1rmForecast(points, 28), [points]);
+
   return (
     <div className="space-y-6">
       <div className="glass-panel neon-glow relative overflow-hidden p-6">
@@ -174,6 +178,24 @@ export function ExerciseProgressClient({
                   {n}
                 </button>
               ))}
+            </div>
+          ) : null}
+
+          {debounced ? (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Link
+                href={`/progress-analysis/exercise?q=${encodeURIComponent(debounced)}`}
+                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--neon)] hover:underline"
+              >
+                <ExternalLink className="h-4 w-4" aria-hidden />
+                Pełny ekran ćwiczenia
+              </Link>
+              {forecast.in28Days != null ? (
+                <span className="text-xs text-white/55">
+                  Prognoza e1RM za 28 dni:{" "}
+                  <span className="font-semibold text-white/85">{forecast.in28Days} kg</span>
+                </span>
+              ) : null}
             </div>
           ) : null}
         </div>

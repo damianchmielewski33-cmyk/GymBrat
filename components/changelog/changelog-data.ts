@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-09 — cardio, dieta i postępy (fale A–D)",
+    date: "2026-09-28",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    sha: undefined,
+    bullets: [
+      "Trening: RIR, tempo, film techniki, sugestia ciężaru, superserie w planie, PDF z historii oraz edycja treningu do 7 dni.",
+      "Postępy: ekran ćwiczenia z prognozą e1RM, kamienie milowe i świętowanie NOWY MAX w sesji.",
+      "Dieta: katalog produktów, skaner kodów (Open Food Facts) i OCR etykiety (AI vision) przy dodawaniu posiłku.",
+      "Cardio: strona /cardio z maszynami, GPS outdoor, stories 24 h oraz opisem importu z Apple Watch przez HealthKit.",
+    ],
+  },
+  {
     title: "2026-09 — postępy: ekran ćwiczenia, prognozy, milestones, NOWY MAX",
     date: "2026-09-28",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
