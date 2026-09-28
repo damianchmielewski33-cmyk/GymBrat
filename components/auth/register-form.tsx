@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { registerUser, sendRegisterCode, type RegisterState } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,7 +73,11 @@ export function RegisterForm() {
   }, [trainerEnabled, searchParams, router]);
 
   const form = useForm<RegisterFormValues, unknown, RegisterInput>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(registerSchema) as Resolver<
+      RegisterFormValues,
+      unknown,
+      RegisterInput
+    >,
     defaultValues: {
       firstName: "",
       lastName: "",

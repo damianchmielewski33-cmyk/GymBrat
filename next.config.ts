@@ -32,6 +32,12 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "3mb",
     },
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "framer-motion",
+      "@base-ui/react",
+    ],
   },
 
   async headers() {
@@ -113,15 +119,6 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: "private, no-store, no-cache, must-revalidate" }],
       },
     ];
-  },
-
-  experimental: {
-    optimizePackageImports: [
-      "lucide-react",
-      "recharts",
-      "framer-motion",
-      "@base-ui/react",
-    ],
   },
 };
 
