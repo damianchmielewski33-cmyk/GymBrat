@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, List, Minus, Plus, X } from "lucide-react";
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
 import { formatExerciseTargetLine } from "@/lib/start-workout-session";
@@ -24,6 +24,22 @@ function clampReps(n: number | null) {
   return Math.max(0, Math.min(99, Math.round(n)));
 }
 
+function parseWeightInput(raw: string): number | null {
+  const t = raw.trim().replace(",", ".");
+  if (t === "") return null;
+  const n = Number(t);
+  if (!Number.isFinite(n)) return null;
+  return clampWeight(n);
+}
+
+function parseRepsInput(raw: string): number | null {
+  const t = raw.trim();
+  if (t === "") return null;
+  const n = Number(t);
+  if (!Number.isFinite(n)) return null;
+  return clampReps(n);
+}
+
 type GuidedSessionLayoutProps = {
   title: string;
   elapsedSeconds: number;
@@ -33,6 +49,8 @@ type GuidedSessionLayoutProps = {
   onListOpenChange?: (open: boolean) => void;
   onSelectExercise: (id: string) => void;
   onPatchSet: (exerciseId: string, setIndex: number, patch: Partial<WorkoutSetState>) => void;
+  onAddSet?: (exerciseId: string) => void;
+  onRemoveLastSet?: (exerciseId: string) => void;
   onExerciseNoteChange?: (exerciseId: string, note: string) => void;
   onCancelSession?: () => void;
   onFinishSession?: () => void;
@@ -49,6 +67,8 @@ export function GuidedSessionLayout({
   onListOpenChange,
   onSelectExercise,
   onPatchSet,
+  onAddSet,
+  onRemoveLastSet,
   onExerciseNoteChange,
   onCancelSession,
   onFinishSession,
@@ -62,6 +82,10 @@ export function GuidedSessionLayout({
     if (listOpenControlled === undefined) setListOpenLocal(open);
   }
   const [noteOpen, setNoteOpen] = useState(false);
+  /** Ręczny wybór serii (null = pierwsza niedokończona). */
+  const [manualSetIndex, setManualSetIndex] = useState<number | null>(null);
+  const [weightText, setWeightText] = useState("");
+  const [repsText, setRepsText] = useState("");
 
   const selectedIndex = Math.max(
     0,
@@ -69,13 +93,32 @@ export function GuidedSessionLayout({
   );
   const exercise = exercises[selectedIndex] ?? exercises[0] ?? null;
 
-  const activeSetIndex = useMemo(() => {
+  const autoSetIndex = useMemo(() => {
     if (!exercise) return 0;
     const firstOpen = exercise.sets.findIndex((s) => !s.done);
     return firstOpen >= 0 ? firstOpen : Math.max(0, exercise.sets.length - 1);
   }, [exercise]);
 
+  const activeSetIndex =
+    manualSetIndex != null &&
+    exercise &&
+    manualSetIndex >= 0 &&
+    manualSetIndex < exercise.sets.length
+      ? manualSetIndex
+      : autoSetIndex;
+
   const set = exercise?.sets[activeSetIndex] ?? null;
+
+  useEffect(() => {
+    setManualSetIndex(null);
+  }, [exercise?.id]);
+
+  useEffect(() => {
+    if (!set) return;
+    setWeightText(set.weight > 0 ? String(set.weight) : "");
+    const r = set.reps != null ? set.reps : (exercise?.targetReps ?? null);
+    setRepsText(r != null && r > 0 ? String(r) : "");
+  }, [exercise?.id, activeSetIndex, set?.weight, set?.reps, exercise?.targetReps]);
 
   const totals = useMemo(() => {
     let done = 0;
@@ -92,6 +135,7 @@ export function GuidedSessionLayout({
   function goPrev() {
     if (!exercise) return;
     if (activeSetIndex > 0) {
+      setManualSetIndex(activeSetIndex - 1);
       onPatchSet(exercise.id, activeSetIndex - 1, { done: false });
       return;
     }
@@ -108,6 +152,7 @@ export function GuidedSessionLayout({
       weight: set.weight,
       rir: set.rir ?? null,
     });
+    setManualSetIndex(null);
     advanceAfterComplete(exercise.id, activeSetIndex);
   }
 
@@ -115,7 +160,11 @@ export function GuidedSessionLayout({
     const ex = exercises.find((e) => e.id === exerciseId);
     if (!ex) return;
     const nextSet = setIndex + 1;
-    if (nextSet < ex.sets.length) return;
+    if (nextSet < ex.sets.length) {
+      setManualSetIndex(nextSet);
+      return;
+    }
+    setManualSetIndex(null);
     const idx = exercises.findIndex((e) => e.id === exerciseId);
     const nextEx = exercises[idx + 1];
     if (nextEx) onSelectExercise(nextEx.id);
@@ -123,11 +172,13 @@ export function GuidedSessionLayout({
 
   function completeSet() {
     if (!exercise || !set) return;
-    const reps = clampReps(set.reps ?? exercise.targetReps ?? 8);
+    const fromInput = parseRepsInput(repsText);
+    const reps = clampReps(fromInput ?? set.reps ?? exercise.targetReps ?? 8);
+    const weight = parseWeightInput(weightText) ?? clampWeight(set.weight);
     onPatchSet(exercise.id, activeSetIndex, {
       done: true,
       reps: reps > 0 ? reps : 1,
-      weight: clampWeight(set.weight),
+      weight,
       rir: set.rir ?? null,
     });
     advanceAfterComplete(exercise.id, activeSetIndex);
@@ -141,10 +192,11 @@ export function GuidedSessionLayout({
     );
   }
 
-  const repsDisplay = set.reps != null ? set.reps : (exercise.targetReps ?? 0);
   const rirValue = set.rir ?? exercise.targetRir ?? 1;
-  const progress =
-    totals.total > 0 ? Math.min(1, totals.done / totals.total) : 0;
+  const progress = totals.total > 0 ? Math.min(1, totals.done / totals.total) : 0;
+
+  const inputClass =
+    "h-14 min-w-0 flex-1 rounded-xl border border-[var(--gym-gold)]/35 bg-black/50 px-2 text-center font-display text-4xl tabular-nums text-white outline-none transition focus:border-[var(--gym-gold)] focus:ring-2 focus:ring-[var(--gym-gold)]/35";
 
   return (
     <div className="relative mx-auto w-full max-w-lg pb-8">
@@ -208,58 +260,113 @@ export function GuidedSessionLayout({
 
         <div className="mt-4 flex items-center gap-2">
           {exercise.sets.map((s, i) => (
-            <span
+            <button
               key={i}
+              type="button"
+              aria-label={`Seria ${i + 1}${s.done ? ", zaliczona" : ""}`}
+              aria-pressed={i === activeSetIndex}
+              onClick={() => setManualSetIndex(i)}
               className={cn(
-                "h-2.5 flex-1 rounded-full",
-                s.done || i === activeSetIndex
-                  ? "bg-[var(--gym-gold)]"
-                  : "bg-white/15",
+                "h-3 flex-1 rounded-full transition",
+                i === activeSetIndex
+                  ? "bg-[var(--gym-gold)] ring-2 ring-[var(--gym-gold)]/50 ring-offset-1 ring-offset-black"
+                  : s.done
+                    ? "bg-[var(--gym-gold)]/70"
+                    : "bg-white/15 hover:bg-white/25",
               )}
             />
           ))}
         </div>
-        <div className="mt-2 flex items-center justify-between text-xs text-white/55">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-white/55">
           <span className="font-semibold uppercase tracking-wide">
             Seria {activeSetIndex + 1} z {exercise.sets.length}
+            {set.done ? " · edycja" : ""}
           </span>
-          {exercise.targetReps != null ? (
-            <span>Cel {exercise.targetReps} powt.</span>
-          ) : null}
+          <div className="flex items-center gap-2">
+            {onRemoveLastSet && exercise.sets.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onRemoveLastSet(exercise.id);
+                  setManualSetIndex(null);
+                }}
+                className="rounded-lg border border-white/12 px-2 py-1 text-[11px] text-white/60 hover:text-white"
+              >
+                Usuń ostatnią
+              </button>
+            ) : null}
+            {onAddSet ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onAddSet(exercise.id);
+                  setManualSetIndex(exercise.sets.length);
+                }}
+                className="rounded-lg border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-2 py-1 text-[11px] font-semibold text-[var(--gym-gold)]"
+              >
+                + Seria
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div className="mt-5 rounded-2xl border border-white/[0.08] bg-[#161616] p-4">
           <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-white/45">
-            <span>Ciężar · kg</span>
-            <span>krok 2,5</span>
+            <label htmlFor="set-weight">Ciężar · kg</label>
+            <span>wpisz lub ±</span>
           </div>
-          <div className="mt-3 flex items-center justify-center gap-4">
+          <div className="mt-3 flex items-center justify-center gap-3">
             <button
               type="button"
               aria-label="Zmniejsz ciężar"
-              onClick={() =>
-                onPatchSet(exercise.id, activeSetIndex, {
-                  weight: clampWeight(set.weight - 2.5),
-                  done: false,
-                })
-              }
-              className="inline-flex h-14 w-14 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-xl text-white"
+              onClick={() => {
+                const next = clampWeight((parseWeightInput(weightText) ?? set.weight) - 2.5);
+                setWeightText(next > 0 ? String(next) : "");
+                onPatchSet(exercise.id, activeSetIndex, { weight: next, done: false });
+              }}
+              className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-xl text-white"
             >
               <Minus className="h-5 w-5" />
             </button>
-            <span className="min-w-[4.5rem] text-center font-display text-4xl tabular-nums text-white">
-              {set.weight}
-            </span>
+            <input
+              id="set-weight"
+              type="number"
+              inputMode="decimal"
+              step="0.5"
+              min={0}
+              max={999}
+              value={weightText}
+              placeholder="0"
+              onChange={(e) => {
+                setWeightText(e.target.value);
+                const parsed = parseWeightInput(e.target.value);
+                if (parsed != null) {
+                  onPatchSet(exercise.id, activeSetIndex, {
+                    weight: parsed,
+                    done: false,
+                  });
+                }
+              }}
+              onBlur={() => {
+                const parsed = parseWeightInput(weightText);
+                const next = parsed ?? 0;
+                setWeightText(next > 0 ? String(next) : "");
+                onPatchSet(exercise.id, activeSetIndex, {
+                  weight: next,
+                  done: false,
+                });
+              }}
+              className={inputClass}
+            />
             <button
               type="button"
               aria-label="Zwiększ ciężar"
-              onClick={() =>
-                onPatchSet(exercise.id, activeSetIndex, {
-                  weight: clampWeight(set.weight + 2.5),
-                  done: false,
-                })
-              }
-              className="inline-flex h-14 w-14 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-xl text-white"
+              onClick={() => {
+                const next = clampWeight((parseWeightInput(weightText) ?? set.weight) + 2.5);
+                setWeightText(String(next));
+                onPatchSet(exercise.id, activeSetIndex, { weight: next, done: false });
+              }}
+              className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-xl text-white"
             >
               <Plus className="h-5 w-5" />
             </button>
@@ -267,24 +374,22 @@ export function GuidedSessionLayout({
           <div className="mt-3 grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() =>
-                onPatchSet(exercise.id, activeSetIndex, {
-                  weight: clampWeight(set.weight - 0.5),
-                  done: false,
-                })
-              }
+              onClick={() => {
+                const next = clampWeight((parseWeightInput(weightText) ?? set.weight) - 0.5);
+                setWeightText(next > 0 ? String(next) : "");
+                onPatchSet(exercise.id, activeSetIndex, { weight: next, done: false });
+              }}
               className="h-10 rounded-xl border border-white/10 bg-white/[0.03] text-sm text-white/70"
             >
               − 0,5
             </button>
             <button
               type="button"
-              onClick={() =>
-                onPatchSet(exercise.id, activeSetIndex, {
-                  weight: clampWeight(set.weight + 0.5),
-                  done: false,
-                })
-              }
+              onClick={() => {
+                const next = clampWeight((parseWeightInput(weightText) ?? set.weight) + 0.5);
+                setWeightText(String(next));
+                onPatchSet(exercise.id, activeSetIndex, { weight: next, done: false });
+              }}
               className="h-10 rounded-xl border border-white/10 bg-white/[0.03] text-sm text-white/70"
             >
               + 0,5
@@ -294,50 +399,89 @@ export function GuidedSessionLayout({
 
         <div className="mt-3 rounded-2xl border border-white/[0.08] bg-[#161616] p-4">
           <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-white/45">
-            <span>Powtórzenia</span>
-            <span>krok 1</span>
+            <label htmlFor="set-reps">Powtórzenia</label>
+            <span>wpisz lub ±</span>
           </div>
-          <div className="mt-3 flex items-center justify-center gap-4">
+          <div className="mt-3 flex items-center justify-center gap-3">
             <button
               type="button"
               aria-label="Mniej powtórzeń"
-              onClick={() =>
+              onClick={() => {
+                const cur =
+                  parseRepsInput(repsText) ??
+                  clampReps(set.reps ?? exercise.targetReps ?? 0);
+                const next = Math.max(0, cur - 1);
+                setRepsText(next > 0 ? String(next) : "");
                 onPatchSet(exercise.id, activeSetIndex, {
-                  reps: Math.max(0, clampReps(repsDisplay) - 1),
+                  reps: next > 0 ? next : null,
                   done: false,
-                })
-              }
-              className="inline-flex h-14 w-14 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-white"
+                });
+              }}
+              className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-white"
             >
               <Minus className="h-5 w-5" />
             </button>
-            <span className="min-w-[4.5rem] text-center font-display text-4xl tabular-nums text-[var(--gym-gold)]">
-              {repsDisplay}
-            </span>
+            <input
+              id="set-reps"
+              type="number"
+              inputMode="numeric"
+              step={1}
+              min={0}
+              max={99}
+              value={repsText}
+              placeholder="0"
+              onChange={(e) => {
+                setRepsText(e.target.value);
+                const parsed = parseRepsInput(e.target.value);
+                if (parsed != null) {
+                  onPatchSet(exercise.id, activeSetIndex, {
+                    reps: parsed > 0 ? parsed : null,
+                    done: false,
+                  });
+                } else if (e.target.value.trim() === "") {
+                  onPatchSet(exercise.id, activeSetIndex, {
+                    reps: null,
+                    done: false,
+                  });
+                }
+              }}
+              onBlur={() => {
+                const parsed = parseRepsInput(repsText);
+                const next = parsed ?? 0;
+                setRepsText(next > 0 ? String(next) : "");
+                onPatchSet(exercise.id, activeSetIndex, {
+                  reps: next > 0 ? next : null,
+                  done: false,
+                });
+              }}
+              className={cn(inputClass, "text-[var(--gym-gold-bright)]")}
+            />
             <button
               type="button"
               aria-label="Więcej powtórzeń"
-              onClick={() =>
-                onPatchSet(exercise.id, activeSetIndex, {
-                  reps: Math.min(99, clampReps(repsDisplay) + 1),
-                  done: false,
-                })
-              }
-              className="inline-flex h-14 w-14 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-white"
+              onClick={() => {
+                const cur =
+                  parseRepsInput(repsText) ??
+                  clampReps(set.reps ?? exercise.targetReps ?? 0);
+                const next = Math.min(99, cur + 1);
+                setRepsText(String(next));
+                onPatchSet(exercise.id, activeSetIndex, { reps: next, done: false });
+              }}
+              className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-white"
             >
               <Plus className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        <div className="mt-4 flex items-center gap-2">
+        <div className="mt-4 flex items-end gap-3">
           <div className="min-w-0 flex-1">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-white/45">
-              W zapasie
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-white/45">
+              RIR
             </p>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="mt-2 grid grid-cols-4 gap-2">
               {[0, 1, 2, 3].map((v) => {
-                const active = rirValue === v || (v === 3 && (rirValue ?? 0) >= 3);
+                const active = rirValue === v || (v === 3 && rirValue >= 3);
                 return (
                   <button
                     key={v}
@@ -349,10 +493,10 @@ export function GuidedSessionLayout({
                       })
                     }
                     className={cn(
-                      "h-11 rounded-xl text-sm font-semibold tabular-nums",
+                      "h-11 rounded-xl text-sm font-bold tabular-nums transition",
                       active
-                        ? "bg-[var(--gym-gold)] text-[var(--neon-fg)]"
-                        : "border border-white/10 bg-[#161616] text-white/70",
+                        ? "gold-btn"
+                        : "border border-white/10 bg-[#161616] text-white/70 hover:border-[var(--gym-gold)]/40",
                     )}
                   >
                     {v === 3 ? "3+" : v}
@@ -382,10 +526,10 @@ export function GuidedSessionLayout({
         <button
           type="button"
           onClick={completeSet}
-          className="gold-btn mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold"
+          className="gold-btn mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold"
         >
           <Check className="h-5 w-5" />
-          Zalicz serię
+          {set.done ? "Zapisz zmiany serii" : "Zalicz serię"}
         </button>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-white/55">

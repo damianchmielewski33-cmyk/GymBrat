@@ -238,6 +238,16 @@ GymBrat tracks weekly cardio as a **rolling 7-day sum**:
 
 GymBrat is designed to run well on Vercel with Turso/libSQL.
 
+#### Preview → zatwierdzenie → produkcja
+
+Zmiany **nie** powinny od razu iść na `gym-brat.vercel.app`. Flow:
+
+1. **Zapowiedź (Preview):** praca na gałęzi / PR → Vercel buduje Preview. W `changelog-data.ts` wpis z `planned: true` (bez daty wdrożenia). `GET /api/version` na Preview może zwrócić `plannedChangelog`.
+2. **Zatwierdzenie:** review + `npm run deploy:check` / Deploy Guardian **GO (preview)**.
+3. **Produkcja:** po merge ustaw w Vercel → Project → Environments → Production → Branch Tracking → **wyłącz Auto-assign Custom Production Domains**, potem w Deployments wybierz build i **Promote to Production**. W changelogu usuń `planned` i dodaj `date`.
+
+Bez ręcznego Promote produkcja nie przełącza domeny na nowy build (gdy auto-assign jest wyłączone).
+
 - **Environment variables (Vercel Project Settings → Environment Variables)**
   - `TURSO_DATABASE_URL`
   - `TURSO_AUTH_TOKEN`
@@ -269,6 +279,7 @@ Zmiany GymBrat mają być **jasno opisane** i iść **z tego repozytorium** (`da
 - CI: `.github/workflows/deploy-guardian.yml` — blokuje obce repo i PR-y UI bez changelogu
 - Lokalnie: `npm run deploy:check`
 - Produkcja: publiczny `GET /api/version` oraz karta źródła na `/changelog`
+- Preview: ten sam endpoint może zawierać `plannedChangelog` (zapowiedź); na produkcji tylko wdrożone wpisy
 
 ### Database retention (protect free Turso storage)
 

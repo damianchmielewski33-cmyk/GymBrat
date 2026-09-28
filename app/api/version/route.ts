@@ -26,15 +26,22 @@ export async function GET(req: Request) {
   }
 
   const provenance = readDeployProvenance();
-  const changelog = CHANGELOG_ENTRIES.filter((entry) => !isPlannedChangelogEntry(entry)).map(
-    (entry) => ({
-      title: entry.title,
-      date: entry.date ?? null,
-      sourceRepo: entry.sourceRepo,
-      sha: entry.sha ?? null,
-      bullets: entry.bullets,
-    }),
-  );
+  const mapEntry = (entry: (typeof CHANGELOG_ENTRIES)[number]) => ({
+    title: entry.title,
+    date: entry.date ?? null,
+    sourceRepo: entry.sourceRepo,
+    sha: entry.sha ?? null,
+    bullets: entry.bullets,
+    planned: isPlannedChangelogEntry(entry),
+  });
+  const shipped = CHANGELOG_ENTRIES.filter((entry) => !isPlannedChangelogEntry(entry));
+  const planned = CHANGELOG_ENTRIES.filter((entry) => isPlannedChangelogEntry(entry));
+  const changelog = shipped.map(mapEntry);
+  /** Na Preview (zapowiedź) widać też wpisy planned; na produkcji tylko wdrożone. */
+  const showPlanned =
+    provenance.environment === "preview" ||
+    provenance.environment === "development";
+  const plannedChangelog = showPlanned ? planned.map(mapEntry) : [];
 
   let javaBackend: Record<string, unknown> | null = null;
   if (isJavaApiEnabled()) {
@@ -56,6 +63,7 @@ export async function GET(req: Request) {
   const res = NextResponse.json({
     ...provenance,
     changelog,
+    ...(plannedChangelog.length > 0 ? { plannedChangelog } : {}),
     ...(javaBackend ? { backend: javaBackend } : {}),
   });
   res.headers.set("Cache-Control", "public, no-store");

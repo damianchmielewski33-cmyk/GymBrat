@@ -429,6 +429,39 @@ export function ActiveWorkoutView({
       onListOpenChange={setListOpen}
       onSelectExercise={(id) => setSelectedExerciseId(id)}
       onPatchSet={patchSet}
+      onAddSet={(exerciseId) => {
+        const ex = exercises.find((e) => e.id === exerciseId);
+        if (!ex) return;
+        const last = ex.sets[ex.sets.length - 1];
+        setExercises(
+          exercises.map((e) =>
+            e.id !== exerciseId
+              ? e
+              : {
+                  ...e,
+                  sets: [
+                    ...e.sets,
+                    {
+                      reps: last?.reps ?? e.targetReps ?? null,
+                      weight: last?.weight ?? 0,
+                      done: false,
+                      rpe: null,
+                      rir: e.targetRir ?? null,
+                    },
+                  ],
+                },
+          ),
+        );
+      }}
+      onRemoveLastSet={(exerciseId) => {
+        const ex = exercises.find((e) => e.id === exerciseId);
+        if (!ex || ex.sets.length <= 1) return;
+        setExercises(
+          exercises.map((e) =>
+            e.id !== exerciseId ? e : { ...e, sets: e.sets.slice(0, -1) },
+          ),
+        );
+      }}
       onExerciseNoteChange={(exerciseId, note) =>
         patchExercise(exerciseId, { note })
       }

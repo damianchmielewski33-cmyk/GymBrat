@@ -153,12 +153,9 @@ function GoldButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex h-12 min-w-[7.5rem] items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold tracking-wide text-[#0a0906]",
-        "bg-gradient-to-b from-[#f0d56a] via-[#d4af37] to-[#b8922a]",
-        "shadow-[0_0_24px_rgba(212,175,55,0.45),0_8px_20px_rgba(0,0,0,0.45)]",
-        "transition hover:brightness-110 active:translate-y-px",
+        "gold-btn inline-flex h-12 min-w-[7.5rem] items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold tracking-wide",
         "disabled:pointer-events-none disabled:opacity-45",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8c547] focus-visible:ring-offset-2 focus-visible:ring-offset-[#121214]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#121214]",
         className,
       )}
     >
@@ -180,9 +177,9 @@ function GhostBackButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/25 bg-transparent px-4 text-sm font-medium text-white/90",
-        "transition hover:bg-white/[0.06] disabled:opacity-40",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+        "gym-btn-outline inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold",
+        "disabled:opacity-40",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50",
       )}
     >
       <ArrowLeft className="h-4 w-4" aria-hidden />
@@ -514,12 +511,12 @@ function PhotoSlotCard({
           type="button"
           disabled={disabled}
           onClick={() => inputRef.current?.click()}
-          className="flex h-full min-h-[9.5rem] w-full flex-col items-center justify-center gap-2 px-2 py-4 text-center disabled:opacity-50"
+          className="gold-btn flex h-full min-h-[9.5rem] w-full flex-col items-center justify-center gap-2 rounded-none px-2 py-4 text-center disabled:opacity-50"
         >
-          <Camera className="h-6 w-6 text-[#d4af37]" aria-hidden />
-          <span className="text-[11px] font-bold tracking-[0.16em] text-[#d4af37]">{label}</span>
-          <span className="h-px w-10 bg-white/15" aria-hidden />
-          <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-white/40">
+          <Camera className="h-6 w-6" aria-hidden />
+          <span className="text-[11px] font-bold tracking-[0.16em]">{label}</span>
+          <span className="h-px w-10 bg-black/20" aria-hidden />
+          <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-black/55">
             Lub z galerii
           </span>
         </button>
