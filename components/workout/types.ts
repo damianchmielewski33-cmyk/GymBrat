@@ -22,4 +22,8 @@ export type WorkoutExerciseState = {
   targetReps?: number;
   targetRir?: number | null;
   tempo?: string | null;
+  /** Wspólne id = superseria (kolejno w sesji). */
+  supersetGroupId?: string | null;
+  /** Sugestia ciężaru per seria (z ostatniej sesji). */
+  suggestedWeights?: Array<number | null>;
 };

@@ -16,6 +16,7 @@ import {
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import type { TreningiHubStats } from "@/lib/treningi-hub-stats";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
+import { printWorkoutPlans } from "@/lib/pdf/workout-plan-export";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -106,7 +107,18 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
-          onClick={() => flash("Eksport PDF w przygotowaniu.")}
+          onClick={() => {
+            if (!selected) {
+              flash("Najpierw wybierz plan.");
+              return;
+            }
+            const ok = printWorkoutPlans([{ id: selected.id, plan: selected.plan }]);
+            if (!ok) {
+              flash("Zezwól na wyskakujące okna, żeby wydrukować / zapisać PDF.");
+              return;
+            }
+            flash("Otworzono podgląd druku — Zapisz jako PDF.");
+          }}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[#121212] text-xs font-medium text-white/80"
         >
           <Printer className="h-3.5 w-3.5 text-[var(--gym-gold)]" />

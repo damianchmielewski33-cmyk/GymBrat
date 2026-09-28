@@ -12,6 +12,31 @@ type LegacyWorkoutPlanV1 = {
   week: LegacyWeekDay[];
 };
 
+function optionalRir(raw: unknown): number | null {
+  if (raw == null || raw === "") return null;
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(0, Math.min(5, Math.round(n)));
+}
+
+function optionalTempo(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const t = raw.trim().slice(0, 16);
+  return t.length > 0 ? t : null;
+}
+
+function optionalNote(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const t = raw.trim().slice(0, 500);
+  return t.length > 0 ? t : null;
+}
+
+function optionalSuperset(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const t = raw.trim().slice(0, 64);
+  return t.length > 0 ? t : null;
+}
+
 function migrateV1ToV2(legacy: LegacyWorkoutPlanV1): WorkoutPlanPayload {
   const firstTitle = legacy.week.find((d) => d.title.trim())?.title?.trim();
   const planName = firstTitle ?? "Mój plan treningowy";
@@ -24,6 +49,10 @@ function migrateV1ToV2(legacy: LegacyWorkoutPlanV1): WorkoutPlanPayload {
         categoryId: "shoulders",
         reps: 10,
         sets: 3,
+        rir: null,
+        tempo: null,
+        note: null,
+        supersetGroupId: null,
       });
     }
   }
@@ -62,6 +91,10 @@ export function normalizeWorkoutPlan(raw: unknown): WorkoutPlanPayload | null {
           typeof e.sets === "number" && Number.isFinite(e.sets) && e.sets > 0
             ? Math.min(20, Math.round(e.sets))
             : 3,
+        rir: optionalRir(e.rir),
+        tempo: optionalTempo(e.tempo),
+        note: optionalNote(e.note),
+        supersetGroupId: optionalSuperset(e.supersetGroupId),
       }));
     return {
       version: 2,

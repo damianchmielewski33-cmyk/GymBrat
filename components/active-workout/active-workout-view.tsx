@@ -8,6 +8,8 @@ import {
 } from "@/actions/workout-plan";
 import { mergeHintsIntoExercises } from "@/lib/last-workout-hints";
 import type { LastPlanHintsMap } from "@/lib/last-workout-hints";
+import { planExercisesToSession } from "@/lib/start-workout-session";
+import { detectSessionNewMaxes } from "@/lib/session-new-max";
 import { ActiveSessionCard } from "@/components/active-workout/active-session-card";
 import { GuidedSessionLayout } from "@/components/active-workout/guided-session-layout";
 import { WorkoutFinishedScreen } from "@/components/active-workout/workout-finished-screen";
@@ -18,7 +20,6 @@ import { RestBreakScreen } from "@/components/active-workout/rest-break-screen";
 import { readRestTimerPrefs } from "@/lib/rest-timer-prefs";
 import { playRestTimerEndSignal } from "@/lib/rest-timer-signal";
 import type { WorkoutExerciseState } from "@/components/workout/types";
-import type { WorkoutPlanExercise } from "@/lib/workout-plan-types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
@@ -34,40 +35,6 @@ type LastCompletedSnap = {
   nextLabel: string;
   nextValue: string;
 };
-
-function clampInt(n: number, min: number, max: number) {
-  if (!Number.isFinite(n)) return min;
-  return Math.max(min, Math.min(max, Math.round(n)));
-}
-
-/** Serie z planu (domyślnie 3); powtórzenia startowe z planu. */
-function planExercisesToSession(exercises: WorkoutPlanExercise[]): WorkoutExerciseState[] {
-  return exercises.map((ex) => {
-    const setCount =
-      typeof ex.sets === "number" && Number.isFinite(ex.sets) && ex.sets > 0
-        ? clampInt(ex.sets, 1, 20)
-        : 3;
-    const reps =
-      typeof ex.reps === "number" && Number.isFinite(ex.reps) && ex.reps > 0
-        ? clampInt(ex.reps, 1, 99)
-        : null;
-    return {
-      id: ex.id,
-      name: ex.name,
-      targetSets: setCount,
-      targetReps: reps ?? undefined,
-      targetRir: 1,
-      tempo: null,
-      sets: Array.from({ length: setCount }, () => ({
-        reps,
-        weight: 0,
-        done: false,
-        rpe: null,
-        rir: 1,
-      })),
-    };
-  });
-}
 
 export function ActiveWorkoutView({
   initialPlans,
@@ -116,6 +83,10 @@ export function ActiveWorkoutView({
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
   /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/start-workout`. */
   const [storeHydrated, setStoreHydrated] = useState(false);
+  const finishNewMaxes = useMemo(
+    () => detectSessionNewMaxes(exercises, lastPlanHints),
+    [exercises, lastPlanHints],
+  );
 
   const hasLoadedPlan = workoutPlanId != null && exercises.length > 0;
 
@@ -397,14 +368,27 @@ export function ActiveWorkoutView({
       setSelectedExerciseId(null);
       stopRest();
       setFinishOpen(false);
+      const newMaxHits = detectSessionNewMaxes(exercises, lastPlanHints);
       const completedSummary = {
         ...baseSummary,
         strengthDeltaPercent:
           result.status === "saved"
             ? result.strengthDeltaPercent
             : null,
+        newMaxHits,
       };
       sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
+      if (newMaxHits.length > 0) {
+        sessionStorage.setItem(
+          "gymbrat:newMaxToast",
+          `NOWY MAX: ${newMaxHits
+            .slice(0, 2)
+            .map((h) => `${h.exerciseName} (${h.value} kg)`)
+            .join(", ")}`,
+        );
+      } else {
+        sessionStorage.removeItem("gymbrat:newMaxToast");
+      }
       if (result.status === "queued") {
         sessionStorage.setItem("gymbrat:workoutQueued", "1");
       } else {
@@ -620,6 +604,11 @@ export function ActiveWorkoutView({
           setsTotal={completedSets.total}
           volumeKg={sessionTotal}
           saving={saving}
+          newMaxLabel={
+            finishNewMaxes[0]
+              ? `${finishNewMaxes[0].exerciseName} ${finishNewMaxes[0].value} kg`
+              : null
+          }
           onDone={() => {
             void completeWorkout();
           }}

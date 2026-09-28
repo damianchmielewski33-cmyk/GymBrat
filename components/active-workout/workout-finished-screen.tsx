@@ -31,7 +31,8 @@ export function WorkoutFinishedScreen({
   onReturn,
   onClose,
   saving,
-}: WorkoutFinishedScreenProps) {
+  newMaxLabel,
+}: WorkoutFinishedScreenProps & { newMaxLabel?: string | null }) {
   const minutes = Math.max(1, Math.round(elapsedSeconds / 60));
 
   return (
@@ -63,6 +64,11 @@ export function WorkoutFinishedScreen({
           <Trophy className="h-12 w-12 text-[var(--gym-gold)]" />
         </div>
         <h1 className="mt-6 text-center text-3xl font-semibold text-white">Trening zrobiony</h1>
+        {newMaxLabel ? (
+          <p className="mt-3 rounded-full border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/15 px-4 py-1.5 text-center text-xs font-bold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+            NOWY MAX · {newMaxLabel}
+          </p>
+        ) : null}
 
         <div className="mt-8 grid w-full max-w-sm grid-cols-3 divide-x divide-white/10 rounded-2xl border border-white/[0.08] bg-[#161616] py-4">
           <div className="px-2 text-center">

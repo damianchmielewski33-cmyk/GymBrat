@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, List, Minus, Plus, X } from "lucide-react";
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
-import { formatExerciseTargetLine } from "@/lib/start-workout-session";
+import { formatExerciseTargetLine, buildSupersetLabels } from "@/lib/start-workout-session";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -132,6 +132,16 @@ export function GuidedSessionLayout({
     return { done, total };
   }, [exercises]);
 
+  const supersetLabels = useMemo(
+    () => buildSupersetLabels(exercises),
+    [exercises],
+  );
+  const suggestedWeight =
+    exercise?.suggestedWeights?.[activeSetIndex] != null &&
+    (exercise.suggestedWeights[activeSetIndex] ?? 0) > 0
+      ? exercise.suggestedWeights[activeSetIndex]!
+      : null;
+
   function goPrev() {
     if (!exercise) return;
     if (activeSetIndex > 0) {
@@ -253,10 +263,20 @@ export function GuidedSessionLayout({
             zmień
           </button>
         </div>
-        <h2 className="mt-2 text-2xl font-semibold leading-tight text-white">{exercise.name}</h2>
+        <h2 className="mt-2 text-2xl font-semibold leading-tight text-white">
+          {supersetLabels[exercise.id] ? (
+            <span className="mr-2 text-[var(--gym-gold)]">
+              {supersetLabels[exercise.id]}
+            </span>
+          ) : null}
+          {exercise.name}
+        </h2>
         <p className="mt-1 font-mono text-xs text-white/45">
           {formatExerciseTargetLine(exercise)}
         </p>
+        {exercise.note?.trim() ? (
+          <p className="mt-1.5 text-sm text-white/55">{exercise.note}</p>
+        ) : null}
 
         <div className="mt-4 flex items-center gap-2">
           {exercise.sets.map((s, i) => (
@@ -315,6 +335,22 @@ export function GuidedSessionLayout({
             <label htmlFor="set-weight">Ciężar · kg</label>
             <span>wpisz lub ±</span>
           </div>
+          {suggestedWeight != null && set.weight <= 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                const next = clampWeight(suggestedWeight);
+                setWeightText(String(next));
+                onPatchSet(exercise.id, activeSetIndex, {
+                  weight: next,
+                  done: false,
+                });
+              }}
+              className="mt-2 inline-flex h-9 items-center rounded-full border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/15 px-3 text-xs font-semibold text-[var(--gym-gold)]"
+            >
+              Sugestia {suggestedWeight} kg
+            </button>
+          ) : null}
           <div className="mt-3 flex items-center justify-center gap-3">
             <button
               type="button"
@@ -336,7 +372,7 @@ export function GuidedSessionLayout({
               min={0}
               max={999}
               value={weightText}
-              placeholder="0"
+              placeholder={suggestedWeight != null ? String(suggestedWeight) : "0"}
               onChange={(e) => {
                 setWeightText(e.target.value);
                 const parsed = parseWeightInput(e.target.value);

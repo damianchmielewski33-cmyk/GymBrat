@@ -8,7 +8,13 @@ type CompletedPayload = {
   exercises?: Array<{
     id?: string;
     name?: string;
-    sets?: Array<{ reps?: unknown; weight?: unknown; rpe?: unknown; done?: boolean }>;
+    sets?: Array<{
+      reps?: unknown;
+      weight?: unknown;
+      rpe?: unknown;
+      rir?: unknown;
+      done?: boolean;
+    }>;
     note?: string;
   }>;
 };
@@ -33,6 +39,28 @@ export type LastPlanHintsMap = Record<
     note?: string;
   }
 >;
+
+/** Zaokrąglenie do kroku 2.5 kg. */
+export function roundToPlateStep(kg: number, step = 2.5): number {
+  if (!Number.isFinite(kg) || kg <= 0) return 0;
+  return Math.round(kg / step) * step;
+}
+
+/**
+ * Sugestia ciężaru: ostatni ciężar; +2.5 kg gdy RIR≤1 lub RPE≥8.
+ */
+export function suggestWeightFromLastSet(last: {
+  weight: number;
+  rpe?: number | null;
+  rir?: number | null;
+}): number {
+  const base = Math.max(0, Number(last.weight) || 0);
+  if (base <= 0) return 0;
+  const hard =
+    (last.rir != null && Number.isFinite(last.rir) && last.rir <= 1) ||
+    (last.rpe != null && Number.isFinite(last.rpe) && last.rpe >= 8);
+  return roundToPlateStep(hard ? base + 2.5 : base);
+}
 
 /** Ostatnia sesja z danego planu — podpowiedzi ciężaru/RPE po id ćwiczenia z planu. */
 export async function getLastWorkoutHintsForPlan(
@@ -70,8 +98,19 @@ export async function getLastWorkoutHintsForPlan(
         rpeRaw != null && rpeRaw !== ""
           ? Math.max(1, Math.min(10, Math.round(Number(rpeRaw))))
           : null;
+      const rirRaw = s.rir;
+      const rir =
+        rirRaw != null && rirRaw !== ""
+          ? Math.max(0, Math.min(5, Math.round(Number(rirRaw))))
+          : null;
       const done = Boolean(s.done);
-      return { reps: Number.isFinite(reps as number) ? reps : null, weight, done, rpe };
+      return {
+        reps: Number.isFinite(reps as number) ? reps : null,
+        weight,
+        done,
+        rpe,
+        rir,
+      };
     });
     out[id] = {
       sets,
@@ -89,20 +128,33 @@ export function mergeHintsIntoExercises(
   return exercises.map((ex) => {
     const h = hints[ex.id];
     if (!h?.sets?.length) return ex;
-    if (h.sets.length !== ex.sets.length) return ex;
+    const suggestedWeights = ex.sets.map((_, i) => {
+      const hs = h.sets[i] ?? h.sets[h.sets.length - 1];
+      if (!hs || hs.weight <= 0) return null;
+      return suggestWeightFromLastSet(hs);
+    });
+    if (h.sets.length !== ex.sets.length) {
+      return {
+        ...ex,
+        suggestedWeights,
+        note: ex.note?.trim() ? ex.note : h.note,
+      };
+    }
     const sets = ex.sets.map((s, i) => {
       const hs = h.sets[i];
       if (!hs) return s;
       return {
         ...s,
-        weight: hs.weight > 0 ? hs.weight : s.weight,
-        reps: hs.reps != null ? hs.reps : s.reps,
+        // Ciężar zostaje 0 — użytkownik klika chip „Sugestia”.
+        reps: s.reps != null ? s.reps : hs.reps,
         rpe: hs.rpe != null ? hs.rpe : s.rpe,
+        rir: hs.rir != null ? hs.rir : s.rir,
       };
     });
     return {
       ...ex,
       sets,
+      suggestedWeights,
       note: ex.note?.trim() ? ex.note : h.note,
     };
   });

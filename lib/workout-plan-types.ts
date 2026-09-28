@@ -5,6 +5,14 @@ export type WorkoutPlanExercise = {
   reps: number;
   /** Liczba serii w planie (domyślnie 3 przy starcie sesji). */
   sets: number;
+  /** RIR docelowy (0–5), opcjonalnie. */
+  rir?: number | null;
+  /** Tempo np. "3010", opcjonalnie. */
+  tempo?: string | null;
+  /** Notatka techniczna / cue. */
+  note?: string | null;
+  /** Ćwiczenia z tym samym id = superseria (kolejno w sesji). */
+  supersetGroupId?: string | null;
 };
 
 /** Aktualny format planu (v2). */

@@ -33,6 +33,8 @@ type ApiOk = {
     maxWeight: { value: number; date: string | null };
     maxTonnageKg: { value: number; date: string | null };
   };
+  newMax?: { e1rm: boolean; weight: boolean; tonnage: boolean };
+  hasNewMax?: boolean;
 };
 
 type ApiErr = { error: string };
@@ -180,25 +182,62 @@ export function ExerciseProgressClient({
       </div>
 
       {data ? (
-        <section className="grid gap-4 sm:grid-cols-3">
+        <section className="space-y-3">
+          {data.hasNewMax ? (
+            <div className="rounded-2xl border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/15 px-4 py-3 text-center">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
+                NOWY MAX
+              </p>
+              <p className="mt-1 text-xs text-white/70">
+                {[
+                  data.newMax?.e1rm ? "e1RM" : null,
+                  data.newMax?.weight ? "ciężar" : null,
+                  data.newMax?.tonnage ? "tonaż" : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}{" "}
+                — najlepszy wynik w ostatnim treningu.
+              </p>
+            </div>
+          ) : null}
+          <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
             icon={Trophy}
             label="Rekord e1RM"
             value={`${data.prs.maxE1rm.value} kg`}
-            hint={data.prs.maxE1rm.date ? fmtDate(data.prs.maxE1rm.date) : "—"}
+            hint={
+              data.newMax?.e1rm
+                ? "NOWY MAX"
+                : data.prs.maxE1rm.date
+                  ? fmtDate(data.prs.maxE1rm.date)
+                  : "—"
+            }
           />
           <StatCard
             icon={Dumbbell}
             label="Rekord ciężaru"
             value={`${data.prs.maxWeight.value} kg`}
-            hint={data.prs.maxWeight.date ? fmtDate(data.prs.maxWeight.date) : "—"}
+            hint={
+              data.newMax?.weight
+                ? "NOWY MAX"
+                : data.prs.maxWeight.date
+                  ? fmtDate(data.prs.maxWeight.date)
+                  : "—"
+            }
           />
           <StatCard
             icon={Flame}
             label="Rekord tonażu"
             value={`${data.prs.maxTonnageKg.value} kg`}
-            hint={data.prs.maxTonnageKg.date ? fmtDate(data.prs.maxTonnageKg.date) : "—"}
+            hint={
+              data.newMax?.tonnage
+                ? "NOWY MAX"
+                : data.prs.maxTonnageKg.date
+                  ? fmtDate(data.prs.maxTonnageKg.date)
+                  : "—"
+            }
           />
+          </div>
         </section>
       ) : null}
 

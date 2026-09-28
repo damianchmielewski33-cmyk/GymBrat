@@ -205,6 +205,22 @@ export async function getExerciseProgressSeries(params: {
       prs.maxTonnageKg = { value: p.tonnageKg, date: p.date };
   }
 
+  const latest = points.length > 0 ? points[points.length - 1]! : null;
+  const priorPoints = points.slice(0, -1);
+  const priorMaxE1rm = priorPoints.reduce((m, p) => Math.max(m, p.bestE1rm), 0);
+  const priorMaxWeight = priorPoints.reduce((m, p) => Math.max(m, p.bestWeight), 0);
+  const priorMaxTonnage = priorPoints.reduce((m, p) => Math.max(m, p.tonnageKg), 0);
+  const newMax = {
+    e1rm: Boolean(latest && latest.bestE1rm > priorMaxE1rm && priorPoints.length > 0),
+    weight: Boolean(
+      latest && latest.bestWeight > priorMaxWeight && priorPoints.length > 0,
+    ),
+    tonnage: Boolean(
+      latest && latest.tonnageKg > priorMaxTonnage && priorPoints.length > 0,
+    ),
+  };
+  const hasNewMax = newMax.e1rm || newMax.weight || newMax.tonnage;
+
   const matchedExerciseNames = [...matchedNameCounts.entries()]
     .sort((a, b) => b[1] - a[1])
     .map(([name]) => name)
@@ -215,6 +231,8 @@ export async function getExerciseProgressSeries(params: {
     matchedExerciseNames,
     points,
     prs,
+    newMax,
+    hasNewMax,
   };
 }
 

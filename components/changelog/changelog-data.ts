@@ -5,15 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
-    title: "Zapowiedź — złote CTA, edycja serii i planu z pliku",
+    title: "Zapowiedź — pakiet treningu V1",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
-      "Przyciski w wizardzie raportu (Dalej, Zapisz, Dodaj raport, sloty zdjęć) mają jednolity złoty, wypełniony styl CTA.",
-      "Ekran przerwy między seriami ma złote, wypełnione presety czasu oraz przyciski +30 s, dźwięk i Dalej w tym samym nowoczesnym wyglądzie.",
-      "Podczas treningu ciężar i powtórzenia da się wpisać z klawiatury, a liczbę serii zmienić przyciskami + Seria / Usuń ostatnią.",
-      "Po imporcie planu z PDF/Word/Excel można od razu edytować ćwiczenia: usuwać je z listy, zmieniać nazwę, serie i powtórzenia.",
-      "Na Pulpicie w kafelku Makro dziś i Makro tydzień widać ile już zjedzono i ile zostało do spożycia (B/W/T).",
+      "Przyciski w wizardzie raportu i na ekranie przerwy mają jednolity złoty styl CTA; podczas treningu ciężar i serie są edytowalne.",
+      "Po imporcie planu z PDF/Word/Excel można edytować ćwiczenia, a w planie ustawisz RIR, tempo, notatki i superserie.",
+      "Na Treningach działa eksport planu do PDF/druku oraz generowanie planu z AI (dni siłowe zapisują się do edycji).",
+      "Sugestia ciężaru z ostatniej sesji (chip per seria) oraz ekran postępu z badge NOWY MAX po pobiciu rekordu.",
+      "Niedokończoną sesję treningu da się wznowić na innym telefonie lub PC dzięki synchronizacji aktywnej sesji w chmurze.",
+      "Na Pulpicie w Makro dziś widać ile już zjedzono i ile zostało do spożycia (B/W/T).",
     ],
   },
   {

@@ -339,6 +339,19 @@ export const workoutPlans = sqliteTable("workout_plans", {
     .$defaultFn(() => new Date()),
 });
 
+/** Jedna aktywna (niedokończona) sesja treningu na użytkownika — sync między urządzeniami. */
+export const activeWorkoutSessions = sqliteTable("active_workout_sessions", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  payloadJson: text("payload_json").notNull(),
+  revision: integer("revision").notNull().default(1),
+  deviceId: text("device_id").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const workoutPlansRelations = relations(workoutPlans, ({ one, many }) => ({
   user: one(users, {
     fields: [workoutPlans.userId],

@@ -133,6 +133,17 @@ CREATE TABLE IF NOT EXISTS "admin_audit_log" (
   await db.$client.execute(
     `CREATE INDEX IF NOT EXISTS "idx_admin_audit_created" ON "admin_audit_log" ("created_at")`,
   );
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "active_workout_sessions" (
+  "user_id" text PRIMARY KEY NOT NULL,
+  "payload_json" text NOT NULL,
+  "revision" integer DEFAULT 1 NOT NULL,
+  "device_id" text NOT NULL,
+  "updated_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
 }
 
 let mealLogsEnsured = false;

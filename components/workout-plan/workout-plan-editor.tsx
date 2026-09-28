@@ -7,7 +7,6 @@ import {
   ChevronUp,
   Dumbbell,
   GripVertical,
-  Lock,
   Pencil,
   Plus,
   Save,
@@ -29,6 +28,7 @@ import {
   type WorkoutPlanExercise,
   type WorkoutPlanPayload,
 } from "@/actions/workout-plan";
+import { generateAndSaveAiWorkoutPlans } from "@/actions/ai-workout-plan";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,6 +94,12 @@ export function WorkoutPlanEditor({
   );
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [aiPending, setAiPending] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiDays, setAiDays] = useState(4);
+  const [aiLevel, setAiLevel] = useState<"beginner" | "intermediate" | "advanced">(
+    "intermediate",
+  );
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [addCategoryId, setAddCategoryId] = useState(MUSCLE_CATEGORIES[0]!.id);
@@ -153,6 +159,36 @@ export function WorkoutPlanEditor({
     });
   }, []);
 
+  const linkSupersetWithNext = useCallback((id: string) => {
+    setPlan((prev) => {
+      const idx = prev.exercises.findIndex((e) => e.id === id);
+      if (idx < 0 || idx >= prev.exercises.length - 1) return prev;
+      const current = prev.exercises[idx]!;
+      const next = prev.exercises[idx + 1]!;
+      const groupId =
+        current.supersetGroupId?.trim() ||
+        next.supersetGroupId?.trim() ||
+        uid();
+      return {
+        ...prev,
+        exercises: prev.exercises.map((e, i) =>
+          i === idx || i === idx + 1
+            ? { ...e, supersetGroupId: groupId }
+            : e,
+        ),
+      };
+    });
+  }, []);
+
+  const unlinkSuperset = useCallback((id: string) => {
+    setPlan((prev) => ({
+      ...prev,
+      exercises: prev.exercises.map((e) =>
+        e.id === id ? { ...e, supersetGroupId: null } : e,
+      ),
+    }));
+  }, []);
+
   function planSetCount(exercises: WorkoutPlanExercise[]) {
     return exercises.reduce((acc, ex) => {
       const n =
@@ -175,6 +211,10 @@ export function WorkoutPlanEditor({
             categoryId,
             reps: 10,
             sets: 3,
+            rir: 1,
+            tempo: null,
+            note: null,
+            supersetGroupId: null,
           },
         ],
       }));
@@ -207,6 +247,10 @@ export function WorkoutPlanEditor({
           categoryId: addCategoryId,
           reps: 10,
           sets: 3,
+          rir: 1,
+          tempo: null,
+          note: null,
+          supersetGroupId: null,
         },
       ],
     }));
@@ -530,28 +574,97 @@ export function WorkoutPlanEditor({
               </div>
             </button>
 
-            <div className="glass-panel relative overflow-hidden rounded-2xl p-8 opacity-60">
-              <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:linear-gradient(120deg,rgba(255,255,255,0.06),transparent_55%)]" />
+            <button
+              type="button"
+              disabled={aiPending}
+              onClick={() => {
+                setAiError(null);
+                setAiPending(true);
+                startTransition(async () => {
+                  const res = await generateAndSaveAiWorkoutPlans({
+                    daysPerWeek: aiDays,
+                    experienceLevel: aiLevel,
+                    goals: ["Siła i sylwetka"],
+                  });
+                  setAiPending(false);
+                  if (!res.ok) {
+                    setAiError(res.error);
+                    return;
+                  }
+                  notifySaved(
+                    res.count === 1
+                      ? "Wygenerowano i zapisano 1 dzień planu."
+                      : `Wygenerowano i zapisano ${res.count} dni planu.`,
+                  );
+                  const first = res.ids[0];
+                  if (first) {
+                    router.push(
+                      `/profile/workout-plan?edit=${encodeURIComponent(first)}`,
+                    );
+                  }
+                  router.refresh();
+                });
+              }}
+              className="glass-panel group relative overflow-hidden rounded-2xl p-8 text-left transition hover:border-[var(--neon)]/40 disabled:opacity-60"
+            >
+              <div className="pointer-events-none absolute inset-0 opacity-70 [background-image:linear-gradient(120deg,rgba(255,255,255,0.10),transparent_55%),radial-gradient(540px_260px_at_10%_10%,rgba(255,45,85,0.16),transparent_60%)]" />
               <div className="relative space-y-3">
-                <div className="flex items-center gap-2">
-                  <Lock className="h-8 w-8 text-white/40" />
-                  <span className="rounded-full border border-white/15 bg-black/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white/50">
-                    Wkrótce
-                  </span>
-                </div>
-                <h2 className="font-heading text-xl font-semibold text-white/80">
+                <Sparkles className="h-8 w-8 text-[var(--neon)]" />
+                <h2 className="font-heading text-xl font-semibold text-white">
                   Stwórz plan treningowy z AI
                 </h2>
-                <p className="text-sm text-white/50">
-                  Ta opcja będzie dostępna w przyszłości — automatyczne układanie
-                  planu na podstawie celów i sprzętu.
+                <p className="text-sm text-white/65">
+                  Na podstawie profilu (waga, wzrost, aktywność) układamy dni
+                  siłowe z ćwiczeniami — potem możesz je edytować.
                 </p>
-                <Button type="button" disabled variant="outline" className="mt-2">
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Niedostępne
-                </Button>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <label className="text-xs text-white/55">
+                    Dni{" "}
+                    <select
+                      value={aiDays}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) =>
+                        setAiDays(Number.parseInt(e.target.value, 10) || 4)
+                      }
+                      className="ml-1 rounded-md border border-white/15 bg-black/40 px-2 py-1 text-white"
+                    >
+                      {[3, 4, 5, 6].map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs text-white/55">
+                    Poziom{" "}
+                    <select
+                      value={aiLevel}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) =>
+                        setAiLevel(
+                          e.target.value as
+                            | "beginner"
+                            | "intermediate"
+                            | "advanced",
+                        )
+                      }
+                      className="ml-1 rounded-md border border-white/15 bg-black/40 px-2 py-1 text-white"
+                    >
+                      <option value="beginner">początkujący</option>
+                      <option value="intermediate">średni</option>
+                      <option value="advanced">zaawansowany</option>
+                    </select>
+                  </label>
+                </div>
+                {aiError ? (
+                  <p className="text-sm text-rose-300">{aiError}</p>
+                ) : null}
+                <span className="inline-flex items-center gap-2 rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10 px-3 py-2 text-sm font-semibold text-white">
+                  <Sparkles className="h-4 w-4" />
+                  {aiPending ? "Generuję…" : "Wygeneruj plan"}
+                </span>
               </div>
-            </div>
+            </button>
           </motion.div>
         ) : (
           <motion.div
@@ -705,6 +818,81 @@ export function WorkoutPlanEditor({
                           className="h-9 w-16 border-white/15 bg-black/25 text-center text-white"
                         />
                       </div>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`rir-${ex.id}`} className="text-xs text-white/55">
+                          RIR
+                        </Label>
+                        <Input
+                          id={`rir-${ex.id}`}
+                          type="number"
+                          min={0}
+                          max={5}
+                          value={ex.rir ?? ""}
+                          placeholder="—"
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            if (raw === "") {
+                              updateExercise(ex.id, { rir: null });
+                              return;
+                            }
+                            const n = Number.parseInt(raw, 10);
+                            if (!Number.isFinite(n)) return;
+                            updateExercise(ex.id, {
+                              rir: Math.max(0, Math.min(5, n)),
+                            });
+                          }}
+                          className="h-9 w-14 border-white/15 bg-black/25 text-center text-white"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`tempo-${ex.id}`} className="text-xs text-white/55">
+                          Tempo
+                        </Label>
+                        <Input
+                          id={`tempo-${ex.id}`}
+                          value={ex.tempo ?? ""}
+                          placeholder="3010"
+                          onChange={(e) =>
+                            updateExercise(ex.id, {
+                              tempo: e.target.value.trim() || null,
+                            })
+                          }
+                          className="h-9 w-20 border-white/15 bg-black/25 text-center text-white"
+                        />
+                      </div>
+                      {ex.supersetGroupId ? (
+                        <button
+                          type="button"
+                          onClick={() => unlinkSuperset(ex.id)}
+                          className="rounded-lg border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-2.5 py-1.5 text-[11px] font-semibold text-[var(--gym-gold)]"
+                        >
+                          Superseria · rozłącz
+                        </button>
+                      ) : idx < plan.exercises.length - 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => linkSupersetWithNext(ex.id)}
+                          className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-white/70 hover:bg-white/[0.06]"
+                        >
+                          Superseria z następnym
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="pl-10">
+                      <Label htmlFor={`note-${ex.id}`} className="text-xs text-white/55">
+                        Notatka
+                      </Label>
+                      <Input
+                        id={`note-${ex.id}`}
+                        value={ex.note ?? ""}
+                        placeholder="Cue techniczny, tempo pauzy…"
+                        onChange={(e) =>
+                          updateExercise(ex.id, {
+                            note: e.target.value.trim() || null,
+                          })
+                        }
+                        className="mt-1 h-9 border-white/15 bg-black/25 text-white placeholder:text-white/30"
+                      />
                     </div>
                   </motion.li>
                 ))}

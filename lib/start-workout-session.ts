@@ -20,19 +20,23 @@ export function planExercisesToSession(
       typeof ex.reps === "number" && Number.isFinite(ex.reps) && ex.reps > 0
         ? clampInt(ex.reps, 1, 99)
         : null;
+    const targetRir =
+      typeof ex.rir === "number" && Number.isFinite(ex.rir) ? ex.rir : 1;
     return {
       id: ex.id,
       name: ex.name,
       targetSets: setCount,
       targetReps: reps ?? undefined,
-      targetRir: 1,
-      tempo: null,
+      targetRir,
+      tempo: ex.tempo ?? null,
+      note: ex.note?.trim() || undefined,
+      supersetGroupId: ex.supersetGroupId ?? null,
       sets: Array.from({ length: setCount }, () => ({
         reps,
         weight: 0,
         done: false,
         rpe: null,
-        rir: 1,
+        rir: targetRir,
       })),
     };
   });
@@ -73,5 +77,29 @@ export function formatExerciseTargetLine(ex: WorkoutExerciseState): string {
   else parts.push(`${sets}s`);
   if (ex.targetRir != null) parts.push(`RIR ${ex.targetRir}`);
   if (ex.tempo) parts.push(`tempo ${ex.tempo}`);
+  if (ex.supersetGroupId) parts.push("superseria");
   return parts.join(" · ");
+}
+
+/** Etykiety A1, A2, B1… dla grup superserii w kolejności planu. */
+export function buildSupersetLabels(
+  exercises: Array<{ id: string; supersetGroupId?: string | null }>,
+): Record<string, string> {
+  const labels: Record<string, string> = {};
+  const groupLetter = new Map<string, string>();
+  const groupIndex = new Map<string, number>();
+  let nextLetter = 0;
+  for (const ex of exercises) {
+    const g = ex.supersetGroupId?.trim();
+    if (!g) continue;
+    if (!groupLetter.has(g)) {
+      groupLetter.set(g, String.fromCharCode(65 + (nextLetter % 26)));
+      nextLetter += 1;
+      groupIndex.set(g, 0);
+    }
+    const idx = (groupIndex.get(g) ?? 0) + 1;
+    groupIndex.set(g, idx);
+    labels[ex.id] = `${groupLetter.get(g)}${idx}`;
+  }
+  return labels;
 }

@@ -84,6 +84,7 @@ export const RATE = {
   bodyReportImport: { limit: 12, windowMs: 60_000 },
   bodyReportCreate: { limit: 24, windowMs: 60_000 },
   progressExercise: { limit: 60, windowMs: 60_000 },
+  activeWorkoutSession: { limit: 90, windowMs: 60_000 },
   userExport: { limit: 12, windowMs: 60 * 60_000 },
   accountDelete: { limit: 5, windowMs: 24 * 60 * 60_000 },
   androidVersion: { limit: 120, windowMs: 60_000 },

@@ -152,21 +152,27 @@ export async function saveWorkoutPlan(plan: WorkoutPlanPayload, planId?: string)
       .update(workoutPlans)
       .set({ planJson: json, updatedAt: now })
       .where(eq(workoutPlans.id, planId));
-  } else {
-    await db.insert(workoutPlans).values({
-      id: randomUUID(),
-      userId: session.user.id,
-      planJson: json,
-      createdAt: now,
-      updatedAt: now,
-    });
+    revalidatePath("/workout-plan");
+    revalidatePath("/profile/workout-plan");
+    revalidatePath("/profile");
+    revalidatePath("/active-workout");
+    return { ok: true as const, id: planId };
   }
+
+  const id = randomUUID();
+  await db.insert(workoutPlans).values({
+    id,
+    userId: session.user.id,
+    planJson: json,
+    createdAt: now,
+    updatedAt: now,
+  });
 
   revalidatePath("/workout-plan");
   revalidatePath("/profile/workout-plan");
   revalidatePath("/profile");
   revalidatePath("/active-workout");
-  return { ok: true as const };
+  return { ok: true as const, id };
 }
 
 /** Podpowiedzi z ostatniego treningu dla danego planu (ciężar / RPE). */
