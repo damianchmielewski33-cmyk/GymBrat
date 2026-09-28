@@ -1,8 +1,11 @@
+import { isRestMuted } from "@/lib/exercise-rest-prefs";
+
 /**
  * Krótki sygnał końca odpoczynku: Web Audio + fallback wibracja.
  */
 export function playRestTimerEndSignal() {
   if (typeof window === "undefined") return;
+  if (isRestMuted()) return;
 
   try {
     const ctx = new AudioContext();

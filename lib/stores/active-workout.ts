@@ -22,7 +22,7 @@ type ActiveWorkoutState = {
   patchSet: (exerciseId: string, setIndex: number, patch: Partial<WorkoutSetState>) => void;
   patchExercise: (
     exerciseId: string,
-    patch: Partial<Pick<WorkoutExerciseState, "note">>,
+    patch: Partial<Pick<WorkoutExerciseState, "note" | "targetReps">>,
   ) => void;
   start: () => void;
   stopTimer: () => void;
@@ -56,15 +56,15 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
             ...patch,
           };
 
-          // Auto-ukończenie: wpisane powtórzenia + ciężar oznacza serię jako zakończoną.
+          // Auto-ukończenie: wpisane powtórzenia (ciężar 0 = ćwiczenie z masą ciała).
           const autoDone =
             nextSet.reps != null &&
             Number.isFinite(nextSet.reps) &&
             nextSet.reps > 0 &&
             Number.isFinite(nextSet.weight) &&
-            nextSet.weight > 0;
+            nextSet.weight >= 0;
 
-          nextSet.done = autoDone;
+          nextSet.done = patch.done !== undefined ? Boolean(patch.done) : autoDone;
 
           return {
             exercises: s.exercises.map((e) =>

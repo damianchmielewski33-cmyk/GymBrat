@@ -104,6 +104,7 @@ export function mergeHintsIntoExercises(
       ...ex,
       sets,
       note: ex.note?.trim() ? ex.note : h.note,
+      targetReps: ex.targetReps,
     };
   });
 }

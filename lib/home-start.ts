@@ -19,6 +19,7 @@ import {
 } from "@/lib/local-date";
 import { getStreaks } from "@/lib/streaks";
 import { countDistinctWorkoutDaysInRange } from "@/lib/weekly-sessions";
+import { pickQueuedPlan } from "@/lib/workout-days";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
 
 export type HomeStartWeightPoint = { date: string; kg: number };
@@ -144,19 +145,8 @@ async function getNextWorkoutPlan(userId: string) {
     }
   }
 
-  if (candidates.length === 0) return null;
-
-  // Następny = najdawniej trenowany / nigdy nie trenowany.
-  candidates.sort((a, b) => {
-    if (a.lastWorkoutDate && b.lastWorkoutDate) {
-      return a.lastWorkoutDate.localeCompare(b.lastWorkoutDate);
-    }
-    if (!a.lastWorkoutDate && b.lastWorkoutDate) return -1;
-    if (a.lastWorkoutDate && !b.lastWorkoutDate) return 1;
-    return b.updatedAt.localeCompare(a.updatedAt);
-  });
-
-  const next = candidates[0]!;
+  const next = pickQueuedPlan(candidates);
+  if (!next) return null;
   return {
     planId: next.planId,
     planName: next.planName,

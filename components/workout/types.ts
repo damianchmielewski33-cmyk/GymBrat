@@ -15,4 +15,6 @@ export type WorkoutExerciseState = {
   name: string;
   sets: WorkoutSetState[];
   note?: string;
+  /** Docelowe powtórzenia z planu (schemat na liście ćwiczeń). */
+  targetReps?: number;
 };
