@@ -9,47 +9,22 @@ import {
 import { mergeHintsIntoExercises } from "@/lib/last-workout-hints";
 import type { LastPlanHintsMap } from "@/lib/last-workout-hints";
 import { ActiveSessionCard } from "@/components/active-workout/active-session-card";
-import { GymPadSessionLayout } from "@/components/active-workout/gympad-session-layout";
-import { PlanProgressHeader } from "@/components/active-workout/plan-progress-header";
+import { GuidedWorkoutSession } from "@/components/active-workout/guided-workout-session";
 import { StartWorkoutScreen } from "@/components/active-workout/start-workout-screen";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { RestTimerBar } from "@/components/workout/RestTimerBar";
-import { readRestTimerPrefs } from "@/lib/rest-timer-prefs";
-import { playRestTimerEndSignal } from "@/lib/rest-timer-signal";
 import type { WorkoutExerciseState } from "@/components/workout/types";
-import { WorkoutSummary } from "@/components/workout/WorkoutSummary";
-import type { WorkoutPlanExercise } from "@/lib/workout-plan-types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
-import { SlidersHorizontal, RotateCcw, ScrollText } from "lucide-react";
-import { ActiveWorkoutCoachPanel } from "@/components/active-workout/active-workout-coach-panel";
+import { planExercisesToSession } from "@/lib/session-from-plan";
+import { pickQueuedPlan } from "@/lib/workout-days";
+import { RotateCcw } from "lucide-react";
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
   return Math.max(min, Math.min(max, Math.round(n)));
-}
-
-/** Domyślnie 3 serie: puste powtórzenia (null); z planu można wypełnić przy starcie. */
-function planExercisesToSession(exercises: WorkoutPlanExercise[]): WorkoutExerciseState[] {
-  return exercises.map((ex) => ({
-    id: ex.id,
-    name: ex.name,
-    sets: Array.from({ length: 3 }, () => ({
-      reps:
-        typeof ex.reps === "number" && Number.isFinite(ex.reps) && ex.reps > 0
-          ? clampInt(ex.reps, 1, 99)
-          : null,
-      weight: 0,
-      done: false,
-      rpe: null,
-    })),
-  }));
 }
 
 export function ActiveWorkoutView({
@@ -153,9 +128,39 @@ export function ActiveWorkoutView({
     }
   }, [display, entry, hasLoadedPlan, router, suppressRouteGate, storeHydrated]);
 
-  function startRest(seconds: number) {
-    setRestRemaining(seconds);
-  }
+  const autostartRef = useRef(false);
+
+  useEffect(() => {
+    if (autostartRef.current || !storeHydrated || hasLoadedPlan || entry !== "start") return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const planId = params.get("planId");
+    const autostart = params.get("autostart") === "1";
+    if (!autostart && !planId) return;
+    const row =
+      (planId ? initialPlans.find((p) => p.id === planId) : null) ??
+      (autostart ? pickQueuedPlan(initialPlans) : null);
+    if (!row || row.plan.exercises.length === 0) return;
+    autostartRef.current = true;
+    if (row.plan.exercises.length === 0) return;
+    hintsMergedRef.current = false;
+    applyPlan(row.id, row.plan);
+    const next = planExercisesToSession(row.plan.exercises);
+    setExercises(next);
+    setSelectedExerciseId(next[0]?.id ?? null);
+    setSaveError(null);
+    start();
+    sessionStorage.setItem("active-workout:skipResumeOnce", "1");
+  }, [
+    storeHydrated,
+    hasLoadedPlan,
+    entry,
+    initialPlans,
+    applyPlan,
+    setExercises,
+    setSelectedExerciseId,
+    start,
+  ]);
 
   const sessionTotal = useMemo(() => sessionVolume(exercises), [exercises]);
 
@@ -208,23 +213,6 @@ export function ActiveWorkoutView({
     }
   }, [entry]);
 
-  useEffect(() => {
-    if (restRemaining === null || restRemaining <= 0) return;
-    const id = window.setInterval(() => {
-      setRestRemaining((r) => {
-        if (r === null) return null;
-        if (r <= 1) {
-          if (r === 1) {
-            queueMicrotask(() => playRestTimerEndSignal());
-          }
-          return null;
-        }
-        return r - 1;
-      });
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [restRemaining]);
-
   const elapsed = useMemo(() => {
     const running =
       startedAt != null ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
@@ -243,59 +231,12 @@ export function ActiveWorkoutView({
     return { done, total };
   }, [exercises]);
 
-  function patchSet(exerciseId: string, setIndex: number, patch: Partial<{ reps: number | null; weight: number }>) {
-    const ex = exercises.find((e) => e.id === exerciseId);
-    const current = ex?.sets[setIndex];
-    const wasDone = current?.done ?? false;
-
+  function patchSet(
+    exerciseId: string,
+    setIndex: number,
+    patch: Partial<{ reps: number | null; weight: number; done: boolean }>,
+  ) {
     patchSetInStore(exerciseId, setIndex, patch);
-
-    // Start odpoczynku tylko przy przejściu false -> true (auto-done po wpisaniu danych).
-    const nextReps = patch.reps !== undefined ? patch.reps : current?.reps ?? null;
-    const nextWeight = patch.weight !== undefined ? patch.weight : current?.weight ?? 0;
-    const isDoneNext =
-      nextReps != null &&
-      Number.isFinite(nextReps) &&
-      nextReps > 0 &&
-      Number.isFinite(nextWeight) &&
-      nextWeight > 0;
-    if (isDoneNext && !wasDone) {
-      const { autoStart, defaultSeconds } = readRestTimerPrefs();
-      if (autoStart) {
-        queueMicrotask(() => startRest(defaultSeconds));
-      }
-    }
-  }
-
-  function addSet(exerciseId: string) {
-    setExercises(
-      exercises.map((ex) => {
-        if (ex.id !== exerciseId) return ex;
-        const last = ex.sets[ex.sets.length - 1];
-        return {
-          ...ex,
-          sets: [
-            ...ex.sets,
-            {
-              reps: last ? last.reps : null,
-              weight: last ? last.weight : 0,
-              rpe: last?.rpe ?? null,
-              done: false,
-            },
-          ],
-        };
-      }),
-    );
-  }
-
-  function removeLastSet(exerciseId: string) {
-    setExercises(
-      exercises.map((ex) => {
-        if (ex.id !== exerciseId) return ex;
-        if (ex.sets.length <= 1) return ex;
-        return { ...ex, sets: ex.sets.slice(0, -1) };
-      }),
-    );
   }
 
   function beginWorkoutFromPlan(row: WorkoutPlanWithLastWorkoutDTO) {
@@ -306,16 +247,10 @@ export function ActiveWorkoutView({
     setExercises(next);
     setSelectedExerciseId(next[0]?.id ?? null);
     setSaveError(null);
-    stopRest();
     start();
     if (entry === "start") {
       sessionStorage.setItem("active-workout:skipResumeOnce", "1");
-      /** Nawigacja: wyłącznie efekt „route gate” (`start` + `hasLoadedPlan` → `replace`), żeby uniknąć podwójnego push/replace i wyścigów z hydracją. */
     }
-  }
-
-  function stopRest() {
-    setRestRemaining(null);
   }
 
   async function completeWorkout() {
