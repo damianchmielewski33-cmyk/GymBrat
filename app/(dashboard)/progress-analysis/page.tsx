@@ -8,6 +8,7 @@ import { listExerciseNameSuggestions } from "@/lib/exercise-progress";
 import { ChartLine, Dumbbell, Layers3, Ruler, type LucideIcon } from "lucide-react";
 import { redirect } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { AppPageHeader } from "@/components/layout/screen";
 
 function AnalysisStat({
   icon: Icon,
@@ -21,16 +22,14 @@ function AnalysisStat({
   hint?: string;
 }) {
   return (
-    <div className="flex min-h-[100px] flex-col rounded-[18px] bg-[#161616] px-3.5 py-3.5">
+    <div className="app-card flex min-h-[100px] flex-col px-3.5 py-3.5">
       <div className="flex items-center gap-2">
         <Icon
           className="h-[16px] w-[16px] shrink-0 text-[var(--gym-gold)]"
           strokeWidth={1.75}
           aria-hidden
         />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-          {label}
-        </p>
+        <p className="app-label text-[var(--gym-gold)]">{label}</p>
       </div>
       <p className="mt-3 font-display text-[26px] leading-none tracking-wide text-white">
         {value}
@@ -65,17 +64,11 @@ export default async function ProgressAnalysisPage({
 
   return (
     <div className="space-y-3">
-      <header className="px-0.5 pb-1 pt-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
-          Postępy
-        </p>
-        <h1 className="mt-1 text-[28px] font-semibold leading-tight tracking-tight text-white">
-          Analiza
-        </h1>
-        <p className="mt-2 text-sm text-white/45">
-          Waga, tonaż, siła i pomiary z treningów oraz raportów — w tym samym stylu co Pulpit.
-        </p>
-      </header>
+      <AppPageHeader
+        kicker="Postępy"
+        title="Analiza"
+        description="Waga, tonaż, siła i pomiary z treningów oraz raportów — w tym samym stylu co Pulpit."
+      />
 
       <section className="grid grid-cols-2 gap-2.5">
         <AnalysisStat
@@ -120,13 +113,11 @@ export default async function ProgressAnalysisPage({
             <div
               key={label}
               className={cn(
-                "rounded-[18px] bg-[#161616] px-3 py-3.5 text-center",
+                "app-card px-3 py-3.5 text-center",
                 cm == null && "opacity-50",
               )}
             >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-                {label}
-              </p>
+              <p className="app-label text-[var(--gym-gold)]">{label}</p>
               <p className="mt-2 font-display text-[22px] tabular-nums text-white">
                 {cm != null ? String(cm).replace(".", ",") : "—"}
               </p>

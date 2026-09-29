@@ -14,6 +14,7 @@ import {
 } from "@/lib/workout-history-overview";
 import { formatPct } from "@/lib/workout-history";
 import { cn } from "@/lib/utils";
+import { AppPageHeader } from "@/components/layout/screen";
 
 function KpiCard({
   label,
@@ -25,10 +26,8 @@ function KpiCard({
   sub: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-[#141414] p-3.5 sm:p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-        {label}
-      </p>
+    <div className="app-card p-3.5 text-center sm:p-4">
+      <p className="app-label">{label}</p>
       <p className="mt-2 font-display text-[1.85rem] leading-none tabular-nums text-[var(--gym-gold)] sm:text-3xl">
         {value}
       </p>
@@ -85,7 +84,7 @@ function WorkoutCardRow({ card }: { card: WorkoutHistoryCard }) {
   }
 
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-[#161616]">
+    <div className="app-card overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -153,7 +152,7 @@ function WorkoutCardRow({ card }: { card: WorkoutHistoryCard }) {
 
 function CardioRow({ item }: { item: WorkoutHistoryCardioItem }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-[#161616] px-4 py-3.5">
+    <div className="app-card flex items-center justify-between px-4 py-3.5">
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-white">{item.title}</p>
         <p className="mt-0.5 text-xs text-white/45">
@@ -234,17 +233,11 @@ export function WorkoutHistoryView({ overview }: Props) {
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-10">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--gym-gold)]">
-          Treningi
-        </p>
-        <h1 className="mt-1 font-display text-3xl tracking-wide text-white">
-          Historia
-        </h1>
-        <p className="mt-1.5 text-xs text-white/45">
-          Porównania tylko w obrębie tego samego dnia planu (np. Nogi → Nogi).
-        </p>
-      </div>
+      <AppPageHeader
+        kicker="Treningi"
+        title="Historia"
+        description="Porównania tylko w obrębie tego samego dnia planu (np. Nogi → Nogi)."
+      />
 
       <div className="grid grid-cols-2 gap-2.5">
         <KpiCard
@@ -283,7 +276,7 @@ export function WorkoutHistoryView({ overview }: Props) {
 
       <section className="space-y-2.5">
         {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.08] bg-[#141414] px-4 py-10 text-center text-sm text-white/50">
+          <div className="app-card px-4 py-10 text-center text-sm text-white/50">
             Brak zakończonych treningów — ukończ pierwszą sesję, żeby zobaczyć historię.
           </div>
         ) : (
@@ -295,7 +288,7 @@ export function WorkoutHistoryView({ overview }: Props) {
         <button
           type="button"
           onClick={() => setFilterOpen((v) => !v)}
-          className="flex h-12 w-full items-center justify-between rounded-2xl border border-white/[0.1] bg-[#121212] px-4 text-left text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80"
+          className="app-card flex h-12 w-full items-center justify-between px-4 text-left text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80"
         >
           <span className="truncate">{filterLabel}</span>
           <ChevronDown

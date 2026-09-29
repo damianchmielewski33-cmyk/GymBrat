@@ -14,6 +14,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { AppStatTile } from "@/components/layout/screen";
 
 function formatLastWorkoutDate(ymd: string | null) {
   if (!ymd) return null;
@@ -47,21 +48,7 @@ function StatTile({
   label: string;
   tone: "gold" | "mint";
 }) {
-  return (
-    <div className="rounded-[16px] border border-white/[0.08] bg-[#161616] px-3 py-3 text-center">
-      <p
-        className={cn(
-          "font-display text-[26px] leading-none tabular-nums",
-          tone === "gold" ? "text-[var(--gym-gold)]" : "text-emerald-300",
-        )}
-      >
-        {value}
-      </p>
-      <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wide text-white/45">
-        {label}
-      </p>
-    </div>
-  );
+  return <AppStatTile value={value} label={label} tone={tone} />;
 }
 
 type StartWorkoutScreenProps = {

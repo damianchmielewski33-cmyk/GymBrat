@@ -14,7 +14,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Na Treningach działa eksport planu do PDF/druku oraz generowanie planu z AI (dni siłowe zapisują się do edycji).",
       "Sugestia ciężaru z ostatniej sesji (chip per seria) oraz ekran postępu z badge NOWY MAX po pobiciu rekordu.",
       "Po rekordzie na podsumowaniu treningu widać grafikę „NOWY MAX” generowaną przez agenta Pollinations (złoty motyw siłowni) z nakładką GymBrat.",
-      "Po zaliczeniu wszystkich serii pojawia się pytanie: dodać cardio albo zakończyć trening; w sesji jest „Zakończ bez zapisu”, a na przerwie po ćwiczeniu — „Dodaj serię”.",
+      "Po zaliczeniu wszystkich serii pojawia się pytanie: dodać cardio albo zakończyć trening; w sesji jest „Zakończ bez zapisu”; „Dodaj serię” jest w widoku ćwiczenia, nie na ekranie przerwy.",
       "Niedokończoną sesję treningu da się wznowić na innym telefonie lub PC dzięki synchronizacji aktywnej sesji w chmurze.",
       "Na Pulpicie w Makro dziś widać ile już zjedzono i ile zostało do spożycia (B/W/T).",
       "Przepisy w Dietcie pochodzą wyłącznie z panelu admina (JSON) — wyczyszczenie bazy usuwa je z aplikacji.",
@@ -35,6 +35,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Historia treningów ma siatkę KPI (30 dni, cardio, dni planu), karty z tonażem w tonach, porównaniem objętości oraz w górę/w dół/pominięte, filtr planu i sekcję cardio.",
       "Ekran serii w sesji: technika ↗ (YouTube z panelu Admin → Ćwiczenia), Zgłoś, kropki serii, ciężar ±2,5/±0,5, W zapasie i Zalicz serię.",
       "Statystyki i porównania (historia, Pulpit) liczą się osobno per dzień planu — Nogi tylko do Nóg, Push tylko do Push.",
+      "Pulpit, Dieta, Treningi, Analiza, Profil, Historia, Raporty i sesja treningu mają spójne nagłówki, karty (app-card) oraz złote CTA.",
     ],
   },
   {

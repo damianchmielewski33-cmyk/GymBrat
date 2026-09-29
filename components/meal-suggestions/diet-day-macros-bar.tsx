@@ -20,6 +20,8 @@ function MacroCol({
       ? Math.min(100, Math.round((consumed / goal) * 100))
       : 0;
   const over = goal != null && consumed > goal;
+  const remaining =
+    goal != null && goal > 0 ? Math.round(goal - consumed) : null;
 
   return (
     <div className="min-w-0 flex-1">
@@ -39,11 +41,23 @@ function MacroCol({
         {Math.round(consumed)}
         {goal != null ? ` / ${Math.round(goal)}` : ""} {unit}
       </p>
+      {remaining != null ? (
+        <p
+          className={cn(
+            "mt-0.5 text-[10px] tabular-nums leading-tight",
+            over ? "text-rose-400" : "text-white/45",
+          )}
+        >
+          {over
+            ? `+${Math.abs(remaining)} nadwyżka`
+            : `${remaining} zostało`}
+        </p>
+      ) : null}
     </div>
   );
 }
 
-/** Sticky pasek makro dnia — jak w Fitatu. */
+/** Sticky pasek makro dnia — jak w Fitatu (kcal / B / T / W + ile zostało). */
 export function DietDayMacrosBar({
   caloriesConsumed,
   caloriesGoal,

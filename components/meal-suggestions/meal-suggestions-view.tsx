@@ -14,9 +14,9 @@ import { AddMealScreen } from "@/components/meal-suggestions/add-meal-screen";
 import { FoodPortionScreen } from "@/components/meal-suggestions/food-portion-screen";
 import { DietWeekStrip } from "@/components/meal-suggestions/diet-week-strip";
 import { DietMealPlanPanel } from "@/components/meal-suggestions/diet-meal-plan-panel";
+import { DietDayMacrosBar } from "@/components/meal-suggestions/diet-day-macros-bar";
 import {
   DIET_DIARY_SLOT_LABELS,
-  DIET_DIARY_SLOTS,
   type DietDiarySlot,
 } from "@/lib/diet-diary-slots";
 import type { FoodProduct } from "@/lib/food-products-types";
@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useOverlayHistoryBack } from "@/hooks/use-overlay-history-back";
 import { useI18n } from "@/components/i18n/i18n-provider";
+import { AppPageHeader } from "@/components/layout/screen";
 
 function formatDateLabel(dateKey: string): string {
   const today = calendarDateKey();
@@ -89,7 +90,7 @@ function DeleteMealButton({
         <Trash2 className="h-3.5 w-3.5" />
       </button>
       <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent className="border border-white/10 bg-[#0c0c0c] p-6">
+        <AlertDialogContent className="app-dialog p-6">
           <AlertDialogTitle>Usunąć produkt?</AlertDialogTitle>
           <AlertDialogDescription className="mt-2 text-white/65">
             {name?.trim()
@@ -220,8 +221,14 @@ export function MealSuggestionsView({
   };
 
   return (
-    <div className="relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col pb-2">
-      <div className="flex gap-2 px-1 pt-2">
+    <div className="relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+      <AppPageHeader
+        kicker="Dieta"
+        title="Jadłospis"
+        description={dateLabel}
+        className="px-1"
+      />
+      <div className="flex gap-2 px-1 pt-1">
         <button
           type="button"
           onClick={() => setTab("plan")}
@@ -484,6 +491,15 @@ export function MealSuggestionsView({
           router.refresh();
         }}
       />
+
+      {/* Sticky makro dnia nad dolną belką — ile zjedzono / zostało do celu. */}
+      {!mealOverlayOpen ? (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-40 px-0">
+          <div className="pointer-events-auto mx-auto max-w-lg">
+            <DietDayMacrosBar {...dayMacros} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

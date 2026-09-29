@@ -35,7 +35,7 @@ function MetricTile({
   Icon: LucideIcon;
 }) {
   return (
-    <div className="flex min-h-[118px] flex-col rounded-[18px] bg-[#161616] px-3.5 py-3.5">
+    <div className="app-card flex min-h-[118px] flex-col px-3.5 py-3.5">
       <div className="flex items-center gap-2">
         <Icon
           className="h-[18px] w-[18px] shrink-0 text-[var(--gym-gold)]"
@@ -156,7 +156,7 @@ function MacroProgressTile({
     macros.fatGoal != null;
 
   return (
-    <div className="flex min-h-[118px] flex-col rounded-[18px] bg-[#161616] px-3.5 py-3.5">
+    <div className="app-card flex min-h-[118px] flex-col px-3.5 py-3.5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
         {title}
       </p>

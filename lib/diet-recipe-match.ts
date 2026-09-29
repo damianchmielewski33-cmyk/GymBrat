@@ -27,13 +27,18 @@ const FIT_FAST_RE =
   /wrap|burger|pizza|frytk|nugget|kanapk|tost|hot.?dog|taco|quesadill|fast.?food|zapiekank/i;
 
 export function recipeDifficulty(prepMinutes: number): RecipeDifficulty {
-  if (prepMinutes <= 15) return 1;
-  if (prepMinutes <= 30) return 2;
+  const mins =
+    typeof prepMinutes === "number" && Number.isFinite(prepMinutes)
+      ? prepMinutes
+      : 20;
+  if (mins <= 15) return 1;
+  if (mins <= 30) return 2;
   return 3;
 }
 
 export function recipeTaste(meal: CatalogMeal): "savory" | "sweet" | "fit_fast" {
-  const hay = `${meal.title} ${meal.tagline ?? ""} ${meal.ingredients.join(" ")}`;
+  const ingredients = Array.isArray(meal.ingredients) ? meal.ingredients : [];
+  const hay = `${meal.title} ${meal.tagline ?? ""} ${ingredients.join(" ")}`;
   if (FIT_FAST_RE.test(hay)) return "fit_fast";
   if (SWEET_RE.test(hay)) return "sweet";
   return "savory";
@@ -112,19 +117,26 @@ export function filterCatalogForMealPlan(args: {
   limit?: number;
 }): CatalogMeal[] {
   const q = args.query.trim().toLowerCase();
-  const scored = args.meals
+  const list = Array.isArray(args.meals) ? args.meals : [];
+  const scored = list
     .map((meal) => {
-      if (args.difficulty !== "all" && recipeDifficulty(meal.prepMinutes) !== args.difficulty) {
+      try {
+        if (!meal?.title || !meal.approximateMacros) return null;
+        if (args.difficulty !== "all" && recipeDifficulty(meal.prepMinutes) !== args.difficulty) {
+          return null;
+        }
+        const taste = recipeTaste(meal);
+        if (args.taste !== "all" && taste !== args.taste) return null;
+        if (q) {
+          const ingredients = Array.isArray(meal.ingredients) ? meal.ingredients : [];
+          const hay =
+            `${meal.title} ${meal.tagline ?? ""} ${ingredients.join(" ")}`.toLowerCase();
+          if (!hay.includes(q)) return null;
+        }
+        return { meal, score: scoreMealForPlanTarget(meal, args.row) };
+      } catch {
         return null;
       }
-      const taste = recipeTaste(meal);
-      if (args.taste !== "all" && taste !== args.taste) return null;
-      if (q) {
-        const hay =
-          `${meal.title} ${meal.tagline ?? ""} ${meal.ingredients.join(" ")}`.toLowerCase();
-        if (!hay.includes(q)) return null;
-      }
-      return { meal, score: scoreMealForPlanTarget(meal, args.row) };
     })
     .filter((x): x is { meal: CatalogMeal; score: number } => x != null)
     .sort((a, b) => a.score - b.score);
@@ -146,10 +158,11 @@ export function countByTaste(meals: CatalogMeal[]): Record<"all" | "savory" | "s
 }
 
 export function ingredientPreview(meal: CatalogMeal, max = 5): string {
-  return meal.ingredients
+  const ingredients = Array.isArray(meal.ingredients) ? meal.ingredients : [];
+  return ingredients
     .slice(0, max)
     .map((line) =>
-      line
+      String(line ?? "")
         .replace(/^\d+[.,]?\d*\s*(?:g|ml|kg|l)\s*/i, "")
         .replace(/^\d+\s*\/\s*\d+\s*/i, "")
         .trim(),

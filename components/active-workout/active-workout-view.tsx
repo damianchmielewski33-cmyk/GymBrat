@@ -662,7 +662,6 @@ export function ActiveWorkoutView({
           }
           nextLabel={lastCompleted?.nextLabel ?? "Następna seria"}
           nextValue={lastCompleted?.nextValue ?? "—"}
-          showAddSet={Boolean(lastCompleted?.exerciseFinished)}
           soundOn={restSoundOn}
           onToggleSound={() => {
             void unlockRestTimerAudio();
@@ -677,11 +676,6 @@ export function ActiveWorkoutView({
           }
           onSetSeconds={(sec) => setRestRemaining(sec)}
           onContinue={() => stopRest()}
-          onAddSet={
-            lastCompleted?.exerciseId
-              ? () => addSetToExercise(lastCompleted.exerciseId)
-              : undefined
-          }
           onCloseSession={discardSession}
           onOpenList={() => {
             stopRest();

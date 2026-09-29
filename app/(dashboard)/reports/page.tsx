@@ -9,6 +9,7 @@ import { QueuedWorkoutBanner } from "@/components/reports/queued-workout-banner"
 import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import { getBodyReports } from "@/lib/body-reports";
+import { AppPageHeader } from "@/components/layout/screen";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -67,31 +68,26 @@ export default async function ReportsPage() {
       </Suspense>
       <WorkoutCompletePopup />
 
-      <header className="space-y-1">
-        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#d4af37]/85">
-          Raporty
-        </p>
-        <h1 className="font-heading text-3xl font-semibold tracking-tight text-white">
-          Dodaj{" "}
-          <span className="bg-gradient-to-r from-[#e8c547] to-[#d4af37] bg-clip-text text-transparent">
-            raport
-          </span>
-        </h1>
-        <p className="text-sm text-white/45">
-          Wypełnij pomiary i samopoczucie — historia oraz eksport są niżej.
-          {daysUntilNext != null ? (
-            <>
-              {" "}
-              Kolejny wg cyklu ({cadenceDays} dni):{" "}
-              {daysUntilNext <= 0 ? "teraz" : `za ${daysUntilNext} dni`}.
-            </>
-          ) : null}
-        </p>
-      </header>
+      <AppPageHeader
+        kicker="Raporty"
+        title="Dodaj raport"
+        description={
+          <>
+            Wypełnij pomiary i samopoczucie — historia oraz eksport są niżej.
+            {daysUntilNext != null ? (
+              <>
+                {" "}
+                Kolejny wg cyklu ({cadenceDays} dni):{" "}
+                {daysUntilNext <= 0 ? "teraz" : `za ${daysUntilNext} dni`}.
+              </>
+            ) : null}
+          </>
+        }
+      />
 
       <Suspense
         fallback={
-          <div className="rounded-3xl border border-white/10 bg-[#141416]/90 p-6 text-sm text-white/50">
+          <div className="app-card p-6 text-sm text-white/50">
             Ładowanie formularza raportu…
           </div>
         }
@@ -100,22 +96,12 @@ export default async function ReportsPage() {
       </Suspense>
 
       <div className="space-y-6 border-t border-white/10 pt-8">
-        <header className="space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#d4af37]/85">
-            Archiwum
-          </p>
-          <h2 className="font-heading text-2xl font-semibold tracking-tight text-white">
-            Twoje{" "}
-            <span className="bg-gradient-to-r from-[#e8c547] to-[#d4af37] bg-clip-text text-transparent">
-              raporty
-            </span>
-          </h2>
-        </header>
+        <AppPageHeader kicker="Archiwum" title="Twoje raporty" titleAs="h2" />
 
         <InlineBanner variant="info">
           <strong className="font-semibold text-white/90">Eksport danych.</strong> Pełną kopię
           treningów, raportów i ustawień pobierzesz w formacie JSON lub CSV w{" "}
-          <Link href="/profile#export-data" className="text-[#d4af37] underline">
+          <Link href="/profile#export-data" className="text-[var(--gym-gold)] underline">
             Profilu (sekcja eksportu)
           </Link>
           .

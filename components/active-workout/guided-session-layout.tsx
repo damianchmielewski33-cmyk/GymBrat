@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, Flag, List, Minus, Plus, X } from "lucide-react";
+import { Check, Flag, Minus, Plus, X } from "lucide-react";
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
 import { formatExerciseTargetLine, buildSupersetLabels } from "@/lib/start-workout-session";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  SessionChromeHeader,
+  SessionProgressBar,
+} from "@/components/active-workout/session-chrome";
 
 function formatElapsed(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -218,46 +222,16 @@ export function GuidedSessionLayout({
 
   return (
     <div className="relative mx-auto w-full max-w-lg pb-8">
-      <header className="sticky top-0 z-20 bg-black/95 backdrop-blur">
-        <div className="flex items-center justify-between gap-2 px-2 py-3">
-          <button
-            type="button"
-            onClick={onCancelSession}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-white/80"
-            aria-label="Zamknij sesję"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <div className="min-w-0 text-center">
-            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-              {title}
-            </p>
-            <p className="mt-0.5 text-xs tabular-nums text-white/70">
-              {formatElapsed(elapsedSeconds)} · {totals.done}/{totals.total} serii
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setListOpen(true)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-white/80"
-            aria-label="Lista ćwiczeń"
-          >
-            <List className="h-4 w-4" />
-          </button>
-        </div>
-        <div
-          className="h-1 w-full bg-white/10"
-          role="progressbar"
-          aria-valuenow={Math.round(progress * 100)}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
-          <div
-            className="h-full bg-[var(--gym-gold)] transition-[width] duration-500"
-            style={{ width: `${progress * 100}%` }}
-          />
-        </div>
-      </header>
+      <div className="sticky top-0 z-20 bg-[var(--gym-app-bg)]/95 backdrop-blur">
+        <SessionChromeHeader
+          title={title}
+          subtitle={`${formatElapsed(elapsedSeconds)} · ${totals.done}/${totals.total} serii`}
+          onClose={onCancelSession}
+          onOpenList={() => setListOpen(true)}
+          className="px-2 py-3 pt-3"
+        />
+        <SessionProgressBar progress={progress} />
+      </div>
 
       <div className="px-4 pt-5">
         <h2 className="text-[1.65rem] font-semibold leading-tight text-white sm:text-3xl">
@@ -355,7 +329,7 @@ export function GuidedSessionLayout({
           ) : null}
         </div>
 
-        <div className="mt-5 rounded-2xl border border-white/[0.08] bg-[#161616] p-4">
+        <div className="mt-5 app-card p-4">
           <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-white/45">
             <label htmlFor="set-weight">Ciężar · kg</label>
             <span>krok 2,5</span>
@@ -458,7 +432,7 @@ export function GuidedSessionLayout({
           </div>
         </div>
 
-        <div className="mt-3 rounded-2xl border border-white/[0.08] bg-[#161616] p-4">
+        <div className="mt-3 app-card p-4">
           <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-white/45">
             <label htmlFor="set-reps">Powtórzenia</label>
             <span>krok 1</span>
@@ -557,7 +531,7 @@ export function GuidedSessionLayout({
                       "h-11 rounded-xl text-sm font-bold tabular-nums transition",
                       active
                         ? "gold-btn"
-                        : "border border-white/10 bg-[#161616] text-white/70 hover:border-[var(--gym-gold)]/40",
+                        : "border border-white/10 bg-[var(--gym-surface)] text-white/70 hover:border-[var(--gym-gold)]/40",
                     )}
                   >
                     {v === 3 ? "3+" : v}
@@ -580,14 +554,14 @@ export function GuidedSessionLayout({
             value={exercise.note ?? ""}
             onChange={(e) => onExerciseNoteChange?.(exercise.id, e.target.value)}
             placeholder="Notatka do ćwiczenia…"
-            className="mt-3 min-h-[80px] border-white/12 bg-[#161616] text-white"
+            className="mt-3 min-h-[80px] border-white/12 bg-[var(--gym-surface)] text-white"
           />
         ) : null}
 
         <button
           type="button"
           onClick={completeSet}
-          className="gold-btn mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold"
+          className="gym-btn-primary mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold"
         >
           <Check className="h-5 w-5" />
           {set.done ? "Zapisz zmiany serii" : "Zalicz serię"}

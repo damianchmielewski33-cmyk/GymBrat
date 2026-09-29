@@ -60,6 +60,11 @@
   --gym-iron:    #1c1c1f;
   --gym-chrome:  #2e2e33;
   --gym-glass:   rgba(255, 255, 255, 0.07);
+  /* Flat dashboard surfaces */
+  --gym-surface:        #161616;
+  --gym-surface-raised: #1c1c1f;
+  --gym-surface-sunken: #141416;
+  --gym-app-bg:         #050505;
 
   --neon:    var(--gym-gold);
   --metal-1: var(--gym-gray);
@@ -132,6 +137,10 @@
   --gym-iron:   #1c1c1f;
   --gym-chrome: #2e2e33;
   --gym-glass:  rgba(255, 255, 255, 0.07);
+  --gym-surface:        #161616;
+  --gym-surface-raised: #1c1c1f;
+  --gym-surface-sunken: #141416;
+  --gym-app-bg:         #050505;
 }
 
 @layer base {
@@ -497,8 +506,20 @@
   /* Flat dark cards — język ekranów jak na referencji mobilnej */
   .app-card {
     border-radius: 22px;
-    background: #161616;
+    background: var(--gym-surface);
     border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .app-card-raised {
+    border-radius: 16px;
+    background: var(--gym-surface-raised);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .app-dialog {
+    border-radius: 1rem;
+    background: var(--gym-surface-sunken);
+    border: 1px solid rgba(255, 255, 255, 0.12);
   }
 
   .app-label {

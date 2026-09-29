@@ -9,7 +9,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 type Step = "choice" | "cardio";
 
@@ -39,7 +38,7 @@ export function WorkoutAllSetsDoneDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="w-[min(92vw,420px)] border-white/12 bg-[#121212] text-white">
+      <AlertDialogContent className="app-dialog w-[min(92vw,420px)] text-white">
         {step === "choice" ? (
           <>
             <div className="flex items-start gap-3">
@@ -59,7 +58,7 @@ export function WorkoutAllSetsDoneDialog({
             <div className="mt-5 flex flex-col gap-2">
               <Button
                 type="button"
-                className="h-12 w-full gap-2 bg-[var(--gym-gold)] text-black hover:bg-[var(--gym-gold-bright)]"
+                className="gym-btn-primary h-12 w-full gap-2"
                 onClick={() => setStep("cardio")}
               >
                 <Flame className="h-4 w-4" />
@@ -109,9 +108,7 @@ export function WorkoutAllSetsDoneDialog({
             <div className="mt-5 flex flex-col gap-2">
               <Button
                 type="button"
-                className={cn(
-                  "h-12 w-full bg-[var(--gym-gold)] text-black hover:bg-[var(--gym-gold-bright)]",
-                )}
+                className="gym-btn-primary h-12 w-full"
                 onClick={() => {
                   onConfirmCardio(minutes);
                   onOpenChange(false);

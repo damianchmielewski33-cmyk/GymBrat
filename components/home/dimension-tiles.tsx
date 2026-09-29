@@ -76,7 +76,7 @@ function DimensionTile({
       : "text-white/55";
 
   return (
-    <div className="flex min-h-[168px] flex-col overflow-hidden rounded-[18px] bg-[#161616] px-3.5 pb-3 pt-3.5">
+    <div className="app-card flex min-h-[168px] flex-col overflow-hidden px-3.5 pb-3 pt-3.5">
       <div className="flex items-start justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/90">
           {label}

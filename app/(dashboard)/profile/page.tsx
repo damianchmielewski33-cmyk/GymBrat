@@ -17,6 +17,7 @@ import { LocaleSwitchCard } from "@/components/profile/locale-switch-card";
 import { AndroidAppVersionCard } from "@/components/android-app-version-card";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
 import { ReportCadenceForm } from "@/components/profile/report-cadence-form";
+import { AppPageHeader } from "@/components/layout/screen";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -34,12 +35,10 @@ function ProfileSection({
   action?: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)] sm:p-6">
+    <section className="app-card p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
-            {kicker}
-          </p>
+          <p className="app-label text-[var(--gym-gold)]">{kicker}</p>
           <h2 className="mt-1.5 text-lg font-semibold text-white">{title}</h2>
           {description ? (
             <p className="mt-1.5 text-sm leading-relaxed text-white/45">{description}</p>
@@ -97,29 +96,23 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-3">
-      <header className="flex flex-wrap items-start justify-between gap-3 px-0.5 pb-1 pt-2">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
-            Zawodnik
-          </p>
-          <h1 className="mt-1 text-[28px] font-semibold leading-tight tracking-tight text-white">
-            Profil
-          </h1>
-          <p className="mt-2 text-sm text-white/45">
-            Ustawienia używane w Pulpicie, Diecie, Treningach i Raportach.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/changelog"
-            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-white/15 bg-white/[0.04] px-4 text-sm font-medium text-white/85 hover:bg-white/[0.08]"
-          >
-            <ScrollText className="h-4 w-4" aria-hidden />
-            Nowości
-          </Link>
-          <LogoutButton className="h-11 rounded-2xl" />
-        </div>
-      </header>
+      <AppPageHeader
+        kicker="Zawodnik"
+        title="Profil"
+        description="Ustawienia używane w Pulpicie, Diecie, Treningach i Raportach."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/changelog"
+              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-white/15 bg-white/[0.04] px-4 text-sm font-medium text-white/85 hover:bg-white/[0.08]"
+            >
+              <ScrollText className="h-4 w-4" aria-hidden />
+              Nowości
+            </Link>
+            <LogoutButton className="h-11 rounded-2xl" />
+          </div>
+        }
+      />
 
       <AndroidAppVersionCard />
 
@@ -134,14 +127,12 @@ export default async function ProfilePage() {
         }
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-[#1c1c20] p-4">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">Email</p>
+          <div className="app-card-raised p-4">
+            <p className="app-label">Email</p>
             <p className="mt-1 text-sm font-medium text-white/90">{u?.email}</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-[#1c1c20] p-4">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">
-              Nazwa wyświetlana
-            </p>
+          <div className="app-card-raised p-4">
+            <p className="app-label">Nazwa wyświetlana</p>
             <p className="mt-1 text-sm font-medium text-white/90">{u?.name ?? "—"}</p>
           </div>
         </div>
@@ -156,7 +147,7 @@ export default async function ProfilePage() {
         action={
           <Link
             href="/profile/workout-plan"
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-[#f0d56a] via-[#d4af37] to-[#b8922a] px-4 text-sm font-bold text-[#0a0906]"
+            className="gym-btn-primary inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold"
           >
             <Dumbbell className="h-4 w-4" aria-hidden />
             Ustaw plan

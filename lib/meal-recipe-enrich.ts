@@ -129,11 +129,13 @@ export function enrichRecipeSteps(steps: string[]): string[] {
 }
 
 export function enrichRecipeContent(meal: {
-  ingredients: string[];
-  steps: string[];
+  ingredients?: string[] | null;
+  steps?: string[] | null;
 }): { ingredients: string[]; steps: string[] } {
+  const ingredients = Array.isArray(meal.ingredients) ? meal.ingredients : [];
+  const steps = Array.isArray(meal.steps) ? meal.steps : [];
   return {
-    ingredients: meal.ingredients.map(enrichIngredientLine),
-    steps: enrichRecipeSteps(meal.steps),
+    ingredients: ingredients.map(enrichIngredientLine),
+    steps: enrichRecipeSteps(steps),
   };
 }

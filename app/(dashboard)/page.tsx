@@ -15,6 +15,7 @@ import { userSettings } from "@/db/schema";
 import { getHomeStartDashboard } from "@/lib/home-start";
 import { Clock } from "lucide-react";
 import { eq } from "drizzle-orm";
+import { AppPageHeader } from "@/components/layout/screen";
 
 export default async function HomePage() {
   const session = await auth().catch((err) => {
@@ -67,17 +68,18 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-3">
-      <header className="px-0.5 pb-1 pt-2">
-        <h1 className="text-[32px] font-semibold leading-[1.05] tracking-tight text-white">
-          {greeting}
-        </h1>
-        <p className="mt-3 flex items-center gap-2 text-[13px] text-white/45">
-          <Clock className="h-4 w-4 text-[var(--neon)]" aria-hidden />
-          {daysLeft == null
-            ? "Dodaj pierwszy raport, żeby pilnować rytmu."
-            : `Raport za ${daysLeft} ${daysLeft === 1 ? "dzień" : "dni"} · co ${dash.reportCadenceDays} ${dash.reportCadenceDays === 1 ? "dzień" : "dni"}`}
-        </p>
-      </header>
+      <AppPageHeader
+        kicker="Pulpit"
+        title={greeting}
+        description={
+          <span className="inline-flex items-center gap-2">
+            <Clock className="h-4 w-4 text-[var(--neon)]" aria-hidden />
+            {daysLeft == null
+              ? "Dodaj pierwszy raport, żeby pilnować rytmu."
+              : `Raport za ${daysLeft} ${daysLeft === 1 ? "dzień" : "dni"} · co ${dash.reportCadenceDays} ${dash.reportCadenceDays === 1 ? "dzień" : "dni"}`}
+          </span>
+        }
+      />
 
       {!settingsRow?.onboardingCompletedAt ? <OnboardingBanner /> : null}
 

@@ -62,12 +62,10 @@ function BarBlock({
   const width = Math.min(100, Math.max(0, percent));
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl sm:p-5">
+    <div className="app-card p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/55">
-            {title}
-          </p>
+          <p className="app-label">{title}</p>
           <p className="font-heading mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
             <span className={isOver ? "text-rose-300" : "text-white"}>
               {percent.toFixed(1)}%

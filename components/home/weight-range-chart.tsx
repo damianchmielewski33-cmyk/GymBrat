@@ -105,7 +105,7 @@ export function WeightRangeChart({
   const showDots = filtered.length > 0 && filtered.length <= 24;
 
   return (
-    <section className="rounded-[22px] border border-white/[0.1] bg-[#121214] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+    <section className="app-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
@@ -128,7 +128,7 @@ export function WeightRangeChart({
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <div className="rounded-2xl border border-white/10 bg-[#1c1c20] px-3 py-2.5">
+        <div className="app-card-raised px-3 py-2.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
             Waga
           </p>
@@ -141,7 +141,7 @@ export function WeightRangeChart({
               : "brak zmiany"}
           </p>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-[#1c1c20] px-3 py-2.5">
+        <div className="app-card-raised px-3 py-2.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
             Pas
           </p>

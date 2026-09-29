@@ -31,10 +31,8 @@ function RemainingBlock({
     remaining == null ? null : remaining < 0 ? 0 : remaining;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
-      <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/55">
-        {label}
-      </p>
+    <div className="app-card p-4">
+      <p className="app-label">{label}</p>
       <p className="font-heading mt-2 text-3xl font-semibold tracking-tight">
         {displayRemaining == null ? (
           "—"
@@ -94,8 +92,8 @@ export function TodaysMacrosSection({
     goals != null && goals.carbs > 0 ? goals.carbs - consumed.carbs : null;
 
   const shell = embedded
-    ? "relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-6"
-    : "glass-panel relative overflow-hidden p-4 sm:p-6";
+    ? "relative overflow-hidden app-card p-4 sm:p-6"
+    : "app-card relative overflow-hidden p-4 sm:p-6";
 
   return (
     <div className={shell}>

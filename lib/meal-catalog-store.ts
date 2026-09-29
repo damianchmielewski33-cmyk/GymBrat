@@ -21,7 +21,37 @@ function parsePayload(json: string): CatalogMeal | null {
     if (!raw || typeof raw !== "object") return null;
     const m = raw as CatalogMeal;
     if (!m.id || !m.title || !m.slot || !m.approximateMacros) return null;
-    return m;
+    const macros = m.approximateMacros;
+    if (
+      typeof macros.calories !== "number" ||
+      typeof macros.proteinG !== "number" ||
+      typeof macros.fatG !== "number" ||
+      typeof macros.carbsG !== "number"
+    ) {
+      return null;
+    }
+    const ingredients = Array.isArray(m.ingredients)
+      ? m.ingredients.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+      : [];
+    const steps = Array.isArray(m.steps)
+      ? m.steps.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+      : [];
+    const prepMinutes =
+      typeof m.prepMinutes === "number" && Number.isFinite(m.prepMinutes)
+        ? Math.max(1, Math.round(m.prepMinutes))
+        : 20;
+    return {
+      ...m,
+      ingredients: ingredients.length >= 1 ? ingredients : ["Składniki — uzupełnij w katalogu", "Porcja"],
+      steps: steps.length >= 1 ? steps : ["Przygotuj składniki", "Zjedz"],
+      prepMinutes,
+      approximateMacros: {
+        calories: Math.max(0, macros.calories),
+        proteinG: Math.max(0, macros.proteinG),
+        fatG: Math.max(0, macros.fatG),
+        carbsG: Math.max(0, macros.carbsG),
+      },
+    };
   } catch {
     return null;
   }

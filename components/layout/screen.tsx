@@ -18,6 +18,81 @@ export const screenCtaClass =
 export const screenInputClass =
   "min-h-11 border-white/20 bg-black/50 text-white placeholder:text-white/40";
 
+/** Left-aligned dashboard page header (gold kicker + title). */
+export const appPageKickerClass =
+  "text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]";
+
+export const appPageTitleClass =
+  "font-heading text-[28px] font-semibold leading-tight tracking-tight text-white";
+
+export const appPageSubtitleClass = "text-[13px] leading-relaxed text-white/45";
+
+export function AppPageHeader({
+  kicker,
+  title,
+  description,
+  actions,
+  className,
+  titleAs: TitleTag = "h1",
+}: {
+  kicker?: string;
+  title: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+  titleAs?: "h1" | "h2" | "p";
+}) {
+  return (
+    <header
+      className={cn(
+        "flex flex-wrap items-start justify-between gap-3 px-0.5 pb-1 pt-2",
+        className,
+      )}
+    >
+      <div className="min-w-0">
+        {kicker ? <p className={appPageKickerClass}>{kicker}</p> : null}
+        <TitleTag
+          className={cn(appPageTitleClass, kicker ? "mt-1.5" : undefined)}
+        >
+          {title}
+        </TitleTag>
+        {description ? (
+          <div className={cn(appPageSubtitleClass, "mt-2")}>{description}</div>
+        ) : null}
+      </div>
+      {actions ? <div className="shrink-0">{actions}</div> : null}
+    </header>
+  );
+}
+
+export function AppStatTile({
+  value,
+  label,
+  tone = "gold",
+  className,
+}: {
+  value: ReactNode;
+  label: string;
+  tone?: "gold" | "mint" | "muted";
+  className?: string;
+}) {
+  return (
+    <div className={cn("app-card px-3 py-3 text-center", className)}>
+      <p
+        className={cn(
+          "font-display text-[26px] leading-none tabular-nums",
+          tone === "gold" && "text-[var(--gym-gold)]",
+          tone === "mint" && "text-emerald-300",
+          tone === "muted" && "text-white/70",
+        )}
+      >
+        {value}
+      </p>
+      <p className="app-label mt-1.5">{label}</p>
+    </div>
+  );
+}
+
 export function ScreenCard({
   children,
   className,

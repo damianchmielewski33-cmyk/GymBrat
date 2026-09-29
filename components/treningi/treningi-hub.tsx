@@ -17,6 +17,7 @@ import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import type { TreningiHubStats } from "@/lib/treningi-hub-stats";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
 import { printWorkoutPlans } from "@/lib/pdf/workout-plan-export";
+import { AppPageHeader } from "@/components/layout/screen";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -51,7 +52,7 @@ function HelpPill({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-[#141414] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/70"
+        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-[var(--gym-surface-sunken)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/70"
       >
         <HelpCircle className="h-3 w-3 text-white/45" />
         {label}
@@ -95,14 +96,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-8">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--gym-gold)]">
-          Treningi
-        </p>
-        <h1 className="mt-1 font-display text-3xl tracking-wide text-white">
-          Treningi
-        </h1>
-      </div>
+      <AppPageHeader kicker="Siłownia" title="Treningi" />
 
       <div className="grid grid-cols-2 gap-2">
         <button
@@ -119,14 +113,14 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
             }
             flash("Otworzono podgląd druku — Zapisz jako PDF.");
           }}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[#121212] text-xs font-medium text-white/80"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[var(--gym-surface-sunken)] text-xs font-medium text-white/80"
         >
           <Printer className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
           PDF / drukuj
         </button>
         <Link
           href="/profile/workout-plan"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[#121212] text-xs font-medium text-white/80"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[var(--gym-surface-sunken)] text-xs font-medium text-white/80"
         >
           <Download className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
           Import Word
@@ -137,7 +131,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
               ? `/profile/workout-plan?edit=${encodeURIComponent(selected.id)}`
               : "/profile/workout-plan"
           }
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[#121212] text-xs font-medium text-white/80"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[var(--gym-surface-sunken)] text-xs font-medium text-white/80"
         >
           <Pencil className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
           Edytuj plan
@@ -151,14 +145,14 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
             }
             setSheetOpen(true);
           }}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[rgba(var(--neon-rgb),0.45)] bg-[#121212] text-xs font-medium text-white"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[rgba(var(--neon-rgb),0.45)] bg-[var(--gym-surface-sunken)] text-xs font-medium text-white"
         >
           <Grid2x2 className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
           Arkusz i ciężary
         </button>
         <Link
           href="/workout-history"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[#121212] text-xs font-medium text-white/80"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[var(--gym-surface-sunken)] text-xs font-medium text-white/80"
         >
           <History className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
           Historia treningów
@@ -166,13 +160,13 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
       </div>
 
       {plans.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-[#141414] p-5 text-center">
+        <div className="app-card p-5 text-center">
           <p className="text-sm text-white/70">
             Nie masz jeszcze planu. Ustaw dni i ćwiczenia w Profilu.
           </p>
           <Link
             href="/profile/workout-plan"
-            className="gold-btn mt-4 inline-flex h-12 items-center justify-center rounded-xl px-5 text-sm font-semibold"
+            className="gym-btn-primary mt-4 inline-flex h-12 items-center justify-center rounded-xl px-5 text-sm font-semibold"
           >
             Ustaw plan w profilu
           </Link>
@@ -192,7 +186,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
                     "shrink-0 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide transition",
                     active
                       ? "bg-[var(--gym-gold)] text-[var(--neon-fg)]"
-                      : "border border-white/10 bg-[#141414] text-white/70",
+                      : "border border-white/10 bg-[var(--gym-surface-sunken)] text-white/70",
                   )}
                 >
                   {label}
@@ -219,10 +213,8 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
             />
           </div>
 
-          <section className="rounded-2xl border border-white/[0.08] bg-[#161616] p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-              Trening prowadzony
-            </p>
+          <section className="app-card p-5">
+            <p className="app-label text-[var(--gym-gold)]">Trening prowadzony</p>
             <h2 className="mt-2 text-xl font-semibold text-white">
               {selected?.plan.planName.trim() || "Plan"} · {exerciseCount}{" "}
               {exerciseCount === 1 ? "ćwiczenie" : "ćwiczeń"}
@@ -237,7 +229,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
                 if (!selected) return;
                 startTransition(() => onBegin(selected));
               }}
-              className="gold-btn mt-5 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold disabled:opacity-50"
+              className="gym-btn-primary mt-5 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold disabled:opacity-50"
             >
               <Play className="h-5 w-5 fill-current" />
               {pending ? "Startuję…" : "Rozpocznij trening"}
@@ -258,7 +250,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
         <button
           type="button"
           onClick={() => setCardioOpen(true)}
-          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[rgba(var(--neon-rgb),0.45)] bg-[#121212] text-sm font-semibold text-white"
+          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[rgba(var(--neon-rgb),0.45)] bg-[var(--gym-surface-sunken)] text-sm font-semibold text-white"
         >
           <Flame className="h-4 w-4 text-[var(--gym-gold)]" />
           Dodaj cardio
@@ -266,10 +258,8 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
       ) : null}
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-white/[0.08] bg-[#141414] p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
-            Treningi w tyg.
-          </p>
+        <div className="app-card p-4">
+          <p className="app-label">Treningi w tyg.</p>
           <p className="mt-2 font-display text-3xl tabular-nums text-[var(--gym-gold)]">
             {stats.workoutsThisWeek}
           </p>
@@ -277,29 +267,23 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
             liczę tryb prowadzony
           </p>
         </div>
-        <div className="rounded-2xl border border-white/[0.08] bg-[#141414] p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
-            Cardio w tyg.
-          </p>
+        <div className="app-card p-4">
+          <p className="app-label">Cardio w tyg.</p>
           <p className="mt-2 font-display text-3xl tabular-nums text-[var(--gym-gold)]">
             {stats.cardioMinutesThisWeek}
             <span className="text-base text-white/40">/{stats.cardioGoalMinutes}</span>
           </p>
           <p className="mt-1 text-[10px] text-white/35">minuty</p>
         </div>
-        <div className="rounded-2xl border border-white/[0.08] bg-[#141414] p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
-            Tonaż w tyg.
-          </p>
+        <div className="app-card p-4">
+          <p className="app-label">Tonaż w tyg.</p>
           <p className="mt-2 font-display text-3xl tabular-nums text-[var(--gym-gold)]">
             {stats.tonnageThisWeekKg}
             <span className="text-base text-white/40"> kg</span>
           </p>
         </div>
-        <div className="rounded-2xl border border-white/[0.08] bg-[#141414] p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
-            Tren. tyg. z rzędu
-          </p>
+        <div className="app-card p-4">
+          <p className="app-label">Tren. tyg. z rzędu</p>
           <p className="mt-2 font-display text-3xl tabular-nums text-[var(--gym-gold)]">
             {stats.streakWeeks}
           </p>
@@ -307,9 +291,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
       </div>
 
       <section>
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
-          Ostatnie treningi
-        </h3>
+        <h3 className="app-label">Ostatnie treningi</h3>
         {stats.recentWorkouts.length === 0 ? (
           <p className="mt-3 text-sm text-white/45">
             Jeszcze nic. Pierwszy trening z trybu prowadzonego pojawi się tutaj.
@@ -319,7 +301,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
             {stats.recentWorkouts.map((w) => (
               <li
                 key={w.id}
-                className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#141414] px-3.5 py-3"
+                className="app-card flex items-center justify-between px-3.5 py-3"
               >
                 <div>
                   <p className="text-sm font-medium text-white">{w.title}</p>
@@ -338,9 +320,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
       </section>
 
       <section>
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
-          Ostatnie cardio
-        </h3>
+        <h3 className="app-label">Ostatnie cardio</h3>
         {stats.recentCardio.length === 0 ? (
           <p className="mt-3 text-sm text-white/45">Brak wpisów cardio.</p>
         ) : (
@@ -348,7 +328,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
             {stats.recentCardio.map((c) => (
               <li
                 key={c.id}
-                className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#141414] px-3.5 py-3"
+                className="app-card flex items-center justify-between px-3.5 py-3"
               >
                 <div>
                   <p className="text-sm font-medium text-white">{c.title}</p>

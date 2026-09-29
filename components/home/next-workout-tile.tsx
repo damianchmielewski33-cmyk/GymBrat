@@ -32,7 +32,7 @@ function MiniStat({
       <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/55">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold leading-none tabular-nums">
+      <p className="mt-2 font-display text-2xl leading-none tabular-nums">
         {value}
         {unit ? (
           <span className="ml-1 text-[11px] font-medium opacity-70">{unit}</span>

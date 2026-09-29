@@ -81,7 +81,7 @@ export function MealCatalogBrowser({
       if (macroFilter === "high_protein" && m.approximateMacros.proteinG < 25) return false;
       if (macroFilter === "low_calorie" && m.approximateMacros.calories > 450) return false;
       if (!q) return true;
-      const hay = `${m.title} ${m.tagline ?? ""} ${m.ingredients.join(" ")}`.toLowerCase();
+      const hay = `${m.title} ${m.tagline ?? ""} ${(Array.isArray(m.ingredients) ? m.ingredients : []).join(" ")}`.toLowerCase();
       return hay.includes(q);
     });
   }, [slotMeals, query, macroFilter]);

@@ -33,13 +33,34 @@ export default async function MealSuggestionsPage() {
     .limit(1);
 
   const todayKey = calendarDateKey(new Date());
-  const [summary, catalogMeals, adminEligible] = await Promise.all([
-    loadNutritionSummaryForDate(userId, todayKey, settingsRow),
-    loadMergedMealCatalog(),
-    isAdminEligible(session),
-  ]);
+  let catalogMeals: Awaited<ReturnType<typeof loadMergedMealCatalog>> = [];
+  let summary: Awaited<ReturnType<typeof loadNutritionSummaryForDate>>;
+  let adminEligible = false;
+  try {
+    const loaded = await Promise.all([
+      loadNutritionSummaryForDate(userId, todayKey, settingsRow),
+      loadMergedMealCatalog(),
+      isAdminEligible(session),
+    ]);
+    summary = loaded[0];
+    catalogMeals = loaded[1];
+    adminEligible = loaded[2];
+  } catch (e) {
+    console.error("[meal-suggestions] load failed", e);
+    // Nie blokuj całego Jadłospisu — pokaż dziennik bez katalogu.
+    summary = await loadNutritionSummaryForDate(userId, todayKey, settingsRow).catch(() => ({
+      date: todayKey,
+      caloriesConsumed: 0,
+      macros: { protein: 0, fat: 0, carbs: 0 },
+      meals: [],
+      source: "error" as const,
+      errorMessage: "Nie udało się wczytać dnia.",
+    }));
+    catalogMeals = [];
+    adminEligible = false;
+  }
   const gaps = computeMacroGaps(summary);
-  const logs = await listMealLogsForDay(userId, gaps.dateKey);
+  const logs = await listMealLogsForDay(userId, gaps.dateKey).catch(() => []);
   const dayKind = resolveNutritionDayKind(settingsRow, gaps.dateKey);
 
   return (

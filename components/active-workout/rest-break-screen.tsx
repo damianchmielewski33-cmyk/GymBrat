@@ -2,12 +2,16 @@
 
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
-import { List, SkipForward, Volume2, VolumeX, X } from "lucide-react";
+import { SkipForward, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   readRestTimerPrefs,
   writeRestDefaultSeconds,
 } from "@/lib/rest-timer-prefs";
+import {
+  SessionChromeHeader,
+  SessionProgressBar,
+} from "@/components/active-workout/session-chrome";
 
 const PRESETS_SEC = [60, 90, 120, 180] as const;
 
@@ -31,14 +35,11 @@ export type RestBreakScreenProps = {
   nextLabel: string;
   /** np. „Seria 2 z 2” albo nazwa ćwiczenia */
   nextValue: string;
-  /** Ostatnia seria ćwiczenia — pokaż „Dodaj serię”. */
-  showAddSet?: boolean;
   soundOn: boolean;
   onToggleSound: () => void;
   onAddSeconds: (sec: number) => void;
   onSetSeconds: (sec: number) => void;
   onContinue: () => void;
-  onAddSet?: () => void;
   onCloseSession?: () => void;
   onOpenList?: () => void;
 };
@@ -56,13 +57,11 @@ export function RestBreakScreen({
   completedLine,
   nextLabel,
   nextValue,
-  showAddSet = false,
   soundOn,
   onToggleSound,
   onAddSeconds,
   onSetSeconds,
   onContinue,
-  onAddSet,
   onCloseSession,
   onOpenList,
 }: RestBreakScreenProps) {
@@ -88,7 +87,7 @@ export function RestBreakScreen({
     setsTotal > 0 ? Math.min(1, Math.max(0, setsDone / setsTotal)) : 0;
 
   return createPortal(
-    <div className="fixed inset-0 z-[220] flex flex-col bg-[#070708] text-white">
+    <div className="fixed inset-0 z-[220] flex flex-col bg-[var(--gym-black)] text-white">
       <div
         className="pointer-events-none absolute inset-0 opacity-70"
         style={{
@@ -98,45 +97,14 @@ export function RestBreakScreen({
         aria-hidden
       />
 
-      <div
-        className="relative h-1.5 w-full bg-white/10"
-        role="progressbar"
-        aria-valuenow={Math.round(progress * 100)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
-        <div
-          className="h-full bg-gradient-to-r from-[var(--gym-gold-deep)] via-[var(--gym-gold)] to-[var(--gym-gold-bright)] transition-[width] duration-500"
-          style={{ width: `${progress * 100}%` }}
-        />
-      </div>
+      <SessionProgressBar progress={progress} className="relative" />
 
-      <header className="relative flex items-center justify-between gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <button
-          type="button"
-          onClick={onCloseSession}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08]"
-          aria-label="Zamknij sesję"
-        >
-          <X className="h-4 w-4" />
-        </button>
-        <div className="min-w-0 text-center">
-          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            {title}
-          </p>
-          <p className="mt-0.5 text-xs tabular-nums text-white/65">
-            {formatMmSs(elapsedSeconds)} · {setsDone}/{setsTotal} serii
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onOpenList}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08]"
-          aria-label="Lista ćwiczeń"
-        >
-          <List className="h-4 w-4" />
-        </button>
-      </header>
+      <SessionChromeHeader
+        title={title}
+        subtitle={`${formatMmSs(elapsedSeconds)} · ${setsDone}/${setsTotal} serii`}
+        onClose={onCloseSession}
+        onOpenList={onOpenList}
+      />
 
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-5">
         <p className="text-[12px] font-semibold uppercase tracking-[0.28em] text-[var(--gym-gold)]">
@@ -182,33 +150,20 @@ export function RestBreakScreen({
         </button>
       </div>
 
-      <div className="relative mx-4 mb-3 overflow-hidden rounded-2xl border border-[var(--gym-gold)]/20 bg-[#141416]/95 px-4 py-4 shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+      <div className="app-card relative mx-4 mb-3 overflow-hidden px-4 py-4">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gym-gold)]/50 to-transparent"
           aria-hidden
         />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
-          Zaliczone
-        </p>
+        <p className="app-label">Zaliczone</p>
         <p className="mt-1.5 text-sm leading-snug text-white/90">
           {completedLine ?? "—"}
         </p>
         <div className="my-3 h-px bg-white/[0.08]" />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-          {nextLabel}
-        </p>
+        <p className="app-label text-[var(--gym-gold)]">{nextLabel}</p>
         <p className="mt-1.5 font-display text-2xl leading-tight text-white">
           {nextValue}
         </p>
-        {showAddSet && onAddSet ? (
-          <button
-            type="button"
-            onClick={onAddSet}
-            className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/10 text-sm font-semibold text-[var(--gym-gold)]"
-          >
-            + Dodaj serię
-          </button>
-        ) : null}
       </div>
 
       <div className="relative flex items-center gap-2.5 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
