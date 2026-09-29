@@ -555,6 +555,7 @@ export function ActiveWorkoutView({
           result.status === "saved"
             ? result.strengthDeltaPercent
             : null,
+        planCompare: result.status === "saved" ? result.planCompare : null,
         newMaxHits,
       };
       sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));

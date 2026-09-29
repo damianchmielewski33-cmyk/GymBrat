@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -39,13 +37,20 @@ type ApiOk = {
 
 type ApiErr = { error: string };
 
+const GOLD = "#ebc44a";
+const GOLD_BRIGHT = "#f7e28f";
+
 const tooltipStyle = {
-  backgroundColor: "rgba(7, 8, 13, 0.92)",
-  border: "1px solid rgba(255, 255, 255, 0.12)",
-  borderRadius: "12px",
+  backgroundColor: "rgba(12, 12, 14, 0.96)",
+  border: "1px solid rgba(235, 196, 74, 0.28)",
+  borderRadius: "14px",
   fontSize: "12px",
-  color: "rgba(255, 255, 255, 0.9)",
+  color: "rgba(255, 255, 255, 0.92)",
+  boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+  padding: "10px 12px",
 };
+
+const axisTick = { fill: "rgba(255,255,255,0.38)", fontSize: 10 };
 
 function formatShortDate(iso: string) {
   const d = new Date(`${iso}T12:00:00`);
@@ -248,27 +253,59 @@ export function ExerciseProgressClient({
         </section>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="app-card p-5 sm:p-6">
-          <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(120,120,255,0.12),transparent_55%)]" />
+      <div className="grid gap-2.5 lg:grid-cols-2">
+        <div className="app-card relative overflow-hidden p-5">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gym-gold)]/45 to-transparent"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-[var(--gym-gold)]/[0.07] blur-3xl"
+            aria-hidden
+          />
           <div className="relative">
-            <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-              Szacowana siła
-            </p>
-            <h3 className="font-heading mt-1 text-lg font-semibold text-white">
+            <p className="app-label text-[var(--gym-gold)]">Szacowana siła</p>
+            <h3 className="mt-1.5 text-base font-semibold text-white">
               e1RM (najlepszy zestaw) wg dni
             </h3>
-            <p className="mt-1 text-xs text-white/50">
+            <p className="mt-1 text-xs text-white/40">
               W każdym dniu bierzemy najwyższy szacunek e1RM spośród ukończonych serii.
             </p>
-            <div className="mt-4 h-[260px] w-full">
+            <div className="mt-4 h-[248px] w-full min-w-0">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                  <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} axisLine={{ stroke: "rgba(255,255,255,0.1)" }} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} axisLine={false} tickLine={false} width={44} />
+                <AreaChart
+                  data={points}
+                  margin={{ top: 12, right: 10, left: 0, bottom: 4 }}
+                >
+                  <defs>
+                    <linearGradient id="exE1rmFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={GOLD} stopOpacity={0.35} />
+                      <stop offset="100%" stopColor={GOLD} stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="exE1rmStroke" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor={GOLD_BRIGHT} />
+                      <stop offset="100%" stopColor={GOLD} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={formatShortDate}
+                    tick={axisTick}
+                    axisLine={false}
+                    tickLine={false}
+                    minTickGap={28}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={axisTick}
+                    axisLine={false}
+                    tickLine={false}
+                    width={40}
+                  />
                   <Tooltip
                     contentStyle={tooltipStyle}
+                    cursor={{ stroke: "rgba(235,196,74,0.25)", strokeWidth: 1 }}
                     labelFormatter={(label) => formatShortDate(String(label))}
                     formatter={(value, _name, p) => {
                       const payload =
@@ -293,39 +330,97 @@ export function ExerciseProgressClient({
                       return [`${Number(value ?? 0)} kg (${reps} × ${w} kg)`, "e1RM"];
                     }}
                   />
-                  <Line type="monotone" dataKey="bestE1rm" stroke="#d4af37" strokeWidth={2} dot={{ r: 2.5, fill: "#d4af37", strokeWidth: 0 }} activeDot={{ r: 5, fill: "#d4af37", stroke: "#fff", strokeWidth: 2 }} />
-                </LineChart>
+                  <Area
+                    type="monotone"
+                    dataKey="bestE1rm"
+                    stroke="url(#exE1rmStroke)"
+                    strokeWidth={2.5}
+                    fill="url(#exE1rmFill)"
+                    dot={false}
+                    activeDot={{
+                      r: 5,
+                      fill: GOLD_BRIGHT,
+                      stroke: "#070708",
+                      strokeWidth: 2,
+                    }}
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        <div className="app-card p-5 sm:p-6">
-          <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(225deg,rgba(255,45,85,0.12),transparent_55%)]" />
+        <div className="app-card relative overflow-hidden p-5">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gym-gold)]/45 to-transparent"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-[var(--gym-gold)]/[0.07] blur-3xl"
+            aria-hidden
+          />
           <div className="relative">
-            <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-              Obciążenie
-            </p>
-            <h3 className="font-heading mt-1 text-lg font-semibold text-white">
+            <p className="app-label text-[var(--gym-gold)]">Obciążenie</p>
+            <h3 className="mt-1.5 text-base font-semibold text-white">
               Tonaż ćwiczenia wg dni
             </h3>
-            <p className="mt-1 text-xs text-white/50">
+            <p className="mt-1 text-xs text-white/40">
               Suma (powtórzenia × kg) wyłącznie dla wybranego ruchu.
             </p>
-            <div className="mt-4 h-[260px] w-full">
+            <div className="mt-4 h-[248px] w-full min-w-0">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <AreaChart
+                  data={points}
+                  margin={{ top: 12, right: 10, left: 0, bottom: 4 }}
+                >
                   <defs>
-                    <linearGradient id="exTon" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#d4af37" stopOpacity={0.34} />
-                      <stop offset="95%" stopColor="#d4af37" stopOpacity={0} />
+                    <linearGradient id="exTonFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={GOLD} stopOpacity={0.42} />
+                      <stop offset="100%" stopColor={GOLD} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                  <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} axisLine={{ stroke: "rgba(255,255,255,0.1)" }} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} axisLine={false} tickLine={false} width={44} />
-                  <Tooltip contentStyle={tooltipStyle} labelFormatter={(label) => formatShortDate(String(label))} formatter={(value) => [`${Number(value ?? 0)} kg`, "Tonaż"]} />
-                  <Area type="monotone" dataKey="tonnageKg" stroke="#d4af37" strokeWidth={2} fill="url(#exTon)" dot={{ r: 2.5, fill: "#d4af37", strokeWidth: 0 }} activeDot={{ r: 5, fill: "#d4af37", stroke: "#fff", strokeWidth: 2 }} />
+                  <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={formatShortDate}
+                    tick={axisTick}
+                    axisLine={false}
+                    tickLine={false}
+                    minTickGap={28}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={axisTick}
+                    axisLine={false}
+                    tickLine={false}
+                    width={44}
+                    tickFormatter={(v: number) =>
+                      v >= 1000 ? `${(v / 1000).toFixed(1)}t` : String(v)
+                    }
+                  />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    cursor={{ stroke: "rgba(235,196,74,0.25)", strokeWidth: 1 }}
+                    labelFormatter={(label) => formatShortDate(String(label))}
+                    formatter={(value) => [
+                      `${Number(value ?? 0).toLocaleString("pl-PL")} kg`,
+                      "Tonaż",
+                    ]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="tonnageKg"
+                    stroke={GOLD}
+                    strokeWidth={2.5}
+                    fill="url(#exTonFill)"
+                    dot={false}
+                    activeDot={{
+                      r: 5,
+                      fill: GOLD_BRIGHT,
+                      stroke: "#070708",
+                      strokeWidth: 2,
+                    }}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>

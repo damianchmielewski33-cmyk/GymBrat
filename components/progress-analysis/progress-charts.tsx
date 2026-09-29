@@ -1,9 +1,8 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   CartesianGrid,
-  Line,
-  LineChart,
   Area,
   AreaChart,
   Bar,
@@ -13,19 +12,79 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { RelativeStrengthPoint, StrengthPoint, VolumePoint, WeightPoint } from "@/lib/progress-analysis";
+import type {
+  RelativeStrengthPoint,
+  StrengthPoint,
+  VolumePoint,
+  WeightPoint,
+} from "@/lib/progress-analysis";
+import { cn } from "@/lib/utils";
+
+const GOLD = "#ebc44a";
+const GOLD_BRIGHT = "#f7e28f";
+const MINT = "#6ee7b7";
 
 const tooltipStyle = {
-  backgroundColor: "rgba(7, 8, 13, 0.92)",
-  border: "1px solid rgba(255, 255, 255, 0.12)",
-  borderRadius: "12px",
+  backgroundColor: "rgba(12, 12, 14, 0.96)",
+  border: "1px solid rgba(235, 196, 74, 0.28)",
+  borderRadius: "14px",
   fontSize: "12px",
-  color: "rgba(255, 255, 255, 0.9)",
+  color: "rgba(255, 255, 255, 0.92)",
+  boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+  padding: "10px 12px",
 };
+
+const axisTick = { fill: "rgba(255,255,255,0.38)", fontSize: 10 };
+const chartMargin = { top: 12, right: 10, left: 0, bottom: 4 };
 
 function formatShortDate(iso: string) {
   const d = new Date(`${iso}T12:00:00`);
   return d.toLocaleDateString("pl-PL", { month: "short", day: "numeric" });
+}
+
+function ChartShell({
+  kicker,
+  title,
+  description,
+  empty,
+  emptyHint,
+  className,
+  children,
+}: {
+  kicker: string;
+  title: string;
+  description: string;
+  empty: boolean;
+  emptyHint: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={cn("app-card relative overflow-hidden p-5", className)}>
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gym-gold)]/45 to-transparent"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-[var(--gym-gold)]/[0.07] blur-3xl"
+        aria-hidden
+      />
+      <div className="relative">
+        <p className="app-label text-[var(--gym-gold)]">{kicker}</p>
+        <h2 className="mt-1.5 text-base font-semibold leading-snug text-white">{title}</h2>
+        <p className="mt-1 text-xs leading-relaxed text-white/40">{description}</p>
+        <div className="relative mt-4 h-[248px] w-full min-w-0">
+          {empty ? (
+            <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 text-center text-xs leading-relaxed text-white/40">
+              {emptyHint}
+            </div>
+          ) : (
+            children
+          )}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export function ProgressCharts({
@@ -41,227 +100,230 @@ export function ProgressCharts({
 }) {
   return (
     <div className="grid gap-2.5 lg:grid-cols-2">
-      <div className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            Masa ciała
-          </p>
-          <h2 className="mt-1 text-base font-semibold text-white">Pomiary masy (90 dni)</h2>
-          <p className="mt-1 text-xs text-white/40">Zapisane ważenia z aplikacji.</p>
-          <div className="mt-4 h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={weights} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.06)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={formatShortDate}
-                  tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                  axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={44}
-                  domain={["auto", "auto"]}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  labelFormatter={(label) => formatShortDate(String(label))}
-                  formatter={(value) => [`${Number(value ?? 0)} kg`, "Masa"]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="kg"
-                  stroke="#d4af37"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "#d4af37", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#d4af37", stroke: "#fff", strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          {weights.length === 0 ? (
-            <p className="mt-3 text-xs text-white/45">
-              Brak pomiarów — wpisz masę poniżej, aby wypełnić wykres.
-            </p>
-          ) : null}
-        </div>
-      </div>
+      <ChartShell
+        kicker="Masa ciała"
+        title="Pomiary masy (90 dni)"
+        description="Zapisane ważenia z aplikacji."
+        empty={weights.length === 0}
+        emptyHint="Brak pomiarów — wpisz masę poniżej, aby wypełnić wykres."
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={weights} margin={chartMargin}>
+            <defs>
+              <linearGradient id="paWeightFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={GOLD} stopOpacity={0.35} />
+                <stop offset="55%" stopColor={GOLD} stopOpacity={0.08} />
+                <stop offset="100%" stopColor={GOLD} stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="paWeightStroke" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor={GOLD_BRIGHT} />
+                <stop offset="100%" stopColor={GOLD} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis
+              dataKey="date"
+              tickFormatter={formatShortDate}
+              tick={axisTick}
+              axisLine={false}
+              tickLine={false}
+              minTickGap={28}
+            />
+            <YAxis
+              tick={axisTick}
+              axisLine={false}
+              tickLine={false}
+              width={40}
+              domain={["dataMin - 1", "dataMax + 1"]}
+            />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              cursor={{ stroke: "rgba(235,196,74,0.25)", strokeWidth: 1 }}
+              labelFormatter={(label) => formatShortDate(String(label))}
+              formatter={(value) => [`${Number(value ?? 0)} kg`, "Masa"]}
+            />
+            <Area
+              type="monotone"
+              dataKey="kg"
+              stroke="url(#paWeightStroke)"
+              strokeWidth={2.5}
+              fill="url(#paWeightFill)"
+              dot={false}
+              activeDot={{
+                r: 5,
+                fill: GOLD_BRIGHT,
+                stroke: "#070708",
+                strokeWidth: 2,
+              }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </ChartShell>
 
-      <div className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            Obciążenie
-          </p>
-          <h2 className="mt-1 text-base font-semibold text-white">Tonaż (kg) wg dni</h2>
-          <p className="mt-1 text-xs text-white/40">
-            Suma obciążenia z ukończonych serii: ∑(powtórzenia × kg).
-          </p>
-          <div className="mt-4 h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={volume} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="neonVol" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#d4af37" stopOpacity={0.38} />
-                    <stop offset="95%" stopColor="#d4af37" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.06)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={formatShortDate}
-                  tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                  axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={44}
-                  allowDecimals={false}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  labelFormatter={(label) => formatShortDate(String(label))}
-                  formatter={(value) => [`${Number(value ?? 0)} kg`, "Tonaż"]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="kg"
-                  stroke="#d4af37"
-                  strokeWidth={2}
-                  fill="url(#neonVol)"
-                  dot={{ r: 2.5, fill: "#d4af37", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#d4af37", stroke: "#fff", strokeWidth: 2 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          {volume.length === 0 ? (
-            <p className="mt-3 text-xs text-white/45">
-              Ukończ trening z zapisanym ciężarem w seriach, aby pojawiły się punkty tonażu.
-            </p>
-          ) : null}
-        </div>
-      </div>
+      <ChartShell
+        kicker="Obciążenie"
+        title="Tonaż (kg) wg dni"
+        description="Suma obciążenia z ukończonych serii: ∑(powtórzenia × kg)."
+        empty={volume.length === 0}
+        emptyHint="Ukończ trening z zapisanym ciężarem w seriach, aby pojawiły się punkty tonażu."
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={volume} margin={chartMargin}>
+            <defs>
+              <linearGradient id="paVolFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={GOLD} stopOpacity={0.42} />
+                <stop offset="100%" stopColor={GOLD} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis
+              dataKey="date"
+              tickFormatter={formatShortDate}
+              tick={axisTick}
+              axisLine={false}
+              tickLine={false}
+              minTickGap={28}
+            />
+            <YAxis
+              tick={axisTick}
+              axisLine={false}
+              tickLine={false}
+              width={44}
+              allowDecimals={false}
+              tickFormatter={(v: number) =>
+                v >= 1000 ? `${(v / 1000).toFixed(1)}t` : String(v)
+              }
+            />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              cursor={{ stroke: "rgba(235,196,74,0.25)", strokeWidth: 1 }}
+              labelFormatter={(label) => formatShortDate(String(label))}
+              formatter={(value) => [
+                `${Number(value ?? 0).toLocaleString("pl-PL")} kg`,
+                "Tonaż",
+              ]}
+            />
+            <Area
+              type="monotone"
+              dataKey="kg"
+              stroke={GOLD}
+              strokeWidth={2.5}
+              fill="url(#paVolFill)"
+              dot={false}
+              activeDot={{
+                r: 5,
+                fill: GOLD_BRIGHT,
+                stroke: "#070708",
+                strokeWidth: 2,
+              }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </ChartShell>
 
-      <div className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)] lg:col-span-2">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            Siła
-          </p>
-          <h2 className="mt-1 text-base font-semibold text-white">Wskaźnik siły (e1RM) wg dni</h2>
-          <p className="mt-1 text-xs text-white/40">
-            W każdym dniu sumujemy najlepszy szacunek e1RM (wzór Epleya) z każdego ćwiczenia.
-          </p>
-          <div className="mt-4 h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={strength} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.06)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={formatShortDate}
-                  tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                  axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={44}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  labelFormatter={(label) => formatShortDate(String(label))}
-                  formatter={(value) => [`${Number(value ?? 0)}`, "Wskaźnik"]}
-                />
-                <Bar
-                  dataKey="score"
-                  fill="#d4af37"
-                  radius={[8, 8, 0, 0]}
-                  stroke="rgba(255,255,255,0.08)"
-                  strokeWidth={1}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+      <ChartShell
+        kicker="Siła"
+        title="Wskaźnik siły (e1RM) wg dni"
+        description="W każdym dniu sumujemy najlepszy szacunek e1RM (wzór Epleya) z każdego ćwiczenia."
+        empty={strength.length === 0}
+        emptyHint="Po zapisanych treningach pojawi się wykres wskaźnika siły."
+        className="lg:col-span-2"
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={strength} margin={chartMargin} barCategoryGap="22%">
+            <defs>
+              <linearGradient id="paBarFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={GOLD_BRIGHT} stopOpacity={1} />
+                <stop offset="100%" stopColor={GOLD} stopOpacity={0.75} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis
+              dataKey="date"
+              tickFormatter={formatShortDate}
+              tick={axisTick}
+              axisLine={false}
+              tickLine={false}
+              minTickGap={28}
+            />
+            <YAxis
+              allowDecimals={false}
+              tick={axisTick}
+              axisLine={false}
+              tickLine={false}
+              width={40}
+            />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              cursor={{ fill: "rgba(235,196,74,0.08)" }}
+              labelFormatter={(label) => formatShortDate(String(label))}
+              formatter={(value) => [`${Number(value ?? 0)}`, "Wskaźnik"]}
+            />
+            <Bar
+              dataKey="score"
+              fill="url(#paBarFill)"
+              radius={[10, 10, 4, 4]}
+              maxBarSize={36}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartShell>
 
-      <div className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)] lg:col-span-2">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            Siła względna
-          </p>
-          <h2 className="mt-1 text-base font-semibold text-white">
-            Siła w odniesieniu do masy ciała
-          </h2>
-          <p className="mt-1 text-xs text-white/40">
-            Stosunek wskaźnika siły do zapisanej masy — im wyżej, tym większa siła na kg masy.
-          </p>
-          <div className="mt-4 h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={relativeStrength} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.06)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={formatShortDate}
-                  tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                  axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={44}
-                  domain={["auto", "auto"]}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  labelFormatter={(label) => formatShortDate(String(label))}
-                  formatter={(value) => [`${Number(value ?? 0)}`, "Siła / masa"]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="ratio"
-                  stroke="#7ddea0"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "#7ddea0", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#7ddea0", stroke: "#fff", strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          {relativeStrength.length === 0 ? (
-            <p className="mt-3 text-xs text-white/45">
-              Zapisz przynajmniej jedno ważenie, aby policzyć siłę względem masy ciała.
-            </p>
-          ) : null}
-        </div>
-      </div>
+      <ChartShell
+        kicker="Siła względna"
+        title="Siła w odniesieniu do masy ciała"
+        description="Stosunek wskaźnika siły do zapisanej masy — im wyżej, tym większa siła na kg masy."
+        empty={relativeStrength.length === 0}
+        emptyHint="Zapisz przynajmniej jedno ważenie, aby policzyć siłę względem masy ciała."
+        className="lg:col-span-2"
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={relativeStrength} margin={chartMargin}>
+            <defs>
+              <linearGradient id="paRelFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={MINT} stopOpacity={0.32} />
+                <stop offset="100%" stopColor={MINT} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis
+              dataKey="date"
+              tickFormatter={formatShortDate}
+              tick={axisTick}
+              axisLine={false}
+              tickLine={false}
+              minTickGap={28}
+            />
+            <YAxis
+              tick={axisTick}
+              axisLine={false}
+              tickLine={false}
+              width={40}
+              domain={["auto", "auto"]}
+            />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              cursor={{ stroke: "rgba(110,231,183,0.28)", strokeWidth: 1 }}
+              labelFormatter={(label) => formatShortDate(String(label))}
+              formatter={(value) => [`${Number(value ?? 0)}`, "Siła / masa"]}
+            />
+            <Area
+              type="monotone"
+              dataKey="ratio"
+              stroke={MINT}
+              strokeWidth={2.5}
+              fill="url(#paRelFill)"
+              dot={false}
+              activeDot={{
+                r: 5,
+                fill: MINT,
+                stroke: "#070708",
+                strokeWidth: 2,
+              }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </ChartShell>
     </div>
   );
 }
-

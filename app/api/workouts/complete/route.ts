@@ -4,6 +4,12 @@ import { getDb } from "@/db";
 import { workoutPlans, workouts } from "@/db/schema";
 import { calendarDateKey } from "@/lib/local-date";
 import { sessionVolume } from "@/lib/workout-session-calculations";
+import {
+  buildWorkoutPlanCompare,
+  completedSessionJsonForCompare,
+  type WorkoutPlanComparePayload,
+} from "@/lib/workout-plan-compare";
+import { workoutPlanDisplayLabel } from "@/lib/workout-plan-compare-key";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { assertCsrf } from "@/lib/csrf";
@@ -109,6 +115,13 @@ function deltaPct(current: number, prev: number): number | null {
   return ((current - prev) / prev) * 100;
 }
 
+function dateKeyFromStartedAt(startedAtMs: number | null | undefined, fallback: Date): string {
+  if (startedAtMs != null && Number.isFinite(startedAtMs)) {
+    return calendarDateKey(new Date(startedAtMs));
+  }
+  return calendarDateKey(fallback);
+}
+
 export async function POST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
@@ -197,33 +210,85 @@ export async function POST(req: Request) {
     }
   }
 
-  // Strength proxy: session volume compared to previous workout from the same plan.
+  // Strength proxy + pełne porównanie vs poprzedni trening z tego samego planu.
   let strengthDeltaPercent: number | null = null;
+  let planCompare: WorkoutPlanComparePayload | null = null;
+  const currentVol = safeSessionVolume(parsed.data.exercises ?? null);
+  const currentStartedAtMs = startedAt.getTime();
+  const currentJson = completedSessionJsonForCompare({
+    title,
+    startedAtMs: currentStartedAtMs,
+    endedAtMs: endedAt.getTime(),
+    workoutPlanId: rawPlanId,
+    exercises: parsed.data.exercises ?? null,
+  });
+
   if (rawPlanId) {
-    const currentVol = safeSessionVolume(parsed.data.exercises ?? null);
-    const currentStartedAtMs = startedAt.getTime();
+    const [planRow] = await db
+      .select({ planJson: workoutPlans.planJson })
+      .from(workoutPlans)
+      .where(and(eq(workoutPlans.id, rawPlanId), eq(workoutPlans.userId, session.user.id)))
+      .limit(1);
+
+    let planNameFromJson: string | null = null;
+    try {
+      const o = JSON.parse(planRow?.planJson ?? "{}") as { planName?: unknown; name?: unknown };
+      const n = String(o.planName ?? o.name ?? "").trim();
+      planNameFromJson = n || null;
+    } catch {
+      planNameFromJson = null;
+    }
+
+    const planLabel = workoutPlanDisplayLabel({
+      planName: planNameFromJson,
+      title,
+      workoutPlanId: rawPlanId,
+    });
 
     const recent = await db
-      .select({ exercises: workouts.exercises })
+      .select({ exercises: workouts.exercises, date: workouts.date })
       .from(workouts)
       .where(and(eq(workouts.userId, session.user.id), eq(workouts.workoutPlanId, rawPlanId)))
       .orderBy(desc(workouts.date))
       .limit(12);
 
+    let prevJson: string | null = null;
+    let prevDate: string | null = null;
     let prevVol: number | null = null;
     for (const r of recent) {
-      const parsed = parseCompletedWorkout(r.exercises);
-      if (!parsed || parsed.kind !== "completed_session") continue;
-      const prevStartedAtMs = typeof parsed.startedAt === "number" ? parsed.startedAt : null;
+      const prevParsed = parseCompletedWorkout(r.exercises);
+      if (!prevParsed || prevParsed.kind !== "completed_session") continue;
+      const prevStartedAtMs =
+        typeof prevParsed.startedAt === "number" ? prevParsed.startedAt : null;
       if (prevStartedAtMs == null || !Number.isFinite(prevStartedAtMs)) continue;
       if (prevStartedAtMs >= currentStartedAtMs) continue;
-      prevVol = safeSessionVolume(parsed.exercises);
+      prevJson = r.exercises;
+      prevDate = dateKeyFromStartedAt(prevStartedAtMs, new Date(`${r.date}T12:00:00`));
+      prevVol = safeSessionVolume(prevParsed.exercises);
       break;
     }
 
     if (prevVol != null) {
       strengthDeltaPercent = deltaPct(currentVol, prevVol);
     }
+
+    planCompare = buildWorkoutPlanCompare({
+      currentExercisesJson: currentJson,
+      previousExercisesJson: prevJson,
+      currentDate: calendarDateKey(startedAt),
+      previousDate: prevDate,
+      workoutPlanId: rawPlanId,
+      planLabel,
+    });
+  } else {
+    planCompare = buildWorkoutPlanCompare({
+      currentExercisesJson: currentJson,
+      previousExercisesJson: null,
+      currentDate: calendarDateKey(startedAt),
+      previousDate: null,
+      workoutPlanId: null,
+      planLabel: title,
+    });
   }
 
   const dateKey = calendarDateKey(startedAt);
@@ -232,20 +297,14 @@ export async function POST(req: Request) {
     workoutPlanId: rawPlanId,
     date: dateKey,
     cardioMinutes: Math.max(0, Math.round(cardioMinutes)),
-    exercises: JSON.stringify({
-      kind: "completed_session",
-      title,
-      startedAt: startedAt.getTime(),
-      endedAt: endedAt.getTime(),
-      workoutPlanId: rawPlanId,
-      exercises: parsed.data.exercises ?? null,
-    }),
+    exercises: currentJson,
   });
 
   revalidatePath("/");
   revalidatePath("/reports");
   revalidatePath("/active-workout");
+  revalidatePath("/workout-history");
 
-  return NextResponse.json({ ok: true, strengthDeltaPercent });
+  return NextResponse.json({ ok: true, strengthDeltaPercent, planCompare });
 }
 

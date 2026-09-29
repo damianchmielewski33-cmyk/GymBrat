@@ -9,6 +9,7 @@ import {
   outboxEnqueue,
   type PendingWorkoutPayload,
 } from "@/lib/workout-outbox-db";
+import type { WorkoutPlanComparePayload } from "@/lib/workout-plan-compare";
 
 export type CompleteWorkoutInput = PendingWorkoutPayload;
 
@@ -20,7 +21,11 @@ function isLikelyNetworkFailure(e: unknown): boolean {
 }
 
 export type SubmitWorkoutResult =
-  | { status: "saved"; strengthDeltaPercent: number | null }
+  | {
+      status: "saved";
+      strengthDeltaPercent: number | null;
+      planCompare: WorkoutPlanComparePayload | null;
+    }
   | { status: "queued"; localId: string }
   | { status: "error"; message: string };
 
@@ -45,6 +50,7 @@ export async function submitCompletedWorkout(
       ok?: boolean;
       error?: string;
       strengthDeltaPercent?: number | null;
+      planCompare?: WorkoutPlanComparePayload | null;
     };
     if (!res.ok || !data.ok) {
       return {
@@ -56,7 +62,9 @@ export async function submitCompletedWorkout(
       typeof data.strengthDeltaPercent === "number" && Number.isFinite(data.strengthDeltaPercent)
         ? data.strengthDeltaPercent
         : null;
-    return { status: "saved", strengthDeltaPercent };
+    const planCompare =
+      data.planCompare && typeof data.planCompare === "object" ? data.planCompare : null;
+    return { status: "saved", strengthDeltaPercent, planCompare };
   } catch (e) {
     if (isLikelyNetworkFailure(e) && isOutboxSupported()) {
       try {

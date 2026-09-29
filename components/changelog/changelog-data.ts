@@ -36,6 +36,8 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Ekran serii w sesji: technika ↗ (YouTube z panelu Admin → Ćwiczenia), Zgłoś, kropki serii, ciężar ±2,5/±0,5, W zapasie i Zalicz serię.",
       "Statystyki i porównania (historia, Pulpit) liczą się osobno per dzień planu — Nogi tylko do Nóg, Push tylko do Push.",
       "Pulpit, Dieta, Treningi, Analiza, Profil, Historia, Raporty i sesja treningu mają spójne nagłówki, karty (app-card) oraz złote CTA.",
+      "Po zapisie treningu „Zobacz postęp” otwiera popup z analizą vs poprzednia sesja tego samego planu (tonaż, ↑/↓/pominięte, ćwiczenia).",
+      "Wykresy na Analizie mają złote gradienty, czystsze osie i karty app-card — spójnie z Pulpitem i Historią.",
     ],
   },
   {

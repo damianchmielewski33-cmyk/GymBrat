@@ -117,6 +117,7 @@ export function ActiveWorkoutGlobalBar() {
           result.status === "saved"
             ? result.strengthDeltaPercent
             : null,
+        planCompare: result.status === "saved" ? result.planCompare : null,
       };
       sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
       if (result.status === "queued") {
