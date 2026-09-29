@@ -20,7 +20,9 @@ const geistMono = Geist_Mono({
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  // Bez tablicy weight — Turbopack na Vercel pada na
+  // „next/font/google queries have exactly one entry”.
+  // Space Grotesk jest fontem zmiennym (300–700).
   display: "swap",
 });
 
