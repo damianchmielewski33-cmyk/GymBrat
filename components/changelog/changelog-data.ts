@@ -44,6 +44,13 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "W Profilu użytkownicy przeglądarki mają bezpośredni link do najnowszego APK Android (z numerem wersji).",
       "W Profilu przełącznik postępów: porównania tonażu w % albo w kg (Historia i popup po treningu).",
       "Android 0.1.7: przy aktualizacji APK z innym podpisem aplikacja ostrzega, zamiast zawieszać instalator — wtedy odinstaluj starą GymBrat i zainstaluj ponownie.",
+    ],
+  },
+  {
+    title: "2026-09 — Pobieranie APK same-origin",
+    date: "2026-09-29",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
       "Pobieranie APK z Profilu idzie z gym-brat.vercel.app/gymbrat.apk (same-origin), żeby Chrome na Androidzie nie wisiał na 100%.",
     ],
   },
