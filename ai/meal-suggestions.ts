@@ -9,12 +9,10 @@ import {
 } from "@/ai/prompts/mealSuggestions";
 import {
   MealSuggestionsResponseSchema,
-  staticFallbackMeals,
   type MealSuggestionItem,
 } from "@/lib/meal-suggestions-schema";
 
 export type { MealSuggestionItem } from "@/lib/meal-suggestions-schema";
-export { staticFallbackMeals } from "@/lib/meal-suggestions-schema";
 export { MealSuggestionsResponseSchema } from "@/lib/meal-suggestions-schema";
 
 function safeJsonParse(text: string): unknown {
@@ -38,7 +36,7 @@ export async function generateMealSuggestionsFromModel(
   input: MealSuggestionsPromptInput,
 ): Promise<MealSuggestionItem[]> {
   if (!isAiConfigured()) {
-    return staticFallbackMeals();
+    return [];
   }
 
   const messages = [
@@ -50,5 +48,5 @@ export async function generateMealSuggestionsFromModel(
   const parsed = safeJsonParse(raw.trim());
   const result = MealSuggestionsResponseSchema.safeParse(parsed);
   if (result.success) return result.data.meals;
-  return staticFallbackMeals();
+  return [];
 }

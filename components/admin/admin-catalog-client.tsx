@@ -12,19 +12,7 @@ import {
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import type { CatalogMeal } from "@/lib/meal-catalog-types";
 
-const PLACEHOLDER_JSON = `[
-  {
-    "id": "meal_011",
-    "title": "Jogurt z Granola",
-    "description": "Szybkie śniadanie.",
-    "mealType": "breakfast",
-    "calories": 350,
-    "protein": 24,
-    "carbs": 40,
-    "fat": 10,
-    "imagePrompt": "greek yogurt bowl with granola and fresh berries"
-  }
-]`;
+const PLACEHOLDER_JSON = `[]`;
 
 export function AdminCatalogClient() {
   const { notifySaved, notifyError } = useSaveFeedback();

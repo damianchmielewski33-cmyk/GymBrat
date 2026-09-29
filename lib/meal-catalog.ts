@@ -1,5 +1,4 @@
 import type { MealSuggestionItem } from "@/lib/meal-suggestions-schema";
-import { MEAL_CATALOG_GENERATED } from "@/lib/meal-catalog-data";
 import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
 import type { CatalogMeal, MealSlot } from "@/lib/meal-catalog-types";
 
@@ -31,17 +30,17 @@ export function mealSlotFromHour(hour: number): MealSlot {
   return "kolacja";
 }
 
-/** Seed w kodzie — bez wpisów z panelu admina. */
-export const MEAL_CATALOG: CatalogMeal[] = MEAL_CATALOG_GENERATED;
+/** Brak seedu w kodzie — przepisy tylko z bazy panelu (przekaż `catalog`). */
+export const MEAL_CATALOG: CatalogMeal[] = [];
 
-/** DB nadpisuje to samo `id`, reszta seedu zostaje. */
+/** Nadpisanie po `id` (np. merge importu). */
 export function mergeMealCatalogs(
-  seed: CatalogMeal[],
-  dbMeals: CatalogMeal[],
+  base: CatalogMeal[],
+  overlay: CatalogMeal[],
 ): CatalogMeal[] {
   const byId = new Map<string, CatalogMeal>();
-  for (const m of seed) byId.set(m.id, m);
-  for (const m of dbMeals) byId.set(m.id, m);
+  for (const m of base) byId.set(m.id, m);
+  for (const m of overlay) byId.set(m.id, m);
   return Array.from(byId.values());
 }
 

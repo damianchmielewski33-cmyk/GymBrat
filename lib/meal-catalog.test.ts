@@ -7,7 +7,6 @@ import {
   mealSlotFromHour,
   pickCatalogMealsForGaps,
 } from "@/lib/meal-catalog";
-import { MEAL_CATALOG_GENERATED_COUNT } from "@/lib/meal-catalog-data";
 import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
 
 const emptyGaps: MacroGaps = {
@@ -29,8 +28,7 @@ const emptyGaps: MacroGaps = {
 };
 
 describe("meal-catalog", () => {
-  it("seed w kodzie jest pusty — przepisy tylko z panelu / bazy", () => {
-    expect(MEAL_CATALOG_GENERATED_COUNT).toBe(0);
+  it("w kodzie nie ma przepisów — tylko sloty i etykiety", () => {
     expect(MEAL_CATALOG).toHaveLength(0);
     for (const slot of MEAL_SLOTS) {
       expect(getMealsBySlot(slot)).toHaveLength(0);

@@ -1,5 +1,5 @@
 /** Generacja — podbij przy zmianie mapowania grafik. */
-export const RECIPE_IMAGE_CACHE_GENERATION = 5;
+export const RECIPE_IMAGE_CACHE_GENERATION = 6;
 
 export const RECIPE_IMAGE_FALLBACK =
   "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=1200&q=80";
@@ -47,20 +47,6 @@ export const DISH_IMAGES = {
   pastaGeneric:
     "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=1200&q=80",
 } as const;
-
-/** Stałe mapowanie id seedu katalogu → grafika. */
-export const STABLE_RECIPE_IMAGES: Record<string, string> = {
-  meal_001: DISH_IMAGES.oatmeal,
-  meal_002: DISH_IMAGES.eggs,
-  meal_003: DISH_IMAGES.chickenRiceBroccoli,
-  meal_004: DISH_IMAGES.turkeySweetPotato,
-  meal_005: DISH_IMAGES.pastaChicken,
-  meal_006: DISH_IMAGES.wrap,
-  meal_007: DISH_IMAGES.tunaSalad,
-  meal_008: DISH_IMAGES.cottageFruit,
-  meal_009: DISH_IMAGES.smoothie,
-  meal_010: DISH_IMAGES.salmon,
-};
 
 /**
  * Reguły od NAJBARDZIEJ szczegółowych — pierwsza trafiona wygrywa.
@@ -138,9 +124,6 @@ function matchByTitle(title: string): string | null {
 function stockImageForRecipe(recipe: RecipeImageSource): string {
   const custom = (recipe.imageUrl ?? "").trim();
   if (custom && isSafeHttpUrl(custom)) return custom;
-
-  const id = (recipe.id ?? "").trim();
-  if (id && STABLE_RECIPE_IMAGES[id]) return STABLE_RECIPE_IMAGES[id]!;
 
   // Wyłącznie tytuł — imagePrompt nie może „podmienić” dania na deser.
   const byTitle = matchByTitle(recipe.title ?? "");

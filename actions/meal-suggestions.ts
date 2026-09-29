@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
-import { staticFallbackMeals, type MealSuggestionItem } from "@/lib/meal-suggestions-schema";
+import { type MealSuggestionItem } from "@/lib/meal-suggestions-schema";
 import {
   catalogMealToSuggestion,
   pickCatalogMealsForGaps,
@@ -21,9 +21,9 @@ function catalogSuggestions(
   hour: number,
   catalog: CatalogMeal[],
 ): MealSuggestionItem[] {
-  const picked = pickCatalogMealsForGaps(gaps, { hour, limit: 4, catalog });
-  if (picked.length > 0) return picked.map(catalogMealToSuggestion);
-  return staticFallbackMeals();
+  return pickCatalogMealsForGaps(gaps, { hour, limit: 4, catalog }).map(
+    catalogMealToSuggestion,
+  );
 }
 
 export type GenerateMealSuggestionsResult =

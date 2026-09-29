@@ -51,10 +51,10 @@ describe("meal-catalog-import", () => {
   });
 
   it("merge nadpisuje to samo id", () => {
-    const seed: CatalogMeal[] = [
+    const base: CatalogMeal[] = [
       {
         id: "a",
-        title: "Seed",
+        title: "Stary",
         slot: "obiad",
         prepMinutes: 10,
         ingredients: ["x", "y"],
@@ -62,7 +62,7 @@ describe("meal-catalog-import", () => {
         approximateMacros: { calories: 1, proteinG: 1, fatG: 1, carbsG: 1 },
       },
     ];
-    const db: CatalogMeal[] = [
+    const overlay: CatalogMeal[] = [
       {
         id: "a",
         title: "Z panelu",
@@ -82,7 +82,7 @@ describe("meal-catalog-import", () => {
         approximateMacros: { calories: 3, proteinG: 3, fatG: 3, carbsG: 3 },
       },
     ];
-    const merged = mergeMealCatalogs(seed, db);
+    const merged = mergeMealCatalogs(base, overlay);
     expect(merged).toHaveLength(2);
     expect(merged.find((m) => m.id === "a")?.title).toBe("Z panelu");
   });

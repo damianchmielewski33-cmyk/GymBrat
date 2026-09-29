@@ -2,18 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   getRecipeImage,
   DISH_IMAGES,
-  STABLE_RECIPE_IMAGES,
   RECIPE_IMAGE_FALLBACK,
 } from "@/lib/recipe-image";
 import { MEAL_CATALOG } from "@/lib/meal-catalog";
 
 describe("getRecipeImage — dopasowanie do dania", () => {
-  it("znane id → stała grafika katalogu", () => {
-    expect(getRecipeImage({ id: "meal_003", title: "X" })).toBe(
-      STABLE_RECIPE_IMAGES.meal_003,
-    );
-  });
-
   it("wrap wygrywa przed indyk (kolejność reguł)", () => {
     expect(getRecipeImage({ title: "Wrap z Indykiem i Awokado" })).toBe(
       DISH_IMAGES.wrap,
@@ -47,7 +40,7 @@ describe("getRecipeImage — dopasowanie do dania", () => {
     expect(url).toBe(DISH_IMAGES.beefPlate);
   });
 
-  it("katalog seed jest pusty (przepisy z panelu)", () => {
+  it("w kodzie nie ma seedu przepisów", () => {
     expect(MEAL_CATALOG).toHaveLength(0);
   });
 
