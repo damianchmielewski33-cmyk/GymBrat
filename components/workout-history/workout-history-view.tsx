@@ -183,7 +183,13 @@ export function WorkoutHistoryView({ overview }: Props) {
   }, [cards, filterPlanKey]);
 
   const scopedKpis = useMemo(() => {
-    if (filterPlanKey === "all") return kpis;
+    const hit =
+      filterPlanKey === "all"
+        ? null
+        : planFilters.find((p) => p.id === filterPlanKey) ?? null;
+    if (filterPlanKey === "all") {
+      return { ...kpis, planFilterLabel: null as string | null };
+    }
     const since = (() => {
       try {
         const d = new Date();
@@ -201,7 +207,6 @@ export function WorkoutHistoryView({ overview }: Props) {
         tonnageLast30Kg += c.volumeKg;
       }
     }
-    const hit = planFilters.find((p) => p.id === filterPlanKey);
     return {
       ...kpis,
       workoutsLast30,
@@ -225,7 +230,7 @@ export function WorkoutHistoryView({ overview }: Props) {
   const trenLabel =
     filterPlanKey === "all"
       ? "Treningów / 30 dni"
-      : `Treningów ${scopedKpis.planFilterLabel ?? ""} / 30 dni`.trim();
+      : `Treningów ${scopedKpis.planFilterLabel ?? ""} / 30 dni`.replace(/\s+/g, " ").trim();
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-10">
