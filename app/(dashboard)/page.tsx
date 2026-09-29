@@ -8,6 +8,7 @@ import { NextWorkoutTile } from "@/components/home/next-workout-tile";
 import { OnboardingBanner } from "@/components/home/onboarding-banner";
 import { StartMetricTiles } from "@/components/home/start-metric-tiles";
 import { TransformationSlider } from "@/components/home/transformation-slider";
+import { WeekPulseCard } from "@/components/home/week-pulse-card";
 import { WeightRangeChartDynamic } from "@/components/home/weight-range-chart-dynamic";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
@@ -79,6 +80,16 @@ export default async function HomePage() {
       </header>
 
       {!settingsRow?.onboardingCompletedAt ? <OnboardingBanner /> : null}
+
+      <WeekPulseCard
+        caloriesConsumed={dash.todayMacros.caloriesConsumed}
+        caloriesGoal={dash.todayMacros.caloriesGoal}
+        workoutsThisWeek={dash.workoutsThisWeek}
+        weeklySessionsTarget={dash.weeklySessionsTarget}
+        reportCount={dash.reportCount}
+        daysSinceLastReport={dash.daysSinceLastReport}
+        reportCadenceDays={dash.reportCadenceDays}
+      />
 
       <NextWorkoutTile
         recommendedPlanId={recommendedId}

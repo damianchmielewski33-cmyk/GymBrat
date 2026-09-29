@@ -23,6 +23,7 @@ import {
   nutritionSettingsFromDbRow,
   resolveProfileDayGoals,
 } from "@/lib/nutrition-goals";
+import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { countDistinctWorkoutDaysInRange } from "@/lib/weekly-sessions";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
 
@@ -39,6 +40,8 @@ export type HomeStartMacroPoint = {
 
 /** Pozostałe B/W/T do spożycia w bieżącym dniu względem celu z profilu. */
 export type HomeStartTodayMacros = {
+  caloriesConsumed: number;
+  caloriesGoal: number | null;
   proteinConsumed: number;
   carbsConsumed: number;
   fatConsumed: number;
@@ -65,6 +68,8 @@ export type HomeStartDashboard = {
     firstTime: boolean;
   } | null;
   workoutsThisWeek: number;
+  /** Cel treningów w tygodniu (profil); domyślnie 4. */
+  weeklySessionsTarget: number;
   cardioThisWeekMinutes: number;
   cardioWeeklyGoal: number;
   /** Kolejne tygodnie kalendarzowe (pon–niedz.) z ≥1 treningiem. */
@@ -423,28 +428,35 @@ async function getMacroSeriesAndToday(
   const proteinConsumed = round1(todayAgg?.protein ?? 0);
   const carbsConsumed = round1(todayAgg?.carbs ?? 0);
   const fatConsumed = round1(todayAgg?.fat ?? 0);
+  const caloriesConsumed = Math.round(todayAgg?.calories ?? 0);
   const todayGoals = resolveProfileDayGoals(settings, todayKey);
   const proteinGoal = todayGoals?.macroGoals.protein ?? null;
   const carbsGoal = todayGoals?.macroGoals.carbs ?? null;
   const fatGoal = todayGoals?.macroGoals.fat ?? null;
+  const caloriesGoal =
+    todayGoals != null ? Math.round(todayGoals.caloriesGoal) : null;
 
   let weekProtein = 0;
   let weekCarbs = 0;
   let weekFat = 0;
+  let weekCalories = 0;
   let weekProteinGoal = 0;
   let weekCarbsGoal = 0;
   let weekFatGoal = 0;
+  let weekCaloriesGoal = 0;
   let weekGoalDays = 0;
   for (const date of weekKeys) {
     const agg = aggregates[date];
     weekProtein += agg?.protein ?? 0;
     weekCarbs += agg?.carbs ?? 0;
     weekFat += agg?.fat ?? 0;
+    weekCalories += agg?.calories ?? 0;
     const goals = resolveProfileDayGoals(settings, date);
     if (goals?.macroGoals) {
       weekProteinGoal += goals.macroGoals.protein;
       weekCarbsGoal += goals.macroGoals.carbs;
       weekFatGoal += goals.macroGoals.fat;
+      weekCaloriesGoal += goals.caloriesGoal;
       weekGoalDays += 1;
     }
   }
@@ -452,13 +464,17 @@ async function getMacroSeriesAndToday(
   const wProtein = round1(weekProtein);
   const wCarbs = round1(weekCarbs);
   const wFat = round1(weekFat);
+  const wCalories = Math.round(weekCalories);
   const wProteinGoal = hasWeekGoals ? round1(weekProteinGoal) : null;
   const wCarbsGoal = hasWeekGoals ? round1(weekCarbsGoal) : null;
   const wFatGoal = hasWeekGoals ? round1(weekFatGoal) : null;
+  const wCaloriesGoal = hasWeekGoals ? Math.round(weekCaloriesGoal) : null;
 
   return {
     series,
     today: {
+      caloriesConsumed,
+      caloriesGoal,
       proteinConsumed,
       carbsConsumed,
       fatConsumed,
@@ -470,6 +486,8 @@ async function getMacroSeriesAndToday(
       fatRemaining: remainingOrNull(fatGoal, fatConsumed),
     },
     week: {
+      caloriesConsumed: wCalories,
+      caloriesGoal: wCaloriesGoal,
       proteinConsumed: wProtein,
       carbsConsumed: wCarbs,
       fatConsumed: wFat,
@@ -797,7 +815,10 @@ export async function getHomeStartDashboard(
       .limit(1)
       .then((rows) => rows[0] ?? null),
     db
-      .select({ reportCadenceDays: userSettings.reportCadenceDays })
+      .select({
+        reportCadenceDays: userSettings.reportCadenceDays,
+        fitnessGoalsJson: userSettings.fitnessGoalsJson,
+      })
       .from(userSettings)
       .where(eq(userSettings.userId, userId))
       .limit(1)
@@ -851,11 +872,16 @@ export async function getHomeStartDashboard(
         : null;
   }
 
+  const weeklySessionsTarget =
+    parseFitnessGoalsJson(settingsRow?.fitnessGoalsJson ?? null)
+      .weeklySessionsTarget ?? 4;
+
   return {
     firstName,
     lastName,
     nextWorkout,
     workoutsThisWeek,
+    weeklySessionsTarget,
     cardioThisWeekMinutes,
     cardioWeeklyGoal: cardioRolling.weeklyGoal,
     workoutStreakWeeks,

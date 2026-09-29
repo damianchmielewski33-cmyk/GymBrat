@@ -24,6 +24,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Przy produktach sieci (KFC/Lidl/Biedronka…) widać jasno: szacunek / sprawdź etykietę.",
       "Ulubione działają (serce na ekranie porcji, lista lokalna); martwa zakładka Własne jest schowana.",
       "Przycisk + z sekcji Jadłospisu przenosi slot do katalogu potraw (mapa por Plan ↔ dziennik).",
+      "Na Pulpicie karta „Ten tydzień” pokazuje kcal dziś, treningi X/Y, status raportu i jeden przycisk akcji.",
       "W profilu jasno: propozycje posiłków = katalog i makro, nie model AI; słownik PL/EN obejmuje Dietę, panel katalogu i sesję.",
       "W panelu admina można wgrywać przepisy JSON do bazy (bez zmiany kodu); tylko główny admin nadaje innym uprawnienia admina.",
     ],
