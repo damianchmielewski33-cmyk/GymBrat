@@ -56,7 +56,7 @@ export function countSkippedWorkoutSets(exercises: WorkoutExerciseState[]): numb
   let n = 0;
   for (const ex of exercises) {
     for (const s of ex.sets) {
-      if (isSkippedWorkoutSet(s) || !s.done) n += 1;
+      if (isSkippedWorkoutSet(s)) n += 1;
     }
   }
   return n;

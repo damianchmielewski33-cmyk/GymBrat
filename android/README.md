@@ -40,3 +40,15 @@ APK: `app/build/outputs/apk/release/app-release.apk`
 1. Pobierz `gymbrat.apk`
 2. Zezwól na instalację z nieznanego źródła (jeśli system pyta)
 3. Otwórz aplikację i zaloguj się jak na stronie
+
+### Błąd: „nie została zainstalowana / konflikt z istniejącym pakietem”
+
+Android blokuje aktualizację, gdy nowy APK ma **inny podpis** niż zainstalowana aplikacja
+(np. stary build z Android Studio + nowy z GitHub Actions, albo inny keystore).
+
+**Rozwiązanie:** odinstaluj obecną GymBrat → zainstaluj nowy `gymbrat.apk`.
+Konto i dane na serwerze zostają; lokalny cache WebView na telefonie może zniknąć
+(trzeba się zalogować ponownie).
+
+Żeby kolejne aktualizacje działały bez odinstalowywania, wszystkie APK muszą iść
+z tego samego `android/keystore.properties` (release keystore) — także w CI.

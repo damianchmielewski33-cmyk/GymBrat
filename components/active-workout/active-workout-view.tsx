@@ -98,6 +98,10 @@ export function ActiveWorkoutView({
   const [listOpen, setListOpen] = useState(false);
   const [resumePromptOpen, setResumePromptOpen] = useState(false);
   const [allSetsDoneOpen, setAllSetsDoneOpen] = useState(false);
+  const [allSetsDoneSkipped, setAllSetsDoneSkipped] = useState<{
+    target: ReturnType<typeof findFirstSkippedWorkoutTarget>;
+    count: number;
+  }>({ target: null, count: 0 });
   const [finishOpen, setFinishOpen] = useState(false);
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
   /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/start-workout`. */
@@ -434,21 +438,16 @@ export function ActiveWorkoutView({
     return { done, total };
   }, [exercises]);
 
-  const skippedTarget = useMemo(
-    () => findFirstSkippedWorkoutTarget(exercises),
-    [exercises],
-  );
-  const skippedCount = useMemo(
-    () => countSkippedWorkoutSets(exercises),
-    [exercises],
-  );
+  const skippedTarget = allSetsDoneSkipped.target;
+  const skippedCount = allSetsDoneSkipped.count;
 
   function goToSkippedTarget() {
-    const target = findFirstSkippedWorkoutTarget(exercises);
+    const exercisesNow = useActiveWorkoutStore.getState().exercises;
+    const target = findFirstSkippedWorkoutTarget(exercisesNow);
     if (!target) return;
     stopRest();
     setSelectedExerciseId(target.exerciseId);
-    const set = exercises
+    const set = exercisesNow
       .find((e) => e.id === target.exerciseId)
       ?.sets[target.setIndex];
     if (set && isSkippedWorkoutSet(set)) {
@@ -497,21 +496,16 @@ export function ActiveWorkoutView({
       );
       if (snap) setLastCompleted(snap);
 
-      // Po ostatniej serii całego treningu — popup cardio / zakończ.
-      const projected = exercises.map((e) =>
-        e.id !== exerciseId
-          ? e
-          : {
-              ...e,
-              sets: e.sets.map((s, i) =>
-                i === setIndex ? { ...s, done: true } : s,
-              ),
-            },
-      );
-      const { done, total } = countSetsDone(projected);
+      // Po patchu bierzemy świeży stan ze store (z skipped), nie stary snapshot z rendera.
+      const exercisesNow = useActiveWorkoutStore.getState().exercises;
+      const { done, total } = countSetsDone(exercisesNow);
       if (total > 0 && done >= total) {
         stopRest();
         hapticWorkoutDone();
+        setAllSetsDoneSkipped({
+          target: findFirstSkippedWorkoutTarget(exercisesNow),
+          count: countSkippedWorkoutSets(exercisesNow),
+        });
         setAllSetsDoneOpen(true);
         return;
       }
@@ -718,7 +712,12 @@ export function ActiveWorkoutView({
 
       <WorkoutAllSetsDoneDialog
         open={allSetsDoneOpen}
-        onOpenChange={setAllSetsDoneOpen}
+        onOpenChange={(open) => {
+          setAllSetsDoneOpen(open);
+          if (!open) {
+            setAllSetsDoneSkipped({ target: null, count: 0 });
+          }
+        }}
         initialCardioMinutes={cardioMinutes}
         onFinish={() => setFinishOpen(true)}
         onConfirmCardio={(minutes) => setCardioMinutes(minutes)}

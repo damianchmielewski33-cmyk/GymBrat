@@ -19,27 +19,30 @@ describe("workout-skipped-sets", () => {
     ).toBe(false);
   });
 
-  it("znajduje pierwsze pominięte ćwiczenie/serię", () => {
+  it("liczy wiele pominiętych serii i wskazuje pierwszą", () => {
     const exercises: WorkoutExerciseState[] = [
       {
         id: "a",
         name: "Przysiad",
-        sets: [{ reps: 5, weight: 100, done: true }],
+        sets: [
+          { reps: 5, weight: 100, done: true, skipped: true },
+          { reps: 5, weight: 100, done: true, skipped: true },
+        ],
       },
       {
         id: "b",
         name: "Martwy ciąg",
         sets: [
           { reps: 5, weight: 120, done: true },
-          { reps: null, weight: 0, done: true, skipped: true },
+          { reps: 5, weight: 120, done: true, skipped: true },
         ],
       },
     ];
+    expect(countSkippedWorkoutSets(exercises)).toBe(3);
     expect(findFirstSkippedWorkoutTarget(exercises)).toEqual({
-      exerciseId: "b",
-      exerciseName: "Martwy ciąg",
-      setIndex: 1,
+      exerciseId: "a",
+      exerciseName: "Przysiad",
+      setIndex: 0,
     });
-    expect(countSkippedWorkoutSets(exercises)).toBe(1);
   });
 });
