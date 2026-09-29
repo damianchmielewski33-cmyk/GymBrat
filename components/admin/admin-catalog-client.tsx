@@ -3,10 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import type { CatalogMeal } from "@/lib/meal-catalog-types";
 
-const EXAMPLE_JSON = `[
+const PLACEHOLDER_JSON = `[
   {
     "id": "meal_011",
     "title": "Jogurt z Granola",
@@ -16,19 +22,19 @@ const EXAMPLE_JSON = `[
     "protein": 24,
     "carbs": 40,
     "fat": 10,
-    "imagePrompt": "greek yogurt bowl with granola and fresh berries, professional food photography"
+    "imagePrompt": "greek yogurt bowl with granola and fresh berries"
   }
 ]`;
 
 export function AdminCatalogClient() {
   const { notifySaved, notifyError } = useSaveFeedback();
-  const [jsonText, setJsonText] = useState(EXAMPLE_JSON);
-  const [mode, setMode] = useState<"merge" | "replace">("merge");
+  const [jsonText, setJsonText] = useState("");
   const [dbMeals, setDbMeals] = useState<CatalogMeal[]>([]);
   const [mergedCount, setMergedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [replaceOpen, setReplaceOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,7 +65,7 @@ export function AdminCatalogClient() {
     setJsonText(text);
   }
 
-  async function importJson() {
+  async function submitImport(mode: "merge" | "replace") {
     setBusy(true);
     setError(null);
     try {
@@ -69,10 +75,9 @@ export function AdminCatalogClient() {
       } catch {
         throw new Error("Niepoprawny JSON — sprawdź składnię.");
       }
-      const body =
-        Array.isArray(parsed)
-          ? { mode, meals: parsed }
-          : { ...(parsed as object), mode };
+      const body = Array.isArray(parsed)
+        ? { mode, meals: parsed }
+        : { ...(parsed as object), mode };
 
       await ensureCsrfCookie();
       const res = await fetch("/api/admin/catalog", {
@@ -85,14 +90,29 @@ export function AdminCatalogClient() {
         body: JSON.stringify(body),
       });
       const data = (await res.json().catch(() => null)) as
-        | { ok?: boolean; error?: string; upserted?: number; totalMerged?: number }
+        | {
+            ok?: boolean;
+            error?: string;
+            upserted?: number;
+            totalMerged?: number;
+            removed?: number;
+          }
         | null;
       if (!res.ok) {
         throw new Error(data?.error ?? "Import nie powiódł się.");
       }
-      notifySaved(
-        `Zapisano ${data?.upserted ?? 0} przepisów (łącznie w aplikacji: ${data?.totalMerged ?? "—"}).`,
-      );
+
+      if (mode === "replace") {
+        notifySaved(
+          `Zastąpiono bazę: ${data?.upserted ?? 0} przepisów (łącznie w aplikacji: ${data?.totalMerged ?? "—"}).`,
+        );
+      } else {
+        notifySaved(
+          `Dodano / zaktualizowano ${data?.upserted ?? 0} przepisów (łącznie w aplikacji: ${data?.totalMerged ?? "—"}).`,
+        );
+      }
+      setJsonText("");
+      setReplaceOpen(false);
       await load();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Import nie powiódł się.";
@@ -129,22 +149,41 @@ export function AdminCatalogClient() {
     }
   }
 
+  const canSubmit = jsonText.trim().length > 0 && !busy;
+  const panelCount = loading ? null : dbMeals.length;
+  const totalCount = loading ? null : mergedCount;
+
   return (
     <div className="space-y-6">
-      <div className="glass-panel neon-glow p-5 sm:p-6">
-        <h1 className="font-heading text-xl font-semibold text-white">
-          Katalog przepisów
-        </h1>
-        <p className="mt-1 text-sm text-white/55">
-          Wgraj przepisy w JSON — trafiają do bazy i są od razu widoczne w Dietcie
-          (bez deployu kodu). Pole{" "}
-          <span className="font-mono text-white/70">imagePrompt</span> idzie do
-          Pollinations AI (grafiki nie są zapisywane w bazie).
-        </p>
-        <p className="mt-2 text-xs text-white/45">
-          W bazie panelu: {loading ? "…" : dbMeals.length} · Po scaleniu z seedem:{" "}
-          {loading ? "…" : mergedCount}
-        </p>
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#1a1408] via-[#0c0c0c] to-[#0a1210] p-6 sm:p-8">
+        <div
+          className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[var(--neon)]/20 blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-24 -left-10 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl"
+          aria-hidden
+        />
+        <div className="relative grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-black/35 px-5 py-6 backdrop-blur-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+              W bazie panelu
+            </p>
+            <p className="font-heading mt-3 text-5xl font-semibold tabular-nums text-[var(--neon)]">
+              {panelCount == null ? "…" : panelCount}
+            </p>
+            <p className="mt-2 text-sm text-white/50">przepisów z importu JSON</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/35 px-5 py-6 backdrop-blur-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+              Widoczne w Dietcie
+            </p>
+            <p className="font-heading mt-3 text-5xl font-semibold tabular-nums text-white">
+              {totalCount == null ? "…" : totalCount}
+            </p>
+            <p className="mt-2 text-sm text-white/50">po scaleniu z seedem</p>
+          </div>
+        </div>
       </div>
 
       {error ? (
@@ -154,51 +193,92 @@ export function AdminCatalogClient() {
       ) : null}
 
       <div className="glass-panel neon-glow space-y-4 p-5 sm:p-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="text-sm text-white/70">
-            Plik JSON
-            <input
-              type="file"
-              accept="application/json,.json"
-              className="mt-1 block w-full text-xs text-white/60 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white"
-              onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-            />
-          </label>
-          <label className="flex items-center gap-2 text-sm text-white/70">
-            Tryb
-            <select
-              value={mode}
-              onChange={(e) => setMode(e.target.value as "merge" | "replace")}
-              className="rounded-md border border-white/15 bg-black/40 px-2 py-1.5 text-white"
-            >
-              <option value="merge">Scal (upsert po id)</option>
-              <option value="replace">Zastąp całą bazę panelu</option>
-            </select>
-          </label>
-        </div>
+        <label className="block text-sm text-white/70">
+          Plik JSON (opcjonalnie)
+          <input
+            type="file"
+            accept="application/json,.json"
+            className="mt-1 block w-full text-xs text-white/60 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white"
+            onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
+          />
+        </label>
 
         <textarea
           value={jsonText}
           onChange={(e) => setJsonText(e.target.value)}
           rows={16}
           spellCheck={false}
-          className="w-full rounded-xl border border-white/10 bg-black/40 p-3 font-mono text-xs text-white/90 outline-none focus:border-[var(--neon)]/50"
+          placeholder={PLACEHOLDER_JSON}
+          className="w-full rounded-xl border border-white/10 bg-black/40 p-3 font-mono text-xs text-white/90 outline-none placeholder:text-white/25 focus:border-[var(--neon)]/50"
         />
 
         <div className="flex flex-wrap gap-2">
-          <Button type="button" disabled={busy} onClick={() => void importJson()}>
-            {busy ? "Zapisywanie…" : "Wgraj przepisy"}
+          <Button
+            type="button"
+            disabled={!canSubmit}
+            onClick={() => void submitImport("merge")}
+          >
+            {busy ? "Zapisywanie…" : "Dodaj"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!canSubmit}
+            onClick={() => setReplaceOpen(true)}
+            className="border-amber-500/40 text-amber-100 hover:bg-amber-500/10"
+          >
+            Zastąp bazę…
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={busy || !jsonText.trim()}
+            onClick={() => setJsonText("")}
+            className="text-white/55"
+          >
+            Wyczyść pole
           </Button>
           <Button
             type="button"
             variant="outline"
             disabled={busy || dbMeals.length === 0}
             onClick={() => void clearDb()}
+            className="ml-auto border-white/15 text-white/70"
           >
             Wyczyść bazę panelu
           </Button>
         </div>
       </div>
+
+      <AlertDialog open={replaceOpen} onOpenChange={setReplaceOpen}>
+        <AlertDialogContent className="border border-white/10 bg-[#0c0c0c] p-6">
+          <AlertDialogTitle>Zastąpić całą bazę panelu?</AlertDialogTitle>
+          <AlertDialogDescription className="mt-2 text-white/65">
+            Wszystkie przepisy wgrane wcześniej przez panel zostaną usunięte i
+            zastąpione treścią z pola JSON. Seed z kodu aplikacji pozostanie.
+            Tej operacji nie da się cofnąć.
+          </AlertDialogDescription>
+          <div className="mt-6 flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              disabled={busy}
+              onClick={() => setReplaceOpen(false)}
+            >
+              Anuluj
+            </Button>
+            <Button
+              type="button"
+              className="flex-1 bg-amber-600 text-white hover:bg-amber-500"
+              disabled={busy || !jsonText.trim()}
+              onClick={() => void submitImport("replace")}
+            >
+              {busy ? "Zapisywanie…" : "Zastąp bazę"}
+            </Button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="glass-panel neon-glow overflow-hidden">
         <div className="border-b border-white/10 px-4 py-3 text-sm text-white/60">

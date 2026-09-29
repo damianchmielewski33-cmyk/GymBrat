@@ -55,11 +55,12 @@ describe("meal-catalog", () => {
     expect(picked.length).toBeLessThanOrEqual(4);
   });
 
-  it("getRecipeImage buduje Pollinations z imagePrompt", () => {
-    const meal = getCatalogMealById("meal_001");
+  it("getRecipeImage dopasowuje grafikę do tytułu / id", () => {
+    const meal = getCatalogMealById("meal_003");
     expect(meal).toBeTruthy();
-    const url = getRecipeImage(meal!);
-    expect(url.startsWith("https://image.pollinations.ai/prompt/")).toBe(true);
-    expect(url).toContain(encodeURIComponent(meal!.imagePrompt!.slice(0, 16)));
+    expect(getRecipeImage(meal!)).toContain("images.unsplash.com");
+    expect(getRecipeImage({ title: "Wrap z Indykiem i Awokado" })).not.toBe(
+      getRecipeImage({ title: "Wołowina z Kaszą i Warzywami" }),
+    );
   });
 });
