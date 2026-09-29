@@ -41,6 +41,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Po „Wszystkie serie wykonane”, jeśli coś pominięto (także kilka serii), jest komunikat i przycisk powrotu do pominiętego ćwiczenia.",
       "Link YouTube „technika ↗” dodajesz przy ćwiczeniu w edycji planu (pole pod nazwą) — zapisuje się przy ćwiczeniu.",
       "Propozycje treningów (Pulpit, Treningi, start sesji) są w kolejce: najdawniej robiony / nigdy nie robiony na górze, ostatnio robiony na końcu — przy każdym dniu widać datę ostatniego wykonania.",
+      "W Profilu użytkownicy strony web mają przycisk „Pobierz aplikację Android” (APK).",
     ],
   },
   {
