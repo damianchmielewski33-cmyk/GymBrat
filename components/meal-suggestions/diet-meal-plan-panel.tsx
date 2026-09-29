@@ -1,9 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Pencil, Plus } from "lucide-react";
-import { DietRecipeGrid } from "@/components/meal-suggestions/diet-recipe-grid";
-import type { CatalogMeal } from "@/lib/meal-catalog-types";
+import { ChevronRight, Pencil, Plus, UtensilsCrossed } from "lucide-react";
 import type { MealLogDto } from "@/lib/meal-logs";
 import type { MealTemplate } from "@/lib/meal-templates";
 import type { DietDiarySlot } from "@/lib/diet-diary-slots";
@@ -55,18 +53,15 @@ function GoalsCard({
 
 export function DietMealPlanPanel({
   mealTemplates,
-  catalogMeals,
-  dateKey,
   dayMacros,
   bySlot,
   onAddManual,
+  onOpenRecipes,
   onEditLog,
   onDeleted,
   DeleteMealButton,
 }: {
   mealTemplates: MealTemplate[];
-  catalogMeals: CatalogMeal[];
-  dateKey: string;
   dayMacros: {
     proteinGoal: number | null;
     carbsGoal: number | null;
@@ -75,6 +70,7 @@ export function DietMealPlanPanel({
   };
   bySlot: Record<DietDiarySlot, MealLogDto[]>;
   onAddManual: (slot: DietDiarySlot) => void;
+  onOpenRecipes: (row: MealPlanRow) => void;
   onEditLog: (entry: MealLogDto) => void;
   onDeleted: () => void;
   DeleteMealButton: React.ComponentType<{
@@ -87,11 +83,7 @@ export function DietMealPlanPanel({
     () => buildMealPlanRows(mealTemplates, dayMacros),
     [mealTemplates, dayMacros],
   );
-  const [activeId, setActiveId] = useState<string | null>(rows[0]?.id ?? null);
   const [logsOpen, setLogsOpen] = useState<Record<string, boolean>>({});
-
-  const activeRow: MealPlanRow | null =
-    rows.find((r) => r.id === activeId) ?? rows[0] ?? null;
 
   return (
     <div className="space-y-4">
@@ -113,14 +105,14 @@ export function DietMealPlanPanel({
             Rozkład posiłków
           </p>
         </div>
-        <p className="mt-2 px-1 text-sm text-[var(--gym-gold)]/90">
-          Stuknij posiłek, żeby zobaczyć{" "}
-          <span className="font-semibold">dopasowane dania</span>.
+        <p className="mt-2 px-1 text-sm text-white/55">
+          <span className="text-[var(--gym-gold)]">Przepisy</span> otwierają
+          osobny ekran ·{" "}
+          <span className="text-[var(--gym-gold)]">+</span> to skan i produkty.
         </p>
 
         <ul className="mt-3 divide-y divide-white/[0.06]">
           {rows.map((row) => {
-            const selected = activeRow?.id === row.id;
             const items = bySlot[row.diarySlot] ?? [];
             const showLogs = logsOpen[row.id] ?? false;
             return (
@@ -128,15 +120,13 @@ export function DietMealPlanPanel({
                 <div className="flex items-center gap-1 py-1">
                   <button
                     type="button"
-                    onClick={() => setActiveId(row.id)}
+                    onClick={() => onOpenRecipes(row)}
                     className="flex min-w-0 flex-1 items-center gap-3 px-1 py-2.5 text-left"
                   >
                     <span
                       className={cn(
                         "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold",
-                        selected
-                          ? "bg-[var(--gym-gold)] text-black"
-                          : "border border-white/15 text-white/55",
+                        "border border-white/15 text-white/55",
                       )}
                     >
                       {row.index}
@@ -149,11 +139,10 @@ export function DietMealPlanPanel({
                         {formatMealMacroLine(row)}
                       </p>
                     </div>
-                    {selected ? (
-                      <ChevronDown className="h-4 w-4 shrink-0 text-white/40" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 shrink-0 text-white/35" />
-                    )}
+                    <span className="inline-flex shrink-0 items-center gap-1 text-[var(--gym-gold)]">
+                      <UtensilsCrossed className="h-3.5 w-3.5" />
+                      <ChevronRight className="h-4 w-4 text-white/35" />
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -222,15 +211,6 @@ export function DietMealPlanPanel({
           })}
         </ul>
       </section>
-
-      {activeRow ? (
-        <DietRecipeGrid
-          key={activeRow.id}
-          meals={catalogMeals}
-          row={activeRow}
-          dateKey={dateKey}
-        />
-      ) : null}
     </div>
   );
 }

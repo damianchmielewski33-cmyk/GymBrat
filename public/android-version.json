@@ -1,8 +1,8 @@
 {
-  "versionCode": 8,
-  "versionName": "0.1.7",
+  "versionCode": 9,
+  "versionName": "0.1.8",
   "apkUrl": "https://gym-brat.vercel.app/gymbrat.apk",
-  "releasedAt": "2026-09-29T20:30:00Z",
+  "releasedAt": "2026-09-29T21:30:00Z",
   "commit": null,
-  "notes": "GymBrat Android 0.1.7 — pobieranie z gym-brat.vercel.app/gymbrat.apk (stabilniejsze niż GitHub w Chrome)."
+  "notes": "GymBrat Android 0.1.8 — pobieranie z gym-brat.vercel.app/gymbrat.apk (stabilniejsze niż GitHub w Chrome)."
 }

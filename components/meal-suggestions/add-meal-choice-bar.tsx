@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Calculator, ChefHat, PackagePlus, X } from "lucide-react";
+import { Calculator, PackagePlus, X } from "lucide-react";
 import { addMealLogAction, type MealLogFormState } from "@/actions/meal-log";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { kcalFromMacros, parseMacroGrams } from "@/lib/kcal-from-macros";
@@ -13,18 +13,9 @@ import { cn } from "@/lib/utils";
 
 type Mode = "menu" | "product" | "quick";
 
-type Props = {
-  open: boolean;
-  slot: DietDiarySlot;
-  dateKey: string;
-  onClose: () => void;
-  onOpenSearch: () => void;
-  onOpenDish: () => void;
-  onSaved: () => void;
-};
-
 /**
- * Dolny wybór przy dodawaniu do sekcji: nowy produkt / potrawa / szybkie makro.
+ * Dolny wybór przy dodawaniu do sekcji: nowy produkt / szybkie makro.
+ * Przepisy są na osobnym ekranie (stuknięcie posiłku), nie tutaj.
  */
 export function AddMealChoiceBar({
   open,
@@ -32,9 +23,15 @@ export function AddMealChoiceBar({
   dateKey,
   onClose,
   onOpenSearch,
-  onOpenDish,
   onSaved,
-}: Props) {
+}: {
+  open: boolean;
+  slot: DietDiarySlot;
+  dateKey: string;
+  onClose: () => void;
+  onOpenSearch: () => void;
+  onSaved: () => void;
+}) {
   const { notifySaved, notifyError } = useSaveFeedback();
   const [mode, setMode] = useState<Mode>("menu");
   const [name, setName] = useState("");
@@ -91,7 +88,7 @@ export function AddMealChoiceBar({
           <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
             Dodaj do: {DIET_DIARY_SLOT_LABELS[slot]}
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setMode("product")}
@@ -100,19 +97,6 @@ export function AddMealChoiceBar({
               <PackagePlus className="h-5 w-5 text-[var(--gym-gold)]" />
               <span className="text-[11px] font-semibold leading-tight text-white">
                 Nowy produkt
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onOpenDish();
-                onClose();
-              }}
-              className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/12 bg-white/[0.04] px-2 py-3 text-center"
-            >
-              <ChefHat className="h-5 w-5 text-[var(--gym-gold)]" />
-              <span className="text-[11px] font-semibold leading-tight text-white">
-                Nowa potrawa
               </span>
             </button>
             <button
@@ -131,7 +115,7 @@ export function AddMealChoiceBar({
             onClick={onOpenSearch}
             className="mt-1 text-center text-xs text-white/45 underline-offset-2 hover:text-white/70 hover:underline"
           >
-            Albo wyszukaj produkt w bazie
+            Albo wyszukaj / zeskanuj produkt
           </button>
         </div>
       </div>

@@ -26,9 +26,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Zakładka Ostatnie powtarza produkty z historii dziennika zamiast „popularnych” z początku bazy.",
       "Przy produktach sieci (KFC/Lidl/Biedronka…) widać jasno: szacunek / sprawdź etykietę.",
       "Ulubione działają (serce na ekranie porcji, lista lokalna); martwa zakładka Własne jest schowana.",
-      "Przycisk + z sekcji Jadłospisu przenosi slot do katalogu potraw (mapa por Plan ↔ dziennik).",
+      "Przycisk + z sekcji Jadłospisu otwiera skan/wyszukiwanie produktów; przepisy — po stuknięciu nazwy posiłku.",
       "Na Pulpicie przy pierwszym wejściu w danym dniu pojawia się popup „Ten tydzień” (kcal, treningi X/Y, raport + jeden CTA).",
-      "Na Jadłospisie: cele dnia, rozkład posiłków, po stuknięciu siatka dopasowanych dań (filtry trudność / słone–słodkie) oraz karta zdjęcie↔przepis.",
+      "Na Jadłospisie: cele dnia i rozkład posiłków; + otwiera skan/produkty, a stuknięcie posiłku — osobny ekran przepisów (filtry trudność / słone–słodkie, karta zdjęcie↔przepis).",
+      "Ekran skanowania produktów nie miesza się z przepisami — tylko Szukaj, Nowy produkt i Szybkie dodawanie.",
       "W profilu jasno: propozycje posiłków = katalog i makro, nie model AI; słownik PL/EN obejmuje Dietę, panel katalogu i sesję.",
       "W panelu admina można wgrywać przepisy JSON do bazy (bez zmiany kodu); tylko główny admin nadaje innym uprawnienia admina.",
       "Import katalogu akceptuje też uproszczony JSON (mealType, calories/protein/carbs/fat, prepTime, instructions) — w tym pojedynczy przepis.",
@@ -45,6 +46,14 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "W Profilu użytkownicy przeglądarki mają bezpośredni link do najnowszego APK Android (z numerem wersji).",
       "W Profilu przełącznik postępów: porównania tonażu w % albo w kg (Historia i popup po treningu).",
       "Android 0.1.7: przy aktualizacji APK z innym podpisem aplikacja ostrzega, zamiast zawieszać instalator — wtedy odinstaluj starą GymBrat i zainstaluj ponownie.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Android 0.1.8",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W Profilu do pobrania jest aplikacja Android 0.1.8 (versionCode 9) z gym-brat.vercel.app/gymbrat.apk.",
     ],
   },
   {

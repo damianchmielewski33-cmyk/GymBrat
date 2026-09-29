@@ -43,7 +43,6 @@ export function AddMealScreen({
   dateLabel,
   onClose,
   onPickProduct,
-  onOpenDish,
   onSaved,
 }: {
   open: boolean;
@@ -52,7 +51,6 @@ export function AddMealScreen({
   dateLabel: string;
   onClose: () => void;
   onPickProduct: (product: FoodProduct, fromScan: boolean) => void;
-  onOpenDish: () => void;
   onSaved: () => void;
 }) {
   const { notifyError, notifySaved } = useSaveFeedback();
@@ -447,9 +445,9 @@ export function AddMealScreen({
         )}
       </div>
 
-      {/* Fitatu-like: 3 przyciski na dole */}
+      {/* Tylko produkty — przepisy są na osobnym ekranie (stuknięcie posiłku). */}
       <div className="absolute inset-x-0 bottom-0 z-10 border-t border-white/10 bg-[#121212] px-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2">
-        <div className="mx-auto grid max-w-lg grid-cols-3 gap-1">
+        <div className="mx-auto grid max-w-lg grid-cols-2 gap-1">
           <button
             type="button"
             onClick={() => setSub("product")}
@@ -460,18 +458,6 @@ export function AddMealScreen({
             </span>
             <span className="text-[11px] font-semibold leading-tight text-white">
               Nowy produkt
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={onOpenDish}
-            className="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-center active:bg-white/[0.06]"
-          >
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--gym-gold)] text-black">
-              <Plus className="h-5 w-5" strokeWidth={2.5} />
-            </span>
-            <span className="text-[11px] font-semibold leading-tight text-white">
-              Nowa potrawa
             </span>
           </button>
           <button

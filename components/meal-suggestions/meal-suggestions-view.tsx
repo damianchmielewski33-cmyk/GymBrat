@@ -14,6 +14,7 @@ import { AddMealScreen } from "@/components/meal-suggestions/add-meal-screen";
 import { FoodPortionScreen } from "@/components/meal-suggestions/food-portion-screen";
 import { DietWeekStrip } from "@/components/meal-suggestions/diet-week-strip";
 import { DietMealPlanPanel } from "@/components/meal-suggestions/diet-meal-plan-panel";
+import { DietRecipeGrid } from "@/components/meal-suggestions/diet-recipe-grid";
 import { DietDayMacrosBar } from "@/components/meal-suggestions/diet-day-macros-bar";
 import {
   DIET_DIARY_SLOT_LABELS,
@@ -26,9 +27,10 @@ import type { FitatuDaySummary } from "@/types/fitatu";
 import type { MealTemplate } from "@/lib/meal-templates";
 import type { CatalogMeal } from "@/lib/meal-catalog-types";
 import type { NutritionDayType } from "@/lib/nutrition-goals";
+import type { MealPlanRow } from "@/lib/diet-recipe-match";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { useActionState, useEffect } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
 import { calendarDateKey } from "@/lib/local-date";
 import { Button } from "@/components/ui/button";
 import {
@@ -151,28 +153,12 @@ export function MealSuggestionsView({
   const [dayKind, setDayKind] = useState<NutritionDayType>(initialDayKind);
   const [pending, start] = useTransition();
   const [addSlot, setAddSlot] = useState<DietDiarySlot | null>(null);
-  const [dishPickerOpen, setDishPickerOpen] = useState(false);
-  const [dishPickerSlot, setDishPickerSlot] = useState<DietDiarySlot | null>(null);
+  const [recipesRow, setRecipesRow] = useState<MealPlanRow | null>(null);
   const [portionProduct, setPortionProduct] = useState<FoodProduct | null>(null);
   const [portionSlot, setPortionSlot] = useState<DietDiarySlot>("sniadanie");
   const [focusMealId, setFocusMealId] = useState<string | null>(null);
   const [editingLog, setEditingLog] = useState<MealLogDto | null>(null);
   const { t } = useI18n();
-
-  const mealOverlayOpen =
-    Boolean(addSlot) || Boolean(portionProduct) || dishPickerOpen;
-  useOverlayHistoryBack(mealOverlayOpen, () => {
-    if (portionProduct) {
-      setPortionProduct(null);
-      return;
-    }
-    if (dishPickerOpen) {
-      setDishPickerOpen(false);
-      setDishPickerSlot(null);
-      return;
-    }
-    setAddSlot(null);
-  });
 
   const refreshDay = useCallback(
     (key: string) => {
@@ -190,6 +176,25 @@ export function MealSuggestionsView({
     },
     [notifyError],
   );
+
+  const closeRecipes = useCallback(() => {
+    setRecipesRow(null);
+    refreshDay(dateKey);
+  }, [dateKey, refreshDay]);
+
+  const mealOverlayOpen =
+    Boolean(addSlot) || Boolean(portionProduct) || Boolean(recipesRow);
+  useOverlayHistoryBack(mealOverlayOpen, () => {
+    if (portionProduct) {
+      setPortionProduct(null);
+      return;
+    }
+    if (recipesRow) {
+      closeRecipes();
+      return;
+    }
+    setAddSlot(null);
+  });
 
   const bySlot = useMemo(() => {
     const map: Record<DietDiarySlot, MealLogDto[]> = {
@@ -348,8 +353,6 @@ export function MealSuggestionsView({
           >
             <DietMealPlanPanel
               mealTemplates={mealTemplates}
-              catalogMeals={catalogMeals}
-              dateKey={dateKey}
               dayMacros={{
                 proteinGoal: dayMacros.proteinGoal,
                 carbsGoal: dayMacros.carbsGoal,
@@ -358,6 +361,7 @@ export function MealSuggestionsView({
               }}
               bySlot={bySlot}
               onAddManual={(slot) => setAddSlot(slot)}
+              onOpenRecipes={(row) => setRecipesRow(row)}
               onEditLog={(entry) => setEditingLog(entry)}
               onDeleted={() => refreshDay(dateKey)}
               DeleteMealButton={DeleteMealButton}
@@ -405,11 +409,6 @@ export function MealSuggestionsView({
         dateKey={dateKey}
         dateLabel={dateLabel}
         onClose={() => setAddSlot(null)}
-        onOpenDish={() => {
-          setDishPickerSlot(addSlot);
-          setAddSlot(null);
-          setDishPickerOpen(true);
-        }}
         onSaved={() => {
           refreshDay(dateKey);
           router.refresh();
@@ -422,26 +421,29 @@ export function MealSuggestionsView({
         }}
       />
 
-      {dishPickerOpen ? (
-        <div className="fixed inset-0 z-[170] overflow-y-auto bg-[#0c0c0c] px-3 pb-10 pt-[max(0.75rem,env(safe-area-inset-top))]">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-base font-semibold text-white">Wybierz potrawę</p>
+      {recipesRow ? (
+        <div className="fixed inset-0 z-[170] flex flex-col overflow-y-auto bg-[#0c0c0c] px-3 pb-10 pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <header className="mb-3 flex items-center gap-2">
             <button
               type="button"
-              className="text-sm text-white/55"
-              onClick={() => {
-                setDishPickerOpen(false);
-                setDishPickerSlot(null);
-              }}
+              aria-label="Wróć"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white/85"
+              onClick={closeRecipes}
             >
-              Zamknij
+              <ChevronLeft className="h-6 w-6" />
             </button>
-          </div>
-          <MealCatalogBrowser
-            dateKey={dateKey}
+            <div className="min-w-0 flex-1">
+              <p className="text-base font-semibold text-white">
+                Przepisy · {recipesRow.label}
+              </p>
+              <p className="text-xs text-white/45">{dateLabel}</p>
+            </div>
+          </header>
+          <DietRecipeGrid
+            key={recipesRow.id}
             meals={catalogMeals}
-            isAdmin={isAdmin}
-            defaultDiarySlot={dishPickerSlot}
+            row={recipesRow}
+            dateKey={dateKey}
           />
         </div>
       ) : null}
