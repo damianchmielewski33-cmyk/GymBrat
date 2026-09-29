@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { comparePlansByWorkoutRecencyAsc } from "@/lib/workout-plan-queue";
+import {
+  comparePlansByWorkoutRecencyAsc,
+  formatPlanLastDoneLabel,
+  formatPlanLastDoneShort,
+} from "@/lib/workout-plan-queue";
 
 describe("comparePlansByWorkoutRecencyAsc", () => {
   it("nigdy nie robione przed trenowanymi", () => {
@@ -17,5 +21,16 @@ describe("comparePlansByWorkoutRecencyAsc", () => {
       "2026-08-01",
       "2026-09-20",
     ]);
+  });
+});
+
+describe("formatPlanLastDoneLabel", () => {
+  it("null → jeszcze nie", () => {
+    expect(formatPlanLastDoneLabel(null)).toBe("jeszcze nie");
+  });
+
+  it("data → DD.MM", () => {
+    expect(formatPlanLastDoneShort("2026-09-28")).toMatch(/28/);
+    expect(formatPlanLastDoneLabel("2026-09-28")).toMatch(/28/);
   });
 });

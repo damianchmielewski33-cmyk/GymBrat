@@ -18,6 +18,7 @@ import type { TreningiHubStats } from "@/lib/treningi-hub-stats";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
 import { printWorkoutPlans } from "@/lib/pdf/workout-plan-export";
 import { AppPageHeader } from "@/components/layout/screen";
+import { formatPlanLastDoneLabel } from "@/lib/workout-plan-queue";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -177,19 +178,30 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
             {plans.map((row) => {
               const active = row.id === selected?.id;
               const label = row.plan.planName.trim() || "Plan";
+              const lastDone = formatPlanLastDoneLabel(row.lastWorkoutDate);
               return (
                 <button
                   key={row.id}
                   type="button"
                   onClick={() => setSelectedId(row.id)}
                   className={cn(
-                    "shrink-0 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide transition",
+                    "shrink-0 rounded-2xl px-4 py-2 text-left transition",
                     active
                       ? "bg-[var(--gym-gold)] text-[var(--neon-fg)]"
                       : "border border-white/10 bg-[var(--gym-surface-sunken)] text-white/70",
                   )}
                 >
-                  {label}
+                  <span className="block text-xs font-semibold uppercase tracking-wide">
+                    {label}
+                  </span>
+                  <span
+                    className={cn(
+                      "mt-0.5 block text-[10px] font-medium tabular-nums",
+                      active ? "text-[var(--neon-fg)]/75" : "text-white/45",
+                    )}
+                  >
+                    {lastDone}
+                  </span>
                 </button>
               );
             })}
@@ -220,7 +232,10 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
               {exerciseCount === 1 ? "ćwiczenie" : "ćwiczeń"}
             </h2>
             <p className="mt-1.5 text-sm text-white/55">
-              Seria po serii, z odliczaniem przerw. Wynik trafia do historii.
+              {selected?.lastWorkoutDate
+                ? `Ostatnio ${formatPlanLastDoneLabel(selected.lastWorkoutDate)} · `
+                : "Jeszcze nie trenowano · "}
+              seria po serii, z odliczaniem przerw. Wynik trafia do historii.
             </p>
             <button
               type="button"

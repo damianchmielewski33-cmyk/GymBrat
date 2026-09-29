@@ -7,6 +7,7 @@ import { ChevronDown, Play } from "lucide-react";
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import { beginWorkoutFromPlanRow } from "@/lib/start-workout-session";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
+import { formatPlanLastDoneLabel } from "@/lib/workout-plan-queue";
 import { cn } from "@/lib/utils";
 
 function MiniStat({
@@ -145,7 +146,9 @@ export function NextWorkoutTile({
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-white/50">
           {displayCount} ćwiczeń ·{" "}
-          {isFirst ? "pierwszy raz w tym planie" : "kolejna sesja"}
+          {isFirst
+            ? "pierwszy raz w tym planie"
+            : `ostatnio ${formatPlanLastDoneLabel(selected?.lastWorkoutDate ?? null)}`}
           {preview
             ? ` · ${preview}${
                 (selected?.row.plan.exercises.length ?? exerciseNames.length) > 4
@@ -213,7 +216,8 @@ export function NextWorkoutTile({
                       {day.name}
                     </p>
                     <p className="mt-0.5 text-sm text-white/55">
-                      {day.exerciseCount} ćw.
+                      {day.exerciseCount} ćw. ·{" "}
+                      {formatPlanLastDoneLabel(day.lastWorkoutDate)}
                       {inQueue ? " · w kolejce" : ""}
                     </p>
                   </button>

@@ -13,10 +13,12 @@ import {
   Search,
   Sparkles,
   Trash2,
+  Youtube,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
+  useEffect,
   useMemo,
   useState,
   useTransition,
@@ -318,6 +320,11 @@ export function WorkoutPlanEditor({
     setSaveError(null);
   }
 
+  useEffect(() => {
+    if (!editorOpen) return;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [editorOpen]);
+
   async function onDeletePlan(id: string) {
     if (
       !window.confirm(
@@ -373,7 +380,7 @@ export function WorkoutPlanEditor({
         title="Plan treningowy"
         description={
           editorOpen
-            ? "Nadaj nazwę dnia (np. Push A), przypisz ćwiczenia, serie i powtórzenia. Start sesji jest w zakładce Treningi."
+            ? "Nadaj nazwę dnia, ustaw ćwiczenia, serie, RIR i link YouTube do techniki. Start sesji jest w zakładce Treningi."
             : "Tu ustawiasz plan — dni i ćwiczenia. Po imporcie z PDF/Word/Excel możesz edytować listę (usuwać ćwiczenia, zmieniać serie). Start treningu jest w Treningach."
         }
         actions={
@@ -408,6 +415,7 @@ export function WorkoutPlanEditor({
 
       {!editorOpen ? <WorkoutPlanWordImport /> : null}
 
+      {!editorOpen ? (
       <section className="space-y-3">
         <div className="flex items-end justify-between gap-3">
           <div>
@@ -490,6 +498,14 @@ export function WorkoutPlanEditor({
                                         : 3}
                                       {" · "}
                                       {ex.reps} powt.
+                                      {ex.techniqueYoutubeUrl ? (
+                                        <>
+                                          {" · "}
+                                          <span className="text-[var(--gym-gold)]">
+                                            technika
+                                          </span>
+                                        </>
+                                      ) : null}
                                     </p>
                                   </div>
                                   <button
@@ -540,29 +556,28 @@ export function WorkoutPlanEditor({
           </ul>
         )}
 
-        {!editorOpen ? (
-          <div className="flex items-center justify-between gap-3 px-1 pt-2">
-            <button
-              type="button"
-              onClick={startNewPlan}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--gym-gold)]"
-            >
-              <Plus className="h-5 w-5" strokeWidth={2.5} />
-              Nowy plan
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                startNewPlan();
-                queueMicrotask(() => setSheetOpen(true));
-              }}
-              className="text-sm font-medium text-white/45 hover:text-white/70"
-            >
-              Moje ćwiczenia
-            </button>
-          </div>
-        ) : null}
+        <div className="flex items-center justify-between gap-3 px-1 pt-2">
+          <button
+            type="button"
+            onClick={startNewPlan}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--gym-gold)]"
+          >
+            <Plus className="h-5 w-5" strokeWidth={2.5} />
+            Nowy plan
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              startNewPlan();
+              queueMicrotask(() => setSheetOpen(true));
+            }}
+            className="text-sm font-medium text-white/45 hover:text-white/70"
+          >
+            Moje ćwiczenia
+          </button>
+        </div>
       </section>
+      ) : null}
 
       <AnimatePresence mode="wait">
         {!editorOpen ? (
@@ -798,6 +813,42 @@ export function WorkoutPlanEditor({
                         Usuń
                       </button>
                     </div>
+                    <div className="pl-10">
+                      <Label
+                        htmlFor={`technique-${ex.id}`}
+                        className="inline-flex items-center gap-1.5 text-xs text-white/55"
+                      >
+                        <Youtube className="h-3.5 w-3.5 text-[var(--gym-gold)]" aria-hidden />
+                        Film techniki (YouTube)
+                      </Label>
+                      <Input
+                        id={`technique-${ex.id}`}
+                        type="url"
+                        inputMode="url"
+                        value={ex.techniqueYoutubeUrl ?? ""}
+                        placeholder="https://youtube.com/watch?v=… lub youtu.be/…"
+                        onChange={(e) =>
+                          updateExercise(ex.id, {
+                            techniqueYoutubeUrl: e.target.value.trim() || null,
+                          })
+                        }
+                        onBlur={() => {
+                          const raw = ex.techniqueYoutubeUrl ?? "";
+                          if (!raw.trim()) {
+                            updateExercise(ex.id, { techniqueYoutubeUrl: null });
+                            return;
+                          }
+                          const normalized = normalizeYoutubeUrl(raw);
+                          updateExercise(ex.id, {
+                            techniqueYoutubeUrl: normalized,
+                          });
+                        }}
+                        className="mt-1 h-9 border-white/15 bg-black/25 text-white placeholder:text-white/30"
+                      />
+                      <p className="mt-1 text-[11px] text-white/35">
+                        W sesji pojawi się przycisk „technika ↗”.
+                      </p>
+                    </div>
                     <div className="flex flex-wrap items-center gap-3 pl-10">
                       <div className="flex items-center gap-2">
                         <Label htmlFor={`sets-${ex.id}`} className="text-xs text-white/55">
@@ -910,41 +961,6 @@ export function WorkoutPlanEditor({
                         }
                         className="mt-1 h-9 border-white/15 bg-black/25 text-white placeholder:text-white/30"
                       />
-                    </div>
-                    <div className="pl-10">
-                      <Label
-                        htmlFor={`technique-${ex.id}`}
-                        className="text-xs text-white/55"
-                      >
-                        Film techniki (YouTube)
-                      </Label>
-                      <Input
-                        id={`technique-${ex.id}`}
-                        type="url"
-                        inputMode="url"
-                        value={ex.techniqueYoutubeUrl ?? ""}
-                        placeholder="https://youtube.com/watch?v=…"
-                        onChange={(e) =>
-                          updateExercise(ex.id, {
-                            techniqueYoutubeUrl: e.target.value.trim() || null,
-                          })
-                        }
-                        onBlur={() => {
-                          const raw = ex.techniqueYoutubeUrl ?? "";
-                          if (!raw.trim()) {
-                            updateExercise(ex.id, { techniqueYoutubeUrl: null });
-                            return;
-                          }
-                          const normalized = normalizeYoutubeUrl(raw);
-                          updateExercise(ex.id, {
-                            techniqueYoutubeUrl: normalized,
-                          });
-                        }}
-                        className="mt-1 h-9 border-white/15 bg-black/25 text-white placeholder:text-white/30"
-                      />
-                      <p className="mt-1 text-[11px] text-white/35">
-                        Link pojawi się w sesji jako „technika ↗”.
-                      </p>
                     </div>
                   </motion.li>
                 ))}
