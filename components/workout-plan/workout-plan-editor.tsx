@@ -13,7 +13,7 @@ import {
   Search,
   Sparkles,
   Trash2,
-  Youtube,
+  Video,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -818,7 +818,7 @@ export function WorkoutPlanEditor({
                         htmlFor={`technique-${ex.id}`}
                         className="inline-flex items-center gap-1.5 text-xs text-white/55"
                       >
-                        <Youtube className="h-3.5 w-3.5 text-[var(--gym-gold)]" aria-hidden />
+                        <Video className="h-3.5 w-3.5 text-[var(--gym-gold)]" aria-hidden />
                         Film techniki (YouTube)
                       </Label>
                       <Input
