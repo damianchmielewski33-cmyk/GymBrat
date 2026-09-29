@@ -1,3 +1,6 @@
+/** Generacja cache — podbij przy błędnych grafikach, żeby unieważnić stare blob-y. */
+export const RECIPE_IMAGE_CACHE_GENERATION = 3;
+
 export const RECIPE_IMAGE_FALLBACK =
   "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=1200";
 
@@ -45,11 +48,11 @@ export function recipeImageSeed(id: string): number {
   return Math.abs(h % 1_000_000_000) || 1;
 }
 
-/** Klucz cache: id + hash promptu (zmiana promptu = nowa grafika). */
+/** Klucz cache: generacja + id + hash promptu. */
 export function recipeImageCacheKey(recipe: RecipeImageSource): string {
   const id = (recipe.id ?? "").trim() || "noid";
   const prompt = resolveImagePrompt(recipe);
-  return `id:${id}|p:${recipeImageSeed(prompt)}`;
+  return `g${RECIPE_IMAGE_CACHE_GENERATION}|id:${id}|p:${recipeImageSeed(prompt)}`;
 }
 
 function isSafeHttpUrl(url: string): boolean {
@@ -73,7 +76,6 @@ export function resolveImagePrompt(recipe: RecipeImageSource): string {
 
 /**
  * URL obrazu z Pollinations AI na podstawie promptu z JSON przepisu.
- * Obrazy nie są zapisywane w bazie — tylko dynamiczny URL (+ opcjonalny cache w przeglądarce).
  */
 export function getRecipeImage(recipe: RecipeImageSource): string {
   const custom = (recipe.imageUrl ?? "").trim();
@@ -81,12 +83,17 @@ export function getRecipeImage(recipe: RecipeImageSource): string {
 
   const prompt = resolveImagePrompt(recipe);
   const id = (recipe.id ?? "").trim();
-  const seed = recipeImageSeed(id || prompt);
+  const title = (recipe.title ?? "").trim();
+  // Nowy seed przy zmianie generacji — unika starego wariantu CDN.
+  const seed = recipeImageSeed(
+    `${id || prompt}|g${RECIPE_IMAGE_CACHE_GENERATION}`,
+  );
 
-  // Prompt z JSON na początku — model ma trzymać się opisu dania.
   const fullPrompt = [
-    prompt,
-    "single serving food photo only",
+    title ? `Dish: ${title}` : null,
+    `Exact food: ${prompt}`,
+    "only this dish on a plate or in a bowl",
+    "do not show a different meal",
     "professional food photography",
     "realistic",
     "natural lighting",
@@ -94,7 +101,9 @@ export function getRecipeImage(recipe: RecipeImageSource): string {
     "no people",
     "no text",
     "no logo",
-  ].join(", ");
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   const params = new URLSearchParams({
     width: "640",

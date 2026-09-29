@@ -19,7 +19,7 @@ describe("getRecipeImage", () => {
     });
     expect(url.startsWith("https://image.pollinations.ai/prompt/")).toBe(true);
     expect(url).toContain(encodeURIComponent(prompt));
-    expect(url).toContain(`seed=${recipeImageSeed("meal_004")}`);
+    expect(url).toContain(`seed=${recipeImageSeed("meal_004|g3")}`);
     expect(url).toContain("nologo=true");
   });
 

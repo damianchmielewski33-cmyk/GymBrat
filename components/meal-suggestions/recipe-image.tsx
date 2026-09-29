@@ -8,10 +8,10 @@ import {
   type RecipeImageSource,
 } from "@/lib/recipe-image";
 import {
+  ensureRecipeImageCacheGeneration,
   getLockedRecipeImage,
   isRecipeImageCacheSupported,
   lockRecipeImageBlob,
-  lockRecipeImageUrl,
 } from "@/lib/recipe-image-cache";
 import { cn } from "@/lib/utils";
 
@@ -25,11 +25,12 @@ const inflight = new Map<string, Promise<string>>();
 const MIN_BLOB_BYTES = 8_000;
 
 async function resolveSrc(recipe: RecipeImageSource): Promise<string> {
+  await ensureRecipeImageCacheGeneration();
+
   const cacheKey = recipeImageCacheKey(recipe);
   const pollinationsUrl = getRecipeImage(recipe);
   const fallback = getRecipeImageFallback(recipe);
 
-  // Jawny imageUrl — bez Pollinations / cache.
   if ((recipe.imageUrl ?? "").trim()) {
     return pollinationsUrl;
   }
@@ -38,7 +39,6 @@ async function resolveSrc(recipe: RecipeImageSource): Promise<string> {
     try {
       const locked = await getLockedRecipeImage(cacheKey);
       if (locked?.kind === "blob") return URL.createObjectURL(locked.blob);
-      if (locked?.kind === "url" && locked.url) return locked.url;
     } catch {
       /* ignore */
     }
@@ -48,7 +48,7 @@ async function resolveSrc(recipe: RecipeImageSource): Promise<string> {
     const res = await fetch(pollinationsUrl, {
       mode: "cors",
       referrerPolicy: "no-referrer",
-      cache: "force-cache",
+      cache: "no-store",
     });
     if (!res.ok) throw new Error(`pollinations ${res.status}`);
     const blob = await res.blob();
@@ -64,13 +64,7 @@ async function resolveSrc(recipe: RecipeImageSource): Promise<string> {
     }
     return URL.createObjectURL(blob);
   } catch {
-    if (isRecipeImageCacheSupported()) {
-      try {
-        await lockRecipeImageUrl(cacheKey, fallback);
-      } catch {
-        /* ignore */
-      }
-    }
+    // Fallback tylko na ten render — nie blokujemy go w IndexedDB.
     return fallback;
   }
 }
@@ -85,8 +79,8 @@ function loadSrc(recipe: RecipeImageSource): Promise<string> {
 }
 
 /**
- * Grafika z Pollinations na podstawie imagePrompt z JSON;
- * po pierwszym udanym pobraniu blokowana w cache przeglądarki.
+ * Grafika z Pollinations (imagePrompt z JSON).
+ * Stary błędny cache jest kasowany przy RECIPE_IMAGE_CACHE_GENERATION.
  */
 export const RecipeImage = memo(function RecipeImage({
   recipe,
