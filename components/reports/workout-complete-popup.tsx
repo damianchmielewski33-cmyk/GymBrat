@@ -313,11 +313,18 @@ export function WorkoutCompletePopup() {
     planCompare?.previousVolumeKg != null
       ? planCompare.currentVolumeKg - planCompare.previousVolumeKg
       : null;
+  const volumeDeltaPercent =
+    planCompare?.volumeDeltaPercent ?? summary.strengthDeltaPercent;
   const strengthLabel = formatProgressDelta({
     unit: progressDeltaUnit,
-    percent: planCompare?.volumeDeltaPercent ?? summary.strengthDeltaPercent,
+    percent: volumeDeltaPercent,
     absolute: volumeAbs,
   });
+  const volumeTone = progressDeltaTone(
+    progressDeltaUnit,
+    volumeDeltaPercent,
+    volumeAbs,
+  );
 
   return (
     <>
@@ -385,9 +392,11 @@ export function WorkoutCompletePopup() {
                   <span
                     className={cn(
                       "font-semibold",
-                      strengthDelta != null && strengthDelta >= 0
+                      volumeTone === "up"
                         ? "text-emerald-300"
-                        : "text-red-300",
+                        : volumeTone === "down"
+                          ? "text-red-300"
+                          : "text-white/70",
                     )}
                   >
                     {strengthLabel}
