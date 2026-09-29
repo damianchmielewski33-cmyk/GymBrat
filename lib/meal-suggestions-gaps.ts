@@ -55,7 +55,7 @@ export function computeMacroGaps(summary: FitatuDaySummary): MacroGaps {
   };
 }
 
-/** Ilustracja poglądowa — deleguje do getRecipeImage (Pollinations). */
+/** Ilustracja poglądowa — stabilny URL dopasowany do dania. */
 export function mealIllustrationUrl(title: string, imagePromptEn?: string | null): string {
   return getRecipeImage({ title, imagePromptEn });
 }

@@ -215,6 +215,21 @@ export const adminAuditLog = sqliteTable(
   (t) => [index("idx_admin_audit_created").on(t.createdAt)],
 );
 
+/** Globalny katalog przepisów (import JSON z panelu admina) — bez obrazów. */
+export const mealCatalog = sqliteTable(
+  "meal_catalog",
+  {
+    id: text("id").primaryKey(),
+    /** Pełny obiekt CatalogMeal jako JSON. */
+    payloadJson: text("payload_json").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedByUserId: text("updated_by_user_id"),
+  },
+  (t) => [index("idx_meal_catalog_updated").on(t.updatedAt)],
+);
+
 /** Wpisy posiłków dodane ręcznie / ze skanu — źródło spożycia makroskładników. */
 export const mealLogs = sqliteTable(
   "meal_logs",

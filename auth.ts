@@ -5,17 +5,7 @@ import { getDb } from "@/db";
 import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import { siteActivityLog, users } from "@/db/schema";
 import { getAuthSecret } from "@/lib/auth-secret";
-
-function parseAdminEmails(): Set<string> {
-  const raw = process.env.ADMIN_EMAILS;
-  const out = new Set<string>();
-  if (!raw) return out;
-  for (const s of raw.split(",")) {
-    const t = s.trim().toLowerCase();
-    if (t) out.add(t);
-  }
-  return out;
-}
+import { parseAdminEmails } from "@/lib/admin-config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -99,6 +89,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user && "role" in user && user.role) {
         token.role = user.role as "zawodnik" | "trener" | "admin";
       }
+      if (user && typeof user.email === "string" && user.email) {
+        token.email = user.email;
+      }
       return token;
     },
     session({ session, token }) {
@@ -110,6 +103,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.role =
           (token.role as "zawodnik" | "trener" | "admin" | undefined) ??
           "zawodnik";
+        if (typeof token.email === "string" && token.email) {
+          session.user.email = token.email;
+        }
       }
       return session;
     },

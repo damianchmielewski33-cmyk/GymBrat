@@ -16,7 +16,8 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Niedokończoną sesję treningu da się wznowić na innym telefonie lub PC dzięki synchronizacji aktywnej sesji w chmurze.",
       "Na Pulpicie w Makro dziś widać ile już zjedzono i ile zostało do spożycia (B/W/T).",
       "W Dietcie jest 10 gotowych przepisów fit (śniadanie–kolacja/przekąski) z makro, składnikami i krokami.",
-      "Zdjęcia z Pollinations AI są blokowane po pierwszym udanym pobraniu (cache w przeglądarce) — to samo danie zawsze ta sama grafika.",
+      "Grafiki przepisów generuje Pollinations AI z pola imagePrompt w JSON (seed per przepis, cache w przeglądarce, fallback Unsplash).",
+      "W panelu admina można wgrywać przepisy JSON do bazy (bez zmiany kodu); tylko główny admin nadaje innym uprawnienia admina.",
     ],
   },
   {

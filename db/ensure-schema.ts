@@ -144,6 +144,18 @@ CREATE TABLE IF NOT EXISTS "active_workout_sessions" (
   FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 `);
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "meal_catalog" (
+  "id" text PRIMARY KEY NOT NULL,
+  "payload_json" text NOT NULL,
+  "updated_at" integer NOT NULL,
+  "updated_by_user_id" text
+);
+`);
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "idx_meal_catalog_updated" ON "meal_catalog" ("updated_at")`,
+  );
 }
 
 let mealLogsEnsured = false;

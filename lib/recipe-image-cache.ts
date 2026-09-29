@@ -1,8 +1,8 @@
-/** IndexedDB — jednorazowe zablokowanie grafiki przepisu (Pollinations blob lub stały URL). */
+/** IndexedDB — blokada wygenerowanej grafiki Pollinations (blob) per przepis+prompt. */
 
 const DB_NAME = "gymbrat-recipe-images";
 const STORE = "locked";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export type LockedRecipeImage =
   | {
@@ -45,10 +45,7 @@ export async function getLockedRecipeImage(
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, "readonly");
     const req = tx.objectStore(STORE).get(key);
-    req.onsuccess = () => {
-      const row = req.result as LockedRecipeImage | undefined;
-      resolve(row ?? null);
-    };
+    req.onsuccess = () => resolve((req.result as LockedRecipeImage | undefined) ?? null);
     req.onerror = () => reject(req.error);
   });
 }

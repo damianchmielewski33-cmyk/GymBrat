@@ -12,6 +12,7 @@ import { listMealLogsForDay } from "@/lib/meal-logs";
 import { MealSuggestionsView } from "@/components/meal-suggestions/meal-suggestions-view";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { calendarDateKey } from "@/lib/local-date";
+import { loadMergedMealCatalog } from "@/lib/meal-catalog-store";
 
 export default async function MealSuggestionsPage() {
   const session = await auth();
@@ -31,7 +32,10 @@ export default async function MealSuggestionsPage() {
     .limit(1);
 
   const todayKey = calendarDateKey(new Date());
-  const summary = await loadNutritionSummaryForDate(userId, todayKey, settingsRow);
+  const [summary, catalogMeals] = await Promise.all([
+    loadNutritionSummaryForDate(userId, todayKey, settingsRow),
+    loadMergedMealCatalog(),
+  ]);
   const gaps = computeMacroGaps(summary);
   const logs = await listMealLogsForDay(userId, gaps.dateKey);
   const dayKind = resolveNutritionDayKind(settingsRow, gaps.dateKey);
@@ -43,6 +47,7 @@ export default async function MealSuggestionsPage() {
       initialLogs={logs}
       initialDayKind={dayKind}
       mealTemplates={parseMealTemplatesJson(settingsRow?.mealTemplatesJson ?? null)}
+      catalogMeals={catalogMeals}
     />
   );
 }

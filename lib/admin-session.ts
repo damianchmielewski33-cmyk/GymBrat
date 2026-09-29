@@ -5,12 +5,16 @@ import { asc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { getAuthSecret } from "@/lib/auth-secret";
+import {
+  isPrimaryAdminEmail,
+  PRIMARY_ADMIN_EMAIL,
+} from "@/lib/admin-config";
 
 export const ADMIN_UNLOCK_COOKIE = "gymbrat_admin_unlock";
 
 const SEP = "|";
 
-/** Pierwsze konto z `app_role = admin` w bazie (chronione przed utratą roli / usunięciem z panelu). */
+/** Pierwsze konto z `app_role = admin` w bazie (chronione gdy brak konta primary). */
 export async function getFounderUserId(): Promise<string | null> {
   const db = getDb();
   const [row] = await db
@@ -20,6 +24,36 @@ export async function getFounderUserId(): Promise<string | null> {
     .orderBy(asc(users.createdAt), asc(sql`rowid`))
     .limit(1);
   return row?.id ?? null;
+}
+
+/** Id konta głównego admina (stały e-mail) — jeśli konto istnieje w bazie. */
+export async function getPrimaryAdminUserId(): Promise<string | null> {
+  const db = getDb();
+  const [row] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, PRIMARY_ADMIN_EMAIL))
+    .limit(1);
+  return row?.id ?? null;
+}
+
+export function isPrimaryAdminSession(session: Session | null): boolean {
+  return isPrimaryAdminEmail(session?.user?.email);
+}
+
+/** Async: e-mail z sesji albo porównanie id z kontem PRIMARY w bazie. */
+export async function isPrimaryAdminActor(session: Session | null): Promise<boolean> {
+  if (!session?.user?.id) return false;
+  if (isPrimaryAdminEmail(session.user.email)) return true;
+  const primaryId = await getPrimaryAdminUserId();
+  return primaryId !== null && primaryId === session.user.id;
+}
+
+/** Konto chronione: główny admin albo (gdy brak konta primary) pierwszy admin w bazie. */
+export async function getProtectedAdminUserId(): Promise<string | null> {
+  const primaryId = await getPrimaryAdminUserId();
+  if (primaryId) return primaryId;
+  return getFounderUserId();
 }
 
 /** Konto ma prawo wejść do ścieżki /admin (bez PIN jeszcze bez cookie). */

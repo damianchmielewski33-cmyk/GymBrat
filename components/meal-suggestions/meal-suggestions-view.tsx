@@ -22,6 +22,7 @@ import type { MealLogDto } from "@/lib/meal-logs";
 import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
 import type { FitatuDaySummary } from "@/types/fitatu";
 import type { MealTemplate } from "@/lib/meal-templates";
+import type { CatalogMeal } from "@/lib/meal-catalog-types";
 import type { NutritionDayType } from "@/lib/nutrition-goals";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { useActionState, useEffect } from "react";
@@ -216,12 +217,14 @@ export function MealSuggestionsView({
   initialLogs,
   initialDayKind = "rest",
   mealTemplates = [],
+  catalogMeals = [],
 }: {
   initialSummary: FitatuDaySummary;
   initialGaps: MacroGaps;
   initialLogs: MealLogDto[];
   initialDayKind?: NutritionDayType;
   mealTemplates?: MealTemplate[];
+  catalogMeals?: CatalogMeal[];
 }) {
   void _initialSummary;
   const router = useRouter();
@@ -348,7 +351,7 @@ export function MealSuggestionsView({
               Ustaw szablony i cele makro w profilu — tu zobaczysz plan dnia.
             </p>
           )}
-          <MealCatalogBrowser dateKey={dateKey} />
+          <MealCatalogBrowser dateKey={dateKey} meals={catalogMeals} />
         </div>
       ) : (
         <>
@@ -491,7 +494,7 @@ export function MealSuggestionsView({
               Zamknij
             </button>
           </div>
-          <MealCatalogBrowser dateKey={dateKey} />
+          <MealCatalogBrowser dateKey={dateKey} meals={catalogMeals} />
         </div>
       ) : null}
       <FoodPortionScreen

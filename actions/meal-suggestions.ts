@@ -9,13 +9,19 @@ import {
   catalogMealToSuggestion,
   pickCatalogMealsForGaps,
 } from "@/lib/meal-catalog";
+import { loadMergedMealCatalog } from "@/lib/meal-catalog-store";
 import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
 import { getBriefingTimeContext } from "@/lib/briefing-time-context";
 import { computeMacroGaps, type MacroGaps } from "@/lib/meal-suggestions-gaps";
 import { UserMessages } from "@/lib/user-facing-errors";
+import type { CatalogMeal } from "@/lib/meal-catalog-types";
 
-function catalogSuggestions(gaps: MacroGaps, hour: number): MealSuggestionItem[] {
-  const picked = pickCatalogMealsForGaps(gaps, { hour, limit: 4 });
+function catalogSuggestions(
+  gaps: MacroGaps,
+  hour: number,
+  catalog: CatalogMeal[],
+): MealSuggestionItem[] {
+  const picked = pickCatalogMealsForGaps(gaps, { hour, limit: 4, catalog });
   if (picked.length > 0) return picked.map(catalogMealToSuggestion);
   return staticFallbackMeals();
 }
@@ -50,10 +56,11 @@ export async function generateMealSuggestionsAction(): Promise<GenerateMealSugge
   const summary = await loadTodaysNutritionSummary(userId, row);
   const gaps = computeMacroGaps(summary);
   const timeCtx = getBriefingTimeContext();
+  const catalog = await loadMergedMealCatalog();
 
   return {
     ok: true,
-    meals: catalogSuggestions(gaps, timeCtx.hour),
+    meals: catalogSuggestions(gaps, timeCtx.hour, catalog),
     source: "catalog",
     gaps,
   };

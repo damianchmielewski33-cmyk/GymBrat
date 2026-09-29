@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdminApi } from "@/lib/admin-api";
-import { getFounderUserId } from "@/lib/admin-session";
+import {
+  getProtectedAdminUserId,
+  isPrimaryAdminActor,
+} from "@/lib/admin-session";
+import { isPrimaryAdminEmail } from "@/lib/admin-config";
 import { logAdminAction } from "@/lib/admin-audit";
 import { getDb } from "@/db";
 import { userSettings, users } from "@/db/schema";
@@ -13,7 +17,7 @@ export const runtime = "nodejs";
 
 const patchSchema = z
   .object({
-    appRole: z.enum(["zawodnik", "trener"]).optional(),
+    appRole: z.enum(["zawodnik", "trener", "admin"]).optional(),
     aiEntitled: z.boolean().optional(),
   })
   .refine((v) => v.appRole !== undefined || v.aiEntitled !== undefined, {
@@ -54,11 +58,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const founderId = await getFounderUserId();
-  if (founderId !== null && id === founderId) {
+  const protectedId = await getProtectedAdminUserId();
+  if (protectedId !== null && id === protectedId) {
     return NextResponse.json(
-      { error: "Nie można zmienić roli pierwszego administratora w bazie." },
+      { error: "Nie można zmienić roli głównego administratora." },
       { status: 400 },
+    );
+  }
+
+  if (parsed.data.appRole === "admin" && !(await isPrimaryAdminActor(gate.session))) {
+    return NextResponse.json(
+      { error: "Tylko główny administrator może nadawać uprawnienia admina." },
+      { status: 403 },
     );
   }
 
@@ -71,6 +82,14 @@ export async function PATCH(
     .from(users)
     .where(eq(users.id, id))
     .limit(1);
+
+  if (beforeUser && isPrimaryAdminEmail(beforeUser.email)) {
+    return NextResponse.json(
+      { error: "Nie można zmienić roli głównego administratora." },
+      { status: 400 },
+    );
+  }
+
   const [beforeSettings] = await db
     .select({ aiEntitled: userSettings.aiEntitled })
     .from(userSettings)
@@ -165,10 +184,10 @@ export async function DELETE(
     );
   }
 
-  const founderId = await getFounderUserId();
-  if (founderId !== null && id === founderId) {
+  const protectedId = await getProtectedAdminUserId();
+  if (protectedId !== null && id === protectedId) {
     return NextResponse.json(
-      { error: "Nie można usunąć pierwszego administratora w bazie." },
+      { error: "Nie można usunąć głównego administratora." },
       { status: 400 },
     );
   }
@@ -179,6 +198,14 @@ export async function DELETE(
     .from(users)
     .where(eq(users.id, id))
     .limit(1);
+
+  if (target && isPrimaryAdminEmail(target.email)) {
+    return NextResponse.json(
+      { error: "Nie można usunąć głównego administratora." },
+      { status: 400 },
+    );
+  }
+
   await db.delete(users).where(eq(users.id, id));
 
   await logAdminAction({

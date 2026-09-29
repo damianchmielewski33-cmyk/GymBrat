@@ -55,12 +55,11 @@ describe("meal-catalog", () => {
     expect(picked.length).toBeLessThanOrEqual(4);
   });
 
-  it("getRecipeImage używa imagePrompt z przepisu", () => {
+  it("getRecipeImage buduje Pollinations z imagePrompt", () => {
     const meal = getCatalogMealById("meal_001");
     expect(meal).toBeTruthy();
     const url = getRecipeImage(meal!);
     expect(url.startsWith("https://image.pollinations.ai/prompt/")).toBe(true);
-    expect(url).toContain(encodeURIComponent("oatmeal"));
-    expect(url).toContain(encodeURIComponent("blueberries"));
+    expect(url).toContain(encodeURIComponent(meal!.imagePrompt!.slice(0, 16)));
   });
 });

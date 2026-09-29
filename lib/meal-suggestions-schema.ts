@@ -22,8 +22,10 @@ export const MealSuggestionsResponseSchema = z.object({
 });
 
 export type MealSuggestionItem = z.infer<typeof MealItemSchema> & {
-  /** Opcjonalny alias promptu obrazu (Pollinations). */
+  /** Opcjonalny prompt opisowy (nie generuje już obrazu AI). */
   imagePrompt?: string;
+  /** Stały HTTPS URL grafiki (preferowany). */
+  imageUrl?: string;
 };
 
 export function staticFallbackMeals(): MealSuggestionItem[] {

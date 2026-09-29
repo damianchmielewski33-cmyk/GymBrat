@@ -21,27 +21,26 @@ type RecipeImageProps = {
   className?: string;
 };
 
-/** Deduplikacja równoległych fetchy tego samego przepisu. */
 const inflight = new Map<string, Promise<string>>();
-
 const MIN_BLOB_BYTES = 8_000;
 
-async function resolveStableSrc(recipe: RecipeImageSource): Promise<string> {
+async function resolveSrc(recipe: RecipeImageSource): Promise<string> {
   const cacheKey = recipeImageCacheKey(recipe);
-  const fallback = getRecipeImageFallback(recipe);
   const pollinationsUrl = getRecipeImage(recipe);
+  const fallback = getRecipeImageFallback(recipe);
+
+  // Jawny imageUrl — bez Pollinations / cache.
+  if ((recipe.imageUrl ?? "").trim()) {
+    return pollinationsUrl;
+  }
 
   if (isRecipeImageCacheSupported()) {
     try {
       const locked = await getLockedRecipeImage(cacheKey);
-      if (locked?.kind === "blob") {
-        return URL.createObjectURL(locked.blob);
-      }
-      if (locked?.kind === "url" && locked.url) {
-        return locked.url;
-      }
+      if (locked?.kind === "blob") return URL.createObjectURL(locked.blob);
+      if (locked?.kind === "url" && locked.url) return locked.url;
     } catch {
-      /* ignore cache read errors */
+      /* ignore */
     }
   }
 
@@ -54,13 +53,13 @@ async function resolveStableSrc(recipe: RecipeImageSource): Promise<string> {
     if (!res.ok) throw new Error(`pollinations ${res.status}`);
     const blob = await res.blob();
     if (!blob.type.startsWith("image/") || blob.size < MIN_BLOB_BYTES) {
-      throw new Error("invalid image payload");
+      throw new Error("invalid image");
     }
     if (isRecipeImageCacheSupported()) {
       try {
         await lockRecipeImageBlob(cacheKey, blob, pollinationsUrl);
       } catch {
-        /* ignore cache write */
+        /* ignore */
       }
     }
     return URL.createObjectURL(blob);
@@ -76,20 +75,18 @@ async function resolveStableSrc(recipe: RecipeImageSource): Promise<string> {
   }
 }
 
-function loadStableSrc(recipe: RecipeImageSource): Promise<string> {
+function loadSrc(recipe: RecipeImageSource): Promise<string> {
   const key = recipeImageCacheKey(recipe);
   const existing = inflight.get(key);
   if (existing) return existing;
-  const p = resolveStableSrc(recipe).finally(() => {
-    inflight.delete(key);
-  });
+  const p = resolveSrc(recipe).finally(() => inflight.delete(key));
   inflight.set(key, p);
   return p;
 }
 
 /**
- * Grafika przepisu: Pollinations pobierane raz i blokowane w IndexedDB.
- * Po zablokowaniu to samo danie zawsze pokazuje tę samą grafikę.
+ * Grafika z Pollinations na podstawie imagePrompt z JSON;
+ * po pierwszym udanym pobraniu blokowana w cache przeglądarki.
  */
 export const RecipeImage = memo(function RecipeImage({
   recipe,
@@ -98,12 +95,22 @@ export const RecipeImage = memo(function RecipeImage({
 }: RecipeImageProps) {
   const id = recipe.id ?? "";
   const title = recipe.title ?? "";
+  const slot = recipe.slot ?? "";
+  const imageUrl = recipe.imageUrl ?? "";
   const imagePrompt = recipe.imagePrompt ?? "";
   const imagePromptEn = recipe.imagePromptEn ?? "";
 
   const recipeKey = useMemo(
-    () => recipeImageCacheKey({ id, title, imagePrompt, imagePromptEn }),
-    [id, title, imagePrompt, imagePromptEn],
+    () =>
+      recipeImageCacheKey({
+        id,
+        title,
+        slot,
+        imageUrl,
+        imagePrompt,
+        imagePromptEn,
+      }),
+    [id, title, slot, imageUrl, imagePrompt, imagePromptEn],
   );
 
   const [src, setSrc] = useState<string | null>(null);
@@ -112,7 +119,14 @@ export const RecipeImage = memo(function RecipeImage({
     let cancelled = false;
     let objectUrl: string | null = null;
 
-    void loadStableSrc({ id, title, imagePrompt, imagePromptEn }).then((resolved) => {
+    void loadSrc({
+      id,
+      title,
+      slot,
+      imageUrl,
+      imagePrompt,
+      imagePromptEn,
+    }).then((resolved) => {
       if (cancelled) {
         if (resolved.startsWith("blob:")) URL.revokeObjectURL(resolved);
         return;
@@ -125,7 +139,7 @@ export const RecipeImage = memo(function RecipeImage({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [recipeKey, id, title, imagePrompt, imagePromptEn]);
+  }, [recipeKey, id, title, slot, imageUrl, imagePrompt, imagePromptEn]);
 
   if (!src) {
     return (
@@ -137,7 +151,7 @@ export const RecipeImage = memo(function RecipeImage({
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- Pollinations / Unsplash / blob cache
+    // eslint-disable-next-line @next/next/no-img-element -- Pollinations / Unsplash / blob
     <img
       src={src}
       alt={alt ?? (title || "Posiłek")}

@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import {
-  MEAL_CATALOG,
   MEAL_SLOT_LABELS,
   MEAL_SLOTS,
   getMealsBySlot,
@@ -49,14 +48,20 @@ function fmtMacro(n: number, unit: string) {
   return `${Math.round(n * 10) / 10} ${unit}`;
 }
 
-export function MealCatalogBrowser({ dateKey }: { dateKey: string }) {
+export function MealCatalogBrowser({
+  dateKey,
+  meals,
+}: {
+  dateKey: string;
+  meals: CatalogMeal[];
+}) {
   const [slot, setSlot] = useState<MealSlot>("sniadanie");
   const [query, setQuery] = useState("");
   const [macroFilter, setMacroFilter] = useState<"all" | "high_protein" | "low_calorie">("all");
   const [selected, setSelected] = useState<CatalogMeal | null>(null);
   const [visibleCount, setVisibleCount] = useState(12);
 
-  const slotMeals = useMemo(() => getMealsBySlot(slot), [slot]);
+  const slotMeals = useMemo(() => getMealsBySlot(slot, meals), [slot, meals]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -82,7 +87,7 @@ export function MealCatalogBrowser({ dateKey }: { dateKey: string }) {
       <div>
         <p className="app-label">Katalog posiłków</p>
         <h2 className="mt-1 text-lg font-semibold text-white">
-          {MEAL_CATALOG.length} przepisów z makro i instrukcją
+          {meals.length} przepisów z makro i instrukcją
         </h2>
         <p className="mt-1 text-sm text-white/55">
           Śniadanie–kolacja: dokładna gramatura składników, krok po kroku jak przygotować porcję.
@@ -105,7 +110,7 @@ export function MealCatalogBrowser({ dateKey }: { dateKey: string }) {
             }
           >
             {MEAL_SLOT_LABELS[s]}
-            <span className="ml-1 text-white/40">({getMealsBySlot(s).length})</span>
+            <span className="ml-1 text-white/40">({getMealsBySlot(s, meals).length})</span>
           </button>
         ))}
       </div>

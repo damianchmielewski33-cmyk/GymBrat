@@ -31,14 +31,32 @@ export function mealSlotFromHour(hour: number): MealSlot {
   return "kolacja";
 }
 
+/** Seed w kodzie — bez wpisów z panelu admina. */
 export const MEAL_CATALOG: CatalogMeal[] = MEAL_CATALOG_GENERATED;
 
-export function getMealsBySlot(slot: MealSlot): CatalogMeal[] {
-  return MEAL_CATALOG.filter((m) => m.slot === slot);
+/** DB nadpisuje to samo `id`, reszta seedu zostaje. */
+export function mergeMealCatalogs(
+  seed: CatalogMeal[],
+  dbMeals: CatalogMeal[],
+): CatalogMeal[] {
+  const byId = new Map<string, CatalogMeal>();
+  for (const m of seed) byId.set(m.id, m);
+  for (const m of dbMeals) byId.set(m.id, m);
+  return Array.from(byId.values());
 }
 
-export function getCatalogMealById(id: string): CatalogMeal | undefined {
-  return MEAL_CATALOG.find((m) => m.id === id);
+export function getMealsBySlot(
+  slot: MealSlot,
+  catalog: CatalogMeal[] = MEAL_CATALOG,
+): CatalogMeal[] {
+  return catalog.filter((m) => m.slot === slot);
+}
+
+export function getCatalogMealById(
+  id: string,
+  catalog: CatalogMeal[] = MEAL_CATALOG,
+): CatalogMeal | undefined {
+  return catalog.find((m) => m.id === id);
 }
 
 function scoreMealForGaps(meal: CatalogMeal, gaps: MacroGaps): number {
@@ -70,11 +88,12 @@ function scoreMealForGaps(meal: CatalogMeal, gaps: MacroGaps): number {
 /** Propozycje z katalogu dopasowane do pory i braków makro. */
 export function pickCatalogMealsForGaps(
   gaps: MacroGaps,
-  opts?: { slot?: MealSlot; hour?: number; limit?: number },
+  opts?: { slot?: MealSlot; hour?: number; limit?: number; catalog?: CatalogMeal[] },
 ): CatalogMeal[] {
+  const catalog = opts?.catalog ?? MEAL_CATALOG;
   const limit = opts?.limit ?? 4;
   const slot = opts?.slot ?? mealSlotFromHour(opts?.hour ?? new Date().getHours());
-  const pool = getMealsBySlot(slot);
+  const pool = getMealsBySlot(slot, catalog);
   const ranked = [...pool].sort(
     (a, b) => scoreMealForGaps(b, gaps) - scoreMealForGaps(a, gaps),
   );
@@ -87,7 +106,7 @@ export function pickCatalogMealsForGaps(
     if (picked.length >= limit) break;
   }
   if (picked.length < limit) {
-    for (const meal of MEAL_CATALOG) {
+    for (const meal of catalog) {
       if (usedTitles.has(meal.title)) continue;
       picked.push(meal);
       usedTitles.add(meal.title);
@@ -106,5 +125,6 @@ export function catalogMealToSuggestion(meal: CatalogMeal): MealSuggestionItem {
     approximateMacros: meal.approximateMacros,
     imagePromptEn: meal.imagePromptEn,
     ...(meal.imagePrompt ? { imagePrompt: meal.imagePrompt } : {}),
+    ...(meal.imageUrl ? { imageUrl: meal.imageUrl } : {}),
   };
 }
