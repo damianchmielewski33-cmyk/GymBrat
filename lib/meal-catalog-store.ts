@@ -4,8 +4,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { mealCatalog } from "@/db/schema";
-import { MEAL_CATALOG_GENERATED } from "@/lib/meal-catalog-data";
-import { mergeMealCatalogs, type CatalogMeal } from "@/lib/meal-catalog";
+import type { CatalogMeal } from "@/lib/meal-catalog";
 import { parseCatalogImportPayload, type CatalogImportMode } from "@/lib/meal-catalog-import";
 
 let catalogTableEnsured = false;
@@ -40,10 +39,9 @@ export async function listDbCatalogMeals(): Promise<CatalogMeal[]> {
   return out;
 }
 
-/** Statyczny seed + wpisy z bazy (DB nadpisuje to samo id). */
+/** Przepisy widoczne w Dietcie — wyłącznie z bazy panelu admina. */
 export async function loadMergedMealCatalog(): Promise<CatalogMeal[]> {
-  const dbMeals = await listDbCatalogMeals();
-  return mergeMealCatalogs(MEAL_CATALOG_GENERATED, dbMeals);
+  return listDbCatalogMeals();
 }
 
 export async function importCatalogMealsFromJson(

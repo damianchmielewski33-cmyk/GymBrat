@@ -47,9 +47,18 @@ describe("getRecipeImage — dopasowanie do dania", () => {
     expect(url).toBe(DISH_IMAGES.beefPlate);
   });
 
-  it("katalog ma unikalne URL-e", () => {
-    const urls = MEAL_CATALOG.map((m) => getRecipeImage(m));
-    expect(new Set(urls).size).toBe(MEAL_CATALOG.length);
+  it("katalog seed jest pusty (przepisy z panelu)", () => {
+    expect(MEAL_CATALOG).toHaveLength(0);
+  });
+
+  it("wrap / wołowina / curry mają różne grafiki", () => {
+    expect(getRecipeImage({ title: "Wrap z Indykiem i Awokado" })).toBe(DISH_IMAGES.wrap);
+    expect(getRecipeImage({ title: "Wołowina z Kaszą i Warzywami" })).toBe(
+      DISH_IMAGES.beefPlate,
+    );
+    expect(getRecipeImage({ title: "Kurczak Curry z Ryżem" })).toBe(
+      DISH_IMAGES.chickenCurry,
+    );
   });
 
   it("imageUrl ma pierwszeństwo", () => {

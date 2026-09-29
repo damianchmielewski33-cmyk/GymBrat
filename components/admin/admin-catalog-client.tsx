@@ -30,7 +30,6 @@ export function AdminCatalogClient() {
   const { notifySaved, notifyError } = useSaveFeedback();
   const [jsonText, setJsonText] = useState("");
   const [dbMeals, setDbMeals] = useState<CatalogMeal[]>([]);
-  const [mergedCount, setMergedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +46,6 @@ export function AdminCatalogClient() {
         mergedCount: number;
       };
       setDbMeals(data.dbMeals ?? []);
-      setMergedCount(data.mergedCount ?? 0);
     } catch {
       setError("Nie udało się wczytać katalogu.");
     } finally {
@@ -104,11 +102,11 @@ export function AdminCatalogClient() {
 
       if (mode === "replace") {
         notifySaved(
-          `Zastąpiono bazę: ${data?.upserted ?? 0} przepisów (łącznie w aplikacji: ${data?.totalMerged ?? "—"}).`,
+          `Zastąpiono bazę: ${data?.upserted ?? 0} przepisów w Dietcie.`,
         );
       } else {
         notifySaved(
-          `Dodano / zaktualizowano ${data?.upserted ?? 0} przepisów (łącznie w aplikacji: ${data?.totalMerged ?? "—"}).`,
+          `Dodano / zaktualizowano ${data?.upserted ?? 0} przepisów (łącznie: ${data?.totalMerged ?? "—"}).`,
         );
       }
       setJsonText("");
@@ -124,11 +122,7 @@ export function AdminCatalogClient() {
   }
 
   async function clearDb() {
-    if (
-      !confirm(
-        "Usunąć wszystkie przepisy wgrane przez panel (seed w kodzie zostanie)?",
-      )
-    ) {
+    if (!confirm("Usunąć wszystkie przepisy? Dieta będzie pusta do kolejnego importu.")) {
       return;
     }
     setBusy(true);
@@ -150,8 +144,7 @@ export function AdminCatalogClient() {
   }
 
   const canSubmit = jsonText.trim().length > 0 && !busy;
-  const panelCount = loading ? null : dbMeals.length;
-  const totalCount = loading ? null : mergedCount;
+  const recipeCount = loading ? null : dbMeals.length;
 
   return (
     <div className="space-y-6">
@@ -164,25 +157,16 @@ export function AdminCatalogClient() {
           className="pointer-events-none absolute -bottom-24 -left-10 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl"
           aria-hidden
         />
-        <div className="relative grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-black/35 px-5 py-6 backdrop-blur-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-              W bazie panelu
-            </p>
-            <p className="font-heading mt-3 text-5xl font-semibold tabular-nums text-[var(--neon)]">
-              {panelCount == null ? "…" : panelCount}
-            </p>
-            <p className="mt-2 text-sm text-white/50">przepisów z importu JSON</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/35 px-5 py-6 backdrop-blur-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-              Widoczne w Dietcie
-            </p>
-            <p className="font-heading mt-3 text-5xl font-semibold tabular-nums text-white">
-              {totalCount == null ? "…" : totalCount}
-            </p>
-            <p className="mt-2 text-sm text-white/50">po scaleniu z seedem</p>
-          </div>
+        <div className="relative rounded-2xl border border-white/10 bg-black/35 px-5 py-8 text-center backdrop-blur-sm sm:px-8">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+            Przepisy w aplikacji
+          </p>
+          <p className="font-heading mt-3 text-6xl font-semibold tabular-nums text-[var(--neon)] sm:text-7xl">
+            {recipeCount == null ? "…" : recipeCount}
+          </p>
+          <p className="mt-3 text-sm text-white/50">
+            widoczne w Dietcie · zarządzane z panelu
+          </p>
         </div>
       </div>
 
@@ -254,9 +238,8 @@ export function AdminCatalogClient() {
         <AlertDialogContent className="border border-white/10 bg-[#0c0c0c] p-6">
           <AlertDialogTitle>Zastąpić całą bazę panelu?</AlertDialogTitle>
           <AlertDialogDescription className="mt-2 text-white/65">
-            Wszystkie przepisy wgrane wcześniej przez panel zostaną usunięte i
-            zastąpione treścią z pola JSON. Seed z kodu aplikacji pozostanie.
-            Tej operacji nie da się cofnąć.
+            Wszystkie przepisy w aplikacji zostaną usunięte i zastąpione treścią z
+            pola JSON. Tej operacji nie da się cofnąć.
           </AlertDialogDescription>
           <div className="mt-6 flex gap-2">
             <Button
@@ -304,7 +287,7 @@ export function AdminCatalogClient() {
               ) : dbMeals.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-6 text-center text-white/45">
-                    Brak wpisów z panelu — używany jest seed z kodu.
+                    Brak przepisów — wklej JSON i kliknij Dodaj.
                   </td>
                 </tr>
               ) : (
