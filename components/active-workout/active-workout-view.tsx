@@ -28,6 +28,11 @@ import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
+import {
+  countSkippedWorkoutSets,
+  findFirstSkippedWorkoutTarget,
+  isSkippedWorkoutSet,
+} from "@/lib/workout-skipped-sets";
 import { hapticExerciseDone, hapticNewMax, hapticWorkoutDone } from "@/lib/haptics";
 import { RotateCcw } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18n-provider";
@@ -429,6 +434,31 @@ export function ActiveWorkoutView({
     return { done, total };
   }, [exercises]);
 
+  const skippedTarget = useMemo(
+    () => findFirstSkippedWorkoutTarget(exercises),
+    [exercises],
+  );
+  const skippedCount = useMemo(
+    () => countSkippedWorkoutSets(exercises),
+    [exercises],
+  );
+
+  function goToSkippedTarget() {
+    const target = findFirstSkippedWorkoutTarget(exercises);
+    if (!target) return;
+    stopRest();
+    setSelectedExerciseId(target.exerciseId);
+    const set = exercises
+      .find((e) => e.id === target.exerciseId)
+      ?.sets[target.setIndex];
+    if (set && isSkippedWorkoutSet(set)) {
+      patchSetInStore(target.exerciseId, target.setIndex, {
+        done: false,
+        skipped: false,
+      });
+    }
+  }
+
   function patchSet(
     exerciseId: string,
     setIndex: number,
@@ -436,6 +466,7 @@ export function ActiveWorkoutView({
       reps: number | null;
       weight: number;
       done: boolean;
+      skipped: boolean;
       rpe: number | null;
       rir: number | null;
     }>,
@@ -691,6 +722,9 @@ export function ActiveWorkoutView({
         initialCardioMinutes={cardioMinutes}
         onFinish={() => setFinishOpen(true)}
         onConfirmCardio={(minutes) => setCardioMinutes(minutes)}
+        skippedTarget={skippedTarget}
+        skippedCount={skippedCount}
+        onGoToSkipped={goToSkippedTarget}
       />
 
       <div

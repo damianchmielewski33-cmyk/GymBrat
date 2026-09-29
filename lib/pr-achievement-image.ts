@@ -35,7 +35,10 @@ export function buildPrAchievementImagePrompt(input: PrAchievementImageInput): s
     "no people",
     "no text",
     "no letters",
+    "no words",
+    "no logo",
     "no watermark",
+    "no brand name",
     "4k",
     "photorealistic",
   ].join(", ");
@@ -48,7 +51,7 @@ export function getPrAchievementImageUrl(input: PrAchievementImageInput): string
       ? new Date(input.atMs).toISOString().slice(0, 10)
       : new Date().toISOString().slice(0, 10);
   const seed = hashSeed(
-    `${input.exerciseName}|${input.valueKg}|${day}|pr-v1`,
+    `${input.exerciseName}|${input.valueKg}|${day}|pr-v2`,
   );
   const params = new URLSearchParams({
     width: "768",

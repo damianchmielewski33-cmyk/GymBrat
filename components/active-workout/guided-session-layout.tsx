@@ -165,6 +165,7 @@ export function GuidedSessionLayout({
     if (!exercise || !set) return;
     onPatchSet(exercise.id, activeSetIndex, {
       done: true,
+      skipped: true,
       reps: set.reps,
       weight: set.weight,
       rir: set.rir ?? null,
@@ -194,6 +195,7 @@ export function GuidedSessionLayout({
     const weight = parseWeightInput(weightText) ?? clampWeight(set.weight);
     onPatchSet(exercise.id, activeSetIndex, {
       done: true,
+      skipped: false,
       reps: reps > 0 ? reps : 1,
       weight,
       rir: set.rir ?? null,

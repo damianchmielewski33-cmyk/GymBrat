@@ -16,7 +16,7 @@ type Props = {
 };
 
 /**
- * Karta świętowania rekordu: tło z agenta Pollinations + nakładka GymBrat.
+ * Karta świętowania rekordu: tło Pollinations + nakładka (GymBrat / NOWY MAX / kg).
  */
 export function PrAchievementGraphic({
   exerciseName,
@@ -75,10 +75,6 @@ export function PrAchievementGraphic({
             {exerciseLabel}
           </p>
           <p className="mt-2 text-sm tabular-nums text-white/80">{dateLabel}</p>
-
-          <div className="mt-auto pt-8">
-            <p className="text-[11px] text-white/55">apka GymBrat</p>
-          </div>
         </div>
       </div>
     </div>

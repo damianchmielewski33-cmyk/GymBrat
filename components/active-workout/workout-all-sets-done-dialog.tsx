@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Flame, Trophy } from "lucide-react";
+import { Flame, RotateCcw, Trophy } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import type { SkippedWorkoutTarget } from "@/lib/workout-skipped-sets";
 
 type Step = "choice" | "cardio";
 
@@ -18,12 +19,18 @@ export function WorkoutAllSetsDoneDialog({
   initialCardioMinutes,
   onFinish,
   onConfirmCardio,
+  skippedTarget = null,
+  skippedCount = 0,
+  onGoToSkipped,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialCardioMinutes: number;
   onFinish: () => void;
   onConfirmCardio: (minutes: number) => void;
+  skippedTarget?: SkippedWorkoutTarget | null;
+  skippedCount?: number;
+  onGoToSkipped?: () => void;
 }) {
   const [step, setStep] = useState<Step>("choice");
   const [minutes, setMinutes] = useState(
@@ -35,6 +42,8 @@ export function WorkoutAllSetsDoneDialog({
     setStep("choice");
     setMinutes(initialCardioMinutes > 0 ? initialCardioMinutes : 20);
   }, [open, initialCardioMinutes]);
+
+  const hasSkipped = Boolean(skippedTarget && onGoToSkipped);
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -50,15 +59,46 @@ export function WorkoutAllSetsDoneDialog({
                   Wszystkie serie wykonane
                 </AlertDialogTitle>
                 <AlertDialogDescription className="mt-1.5 text-white/55">
-                  Siłowy trening jest zaliczony. Chcesz dodać cardio, czy zakończyć
-                  sesję?
+                  {hasSkipped ? (
+                    <>
+                      Masz pominięte serie
+                      {skippedCount > 1 ? ` (${skippedCount})` : ""}. Możesz wrócić do{" "}
+                      <span className="font-medium text-white/85">
+                        {skippedTarget!.exerciseName}
+                      </span>{" "}
+                      albo zakończyć sesję.
+                    </>
+                  ) : (
+                    <>
+                      Siłowy trening jest zaliczony. Chcesz dodać cardio, czy zakończyć
+                      sesję?
+                    </>
+                  )}
                 </AlertDialogDescription>
               </div>
             </div>
             <div className="mt-5 flex flex-col gap-2">
+              {hasSkipped ? (
+                <Button
+                  type="button"
+                  className="gym-btn-primary h-12 w-full gap-2"
+                  onClick={() => {
+                    onOpenChange(false);
+                    onGoToSkipped?.();
+                  }}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Wróć do: {skippedTarget!.exerciseName}
+                </Button>
+              ) : null}
               <Button
                 type="button"
-                className="gym-btn-primary h-12 w-full gap-2"
+                className={
+                  hasSkipped
+                    ? "h-12 w-full gap-2 border border-white/15 bg-transparent"
+                    : "gym-btn-primary h-12 w-full gap-2"
+                }
+                variant={hasSkipped ? "outline" : "default"}
                 onClick={() => setStep("cardio")}
               >
                 <Flame className="h-4 w-4" />
