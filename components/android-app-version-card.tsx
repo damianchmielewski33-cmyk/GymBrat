@@ -1,21 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Download, RefreshCw, Smartphone } from "lucide-react";
+import { Download, ExternalLink, RefreshCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useInstalledAndroidAppIdentity } from "@/hooks/use-android-app-identity";
 import { compareAndroidAppVersion, requestNativeAndroidUpdate } from "@/lib/app-webview";
 import { cn } from "@/lib/utils";
 
+const PROFILE_WEB_DOWNLOAD_HREF = "/api/android/download?source=profile-web";
+
 type LatestInfo = {
   versionCode: number;
   versionName: string;
+  apkUrl?: string | null;
   notes?: string | null;
 };
-
-function downloadAndroidApk(source: string) {
-  window.location.href = `/api/android/download?source=${encodeURIComponent(source)}`;
-}
 
 export function AndroidAppVersionCard() {
   const installed = useInstalledAndroidAppIdentity();
@@ -28,8 +27,7 @@ export function AndroidAppVersionCard() {
     setHydrated(true);
   }, []);
 
-  const load = useCallback(async () => {
-    if (!installed) return;
+  const loadLatest = useCallback(async () => {
     setChecking(true);
     setError(null);
     try {
@@ -51,6 +49,7 @@ export function AndroidAppVersionCard() {
       setLatest({
         versionCode: body.versionCode,
         versionName: body.versionName,
+        apkUrl: typeof body.apkUrl === "string" ? body.apkUrl : null,
         notes: body.notes,
       });
     } catch (e) {
@@ -61,21 +60,26 @@ export function AndroidAppVersionCard() {
     } finally {
       setChecking(false);
     }
-  }, [installed]);
+  }, []);
 
   useEffect(() => {
-    if (!installed) return;
+    if (!hydrated) return;
     const timer = window.setTimeout(() => {
-      void load();
+      void loadLatest();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [installed, load]);
+  }, [hydrated, loadLatest]);
 
-  // SSR / pierwszy render — nic, żeby uniknąć flashu złej karty.
+  // SSR / pierwszy render — nic, żeby uniknąć flashu złej karty w APK.
   if (!hydrated) return null;
 
-  // Przeglądarka / PWA: zachęta do pobrania APK.
+  // Przeglądarka / PWA: bezpośredni link do najnowszego APK.
   if (!installed) {
+    const downloadHref =
+      latest?.apkUrl && latest.apkUrl.startsWith("http")
+        ? latest.apkUrl
+        : PROFILE_WEB_DOWNLOAD_HREF;
+
     return (
       <section className="app-card p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -85,25 +89,54 @@ export function AndroidAppVersionCard() {
               Aplikacja Android
             </h2>
             <p className="mt-1.5 text-sm leading-relaxed text-white/45">
-              Pobierz GymBrat na telefon — ten sam plan, dieta i treningi co na
-              stronie, w pełnoekranowej aplikacji.
+              Dla użytkowników przeglądarki — bezpośredni link do najnowszego
+              instalatora GymBrat (APK).
             </p>
           </div>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10">
             <Smartphone className="h-5 w-5 text-[var(--gym-gold)]" aria-hidden />
           </div>
         </div>
-        <div className="mt-5">
-          <Button
-            type="button"
-            className="gym-btn-primary inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold sm:w-auto sm:px-6"
-            onClick={() => downloadAndroidApk("profile-web")}
+
+        <div className="mt-5 space-y-3">
+          <a
+            href={downloadHref}
+            download={downloadHref.includes(".apk") ? "gymbrat.apk" : undefined}
+            rel="noopener noreferrer"
+            className="gym-btn-primary inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold sm:w-auto"
           >
             <Download className="h-4 w-4" aria-hidden />
-            Pobierz aplikację Android
-          </Button>
-          <p className="mt-2 text-xs text-white/40">
-            Plik APK — po pobraniu zezwól na instalację z tego źródła.
+            {latest
+              ? `Pobierz Android ${latest.versionName}`
+              : checking
+                ? "Sprawdzanie wersji…"
+                : "Pobierz aplikację Android"}
+          </a>
+
+          <p className="break-all text-xs leading-relaxed text-white/40">
+            Link:{" "}
+            <a
+              href={downloadHref}
+              className="inline-flex items-center gap-1 text-[var(--gym-gold)] underline-offset-2 hover:underline"
+              rel="noopener noreferrer"
+            >
+              {downloadHref}
+              <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+            </a>
+          </p>
+
+          {latest ? (
+            <p className="text-xs text-white/45">
+              Najnowsza kompilacja {latest.versionCode}
+              {latest.notes ? ` · ${latest.notes}` : null}
+            </p>
+          ) : error ? (
+            <p className="text-xs text-rose-300/90">{error}</p>
+          ) : null}
+
+          <p className="text-xs text-white/35">
+            Po pobraniu zezwól na instalację z tego źródła. Aktualizacja nad
+            starą wersją wymaga tego samego podpisu APK.
           </p>
         </div>
       </section>
@@ -116,12 +149,12 @@ export function AndroidAppVersionCard() {
 
   function startUpdate() {
     if (!requestNativeAndroidUpdate()) {
-      downloadAndroidApk("profile");
+      window.location.href = "/api/android/download?source=profile";
     }
   }
 
   async function checkAgain() {
-    await load();
+    await loadLatest();
     requestNativeAndroidUpdate();
   }
 
