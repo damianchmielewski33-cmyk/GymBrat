@@ -82,15 +82,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [mobileMenuOpen]);
 
   return (
-    <div className="relative min-h-screen bg-[#050505]">
+    <div className="relative min-h-dvh bg-[#050505]">
       {sessionFullscreen ? null : (
-      <header className="sticky top-0 z-40 bg-[#050505]/92 pt-[env(safe-area-inset-top)] backdrop-blur-md">
-        <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
+      <header className="sticky top-0 z-40 bg-[#050505]/92 pt-[env(safe-area-inset-top,0px)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-lg items-center justify-between py-3 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
           <BrandMark />
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger
               ref={mobileMenuTriggerRef}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white/80 outline-none transition-colors hover:bg-white/[0.06] hover:text-white"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full text-white/80 outline-none transition-colors hover:bg-white/[0.06] hover:text-white"
               aria-label={mobileMenuOpen ? "Zamknij menu" : "Otwórz menu"}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -112,7 +112,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
                       className={cn(
-                        "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors",
+                        "flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors",
                         active
                           ? "bg-white/[0.08] text-[var(--neon)]"
                           : "text-white/75 hover:bg-white/[0.05]",
@@ -127,7 +127,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <Link
                     href="/admin"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-white/75 hover:bg-white/[0.05]"
+                    className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-white/75 hover:bg-white/[0.05]"
                   >
                     <Shield className="h-4 w-4" />
                     Panel admina
@@ -154,10 +154,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main
         key={pathname}
         className={cn(
-          "mx-auto min-w-0 w-full max-w-lg flex-1 overflow-x-clip",
+          "mx-auto min-w-0 w-full flex-1 overflow-x-clip",
           sessionFullscreen
-            ? "px-0 py-0 pb-[env(safe-area-inset-bottom)]"
-            : "px-4 py-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-5",
+            ? "max-w-none px-0 py-0"
+            : "max-w-lg py-4 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] sm:pl-[max(1.25rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.25rem,env(safe-area-inset-right,0px))]",
           reduceFixedBugs ? "animate-page-enter-opacity" : "animate-page-enter",
         )}
       >
@@ -166,7 +166,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {sessionFullscreen ? null : (
       <nav
-        className="fixed inset-x-0 bottom-0 z-50 bg-[#050505] pb-[env(safe-area-inset-bottom)]"
+        className="fixed inset-x-0 bottom-0 z-50 bg-[#050505] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]"
         aria-label="Nawigacja główna"
       >
         <div className="relative mx-auto max-w-lg">
@@ -174,7 +174,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Suspense fallback={null}>
             <ReportFab />
           </Suspense>
-          <div className="grid grid-cols-5 items-end px-1 pb-2 pt-7">
+          <div className="grid grid-cols-5 items-end gap-0.5 px-2 pb-2 pt-7 sm:px-3">
             {tabs.map((item) => (
               <TabLink key={item.href} item={item} pathname={pathname} />
             ))}
@@ -223,12 +223,12 @@ function TabLink({
     <Link
       href={item.href}
       className={cn(
-        "flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-2 text-center text-[10px] font-medium",
+        "flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-center text-[10px] font-medium touch-manipulation",
         active ? "text-[var(--neon)]" : "text-white/45",
       )}
     >
-      <item.icon className="h-5 w-5" />
-      <span className="leading-none">{item.label}</span>
+      <item.icon className="h-5 w-5 shrink-0" />
+      <span className="max-w-full truncate leading-none">{item.label}</span>
     </Link>
   );
 }

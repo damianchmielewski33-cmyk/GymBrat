@@ -3,7 +3,8 @@ import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
 import { GYMBRAT_GITHUB_SLUG } from "@/lib/gymbrat-source";
 import {
   roundToPlateStep,
-  suggestWeightFromLastSet,
+  suggestProgressionFromLastSets,
+  applyProgressionToWeight,
   mergeHintsIntoExercises,
 } from "@/lib/last-workout-hints";
 import { resolveSessionRevisionConflict } from "@/lib/active-workout-cloud";
@@ -41,12 +42,62 @@ describe("workout plan normalize — RIR/tempo/note/superset", () => {
   });
 });
 
-describe("sugestia ciężaru", () => {
-  it("zaokrągla do 2.5 i dodaje przy twardym RIR", () => {
+describe("sugestia ciężaru — double progression", () => {
+  it("zaokrągla do 2.5 i podnosi gdy cel + RIR ≥ 2", () => {
     expect(roundToPlateStep(61)).toBe(60);
-    expect(suggestWeightFromLastSet({ weight: 60, rir: 1 })).toBe(62.5);
-    expect(suggestWeightFromLastSet({ weight: 60, rir: 3 })).toBe(60);
-    expect(suggestWeightFromLastSet({ weight: 60, rpe: 9 })).toBe(62.5);
+    const bump = suggestProgressionFromLastSets({
+      targetReps: 8,
+      sets: [
+        { reps: 8, weight: 60, done: true, rir: 2 },
+        { reps: 8, weight: 60, done: true, rir: 3 },
+      ],
+    });
+    expect(bump?.kind).toBe("increase");
+    expect(applyProgressionToWeight(60, bump!.kind)).toBe(62.5);
+  });
+
+  it("trzyma ciężar gdy RIR < 2", () => {
+    const hold = suggestProgressionFromLastSets({
+      targetReps: 8,
+      sets: [
+        { reps: 8, weight: 60, done: true, rir: 1 },
+        { reps: 8, weight: 60, done: true, rir: 2 },
+      ],
+    });
+    expect(hold?.kind).toBe("hold");
+    expect(applyProgressionToWeight(60, hold!.kind)).toBe(60);
+  });
+
+  it("trzyma ciężar i wskazuje powtórzenia poniżej celu", () => {
+    const hold = suggestProgressionFromLastSets({
+      targetReps: 8,
+      sets: [
+        { reps: 6, weight: 60, done: true, rir: 3 },
+        { reps: 8, weight: 60, done: true, rir: 2 },
+      ],
+    });
+    expect(hold?.kind).toBe("hold_reps");
+    expect(hold?.reason).toMatch(/powtórzenia/i);
+  });
+
+  it("brak RIR = hold (nie uznajemy za łatwo)", () => {
+    const hold = suggestProgressionFromLastSets({
+      targetReps: 8,
+      sets: [{ reps: 8, weight: 60, done: true, rir: null }],
+    });
+    expect(hold?.kind).toBe("hold");
+    expect(applyProgressionToWeight(60, hold!.kind)).toBe(60);
+  });
+
+  it("pomija serie skipped", () => {
+    const bump = suggestProgressionFromLastSets({
+      targetReps: 8,
+      sets: [
+        { reps: 3, weight: 60, done: true, skipped: true, rir: 0 },
+        { reps: 8, weight: 60, done: true, rir: 2 },
+      ],
+    });
+    expect(bump?.kind).toBe("increase");
   });
 });
 
@@ -106,12 +157,13 @@ describe("NOWY MAX sesji", () => {
 });
 
 describe("mergeHintsIntoExercises", () => {
-  it("dokłada suggestedWeights z ostatniej sesji", () => {
+  it("dokłada suggestedWeights z double progression", () => {
     const merged = mergeHintsIntoExercises(
       [
         {
           id: "ex1",
           name: "Wyciskanie",
+          targetReps: 8,
           sets: [
             { reps: null, weight: 0, done: false },
             { reps: null, weight: 0, done: false },
@@ -121,15 +173,44 @@ describe("mergeHintsIntoExercises", () => {
       {
         ex1: {
           sets: [
-            { reps: 8, weight: 60, done: true, rir: 1 },
             { reps: 8, weight: 60, done: true, rir: 2 },
+            { reps: 8, weight: 60, done: true, rir: 1 },
+          ],
+        },
+      },
+    );
+    // Druga seria RIR 1 → hold całego ćwiczenia
+    expect(merged[0]?.suggestedWeights?.[0]).toBe(60);
+    expect(merged[0]?.suggestedWeights?.[1]).toBe(60);
+    expect(merged[0]?.suggestionReason).toMatch(/RIR/i);
+    expect(merged[0]?.sets[0]?.weight).toBe(0);
+  });
+
+  it("podnosi ciężar gdy wszystkie serie na celu i RIR ≥ 2", () => {
+    const merged = mergeHintsIntoExercises(
+      [
+        {
+          id: "ex1",
+          name: "Wyciskanie",
+          targetReps: 8,
+          sets: [
+            { reps: null, weight: 0, done: false },
+            { reps: null, weight: 0, done: false },
+          ],
+        },
+      ],
+      {
+        ex1: {
+          sets: [
+            { reps: 8, weight: 60, done: true, rir: 2 },
+            { reps: 9, weight: 60, done: true, rir: 2 },
           ],
         },
       },
     );
     expect(merged[0]?.suggestedWeights?.[0]).toBe(62.5);
-    expect(merged[0]?.suggestedWeights?.[1]).toBe(60);
-    expect(merged[0]?.sets[0]?.weight).toBe(0);
+    expect(merged[0]?.suggestedWeights?.[1]).toBe(62.5);
+    expect(merged[0]?.suggestionReason).toMatch(/\+2,5/);
   });
 });
 

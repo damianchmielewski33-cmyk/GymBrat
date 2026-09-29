@@ -669,7 +669,7 @@ export function ActiveWorkoutView({
         hasLoadedPlan
           ? display === "modal"
             ? "relative bg-black"
-            : "relative ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-x-hidden bg-black pb-36 pt-0 sm:pb-40"
+            : "relative w-full max-w-full overflow-x-clip bg-black pb-[calc(9rem+env(safe-area-inset-bottom,0px))] pt-[env(safe-area-inset-top,0px)] sm:pb-40"
           : "relative min-h-[calc(100dvh-6rem)] rounded-2xl bg-[#0f0f0f] p-4 sm:p-6 lg:min-h-[calc(100dvh-5rem)]"
       }
     >

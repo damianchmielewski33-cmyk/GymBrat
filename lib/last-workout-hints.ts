@@ -14,6 +14,7 @@ type CompletedPayload = {
       rpe?: unknown;
       rir?: unknown;
       done?: boolean;
+      skipped?: boolean;
     }>;
     note?: string;
   }>;
@@ -40,26 +41,84 @@ export type LastPlanHintsMap = Record<
   }
 >;
 
+export type ProgressionKind = "increase" | "hold" | "hold_reps";
+
+export type ProgressionSuggestion = {
+  /** Decyzja na poziomie ćwiczenia (bump vs hold). */
+  kind: ProgressionKind;
+  reason: string;
+};
+
 /** Zaokrąglenie do kroku 2.5 kg. */
 export function roundToPlateStep(kg: number, step = 2.5): number {
   if (!Number.isFinite(kg) || kg <= 0) return 0;
   return Math.round(kg / step) * step;
 }
 
+function isWorkingSet(s: WorkoutSetState): boolean {
+  if (s.skipped) return false;
+  return (Number(s.weight) || 0) > 0;
+}
+
 /**
- * Sugestia ciężaru: ostatni ciężar; +2.5 kg gdy RIR≤1 lub RPE≥8.
+ * Double progression: +2.5 kg gdy wszystkie wykonane serie ≥ cel powtórzeń i RIR ≥ 2;
+ * inaczej ten sam ciężar (z powodem: reps albo RIR).
  */
-export function suggestWeightFromLastSet(last: {
-  weight: number;
-  rpe?: number | null;
-  rir?: number | null;
-}): number {
-  const base = Math.max(0, Number(last.weight) || 0);
+export function suggestProgressionFromLastSets(args: {
+  sets: WorkoutSetState[];
+  targetReps?: number | null;
+}): ProgressionSuggestion | null {
+  const working = args.sets.filter(isWorkingSet);
+  if (working.length === 0) return null;
+
+  const target =
+    args.targetReps != null &&
+    Number.isFinite(args.targetReps) &&
+    args.targetReps > 0
+      ? Math.round(args.targetReps)
+      : null;
+
+  if (target == null) {
+    return {
+      kind: "hold",
+      reason: "Ten sam ciężar — brak celu powtórzeń w planie",
+    };
+  }
+
+  const allHitReps = working.every(
+    (s) => s.reps != null && Number.isFinite(s.reps) && s.reps >= target,
+  );
+  if (!allHitReps) {
+    return {
+      kind: "hold_reps",
+      reason: "Ten sam ciężar — najpierw dociągnij powtórzenia do celu",
+    };
+  }
+
+  const allEasyRir = working.every(
+    (s) => s.rir != null && Number.isFinite(s.rir) && s.rir >= 2,
+  );
+  if (!allEasyRir) {
+    return {
+      kind: "hold",
+      reason: "Ten sam ciężar — ostatnio RIR poniżej 2",
+    };
+  }
+
+  return {
+    kind: "increase",
+    reason: "Ostatnio cel powtórzeń i RIR ≥ 2 — +2,5 kg",
+  };
+}
+
+/** Sugestia kg dla jednej serii na podstawie decyzji progresji i ostatniego ciężaru. */
+export function applyProgressionToWeight(
+  lastWeight: number,
+  kind: ProgressionKind,
+): number {
+  const base = Math.max(0, Number(lastWeight) || 0);
   if (base <= 0) return 0;
-  const hard =
-    (last.rir != null && Number.isFinite(last.rir) && last.rir <= 1) ||
-    (last.rpe != null && Number.isFinite(last.rpe) && last.rpe >= 8);
-  return roundToPlateStep(hard ? base + 2.5 : base);
+  return roundToPlateStep(kind === "increase" ? base + 2.5 : base);
 }
 
 /** Ostatnia sesja z danego planu — podpowiedzi ciężaru/RPE po id ćwiczenia z planu. */
@@ -104,10 +163,12 @@ export async function getLastWorkoutHintsForPlan(
           ? Math.max(0, Math.min(5, Math.round(Number(rirRaw))))
           : null;
       const done = Boolean(s.done);
+      const skipped = Boolean(s.skipped);
       return {
         reps: Number.isFinite(reps as number) ? reps : null,
         weight,
         done,
+        skipped,
         rpe,
         rir,
       };
@@ -128,15 +189,24 @@ export function mergeHintsIntoExercises(
   return exercises.map((ex) => {
     const h = hints[ex.id];
     if (!h?.sets?.length) return ex;
+
+    const progression = suggestProgressionFromLastSets({
+      sets: h.sets,
+      targetReps: ex.targetReps,
+    });
+
     const suggestedWeights = ex.sets.map((_, i) => {
       const hs = h.sets[i] ?? h.sets[h.sets.length - 1];
-      if (!hs || hs.weight <= 0) return null;
-      return suggestWeightFromLastSet(hs);
+      if (!hs || hs.weight <= 0 || !progression) return null;
+      return applyProgressionToWeight(hs.weight, progression.kind);
     });
+    const suggestionReason = progression?.reason ?? null;
+
     if (h.sets.length !== ex.sets.length) {
       return {
         ...ex,
         suggestedWeights,
+        suggestionReason,
         note: ex.note?.trim() ? ex.note : h.note,
       };
     }
@@ -155,6 +225,7 @@ export function mergeHintsIntoExercises(
       ...ex,
       sets,
       suggestedWeights,
+      suggestionReason,
       note: ex.note?.trim() ? ex.note : h.note,
     };
   });

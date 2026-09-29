@@ -68,13 +68,13 @@ export function CoachChatFab() {
       <SheetTrigger
         type="button"
         className={cn(
-          "fixed z-[55] flex max-w-[min(calc(100vw-1.5rem),14rem)] items-center gap-2 rounded-2xl gym-btn-primary px-3.5 py-3 text-left text-xs leading-snug focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]",
-          "right-3 sm:right-4",
+          "fixed z-[55] flex max-w-[min(calc(100%-1.5rem),14rem)] items-center gap-2 rounded-2xl gym-btn-primary px-3.5 py-3 text-left text-xs leading-snug touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]",
+          "right-[max(0.75rem,env(safe-area-inset-right,0px))] sm:right-[max(1rem,env(safe-area-inset-right,0px))]",
           activeWorkout
-            ? "top-[calc(4.25rem+env(safe-area-inset-top))] md:top-[calc(4.5rem+env(safe-area-inset-top))]"
+            ? "top-[calc(4.25rem+env(safe-area-inset-top,0px))] md:top-[calc(4.5rem+env(safe-area-inset-top,0px))]"
             : hasActiveSession
-              ? "bottom-[calc(9.25rem+env(safe-area-inset-bottom))] md:bottom-[calc(6.5rem+env(safe-area-inset-bottom))]"
-              : "bottom-[5.75rem] md:bottom-8",
+              ? "bottom-[calc(9.25rem+env(safe-area-inset-bottom,0px))] md:bottom-[calc(6.5rem+env(safe-area-inset-bottom,0px))]"
+              : "bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] md:bottom-8",
         )}
         aria-label="Otwórz czat z trenerem"
       >

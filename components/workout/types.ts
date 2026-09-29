@@ -26,8 +26,10 @@ export type WorkoutExerciseState = {
   tempo?: string | null;
   /** Wspólne id = superseria (kolejno w sesji). */
   supersetGroupId?: string | null;
-  /** Sugestia ciężaru per seria (z ostatniej sesji). */
+  /** Sugestia ciężaru per seria (z ostatniej sesji / double progression). */
   suggestedWeights?: Array<number | null>;
+  /** Krótki powód sugestii ciężaru (double progression). */
+  suggestionReason?: string | null;
   /** Link YouTube techniki (z panelu admina, po dopasowaniu katalogu). */
   techniqueYoutubeUrl?: string | null;
 };

@@ -168,17 +168,21 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
-  body {
-    @apply min-h-screen bg-background text-foreground antialiased;
-    background: #050505;
-    overflow-x: clip;
-  }
   html {
     @apply font-sans;
     /* iPhone: bez sztucznego powiększania tekstu / „przybliżonego” layoutu */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     overflow-x: clip;
+    /* PWA / Safari: wysokość bez ucięcia pod pasek adresu */
+    height: 100%;
+  }
+  body {
+    @apply min-h-dvh bg-background text-foreground antialiased;
+    background: #050505;
+    overflow-x: clip;
+    /* Unika „odbicia” treści poza safe area na iOS */
+    overscroll-behavior-x: none;
   }
 }
 

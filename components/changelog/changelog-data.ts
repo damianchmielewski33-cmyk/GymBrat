@@ -13,6 +13,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Po imporcie planu z PDF/Word/Excel można edytować ćwiczenia, a w planie ustawisz RIR, tempo, notatki i superserie.",
       "Na Treningach działa eksport planu do PDF/druku oraz generowanie planu z AI (dni siłowe zapisują się do edycji).",
       "Sugestia ciężaru z ostatniej sesji (chip per seria) oraz ekran postępu z badge NOWY MAX po pobiciu rekordu.",
+      "Double progression w sesji: +2,5 kg tylko gdy ostatnio wszystkie serie do celu powtórzeń i RIR ≥ 2; inaczej ten sam ciężar z krótkim powodem przy chipie sugestii.",
       "Po rekordzie na podsumowaniu treningu widać grafikę „NOWY MAX” generowaną przez agenta Pollinations (złoty motyw siłowni) z nakładką GymBrat.",
       "Po zaliczeniu wszystkich serii pojawia się pytanie: dodać cardio albo zakończyć trening; w sesji jest „Zakończ bez zapisu”; „Dodaj serię” jest w widoku ćwiczenia, nie na ekranie przerwy.",
       "Niedokończoną sesję treningu da się wznowić na innym telefonie lub PC dzięki synchronizacji aktywnej sesji w chmurze.",

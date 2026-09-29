@@ -494,7 +494,7 @@ export function MealSuggestionsView({
 
       {/* Sticky makro dnia nad dolną belką — ile zjedzono / zostało do celu. */}
       {!mealOverlayOpen ? (
-        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-40 px-0">
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-40 pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
           <div className="pointer-events-auto mx-auto max-w-lg">
             <DietDayMacrosBar {...dayMacros} />
           </div>

@@ -337,20 +337,27 @@ export function GuidedSessionLayout({
             <span>krok 2,5</span>
           </div>
           {suggestedWeight != null && set.weight <= 0 ? (
-            <button
-              type="button"
-              onClick={() => {
-                const next = clampWeight(suggestedWeight);
-                setWeightText(String(next));
-                onPatchSet(exercise.id, activeSetIndex, {
-                  weight: next,
-                  done: false,
-                });
-              }}
-              className="mt-2 inline-flex h-9 items-center rounded-full border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/15 px-3 text-xs font-semibold text-[var(--gym-gold)]"
-            >
-              Sugestia {suggestedWeight} kg
-            </button>
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = clampWeight(suggestedWeight);
+                  setWeightText(String(next));
+                  onPatchSet(exercise.id, activeSetIndex, {
+                    weight: next,
+                    done: false,
+                  });
+                }}
+                className="inline-flex h-9 items-center rounded-full border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/15 px-3 text-xs font-semibold text-[var(--gym-gold)]"
+              >
+                Sugestia {suggestedWeight} kg
+              </button>
+              {exercise.suggestionReason ? (
+                <p className="mt-1.5 text-[11px] leading-snug text-[var(--gym-gold)]/75">
+                  {exercise.suggestionReason}
+                </p>
+              ) : null}
+            </div>
           ) : null}
           <div className="mt-3 flex items-center justify-center gap-3">
             <button
