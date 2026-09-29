@@ -7,11 +7,17 @@ export type CompletedSessionSet = {
   reps?: number | null;
   weight?: number | null;
   done?: boolean;
+  skipped?: boolean;
+  rpe?: number | null;
+  rir?: number | null;
+  tempo?: string | null;
 };
 
 export type CompletedSessionExercise = {
   id?: string;
   name?: string;
+  targetRir?: number | null;
+  tempo?: string | null;
   sets?: CompletedSessionSet[];
 };
 
@@ -63,6 +69,28 @@ function normalizeString(v: unknown, fallback = ""): string {
   return v.trim();
 }
 
+export function normalizeTempo(v: unknown): string | null {
+  const s = normalizeString(v, "");
+  if (!s) return null;
+  return s.replace(/\s+/g, "").slice(0, 32);
+}
+
+export function normalizeRir(v: unknown): number | null {
+  const n = safeNumber(v);
+  if (n == null) return null;
+  return Math.max(0, Math.min(5, Math.round(n)));
+}
+
+export function temposMatch(
+  logged: string | null | undefined,
+  target: string | null | undefined,
+): boolean | null {
+  const a = normalizeTempo(logged);
+  const b = normalizeTempo(target);
+  if (!a || !b) return null;
+  return a === b;
+}
+
 export function safeParseCompletedSession(json: string): CompletedSessionPayload | null {
   try {
     const o = JSON.parse(json) as unknown;
@@ -80,12 +108,24 @@ export function safeNormalizeExercises(exercises: unknown): CompletedSessionExer
   return exercises.map((raw) => {
     const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : null;
     const setsRaw = Array.isArray(r?.sets) ? (r?.sets as unknown[]) : [];
-    const sets: CompletedSessionSet[] = setsRaw
-      .map((s) => (s && typeof s === "object" ? (s as CompletedSessionSet) : null))
-      .filter(Boolean) as CompletedSessionSet[];
+    const sets: CompletedSessionSet[] = setsRaw.map((sRaw) => {
+      const s =
+        sRaw && typeof sRaw === "object" ? (sRaw as Record<string, unknown>) : null;
+      return {
+        reps: safeNumber(s?.reps),
+        weight: safeNumber(s?.weight),
+        done: Boolean(s?.done),
+        skipped: Boolean(s?.skipped),
+        rpe: safeNumber(s?.rpe),
+        rir: normalizeRir(s?.rir),
+        tempo: normalizeTempo(s?.tempo),
+      };
+    });
     return {
       id: normalizeString(r?.id, ""),
       name: normalizeString(r?.name, ""),
+      targetRir: normalizeRir(r?.targetRir),
+      tempo: normalizeTempo(r?.tempo),
       sets,
     };
   });

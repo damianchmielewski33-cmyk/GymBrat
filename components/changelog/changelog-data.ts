@@ -40,6 +40,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Pulpit, Dieta, Treningi, Analiza, Profil, Historia, Raporty i sesja treningu mają spójne nagłówki, karty (app-card) oraz złote CTA.",
       "Po zapisie treningu „Zobacz postęp” otwiera popup z analizą vs poprzednia sesja tego samego planu (tonaż, ↑/↓/pominięte, ćwiczenia).",
       "Wykresy na Analizie mają złote gradienty, czystsze osie i karty app-card — spójnie z Pulpitem i Historią.",
+      "Ekran Analizy pokazuje więcej danych: RIR/tempo, serie ciężkie, porównanie 30 dni, ranking ćwiczeń z Δ vs poprzednia sesja oraz porównanie serii w wybranym ruchu.",
       "Po „Wszystkie serie wykonane”, jeśli coś pominięto (także kilka serii), jest komunikat i przycisk powrotu do pominiętego ćwiczenia.",
       "Link YouTube „technika ↗” dodajesz przy ćwiczeniu w edycji planu (pole pod nazwą) — zapisuje się przy ćwiczeniu.",
       "Propozycje treningów (Pulpit, Treningi, start sesji) są w kolejce: najdawniej robiony / nigdy nie robiony na górze, ostatnio robiony na końcu — przy każdym dniu widać datę ostatniego wykonania.",

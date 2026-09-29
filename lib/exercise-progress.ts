@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { workouts } from "@/db/schema";
 import {
   estimated1RM,
+  normalizeRir,
   safeNormalizeExercises,
   safeParseCompletedSession,
 } from "@/lib/workout-history";
@@ -13,6 +14,21 @@ export type ExerciseProgressPoint = {
   bestWeight: number;
   bestReps: number;
   tonnageKg: number;
+  avgRir: number | null;
+  setsDone: number;
+};
+
+export type ExerciseSetCompare = {
+  setIndex: number;
+  weight: number;
+  reps: number | null;
+  rir: number | null;
+  e1rm: number;
+  prevWeight: number | null;
+  prevReps: number | null;
+  prevRir: number | null;
+  weightDelta: number | null;
+  repsDelta: number | null;
 };
 
 export type ExercisePrs = {
@@ -96,6 +112,9 @@ export async function getExerciseProgressSeries(params: {
       },
       newMax: { e1rm: false, weight: false, tonnage: false },
       hasNewMax: false,
+      setCompare: [],
+      latestSessionDate: null,
+      previousSessionDate: null,
     };
   }
 
@@ -119,10 +138,18 @@ export async function getExerciseProgressSeries(params: {
       bestWeight: number;
       bestReps: number;
       tonnageKg: number;
+      rirSum: number;
+      rirCount: number;
+      setsDone: number;
     }
   >();
 
   const matchedNameCounts = new Map<string, number>();
+  type SessionSnap = {
+    date: string;
+    sets: Array<{ weight: number; reps: number | null; rir: number | null; e1rm: number }>;
+  };
+  const sessionSnaps: SessionSnap[] = [];
 
   for (const r of rows) {
     const parsed = safeParseCompletedSession(r.exercisesJson);
@@ -135,6 +162,10 @@ export async function getExerciseProgressSeries(params: {
     let dayBestWeight = 0;
     let dayBestReps = 0;
     let dayTonnage = 0;
+    let dayRirSum = 0;
+    let dayRirCount = 0;
+    let daySets = 0;
+    const sessionSets: SessionSnap["sets"] = [];
 
     for (const e of ex) {
       const name = normalizeExerciseName(e.name ?? "");
@@ -153,11 +184,19 @@ export async function getExerciseProgressSeries(params: {
             ? s.weight
             : Number(s.weight ?? 0);
         const w = clampNonNegative(weight);
-        const done = Boolean(s.done) && reps != null && reps > 0 && w > 0;
+        const skipped = Boolean(s.skipped);
+        const done = Boolean(s.done) && !skipped && reps != null && reps > 0 && w > 0;
         if (!done) continue;
 
+        daySets += 1;
         dayTonnage += reps! * w;
         const e1rm = estimated1RM(w, reps!);
+        const rir = normalizeRir(s.rir);
+        if (rir != null) {
+          dayRirSum += rir;
+          dayRirCount += 1;
+        }
+        sessionSets.push({ weight: w, reps, rir, e1rm: safeRound1(e1rm) });
         if (w > dayBestWeight) {
           dayBestWeight = w;
           dayBestReps = reps!;
@@ -170,6 +209,10 @@ export async function getExerciseProgressSeries(params: {
 
     if (dayTonnage <= 0 || dayBestE1rm <= 0) continue;
 
+    if (sessionSets.length) {
+      sessionSnaps.push({ date: dateKey, sets: sessionSets });
+    }
+
     const prev = byDay.get(dateKey);
     if (!prev) {
       byDay.set(dateKey, {
@@ -177,6 +220,9 @@ export async function getExerciseProgressSeries(params: {
         bestWeight: dayBestWeight,
         bestReps: dayBestReps,
         tonnageKg: dayTonnage,
+        rirSum: dayRirSum,
+        rirCount: dayRirCount,
+        setsDone: daySets,
       });
     } else {
       const weightWins = dayBestWeight > prev.bestWeight;
@@ -185,6 +231,9 @@ export async function getExerciseProgressSeries(params: {
         bestWeight: Math.max(prev.bestWeight, dayBestWeight),
         bestReps: weightWins ? dayBestReps : prev.bestReps,
         tonnageKg: prev.tonnageKg + dayTonnage,
+        rirSum: prev.rirSum + dayRirSum,
+        rirCount: prev.rirCount + dayRirCount,
+        setsDone: prev.setsDone + daySets,
       });
     }
   }
@@ -197,7 +246,39 @@ export async function getExerciseProgressSeries(params: {
       bestWeight: safeRound1(v.bestWeight),
       bestReps: Math.round(v.bestReps),
       tonnageKg: safeRound1(v.tonnageKg),
+      avgRir: v.rirCount > 0 ? safeRound1(v.rirSum / v.rirCount) : null,
+      setsDone: v.setsDone,
     }));
+
+  // rows są DESC — sessionSnaps od najnowszych; bierzemy 2 najnowsze sesje.
+  const latestSnap = sessionSnaps[0] ?? null;
+  const previousSnap = sessionSnaps[1] ?? null;
+  const setCompare: ExerciseSetCompare[] = [];
+  if (latestSnap) {
+    const maxLen = Math.max(
+      latestSnap.sets.length,
+      previousSnap?.sets.length ?? 0,
+    );
+    for (let i = 0; i < maxLen; i++) {
+      const cur = latestSnap.sets[i];
+      const prev = previousSnap?.sets[i];
+      if (!cur && !prev) continue;
+      setCompare.push({
+        setIndex: i,
+        weight: cur?.weight ?? 0,
+        reps: cur?.reps ?? null,
+        rir: cur?.rir ?? null,
+        e1rm: cur?.e1rm ?? 0,
+        prevWeight: prev?.weight ?? null,
+        prevReps: prev?.reps ?? null,
+        prevRir: prev?.rir ?? null,
+        weightDelta:
+          cur && prev ? Math.round((cur.weight - prev.weight) * 10) / 10 : null,
+        repsDelta:
+          cur?.reps != null && prev?.reps != null ? cur.reps - prev.reps : null,
+      });
+    }
+  }
 
   const prs: ExercisePrs = {
     maxE1rm: { value: 0, date: null },
@@ -239,6 +320,9 @@ export async function getExerciseProgressSeries(params: {
     prs,
     newMax,
     hasNewMax,
+    setCompare,
+    latestSessionDate: latestSnap?.date ?? null,
+    previousSessionDate: previousSnap?.date ?? null,
   };
 }
 

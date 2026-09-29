@@ -25,6 +25,8 @@ type ApiOk = {
     bestWeight: number;
     bestReps: number;
     tonnageKg: number;
+    avgRir: number | null;
+    setsDone: number;
   }>;
   prs: {
     maxE1rm: { value: number; date: string | null };
@@ -33,6 +35,20 @@ type ApiOk = {
   };
   newMax?: { e1rm: boolean; weight: boolean; tonnage: boolean };
   hasNewMax?: boolean;
+  setCompare?: Array<{
+    setIndex: number;
+    weight: number;
+    reps: number | null;
+    rir: number | null;
+    e1rm: number;
+    prevWeight: number | null;
+    prevReps: number | null;
+    prevRir: number | null;
+    weightDelta: number | null;
+    repsDelta: number | null;
+  }>;
+  latestSessionDate?: string | null;
+  previousSessionDate?: string | null;
 };
 
 type ApiErr = { error: string };
@@ -427,6 +443,81 @@ export function ExerciseProgressClient({
           </div>
         </div>
       </div>
+
+      {data?.setCompare && data.setCompare.length > 0 ? (
+        <section className="app-card overflow-hidden">
+          <div className="border-b border-white/[0.06] px-4 py-4 sm:px-5">
+            <p className="app-label text-[var(--gym-gold)]">Serie</p>
+            <h3 className="mt-1.5 text-base font-semibold text-white">
+              Ostatnia sesja vs poprzednia
+            </h3>
+            <p className="mt-1 text-xs text-white/40">
+              {data.latestSessionDate
+                ? formatShortDate(data.latestSessionDate)
+                : "—"}
+              {data.previousSessionDate
+                ? ` vs ${formatShortDate(data.previousSessionDate)}`
+                : " · brak wcześniejszej sesji"}
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-[520px] w-full text-left text-xs sm:text-sm">
+              <thead>
+                <tr className="text-[11px] text-white/45">
+                  <th className="px-4 py-2.5 font-medium">Seria</th>
+                  <th className="px-2 py-2.5 font-medium">Kg</th>
+                  <th className="px-2 py-2.5 font-medium">Powt.</th>
+                  <th className="px-2 py-2.5 font-medium">RIR</th>
+                  <th className="px-2 py-2.5 font-medium">e1RM</th>
+                  <th className="px-4 py-2.5 font-medium">Δ</th>
+                </tr>
+              </thead>
+              <tbody className="text-white/80">
+                {data.setCompare.map((s) => {
+                  const deltas = [
+                    s.weightDelta != null
+                      ? `${s.weightDelta > 0 ? "+" : ""}${s.weightDelta} kg`
+                      : null,
+                    s.repsDelta != null
+                      ? `${s.repsDelta > 0 ? "+" : ""}${s.repsDelta} p`
+                      : null,
+                  ].filter(Boolean);
+                  return (
+                    <tr key={s.setIndex} className="border-t border-white/[0.05]">
+                      <td className="px-4 py-2.5 tabular-nums text-white/50">
+                        {s.setIndex + 1}
+                      </td>
+                      <td className="px-2 py-2.5 tabular-nums">
+                        {s.weight > 0 ? s.weight : "—"}
+                        {s.prevWeight != null ? (
+                          <span className="ml-1 text-[10px] text-white/30">
+                            ({s.prevWeight})
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="px-2 py-2.5 tabular-nums">
+                        {s.reps ?? "—"}
+                        {s.prevReps != null ? (
+                          <span className="ml-1 text-[10px] text-white/30">
+                            ({s.prevReps})
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="px-2 py-2.5 tabular-nums">{s.rir ?? "—"}</td>
+                      <td className="px-2 py-2.5 tabular-nums">
+                        {s.e1rm > 0 ? s.e1rm : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-[11px] text-white/55">
+                        {deltas.length ? deltas.join(" · ") : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
