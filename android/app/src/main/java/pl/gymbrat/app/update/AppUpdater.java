@@ -145,6 +145,7 @@ public final class AppUpdater {
             if (body == null) {
                 throw new IllegalStateException("Pusta odpowiedź APK");
             }
+            long expected = body.contentLength();
             try (InputStream in = body.byteStream();
                  FileOutputStream sink = new FileOutputStream(out)) {
                 byte[] buf = new byte[8192];
@@ -152,6 +153,15 @@ public final class AppUpdater {
                 while ((n = in.read(buf)) >= 0) {
                     sink.write(buf, 0, n);
                 }
+                sink.flush();
+                sink.getFD().sync();
+            }
+            if (expected > 0L && out.length() != expected) {
+                //noinspection ResultOfMethodCallIgnored
+                out.delete();
+                throw new IllegalStateException(
+                        "Pobieranie APK urwało się (" + out.length() + "/" + expected + " B)"
+                );
             }
         }
         if (out.length() < 50_000L) {

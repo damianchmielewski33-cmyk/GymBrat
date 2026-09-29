@@ -73,13 +73,9 @@ export function AndroidAppVersionCard() {
   // SSR / pierwszy render — nic, żeby uniknąć flashu złej karty w APK.
   if (!hydrated) return null;
 
-  // Przeglądarka / PWA: bezpośredni link do najnowszego APK.
+  // Przeglądarka / PWA: link przez /api/android/download (302 → APK).
+  // Bez atrybutu download — na Android Chrome potrafi „wisieć” na 100%.
   if (!installed) {
-    const downloadHref =
-      latest?.apkUrl && latest.apkUrl.startsWith("http")
-        ? latest.apkUrl
-        : PROFILE_WEB_DOWNLOAD_HREF;
-
     return (
       <section className="app-card p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -100,8 +96,8 @@ export function AndroidAppVersionCard() {
 
         <div className="mt-5 space-y-3">
           <a
-            href={downloadHref}
-            download={downloadHref.includes(".apk") ? "gymbrat.apk" : undefined}
+            href={PROFILE_WEB_DOWNLOAD_HREF}
+            target="_blank"
             rel="noopener noreferrer"
             className="gym-btn-primary inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold sm:w-auto"
           >
@@ -113,17 +109,40 @@ export function AndroidAppVersionCard() {
                 : "Pobierz aplikację Android"}
           </a>
 
-          <p className="break-all text-xs leading-relaxed text-white/40">
-            Link:{" "}
-            <a
-              href={downloadHref}
-              className="inline-flex items-center gap-1 text-[var(--gym-gold)] underline-offset-2 hover:underline"
-              rel="noopener noreferrer"
-            >
-              {downloadHref}
-              <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
-            </a>
+          <p className="text-xs leading-relaxed text-white/45">
+            Gdy pasek dojdzie do końca (np. 5,2&nbsp;MB), otwórz powiadomienie
+            pobierania albo folder <span className="text-white/70">Pobrane</span>{" "}
+            i stuknij <span className="text-white/70">gymbrat.apk</span>. Instalacja
+            nie startuje sama z przeglądarki.
           </p>
+
+          {latest?.apkUrl && latest.apkUrl.startsWith("http") ? (
+            <p className="break-all text-xs leading-relaxed text-white/40">
+              Awaryjny link bezpośredni:{" "}
+              <a
+                href={latest.apkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[var(--gym-gold)] underline-offset-2 hover:underline"
+              >
+                {latest.apkUrl}
+                <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+              </a>
+            </p>
+          ) : (
+            <p className="break-all text-xs leading-relaxed text-white/40">
+              Link:{" "}
+              <a
+                href={PROFILE_WEB_DOWNLOAD_HREF}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[var(--gym-gold)] underline-offset-2 hover:underline"
+              >
+                {PROFILE_WEB_DOWNLOAD_HREF}
+                <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+              </a>
+            </p>
+          )}
 
           {latest ? (
             <p className="text-xs text-white/45">
@@ -135,8 +154,8 @@ export function AndroidAppVersionCard() {
           ) : null}
 
           <p className="text-xs text-white/35">
-            Po pobraniu zezwól na instalację z tego źródła. Aktualizacja nad
-            starą wersją wymaga tego samego podpisu APK.
+            Po pobraniu zezwól na instalację z tego źródła. Jeśli masz już starą
+            GymBrat z innym podpisem — najpierw ją odinstaluj.
           </p>
         </div>
       </section>

@@ -41,6 +41,10 @@ APK: `app/build/outputs/apk/release/app-release.apk`
 2. Zezwól na instalację z nieznanego źródła (jeśli system pyta)
 3. Otwórz aplikację i zaloguj się jak na stronie
 
+**Gdy pobieranie stoi na 100% (np. 5,2 / 5,2 MB):** plik zwykle już jest gotowy.
+Otwórz powiadomienie albo folder Pobrane i stuknij `gymbrat.apk` — przeglądarka
+nie uruchamia instalacji automatycznie.
+
 ### Błąd: „nie została zainstalowana / konflikt z istniejącym pakietem”
 albo instalator **wisi po zapełnieniu paska**
 
