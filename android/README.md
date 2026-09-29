@@ -37,13 +37,16 @@ APK: `app/build/outputs/apk/release/app-release.apk`
 
 ## Instalacja na telefonie
 
-1. Pobierz `gymbrat.apk`
+1. Na stronie: **Profil → Pobierz Android** (albo bezpośrednio
+   `https://gym-brat.vercel.app/gymbrat.apk`)
 2. Zezwól na instalację z nieznanego źródła (jeśli system pyta)
 3. Otwórz aplikację i zaloguj się jak na stronie
 
-**Gdy pobieranie stoi na 100% (np. 5,2 / 5,2 MB):** plik zwykle już jest gotowy.
-Otwórz powiadomienie albo folder Pobrane i stuknij `gymbrat.apk` — przeglądarka
-nie uruchamia instalacji automatycznie.
+APK serwuje Vercel z `/gymbrat.apk` (same-origin). Pobieranie z GitHuba w Chrome
+na Androidzie często „wisi” na 100% — dlatego nie używamy Releases jako CTA.
+
+**Gdy pobieranie stoi na 100%:** plik zwykle już jest w Pobranych — otwórz
+powiadomienie albo folder i stuknij `gymbrat.apk`.
 
 ### Błąd: „nie została zainstalowana / konflikt z istniejącym pakietem”
 albo instalator **wisi po zapełnieniu paska**

@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "kill-port 3000 3001 && next dev",
-    "build": "next build --webpack",
+    "build": "node scripts/fetch-android-apk.mjs && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

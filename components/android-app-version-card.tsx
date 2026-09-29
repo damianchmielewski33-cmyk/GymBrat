@@ -96,9 +96,7 @@ export function AndroidAppVersionCard() {
 
         <div className="mt-5 space-y-3">
           <a
-            href={PROFILE_WEB_DOWNLOAD_HREF}
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/gymbrat.apk"
             className="gym-btn-primary inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold sm:w-auto"
           >
             <Download className="h-4 w-4" aria-hidden />
@@ -110,39 +108,28 @@ export function AndroidAppVersionCard() {
           </a>
 
           <p className="text-xs leading-relaxed text-white/45">
-            Gdy pasek dojdzie do końca (np. 5,2&nbsp;MB), otwórz powiadomienie
-            pobierania albo folder <span className="text-white/70">Pobrane</span>{" "}
-            i stuknij <span className="text-white/70">gymbrat.apk</span>. Instalacja
-            nie startuje sama z przeglądarki.
+            Pobieranie idzie z GymBrat (nie z GitHuba). Gdy plik się zapisze,
+            otwórz powiadomienie albo folder Pobrane i stuknij{" "}
+            <span className="text-white/70">gymbrat.apk</span>.
           </p>
 
-          {latest?.apkUrl && latest.apkUrl.startsWith("http") ? (
-            <p className="break-all text-xs leading-relaxed text-white/40">
-              Awaryjny link bezpośredni:{" "}
-              <a
-                href={latest.apkUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[var(--gym-gold)] underline-offset-2 hover:underline"
-              >
-                {latest.apkUrl}
-                <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
-              </a>
-            </p>
-          ) : (
-            <p className="break-all text-xs leading-relaxed text-white/40">
-              Link:{" "}
-              <a
-                href={PROFILE_WEB_DOWNLOAD_HREF}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[var(--gym-gold)] underline-offset-2 hover:underline"
-              >
-                {PROFILE_WEB_DOWNLOAD_HREF}
-                <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
-              </a>
-            </p>
-          )}
+          <p className="break-all text-xs leading-relaxed text-white/40">
+            Link:{" "}
+            <a
+              href="/gymbrat.apk"
+              className="inline-flex items-center gap-1 text-[var(--gym-gold)] underline-offset-2 hover:underline"
+            >
+              /gymbrat.apk
+              <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+            </a>
+            {" · "}
+            <a
+              href={PROFILE_WEB_DOWNLOAD_HREF}
+              className="text-white/55 underline-offset-2 hover:underline"
+            >
+              /api/android/download
+            </a>
+          </p>
 
           {latest ? (
             <p className="text-xs text-white/45">

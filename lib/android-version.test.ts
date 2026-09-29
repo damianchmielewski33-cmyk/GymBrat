@@ -65,8 +65,8 @@ describe("parseAndroidVersionInfo", () => {
 describe("bundledAndroidVersion", () => {
   it("zwraca wersję GymBrat, nie Akademii", () => {
     const info = bundledAndroidVersion();
-    expect(info.versionCode).toBe(7);
-    expect(info.versionName).toBe("0.1.6");
+    expect(info.versionCode).toBe(8);
+    expect(info.versionName).toBe("0.1.7");
     expect(info.apkUrl).toMatch(/gymbrat\.apk/i);
     expect(isForeignAndroidArtifactUrl(info.apkUrl)).toBe(false);
     expect(info.apkUrl.toLowerCase()).not.toContain("akademia");
@@ -74,8 +74,9 @@ describe("bundledAndroidVersion", () => {
 });
 
 describe("defaultApkUrl", () => {
-  it("wskazuje gymbrat.apk z repozytorium GymBrat", () => {
-    expect(defaultApkUrl()).toMatch(/GymBrat\/releases\/download\/android-latest\/gymbrat\.apk/i);
+  it("wskazuje gymbrat.apk GymBrat (GitHub lub same-origin)", () => {
+    expect(defaultApkUrl()).toMatch(/gymbrat\.apk/i);
+    expect(isForeignAndroidArtifactUrl(defaultApkUrl())).toBe(false);
     expect(isForeignAndroidArtifactUrl("https://example.com/akademia-wp.apk")).toBe(true);
   });
 });
@@ -102,7 +103,8 @@ describe("resolveAndroidVersion", () => {
       ),
     );
     const info = await resolveAndroidVersion();
-    expect(info.versionCode).toBeGreaterThanOrEqual(7);
-    expect(info.versionName).toBe("0.1.6");
+    expect(info.versionCode).toBeGreaterThanOrEqual(8);
+    expect(info.versionName).toBe("0.1.7");
+    expect(info.apkUrl).toMatch(/gymbrat\.apk/i);
   });
 });

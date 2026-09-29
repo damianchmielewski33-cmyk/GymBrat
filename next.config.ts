@@ -105,6 +105,23 @@ const nextConfig: NextConfig = {
         source: "/register",
         headers: [{ key: "Cache-Control", value: "private, no-store, no-cache, must-revalidate" }],
       },
+      {
+        source: "/gymbrat.apk",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/vnd.android.package-archive",
+          },
+          {
+            key: "Content-Disposition",
+            value: 'attachment; filename="gymbrat.apk"',
+          },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=300, must-revalidate",
+          },
+        ],
+      },
     ];
   },
 

@@ -14,10 +14,10 @@ git_sha = os.environ.get("GIT_SHA") or None
 info = {
     "versionCode": version_code,
     "versionName": version_name,
-    "apkUrl": "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk",
+    "apkUrl": "https://gym-brat.vercel.app/gymbrat.apk",
     "releasedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     "commit": git_sha,
-    "notes": f"GymBrat Android {version_name} — WebView z wyborem plików/zdjęć (onShowFileChooser).",
+    "notes": f"GymBrat Android {version_name} — pobieranie z gym-brat.vercel.app/gymbrat.apk.",
 }
 
 Path("dist").mkdir(parents=True, exist_ok=True)

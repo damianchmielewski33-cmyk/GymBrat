@@ -1,8 +1,8 @@
 {
-  "versionCode": 6,
-  "versionName": "0.1.5",
-  "apkUrl": "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk",
-  "releasedAt": "2026-09-25T19:44:53Z",
+  "versionCode": 8,
+  "versionName": "0.1.7",
+  "apkUrl": "https://gym-brat.vercel.app/gymbrat.apk",
+  "releasedAt": "2026-09-29T20:30:00Z",
   "commit": null,
-  "notes": "GymBrat Android 0.1.5 — systemowy dialog kamery przy skanie EAN."
+  "notes": "GymBrat Android 0.1.7 — pobieranie z gym-brat.vercel.app/gymbrat.apk."
 }

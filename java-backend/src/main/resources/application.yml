@@ -9,8 +9,8 @@ gymbrat:
   proxy-token: ${GYMBRAT_PROXY_TOKEN:}
   cors-origins: ${GYMBRAT_CORS_ORIGINS:http://localhost:3000,https://gym-brat.vercel.app}
   android:
-    # Nadpisz w produkcji adresem GitHub Releases GymBrat albo CDN.
-    apk-url: ${ANDROID_APK_URL:https://raw.githubusercontent.com/damianchmielewski33-cmyk/GymBrat/cursor/fix-android-file-chooser-9f08/public/gymbrat.apk}
+    # Produkcja: same-origin na Vercel (Chrome Android nie wisi jak przy GitHubie).
+    apk-url: ${ANDROID_APK_URL:https://gym-brat.vercel.app/gymbrat.apk}
     version-json: classpath:android-version.json
     # Opcjonalne nadpisania (0 / puste = z pliku JSON)
     version-code: ${ANDROID_VERSION_CODE:0}

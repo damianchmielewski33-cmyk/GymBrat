@@ -12,9 +12,17 @@ const PUBLIC_HEADERS = {
   "Cross-Origin-Resource-Policy": "cross-origin",
 };
 
+function withPublicHeaders(res: NextResponse) {
+  for (const [k, v] of Object.entries(PUBLIC_HEADERS)) {
+    res.headers.set(k, v);
+  }
+  return res;
+}
+
 /**
- * Start pobierania APK — publiczny redirect (aplikacja Android / baner).
- * Przy JAVA_API_BASE_URL proxy do Spring Boot.
+ * Start pobierania APK.
+ * Domyślnie same-origin `/gymbrat.apk` (Chrome Android nie wisi jak przy GitHubie).
+ * `?source=github-fallback` → GitHub Release.
  */
 export async function GET(req: Request) {
   const rl = await checkRateLimitAsync(
@@ -29,8 +37,18 @@ export async function GET(req: Request) {
     );
   }
 
+  const url = new URL(req.url);
+  const githubFallback = url.searchParams.get("source") === "github-fallback";
+
+  if (!githubFallback) {
+    // Same-origin najpierw — nawet gdy Java API jest włączone (Chrome Android).
+    return withPublicHeaders(
+      NextResponse.redirect(new URL("/gymbrat.apk", url.origin), 302),
+    );
+  }
+
   if (isJavaApiEnabled()) {
-    const javaRes = await fetchJavaApi("/api/android/download");
+    const javaRes = await fetchJavaApi("/api/android/download?source=github-fallback");
     if (javaRes) {
       return passThroughJavaResponse(javaRes);
     }
@@ -38,11 +56,7 @@ export async function GET(req: Request) {
 
   const info = await resolveAndroidVersion();
   const target = info.apkUrl || defaultApkUrl();
-  const res = NextResponse.redirect(target, 302);
-  for (const [k, v] of Object.entries(PUBLIC_HEADERS)) {
-    res.headers.set(k, v);
-  }
-  return res;
+  return withPublicHeaders(NextResponse.redirect(target, 302));
 }
 
 export async function OPTIONS() {

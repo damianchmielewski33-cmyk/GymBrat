@@ -50,3 +50,8 @@ local.db
 .android-sdk/
 android/.gradle/
 android/**/build/
+
+# APK pobierany przy buildzie Vercel (scripts/fetch-android-apk.mjs)
+/public/gymbrat.apk
+/public/gymbrat.apk.tmp
+/dist/gymbrat.apk

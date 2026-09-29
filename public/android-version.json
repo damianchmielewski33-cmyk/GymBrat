@@ -1,8 +1,8 @@
 {
   "versionCode": 8,
   "versionName": "0.1.7",
-  "apkUrl": "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk",
+  "apkUrl": "https://gym-brat.vercel.app/gymbrat.apk",
   "releasedAt": "2026-09-29T20:30:00Z",
   "commit": null,
-  "notes": "GymBrat Android 0.1.7 — czytelny komunikat przy konflikcie podpisu (zamiast zawieszania instalatora); odinstaluj starą apkę przed instalacją nowego APK z innego klucza."
+  "notes": "GymBrat Android 0.1.7 — pobieranie z gym-brat.vercel.app/gymbrat.apk (stabilniejsze niż GitHub w Chrome)."
 }
