@@ -9,6 +9,7 @@ import {
 import { addMealProductAction, deleteMealLogFormAction, type MealLogFormState } from "@/actions/meal-log";
 import { MealCatalogBrowser } from "@/components/meal-suggestions/meal-catalog-browser";
 import { MealSuggestionsTodayCard } from "@/components/meal-suggestions/meal-suggestions-today-card";
+import { EditMealLogSheet } from "@/components/meal-suggestions/edit-meal-log-sheet";
 import { AddMealScreen } from "@/components/meal-suggestions/add-meal-screen";
 import { FoodPortionScreen } from "@/components/meal-suggestions/food-portion-screen";
 import { DietWeekStrip } from "@/components/meal-suggestions/diet-week-strip";
@@ -27,7 +28,7 @@ import type { CatalogMeal } from "@/lib/meal-catalog-types";
 import type { NutritionDayType } from "@/lib/nutrition-goals";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { useActionState, useEffect } from "react";
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { calendarDateKey } from "@/lib/local-date";
 import { Button } from "@/components/ui/button";
 import {
@@ -130,6 +131,7 @@ function MealSectionRow({
   onToggle,
   onAdd,
   onDeleted,
+  onEdit,
 }: {
   slot: DietDiarySlot;
   items: MealLogDto[];
@@ -137,6 +139,7 @@ function MealSectionRow({
   onToggle: () => void;
   onAdd: () => void;
   onDeleted: () => void;
+  onEdit: (entry: MealLogDto) => void;
 }) {
   const sumK = items.reduce((s, e) => s + e.calories, 0);
   const sumP = items.reduce((s, e) => s + e.proteinG, 0);
@@ -203,6 +206,14 @@ function MealSectionRow({
                     {Math.round(e.carbsG)} T{Math.round(e.fatG)}
                   </p>
                 </div>
+                <button
+                  type="button"
+                  aria-label="Edytuj wpis"
+                  onClick={() => onEdit(e)}
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-white"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
                 <DeleteMealButton id={e.id} name={e.name} onDone={onDeleted} />
               </li>
             ))}
@@ -242,9 +253,11 @@ export function MealSuggestionsView({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [addSlot, setAddSlot] = useState<DietDiarySlot | null>(null);
   const [dishPickerOpen, setDishPickerOpen] = useState(false);
+  const [dishPickerSlot, setDishPickerSlot] = useState<DietDiarySlot | null>(null);
   const [portionProduct, setPortionProduct] = useState<FoodProduct | null>(null);
   const [portionSlot, setPortionSlot] = useState<DietDiarySlot>("sniadanie");
   const [focusMealId, setFocusMealId] = useState<string | null>(null);
+  const [editingLog, setEditingLog] = useState<MealLogDto | null>(null);
   const { t } = useI18n();
 
   const mealOverlayOpen =
@@ -256,6 +269,7 @@ export function MealSuggestionsView({
     }
     if (dishPickerOpen) {
       setDishPickerOpen(false);
+      setDishPickerSlot(null);
       return;
     }
     setAddSlot(null);
@@ -441,6 +455,7 @@ export function MealSuggestionsView({
                 }
                 onAdd={() => setAddSlot(slot)}
                 onDeleted={() => refreshDay(dateKey)}
+                onEdit={(entry) => setEditingLog(entry)}
               />
             ))}
 
@@ -463,6 +478,14 @@ export function MealSuggestionsView({
                           {Math.round(e.calories)} kcal
                         </p>
                       </div>
+                      <button
+                        type="button"
+                        aria-label="Edytuj wpis"
+                        onClick={() => setEditingLog(e)}
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-white"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
                       <DeleteMealButton
                         id={e.id}
                         name={e.name}
@@ -484,6 +507,7 @@ export function MealSuggestionsView({
         dateLabel={dateLabel}
         onClose={() => setAddSlot(null)}
         onOpenDish={() => {
+          setDishPickerSlot(addSlot);
           setAddSlot(null);
           setDishPickerOpen(true);
         }}
@@ -506,7 +530,10 @@ export function MealSuggestionsView({
             <button
               type="button"
               className="text-sm text-white/55"
-              onClick={() => setDishPickerOpen(false)}
+              onClick={() => {
+                setDishPickerOpen(false);
+                setDishPickerSlot(null);
+              }}
             >
               Zamknij
             </button>
@@ -515,6 +542,7 @@ export function MealSuggestionsView({
             dateKey={dateKey}
             meals={catalogMeals}
             isAdmin={isAdmin}
+            defaultDiarySlot={dishPickerSlot}
           />
         </div>
       ) : null}
@@ -549,6 +577,19 @@ export function MealSuggestionsView({
             refreshDay(dateKey);
             router.refresh();
           });
+        }}
+      />
+      <EditMealLogSheet
+        key={editingLog?.id ?? "closed"}
+        entry={editingLog}
+        open={Boolean(editingLog)}
+        onOpenChange={(next) => {
+          if (!next) setEditingLog(null);
+        }}
+        onSaved={() => {
+          setEditingLog(null);
+          refreshDay(dateKey);
+          router.refresh();
         }}
       />
     </div>

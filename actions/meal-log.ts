@@ -182,6 +182,7 @@ const updateSchema = z
   .object({
     id: z.string().trim().min(1),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    slot: z.string().trim().optional(),
   })
   .merge(mealMacrosSchema);
 
@@ -195,6 +196,7 @@ export async function updateMealLogAction(
   const parsed = updateSchema.safeParse({
     id: formData.get("id"),
     date: formData.get("date"),
+    slot: formData.get("slot") || undefined,
     name: formData.get("name") || undefined,
     proteinG: formData.get("proteinG"),
     fatG: formData.get("fatG"),
@@ -206,10 +208,17 @@ export async function updateMealLogAction(
     return { error: "Sprawdź poprawność danych." };
   }
 
-  const { id, date, ...macroRest } = parsed.data;
+  const { id, date, slot: rawSlot, ...macroRest } = parsed.data;
   const withKcal = finalizeMealMacros(macroRest);
   const check = validateMealMacros(withKcal);
   if (!check.ok) return { error: check.error };
+
+  const slot =
+    rawSlot === ""
+      ? null
+      : rawSlot && isDietDiarySlot(rawSlot)
+        ? rawSlot
+        : undefined;
 
   const { name, calories, proteinG, fatG, carbsG } = withKcal;
   await ensureMealLogsTableOncePerProcess();
@@ -224,6 +233,7 @@ export async function updateMealLogAction(
       proteinG,
       fatG,
       carbsG,
+      ...(slot !== undefined ? { slot } : {}),
     })
     .where(and(eq(mealLogs.id, id), eq(mealLogs.userId, session.user.id)))
     .returning({ id: mealLogs.id });

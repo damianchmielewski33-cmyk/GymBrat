@@ -41,29 +41,28 @@ export async function lookupFoodByBarcodeAction(barcode: string): Promise<FoodLo
   };
 }
 
-/** Ostatnio dodane produkty z historii dziennika. */
+/** Ostatnio dodane produkty z historii dziennika (bez „popularnych” z początku bazy). */
 export async function listRecentFoodProductsAction(
   limit = 24,
 ): Promise<FoodSearchResult> {
   const session = await auth();
   if (!session?.user?.id) {
-    return { ok: true, products: searchLocalProducts("", limit), fromRecents: false };
+    return { ok: true, products: [], fromRecents: true };
   }
   try {
     const recent = await listRecentFoodProductsFromLogs(session.user.id, limit);
-    if (recent.length > 0) {
-      return { ok: true, products: recent, fromRecents: true };
-    }
+    return { ok: true, products: recent, fromRecents: true };
   } catch {
-    /* fallback */
+    return { ok: true, products: [], fromRecents: true };
   }
-  return { ok: true, products: searchLocalProducts("", limit), fromRecents: false };
 }
 
 export async function searchFoodProductsAction(query: string): Promise<FoodSearchResult> {
   const q = query.trim();
   if (!q) {
-    return listRecentFoodProductsAction(24);
+    const recent = await listRecentFoodProductsAction(24);
+    if (recent.ok && recent.products.length > 0) return recent;
+    return { ok: true, products: searchLocalProducts("", 24), fromRecents: false };
   }
 
   // Sam kod — traktuj jak skan

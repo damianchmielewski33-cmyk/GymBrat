@@ -16,6 +16,12 @@ import {
   DIET_DIARY_SLOT_LABELS,
   type DietDiarySlot,
 } from "@/lib/diet-diary-slots";
+import {
+  getFoodMacroSourceHint,
+  getFoodMacroSourceKind,
+  getFoodMacroSourceLabel,
+} from "@/lib/food-macro-source";
+import { isFavoriteFoodId, toggleFavoriteFood } from "@/lib/food-favorites";
 import { cn } from "@/lib/utils";
 
 function CircleMacro({
@@ -84,6 +90,7 @@ export function FoodPortionScreen({
   const [amountStr, setAmountStr] = useState("100");
   const [unit, setUnit] = useState<FoodAmountUnit>("g");
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [fav, setFav] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -93,6 +100,7 @@ export function FoodPortionScreen({
     setAmountStr(String(d.amount));
     setUnit(d.unit);
     setDetailsOpen(false);
+    setFav(isFavoriteFoodId(product.id));
   }, [product, open]);
 
   const amount = Number(String(amountStr).replace(",", "."));
@@ -146,8 +154,36 @@ export function FoodPortionScreen({
             !product.name.toLowerCase().includes(product.brand.toLowerCase()) ? (
               <p className="mt-1 text-sm text-white/45">{product.brand}</p>
             ) : null}
+            <p
+              className={cn(
+                "mt-2 text-[11px] font-medium",
+                getFoodMacroSourceKind(product) === "retail_estimate"
+                  ? "text-amber-200/90"
+                  : "text-white/40",
+              )}
+            >
+              {getFoodMacroSourceLabel(product)}
+            </p>
+            {getFoodMacroSourceHint(product) ? (
+              <p className="mt-1 text-[11px] leading-snug text-amber-100/70">
+                {getFoodMacroSourceHint(product)}
+              </p>
+            ) : null}
           </div>
-          <Heart className="mt-1 h-5 w-5 shrink-0 text-white/35" aria-hidden />
+          <button
+            type="button"
+            aria-label={fav ? "Usuń z ulubionych" : "Dodaj do ulubionych"}
+            aria-pressed={fav}
+            onClick={() => setFav(toggleFavoriteFood(product))}
+            className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]"
+          >
+            <Heart
+              className={cn(
+                "h-5 w-5",
+                fav ? "fill-[var(--gym-gold)] text-[var(--gym-gold)]" : "text-white/35",
+              )}
+            />
+          </button>
         </div>
 
         <div className="mt-4 space-y-1">

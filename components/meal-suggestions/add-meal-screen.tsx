@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import {
   lookupFoodByBarcodeAction,
+  listRecentFoodProductsAction,
   searchFoodProductsAction,
 } from "@/actions/food-lookup";
 import { addMealLogAction, type MealLogFormState } from "@/actions/meal-log";
@@ -20,11 +21,17 @@ import {
   type DietDiarySlot,
 } from "@/lib/diet-diary-slots";
 import type { FoodProduct } from "@/lib/food-products-types";
+import { getFoodMacroSourceLabel } from "@/lib/food-macro-source";
+import {
+  favoriteToFoodProduct,
+  listFavoriteFoods,
+} from "@/lib/food-favorites";
 import { kcalFromMacros, parseMacroGrams } from "@/lib/kcal-from-macros";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { cn } from "@/lib/utils";
 
 type SubScreen = "search" | "product" | "quick";
+type ListTab = "search" | "recents" | "favorites";
 
 /**
  * Pełny ekran dodawania jak Fitatu: Szukaj + 3 przyciski na dole.
@@ -51,8 +58,10 @@ export function AddMealScreen({
   const { notifyError, notifySaved } = useSaveFeedback();
   const [mounted, setMounted] = useState(false);
   const [sub, setSub] = useState<SubScreen>("search");
+  const [listTab, setListTab] = useState<ListTab>("search");
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<FoodProduct[]>([]);
+  const [fromRecents, setFromRecents] = useState(false);
   const [pending, start] = useTransition();
   const [scanOpen, setScanOpen] = useState(false);
   const [scanBusy, setScanBusy] = useState(false);
@@ -76,12 +85,14 @@ export function AddMealScreen({
   useEffect(() => {
     if (!open) {
       setSub("search");
+      setListTab("search");
       setName("");
       setProtein("");
       setFat("");
       setCarbs("");
       setKcal("");
       setQuery("");
+      setFromRecents(false);
     }
   }, [open]);
 
@@ -97,6 +108,36 @@ export function AddMealScreen({
     }
   }, [state, sub, notifySaved, notifyError, onSaved, onClose]);
 
+  const loadRecents = useCallback(() => {
+    const gen = ++genRef.current;
+    start(async () => {
+      const r = await listRecentFoodProductsAction(24);
+      if (gen !== genRef.current) return;
+      if (!r.ok) {
+        notifyError(r.error);
+        return;
+      }
+      setProducts(r.products);
+      setFromRecents(Boolean(r.fromRecents));
+      setHint(
+        r.products.length === 0
+          ? "Brak historii — dodaj pierwszy produkt z wyszukiwania."
+          : null,
+      );
+    });
+  }, [notifyError]);
+
+  const loadFavorites = useCallback(() => {
+    const favs = listFavoriteFoods().map(favoriteToFoodProduct);
+    setProducts(favs);
+    setFromRecents(false);
+    setHint(
+      favs.length === 0
+        ? "Brak ulubionych — dodaj sercem na ekranie porcji."
+        : null,
+    );
+  }, []);
+
   const runSearch = useCallback(
     (q: string) => {
       const gen = ++genRef.current;
@@ -108,6 +149,7 @@ export function AddMealScreen({
           return;
         }
         setProducts(r.products);
+        setFromRecents(Boolean(r.fromRecents) && !q.trim());
         setHint(
           r.products.length === 0 && q.trim()
             ? `Brak wyników dla „${q.trim()}”.`
@@ -120,12 +162,21 @@ export function AddMealScreen({
 
   useEffect(() => {
     if (!open || sub !== "search") return;
+    if (listTab === "favorites") {
+      loadFavorites();
+      return;
+    }
+    if (listTab === "recents") {
+      setQuery("");
+      loadRecents();
+      return;
+    }
     setQuery("");
     runSearch("");
-  }, [open, sub, runSearch]);
+  }, [open, sub, listTab, loadFavorites, loadRecents, runSearch]);
 
   useEffect(() => {
-    if (!open || sub !== "search") return;
+    if (!open || sub !== "search" || listTab !== "search") return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = query.trim();
     if (!q) return;
@@ -133,7 +184,7 @@ export function AddMealScreen({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query, open, sub, runSearch]);
+  }, [query, open, sub, listTab, runSearch]);
 
   const onBarcode = useCallback(
     (code: string) => {
@@ -284,42 +335,72 @@ export function AddMealScreen({
         </div>
 
         <div className="mt-3 flex gap-4 px-1 text-sm">
-          <span className="border-b-2 border-[var(--gym-gold)] pb-1 font-semibold text-white">
-            Szukaj
-          </span>
-          <span className="pb-1 text-white/35">Własne</span>
-          <span className="pb-1 text-white/35">Ulubione</span>
+          {(
+            [
+              { id: "search" as const, label: "Szukaj" },
+              { id: "recents" as const, label: "Ostatnie" },
+              { id: "favorites" as const, label: "Ulubione" },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setListTab(tab.id)}
+              className={cn(
+                "pb-1 font-semibold",
+                listTab === tab.id
+                  ? "border-b-2 border-[var(--gym-gold)] text-white"
+                  : "text-white/40",
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        <div className="relative mt-3">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="np. Longer KFC, chleb górski Lidl, bułka maślana…"
-            autoFocus
-            autoComplete="off"
-            className="h-12 w-full rounded-xl border border-white/12 bg-black/50 py-2 pl-10 pr-12 text-base text-white outline-none placeholder:text-white/35"
-          />
-          <button
-            type="button"
-            aria-label="Skanuj kod kreskowy"
-            disabled={scanBusy}
-            onClick={() => setScanOpen(true)}
-            className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--gym-gold)]"
-          >
-            {scanBusy ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <ScanBarcode className="h-5 w-5" />
-            )}
-          </button>
-        </div>
+        {listTab === "search" ? (
+          <div className="relative mt-3">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="np. Longer KFC, chleb górski Lidl, bułka maślana…"
+              autoFocus
+              autoComplete="off"
+              className="h-12 w-full rounded-xl border border-white/12 bg-black/50 py-2 pl-10 pr-12 text-base text-white outline-none placeholder:text-white/35"
+            />
+            <button
+              type="button"
+              aria-label="Skanuj kod kreskowy"
+              disabled={scanBusy}
+              onClick={() => setScanOpen(true)}
+              className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--gym-gold)]"
+            >
+              {scanBusy ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <ScanBarcode className="h-5 w-5" />
+              )}
+            </button>
+          </div>
+        ) : (
+          <p className="mt-3 text-xs text-white/40">
+            {listTab === "recents"
+              ? "Powtórz produkty z Twojej historii dziennika."
+              : "Produkty zapisane sercem na ekranie porcji (to urządzenie)."}
+          </p>
+        )}
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto pb-28">
         <p className="px-4 pb-2 pt-4 text-xs font-medium uppercase tracking-wider text-white/40">
-          {query.trim() ? "Wyniki" : "Popularne / ostatnie"}
+          {listTab === "favorites"
+            ? "Ulubione"
+            : listTab === "recents" || (fromRecents && !query.trim())
+              ? "Ostatnio jedzone"
+              : query.trim()
+                ? "Wyniki"
+                : "Propozycje"}
         </p>
         {pending && products.length === 0 ? (
           <div className="flex justify-center py-10">
@@ -348,7 +429,9 @@ export function AddMealScreen({
                       {prod.name}
                     </p>
                     <p className="mt-0.5 text-xs text-white/40">
-                      {[prod.brand, prod.servingLabel].filter(Boolean).join(" · ")}
+                      {[prod.brand, prod.servingLabel, getFoodMacroSourceLabel(prod)]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   </div>
                   <p className="shrink-0 text-right text-xs tabular-nums text-white/55">

@@ -25,25 +25,9 @@ import {
 import { AddToMealLogSheet } from "@/components/meal-suggestions/add-to-meal-log-sheet";
 import { MealCatalogEmptyState } from "@/components/meal-suggestions/meal-catalog-empty-state";
 import type { DietDiarySlot } from "@/lib/diet-diary-slots";
+import { catalogSlotToDiary, diarySlotToCatalog } from "@/lib/diet-slot-map";
 import { Clock3, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-function catalogSlotToDiary(slot: MealSlot): DietDiarySlot {
-  switch (slot) {
-    case "sniadanie":
-      return "sniadanie";
-    case "drugie_sniadanie":
-      return "drugie_sniadanie";
-    case "obiad":
-      return "obiad";
-    case "podwieczorek":
-      return "przekaska";
-    case "kolacja":
-      return "kolacja";
-    default:
-      return "obiad";
-  }
-}
 
 function fmtMacro(n: number, unit: string) {
   return `${Math.round(n * 10) / 10} ${unit}`;
@@ -55,19 +39,29 @@ export function MealCatalogBrowser({
   isAdmin = false,
   focusMealId = null,
   onFocusMealHandled,
+  /** Slot z Jadłospisu — ustawia filtr katalogu i domyślną sekcję przy dodaniu. */
+  defaultDiarySlot = null,
 }: {
   dateKey: string;
   meals: CatalogMeal[];
   isAdmin?: boolean;
-  /** Otwiera szczegóły przepisu (np. z karty propozycji). */
   focusMealId?: string | null;
   onFocusMealHandled?: () => void;
+  defaultDiarySlot?: DietDiarySlot | null;
 }) {
-  const [slot, setSlot] = useState<MealSlot>("sniadanie");
+  const [slot, setSlot] = useState<MealSlot>(() =>
+    defaultDiarySlot ? diarySlotToCatalog(defaultDiarySlot) : "sniadanie",
+  );
   const [query, setQuery] = useState("");
   const [macroFilter, setMacroFilter] = useState<"all" | "high_protein" | "low_calorie">("all");
   const [selected, setSelected] = useState<CatalogMeal | null>(null);
   const [visibleCount, setVisibleCount] = useState(12);
+
+  useEffect(() => {
+    if (!defaultDiarySlot) return;
+    setSlot(diarySlotToCatalog(defaultDiarySlot));
+    setVisibleCount(12);
+  }, [defaultDiarySlot]);
 
   useEffect(() => {
     if (!focusMealId) return;
@@ -112,7 +106,8 @@ export function MealCatalogBrowser({
           {meals.length} przepisów z makro i instrukcją
         </h2>
         <p className="mt-1 text-sm text-white/55">
-          Śniadanie–kolacja: dokładna gramatura składników, krok po kroku jak przygotować porcję.
+          Pory katalogu mapują się na sekcje Jadłospisu (np. lunch → obiad, przekąska →
+          podwieczorek). „+” z dziennika ustawia filtr na właściwą porę.
         </p>
       </div>
 
@@ -352,7 +347,9 @@ export function MealCatalogBrowser({
                     proteinG={detail.meal.approximateMacros.proteinG}
                     fatG={detail.meal.approximateMacros.fatG}
                     carbsG={detail.meal.approximateMacros.carbsG}
-                    defaultSlot={catalogSlotToDiary(detail.meal.slot)}
+                    defaultSlot={
+                      defaultDiarySlot ?? catalogSlotToDiary(detail.meal.slot)
+                    }
                   />
                   <p className="mt-2 text-center text-[10px] text-white/35">
                     Makro przybliżone dla jednej porcji. Odważ składniki wagą kuchenną.
