@@ -8,8 +8,8 @@ export const MEAL_CATALOG_GENERATED: CatalogMeal[] = [
     tagline: "Wysokobiałkowe śniadanie idealne przed treningiem.",
     slot: "sniadanie",
     prepMinutes: 10,
-    imagePrompt:
-      "creamy oatmeal porridge in a bowl topped with fresh blueberries and a spoon of yogurt, close-up breakfast",
+    imagePrompt: "oatmeal bowl with fresh blueberries and yogurt",
+
     approximateMacros: { calories: 420, proteinG: 28, fatG: 12, carbsG: 45 },
     ingredients: [
       "50 g płatków owsianych",
@@ -30,8 +30,8 @@ export const MEAL_CATALOG_GENERATED: CatalogMeal[] = [
     tagline: "Bogate w białko śniadanie.",
     slot: "sniadanie",
     prepMinutes: 12,
-    imagePrompt:
-      "fluffy scrambled eggs on a plate next to one slice of toasted whole grain bread, protein breakfast close-up",
+    imagePrompt: "scrambled eggs with whole grain toast on a plate",
+
     approximateMacros: { calories: 390, proteinG: 35, fatG: 21, carbsG: 14 },
     ingredients: [
       "3 jajka",
@@ -52,8 +52,8 @@ export const MEAL_CATALOG_GENERATED: CatalogMeal[] = [
     tagline: "Klasyczny obiad sportowca.",
     slot: "obiad",
     prepMinutes: 30,
-    imagePrompt:
-      "grilled chicken breast fillet, white rice portion, steamed broccoli florets on a white plate, athlete lunch",
+    imagePrompt: "grilled chicken breast white rice steamed broccoli plate",
+
     approximateMacros: { calories: 620, proteinG: 54, fatG: 14, carbsG: 58 },
     ingredients: [
       "180 g piersi z kurczaka",
@@ -74,8 +74,8 @@ export const MEAL_CATALOG_GENERATED: CatalogMeal[] = [
     tagline: "Posiłek potreningowy.",
     slot: "obiad",
     prepMinutes: 35,
-    imagePrompt:
-      "sliced roasted turkey breast, roasted orange sweet potato cubes, steamed green beans on a white plate, post-workout meal",
+    imagePrompt: "roasted turkey breast orange sweet potato cubes green beans plate",
+
     approximateMacros: { calories: 670, proteinG: 58, fatG: 18, carbsG: 62 },
     ingredients: [
       "200 g piersi z indyka",
@@ -96,8 +96,8 @@ export const MEAL_CATALOG_GENERATED: CatalogMeal[] = [
     tagline: "Duża ilość białka i energii.",
     slot: "obiad",
     prepMinutes: 25,
-    imagePrompt:
-      "whole wheat pasta tossed with sliced grilled chicken breast and light tomato sauce in a bowl, high protein lunch",
+    imagePrompt: "protein pasta with grilled chicken tomato sauce bowl",
+
     approximateMacros: { calories: 720, proteinG: 56, fatG: 19, carbsG: 74 },
     ingredients: [
       "80 g makaronu pełnoziarnistego lub proteinowego",
@@ -118,8 +118,8 @@ export const MEAL_CATALOG_GENERATED: CatalogMeal[] = [
     tagline: "Szybka kolacja wysokobiałkowa.",
     slot: "kolacja",
     prepMinutes: 15,
-    imagePrompt:
-      "whole wheat tortilla wrap cut in half filled with grilled chicken strips lettuce and tomato, fitness dinner",
+    imagePrompt: "chicken tortilla wrap cut in half with lettuce tomato",
+
     approximateMacros: { calories: 510, proteinG: 43, fatG: 18, carbsG: 36 },
     ingredients: [
       "1 tortilla pełnoziarnista",
@@ -140,8 +140,8 @@ export const MEAL_CATALOG_GENERATED: CatalogMeal[] = [
     tagline: "Lekki posiłek na redukcję.",
     slot: "kolacja",
     prepMinutes: 10,
-    imagePrompt:
-      "canned tuna chunks on mixed green salad with tomato and cucumber slices, light dinner bowl",
+    imagePrompt: "tuna salad bowl with tomato cucumber lettuce",
+
     approximateMacros: { calories: 380, proteinG: 34, fatG: 20, carbsG: 12 },
     ingredients: [
       "1 puszka tuńczyka w sosie własnym (ok. 120 g odsączonego)",
@@ -162,8 +162,8 @@ export const MEAL_CATALOG_GENERATED: CatalogMeal[] = [
     tagline: "Zdrowa przekąska.",
     slot: "podwieczorek",
     prepMinutes: 5,
-    imagePrompt:
-      "cottage cheese in a bowl topped with sliced strawberries and chopped almonds, healthy snack",
+    imagePrompt: "cottage cheese bowl with strawberries and almonds",
+
     approximateMacros: { calories: 290, proteinG: 27, fatG: 10, carbsG: 22 },
     ingredients: [
       "200 g serka wiejskiego light",
@@ -183,8 +183,8 @@ export const MEAL_CATALOG_GENERATED: CatalogMeal[] = [
     tagline: "Idealny shake po treningu.",
     slot: "podwieczorek",
     prepMinutes: 5,
-    imagePrompt:
-      "thick banana protein shake in a clear glass with a straw, smoothie texture visible, fitness drink",
+    imagePrompt: "banana protein shake in a clear glass",
+
     approximateMacros: { calories: 330, proteinG: 32, fatG: 8, carbsG: 28 },
     ingredients: [
       "1 miarka odżywki proteinowej (ok. 30 g)",
@@ -204,8 +204,8 @@ export const MEAL_CATALOG_GENERATED: CatalogMeal[] = [
     tagline: "Zdrowa kolacja bogata w omega-3.",
     slot: "kolacja",
     prepMinutes: 30,
-    imagePrompt:
-      "grilled salmon fillet with boiled baby potatoes and green asparagus spears on a plate, omega-3 dinner",
+    imagePrompt: "grilled salmon fillet boiled potatoes asparagus plate",
+
     approximateMacros: { calories: 690, proteinG: 48, fatG: 30, carbsG: 50 },
     ingredients: [
       "160 g filetu z łososia",

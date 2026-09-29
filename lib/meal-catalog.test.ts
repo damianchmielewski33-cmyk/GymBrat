@@ -60,7 +60,7 @@ describe("meal-catalog", () => {
     expect(meal).toBeTruthy();
     const url = getRecipeImage(meal!);
     expect(url.startsWith("https://image.pollinations.ai/prompt/")).toBe(true);
-    expect(url).toContain(encodeURIComponent("oatmeal porridge"));
+    expect(url).toContain(encodeURIComponent("oatmeal"));
     expect(url).toContain(encodeURIComponent("blueberries"));
   });
 });
