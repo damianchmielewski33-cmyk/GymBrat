@@ -13,6 +13,7 @@ import { WeightRangeChartDynamic } from "@/components/home/weight-range-chart-dy
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { getHomeStartDashboard } from "@/lib/home-start";
+import { comparePlansByWorkoutRecencyAsc } from "@/lib/workout-plan-queue";
 import { Clock } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { AppPageHeader } from "@/components/layout/screen";
@@ -57,14 +58,10 @@ export default async function HomePage() {
     row,
   }));
 
-  // Kolejka: rekomendowany dzień na górze, potem pozostałe w kolejności planu
-  const recommendedId = dash.nextWorkout?.planId ?? null;
-  const orderedDays = recommendedId
-    ? [
-        ...dayOptions.filter((d) => d.id === recommendedId),
-        ...dayOptions.filter((d) => d.id !== recommendedId),
-      ]
-    : dayOptions;
+  // Kolejka: najdawniej robiony / nigdy nie robiony → na końcu ostatnio robiony.
+  const orderedDays = [...dayOptions].sort(comparePlansByWorkoutRecencyAsc);
+  const recommendedId =
+    dash.nextWorkout?.planId ?? orderedDays[0]?.id ?? null;
 
   return (
     <div className="space-y-3">

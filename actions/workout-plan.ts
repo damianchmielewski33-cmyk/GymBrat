@@ -9,6 +9,7 @@ import { workoutPlans, workouts } from "@/db/schema";
 import type { WorkoutPlanPayload } from "@/lib/workout-plan-types";
 import { getLastWorkoutHintsForPlan } from "@/lib/last-workout-hints";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
+import { comparePlansByWorkoutRecencyAsc } from "@/lib/workout-plan-queue";
 import { UserMessages } from "@/lib/user-facing-errors";
 
 export type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
@@ -24,13 +25,11 @@ export type WorkoutPlanWithLastWorkoutDTO = WorkoutPlanListItemDTO & {
   lastWorkoutDate: string | null;
 };
 
-function sortPlansByLastWorkout(a: WorkoutPlanWithLastWorkoutDTO, b: WorkoutPlanWithLastWorkoutDTO) {
-  if (a.lastWorkoutDate && b.lastWorkoutDate) {
-    return b.lastWorkoutDate.localeCompare(a.lastWorkoutDate);
-  }
-  if (a.lastWorkoutDate) return -1;
-  if (b.lastWorkoutDate) return 1;
-  return b.updatedAt.localeCompare(a.updatedAt);
+function sortPlansByLastWorkout(
+  a: WorkoutPlanWithLastWorkoutDTO,
+  b: WorkoutPlanWithLastWorkoutDTO,
+) {
+  return comparePlansByWorkoutRecencyAsc(a, b);
 }
 
 export async function getWorkoutPlansWithLastWorkout(): Promise<WorkoutPlanWithLastWorkoutDTO[]> {
