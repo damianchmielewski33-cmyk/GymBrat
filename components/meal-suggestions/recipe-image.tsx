@@ -22,13 +22,14 @@ export const RecipeImage = memo(function RecipeImage({
   alt,
   className,
 }: RecipeImageProps) {
+  const id = recipe.id ?? "";
   const title = recipe.title ?? "";
   const imagePrompt = recipe.imagePrompt ?? "";
   const imagePromptEn = recipe.imagePromptEn ?? "";
 
   const src = useMemo(
-    () => getRecipeImage({ title, imagePrompt, imagePromptEn }),
-    [title, imagePrompt, imagePromptEn],
+    () => getRecipeImage({ id, title, imagePrompt, imagePromptEn }),
+    [id, title, imagePrompt, imagePromptEn],
   );
 
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
