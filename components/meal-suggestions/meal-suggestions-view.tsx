@@ -8,6 +8,7 @@ import {
 } from "@/actions/diet-day";
 import { addMealProductAction, deleteMealLogFormAction, type MealLogFormState } from "@/actions/meal-log";
 import { MealCatalogBrowser } from "@/components/meal-suggestions/meal-catalog-browser";
+import { MealSuggestionsTodayCard } from "@/components/meal-suggestions/meal-suggestions-today-card";
 import { AddMealScreen } from "@/components/meal-suggestions/add-meal-screen";
 import { FoodPortionScreen } from "@/components/meal-suggestions/food-portion-screen";
 import { DietWeekStrip } from "@/components/meal-suggestions/diet-week-strip";
@@ -37,6 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useOverlayHistoryBack } from "@/hooks/use-overlay-history-back";
+import { useI18n } from "@/components/i18n/i18n-provider";
 
 function formatDateLabel(dateKey: string): string {
   const today = calendarDateKey();
@@ -218,6 +220,7 @@ export function MealSuggestionsView({
   initialDayKind = "rest",
   mealTemplates = [],
   catalogMeals = [],
+  isAdmin = false,
 }: {
   initialSummary: FitatuDaySummary;
   initialGaps: MacroGaps;
@@ -225,6 +228,7 @@ export function MealSuggestionsView({
   initialDayKind?: NutritionDayType;
   mealTemplates?: MealTemplate[];
   catalogMeals?: CatalogMeal[];
+  isAdmin?: boolean;
 }) {
   void _initialSummary;
   const router = useRouter();
@@ -240,6 +244,8 @@ export function MealSuggestionsView({
   const [dishPickerOpen, setDishPickerOpen] = useState(false);
   const [portionProduct, setPortionProduct] = useState<FoodProduct | null>(null);
   const [portionSlot, setPortionSlot] = useState<DietDiarySlot>("sniadanie");
+  const [focusMealId, setFocusMealId] = useState<string | null>(null);
+  const { t } = useI18n();
 
   const mealOverlayOpen =
     Boolean(addSlot) || Boolean(portionProduct) || dishPickerOpen;
@@ -313,7 +319,7 @@ export function MealSuggestionsView({
               : "rounded-full border border-white/12 bg-white/[0.04] px-5 py-2 text-sm font-medium text-white/55"
           }
         >
-          Plan
+          {t("diet.tabPlan")}
         </button>
         <button
           type="button"
@@ -324,7 +330,7 @@ export function MealSuggestionsView({
               : "rounded-full border border-white/12 bg-white/[0.04] px-5 py-2 text-sm font-medium text-white/55"
           }
         >
-          Jadłospis
+          {t("diet.tabDiary")}
         </button>
       </div>
 
@@ -351,7 +357,18 @@ export function MealSuggestionsView({
               Ustaw szablony i cele makro w profilu — tu zobaczysz plan dnia.
             </p>
           )}
-          <MealCatalogBrowser dateKey={dateKey} meals={catalogMeals} />
+          <MealSuggestionsTodayCard
+            gaps={gaps}
+            catalogMeals={catalogMeals}
+            onSelectMeal={(meal) => setFocusMealId(meal.id)}
+          />
+          <MealCatalogBrowser
+            dateKey={dateKey}
+            meals={catalogMeals}
+            isAdmin={isAdmin}
+            focusMealId={focusMealId}
+            onFocusMealHandled={() => setFocusMealId(null)}
+          />
         </div>
       ) : (
         <>
@@ -494,7 +511,11 @@ export function MealSuggestionsView({
               Zamknij
             </button>
           </div>
-          <MealCatalogBrowser dateKey={dateKey} meals={catalogMeals} />
+          <MealCatalogBrowser
+            dateKey={dateKey}
+            meals={catalogMeals}
+            isAdmin={isAdmin}
+          />
         </div>
       ) : null}
       <FoodPortionScreen

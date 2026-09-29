@@ -17,7 +17,7 @@ const MealItemSchema = z.object({
 });
 
 export const MealSuggestionsResponseSchema = z.object({
-  /** Cztery wyraźnie różne propozycje (zgodnie z promptem modelu). */
+  /** Do czterech propozycji (historyczny kontrakt AI; runtime bierze z katalogu). */
   meals: z.array(MealItemSchema).length(4),
 });
 

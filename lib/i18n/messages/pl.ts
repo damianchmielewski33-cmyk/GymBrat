@@ -14,4 +14,57 @@ export const pl = {
     messages: "Wiadomości",
     profile: "Profil",
   },
+  diet: {
+    tabPlan: "Plan",
+    tabDiary: "Jadłospis",
+    catalogLabel: "Katalog posiłków",
+    catalogEmptyTitle: "Brak przepisów w Dietcie",
+    catalogEmptyAdmin:
+      "Katalog jest pusty. Wgraj pakiet startowy albo własny JSON w panelu admina — wtedy dania pojawią się tutaj.",
+    catalogEmptyUser:
+      "Katalog przepisów nie został jeszcze uzupełniony. Możesz na razie logować produkty w Jadłospisie.",
+    openAdminCatalog: "Otwórz panel katalogu",
+    proposalsFromCatalog: "Dobór z katalogu",
+    proposalsToday: "Propozycje na dziś",
+    proposalsGaps: "Propozycje pod braki makro",
+    proposalsMatchedGaps: "Dopasowane do pory dnia i braków: {bits}.",
+    proposalsMatchedSlot: "Dopasowane do pory dnia na podstawie katalogu.",
+    proposalsNone: "Brak dań w katalogu pasujących do tej pory — sprawdź inne sloty poniżej.",
+    noteCatalogNotAi:
+      "Propozycje posiłków biorą się z katalogu przepisów i Twoich braków makro — bez modelu AI.",
+  },
+  adminCatalog: {
+    title: "Przepisy w aplikacji",
+    subtitle: "widoczne w Dietcie · zarządzane z panelu",
+    starterPack: "Pakiet startowy (~100 przepisów)",
+    exportJson: "Eksportuj bazę JSON",
+    add: "Dodaj",
+    replace: "Zastąp bazę…",
+    clearField: "Wyczyść pole",
+    clearDb: "Wyczyść bazę panelu",
+    validationOk: "Walidacja OK · {count} przepisów",
+    validationTitle: "Walidacja",
+  },
+  session: {
+    loading: "Wczytywanie sesji…",
+    disabledTitle: "Trening jest wyłączony",
+    disabledBody: "Nie możesz wejść do ekranu treningu bez aktywnej sesji.",
+    startWorkout: "Rozpocznij trening",
+    setPlan: "Ustaw plan",
+    resumeTitle: "Czy chcesz kontynuować trening?",
+    resumeBody: "Wykryliśmy niedokończoną sesję. Twoje dane nie zostały utracone.",
+    cloudResumed: "Wznowiono sesję z innego urządzenia.",
+    cloudUpdated: "Sesja zaktualizowana z innego urządzenia.",
+  },
+  profileAi: {
+    eyebrow: "Prywatność i AI",
+    title: "Funkcje AI",
+    body:
+      "Gdy zaznaczysz opcję poniżej, GymBrat nie będzie wysyłał treści do modelu AI w Twoim imieniu: briefing dnia, czat trenera, podpowiedzi w aktywnym treningu, generowanie planu treningowego oraz analiza zdjęć. Propozycje posiłków w Dietcie zawsze pochodzą z katalogu przepisów i braków makro — nie z modelu AI.",
+    toggle: "Wyłącz wszystkie funkcje AI",
+    toggleHint:
+      "Dotyczy wszystkich modułów korzystających z modelu językowego lub wizyjnego po stronie serwera. Możesz to w każdej chwili cofnąć.",
+    disabledToast: "Wyłączono funkcje AI. Aplikacja nie wywoła modelu w Twoim imieniu.",
+    enabledToast: "Włączono funkcje AI (jeśli dostawca jest skonfigurowany).",
+  },
 } as const;

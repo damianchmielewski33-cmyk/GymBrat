@@ -72,6 +72,13 @@ export function ExerciseProgressClient({
   const [data, setData] = useState<ApiOk | null>(null);
 
   useEffect(() => {
+    const next = (defaultQuery?.trim() || "").trim();
+    if (!next) return;
+    setQuery(next);
+    setDebounced(next);
+  }, [defaultQuery]);
+
+  useEffect(() => {
     const id = window.setTimeout(() => setDebounced(query.trim()), 250);
     return () => window.clearTimeout(id);
   }, [query]);

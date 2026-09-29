@@ -181,12 +181,26 @@ export function WorkoutPlanEditor({
   }, []);
 
   const unlinkSuperset = useCallback((id: string) => {
-    setPlan((prev) => ({
-      ...prev,
-      exercises: prev.exercises.map((e) =>
-        e.id === id ? { ...e, supersetGroupId: null } : e,
-      ),
-    }));
+    setPlan((prev) => {
+      const target = prev.exercises.find((e) => e.id === id);
+      const groupId = target?.supersetGroupId?.trim();
+      if (!groupId) {
+        return {
+          ...prev,
+          exercises: prev.exercises.map((e) =>
+            e.id === id ? { ...e, supersetGroupId: null } : e,
+          ),
+        };
+      }
+      return {
+        ...prev,
+        exercises: prev.exercises.map((e) =>
+          e.supersetGroupId?.trim() === groupId
+            ? { ...e, supersetGroupId: null }
+            : e,
+        ),
+      };
+    });
   }, []);
 
   function planSetCount(exercises: WorkoutPlanExercise[]) {

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getWorkoutPlansWithLastWorkout } from "@/actions/workout-plan";
 import { TreningiHubClient } from "@/components/treningi/treningi-hub-client";
 import { getTreningiHubStats } from "@/lib/treningi-hub-stats";
+import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
 
 export default async function WorkoutPlanPage() {
   const session = await auth();
@@ -17,6 +18,7 @@ export default async function WorkoutPlanPage() {
   return (
     <div className="px-1 pt-1 sm:px-0">
       <TreningiHubClient plans={plans} stats={stats} />
+      <WorkoutCompletePopup />
     </div>
   );
 }

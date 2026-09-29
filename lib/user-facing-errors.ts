@@ -44,7 +44,8 @@ export const UserMessages = {
     "Aby dostać odpowiedź, wyślij najpierw swoją wiadomość (ostatnia w wątku musi być od Ciebie).",
   coachChatEmptyReply:
     "Trener nie zwrócił treści odpowiedzi. Spróbuj zadać pytanie jeszcze raz, nieco inaczej.",
-  mealSuggestionsNoSession: "Musisz być zalogowany, aby wygenerować propozycje posiłków.",
+  mealSuggestionsNoSession:
+    "Musisz być zalogowany, aby zobaczyć propozycje posiłków z katalogu.",
 } as const;
 
 /** Zapis treningu — mapowanie po `error` z API + opcjonalnie HTTP. */

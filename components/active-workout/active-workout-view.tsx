@@ -10,6 +10,7 @@ import { mergeHintsIntoExercises } from "@/lib/last-workout-hints";
 import type { LastPlanHintsMap } from "@/lib/last-workout-hints";
 import { planExercisesToSession } from "@/lib/start-workout-session";
 import { detectSessionNewMaxes } from "@/lib/session-new-max";
+import { whenActiveWorkoutCloudHydrated } from "@/lib/active-workout-cloud-ready";
 import { ActiveSessionCard } from "@/components/active-workout/active-session-card";
 import { GuidedSessionLayout } from "@/components/active-workout/guided-session-layout";
 import { WorkoutFinishedScreen } from "@/components/active-workout/workout-finished-screen";
@@ -25,6 +26,7 @@ import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 import { RotateCcw } from "lucide-react";
+import { useI18n } from "@/components/i18n/i18n-provider";
 
 type LastCompletedSnap = {
   exerciseName: string;
@@ -68,9 +70,11 @@ export function ActiveWorkoutView({
     patchExercise,
   } = useActiveWorkoutStore();
   void _setCardioMinutes;
+  const { t } = useI18n();
   const [now, setNow] = useState(() => Date.now());
   const router = useRouter();
   const [lastPlanHints, setLastPlanHints] = useState<LastPlanHintsMap>({});
+  const [hintsFetchDone, setHintsFetchDone] = useState(false);
   const hintsMergedRef = useRef(false);
 
   const [saving, setSaving] = useState(false);
@@ -83,6 +87,8 @@ export function ActiveWorkoutView({
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
   /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/start-workout`. */
   const [storeHydrated, setStoreHydrated] = useState(false);
+  /** Czekamy na pull chmury, żeby nie wyrzucić sesji z innego urządzenia. */
+  const [cloudHydrated, setCloudHydrated] = useState(false);
   const finishNewMaxes = useMemo(
     () => detectSessionNewMaxes(exercises, lastPlanHints),
     [exercises, lastPlanHints],
@@ -101,17 +107,33 @@ export function ActiveWorkoutView({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    void whenActiveWorkoutCloudHydrated().then(() => {
+      if (!cancelled) setCloudHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     hintsMergedRef.current = false;
+    setHintsFetchDone(false);
+    setLastPlanHints({});
   }, [workoutPlanId]);
 
   useEffect(() => {
     if (!workoutPlanId) {
       setLastPlanHints({});
+      setHintsFetchDone(true);
       return;
     }
     let cancelled = false;
+    setHintsFetchDone(false);
     void fetchLastWorkoutHintsForPlan(workoutPlanId).then((h) => {
-      if (!cancelled) setLastPlanHints(h);
+      if (cancelled) return;
+      setLastPlanHints(h);
+      setHintsFetchDone(true);
     });
     return () => {
       cancelled = true;
@@ -119,23 +141,21 @@ export function ActiveWorkoutView({
   }, [workoutPlanId]);
 
   useEffect(() => {
-    if (!workoutPlanId || hintsMergedRef.current) return;
+    if (!workoutPlanId || !hintsFetchDone || hintsMergedRef.current) return;
     const ex = useActiveWorkoutStore.getState().exercises;
     if (!ex.length) return;
-    if (!Object.keys(lastPlanHints).length) {
-      hintsMergedRef.current = true;
-      return;
+    if (Object.keys(lastPlanHints).length) {
+      setExercises(mergeHintsIntoExercises(ex, lastPlanHints));
     }
-    setExercises(mergeHintsIntoExercises(ex, lastPlanHints));
     hintsMergedRef.current = true;
-  }, [lastPlanHints, workoutPlanId, setExercises]);
+  }, [lastPlanHints, hintsFetchDone, workoutPlanId, setExercises]);
 
   // Route gating:
   // - `/active-workout` is a strict "session view" and must NOT be accessible without an active session.
   // - `/start-workout` is the entry point that lets user pick a plan and begin a session.
   useEffect(() => {
     if (display !== "page") return;
-    if (suppressRouteGate || !storeHydrated) return;
+    if (suppressRouteGate || !storeHydrated || !cloudHydrated) return;
     if (entry === "active" && !hasLoadedPlan) {
       router.replace("/workout-plan");
       return;
@@ -143,7 +163,15 @@ export function ActiveWorkoutView({
     if (entry === "start" && hasLoadedPlan) {
       router.replace("/active-workout");
     }
-  }, [display, entry, hasLoadedPlan, router, suppressRouteGate, storeHydrated]);
+  }, [
+    display,
+    entry,
+    hasLoadedPlan,
+    router,
+    suppressRouteGate,
+    storeHydrated,
+    cloudHydrated,
+  ]);
 
   function startRest(seconds: number) {
     setRestRemaining(seconds);
@@ -342,12 +370,14 @@ export function ActiveWorkoutView({
       setSuppressRouteGate(true);
 
       const endedAt = Date.now();
+      const sessionExercises = exercises;
+      const newMaxHits = detectSessionNewMaxes(sessionExercises, lastPlanHints);
       const baseSummary = {
         title: title.trim() || "Trening",
         endedAt,
         durationSeconds: elapsed,
         cardioMinutes,
-        exercisesCount: exercises.length,
+        exercisesCount: sessionExercises.length,
         setsDone: completedSets.done,
         setsTotal: completedSets.total,
         totalVolume: sessionTotal,
@@ -357,7 +387,7 @@ export function ActiveWorkoutView({
         startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),
         endedAt,
         cardioMinutes,
-        exercises,
+        exercises: sessionExercises,
         workoutPlanId,
       });
       if (result.status === "error") {
@@ -368,7 +398,6 @@ export function ActiveWorkoutView({
       setSelectedExerciseId(null);
       stopRest();
       setFinishOpen(false);
-      const newMaxHits = detectSessionNewMaxes(exercises, lastPlanHints);
       const completedSummary = {
         ...baseSummary,
         strengthDeltaPercent:
@@ -379,6 +408,7 @@ export function ActiveWorkoutView({
       };
       sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
       if (newMaxHits.length > 0) {
+        const primary = newMaxHits[0]!;
         sessionStorage.setItem(
           "gymbrat:newMaxToast",
           `NOWY MAX: ${newMaxHits
@@ -386,15 +416,18 @@ export function ActiveWorkoutView({
             .map((h) => `${h.exerciseName} (${h.value} kg)`)
             .join(", ")}`,
         );
+        router.push(
+          `/progress-analysis?q=${encodeURIComponent(primary.exerciseName)}`,
+        );
       } else {
         sessionStorage.removeItem("gymbrat:newMaxToast");
+        router.push("/workout-plan");
       }
       if (result.status === "queued") {
         sessionStorage.setItem("gymbrat:workoutQueued", "1");
       } else {
         sessionStorage.removeItem("gymbrat:workoutQueued");
       }
-      router.push("/workout-plan");
     } catch (e) {
       setSaveError(mapUnknownFetchError(e, UserMessages.workoutSaveUnknown));
       setSuppressRouteGate(false);
@@ -555,10 +588,10 @@ export function ActiveWorkoutView({
                 startPlansContent
               ) : (
               entry === "active" ? (
-                !storeHydrated ? (
+                !storeHydrated || !cloudHydrated ? (
                   <div className="flex flex-1 flex-col items-center justify-center gap-2 px-2 py-16 text-center">
                     <div className="h-9 w-9 animate-pulse rounded-full bg-white/[0.08]" />
-                    <p className="text-sm text-white/45">Wczytywanie sesji…</p>
+                    <p className="text-sm text-white/45">{t("session.loading")}</p>
                   </div>
                 ) : (
                   <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
@@ -566,17 +599,19 @@ export function ActiveWorkoutView({
                       <RotateCcw className="mx-auto h-11 w-11 text-[#FF9500]" />
                     </div>
                     <div>
-                      <p className="text-[17px] font-semibold text-white">Trening jest wyłączony</p>
+                      <p className="text-[17px] font-semibold text-white">
+                        {t("session.disabledTitle")}
+                      </p>
                       <p className="mt-2 max-w-md text-[13px] text-white/45">
-                        Nie możesz wejść do ekranu treningu bez aktywnej sesji.
+                        {t("session.disabledBody")}
                       </p>
                     </div>
                     <div className="flex flex-wrap justify-center gap-2">
                       <Button type="button" onClick={() => router.push("/workout-plan")}>
-                        Rozpocznij trening
+                        {t("session.startWorkout")}
                       </Button>
                       <Button type="button" variant="outline" onClick={() => router.push("/profile/workout-plan")}>
-                        Ustaw plan
+                        {t("session.setPlan")}
                       </Button>
                     </div>
                   </div>
@@ -621,10 +656,8 @@ export function ActiveWorkoutView({
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <Card className="w-full max-w-md">
             <CardHeader>
-              <CardTitle>Czy chcesz kontynuować trening?</CardTitle>
-              <CardDescription>
-                Wykryliśmy niedokończoną sesję. Twoje dane nie zostały utracone.
-              </CardDescription>
+              <CardTitle>{t("session.resumeTitle")}</CardTitle>
+              <CardDescription>{t("session.resumeBody")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-lg border border-foreground/10 bg-muted/40 p-3 text-xs text-muted-foreground">

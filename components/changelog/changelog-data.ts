@@ -16,6 +16,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Niedokończoną sesję treningu da się wznowić na innym telefonie lub PC dzięki synchronizacji aktywnej sesji w chmurze.",
       "Na Pulpicie w Makro dziś widać ile już zjedzono i ile zostało do spożycia (B/W/T).",
       "Przepisy w Dietcie pochodzą wyłącznie z panelu admina (JSON) — wyczyszczenie bazy usuwa je z aplikacji.",
+      "W panelu admina jest pakiet startowy przepisów, walidacja i eksport JSON oraz empty state w pustej Dietcie.",
+      "Na Planie w Dietcie widać propozycje pod braki makro z katalogu.",
+      "Wyszukiwanie w Jadłospisie obejmuje też popularne produkty sieci (KFC, Lidl, Biedronka…) oraz szersze dopasowanie nazwa+marka.",
+      "W profilu jasno: propozycje posiłków = katalog i makro, nie model AI; słownik PL/EN obejmuje Dietę, panel katalogu i sesję.",
       "W panelu admina można wgrywać przepisy JSON do bazy (bez zmiany kodu); tylko główny admin nadaje innym uprawnienia admina.",
     ],
   },
@@ -593,8 +597,8 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
-      "Szersze testy E2E i synchronizacja sesji między urządzeniami.",
-      "Rozbudowa słowników tłumaczeń (pełne pokrycie UI).",
+      "Dalsza synchronizacja sesji między urządzeniami (konflikty, natychmiastowy push).",
+      "Pełniejsze pokrycie UI w słownikach tłumaczeń.",
     ],
   },
 ];

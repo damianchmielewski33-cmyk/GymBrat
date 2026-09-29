@@ -7,10 +7,13 @@ import {
   type ActiveWorkoutCloudPayload,
   type ActiveWorkoutCloudRecord,
 } from "@/lib/active-workout-cloud";
+import { markActiveWorkoutCloudHydrated } from "@/lib/active-workout-cloud-ready";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
+import { useI18n } from "@/components/i18n/i18n-provider";
 
 const DEVICE_KEY = "gymbrat:deviceId";
 const REVISION_KEY = "gymbrat:activeSessionRevision";
+const PUSH_DEBOUNCE_MS = 1800;
 
 function getOrCreateDeviceId(): string {
   try {
@@ -126,14 +129,16 @@ async function deleteCloud(): Promise<void> {
 /**
  * Synchronizuje lokalny zustand z chmurą:
  * - na starcie: pull nowszej sesji z innego urządzenia
- * - co ~12 s + visibility: push lokalnego draftu
+ * - debounce po zmianach + co ~12 s + visibility: push
  * - po resecie (pusta sesja): DELETE
  */
 export function ActiveWorkoutCloudSync() {
   const [banner, setBanner] = useState<string | null>(null);
+  const { t } = useI18n();
   const deviceIdRef = useRef("");
   const pushingRef = useRef(false);
   const hydratedRef = useRef(false);
+  const debounceRef = useRef<number | null>(null);
 
   useEffect(() => {
     deviceIdRef.current = getOrCreateDeviceId();
@@ -143,35 +148,41 @@ export function ActiveWorkoutCloudSync() {
     let cancelled = false;
 
     async function hydrate() {
-      const api = useActiveWorkoutStore.persist;
-      if (!api.hasHydrated()) {
-        await new Promise<void>((resolve) => {
-          const unsub = api.onFinishHydration(() => {
-            unsub();
-            resolve();
+      try {
+        const api = useActiveWorkoutStore.persist;
+        if (!api.hasHydrated()) {
+          await new Promise<void>((resolve) => {
+            const unsub = api.onFinishHydration(() => {
+              unsub();
+              resolve();
+            });
           });
-        });
-      }
-      if (cancelled) return;
+        }
+        if (cancelled) return;
 
-      const local = snapshotFromStore();
-      const cloud = await fetchCloud();
-      if (cancelled) return;
+        const local = snapshotFromStore();
+        const cloud = await fetchCloud();
+        if (cancelled) return;
 
-      if (cloud && hasActiveLocalSession(cloud.payload)) {
-        const localRev = readRevision();
-        const cloudNewer = cloud.revision > localRev;
-        const localEmpty = !hasActiveLocalSession(local);
-        if (localEmpty || cloudNewer) {
-          applyCloudPayload(cloud.payload);
-          writeRevision(cloud.revision);
-          if (cloud.deviceId !== deviceIdRef.current) {
-            setBanner("Wznowiono sesję z innego urządzenia.");
-            window.setTimeout(() => setBanner(null), 4500);
+        if (cloud && hasActiveLocalSession(cloud.payload)) {
+          const localRev = readRevision();
+          const cloudNewer = cloud.revision > localRev;
+          const localEmpty = !hasActiveLocalSession(local);
+          if (localEmpty || cloudNewer) {
+            applyCloudPayload(cloud.payload);
+            writeRevision(cloud.revision);
+            if (cloud.deviceId !== deviceIdRef.current) {
+              setBanner(t("session.cloudResumed"));
+              window.setTimeout(() => setBanner(null), 4500);
+            }
           }
         }
+      } finally {
+        if (!cancelled) {
+          hydratedRef.current = true;
+          markActiveWorkoutCloudHydrated();
+        }
       }
-      hydratedRef.current = true;
     }
 
     void hydrate();
@@ -185,7 +196,6 @@ export function ActiveWorkoutCloudSync() {
       if (!hydratedRef.current || pushingRef.current) return;
       const payload = snapshotFromStore();
       if (!hasActiveLocalSession(payload)) {
-        // Sesja wyczyszczona lokalnie — usuń cloud draft.
         if (readRevision() > 0) {
           pushingRef.current = true;
           try {
@@ -206,7 +216,7 @@ export function ActiveWorkoutCloudSync() {
         if (result.conflict) {
           applyCloudPayload(result.conflict.payload);
           writeRevision(result.conflict.revision);
-          setBanner("Sesja zaktualizowana z innego urządzenia.");
+          setBanner(t("session.cloudUpdated"));
           window.setTimeout(() => setBanner(null), 4000);
         } else if (result.ok && result.revision != null) {
           writeRevision(result.revision);
@@ -214,6 +224,14 @@ export function ActiveWorkoutCloudSync() {
       } finally {
         pushingRef.current = false;
       }
+    };
+
+    const schedulePush = () => {
+      if (debounceRef.current != null) window.clearTimeout(debounceRef.current);
+      debounceRef.current = window.setTimeout(() => {
+        debounceRef.current = null;
+        void push();
+      }, PUSH_DEBOUNCE_MS);
     };
 
     const id = window.setInterval(() => void push(), 12_000);
@@ -224,11 +242,13 @@ export function ActiveWorkoutCloudSync() {
     window.addEventListener("pagehide", onVis);
 
     const unsub = useActiveWorkoutStore.subscribe(() => {
-      // Lekki debounce przez interval — bez push przy każdym klawiszu.
+      if (!hydratedRef.current) return;
+      schedulePush();
     });
 
     return () => {
       window.clearInterval(id);
+      if (debounceRef.current != null) window.clearTimeout(debounceRef.current);
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("pagehide", onVis);
       unsub();

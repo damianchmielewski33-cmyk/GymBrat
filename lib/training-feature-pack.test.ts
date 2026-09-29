@@ -4,6 +4,7 @@ import { GYMBRAT_GITHUB_SLUG } from "@/lib/gymbrat-source";
 import {
   roundToPlateStep,
   suggestWeightFromLastSet,
+  mergeHintsIntoExercises,
 } from "@/lib/last-workout-hints";
 import { resolveSessionRevisionConflict } from "@/lib/active-workout-cloud";
 import { detectSessionNewMaxes } from "@/lib/session-new-max";
@@ -87,6 +88,48 @@ describe("NOWY MAX sesji", () => {
     );
     expect(hits.length).toBeGreaterThan(0);
     expect(hits[0]?.exerciseName).toBe("Przysiad");
+  });
+
+  it("nie ogłasza MAX gdy brak historii", () => {
+    const hits = detectSessionNewMaxes(
+      [
+        {
+          id: "ex1",
+          name: "Przysiad",
+          sets: [{ reps: 5, weight: 100, done: true }],
+        },
+      ],
+      {},
+    );
+    expect(hits).toHaveLength(0);
+  });
+});
+
+describe("mergeHintsIntoExercises", () => {
+  it("dokłada suggestedWeights z ostatniej sesji", () => {
+    const merged = mergeHintsIntoExercises(
+      [
+        {
+          id: "ex1",
+          name: "Wyciskanie",
+          sets: [
+            { reps: null, weight: 0, done: false },
+            { reps: null, weight: 0, done: false },
+          ],
+        },
+      ],
+      {
+        ex1: {
+          sets: [
+            { reps: 8, weight: 60, done: true, rir: 1 },
+            { reps: 8, weight: 60, done: true, rir: 2 },
+          ],
+        },
+      },
+    );
+    expect(merged[0]?.suggestedWeights?.[0]).toBe(62.5);
+    expect(merged[0]?.suggestedWeights?.[1]).toBe(60);
+    expect(merged[0]?.sets[0]?.weight).toBe(0);
   });
 });
 

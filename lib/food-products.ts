@@ -19,6 +19,97 @@ export function normalizeFoodQuery(raw: string): string {
     .trim();
 }
 
+/** Znane sieci / marki w zapytaniach PL (Longer KFC, chleb Lidl…). */
+const KNOWN_BRAND_TOKENS: Array<{ token: string; aliases: string[] }> = [
+  { token: "kfc", aliases: ["kfc"] },
+  { token: "lidl", aliases: ["lidl", "tastino", "pano", "favorina"] },
+  { token: "biedronka", aliases: ["biedronka", "gosto", "go active"] },
+  { token: "zabka", aliases: ["zabka", "żabka"] },
+  { token: "mcdonalds", aliases: ["mcdonalds", "mcdonald", "mc donalds", "mcd"] },
+  { token: "subway", aliases: ["subway"] },
+  { token: "auchan", aliases: ["auchan"] },
+  { token: "carrefour", aliases: ["carrefour"] },
+  { token: "pasibus", aliases: ["pasibus"] },
+  { token: "starbucks", aliases: ["starbucks"] },
+];
+
+export function detectFoodBrandTokens(normalizedQuery: string): string[] {
+  const q = ` ${normalizedQuery} `;
+  const found: string[] = [];
+  for (const row of KNOWN_BRAND_TOKENS) {
+    if (row.aliases.some((a) => q.includes(` ${normalizeFoodQuery(a)} `))) {
+      found.push(row.token);
+    }
+  }
+  return found;
+}
+
+/**
+ * Warianty zapytania do OFF / lokalnego scoringu:
+ * pełne, bez marki, przestawione tokeny marka↔produkt.
+ */
+export function buildFoodSearchVariants(query: string): string[] {
+  const raw = query.trim();
+  const n = normalizeFoodQuery(raw);
+  if (!n) return [];
+  const parts = n.split(" ").filter(Boolean);
+  const brands = detectFoodBrandTokens(n);
+  const brandSet = new Set(brands);
+  const productParts = parts.filter((p) => !brandSet.has(p) && p.length >= 2);
+  const variants = new Set<string>();
+  variants.add(raw);
+  variants.add(n);
+  if (productParts.length) variants.add(productParts.join(" "));
+  for (const b of brands) {
+    if (productParts.length) {
+      variants.add(`${productParts.join(" ")} ${b}`);
+      variants.add(`${b} ${productParts.join(" ")}`);
+    } else {
+      variants.add(b);
+    }
+  }
+  // Typowe skróty QSR
+  if (brands.includes("kfc") && productParts.includes("longer")) {
+    variants.add("KFC Longer");
+    variants.add("Longer KFC");
+  }
+  return [...variants].filter((v) => normalizeFoodQuery(v).length >= 2).slice(0, 6);
+}
+
+export function scoreProductAgainstQuery(query: string, p: FoodProduct): number {
+  const q = normalizeFoodQuery(query);
+  if (!q) return 0;
+  const parts = q.split(" ").filter((x) => x.length >= 2);
+  const hay = normalizeFoodQuery(
+    `${p.name} ${p.brand ?? ""} ${p.barcode ?? ""} ${p.servingLabel}`,
+  );
+  let score = 0;
+  if (hay === q) score += 20;
+  if (hay.startsWith(q)) score += 12;
+  if (hay.includes(q)) score += 8;
+
+  let matched = 0;
+  for (const part of parts) {
+    if (hay.includes(part)) {
+      score += part.length >= 4 ? 4 : 2;
+      matched += 1;
+    }
+  }
+  if (parts.length >= 2) {
+    if (matched === parts.length) score += 10;
+    else if (matched < Math.ceil(parts.length * 0.5)) return 0;
+  } else if (matched === 0) {
+    return 0;
+  }
+
+  const brands = detectFoodBrandTokens(q);
+  for (const b of brands) {
+    const brandHay = normalizeFoodQuery(p.brand ?? "");
+    if (brandHay.includes(b) || hay.includes(b)) score += 6;
+  }
+  return score;
+}
+
 export function findLocalProductByBarcode(barcode: string): FoodProduct | null {
   const code = normalizeBarcode(barcode);
   if (!code) return null;
@@ -28,20 +119,10 @@ export function findLocalProductByBarcode(barcode: string): FoodProduct | null {
 export function searchLocalProducts(query: string, limit = 20): FoodProduct[] {
   const q = normalizeFoodQuery(query);
   if (!q) return FOOD_PRODUCTS_LOCAL.slice(0, limit);
-  const parts = q.split(" ").filter(Boolean);
-  const scored = FOOD_PRODUCTS_LOCAL.map((p) => {
-    const hay = normalizeFoodQuery(
-      `${p.name} ${p.brand ?? ""} ${p.barcode ?? ""} ${p.servingLabel}`,
-    );
-    let score = 0;
-    if (hay === q) score += 8;
-    if (hay.startsWith(q)) score += 5;
-    if (hay.includes(q)) score += 3;
-    for (const part of parts) {
-      if (part.length >= 2 && hay.includes(part)) score += 2;
-    }
-    return { p, score };
-  })
+  const scored = FOOD_PRODUCTS_LOCAL.map((p) => ({
+    p,
+    score: scoreProductAgainstQuery(query, p),
+  }))
     .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score);
   return scored.slice(0, limit).map((x) => x.p);
@@ -268,12 +349,22 @@ export function mapOpenFoodFactsProduct(raw: OffProduct, barcode: string): FoodP
 }
 
 async function fetchOffJson(url: string): Promise<unknown | null> {
-  const res = await fetch(url, {
-    headers: { "User-Agent": "GymBrat/1.0 (https://github.com/damianchmielewski33-cmyk/GymBrat)" },
-    next: { revalidate: 3600 },
-  });
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "GymBrat/1.0 (https://github.com/damianchmielewski33-cmyk/GymBrat)",
+        Accept: "application/json",
+      },
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return null;
+    const ct = res.headers.get("content-type") ?? "";
+    if (!ct.includes("json")) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 export async function lookupBarcodeRemote(barcode: string): Promise<FoodProduct | null> {
@@ -294,53 +385,64 @@ export async function lookupBarcodeRemote(barcode: string): Promise<FoodProduct 
 }
 
 export async function searchOpenFoodFacts(query: string, limit = 12): Promise<FoodProduct[]> {
-  const q = query.trim();
-  if (q.length < 2) return [];
+  const variants = buildFoodSearchVariants(query);
+  if (variants.length === 0) return [];
 
-  const hosts = ["https://pl.openfoodfacts.org", "https://world.openfoodfacts.org"];
-  for (const host of hosts) {
+  const hosts = ["https://world.openfoodfacts.org", "https://pl.openfoodfacts.org"];
+  const collected: FoodProduct[] = [];
+  const seen = new Set<string>();
+
+  async function runOne(host: string, q: string, withPoland: boolean): Promise<void> {
     const url = new URL(`${host}/cgi/search.pl`);
     url.searchParams.set("search_terms", q);
     url.searchParams.set("search_simple", "1");
     url.searchParams.set("action", "process");
     url.searchParams.set("json", "1");
-    url.searchParams.set("page_size", String(Math.max(limit, 20)));
+    url.searchParams.set("page_size", String(Math.max(limit, 24)));
     url.searchParams.set(
       "fields",
       "code,product_name,product_name_pl,generic_name,generic_name_pl,brands,serving_size,quantity,product_quantity,product_quantity_unit,ingredients_text,ingredients_text_pl,nutriments",
     );
-    // Preferuj produkty z nazwą PL / sprzedawane w PL
-    url.searchParams.set("tagtype_0", "countries");
-    url.searchParams.set("tag_contains_0", "contains");
-    url.searchParams.set("tag_0", "poland");
+    if (withPoland) {
+      url.searchParams.set("tagtype_0", "countries");
+      url.searchParams.set("tag_contains_0", "contains");
+      url.searchParams.set("tag_0", "poland");
+    }
+    const brands = detectFoodBrandTokens(normalizeFoodQuery(q));
+    if (brands.length === 1 && !withPoland) {
+      url.searchParams.set("tagtype_1", "brands");
+      url.searchParams.set("tag_contains_1", "contains");
+      url.searchParams.set("tag_1", brands[0]!);
+    }
 
     const json = (await fetchOffJson(url.toString())) as { products?: OffProduct[] } | null;
-    const out: FoodProduct[] = [];
     for (const p of json?.products ?? []) {
       const mapped = mapOpenFoodFactsProduct(p, p.code ?? "");
-      if (mapped) out.push(mapped);
-      if (out.length >= limit) break;
+      if (!mapped) continue;
+      const key = `${(mapped.barcode ?? "").toLowerCase()}|${mapped.name.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      collected.push(mapped);
     }
-    if (out.length > 0) return out;
-
-    // Bez filtra kraju — szersze wyniki (np. „kiwi”)
-    const url2 = new URL(`${host}/cgi/search.pl`);
-    url2.searchParams.set("search_terms", q);
-    url2.searchParams.set("search_simple", "1");
-    url2.searchParams.set("action", "process");
-    url2.searchParams.set("json", "1");
-    url2.searchParams.set("page_size", String(Math.max(limit, 20)));
-    url2.searchParams.set(
-      "fields",
-      "code,product_name,product_name_pl,generic_name,generic_name_pl,brands,serving_size,quantity,product_quantity,product_quantity_unit,ingredients_text,ingredients_text_pl,nutriments",
-    );
-    const json2 = (await fetchOffJson(url2.toString())) as { products?: OffProduct[] } | null;
-    for (const p of json2?.products ?? []) {
-      const mapped = mapOpenFoodFactsProduct(p, p.code ?? "");
-      if (mapped) out.push(mapped);
-      if (out.length >= limit) break;
-    }
-    if (out.length > 0) return out;
   }
-  return [];
+
+  // Najpierw warianty bez filtra PL (szersze), potem z PL — równolegle w ramach hosta.
+  for (const host of hosts) {
+    if (collected.length >= limit) break;
+    const jobs: Promise<void>[] = [];
+    for (const v of variants.slice(0, 3)) {
+      jobs.push(runOne(host, v, false));
+    }
+    await Promise.all(jobs);
+    if (collected.length < Math.ceil(limit / 2)) {
+      await Promise.all(variants.slice(0, 2).map((v) => runOne(host, v, true)));
+    }
+  }
+
+  return collected
+    .map((p) => ({ p, score: scoreProductAgainstQuery(query, p) }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((x) => x.p);
 }

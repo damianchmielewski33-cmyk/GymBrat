@@ -159,7 +159,7 @@ export function FoodSearchScan({
         <p className="app-label">Baza produktów</p>
         <h2 className="mt-1 text-lg font-semibold text-white">Szukaj lub skanuj etykietę</h2>
         <p className="mt-1 text-sm text-white/55">
-          Wpisz nazwę (np. kiwi) albo zeskanuj EAN — potem ustaw gramy, ml albo sztuki i dodaj makro.
+          Wpisz nazwę (np. Longer KFC, chleb Lidl, bułka Biedronka) albo zeskanuj EAN — potem ustaw gramy, ml albo sztuki.
         </p>
       </div>
 
@@ -224,7 +224,7 @@ export function FoodSearchScan({
                 runSearch(query);
               }
             }}
-            placeholder="Wpisz np. kiwi, jogurt, banan…"
+            placeholder="np. Longer KFC, chleb górski Lidl…"
             className="pl-9"
             autoComplete="off"
             autoCorrect="off"

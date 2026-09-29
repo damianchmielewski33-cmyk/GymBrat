@@ -95,3 +95,17 @@ describe("primary admin", () => {
     expect(parseAdminEmails().has(PRIMARY_ADMIN_EMAIL)).toBe(true);
   });
 });
+
+describe("pakiet startowy", () => {
+  it("data/meal-catalog-starter.json przechodzi walidację importu", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const file = path.join(process.cwd(), "data", "meal-catalog-starter.json");
+    expect(fs.existsSync(file)).toBe(true);
+    const raw = JSON.parse(fs.readFileSync(file, "utf8")) as unknown;
+    const { meals } = parseCatalogImportPayload(raw);
+    expect(meals.length).toBeGreaterThan(50);
+    expect(meals[0]?.id).toBeTruthy();
+    expect(meals[0]?.approximateMacros.calories).toBeGreaterThan(0);
+  });
+});

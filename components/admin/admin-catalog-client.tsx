@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,17 +11,69 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import type { CatalogMeal } from "@/lib/meal-catalog-types";
+import { parseCatalogImportPayload } from "@/lib/meal-catalog-import";
+import { MEAL_SLOT_LABELS, type MealSlot } from "@/lib/meal-catalog";
+import { useI18n } from "@/components/i18n/i18n-provider";
+import { formatMessage } from "@/lib/i18n/format";
 
 const PLACEHOLDER_JSON = `[]`;
 
+type ValidationState =
+  | { status: "empty" }
+  | { status: "invalid"; message: string }
+  | {
+      status: "ok";
+      count: number;
+      bySlot: Partial<Record<MealSlot, number>>;
+    };
+
+function validateJsonText(text: string): ValidationState {
+  const trimmed = text.trim();
+  if (!trimmed) return { status: "empty" };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return { status: "invalid", message: "Niepoprawna składnia JSON." };
+  }
+  try {
+    const { meals } = parseCatalogImportPayload(parsed);
+    const bySlot: Partial<Record<MealSlot, number>> = {};
+    for (const m of meals) {
+      bySlot[m.slot] = (bySlot[m.slot] ?? 0) + 1;
+    }
+    return { status: "ok", count: meals.length, bySlot };
+  } catch (e) {
+    return {
+      status: "invalid",
+      message: e instanceof Error ? e.message : "Walidacja nie powiodła się.",
+    };
+  }
+}
+
+function downloadJson(filename: string, data: unknown) {
+  const blob = new Blob([`${JSON.stringify(data, null, 2)}\n`], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function AdminCatalogClient() {
   const { notifySaved, notifyError } = useSaveFeedback();
+  const { t } = useI18n();
   const [jsonText, setJsonText] = useState("");
   const [dbMeals, setDbMeals] = useState<CatalogMeal[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [replaceOpen, setReplaceOpen] = useState(false);
+
+  const validation = useMemo(() => validateJsonText(jsonText), [jsonText]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,6 +103,35 @@ export function AdminCatalogClient() {
     setJsonText(text);
   }
 
+  async function loadStarterPack() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/catalog?pack=starter");
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; meals?: unknown; error?: string }
+        | null;
+      if (!res.ok || !data?.meals) {
+        throw new Error(data?.error ?? "Nie udało się wczytać pakietu startowego.");
+      }
+      setJsonText(JSON.stringify(data.meals, null, 2));
+      notifySaved("Załadowano pakiet startowy do pola JSON — kliknij Dodaj lub Zastąp.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Pakiet startowy niedostępny.";
+      setError(msg);
+      notifyError(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function exportDb() {
+    if (dbMeals.length === 0) return;
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadJson(`gymbrat-katalog-${stamp}.json`, dbMeals);
+    notifySaved(`Wyeksportowano ${dbMeals.length} przepisów.`);
+  }
+
   async function submitImport(mode: "merge" | "replace") {
     setBusy(true);
     setError(null);
@@ -61,6 +142,11 @@ export function AdminCatalogClient() {
       } catch {
         throw new Error("Niepoprawny JSON — sprawdź składnię.");
       }
+      // Ta sama walidacja co na serwerze — wczesny komunikat.
+      parseCatalogImportPayload(
+        Array.isArray(parsed) ? { mode, meals: parsed } : { ...(parsed as object), mode },
+      );
+
       const body = Array.isArray(parsed)
         ? { mode, meals: parsed }
         : { ...(parsed as object), mode };
@@ -131,7 +217,7 @@ export function AdminCatalogClient() {
     }
   }
 
-  const canSubmit = jsonText.trim().length > 0 && !busy;
+  const canSubmit = validation.status === "ok" && !busy;
   const recipeCount = loading ? null : dbMeals.length;
 
   return (
@@ -147,14 +233,12 @@ export function AdminCatalogClient() {
         />
         <div className="relative rounded-2xl border border-white/10 bg-black/35 px-5 py-8 text-center backdrop-blur-sm sm:px-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-            Przepisy w aplikacji
+            {t("adminCatalog.title")}
           </p>
           <p className="font-heading mt-3 text-6xl font-semibold tabular-nums text-[var(--neon)] sm:text-7xl">
             {recipeCount == null ? "…" : recipeCount}
           </p>
-          <p className="mt-3 text-sm text-white/50">
-            widoczne w Dietcie · zarządzane z panelu
-          </p>
+          <p className="mt-3 text-sm text-white/50">{t("adminCatalog.subtitle")}</p>
         </div>
       </div>
 
@@ -165,6 +249,27 @@ export function AdminCatalogClient() {
       ) : null}
 
       <div className="glass-panel neon-glow space-y-4 p-5 sm:p-6">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={() => void loadStarterPack()}
+            className="border-[var(--neon)]/40 text-[var(--neon)] hover:bg-[var(--neon)]/10"
+          >
+            {t("adminCatalog.starterPack")}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy || dbMeals.length === 0}
+            onClick={exportDb}
+            className="border-white/15 text-white/70"
+          >
+            {t("adminCatalog.exportJson")}
+          </Button>
+        </div>
+
         <label className="block text-sm text-white/70">
           Plik JSON (opcjonalnie)
           <input
@@ -184,13 +289,33 @@ export function AdminCatalogClient() {
           className="w-full rounded-xl border border-white/10 bg-black/40 p-3 font-mono text-xs text-white/90 outline-none placeholder:text-white/25 focus:border-[var(--neon)]/50"
         />
 
+        {validation.status === "ok" ? (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+            <p className="font-semibold">
+              {formatMessage(t("adminCatalog.validationOk"), {
+                count: validation.count,
+              })}
+            </p>
+            <p className="mt-1 text-xs text-emerald-100/75">
+              {Object.entries(validation.bySlot)
+                .map(([slot, n]) => `${MEAL_SLOT_LABELS[slot as MealSlot]}: ${n}`)
+                .join(" · ")}
+            </p>
+          </div>
+        ) : validation.status === "invalid" ? (
+          <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            <p className="font-semibold">{t("adminCatalog.validationTitle")}</p>
+            <p className="mt-1 text-xs text-amber-100/80">{validation.message}</p>
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             disabled={!canSubmit}
             onClick={() => void submitImport("merge")}
           >
-            {busy ? "Zapisywanie…" : "Dodaj"}
+            {busy ? "Zapisywanie…" : t("adminCatalog.add")}
           </Button>
           <Button
             type="button"
@@ -199,7 +324,7 @@ export function AdminCatalogClient() {
             onClick={() => setReplaceOpen(true)}
             className="border-amber-500/40 text-amber-100 hover:bg-amber-500/10"
           >
-            Zastąp bazę…
+            {t("adminCatalog.replace")}
           </Button>
           <Button
             type="button"
@@ -208,7 +333,7 @@ export function AdminCatalogClient() {
             onClick={() => setJsonText("")}
             className="text-white/55"
           >
-            Wyczyść pole
+            {t("adminCatalog.clearField")}
           </Button>
           <Button
             type="button"
@@ -217,7 +342,7 @@ export function AdminCatalogClient() {
             onClick={() => void clearDb()}
             className="ml-auto border-white/15 text-white/70"
           >
-            Wyczyść bazę panelu
+            {t("adminCatalog.clearDb")}
           </Button>
         </div>
       </div>
@@ -242,7 +367,7 @@ export function AdminCatalogClient() {
             <Button
               type="button"
               className="flex-1 bg-amber-600 text-white hover:bg-amber-500"
-              disabled={busy || !jsonText.trim()}
+              disabled={busy || !canSubmit}
               onClick={() => void submitImport("replace")}
             >
               {busy ? "Zapisywanie…" : "Zastąp bazę"}
@@ -275,7 +400,7 @@ export function AdminCatalogClient() {
               ) : dbMeals.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-6 text-center text-white/45">
-                    Brak przepisów — wklej JSON i kliknij Dodaj.
+                    Brak przepisów — użyj pakietu startowego albo wklej JSON.
                   </td>
                 </tr>
               ) : (

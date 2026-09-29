@@ -1,10 +1,12 @@
 import type { FoodProduct } from "@/lib/food-products-types";
+import { FOOD_PRODUCTS_RETAIL_PL } from "@/lib/food-products-retail-pl";
 
 /**
  * Lokalna baza produktów GymBrat (makro na porcję).
  * Skan kodu najpierw szuka tutaj, potem w Open Food Facts.
+ * Na końcu: popularne produkty sieci PL / QSR (`FOOD_PRODUCTS_RETAIL_PL`).
  */
-export const FOOD_PRODUCTS_LOCAL: FoodProduct[] = [
+const FOOD_PRODUCTS_CORE: FoodProduct[] = [
   {
     id: "local-jogurt-grecki-0",
     barcode: "5900643032016",
@@ -658,4 +660,9 @@ export const FOOD_PRODUCTS_LOCAL: FoodProduct[] = [
     basisAmount: 100,
     basisUnit: "ml",
   },
+];
+
+export const FOOD_PRODUCTS_LOCAL: FoodProduct[] = [
+  ...FOOD_PRODUCTS_CORE,
+  ...FOOD_PRODUCTS_RETAIL_PL,
 ];

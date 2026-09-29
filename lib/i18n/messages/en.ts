@@ -14,4 +14,57 @@ export const en = {
     messages: "Messages",
     profile: "Profile",
   },
+  diet: {
+    tabPlan: "Plan",
+    tabDiary: "Food log",
+    catalogLabel: "Meal catalog",
+    catalogEmptyTitle: "No recipes in Diet yet",
+    catalogEmptyAdmin:
+      "The catalog is empty. Load the starter pack or your own JSON in the admin panel — meals will show up here.",
+    catalogEmptyUser:
+      "The recipe catalog has not been filled yet. You can still log products in the food diary.",
+    openAdminCatalog: "Open catalog admin",
+    proposalsFromCatalog: "Picks from catalog",
+    proposalsToday: "Suggestions for today",
+    proposalsGaps: "Suggestions for macro gaps",
+    proposalsMatchedGaps: "Matched to time of day and remaining macros: {bits}.",
+    proposalsMatchedSlot: "Matched to time of day from the catalog.",
+    proposalsNone: "No catalog meals for this slot — check other slots below.",
+    noteCatalogNotAi:
+      "Meal suggestions come from the recipe catalog and your macro gaps — not from an AI model.",
+  },
+  adminCatalog: {
+    title: "Recipes in the app",
+    subtitle: "shown in Diet · managed from the admin panel",
+    starterPack: "Starter pack (~100 recipes)",
+    exportJson: "Export database JSON",
+    add: "Add",
+    replace: "Replace database…",
+    clearField: "Clear field",
+    clearDb: "Clear panel database",
+    validationOk: "Validation OK · {count} recipes",
+    validationTitle: "Validation",
+  },
+  session: {
+    loading: "Loading session…",
+    disabledTitle: "Workout is off",
+    disabledBody: "You can’t open the workout screen without an active session.",
+    startWorkout: "Start workout",
+    setPlan: "Set up a plan",
+    resumeTitle: "Continue your workout?",
+    resumeBody: "We found an unfinished session. Your data was not lost.",
+    cloudResumed: "Resumed a session from another device.",
+    cloudUpdated: "Session updated from another device.",
+  },
+  profileAi: {
+    eyebrow: "Privacy & AI",
+    title: "AI features",
+    body:
+      "When you enable the option below, GymBrat will not send content to an AI model on your behalf: daily briefing, coach chat, in-workout tips, training plan generation, and photo analysis. Meal suggestions in Diet always come from the recipe catalog and your macro gaps — not from an AI model.",
+    toggle: "Turn off all AI features",
+    toggleHint:
+      "Applies to every module that uses a language or vision model on the server. You can turn this back on anytime.",
+    disabledToast: "AI features off. The app will not call a model on your behalf.",
+    enabledToast: "AI features on (if a provider is configured).",
+  },
 } as const;

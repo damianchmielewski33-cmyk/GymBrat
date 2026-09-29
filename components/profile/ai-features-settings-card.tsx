@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { updateAiFeaturesDisabledAction } from "@/actions/ai-preferences";
 import { Label } from "@/components/ui/label";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { Sparkles } from "lucide-react";
 
 export function AiFeaturesSettingsCard({ initialDisabled }: { initialDisabled: boolean }) {
   const router = useRouter();
+  const { t } = useI18n();
   const { notifySaved, notifyError } = useSaveFeedback();
   const [disabled, setDisabled] = useState(initialDisabled);
   const [pending, start] = useTransition();
@@ -22,11 +24,7 @@ export function AiFeaturesSettingsCard({ initialDisabled }: { initialDisabled: b
       const r = await updateAiFeaturesDisabledAction({ disabled: next });
       if (r.ok) {
         setDisabled(next);
-        notifySaved(
-          next
-            ? "Wyłączono funkcje AI. Aplikacja nie wywoła modelu w Twoim imieniu."
-            : "Włączono funkcje AI (jeśli dostawca jest skonfigurowany).",
-        );
+        notifySaved(next ? t("profileAi.disabledToast") : t("profileAi.enabledToast"));
         router.refresh();
       } else {
         notifyError(r.error);
@@ -41,15 +39,10 @@ export function AiFeaturesSettingsCard({ initialDisabled }: { initialDisabled: b
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-              Prywatność i AI
+              {t("profileAi.eyebrow")}
             </p>
-            <h2 className="font-heading mt-2 text-xl font-semibold">Funkcje AI</h2>
-            <p className="mt-2 max-w-2xl text-sm text-white/60">
-              Gdy zaznaczysz opcję poniżej, GymBrat nie będzie wysyłał treści do modelu AI w Twoim
-              imieniu: briefing dnia, czat trenera, podpowiedzi w aktywnym treningu, generowanie planu
-              treningowego, analiza zdjęć oraz propozycje posiłków — tam, gdzie korzystamy z modelu,
-              zobaczysz komunikaty lub prostsze wersje bez sieci neuronowej.
-            </p>
+            <h2 className="font-heading mt-2 text-xl font-semibold">{t("profileAi.title")}</h2>
+            <p className="mt-2 max-w-2xl text-sm text-white/60">{t("profileAi.body")}</p>
           </div>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">
             <Sparkles className="h-5 w-5 text-[var(--neon)]" aria-hidden />
@@ -70,12 +63,9 @@ export function AiFeaturesSettingsCard({ initialDisabled }: { initialDisabled: b
               htmlFor="ai-features-disabled"
               className="cursor-pointer text-base font-semibold text-white"
             >
-              Wyłącz wszystkie funkcje AI
+              {t("profileAi.toggle")}
             </Label>
-            <p className="text-sm leading-relaxed text-white/55">
-              Dotyczy wszystkich modułów korzystających z modelu językowego lub wizyjnego po stronie
-              serwera. Możesz to w każdej chwili cofnąć.
-            </p>
+            <p className="text-sm leading-relaxed text-white/55">{t("profileAi.toggleHint")}</p>
           </div>
         </div>
       </div>

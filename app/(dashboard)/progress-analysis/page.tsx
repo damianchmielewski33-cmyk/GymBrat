@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { ProgressChartsDynamic } from "@/components/progress-analysis/progress-charts-dynamic";
 import { ExerciseProgressDynamic } from "@/components/progress-analysis/exercise-progress-dynamic";
 import { WeighInCard } from "@/components/progress-analysis/weigh-in-card";
+import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
 import { getProgressAnalysisData } from "@/lib/progress-analysis";
 import { listExerciseNameSuggestions } from "@/lib/exercise-progress";
 import { ChartLine, Dumbbell, Layers3, Ruler, type LucideIcon } from "lucide-react";
@@ -43,7 +44,11 @@ function AnalysisStat({
   );
 }
 
-export default async function ProgressAnalysisPage() {
+export default async function ProgressAnalysisPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string | string[] }>;
+}) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) redirect("/login");
@@ -54,6 +59,9 @@ export default async function ProgressAnalysisPage() {
   const { series, stats } = data;
   const hasBody =
     stats.lastWaistCm != null || stats.lastChestCm != null || stats.lastThighCm != null;
+  const sp = await searchParams;
+  const qRaw = sp?.q;
+  const defaultQuery = Array.isArray(qRaw) ? qRaw[0] : qRaw;
 
   return (
     <div className="space-y-3">
@@ -137,7 +145,11 @@ export default async function ProgressAnalysisPage() {
         relativeStrength={series.relativeStrength}
       />
 
-      <ExerciseProgressDynamic suggestions={exerciseSuggestions} />
+      <ExerciseProgressDynamic
+        suggestions={exerciseSuggestions}
+        defaultQuery={defaultQuery ?? null}
+      />
+      <WorkoutCompletePopup />
     </div>
   );
 }

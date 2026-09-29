@@ -9,12 +9,24 @@ import {
   listDbCatalogMeals,
   loadMergedMealCatalog,
 } from "@/lib/meal-catalog-store";
+import { readMealCatalogStarterPayload } from "@/lib/meal-catalog-starter";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: Request) {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
+
+  const url = new URL(req.url);
+  if (url.searchParams.get("pack") === "starter") {
+    try {
+      const meals = readMealCatalogStarterPayload();
+      return NextResponse.json({ ok: true, meals });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Brak pakietu startowego.";
+      return NextResponse.json({ error: msg }, { status: 404 });
+    }
+  }
 
   const [dbMeals, merged] = await Promise.all([
     listDbCatalogMeals(),

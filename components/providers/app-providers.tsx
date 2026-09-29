@@ -18,8 +18,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       <SentryClientInit />
       <CsrfBootstrap />
       <WorkoutOutboxFlush />
-      <ActiveWorkoutCloudSync />
       <I18nProvider>
+        <ActiveWorkoutCloudSync />
         <SaveFeedbackProvider>
           <AnalyticsTracker />
           <AndroidAppUpdatePrompt />

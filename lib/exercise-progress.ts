@@ -158,10 +158,12 @@ export async function getExerciseProgressSeries(params: {
 
         dayTonnage += reps! * w;
         const e1rm = estimated1RM(w, reps!);
-        if (e1rm > dayBestE1rm) {
-          dayBestE1rm = e1rm;
+        if (w > dayBestWeight) {
           dayBestWeight = w;
           dayBestReps = reps!;
+        }
+        if (e1rm > dayBestE1rm) {
+          dayBestE1rm = e1rm;
         }
       }
     }
@@ -177,11 +179,11 @@ export async function getExerciseProgressSeries(params: {
         tonnageKg: dayTonnage,
       });
     } else {
+      const weightWins = dayBestWeight > prev.bestWeight;
       byDay.set(dateKey, {
         bestE1rm: Math.max(prev.bestE1rm, dayBestE1rm),
-        bestWeight:
-          dayBestE1rm >= prev.bestE1rm ? dayBestWeight : prev.bestWeight,
-        bestReps: dayBestE1rm >= prev.bestE1rm ? dayBestReps : prev.bestReps,
+        bestWeight: Math.max(prev.bestWeight, dayBestWeight),
+        bestReps: weightWins ? dayBestReps : prev.bestReps,
         tonnageKg: prev.tonnageKg + dayTonnage,
       });
     }

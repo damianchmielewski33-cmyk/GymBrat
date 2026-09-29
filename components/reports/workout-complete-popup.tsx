@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Clock3, Dumbbell, Flame } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { CheckCircle2, Clock3, Dumbbell, Flame, Trophy } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -11,6 +12,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { formatVolumeKg } from "@/lib/workout-session-calculations";
+import type { NewMaxHit } from "@/lib/session-new-max";
+import { cn } from "@/lib/utils";
 
 type WorkoutCompleteSummary = {
   title: string;
@@ -23,9 +26,11 @@ type WorkoutCompleteSummary = {
   totalVolume: number;
   /** % change vs previous workout from the same plan (volume proxy). */
   strengthDeltaPercent: number | null;
+  newMaxHits?: NewMaxHit[];
 };
 
 const STORAGE_KEY = "workout:completedSummary";
+const TOAST_KEY = "gymbrat:newMaxToast";
 
 function formatDuration(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -39,10 +44,16 @@ function formatDuration(totalSeconds: number) {
 export function WorkoutCompletePopup() {
   const [open, setOpen] = useState(false);
   const [summary, setSummary] = useState<WorkoutCompleteSummary | null>(null);
+  const [toastLabel, setToastLabel] = useState<string | null>(null);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
+    const toast = sessionStorage.getItem(TOAST_KEY);
+    if (toast?.trim()) setToastLabel(toast.trim());
+    if (!raw) {
+      if (toast) sessionStorage.removeItem(TOAST_KEY);
+      return;
+    }
     try {
       const parsed = JSON.parse(raw) as WorkoutCompleteSummary;
       if (!parsed || typeof parsed !== "object") return;
@@ -52,8 +63,8 @@ export function WorkoutCompletePopup() {
     } catch {
       // ignore malformed
     } finally {
-      // Always clear, so it shows only once.
       sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(TOAST_KEY);
     }
   }, []);
 
@@ -71,6 +82,9 @@ export function WorkoutCompletePopup() {
       return "";
     }
   }, [summary?.endedAt]);
+
+  const newMaxHits = summary?.newMaxHits ?? [];
+  const primaryExercise = newMaxHits[0]?.exerciseName?.trim() || null;
 
   if (!summary) return null;
 
@@ -105,6 +119,25 @@ export function WorkoutCompletePopup() {
             </AlertDialogDescription>
           </div>
         </div>
+
+        {newMaxHits.length > 0 || toastLabel ? (
+          <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-4 py-3">
+            <Trophy className="mt-0.5 h-5 w-5 shrink-0 text-[var(--gym-gold)]" />
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+                NOWY MAX
+              </p>
+              <p className="mt-1 text-sm text-white/90">
+                {newMaxHits.length > 0
+                  ? newMaxHits
+                      .slice(0, 3)
+                      .map((h) => `${h.exerciseName} · ${h.value} kg`)
+                      .join(" · ")
+                  : toastLabel}
+              </p>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
@@ -158,7 +191,16 @@ export function WorkoutCompletePopup() {
           </p>
         </div>
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          {primaryExercise ? (
+            <Link
+              href={`/progress-analysis?q=${encodeURIComponent(primaryExercise)}`}
+              className={cn(buttonVariants({ variant: "outline" }))}
+              onClick={() => setOpen(false)}
+            >
+              Zobacz postęp
+            </Link>
+          ) : null}
           <AlertDialogClose
             render={
               <Button type="button" />
@@ -171,4 +213,3 @@ export function WorkoutCompletePopup() {
     </AlertDialog>
   );
 }
-

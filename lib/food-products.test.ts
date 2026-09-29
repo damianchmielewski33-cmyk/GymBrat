@@ -71,6 +71,23 @@ describe("food-products local db", () => {
     expect(searchLocalProducts("jablko").some((p) => /jabł/i.test(p.name))).toBe(true);
   });
 
+  it("szuka szerzej: Longer KFC, chleb górski Lidl, bułka maślana Biedronka", () => {
+    const longer = searchLocalProducts("longer kfc");
+    expect(longer.some((p) => /longer/i.test(p.name) && /kfc/i.test(p.brand ?? ""))).toBe(
+      true,
+    );
+    const chleb = searchLocalProducts("chleb górski lidl");
+    expect(
+      chleb.some((p) => /chleb/i.test(p.name) && /lidl/i.test(p.brand ?? "")),
+    ).toBe(true);
+    const bulka = searchLocalProducts("bulka maslana biedronka");
+    expect(
+      bulka.some(
+        (p) => /bu[lł]ka|maslan/i.test(p.name) && /biedronka/i.test(p.brand ?? ""),
+      ),
+    ).toBe(true);
+  });
+
   it("banan i kiwi mają szczegóły odżywcze", () => {
     const banan = searchLocalProducts("banan")[0]!;
     expect(banan.details?.sugarsG).toBeGreaterThan(0);

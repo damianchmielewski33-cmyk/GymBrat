@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   MEAL_SLOT_LABELS,
   MEAL_SLOTS,
@@ -23,6 +23,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { AddToMealLogSheet } from "@/components/meal-suggestions/add-to-meal-log-sheet";
+import { MealCatalogEmptyState } from "@/components/meal-suggestions/meal-catalog-empty-state";
 import type { DietDiarySlot } from "@/lib/diet-diary-slots";
 import { Clock3, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -51,15 +52,32 @@ function fmtMacro(n: number, unit: string) {
 export function MealCatalogBrowser({
   dateKey,
   meals,
+  isAdmin = false,
+  focusMealId = null,
+  onFocusMealHandled,
 }: {
   dateKey: string;
   meals: CatalogMeal[];
+  isAdmin?: boolean;
+  /** Otwiera szczegóły przepisu (np. z karty propozycji). */
+  focusMealId?: string | null;
+  onFocusMealHandled?: () => void;
 }) {
   const [slot, setSlot] = useState<MealSlot>("sniadanie");
   const [query, setQuery] = useState("");
   const [macroFilter, setMacroFilter] = useState<"all" | "high_protein" | "low_calorie">("all");
   const [selected, setSelected] = useState<CatalogMeal | null>(null);
   const [visibleCount, setVisibleCount] = useState(12);
+
+  useEffect(() => {
+    if (!focusMealId) return;
+    const meal = meals.find((m) => m.id === focusMealId) ?? null;
+    if (meal) {
+      setSelected(meal);
+      setSlot(meal.slot);
+    }
+    onFocusMealHandled?.();
+  }, [focusMealId, meals, onFocusMealHandled]);
 
   const slotMeals = useMemo(() => getMealsBySlot(slot, meals), [slot, meals]);
 
@@ -81,6 +99,10 @@ export function MealCatalogBrowser({
     const enriched = enrichRecipeContent(selected);
     return { meal: selected, ...enriched };
   }, [selected]);
+
+  if (meals.length === 0) {
+    return <MealCatalogEmptyState isAdmin={isAdmin} />;
+  }
 
   return (
     <section className="app-card space-y-4 p-5">

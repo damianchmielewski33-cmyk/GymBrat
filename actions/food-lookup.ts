@@ -1,6 +1,14 @@
 "use server";
 
-import { findLocalProductByBarcode, lookupBarcodeRemote, searchLocalProducts, searchOpenFoodFacts } from "@/lib/food-products";
+import { auth } from "@/auth";
+import {
+  findLocalProductByBarcode,
+  lookupBarcodeRemote,
+  searchLocalProducts,
+  searchOpenFoodFacts,
+  scoreProductAgainstQuery,
+} from "@/lib/food-products";
+import { listRecentFoodProductsFromLogs } from "@/lib/meal-logs";
 import type { FoodProduct } from "@/lib/food-products-types";
 
 export type FoodLookupResult =
@@ -8,7 +16,7 @@ export type FoodLookupResult =
   | { ok: false; error: string };
 
 export type FoodSearchResult =
-  | { ok: true; products: FoodProduct[] }
+  | { ok: true; products: FoodProduct[]; fromRecents?: boolean }
   | { ok: false; error: string };
 
 export async function lookupFoodByBarcodeAction(barcode: string): Promise<FoodLookupResult> {
@@ -33,10 +41,29 @@ export async function lookupFoodByBarcodeAction(barcode: string): Promise<FoodLo
   };
 }
 
+/** Ostatnio dodane produkty z historii dziennika. */
+export async function listRecentFoodProductsAction(
+  limit = 24,
+): Promise<FoodSearchResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: true, products: searchLocalProducts("", limit), fromRecents: false };
+  }
+  try {
+    const recent = await listRecentFoodProductsFromLogs(session.user.id, limit);
+    if (recent.length > 0) {
+      return { ok: true, products: recent, fromRecents: true };
+    }
+  } catch {
+    /* fallback */
+  }
+  return { ok: true, products: searchLocalProducts("", limit), fromRecents: false };
+}
+
 export async function searchFoodProductsAction(query: string): Promise<FoodSearchResult> {
   const q = query.trim();
   if (!q) {
-    return { ok: true, products: searchLocalProducts("", 24) };
+    return listRecentFoodProductsAction(24);
   }
 
   // Sam kod — traktuj jak skan
@@ -45,21 +72,24 @@ export async function searchFoodProductsAction(query: string): Promise<FoodSearc
     if (byCode.ok) return { ok: true, products: [byCode.product] };
   }
 
-  const local = searchLocalProducts(q, 16);
+  const local = searchLocalProducts(q, 20);
   let remote: FoodProduct[] = [];
   try {
-    remote = await searchOpenFoodFacts(q, 10);
+    remote = await searchOpenFoodFacts(q, 16);
   } catch {
     /* opcjonalne */
   }
 
   const seen = new Set<string>();
-  const merged: FoodProduct[] = [];
+  const merged: Array<{ p: FoodProduct; score: number }> = [];
   for (const p of [...local, ...remote]) {
-    const key = `${(p.barcode ?? "").toLowerCase()}|${p.name.toLowerCase()}`;
+    const key = `${(p.barcode ?? "").toLowerCase()}|${p.name.toLowerCase()}|${(p.brand ?? "").toLowerCase()}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    merged.push(p);
+    const score = scoreProductAgainstQuery(q, p);
+    if (score <= 0 && !local.includes(p)) continue;
+    merged.push({ p, score: score || 1 });
   }
-  return { ok: true, products: merged.slice(0, 24) };
+  merged.sort((a, b) => b.score - a.score);
+  return { ok: true, products: merged.slice(0, 28).map((x) => x.p) };
 }

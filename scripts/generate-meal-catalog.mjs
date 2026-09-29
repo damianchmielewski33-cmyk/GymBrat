@@ -7,7 +7,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const outPath = path.join(__dirname, "../lib/meal-catalog-data.ts");
+/** Pakiet startowy tylko do importu w panelu admina — nie jest seedem runtime. */
+const outJsonPath = path.join(__dirname, "../data/meal-catalog-starter.json");
 
 /** @typedef {"sniadanie"|"drugie_sniadanie"|"obiad"|"podwieczorek"|"kolacja"} MealSlot */
 
@@ -922,36 +923,28 @@ for (const m of enrichedUnique) {
   bySlot[m.slot] = (bySlot[m.slot] ?? 0) + 1;
 }
 
-const lines = [
-  "/** Autogenerowane przez scripts/generate-meal-catalog.mjs — unikalne dania, gramatura i kroki. */",
-  'import type { CatalogMeal } from "@/lib/meal-catalog-types";',
-  "",
-  "export const MEAL_CATALOG_GENERATED: CatalogMeal[] = [",
-];
-
-enrichedUnique.forEach((m, i) => {
+const catalog = enrichedUnique.map((m, i) => {
   const id = `${m.slot}-${String(i + 1).padStart(4, "0")}-${slug(m.title)}`;
   const cal = kcal(m.p, m.c, m.f);
-  lines.push("  {");
-  lines.push(`    id: ${JSON.stringify(id)},`);
-  lines.push(`    slot: ${JSON.stringify(m.slot)},`);
-  lines.push(`    title: ${JSON.stringify(m.title)},`);
-  lines.push(`    tagline: ${JSON.stringify(m.tagline)},`);
-  lines.push(`    ingredients: ${JSON.stringify(m.ingredients)},`);
-  lines.push(`    steps: ${JSON.stringify(m.steps)},`);
-  lines.push(
-    `    approximateMacros: { calories: ${cal}, proteinG: ${m.p}, fatG: ${m.f}, carbsG: ${m.c} },`,
-  );
-  lines.push(`    imagePromptEn: ${JSON.stringify(m.imagePromptEn)},`);
-  lines.push(`    prepMinutes: ${m.prepMinutes},`);
-  lines.push("  },");
+  return {
+    id,
+    slot: m.slot,
+    title: m.title,
+    tagline: m.tagline,
+    ingredients: m.ingredients,
+    steps: m.steps,
+    approximateMacros: {
+      calories: cal,
+      proteinG: m.p,
+      fatG: m.f,
+      carbsG: m.c,
+    },
+    imagePromptEn: m.imagePromptEn,
+    prepMinutes: m.prepMinutes,
+  };
 });
 
-lines.push("];");
-lines.push("");
-lines.push(`export const MEAL_CATALOG_GENERATED_COUNT = ${enrichedUnique.length};`);
-lines.push("");
-
-fs.writeFileSync(outPath, lines.join("\n"), "utf8");
-console.log(`Wrote ${enrichedUnique.length} unique meals → ${outPath}`);
+fs.mkdirSync(path.dirname(outJsonPath), { recursive: true });
+fs.writeFileSync(outJsonPath, `${JSON.stringify(catalog, null, 2)}\n`, "utf8");
+console.log(`Wrote ${catalog.length} unique meals → ${outJsonPath}`);
 console.log(bySlot);

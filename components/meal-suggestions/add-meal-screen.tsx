@@ -296,7 +296,7 @@ export function AddMealScreen({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Wpisz nazwę produktu…"
+            placeholder="np. Longer KFC, chleb górski Lidl, bułka maślana…"
             autoFocus
             autoComplete="off"
             className="h-12 w-full rounded-xl border border-white/12 bg-black/50 py-2 pl-10 pr-12 text-base text-white outline-none placeholder:text-white/35"
