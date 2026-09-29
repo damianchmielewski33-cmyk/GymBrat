@@ -11,17 +11,21 @@ export function resolveTechniqueUrlForName(
   return map[hit.id] ?? null;
 }
 
-/** Dokleja URL techniki z mapy catalogId→URL. */
+/** Dokleja URL techniki z mapy catalogId→URL tylko gdy plan nie ma własnego linku. */
 export function attachTechniqueUrls(
   exercises: WorkoutExerciseState[],
   catalogUrlMap: Record<string, string>,
 ): WorkoutExerciseState[] {
   if (!exercises.length) return exercises;
   return exercises.map((ex) => {
+    const fromPlan = ex.techniqueYoutubeUrl?.trim() || null;
+    if (fromPlan) {
+      return { ...ex, techniqueYoutubeUrl: fromPlan };
+    }
     const url = resolveTechniqueUrlForName(ex.name, catalogUrlMap);
     return {
       ...ex,
-      techniqueYoutubeUrl: url ?? ex.techniqueYoutubeUrl ?? null,
+      techniqueYoutubeUrl: url ?? null,
     };
   });
 }

@@ -50,6 +50,7 @@ import { cn } from "@/lib/utils";
 import { ScreenHeader } from "@/components/layout/screen";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { WorkoutPlanWordImport } from "@/components/workout-plan/workout-plan-word-import";
+import { normalizeYoutubeUrl } from "@/lib/youtube-url";
 
 function uid() {
   return crypto.randomUUID();
@@ -228,6 +229,7 @@ export function WorkoutPlanEditor({
             rir: 1,
             tempo: null,
             note: null,
+            techniqueYoutubeUrl: null,
             supersetGroupId: null,
           },
         ],
@@ -264,6 +266,7 @@ export function WorkoutPlanEditor({
           rir: 1,
           tempo: null,
           note: null,
+          techniqueYoutubeUrl: null,
           supersetGroupId: null,
         },
       ],
@@ -907,6 +910,41 @@ export function WorkoutPlanEditor({
                         }
                         className="mt-1 h-9 border-white/15 bg-black/25 text-white placeholder:text-white/30"
                       />
+                    </div>
+                    <div className="pl-10">
+                      <Label
+                        htmlFor={`technique-${ex.id}`}
+                        className="text-xs text-white/55"
+                      >
+                        Film techniki (YouTube)
+                      </Label>
+                      <Input
+                        id={`technique-${ex.id}`}
+                        type="url"
+                        inputMode="url"
+                        value={ex.techniqueYoutubeUrl ?? ""}
+                        placeholder="https://youtube.com/watch?v=…"
+                        onChange={(e) =>
+                          updateExercise(ex.id, {
+                            techniqueYoutubeUrl: e.target.value.trim() || null,
+                          })
+                        }
+                        onBlur={() => {
+                          const raw = ex.techniqueYoutubeUrl ?? "";
+                          if (!raw.trim()) {
+                            updateExercise(ex.id, { techniqueYoutubeUrl: null });
+                            return;
+                          }
+                          const normalized = normalizeYoutubeUrl(raw);
+                          updateExercise(ex.id, {
+                            techniqueYoutubeUrl: normalized,
+                          });
+                        }}
+                        className="mt-1 h-9 border-white/15 bg-black/25 text-white placeholder:text-white/30"
+                      />
+                      <p className="mt-1 text-[11px] text-white/35">
+                        Link pojawi się w sesji jako „technika ↗”.
+                      </p>
                     </div>
                   </motion.li>
                 ))}

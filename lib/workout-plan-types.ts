@@ -11,6 +11,8 @@ export type WorkoutPlanExercise = {
   tempo?: string | null;
   /** Notatka techniczna / cue. */
   note?: string | null;
+  /** Link YouTube do techniki — ustawiany przy układaniu planu. */
+  techniqueYoutubeUrl?: string | null;
   /** Ćwiczenia z tym samym id = superseria (kolejno w sesji). */
   supersetGroupId?: string | null;
 };

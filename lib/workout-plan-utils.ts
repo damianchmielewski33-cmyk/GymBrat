@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
+import { normalizeYoutubeUrl } from "@/lib/youtube-url";
 
 type LegacyWeekDay = {
   dayKey: string;
@@ -31,6 +32,11 @@ function optionalNote(raw: unknown): string | null {
   return t.length > 0 ? t : null;
 }
 
+function optionalTechniqueYoutubeUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  return normalizeYoutubeUrl(raw);
+}
+
 function optionalSuperset(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const t = raw.trim().slice(0, 64);
@@ -52,6 +58,7 @@ function migrateV1ToV2(legacy: LegacyWorkoutPlanV1): WorkoutPlanPayload {
         rir: null,
         tempo: null,
         note: null,
+        techniqueYoutubeUrl: null,
         supersetGroupId: null,
       });
     }
@@ -94,6 +101,7 @@ export function normalizeWorkoutPlan(raw: unknown): WorkoutPlanPayload | null {
         rir: optionalRir(e.rir),
         tempo: optionalTempo(e.tempo),
         note: optionalNote(e.note),
+        techniqueYoutubeUrl: optionalTechniqueYoutubeUrl(e.techniqueYoutubeUrl),
         supersetGroupId: optionalSuperset(e.supersetGroupId),
       }));
     return {

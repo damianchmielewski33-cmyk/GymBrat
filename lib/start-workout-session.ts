@@ -30,6 +30,7 @@ export function planExercisesToSession(
       targetRir,
       tempo: ex.tempo ?? null,
       note: ex.note?.trim() || undefined,
+      techniqueYoutubeUrl: ex.techniqueYoutubeUrl?.trim() || null,
       supersetGroupId: ex.supersetGroupId ?? null,
       sets: Array.from({ length: setCount }, () => ({
         reps,

@@ -128,8 +128,9 @@ export function AdminExercisesClient() {
               Technika ćwiczeń (YouTube)
             </h2>
             <p className="mt-1 text-sm text-white/55">
-              Link z przycisku „technika ↗” w sesji treningu. Puste pole = brak
-              przycisku. Ustawione: {withUrl}/{rows.length}.
+              Opcjonalny fallback katalogu. Główne linki „technika ↗” ustawiasz przy
+              układaniu planu (Profil → Plan treningowy). Ustawione tu: {withUrl}/
+              {rows.length}.
             </p>
           </div>
         </div>

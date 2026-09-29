@@ -51,6 +51,7 @@ export function trainingPlanToWorkoutPayloads(
         rir: 1,
         tempo: null,
         note: ex.notes?.trim() || null,
+        techniqueYoutubeUrl: null,
         supersetGroupId: null,
       };
     });
