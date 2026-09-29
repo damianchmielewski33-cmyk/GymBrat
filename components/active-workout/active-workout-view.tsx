@@ -6,6 +6,8 @@ import {
   fetchLastWorkoutHintsForPlan,
   type WorkoutPlanWithLastWorkoutDTO,
 } from "@/actions/workout-plan";
+import { getExerciseTechniqueUrlMap } from "@/actions/exercise-technique";
+import { attachTechniqueUrls } from "@/lib/attach-technique-urls";
 import { mergeHintsIntoExercises } from "@/lib/last-workout-hints";
 import type { LastPlanHintsMap } from "@/lib/last-workout-hints";
 import { planExercisesToSession } from "@/lib/start-workout-session";
@@ -18,17 +20,20 @@ import { StartWorkoutScreen } from "@/components/active-workout/start-workout-sc
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RestBreakScreen } from "@/components/active-workout/rest-break-screen";
+import { WorkoutAllSetsDoneDialog } from "@/components/active-workout/workout-all-sets-done-dialog";
 import { readRestTimerPrefs } from "@/lib/rest-timer-prefs";
-import { playRestTimerEndSignal } from "@/lib/rest-timer-signal";
+import { playRestTimerEndSignal, playRestTimerStartSignal, unlockRestTimerAudio } from "@/lib/rest-timer-signal";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
+import { hapticExerciseDone, hapticNewMax, hapticWorkoutDone } from "@/lib/haptics";
 import { RotateCcw } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18n-provider";
 
 type LastCompletedSnap = {
+  exerciseId: string;
   exerciseName: string;
   setIndex: number;
   setCount: number;
@@ -36,6 +41,10 @@ type LastCompletedSnap = {
   reps: number;
   nextLabel: string;
   nextValue: string;
+  /** Ostatnia seria tego ćwiczenia (można dodać kolejną). */
+  exerciseFinished: boolean;
+  /** Ostatnia seria całego treningu. */
+  workoutFinished: boolean;
 };
 
 export function ActiveWorkoutView({
@@ -63,13 +72,12 @@ export function ActiveWorkoutView({
     applyPlan,
     start,
     reset,
-    setCardioMinutes: _setCardioMinutes,
+    setCardioMinutes,
     setExercises,
     setSelectedExerciseId,
     patchSet: patchSetInStore,
     patchExercise,
   } = useActiveWorkoutStore();
-  void _setCardioMinutes;
   const { t } = useI18n();
   const [now, setNow] = useState(() => Date.now());
   const router = useRouter();
@@ -84,6 +92,8 @@ export function ActiveWorkoutView({
   const [lastCompleted, setLastCompleted] = useState<LastCompletedSnap | null>(null);
   const [listOpen, setListOpen] = useState(false);
   const [resumePromptOpen, setResumePromptOpen] = useState(false);
+  const [allSetsDoneOpen, setAllSetsDoneOpen] = useState(false);
+  const [finishOpen, setFinishOpen] = useState(false);
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
   /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/start-workout`. */
   const [storeHydrated, setStoreHydrated] = useState(false);
@@ -150,6 +160,42 @@ export function ActiveWorkoutView({
     hintsMergedRef.current = true;
   }, [lastPlanHints, hintsFetchDone, workoutPlanId, setExercises]);
 
+  const techniqueMapRef = useRef<Record<string, string>>({});
+  const techniqueAppliedKeyRef = useRef("");
+
+  useEffect(() => {
+    let cancelled = false;
+    void getExerciseTechniqueUrlMap().then((map) => {
+      if (cancelled) return;
+      techniqueMapRef.current = map;
+      const current = useActiveWorkoutStore.getState().exercises;
+      if (!current.length || !Object.keys(map).length) return;
+      const key = current.map((e) => `${e.id}:${e.name}`).join("|");
+      const next = attachTechniqueUrls(current, map);
+      techniqueAppliedKeyRef.current = key;
+      const changed = next.some(
+        (ex, i) => ex.techniqueYoutubeUrl !== current[i]?.techniqueYoutubeUrl,
+      );
+      if (changed) setExercises(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [setExercises]);
+
+  useEffect(() => {
+    const map = techniqueMapRef.current;
+    const key = exercises.map((e) => `${e.id}:${e.name}`).join("|");
+    if (!key || !Object.keys(map).length) return;
+    if (techniqueAppliedKeyRef.current === key) return;
+    const next = attachTechniqueUrls(exercises, map);
+    techniqueAppliedKeyRef.current = key;
+    const changed = next.some(
+      (ex, i) => ex.techniqueYoutubeUrl !== exercises[i]?.techniqueYoutubeUrl,
+    );
+    if (changed) setExercises(next);
+  }, [exercises, setExercises]);
+
   // Route gating:
   // - `/active-workout` is a strict "session view" and must NOT be accessible without an active session.
   // - `/start-workout` is the entry point that lets user pick a plan and begin a session.
@@ -174,6 +220,10 @@ export function ActiveWorkoutView({
   ]);
 
   function startRest(seconds: number) {
+    void unlockRestTimerAudio();
+    if (restSoundOn) {
+      playRestTimerStartSignal();
+    }
     setRestRemaining(seconds);
   }
 
@@ -193,7 +243,10 @@ export function ActiveWorkoutView({
     const nextSetIdx = setIndex + 1;
     let nextLabel = "Następna seria";
     let nextValue = `Seria ${nextSetIdx + 1} z ${ex.sets.length}`;
+    let exerciseFinished = false;
+    let workoutFinished = false;
     if (nextSetIdx >= ex.sets.length) {
+      exerciseFinished = true;
       const nextEx = exercises[idx + 1];
       if (nextEx) {
         nextLabel = "Następne ćwiczenie";
@@ -201,9 +254,11 @@ export function ActiveWorkoutView({
       } else {
         nextLabel = "Koniec";
         nextValue = "Ostatnia seria zaliczona";
+        workoutFinished = true;
       }
     }
     return {
+      exerciseId,
       exerciseName: ex.name,
       setIndex,
       setCount: ex.sets.length,
@@ -211,7 +266,76 @@ export function ActiveWorkoutView({
       reps,
       nextLabel,
       nextValue,
+      exerciseFinished,
+      workoutFinished,
     };
+  }
+
+  function countSetsDone(list: WorkoutExerciseState[]) {
+    let done = 0;
+    let total = 0;
+    for (const ex of list) {
+      for (const s of ex.sets) {
+        total += 1;
+        if (s.done) done += 1;
+      }
+    }
+    return { done, total };
+  }
+
+  function addSetToExercise(exerciseId: string) {
+    const ex = exercises.find((e) => e.id === exerciseId);
+    if (!ex) return;
+    const last = ex.sets[ex.sets.length - 1];
+    setExercises(
+      exercises.map((e) =>
+        e.id !== exerciseId
+          ? e
+          : {
+              ...e,
+              sets: [
+                ...e.sets,
+                {
+                  reps: last?.reps ?? e.targetReps ?? null,
+                  weight: last?.weight ?? 0,
+                  done: false,
+                  rpe: null,
+                  rir: e.targetRir ?? null,
+                },
+              ],
+            },
+      ),
+    );
+    setLastCompleted((prev) =>
+      prev && prev.exerciseId === exerciseId
+        ? {
+            ...prev,
+            setCount: prev.setCount + 1,
+            exerciseFinished: false,
+            workoutFinished: false,
+            nextLabel: "Następna seria",
+            nextValue: `Seria ${prev.setCount + 1} z ${prev.setCount + 1}`,
+          }
+        : prev,
+    );
+    setAllSetsDoneOpen(false);
+  }
+
+  function discardSession() {
+    if (
+      !window.confirm(
+        "Zakończyć bez zapisu? Postęp z tej sesji nie zostanie zapisany.",
+      )
+    ) {
+      return;
+    }
+    reset();
+    setExercises([]);
+    setSelectedExerciseId(null);
+    stopRest();
+    setAllSetsDoneOpen(false);
+    setFinishOpen(false);
+    router.push("/workout-plan");
   }
 
   const sessionTotal = useMemo(() => sessionVolume(exercises), [exercises]);
@@ -265,22 +389,27 @@ export function ActiveWorkoutView({
     }
   }, [entry]);
 
+  const restSoundOnRef = useRef(restSoundOn);
+  restSoundOnRef.current = restSoundOn;
+
   useEffect(() => {
-    if (restRemaining === null || restRemaining <= 0) return;
-    const id = window.setInterval(() => {
-      setRestRemaining((r) => {
-        if (r === null) return null;
-        if (r <= 1) {
-          if (r === 1 && restSoundOn) {
-            queueMicrotask(() => playRestTimerEndSignal());
-          }
-          return null;
+    if (restRemaining === null) return;
+    if (restRemaining <= 0) {
+      setRestRemaining(null);
+      return;
+    }
+    const id = window.setTimeout(() => {
+      if (restRemaining === 1) {
+        if (restSoundOnRef.current) {
+          playRestTimerEndSignal();
         }
-        return r - 1;
-      });
+        setRestRemaining(null);
+        return;
+      }
+      setRestRemaining(restRemaining - 1);
     }, 1000);
-    return () => window.clearInterval(id);
-  }, [restRemaining, restSoundOn]);
+    return () => window.clearTimeout(id);
+  }, [restRemaining]);
 
   const elapsed = useMemo(() => {
     const running =
@@ -329,15 +458,39 @@ export function ActiveWorkoutView({
           Number.isFinite(nextWeight) &&
           nextWeight > 0;
     if (isDoneNext && !wasDone) {
+      const snap = buildCompletedSnap(
+        exerciseId,
+        setIndex,
+        Number(nextWeight) || 0,
+        Number(nextReps) || 0,
+      );
+      if (snap) setLastCompleted(snap);
+
+      // Po ostatniej serii całego treningu — popup cardio / zakończ.
+      const projected = exercises.map((e) =>
+        e.id !== exerciseId
+          ? e
+          : {
+              ...e,
+              sets: e.sets.map((s, i) =>
+                i === setIndex ? { ...s, done: true } : s,
+              ),
+            },
+      );
+      const { done, total } = countSetsDone(projected);
+      if (total > 0 && done >= total) {
+        stopRest();
+        hapticWorkoutDone();
+        setAllSetsDoneOpen(true);
+        return;
+      }
+
+      if (snap?.exerciseFinished) {
+        hapticExerciseDone();
+      }
+
       const { autoStart, defaultSeconds } = readRestTimerPrefs();
       if (autoStart) {
-        const snap = buildCompletedSnap(
-          exerciseId,
-          setIndex,
-          Number(nextWeight) || 0,
-          Number(nextReps) || 0,
-        );
-        if (snap) setLastCompleted(snap);
         queueMicrotask(() => startRest(defaultSeconds));
       }
     }
@@ -358,8 +511,6 @@ export function ActiveWorkoutView({
       /** Nawigacja: wyłącznie efekt „route gate” (`start` + `hasLoadedPlan` → `replace`), żeby uniknąć podwójnego push/replace i wyścigów z hydracją. */
     }
   }
-
-  const [finishOpen, setFinishOpen] = useState(false);
 
   async function completeWorkout() {
     setSaveError(null);
@@ -408,6 +559,7 @@ export function ActiveWorkoutView({
       };
       sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
       if (newMaxHits.length > 0) {
+        hapticNewMax();
         const primary = newMaxHits[0]!;
         sessionStorage.setItem(
           "gymbrat:newMaxToast",
@@ -420,6 +572,7 @@ export function ActiveWorkoutView({
           `/progress-analysis?q=${encodeURIComponent(primary.exerciseName)}`,
         );
       } else {
+        hapticWorkoutDone();
         sessionStorage.removeItem("gymbrat:newMaxToast");
         router.push("/workout-plan");
       }
@@ -447,28 +600,7 @@ export function ActiveWorkoutView({
       onSelectExercise={(id) => setSelectedExerciseId(id)}
       onPatchSet={patchSet}
       onAddSet={(exerciseId) => {
-        const ex = exercises.find((e) => e.id === exerciseId);
-        if (!ex) return;
-        const last = ex.sets[ex.sets.length - 1];
-        setExercises(
-          exercises.map((e) =>
-            e.id !== exerciseId
-              ? e
-              : {
-                  ...e,
-                  sets: [
-                    ...e.sets,
-                    {
-                      reps: last?.reps ?? e.targetReps ?? null,
-                      weight: last?.weight ?? 0,
-                      done: false,
-                      rpe: null,
-                      rir: e.targetRir ?? null,
-                    },
-                  ],
-                },
-          ),
-        );
+        addSetToExercise(exerciseId);
       }}
       onRemoveLastSet={(exerciseId) => {
         const ex = exercises.find((e) => e.id === exerciseId);
@@ -482,20 +614,8 @@ export function ActiveWorkoutView({
       onExerciseNoteChange={(exerciseId, note) =>
         patchExercise(exerciseId, { note })
       }
-      onCancelSession={() => {
-        if (
-          !window.confirm(
-            "Anulować sesję? Postęp z tej sesji nie zostanie zapisany.",
-          )
-        ) {
-          return;
-        }
-        reset();
-        setExercises([]);
-        setSelectedExerciseId(null);
-        stopRest();
-        router.push("/workout-plan");
-      }}
+      onCancelSession={discardSession}
+      onDiscardSession={discardSession}
       onFinishSession={() => {
         setFinishOpen(true);
       }}
@@ -542,33 +662,41 @@ export function ActiveWorkoutView({
           }
           nextLabel={lastCompleted?.nextLabel ?? "Następna seria"}
           nextValue={lastCompleted?.nextValue ?? "—"}
+          showAddSet={Boolean(lastCompleted?.exerciseFinished)}
           soundOn={restSoundOn}
-          onToggleSound={() => setRestSoundOn((v) => !v)}
+          onToggleSound={() => {
+            void unlockRestTimerAudio();
+            setRestSoundOn((v) => {
+              const next = !v;
+              if (next) playRestTimerStartSignal();
+              return next;
+            });
+          }}
           onAddSeconds={(sec) =>
             setRestRemaining((r) => (r == null ? sec : r + sec))
           }
           onSetSeconds={(sec) => setRestRemaining(sec)}
           onContinue={() => stopRest()}
-          onCloseSession={() => {
-            if (
-              !window.confirm(
-                "Anulować sesję? Postęp z tej sesji nie zostanie zapisany.",
-              )
-            ) {
-              return;
-            }
-            reset();
-            setExercises([]);
-            setSelectedExerciseId(null);
-            stopRest();
-            router.push("/workout-plan");
-          }}
+          onAddSet={
+            lastCompleted?.exerciseId
+              ? () => addSetToExercise(lastCompleted.exerciseId)
+              : undefined
+          }
+          onCloseSession={discardSession}
           onOpenList={() => {
             stopRest();
             setListOpen(true);
           }}
         />
       ) : null}
+
+      <WorkoutAllSetsDoneDialog
+        open={allSetsDoneOpen}
+        onOpenChange={setAllSetsDoneOpen}
+        initialCardioMinutes={cardioMinutes}
+        onFinish={() => setFinishOpen(true)}
+        onConfirmCardio={(minutes) => setCardioMinutes(minutes)}
+      />
 
       <div
         className={
@@ -644,6 +772,7 @@ export function ActiveWorkoutView({
               ? `${finishNewMaxes[0].exerciseName} ${finishNewMaxes[0].value} kg`
               : null
           }
+          newMaxHit={finishNewMaxes[0] ?? null}
           onDone={() => {
             void completeWorkout();
           }}

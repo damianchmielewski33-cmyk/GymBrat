@@ -31,8 +31,8 @@ const CatalogMealStrictSchema = z.object({
   tagline: z.string().max(240).optional(),
   slot: MealSlotSchema,
   prepMinutes: z.number().int().positive().max(240),
-  ingredients: z.array(z.string().min(1)).min(2).max(24),
-  steps: z.array(z.string().min(1)).min(2).max(18),
+  ingredients: z.array(z.string().min(1)).min(2).max(40),
+  steps: z.array(z.string().min(1)).min(2).max(40),
   approximateMacros: MacrosSchema,
   imagePrompt: z.string().max(500).optional(),
   imagePromptEn: z.string().max(400).optional(),
@@ -51,7 +51,7 @@ const MealTypeAliasSchema = z.enum([
   "kolacja",
 ]);
 
-/** Uproszczony format importu (JSON z panelu). */
+/** Uproszczony format importu (JSON z panelu / zewnętrzne meal_XXX). */
 const CatalogMealLooseSchema = z.object({
   id: z.string().min(1).max(80),
   title: z.string().min(1).max(160),
@@ -60,13 +60,18 @@ const CatalogMealLooseSchema = z.object({
   mealType: MealTypeAliasSchema.optional(),
   slot: MealSlotSchema.optional(),
   prepMinutes: z.number().int().positive().max(240).optional(),
+  /** Alias zewnętrzny — jak `prepMinutes`. */
+  prepTime: z.number().int().positive().max(240).optional(),
+  servings: z.number().positive().max(50).optional(),
   calories: z.number().nonnegative().optional(),
   protein: z.number().nonnegative().optional(),
   carbs: z.number().nonnegative().optional(),
   fat: z.number().nonnegative().optional(),
   approximateMacros: MacrosSchema.optional(),
-  ingredients: z.array(z.string().min(1)).min(2).max(24).optional(),
-  steps: z.array(z.string().min(1)).min(2).max(18).optional(),
+  ingredients: z.array(z.string().min(1)).min(2).max(40).optional(),
+  steps: z.array(z.string().min(1)).min(2).max(40).optional(),
+  /** Alias zewnętrzny — jak `steps`. */
+  instructions: z.array(z.string().min(1)).min(2).max(40).optional(),
   imagePrompt: z.string().max(500).optional(),
   imagePromptEn: z.string().max(400).optional(),
   imageUrl: z.string().url().max(800).optional(),
@@ -138,14 +143,16 @@ function normalizeOne(raw: unknown): CatalogMeal {
   const steps =
     m.steps && m.steps.length >= 2
       ? m.steps
-      : ["Przygotuj składniki.", "Przygotuj danie i podawaj."];
+      : m.instructions && m.instructions.length >= 2
+        ? m.instructions
+        : ["Przygotuj składniki.", "Przygotuj danie i podawaj."];
 
   return {
     id: m.id.trim(),
     title: m.title.trim(),
     tagline: (m.tagline ?? m.description)?.trim() || undefined,
     slot: m.slot ?? mapMealTypeToSlot(m.mealType),
-    prepMinutes: m.prepMinutes ?? 20,
+    prepMinutes: m.prepMinutes ?? m.prepTime ?? 20,
     ingredients,
     steps,
     approximateMacros: macros,
@@ -171,7 +178,10 @@ export function parseCatalogImportPayload(input: unknown): {
     if (obj.mode === "replace" || obj.mode === "merge") mode = obj.mode;
     if (Array.isArray(obj.meals)) list = obj.meals;
     else if (Array.isArray(obj.recipes)) list = obj.recipes;
-    else {
+    else if (typeof obj.id === "string" && typeof obj.title === "string") {
+      // Pojedynczy przepis (np. meal_071) bez opakowania w tablicę.
+      list = [obj];
+    } else {
       throw new Error('Oczekiwano tablicy albo obiektu z polem "meals" / "recipes".');
     }
   } else {

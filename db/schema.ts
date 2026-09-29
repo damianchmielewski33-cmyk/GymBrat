@@ -230,6 +230,23 @@ export const mealCatalog = sqliteTable(
   (t) => [index("idx_meal_catalog_updated").on(t.updatedAt)],
 );
 
+/**
+ * Linki techniki (YouTube) do ćwiczeń z katalogu — konfiguracja w panelu admina.
+ * `id` = CatalogExercise.id (np. c-bench-bar).
+ */
+export const exerciseTechniqueLinks = sqliteTable(
+  "exercise_technique_links",
+  {
+    id: text("id").primaryKey(),
+    youtubeUrl: text("youtube_url").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedByUserId: text("updated_by_user_id"),
+  },
+  (t) => [index("idx_exercise_technique_updated").on(t.updatedAt)],
+);
+
 /** Wpisy posiłków dodane ręcznie / ze skanu — źródło spożycia makroskładników. */
 export const mealLogs = sqliteTable(
   "meal_logs",

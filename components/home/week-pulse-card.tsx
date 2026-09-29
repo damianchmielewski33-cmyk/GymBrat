@@ -1,5 +1,18 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { calendarDateKey } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
+
+const STORAGE_KEY = "gymbrat:week-pulse-shown:v1";
 
 export type WeekPulseReportStatus =
   | { kind: "missing_first" }
@@ -40,6 +53,22 @@ function resolveCta(args: {
     return { label: "Dodaj posiłek", href: "/meal-suggestions" };
   }
   return { label: "Kontynuuj", href: "/workout-plan" };
+}
+
+function markShownToday() {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, calendarDateKey());
+  } catch {
+    /* ignore */
+  }
+}
+
+function wasShownToday(): boolean {
+  try {
+    return window.localStorage.getItem(STORAGE_KEY) === calendarDateKey();
+  } catch {
+    return false;
+  }
 }
 
 function ProgressRow({
@@ -89,18 +118,7 @@ function ProgressRow({
   );
 }
 
-/**
- * Sticky podsumowanie tygodnia na Pulpicie: kcal dziś, treningi, raport + jeden CTA.
- */
-export function WeekPulseCard({
-  caloriesConsumed,
-  caloriesGoal,
-  workoutsThisWeek,
-  weeklySessionsTarget,
-  reportCount,
-  daysSinceLastReport,
-  reportCadenceDays,
-}: {
+type WeekPulseProps = {
   caloriesConsumed: number;
   caloriesGoal: number | null;
   workoutsThisWeek: number;
@@ -108,44 +126,61 @@ export function WeekPulseCard({
   reportCount: number;
   daysSinceLastReport: number | null;
   reportCadenceDays: number;
-}) {
+};
+
+/**
+ * Dzienny popup „Ten tydzień” — raz na kalendarzowy dzień przy pierwszym wejściu na Start.
+ */
+export function WeekPulseCard(props: WeekPulseProps) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (wasShownToday()) return;
+    setOpen(true);
+  }, []);
+
+  function dismiss() {
+    markShownToday();
+    setOpen(false);
+  }
+
   const report = resolveReportStatus(
-    reportCount,
-    daysSinceLastReport,
-    reportCadenceDays,
+    props.reportCount,
+    props.daysSinceLastReport,
+    props.reportCadenceDays,
   );
   const cta = resolveCta({
     report,
-    workoutsThisWeek,
-    weeklySessionsTarget,
-    caloriesConsumed,
-    caloriesGoal,
+    workoutsThisWeek: props.workoutsThisWeek,
+    weeklySessionsTarget: props.weeklySessionsTarget,
+    caloriesConsumed: props.caloriesConsumed,
+    caloriesGoal: props.caloriesGoal,
   });
 
   const kcalText =
-    caloriesGoal != null
-      ? `${Math.round(caloriesConsumed)} / ${Math.round(caloriesGoal)} kcal`
-      : `${Math.round(caloriesConsumed)} kcal · brak celu`;
+    props.caloriesGoal != null
+      ? `${Math.round(props.caloriesConsumed)} / ${Math.round(props.caloriesGoal)} kcal`
+      : `${Math.round(props.caloriesConsumed)} kcal · brak celu`;
   const kcalRatio =
-    caloriesGoal != null && caloriesGoal > 0
-      ? caloriesConsumed / caloriesGoal
+    props.caloriesGoal != null && props.caloriesGoal > 0
+      ? props.caloriesConsumed / props.caloriesGoal
       : null;
   const kcalTone: "ok" | "warn" | "muted" =
-    caloriesGoal == null
+    props.caloriesGoal == null
       ? "muted"
-      : caloriesConsumed <= 0
+      : props.caloriesConsumed <= 0
         ? "warn"
-        : caloriesConsumed / caloriesGoal <= 1.15
+        : props.caloriesConsumed / props.caloriesGoal <= 1.15
           ? "ok"
           : "warn";
 
-  const trainText = `${workoutsThisWeek} / ${weeklySessionsTarget}`;
+  const trainText = `${props.workoutsThisWeek} / ${props.weeklySessionsTarget}`;
   const trainRatio =
-    weeklySessionsTarget > 0
-      ? workoutsThisWeek / weeklySessionsTarget
+    props.weeklySessionsTarget > 0
+      ? props.workoutsThisWeek / props.weeklySessionsTarget
       : null;
   const trainTone: "ok" | "warn" | "muted" =
-    workoutsThisWeek >= weeklySessionsTarget ? "ok" : "warn";
+    props.workoutsThisWeek >= props.weeklySessionsTarget ? "ok" : "warn";
 
   let reportText: string;
   let reportRatio: number | null;
@@ -164,50 +199,65 @@ export function WeekPulseCard({
         ? "Dziś termin raportu"
         : `Za ${report.daysLeft} ${report.daysLeft === 1 ? "dzień" : "dni"}`;
     reportRatio =
-      reportCadenceDays > 0
-        ? 1 - report.daysLeft / reportCadenceDays
+      props.reportCadenceDays > 0
+        ? 1 - report.daysLeft / props.reportCadenceDays
         : null;
     reportTone = report.daysLeft <= 2 ? "warn" : "ok";
   }
 
   return (
-    <section className="rounded-[18px] border border-white/10 bg-[#161616] px-4 py-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            Pulpit
-          </p>
-          <h2 className="mt-1 text-lg font-semibold text-white">Ten tydzień</h2>
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) dismiss();
+        else setOpen(true);
+      }}
+    >
+      <AlertDialogContent className="max-w-[min(100%,24rem)] gap-0 border-white/12 bg-[#121212] p-5 text-white sm:rounded-2xl">
+        <AlertDialogTitle className="font-heading text-xl text-white">
+          Ten tydzień
+        </AlertDialogTitle>
+        <AlertDialogDescription className="mt-1 text-sm text-white/50">
+          Szybki przegląd na dziś — kcal, treningi i rytm raportu.
+        </AlertDialogDescription>
+
+        <div className="mt-5 space-y-3.5">
+          <ProgressRow
+            label="Zjedzone dziś"
+            valueText={kcalText}
+            ratio={kcalRatio}
+            tone={kcalTone}
+          />
+          <ProgressRow
+            label="Treningi"
+            valueText={trainText}
+            ratio={trainRatio}
+            tone={trainTone}
+          />
+          <ProgressRow
+            label="Raport"
+            valueText={reportText}
+            ratio={reportRatio}
+            tone={reportTone}
+          />
         </div>
-      </div>
 
-      <div className="mt-4 space-y-3.5">
-        <ProgressRow
-          label="Zjedzone dziś"
-          valueText={kcalText}
-          ratio={kcalRatio}
-          tone={kcalTone}
-        />
-        <ProgressRow
-          label="Treningi"
-          valueText={trainText}
-          ratio={trainRatio}
-          tone={trainTone}
-        />
-        <ProgressRow
-          label="Raport"
-          valueText={reportText}
-          ratio={reportRatio}
-          tone={reportTone}
-        />
-      </div>
-
-      <Link
-        href={cta.href}
-        className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-full bg-[var(--gym-gold)] text-sm font-semibold text-black shadow-[0_4px_16px_rgba(235,196,74,0.28)]"
-      >
-        {cta.label}
-      </Link>
-    </section>
+        <div className="mt-5 flex flex-col gap-2">
+          <Link
+            href={cta.href}
+            onClick={dismiss}
+            className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[var(--gym-gold)] text-sm font-semibold text-black shadow-[0_4px_16px_rgba(235,196,74,0.28)]"
+          >
+            {cta.label}
+          </Link>
+          <AlertDialogClose
+            onClick={dismiss}
+            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-white/12 bg-transparent text-sm font-medium text-white/70"
+          >
+            Później
+          </AlertDialogClose>
+        </div>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

@@ -25,6 +25,7 @@ export function AddToMealLogSheet({
   dateKey,
   presetName,
   triggerLabel = "Dodaj do dziennika",
+  triggerClassName,
   proteinG,
   fatG,
   carbsG,
@@ -34,6 +35,7 @@ export function AddToMealLogSheet({
   dateKey: string;
   presetName: string;
   triggerLabel?: string;
+  triggerClassName?: string;
   proteinG?: number;
   fatG?: number;
   carbsG?: number;
@@ -70,7 +72,10 @@ export function AddToMealLogSheet({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] px-3 text-xs font-semibold text-white/85 transition hover:bg-white/[0.07]"
+        className={
+          triggerClassName ??
+          "inline-flex h-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] px-3 text-xs font-semibold text-white/85 transition hover:bg-white/[0.07]"
+        }
       >
         {triggerLabel}
       </button>

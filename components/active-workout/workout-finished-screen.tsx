@@ -1,6 +1,8 @@
 "use client";
 
 import { Trophy, X, List } from "lucide-react";
+import { PrAchievementGraphic } from "@/components/reports/pr-achievement-graphic";
+import type { NewMaxHit } from "@/lib/session-new-max";
 
 type WorkoutFinishedScreenProps = {
   title: string;
@@ -12,6 +14,8 @@ type WorkoutFinishedScreenProps = {
   onReturn: () => void;
   onClose?: () => void;
   saving?: boolean;
+  newMaxLabel?: string | null;
+  newMaxHit?: NewMaxHit | null;
 };
 
 function formatElapsed(totalSeconds: number) {
@@ -32,7 +36,8 @@ export function WorkoutFinishedScreen({
   onClose,
   saving,
   newMaxLabel,
-}: WorkoutFinishedScreenProps & { newMaxLabel?: string | null }) {
+  newMaxHit,
+}: WorkoutFinishedScreenProps) {
   const minutes = Math.max(1, Math.round(elapsedSeconds / 60));
 
   return (
@@ -59,18 +64,37 @@ export function WorkoutFinishedScreen({
         </span>
       </header>
 
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-16">
-        <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-[var(--gym-gold)]/50 bg-[#141414]">
-          <Trophy className="h-12 w-12 text-[var(--gym-gold)]" />
-        </div>
-        <h1 className="mt-6 text-center text-3xl font-semibold text-white">Trening zrobiony</h1>
-        {newMaxLabel ? (
-          <p className="mt-3 rounded-full border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/15 px-4 py-1.5 text-center text-xs font-bold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            NOWY MAX · {newMaxLabel}
-          </p>
+      <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-6 pb-16">
+        {newMaxHit ? (
+          <div className="mt-2 w-full max-w-sm">
+            <PrAchievementGraphic
+              exerciseName={newMaxHit.exerciseName}
+              valueKg={newMaxHit.value}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="mt-8 flex h-24 w-24 items-center justify-center rounded-full border-2 border-[var(--gym-gold)]/50 bg-[#141414]">
+              <Trophy className="h-12 w-12 text-[var(--gym-gold)]" />
+            </div>
+            <h1 className="mt-6 text-center text-3xl font-semibold text-white">
+              Trening zrobiony
+            </h1>
+            {newMaxLabel ? (
+              <p className="mt-3 rounded-full border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/15 px-4 py-1.5 text-center text-xs font-bold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+                NOWY MAX · {newMaxLabel}
+              </p>
+            ) : null}
+          </>
+        )}
+
+        {newMaxHit ? (
+          <h1 className="mt-5 text-center text-2xl font-semibold text-white">
+            Trening zrobiony
+          </h1>
         ) : null}
 
-        <div className="mt-8 grid w-full max-w-sm grid-cols-3 divide-x divide-white/10 rounded-2xl border border-white/[0.08] bg-[#161616] py-4">
+        <div className="mt-6 grid w-full max-w-sm grid-cols-3 divide-x divide-white/10 rounded-2xl border border-white/[0.08] bg-[#161616] py-4">
           <div className="px-2 text-center">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--gym-gold)]">
               Czas
@@ -105,14 +129,14 @@ export function WorkoutFinishedScreen({
           type="button"
           disabled={saving}
           onClick={onDone}
-          className="gold-btn mt-10 inline-flex h-14 w-full max-w-sm items-center justify-center rounded-2xl text-base font-semibold disabled:opacity-60"
+          className="gold-btn mt-8 inline-flex h-14 w-full max-w-sm shrink-0 items-center justify-center rounded-2xl text-base font-semibold disabled:opacity-60"
         >
           {saving ? "Zapisuję…" : "Gotowe"}
         </button>
         <button
           type="button"
           onClick={onReturn}
-          className="mt-4 font-mono text-sm text-white/70 hover:text-white"
+          className="mt-4 shrink-0 font-mono text-sm text-white/70 hover:text-white"
         >
           Wróć do treningu
         </button>

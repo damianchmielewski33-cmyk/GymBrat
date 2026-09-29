@@ -10,6 +10,7 @@ import {
   isInstalledAndroidAppClient,
   openAndroidAppSettings,
 } from "@/lib/app-webview";
+import { hapticTap } from "@/lib/haptics";
 
 type ZoomCaps = { min: number; max: number; step?: number };
 
@@ -210,11 +211,7 @@ export function BarcodeCameraScanner({
           const text = result.getText()?.trim();
           if (!text) return;
           handledRef.current = true;
-          try {
-            navigator.vibrate?.(40);
-          } catch {
-            /* ignore */
-          }
+          hapticTap();
           stop();
           onDetectedRef.current(text.replace(/\s/g, ""));
         });

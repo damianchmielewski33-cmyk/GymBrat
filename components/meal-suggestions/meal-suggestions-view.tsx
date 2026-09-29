@@ -13,7 +13,7 @@ import { EditMealLogSheet } from "@/components/meal-suggestions/edit-meal-log-sh
 import { AddMealScreen } from "@/components/meal-suggestions/add-meal-screen";
 import { FoodPortionScreen } from "@/components/meal-suggestions/food-portion-screen";
 import { DietWeekStrip } from "@/components/meal-suggestions/diet-week-strip";
-import { DietDayMacrosBar } from "@/components/meal-suggestions/diet-day-macros-bar";
+import { DietMealPlanPanel } from "@/components/meal-suggestions/diet-meal-plan-panel";
 import {
   DIET_DIARY_SLOT_LABELS,
   DIET_DIARY_SLOTS,
@@ -28,7 +28,7 @@ import type { CatalogMeal } from "@/lib/meal-catalog-types";
 import type { NutritionDayType } from "@/lib/nutrition-goals";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { useActionState, useEffect } from "react";
-import { ChevronDown, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { calendarDateKey } from "@/lib/local-date";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +37,6 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
 import { useOverlayHistoryBack } from "@/hooks/use-overlay-history-back";
 import { useI18n } from "@/components/i18n/i18n-provider";
 
@@ -124,106 +123,6 @@ function DeleteMealButton({
   );
 }
 
-function MealSectionRow({
-  slot,
-  items,
-  expanded,
-  onToggle,
-  onAdd,
-  onDeleted,
-  onEdit,
-}: {
-  slot: DietDiarySlot;
-  items: MealLogDto[];
-  expanded: boolean;
-  onToggle: () => void;
-  onAdd: () => void;
-  onDeleted: () => void;
-  onEdit: (entry: MealLogDto) => void;
-}) {
-  const sumK = items.reduce((s, e) => s + e.calories, 0);
-  const sumP = items.reduce((s, e) => s + e.proteinG, 0);
-  const sumF = items.reduce((s, e) => s + e.fatG, 0);
-  const sumC = items.reduce((s, e) => s + e.carbsG, 0);
-
-  return (
-    <section className="border-b border-white/[0.06]">
-      <div className="flex items-center gap-2 px-1 py-3.5">
-        <button
-          type="button"
-          onClick={onToggle}
-          className="min-w-0 flex-1 text-left"
-        >
-          <div className="flex items-center gap-1.5">
-            <span className="text-[17px] font-semibold text-white">
-              {DIET_DIARY_SLOT_LABELS[slot]}
-            </span>
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 text-white/40 transition",
-                expanded && "rotate-180",
-              )}
-            />
-          </div>
-          <p className="mt-0.5 text-sm tabular-nums text-white/50">
-            {Math.round(sumK)} kcal
-          </p>
-          {items.length > 0 ? (
-            <p className="mt-0.5 text-[11px] tabular-nums text-white/35">
-              {Math.round(sumP * 10) / 10} / {Math.round(sumF * 10) / 10} /{" "}
-              {Math.round(sumC * 10) / 10}
-            </p>
-          ) : null}
-        </button>
-        <button
-          type="button"
-          aria-label={`Dodaj do ${DIET_DIARY_SLOT_LABELS[slot]}`}
-          onClick={onAdd}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--gym-gold)] text-black shadow-[0_4px_16px_rgba(235,196,74,0.28)]"
-        >
-          <Plus className="h-6 w-6" strokeWidth={2.5} />
-        </button>
-      </div>
-
-      {expanded ? (
-        items.length === 0 ? (
-          <p className="px-1 pb-4 text-sm text-white/35">
-            Brak produktów — kliknij + aby wyszukać lub zeskanować.
-          </p>
-        ) : (
-          <ul className="space-y-1 px-1 pb-4">
-            {items.map((e) => (
-              <li
-                key={e.id}
-                className="flex items-start gap-2 rounded-xl bg-white/[0.03] px-3 py-2.5"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-white">
-                    {e.name?.trim() || "Posiłek"}
-                  </p>
-                  <p className="mt-0.5 text-xs tabular-nums text-white/45">
-                    {Math.round(e.calories)} kcal · B{Math.round(e.proteinG)} W
-                    {Math.round(e.carbsG)} T{Math.round(e.fatG)}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  aria-label="Edytuj wpis"
-                  onClick={() => onEdit(e)}
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-white"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <DeleteMealButton id={e.id} name={e.name} onDone={onDeleted} />
-              </li>
-            ))}
-          </ul>
-        )
-      ) : null}
-    </section>
-  );
-}
-
 export function MealSuggestionsView({
   initialSummary: _initialSummary,
   initialGaps,
@@ -250,7 +149,6 @@ export function MealSuggestionsView({
   const [logs, setLogs] = useState(initialLogs);
   const [dayKind, setDayKind] = useState<NutritionDayType>(initialDayKind);
   const [pending, start] = useTransition();
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [addSlot, setAddSlot] = useState<DietDiarySlot | null>(null);
   const [dishPickerOpen, setDishPickerOpen] = useState(false);
   const [dishPickerSlot, setDishPickerSlot] = useState<DietDiarySlot | null>(null);
@@ -407,11 +305,11 @@ export function MealSuggestionsView({
               }}
               className={
                 dayKind === "training"
-                  ? "rounded-full border border-[var(--neon)]/45 bg-[var(--neon)]/20 px-3 py-1 text-[11px] font-semibold text-white"
-                  : "rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-white/55"
+                  ? "rounded-full border border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/20 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--gym-gold)]"
+                  : "rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-white/55"
               }
             >
-              Treningowy
+              Dzień treningowy
             </button>
             <button
               type="button"
@@ -429,8 +327,8 @@ export function MealSuggestionsView({
               }}
               className={
                 dayKind === "rest"
-                  ? "rounded-full border border-[var(--neon)]/45 bg-[var(--neon)]/20 px-3 py-1 text-[11px] font-semibold text-white"
-                  : "rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-white/55"
+                  ? "rounded-full border border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/20 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--gym-gold)]"
+                  : "rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-white/55"
               }
             >
               Nietreningowy
@@ -439,30 +337,24 @@ export function MealSuggestionsView({
 
           <div
             key={dateKey}
-            className="mt-2 min-h-0 flex-1 animate-page-enter-opacity px-1 pb-6"
+            className="mt-3 min-h-0 flex-1 animate-page-enter-opacity px-1 pb-6"
           >
-            {DIET_DIARY_SLOTS.map((slot) => (
-              <MealSectionRow
-                key={slot}
-                slot={slot}
-                items={bySlot[slot]}
-                expanded={expanded[slot] ?? bySlot[slot].length > 0}
-                onToggle={() =>
-                  setExpanded((prev) => ({
-                    ...prev,
-                    [slot]: !(prev[slot] ?? bySlot[slot].length > 0),
-                  }))
-                }
-                onAdd={() => setAddSlot(slot)}
-                onDeleted={() => refreshDay(dateKey)}
-                onEdit={(entry) => setEditingLog(entry)}
-              />
-            ))}
-
-            {/* Kcal / makro od razu pod kolacją — nie przy dolnej belce */}
-            <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
-              <DietDayMacrosBar {...dayMacros} />
-            </div>
+            <DietMealPlanPanel
+              mealTemplates={mealTemplates}
+              catalogMeals={catalogMeals}
+              dateKey={dateKey}
+              dayMacros={{
+                proteinGoal: dayMacros.proteinGoal,
+                carbsGoal: dayMacros.carbsGoal,
+                fatGoal: dayMacros.fatGoal,
+                caloriesGoal: dayMacros.caloriesGoal,
+              }}
+              bySlot={bySlot}
+              onAddManual={(slot) => setAddSlot(slot)}
+              onEditLog={(entry) => setEditingLog(entry)}
+              onDeleted={() => refreshDay(dateKey)}
+              DeleteMealButton={DeleteMealButton}
+            />
 
             {unassigned.length > 0 ? (
               <section className="mt-3 space-y-2 opacity-80">

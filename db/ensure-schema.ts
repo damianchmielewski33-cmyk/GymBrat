@@ -156,6 +156,18 @@ CREATE TABLE IF NOT EXISTS "meal_catalog" (
   await db.$client.execute(
     `CREATE INDEX IF NOT EXISTS "idx_meal_catalog_updated" ON "meal_catalog" ("updated_at")`,
   );
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "exercise_technique_links" (
+  "id" text PRIMARY KEY NOT NULL,
+  "youtube_url" text NOT NULL,
+  "updated_at" integer NOT NULL,
+  "updated_by_user_id" text
+);
+`);
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "idx_exercise_technique_updated" ON "exercise_technique_links" ("updated_at")`,
+  );
 }
 
 let mealLogsEnsured = false;

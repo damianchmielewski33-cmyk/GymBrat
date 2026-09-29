@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, List, Minus, Plus, X } from "lucide-react";
+import { Check, Flag, List, Minus, Plus, X } from "lucide-react";
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
 import { formatExerciseTargetLine, buildSupersetLabels } from "@/lib/start-workout-session";
 import { cn } from "@/lib/utils";
@@ -53,6 +53,8 @@ type GuidedSessionLayoutProps = {
   onRemoveLastSet?: (exerciseId: string) => void;
   onExerciseNoteChange?: (exerciseId: string, note: string) => void;
   onCancelSession?: () => void;
+  /** Zakończ bez zapisu (jawny przycisk). */
+  onDiscardSession?: () => void;
   onFinishSession?: () => void;
   finishPending?: boolean;
   onDeferExercise?: () => void;
@@ -71,6 +73,7 @@ export function GuidedSessionLayout({
   onRemoveLastSet,
   onExerciseNoteChange,
   onCancelSession,
+  onDiscardSession,
   onFinishSession,
   finishPending,
   onDeferExercise,
@@ -204,66 +207,60 @@ export function GuidedSessionLayout({
 
   const rirValue = set.rir ?? exercise.targetRir ?? 1;
   const progress = totals.total > 0 ? Math.min(1, totals.done / totals.total) : 0;
+  const techniqueUrl = exercise.techniqueYoutubeUrl?.trim() || null;
+  const goalReps =
+    exercise.targetReps != null && exercise.targetReps > 0
+      ? exercise.targetReps
+      : null;
 
   const inputClass =
-    "h-14 min-w-0 flex-1 rounded-xl border border-[var(--gym-gold)]/35 bg-black/50 px-2 text-center font-display text-4xl tabular-nums text-white outline-none transition focus:border-[var(--gym-gold)] focus:ring-2 focus:ring-[var(--gym-gold)]/35";
+    "h-14 min-w-0 flex-1 rounded-xl border border-transparent bg-transparent px-2 text-center font-display text-4xl tabular-nums text-[var(--gym-gold)] outline-none transition focus:border-[var(--gym-gold)]/40 focus:ring-1 focus:ring-[var(--gym-gold)]/30";
 
   return (
     <div className="relative mx-auto w-full max-w-lg pb-8">
-      <div
-        className="h-1 w-full bg-white/10"
-        role="progressbar"
-        aria-valuenow={Math.round(progress * 100)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
-        <div
-          className="h-full bg-[var(--gym-gold)] transition-[width] duration-500"
-          style={{ width: `${progress * 100}%` }}
-        />
-      </div>
-
-      <header className="sticky top-0 z-20 flex items-center justify-between gap-2 bg-black/95 px-2 py-3 backdrop-blur">
-        <button
-          type="button"
-          onClick={onCancelSession}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-white/80"
-          aria-label="Zamknij sesję"
-        >
-          <X className="h-4 w-4" />
-        </button>
-        <div className="min-w-0 text-center">
-          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-            {title}
-          </p>
-          <p className="mt-0.5 text-xs tabular-nums text-white/70">
-            {formatElapsed(elapsedSeconds)} · {totals.done}/{totals.total} serii
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setListOpen(true)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-white/80"
-          aria-label="Lista ćwiczeń"
-        >
-          <List className="h-4 w-4" />
-        </button>
-      </header>
-
-      <div className="px-4 pt-4">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-white/45">
-            Ćwiczenie {selectedIndex + 1} z {exercises.length} · LP {selectedIndex + 1}
-          </p>
+      <header className="sticky top-0 z-20 bg-black/95 backdrop-blur">
+        <div className="flex items-center justify-between gap-2 px-2 py-3">
+          <button
+            type="button"
+            onClick={onCancelSession}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-white/80"
+            aria-label="Zamknij sesję"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <div className="min-w-0 text-center">
+            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
+              {title}
+            </p>
+            <p className="mt-0.5 text-xs tabular-nums text-white/70">
+              {formatElapsed(elapsedSeconds)} · {totals.done}/{totals.total} serii
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => setListOpen(true)}
-            className="text-xs font-medium text-[var(--gym-gold)]"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-white/80"
+            aria-label="Lista ćwiczeń"
           >
-            zmień
+            <List className="h-4 w-4" />
           </button>
         </div>
-        <h2 className="mt-2 text-2xl font-semibold leading-tight text-white">
+        <div
+          className="h-1 w-full bg-white/10"
+          role="progressbar"
+          aria-valuenow={Math.round(progress * 100)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            className="h-full bg-[var(--gym-gold)] transition-[width] duration-500"
+            style={{ width: `${progress * 100}%` }}
+          />
+        </div>
+      </header>
+
+      <div className="px-4 pt-5">
+        <h2 className="text-[1.65rem] font-semibold leading-tight text-white sm:text-3xl">
           {supersetLabels[exercise.id] ? (
             <span className="mr-2 text-[var(--gym-gold)]">
               {supersetLabels[exercise.id]}
@@ -271,14 +268,38 @@ export function GuidedSessionLayout({
           ) : null}
           {exercise.name}
         </h2>
-        <p className="mt-1 font-mono text-xs text-white/45">
-          {formatExerciseTargetLine(exercise)}
+        <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-white/50">
+          <span>{formatExerciseTargetLine(exercise)}</span>
+          {techniqueUrl ? (
+            <>
+              <span className="text-white/25">·</span>
+              <a
+                href={techniqueUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-0.5 font-medium text-[var(--gym-gold)] hover:underline"
+              >
+                technika ↗
+              </a>
+            </>
+          ) : null}
         </p>
-        {exercise.note?.trim() ? (
-          <p className="mt-1.5 text-sm text-white/55">{exercise.note}</p>
-        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            const subject = encodeURIComponent(`Zgłoszenie ćwiczenia: ${exercise.name}`);
+            const body = encodeURIComponent(
+              `Ćwiczenie: ${exercise.name}\nPlan: ${title}\n\nOpis problemu:\n`,
+            );
+            window.location.href = `mailto:support@gymbrat.app?subject=${subject}&body=${body}`;
+          }}
+          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/55 hover:text-white/80"
+        >
+          <Flag className="h-3 w-3" />
+          Zgłoś
+        </button>
 
-        <div className="mt-4 flex items-center gap-2">
+        <div className="mt-5 flex items-center gap-2.5">
           {exercise.sets.map((s, i) => (
             <button
               key={i}
@@ -287,53 +308,57 @@ export function GuidedSessionLayout({
               aria-pressed={i === activeSetIndex}
               onClick={() => setManualSetIndex(i)}
               className={cn(
-                "h-3 flex-1 rounded-full transition",
+                "h-3.5 w-3.5 rounded-full transition",
                 i === activeSetIndex
-                  ? "bg-[var(--gym-gold)] ring-2 ring-[var(--gym-gold)]/50 ring-offset-1 ring-offset-black"
+                  ? "bg-[var(--gym-gold)] ring-2 ring-[var(--gym-gold)]/45 ring-offset-2 ring-offset-black"
                   : s.done
-                    ? "bg-[var(--gym-gold)]/70"
-                    : "bg-white/15 hover:bg-white/25",
+                    ? "bg-emerald-400"
+                    : "bg-white/20 hover:bg-white/35",
               )}
             />
           ))}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-white/55">
-          <span className="font-semibold uppercase tracking-wide">
+          <span className="ml-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
             Seria {activeSetIndex + 1} z {exercise.sets.length}
             {set.done ? " · edycja" : ""}
           </span>
-          <div className="flex items-center gap-2">
-            {onRemoveLastSet && exercise.sets.length > 1 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  onRemoveLastSet(exercise.id);
-                  setManualSetIndex(null);
-                }}
-                className="rounded-lg border border-white/12 px-2 py-1 text-[11px] text-white/60 hover:text-white"
-              >
-                Usuń ostatnią
-              </button>
-            ) : null}
-            {onAddSet ? (
-              <button
-                type="button"
-                onClick={() => {
-                  onAddSet(exercise.id);
-                  setManualSetIndex(exercise.sets.length);
-                }}
-                className="rounded-lg border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-2 py-1 text-[11px] font-semibold text-[var(--gym-gold)]"
-              >
-                + Seria
-              </button>
-            ) : null}
-          </div>
+        </div>
+        {goalReps != null ? (
+          <p className="mt-2 text-sm text-white/45">Cel {goalReps} powt.</p>
+        ) : (
+          <p className="mt-2 text-sm text-white/35">Cel — powt.</p>
+        )}
+
+        <div className="mt-2 flex flex-wrap gap-2">
+          {onRemoveLastSet && exercise.sets.length > 1 ? (
+            <button
+              type="button"
+              onClick={() => {
+                onRemoveLastSet(exercise.id);
+                setManualSetIndex(null);
+              }}
+              className="rounded-lg border border-white/12 px-2 py-1 text-[11px] text-white/60 hover:text-white"
+            >
+              Usuń ostatnią
+            </button>
+          ) : null}
+          {onAddSet ? (
+            <button
+              type="button"
+              onClick={() => {
+                onAddSet(exercise.id);
+                setManualSetIndex(exercise.sets.length);
+              }}
+              className="rounded-lg border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-2 py-1 text-[11px] font-semibold text-[var(--gym-gold)]"
+            >
+              + Seria
+            </button>
+          ) : null}
         </div>
 
         <div className="mt-5 rounded-2xl border border-white/[0.08] bg-[#161616] p-4">
           <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-white/45">
             <label htmlFor="set-weight">Ciężar · kg</label>
-            <span>wpisz lub ±</span>
+            <span>krok 2,5</span>
           </div>
           {suggestedWeight != null && set.weight <= 0 ? (
             <button
@@ -436,7 +461,7 @@ export function GuidedSessionLayout({
         <div className="mt-3 rounded-2xl border border-white/[0.08] bg-[#161616] p-4">
           <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-white/45">
             <label htmlFor="set-reps">Powtórzenia</label>
-            <span>wpisz lub ±</span>
+            <span>krok 1</span>
           </div>
           <div className="mt-3 flex items-center justify-center gap-3">
             <button
@@ -490,7 +515,7 @@ export function GuidedSessionLayout({
                   done: false,
                 });
               }}
-              className={cn(inputClass, "text-[var(--gym-gold-bright)]")}
+              className={inputClass}
             />
             <button
               type="button"
@@ -513,7 +538,7 @@ export function GuidedSessionLayout({
         <div className="mt-4 flex items-end gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-white/45">
-              RIR
+              W zapasie
             </p>
             <div className="mt-2 grid grid-cols-4 gap-2">
               {[0, 1, 2, 3].map((v) => {
@@ -568,7 +593,7 @@ export function GuidedSessionLayout({
           {set.done ? "Zapisz zmiany serii" : "Zalicz serię"}
         </button>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-white/55">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs font-medium text-white/55">
           <button type="button" onClick={goPrev} className="px-1 py-2 hover:text-white">
             ← Wstecz
           </button>
@@ -590,11 +615,22 @@ export function GuidedSessionLayout({
             type="button"
             disabled={finishPending}
             onClick={onFinishSession}
-            className="px-1 py-2 text-[var(--gym-gold)] hover:text-[var(--gym-gold-bright)] disabled:opacity-50"
+            className="px-1 py-2 font-semibold text-[var(--gym-gold)] hover:text-[var(--gym-gold-bright)] disabled:opacity-50"
           >
             {finishPending ? "Zapis…" : "Zakończ"}
           </button>
         </div>
+
+        {onDiscardSession ? (
+          <button
+            type="button"
+            disabled={finishPending}
+            onClick={onDiscardSession}
+            className="mt-3 inline-flex h-10 w-full items-center justify-center text-xs font-medium text-white/40 hover:text-white/70 disabled:opacity-50"
+          >
+            Zakończ bez zapisu
+          </button>
+        ) : null}
       </div>
 
       {listOpen ? (

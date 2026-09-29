@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatVolumeKg } from "@/lib/workout-session-calculations";
 import type { NewMaxHit } from "@/lib/session-new-max";
+import { PrAchievementGraphic } from "@/components/reports/pr-achievement-graphic";
+import { hapticNewMax, hapticWorkoutDone } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 type WorkoutCompleteSummary = {
@@ -60,6 +62,11 @@ export function WorkoutCompletePopup() {
       if (typeof parsed.endedAt !== "number") return;
       setSummary(parsed);
       setOpen(true);
+      if (Array.isArray(parsed.newMaxHits) && parsed.newMaxHits.length > 0) {
+        hapticNewMax();
+      } else {
+        hapticWorkoutDone();
+      }
     } catch {
       // ignore malformed
     } finally {
@@ -95,7 +102,7 @@ export function WorkoutCompletePopup() {
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogContent className="w-[min(92vw,520px)]">
+      <AlertDialogContent className="max-h-[min(92vh,820px)] w-[min(92vw,420px)] overflow-y-auto">
         <div className="flex items-start gap-3">
           <div
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]"
@@ -120,21 +127,28 @@ export function WorkoutCompletePopup() {
           </div>
         </div>
 
-        {newMaxHits.length > 0 || toastLabel ? (
+        {newMaxHits[0] ? (
+          <div className="mt-4">
+            <PrAchievementGraphic
+              exerciseName={newMaxHits[0].exerciseName}
+              valueKg={newMaxHits[0].value}
+              atMs={summary.endedAt}
+            />
+            {newMaxHits.length > 1 ? (
+              <p className="mt-2 text-center text-xs text-white/50">
+                +{newMaxHits.length - 1}{" "}
+                {newMaxHits.length - 1 === 1 ? "kolejny rekord" : "kolejne rekordy"} w tej sesji
+              </p>
+            ) : null}
+          </div>
+        ) : toastLabel ? (
           <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-4 py-3">
             <Trophy className="mt-0.5 h-5 w-5 shrink-0 text-[var(--gym-gold)]" />
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
                 NOWY MAX
               </p>
-              <p className="mt-1 text-sm text-white/90">
-                {newMaxHits.length > 0
-                  ? newMaxHits
-                      .slice(0, 3)
-                      .map((h) => `${h.exerciseName} · ${h.value} kg`)
-                      .join(" · ")
-                  : toastLabel}
-              </p>
+              <p className="mt-1 text-sm text-white/90">{toastLabel}</p>
             </div>
           </div>
         ) : null}

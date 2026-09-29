@@ -168,6 +168,9 @@ function safePlanNameFromJson(planJson: string | null): string | null {
     const o = JSON.parse(planJson) as unknown;
     if (!o || typeof o !== "object") return null;
     const r = o as Record<string, unknown>;
+    // v2: planName; starsze / obce payloady: name
+    const planName = normalizeString(r.planName, "");
+    if (planName.length) return planName;
     const name = normalizeString(r.name, "");
     return name.length ? name : null;
   } catch {

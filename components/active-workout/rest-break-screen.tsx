@@ -31,11 +31,14 @@ export type RestBreakScreenProps = {
   nextLabel: string;
   /** np. „Seria 2 z 2” albo nazwa ćwiczenia */
   nextValue: string;
+  /** Ostatnia seria ćwiczenia — pokaż „Dodaj serię”. */
+  showAddSet?: boolean;
   soundOn: boolean;
   onToggleSound: () => void;
   onAddSeconds: (sec: number) => void;
   onSetSeconds: (sec: number) => void;
   onContinue: () => void;
+  onAddSet?: () => void;
   onCloseSession?: () => void;
   onOpenList?: () => void;
 };
@@ -53,11 +56,13 @@ export function RestBreakScreen({
   completedLine,
   nextLabel,
   nextValue,
+  showAddSet = false,
   soundOn,
   onToggleSound,
   onAddSeconds,
   onSetSeconds,
   onContinue,
+  onAddSet,
   onCloseSession,
   onOpenList,
 }: RestBreakScreenProps) {
@@ -195,6 +200,15 @@ export function RestBreakScreen({
         <p className="mt-1.5 font-display text-2xl leading-tight text-white">
           {nextValue}
         </p>
+        {showAddSet && onAddSet ? (
+          <button
+            type="button"
+            onClick={onAddSet}
+            className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/10 text-sm font-semibold text-[var(--gym-gold)]"
+          >
+            + Dodaj serię
+          </button>
+        ) : null}
       </div>
 
       <div className="relative flex items-center gap-2.5 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">

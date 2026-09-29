@@ -5,16 +5,24 @@ function DeltaBadge({
   percent,
   absolute,
   unit,
+  planLabel,
 }: {
   percent: number | null;
   absolute: number | null;
   unit: string;
+  planLabel?: string | null;
 }) {
+  const vs =
+    planLabel?.trim()
+      ? `vs. poprzednie ${planLabel.trim()}`
+      : "vs. średnia tego planu";
+
   if (percent === null || absolute === null) {
     return (
       <span className="inline-flex min-w-0 flex-wrap items-center gap-1 text-xs text-white/40">
         <Minus className="h-3 w-3 shrink-0" />
         brak danych porównawczych
+        {planLabel?.trim() ? ` (${planLabel.trim()})` : ""}
       </span>
     );
   }
@@ -26,7 +34,7 @@ function DeltaBadge({
     return (
       <span className="inline-flex min-w-0 flex-wrap items-center gap-1 text-xs text-white/50">
         <Minus className="h-3 w-3 shrink-0" />
-        bez zmian vs. średnia
+        bez zmian {vs}
       </span>
     );
   }
@@ -45,7 +53,7 @@ function DeltaBadge({
       <span className="min-w-0">
         {isPositive ? "+" : ""}
         {percent}% ({isPositive ? "+" : ""}
-        {absolute}&nbsp;{unit}) vs. średnia
+        {absolute}&nbsp;{unit}) {vs}
       </span>
     </span>
   );
@@ -59,6 +67,7 @@ function StatCard({
   deltaPercent,
   deltaAbsolute,
   deltaUnit,
+  planLabel,
   gradient,
 }: {
   icon: React.ReactNode;
@@ -68,6 +77,7 @@ function StatCard({
   deltaPercent: number | null;
   deltaAbsolute: number | null;
   deltaUnit: string;
+  planLabel?: string | null;
   gradient: string;
 }) {
   return (
@@ -92,6 +102,7 @@ function StatCard({
           percent={deltaPercent}
           absolute={deltaAbsolute}
           unit={deltaUnit}
+          planLabel={planLabel}
         />
       </div>
     </div>
@@ -182,6 +193,7 @@ export function LastWorkoutStats({
           deltaPercent={stats.deltaVolumePercent}
           deltaAbsolute={stats.deltaVolumeKg}
           deltaUnit="kg"
+          planLabel={lastWorkout.planLabel}
           gradient="[background-image:linear-gradient(135deg,rgba(255,45,85,0.14),transparent_55%)]"
         />
         <StatCard
@@ -192,6 +204,7 @@ export function LastWorkoutStats({
           deltaPercent={stats.deltaTotalRepsPercent}
           deltaAbsolute={stats.deltaTotalReps}
           deltaUnit="pow."
+          planLabel={lastWorkout.planLabel}
           gradient="[background-image:linear-gradient(225deg,rgba(120,120,255,0.14),transparent_55%)]"
         />
       </div>

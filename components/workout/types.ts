@@ -26,4 +26,6 @@ export type WorkoutExerciseState = {
   supersetGroupId?: string | null;
   /** Sugestia ciężaru per seria (z ostatniej sesji). */
   suggestedWeights?: Array<number | null>;
+  /** Link YouTube techniki (z panelu admina, po dopasowaniu katalogu). */
+  techniqueYoutubeUrl?: string | null;
 };
