@@ -28,6 +28,12 @@ import { hapticNewMax, hapticWorkoutDone } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import type { WorkoutPlanComparePayload } from "@/lib/workout-plan-compare";
 import { formatHistoryShortDate, formatTonnes } from "@/lib/workout-history-overview";
+import {
+  formatProgressDelta,
+  progressDeltaTone,
+  readProgressDeltaUnitLocal,
+  type ProgressDeltaUnit,
+} from "@/lib/progress-delta-unit";
 
 type WorkoutCompleteSummary = {
   title: string;
@@ -59,9 +65,19 @@ function formatDuration(totalSeconds: number) {
   return `${mm}:${String(ss).padStart(2, "0")}`;
 }
 
-function formatDeltaPct(n: number | null | undefined) {
-  if (n == null || !Number.isFinite(n)) return null;
-  return `${n > 0 ? "+" : ""}${n.toFixed(1)}%`;
+function formatExerciseDelta(
+  unit: ProgressDeltaUnit,
+  ex: WorkoutPlanComparePayload["exercises"][number],
+) {
+  const absolute =
+    ex.previousVolumeKg != null
+      ? ex.currentVolumeKg - ex.previousVolumeKg
+      : null;
+  return formatProgressDelta({
+    unit,
+    percent: ex.deltaPercent,
+    absolute,
+  });
 }
 
 function PlanCompareDialog({
@@ -69,19 +85,32 @@ function PlanCompareDialog({
   onOpenChange,
   compare,
   title,
+  progressDeltaUnit,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   compare: WorkoutPlanComparePayload;
   title: string;
+  progressDeltaUnit: ProgressDeltaUnit;
 }) {
-  const volumeLabel = formatDeltaPct(compare.volumeDeltaPercent);
+  const volumeAbs =
+    compare.previousVolumeKg != null
+      ? compare.currentVolumeKg - compare.previousVolumeKg
+      : null;
+  const volumeLabel = formatProgressDelta({
+    unit: progressDeltaUnit,
+    percent: compare.volumeDeltaPercent,
+    absolute: volumeAbs,
+  });
+  const tone = progressDeltaTone(
+    progressDeltaUnit,
+    compare.volumeDeltaPercent,
+    volumeAbs,
+  );
   const planName = compare.planLabel?.trim() || title;
   const hasPrev = compare.previousVolumeKg != null;
-  const volUp =
-    compare.volumeDeltaPercent != null && compare.volumeDeltaPercent > 0.05;
-  const volDown =
-    compare.volumeDeltaPercent != null && compare.volumeDeltaPercent < -0.05;
+  const volUp = tone === "up";
+  const volDown = tone === "down";
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -160,7 +189,7 @@ function PlanCompareDialog({
               <p className="app-label px-0.5">Ćwiczenia</p>
               <ul className="mt-2.5 max-h-[42vh] space-y-2 overflow-y-auto pr-0.5">
                 {compare.exercises.map((ex) => {
-                  const delta = formatDeltaPct(ex.deltaPercent);
+                  const delta = formatExerciseDelta(progressDeltaUnit, ex);
                   return (
                     <li key={ex.name} className="app-card px-3.5 py-3">
                       <div className="flex items-start justify-between gap-3">
@@ -197,7 +226,7 @@ function PlanCompareDialog({
                           ) : (
                             <>
                               <Minus className="h-3.5 w-3.5 text-white/35" />
-                              <span className="text-white/50">{delta ?? "0%"}</span>
+                              <span className="text-white/50">{delta ?? "0"}</span>
                             </>
                           )}
                         </div>
@@ -229,8 +258,11 @@ export function WorkoutCompletePopup() {
   const [progressOpen, setProgressOpen] = useState(false);
   const [summary, setSummary] = useState<WorkoutCompleteSummary | null>(null);
   const [toastLabel, setToastLabel] = useState<string | null>(null);
+  const [progressDeltaUnit, setProgressDeltaUnit] =
+    useState<ProgressDeltaUnit>("percent");
 
   useEffect(() => {
+    setProgressDeltaUnit(readProgressDeltaUnitLocal("percent"));
     const raw = sessionStorage.getItem(STORAGE_KEY);
     const toast = sessionStorage.getItem(TOAST_KEY);
     if (toast?.trim()) setToastLabel(toast.trim());
@@ -277,9 +309,15 @@ export function WorkoutCompletePopup() {
 
   if (!summary) return null;
 
-  const strengthDelta =
-    planCompare?.volumeDeltaPercent ?? summary.strengthDeltaPercent;
-  const strengthLabel = formatDeltaPct(strengthDelta);
+  const volumeAbs =
+    planCompare?.previousVolumeKg != null
+      ? planCompare.currentVolumeKg - planCompare.previousVolumeKg
+      : null;
+  const strengthLabel = formatProgressDelta({
+    unit: progressDeltaUnit,
+    percent: planCompare?.volumeDeltaPercent ?? summary.strengthDeltaPercent,
+    absolute: volumeAbs,
+  });
 
   return (
     <>
@@ -432,6 +470,7 @@ export function WorkoutCompletePopup() {
           onOpenChange={setProgressOpen}
           compare={planCompare}
           title={summary.title}
+          progressDeltaUnit={progressDeltaUnit}
         />
       ) : null}
     </>

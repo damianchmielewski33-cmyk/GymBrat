@@ -343,6 +343,8 @@ export const userSettings = sqliteTable("user_settings", {
   aiEntitled: integer("ai_entitled").notNull().default(1),
   /** 1 = użytkownik wyłączył wszystkie funkcje korzystające z modelu AI */
   aiFeaturesDisabled: integer("ai_features_disabled").notNull().default(0),
+  /** Jednostka delty postępów: percent | kg (tonaż / objętość vs poprzedni trening planu). */
+  progressDeltaUnit: text("progress_delta_unit").notNull().default("percent"),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),

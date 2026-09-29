@@ -1,8 +1,8 @@
 {
-  "versionCode": 7,
-  "versionName": "0.1.6",
+  "versionCode": 8,
+  "versionName": "0.1.7",
   "apkUrl": "https://github.com/damianchmielewski33-cmyk/GymBrat/releases/download/android-latest/gymbrat.apk",
-  "releasedAt": "2026-09-26T07:15:00Z",
+  "releasedAt": "2026-09-29T20:30:00Z",
   "commit": null,
-  "notes": "GymBrat Android 0.1.6 — wybór PDF/Word/Excel do importu planu (bez wyszarzania w Pobranych)."
+  "notes": "GymBrat Android 0.1.7 — czytelny komunikat przy konflikcie podpisu (zamiast zawieszania instalatora); odinstaluj starą apkę przed instalacją nowego APK z innego klucza."
 }

@@ -3,9 +3,14 @@ package pl.gymbrat.app.update;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.Signature;
+import android.content.pm.SigningInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
+import android.util.Log;
 
 import androidx.core.content.FileProvider;
 
@@ -14,6 +19,8 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.security.MessageDigest;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
@@ -23,6 +30,8 @@ import okhttp3.ResponseBody;
 import pl.gymbrat.app.BuildConfig;
 
 public final class AppUpdater {
+    private static final String TAG = "GymBratUpdater";
+
     public static final class AppUpdateInfo {
         public final int versionCode;
         public final String versionName;
@@ -34,6 +43,25 @@ public final class AppUpdater {
             this.versionName = versionName;
             this.apkUrl = apkUrl;
             this.notes = notes;
+        }
+    }
+
+    /** Wynik sprawdzenia, czy da się zainstalować APK nad istniejącą aplikacją. */
+    public static final class InstallCheck {
+        public final boolean canInstall;
+        public final String message;
+
+        private InstallCheck(boolean canInstall, String message) {
+            this.canInstall = canInstall;
+            this.message = message;
+        }
+
+        public static InstallCheck ok() {
+            return new InstallCheck(true, null);
+        }
+
+        public static InstallCheck block(String message) {
+            return new InstallCheck(false, message);
         }
     }
 
@@ -134,7 +162,60 @@ public final class AppUpdater {
         return out;
     }
 
+    /**
+     * Sprawdza podpis APK vs zainstalowaną GymBrat.
+     * Inny klucz → instalator często „wisi” po pełnym pasku zamiast pokazać błąd.
+     */
+    public static InstallCheck canInstallOverExisting(Context context, File apkFile) {
+        PackageManager pm = context.getPackageManager();
+        String packageName = context.getPackageName();
+        try {
+            pm.getPackageInfo(packageName, 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            return InstallCheck.ok();
+        }
+
+        PackageInfo archive = readArchiveInfo(pm, apkFile.getAbsolutePath());
+        if (archive == null) {
+            return InstallCheck.block(
+                    "Plik APK jest uszkodzony albo niekompletny. Pobierz ponownie."
+            );
+        }
+        if (archive.packageName != null
+                && !packageName.equals(archive.packageName)) {
+            return InstallCheck.block(
+                    "Ten APK ma inny identyfikator pakietu (" + archive.packageName + ")."
+            );
+        }
+
+        byte[][] installed = signingDigests(pm, packageName, false);
+        byte[][] incoming = signingDigestsFromArchive(archive);
+        if (installed == null || installed.length == 0) {
+            return InstallCheck.ok();
+        }
+        if (incoming == null || incoming.length == 0) {
+            return InstallCheck.block(
+                    "Nie da się zweryfikować podpisu APK. Pobierz plik ponownie."
+            );
+        }
+        if (!digestsMatch(installed, incoming)) {
+            return InstallCheck.block(
+                    "Konflikt podpisu z zainstalowaną GymBrat. "
+                            + "Odinstaluj obecną aplikację, potem zainstaluj ten APK ponownie."
+            );
+        }
+        return InstallCheck.ok();
+    }
+
     public static void installApk(Activity activity, File apkFile) {
+        InstallCheck check = canInstallOverExisting(activity, apkFile);
+        if (!check.canInstall) {
+            throw new IllegalStateException(
+                    check.message != null
+                            ? check.message
+                            : "Nie można zainstalować tej aktualizacji."
+            );
+        }
         Uri uri = FileProvider.getUriForFile(
                 activity,
                 activity.getPackageName() + ".fileprovider",
@@ -145,5 +226,96 @@ public final class AppUpdater {
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         activity.startActivity(intent);
+    }
+
+    @SuppressWarnings("deprecation")
+    private static PackageInfo readArchiveInfo(PackageManager pm, String path) {
+        try {
+            if (Build.VERSION.SDK_INT >= 28) {
+                return pm.getPackageArchiveInfo(
+                        path,
+                        PackageManager.GET_SIGNING_CERTIFICATES
+                                | PackageManager.GET_SIGNATURES
+                );
+            }
+            return pm.getPackageArchiveInfo(path, PackageManager.GET_SIGNATURES);
+        } catch (Exception e) {
+            Log.w(TAG, "getPackageArchiveInfo failed", e);
+            return null;
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private static byte[][] signingDigests(
+            PackageManager pm,
+            String packageName,
+            boolean archive
+    ) {
+        try {
+            PackageInfo info;
+            if (Build.VERSION.SDK_INT >= 28) {
+                info = pm.getPackageInfo(
+                        packageName,
+                        PackageManager.GET_SIGNING_CERTIFICATES
+                );
+            } else {
+                info = pm.getPackageInfo(packageName, PackageManager.GET_SIGNATURES);
+            }
+            return digestsFromPackageInfo(info);
+        } catch (Exception e) {
+            Log.w(TAG, "signingDigests failed archive=" + archive, e);
+            return null;
+        }
+    }
+
+    private static byte[][] signingDigestsFromArchive(PackageInfo archive) {
+        return digestsFromPackageInfo(archive);
+    }
+
+    @SuppressWarnings("deprecation")
+    private static byte[][] digestsFromPackageInfo(PackageInfo info) {
+        if (info == null) return null;
+        if (Build.VERSION.SDK_INT >= 28) {
+            SigningInfo si = info.signingInfo;
+            if (si != null) {
+                Signature[] sigs = si.hasMultipleSigners()
+                        ? si.getApkContentsSigners()
+                        : si.getSigningCertificateHistory();
+                return digestsOf(sigs);
+            }
+        }
+        return digestsOf(info.signatures);
+    }
+
+    private static byte[][] digestsOf(Signature[] signatures) {
+        if (signatures == null || signatures.length == 0) return null;
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[][] out = new byte[signatures.length][];
+            for (int i = 0; i < signatures.length; i++) {
+                md.reset();
+                out[i] = md.digest(signatures[i].toByteArray());
+            }
+            Arrays.sort(out, (a, b) -> {
+                int n = Math.min(a.length, b.length);
+                for (int i = 0; i < n; i++) {
+                    int d = (a[i] & 0xff) - (b[i] & 0xff);
+                    if (d != 0) return d;
+                }
+                return a.length - b.length;
+            });
+            return out;
+        } catch (Exception e) {
+            Log.w(TAG, "digest failed", e);
+            return null;
+        }
+    }
+
+    private static boolean digestsMatch(byte[][] a, byte[][] b) {
+        if (a.length != b.length) return false;
+        for (int i = 0; i < a.length; i++) {
+            if (!Arrays.equals(a[i], b[i])) return false;
+        }
+        return true;
     }
 }

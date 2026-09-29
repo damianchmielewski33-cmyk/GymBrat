@@ -12,7 +12,11 @@ import {
   formatHistoryShortDate,
   formatTonnes,
 } from "@/lib/workout-history-overview";
-import { formatPct } from "@/lib/workout-history";
+import {
+  formatProgressDelta,
+  progressDeltaTone,
+  type ProgressDeltaUnit,
+} from "@/lib/progress-delta-unit";
 import { cn } from "@/lib/utils";
 import { AppPageHeader } from "@/components/layout/screen";
 
@@ -36,15 +40,30 @@ function KpiCard({
   );
 }
 
-function WorkoutCardRow({ card }: { card: WorkoutHistoryCard }) {
+function WorkoutCardRow({
+  card,
+  progressDeltaUnit,
+}: {
+  card: WorkoutHistoryCard;
+  progressDeltaUnit: ProgressDeltaUnit;
+}) {
   const [open, setOpen] = useState(false);
   const volumeLabel = formatTonnes(card.volumeKg);
   const dateLabel = formatHistoryShortDate(card.date);
   const prevLabel = card.prevDate ? formatHistoryShortDate(card.prevDate) : null;
-  const volPct = card.volumeDeltaPercent;
-  const volPctLabel = formatPct(volPct);
-  const volDown = volPct != null && volPct < -0.05;
-  const volUp = volPct != null && volPct > 0.05;
+  const volLabel = formatProgressDelta({
+    unit: progressDeltaUnit,
+    percent: card.volumeDeltaPercent,
+    absolute: card.volumeDeltaKg,
+    absoluteUnit: "kg",
+  });
+  const tone = progressDeltaTone(
+    progressDeltaUnit,
+    card.volumeDeltaPercent,
+    card.volumeDeltaKg,
+  );
+  const volDown = tone === "down";
+  const volUp = tone === "up";
 
   let metaLeft: ReactNode;
   if (card.noComparison) {
@@ -98,7 +117,7 @@ function WorkoutCardRow({ card }: { card: WorkoutHistoryCard }) {
           <p className="font-display text-xl tabular-nums text-[var(--gym-gold)] sm:text-2xl">
             {volumeLabel}
           </p>
-          {!card.noComparison && volPct != null ? (
+          {!card.noComparison && volLabel != null ? (
             <p
               className={cn(
                 "mt-0.5 text-[11px] font-medium tabular-nums",
@@ -109,7 +128,7 @@ function WorkoutCardRow({ card }: { card: WorkoutHistoryCard }) {
                     : "text-white/45",
               )}
             >
-              {volPctLabel} objętości
+              {volLabel} objętości
             </p>
           ) : null}
         </div>
@@ -169,9 +188,13 @@ function CardioRow({ item }: { item: WorkoutHistoryCardioItem }) {
 
 type Props = {
   overview: WorkoutHistoryOverview;
+  progressDeltaUnit?: ProgressDeltaUnit;
 };
 
-export function WorkoutHistoryView({ overview }: Props) {
+export function WorkoutHistoryView({
+  overview,
+  progressDeltaUnit = "percent",
+}: Props) {
   const { kpis, cards, cardio, planFilters } = overview;
   const [filterPlanKey, setFilterPlanKey] = useState<string | "all">("all");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -280,7 +303,13 @@ export function WorkoutHistoryView({ overview }: Props) {
             Brak zakończonych treningów — ukończ pierwszą sesję, żeby zobaczyć historię.
           </div>
         ) : (
-          filtered.map((card) => <WorkoutCardRow key={card.id} card={card} />)
+          filtered.map((card) => (
+            <WorkoutCardRow
+              key={card.id}
+              card={card}
+              progressDeltaUnit={progressDeltaUnit}
+            />
+          ))
         )}
       </section>
 

@@ -41,6 +41,8 @@ export type WorkoutHistoryCard = {
   workoutPlanId: string | null;
   volumeKg: number;
   volumeDeltaPercent: number | null;
+  /** Różnica tonażu vs poprzednia sesja tego samego dnia planu (kg). */
+  volumeDeltaKg: number | null;
   compare: WorkoutHistoryExerciseCompare | null;
   /** Brak poprzedniej sesji tego planu / tego dnia pierwszy wpis bez porównania. */
   firstOfDay: boolean;
@@ -284,6 +286,12 @@ export async function getWorkoutHistoryOverview(
     const compare = compareWorkoutExercises(w, previous);
     const volumeDeltaPercent =
       previous != null ? deltaPercent(w.volumeKg, previous.volumeKg) : null;
+    const volumeDeltaKg =
+      previous != null &&
+      Number.isFinite(w.volumeKg) &&
+      Number.isFinite(previous.volumeKg)
+        ? w.volumeKg - previous.volumeKg
+        : null;
     const sameDayEarlier = prevAnyByDate.get(w.date) != null;
     const firstOfDay = !sameDayEarlier;
     const noComparison = previous == null;
@@ -299,6 +307,7 @@ export async function getWorkoutHistoryOverview(
       workoutPlanId: w.workoutPlanId,
       volumeKg: w.volumeKg,
       volumeDeltaPercent,
+      volumeDeltaKg,
       compare,
       firstOfDay,
       noComparison,

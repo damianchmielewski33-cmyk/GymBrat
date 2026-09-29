@@ -42,6 +42,8 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Link YouTube „technika ↗” dodajesz przy ćwiczeniu w edycji planu (pole pod nazwą) — zapisuje się przy ćwiczeniu.",
       "Propozycje treningów (Pulpit, Treningi, start sesji) są w kolejce: najdawniej robiony / nigdy nie robiony na górze, ostatnio robiony na końcu — przy każdym dniu widać datę ostatniego wykonania.",
       "W Profilu użytkownicy przeglądarki mają bezpośredni link do najnowszego APK Android (z numerem wersji).",
+      "W Profilu przełącznik postępów: porównania tonażu w % albo w kg (Historia i popup po treningu).",
+      "Android 0.1.7: przy aktualizacji APK z innym podpisem aplikacja ostrzega, zamiast zawieszać instalator — wtedy odinstaluj starą GymBrat i zainstaluj ponownie.",
     ],
   },
   {

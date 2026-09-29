@@ -15,11 +15,13 @@ import { parseRemindersJson } from "@/lib/reminders-types";
 import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { LocaleSwitchCard } from "@/components/profile/locale-switch-card";
 import { AndroidAppVersionCard } from "@/components/android-app-version-card";
+import { ProgressDeltaUnitCard } from "@/components/profile/progress-delta-unit-card";
 import { MealTemplatesCard } from "@/components/profile/meal-templates-card";
 import { ReportCadenceForm } from "@/components/profile/report-cadence-form";
 import { AppPageHeader } from "@/components/layout/screen";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { parseProgressDeltaUnit } from "@/lib/progress-delta-unit";
 
 function ProfileSection({
   kicker,
@@ -81,6 +83,7 @@ export default async function ProfilePage() {
       nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
       remindersJson: userSettings.remindersJson,
       mealTemplatesJson: userSettings.mealTemplatesJson,
+      progressDeltaUnit: userSettings.progressDeltaUnit,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
@@ -115,6 +118,10 @@ export default async function ProfilePage() {
       />
 
       <AndroidAppVersionCard />
+
+      <ProgressDeltaUnitCard
+        initialUnit={parseProgressDeltaUnit(s?.progressDeltaUnit)}
+      />
 
       <ProfileSection
         kicker="Konto"

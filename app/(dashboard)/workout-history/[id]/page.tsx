@@ -1,13 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { userSettings } from "@/db/schema";
 import {
   deltaPercent,
   formatCompact,
-  formatPct,
   getCompletedWorkoutByIdForUser,
   getStrengthTrendForPlan,
 } from "@/lib/workout-history";
+import {
+  formatProgressDelta,
+  parseProgressDeltaUnit,
+} from "@/lib/progress-delta-unit";
 import { ScreenHeader } from "@/components/layout/screen";
 import { redirect } from "next/navigation";
 
@@ -45,6 +51,14 @@ export default async function WorkoutHistoryDetailsPage({
   const w = await getCompletedWorkoutByIdForUser(userId, id);
   if (!w) return notFound();
 
+  const db = getDb();
+  const [settings] = await db
+    .select({ progressDeltaUnit: userSettings.progressDeltaUnit })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
+  const progressUnit = parseProgressDeltaUnit(settings?.progressDeltaUnit);
+
   const trend =
     w.workoutPlanId != null ? await getStrengthTrendForPlan(userId, w.workoutPlanId, { limit: 30 }) : null;
 
@@ -53,6 +67,7 @@ export default async function WorkoutHistoryDetailsPage({
   const prev = idx > 0 ? points[idx - 1] : null;
   const deltaStrength = prev ? deltaPercent(w.strengthScore, prev.strengthScore) : null;
   const deltaVolume = prev ? deltaPercent(w.volumeKg, prev.volumeKg) : null;
+  const deltaVolumeAbs = prev != null ? w.volumeKg - prev.volumeKg : null;
 
   const last5 = points.slice(Math.max(0, points.length - 5));
   const first5 = points.slice(0, Math.min(points.length, 5));
@@ -61,6 +76,23 @@ export default async function WorkoutHistoryDetailsPage({
   const avgStrengthOld = avg(first5.map((p) => p.strengthScore));
   const deltaStrengthPeriod =
     avgStrengthRecent != null && avgStrengthOld != null ? deltaPercent(avgStrengthRecent, avgStrengthOld) : null;
+
+  const volumeDeltaLabel = formatProgressDelta({
+    unit: progressUnit,
+    percent: deltaVolume,
+    absolute: deltaVolumeAbs,
+  });
+  // Wskaźnik siły nie jest kilogramami — zawsze %.
+  const strengthDeltaDisplay = formatProgressDelta({
+    unit: "percent",
+    percent: deltaStrength,
+    absolute: null,
+  });
+  const strengthPeriodDisplay = formatProgressDelta({
+    unit: "percent",
+    percent: deltaStrengthPeriod,
+    absolute: null,
+  });
 
   return (
     <div className="space-y-8">
@@ -88,16 +120,22 @@ export default async function WorkoutHistoryDetailsPage({
         <div className="glass-panel neon-glow p-4 sm:p-5">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">Tonaż</p>
           <p className="mt-2 text-2xl font-semibold text-white">{formatCompact(w.volumeKg)}</p>
-          <p className="mt-1 text-xs text-white/55">Δ vs poprzedni (plan): {formatPct(deltaVolume)}</p>
+          <p className="mt-1 text-xs text-white/55">
+            Δ vs poprzedni (plan): {volumeDeltaLabel ?? "—"}
+          </p>
         </div>
         <div className="glass-panel neon-glow p-4 sm:p-5">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">Wskaźnik siły</p>
           <p className="mt-2 text-2xl font-semibold text-white">{formatCompact(w.strengthScore)}</p>
-          <p className="mt-1 text-xs text-white/55">Δ vs poprzedni (plan): {formatPct(deltaStrength)}</p>
+          <p className="mt-1 text-xs text-white/55">
+            Δ vs poprzedni (plan): {strengthDeltaDisplay ?? "—"}
+          </p>
         </div>
         <div className="glass-panel neon-glow p-4 sm:p-5">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">Trend siły</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{formatPct(deltaStrengthPeriod)}</p>
+          <p className="mt-2 text-2xl font-semibold text-white">
+            {strengthPeriodDisplay ?? "—"}
+          </p>
           <p className="mt-1 text-xs text-white/55">
             Porównanie średniej z ostatnich 5 do pierwszych 5 treningów (ten sam plan)
           </p>

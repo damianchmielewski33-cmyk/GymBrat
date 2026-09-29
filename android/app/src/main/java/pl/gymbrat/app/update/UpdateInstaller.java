@@ -49,7 +49,21 @@ public final class UpdateInstaller {
                 }
                 toast("Pobieram GymBrat " + info.versionName + "…");
                 File apk = AppUpdater.downloadApk(activity, info);
-                main.post(() -> AppUpdater.installApk(activity, apk));
+                AppUpdater.InstallCheck check = AppUpdater.canInstallOverExisting(activity, apk);
+                if (!check.canInstall) {
+                    toast(check.message != null
+                            ? check.message
+                            : "Nie można zainstalować tej aktualizacji.");
+                    return;
+                }
+                toast("Otwieram instalator…");
+                main.post(() -> {
+                    try {
+                        AppUpdater.installApk(activity, apk);
+                    } catch (Exception e) {
+                        toast("Nie udało się uruchomić instalacji: " + e.getMessage());
+                    }
+                });
             } catch (Exception e) {
                 toast("Nie udało się zaktualizować: " + e.getMessage());
             } finally {
