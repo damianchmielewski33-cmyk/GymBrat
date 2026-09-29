@@ -22,7 +22,7 @@ export default async function AdminPanelLayout({
       <div className="glass-panel mx-auto max-w-lg p-8 text-center">
         <p className="font-heading text-2xl font-semibold text-white">Brak dostępu</p>
         <p className="mt-2 text-sm text-white/60">
-          Panel jest dostępny tylko dla konta pierwszego użytkownika.
+          Panel jest dostępny tylko dla kont z rolą administratora.
         </p>
       </div>
     );

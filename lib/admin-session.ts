@@ -7,6 +7,8 @@ import { users } from "@/db/schema";
 import { getAuthSecret } from "@/lib/auth-secret";
 import {
   isPrimaryAdminEmail,
+  normalizeAdminEmail,
+  parseAdminEmails,
   PRIMARY_ADMIN_EMAIL,
 } from "@/lib/admin-config";
 
@@ -59,7 +61,12 @@ export async function getProtectedAdminUserId(): Promise<string | null> {
 /** Konto ma prawo wejść do ścieżki /admin (bez PIN jeszcze bez cookie). */
 export async function isAdminEligible(session: Session | null): Promise<boolean> {
   if (!session?.user?.id) return false;
-  return session.user.role === "admin";
+  if (session.user.role === "admin") return true;
+  if (isPrimaryAdminEmail(session.user.email)) return true;
+  const email = normalizeAdminEmail(session.user.email);
+  if (email && parseAdminEmails().has(email)) return true;
+  // Stara sesja bez e-maila w JWT — sprawdź DB.
+  return isPrimaryAdminActor(session);
 }
 
 export function signAdminUnlockToken(userId: string): string {

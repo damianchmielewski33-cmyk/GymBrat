@@ -25,6 +25,7 @@ import { releaseDocumentScrollLock } from "@/lib/document-scroll";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { BrandMark } from "@/components/layout/brand-mark";
+import { isPrimaryAdminEmail } from "@/lib/admin-config";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
@@ -51,6 +52,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname();
   const { data } = useSession();
+  const showAdminLink =
+    data?.user?.role === "admin" || isPrimaryAdminEmail(data?.user?.email);
   const reduceFixedBugs = pathname.startsWith("/active-workout");
   const sessionFullscreen = pathname.startsWith("/active-workout");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -120,7 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </Link>
                   );
                 })}
-                {data?.user?.role === "admin" ? (
+                {showAdminLink ? (
                   <Link
                     href="/admin"
                     onClick={() => setMobileMenuOpen(false)}

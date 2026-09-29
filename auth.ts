@@ -5,7 +5,10 @@ import { getDb } from "@/db";
 import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import { siteActivityLog, users } from "@/db/schema";
 import { getAuthSecret } from "@/lib/auth-secret";
-import { parseAdminEmails } from "@/lib/admin-config";
+import {
+  normalizeAdminEmail,
+  parseAdminEmails,
+} from "@/lib/admin-config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -73,7 +76,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30 },
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       const uid =
         typeof user?.id === "string"
           ? user.id
@@ -92,6 +95,54 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user && typeof user.email === "string" && user.email) {
         token.email = user.email;
       }
+
+      // Uzupełnij e-mail z DB tylko gdy brakuje w JWT (stare sesje).
+      let email =
+        typeof token.email === "string" ? normalizeAdminEmail(token.email) : "";
+      const userId =
+        typeof token.id === "string"
+          ? token.id
+          : typeof token.sub === "string"
+            ? token.sub
+            : "";
+
+      if (userId && !email) {
+        try {
+          const db = getDb();
+          const [row] = await db
+            .select({ email: users.email, appRole: users.appRole })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+          if (row?.email) {
+            email = normalizeAdminEmail(row.email);
+            token.email = row.email;
+            if (row.appRole === "admin") {
+              token.role = "admin";
+            }
+          }
+        } catch {
+          /* nie blokuj sesji */
+        }
+      }
+
+      const adminEmails = parseAdminEmails();
+      if (email && adminEmails.has(email)) {
+        const wasAdmin = token.role === "admin";
+        token.role = "admin";
+        if (!wasAdmin && userId) {
+          try {
+            const db = getDb();
+            await db
+              .update(users)
+              .set({ appRole: "admin" })
+              .where(eq(users.id, userId));
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+
       return token;
     },
     session({ session, token }) {
@@ -105,6 +156,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           "zawodnik";
         if (typeof token.email === "string" && token.email) {
           session.user.email = token.email;
+        }
+        // Główny admin zawsze widoczny jako admin w sesji klienta.
+        if (
+          typeof token.email === "string" &&
+          parseAdminEmails().has(normalizeAdminEmail(token.email))
+        ) {
+          session.user.role = "admin";
         }
       }
       return session;
