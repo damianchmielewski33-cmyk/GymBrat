@@ -1,10 +1,12 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { ensureMealLogsTableOncePerProcess } from "@/db/ensure-schema";
 import { mealLogs } from "@/db/schema";
 import type { DietDiarySlot } from "@/lib/diet-diary-slots";
 import { isDietDiarySlot } from "@/lib/diet-diary-slots";
 import type { FitatuDaySummary } from "@/types/fitatu";
+import type { FoodProduct } from "@/lib/food-products-types";
+import { findLocalProductByBarcode, normalizeFoodQuery } from "@/lib/food-products";
 
 /** Wpis posiłku na potrzeby UI (lista / edycja). */
 export type MealLogDto = {
@@ -147,6 +149,72 @@ export async function listMealLogsForDates(
         r.createdAt instanceof Date ? r.createdAt.getTime() : Number(r.createdAt),
     };
     (out[r.date] ?? (out[r.date] = [])).push(dto);
+  }
+
+  return out;
+}
+
+/**
+ * Unikalne produkty z historii wpisów (ostatnie dni) — do „Ostatnio jedzone”.
+ * Klucz: barcode albo znormalizowana nazwa (bez gramatury w nawiasie).
+ */
+export async function listRecentFoodProductsFromLogs(
+  userId: string,
+  limit = 24,
+): Promise<FoodProduct[]> {
+  await ensureMealLogsTableOncePerProcess();
+  const db = getDb();
+  const rows = await db
+    .select({
+      name: mealLogs.name,
+      barcode: mealLogs.barcode,
+      calories: mealLogs.calories,
+      proteinG: mealLogs.proteinG,
+      fatG: mealLogs.fatG,
+      carbsG: mealLogs.carbsG,
+      createdAt: mealLogs.createdAt,
+    })
+    .from(mealLogs)
+    .where(eq(mealLogs.userId, userId))
+    .orderBy(desc(mealLogs.createdAt))
+    .limit(200);
+
+  const seen = new Set<string>();
+  const out: FoodProduct[] = [];
+
+  for (const r of rows) {
+    const rawName = (r.name ?? "").trim();
+    if (!rawName) continue;
+    // „Jogurt (150 g)” → baza do klucza / wyświetlania
+    const baseName = rawName.replace(/\s*\([^)]*\)\s*$/, "").trim() || rawName;
+    const code = (r.barcode ?? "").replace(/\D/g, "");
+    const key = code
+      ? `ean:${code}`
+      : `name:${normalizeFoodQuery(baseName)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const fromCatalog = code ? findLocalProductByBarcode(code) : null;
+    if (fromCatalog) {
+      out.push(fromCatalog);
+    } else {
+      out.push({
+        id: code
+          ? `recent-ean-${code}`
+          : `recent-name-${normalizeFoodQuery(baseName).slice(0, 48) || out.length}`,
+        barcode: code || null,
+        name: baseName,
+        servingLabel: "ostatni wpis",
+        calories: Number(r.calories),
+        proteinG: Number(r.proteinG),
+        fatG: Number(r.fatG),
+        carbsG: Number(r.carbsG),
+        source: "local",
+        basisAmount: 1,
+        basisUnit: "pcs",
+      });
+    }
+    if (out.length >= limit) break;
   }
 
   return out;
