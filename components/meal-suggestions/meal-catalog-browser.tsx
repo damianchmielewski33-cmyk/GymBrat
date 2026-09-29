@@ -9,7 +9,7 @@ import {
   type CatalogMeal,
   type MealSlot,
 } from "@/lib/meal-catalog";
-import { mealIllustrationUrl } from "@/lib/meal-suggestions-gaps";
+import { RecipeImage } from "@/components/meal-suggestions/recipe-image";
 import {
   enrichRecipeContent,
   splitIngredientDisplay,
@@ -160,14 +160,7 @@ export function MealCatalogBrowser({ dateKey }: { dateKey: string }) {
             className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] text-left transition hover:border-white/20 hover:bg-white/[0.05]"
           >
             <div className="relative aspect-[16/10] w-full bg-black/40">
-              {/* eslint-disable-next-line @next/next/no-img-element -- zewnętrzny URL ilustracji */}
-              <img
-                src={mealIllustrationUrl(meal.title, meal.imagePromptEn)}
-                alt=""
-                className="h-full w-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
+              <RecipeImage recipe={meal} alt={meal.title} />
             </div>
             <div className="space-y-2 p-3">
               <p className="line-clamp-2 text-sm font-semibold text-white">{meal.title}</p>
@@ -239,12 +232,7 @@ export function MealCatalogBrowser({ dateKey }: { dateKey: string }) {
 
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
                 <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-black/40">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={mealIllustrationUrl(detail.meal.title, detail.meal.imagePromptEn)}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
+                  <RecipeImage recipe={detail.meal} alt={detail.meal.title} />
                 </div>
 
                 <div className="mt-4 grid grid-cols-4 gap-2">

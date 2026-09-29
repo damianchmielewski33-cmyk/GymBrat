@@ -21,7 +21,10 @@ export const MealSuggestionsResponseSchema = z.object({
   meals: z.array(MealItemSchema).length(4),
 });
 
-export type MealSuggestionItem = z.infer<typeof MealItemSchema>;
+export type MealSuggestionItem = z.infer<typeof MealItemSchema> & {
+  /** Opcjonalny alias promptu obrazu (Pollinations). */
+  imagePrompt?: string;
+};
 
 export function staticFallbackMeals(): MealSuggestionItem[] {
   return [

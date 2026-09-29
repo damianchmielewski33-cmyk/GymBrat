@@ -105,5 +105,6 @@ export function catalogMealToSuggestion(meal: CatalogMeal): MealSuggestionItem {
     steps: meal.steps,
     approximateMacros: meal.approximateMacros,
     imagePromptEn: meal.imagePromptEn,
+    ...(meal.imagePrompt ? { imagePrompt: meal.imagePrompt } : {}),
   };
 }

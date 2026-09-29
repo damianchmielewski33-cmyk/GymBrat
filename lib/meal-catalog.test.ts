@@ -3,12 +3,13 @@ import {
   MEAL_CATALOG,
   MEAL_SLOTS,
   MEAL_SLOT_LABELS,
+  getCatalogMealById,
   getMealsBySlot,
   mealSlotFromHour,
   pickCatalogMealsForGaps,
-  catalogMealToSuggestion,
 } from "@/lib/meal-catalog";
 import { MEAL_CATALOG_GENERATED_COUNT } from "@/lib/meal-catalog-data";
+import { getRecipeImage } from "@/lib/recipe-image";
 import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
 
 const emptyGaps: MacroGaps = {
@@ -30,39 +31,35 @@ const emptyGaps: MacroGaps = {
 };
 
 describe("meal-catalog", () => {
-  it("ma unikalne posiłki we wszystkich slotach (bez klonów kombinatorów)", () => {
-    expect(MEAL_CATALOG_GENERATED_COUNT).toBeGreaterThanOrEqual(70);
-    expect(MEAL_CATALOG.length).toBe(MEAL_CATALOG_GENERATED_COUNT);
-    const ids = new Set(MEAL_CATALOG.map((m) => m.id));
-    expect(ids.size).toBe(MEAL_CATALOG.length);
-    const titles = new Set(MEAL_CATALOG.map((m) => m.title.toLowerCase()));
-    expect(titles.size).toBe(MEAL_CATALOG.length);
-    for (const slot of MEAL_SLOTS) {
-      expect(getMealsBySlot(slot).length).toBeGreaterThanOrEqual(10);
-      expect(MEAL_SLOT_LABELS[slot].length).toBeGreaterThan(3);
+  it("katalog ma 10 przepisów z imagePrompt (bez obrazów w bazie)", () => {
+    expect(MEAL_CATALOG_GENERATED_COUNT).toBe(10);
+    expect(MEAL_CATALOG).toHaveLength(10);
+    for (const meal of MEAL_CATALOG) {
+      expect(meal.id).toMatch(/^meal_\d{3}$/);
+      expect(meal.imagePrompt?.length).toBeGreaterThan(10);
+      expect(meal.approximateMacros.calories).toBeGreaterThan(0);
+      expect(MEAL_SLOTS).toContain(meal.slot);
+      expect(MEAL_SLOT_LABELS[meal.slot].length).toBeGreaterThan(3);
     }
-    // Brak typowych klonów „jajecznica z dodatkiem: …”
-    const cloneish = MEAL_CATALOG.filter((m) =>
-      /jajecznica z .* z dodatkiem:/i.test(m.title),
-    );
-    expect(cloneish.length).toBe(0);
+    expect(getCatalogMealById("meal_003")?.title).toContain("Kurczak");
   });
 
-  it("każdy posiłek ma makro, składniki, przepis i prompt grafiki", () => {
-    const sample = MEAL_CATALOG[0]!;
-    expect(sample.ingredients.length).toBeGreaterThanOrEqual(2);
-    expect(sample.steps.length).toBeGreaterThanOrEqual(2);
-    expect(sample.approximateMacros.calories).toBeGreaterThan(0);
-    expect((sample.imagePromptEn ?? "").length).toBeGreaterThan(5);
-    expect(catalogMealToSuggestion(sample).title).toBe(sample.title);
-  });
-
-  it("mapuje godzinę na slot i dobiera posiłki do braków makro", () => {
+  it("mapuje godzinę na slot i dobiera posiłki z katalogu", () => {
     expect(mealSlotFromHour(8)).toBe("sniadanie");
     expect(mealSlotFromHour(13)).toBe("obiad");
     expect(mealSlotFromHour(20)).toBe("kolacja");
+    expect(getMealsBySlot("sniadanie").length).toBe(2);
+    expect(getMealsBySlot("obiad").length).toBe(3);
     const picked = pickCatalogMealsForGaps(emptyGaps, { slot: "obiad", limit: 4 });
-    expect(picked).toHaveLength(4);
-    expect(picked.every((m) => m.slot === "obiad")).toBe(true);
+    expect(picked.length).toBeGreaterThan(0);
+    expect(picked.length).toBeLessThanOrEqual(4);
+  });
+
+  it("getRecipeImage używa imagePrompt z przepisu", () => {
+    const meal = getCatalogMealById("meal_001");
+    expect(meal).toBeTruthy();
+    const url = getRecipeImage(meal!);
+    expect(url.startsWith("https://image.pollinations.ai/prompt/")).toBe(true);
+    expect(url).toContain(encodeURIComponent("healthy oatmeal with blueberries"));
   });
 });

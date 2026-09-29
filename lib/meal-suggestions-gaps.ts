@@ -1,3 +1,4 @@
+import { getRecipeImage } from "@/lib/recipe-image";
 import type { FitatuDaySummary } from "@/types/fitatu";
 
 export type MacroGaps = {
@@ -54,17 +55,7 @@ export function computeMacroGaps(summary: FitatuDaySummary): MacroGaps {
   };
 }
 
-/** Ilustracja poglądowa (zewnętrzny generator na podstawie bezpiecznego promptu). */
+/** Ilustracja poglądowa — deleguje do getRecipeImage (Pollinations). */
 export function mealIllustrationUrl(title: string, imagePromptEn?: string | null): string {
-  const dish = (title || "healthy meal").trim().slice(0, 80);
-  const extra = (imagePromptEn ?? "").trim().slice(0, 120);
-  const prompt = [
-    "Professional food photography, single plate, appetizing, natural light, restaurant quality, no text, no logo",
-    dish,
-    extra,
-  ]
-    .filter(Boolean)
-    .join(", ");
-  const q = encodeURIComponent(prompt);
-  return `https://image.pollinations.ai/prompt/${q}?width=640&height=400&nologo=true`;
+  return getRecipeImage({ title, imagePromptEn });
 }
