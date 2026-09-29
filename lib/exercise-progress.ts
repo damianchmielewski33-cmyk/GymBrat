@@ -98,6 +98,9 @@ export async function getExerciseProgressSeries(params: {
   prs: ExercisePrs;
   newMax: { e1rm: boolean; weight: boolean; tonnage: boolean };
   hasNewMax: boolean;
+  setCompare: ExerciseSetCompare[];
+  latestSessionDate: string | null;
+  previousSessionDate: string | null;
 }> {
   const q = params.exerciseQuery.trim();
   if (!q) {
