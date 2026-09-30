@@ -1,8 +1,8 @@
 {
-  "versionCode": 10,
-  "versionName": "0.1.9",
-  "apkUrl": "https://gym-brat.vercel.app/gymbrat-0.1.9.apk?v=10",
-  "releasedAt": "2026-09-30T14:10:00Z",
+  "versionCode": 11,
+  "versionName": "0.1.10",
+  "apkUrl": "https://gym-brat.vercel.app/gymbrat-0.1.10.apk?v=11",
+  "releasedAt": "2026-09-30T14:40:00Z",
   "commit": "",
-  "notes": "GymBrat Android 0.1.9 — jeśli Chrome wisi: anuluj stary download gymbrat.apk i pobierz ponownie (wersjonowany plik)."
+  "notes": "GymBrat 0.1.10 — pobieranie APK przez Share/postęp (bez wiszącego Chrome) + WebView nie ładuje .apk jak strony."
 }

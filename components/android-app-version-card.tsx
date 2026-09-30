@@ -1,13 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Download, ExternalLink, RefreshCw, Smartphone } from "lucide-react";
+import { ExternalLink, RefreshCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ApkDownloadButton } from "@/components/apk-download-button";
 import { useInstalledAndroidAppIdentity } from "@/hooks/use-android-app-identity";
 import { compareAndroidAppVersion, requestNativeAndroidUpdate } from "@/lib/app-webview";
 import { cn } from "@/lib/utils";
-
-const PROFILE_WEB_DOWNLOAD_HREF = "/api/android/download?source=profile-web";
 
 type LatestInfo = {
   versionCode: number;
@@ -70,11 +69,8 @@ export function AndroidAppVersionCard() {
     return () => window.clearTimeout(timer);
   }, [hydrated, loadLatest]);
 
-  // SSR / pierwszy render — nic, żeby uniknąć flashu złej karty w APK.
   if (!hydrated) return null;
 
-  // Przeglądarka / PWA: link przez /api/android/download (302 → APK).
-  // Bez atrybutu download — na Android Chrome potrafi „wisieć” na 100%.
   if (!installed) {
     return (
       <section className="app-card p-5 sm:p-6">
@@ -85,8 +81,8 @@ export function AndroidAppVersionCard() {
               Aplikacja Android
             </h2>
             <p className="mt-1.5 text-sm leading-relaxed text-white/45">
-              Dla użytkowników przeglądarki — bezpośredni link do najnowszego
-              instalatora GymBrat (APK).
+              Pobieranie omija menedżer Chrome (ten często „wisi” na 100%). Po
+              pobraniu wybierz „Zapisz w plikach” albo instalator.
             </p>
           </div>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10">
@@ -95,45 +91,16 @@ export function AndroidAppVersionCard() {
         </div>
 
         <div className="mt-5 space-y-3">
-          <a
-            href={PROFILE_WEB_DOWNLOAD_HREF}
-            className="gym-btn-primary inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold sm:w-auto"
-          >
-            <Download className="h-4 w-4" aria-hidden />
-            {latest
-              ? `Pobierz Android ${latest.versionName}`
-              : checking
-                ? "Sprawdzanie wersji…"
-                : "Pobierz aplikację Android"}
-          </a>
-
-          <p className="text-xs leading-relaxed text-white/45">
-            Jeśli pasek pobierania „wisi”: w Chrome → Pobrane anuluj stary{" "}
-            <span className="text-white/70">gymbrat.apk</span>, potem kliknij
-            ponownie. Po zapisie otwórz powiadomienie albo folder Pobrane.
-          </p>
-
-          <p className="break-all text-xs leading-relaxed text-white/40">
-            Link:{" "}
-            <a
-              href={PROFILE_WEB_DOWNLOAD_HREF}
-              className="inline-flex items-center gap-1 text-[var(--gym-gold)] underline-offset-2 hover:underline"
-            >
-              /api/android/download
-              <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
-            </a>
-            {latest ? (
-              <>
-                {" · "}
-                <a
-                  href={`/gymbrat-${latest.versionName}.apk?v=${latest.versionCode}`}
-                  className="text-white/55 underline-offset-2 hover:underline"
-                >
-                  /gymbrat-{latest.versionName}.apk
-                </a>
-              </>
-            ) : null}
-          </p>
+          {latest ? (
+            <ApkDownloadButton
+              versionName={latest.versionName}
+              versionCode={latest.versionCode}
+            />
+          ) : (
+            <p className="text-sm text-white/50">
+              {checking ? "Sprawdzanie wersji…" : "Ładowanie informacji o APK…"}
+            </p>
+          )}
 
           {latest ? (
             <p className="text-xs text-white/45">
@@ -145,7 +112,7 @@ export function AndroidAppVersionCard() {
           ) : null}
 
           <p className="text-xs text-white/35">
-            Po pobraniu zezwól na instalację z tego źródła. Jeśli masz już starą
+            Po zapisaniu zezwól na instalację z tego źródła. Jeśli masz starą
             GymBrat z innym podpisem — najpierw ją odinstaluj.
           </p>
         </div>
@@ -159,7 +126,7 @@ export function AndroidAppVersionCard() {
 
   function startUpdate() {
     if (!requestNativeAndroidUpdate()) {
-      window.location.href = "/api/android/download?source=profile";
+      window.location.href = `/gymbrat-${latest?.versionName ?? "download"}.apk?v=${latest?.versionCode ?? 0}`;
     }
   }
 
@@ -227,15 +194,22 @@ export function AndroidAppVersionCard() {
       </dl>
 
       <div className="mt-5 flex flex-wrap gap-2">
-        {updateAvailable ? (
-          <Button
-            type="button"
-            className="gym-btn-primary h-11 rounded-2xl"
-            onClick={startUpdate}
-          >
-            <Download className="h-4 w-4" />
-            Zainstaluj {latest?.versionName}
-          </Button>
+        {updateAvailable && latest ? (
+          <>
+            <Button
+              type="button"
+              className="gym-btn-primary h-11 rounded-2xl"
+              onClick={startUpdate}
+            >
+              Zainstaluj {latest.versionName}
+            </Button>
+            <ApkDownloadButton
+              versionName={latest.versionName}
+              versionCode={latest.versionCode}
+              label={`Pobierz plik ${latest.versionName}`}
+              className="h-11"
+            />
+          </>
         ) : null}
         <Button
           type="button"
@@ -248,6 +222,34 @@ export function AndroidAppVersionCard() {
           {checking ? "Sprawdzanie…" : "Sprawdź ponownie"}
         </Button>
       </div>
+
+      {!updateAvailable && latest ? (
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <p className="mb-2 text-xs text-white/45">
+            Potrzebujesz świeżego pliku instalacyjnego (np. po odinstalowaniu)?
+          </p>
+          <ApkDownloadButton
+            versionName={latest.versionName}
+            versionCode={latest.versionCode}
+            label={`Pobierz APK ${latest.versionName}`}
+          />
+        </div>
+      ) : null}
+
+      <p className="mt-3 text-[11px] text-white/35">
+        Link awaryjny:{" "}
+        <a
+          href={
+            latest
+              ? `/gymbrat-${latest.versionName}.apk?v=${latest.versionCode}`
+              : "/api/android/download?source=profile"
+          }
+          className="inline-flex items-center gap-1 text-white/55 underline-offset-2 hover:underline"
+        >
+          bezpośredni APK
+          <ExternalLink className="h-3 w-3" aria-hidden />
+        </a>
+      </p>
     </section>
   );
 }

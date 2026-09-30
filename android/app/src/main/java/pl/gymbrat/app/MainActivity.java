@@ -1,5 +1,6 @@
 package pl.gymbrat.app;
 
+import android.app.DownloadManager;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -11,10 +12,12 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.OpenableColumns;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
+import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -22,6 +25,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -184,18 +188,33 @@ public final class MainActivity extends AppCompatActivity {
         jsBridge = new GymBratAndroidJsBridge(this, updateInstaller, this::markContentReady);
         webView.addJavascriptInterface(jsBridge, "GymBratAndroid");
 
+        webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
+            String guessed = URLUtil.guessFileName(url, contentDisposition, mimeType);
+            if (guessed == null || !guessed.toLowerCase().endsWith(".apk")) {
+                guessed = "gymbrat-download.apk";
+            }
+            enqueueApkDownload(Uri.parse(url), guessed);
+        });
+
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (request == null || request.getUrl() == null) return false;
-                String host = request.getUrl().getHost();
+                Uri uri = request.getUrl();
+                String path = uri.getPath() != null ? uri.getPath().toLowerCase() : "";
+                // Nigdy nie ładuj APK w WebView — wisi na „pobieraniu” / pustej stronie.
+                if (path.endsWith(".apk") || path.contains("/api/android/download")) {
+                    enqueueApkDownload(uri);
+                    return true;
+                }
+                String host = uri.getHost();
                 String siteHost = android.net.Uri.parse(AppUpdater.siteBase()).getHost();
                 if (host != null && siteHost != null && host.equalsIgnoreCase(siteHost)) {
                     return false;
                 }
                 android.content.Intent intent = new android.content.Intent(
                         android.content.Intent.ACTION_VIEW,
-                        request.getUrl()
+                        uri
                 );
                 startActivity(intent);
                 return true;
@@ -474,6 +493,56 @@ public final class MainActivity extends AppCompatActivity {
             return new Uri[]{data.getData()};
         }
         return null;
+    }
+
+    private void enqueueApkDownload(Uri uri) {
+        String name = uri.getLastPathSegment();
+        if (name == null || !name.toLowerCase().contains(".apk")) {
+            name = "gymbrat-download.apk";
+        }
+        // Query string w lastPathSegment bywa „gymbrat-0.1.9.apk?v=10”
+        int q = name.indexOf('?');
+        if (q >= 0) name = name.substring(0, q);
+        enqueueApkDownload(uri, name);
+    }
+
+    private void enqueueApkDownload(Uri uri, String fileName) {
+        try {
+            DownloadManager manager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+            if (manager == null) {
+                Toast.makeText(this, "Brak menedżera pobierania", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            DownloadManager.Request req = new DownloadManager.Request(uri);
+            req.setMimeType("application/vnd.android.package-archive");
+            req.setTitle("GymBrat APK");
+            req.setDescription("Pobieranie instalatora…");
+            req.allowScanningByMediaScanner();
+            req.setNotificationVisibility(
+                    DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+            );
+            req.setDestinationInExternalFilesDir(
+                    getApplicationContext(),
+                    Environment.DIRECTORY_DOWNLOADS,
+                    fileName
+            );
+            String cookies = CookieManager.getInstance().getCookie(uri.toString());
+            if (cookies != null && !cookies.isEmpty()) {
+                req.addRequestHeader("Cookie", cookies);
+            }
+            manager.enqueue(req);
+            Toast.makeText(
+                    this,
+                    "Pobieranie APK… Sprawdź powiadomienia / Pobrane.",
+                    Toast.LENGTH_LONG
+            ).show();
+        } catch (Exception e) {
+            Toast.makeText(
+                    this,
+                    "Nie udało się rozpocząć pobierania: " + e.getMessage(),
+                    Toast.LENGTH_LONG
+            ).show();
+        }
     }
 
     private void markContentReady() {

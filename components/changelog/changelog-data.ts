@@ -47,6 +47,15 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     ],
   },
   {
+    title: "2026-09 — Android 0.1.10: pobieranie APK bez zawieszania",
+    date: "2026-09-30",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W Profilu pobieranie APK idzie z paskiem postępu i systemowym Share („Zapisz w plikach”), zamiast menedżera Chrome, który często wisi na 100%.",
+      "Aplikacja Android nie otwiera już pliku .apk wewnątrz WebView — używa systemowego DownloadManagera.",
+    ],
+  },
+  {
     title: "2026-09 — Android 0.1.9",
     date: "2026-09-30",
     sourceRepo: GYMBRAT_GITHUB_SLUG,

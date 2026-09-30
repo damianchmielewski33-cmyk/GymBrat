@@ -1,5 +1,4 @@
 import path from "path";
-import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import type { NextConfig } from "next";
 
@@ -20,32 +19,12 @@ function awpFrameAncestor(): string {
   return DEFAULT_AWP_ORIGIN;
 }
 
-/**
- * Unikalna nazwa w Content-Disposition — Chrome Android często wisi na 100%
- * przy powtórnym pobraniu tego samego „gymbrat.apk”.
- */
-function androidApkDownloadName(): string {
-  try {
-    const raw = readFileSync(path.join(projectRoot, "public", "android-version.json"), "utf8");
-    const json = JSON.parse(raw) as { versionName?: string };
-    const name = typeof json.versionName === "string" ? json.versionName.trim() : "";
-    if (name && /^[0-9A-Za-z._-]+$/.test(name)) return `gymbrat-${name}.apk`;
-  } catch {
-    /* fallback */
-  }
-  return "gymbrat-download.apk";
-}
-
-const APK_DOWNLOAD_NAME = androidApkDownloadName();
 const APK_RESPONSE_HEADERS = [
   {
     key: "Content-Type",
     value: "application/vnd.android.package-archive",
   },
-  {
-    key: "Content-Disposition",
-    value: `attachment; filename="${APK_DOWNLOAD_NAME}"`,
-  },
+  // Bez Content-Disposition: attachment — Chrome Android często wisi na 100%.
   {
     key: "Cache-Control",
     value: "public, max-age=0, must-revalidate",
