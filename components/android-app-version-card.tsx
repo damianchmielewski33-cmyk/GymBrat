@@ -96,7 +96,7 @@ export function AndroidAppVersionCard() {
 
         <div className="mt-5 space-y-3">
           <a
-            href="/gymbrat.apk"
+            href={PROFILE_WEB_DOWNLOAD_HREF}
             className="gym-btn-primary inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold sm:w-auto"
           >
             <Download className="h-4 w-4" aria-hidden />
@@ -108,27 +108,31 @@ export function AndroidAppVersionCard() {
           </a>
 
           <p className="text-xs leading-relaxed text-white/45">
-            Pobieranie idzie z GymBrat (nie z GitHuba). Gdy plik się zapisze,
-            otwórz powiadomienie albo folder Pobrane i stuknij{" "}
-            <span className="text-white/70">gymbrat.apk</span>.
+            Jeśli pasek pobierania „wisi”: w Chrome → Pobrane anuluj stary{" "}
+            <span className="text-white/70">gymbrat.apk</span>, potem kliknij
+            ponownie. Po zapisie otwórz powiadomienie albo folder Pobrane.
           </p>
 
           <p className="break-all text-xs leading-relaxed text-white/40">
             Link:{" "}
             <a
-              href="/gymbrat.apk"
+              href={PROFILE_WEB_DOWNLOAD_HREF}
               className="inline-flex items-center gap-1 text-[var(--gym-gold)] underline-offset-2 hover:underline"
             >
-              /gymbrat.apk
+              /api/android/download
               <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
             </a>
-            {" · "}
-            <a
-              href={PROFILE_WEB_DOWNLOAD_HREF}
-              className="text-white/55 underline-offset-2 hover:underline"
-            >
-              /api/android/download
-            </a>
+            {latest ? (
+              <>
+                {" · "}
+                <a
+                  href={`/gymbrat-${latest.versionName}.apk?v=${latest.versionCode}`}
+                  className="text-white/55 underline-offset-2 hover:underline"
+                >
+                  /gymbrat-{latest.versionName}.apk
+                </a>
+              </>
+            ) : null}
           </p>
 
           {latest ? (

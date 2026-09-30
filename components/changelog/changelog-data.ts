@@ -53,6 +53,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     bullets: [
       "W Profilu do pobrania jest nowy build Android 0.1.9 (versionCode 10) z gym-brat.vercel.app/gymbrat.apk — świeży Release, nie sam bump numeru przy starym pliku.",
       "Jeśli pobieranie „wisi” albo instalator nie startuje: odinstaluj starą GymBrat (inny podpis), potem zainstaluj APK z Profilu.",
+      "Pobieranie APK używa wersjonowanej nazwy pliku (gymbrat-0.1.9.apk), żeby Chrome na Androidzie nie wisiał na utkniętym starym downloadzie.",
     ],
   },
   {

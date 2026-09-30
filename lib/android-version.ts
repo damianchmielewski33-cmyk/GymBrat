@@ -13,9 +13,9 @@ export type AndroidVersionInfo = {
 const DEFAULT_GYMBRAT_VERSION_JSON = `https://github.com/${GYMBRAT_GITHUB_SLUG}/releases/download/android-latest/android-version.json`;
 const DEFAULT_GYMBRAT_APK = `https://github.com/${GYMBRAT_GITHUB_SLUG}/releases/download/android-latest/gymbrat.apk`;
 /** Same-origin na produkcji — stabilniejsze pobieranie w Chrome Android. */
-const DEFAULT_SITE_APK = "https://gym-brat.vercel.app/gymbrat.apk";
+const DEFAULT_SITE_ORIGIN = "https://gym-brat.vercel.app";
 
-function siteApkUrl(): string | null {
+function siteOrigin(): string | null {
   const fromEnv =
     asHttpUrl(process.env.NEXT_PUBLIC_APP_URL) ||
     asHttpUrl(
@@ -25,15 +25,30 @@ function siteApkUrl(): string | null {
     );
   if (fromEnv) {
     try {
-      return new URL("/gymbrat.apk", fromEnv).toString();
+      return new URL(fromEnv).origin;
     } catch {
       /* ignore */
     }
   }
   if (process.env.VERCEL === "1" || process.env.NODE_ENV === "production") {
-    return DEFAULT_SITE_APK;
+    return DEFAULT_SITE_ORIGIN;
   }
   return null;
+}
+
+/** Wersjonowany URL APK — unika wiszącego downloadu „gymbrat.apk” w Chrome. */
+export function siteApkUrlForVersion(versionName: string, versionCode: number): string | null {
+  const origin = siteOrigin();
+  if (!origin) return null;
+  const safe =
+    typeof versionName === "string" && /^[0-9A-Za-z._-]+$/.test(versionName.trim())
+      ? versionName.trim()
+      : "download";
+  return `${origin}/gymbrat-${safe}.apk?v=${versionCode}`;
+}
+
+function siteApkUrl(): string | null {
+  return siteApkUrlForVersion("download", 1);
 }
 
 const FOREIGN_ANDROID_MARKERS = [
@@ -191,7 +206,7 @@ export async function resolveAndroidVersion(): Promise<AndroidVersionInfo> {
     if (c.versionCode > best.versionCode) best = c;
   }
   // Na produkcji / Vercel kieruj pobieranie na same-origin (Chrome Android).
-  const site = siteApkUrl();
+  const site = siteApkUrlForVersion(best.versionName, best.versionCode);
   if (site && !isForeignAndroidArtifactUrl(site)) {
     return { ...best, apkUrl: site };
   }

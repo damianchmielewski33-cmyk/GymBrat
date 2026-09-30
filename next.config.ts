@@ -1,4 +1,5 @@
 import path from "path";
+import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import type { NextConfig } from "next";
 
@@ -18,6 +19,38 @@ function awpFrameAncestor(): string {
   }
   return DEFAULT_AWP_ORIGIN;
 }
+
+/**
+ * Unikalna nazwa w Content-Disposition — Chrome Android często wisi na 100%
+ * przy powtórnym pobraniu tego samego „gymbrat.apk”.
+ */
+function androidApkDownloadName(): string {
+  try {
+    const raw = readFileSync(path.join(projectRoot, "public", "android-version.json"), "utf8");
+    const json = JSON.parse(raw) as { versionName?: string };
+    const name = typeof json.versionName === "string" ? json.versionName.trim() : "";
+    if (name && /^[0-9A-Za-z._-]+$/.test(name)) return `gymbrat-${name}.apk`;
+  } catch {
+    /* fallback */
+  }
+  return "gymbrat-download.apk";
+}
+
+const APK_DOWNLOAD_NAME = androidApkDownloadName();
+const APK_RESPONSE_HEADERS = [
+  {
+    key: "Content-Type",
+    value: "application/vnd.android.package-archive",
+  },
+  {
+    key: "Content-Disposition",
+    value: `attachment; filename="${APK_DOWNLOAD_NAME}"`,
+  },
+  {
+    key: "Cache-Control",
+    value: "public, max-age=0, must-revalidate",
+  },
+];
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -107,21 +140,11 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/gymbrat.apk",
-        headers: [
-          {
-            key: "Content-Type",
-            value: "application/vnd.android.package-archive",
-          },
-          {
-            key: "Content-Disposition",
-            value: 'attachment; filename="gymbrat.apk"',
-          },
-          {
-            // Krótki cache — po nowym Release Vercel musi serwować świeży APK, nie stary z CDN.
-            key: "Cache-Control",
-            value: "public, max-age=60, must-revalidate",
-          },
-        ],
+        headers: APK_RESPONSE_HEADERS,
+      },
+      {
+        source: "/gymbrat-:version.apk",
+        headers: APK_RESPONSE_HEADERS,
       },
     ];
   },
@@ -133,6 +156,11 @@ const nextConfig: NextConfig = {
       "framer-motion",
       "@base-ui/react",
     ],
+  },
+
+  async rewrites() {
+    // /gymbrat-0.1.9.apk → ten sam plik, inny URL (Chrome nie wisi na starym downloadzie).
+    return [{ source: "/gymbrat-:version.apk", destination: "/gymbrat.apk" }];
   },
 };
 

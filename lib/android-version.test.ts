@@ -67,7 +67,7 @@ describe("bundledAndroidVersion", () => {
     const info = bundledAndroidVersion();
     expect(info.versionCode).toBe(10);
     expect(info.versionName).toBe("0.1.9");
-    expect(info.apkUrl).toMatch(/gymbrat\.apk/i);
+    expect(info.apkUrl).toMatch(/gymbrat.*\.apk/i);
     expect(isForeignAndroidArtifactUrl(info.apkUrl)).toBe(false);
     expect(info.apkUrl.toLowerCase()).not.toContain("akademia");
   });
@@ -105,6 +105,6 @@ describe("resolveAndroidVersion", () => {
     const info = await resolveAndroidVersion();
     expect(info.versionCode).toBeGreaterThanOrEqual(10);
     expect(info.versionName).toBe("0.1.9");
-    expect(info.apkUrl).toMatch(/gymbrat\.apk/i);
+    expect(info.apkUrl).toMatch(/gymbrat.*\.apk/i);
   });
 });

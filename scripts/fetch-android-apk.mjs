@@ -1,9 +1,12 @@
 /**
  * Pobiera najnowszy gymbrat.apk z GitHub Release do public/,
- * żeby Vercel serwował go same-origin (Chrome na Androidzie nie wisi na 100%).
+ * żeby Vercel serwował go same-origin (Chrome na Androidzie nie wisi jak przy GitHubie).
+ *
+ * Zapisuje też kopię z wersją w nazwie (gymbrat-0.1.9.apk), bo Chrome Android
+ * lubi „wisić” na powtórnym downloadzie tej samej nazwy pliku.
  */
-import { createWriteStream } from "node:fs";
-import { access, mkdir, stat, unlink } from "node:fs/promises";
+import { createWriteStream, readFileSync } from "node:fs";
+import { access, copyFile, mkdir, stat, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
@@ -20,6 +23,17 @@ async function exists(path) {
     return true;
   } catch {
     return false;
+  }
+}
+
+function readVersionName() {
+  try {
+    const raw = readFileSync(join(ROOT, "public", "android-version.json"), "utf8");
+    const json = JSON.parse(raw);
+    const name = typeof json.versionName === "string" ? json.versionName.trim() : "";
+    return name && /^[0-9A-Za-z._-]+$/.test(name) ? name : null;
+  } catch {
+    return null;
   }
 }
 
@@ -58,6 +72,13 @@ async function main() {
     const { rename } = await import("node:fs/promises");
     await rename(tmp, OUT);
     console.log(`[fetch-android-apk] OK ${(st.size / (1024 * 1024)).toFixed(2)} MB`);
+
+    const versionName = readVersionName();
+    if (versionName) {
+      const versioned = join(ROOT, "public", `gymbrat-${versionName}.apk`);
+      await copyFile(OUT, versioned);
+      console.log(`[fetch-android-apk] Kopia wersjonowana: gymbrat-${versionName}.apk`);
+    }
   } catch (e) {
     await unlink(tmp).catch(() => {});
     if (await exists(OUT)) {

@@ -19,9 +19,19 @@ function withPublicHeaders(res: NextResponse) {
   return res;
 }
 
+function sameOriginApkPath(versionName: string, versionCode: number): string {
+  const safe =
+    typeof versionName === "string" && /^[0-9A-Za-z._-]+$/.test(versionName.trim())
+      ? versionName.trim()
+      : "download";
+  // Unikalna ścieżka + query — omija utknięte pobieranie „gymbrat.apk” w Chrome Android.
+  return `/gymbrat-${safe}.apk?v=${versionCode}`;
+}
+
 /**
  * Start pobierania APK.
- * Domyślnie same-origin `/gymbrat.apk` (Chrome Android nie wisi jak przy GitHubie).
+ * Domyślnie same-origin `/gymbrat-{version}.apk` (Chrome Android nie wisi jak przy GitHubie
+ * ani przy powtórnym gymbrat.apk).
  * `?source=github-fallback` → GitHub Release.
  */
 export async function GET(req: Request) {
@@ -41,10 +51,9 @@ export async function GET(req: Request) {
   const githubFallback = url.searchParams.get("source") === "github-fallback";
 
   if (!githubFallback) {
-    // Same-origin najpierw — nawet gdy Java API jest włączone (Chrome Android).
-    return withPublicHeaders(
-      NextResponse.redirect(new URL("/gymbrat.apk", url.origin), 302),
-    );
+    const info = await resolveAndroidVersion();
+    const path = sameOriginApkPath(info.versionName, info.versionCode);
+    return withPublicHeaders(NextResponse.redirect(new URL(path, url.origin), 302));
   }
 
   if (isJavaApiEnabled()) {
