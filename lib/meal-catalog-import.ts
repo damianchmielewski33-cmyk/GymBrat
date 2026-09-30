@@ -51,9 +51,16 @@ const MealTypeAliasSchema = z.enum([
   "kolacja",
 ]);
 
-/** Uproszczony format importu (JSON z panelu / zewnętrzne meal_XXX). */
+const MacroValueSchema = z.union([z.number().nonnegative(), z.string().min(1).max(40)]);
+
+const StringListOrTextSchema = z.union([
+  z.array(z.string().min(1)).min(1).max(40),
+  z.string().min(1).max(4000),
+]);
+
+/** Uproszczony format importu (JSON z panelu / zewnętrzne meal_XXX / recipes). */
 const CatalogMealLooseSchema = z.object({
-  id: z.string().min(1).max(80),
+  id: z.string().min(1).max(80).optional(),
   title: z.string().min(1).max(160),
   description: z.string().max(400).optional(),
   tagline: z.string().max(240).optional(),
@@ -63,16 +70,16 @@ const CatalogMealLooseSchema = z.object({
   /** Alias zewnętrzny — jak `prepMinutes`. */
   prepTime: z.number().int().positive().max(240).optional(),
   servings: z.number().positive().max(50).optional(),
-  calories: z.number().nonnegative().optional(),
-  protein: z.number().nonnegative().optional(),
-  carbs: z.number().nonnegative().optional(),
-  fat: z.number().nonnegative().optional(),
+  calories: MacroValueSchema.optional(),
+  protein: MacroValueSchema.optional(),
+  carbs: MacroValueSchema.optional(),
+  fat: MacroValueSchema.optional(),
   approximateMacros: MacrosSchema.optional(),
-  ingredients: z.array(z.string().min(1)).min(2).max(40).optional(),
-  steps: z.array(z.string().min(1)).min(2).max(40).optional(),
-  /** Alias zewnętrzny — jak `steps`. */
-  instructions: z.array(z.string().min(1)).min(2).max(40).optional(),
-  imagePrompt: z.string().max(500).optional(),
+  ingredients: StringListOrTextSchema.optional(),
+  steps: StringListOrTextSchema.optional(),
+  /** Alias zewnętrzny — jak `steps` (tablica albo jeden ciąg zdań). */
+  instructions: StringListOrTextSchema.optional(),
+  imagePrompt: z.string().max(800).optional(),
   imagePromptEn: z.string().max(400).optional(),
   imageUrl: z.string().url().max(800).optional(),
 });
@@ -100,11 +107,148 @@ function mapMealTypeToSlot(
   }
 }
 
-function normalizeOne(raw: unknown): CatalogMeal {
+/** Wyciąga liczbę z wartości typu `620`, `"620"`, `"620 kcal"`, `"53 g"`. */
+export function parseMacroNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+    return value;
+  }
+  if (typeof value !== "string") return null;
+  const match = value.trim().replace(",", ".").match(/(\d+(?:\.\d+)?)/);
+  if (!match) return null;
+  const n = Number(match[1]);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+/** Składniki: tablica albo jeden ciąg rozdzielony `;` / nową linią. */
+export function normalizeIngredientList(value: unknown): string[] | null {
+  if (Array.isArray(value)) {
+    const list = value
+      .map((x) => (typeof x === "string" ? x.trim() : ""))
+      .filter((x) => x.length > 0)
+      .slice(0, 40);
+    return list.length >= 2 ? list : null;
+  }
+  if (typeof value !== "string") return null;
+  const list = value
+    .split(/[;\n]+/)
+    .map((x) => x.trim())
+    .filter((x) => x.length > 0)
+    .slice(0, 40);
+  return list.length >= 2 ? list : null;
+}
+
+/**
+ * Kroki: tablica albo proza rozdzielona na zdania (`. ` / nowe linie / numeracja).
+ */
+export function normalizeStepList(value: unknown): string[] | null {
+  if (Array.isArray(value)) {
+    const list = value
+      .map((x) => (typeof x === "string" ? x.trim() : ""))
+      .filter((x) => x.length > 0)
+      .slice(0, 40);
+    return list.length >= 2 ? list : list.length === 1 ? list : null;
+  }
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const byLines = trimmed
+    .split(/\n+/)
+    .map((line) => line.replace(/^\d+[.)]\s*/, "").trim())
+    .filter((x) => x.length > 0);
+
+  const candidates =
+    byLines.length >= 2
+      ? byLines
+      : trimmed
+          .split(/(?<=[.!?])\s+/)
+          .map((x) => x.trim())
+          .filter((x) => x.length > 0);
+
+  const list = candidates.slice(0, 40);
+  return list.length >= 1 ? list : null;
+}
+
+const PL_CHARS: Record<string, string> = {
+  ą: "a",
+  ć: "c",
+  ę: "e",
+  ł: "l",
+  ń: "n",
+  ó: "o",
+  ś: "s",
+  ź: "z",
+  ż: "z",
+};
+
+export function slugifyMealId(title: string): string {
+  const ascii = title
+    .toLowerCase()
+    .split("")
+    .map((ch) => PL_CHARS[ch] ?? ch)
+    .join("")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 56);
+  return ascii ? `meal_${ascii}` : `meal_${Date.now().toString(36)}`;
+}
+
+/** Slot z tytułu / opisu / promptu zdjęcia, gdy brak mealType. */
+export function inferSlotFromText(
+  title: string,
+  description?: string,
+  imagePrompt?: string,
+): MealSlot {
+  const hay = `${title} ${description ?? ""} ${imagePrompt ?? ""}`.toLowerCase();
+
+  if (/drugie\s*sniadan|drugie\s*śniadan|second\s*breakfast/.test(hay)) {
+    return "drugie_sniadanie";
+  }
+  if (
+    /sniadan|śniadan|breakfast|pancake|naleśnik|owsiank|overnight\s*oats|granola|jajecznic|omlet|tost/.test(
+      hay,
+    )
+  ) {
+    return "sniadanie";
+  }
+  if (/kolacj|dinner|supper|wieczorny|wieczorna/.test(hay)) {
+    return "kolacja";
+  }
+  if (
+    /podwieczorek|snack|deser|kisiel|shake|koktajl|baton|pudding|budyń/.test(hay)
+  ) {
+    return "podwieczorek";
+  }
+  if (/obiad|lunch|teriyaki|łosoś|losos|bowl|kurczak|indyk|fasolk/.test(hay)) {
+    return "obiad";
+  }
+  return "obiad";
+}
+
+function uniqueMealId(base: string, used: Set<string>): string {
+  let id = base.slice(0, 80);
+  if (!used.has(id)) return id;
+  let n = 2;
+  while (n < 10_000) {
+    const suffix = `_${n}`;
+    id = `${base.slice(0, 80 - suffix.length)}${suffix}`;
+    if (!used.has(id)) return id;
+    n += 1;
+  }
+  return `${base.slice(0, 60)}_${Date.now().toString(36)}`;
+}
+
+function normalizeOne(raw: unknown, usedIds: Set<string>): CatalogMeal {
   const strict = CatalogMealStrictSchema.safeParse(raw);
   if (strict.success) {
+    const id = strict.data.id.trim();
+    if (usedIds.has(id)) throw new Error(`Zduplikowane id w imporcie: ${id}`);
+    usedIds.add(id);
     return {
       ...strict.data,
+      id,
       ...(strict.data.imagePrompt ? { imagePrompt: strict.data.imagePrompt } : {}),
       ...(strict.data.imageUrl ? { imageUrl: strict.data.imageUrl } : {}),
     };
@@ -118,14 +262,19 @@ function normalizeOne(raw: unknown): CatalogMeal {
   }
 
   const m = loose.data;
+  const calories = parseMacroNumber(m.calories);
+  const protein = parseMacroNumber(m.protein);
+  const carbs = parseMacroNumber(m.carbs);
+  const fat = parseMacroNumber(m.fat);
+
   const macros =
     m.approximateMacros ??
-    (m.calories != null && m.protein != null && m.carbs != null && m.fat != null
+    (calories != null && protein != null && carbs != null && fat != null
       ? {
-          calories: m.calories,
-          proteinG: m.protein,
-          carbsG: m.carbs,
-          fatG: m.fat,
+          calories,
+          proteinG: protein,
+          carbsG: carbs,
+          fatG: fat,
         }
       : null);
 
@@ -136,22 +285,48 @@ function normalizeOne(raw: unknown): CatalogMeal {
   }
 
   const ingredients =
-    m.ingredients && m.ingredients.length >= 2
-      ? m.ingredients
-      : ["Składniki według nazwy dania", "Przyprawy do smaku"];
+    normalizeIngredientList(m.ingredients) ?? [
+      "Składniki według nazwy dania",
+      "Przyprawy do smaku",
+    ];
 
-  const steps =
-    m.steps && m.steps.length >= 2
-      ? m.steps
-      : m.instructions && m.instructions.length >= 2
-        ? m.instructions
-        : ["Przygotuj składniki.", "Przygotuj danie i podawaj."];
+  const fromSteps = normalizeStepList(m.steps);
+  const fromInstructions = normalizeStepList(m.instructions);
+  let steps =
+    fromSteps && fromSteps.length >= 2
+      ? fromSteps
+      : fromInstructions && fromInstructions.length >= 2
+        ? fromInstructions
+        : fromSteps?.length === 1
+          ? [...fromSteps, "Podawaj od razu."]
+          : fromInstructions?.length === 1
+            ? [...fromInstructions, "Podawaj od razu."]
+            : ["Przygotuj składniki.", "Przygotuj danie i podawaj."];
+
+  if (steps.length < 2) {
+    steps = [...steps, "Podawaj od razu."];
+  }
+
+  const providedId = m.id?.trim();
+  if (providedId && usedIds.has(providedId)) {
+    throw new Error(`Zduplikowane id w imporcie: ${providedId}`);
+  }
+  const id = providedId
+    ? providedId.slice(0, 80)
+    : uniqueMealId(slugifyMealId(m.title), usedIds);
+  usedIds.add(id);
+
+  const slot =
+    m.slot ??
+    (m.mealType
+      ? mapMealTypeToSlot(m.mealType)
+      : inferSlotFromText(m.title, m.description, m.imagePrompt));
 
   return {
-    id: m.id.trim(),
+    id,
     title: m.title.trim(),
     tagline: (m.tagline ?? m.description)?.trim() || undefined,
-    slot: m.slot ?? mapMealTypeToSlot(m.mealType),
+    slot,
     prepMinutes: m.prepMinutes ?? m.prepTime ?? 20,
     ingredients,
     steps,
@@ -178,8 +353,8 @@ export function parseCatalogImportPayload(input: unknown): {
     if (obj.mode === "replace" || obj.mode === "merge") mode = obj.mode;
     if (Array.isArray(obj.meals)) list = obj.meals;
     else if (Array.isArray(obj.recipes)) list = obj.recipes;
-    else if (typeof obj.id === "string" && typeof obj.title === "string") {
-      // Pojedynczy przepis (np. meal_071) bez opakowania w tablicę.
+    else if (typeof obj.title === "string") {
+      // Pojedynczy przepis (z id lub bez) bez opakowania w tablicę.
       list = [obj];
     } else {
       throw new Error('Oczekiwano tablicy albo obiektu z polem "meals" / "recipes".');
@@ -191,19 +366,17 @@ export function parseCatalogImportPayload(input: unknown): {
   if (list.length === 0) throw new Error("Brak przepisów w pliku JSON.");
   if (list.length > 500) throw new Error("Maksymalnie 500 przepisów w jednym imporcie.");
 
+  const usedIds = new Set<string>();
   const meals = list.map((item, i) => {
     try {
-      return normalizeOne(item);
+      return normalizeOne(item, usedIds);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "błąd";
       throw new Error(`Pozycja ${i + 1}: ${msg}`);
     }
   });
 
-  const ids = new Set<string>();
   for (const meal of meals) {
-    if (ids.has(meal.id)) throw new Error(`Zduplikowane id w imporcie: ${meal.id}`);
-    ids.add(meal.id);
     if (!MEAL_SLOTS.includes(meal.slot)) {
       throw new Error(`Nieprawidłowy slot dla ${meal.id}`);
     }

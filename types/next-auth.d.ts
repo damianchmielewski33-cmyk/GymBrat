@@ -18,5 +18,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     role?: "zawodnik" | "trener" | "admin";
+    /** Ostatnie potwierdzenie, że userId nadal jest w tabeli users. */
+    userCheckAt?: number;
   }
 }

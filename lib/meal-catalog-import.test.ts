@@ -85,6 +85,81 @@ describe("meal-catalog-import", () => {
     expect(m.imagePrompt).toContain("jelly");
   });
 
+  it("akceptuje recipes z makro/składnikami/instrukcjami jako stringami (bez id)", () => {
+    const { meals, mode } = parseCatalogImportPayload({
+      recipes: [
+        {
+          title: "Kurczak teriyaki z ryżem i warzywami",
+          description: "Wysokobiałkowy fit obiad z kurczakiem, ryżem i warzywami.",
+          calories: "620 kcal",
+          protein: "53 g",
+          carbs: "72 g",
+          fat: "13 g",
+          ingredients:
+            "Pierś z kurczaka - 180 g; Ryż basmati - 75 g; Brokuł - 150 g; Marchew - 80 g; Sos sojowy - 15 g; Miód - 10 g; Oliwa z oliwek - 5 g; Czosnek - 5 g",
+          instructions:
+            "Ugotuj ryż. Kurczaka pokrój w kostkę i podsmaż na oliwie. Dodaj czosnek, marchew i brokuł. Dodaj sos sojowy oraz miód. Smaż przez kilka minut i podawaj z ryżem.",
+          imagePrompt:
+            "Photorealistic healthy fitness meal, teriyaki chicken breast with basmati rice, broccoli and carrot, clean white ceramic plate, natural daylight, white background, high protein meal, professional food photography, no text, no logos",
+        },
+        {
+          title: "Proteinowe pancakes z jogurtem i owocami",
+          description:
+            "Proteinowe pancakes owsiane z jogurtem greckim, borówkami i bananem.",
+          calories: "510 kcal",
+          protein: "39 g",
+          carbs: "57 g",
+          fat: "14 g",
+          ingredients:
+            "Płatki owsiane - 50 g; Jajko - 55 g; Białka jaj - 100 g; Jogurt grecki 0% - 150 g; Borówki - 80 g; Banan - 80 g; Masło orzechowe - 10 g",
+          instructions:
+            "Zmiksuj płatki owsiane. Dodaj jajko i białka jaj. Wymieszaj. Smaż pancakes na nieprzywierającej patelni. Podawaj z jogurtem, borówkami, bananem i masłem orzechowym.",
+          imagePrompt:
+            "Photorealistic healthy protein pancakes stacked on a white ceramic plate, Greek yogurt, blueberries, banana slices and peanut butter, clean fitness breakfast aesthetic, natural morning light, white background, professional food photography, no text, no logos",
+        },
+        {
+          title: "Czekoladowy proteinowy overnight oats",
+          description:
+            "Szybkie wysokobiałkowe śniadanie o smaku czekoladowym przygotowywane przez noc.",
+          calories: "470 kcal",
+          protein: "35 g",
+          carbs: "53 g",
+          fat: "13 g",
+          ingredients:
+            "Płatki owsiane - 50 g; Jogurt grecki 0% - 170 g; Mleko 1,5% - 100 g; Odżywka białkowa czekoladowa - 25 g; Kakao - 8 g; Banan - 80 g; Masło orzechowe - 10 g; Nasiona chia - 8 g",
+          instructions:
+            "Wymieszaj płatki, jogurt, mleko, odżywkę białkową, kakao i chia. Odstaw do lodówki na minimum 4 godziny. Przed podaniem dodaj banana i masło orzechowe.",
+          imagePrompt:
+            "Photorealistic healthy chocolate protein overnight oats in a transparent glass jar, creamy chocolate oats, Greek yogurt, banana slices, peanut butter and chia seeds, premium fitness breakfast aesthetic, soft natural light, clean white background, professional food photography, no text, no logos",
+        },
+      ],
+    });
+
+    expect(mode).toBe("merge");
+    expect(meals).toHaveLength(3);
+
+    const teriyaki = meals[0]!;
+    expect(teriyaki.id).toMatch(/^meal_kurczak_teriyaki/);
+    expect(teriyaki.slot).toBe("obiad");
+    expect(teriyaki.tagline).toContain("obiad");
+    expect(teriyaki.approximateMacros).toEqual({
+      calories: 620,
+      proteinG: 53,
+      carbsG: 72,
+      fatG: 13,
+    });
+    expect(teriyaki.ingredients).toContain("Pierś z kurczaka - 180 g");
+    expect(teriyaki.ingredients.length).toBe(8);
+    expect(teriyaki.steps.length).toBeGreaterThanOrEqual(4);
+    expect(teriyaki.steps[0]).toContain("Ugotuj ryż");
+    expect(teriyaki.imagePrompt).toContain("teriyaki");
+
+    expect(meals[1]!.slot).toBe("sniadanie");
+    expect(meals[1]!.approximateMacros.proteinG).toBe(39);
+    expect(meals[2]!.slot).toBe("sniadanie");
+    expect(meals[2]!.steps).toHaveLength(3);
+  });
+
   it("obsługuje mode replace i obiekt meals", () => {
     const { mode, meals } = parseCatalogImportPayload({
       mode: "replace",

@@ -9,6 +9,10 @@ import {
   normalizeAdminEmail,
   parseAdminEmails,
 } from "@/lib/admin-config";
+import {
+  shouldRecheckSessionUser,
+  userStillExists,
+} from "@/lib/auth-session-user";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -74,7 +78,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30 },
+  session: {
+    strategy: "jwt",
+    maxAge: 60 * 60 * 24 * 30,
+    /** Częste odświeżanie JWT — żeby wykryć usunięte konto (nie czekać 24 h). */
+    updateAge: 60,
+  },
   callbacks: {
     async jwt({ token, user }) {
       const uid =
@@ -106,6 +115,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             ? token.sub
             : "";
 
+      // Konto usunięte z bazy (wipe / admin DELETE) → unieważnij JWT.
+      if (userId && shouldRecheckSessionUser(token.userCheckAt)) {
+        const exists = await userStillExists(userId);
+        if (exists === false) {
+          return null;
+        }
+        if (exists === true) {
+          token.userCheckAt = Date.now();
+        }
+      }
+
       if (userId && !email) {
         try {
           const db = getDb();
@@ -120,9 +140,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (row.appRole === "admin") {
               token.role = "admin";
             }
+          } else if (row == null) {
+            // Brak wiersza przy uzupełnianiu e-maila = konto zniknęło.
+            return null;
           }
         } catch {
-          /* nie blokuj sesji */
+          /* nie blokuj sesji przy błędzie DB */
         }
       }
 
@@ -146,11 +169,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     session({ session, token }) {
+      const id =
+        (typeof token.id === "string" ? token.id : undefined) ??
+        (typeof token.sub === "string" ? token.sub : undefined);
+      // Brak id w tokenie (np. po unieważnieniu) → sesja wygląda jak wylogowana.
+      if (!id) {
+        return { ...session, expires: new Date(0).toISOString() };
+      }
       if (session.user) {
-        const id =
-          (typeof token.id === "string" ? token.id : undefined) ??
-          (typeof token.sub === "string" ? token.sub : undefined);
-        if (id) session.user.id = id;
+        session.user.id = id;
         session.user.role =
           (token.role as "zawodnik" | "trener" | "admin" | undefined) ??
           "zawodnik";
