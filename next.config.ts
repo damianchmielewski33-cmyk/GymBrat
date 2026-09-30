@@ -117,8 +117,9 @@ const nextConfig: NextConfig = {
             value: 'attachment; filename="gymbrat.apk"',
           },
           {
+            // Krótki cache — po nowym Release Vercel musi serwować świeży APK, nie stary z CDN.
             key: "Cache-Control",
-            value: "public, max-age=300, must-revalidate",
+            value: "public, max-age=60, must-revalidate",
           },
         ],
       },
