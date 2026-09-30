@@ -47,6 +47,15 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     ],
   },
   {
+    title: "2026-09 — Android 0.1.9",
+    date: "2026-09-30",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W Profilu do pobrania jest nowy build Android 0.1.9 (versionCode 10) z gym-brat.vercel.app/gymbrat.apk — świeży Release, nie sam bump numeru przy starym pliku.",
+      "Jeśli pobieranie „wisi” albo instalator nie startuje: odinstaluj starą GymBrat (inny podpis), potem zainstaluj APK z Profilu.",
+    ],
+  },
+  {
     title: "2026-09 — Pobieranie APK same-origin",
     date: "2026-09-29",
     sourceRepo: GYMBRAT_GITHUB_SLUG,
