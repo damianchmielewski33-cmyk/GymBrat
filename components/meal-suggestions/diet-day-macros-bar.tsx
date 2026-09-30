@@ -57,7 +57,7 @@ function MacroCol({
   );
 }
 
-/** Sticky pasek makro dnia — jak w Fitatu (kcal / B / T / W + ile zostało). */
+/** Pasek makro dnia (kcal / B / T / W + ile zostało) — pod sekcjami posiłków. */
 export function DietDayMacrosBar({
   caloriesConsumed,
   caloriesGoal,
@@ -78,7 +78,7 @@ export function DietDayMacrosBar({
   carbsGoal: number | null;
 }) {
   return (
-    <div className="border-t border-white/10 bg-[#0a0a0a]/95 px-3 py-2.5 backdrop-blur-md">
+    <div className="bg-[#0a0a0a] px-3 py-2.5">
       <div className="flex gap-3">
         <MacroCol
           label="Kcal"

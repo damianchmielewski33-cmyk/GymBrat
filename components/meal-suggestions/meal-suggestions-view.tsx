@@ -226,7 +226,7 @@ export function MealSuggestionsView({
   };
 
   return (
-    <div className="relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+    <div className="relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
       <AppPageHeader
         kicker="Dieta"
         title="Jadłospis"
@@ -367,6 +367,13 @@ export function MealSuggestionsView({
               DeleteMealButton={DeleteMealButton}
             />
 
+            {/* Podsumowanie makro dnia — zaraz pod sekcją Kolacja (w flow, nie fixed). */}
+            {!mealOverlayOpen ? (
+              <div className="-mx-1 mt-3 overflow-hidden rounded-2xl border border-white/10">
+                <DietDayMacrosBar {...dayMacros} />
+              </div>
+            ) : null}
+
             {unassigned.length > 0 ? (
               <section className="mt-3 space-y-2 opacity-80">
                 <h2 className="text-sm font-semibold text-white/70">Bez sekcji</h2>
@@ -494,14 +501,6 @@ export function MealSuggestionsView({
         }}
       />
 
-      {/* Sticky makro dnia nad dolną belką — ile zjedzono / zostało do celu. */}
-      {!mealOverlayOpen ? (
-        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-40 pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
-          <div className="pointer-events-auto mx-auto max-w-lg">
-            <DietDayMacrosBar {...dayMacros} />
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
