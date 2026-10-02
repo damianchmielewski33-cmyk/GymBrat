@@ -71,7 +71,8 @@ export function ApkDownloadButton({
         }
       }
 
-      const blob = new Blob(chunks, {
+      // TS DOM: Uint8Array<ArrayBufferLike> vs BlobPart (ArrayBuffer) — cast bezpieczny w runtime.
+      const blob = new Blob(chunks as BlobPart[], {
         type: "application/vnd.android.package-archive",
       });
       if (blob.size < 50_000) {

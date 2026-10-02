@@ -46,7 +46,8 @@ describe("assertAnalyticsOrigin", () => {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
     const vercel = process.env.VERCEL_URL;
     const csrfExtra = process.env.CSRF_ALLOWED_ORIGINS;
-    process.env.NODE_ENV = "production";
+    const env = process.env as NodeJS.ProcessEnv & { NODE_ENV: string };
+    env.NODE_ENV = "production";
     delete process.env.NEXTAUTH_URL;
     delete process.env.NEXT_PUBLIC_APP_URL;
     delete process.env.VERCEL_URL;
@@ -61,7 +62,7 @@ describe("assertAnalyticsOrigin", () => {
       });
       expect(assertAnalyticsOrigin(req)).toBeNull();
     } finally {
-      process.env.NODE_ENV = prev;
+      env.NODE_ENV = prev;
       if (nextAuth === undefined) delete process.env.NEXTAUTH_URL;
       else process.env.NEXTAUTH_URL = nextAuth;
       if (appUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;

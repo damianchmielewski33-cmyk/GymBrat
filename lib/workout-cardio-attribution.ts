@@ -3,8 +3,8 @@ export type WorkoutSessionJson = {
   kind?: string;
   title?: string;
   exercises?: unknown;
-  avgHr?: number;
-  heartRate?: number;
+  avgHr?: number | null;
+  heartRate?: number | null;
 };
 
 export function parseWorkoutSessionJson(raw: string): WorkoutSessionJson | null {
