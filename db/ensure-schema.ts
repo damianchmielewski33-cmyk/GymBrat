@@ -2,6 +2,7 @@ import type { Client } from "@libsql/client";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { getDb } from "./index";
 import * as schema from "./schema";
+import { withDbRetry } from "./with-retry";
 
 type DbWithClient = LibSQLDatabase<typeof schema> & { $client: Client };
 
@@ -10,6 +11,13 @@ type DbWithClient = LibSQLDatabase<typeof schema> & { $client: Client };
  * Idempotentne — bezpieczne przy każdym starcie / pierwszym zapytaniu.
  */
 export async function ensureCriticalSchema(): Promise<void> {
+  await withDbRetry(() => ensureCriticalSchemaOnce(), {
+    attempts: 3,
+    label: "ensureCriticalSchema",
+  });
+}
+
+async function ensureCriticalSchemaOnce(): Promise<void> {
   const db = getDb() as DbWithClient;
   const client = db.$client;
   const tryAddColumn = async (sql: string) => {

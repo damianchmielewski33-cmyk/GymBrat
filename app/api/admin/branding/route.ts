@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 const upsertSchema = z.object({
   slot: z.string(),
-  dataUrl: z.string().min(32).max(900_000),
+  dataUrl: z.string().min(32).max(1_800_000),
 });
 
 const deleteSchema = z.object({
@@ -108,11 +108,19 @@ export async function POST(req: Request) {
         {
           ok: false,
           error:
-            "Nieprawidłowy obraz (PNG/JPEG/WebP/SVG, max ~600 KB). Spróbuj mniejszego pliku.",
+            "Nieprawidłowy obraz (PNG/JPEG/WebP/SVG). Spróbuj innego pliku lub mniejszego logo.",
         },
         { status: 400 },
       );
     }
-    throw e;
+    console.error("[admin/branding] upsert failed:", e);
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Zapis w bazie nieudany. Sprawdź połączenie z Turso albo spróbuj za chwilę.",
+      },
+      { status: 500 },
+    );
   }
 }

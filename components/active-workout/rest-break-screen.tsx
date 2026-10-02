@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SkipForward, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -14,6 +14,21 @@ import {
 } from "@/components/active-workout/session-chrome";
 
 const PRESETS_SEC = [60, 90, 120, 180] as const;
+
+function dismissMobileKeyboard() {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement) active.blur();
+  // iOS: blur samego inputu czasem nie chowa klawiatury — przełącz fokus na readonly.
+  const probe = document.createElement("input");
+  probe.setAttribute("readonly", "true");
+  probe.setAttribute("inputmode", "none");
+  probe.style.cssText =
+    "position:fixed;left:0;top:0;opacity:0;height:0;width:0;border:0;padding:0;";
+  document.body.appendChild(probe);
+  probe.focus({ preventScroll: true });
+  probe.blur();
+  document.body.removeChild(probe);
+}
 
 function formatMmSs(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -67,12 +82,19 @@ export function RestBreakScreen({
 }: RestBreakScreenProps) {
   const [mounted, setMounted] = useState(false);
   const [rememberPreset, setRememberPreset] = useState(90);
+  const continueRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
     setRememberPreset(readRestTimerPrefs().defaultSeconds);
+    dismissMobileKeyboard();
+    const t = window.setTimeout(() => {
+      dismissMobileKeyboard();
+      continueRef.current?.focus({ preventScroll: true });
+    }, 50);
+    return () => window.clearTimeout(t);
   }, [open]);
 
   if (!open || !mounted) return null;
@@ -188,6 +210,7 @@ export function RestBreakScreen({
           {soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
         </button>
         <button
+          ref={continueRef}
           type="button"
           onClick={onContinue}
           className="gold-btn inline-flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-bold"

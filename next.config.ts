@@ -34,6 +34,13 @@ const APK_RESPONSE_HEADERS = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(projectRoot),
+  /**
+   * instrumentation.ts woła Drizzle migrate — bez tego Vercel nie pakuje
+   * `db/migrations/meta/_journal.json` i loguje „Can't find meta/_journal.json”.
+   */
+  outputFileTracingIncludes: {
+    "/*": ["./db/migrations/**/*"],
+  },
   turbopack: {},
 
   compress: true,

@@ -5,6 +5,7 @@ import { ImageIcon, Trash2, Upload } from "lucide-react";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
+import { prepareBrandingUploadDataUrl } from "@/lib/branding-upload-client";
 import {
   BRANDING_SLOT_LABELS,
   BRANDING_SLOTS,
@@ -16,18 +17,6 @@ type SlotState = {
   label: string;
   asset: { url: string; updatedAt: number; mimeType: string } | null;
 };
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") resolve(reader.result);
-      else reject(new Error("read failed"));
-    };
-    reader.onerror = () => reject(reader.error ?? new Error("read failed"));
-    reader.readAsDataURL(file);
-  });
-}
 
 export function AdminBrandingClient() {
   const { notifySaved, notifyError } = useSaveFeedback();
@@ -70,7 +59,16 @@ export function AdminBrandingClient() {
   async function upload(slot: BrandingSlot, file: File) {
     setBusySlot(slot);
     try {
-      const dataUrl = await fileToDataUrl(file);
+      let dataUrl: string;
+      try {
+        dataUrl = await prepareBrandingUploadDataUrl(file);
+      } catch (e) {
+        notifyError(
+          e instanceof Error ? e.message : "Nie udało się przygotować pliku.",
+        );
+        return;
+      }
+
       await ensureCsrfCookie();
       const res = await fetch("/api/admin/branding", {
         method: "POST",
@@ -81,15 +79,26 @@ export function AdminBrandingClient() {
         },
         body: JSON.stringify({ slot, dataUrl }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      let data: { ok?: boolean; error?: string } = {};
+      try {
+        data = (await res.json()) as { ok?: boolean; error?: string };
+      } catch {
+        /* empty */
+      }
       if (!res.ok || !data.ok) {
-        notifyError(data.error ?? "Upload nieudany.");
+        const hint =
+          res.status === 413
+            ? "Plik za duży dla serwera — użyj mniejszego PNG/WebP."
+            : res.status === 403
+              ? "Brak uprawnień admina lub CSRF — odśwież stronę i spróbuj ponownie."
+              : null;
+        notifyError(data.error ?? hint ?? `Upload nieudany (HTTP ${res.status}).`);
         return;
       }
       notifySaved("Zapisano ikonę / logo.");
       await reload();
     } catch {
-      notifyError("Upload nieudany.");
+      notifyError("Upload nieudany — sprawdź połączenie i spróbuj ponownie.");
     } finally {
       setBusySlot(null);
     }
@@ -134,7 +143,8 @@ export function AdminBrandingClient() {
           użytkownicy aktualizują aplikację z Profilu / Release.
         </p>
         <p className="text-xs text-white/40">
-          Formaty: PNG, JPEG, WebP, SVG · zalecane kwadrat · max ~600&nbsp;KB na plik.
+          Formaty: PNG, JPEG, WebP, SVG · zalecane kwadrat · duże pliki są
+          automatycznie kompresowane (max bok 1024&nbsp;px).
         </p>
       </div>
 
@@ -169,10 +179,10 @@ export function AdminBrandingClient() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <label className="inline-flex">
+                <label className="inline-flex cursor-pointer">
                   <input
                     type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml,.png,.jpg,.jpeg,.webp,.svg"
                     className="sr-only"
                     disabled={busySlot === s.slot}
                     onChange={(e) => {
@@ -181,9 +191,9 @@ export function AdminBrandingClient() {
                       if (file) void upload(s.slot, file);
                     }}
                   />
-                  <span className="gym-btn-primary inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl px-3 text-sm font-medium">
+                  <span className="gym-btn-primary inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium">
                     <Upload className="h-4 w-4" />
-                    {busySlot === s.slot ? "…" : "Wgraj"}
+                    {busySlot === s.slot ? "Wgrywanie…" : "Wgraj"}
                   </span>
                 </label>
                 {s.asset ? (
