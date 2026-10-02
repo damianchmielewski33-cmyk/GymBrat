@@ -11,6 +11,11 @@ import {
   SessionChromeHeader,
   SessionProgressBar,
 } from "@/components/active-workout/session-chrome";
+import {
+  canCompleteWorkoutSet,
+  isCompletedWorkoutSet,
+  isSkippedWorkoutSet,
+} from "@/lib/workout-skipped-sets";
 
 function formatElapsed(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -122,6 +127,16 @@ export function GuidedSessionLayout({
       : autoSetIndex;
 
   const set = exercise?.sets[activeSetIndex] ?? null;
+  const canZaliczyc =
+    set != null &&
+    canCompleteWorkoutSet(
+      parseWeightInput(weightText) ?? clampWeight(set.weight),
+      (() => {
+        const fromInput = parseRepsInput(repsText);
+        const r = clampReps(fromInput ?? set.reps ?? exercise?.targetReps ?? 0);
+        return r > 0 ? r : null;
+      })(),
+    );
   const exerciseRef = useRef(exercise);
   const activeSetIndexRef = useRef(activeSetIndex);
   const setRef = useRef(set);
@@ -255,12 +270,16 @@ export function GuidedSessionLayout({
   function completeSet() {
     if (!exercise || !set) return;
     const fromInput = parseRepsInput(repsText);
-    const reps = clampReps(fromInput ?? set.reps ?? exercise.targetReps ?? 8);
+    const reps = clampReps(fromInput ?? set.reps ?? exercise.targetReps ?? 0);
     const weight = parseWeightInput(weightText) ?? clampWeight(set.weight);
+    if (!canCompleteWorkoutSet(weight, reps > 0 ? reps : null)) {
+      // Bez ciężaru / powtórzeń nie zaliczamy na zielono — użyj „Pomiń serię”.
+      return;
+    }
     onPatchSet(exercise.id, activeSetIndex, {
       done: true,
       skipped: false,
-      reps: reps > 0 ? reps : 1,
+      reps,
       weight,
       rir: set.rir ?? null,
     });
@@ -366,11 +385,16 @@ export function GuidedSessionLayout({
         </button>
 
         <div className="mt-5 flex items-center gap-2.5">
-          {exercise.sets.map((s, i) => (
+          {exercise.sets.map((s, i) => {
+            const completed = isCompletedWorkoutSet(s);
+            const skipped = isSkippedWorkoutSet(s);
+            return (
             <button
               key={i}
               type="button"
-              aria-label={`Seria ${i + 1}${s.done ? ", zaliczona" : ""}`}
+              aria-label={`Seria ${i + 1}${
+                completed ? ", zaliczona" : skipped ? ", pominięta" : ""
+              }`}
               aria-pressed={i === activeSetIndex}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => selectSetIndex(i)}
@@ -378,15 +402,22 @@ export function GuidedSessionLayout({
                 "h-3.5 w-3.5 rounded-full transition",
                 i === activeSetIndex
                   ? "bg-[var(--gym-gold)] ring-2 ring-[var(--gym-gold)]/45 ring-offset-2 ring-offset-black"
-                  : s.done
+                  : completed
                     ? "bg-emerald-400"
-                    : "bg-white/20 hover:bg-white/35",
+                    : skipped
+                      ? "bg-orange-400"
+                      : "bg-white/20 hover:bg-white/35",
               )}
             />
-          ))}
+            );
+          })}
           <span className="ml-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
             Seria {activeSetIndex + 1} z {exercise.sets.length}
-            {set.done ? " · edycja" : ""}
+            {set && isCompletedWorkoutSet(set)
+              ? " · edycja"
+              : set && isSkippedWorkoutSet(set)
+                ? " · pominięta"
+                : ""}
           </span>
         </div>
         {goalReps != null ? (
@@ -418,12 +449,10 @@ export function GuidedSessionLayout({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 flushDraft();
-                const newIndex = onAddSet(exercise.id);
-                setManualSetIndex(
-                  typeof newIndex === "number"
-                    ? newIndex
-                    : exercise.sets.length,
-                );
+                const stayAt = activeSetIndex;
+                onAddSet(exercise.id);
+                // Nowa seria na końcu — nie przeskakuj z aktualnie wykonywanej.
+                setManualSetIndex(stayAt);
               }}
               className="rounded-lg border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-2 py-1 text-[11px] font-semibold text-[var(--gym-gold)]"
             >
@@ -662,10 +691,13 @@ export function GuidedSessionLayout({
           // i psuć kolejne starty przerwy — blokujemy blur przed obsługą kliknięcia.
           onMouseDown={(e) => e.preventDefault()}
           onClick={completeSet}
-          className="gym-btn-primary mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold"
+          disabled={!set.done && !canZaliczyc}
+          className="gym-btn-primary mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold disabled:opacity-45"
         >
           <Check className="h-5 w-5" />
-          {set.done ? "Zapisz zmiany serii" : "Zalicz serię"}
+          {set.done && !isSkippedWorkoutSet(set)
+            ? "Zapisz zmiany serii"
+            : "Zalicz serię"}
         </button>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs font-medium text-white/55">
@@ -745,7 +777,7 @@ export function GuidedSessionLayout({
           <div className="mx-3 mb-4 min-h-0 flex-1 overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#141414]">
             <ul className="h-full overflow-y-auto px-2 py-2">
               {exercises.map((ex, i) => {
-                const doneAll = ex.sets.every((s) => s.done);
+                const doneAll = ex.sets.every((s) => isCompletedWorkoutSet(s));
                 const active = ex.id === exercise.id;
                 const nameClass = doneAll
                   ? "text-emerald-400"
@@ -778,11 +810,13 @@ export function GuidedSessionLayout({
                             key={si}
                             className={cn(
                               "h-2 w-2 rounded-full",
-                              s.done
+                              isCompletedWorkoutSet(s)
                                 ? "bg-emerald-400"
-                                : active
-                                  ? "bg-white/25"
-                                  : "bg-white/20",
+                                : isSkippedWorkoutSet(s)
+                                  ? "bg-orange-400"
+                                  : active
+                                    ? "bg-white/25"
+                                    : "bg-white/20",
                             )}
                           />
                         ))}

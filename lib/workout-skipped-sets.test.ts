@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import {
+  canCompleteWorkoutSet,
   countSkippedWorkoutSets,
   findFirstSkippedWorkoutTarget,
+  isCompletedWorkoutSet,
   isSkippedWorkoutSet,
 } from "@/lib/workout-skipped-sets";
 
@@ -16,6 +18,18 @@ describe("workout-skipped-sets", () => {
     ).toBe(true);
     expect(
       isSkippedWorkoutSet({ done: true, reps: 8, weight: 50 }),
+    ).toBe(false);
+  });
+
+  it("zielone zaliczenie wymaga ciężaru i powtórzeń", () => {
+    expect(canCompleteWorkoutSet(0, 8)).toBe(false);
+    expect(canCompleteWorkoutSet(60, null)).toBe(false);
+    expect(canCompleteWorkoutSet(60, 8)).toBe(true);
+    expect(
+      isCompletedWorkoutSet({ done: true, reps: 8, weight: 60 }),
+    ).toBe(true);
+    expect(
+      isCompletedWorkoutSet({ done: true, reps: 8, weight: 0 }),
     ).toBe(false);
   });
 

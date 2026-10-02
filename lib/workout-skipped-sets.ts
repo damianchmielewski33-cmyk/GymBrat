@@ -13,11 +13,32 @@ export function isSkippedWorkoutSet(set: {
   reps: number | null;
   weight: number;
 }): boolean {
-  if (set.skipped) return true;
   if (!set.done) return false;
+  if (set.skipped) return true;
   const repsOk = set.reps != null && Number.isFinite(set.reps) && set.reps > 0;
   const weightOk = Number.isFinite(set.weight) && set.weight > 0;
   return !repsOk || !weightOk;
+}
+
+/** Prawdziwie wykonana seria (zielona kropka) — nie pominięta, z ciężarem i powtórzeniami. */
+export function isCompletedWorkoutSet(set: {
+  done: boolean;
+  skipped?: boolean;
+  reps: number | null;
+  weight: number;
+}): boolean {
+  return set.done && !isSkippedWorkoutSet(set);
+}
+
+/** Czy dane wystarczą do zielonego zaliczenia (nie pominięcia). */
+export function canCompleteWorkoutSet(weight: number, reps: number | null): boolean {
+  return (
+    Number.isFinite(weight) &&
+    weight > 0 &&
+    reps != null &&
+    Number.isFinite(reps) &&
+    reps > 0
+  );
 }
 
 /**

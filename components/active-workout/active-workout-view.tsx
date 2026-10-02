@@ -30,6 +30,7 @@ import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 import {
+  canCompleteWorkoutSet,
   countSkippedWorkoutSets,
   findFirstSkippedWorkoutTarget,
   isSkippedWorkoutSet,
@@ -464,15 +465,26 @@ export function ActiveWorkoutView({
       ?.sets[setIndex];
     const wasDone = current?.done ?? false;
 
-    patchSetInStore(exerciseId, setIndex, patch);
-    requestActiveWorkoutCloudPush(Boolean(patch.done === true));
+    let nextPatch = { ...patch };
+    if (nextPatch.done === true && nextPatch.skipped !== true) {
+      const nextWeight =
+        nextPatch.weight !== undefined ? nextPatch.weight : current?.weight ?? 0;
+      const nextReps =
+        nextPatch.reps !== undefined ? nextPatch.reps : current?.reps ?? null;
+      if (!canCompleteWorkoutSet(nextWeight, nextReps)) {
+        nextPatch = { ...nextPatch, skipped: true };
+      }
+    }
 
-    // Start odpoczynku tylko przy przejściu false -> true (auto-done po wpisaniu danych).
-    const nextReps = patch.reps !== undefined ? patch.reps : current?.reps ?? null;
-    const nextWeight = patch.weight !== undefined ? patch.weight : current?.weight ?? 0;
+    patchSetInStore(exerciseId, setIndex, nextPatch);
+    requestActiveWorkoutCloudPush(Boolean(nextPatch.done === true));
+
+    // Start odpoczynku tylko przy przejściu false -> true.
+    const nextReps = nextPatch.reps !== undefined ? nextPatch.reps : current?.reps ?? null;
+    const nextWeight = nextPatch.weight !== undefined ? nextPatch.weight : current?.weight ?? 0;
     const isDoneNext =
-      patch.done !== undefined
-        ? patch.done
+      nextPatch.done !== undefined
+        ? nextPatch.done
         : nextReps != null &&
           Number.isFinite(nextReps) &&
           nextReps > 0 &&
