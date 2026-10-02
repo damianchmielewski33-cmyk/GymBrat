@@ -32,7 +32,7 @@ export function WorkoutAllSetsDoneDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialCardioMinutes: number;
-  onFinish: () => void;
+  onFinish: (cardioMinutes?: number) => void;
   onConfirmCardio: (minutes: number) => void;
   skippedTarget?: SkippedWorkoutTarget | null;
   skippedCount?: number;
@@ -181,7 +181,7 @@ export function WorkoutAllSetsDoneDialog({
                 onClick={() => {
                   onConfirmCardio(minutes);
                   onOpenChange(false);
-                  onFinish();
+                  onFinish(minutes);
                 }}
               >
                 Zapisz cardio i zakończ

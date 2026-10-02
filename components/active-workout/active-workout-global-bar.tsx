@@ -89,11 +89,12 @@ export function ActiveWorkoutGlobalBar() {
     setCompleting(true);
     try {
       const endedAt = Date.now();
+      const cardioMinutesNow = useActiveWorkoutStore.getState().cardioMinutes;
       const baseSummary = {
         title: title.trim() || "Trening",
         endedAt,
         durationSeconds: elapsedSeconds,
-        cardioMinutes,
+        cardioMinutes: cardioMinutesNow,
         exercisesCount: exercises.length,
         setsDone: progress.done,
         setsTotal: progress.total,
@@ -103,7 +104,7 @@ export function ActiveWorkoutGlobalBar() {
         title,
         startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),
         endedAt,
-        cardioMinutes,
+        cardioMinutes: cardioMinutesNow,
         exercises,
         workoutPlanId,
       });

@@ -151,7 +151,9 @@ export function completedSessionJsonForCompare(input: {
   endedAtMs: number;
   workoutPlanId: string | null;
   exercises: unknown;
+  cardioMinutes?: number;
 }): string {
+  const cardioMinutes = Math.max(0, Math.round(Number(input.cardioMinutes ?? 0)));
   return JSON.stringify({
     kind: "completed_session",
     title: input.title,
@@ -159,6 +161,7 @@ export function completedSessionJsonForCompare(input: {
     endedAt: input.endedAtMs,
     workoutPlanId: input.workoutPlanId,
     exercises: input.exercises ?? null,
+    ...(cardioMinutes > 0 ? { cardioMinutes } : {}),
   });
 }
 

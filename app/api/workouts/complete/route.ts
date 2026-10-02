@@ -221,6 +221,7 @@ export async function POST(req: Request) {
     endedAtMs: endedAt.getTime(),
     workoutPlanId: rawPlanId,
     exercises: parsed.data.exercises ?? null,
+    cardioMinutes,
   });
 
   if (rawPlanId) {

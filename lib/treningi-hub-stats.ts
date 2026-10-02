@@ -2,6 +2,12 @@ import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { getDb } from "@/db";
 import { userSettings, workouts } from "@/db/schema";
 import { addCalendarDays, calendarDateKey, calendarWeekdaySun0 } from "@/lib/local-date";
+import {
+  countableCardioMinutes,
+  isCompletedStrengthSession,
+  isStandaloneCardioLog,
+  parseWorkoutSessionJson,
+} from "@/lib/workout-cardio-attribution";
 
 export type RecentWorkoutItem = {
   id: string;
@@ -82,15 +88,8 @@ function durationMinutes(parsed: SessionJson | null): number | null {
   return null;
 }
 
-function isCardioLog(parsed: SessionJson | null, cardioMinutes: number): boolean {
-  if (parsed?.kind === "cardio_log") return true;
-  return cardioMinutes > 0 && (!parsed?.exercises || parsed.exercises.length === 0);
-}
-
 function isGuidedStrength(parsed: SessionJson | null): boolean {
-  if (!parsed) return false;
-  if (parsed.kind === "cardio_log") return false;
-  return Array.isArray(parsed.exercises) && parsed.exercises.length > 0;
+  return isCompletedStrengthSession(parsed);
 }
 
 /** Statystyki i listy pod hub Treningi (tydzień kalendarzowy + ostatnie wpisy). */
@@ -136,9 +135,7 @@ export async function getTreningiHubStats(userId: string): Promise<TreningiHubSt
     const parsed = parseSession(row.exercises);
     const inThisWeek = row.date >= monday && row.date <= sunday;
     if (inThisWeek) {
-      if (isCardioLog(parsed, row.cardioMinutes)) {
-        cardioMinutesThisWeek += Math.max(0, row.cardioMinutes ?? 0);
-      }
+      cardioMinutesThisWeek += countableCardioMinutes(parsed, row.cardioMinutes ?? 0);
       if (isGuidedStrength(parsed)) {
         workoutsThisWeek += 1;
         tonnageThisWeekKg += volumeFromExercises(parsed?.exercises);
@@ -159,11 +156,19 @@ export async function getTreningiHubStats(userId: string): Promise<TreningiHubSt
         });
       }
     }
-    if (isCardioLog(parsed, row.cardioMinutes) && recentCardio.length < 8) {
-      const title =
-        typeof parsed?.title === "string" && parsed.title.trim()
+    const standaloneCardio = isStandaloneCardioLog(parsed, row.cardioMinutes ?? 0);
+    const postStrengthCardio =
+      isCompletedStrengthSession(parsed) && (row.cardioMinutes ?? 0) > 0;
+    if ((standaloneCardio || postStrengthCardio) && recentCardio.length < 8) {
+      const title = standaloneCardio
+        ? typeof parsed?.title === "string" && parsed.title.trim()
           ? parsed.title.trim()
-          : "Cardio";
+          : "Cardio"
+        : `${
+            typeof parsed?.title === "string" && parsed.title.trim()
+              ? parsed.title.trim()
+              : "Trening"
+          } · cardio`;
       const avgHrRaw = parsed?.avgHr ?? parsed?.heartRate ?? null;
       const avgHr =
         typeof avgHrRaw === "number" && Number.isFinite(avgHrRaw) && avgHrRaw > 0

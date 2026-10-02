@@ -7,13 +7,20 @@ import {
   type ActiveWorkoutCloudPayload,
   type ActiveWorkoutCloudRecord,
 } from "@/lib/active-workout-cloud";
+import {
+  persistActiveWorkoutLocalNow,
+  snapshotActiveWorkoutPayload,
+  subscribeActiveWorkoutPushRequests,
+} from "@/lib/active-workout-persist";
 import { markActiveWorkoutCloudHydrated } from "@/lib/active-workout-cloud-ready";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { useI18n } from "@/components/i18n/i18n-provider";
 
 const DEVICE_KEY = "gymbrat:deviceId";
 const REVISION_KEY = "gymbrat:activeSessionRevision";
-const PUSH_DEBOUNCE_MS = 1800;
+/** Krótki debounce — sesja ma być zapisywana na bieżąco, nie dopiero na koniec. */
+const PUSH_DEBOUNCE_MS = 700;
+const PUSH_INTERVAL_MS = 8_000;
 
 function getOrCreateDeviceId(): string {
   try {
@@ -47,20 +54,6 @@ function writeRevision(n: number) {
   }
 }
 
-function snapshotFromStore(): ActiveWorkoutCloudPayload {
-  const s = useActiveWorkoutStore.getState();
-  return {
-    startedAt: s.startedAt,
-    pausedElapsedSeconds: s.pausedElapsedSeconds,
-    workoutStartedAtMs: s.workoutStartedAtMs,
-    title: s.title,
-    workoutPlanId: s.workoutPlanId,
-    cardioMinutes: s.cardioMinutes,
-    exercises: s.exercises,
-    selectedExerciseId: s.selectedExerciseId,
-  };
-}
-
 function applyCloudPayload(payload: ActiveWorkoutCloudPayload) {
   useActiveWorkoutStore.setState({
     startedAt: payload.startedAt,
@@ -72,6 +65,7 @@ function applyCloudPayload(payload: ActiveWorkoutCloudPayload) {
     exercises: payload.exercises,
     selectedExerciseId: payload.selectedExerciseId,
   });
+  persistActiveWorkoutLocalNow();
 }
 
 async function fetchCloud(): Promise<ActiveWorkoutCloudRecord | null> {
@@ -92,23 +86,30 @@ async function putCloud(
   payload: ActiveWorkoutCloudPayload,
   revision: number,
   deviceId: string,
+  opts?: { keepalive?: boolean },
 ): Promise<{ ok: boolean; revision?: number; conflict?: ActiveWorkoutCloudRecord | null }> {
   await ensureCsrfCookie();
   const res = await fetch("/api/active-workout-session", {
     method: "PUT",
     credentials: "include",
+    keepalive: opts?.keepalive === true,
     headers: {
       "Content-Type": "application/json",
       ...getXsrfHeaders(),
     },
     body: JSON.stringify({ payload, revision, deviceId }),
   });
-  const json = (await res.json()) as {
+  let json: {
     ok?: boolean;
     revision?: number;
     conflict?: boolean;
     session?: ActiveWorkoutCloudRecord | null;
-  };
+  } = {};
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    /* empty body on some keepalive edge cases */
+  }
   if (res.status === 409 && json.session) {
     return { ok: false, conflict: json.session };
   }
@@ -129,7 +130,8 @@ async function deleteCloud(): Promise<void> {
 /**
  * Synchronizuje lokalny zustand z chmurą:
  * - na starcie: pull nowszej sesji z innego urządzenia
- * - debounce po zmianach + co ~12 s + visibility: push
+ * - po każdej zmianie (debounce) + co ~8 s + pagehide/visibility: push
+ * - kolejka: gdy push trwa, kolejna zmiana nie ginie
  * - po resecie (pusta sesja): DELETE
  */
 export function ActiveWorkoutCloudSync() {
@@ -137,6 +139,7 @@ export function ActiveWorkoutCloudSync() {
   const { t } = useI18n();
   const deviceIdRef = useRef("");
   const pushingRef = useRef(false);
+  const pendingPushRef = useRef(false);
   const hydratedRef = useRef(false);
   const debounceRef = useRef<number | null>(null);
 
@@ -160,7 +163,7 @@ export function ActiveWorkoutCloudSync() {
         }
         if (cancelled) return;
 
-        const local = snapshotFromStore();
+        const local = snapshotActiveWorkoutPayload();
         const cloud = await fetchCloud();
         if (cancelled) return;
 
@@ -181,6 +184,8 @@ export function ActiveWorkoutCloudSync() {
         if (!cancelled) {
           hydratedRef.current = true;
           markActiveWorkoutCloudHydrated();
+          // Utrwal lokalnie po hydracji — nawet gdy chmura pusta.
+          persistActiveWorkoutLocalNow();
         }
       }
     }
@@ -189,12 +194,19 @@ export function ActiveWorkoutCloudSync() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
-    const push = async () => {
-      if (!hydratedRef.current || pushingRef.current) return;
-      const payload = snapshotFromStore();
+    const push = async (opts?: { keepalive?: boolean }) => {
+      if (!hydratedRef.current) return;
+      if (pushingRef.current) {
+        pendingPushRef.current = true;
+        return;
+      }
+
+      persistActiveWorkoutLocalNow();
+      const payload = snapshotActiveWorkoutPayload();
+
       if (!hasActiveLocalSession(payload)) {
         if (readRevision() > 0) {
           pushingRef.current = true;
@@ -202,16 +214,23 @@ export function ActiveWorkoutCloudSync() {
             await deleteCloud();
           } finally {
             pushingRef.current = false;
+            if (pendingPushRef.current) {
+              pendingPushRef.current = false;
+              void push();
+            }
           }
         }
         return;
       }
+
       pushingRef.current = true;
+      pendingPushRef.current = false;
       try {
         const result = await putCloud(
           payload,
           readRevision(),
           deviceIdRef.current || getOrCreateDeviceId(),
+          opts,
         );
         if (result.conflict) {
           applyCloudPayload(result.conflict.payload);
@@ -220,13 +239,31 @@ export function ActiveWorkoutCloudSync() {
           window.setTimeout(() => setBanner(null), 4000);
         } else if (result.ok && result.revision != null) {
           writeRevision(result.revision);
+        } else if (!result.ok) {
+          // Nieudany push — spróbuj ponownie przy następnej zmianie / interval.
+          pendingPushRef.current = true;
         }
+      } catch {
+        pendingPushRef.current = true;
       } finally {
         pushingRef.current = false;
+        if (pendingPushRef.current) {
+          pendingPushRef.current = false;
+          void push();
+        }
       }
     };
 
-    const schedulePush = () => {
+    const schedulePush = (immediate = false) => {
+      persistActiveWorkoutLocalNow();
+      if (immediate) {
+        if (debounceRef.current != null) {
+          window.clearTimeout(debounceRef.current);
+          debounceRef.current = null;
+        }
+        void push();
+        return;
+      }
       if (debounceRef.current != null) window.clearTimeout(debounceRef.current);
       debounceRef.current = window.setTimeout(() => {
         debounceRef.current = null;
@@ -234,26 +271,39 @@ export function ActiveWorkoutCloudSync() {
       }, PUSH_DEBOUNCE_MS);
     };
 
-    const id = window.setInterval(() => void push(), 12_000);
+    const id = window.setInterval(() => void push(), PUSH_INTERVAL_MS);
+
+    const flushOnLeave = () => {
+      persistActiveWorkoutLocalNow();
+      void push({ keepalive: true });
+    };
     const onVis = () => {
-      if (document.visibilityState === "hidden") void push();
+      if (document.visibilityState === "hidden") flushOnLeave();
     };
     document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("pagehide", onVis);
+    window.addEventListener("pagehide", flushOnLeave);
+    window.addEventListener("freeze", flushOnLeave);
 
-    const unsub = useActiveWorkoutStore.subscribe(() => {
+    const unsubStore = useActiveWorkoutStore.subscribe(() => {
       if (!hydratedRef.current) return;
-      schedulePush();
+      schedulePush(false);
+    });
+
+    const unsubReq = subscribeActiveWorkoutPushRequests((immediate) => {
+      if (!hydratedRef.current) return;
+      schedulePush(immediate);
     });
 
     return () => {
       window.clearInterval(id);
       if (debounceRef.current != null) window.clearTimeout(debounceRef.current);
       document.removeEventListener("visibilitychange", onVis);
-      window.removeEventListener("pagehide", onVis);
-      unsub();
+      window.removeEventListener("pagehide", flushOnLeave);
+      window.removeEventListener("freeze", flushOnLeave);
+      unsubStore();
+      unsubReq();
     };
-  }, []);
+  }, [t]);
 
   if (!banner) return null;
   return (

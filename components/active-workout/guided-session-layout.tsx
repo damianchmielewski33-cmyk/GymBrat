@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Flag, Minus, Plus, X } from "lucide-react";
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
 import { formatExerciseTargetLine, buildSupersetLabels } from "@/lib/start-workout-session";
+import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -53,8 +54,8 @@ type GuidedSessionLayoutProps = {
   onListOpenChange?: (open: boolean) => void;
   onSelectExercise: (id: string) => void;
   onPatchSet: (exerciseId: string, setIndex: number, patch: Partial<WorkoutSetState>) => void;
-  onAddSet?: (exerciseId: string) => void;
-  onRemoveLastSet?: (exerciseId: string) => void;
+  onAddSet?: (exerciseId: string) => number | null | void;
+  onRemoveLastSet?: (exerciseId: string) => number | null | void;
   onExerciseNoteChange?: (exerciseId: string, note: string) => void;
   onCancelSession?: () => void;
   /** Zakończ bez zapisu (jawny przycisk). */
@@ -93,6 +94,12 @@ export function GuidedSessionLayout({
   const [manualSetIndex, setManualSetIndex] = useState<number | null>(null);
   const [weightText, setWeightText] = useState("");
   const [repsText, setRepsText] = useState("");
+  /** Po zmianie ćwiczenia ustaw tę serię zamiast auto (np. Wstecz → ostatnia seria). */
+  const pendingSetIndexRef = useRef<number | null>(null);
+  const weightTextRef = useRef(weightText);
+  const repsTextRef = useRef(repsText);
+  weightTextRef.current = weightText;
+  repsTextRef.current = repsText;
 
   const selectedIndex = Math.max(
     0,
@@ -115,8 +122,19 @@ export function GuidedSessionLayout({
       : autoSetIndex;
 
   const set = exercise?.sets[activeSetIndex] ?? null;
+  const exerciseRef = useRef(exercise);
+  const activeSetIndexRef = useRef(activeSetIndex);
+  const setRef = useRef(set);
+  exerciseRef.current = exercise;
+  activeSetIndexRef.current = activeSetIndex;
+  setRef.current = set;
 
   useEffect(() => {
+    if (pendingSetIndexRef.current != null) {
+      setManualSetIndex(pendingSetIndexRef.current);
+      pendingSetIndexRef.current = null;
+      return;
+    }
     setManualSetIndex(null);
   }, [exercise?.id]);
 
@@ -149,27 +167,73 @@ export function GuidedSessionLayout({
       ? exercise.suggestedWeights[activeSetIndex]!
       : null;
 
+  /** Zapisuje bieżące pola do store bez zmiany statusu zaliczenia. */
+  function flushDraft(opts?: { keepDone?: boolean; pushImmediate?: boolean }) {
+    const ex = exerciseRef.current;
+    const idx = activeSetIndexRef.current;
+    const current = setRef.current;
+    if (!ex || !current) return;
+
+    const weightParsed = parseWeightInput(weightTextRef.current);
+    const repsParsed = parseRepsInput(repsTextRef.current);
+    const weight =
+      weightParsed != null
+        ? weightParsed
+        : weightTextRef.current.trim() === ""
+          ? 0
+          : clampWeight(current.weight);
+    const reps =
+      repsParsed != null
+        ? repsParsed > 0
+          ? repsParsed
+          : null
+        : repsTextRef.current.trim() === ""
+          ? null
+          : current.reps;
+
+    const keepDone = opts?.keepDone ?? current.done;
+    onPatchSet(ex.id, idx, {
+      weight,
+      reps,
+      done: keepDone,
+      skipped: keepDone ? current.skipped : false,
+    });
+    requestActiveWorkoutCloudPush(opts?.pushImmediate === true);
+  }
+
+  function selectSetIndex(nextIndex: number) {
+    if (!exercise) return;
+    if (nextIndex === activeSetIndex) return;
+    flushDraft();
+    setManualSetIndex(nextIndex);
+  }
+
   function goPrev() {
     if (!exercise) return;
+    flushDraft();
     if (activeSetIndex > 0) {
       setManualSetIndex(activeSetIndex - 1);
-      onPatchSet(exercise.id, activeSetIndex - 1, { done: false });
       return;
     }
     if (selectedIndex > 0) {
-      onSelectExercise(exercises[selectedIndex - 1]!.id);
+      const prev = exercises[selectedIndex - 1]!;
+      pendingSetIndexRef.current = Math.max(0, prev.sets.length - 1);
+      onSelectExercise(prev.id);
     }
   }
 
   function skipSet() {
     if (!exercise || !set) return;
+    const weight = parseWeightInput(weightText) ?? clampWeight(set.weight);
+    const repsParsed = parseRepsInput(repsText);
     onPatchSet(exercise.id, activeSetIndex, {
       done: true,
       skipped: true,
-      reps: set.reps,
-      weight: set.weight,
+      reps: repsParsed != null && repsParsed > 0 ? repsParsed : set.reps,
+      weight,
       rir: set.rir ?? null,
     });
+    requestActiveWorkoutCloudPush(true);
     setManualSetIndex(null);
     advanceAfterComplete(exercise.id, activeSetIndex);
   }
@@ -200,7 +264,30 @@ export function GuidedSessionLayout({
       weight,
       rir: set.rir ?? null,
     });
+    requestActiveWorkoutCloudPush(true);
     advanceAfterComplete(exercise.id, activeSetIndex);
+  }
+
+  function patchWeight(next: number) {
+    if (!exercise || !set) return;
+    setWeightText(next > 0 ? String(next) : "");
+    onPatchSet(exercise.id, activeSetIndex, {
+      weight: next,
+      done: set.done,
+      skipped: set.done ? set.skipped : false,
+    });
+    requestActiveWorkoutCloudPush(false);
+  }
+
+  function patchReps(next: number | null) {
+    if (!exercise || !set) return;
+    setRepsText(next != null && next > 0 ? String(next) : "");
+    onPatchSet(exercise.id, activeSetIndex, {
+      reps: next != null && next > 0 ? next : null,
+      done: set.done,
+      skipped: set.done ? set.skipped : false,
+    });
+    requestActiveWorkoutCloudPush(false);
   }
 
   if (!exercise || !set) {
@@ -227,9 +314,12 @@ export function GuidedSessionLayout({
       <div className="sticky top-0 z-20 bg-[var(--gym-app-bg)]/95 backdrop-blur">
         <SessionChromeHeader
           title={title}
-          subtitle={`${formatElapsed(elapsedSeconds)} · ${totals.done}/${totals.total} serii`}
+          subtitle={`${formatElapsed(elapsedSeconds)} · ${totals.done}/${totals.total} serii · zapis na bieżąco`}
           onClose={onCancelSession}
-          onOpenList={() => setListOpen(true)}
+          onOpenList={() => {
+            flushDraft();
+            setListOpen(true);
+          }}
           className="px-2 py-3 pt-3"
         />
         <SessionProgressBar progress={progress} />
@@ -282,7 +372,8 @@ export function GuidedSessionLayout({
               type="button"
               aria-label={`Seria ${i + 1}${s.done ? ", zaliczona" : ""}`}
               aria-pressed={i === activeSetIndex}
-              onClick={() => setManualSetIndex(i)}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => selectSetIndex(i)}
               className={cn(
                 "h-3.5 w-3.5 rounded-full transition",
                 i === activeSetIndex
@@ -308,9 +399,13 @@ export function GuidedSessionLayout({
           {onRemoveLastSet && exercise.sets.length > 1 ? (
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
-                onRemoveLastSet(exercise.id);
-                setManualSetIndex(null);
+                flushDraft();
+                const nextIndex = onRemoveLastSet(exercise.id);
+                setManualSetIndex(
+                  typeof nextIndex === "number" ? nextIndex : null,
+                );
               }}
               className="rounded-lg border border-white/12 px-2 py-1 text-[11px] text-white/60 hover:text-white"
             >
@@ -320,9 +415,15 @@ export function GuidedSessionLayout({
           {onAddSet ? (
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
-                onAddSet(exercise.id);
-                setManualSetIndex(exercise.sets.length);
+                flushDraft();
+                const newIndex = onAddSet(exercise.id);
+                setManualSetIndex(
+                  typeof newIndex === "number"
+                    ? newIndex
+                    : exercise.sets.length,
+                );
               }}
               className="rounded-lg border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-2 py-1 text-[11px] font-semibold text-[var(--gym-gold)]"
             >
@@ -339,14 +440,7 @@ export function GuidedSessionLayout({
           {suggestedWeight != null && set.weight <= 0 ? (
             <button
               type="button"
-              onClick={() => {
-                const next = clampWeight(suggestedWeight);
-                setWeightText(String(next));
-                onPatchSet(exercise.id, activeSetIndex, {
-                  weight: next,
-                  done: false,
-                });
-              }}
+              onClick={() => patchWeight(clampWeight(suggestedWeight))}
               className="mt-2 inline-flex h-9 items-center rounded-full border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/15 px-3 text-xs font-semibold text-[var(--gym-gold)]"
             >
               Sugestia {suggestedWeight} kg
@@ -357,9 +451,9 @@ export function GuidedSessionLayout({
               type="button"
               aria-label="Zmniejsz ciężar"
               onClick={() => {
-                const next = clampWeight((parseWeightInput(weightText) ?? set.weight) - 2.5);
-                setWeightText(next > 0 ? String(next) : "");
-                onPatchSet(exercise.id, activeSetIndex, { weight: next, done: false });
+                patchWeight(
+                  clampWeight((parseWeightInput(weightText) ?? set.weight) - 2.5),
+                );
               }}
               className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-xl text-white"
             >
@@ -375,23 +469,29 @@ export function GuidedSessionLayout({
               value={weightText}
               placeholder={suggestedWeight != null ? String(suggestedWeight) : "0"}
               onChange={(e) => {
-                setWeightText(e.target.value);
-                const parsed = parseWeightInput(e.target.value);
+                const raw = e.target.value;
+                setWeightText(raw);
+                const parsed = parseWeightInput(raw);
                 if (parsed != null) {
                   onPatchSet(exercise.id, activeSetIndex, {
                     weight: parsed,
-                    done: false,
+                    done: set.done,
+                    skipped: set.done ? set.skipped : false,
                   });
+                  requestActiveWorkoutCloudPush(false);
+                } else if (raw.trim() === "") {
+                  onPatchSet(exercise.id, activeSetIndex, {
+                    weight: 0,
+                    done: set.done,
+                    skipped: set.done ? set.skipped : false,
+                  });
+                  requestActiveWorkoutCloudPush(false);
                 }
               }}
               onBlur={() => {
-                const parsed = parseWeightInput(weightText);
-                const next = parsed ?? 0;
-                setWeightText(next > 0 ? String(next) : "");
-                onPatchSet(exercise.id, activeSetIndex, {
-                  weight: next,
-                  done: false,
-                });
+                flushDraft();
+                const parsed = parseWeightInput(weightTextRef.current);
+                setWeightText(parsed != null && parsed > 0 ? String(parsed) : "");
               }}
               className={inputClass}
             />
@@ -399,9 +499,9 @@ export function GuidedSessionLayout({
               type="button"
               aria-label="Zwiększ ciężar"
               onClick={() => {
-                const next = clampWeight((parseWeightInput(weightText) ?? set.weight) + 2.5);
-                setWeightText(String(next));
-                onPatchSet(exercise.id, activeSetIndex, { weight: next, done: false });
+                patchWeight(
+                  clampWeight((parseWeightInput(weightText) ?? set.weight) + 2.5),
+                );
               }}
               className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-xl text-white"
             >
@@ -412,9 +512,9 @@ export function GuidedSessionLayout({
             <button
               type="button"
               onClick={() => {
-                const next = clampWeight((parseWeightInput(weightText) ?? set.weight) - 0.5);
-                setWeightText(next > 0 ? String(next) : "");
-                onPatchSet(exercise.id, activeSetIndex, { weight: next, done: false });
+                patchWeight(
+                  clampWeight((parseWeightInput(weightText) ?? set.weight) - 0.5),
+                );
               }}
               className="h-10 rounded-xl border border-white/10 bg-white/[0.03] text-sm text-white/70"
             >
@@ -423,9 +523,9 @@ export function GuidedSessionLayout({
             <button
               type="button"
               onClick={() => {
-                const next = clampWeight((parseWeightInput(weightText) ?? set.weight) + 0.5);
-                setWeightText(String(next));
-                onPatchSet(exercise.id, activeSetIndex, { weight: next, done: false });
+                patchWeight(
+                  clampWeight((parseWeightInput(weightText) ?? set.weight) + 0.5),
+                );
               }}
               className="h-10 rounded-xl border border-white/10 bg-white/[0.03] text-sm text-white/70"
             >
@@ -448,11 +548,7 @@ export function GuidedSessionLayout({
                   parseRepsInput(repsText) ??
                   clampReps(set.reps ?? exercise.targetReps ?? 0);
                 const next = Math.max(0, cur - 1);
-                setRepsText(next > 0 ? String(next) : "");
-                onPatchSet(exercise.id, activeSetIndex, {
-                  reps: next > 0 ? next : null,
-                  done: false,
-                });
+                patchReps(next > 0 ? next : null);
               }}
               className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-white"
             >
@@ -468,28 +564,29 @@ export function GuidedSessionLayout({
               value={repsText}
               placeholder="0"
               onChange={(e) => {
-                setRepsText(e.target.value);
-                const parsed = parseRepsInput(e.target.value);
+                const raw = e.target.value;
+                setRepsText(raw);
+                const parsed = parseRepsInput(raw);
                 if (parsed != null) {
                   onPatchSet(exercise.id, activeSetIndex, {
                     reps: parsed > 0 ? parsed : null,
-                    done: false,
+                    done: set.done,
+                    skipped: set.done ? set.skipped : false,
                   });
-                } else if (e.target.value.trim() === "") {
+                  requestActiveWorkoutCloudPush(false);
+                } else if (raw.trim() === "") {
                   onPatchSet(exercise.id, activeSetIndex, {
                     reps: null,
-                    done: false,
+                    done: set.done,
+                    skipped: set.done ? set.skipped : false,
                   });
+                  requestActiveWorkoutCloudPush(false);
                 }
               }}
               onBlur={() => {
-                const parsed = parseRepsInput(repsText);
-                const next = parsed ?? 0;
-                setRepsText(next > 0 ? String(next) : "");
-                onPatchSet(exercise.id, activeSetIndex, {
-                  reps: next > 0 ? next : null,
-                  done: false,
-                });
+                flushDraft();
+                const parsed = parseRepsInput(repsTextRef.current);
+                setRepsText(parsed != null && parsed > 0 ? String(parsed) : "");
               }}
               className={inputClass}
             />
@@ -500,9 +597,7 @@ export function GuidedSessionLayout({
                 const cur =
                   parseRepsInput(repsText) ??
                   clampReps(set.reps ?? exercise.targetReps ?? 0);
-                const next = Math.min(99, cur + 1);
-                setRepsText(String(next));
-                onPatchSet(exercise.id, activeSetIndex, { reps: next, done: false });
+                patchReps(Math.min(99, cur + 1));
               }}
               className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-white"
             >
@@ -526,7 +621,8 @@ export function GuidedSessionLayout({
                     onClick={() =>
                       onPatchSet(exercise.id, activeSetIndex, {
                         rir: v,
-                        done: false,
+                        done: set.done,
+                        skipped: set.done ? set.skipped : false,
                       })
                     }
                     className={cn(
@@ -562,6 +658,9 @@ export function GuidedSessionLayout({
 
         <button
           type="button"
+          // Blur inputu przed clickiem potrafił ustawić done:false zaraz po zaliczeniu
+          // i psuć kolejne starty przerwy — blokujemy blur przed obsługą kliknięcia.
+          onMouseDown={(e) => e.preventDefault()}
           onClick={completeSet}
           className="gym-btn-primary mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold"
         >
@@ -570,15 +669,27 @@ export function GuidedSessionLayout({
         </button>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs font-medium text-white/55">
-          <button type="button" onClick={goPrev} className="px-1 py-2 hover:text-white">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={goPrev}
+            className="px-1 py-2 hover:text-white"
+          >
             ← Wstecz
           </button>
-          <button type="button" onClick={skipSet} className="px-1 py-2 hover:text-white">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={skipSet}
+            className="px-1 py-2 hover:text-white"
+          >
             Pomiń serię
           </button>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
+              flushDraft();
               onDeferExercise?.();
               const next = exercises[selectedIndex + 1];
               if (next) onSelectExercise(next.id);
@@ -590,7 +701,11 @@ export function GuidedSessionLayout({
           <button
             type="button"
             disabled={finishPending}
-            onClick={onFinishSession}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              flushDraft();
+              onFinishSession?.();
+            }}
             className="px-1 py-2 font-semibold text-[var(--gym-gold)] hover:text-[var(--gym-gold-bright)] disabled:opacity-50"
           >
             {finishPending ? "Zapis…" : "Zakończ"}
@@ -641,7 +756,9 @@ export function GuidedSessionLayout({
                   <li key={ex.id}>
                     <button
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
+                        flushDraft();
                         onSelectExercise(ex.id);
                         setListOpen(false);
                       }}

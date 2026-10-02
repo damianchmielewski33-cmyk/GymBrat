@@ -24,6 +24,8 @@ type ActiveWorkoutState = {
     exerciseId: string,
     patch: Partial<Pick<WorkoutExerciseState, "note">>,
   ) => void;
+  addSet: (exerciseId: string) => number | null;
+  removeLastSet: (exerciseId: string) => number | null;
   start: () => void;
   stopTimer: () => void;
   applyPlan: (planId: string, plan: WorkoutPlanPayload) => void;
@@ -32,7 +34,7 @@ type ActiveWorkoutState = {
 
 export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       startedAt: null,
       pausedElapsedSeconds: 0,
       workoutStartedAtMs: null,
@@ -72,7 +74,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
                 ? e
                 : {
                     ...e,
-                    sets: e.sets.map((set, i) => (i === setIndex ? nextSet : set)),
+                    sets: e.sets.map((setRow, i) => (i === setIndex ? nextSet : setRow)),
                   },
             ),
           };
@@ -83,6 +85,45 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
             e.id !== exerciseId ? e : { ...e, ...patch },
           ),
         })),
+      addSet: (exerciseId) => {
+        const ex = get().exercises.find((e) => e.id === exerciseId);
+        if (!ex) return null;
+        const last = ex.sets[ex.sets.length - 1];
+        const newIndex = ex.sets.length;
+        set({
+          exercises: get().exercises.map((e) =>
+            e.id !== exerciseId
+              ? e
+              : {
+                  ...e,
+                  sets: [
+                    ...e.sets,
+                    {
+                      reps: last?.reps ?? e.targetReps ?? null,
+                      weight: last?.weight ?? 0,
+                      done: false,
+                      skipped: false,
+                      rpe: null,
+                      rir: e.targetRir ?? null,
+                    },
+                  ],
+                },
+          ),
+        });
+        return newIndex;
+      },
+      removeLastSet: (exerciseId) => {
+        const ex = get().exercises.find((e) => e.id === exerciseId);
+        if (!ex || ex.sets.length <= 1) return null;
+        const nextSets = ex.sets.slice(0, -1);
+        const nextIndex = Math.max(0, nextSets.length - 1);
+        set({
+          exercises: get().exercises.map((e) =>
+            e.id !== exerciseId ? e : { ...e, sets: nextSets },
+          ),
+        });
+        return nextIndex;
+      },
       start: () =>
         set((s) => ({
           startedAt: Date.now(),

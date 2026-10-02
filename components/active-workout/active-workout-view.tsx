@@ -23,6 +23,7 @@ import { RestBreakScreen } from "@/components/active-workout/rest-break-screen";
 import { WorkoutAllSetsDoneDialog } from "@/components/active-workout/workout-all-sets-done-dialog";
 import { readRestTimerPrefs } from "@/lib/rest-timer-prefs";
 import { playRestTimerEndSignal, playRestTimerStartSignal, unlockRestTimerAudio } from "@/lib/rest-timer-signal";
+import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
@@ -82,6 +83,8 @@ export function ActiveWorkoutView({
     setSelectedExerciseId,
     patchSet: patchSetInStore,
     patchExercise,
+    addSet: addSetInStore,
+    removeLastSet: removeLastSetInStore,
   } = useActiveWorkoutStore();
   const { t } = useI18n();
   const [now, setNow] = useState(() => Date.now());
@@ -241,13 +244,14 @@ export function ActiveWorkoutView({
   }
 
   function buildCompletedSnap(
+    list: WorkoutExerciseState[],
     exerciseId: string,
     setIndex: number,
     weight: number,
     reps: number,
   ): LastCompletedSnap | null {
-    const idx = exercises.findIndex((e) => e.id === exerciseId);
-    const ex = exercises[idx];
+    const idx = list.findIndex((e) => e.id === exerciseId);
+    const ex = list[idx];
     if (!ex) return null;
     const nextSetIdx = setIndex + 1;
     let nextLabel = "Następna seria";
@@ -256,7 +260,7 @@ export function ActiveWorkoutView({
     let workoutFinished = false;
     if (nextSetIdx >= ex.sets.length) {
       exerciseFinished = true;
-      const nextEx = exercises[idx + 1];
+      const nextEx = list[idx + 1];
       if (nextEx) {
         nextLabel = "Następne ćwiczenie";
         nextValue = nextEx.name;
@@ -292,42 +296,24 @@ export function ActiveWorkoutView({
     return { done, total };
   }
 
-  function addSetToExercise(exerciseId: string) {
-    const ex = exercises.find((e) => e.id === exerciseId);
-    if (!ex) return;
-    const last = ex.sets[ex.sets.length - 1];
-    setExercises(
-      exercises.map((e) =>
-        e.id !== exerciseId
-          ? e
-          : {
-              ...e,
-              sets: [
-                ...e.sets,
-                {
-                  reps: last?.reps ?? e.targetReps ?? null,
-                  weight: last?.weight ?? 0,
-                  done: false,
-                  rpe: null,
-                  rir: e.targetRir ?? null,
-                },
-              ],
-            },
-      ),
-    );
+  function addSetToExercise(exerciseId: string): number | null {
+    const newIndex = addSetInStore(exerciseId);
+    if (newIndex == null) return null;
+    const setCount = newIndex + 1;
     setLastCompleted((prev) =>
       prev && prev.exerciseId === exerciseId
         ? {
             ...prev,
-            setCount: prev.setCount + 1,
+            setCount,
             exerciseFinished: false,
             workoutFinished: false,
             nextLabel: "Następna seria",
-            nextValue: `Seria ${prev.setCount + 1} z ${prev.setCount + 1}`,
+            nextValue: `Seria ${setCount} z ${setCount}`,
           }
         : prev,
     );
     setAllSetsDoneOpen(false);
+    return newIndex;
   }
 
   function discardSession() {
@@ -470,11 +456,16 @@ export function ActiveWorkoutView({
       rir: number | null;
     }>,
   ) {
-    const ex = exercises.find((e) => e.id === exerciseId);
-    const current = ex?.sets[setIndex];
+    // Zawsze świeży stan ze store — po „+ Seria” snapshot z rendera bywa nieaktualny
+    // i wtedy wasDone/done>=total błędnie blokują ekran przerwy.
+    const exercisesBefore = useActiveWorkoutStore.getState().exercises;
+    const current = exercisesBefore
+      .find((e) => e.id === exerciseId)
+      ?.sets[setIndex];
     const wasDone = current?.done ?? false;
 
     patchSetInStore(exerciseId, setIndex, patch);
+    requestActiveWorkoutCloudPush(Boolean(patch.done === true));
 
     // Start odpoczynku tylko przy przejściu false -> true (auto-done po wpisaniu danych).
     const nextReps = patch.reps !== undefined ? patch.reps : current?.reps ?? null;
@@ -488,7 +479,9 @@ export function ActiveWorkoutView({
           Number.isFinite(nextWeight) &&
           nextWeight > 0;
     if (isDoneNext && !wasDone) {
+      const exercisesNow = useActiveWorkoutStore.getState().exercises;
       const snap = buildCompletedSnap(
+        exercisesNow,
         exerciseId,
         setIndex,
         Number(nextWeight) || 0,
@@ -496,8 +489,6 @@ export function ActiveWorkoutView({
       );
       if (snap) setLastCompleted(snap);
 
-      // Po patchu bierzemy świeży stan ze store (z skipped), nie stary snapshot z rendera.
-      const exercisesNow = useActiveWorkoutStore.getState().exercises;
       const { done, total } = countSetsDone(exercisesNow);
       if (total > 0 && done >= total) {
         stopRest();
@@ -516,7 +507,7 @@ export function ActiveWorkoutView({
 
       const { autoStart, defaultSeconds } = readRestTimerPrefs();
       if (autoStart) {
-        queueMicrotask(() => startRest(defaultSeconds));
+        startRest(defaultSeconds);
       }
     }
   }
@@ -547,12 +538,13 @@ export function ActiveWorkoutView({
 
       const endedAt = Date.now();
       const sessionExercises = exercises;
+      const cardioMinutesNow = useActiveWorkoutStore.getState().cardioMinutes;
       const newMaxHits = detectSessionNewMaxes(sessionExercises, lastPlanHints);
       const baseSummary = {
         title: title.trim() || "Trening",
         endedAt,
         durationSeconds: elapsed,
-        cardioMinutes,
+        cardioMinutes: cardioMinutesNow,
         exercisesCount: sessionExercises.length,
         setsDone: completedSets.done,
         setsTotal: completedSets.total,
@@ -562,7 +554,7 @@ export function ActiveWorkoutView({
         title,
         startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),
         endedAt,
-        cardioMinutes,
+        cardioMinutes: cardioMinutesNow,
         exercises: sessionExercises,
         workoutPlanId,
       });
@@ -626,16 +618,10 @@ export function ActiveWorkoutView({
       onSelectExercise={(id) => setSelectedExerciseId(id)}
       onPatchSet={patchSet}
       onAddSet={(exerciseId) => {
-        addSetToExercise(exerciseId);
+        return addSetToExercise(exerciseId);
       }}
       onRemoveLastSet={(exerciseId) => {
-        const ex = exercises.find((e) => e.id === exerciseId);
-        if (!ex || ex.sets.length <= 1) return;
-        setExercises(
-          exercises.map((e) =>
-            e.id !== exerciseId ? e : { ...e, sets: e.sets.slice(0, -1) },
-          ),
-        );
+        return removeLastSetInStore(exerciseId);
       }}
       onExerciseNoteChange={(exerciseId, note) =>
         patchExercise(exerciseId, { note })
@@ -719,7 +705,12 @@ export function ActiveWorkoutView({
           }
         }}
         initialCardioMinutes={cardioMinutes}
-        onFinish={() => setFinishOpen(true)}
+        onFinish={(minutesFromDialog) => {
+          if (minutesFromDialog != null) {
+            setCardioMinutes(minutesFromDialog);
+          }
+          setFinishOpen(true);
+        }}
         onConfirmCardio={(minutes) => setCardioMinutes(minutes)}
         skippedTarget={skippedTarget}
         skippedCount={skippedCount}

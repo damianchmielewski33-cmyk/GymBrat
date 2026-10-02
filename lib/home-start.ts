@@ -27,6 +27,10 @@ import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { countDistinctWorkoutDaysInRange } from "@/lib/weekly-sessions";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
 import { comparePlansByWorkoutRecencyAsc } from "@/lib/workout-plan-queue";
+import {
+  countableCardioMinutes,
+  parseWorkoutSessionJson,
+} from "@/lib/workout-cardio-attribution";
 
 export type HomeStartWeightPoint = { date: string; kg: number };
 export type HomeStartWaistPoint = { date: string; cm: number };
@@ -132,7 +136,6 @@ async function sumCardioMinutesInCalendarWeek(
   const start = weekKeys[0]!;
   const end = weekKeys[weekKeys.length - 1]!;
 
-  // Tylko wpisy cardio (kind: cardio_log) — trening siłowy nie zwiększa „wykonanego cardio”.
   const workoutRows = await db
     .select({
       cardioMinutes: workouts.cardioMinutes,
@@ -149,14 +152,8 @@ async function sumCardioMinutesInCalendarWeek(
 
   let fromWorkouts = 0;
   for (const row of workoutRows) {
-    try {
-      const parsed = JSON.parse(row.exercises) as { kind?: string };
-      if (parsed?.kind === "cardio_log") {
-        fromWorkouts += Number(row.cardioMinutes) || 0;
-      }
-    } catch {
-      /* pomiń uszkodzone */
-    }
+    const parsed = parseWorkoutSessionJson(row.exercises);
+    fromWorkouts += countableCardioMinutes(parsed, row.cardioMinutes ?? 0);
   }
 
   const weekStart = new Date(`${start}T00:00:00`);

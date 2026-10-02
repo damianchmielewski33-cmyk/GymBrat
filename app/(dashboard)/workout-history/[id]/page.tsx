@@ -145,6 +145,17 @@ export default async function WorkoutHistoryDetailsPage({
           <p className="mt-2 text-2xl font-semibold text-white">{String(w.exercises.length)}</p>
           <p className="mt-1 text-xs text-white/55">Najlepsza seria = najwyższy e1RM na ćwiczenie</p>
         </div>
+        {(w.cardioMinutes ?? 0) > 0 ? (
+          <div className="glass-panel neon-glow p-4 sm:p-5 sm:col-span-2 xl:col-span-4">
+            <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
+              Cardio po siłowym
+            </p>
+            <p className="mt-2 text-2xl font-semibold tabular-nums text-white">
+              {w.cardioMinutes} min
+            </p>
+            <p className="mt-1 text-xs text-white/55">Dodane w popupie po zaliczeniu wszystkich serii</p>
+          </div>
+        ) : null}
       </section>
 
       <section className="glass-panel neon-glow overflow-hidden">

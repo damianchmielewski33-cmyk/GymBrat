@@ -37,6 +37,8 @@ export type CompletedWorkoutListItem = {
 };
 
 export type CompletedWorkoutDetails = CompletedWorkoutListItem & {
+  /** Minuty cardio po siłowym (kolumna workouts.cardioMinutes). */
+  cardioMinutes?: number;
   exercises: Array<{
     id: string;
     name: string;
@@ -105,6 +107,7 @@ export function computeWorkoutDetails(input: {
   rawJson: string;
   workoutPlanId: string | null;
   planName: string | null;
+  cardioMinutes?: number | null;
 }): CompletedWorkoutDetails | null {
   const parsed = safeParseCompletedSession(input.rawJson);
   if (!parsed) return null;
@@ -147,6 +150,7 @@ export function computeWorkoutDetails(input: {
 
   // Strength score: sum of best e1RM per exercise (stable across set count).
   const strengthScore = normalizedExercises.reduce((sum, e) => sum + e.bestE1rm, 0);
+  const cardioMinutes = Math.max(0, Math.round(Number(input.cardioMinutes ?? 0) || 0));
 
   return {
     id: input.id,
@@ -158,6 +162,7 @@ export function computeWorkoutDetails(input: {
     planName: input.planName,
     volumeKg,
     strengthScore,
+    ...(cardioMinutes > 0 ? { cardioMinutes } : {}),
     exercises: normalizedExercises,
   };
 }
@@ -231,6 +236,7 @@ export async function getCompletedWorkoutByIdForUser(userId: string, workoutId: 
       date: workouts.date,
       workoutPlanId: workouts.workoutPlanId,
       exercisesJson: workouts.exercises,
+      cardioMinutes: workouts.cardioMinutes,
       planJson: workoutPlans.planJson,
     })
     .from(workouts)
@@ -246,6 +252,7 @@ export async function getCompletedWorkoutByIdForUser(userId: string, workoutId: 
     rawJson: row.exercisesJson,
     workoutPlanId: row.workoutPlanId ?? null,
     planName,
+    cardioMinutes: row.cardioMinutes,
   });
 }
 

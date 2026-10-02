@@ -2,6 +2,10 @@ import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { trainingSessions, userSettings, workouts } from "@/db/schema";
 import { calendarDateKey } from "@/lib/local-date";
+import {
+  countableCardioMinutes,
+  parseWorkoutSessionJson,
+} from "@/lib/workout-cardio-attribution";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -41,14 +45,8 @@ export async function getWeeklyCardioProgress(userId: string) {
 
   let fromWorkoutsTotal = 0;
   for (const row of workoutRows) {
-    try {
-      const parsed = JSON.parse(row.exercises) as { kind?: string };
-      if (parsed?.kind === "cardio_log") {
-        fromWorkoutsTotal += Number(row.cardioMinutes) || 0;
-      }
-    } catch {
-      /* pomiń */
-    }
+    const parsed = parseWorkoutSessionJson(row.exercises);
+    fromWorkoutsTotal += countableCardioMinutes(parsed, row.cardioMinutes ?? 0);
   }
 
   const [fromLegacySessions] = await db

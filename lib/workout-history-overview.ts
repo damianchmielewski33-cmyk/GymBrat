@@ -11,6 +11,11 @@ import {
   workoutPlanCompareKey,
   workoutPlanDisplayLabel,
 } from "@/lib/workout-plan-compare-key";
+import {
+  countableCardioMinutes,
+  isCompletedStrengthSession,
+  isStandaloneCardioLog,
+} from "@/lib/workout-cardio-attribution";
 
 export type WorkoutHistoryKpis = {
   workoutsLast30: number;
@@ -51,6 +56,8 @@ export type WorkoutHistoryCard = {
   exerciseCount: number;
   setsDone: number;
   setsTotal: number;
+  /** Cardio dodane w popupie po siłowym (min). */
+  cardioMinutes: number;
 };
 
 export type WorkoutHistoryCardioItem = {
@@ -175,11 +182,6 @@ function parseSession(json: string): SessionJson | null {
   }
 }
 
-function isCardioLog(parsed: SessionJson | null, cardioMinutes: number): boolean {
-  if (parsed?.kind === "cardio_log") return true;
-  return cardioMinutes > 0 && (!parsed?.exercises || !Array.isArray(parsed.exercises) || parsed.exercises.length === 0);
-}
-
 function countSets(details: CompletedWorkoutDetails) {
   let done = 0;
   let total = 0;
@@ -224,13 +226,15 @@ export async function getWorkoutHistoryOverview(
 
   const strengthDetails: CompletedWorkoutDetails[] = [];
   const cardio: WorkoutHistoryCardioItem[] = [];
+  const cardioMinutesByWorkoutId = new Map<string, number>();
   let cardioMinutesLast30 = 0;
   let cardioEntriesLast30 = 0;
 
   for (const r of rows) {
     const parsed = parseSession(r.exercisesJson);
-    if (isCardioLog(parsed, r.cardioMinutes ?? 0)) {
-      const minutes = Math.max(0, r.cardioMinutes ?? 0);
+    const minutesCol = Math.max(0, r.cardioMinutes ?? 0);
+
+    if (isStandaloneCardioLog(parsed, minutesCol)) {
       const title =
         typeof parsed?.title === "string" && parsed.title.trim()
           ? parsed.title.trim()
@@ -240,9 +244,10 @@ export async function getWorkoutHistoryOverview(
         typeof avgHrRaw === "number" && Number.isFinite(avgHrRaw) && avgHrRaw > 0
           ? Math.round(avgHrRaw)
           : null;
-      cardio.push({ id: r.id, date: r.date, title, minutes, avgHr });
-      if (r.date >= since30) {
-        cardioMinutesLast30 += minutes;
+      cardio.push({ id: r.id, date: r.date, title, minutes: minutesCol, avgHr });
+      const counted = countableCardioMinutes(parsed, minutesCol);
+      if (r.date >= since30 && counted > 0) {
+        cardioMinutesLast30 += counted;
         cardioEntriesLast30 += 1;
       }
       continue;
@@ -258,6 +263,21 @@ export async function getWorkoutHistoryOverview(
     });
     if (!details) continue;
     strengthDetails.push(details);
+
+    if (isCompletedStrengthSession(parsed) && minutesCol > 0) {
+      cardioMinutesByWorkoutId.set(r.id, minutesCol);
+      cardio.push({
+        id: `${r.id}-post-cardio`,
+        date: r.date,
+        title: `${details.title} · cardio`,
+        minutes: minutesCol,
+        avgHr: null,
+      });
+      if (r.date >= since30) {
+        cardioMinutesLast30 += minutesCol;
+        cardioEntriesLast30 += 1;
+      }
+    }
   }
 
   // Chronologicznie rosnąco do znajdowania poprzedniej sesji planu.
@@ -315,6 +335,7 @@ export async function getWorkoutHistoryOverview(
       exerciseCount: w.exercises.length,
       setsDone: sets.done,
       setsTotal: sets.total,
+      cardioMinutes: cardioMinutesByWorkoutId.get(w.id) ?? 0,
     });
 
     prevByPlan.set(planKey, w);

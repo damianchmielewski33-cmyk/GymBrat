@@ -87,7 +87,7 @@ export function RestBreakScreen({
     setsTotal > 0 ? Math.min(1, Math.max(0, setsDone / setsTotal)) : 0;
 
   return createPortal(
-    <div className="fixed inset-0 z-[220] flex flex-col bg-[var(--gym-black)] text-white">
+    <div className="fixed inset-0 z-[1100] flex flex-col bg-[var(--gym-black)] text-white">
       <div
         className="pointer-events-none absolute inset-0 opacity-70"
         style={{

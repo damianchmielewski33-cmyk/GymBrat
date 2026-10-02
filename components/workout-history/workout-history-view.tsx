@@ -156,6 +156,13 @@ function WorkoutCardRow({
                 Plan: <span className="text-white/80">{card.planName}</span>
               </span>
             ) : null}
+            {card.cardioMinutes > 0 ? (
+              <span className="inline-flex items-center gap-1">
+                <HeartPulse className="h-3.5 w-3.5 text-[var(--gym-gold)]/80" aria-hidden />
+                Cardio:{" "}
+                <span className="text-white/80 tabular-nums">{card.cardioMinutes} min</span>
+              </span>
+            ) : null}
           </div>
           <Link
             href={`/workout-history/${card.id}`}
