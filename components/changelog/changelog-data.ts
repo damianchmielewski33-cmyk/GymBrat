@@ -12,6 +12,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Po dodaniu serii w trakcie treningu ekran przerwy znowu pojawia się po kolejnych zaliczonych seriach.",
       "Wpisany ciężar i powtórzenia zapisują się od razu; Wstecz oraz skoki między seriami/ćwiczeniami nie czyszczą wcześniej wpisanych wartości. Seria bez ciężaru nie świeci na zielono — zaliczenie wymaga danych, pominięcie jest pomarańczowe.",
       "Aktywny trening zapisuje się na bieżąco (telefon + chmura), nie dopiero przy zakończeniu sesji.",
+      "W panelu admina (Branding) wgrywasz logo i ikony web/PWA/Android/iOS bez edycji kodu — web i logo w aplikacji od razu; ikona Android na launcherze przy pushu na master (APK buduje się w Actions równolegle ze stroną).",
       "Przyciski w wizardzie raportu i na ekranie przerwy mają jednolity złoty styl CTA; podczas treningu ciężar i serie są edytowalne.",
       "Po imporcie planu z PDF/Word/Excel można edytować ćwiczenia, a w planie ustawisz RIR, tempo, notatki i superserie.",
       "Na Treningach działa eksport planu do PDF/druku oraz generowanie planu z AI (dni siłowe zapisują się do edycji).",

@@ -690,14 +690,35 @@ export function GuidedSessionLayout({
           // Blur inputu przed clickiem potrafił ustawić done:false zaraz po zaliczeniu
           // i psuć kolejne starty przerwy — blokujemy blur przed obsługą kliknięcia.
           onMouseDown={(e) => e.preventDefault()}
-          onClick={completeSet}
-          disabled={!set.done && !canZaliczyc}
-          className="gym-btn-primary mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold disabled:opacity-45"
+          onClick={() => {
+            if (set.done && !isSkippedWorkoutSet(set)) {
+              completeSet();
+              return;
+            }
+            if (canZaliczyc) {
+              completeSet();
+              return;
+            }
+            skipSet();
+          }}
+          className="gym-btn-primary mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold"
         >
-          <Check className="h-5 w-5" />
-          {set.done && !isSkippedWorkoutSet(set)
-            ? "Zapisz zmiany serii"
-            : "Zalicz serię"}
+          {set.done && !isSkippedWorkoutSet(set) ? (
+            <>
+              <Check className="h-5 w-5" />
+              Zapisz zmiany serii
+            </>
+          ) : canZaliczyc ? (
+            <>
+              <Check className="h-5 w-5" />
+              Zalicz serię
+            </>
+          ) : (
+            <>
+              <X className="h-5 w-5" />
+              Pomiń serię
+            </>
+          )}
         </button>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs font-medium text-white/55">
@@ -709,14 +730,20 @@ export function GuidedSessionLayout({
           >
             ← Wstecz
           </button>
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={skipSet}
-            className="px-1 py-2 hover:text-white"
-          >
-            Pomiń serię
-          </button>
+          {canZaliczyc || (set.done && !isSkippedWorkoutSet(set)) ? (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={skipSet}
+              className="px-1 py-2 hover:text-white"
+            >
+              Pomiń serię
+            </button>
+          ) : (
+            <span aria-hidden className="px-1 py-2 opacity-0">
+              Pomiń serię
+            </span>
+          )}
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}

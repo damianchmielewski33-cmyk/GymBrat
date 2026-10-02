@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Dumbbell, LayoutDashboard, ScrollText, UtensilsCrossed, Users } from "lucide-react";
+import { ImageIcon, Dumbbell, LayoutDashboard, ScrollText, UtensilsCrossed, Users } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ const links = [
   { href: "/admin/users", label: "Użytkownicy", icon: Users },
   { href: "/admin/catalog", label: "Przepisy", icon: UtensilsCrossed },
   { href: "/admin/exercises", label: "Ćwiczenia", icon: Dumbbell },
+  { href: "/admin/branding", label: "Branding", icon: ImageIcon },
   { href: "/admin/audit", label: "Dziennik", icon: ScrollText },
 ];
 

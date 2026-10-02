@@ -12,11 +12,14 @@ Front web pozostaje w Next.js; przy `JAVA_API_BASE_URL` Next proxuje do Javy.
 - In-app update z `GET /api/android/version`
 - Wybór plików / zdjęć z HTML (`input type=file`) przez `WebChromeClient.onShowFileChooser`
 
-## Budowanie APK (bez Android Studio)
+## Budowanie APK
 
-1. GitHub → **Actions** → **Build Android APK** → **Run workflow**
-2. Po sukcesie: **Releases** → `gymbrat.apk`
-3. Na telefonie: Profil / `/api/android/download` albo link z Releases
+Przy **każdym pushu na `master`/`main`** GitHub Actions buduje APK równolegle
+z deployem Vercel (strona). Release `android-latest` + `gymbrat.apk` są
+aktualizowane automatycznie; Vercel przy `npm run build` tylko **pobiera**
+gotowy APK (`scripts/fetch-android-apk.mjs`) — nie kompiluje Androida.
+
+Ręcznie: GitHub → **Actions** → **Build Android APK** → **Run workflow**.
 
 Lokalnie (wymaga Android SDK):
 

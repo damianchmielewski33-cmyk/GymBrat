@@ -51,6 +51,11 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  /** Branding / PWA ikony — publiczne (login, favicon, WebView bez sesji). */
+  if (pathname.startsWith("/api/branding")) {
+    return NextResponse.next();
+  }
+
   /**
    * Digital Asset Links / App Links — GoogleAssociationService musi dostać 200 JSON,
    * nie 307 na /login.

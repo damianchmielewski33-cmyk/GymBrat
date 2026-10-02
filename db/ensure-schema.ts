@@ -171,6 +171,15 @@ CREATE TABLE IF NOT EXISTS "exercise_technique_links" (
   await db.$client.execute(
     `CREATE INDEX IF NOT EXISTS "idx_exercise_technique_updated" ON "exercise_technique_links" ("updated_at")`,
   );
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "app_branding_assets" (
+  "slot" text PRIMARY KEY NOT NULL,
+  "mime_type" text NOT NULL,
+  "data_url" text NOT NULL,
+  "updated_at" integer NOT NULL
+);
+`);
 }
 
 let mealLogsEnsured = false;

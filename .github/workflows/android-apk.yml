@@ -1,6 +1,7 @@
-# Buduje APK GymBrat (WebView) bez Android Studio.
-# GitHub → Actions → „Build Android APK” → Run workflow
-# Potem: Releases → gymbrat.apk albo /api/android/download
+# Buduje APK GymBrat (WebView) przy każdym pushu na master/main —
+# równolegle z deployem Vercel (strona). Vercel nie kompiluje Androida:
+# `npm run build` tylko pobiera gotowy gymbrat.apk z GitHub Release.
+# Ręcznie: Actions → „Build Android APK” → Run workflow.
 
 name: Build Android APK
 
@@ -14,9 +15,10 @@ on:
         default: "https://gym-brat.vercel.app/"
   push:
     branches: [master, main]
-    paths:
-      - "android/**"
-      - ".github/workflows/android-apk.yml"
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -72,6 +74,12 @@ jobs:
           echo "sdk.dir=${ANDROID_HOME}" > android/local.properties
           echo "api.base.url=${{ steps.api.outputs.url }}" >> android/local.properties
           cat android/local.properties
+
+      - name: Apply Android launcher icon from branding API
+        shell: bash
+        run: |
+          chmod +x scripts/apply-android-branding-icon.sh
+          scripts/apply-android-branding-icon.sh "${{ steps.api.outputs.url }}"
 
       - name: Build release APK
         working-directory: android

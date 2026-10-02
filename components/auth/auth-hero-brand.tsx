@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useBrandingUrl } from "@/components/branding/branding-provider";
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
 
@@ -12,6 +13,8 @@ export function AuthHeroBrand({
   headline: string;
   support: string;
 }) {
+  const logoUrl = useBrandingUrl("logo_login", ["logo_app", "icon_web"]);
+
   return (
     <div className="mb-8 text-center sm:mb-10">
       <motion.div
@@ -24,8 +27,19 @@ export function AuthHeroBrand({
           className="inline-block rounded-sm font-display text-5xl font-normal uppercase tracking-[0.04em] text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]/80 sm:text-6xl md:text-7xl"
           aria-label="GymBrat — strona główna"
         >
-          Gym
-          <span className="text-[var(--neon)]">Brat</span>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt="GymBrat"
+              className="mx-auto h-16 w-auto max-w-[16rem] object-contain sm:h-20"
+            />
+          ) : (
+            <>
+              Gym
+              <span className="text-[var(--neon)]">Brat</span>
+            </>
+          )}
         </Link>
       </motion.div>
 

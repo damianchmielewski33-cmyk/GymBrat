@@ -10,6 +10,20 @@ export const appSettings = sqliteTable("app_settings", {
     .$defaultFn(() => new Date()),
 });
 
+/**
+ * Assety brandingu (logo / ikony) — upload z panelu admina, bez deployu kodu.
+ * Wartość to data URL (jak body_report_photos); serwowane przez /api/branding/asset/[slot].
+ */
+export const appBrandingAssets = sqliteTable("app_branding_assets", {
+  /** np. logo_app | logo_login | icon_web | icon_pwa | icon_android | icon_ios */
+  slot: text("slot").primaryKey(),
+  mimeType: text("mime_type").notNull(),
+  dataUrl: text("data_url").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const users = sqliteTable("users", {
   id: text("id")
     .primaryKey()

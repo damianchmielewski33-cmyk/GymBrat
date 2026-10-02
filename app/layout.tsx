@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   },
   description:
     "Nowoczesny dziennik treningowy i żywieniowy: plany, historia, raporty, wartości odżywcze i integracja z Fitatu.",
-  manifest: "/manifest.webmanifest",
+  manifest: "/api/branding/manifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
