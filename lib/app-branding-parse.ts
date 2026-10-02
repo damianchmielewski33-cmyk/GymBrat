@@ -25,7 +25,7 @@ export function parseDataUrl(
   dataUrl: string,
 ): { mimeType: string; dataUrl: string } | null {
   const raw = dataUrl.trim();
-  const m = /^data:([^,]+),(.*)$/is.exec(raw);
+  const m = /^data:([^,]+),([\s\S]*)$/i.exec(raw);
   if (!m) return null;
 
   const meta = m[1]!.trim();
