@@ -9,6 +9,8 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
+      "Po zakończeniu treningu ekran „Trening zrobiony” pokazuje czas, serie, tonaż i najlepsze serie (e1RM); cardio dodajesz tylko raz na tym ekranie — nie przy każdej przerwie ani w popupie po ostatniej serii.",
+      "Po zakończeniu ćwiczenia (ekran przerwy / Dalej) sesja pomija już zaliczone pozycje i przechodzi do kolejnego niedokończonego ćwiczenia — także gdy kolejność wykonania była inna niż w planie.",
       "Po dodaniu serii w trakcie treningu ekran przerwy znowu pojawia się po kolejnych zaliczonych seriach.",
       "Wpisany ciężar i powtórzenia zapisują się od razu; Wstecz oraz skoki między seriami/ćwiczeniami nie czyszczą wcześniej wpisanych wartości. Seria bez ciężaru nie świeci na zielono — zaliczenie wymaga danych, pominięcie jest pomarańczowe.",
       "Aktywny trening zapisuje się na bieżąco (telefon + chmura), nie dopiero przy zakończeniu sesji.",
@@ -18,7 +20,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Na Treningach działa eksport planu do PDF/druku oraz generowanie planu z AI (dni siłowe zapisują się do edycji).",
       "Sugestia ciężaru z ostatniej sesji (chip per seria) oraz ekran postępu z badge NOWY MAX po pobiciu rekordu.",
       "Po rekordzie na podsumowaniu treningu widać grafikę „NOWY MAX” generowaną przez agenta Pollinations (złoty motyw siłowni) z nakładką GymBrat.",
-      "Po zaliczeniu wszystkich serii pojawia się pytanie: dodać cardio albo zakończyć trening; minuty z popupu zapisują się w treningu i wliczają do KPI cardio (Historia, Pulpit); w sesji jest „Zakończ bez zapisu”; „+ Seria” dodaje serię na końcu bez przeskoku z aktualnie wykonywanej.",
+      "Po zaliczeniu wszystkich serii (bez pominięć) od razu jest ekran „Trening zrobiony”; przy pominiętych seriach popup pozwala wrócić albo zakończyć. Minuty cardio z ekranu zakończenia zapisują się w treningu i wliczają do KPI cardio (Historia, Pulpit); w sesji jest „Zakończ bez zapisu”; „+ Seria” dodaje serię na końcu bez przeskoku z aktualnie wykonywanej.",
       "Niedokończoną sesję treningu da się wznowić na innym telefonie lub PC dzięki synchronizacji aktywnej sesji w chmurze.",
       "Na Pulpicie w Makro dziś widać ile już zjedzono i ile zostało do spożycia (B/W/T).",
       "Przepisy w Dietcie pochodzą wyłącznie z panelu admina (JSON) — wyczyszczenie bazy usuwa je z aplikacji.",

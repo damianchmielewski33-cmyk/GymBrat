@@ -4,9 +4,15 @@ import {
   canCompleteWorkoutSet,
   countSkippedWorkoutSets,
   findFirstSkippedWorkoutTarget,
+  findNextIncompleteExercise,
   isCompletedWorkoutSet,
+  isExerciseIncomplete,
   isSkippedWorkoutSet,
 } from "@/lib/workout-skipped-sets";
+
+function set(done: boolean, skipped = false) {
+  return { reps: done ? 8 : null, weight: done ? 50 : 0, done, skipped };
+}
 
 describe("workout-skipped-sets", () => {
   it("wykrywa pominiętą serię po fladze i po pustym wykonaniu", () => {
@@ -58,5 +64,36 @@ describe("workout-skipped-sets", () => {
       exerciseName: "Przysiad",
       setIndex: 0,
     });
+  });
+
+  it("po ćwiczeniu 1 pomija już wykonane 2 i idzie do 3", () => {
+    const exercises: WorkoutExerciseState[] = [
+      { id: "1", name: "Ćw. 1", sets: [set(true)] },
+      { id: "2", name: "Ćw. 2", sets: [set(true)] },
+      { id: "3", name: "Ćw. 3", sets: [set(false)] },
+      { id: "4", name: "Ćw. 4", sets: [set(true)] },
+      { id: "5", name: "Ćw. 5", sets: [set(true)] },
+      { id: "6", name: "Ćw. 6", sets: [set(true)] },
+      { id: "7", name: "Ćw. 7", sets: [set(true)] },
+    ];
+    expect(isExerciseIncomplete(exercises[2]!)).toBe(true);
+    expect(findNextIncompleteExercise(exercises, "1")?.id).toBe("3");
+  });
+
+  it("zawija do wcześniejszego niedokończonego ćwiczenia", () => {
+    const exercises: WorkoutExerciseState[] = [
+      { id: "1", name: "Ćw. 1", sets: [set(false)] },
+      { id: "2", name: "Ćw. 2", sets: [set(true)] },
+      { id: "3", name: "Ćw. 3", sets: [set(true)] },
+    ];
+    expect(findNextIncompleteExercise(exercises, "3")?.id).toBe("1");
+  });
+
+  it("zwraca null gdy wszystkie ćwiczenia są domknięte", () => {
+    const exercises: WorkoutExerciseState[] = [
+      { id: "1", name: "Ćw. 1", sets: [set(true)] },
+      { id: "2", name: "Ćw. 2", sets: [set(true)] },
+    ];
+    expect(findNextIncompleteExercise(exercises, "1")).toBeNull();
   });
 });

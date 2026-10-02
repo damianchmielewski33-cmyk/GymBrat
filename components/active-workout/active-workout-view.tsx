@@ -33,6 +33,7 @@ import {
   canCompleteWorkoutSet,
   countSkippedWorkoutSets,
   findFirstSkippedWorkoutTarget,
+  findNextIncompleteExercise,
   isSkippedWorkoutSet,
 } from "@/lib/workout-skipped-sets";
 import { hapticExerciseDone, hapticNewMax, hapticWorkoutDone } from "@/lib/haptics";
@@ -261,7 +262,7 @@ export function ActiveWorkoutView({
     let workoutFinished = false;
     if (nextSetIdx >= ex.sets.length) {
       exerciseFinished = true;
-      const nextEx = list[idx + 1];
+      const nextEx = findNextIncompleteExercise(list, exerciseId);
       if (nextEx) {
         nextLabel = "Następne ćwiczenie";
         nextValue = nextEx.name;
@@ -505,11 +506,15 @@ export function ActiveWorkoutView({
       if (total > 0 && done >= total) {
         stopRest();
         hapticWorkoutDone();
-        setAllSetsDoneSkipped({
-          target: findFirstSkippedWorkoutTarget(exercisesNow),
-          count: countSkippedWorkoutSets(exercisesNow),
-        });
-        setAllSetsDoneOpen(true);
+        const skipped = findFirstSkippedWorkoutTarget(exercisesNow);
+        const skipCount = countSkippedWorkoutSets(exercisesNow);
+        if (skipped) {
+          setAllSetsDoneSkipped({ target: skipped, count: skipCount });
+          setAllSetsDoneOpen(true);
+        } else {
+          setAllSetsDoneSkipped({ target: null, count: 0 });
+          setFinishOpen(true);
+        }
         return;
       }
 
@@ -708,26 +713,21 @@ export function ActiveWorkoutView({
         />
       ) : null}
 
-      <WorkoutAllSetsDoneDialog
-        open={allSetsDoneOpen}
-        onOpenChange={(open) => {
-          setAllSetsDoneOpen(open);
-          if (!open) {
-            setAllSetsDoneSkipped({ target: null, count: 0 });
-          }
-        }}
-        initialCardioMinutes={cardioMinutes}
-        onFinish={(minutesFromDialog) => {
-          if (minutesFromDialog != null) {
-            setCardioMinutes(minutesFromDialog);
-          }
-          setFinishOpen(true);
-        }}
-        onConfirmCardio={(minutes) => setCardioMinutes(minutes)}
-        skippedTarget={skippedTarget}
-        skippedCount={skippedCount}
-        onGoToSkipped={goToSkippedTarget}
-      />
+      {skippedTarget ? (
+        <WorkoutAllSetsDoneDialog
+          open={allSetsDoneOpen}
+          onOpenChange={(open) => {
+            setAllSetsDoneOpen(open);
+            if (!open) {
+              setAllSetsDoneSkipped({ target: null, count: 0 });
+            }
+          }}
+          onFinish={() => setFinishOpen(true)}
+          skippedTarget={skippedTarget}
+          skippedCount={skippedCount}
+          onGoToSkipped={goToSkippedTarget}
+        />
+      ) : null}
 
       <div
         className={
@@ -797,6 +797,9 @@ export function ActiveWorkoutView({
           setsDone={completedSets.done}
           setsTotal={completedSets.total}
           volumeKg={sessionTotal}
+          exercises={exercises}
+          cardioMinutes={cardioMinutes}
+          onCardioMinutesChange={setCardioMinutes}
           saving={saving}
           newMaxLabel={
             finishNewMaxes[0]

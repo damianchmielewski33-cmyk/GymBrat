@@ -13,6 +13,7 @@ import {
 } from "@/components/active-workout/session-chrome";
 import {
   canCompleteWorkoutSet,
+  findNextIncompleteExercise,
   isCompletedWorkoutSet,
   isSkippedWorkoutSet,
 } from "@/lib/workout-skipped-sets";
@@ -262,8 +263,7 @@ export function GuidedSessionLayout({
       return;
     }
     setManualSetIndex(null);
-    const idx = exercises.findIndex((e) => e.id === exerciseId);
-    const nextEx = exercises[idx + 1];
+    const nextEx = findNextIncompleteExercise(exercises, exerciseId);
     if (nextEx) onSelectExercise(nextEx.id);
   }
 
@@ -750,7 +750,10 @@ export function GuidedSessionLayout({
             onClick={() => {
               flushDraft();
               onDeferExercise?.();
-              const next = exercises[selectedIndex + 1];
+              const next = findNextIncompleteExercise(
+                exercises,
+                exercise.id,
+              );
               if (next) onSelectExercise(next.id);
             }}
             className="px-1 py-2 hover:text-white"

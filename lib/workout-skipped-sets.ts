@@ -82,3 +82,28 @@ export function countSkippedWorkoutSets(exercises: WorkoutExerciseState[]): numb
   }
   return n;
 }
+
+/** Ćwiczenie z co najmniej jedną serią jeszcze niezaliczoną (done=false). */
+export function isExerciseIncomplete(ex: WorkoutExerciseState): boolean {
+  return ex.sets.some((s) => !s.done);
+}
+
+/**
+ * Następne niedokończone ćwiczenie po `afterExerciseId` (kolejność planu, z zawinięciem).
+ * Pomija ćwiczenia, w których wszystkie serie mają już done=true.
+ */
+export function findNextIncompleteExercise(
+  exercises: WorkoutExerciseState[],
+  afterExerciseId: string,
+): WorkoutExerciseState | null {
+  if (exercises.length === 0) return null;
+  const startIdx = exercises.findIndex((e) => e.id === afterExerciseId);
+  const from = startIdx >= 0 ? startIdx + 1 : 0;
+  for (let offset = 0; offset < exercises.length; offset++) {
+    const i = (from + offset) % exercises.length;
+    if (startIdx >= 0 && i === startIdx) continue;
+    const ex = exercises[i]!;
+    if (isExerciseIncomplete(ex)) return ex;
+  }
+  return null;
+}

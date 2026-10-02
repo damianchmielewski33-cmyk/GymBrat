@@ -49,3 +49,50 @@ export function formatVolumeKg(value: number): string {
     minimumFractionDigits: 0,
   }).format(safeNonNegative(value));
 }
+
+export type BestSetRow = {
+  exerciseId: string;
+  exerciseName: string;
+  weight: number;
+  reps: number;
+  e1rm: number;
+};
+
+/**
+ * Najlepsza seria na ćwiczenie = najwyższy e1RM (Epley) spośród zaliczonych serii.
+ */
+export function bestSetsFromSession(
+  exercises: ReadonlyArray<{
+    id: string;
+    name: string;
+    sets: ReadonlyArray<{
+      reps: number | null;
+      weight: number;
+      done: boolean;
+      skipped?: boolean;
+    }>;
+  }>,
+  estimated1RM: (weight: number, reps: number) => number,
+): BestSetRow[] {
+  const rows: BestSetRow[] = [];
+  for (const ex of exercises) {
+    let best: BestSetRow | null = null;
+    for (const s of ex.sets) {
+      if (!s.done || s.skipped) continue;
+      const reps = s.reps;
+      if (reps == null || !(reps > 0) || !(s.weight > 0)) continue;
+      const e1rm = estimated1RM(s.weight, reps);
+      if (!best || e1rm > best.e1rm) {
+        best = {
+          exerciseId: ex.id,
+          exerciseName: ex.name,
+          weight: s.weight,
+          reps,
+          e1rm: Math.round(e1rm),
+        };
+      }
+    }
+    if (best) rows.push(best);
+  }
+  return rows;
+}
