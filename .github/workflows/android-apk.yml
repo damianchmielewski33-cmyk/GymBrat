@@ -75,14 +75,19 @@ jobs:
           echo "api.base.url=${{ steps.api.outputs.url }}" >> android/local.properties
           cat android/local.properties
 
-      - name: Install WebP tools (branding icon)
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends webp
+      - name: Install image tools (branding icon)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends webp
+          python3 -m pip install --user pillow
 
       - name: Apply Android launcher icon from branding API
         shell: bash
         run: |
           chmod +x scripts/apply-android-branding-icon.sh
           scripts/apply-android-branding-icon.sh "${{ steps.api.outputs.url }}"
+          echo "=== drawable after branding ==="
+          ls -la android/app/src/main/res/drawable/ic_launcher_foreground* || true
 
       - name: Build release APK
         working-directory: android
@@ -90,10 +95,18 @@ jobs:
         run: |
           set -o pipefail
           if ! gradle :app:assembleRelease --stacktrace 2>&1 | tee ../build.log; then
-            echo "=== Gradle failure (last 80 lines) ==="
-            tail -n 80 ../build.log || true
+            echo "=== Gradle failure (last 120 lines) ==="
+            tail -n 120 ../build.log || true
             exit 1
           fi
+
+      - name: Upload Gradle log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-log
+          path: build.log
+          if-no-files-found: ignore
 
       - name: Verify APK exists
         working-directory: android
