@@ -9,9 +9,17 @@ import {
   SessionChromeHeader,
   SessionProgressBar,
 } from "@/components/active-workout/session-chrome";
-import { bestSetsFromSession } from "@/lib/workout-session-calculations";
+import {
+  bestSetsFromSession,
+  exerciseVolume,
+} from "@/lib/workout-session-calculations";
 import { estimated1RM } from "@/lib/workout-history";
+import {
+  isCompletedWorkoutSet,
+  isSkippedWorkoutSet,
+} from "@/lib/workout-skipped-sets";
 import type { ActiveCardioExtras } from "@/lib/stores/active-workout";
+import type { WorkoutSetState } from "@/components/workout/types";
 import { cn } from "@/lib/utils";
 
 type WorkoutFinishedScreenProps = {
@@ -42,6 +50,40 @@ function formatElapsed(totalSeconds: number) {
   const m = Math.floor(s / 60);
   const sec = s % 60;
   return `${m}:${String(sec).padStart(2, "0")}`;
+}
+
+function SummarySetPill({ set }: { set: WorkoutSetState }) {
+  if (!set.done) {
+    return (
+      <span className="inline-flex h-8 items-center rounded-lg border border-dashed border-white/15 px-2.5 text-[11px] text-white/30">
+        —
+      </span>
+    );
+  }
+  if (isSkippedWorkoutSet(set)) {
+    return (
+      <span
+        className="inline-flex h-8 items-center rounded-lg border border-amber-400/35 bg-amber-400/10 px-2.5 text-[11px] font-medium text-amber-200/90"
+        title="Pominięta"
+      >
+        pomiń
+      </span>
+    );
+  }
+  if (isCompletedWorkoutSet(set)) {
+    return (
+      <span className="inline-flex h-8 items-center rounded-lg border border-white/14 bg-transparent px-2.5 font-metric text-[12px] tabular-nums text-white/75">
+        {set.weight}
+        <span className="mx-0.5 text-white/35">×</span>
+        {set.reps ?? "—"}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex h-8 items-center rounded-lg border border-dashed border-white/15 px-2.5 text-[11px] text-white/30">
+      —
+    </span>
+  );
 }
 
 export function WorkoutFinishedScreen({
@@ -167,6 +209,38 @@ export function WorkoutFinishedScreen({
             </p>
           </div>
         </div>
+
+        {exercises.length > 0 ? (
+          <div className="app-card mt-3 w-full space-y-3.5 px-4 py-4">
+            <p className="app-label text-[var(--gym-gold)]">Ćwiczenia</p>
+            <ul className="space-y-3.5">
+              {exercises.map((ex) => {
+                const vol = Math.round(exerciseVolume(ex.sets));
+                const doneN = ex.sets.filter((s) =>
+                  isCompletedWorkoutSet(s),
+                ).length;
+                return (
+                  <li key={ex.id}>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="min-w-0 text-[14px] font-medium text-white/90">
+                        {ex.name}
+                      </p>
+                      <p className="shrink-0 text-[11px] tabular-nums text-white/40">
+                        {doneN}/{ex.sets.length}
+                        {vol > 0 ? ` · ${vol} kg` : ""}
+                      </p>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {ex.sets.map((s, i) => (
+                        <SummarySetPill key={`${ex.id}-${i}`} set={s} />
+                      ))}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
 
         {bestSets.length > 0 ? (
           <div className="app-card mt-3 w-full overflow-hidden py-1">

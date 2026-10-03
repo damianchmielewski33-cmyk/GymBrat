@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { workoutPlans, workouts } from "@/db/schema";
 import type { WorkoutPlanPayload } from "@/lib/workout-plan-types";
 import { getLastWorkoutHintsForPlan } from "@/lib/last-workout-hints";
+import { comparePlansByWorkoutRecencyAsc } from "@/lib/workout-plan-queue";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
 import { UserMessages } from "@/lib/user-facing-errors";
 
@@ -45,8 +46,7 @@ export async function getWorkoutPlansWithLastWorkout(): Promise<WorkoutPlanWithL
     if (row.planId) lastMap.set(row.planId, row.lastDate);
   }
 
-  // Stała kolejność dni planu (data utworzenia) — nie mieszamy listą „kolejki”.
-  // Rekomendacja następnego treningu sortuje osobno po lastWorkoutDate.
+  // Najpierw po dacie utworzenia (stabilny tie-break), potem kolejka aktywności.
   const rows = await db
     .select({
       id: workoutPlans.id,
@@ -75,6 +75,8 @@ export async function getWorkoutPlansWithLastWorkout(): Promise<WorkoutPlanWithL
     }
   }
 
+  // Lista: nigdy/najdawniej robione na górze → ostatnio robione na dole.
+  out.sort(comparePlansByWorkoutRecencyAsc);
   return out;
 }
 

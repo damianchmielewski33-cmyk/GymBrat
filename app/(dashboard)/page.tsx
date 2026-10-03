@@ -8,7 +8,6 @@ import { parseFirstDietSupplements } from "@/lib/diet-supplements";
 import { getHomeStartDashboard } from "@/lib/home-start";
 import { addCalendarDays } from "@/lib/local-date";
 import { getTreningiHubStats } from "@/lib/treningi-hub-stats";
-import { comparePlansByWorkoutRecencyAsc } from "@/lib/workout-plan-queue";
 import { eq } from "drizzle-orm";
 
 function weightKgPerWeek(
@@ -53,6 +52,7 @@ export default async function HomePage() {
     getTreningiHubStats(userId),
   ]);
 
+  // plans już w kolejce: najdawniej / nigdy → ostatnio robiony na końcu.
   const dayOptions = plans.map((row) => ({
     id: row.id,
     name: row.plan.planName,
@@ -61,11 +61,8 @@ export default async function HomePage() {
     row,
   }));
 
-  // Lista dni = kolejność planu (createdAt); rekomendacja = kolejka „najdawniej robiony”.
   const recommendedId =
-    dash.nextWorkout?.planId ??
-    [...dayOptions].sort(comparePlansByWorkoutRecencyAsc)[0]?.id ??
-    null;
+    dash.nextWorkout?.planId ?? dayOptions[0]?.id ?? null;
 
   const supplements = parseFirstDietSupplements(
     settingsRow?.fitnessGoalsJson,
