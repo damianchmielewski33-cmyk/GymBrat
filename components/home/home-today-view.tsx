@@ -1,6 +1,5 @@
 "use client";
 
-import { HomeReportCard } from "@/components/home/home-report-card";
 import { HomeTrainingCard, type HomeTrainingDayOption } from "@/components/home/home-training-card";
 import { HomeSupplementsChip } from "@/components/home/home-supplements-chip";
 import { StartMetricTiles } from "@/components/home/start-metric-tiles";
@@ -20,6 +19,7 @@ import type {
   HomeStartWeekMacros,
   HomeStartWeightPoint,
 } from "@/lib/home-start";
+import type { DietSupplement } from "@/lib/diet-supplements";
 import type { RecentWorkoutItem } from "@/lib/treningi-hub-stats";
 import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
 
@@ -56,13 +56,12 @@ export type HomeTodayViewProps = {
   daysInProgram: number | null;
   reportCount: number;
   daysSinceLastReport: number | null;
-  reportCadenceDays: number;
   showOnboarding: boolean;
   recommendedPlanId: string | null;
   planName: string | null;
   exerciseCount: number;
   days: HomeTrainingDayOption[];
-  supplementNames: string[] | null;
+  supplements: DietSupplement[] | null;
   weightKg: number | null;
   weightDeltaFromPreviousKg: number | null;
   weightFromStartKg: number | null;
@@ -146,12 +145,6 @@ export function HomeTodayView(props: HomeTodayViewProps) {
 
       {props.showOnboarding ? <OnboardingBanner /> : null}
 
-      <HomeReportCard
-        firstName={props.firstName}
-        daysSinceLastReport={props.daysSinceLastReport}
-        reportCadenceDays={props.reportCadenceDays}
-      />
-
       <HomeTrainingCard
         recommendedPlanId={props.recommendedPlanId}
         planName={props.planName}
@@ -159,7 +152,7 @@ export function HomeTodayView(props: HomeTodayViewProps) {
         days={props.days}
       />
 
-      <HomeSupplementsChip names={props.supplementNames} />
+      <HomeSupplementsChip items={props.supplements} />
 
       <StartMetricTiles
         weightKg={props.weightKg}

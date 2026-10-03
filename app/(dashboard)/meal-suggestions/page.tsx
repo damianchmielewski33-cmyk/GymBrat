@@ -17,7 +17,7 @@ import { calendarDateKey } from "@/lib/local-date";
 import { loadMergedMealCatalog } from "@/lib/meal-catalog-store";
 import { isAdminEligible } from "@/lib/admin-session";
 import { parseDietTab } from "@/lib/diet-tabs";
-import { resolveDietSupplements } from "@/lib/diet-supplements";
+import { resolveDietSupplementItems } from "@/lib/diet-supplements";
 
 export default async function MealSuggestionsPage({
   searchParams,
@@ -81,7 +81,7 @@ export default async function MealSuggestionsPage({
     settingsRow,
     gaps.dateKey,
   );
-  const supplementNames = resolveDietSupplements(
+  const supplements = resolveDietSupplementItems(
     settingsRow?.fitnessGoalsJson,
     settingsRow?.mealTemplatesJson,
   );
@@ -105,7 +105,7 @@ export default async function MealSuggestionsPage({
         )}
         catalogMeals={catalogMeals}
         isAdmin={adminEligible}
-        supplementNames={supplementNames}
+        supplements={supplements}
         weeklyCardioGoalMinutes={weeklyCardioGoalMinutes}
         initialTab={initialTab}
       />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronDown, Play } from "lucide-react";
@@ -75,7 +75,7 @@ export function NextWorkoutTile({
   workoutStreakWeeks: number;
 }) {
   const router = useRouter();
-  const [pending, start] = useTransition();
+  const [pending, setPending] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(
     recommendedPlanId ?? days[0]?.id ?? null,
@@ -108,10 +108,9 @@ export function NextWorkoutTile({
         : firstTime;
 
   function begin(row: WorkoutPlanWithLastWorkoutDTO) {
-    start(() => {
-      if (!beginWorkoutFromPlanRow(useActiveWorkoutStore.getState(), row)) return;
-      router.push("/active-workout");
-    });
+    if (!beginWorkoutFromPlanRow(useActiveWorkoutStore.getState(), row)) return;
+    setPending(true);
+    router.push("/active-workout");
   }
 
   if (!displayName || days.length === 0) {

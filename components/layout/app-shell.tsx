@@ -122,7 +122,7 @@ function TabLink({
     <Link
       href={item.href}
       className={cn(
-        "relative flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-2 text-center text-[10px] font-medium",
+        "relative flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-2 text-center text-[10px] font-medium transition-colors duration-100 active:scale-[0.96] active:opacity-80",
         active ? "text-[var(--neon)]" : "text-white/45",
       )}
     >

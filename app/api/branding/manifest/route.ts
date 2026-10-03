@@ -44,7 +44,8 @@ export async function GET() {
     start_url: "/",
     scope: "/",
     display: "standalone",
-    orientation: "portrait-primary",
+    /** any — obrót nie wymusza restartu / blokady w PWA; UI reaguje responsywnie. */
+    orientation: "any",
     background_color: "#07080d",
     theme_color: "#07080d",
     icons,

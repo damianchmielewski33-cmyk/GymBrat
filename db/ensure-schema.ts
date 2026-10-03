@@ -6,15 +6,29 @@ import { withDbRetry } from "./with-retry";
 
 type DbWithClient = LibSQLDatabase<typeof schema> & { $client: Client };
 
+let schemaEnsurePromise: Promise<void> | null = null;
+let schemaEnsured = false;
+
 /**
  * Uzupełnia braki w schemacie bez polegania na plikach `db/migrations` w paczce serwera (Vercel).
- * Idempotentne — bezpieczne przy każdym starcie / pierwszym zapytaniu.
+ * Idempotentne — raz na proces (kolejne nawigacje nie czekają na dziesiątki DDL).
  */
 export async function ensureCriticalSchema(): Promise<void> {
-  await withDbRetry(() => ensureCriticalSchemaOnce(), {
-    attempts: 3,
-    label: "ensureCriticalSchema",
-  });
+  if (schemaEnsured) return;
+  if (!schemaEnsurePromise) {
+    schemaEnsurePromise = withDbRetry(() => ensureCriticalSchemaOnce(), {
+      attempts: 3,
+      label: "ensureCriticalSchema",
+    })
+      .then(() => {
+        schemaEnsured = true;
+      })
+      .catch((err) => {
+        schemaEnsurePromise = null;
+        throw err;
+      });
+  }
+  await schemaEnsurePromise;
 }
 
 async function ensureCriticalSchemaOnce(): Promise<void> {

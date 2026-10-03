@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Check,
   ChevronDown,
@@ -11,6 +12,10 @@ import {
 import { DietRecipeGrid } from "@/components/meal-suggestions/diet-recipe-grid";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
+import {
+  formatSupplementLine,
+  type DietSupplement,
+} from "@/lib/diet-supplements";
 import type { CatalogMeal } from "@/lib/meal-catalog-types";
 import type { MealTemplate } from "@/lib/meal-templates";
 import type { NutritionDayType } from "@/lib/nutrition-goals";
@@ -201,7 +206,7 @@ export function DietMealPlanPanel({
   dateKey,
   dayKind: _dayKind,
   dayMacros,
-  supplementNames,
+  supplements,
   weeklyCardioGoalMinutes,
 }: {
   mealTemplates: MealTemplate[];
@@ -214,7 +219,7 @@ export function DietMealPlanPanel({
     fatGoal: number | null;
     caloriesGoal: number | null;
   };
-  supplementNames: string[];
+  supplements: DietSupplement[];
   weeklyCardioGoalMinutes: number;
 }) {
   void _dayKind;
@@ -349,7 +354,7 @@ export function DietMealPlanPanel({
         <SectionLabel
           index={2}
           title="Suplementy"
-          trailing={`${supplementNames.length}`}
+          trailing={`${supplements.length}`}
         />
         <div className="app-card overflow-hidden">
           <button
@@ -359,9 +364,12 @@ export function DietMealPlanPanel({
             aria-expanded={suppOpen}
           >
             <p className="text-sm text-white/80">
-              {supplementNames.slice(0, 3).join(", ") || "Brak suplementów"}
-              {supplementNames.length > 3
-                ? ` +${supplementNames.length - 3}`
+              {supplements
+                .slice(0, 3)
+                .map(formatSupplementLine)
+                .join(", ") || "Brak suplementów"}
+              {supplements.length > 3
+                ? ` +${supplements.length - 3}`
                 : ""}
             </p>
             {suppOpen ? (
@@ -371,17 +379,34 @@ export function DietMealPlanPanel({
             )}
           </button>
           {suppOpen ? (
-            <ul className="divide-y divide-white/[0.05] border-t border-white/[0.06]">
-              {supplementNames.map((name) => (
-                <li
-                  key={name}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-white/85"
+            <div className="border-t border-white/[0.06]">
+              <ul className="divide-y divide-white/[0.05]">
+                {supplements.map((item) => (
+                  <li
+                    key={`${item.name}-${item.amount ?? ""}`}
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-white/85"
+                  >
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--gym-gold)]" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block">{item.name}</span>
+                      {item.amount?.trim() ? (
+                        <span className="mt-0.5 block text-[12px] text-white/45">
+                          {item.amount.trim()}
+                        </span>
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="border-t border-white/[0.06] px-4 py-3">
+                <Link
+                  href="/supplements"
+                  className="text-sm font-medium text-[var(--gym-gold)] hover:text-[var(--gym-gold-bright)]"
                 >
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--gym-gold)]" />
-                  {name}
-                </li>
-              ))}
-            </ul>
+                  Zarządzaj suplementami
+                </Link>
+              </div>
+            </div>
           ) : null}
         </div>
       </section>

@@ -4,6 +4,7 @@ import { LoginScreen } from "@/components/auth/login-screen";
 import { HomeTodayView } from "@/components/home/home-today-view";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
+import { parseFirstDietSupplements } from "@/lib/diet-supplements";
 import { getHomeStartDashboard } from "@/lib/home-start";
 import { addCalendarDays } from "@/lib/local-date";
 import { getTreningiHubStats } from "@/lib/treningi-hub-stats";
@@ -24,30 +25,6 @@ function weightKgPerWeek(
   const days = Math.max(1, Math.round((t1 - t0) / 86_400_000));
   if (days < 3) return null;
   return Math.round((((b.kg - a.kg) / days) * 7) * 10) / 10;
-}
-
-function parseSupplementNames(raw: string | null | undefined): string[] | null {
-  if (!raw?.trim()) return null;
-  try {
-    const j = JSON.parse(raw) as unknown;
-    if (!j || typeof j !== "object") return null;
-    const obj = j as Record<string, unknown>;
-    const list = obj.supplements ?? obj.suplementy;
-    if (!Array.isArray(list)) return null;
-    const names = list
-      .map((item) => {
-        if (typeof item === "string") return item.trim();
-        if (item && typeof item === "object") {
-          const name = (item as { name?: unknown }).name;
-          return typeof name === "string" ? name.trim() : "";
-        }
-        return "";
-      })
-      .filter(Boolean);
-    return names.length > 0 ? names : null;
-  } catch {
-    return null;
-  }
 }
 
 export default async function HomePage() {
@@ -88,9 +65,10 @@ export default async function HomePage() {
   const recommendedId =
     dash.nextWorkout?.planId ?? orderedDays[0]?.id ?? null;
 
-  const supplementNames =
-    parseSupplementNames(settingsRow?.fitnessGoalsJson) ??
-    parseSupplementNames(settingsRow?.mealTemplatesJson);
+  const supplements = parseFirstDietSupplements(
+    settingsRow?.fitnessGoalsJson,
+    settingsRow?.mealTemplatesJson,
+  );
 
   return (
     <HomeTodayView
@@ -99,13 +77,12 @@ export default async function HomePage() {
       daysInProgram={dash.daysInProgram}
       reportCount={dash.reportCount}
       daysSinceLastReport={dash.daysSinceLastReport}
-      reportCadenceDays={dash.reportCadenceDays}
       showOnboarding={!settingsRow?.onboardingCompletedAt}
       recommendedPlanId={recommendedId}
       planName={dash.nextWorkout?.planName ?? null}
       exerciseCount={dash.nextWorkout?.exerciseCount ?? 0}
       days={orderedDays}
-      supplementNames={supplementNames}
+      supplements={supplements}
       weightKg={dash.currentWeightKg}
       weightDeltaFromPreviousKg={dash.weightDeltaFromPreviousKg}
       weightFromStartKg={dash.weightFromStartKg}

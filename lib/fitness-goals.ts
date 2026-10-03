@@ -13,6 +13,16 @@ export const fitnessGoalsSchema = z.object({
     )
     .max(12)
     .optional(),
+  /** Suplementy dzienne (nazwa + opcjonalna dawka). */
+  supplements: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(80),
+        amount: z.string().trim().max(40).optional(),
+      }),
+    )
+    .max(40)
+    .optional(),
 });
 
 export type FitnessGoals = z.infer<typeof fitnessGoalsSchema>;
@@ -35,7 +45,8 @@ export function fitnessGoalsToJson(goals: FitnessGoals): string | null {
   if (
     !v.weeklySessionsTarget &&
     v.targetWeightKg == null &&
-    !v.exerciseTargets?.length
+    !v.exerciseTargets?.length &&
+    v.supplements === undefined
   ) {
     return null;
   }

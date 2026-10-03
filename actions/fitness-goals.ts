@@ -38,19 +38,46 @@ export async function saveFitnessGoalsAction(input: unknown) {
   if (!("targetWeightKg" in (input as object))) {
     next.targetWeightKg = prev.targetWeightKg;
   }
+  if (!("supplements" in (input as object))) {
+    next.supplements = prev.supplements;
+  }
 
   const json = fitnessGoalsToJson(next);
-  await db
-    .update(userSettings)
-    .set({
+  if (row) {
+    await db
+      .update(userSettings)
+      .set({
+        fitnessGoalsJson: json,
+        updatedAt: new Date(),
+      })
+      .where(eq(userSettings.userId, session.user.id));
+  } else {
+    await db.insert(userSettings).values({
+      userId: session.user.id,
       fitnessGoalsJson: json,
-      updatedAt: new Date(),
-    })
-    .where(eq(userSettings.userId, session.user.id));
+    });
+  }
 
   revalidatePath("/");
   revalidatePath("/profile");
+  revalidatePath("/supplements");
+  revalidatePath("/meal-suggestions");
   revalidatePath("/progress");
   revalidatePath("/progress-analysis");
   return { ok: true as const };
+}
+
+/** Zapis listy suplementów (nazwa + dawka) w fitnessGoalsJson. */
+export async function saveSupplementsAction(
+  supplements: Array<{ name: string; amount?: string }>,
+) {
+  const cleaned = supplements
+    .map((s) => ({
+      name: s.name.trim(),
+      ...(s.amount?.trim() ? { amount: s.amount.trim() } : {}),
+    }))
+    .filter((s) => s.name.length > 0)
+    .slice(0, 40);
+
+  return saveFitnessGoalsAction({ supplements: cleaned });
 }

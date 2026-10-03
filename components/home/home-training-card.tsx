@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Play } from "lucide-react";
@@ -30,7 +30,7 @@ export function HomeTrainingCard({
   days: HomeTrainingDayOption[];
 }) {
   const router = useRouter();
-  const [pending, start] = useTransition();
+  const [pending, setPending] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -68,10 +68,9 @@ export function HomeTrainingCard({
       ?.name ?? null;
 
   function begin(row: WorkoutPlanWithLastWorkoutDTO) {
-    start(() => {
-      if (!beginWorkoutFromPlanRow(useActiveWorkoutStore.getState(), row)) return;
-      router.push("/active-workout");
-    });
+    if (!beginWorkoutFromPlanRow(useActiveWorkoutStore.getState(), row)) return;
+    setPending(true);
+    router.push("/active-workout");
   }
 
   if (!displayName && days.length === 0 && !unfinished) {

@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { AuthPageFrame } from "@/components/auth/auth-page-frame";
 import { AppShell } from "@/components/layout/app-shell";
-import { ReminderRunnerWrapper } from "@/components/reminders/reminder-runner-wrapper";
+import { ReminderRunnerBoot } from "@/components/reminders/reminder-runner-boot";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 
 /** Node.js: lokalny SQLite (`file:...`) w @libsql/client działa tylko poza Edge. */
@@ -17,6 +17,7 @@ export default async function DashboardLayout({
     return <AuthPageFrame>{children}</AuthPageFrame>;
   }
 
+  // Po pierwszym ensure w procesie to no-op (memo) — nie spowalnia kolejnych kliknięć.
   try {
     await ensureCriticalSchema();
   } catch (err) {
@@ -25,7 +26,7 @@ export default async function DashboardLayout({
 
   return (
     <AppShell>
-      <ReminderRunnerWrapper />
+      <ReminderRunnerBoot />
       {children}
     </AppShell>
   );

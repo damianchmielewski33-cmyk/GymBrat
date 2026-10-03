@@ -33,6 +33,7 @@ import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
 import type { FitatuDaySummary } from "@/types/fitatu";
 import type { MealTemplate } from "@/lib/meal-templates";
 import type { CatalogMeal } from "@/lib/meal-catalog-types";
+import type { DietSupplement } from "@/lib/diet-supplements";
 import type { NutritionDayType } from "@/lib/nutrition-goals";
 import { parseDietTab, type DietTabId } from "@/lib/diet-tabs";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
@@ -163,7 +164,7 @@ export function MealSuggestionsView({
   mealTemplates = [],
   catalogMeals = [],
   isAdmin = false,
-  supplementNames = [],
+  supplements = [],
   weeklyCardioGoalMinutes = 150,
   initialTab = "plan",
 }: {
@@ -175,7 +176,7 @@ export function MealSuggestionsView({
   mealTemplates?: MealTemplate[];
   catalogMeals?: CatalogMeal[];
   isAdmin?: boolean;
-  supplementNames?: string[];
+  supplements?: DietSupplement[];
   weeklyCardioGoalMinutes?: number;
   initialTab?: DietTabId;
 }) {
@@ -355,7 +356,14 @@ export function MealSuggestionsView({
       : null;
 
   return (
-    <div className="relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+    <div
+      className={cn(
+        "relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col",
+        tab === "diary"
+          ? "pb-[calc(12rem+env(safe-area-inset-bottom))]"
+          : "pb-[calc(5.5rem+env(safe-area-inset-bottom))]",
+      )}
+    >
       <header className="space-y-3 px-1 pt-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -469,7 +477,7 @@ export function MealSuggestionsView({
               fatGoal: dayMacros.fatGoal,
               caloriesGoal: dayMacros.caloriesGoal,
             }}
-            supplementNames={supplementNames}
+            supplements={supplements}
             weeklyCardioGoalMinutes={weeklyCardioGoalMinutes}
           />
         ) : (
@@ -635,8 +643,9 @@ export function MealSuggestionsView({
       />
 
       {tab === "diary" && !mealOverlayOpen ? (
-        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-40 px-0">
-          <div className="pointer-events-auto mx-auto max-w-lg">
+        /* Nad belką nav + wystającym FAB „Raport” (~h-12 / 2). */
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-40 px-0">
+          <div className="pointer-events-auto mx-auto max-w-lg overflow-hidden rounded-t-2xl border-t border-white/10 shadow-[0_-8px_28px_rgba(0,0,0,0.45)]">
             <DietDayMacrosBar {...dayMacros} />
           </div>
         </div>
