@@ -4,17 +4,23 @@
  */
 export const MEAL_CATALOG_AI_PROMPT = `Jesteś generatorem katalogu przepisów dla aplikacji GymBrat (dieta / plan posiłków).
 
-Zadanie: wygeneruj WYŁĄCZNIE poprawny JSON (bez markdown, bez \`\`\`, bez komentarzy, bez tekstu przed/po JSON).
+Zadanie: wygeneruj poprawny JSON katalogu przepisów.
 
 ## Format wyjścia
-Tablica obiektów JSON:
-[
-  { ...przepis },
-  { ...przepis }
-]
+Cały JSON MUSI być w jednym bloku kodu markdown do łatwego kopiowania, dokładnie tak:
 
-Albo obiekt:
+\`\`\`json
+[ ... ]
+\`\`\`
+
+Albo:
+
+\`\`\`json
 { "meals": [ ... ] }
+\`\`\`
+
+W bloku: wyłącznie poprawny JSON (tablica przepisów albo obiekt z polem "meals").
+Bez komentarzy wewnątrz JSON. Poza blokiem kodu nie dodawaj innego JSON ani długiego opisu.
 
 ## Wymagane pola każdego przepisu (format docelowy GymBrat)
 - id (string, 1–80 znaków): unikalny slug ASCII, małe litery, myślniki.
@@ -77,4 +83,4 @@ Albo obiekt:
 ## Twoje zadanie teraz
 Wygeneruj 20 przepisów: po 4 na każdy slot
 (sniadanie, drugie_sniadanie, obiad, podwieczorek, kolacja).
-Zwróć tylko tablicę JSON.`;
+Zwróć wynik jako jedną tablicę JSON w bloku \`\`\`json ... \`\`\` (do skopiowania w całości).`;

@@ -10,7 +10,7 @@ import { ChangeStartPhotoButton } from "@/components/progress/change-start-photo
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { SectionLabel } from "@/components/ui/section-label";
 import type { ProgressHubData, ProgressPhotoItem } from "@/lib/progress-hub";
-import { CUSTOM_START_PHOTO_ID } from "@/lib/start-photo";
+import { CUSTOM_START_PHOTO_ID } from "@/lib/start-photo-id";
 import { cn } from "@/lib/utils";
 
 const BASELINE_KEY = "gymbrat:photo-baseline-id:v1";

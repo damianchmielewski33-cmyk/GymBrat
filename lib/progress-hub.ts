@@ -12,7 +12,7 @@ import {
   calendarDateKey,
   calendarWeekdaySun0,
 } from "@/lib/local-date";
-import { CUSTOM_START_PHOTO_ID } from "@/lib/start-photo";
+import { CUSTOM_START_PHOTO_ID } from "@/lib/start-photo-id";
 import {
   countableCardioMinutes,
   isCompletedStrengthSession,

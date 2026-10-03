@@ -11,7 +11,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import type { CatalogMeal } from "@/lib/meal-catalog-types";
-import { parseCatalogImportPayload } from "@/lib/meal-catalog-import";
+import {
+  extractJsonTextFromAiResponse,
+  parseCatalogImportPayload,
+} from "@/lib/meal-catalog-import";
 import { MEAL_CATALOG_AI_PROMPT } from "@/lib/meal-catalog-ai-prompt";
 import { MEAL_SLOT_LABELS, type MealSlot } from "@/lib/meal-catalog";
 import { useI18n } from "@/components/i18n/i18n-provider";
@@ -30,7 +33,7 @@ type ValidationState =
     };
 
 function validateJsonText(text: string): ValidationState {
-  const trimmed = text.trim();
+  const trimmed = extractJsonTextFromAiResponse(text);
   if (!trimmed) return { status: "empty" };
   let parsed: unknown;
   try {
@@ -152,7 +155,7 @@ export function AdminCatalogClient() {
     try {
       let parsed: unknown;
       try {
-        parsed = JSON.parse(jsonText);
+        parsed = JSON.parse(extractJsonTextFromAiResponse(jsonText));
       } catch {
         throw new Error("Niepoprawny JSON — sprawdź składnię.");
       }
@@ -269,8 +272,8 @@ export function AdminCatalogClient() {
               Prompt dla AI
             </p>
             <p className="mt-1.5 text-sm text-white/55">
-              Skopiuj i wklej do innego modelu AI. Odpowiedź (JSON) wklej poniżej i kliknij
-              Dodaj / Zastąp.
+              Skopiuj i wklej do innego modelu AI. Odpowiedź (JSON w bloku do kopiowania)
+              wklej poniżej i kliknij Dodaj / Zastąp.
             </p>
           </div>
           <Button

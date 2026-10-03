@@ -1,6 +1,15 @@
 import { z } from "zod";
 import type { CatalogMeal, MealSlot } from "@/lib/meal-catalog-types";
 
+/** Wyciąga JSON z odpowiedzi AI (blok ```json ... ``` albo sam tekst). */
+export function extractJsonTextFromAiResponse(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) return fenced[1].trim();
+  return trimmed;
+}
+
 const MEAL_SLOTS: MealSlot[] = [
   "sniadanie",
   "drugie_sniadanie",

@@ -6,8 +6,6 @@ import {
   maybeDecryptSensitiveField,
 } from "@/lib/app-field-crypto";
 
-export const CUSTOM_START_PHOTO_ID = "custom-start";
-
 export async function loadStartPhotoDataUrl(
   userId: string,
 ): Promise<string | null> {
