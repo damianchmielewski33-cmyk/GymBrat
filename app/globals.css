@@ -112,6 +112,12 @@
   --neon-rgb:   235, 196, 74;
   --neon-hover: var(--gym-gold-bright);
   --neon-fg:    #120f05;
+
+  /* Delikatny złoty cień kafelków — wspólny na wszystkich ekranach */
+  --gym-tile-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.36),
+    0 0 16px rgba(var(--neon-rgb), 0.1),
+    0 1px 0 rgba(255, 232, 160, 0.04) inset;
 }
 
 /* Alias kept for auth / legacy classNames — same tokens as :root */
@@ -508,12 +514,22 @@
     border-radius: 22px;
     background: var(--gym-surface);
     border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: var(--gym-tile-shadow);
   }
 
   .app-card-raised {
     border-radius: 16px;
     background: var(--gym-surface-raised);
     border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: var(--gym-tile-shadow);
+  }
+
+  /* Listy / panele sunken (Treningi, Postępy, Cardio, Historia…) */
+  .app-panel {
+    border-radius: 16px;
+    background: var(--gym-surface-sunken);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: var(--gym-tile-shadow);
   }
 
   .app-dialog {

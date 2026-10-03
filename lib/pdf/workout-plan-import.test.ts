@@ -55,6 +55,7 @@ describe("parseCoachTablePlans", () => {
     expect(push.exercises[0]!.sets).toBe(2);
     expect(push.exercises[0]!.reps).toBe(8);
     expect(push.exercises[0]!.name.toLowerCase()).toMatch(/pompk|poręcz|dips|dip/i);
+    expect(push.exercises[1]!.name).toMatch(/Bench Press/i);
     expect(push.exercises[1]!.sets).toBe(2);
     expect(push.exercises[1]!.reps).toBe(6);
     const nogi = plans[2]!;

@@ -2,8 +2,8 @@
 export const pl = {
   nav: {
     start: "Start",
-    today: "Dziś",
-    desk: "Dziś",
+    today: "Pulpit",
+    desk: "Pulpit",
     meals: "Posiłki",
     diet: "Dieta",
     plan: "Plan",

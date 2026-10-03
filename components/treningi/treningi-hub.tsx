@@ -17,7 +17,10 @@ import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import type { TreningiHubStats } from "@/lib/treningi-hub-stats";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
-import { formatPlanLastDoneRelative } from "@/lib/workout-plan-queue";
+import {
+  comparePlansByWorkoutRecencyAsc,
+  formatPlanLastDoneRelative,
+} from "@/lib/workout-plan-queue";
 import { printWorkoutPlans } from "@/lib/pdf/workout-plan-export";
 import { calendarDateKey } from "@/lib/local-date";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
@@ -70,12 +73,25 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
     return exercisePreview(activeExercises.map((e) => e.name));
   }, [unfinished, activeExercises]);
 
+  const nextPlan = useMemo(() => {
+    if (plans.length === 0) return null;
+    const ordered = [...plans].sort(comparePlansByWorkoutRecencyAsc);
+    return ordered[0] ?? null;
+  }, [plans]);
+
+  const nextPreview = useMemo(() => {
+    if (!nextPlan) return "";
+    return exercisePreview(nextPlan.plan.exercises.map((e) => e.name));
+  }, [nextPlan]);
+
   const startedToday =
     unfinished &&
     workoutStartedAtMs != null &&
     calendarDateKey(new Date(workoutStartedAtMs)) === today;
 
   const kicker = `PLAN · ${plans.length} DNI · ${Math.max(stats.streakWeeks, plans.length > 0 ? 1 : 0)} TYG.`;
+
+  const nextBusy = pending && nextPlan != null && pendingId === nextPlan.id;
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-8">
@@ -101,7 +117,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
       </header>
 
       {unfinished ? (
-        <section className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/35 bg-[var(--gym-surface-sunken)] p-4 shadow-[0_0_40px_rgba(235,196,74,0.12)]">
+        <section className="app-card relative overflow-hidden border-[var(--gym-gold)]/35 p-4 shadow-[0_0_40px_rgba(235,196,74,0.12)]">
           <div
             className="pointer-events-none absolute inset-0 opacity-90"
             style={{
@@ -126,7 +142,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
             </p>
             <Link
               href="/active-workout"
-              className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold"
+              className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_8px_28px_rgba(235,196,74,0.45)]"
             >
               <Play className="h-4 w-4 fill-current" aria-hidden />
               Kontynuuj trening
@@ -149,7 +165,74 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
             </div>
           </div>
         </section>
-      ) : null}
+      ) : nextPlan ? (
+        <section className="app-card relative overflow-hidden p-4">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-90"
+            style={{
+              background:
+                "linear-gradient(165deg, rgba(235,196,74,0.16) 0%, transparent 58%)",
+            }}
+            aria-hidden
+          />
+          <div className="relative space-y-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+              Trening na dziś
+            </p>
+            <h2 className="text-[26px] font-semibold leading-tight text-white">
+              {nextPlan.plan.planName.trim() || "Trening"}
+            </h2>
+            <p className="text-[13px] text-white/55">
+              {cwLabel(nextPlan.plan.exercises.length)}
+              {nextPlan.lastWorkoutDate
+                ? ` · ${formatPlanLastDoneRelative(nextPlan.lastWorkoutDate, today)}`
+                : " · pierwszy raz"}
+              {nextPreview ? ` · ${nextPreview}` : ""}
+            </p>
+            <button
+              type="button"
+              disabled={nextPlan.plan.exercises.length === 0 || pending}
+              onClick={() => {
+                setPendingId(nextPlan.id);
+                startTransition(() => onBegin(nextPlan));
+              }}
+              className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_8px_28px_rgba(235,196,74,0.45)] disabled:opacity-55"
+            >
+              <Play className="h-4 w-4 fill-current" aria-hidden />
+              {nextBusy ? "Startuję…" : "Rozpocznij trening"}
+            </button>
+          </div>
+        </section>
+      ) : (
+        <section className="app-card relative overflow-hidden p-4">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-80"
+            style={{
+              background:
+                "linear-gradient(165deg, rgba(235,196,74,0.14) 0%, transparent 55%)",
+            }}
+            aria-hidden
+          />
+          <div className="relative space-y-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+              Trening na dziś
+            </p>
+            <h2 className="text-[26px] font-semibold leading-tight text-white">
+              Dodaj plan treningowy
+            </h2>
+            <p className="text-[13px] text-white/50">
+              Ustaw dni planu, żeby szybko startować sesję.
+            </p>
+            <Link
+              href="/profile/workout-plan"
+              className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_8px_28px_rgba(235,196,74,0.45)]"
+            >
+              <Play className="h-4 w-4 fill-current" aria-hidden />
+              Ustaw plan
+            </Link>
+          </div>
+        </section>
+      )}
 
       <section className="space-y-2.5">
         <SectionLabel
@@ -183,7 +266,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
         />
 
         {plans.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] px-4 py-8 text-center">
+          <div className="app-panel px-4 py-8 text-center">
             <p className="text-sm text-white/70">
               Nie masz jeszcze planu. Ustaw dni i ćwiczenia w Profilu.
             </p>
@@ -196,7 +279,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
           </div>
         ) : (
           <>
-            <ul className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+            <ul className="overflow-hidden app-panel divide-y divide-white/[0.06]">
               {plans.map((row, idx) => {
                 const name = row.plan.planName.trim() || `Dzień ${idx + 1}`;
                 const count = row.plan.exercises.length;
@@ -270,7 +353,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
 
       <section className="space-y-2.5">
         <SectionLabel index={2} title="Korekta techniki" titleTone="white" />
-        <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+        <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
           <Link
             href="/technique"
             className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.03]"
@@ -281,7 +364,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
                 Nagraj technikę
               </span>
               <span className="mt-0.5 block text-[12px] text-white/45">
-                film z ćwiczenia, Damian odpisze z korektą
+                film z ćwiczenia
               </span>
             </span>
             <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
@@ -306,7 +389,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
 
       <section className="space-y-2.5">
         <SectionLabel index={3} title="Postępy" titleTone="white" />
-        <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+        <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
           <Link
             href="/progress"
             className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.03]"
@@ -358,7 +441,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
             </span>
           }
         />
-        <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)]">
+        <div className="overflow-hidden app-panel">
           <Link
             href="/cardio"
             className="flex w-full items-center gap-3 px-3.5 py-3.5 text-left transition-colors hover:bg-white/[0.03]"

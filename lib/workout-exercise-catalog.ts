@@ -1,6 +1,7 @@
 /**
  * Kategorie partii mięśniowych + katalog ćwiczeń do budowy planu.
- * Polska nazwa jest kanoniczna; aliasesEn służy do wyszukiwania po angielsku (i frazach mieszanych).
+ * Nazwy z importu/planu zapisujemy bez tłumaczenia; katalog służy do wyszukiwania,
+ * kategorii i URL techniki. aliasesEn pomaga dopasować angielskie warianty.
  */
 
 export type MuscleCategory = {
@@ -28,10 +29,10 @@ export const MUSCLE_CATEGORIES: MuscleCategory[] = [
 
 export type CatalogExercise = {
   id: string;
-  /** Kanoniczna nazwa po polsku (wyświetlanie i zapis planu). */
+  /** Nazwa w katalogu (UI wyboru z katalogu). */
   name: string;
   categoryId: string;
-  /** Angielskie nazwy, skróty i warianty zapisu — dopasowanie → polska nazwa. */
+  /** Angielskie nazwy, skróty i warianty — dopasowanie do kategorii / techniki. */
   aliasesEn?: string[];
 };
 

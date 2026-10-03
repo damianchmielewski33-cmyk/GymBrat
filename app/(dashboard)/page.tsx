@@ -107,6 +107,10 @@ export default async function HomePage() {
         armSpark: dash.dimensions.armSpark,
       }}
       recentWorkouts={hub.recentWorkouts}
+      workoutsThisWeek={dash.workoutsThisWeek}
+      cardioThisWeekMinutes={dash.cardioThisWeekMinutes}
+      workoutStreakWeeks={dash.workoutStreakWeeks}
+      cardioGoalMinutes={dash.cardioWeeklyGoal}
     />
   );
 }

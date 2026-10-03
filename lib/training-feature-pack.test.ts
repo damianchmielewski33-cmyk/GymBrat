@@ -163,6 +163,7 @@ describe("AI plan → payload", () => {
     });
     expect(payloads).toHaveLength(1);
     expect(payloads[0]?.planName).toBe("Full Body A");
+    expect(payloads[0]?.exercises[0]?.name).toBe("Squat");
     expect(payloads[0]?.exercises[0]?.sets).toBe(3);
     expect(payloads[0]?.exercises[0]?.reps).toBe(8);
     expect(payloads[0]?.exercises[0]?.note).toBe("brace");

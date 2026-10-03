@@ -311,7 +311,7 @@ export function WorkoutHistoryView({ overview }: Props) {
                 </span>
               </div>
               <div className="h-px bg-white/[0.08]" />
-              <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+              <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
                 {week.cards.map((card) => (
                   <SessionRow key={card.id} card={card} />
                 ))}

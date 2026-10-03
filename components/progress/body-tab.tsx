@@ -199,7 +199,7 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
           trailing={raportowLabel(tempo.reportCount)}
           titleTone="white"
         />
-        <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+        <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
           {(
             [
               {
@@ -324,7 +324,7 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
           trailing="od startu"
           titleTone="white"
         />
-        <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+        <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
           {measures.every((m) => m.currentCm == null) ? (
             <p className="px-3.5 py-8 text-center text-sm text-white/45">
               Dodaj obwody w raporcie, żeby zobaczyć trendy.

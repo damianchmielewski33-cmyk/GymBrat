@@ -119,7 +119,7 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
 
       <section className="space-y-2.5">
         <SectionLabel index={1} title="W tym tygodniu" titleTone="white" />
-        <div className="space-y-3 rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] px-3.5 py-4">
+        <div className="space-y-3 app-panel px-3.5 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
@@ -166,14 +166,14 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
 
       <section className="space-y-2.5">
         <SectionLabel index={2} title="Ostatnie 8 tygodni" titleTone="white" />
-        <div className="rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] p-3.5">
+        <div className="app-panel p-3.5">
           <WeekBarChart weeks={last8} />
         </div>
       </section>
 
       <section className="space-y-2.5">
         <SectionLabel index={3} title="Następne cele" titleTone="white" />
-        <div className="space-y-3.5 rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] px-3.5 py-4">
+        <div className="space-y-3.5 app-panel px-3.5 py-4">
           {goals.map((g) => (
             <div key={g.id} className="space-y-1.5">
               <div className="flex items-baseline justify-between gap-2">
@@ -201,11 +201,11 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
           titleTone="white"
         />
         {unlocked.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] px-4 py-8 text-center text-sm text-white/45">
+          <div className="app-panel px-4 py-8 text-center text-sm text-white/45">
             Trenuj dalej — osiągnięcia odblokują się automatycznie.
           </div>
         ) : (
-          <ul className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+          <ul className="overflow-hidden app-panel divide-y divide-white/[0.06]">
             {visible.map((a) => (
               <li
                 key={a.id}

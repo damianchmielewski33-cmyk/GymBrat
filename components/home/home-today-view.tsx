@@ -94,6 +94,10 @@ export type HomeTodayViewProps = {
     armSpark: HomeStartSpark[];
   };
   recentWorkouts: RecentWorkoutItem[];
+  workoutsThisWeek: number;
+  cardioThisWeekMinutes: number;
+  workoutStreakWeeks: number;
+  cardioGoalMinutes: number;
 };
 
 export function HomeTodayView(props: HomeTodayViewProps) {
@@ -166,6 +170,10 @@ export function HomeTodayView(props: HomeTodayViewProps) {
         planName={props.planName}
         exerciseCount={props.exerciseCount}
         days={props.days}
+        workoutsThisWeek={props.workoutsThisWeek}
+        cardioThisWeekMinutes={props.cardioThisWeekMinutes}
+        workoutStreakWeeks={props.workoutStreakWeeks}
+        cardioGoalMinutes={props.cardioGoalMinutes}
       />
 
       <HomeSupplementsChip items={props.supplements} />

@@ -225,7 +225,7 @@ export function WorkoutHistoryEditClient({
         {exercises.map((ex, exIdx) => (
           <li
             key={ex.id}
-            className="rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] px-3.5 py-3.5"
+            className="app-panel px-3.5 py-3.5"
           >
             <div className="flex items-start gap-2.5">
               <span className="font-metric text-[18px] leading-none text-[var(--gym-gold)]">

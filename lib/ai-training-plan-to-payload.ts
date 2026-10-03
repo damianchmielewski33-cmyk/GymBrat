@@ -44,7 +44,8 @@ export function trainingPlanToWorkoutPayloads(
       const hit = findBestCatalogMatch(ex.name);
       return {
         id: crypto.randomUUID(),
-        name: hit?.name ?? ex.name,
+        // Nazwa z planu/AI bez tłumaczenia na katalog — katalog tylko do kategorii.
+        name: ex.name,
         categoryId: hit?.categoryId ?? "chest",
         sets: parseSets(ex.sets),
         reps: parseReps(ex.reps),

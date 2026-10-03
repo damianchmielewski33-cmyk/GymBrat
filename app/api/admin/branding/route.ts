@@ -12,6 +12,7 @@ import {
   isBrandingSlot,
   upsertBrandingAsset,
 } from "@/lib/app-branding";
+import { triggerAndroidApkBuildInBackground } from "@/lib/trigger-android-apk-build";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,6 +78,9 @@ export async function POST(req: Request) {
       action: "branding.delete",
       meta: { slot: del.data.slot },
     });
+    if (del.data.slot === "icon_android") {
+      triggerAndroidApkBuildInBackground();
+    }
     return NextResponse.json({ ok: true, deleted: del.data.slot });
   }
 
@@ -95,6 +99,9 @@ export async function POST(req: Request) {
       action: "branding.upsert",
       meta: { slot: row.slot, mimeType: row.mimeType },
     });
+    if (row.slot === "icon_android") {
+      triggerAndroidApkBuildInBackground();
+    }
     return NextResponse.json({
       ok: true,
       slot: row.slot,

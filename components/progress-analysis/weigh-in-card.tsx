@@ -27,7 +27,7 @@ export function WeighInCard() {
   }
 
   return (
-    <section className="rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+    <section className="app-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">

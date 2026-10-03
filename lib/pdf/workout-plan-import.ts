@@ -22,7 +22,8 @@ function toExercise(name: string, sets: number, reps: number): WorkoutPlanExerci
   const match = findBestCatalogMatch(name);
   return {
     id: randomUUID(),
-    name: match?.name ?? name,
+    // Nazwa z planu bez tłumaczenia na katalog — katalog tylko do kategorii.
+    name,
     categoryId: match?.categoryId ?? "shoulders",
     sets: Math.min(20, Math.max(1, Math.round(sets))),
     reps: Math.min(100, Math.max(1, Math.round(reps))),

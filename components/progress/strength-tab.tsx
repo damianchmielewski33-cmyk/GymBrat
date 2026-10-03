@@ -196,7 +196,7 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
               Zaliczone serie z ciężarem pojawią się tutaj jako maxy e1RM.
             </div>
           ) : (
-            <ul className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+            <ul className="overflow-hidden app-panel divide-y divide-white/[0.06]">
               {maxes.map((m) => (
                 <li key={m.name}>
                   <Link
@@ -306,7 +306,7 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
                 trailing={`${group.exercises.length} ćw.`}
                 titleTone="white"
               />
-              <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+              <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
                 {group.exercises.map((ex) => (
                   <ExerciseRow key={`${group.planId}-${ex.name}`} ex={ex} />
                 ))}

@@ -144,3 +144,24 @@ jobs:
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Odświeża public/gymbrat.apk na Vercel (fetch-android-apk.mjs przy buildzie).
+      - name: Trigger Vercel deploy (refresh APK on site)
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_DEPLOY_HOOK_URL:-}" ]; then
+            echo "Brak secret VERCEL_DEPLOY_HOOK_URL — pomijam (APK jest na GitHub Release)."
+            exit 0
+          fi
+          echo "Wywołuję Vercel Deploy Hook…"
+          HTTP_CODE="$(curl -sS -o /tmp/vercel-hook-body.txt -w "%{http_code}" -X POST "$VERCEL_DEPLOY_HOOK_URL" || true)"
+          echo "HTTP $HTTP_CODE"
+          head -c 400 /tmp/vercel-hook-body.txt || true
+          echo
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "201" ]; then
+            echo "::warning::Deploy Hook nie zwrócił 200/201 — APK na Release jest świeży, ale strona może jeszcze serwować stary plik."
+          fi

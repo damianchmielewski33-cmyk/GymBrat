@@ -121,7 +121,7 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
     <div className="space-y-5">
       <section className="space-y-3">
         {!canCompare ? (
-          <div className="rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] px-4 py-10 text-center">
+          <div className="app-panel px-4 py-10 text-center">
             <p className="text-sm text-white/55">
               Dodaj co najmniej dwa zdjęcia w raportach, żeby porównać Start i
               Teraz.
@@ -236,7 +236,7 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
           <PhotoMetricCard kind="now" photo={now} />
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+        <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
           <MetricRow
             label="Waga"
             from={start?.weightKg}
@@ -318,7 +318,7 @@ function PhotoMetricCard({
 }) {
   const isNow = kind === "now";
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)]">
+    <div className="overflow-hidden app-panel">
       <div className="relative aspect-[3/4] bg-black/40">
         {photo ? (
           <Image

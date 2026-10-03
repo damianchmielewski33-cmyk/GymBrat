@@ -95,7 +95,11 @@ export function AdminBrandingClient() {
         notifyError(data.error ?? hint ?? `Upload nieudany (HTTP ${res.status}).`);
         return;
       }
-      notifySaved("Zapisano ikonę / logo.");
+      notifySaved(
+        slot === "icon_android"
+          ? "Zapisano ikonę Android — startuje przebudowa APK (~kilka minut). Potem Profil → pobierz APK."
+          : "Zapisano ikonę / logo.",
+      );
       await reload();
     } catch {
       notifyError("Upload nieudany — sprawdź połączenie i spróbuj ponownie.");
@@ -123,7 +127,11 @@ export function AdminBrandingClient() {
         notifyError(data.error ?? "Nie udało się usunąć.");
         return;
       }
-      notifySaved("Usunięto. Wrócono do domyślnego.");
+      notifySaved(
+        slot === "icon_android"
+          ? "Usunięto ikonę Android — startuje przebudowa APK z domyślną ikoną."
+          : "Usunięto. Wrócono do domyślnego.",
+      );
       await reload();
     } catch {
       notifyError("Nie udało się usunąć.");
@@ -172,8 +180,9 @@ export function AdminBrandingClient() {
                   <p className="mt-0.5 font-mono text-[11px] text-white/35">{s.slot}</p>
                   {s.slot === "icon_android" ? (
                     <p className="mt-1 text-[11px] text-amber-200/70">
-                      Po wgraniu: push na master (lub ręczny Actions) przebuduje
-                      APK z tą ikoną.
+                      Po wgraniu startuje przebudowa APK (~kilka minut). Potem
+                      Profil → pobierz APK (bez podbicia versionCode in-app
+                      update może się nie pokazać).
                     </p>
                   ) : null}
                 </div>

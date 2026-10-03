@@ -154,11 +154,11 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
         />
 
         {data.items.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] px-4 py-10 text-center text-sm text-white/45">
+          <div className="app-panel px-4 py-10 text-center text-sm text-white/45">
             Brak wpisów cardio — nagraj trasę albo dodaj wpis ręcznie.
           </div>
         ) : (
-          <ul className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+          <ul className="overflow-hidden app-panel divide-y divide-white/[0.06]">
             {data.items.map((item) => {
               const href =
                 item.kind === "cardio_log"

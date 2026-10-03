@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Play } from "lucide-react";
+import { ChevronDown, Footprints, Play } from "lucide-react";
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
+import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
 import { beginWorkoutFromPlanRow } from "@/lib/start-workout-session";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
-import { formatPlanLastDoneLabel } from "@/lib/workout-plan-queue";
+import { formatPlanLastDoneRelative } from "@/lib/workout-plan-queue";
+import { calendarDateKey } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
 
 export type HomeTrainingDayOption = {
@@ -18,24 +20,65 @@ export type HomeTrainingDayOption = {
   row: WorkoutPlanWithLastWorkoutDTO;
 };
 
+function MiniStat({
+  label,
+  value,
+  unit,
+  hint,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  hint?: string;
+}) {
+  return (
+    <div className="app-card-raised px-2 py-3 text-center">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/45">
+        {label}
+      </p>
+      <p className="mt-2 font-display text-2xl leading-none tabular-nums text-[var(--gym-gold)]">
+        {value}
+        {unit ? (
+          <span className="ml-1 text-[11px] font-medium text-[var(--gym-gold)]/70">
+            {unit}
+          </span>
+        ) : null}
+      </p>
+      {hint ? (
+        <p className="mt-1.5 text-[10px] leading-tight text-white/40">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
+
 export function HomeTrainingCard({
   recommendedPlanId,
   planName,
   exerciseCount,
   days,
+  workoutsThisWeek,
+  cardioThisWeekMinutes,
+  workoutStreakWeeks,
+  cardioGoalMinutes,
 }: {
   recommendedPlanId: string | null;
   planName: string | null;
   exerciseCount: number;
   days: HomeTrainingDayOption[];
+  workoutsThisWeek: number;
+  cardioThisWeekMinutes: number;
+  workoutStreakWeeks: number;
+  cardioGoalMinutes: number;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [cardioOpen, setCardioOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(
     recommendedPlanId ?? days[0]?.id ?? null,
   );
+  const today = calendarDateKey();
 
   const activeTitle = useActiveWorkoutStore((s) => s.title);
   const activePlanId = useActiveWorkoutStore((s) => s.workoutPlanId);
@@ -73,6 +116,17 @@ export function HomeTrainingCard({
     router.push("/active-workout");
   }
 
+  const addCardioButton = (
+    <button
+      type="button"
+      onClick={() => setCardioOpen(true)}
+      className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_8px_28px_rgba(235,196,74,0.45)]"
+    >
+      <Footprints className="h-4 w-4" aria-hidden />
+      Dodaj cardio
+    </button>
+  );
+
   if (!displayName && days.length === 0 && !unfinished) {
     return (
       <section className="app-card relative overflow-hidden p-5">
@@ -84,7 +138,7 @@ export function HomeTrainingCard({
           }}
           aria-hidden
         />
-        <div className="relative">
+        <div className="relative space-y-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
             Trening na dziś
           </p>
@@ -96,12 +150,18 @@ export function HomeTrainingCard({
           </p>
           <Link
             href="/profile/workout-plan"
-            className="gold-btn mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm"
+            className="gold-btn mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm"
           >
             <Play className="h-4 w-4 fill-current" aria-hidden />
             Utwórz plan
           </Link>
+          {addCardioButton}
         </div>
+        <CardioLogSheet
+          open={cardioOpen}
+          onClose={() => setCardioOpen(false)}
+          cardioGoalMinutes={cardioGoalMinutes}
+        />
       </section>
     );
   }
@@ -137,41 +197,44 @@ export function HomeTrainingCard({
                 ? ` · ${planLabel}`
                 : ""
               : selected?.lastWorkoutDate
-                ? ` · ostatnio ${formatPlanLastDoneLabel(selected.lastWorkoutDate)}`
+                ? ` · ${formatPlanLastDoneRelative(selected.lastWorkoutDate, today)}`
                 : " · pierwszy raz"}
           </p>
         </div>
 
-        {unfinished ? (
-          <Link
-            href="/active-workout"
-            className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold"
-          >
-            <Play className="h-4 w-4 fill-current" aria-hidden />
-            Kontynuuj trening
-          </Link>
-        ) : (
-          <button
-            type="button"
-            disabled={pending || !selected}
-            onClick={() => {
-              if (!selected) return;
-              begin(selected.row);
-            }}
-            className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm disabled:opacity-55"
-          >
-            <Play className="h-4 w-4 fill-current" aria-hidden />
-            {pending ? "Startuję…" : "Start trening"}
-          </button>
-        )}
+        <div className="space-y-3">
+          {unfinished ? (
+            <Link
+              href="/active-workout"
+              className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold"
+            >
+              <Play className="h-4 w-4 fill-current" aria-hidden />
+              Kontynuuj trening
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled={pending || !selected}
+              onClick={() => {
+                if (!selected) return;
+                begin(selected.row);
+              }}
+              className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm disabled:opacity-55"
+            >
+              <Play className="h-4 w-4 fill-current" aria-hidden />
+              {pending ? "Startuję…" : "Zacznij trening"}
+            </button>
+          )}
+          {addCardioButton}
+        </div>
 
         {!unfinished && days.length > 1 ? (
-          <>
+          <div className="space-y-3">
             <button
               type="button"
               onClick={() => setPickerOpen((v) => !v)}
               aria-expanded={pickerOpen}
-              className="flex w-full items-center justify-center gap-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40"
+              className="app-panel flex w-full items-center justify-center gap-1.5 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55"
             >
               Inny dzień
               <ChevronDown
@@ -183,47 +246,84 @@ export function HomeTrainingCard({
             </button>
 
             {pickerOpen ? (
-              <ul className="divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/[0.08] bg-black/30">
-                {days.map((day) => {
-                  const active = day.id === selected?.id;
-                  return (
-                    <li key={day.id}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedId(day.id);
-                          setPickerOpen(false);
-                        }}
-                        className={cn(
-                          "flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left",
-                          active && "bg-white/[0.03]",
-                        )}
-                      >
-                        <span>
-                          <span
-                            className={cn(
-                              "block font-semibold",
-                              active
-                                ? "text-[var(--gym-gold)]"
-                                : "text-white",
-                            )}
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <MiniStat
+                    label="Treningi tyg."
+                    value={String(workoutsThisWeek)}
+                    hint="tryb prowadzony"
+                  />
+                  <MiniStat
+                    label="Cardio tyg."
+                    value={String(Math.round(cardioThisWeekMinutes))}
+                    unit="min"
+                  />
+                  <MiniStat
+                    label="Tyg. z rzędu"
+                    value={String(workoutStreakWeeks)}
+                  />
+                </div>
+
+                <ul className="app-panel divide-y divide-white/[0.06] overflow-hidden">
+                  {days.map((day) => {
+                    const inQueue = day.id === recommendedPlanId;
+                    const active = day.id === selected?.id;
+                    return (
+                      <li key={day.id}>
+                        <div
+                          className={cn(
+                            "flex items-center gap-3 px-4 py-3.5",
+                            (active || inQueue) && "bg-white/[0.03]",
+                          )}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setSelectedId(day.id)}
+                            className="min-w-0 flex-1 text-left"
                           >
-                            {day.name}
-                          </span>
-                          <span className="mt-0.5 block text-sm text-white/50">
-                            {day.exerciseCount} ćw. ·{" "}
-                            {formatPlanLastDoneLabel(day.lastWorkoutDate)}
-                          </span>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+                            <p
+                              className={cn(
+                                "font-semibold leading-tight",
+                                inQueue || active
+                                  ? "text-[var(--gym-gold)]"
+                                  : "text-white",
+                              )}
+                            >
+                              {day.name}
+                              <span className="font-normal text-white/45">
+                                {" "}
+                                · {day.exerciseCount} ćw.
+                                {inQueue
+                                  ? " · w kolejce"
+                                  : day.lastWorkoutDate
+                                    ? ` · ${formatPlanLastDoneRelative(day.lastWorkoutDate, today)}`
+                                    : ""}
+                              </span>
+                            </p>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={pending || day.exerciseCount === 0}
+                            onClick={() => begin(day.row)}
+                            className="shrink-0 text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-gold)] disabled:opacity-40"
+                          >
+                            Start →
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             ) : null}
-          </>
+          </div>
         ) : null}
       </div>
+      <CardioLogSheet
+        open={cardioOpen}
+        onClose={() => setCardioOpen(false)}
+        cardioGoalMinutes={cardioGoalMinutes}
+      />
     </section>
   );
 }

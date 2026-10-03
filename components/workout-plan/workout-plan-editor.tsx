@@ -247,11 +247,9 @@ export function WorkoutPlanEditor({
   const addCustomExercise = useCallback(() => {
     const trimmed = customName.trim();
     if (!trimmed) return;
+    // Zachowaj wpisaną nazwę (bez podmiany na polską z katalogu).
     const catalogHit = findBestCatalogMatch(trimmed);
-    if (catalogHit) {
-      addFromCatalog(catalogHit.name, catalogHit.categoryId);
-      return;
-    }
+    const categoryId = catalogHit?.categoryId ?? addCategoryId;
     setPlan((prev) => ({
       ...prev,
       userCustomExerciseNames: prev.userCustomExerciseNames.includes(trimmed)
@@ -262,7 +260,7 @@ export function WorkoutPlanEditor({
         {
           id: uid(),
           name: trimmed,
-          categoryId: addCategoryId,
+          categoryId,
           reps: 10,
           sets: 3,
           rir: 1,
@@ -277,7 +275,7 @@ export function WorkoutPlanEditor({
     setCustomName("");
     setShowCustomRow(false);
     setSearch("");
-  }, [addCategoryId, customName, addFromCatalog]);
+  }, [addCategoryId, customName]);
 
   function onSave() {
     setSaveError(null);

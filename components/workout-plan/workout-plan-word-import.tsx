@@ -71,7 +71,7 @@ export function WorkoutPlanWordImport() {
   return (
     <section
       className={cn(
-        "rounded-[22px] border border-white/[0.08] bg-[#141416] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)]",
+        "app-card p-5",
       )}
     >
       {!open ? (
