@@ -379,7 +379,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
                 Moje filmy
               </span>
               <span className="mt-0.5 block text-[12px] text-white/45">
-                filmy i odpowiedzi Damiana
+                filmy
               </span>
             </span>
             <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
