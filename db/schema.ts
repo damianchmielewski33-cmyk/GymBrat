@@ -359,6 +359,8 @@ export const userSettings = sqliteTable("user_settings", {
   aiFeaturesDisabled: integer("ai_features_disabled").notNull().default(0),
   /** Jednostka delty postępów: percent | kg (tonaż / objętość vs poprzedni trening planu). */
   progressDeltaUnit: text("progress_delta_unit").notNull().default("percent"),
+  /** Własne zdjęcie startowe (data URL, szyfrowane) — Przemiana / Postępy → Zdjęcia. */
+  startPhotoDataUrl: text("start_photo_data_url"),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),

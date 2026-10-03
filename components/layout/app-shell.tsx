@@ -6,8 +6,9 @@ import { Suspense, useMemo } from "react";
 import {
   Home,
   LineChart,
-  MessageCircle,
   Plus,
+  Shield,
+  User,
   Utensils,
   Dumbbell,
 } from "lucide-react";
@@ -16,7 +17,14 @@ import { useI18n } from "@/components/i18n/i18n-provider";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { AppMenuButton } from "@/components/layout/app-menu-button";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  showAdminNav = false,
+}: {
+  children: React.ReactNode;
+  /** Zamiast Profilu — skrót do panelu admina. */
+  showAdminNav?: boolean;
+}) {
   const { t } = useI18n();
   const tabs = useMemo(
     () => [
@@ -24,9 +32,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { href: "/workout-plan", label: t("nav.training"), icon: Dumbbell },
       { href: "/meal-suggestions", label: t("nav.diet"), icon: Utensils },
       { href: "/progress", label: t("nav.analysis"), icon: LineChart },
-      { href: "/inbox", label: t("nav.inbox"), icon: MessageCircle },
+      showAdminNav
+        ? { href: "/admin", label: t("nav.admin"), icon: Shield }
+        : { href: "/profile", label: t("nav.profile"), icon: User },
     ],
-    [t],
+    [t, showAdminNav],
   );
 
   const pathname = usePathname();
@@ -117,7 +127,11 @@ function TabLink({
       : item.href === "/progress"
         ? pathname.startsWith("/progress") ||
           pathname.startsWith("/progress-analysis")
-        : pathname.startsWith(item.href);
+        : item.href === "/profile"
+          ? pathname.startsWith("/profile")
+          : item.href === "/admin"
+            ? pathname.startsWith("/admin")
+            : pathname.startsWith(item.href);
   return (
     <Link
       href={item.href}

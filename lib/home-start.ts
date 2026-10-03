@@ -11,6 +11,7 @@ import {
   workouts,
 } from "@/db/schema";
 import { maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
+import { loadStartPhotoDataUrl } from "@/lib/start-photo";
 import { getWeeklyCardioProgress } from "@/lib/cardio";
 import { getHomeStats } from "@/lib/home-stats";
 import {
@@ -585,14 +586,21 @@ async function getTransformationPhotos(userId: string): Promise<{
   latestPhotoDate: string | null;
 }> {
   const db = getDb();
-  const reports = await db
-    .select({ id: bodyReports.id, createdAt: bodyReports.createdAt })
-    .from(bodyReports)
-    .where(eq(bodyReports.userId, userId))
-    .orderBy(asc(bodyReports.createdAt), asc(bodyReports.id));
+  const [customStart, reports] = await Promise.all([
+    loadStartPhotoDataUrl(userId),
+    db
+      .select({ id: bodyReports.id, createdAt: bodyReports.createdAt })
+      .from(bodyReports)
+      .where(eq(bodyReports.userId, userId))
+      .orderBy(asc(bodyReports.createdAt), asc(bodyReports.id)),
+  ]);
 
   if (reports.length === 0) {
-    return { firstPhotoUrl: null, latestPhotoUrl: null, latestPhotoDate: null };
+    return {
+      firstPhotoUrl: customStart,
+      latestPhotoUrl: customStart,
+      latestPhotoDate: null,
+    };
   }
 
   const reportIds = reports.map((r) => r.id);
@@ -611,7 +619,11 @@ async function getTransformationPhotos(userId: string): Promise<{
     .orderBy(asc(bodyReportPhotos.createdAt), asc(bodyReportPhotos.id));
 
   if (photos.length === 0) {
-    return { firstPhotoUrl: null, latestPhotoUrl: null, latestPhotoDate: null };
+    return {
+      firstPhotoUrl: customStart,
+      latestPhotoUrl: customStart,
+      latestPhotoDate: null,
+    };
   }
 
   const photosByReport = new Map<string, string[]>();
@@ -634,7 +646,11 @@ async function getTransformationPhotos(userId: string): Promise<{
     latestPhotoDate = calendarDateKey(new Date(r.createdAt));
   }
 
-  return { firstPhotoUrl, latestPhotoUrl, latestPhotoDate };
+  return {
+    firstPhotoUrl: customStart ?? firstPhotoUrl,
+    latestPhotoUrl,
+    latestPhotoDate,
+  };
 }
 
 async function getLatestDimensions(userId: string) {

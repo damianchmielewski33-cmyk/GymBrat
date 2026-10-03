@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { MoveHorizontal } from "lucide-react";
+import { ChangeStartPhotoButton } from "@/components/progress/change-start-photo-button";
 import { SectionLabel } from "@/components/ui/section-label";
 
 function formatShort(iso: string | null) {
@@ -111,12 +112,7 @@ export function HomePrzemianaSection({
               aria-label="Porównanie przemiany"
             />
           </div>
-          <Link
-            href="/progress?tab=zdjecia"
-            className="block text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]"
-          >
-            Zmień zdjęcie startowe
-          </Link>
+          <ChangeStartPhotoButton />
         </div>
       )}
     </section>

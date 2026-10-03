@@ -50,12 +50,20 @@ function formatReportShort(iso: string): string {
   });
 }
 
+function daysWord(n: number): string {
+  if (n === 1) return "dzień";
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "dni";
+  return "dni";
+}
+
 export type HomeTodayViewProps = {
   firstName: string | null;
   lastName: string | null;
-  daysInProgram: number | null;
   reportCount: number;
   daysSinceLastReport: number | null;
+  reportCadenceDays: number;
   showOnboarding: boolean;
   recommendedPlanId: string | null;
   planName: string | null;
@@ -90,14 +98,22 @@ export type HomeTodayViewProps = {
 
 export function HomeTodayView(props: HomeTodayViewProps) {
   const today = calendarDateKey();
-  const programWeek =
-    props.daysInProgram != null
-      ? Math.max(1, Math.ceil(props.daysInProgram / 7))
-      : null;
   const lastReportLabel =
     props.daysSinceLastReport != null
       ? formatReportShort(addCalendarDays(today, -props.daysSinceLastReport))
       : null;
+
+  const daysToReport =
+    props.daysSinceLastReport == null
+      ? null
+      : Math.max(0, props.reportCadenceDays - props.daysSinceLastReport);
+
+  const reportCountdownLabel =
+    props.daysSinceLastReport == null
+      ? "Dodaj pierwszy raport"
+      : daysToReport === 0
+        ? "Raport na dziś"
+        : `${daysToReport} ${daysWord(daysToReport!)} do raportu`;
 
   const greetingName = props.firstName?.trim() || null;
 
@@ -122,9 +138,9 @@ export function HomeTodayView(props: HomeTodayViewProps) {
             ) : null}
           </h1>
           <p className="mt-1.5 text-[13px] text-white/45">
-            {programWeek != null
-              ? `${programWeek}. tydzień programu`
-              : "Nowy program"}
+            <span className="font-semibold text-white">
+              {reportCountdownLabel}
+            </span>
             {" · "}
             {props.reportCount}{" "}
             {props.reportCount === 1

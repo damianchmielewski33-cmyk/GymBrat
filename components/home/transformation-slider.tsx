@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import Link from "next/link";
 import { MoveHorizontal } from "lucide-react";
+import { ChangeStartPhotoButton } from "@/components/progress/change-start-photo-button";
 
 function formatShort(iso: string | null) {
   if (!iso) return "";
@@ -96,12 +97,7 @@ export function TransformationSlider({
               aria-label="Porównanie przemiany"
             />
           </div>
-          <Link
-            href="/reports"
-            className="block text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40"
-          >
-            Zmień zdjęcie startowe
-          </Link>
+          <ChangeStartPhotoButton />
         </div>
       )}
     </section>

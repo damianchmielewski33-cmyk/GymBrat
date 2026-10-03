@@ -16,6 +16,7 @@ export const en = {
     messages: "Messages",
     inbox: "Inbox",
     profile: "Profile",
+    admin: "Admin",
   },
   diet: {
     tabPlan: "Plan",

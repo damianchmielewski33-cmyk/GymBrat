@@ -16,6 +16,7 @@ export const pl = {
     messages: "Wiadomości",
     inbox: "Skrzynka",
     profile: "Profil",
+    admin: "Admin",
   },
   diet: {
     tabPlan: "Plan",

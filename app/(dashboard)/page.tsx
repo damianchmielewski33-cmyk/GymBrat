@@ -74,9 +74,9 @@ export default async function HomePage() {
     <HomeTodayView
       firstName={dash.firstName}
       lastName={dash.lastName}
-      daysInProgram={dash.daysInProgram}
       reportCount={dash.reportCount}
       daysSinceLastReport={dash.daysSinceLastReport}
+      reportCadenceDays={dash.reportCadenceDays}
       showOnboarding={!settingsRow?.onboardingCompletedAt}
       recommendedPlanId={recommendedId}
       planName={dash.nextWorkout?.planName ?? null}

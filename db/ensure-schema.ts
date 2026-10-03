@@ -132,6 +132,9 @@ CREATE TABLE IF NOT EXISTS "daily_checkins" (
   await tryAddColumn(
     `ALTER TABLE "user_settings" ADD COLUMN "progress_delta_unit" text NOT NULL DEFAULT 'percent'`,
   );
+  await tryAddColumn(
+    `ALTER TABLE "user_settings" ADD COLUMN "start_photo_data_url" text`,
+  );
 
   await tryAddColumn(`ALTER TABLE "body_reports" ADD COLUMN "arm_cm" real`);
   await tryAddColumn(`ALTER TABLE "body_reports" ADD COLUMN "abdomen_cm" real`);

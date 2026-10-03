@@ -3,6 +3,7 @@ import { AuthPageFrame } from "@/components/auth/auth-page-frame";
 import { AppShell } from "@/components/layout/app-shell";
 import { ReminderRunnerBoot } from "@/components/reminders/reminder-runner-boot";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
+import { isAdminEligible } from "@/lib/admin-session";
 
 /** Node.js: lokalny SQLite (`file:...`) w @libsql/client działa tylko poza Edge. */
 export const runtime = "nodejs";
@@ -24,8 +25,10 @@ export default async function DashboardLayout({
     console.error("[dashboard layout] ensureCriticalSchema", err);
   }
 
+  const showAdminNav = await isAdminEligible(session).catch(() => false);
+
   return (
-    <AppShell>
+    <AppShell showAdminNav={showAdminNav}>
       <ReminderRunnerBoot />
       {children}
     </AppShell>

@@ -2,10 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { MoveHorizontal } from "lucide-react";
+import { clearStartPhotoAction } from "@/actions/start-photo";
+import { ChangeStartPhotoButton } from "@/components/progress/change-start-photo-button";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { SectionLabel } from "@/components/ui/section-label";
 import type { ProgressHubData, ProgressPhotoItem } from "@/lib/progress-hub";
+import { CUSTOM_START_PHOTO_ID } from "@/lib/start-photo";
 import { cn } from "@/lib/utils";
 
 const BASELINE_KEY = "gymbrat:photo-baseline-id:v1";
@@ -51,6 +56,9 @@ function fmtDelta(n: number | null, unit: string): string {
 
 export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
   const { items, now } = data;
+  const router = useRouter();
+  const { notifySaved, notifyError } = useSaveFeedback();
+  const [, startClear] = useTransition();
   const [baselineId, setBaselineId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pos, setPos] = useState(50);
@@ -64,12 +72,16 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
   }, []);
 
   const start: ProgressPhotoItem | null = useMemo(() => {
+    // Własne zdjęcie z galerii ma pierwszeństwo przed wyborem z raportów.
+    if (data.hasCustomStart && data.start?.id === CUSTOM_START_PHOTO_ID) {
+      return data.start;
+    }
     if (baselineId) {
       const found = items.find((p) => p.id === baselineId);
       if (found) return found;
     }
     return data.start;
-  }, [baselineId, items, data.start]);
+  }, [baselineId, items, data.start, data.hasCustomStart]);
 
   function chooseBaseline(id: string) {
     setBaselineId(id);
@@ -79,6 +91,17 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
       /* ignore */
     }
     setPickerOpen(false);
+    if (data.hasCustomStart) {
+      startClear(async () => {
+        const r = await clearStartPhotoAction();
+        if (!r.ok) {
+          notifyError(r.error ?? "Nie udało się przełączyć zdjęcia.");
+          return;
+        }
+        notifySaved("Ustawiono start z raportu.");
+        router.refresh();
+      });
+    }
   }
 
   const weightDelta =
@@ -155,13 +178,17 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
               />
             </div>
 
-            <button
-              type="button"
-              onClick={() => setPickerOpen((v) => !v)}
-              className="block w-full text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]"
-            >
-              Zmień zdjęcie startowe
-            </button>
+            <ChangeStartPhotoButton hasCustomStart={data.hasCustomStart} />
+
+            {items.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setPickerOpen((v) => !v)}
+                className="block w-full text-center text-[10px] font-medium uppercase tracking-[0.14em] text-white/40"
+              >
+                {pickerOpen ? "Ukryj zdjęcia z raportów" : "Albo wybierz z raportów"}
+              </button>
+            ) : null}
           </>
         )}
 
@@ -174,7 +201,7 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
                 onClick={() => chooseBaseline(p.id)}
                 className={cn(
                   "relative aspect-square overflow-hidden rounded-xl border",
-                  start?.id === p.id
+                  !data.hasCustomStart && start?.id === p.id
                     ? "border-[var(--gym-gold)]"
                     : "border-white/10",
                 )}
@@ -239,7 +266,11 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
         {start && now ? (
           <p className="px-0.5 text-[11px] leading-relaxed text-white/40">
             Start to{" "}
-            {data.start?.id === start.id ? "pierwszy raport" : "wybrany raport"}{" "}
+            {start.id === CUSTOM_START_PHOTO_ID
+              ? "zdjęcie z galerii"
+              : data.start?.id === start.id
+                ? "pierwszy raport"
+                : "wybrany raport"}{" "}
             ({formatDayMonth(start.date)}), teraz to raport z{" "}
             {formatDayMonth(now.date)}.
           </p>

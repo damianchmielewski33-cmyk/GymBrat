@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gte } from "drizzle-orm";
 import { getDb } from "@/db";
 import { userSettings, weightLogs, workoutPlans, workouts } from "@/db/schema";
 import { computeAchievements, type AchievementDef } from "@/lib/achievements";
+import { maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
 import { getBodyReports } from "@/lib/body-reports";
 import { estimated1RM, safeNormalizeExercises, safeParseCompletedSession } from "@/lib/workout-history";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
@@ -11,6 +12,7 @@ import {
   calendarDateKey,
   calendarWeekdaySun0,
 } from "@/lib/local-date";
+import { CUSTOM_START_PHOTO_ID } from "@/lib/start-photo";
 import {
   countableCardioMinutes,
   isCompletedStrengthSession,
@@ -160,6 +162,8 @@ export type ProgressHubData = {
     items: ProgressPhotoItem[];
     start: ProgressPhotoItem | null;
     now: ProgressPhotoItem | null;
+    /** Użytkownik wgrał własne zdjęcie startowe z galerii. */
+    hasCustomStart: boolean;
     weightDeltaKg: number | null;
     waistDeltaCm: number | null;
   };
@@ -235,6 +239,7 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
       .select({
         weeklyCardioGoalMinutes: userSettings.weeklyCardioGoalMinutes,
         fitnessGoalsJson: userSettings.fitnessGoalsJson,
+        startPhotoDataUrl: userSettings.startPhotoDataUrl,
       })
       .from(userSettings)
       .where(eq(userSettings.userId, userId))
@@ -735,7 +740,20 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
       });
     }
   }
-  const startPhoto = photoItems[0] ?? null;
+  const customStartUrl = maybeDecryptSensitiveField(
+    settingsRow?.startPhotoDataUrl ?? null,
+  );
+  const firstReportPhoto = photoItems[0] ?? null;
+  const startPhoto: ProgressPhotoItem | null = customStartUrl
+    ? {
+        id: CUSTOM_START_PHOTO_ID,
+        reportId: "",
+        dataUrl: customStartUrl,
+        date: firstReportPhoto?.date ?? today,
+        weightKg: firstReportPhoto?.weightKg ?? null,
+        waistCm: firstReportPhoto?.waistCm ?? null,
+      }
+    : firstReportPhoto;
   const nowPhoto = photoItems.length ? photoItems[photoItems.length - 1]! : null;
   const weightDeltaKg =
     startPhoto?.weightKg != null && nowPhoto?.weightKg != null
@@ -886,6 +904,7 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
       items: photoItems,
       start: startPhoto,
       now: nowPhoto,
+      hasCustomStart: Boolean(customStartUrl),
       weightDeltaKg,
       waistDeltaCm,
     },
