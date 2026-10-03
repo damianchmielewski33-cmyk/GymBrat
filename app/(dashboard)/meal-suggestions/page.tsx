@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
@@ -14,11 +15,20 @@ import { parseMealTemplatesJson } from "@/lib/meal-templates";
 import { calendarDateKey } from "@/lib/local-date";
 import { loadMergedMealCatalog } from "@/lib/meal-catalog-store";
 import { isAdminEligible } from "@/lib/admin-session";
+import { parseDietTab } from "@/lib/diet-tabs";
+import { resolveDietSupplements } from "@/lib/diet-supplements";
 
-export default async function MealSuggestionsPage() {
+export default async function MealSuggestionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) redirect("/login?callbackUrl=/meal-suggestions");
+
+  const sp = await searchParams;
+  const initialTab = parseDietTab(sp?.tab);
 
   const db = getDb();
   const [settingsRow] = await db
@@ -27,6 +37,8 @@ export default async function MealSuggestionsPage() {
       restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
       nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
       mealTemplatesJson: userSettings.mealTemplatesJson,
+      fitnessGoalsJson: userSettings.fitnessGoalsJson,
+      weeklyCardioGoalMinutes: userSettings.weeklyCardioGoalMinutes,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
@@ -48,30 +60,49 @@ export default async function MealSuggestionsPage() {
   } catch (e) {
     console.error("[meal-suggestions] load failed", e);
     // Nie blokuj całego Jadłospisu — pokaż dziennik bez katalogu.
-    summary = await loadNutritionSummaryForDate(userId, todayKey, settingsRow).catch(() => ({
-      date: todayKey,
-      caloriesConsumed: 0,
-      macros: { protein: 0, fat: 0, carbs: 0 },
-      meals: [],
-      source: "error" as const,
-      errorMessage: "Nie udało się wczytać dnia.",
-    }));
+    summary = await loadNutritionSummaryForDate(userId, todayKey, settingsRow).catch(
+      () => ({
+        date: todayKey,
+        caloriesConsumed: 0,
+        macros: { protein: 0, fat: 0, carbs: 0 },
+        meals: [],
+        source: "error" as const,
+        errorMessage: "Nie udało się wczytać dnia.",
+      }),
+    );
     catalogMeals = [];
     adminEligible = false;
   }
   const gaps = computeMacroGaps(summary);
   const logs = await listMealLogsForDay(userId, gaps.dateKey).catch(() => []);
   const dayKind = resolveNutritionDayKind(settingsRow, gaps.dateKey);
+  const supplementNames = resolveDietSupplements(
+    settingsRow?.fitnessGoalsJson,
+    settingsRow?.mealTemplatesJson,
+  );
+  const weeklyCardioGoalMinutes =
+    settingsRow?.weeklyCardioGoalMinutes ?? 150;
 
   return (
-    <MealSuggestionsView
-      initialSummary={summary}
-      initialGaps={gaps}
-      initialLogs={logs}
-      initialDayKind={dayKind}
-      mealTemplates={parseMealTemplatesJson(settingsRow?.mealTemplatesJson ?? null)}
-      catalogMeals={catalogMeals}
-      isAdmin={adminEligible}
-    />
+    <Suspense
+      fallback={
+        <div className="px-1 py-8 text-sm text-white/45">Ładowanie diety…</div>
+      }
+    >
+      <MealSuggestionsView
+        initialSummary={summary}
+        initialGaps={gaps}
+        initialLogs={logs}
+        initialDayKind={dayKind}
+        mealTemplates={parseMealTemplatesJson(
+          settingsRow?.mealTemplatesJson ?? null,
+        )}
+        catalogMeals={catalogMeals}
+        isAdmin={adminEligible}
+        supplementNames={supplementNames}
+        weeklyCardioGoalMinutes={weeklyCardioGoalMinutes}
+        initialTab={initialTab}
+      />
+    </Suspense>
   );
 }

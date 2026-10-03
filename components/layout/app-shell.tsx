@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, Suspense } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   BarChart3,
@@ -10,7 +10,7 @@ import {
   LineChart,
   LogOut,
   Menu,
-  Plus,
+  MessageCircle,
   ScrollText,
   Shield,
   Sparkles,
@@ -31,11 +31,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   const tabs = useMemo(
     () => [
-      { href: "/", label: t("nav.desk"), icon: Home },
-      { href: "/meal-suggestions", label: t("nav.diet"), icon: Utensils },
+      { href: "/", label: t("nav.today"), icon: Home },
       { href: "/workout-plan", label: t("nav.training"), icon: Dumbbell },
-      { href: "/progress-analysis", label: t("nav.analysis"), icon: LineChart },
-      { href: "/profile", label: t("nav.profile"), icon: User },
+      { href: "/meal-suggestions", label: t("nav.diet"), icon: Utensils },
+      { href: "/inbox", label: t("nav.inbox"), icon: MessageCircle },
     ],
     [t],
   );
@@ -43,7 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     () => [
       { href: "/profile", label: t("nav.profile"), icon: User },
       { href: "/reports", label: t("nav.reports"), icon: BarChart3 },
-      { href: "/progress-analysis", label: t("nav.analysis"), icon: LineChart },
+      { href: "/progress", label: t("nav.progress"), icon: LineChart },
       { href: "/workout-history", label: t("nav.history"), icon: ScrollText },
       { href: "/changelog", label: t("nav.news"), icon: Sparkles },
     ],
@@ -82,9 +81,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [mobileMenuOpen]);
 
   return (
-    <div className="relative min-h-screen bg-[#050505]">
+    <div className="relative min-h-screen bg-transparent">
       {sessionFullscreen ? null : (
-      <header className="sticky top-0 z-40 bg-[#050505]/92 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+      <header className="sticky top-0 z-40 bg-black/55 pt-[env(safe-area-inset-top)] backdrop-blur-md">
         <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
           <BrandMark />
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -157,7 +156,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           "mx-auto min-w-0 w-full max-w-lg flex-1 overflow-x-clip",
           sessionFullscreen
             ? "px-0 py-0 pb-[env(safe-area-inset-bottom)]"
-            : "px-4 py-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-5",
+            : "px-4 py-4 pb-[calc(6.25rem+env(safe-area-inset-bottom))] sm:px-5",
           reduceFixedBugs ? "animate-page-enter-opacity" : "animate-page-enter",
         )}
       >
@@ -166,15 +165,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {sessionFullscreen ? null : (
       <nav
-        className="fixed inset-x-0 bottom-0 z-50 bg-[#050505] pb-[env(safe-area-inset-bottom)]"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-white/[0.06] bg-black/70 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
         aria-label="Nawigacja główna"
       >
         <div className="relative mx-auto max-w-lg">
-          {/* FAB wyśrodkowany względem całej belki, nie komórki siatki */}
-          <Suspense fallback={null}>
-            <ReportFab />
-          </Suspense>
-          <div className="grid grid-cols-5 items-end px-1 pb-2 pt-7">
+          <div className="grid grid-cols-4 items-end px-1 pb-2 pt-2">
             {tabs.map((item) => (
               <TabLink key={item.href} item={item} pathname={pathname} />
             ))}
@@ -183,30 +178,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
       )}
     </div>
-  );
-}
-
-/** Środkowy FAB „Raport” — absolutnie na środku belki. */
-function ReportFab() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const wizardOpen =
-    pathname.startsWith("/reports") &&
-    (searchParams.get("new") === "1" || searchParams.get("new") === "true");
-
-  if (wizardOpen) {
-    return <span className="sr-only">Dodawanie raportu w toku</span>;
-  }
-
-  return (
-    <Link
-      href="/reports?new=1"
-      className="gym-btn-primary absolute left-1/2 top-0 z-10 inline-flex h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 rounded-full px-5 text-sm shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)]"
-      aria-label="Dodaj raport"
-    >
-      <Plus className="h-4 w-4" aria-hidden />
-      Raport
-    </Link>
   );
 }
 
@@ -223,12 +194,20 @@ function TabLink({
     <Link
       href={item.href}
       className={cn(
-        "flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-2 text-center text-[10px] font-medium",
+        "relative flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-2 text-center text-[10px] font-medium",
         active ? "text-[var(--neon)]" : "text-white/45",
       )}
     >
-      <item.icon className="h-5 w-5" />
-      <span className="leading-none">{item.label}</span>
+      {active ? (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -top-1 h-8 w-12 rounded-full bg-[var(--gym-gold)]/25 blur-xl"
+        />
+      ) : null}
+      <item.icon className="relative h-5 w-5" />
+      <span className="relative leading-none uppercase tracking-[0.08em]">
+        {item.label}
+      </span>
     </Link>
   );
 }

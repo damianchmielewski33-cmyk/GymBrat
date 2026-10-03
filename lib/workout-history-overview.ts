@@ -1,7 +1,11 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { workoutPlans, workouts } from "@/db/schema";
-import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
+import {
+  addCalendarDays,
+  calendarDateKey,
+  calendarWeekdaySun0,
+} from "@/lib/local-date";
 import {
   computeWorkoutDetails,
   deltaPercent,
@@ -17,6 +21,25 @@ import {
   isStandaloneCardioLog,
 } from "@/lib/workout-cardio-attribution";
 
+function mondayOfWeek(dateKey: string): string {
+  const dow = calendarWeekdaySun0(dateKey);
+  const offset = dow === 0 ? -6 : 1 - dow;
+  return addCalendarDays(dateKey, offset);
+}
+
+function durationMinutesFromDetails(
+  details: CompletedWorkoutDetails,
+): number | null {
+  if (
+    details.startedAt != null &&
+    details.endedAt != null &&
+    details.endedAt > details.startedAt
+  ) {
+    return Math.max(1, Math.round((details.endedAt - details.startedAt) / 60000));
+  }
+  return null;
+}
+
 export type WorkoutHistoryKpis = {
   workoutsLast30: number;
   tonnageLast30Kg: number;
@@ -26,6 +49,26 @@ export type WorkoutHistoryKpis = {
   planDaysTotal: number;
   workoutsTotal: number;
   lastWorkoutDate: string | null;
+  /** Sesje siłowe w bieżącym tygodniu kalendarzowym (Pn–Nd). */
+  workoutsThisWeek: number;
+  /** Średni czas sesji (min) — ze wszystkich sesji z znanym czasem. */
+  avgDurationMinutes: number | null;
+  /** Tonaż siłowy w bieżącym tygodniu (kg). */
+  tonnageThisWeekKg: number;
+};
+
+export type WorkoutHistorySetPill = {
+  reps: number | null;
+  weight: number;
+  done: boolean;
+  /** Najlepsze e1RM ćwiczenia względem wcześniejszej historii. */
+  isPr: boolean;
+};
+
+export type WorkoutHistoryExercisePreview = {
+  id: string;
+  name: string;
+  sets: WorkoutHistorySetPill[];
 };
 
 export type WorkoutHistoryExerciseCompare = {
@@ -58,6 +101,8 @@ export type WorkoutHistoryCard = {
   setsTotal: number;
   /** Cardio dodane w popupie po siłowym (min). */
   cardioMinutes: number;
+  durationMinutes: number | null;
+  exercises: WorkoutHistoryExercisePreview[];
 };
 
 export type WorkoutHistoryCardioItem = {
@@ -66,6 +111,7 @@ export type WorkoutHistoryCardioItem = {
   title: string;
   minutes: number;
   avgHr: number | null;
+  kind: "cardio_log" | "post_strength";
 };
 
 export type WorkoutHistoryOverview = {
@@ -244,7 +290,15 @@ export async function getWorkoutHistoryOverview(
         typeof avgHrRaw === "number" && Number.isFinite(avgHrRaw) && avgHrRaw > 0
           ? Math.round(avgHrRaw)
           : null;
-      cardio.push({ id: r.id, date: r.date, title, minutes: minutesCol, avgHr });
+      const isCardioLogKind = parsed?.kind === "cardio_log";
+      cardio.push({
+        id: r.id,
+        date: r.date,
+        title,
+        minutes: minutesCol,
+        avgHr,
+        kind: isCardioLogKind ? "cardio_log" : "post_strength",
+      });
       const counted = countableCardioMinutes(parsed, minutesCol);
       if (r.date >= since30 && counted > 0) {
         cardioMinutesLast30 += counted;
@@ -272,6 +326,7 @@ export async function getWorkoutHistoryOverview(
         title: `${details.title} · cardio`,
         minutes: minutesCol,
         avgHr: null,
+        kind: "post_strength",
       });
       if (r.date >= since30) {
         cardioMinutesLast30 += minutesCol;
@@ -289,6 +344,7 @@ export async function getWorkoutHistoryOverview(
 
   const prevByPlan = new Map<string, CompletedWorkoutDetails>();
   const prevAnyByDate = new Map<string, CompletedWorkoutDetails>();
+  const bestE1rmByExercise = new Map<string, number>();
   const cardById = new Map<string, WorkoutHistoryCard>();
 
   for (const w of chronological) {
@@ -317,6 +373,32 @@ export async function getWorkoutHistoryOverview(
     const noComparison = previous == null;
     const sets = countSets(w);
 
+    const exercisePreviews: WorkoutHistoryExercisePreview[] = w.exercises.map(
+      (ex) => {
+        const key = normalizeName(ex.name);
+        const priorBest = bestE1rmByExercise.get(key) ?? 0;
+        return {
+          id: ex.id,
+          name: ex.name,
+          sets: ex.sets.map((s) => ({
+            reps: s.reps,
+            weight: s.weight,
+            done: s.done,
+            // Pierwszy wpis ćwiczenia nie jest PR; PR = przebicie wcześniejszego bestu.
+            isPr:
+              s.done && s.e1rm > 0 && priorBest > 0 && s.e1rm > priorBest + 0.25,
+          })),
+        };
+      },
+    );
+
+    // Aktualizuj best e1RM po sesji (kolejne treningi mogą dostać PR).
+    for (const ex of w.exercises) {
+      const key = normalizeName(ex.name);
+      const prevBest = bestE1rmByExercise.get(key) ?? 0;
+      if (ex.bestE1rm > prevBest) bestE1rmByExercise.set(key, ex.bestE1rm);
+    }
+
     cardById.set(w.id, {
       id: w.id,
       date: w.date,
@@ -336,6 +418,8 @@ export async function getWorkoutHistoryOverview(
       setsDone: sets.done,
       setsTotal: sets.total,
       cardioMinutes: cardioMinutesByWorkoutId.get(w.id) ?? 0,
+      durationMinutes: durationMinutesFromDetails(w),
+      exercises: exercisePreviews,
     });
 
     prevByPlan.set(planKey, w);
@@ -346,16 +430,33 @@ export async function getWorkoutHistoryOverview(
     .map((w) => cardById.get(w.id)!)
     .filter(Boolean);
 
+  const weekMonday = mondayOfWeek(today);
+  const weekSunday = addCalendarDays(weekMonday, 6);
+
   let workoutsLast30 = 0;
   let tonnageLast30Kg = 0;
+  let workoutsThisWeek = 0;
+  let tonnageThisWeekKg = 0;
+  let durationSum = 0;
+  let durationCount = 0;
   const activePlanKeys = new Set<string>();
   for (const c of cards) {
     if (c.date >= since30) {
       workoutsLast30 += 1;
       tonnageLast30Kg += c.volumeKg;
     }
+    if (c.date >= weekMonday && c.date <= weekSunday) {
+      workoutsThisWeek += 1;
+      tonnageThisWeekKg += c.volumeKg;
+    }
+    if (c.durationMinutes != null) {
+      durationSum += c.durationMinutes;
+      durationCount += 1;
+    }
     activePlanKeys.add(c.planCompareKey);
   }
+  const avgDurationMinutes =
+    durationCount > 0 ? Math.round(durationSum / durationCount) : null;
 
   const planFiltersMap = new Map<string, { id: string; label: string; count: number }>();
   for (const c of cards) {
@@ -397,6 +498,9 @@ export async function getWorkoutHistoryOverview(
       planDaysTotal: planDaysTotalResolved,
       workoutsTotal: cards.length,
       lastWorkoutDate: cards[0]?.date ?? null,
+      workoutsThisWeek,
+      avgDurationMinutes,
+      tonnageThisWeekKg,
     },
     cards,
     cardio: cardio.slice(0, 30),

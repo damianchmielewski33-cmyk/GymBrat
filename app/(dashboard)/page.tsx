@@ -1,22 +1,54 @@
 import { auth } from "@/auth";
 import { getWorkoutPlansWithLastWorkout } from "@/actions/workout-plan";
 import { LoginScreen } from "@/components/auth/login-screen";
-import { ComplianceCard } from "@/components/home/compliance-card";
-import { DimensionTiles } from "@/components/home/dimension-tiles";
-import { FormTodayCard } from "@/components/home/form-today-card";
-import { NextWorkoutTile } from "@/components/home/next-workout-tile";
-import { OnboardingBanner } from "@/components/home/onboarding-banner";
-import { StartMetricTiles } from "@/components/home/start-metric-tiles";
-import { TransformationSlider } from "@/components/home/transformation-slider";
-import { WeekPulseCard } from "@/components/home/week-pulse-card";
-import { WeightRangeChartDynamic } from "@/components/home/weight-range-chart-dynamic";
+import { HomeTodayView } from "@/components/home/home-today-view";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { getHomeStartDashboard } from "@/lib/home-start";
+import { addCalendarDays } from "@/lib/local-date";
+import { getTreningiHubStats } from "@/lib/treningi-hub-stats";
 import { comparePlansByWorkoutRecencyAsc } from "@/lib/workout-plan-queue";
-import { Clock } from "lucide-react";
 import { eq } from "drizzle-orm";
-import { AppPageHeader } from "@/components/layout/screen";
+
+function weightKgPerWeek(
+  series: Array<{ date: string; kg: number }>,
+): number | null {
+  if (series.length < 2) return null;
+  const last = series[series.length - 1]!;
+  const from = addCalendarDays(last.date, -41);
+  const window = series.filter((p) => p.date >= from);
+  const a = (window.length >= 2 ? window[0] : series[0])!;
+  const b = last;
+  const t0 = new Date(`${a.date}T12:00:00`).getTime();
+  const t1 = new Date(`${b.date}T12:00:00`).getTime();
+  const days = Math.max(1, Math.round((t1 - t0) / 86_400_000));
+  if (days < 3) return null;
+  return Math.round((((b.kg - a.kg) / days) * 7) * 10) / 10;
+}
+
+function parseSupplementNames(raw: string | null | undefined): string[] | null {
+  if (!raw?.trim()) return null;
+  try {
+    const j = JSON.parse(raw) as unknown;
+    if (!j || typeof j !== "object") return null;
+    const obj = j as Record<string, unknown>;
+    const list = obj.supplements ?? obj.suplementy;
+    if (!Array.isArray(list)) return null;
+    const names = list
+      .map((item) => {
+        if (typeof item === "string") return item.trim();
+        if (item && typeof item === "object") {
+          const name = (item as { name?: unknown }).name;
+          return typeof name === "string" ? name.trim() : "";
+        }
+        return "";
+      })
+      .filter(Boolean);
+    return names.length > 0 ? names : null;
+  } catch {
+    return null;
+  }
+}
 
 export default async function HomePage() {
   const session = await auth().catch((err) => {
@@ -33,22 +65,20 @@ export default async function HomePage() {
   }
 
   const db = getDb();
-  const [[settingsRow], dash, plans] = await Promise.all([
+  const [[settingsRow], dash, plans, hub] = await Promise.all([
     db
-      .select({ onboardingCompletedAt: userSettings.onboardingCompletedAt })
+      .select({
+        onboardingCompletedAt: userSettings.onboardingCompletedAt,
+        fitnessGoalsJson: userSettings.fitnessGoalsJson,
+        mealTemplatesJson: userSettings.mealTemplatesJson,
+      })
       .from(userSettings)
       .where(eq(userSettings.userId, userId))
       .limit(1),
     getHomeStartDashboard(userId),
     getWorkoutPlansWithLastWorkout(),
+    getTreningiHubStats(userId),
   ]);
-
-  const fullName = [dash.firstName, dash.lastName].filter(Boolean).join(" ");
-  const greeting = fullName ? `Cześć, ${fullName} 💪` : "Cześć 💪";
-  const daysLeft =
-    dash.daysSinceLastReport == null
-      ? null
-      : Math.max(0, dash.reportCadenceDays - dash.daysSinceLastReport);
 
   const dayOptions = plans.map((row) => ({
     id: row.id,
@@ -58,98 +88,46 @@ export default async function HomePage() {
     row,
   }));
 
-  // Kolejka: najdawniej robiony / nigdy nie robiony → na końcu ostatnio robiony.
   const orderedDays = [...dayOptions].sort(comparePlansByWorkoutRecencyAsc);
   const recommendedId =
     dash.nextWorkout?.planId ?? orderedDays[0]?.id ?? null;
 
+  const supplementNames =
+    parseSupplementNames(settingsRow?.fitnessGoalsJson) ??
+    parseSupplementNames(settingsRow?.mealTemplatesJson);
+
   return (
-    <div className="space-y-3">
-      <AppPageHeader
-        kicker="Pulpit"
-        title={greeting}
-        description={
-          <span className="inline-flex items-center gap-2">
-            <Clock className="h-4 w-4 text-[var(--neon)]" aria-hidden />
-            {daysLeft == null
-              ? "Dodaj pierwszy raport, żeby pilnować rytmu."
-              : `Raport za ${daysLeft} ${daysLeft === 1 ? "dzień" : "dni"} · co ${dash.reportCadenceDays} ${dash.reportCadenceDays === 1 ? "dzień" : "dni"}`}
-          </span>
-        }
-      />
-
-      {!settingsRow?.onboardingCompletedAt ? <OnboardingBanner /> : null}
-
-      <WeekPulseCard
-        caloriesConsumed={dash.todayMacros.caloriesConsumed}
-        caloriesGoal={dash.todayMacros.caloriesGoal}
-        workoutsThisWeek={dash.workoutsThisWeek}
-        weeklySessionsTarget={dash.weeklySessionsTarget}
-        reportCount={dash.reportCount}
-        daysSinceLastReport={dash.daysSinceLastReport}
-        reportCadenceDays={dash.reportCadenceDays}
-      />
-
-      <NextWorkoutTile
-        recommendedPlanId={recommendedId}
-        planName={dash.nextWorkout?.planName ?? null}
-        exerciseCount={dash.nextWorkout?.exerciseCount ?? 0}
-        exerciseNames={dash.nextWorkout?.exerciseNames ?? []}
-        firstTime={dash.nextWorkout?.firstTime ?? true}
-        lastWorkoutDate={dash.nextWorkout?.lastWorkoutDate ?? null}
-        days={orderedDays}
-        workoutsThisWeek={dash.workoutsThisWeek}
-        cardioThisWeekMinutes={dash.cardioThisWeekMinutes}
-        workoutStreakWeeks={dash.workoutStreakWeeks}
-      />
-
-      <StartMetricTiles
-        weightKg={dash.currentWeightKg}
-        tempoKgPerMin={dash.tempoKgPerMin}
-        weightFromStartKg={dash.weightFromStartKg}
-        weightDeltaFromPreviousKg={dash.weightDeltaFromPreviousKg}
-        todayMacros={dash.todayMacros}
-        weekMacros={dash.weekMacros}
-      />
-
-      <WeightRangeChartDynamic data={dash.weightSeries} waist={dash.waistSeries} />
-
-      <FormTodayCard
-        energy={dash.formToday.energy}
-        sleep={dash.formToday.sleep}
-        digestion={dash.formToday.digestion}
-        training={dash.formToday.training}
-      />
-
-      <ComplianceCard
-        dietPct={dash.compliance.dietPct}
-        trainingPct={dash.compliance.trainingPct}
-        cardioPct={dash.compliance.cardioPct}
-        lastN={dash.compliance.lastN}
-        doneN={dash.compliance.doneN}
-        historyWindow={dash.compliance.historyWindow}
-        dietHistory={dash.compliance.dietHistory}
-        trainingHistory={dash.compliance.trainingHistory}
-        cardioHistory={dash.compliance.cardioHistory}
-      />
-
-      <TransformationSlider
-        firstPhotoUrl={dash.transformation.firstPhotoUrl}
-        latestPhotoUrl={dash.transformation.latestPhotoUrl}
-        latestPhotoDate={dash.transformation.latestPhotoDate}
-      />
-
-      <DimensionTiles
-        weightKg={dash.dimensions.weightKg}
-        waistCm={dash.dimensions.waistCm}
-        armCm={dash.dimensions.armCm}
-        chestCm={dash.dimensions.chestCm}
-        thighCm={dash.dimensions.thighCm}
-        waistSpark={dash.dimensions.waistSpark}
-        thighSpark={dash.dimensions.thighSpark}
-        chestSpark={dash.dimensions.chestSpark}
-        armSpark={dash.dimensions.armSpark}
-      />
-    </div>
+    <HomeTodayView
+      firstName={dash.firstName}
+      lastName={dash.lastName}
+      daysInProgram={dash.daysInProgram}
+      reportCount={dash.reportCount}
+      daysSinceLastReport={dash.daysSinceLastReport}
+      reportCadenceDays={dash.reportCadenceDays}
+      showOnboarding={!settingsRow?.onboardingCompletedAt}
+      recommendedPlanId={recommendedId}
+      planName={dash.nextWorkout?.planName ?? null}
+      exerciseCount={dash.nextWorkout?.exerciseCount ?? 0}
+      days={orderedDays}
+      supplementNames={supplementNames}
+      weightKg={dash.currentWeightKg}
+      weightDeltaFromPreviousKg={dash.weightDeltaFromPreviousKg}
+      weightFromStartKg={dash.weightFromStartKg}
+      weightKgPerWeek={weightKgPerWeek(dash.weightSeries)}
+      weightSeries={dash.weightSeries}
+      waistSeries={dash.waistSeries}
+      compliance={dash.compliance}
+      dimensions={{
+        waistCm: dash.dimensions.waistCm,
+        thighCm: dash.dimensions.thighCm,
+        chestCm: dash.dimensions.chestCm,
+        armCm: dash.dimensions.armCm,
+        waistSpark: dash.dimensions.waistSpark,
+        thighSpark: dash.dimensions.thighSpark,
+        chestSpark: dash.dimensions.chestSpark,
+        armSpark: dash.dimensions.armSpark,
+      }}
+      recentWorkouts={hub.recentWorkouts}
+    />
   );
 }

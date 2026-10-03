@@ -4,8 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
-import { userSettings, workouts } from "@/db/schema";
-import { calendarDateKey } from "@/lib/local-date";
+import { userSettings } from "@/db/schema";
 
 export async function logCardioFormAction(
   _prevState: unknown,
@@ -29,7 +28,8 @@ export async function logCardioDetailedAction(
   const avgHrRaw = String(formData.get("avgHr") ?? "").trim();
   const distanceKm = distanceRaw ? Number(distanceRaw) : null;
   const avgHr = avgHrRaw ? Number(avgHrRaw) : null;
-  return logTrainingSession({
+  const { createCardioLog } = await import("@/actions/cardio");
+  return createCardioLog({
     title,
     cardioMinutes: minutes,
     notes: notesRaw || undefined,
@@ -51,34 +51,8 @@ export async function logTrainingSession(input: {
   distanceKm?: number | null;
   avgHr?: number | null;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return {
-      ok: false as const,
-      error: "Sesja wygasła. Zaloguj się ponownie, aby zapisać wpis treningu.",
-    };
-  }
-
-  const db = getDb();
-  const dateKey = calendarDateKey(new Date());
-  await db.insert(workouts).values({
-    userId: session.user.id,
-    date: dateKey,
-    cardioMinutes: Math.max(0, Math.round(input.cardioMinutes)),
-    exercises: JSON.stringify({
-      kind: "cardio_log",
-      title: input.title,
-      notes: input.notes ?? null,
-      distanceKm: input.distanceKm ?? null,
-      avgHr: input.avgHr ?? null,
-    }),
-  });
-
-  revalidatePath("/");
-  revalidatePath("/reports");
-  revalidatePath("/workout-plan");
-  revalidatePath("/treningi");
-  return { ok: true as const };
+  const { createCardioLog } = await import("@/actions/cardio");
+  return createCardioLog(input);
 }
 
 export async function updateWeeklyCardioGoalForm(

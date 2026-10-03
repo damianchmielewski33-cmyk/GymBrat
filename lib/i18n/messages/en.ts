@@ -2,21 +2,24 @@
 export const en = {
   nav: {
     start: "Home",
-    desk: "Home",
+    today: "Today",
+    desk: "Today",
     meals: "Meals",
     diet: "Diet",
     plan: "Plan",
     training: "Training",
     reports: "Reports",
     analysis: "Analysis",
+    progress: "Progress",
     history: "History",
     news: "What’s new",
     messages: "Messages",
+    inbox: "Inbox",
     profile: "Profile",
   },
   diet: {
     tabPlan: "Plan",
-    tabDiary: "Food log",
+    tabDiary: "Diary",
     catalogLabel: "Meal catalog",
     catalogEmptyTitle: "No recipes in Diet yet",
     catalogEmptyAdmin:

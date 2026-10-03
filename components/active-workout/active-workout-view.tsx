@@ -604,7 +604,7 @@ export function ActiveWorkoutView({
             .join(", ")}`,
         );
         router.push(
-          `/progress-analysis?q=${encodeURIComponent(primary.exerciseName)}`,
+          `/progress/exercises/${encodeURIComponent(primary.exerciseName)}`,
         );
       } else {
         hapticWorkoutDone();

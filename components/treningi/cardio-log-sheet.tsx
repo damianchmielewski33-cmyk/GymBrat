@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { Flame, Minus, Plus, X } from "lucide-react";
 import { logCardioDetailedAction } from "@/actions/workout";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
@@ -42,6 +43,7 @@ function clampMinutes(n: number): number {
 }
 
 export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSheetProps) {
+  const router = useRouter();
   const { notifySaved, notifyError } = useSaveFeedback();
   const [mounted, setMounted] = useState(false);
   const [machine, setMachine] = useState<(typeof MACHINES)[number]>("Marsz");
@@ -53,6 +55,7 @@ export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSh
   const [state, formAction, pending] = useActionState(logCardioDetailedAction, {} as {
     ok?: boolean;
     error?: string;
+    id?: string;
   });
 
   useEffect(() => setMounted(true), []);
@@ -70,10 +73,14 @@ export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSh
     if (state?.ok === true) {
       notifySaved("Zapisano cardio.");
       onClose();
+      if (state.id) {
+        router.push(`/cardio/${state.id}`);
+        router.refresh();
+      }
     } else if (state?.ok === false && state.error) {
       notifyError(state.error);
     }
-  }, [state, notifySaved, notifyError, onClose]);
+  }, [state, notifySaved, notifyError, onClose, router]);
 
   const dateLine = useMemo(() => `zapisuję na dziś, ${todayLabelPl()}`, []);
   const minutes = clampMinutes(Number(String(minutesText).replace(",", ".")));

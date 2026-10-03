@@ -2,21 +2,24 @@
 export const pl = {
   nav: {
     start: "Start",
-    desk: "Pulpit",
+    today: "Dziś",
+    desk: "Dziś",
     meals: "Posiłki",
     diet: "Dieta",
     plan: "Plan",
-    training: "Treningi",
+    training: "Trening",
     reports: "Raporty",
     analysis: "Analiza",
+    progress: "Postępy",
     history: "Historia",
     news: "Nowości",
     messages: "Wiadomości",
+    inbox: "Skrzynka",
     profile: "Profil",
   },
   diet: {
     tabPlan: "Plan",
-    tabDiary: "Jadłospis",
+    tabDiary: "Dziennik",
     catalogLabel: "Katalog posiłków",
     catalogEmptyTitle: "Brak przepisów w Dietcie",
     catalogEmptyAdmin:

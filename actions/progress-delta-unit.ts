@@ -48,6 +48,7 @@ export async function updateProgressDeltaUnitAction(raw: unknown): Promise<{
   revalidatePath("/workout-history");
   revalidatePath("/workout-plan");
   revalidatePath("/reports");
+  revalidatePath("/progress");
   revalidatePath("/progress-analysis");
   return { ok: true, unit };
 }

@@ -15,6 +15,7 @@ export type RecentWorkoutItem = {
   title: string;
   volumeKg: number;
   durationMinutes: number | null;
+  setsDone: number;
 };
 
 export type RecentCardioItem = {
@@ -23,11 +24,13 @@ export type RecentCardioItem = {
   title: string;
   minutes: number;
   avgHr: number | null;
+  kind: "cardio_log" | "post_strength";
 };
 
 export type TreningiHubStats = {
   workoutsThisWeek: number;
   cardioMinutesThisWeek: number;
+  cardioSessionsThisWeek: number;
   cardioGoalMinutes: number;
   tonnageThisWeekKg: number;
   streakWeeks: number;
@@ -74,6 +77,16 @@ function volumeFromExercises(exercises: ParsedExercise[] | undefined): number {
     }
   }
   return Math.round(volume);
+}
+
+function setsDoneFromExercises(exercises: ParsedExercise[] | undefined): number {
+  let n = 0;
+  for (const ex of exercises ?? []) {
+    for (const s of ex.sets ?? []) {
+      if (s.done) n += 1;
+    }
+  }
+  return n;
 }
 
 function durationMinutes(parsed: SessionJson | null): number | null {
@@ -125,6 +138,7 @@ export async function getTreningiHubStats(userId: string): Promise<TreningiHubSt
 
   let workoutsThisWeek = 0;
   let cardioMinutesThisWeek = 0;
+  let cardioSessionsThisWeek = 0;
   let tonnageThisWeekKg = 0;
   const weeksWithGuided = new Set<string>();
 
@@ -135,7 +149,9 @@ export async function getTreningiHubStats(userId: string): Promise<TreningiHubSt
     const parsed = parseSession(row.exercises);
     const inThisWeek = row.date >= monday && row.date <= sunday;
     if (inThisWeek) {
-      cardioMinutesThisWeek += countableCardioMinutes(parsed, row.cardioMinutes ?? 0);
+      const weekCardio = countableCardioMinutes(parsed, row.cardioMinutes ?? 0);
+      cardioMinutesThisWeek += weekCardio;
+      if (weekCardio > 0) cardioSessionsThisWeek += 1;
       if (isGuidedStrength(parsed)) {
         workoutsThisWeek += 1;
         tonnageThisWeekKg += volumeFromExercises(parsed?.exercises);
@@ -153,6 +169,7 @@ export async function getTreningiHubStats(userId: string): Promise<TreningiHubSt
               : "Trening",
           volumeKg: volumeFromExercises(parsed?.exercises),
           durationMinutes: durationMinutes(parsed),
+          setsDone: setsDoneFromExercises(parsed?.exercises),
         });
       }
     }
@@ -180,6 +197,7 @@ export async function getTreningiHubStats(userId: string): Promise<TreningiHubSt
         title,
         minutes: Math.max(0, row.cardioMinutes ?? 0),
         avgHr,
+        kind: parsed?.kind === "cardio_log" ? "cardio_log" : "post_strength",
       });
     }
   }
@@ -194,6 +212,7 @@ export async function getTreningiHubStats(userId: string): Promise<TreningiHubSt
   return {
     workoutsThisWeek,
     cardioMinutesThisWeek,
+    cardioSessionsThisWeek,
     cardioGoalMinutes: goalRow?.goal ?? 150,
     tonnageThisWeekKg,
     streakWeeks,

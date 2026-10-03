@@ -1,22 +1,29 @@
 "use client";
 
 import { useCallback, useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   loadDietDayAction,
   setDietDayKindAction,
 } from "@/actions/diet-day";
-import { addMealProductAction, deleteMealLogFormAction, type MealLogFormState } from "@/actions/meal-log";
+import {
+  addMealProductAction,
+  deleteMealLogFormAction,
+  type MealLogFormState,
+} from "@/actions/meal-log";
+import { lookupFoodByBarcodeAction } from "@/actions/food-lookup";
 import { MealCatalogBrowser } from "@/components/meal-suggestions/meal-catalog-browser";
-import { MealSuggestionsTodayCard } from "@/components/meal-suggestions/meal-suggestions-today-card";
 import { EditMealLogSheet } from "@/components/meal-suggestions/edit-meal-log-sheet";
 import { AddMealScreen } from "@/components/meal-suggestions/add-meal-screen";
 import { FoodPortionScreen } from "@/components/meal-suggestions/food-portion-screen";
 import { DietWeekStrip } from "@/components/meal-suggestions/diet-week-strip";
 import { DietMealPlanPanel } from "@/components/meal-suggestions/diet-meal-plan-panel";
+import { DietDiaryPanel } from "@/components/meal-suggestions/diet-diary-panel";
 import { DietDayMacrosBar } from "@/components/meal-suggestions/diet-day-macros-bar";
+import { BarcodeCameraScanner } from "@/components/meal-suggestions/barcode-camera-scanner";
 import {
   DIET_DIARY_SLOT_LABELS,
+  dietDiarySlotFromHour,
   type DietDiarySlot,
 } from "@/lib/diet-diary-slots";
 import type { FoodProduct } from "@/lib/food-products-types";
@@ -26,6 +33,7 @@ import type { FitatuDaySummary } from "@/types/fitatu";
 import type { MealTemplate } from "@/lib/meal-templates";
 import type { CatalogMeal } from "@/lib/meal-catalog-types";
 import type { NutritionDayType } from "@/lib/nutrition-goals";
+import { parseDietTab, type DietTabId } from "@/lib/diet-tabs";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { useActionState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
@@ -40,6 +48,7 @@ import {
 import { useOverlayHistoryBack } from "@/hooks/use-overlay-history-back";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { AppPageHeader } from "@/components/layout/screen";
+import { cn } from "@/lib/utils";
 
 function formatDateLabel(dateKey: string): string {
   const today = calendarDateKey();
@@ -124,6 +133,24 @@ function DeleteMealButton({
   );
 }
 
+function tabButtonClass(active: boolean) {
+  return cn(
+    "rounded-full border px-5 py-2 text-sm",
+    active
+      ? "border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/20 font-semibold text-[var(--gym-gold)]"
+      : "border-white/12 bg-white/[0.04] font-medium text-white/55",
+  );
+}
+
+function dayKindButtonClass(active: boolean) {
+  return cn(
+    "rounded-full border px-3 py-1.5 text-[11px] uppercase tracking-wide",
+    active
+      ? "border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/20 font-semibold text-[var(--gym-gold)]"
+      : "border-white/12 bg-white/[0.04] font-medium text-white/55",
+  );
+}
+
 export function MealSuggestionsView({
   initialSummary: _initialSummary,
   initialGaps,
@@ -132,6 +159,9 @@ export function MealSuggestionsView({
   mealTemplates = [],
   catalogMeals = [],
   isAdmin = false,
+  supplementNames = [],
+  weeklyCardioGoalMinutes = 150,
+  initialTab = "plan",
 }: {
   initialSummary: FitatuDaySummary;
   initialGaps: MacroGaps;
@@ -140,11 +170,27 @@ export function MealSuggestionsView({
   mealTemplates?: MealTemplate[];
   catalogMeals?: CatalogMeal[];
   isAdmin?: boolean;
+  supplementNames?: string[];
+  weeklyCardioGoalMinutes?: number;
+  initialTab?: DietTabId;
 }) {
   void _initialSummary;
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { notifySaved, notifyError } = useSaveFeedback();
-  const [tab, setTab] = useState<"plan" | "dziennik">("dziennik");
+  const { t } = useI18n();
+
+  const tab = parseDietTab(searchParams.get("tab") ?? initialTab);
+
+  const setTab = useCallback(
+    (next: DietTabId) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tab", next);
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
   const [dateKey, setDateKey] = useState(initialGaps.dateKey);
   const [gaps, setGaps] = useState(initialGaps);
   const [logs, setLogs] = useState(initialLogs);
@@ -152,16 +198,28 @@ export function MealSuggestionsView({
   const [pending, start] = useTransition();
   const [addSlot, setAddSlot] = useState<DietDiarySlot | null>(null);
   const [dishPickerOpen, setDishPickerOpen] = useState(false);
-  const [dishPickerSlot, setDishPickerSlot] = useState<DietDiarySlot | null>(null);
-  const [portionProduct, setPortionProduct] = useState<FoodProduct | null>(null);
+  const [dishPickerSlot, setDishPickerSlot] = useState<DietDiarySlot | null>(
+    null,
+  );
+  const [portionProduct, setPortionProduct] = useState<FoodProduct | null>(
+    null,
+  );
   const [portionSlot, setPortionSlot] = useState<DietDiarySlot>("sniadanie");
-  const [focusMealId, setFocusMealId] = useState<string | null>(null);
   const [editingLog, setEditingLog] = useState<MealLogDto | null>(null);
-  const { t } = useI18n();
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanSlot, setScanSlot] = useState<DietDiarySlot>("sniadanie");
+  const [scanBusy, setScanBusy] = useState(false);
 
   const mealOverlayOpen =
-    Boolean(addSlot) || Boolean(portionProduct) || dishPickerOpen;
+    Boolean(addSlot) ||
+    Boolean(portionProduct) ||
+    dishPickerOpen ||
+    scanOpen;
   useOverlayHistoryBack(mealOverlayOpen, () => {
+    if (scanOpen) {
+      setScanOpen(false);
+      return;
+    }
     if (portionProduct) {
       setPortionProduct(null);
       return;
@@ -208,6 +266,7 @@ export function MealSuggestionsView({
 
   const unassigned = logs.filter((e) => e.slot == null);
   const dateLabel = formatDateLabel(dateKey);
+  const defaultScanSlot = dietDiarySlotFromHour(new Date().getHours());
 
   const dayMacros = {
     caloriesConsumed: gaps.caloriesConsumed,
@@ -218,7 +277,51 @@ export function MealSuggestionsView({
     fatGoal: gaps.fatGoal,
     carbsConsumed: gaps.carbsConsumed,
     carbsGoal: gaps.carbsGoal,
+    caloriesRemaining: gaps.caloriesRemaining,
   };
+
+  const openScan = useCallback((slot: DietDiarySlot) => {
+    setScanSlot(slot);
+    setScanOpen(true);
+  }, []);
+
+  const onBarcode = useCallback(
+    (code: string) => {
+      setScanOpen(false);
+      setScanBusy(true);
+      start(async () => {
+        try {
+          const r = await lookupFoodByBarcodeAction(code);
+          if (!r.ok) {
+            notifyError(r.error);
+            setPortionSlot(scanSlot);
+            setAddSlot(scanSlot);
+            return;
+          }
+          setPortionSlot(scanSlot);
+          setPortionProduct(r.product);
+        } finally {
+          setScanBusy(false);
+        }
+      });
+    },
+    [notifyError, scanSlot],
+  );
+
+  const setDayKindOptimistic = useCallback(
+    (kind: NutritionDayType) => {
+      start(async () => {
+        const r = await setDietDayKindAction(dateKey, kind);
+        if (!r.ok) {
+          notifyError(r.error);
+          return;
+        }
+        setDayKind(kind);
+        refreshDay(dateKey);
+      });
+    },
+    [dateKey, notifyError, refreshDay],
+  );
 
   return (
     <div className="relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -228,135 +331,77 @@ export function MealSuggestionsView({
         description={dateLabel}
         className="px-1"
       />
+
       <div className="flex gap-2 px-1 pt-1">
         <button
           type="button"
           onClick={() => setTab("plan")}
-          className={
-            tab === "plan"
-              ? "rounded-full border border-[var(--neon)]/50 bg-[var(--neon)]/20 px-5 py-2 text-sm font-semibold text-white"
-              : "rounded-full border border-white/12 bg-white/[0.04] px-5 py-2 text-sm font-medium text-white/55"
-          }
+          className={tabButtonClass(tab === "plan")}
         >
           {t("diet.tabPlan")}
         </button>
         <button
           type="button"
-          onClick={() => setTab("dziennik")}
-          className={
-            tab === "dziennik"
-              ? "rounded-full border border-[var(--neon)]/50 bg-[var(--neon)]/20 px-5 py-2 text-sm font-semibold text-white"
-              : "rounded-full border border-white/12 bg-white/[0.04] px-5 py-2 text-sm font-medium text-white/55"
-          }
+          onClick={() => setTab("diary")}
+          className={tabButtonClass(tab === "diary")}
         >
           {t("diet.tabDiary")}
         </button>
       </div>
 
-      {tab === "plan" ? (
-        <div className="mt-4 space-y-4 px-1">
-          {mealTemplates.length > 0 ? (
-            <section className="app-card space-y-2 p-5">
-              <p className="app-label">Szablony posiłków</p>
-              {mealTemplates.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex justify-between gap-3 border-b border-white/[0.05] py-2.5 last:border-0"
-                >
-                  <p className="text-sm text-white/85">{m.name}</p>
-                  <p className="shrink-0 text-xs tabular-nums text-[var(--neon)]">
-                    {Math.round(m.proteinG)}B · {Math.round(m.carbsG)}W ·{" "}
-                    {Math.round(m.fatG)}T
-                  </p>
-                </div>
-              ))}
-            </section>
-          ) : (
-            <p className="text-sm text-white/45">
-              Ustaw szablony i cele makro w profilu — tu zobaczysz plan dnia.
-            </p>
-          )}
-          <MealSuggestionsTodayCard
-            gaps={gaps}
+      <div className="mt-3 flex flex-wrap items-center gap-2 px-1">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => setDayKindOptimistic("training")}
+          className={dayKindButtonClass(dayKind === "training")}
+        >
+          Dzień treningowy
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => setDayKindOptimistic("rest")}
+          className={dayKindButtonClass(dayKind === "rest")}
+        >
+          Nietreningowy
+        </button>
+      </div>
+
+      <div className="mt-3 px-1">
+        <DietWeekStrip dateKey={dateKey} onSelect={(k) => refreshDay(k)} />
+      </div>
+
+      <div
+        key={`${tab}-${dateKey}`}
+        className="mt-4 min-h-0 flex-1 animate-page-enter-opacity px-1 pb-6"
+      >
+        {tab === "plan" ? (
+          <DietMealPlanPanel
+            mealTemplates={mealTemplates}
             catalogMeals={catalogMeals}
-            onSelectMeal={(meal) => setFocusMealId(meal.id)}
-          />
-          <MealCatalogBrowser
             dateKey={dateKey}
-            meals={catalogMeals}
-            isAdmin={isAdmin}
-            focusMealId={focusMealId}
-            onFocusMealHandled={() => setFocusMealId(null)}
+            dayKind={dayKind}
+            dayMacros={{
+              proteinGoal: dayMacros.proteinGoal,
+              carbsGoal: dayMacros.carbsGoal,
+              fatGoal: dayMacros.fatGoal,
+              caloriesGoal: dayMacros.caloriesGoal,
+            }}
+            supplementNames={supplementNames}
+            weeklyCardioGoalMinutes={weeklyCardioGoalMinutes}
           />
-        </div>
-      ) : (
-        <>
-          <div className="mt-4 px-1">
-            <DietWeekStrip dateKey={dateKey} onSelect={(k) => refreshDay(k)} />
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-2 px-1">
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => {
-                start(async () => {
-                  const r = await setDietDayKindAction(dateKey, "training");
-                  if (!r.ok) {
-                    notifyError(r.error);
-                    return;
-                  }
-                  setDayKind("training");
-                  refreshDay(dateKey);
-                });
-              }}
-              className={
-                dayKind === "training"
-                  ? "rounded-full border border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/20 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--gym-gold)]"
-                  : "rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-white/55"
-              }
-            >
-              Dzień treningowy
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => {
-                start(async () => {
-                  const r = await setDietDayKindAction(dateKey, "rest");
-                  if (!r.ok) {
-                    notifyError(r.error);
-                    return;
-                  }
-                  setDayKind("rest");
-                  refreshDay(dateKey);
-                });
-              }}
-              className={
-                dayKind === "rest"
-                  ? "rounded-full border border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/20 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--gym-gold)]"
-                  : "rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-white/55"
-              }
-            >
-              Nietreningowy
-            </button>
-          </div>
-
-          <div
-            key={dateKey}
-            className="mt-3 min-h-0 flex-1 animate-page-enter-opacity px-1 pb-6"
-          >
-            <DietMealPlanPanel
-              mealTemplates={mealTemplates}
-              catalogMeals={catalogMeals}
-              dateKey={dateKey}
-              dayMacros={{
-                proteinGoal: dayMacros.proteinGoal,
-                carbsGoal: dayMacros.carbsGoal,
-                fatGoal: dayMacros.fatGoal,
-                caloriesGoal: dayMacros.caloriesGoal,
-              }}
+        ) : (
+          <>
+            <DietDiaryPanel
               bySlot={bySlot}
+              dayMacros={dayMacros}
+              defaultScanSlot={defaultScanSlot}
+              onScan={openScan}
+              onOpenCatalog={(slot) => {
+                setDishPickerSlot(slot);
+                setDishPickerOpen(true);
+              }}
               onAddManual={(slot) => setAddSlot(slot)}
               onEditLog={(entry) => setEditingLog(entry)}
               onDeleted={() => refreshDay(dateKey)}
@@ -365,7 +410,9 @@ export function MealSuggestionsView({
 
             {unassigned.length > 0 ? (
               <section className="mt-3 space-y-2 opacity-80">
-                <h2 className="text-sm font-semibold text-white/70">Bez sekcji</h2>
+                <h2 className="text-sm font-semibold text-white/70">
+                  Bez sekcji
+                </h2>
                 <ul className="divide-y divide-white/[0.06] rounded-2xl border border-dashed border-white/15">
                   {unassigned.map((e) => (
                     <li key={e.id} className="flex items-center gap-2 px-3 py-3">
@@ -395,9 +442,9 @@ export function MealSuggestionsView({
                 </ul>
               </section>
             ) : null}
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
 
       <AddMealScreen
         open={Boolean(addSlot)}
@@ -445,6 +492,19 @@ export function MealSuggestionsView({
           />
         </div>
       ) : null}
+
+      <BarcodeCameraScanner
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onDetected={onBarcode}
+      />
+
+      {scanBusy ? (
+        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/60 text-sm text-white/80">
+          Szukam produktu…
+        </div>
+      ) : null}
+
       <FoodPortionScreen
         product={portionProduct}
         open={Boolean(portionProduct)}
@@ -492,8 +552,7 @@ export function MealSuggestionsView({
         }}
       />
 
-      {/* Sticky makro dnia nad dolną belką — ile zjedzono / zostało do celu. */}
-      {!mealOverlayOpen ? (
+      {tab === "diary" && !mealOverlayOpen ? (
         <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-40 px-0">
           <div className="pointer-events-auto mx-auto max-w-lg">
             <DietDayMacrosBar {...dayMacros} />

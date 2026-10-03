@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, UtensilsCrossed } from "lucide-react";
+import { Search, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { RecipeImage } from "@/components/meal-suggestions/recipe-image";
 import { DietRecipeFlipCard } from "@/components/meal-suggestions/diet-recipe-flip-card";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import type { CatalogMeal } from "@/lib/meal-catalog-types";
-import type { DietDiarySlot } from "@/lib/diet-diary-slots";
 import {
   countByDifficulty,
   countByTaste,
@@ -17,6 +17,10 @@ import {
   type RecipeDifficulty,
   type RecipeTaste,
 } from "@/lib/diet-recipe-match";
+import {
+  addRecipeIngredientsToShoppingList,
+  type ShoppingListItem,
+} from "@/lib/shopping-list";
 import { cn } from "@/lib/utils";
 
 function HatsFilter({
@@ -51,11 +55,14 @@ export function DietRecipeGrid({
   meals,
   row,
   dateKey,
+  onShoppingChange,
 }: {
   meals: CatalogMeal[];
   row: MealPlanRow;
   dateKey: string;
+  onShoppingChange?: (items: ShoppingListItem[]) => void;
 }) {
+  const { notifySaved } = useSaveFeedback();
   const [query, setQuery] = useState("");
   const [difficulty, setDifficulty] = useState<RecipeDifficulty | "all">("all");
   const [taste, setTaste] = useState<RecipeTaste>("all");
@@ -129,11 +136,6 @@ export function DietRecipeGrid({
             { id: "all" as const, label: "Wszystkie", n: tasteCounts.all },
             { id: "savory" as const, label: "Słone", n: tasteCounts.savory },
             { id: "sweet" as const, label: "Słodkie", n: tasteCounts.sweet },
-            {
-              id: "fit_fast" as const,
-              label: "Fit fast food",
-              n: tasteCounts.fit_fast,
-            },
           ] as const
         ).map((f) => (
           <button
@@ -164,57 +166,74 @@ export function DietRecipeGrid({
             const diff = recipeDifficulty(meal.prepMinutes);
             const macros = meal.approximateMacros;
             return (
-              <button
+              <div
                 key={meal.id}
-                type="button"
-                onClick={() => setSelected(meal)}
-                className="overflow-hidden rounded-2xl border border-white/10 bg-[#141414] text-left"
+                className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#141414] text-left"
               >
-                <div className="relative aspect-[4/3]">
-                  <RecipeImage
-                    recipe={meal}
-                    className="h-full w-full object-cover"
-                    alt={meal.title}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-2.5">
-                    <p className="line-clamp-2 text-[11px] font-bold uppercase leading-snug tracking-wide text-[var(--gym-gold)]">
+                <button
+                  type="button"
+                  onClick={() => setSelected(meal)}
+                  className="w-full text-left"
+                >
+                  <div className="relative aspect-[4/3]">
+                    <RecipeImage
+                      recipe={meal}
+                      className="h-full w-full object-cover"
+                      alt={meal.title}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-2.5 pr-11">
+                      <p className="line-clamp-2 text-[11px] font-bold uppercase leading-snug tracking-wide text-[var(--gym-gold)]">
+                        {meal.title}
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-white/70">
+                        {ingredientPreview(meal, 4)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-1 px-2.5 py-2.5">
+                    <p className="line-clamp-2 text-xs font-semibold text-white">
                       {meal.title}
                     </p>
-                    <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-white/70">
-                      {ingredientPreview(meal, 4)}
+                    <p className="text-[11px] font-semibold tabular-nums text-white/70">
+                      {formatMealMacroLine({
+                        proteinG: macros.proteinG,
+                        carbsG: macros.carbsG,
+                        fatG: macros.fatG,
+                      })}
                     </p>
+                    <p className="text-[11px] tabular-nums text-white/45">
+                      {Math.round(macros.calories)} kcal
+                    </p>
+                    <div className="flex gap-0.5 pt-0.5" aria-hidden>
+                      {[1, 2, 3].map((i) => (
+                        <span
+                          key={i}
+                          className={cn(
+                            "text-[10px]",
+                            i <= diff ? "opacity-100" : "opacity-25",
+                          )}
+                        >
+                          👨‍🍳
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-1 px-2.5 py-2.5">
-                  <p className="line-clamp-2 text-xs font-semibold text-white">
-                    {meal.title}
-                  </p>
-                  <p className="text-[11px] font-semibold tabular-nums text-white/70">
-                    {formatMealMacroLine({
-                      proteinG: macros.proteinG,
-                      carbsG: macros.carbsG,
-                      fatG: macros.fatG,
-                    })}
-                  </p>
-                  <p className="text-[11px] tabular-nums text-white/45">
-                    {Math.round(macros.calories)} kcal
-                  </p>
-                  <div className="flex gap-0.5 pt-0.5" aria-hidden>
-                    {[1, 2, 3].map((i) => (
-                      <span
-                        key={i}
-                        className={cn(
-                          "text-[10px]",
-                          i <= diff ? "opacity-100" : "opacity-25",
-                        )}
-                      >
-                        👨‍🍳
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </button>
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Dodaj składniki „${meal.title}” do listy zakupów`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const next = addRecipeIngredientsToShoppingList(meal);
+                    onShoppingChange?.(next);
+                    notifySaved(`Dodano składniki: ${meal.title}`);
+                  }}
+                  className="absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/55 text-[var(--gym-gold)] backdrop-blur-sm hover:bg-black/75"
+                >
+                  <ShoppingBag className="h-4 w-4" />
+                </button>
+              </div>
             );
           })}
         </div>

@@ -536,6 +536,10 @@
     font-variant-numeric: tabular-nums;
     color: var(--neon);
   }
+
+  .font-metric {
+    font-family: var(--font-metric), ui-serif, Georgia, "Times New Roman", serif;
+  }
 }
 
 /**

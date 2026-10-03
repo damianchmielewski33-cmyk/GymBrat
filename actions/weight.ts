@@ -37,6 +37,7 @@ export async function logWeighIn(input: { weightKg: number; notes?: string }) {
     recordedAt: new Date(),
   });
 
+  revalidatePath("/progress");
   revalidatePath("/progress-analysis");
   return { ok: true as const };
 }

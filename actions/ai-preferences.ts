@@ -49,6 +49,7 @@ export async function updateAiFeaturesDisabledAction(
 
   revalidatePath("/profile");
   revalidatePath("/");
+  revalidatePath("/progress");
   revalidatePath("/progress-analysis");
   revalidatePath("/active-workout");
   revalidatePath("/start-workout");

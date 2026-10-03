@@ -26,6 +26,7 @@ export async function saveFitnessGoalsAction(input: unknown) {
 
   revalidatePath("/");
   revalidatePath("/profile");
+  revalidatePath("/progress");
   revalidatePath("/progress-analysis");
   return { ok: true as const };
 }

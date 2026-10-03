@@ -1,31 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
-  Clock3,
-  Flame,
-  Grid2x2,
-  HelpCircle,
+  ChevronRight,
+  Film,
   History,
-  Pencil,
-  Play,
-  Printer,
-  Download,
+  StickyNote,
+  TrendingUp,
+  Video,
 } from "lucide-react";
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import type { TreningiHubStats } from "@/lib/treningi-hub-stats";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
-import { printWorkoutPlans } from "@/lib/pdf/workout-plan-export";
 import { AppPageHeader } from "@/components/layout/screen";
+import { AnimatedMetric } from "@/components/ui/animated-metric";
+import { SectionLabel } from "@/components/ui/section-label";
 import { formatPlanLastDoneLabel } from "@/lib/workout-plan-queue";
+import { addCalendarDays, calendarDateKey, calendarWeekdaySun0 } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+
+function mondayOfWeek(dateKey: string): string {
+  const dow = calendarWeekdaySun0(dateKey);
+  const offset = dow === 0 ? -6 : 1 - dow;
+  return addCalendarDays(dateKey, offset);
+}
 
 function formatShortDate(ymd: string): string {
   try {
@@ -38,36 +37,16 @@ function formatShortDate(ymd: string): string {
   }
 }
 
-function HelpPill({
-  label,
-  title,
-  body,
-}: {
-  label: string;
-  title: string;
-  body: string;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-[var(--gym-surface-sunken)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/70"
-      >
-        <HelpCircle className="h-3 w-3 text-white/45" />
-        {label}
-      </button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="border-white/10 bg-[#0c0c0c] text-white">
-          <SheetHeader>
-            <SheetTitle className="text-white">{title}</SheetTitle>
-          </SheetHeader>
-          <p className="px-4 pb-6 text-sm leading-relaxed text-white/65">{body}</p>
-        </SheetContent>
-      </Sheet>
-    </>
+function planHasNotes(row: WorkoutPlanWithLastWorkoutDTO): boolean {
+  return row.plan.exercises.some(
+    (ex) => typeof ex.note === "string" && ex.note.trim().length > 0,
   );
+}
+
+function exerciseCountLabel(n: number): string {
+  if (n === 1) return "1 ćwiczenie";
+  if (n >= 2 && n <= 4) return `${n} ćwiczenia`;
+  return `${n} ćwiczeń`;
 }
 
 type TreningiHubProps = {
@@ -77,360 +56,273 @@ type TreningiHubProps = {
 };
 
 export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(plans[0]?.id ?? null);
   const [cardioOpen, setCardioOpen] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const [toast, setToast] = useState<string | null>(null);
 
-  const selected = useMemo(
-    () => plans.find((p) => p.id === selectedId) ?? plans[0] ?? null,
-    [plans, selectedId],
+  const today = calendarDateKey();
+  const weekMonday = mondayOfWeek(today);
+  const recentCardioThisWeek = stats.recentCardio.filter(
+    (c) => c.date >= weekMonday,
   );
 
-  const exerciseCount = selected?.plan.exercises.length ?? 0;
-
-  function flash(msg: string) {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 2200);
-  }
-
   return (
-    <div className="mx-auto w-full max-w-lg space-y-5 pb-8">
-      <AppPageHeader kicker="Siłownia" title="Treningi" />
+    <div className="mx-auto w-full max-w-lg space-y-6 pb-8">
+      <AppPageHeader
+        kicker="Siłownia"
+        title="Trening"
+        description="Wybierz dzień planu, korektę techniki, postępy albo cardio."
+      />
 
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            if (!selected) {
-              flash("Najpierw wybierz plan.");
-              return;
-            }
-            const ok = printWorkoutPlans([{ id: selected.id, plan: selected.plan }]);
-            if (!ok) {
-              flash("Zezwól na wyskakujące okna, żeby wydrukować / zapisać PDF.");
-              return;
-            }
-            flash("Otworzono podgląd druku — Zapisz jako PDF.");
-          }}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[var(--gym-surface-sunken)] text-xs font-medium text-white/80"
-        >
-          <Printer className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
-          PDF / drukuj
-        </button>
-        <Link
-          href="/profile/workout-plan"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[var(--gym-surface-sunken)] text-xs font-medium text-white/80"
-        >
-          <Download className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
-          Import Word
-        </Link>
-        <Link
-          href={
-            selected
-              ? `/profile/workout-plan?edit=${encodeURIComponent(selected.id)}`
-              : "/profile/workout-plan"
+      {/* 01 — dni planu */}
+      <section className="space-y-3">
+        <SectionLabel
+          index={1}
+          title="Plan"
+          trailing={
+            plans.length > 0 ? (
+              <Link
+                href="/profile/workout-plan"
+                className="text-[var(--gym-gold)]/80 hover:text-[var(--gym-gold)]"
+              >
+                edytuj
+              </Link>
+            ) : null
           }
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[var(--gym-surface-sunken)] text-xs font-medium text-white/80"
-        >
-          <Pencil className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
-          Edytuj plan
-        </Link>
-        <button
-          type="button"
-          onClick={() => {
-            if (!selected) {
-              flash("Najpierw ustaw plan w Profilu.");
-              return;
-            }
-            setSheetOpen(true);
-          }}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[rgba(var(--neon-rgb),0.45)] bg-[var(--gym-surface-sunken)] text-xs font-medium text-white"
-        >
-          <Grid2x2 className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
-          Arkusz i ciężary
-        </button>
-        <Link
-          href="/workout-history"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-[var(--gym-surface-sunken)] text-xs font-medium text-white/80"
-        >
-          <History className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
-          Historia treningów
-        </Link>
-      </div>
+        />
 
-      {plans.length === 0 ? (
-        <div className="app-card p-5 text-center">
-          <p className="text-sm text-white/70">
-            Nie masz jeszcze planu. Ustaw dni i ćwiczenia w Profilu.
-          </p>
-          <Link
-            href="/profile/workout-plan"
-            className="gym-btn-primary mt-4 inline-flex h-12 items-center justify-center rounded-xl px-5 text-sm font-semibold"
-          >
-            Ustaw plan w profilu
-          </Link>
-        </div>
-      ) : (
-        <>
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-            {plans.map((row) => {
-              const active = row.id === selected?.id;
-              const label = row.plan.planName.trim() || "Plan";
-              const lastDone = formatPlanLastDoneLabel(row.lastWorkoutDate);
+        {plans.length === 0 ? (
+          <div className="app-card p-5 text-center">
+            <p className="text-sm text-white/70">
+              Nie masz jeszcze planu. Ustaw dni i ćwiczenia w Profilu.
+            </p>
+            <Link
+              href="/profile/workout-plan"
+              className="gold-btn mt-4 inline-flex h-12 items-center justify-center rounded-xl px-5 text-sm"
+            >
+              Ustaw plan w profilu
+            </Link>
+          </div>
+        ) : (
+          <ul className="app-card divide-y divide-white/[0.06] overflow-hidden">
+            {plans.map((row, idx) => {
+              const name = row.plan.planName.trim() || `Dzień ${idx + 1}`;
+              const count = row.plan.exercises.length;
+              const hasNotes = planHasNotes(row);
+              const busy = pending && pendingId === row.id;
               return (
-                <button
-                  key={row.id}
-                  type="button"
-                  onClick={() => setSelectedId(row.id)}
-                  className={cn(
-                    "shrink-0 rounded-2xl px-4 py-2 text-left transition",
-                    active
-                      ? "bg-[var(--gym-gold)] text-[var(--neon-fg)]"
-                      : "border border-white/10 bg-[var(--gym-surface-sunken)] text-white/70",
-                  )}
-                >
-                  <span className="block text-xs font-semibold uppercase tracking-wide">
-                    {label}
-                  </span>
-                  <span
+                <li key={row.id}>
+                  <button
+                    type="button"
+                    disabled={count === 0 || pending}
+                    onClick={() => {
+                      setPendingId(row.id);
+                      startTransition(() => onBegin(row));
+                    }}
                     className={cn(
-                      "mt-0.5 block text-[10px] font-medium tabular-nums",
-                      active ? "text-[var(--neon-fg)]/75" : "text-white/45",
+                      "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors",
+                      "hover:bg-white/[0.03] disabled:opacity-50",
                     )}
                   >
-                    {lastDone}
-                  </span>
-                </button>
+                    <span className="font-metric w-9 shrink-0 text-[15px] leading-none text-[var(--gym-gold)]">
+                      {String(idx + 1).padStart(2, "0")}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] font-semibold text-white">
+                        {name}
+                      </span>
+                      <span className="mt-0.5 block text-[12px] text-white/45">
+                        {exerciseCountLabel(count)}
+                        {" · "}
+                        ostatnio {formatPlanLastDoneLabel(row.lastWorkoutDate)}
+                      </span>
+                    </span>
+                    {hasNotes ? (
+                      <StickyNote
+                        className="h-4 w-4 shrink-0 text-[var(--gym-gold)]/80"
+                        aria-label="Ma notatki"
+                      />
+                    ) : null}
+                    <ChevronRight
+                      className="h-4 w-4 shrink-0 text-white/30"
+                      aria-hidden
+                    />
+                    <span className="sr-only">
+                      {busy ? "Startuję…" : "Rozpocznij trening"}
+                    </span>
+                  </button>
+                </li>
               );
             })}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <HelpPill
-              label="Serie"
-              title="Serie"
-              body="Liczba serii w ćwiczeniu (np. 2s). W trybie prowadzonym zaliczasz je po kolei."
-            />
-            <HelpPill
-              label="RIR"
-              title="RIR (w zapasie)"
-              body="Reps In Reserve — ile powtórzeń zostało Ci w zapasie po serii. 0 = do upadku, 1–2 = kontrolowany zapas."
-            />
-            <HelpPill
-              label="Tempo"
-              title="Tempo"
-              body="Cztery cyfry tempa (np. 2010): ekscentryka – pauza dołu – koncentryka – pauza góry, w sekundach."
-            />
-          </div>
-
-          <section className="app-card p-5">
-            <p className="app-label text-[var(--gym-gold)]">Trening prowadzony</p>
-            <h2 className="mt-2 text-xl font-semibold text-white">
-              {selected?.plan.planName.trim() || "Plan"} · {exerciseCount}{" "}
-              {exerciseCount === 1 ? "ćwiczenie" : "ćwiczeń"}
-            </h2>
-            <p className="mt-1.5 text-sm text-white/55">
-              {selected?.lastWorkoutDate
-                ? `Ostatnio ${formatPlanLastDoneLabel(selected.lastWorkoutDate)} · `
-                : "Jeszcze nie trenowano · "}
-              seria po serii, z odliczaniem przerw. Wynik trafia do historii.
-            </p>
-            <button
-              type="button"
-              disabled={!selected || exerciseCount === 0 || pending}
-              onClick={() => {
-                if (!selected) return;
-                startTransition(() => onBegin(selected));
-              }}
-              className="gym-btn-primary mt-5 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold disabled:opacity-50"
-            >
-              <Play className="h-5 w-5 fill-current" />
-              {pending ? "Startuję…" : "Rozpocznij trening"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setCardioOpen(true)}
-              className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[rgba(var(--neon-rgb),0.45)] bg-transparent text-sm font-semibold text-white"
-            >
-              <Flame className="h-4 w-4 text-[var(--gym-gold)]" />
-              Dodaj cardio
-            </button>
-          </section>
-        </>
-      )}
-
-      {plans.length === 0 ? (
-        <button
-          type="button"
-          onClick={() => setCardioOpen(true)}
-          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[rgba(var(--neon-rgb),0.45)] bg-[var(--gym-surface-sunken)] text-sm font-semibold text-white"
-        >
-          <Flame className="h-4 w-4 text-[var(--gym-gold)]" />
-          Dodaj cardio
-        </button>
-      ) : null}
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="app-card p-4">
-          <p className="app-label">Treningi w tyg.</p>
-          <p className="mt-2 font-display text-3xl tabular-nums text-[var(--gym-gold)]">
-            {stats.workoutsThisWeek}
-          </p>
-          <p className="mt-1 text-[10px] leading-snug text-white/35">
-            liczę tryb prowadzony
-          </p>
-        </div>
-        <div className="app-card p-4">
-          <p className="app-label">Cardio w tyg.</p>
-          <p className="mt-2 font-display text-3xl tabular-nums text-[var(--gym-gold)]">
-            {stats.cardioMinutesThisWeek}
-            <span className="text-base text-white/40">/{stats.cardioGoalMinutes}</span>
-          </p>
-          <p className="mt-1 text-[10px] text-white/35">minuty</p>
-        </div>
-        <div className="app-card p-4">
-          <p className="app-label">Tonaż w tyg.</p>
-          <p className="mt-2 font-display text-3xl tabular-nums text-[var(--gym-gold)]">
-            {stats.tonnageThisWeekKg}
-            <span className="text-base text-white/40"> kg</span>
-          </p>
-        </div>
-        <div className="app-card p-4">
-          <p className="app-label">Tren. tyg. z rzędu</p>
-          <p className="mt-2 font-display text-3xl tabular-nums text-[var(--gym-gold)]">
-            {stats.streakWeeks}
-          </p>
-        </div>
-      </div>
-
-      <section>
-        <h3 className="app-label">Ostatnie treningi</h3>
-        {stats.recentWorkouts.length === 0 ? (
-          <p className="mt-3 text-sm text-white/45">
-            Jeszcze nic. Pierwszy trening z trybu prowadzonego pojawi się tutaj.
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {stats.recentWorkouts.map((w) => (
-              <li
-                key={w.id}
-                className="app-card flex items-center justify-between px-3.5 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium text-white">{w.title}</p>
-                  <p className="mt-0.5 text-xs text-white/45">{formatShortDate(w.date)}</p>
-                </div>
-                <div className="text-right text-xs text-[var(--gym-gold)] tabular-nums">
-                  {w.volumeKg} kg
-                  {w.durationMinutes != null ? (
-                    <p className="text-white/40">{w.durationMinutes} min</p>
-                  ) : null}
-                </div>
-              </li>
-            ))}
           </ul>
         )}
       </section>
 
-      <section>
-        <h3 className="app-label">Ostatnie cardio</h3>
-        {stats.recentCardio.length === 0 ? (
-          <p className="mt-3 text-sm text-white/45">Brak wpisów cardio.</p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {stats.recentCardio.map((c) => (
-              <li
-                key={c.id}
-                className="app-card flex items-center justify-between px-3.5 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium text-white">{c.title}</p>
-                  <p className="mt-0.5 text-xs text-white/45">
-                    {formatShortDate(c.date)}
-                    {c.avgHr != null ? ` · ${c.avgHr} bpm` : ""}
-                  </p>
-                </div>
-                <p className="text-sm font-semibold tabular-nums text-[var(--gym-gold)]">
-                  {c.minutes} min
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
+      {/* 02 — korekta techniki */}
+      <section className="space-y-3">
+        <SectionLabel index={2} title="Korekta techniki" />
+        <div className="app-card divide-y divide-white/[0.06] overflow-hidden">
+          <Link
+            href="/technique"
+            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+          >
+            <Video className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-white">
+                Nagraj technikę
+              </span>
+              <span className="mt-0.5 block text-[12px] text-white/45">
+                wybierz film z telefonu i zapisz lokalnie
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
+          </Link>
+          <Link
+            href="/technique#moje-filmy"
+            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+          >
+            <Film className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-white">
+                Moje filmy
+              </span>
+              <span className="mt-0.5 block text-[12px] text-white/45">
+                lista zapisanych nagrań techniki
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
+          </Link>
+        </div>
       </section>
 
-      <p className="text-center text-xs text-white/35">
-        Import i edycja planu (usuwanie ćwiczeń, serie) są w{" "}
-        <Link href="/profile/workout-plan" className="text-[var(--gym-gold)] underline-offset-2 hover:underline">
-          Profilu → Plan treningowy
-        </Link>
-        .
-      </p>
+      {/* 03 — postępy */}
+      <section className="space-y-3">
+        <SectionLabel index={3} title="Postępy" />
+        <div className="app-card divide-y divide-white/[0.06] overflow-hidden">
+          <Link
+            href="/progress"
+            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+          >
+            <TrendingUp
+              className="h-4 w-4 shrink-0 text-[var(--gym-gold)]"
+              aria-hidden
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-white">
+                Postępy
+              </span>
+              <span className="mt-0.5 block text-[12px] text-white/45">
+                siła, sylwetka, zdjęcia, tydzień
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
+          </Link>
+          <Link
+            href="/workout-history"
+            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+          >
+            <History className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-white">
+                Historia treningów
+              </span>
+              <span className="mt-0.5 block text-[12px] text-white/45">
+                każda seria, poprawki do 7 dni
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
+          </Link>
+        </div>
+      </section>
+
+      {/* 04 — cardio */}
+      <section className="space-y-3">
+        <SectionLabel
+          index={4}
+          title="Cardio"
+          trailing={
+            <span className="inline-flex items-baseline gap-1 text-white/70">
+              <AnimatedMetric
+                value={stats.cardioMinutesThisWeek}
+                className="text-[15px] text-[var(--gym-gold)]"
+              />
+              <span className="text-[11px]">
+                / {stats.cardioGoalMinutes} min
+              </span>
+            </span>
+          }
+        />
+
+        <div className="app-card divide-y divide-white/[0.06] overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setCardioOpen(true)}
+            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.03]"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-white">
+                Marsz, bieg, bieżnia, zegarek
+              </span>
+              <span className="mt-0.5 block text-[12px] text-white/45">
+                w tym tygodniu:{" "}
+                <span className="tabular-nums text-white/70">
+                  {stats.cardioSessionsThisWeek}
+                </span>{" "}
+                {stats.cardioSessionsThisWeek === 1 ? "wpis" : "wpisów"}
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
+          </button>
+
+          {(recentCardioThisWeek.length > 0
+            ? recentCardioThisWeek
+            : stats.recentCardio
+          )
+            .slice(0, 3)
+            .map((c) => {
+              const inner = (
+                <>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-white">
+                      {c.title}
+                    </span>
+                    <span className="mt-0.5 block text-[12px] text-white/45">
+                      {formatShortDate(c.date)}
+                      {c.avgHr != null ? ` · ${c.avgHr} bpm` : ""}
+                    </span>
+                  </span>
+                  <span className="font-metric shrink-0 text-[18px] tabular-nums text-[var(--gym-gold)]">
+                    {c.minutes}
+                    <span className="ml-1 text-[11px] text-white/40">min</span>
+                  </span>
+                </>
+              );
+              if (c.kind === "cardio_log") {
+                return (
+                  <Link
+                    key={c.id}
+                    href={`/cardio/${c.id}`}
+                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.03]"
+                  >
+                    {inner}
+                    <ChevronRight className="h-4 w-4 shrink-0 text-white/30" aria-hidden />
+                  </Link>
+                );
+              }
+              return (
+                <div key={c.id} className="flex items-center gap-3 px-4 py-3">
+                  {inner}
+                </div>
+              );
+            })}
+        </div>
+      </section>
 
       <CardioLogSheet
         open={cardioOpen}
         onClose={() => setCardioOpen(false)}
         cardioGoalMinutes={stats.cardioGoalMinutes}
       />
-
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="max-h-[88dvh] border-white/10 bg-[#0c0c0c] text-white">
-          <SheetHeader>
-            <SheetTitle className="text-white">
-              Arkusz · {selected?.plan.planName.trim() || "Plan"}
-            </SheetTitle>
-          </SheetHeader>
-          <div className="space-y-0 overflow-y-auto px-1 pb-8">
-            {(selected?.plan.exercises ?? []).map((ex) => (
-              <div
-                key={ex.id}
-                className="flex items-center gap-3 border-b border-white/[0.06] px-3 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-white">{ex.name}</p>
-                  <p className="mt-0.5 font-mono text-[11px] text-white/40">
-                    {ex.sets}s {ex.reps} powt.
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  {Array.from({ length: Math.min(ex.sets, 2) }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex h-10 w-[4.75rem] items-center justify-center rounded-lg border border-white/10 bg-[#161616] text-[11px] text-white/35"
-                    >
-                      kg × powt.
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-            <p className="px-3 pt-4 text-xs text-white/40">
-              Wpisywanie serii odbywa się w trybie prowadzonym — użyj „Rozpocznij trening”.
-            </p>
-            <button
-              type="button"
-              disabled={!selected || exerciseCount === 0}
-              onClick={() => {
-                if (!selected) return;
-                setSheetOpen(false);
-                startTransition(() => onBegin(selected));
-              }}
-              className="gold-btn mx-3 mt-2 inline-flex h-12 w-[calc(100%-1.5rem)] items-center justify-center gap-2 rounded-xl text-sm font-semibold"
-            >
-              <Clock3 className="h-4 w-4" />
-              Start z arkusza
-            </button>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {toast ? (
-        <div className="fixed bottom-28 left-1/2 z-[90] -translate-x-1/2 rounded-full border border-white/10 bg-[#1a1a1a] px-4 py-2 text-xs text-white/80 shadow-lg">
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }
