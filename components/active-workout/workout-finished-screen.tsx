@@ -80,7 +80,7 @@ export function WorkoutFinishedScreen({
         className="py-3"
       />
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-6">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5">
         {newMaxHit ? (
           <div className="mt-1 w-full max-w-sm self-center">
             <PrAchievementGraphic
@@ -151,7 +151,7 @@ export function WorkoutFinishedScreen({
           </p>
         ) : null}
 
-        <div className="mt-auto flex w-full flex-col items-center pt-6">
+        <div className="mt-auto flex w-full flex-col items-center pt-6 pb-[max(1.25rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))]">
           <button
             type="button"
             disabled={saving}
@@ -212,7 +212,7 @@ export function WorkoutFinishedScreen({
             <button
               type="button"
               onClick={() => setCardioOpen(true)}
-              className="mt-4 inline-flex items-center gap-2 text-sm text-[var(--gym-gold)] hover:text-[var(--gym-gold-bright)]"
+              className="mt-4 inline-flex min-h-11 items-center gap-2 px-2 text-sm text-[var(--gym-gold)] hover:text-[var(--gym-gold-bright)]"
             >
               <Flame className="h-4 w-4" aria-hidden />
               Cardio: {cardioMinutes} min
@@ -222,7 +222,7 @@ export function WorkoutFinishedScreen({
               type="button"
               onClick={() => setCardioOpen(true)}
               className={cn(
-                "mt-4 inline-flex items-center gap-2 text-sm font-medium text-white/70 transition hover:text-white",
+                "mt-4 inline-flex min-h-11 items-center gap-2 px-2 text-sm font-medium text-white/70 transition hover:text-white",
               )}
             >
               <Flame className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />

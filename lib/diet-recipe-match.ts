@@ -19,12 +19,39 @@ export type MealPlanRow = {
 
 export type RecipeDifficulty = 1 | 2 | 3;
 export type RecipeTaste = "all" | "savory" | "sweet" | "fit_fast";
+export type RecipeCategory =
+  | "all"
+  | "mieso"
+  | "ryby"
+  | "wege"
+  | "nabial"
+  | "inne";
+
+export const RECIPE_CATEGORY_LABELS: Record<
+  Exclude<RecipeCategory, "all">,
+  string
+> = {
+  mieso: "Mięso",
+  ryby: "Ryby",
+  wege: "Wege",
+  nabial: "Nabiał",
+  inne: "Inne",
+};
 
 const SWEET_RE =
   /deser|kisiel|jogurt|owsiank|pudding|ciast|czekolad|truskawk|banan|smoothie|naleśnik|omlet\s+słod|granola|miod|erytryt|proteinowy\s+shake|shake|koktajl|budyń|sernik|lody|baton/i;
 
 const FIT_FAST_RE =
   /wrap|burger|pizza|frytk|nugget|kanapk|tost|hot.?dog|taco|quesadill|fast.?food|zapiekank/i;
+
+const FISH_RE =
+  /łosoś|losos|tuńczyk|tunczyk|dorsz|mintaj|krewet|owoc[eó]w\s+morza|ryb|śledź|sledz|makrela|halibut|pstrąg|pstrag|sardyn/i;
+const MEAT_RE =
+  /kurczak|indyk|wołow|wolow|wieprz|szynk|schab|mielon|karkówka|karkowka|boczek|kiełbas|kielbas|stek|wołowina|wołowina|udziec|udko|pierś|piers|mięso|mieso|wołowina/i;
+const DAIRY_RE =
+  /jogurt|twaróg|twarog|ser\b|skyr|mleko|kefir|maślank|maslank|cottage|mozzarella|feta|ricotta|śmietan|smietan|jajk|jajeczn/i;
+const VEG_RE =
+  /tofu|tempeh|ciecierzyc|soczewic|fasol|hummus|awokado|warzyw|salat|sałat|quinoa|kasza|owsiank|banan|owoc/i;
 
 export function recipeDifficulty(prepMinutes: number): RecipeDifficulty {
   const mins =
@@ -42,6 +69,18 @@ export function recipeTaste(meal: CatalogMeal): "savory" | "sweet" | "fit_fast" 
   if (FIT_FAST_RE.test(hay)) return "fit_fast";
   if (SWEET_RE.test(hay)) return "sweet";
   return "savory";
+}
+
+export function recipeCategory(
+  meal: CatalogMeal,
+): Exclude<RecipeCategory, "all"> {
+  const ingredients = Array.isArray(meal.ingredients) ? meal.ingredients : [];
+  const hay = `${meal.title} ${meal.tagline ?? ""} ${ingredients.join(" ")}`;
+  if (FISH_RE.test(hay)) return "ryby";
+  if (MEAT_RE.test(hay)) return "mieso";
+  if (DAIRY_RE.test(hay)) return "nabial";
+  if (VEG_RE.test(hay)) return "wege";
+  return "inne";
 }
 
 export function buildMealPlanRows(
@@ -114,9 +153,11 @@ export function filterCatalogForMealPlan(args: {
   query: string;
   difficulty: RecipeDifficulty | "all";
   taste: RecipeTaste;
+  category?: RecipeCategory;
   limit?: number;
 }): CatalogMeal[] {
   const q = args.query.trim().toLowerCase();
+  const category = args.category ?? "all";
   const list = Array.isArray(args.meals) ? args.meals : [];
   const scored = list
     .map((meal) => {
@@ -127,6 +168,7 @@ export function filterCatalogForMealPlan(args: {
         }
         const taste = recipeTaste(meal);
         if (args.taste !== "all" && taste !== args.taste) return null;
+        if (category !== "all" && recipeCategory(meal) !== category) return null;
         if (q) {
           const ingredients = Array.isArray(meal.ingredients) ? meal.ingredients : [];
           const hay =
@@ -154,6 +196,21 @@ export function countByDifficulty(meals: CatalogMeal[]): Record<RecipeDifficulty
 export function countByTaste(meals: CatalogMeal[]): Record<"all" | "savory" | "sweet" | "fit_fast", number> {
   const out = { all: meals.length, savory: 0, sweet: 0, fit_fast: 0 };
   for (const m of meals) out[recipeTaste(m)] += 1;
+  return out;
+}
+
+export function countByCategory(
+  meals: CatalogMeal[],
+): Record<RecipeCategory, number> {
+  const out: Record<RecipeCategory, number> = {
+    all: meals.length,
+    mieso: 0,
+    ryby: 0,
+    wege: 0,
+    nabial: 0,
+    inne: 0,
+  };
+  for (const m of meals) out[recipeCategory(m)] += 1;
   return out;
 }
 

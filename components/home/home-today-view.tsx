@@ -1,18 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { HomeReportCard } from "@/components/home/home-report-card";
 import { HomeTrainingCard, type HomeTrainingDayOption } from "@/components/home/home-training-card";
 import { HomeSupplementsChip } from "@/components/home/home-supplements-chip";
+import { StartMetricTiles } from "@/components/home/start-metric-tiles";
 import { HomeSylwetkaSection } from "@/components/home/home-sylwetka-section";
 import { HomeZalozeniaSection } from "@/components/home/home-zalozenia-section";
+import { HomeOdDamiana } from "@/components/home/home-od-damiana";
+import { HomePrzemianaSection } from "@/components/home/home-przemiana-section";
 import { HomeObwodySection } from "@/components/home/home-obwody-section";
 import { HomeRecentWorkouts } from "@/components/home/home-recent-workouts";
 import { OnboardingBanner } from "@/components/home/onboarding-banner";
+import { AppMenuButton } from "@/components/layout/app-menu-button";
 import type {
   HomeStartDashboard,
   HomeStartSpark,
+  HomeStartTodayMacros,
   HomeStartWaistPoint,
+  HomeStartWeekMacros,
   HomeStartWeightPoint,
 } from "@/lib/home-start";
 import type { RecentWorkoutItem } from "@/lib/treningi-hub-stats";
@@ -62,9 +67,15 @@ export type HomeTodayViewProps = {
   weightDeltaFromPreviousKg: number | null;
   weightFromStartKg: number | null;
   weightKgPerWeek: number | null;
+  tempoKgPerMin: number | null;
+  todayMacros: HomeStartTodayMacros;
+  weekMacros: HomeStartWeekMacros;
   weightSeries: HomeStartWeightPoint[];
   waistSeries: HomeStartWaistPoint[];
   compliance: HomeStartDashboard["compliance"];
+  formToday: HomeStartDashboard["formToday"];
+  coachNote: HomeStartDashboard["coachNote"];
+  transformation: HomeStartDashboard["transformation"];
   dimensions: {
     waistCm: number | null;
     thighCm: number | null;
@@ -93,9 +104,9 @@ export function HomeTodayView(props: HomeTodayViewProps) {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-start justify-between gap-3">
+      <header className="flex items-start justify-between gap-3 pt-1">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]/80">
             {formatHeaderDate(today)}
           </p>
           <h1 className="mt-1 text-[32px] font-semibold leading-tight tracking-tight text-white">
@@ -103,11 +114,13 @@ export function HomeTodayView(props: HomeTodayViewProps) {
             {greetingName ? (
               <>
                 ,{" "}
-                <span className="text-[var(--gym-gold)]">{greetingName}</span>
+                <span
+                  className="bg-gradient-to-r from-[var(--gym-gold-bright)] via-[var(--gym-gold)] to-[var(--gym-gold-deep)] bg-clip-text text-transparent"
+                >
+                  {greetingName}
+                </span>
               </>
-            ) : (
-              ""
-            )}
+            ) : null}
           </h1>
           <p className="mt-1.5 text-[13px] text-white/45">
             {programWeek != null
@@ -123,18 +136,12 @@ export function HomeTodayView(props: HomeTodayViewProps) {
           </p>
         </div>
 
-        <Link
-          href="/profile"
-          className="flex shrink-0 flex-col items-center gap-1"
-          aria-label="Profil"
-        >
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--gym-gold)]/55 bg-[var(--gym-gold)]/15 font-semibold tracking-wide text-[var(--gym-gold)]">
+        <div className="flex shrink-0 flex-col items-center gap-2">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border-2 border-[var(--gym-gold)]/70 bg-[var(--gym-gold)]/10 font-semibold tracking-wide text-white">
             {initials(props.firstName, props.lastName)}
           </span>
-          <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
-            Profil
-          </span>
-        </Link>
+          <AppMenuButton variant="home" />
+        </div>
       </header>
 
       {props.showOnboarding ? <OnboardingBanner /> : null}
@@ -154,6 +161,15 @@ export function HomeTodayView(props: HomeTodayViewProps) {
 
       <HomeSupplementsChip names={props.supplementNames} />
 
+      <StartMetricTiles
+        weightKg={props.weightKg}
+        tempoKgPerMin={props.tempoKgPerMin}
+        weightFromStartKg={props.weightFromStartKg}
+        weightDeltaFromPreviousKg={props.weightDeltaFromPreviousKg}
+        todayMacros={props.todayMacros}
+        weekMacros={props.weekMacros}
+      />
+
       <HomeSylwetkaSection
         weightKg={props.weightKg}
         weightDeltaFromPreviousKg={props.weightDeltaFromPreviousKg}
@@ -172,6 +188,19 @@ export function HomeTodayView(props: HomeTodayViewProps) {
         dietHistory={props.compliance.dietHistory}
         trainingHistory={props.compliance.trainingHistory}
         cardioHistory={props.compliance.cardioHistory}
+        formToday={props.formToday}
+      />
+
+      <HomeOdDamiana
+        text={props.coachNote?.text ?? null}
+        dateKey={props.coachNote?.dateKey ?? null}
+      />
+
+      <HomePrzemianaSection
+        firstPhotoUrl={props.transformation.firstPhotoUrl}
+        latestPhotoUrl={props.transformation.latestPhotoUrl}
+        latestPhotoDate={props.transformation.latestPhotoDate}
+        weightFromStartKg={props.weightFromStartKg}
       />
 
       <HomeObwodySection

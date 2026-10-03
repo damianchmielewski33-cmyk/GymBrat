@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
-  CartesianGrid,
   Cell,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -23,7 +23,7 @@ const FILTERS = [
 type FilterId = (typeof FILTERS)[number]["id"];
 
 const GOLD = "#ebc44a";
-const GOLD_DIM = "rgba(235,196,74,0.35)";
+const GREY = "rgba(255,255,255,0.28)";
 const BLUE = "#60a5fa";
 
 const tooltipStyle = {
@@ -36,61 +36,80 @@ const tooltipStyle = {
   padding: "10px 12px",
 };
 
+function mondayShort(iso: string) {
+  try {
+    return new Intl.DateTimeFormat("pl-PL", {
+      day: "2-digit",
+      month: "2-digit",
+    }).format(new Date(`${iso}T12:00:00`));
+  } catch {
+    return iso.slice(5).replace("-", ".");
+  }
+}
+
 export function WeekBarChart({ weeks }: { weeks: ProgressWeekBar[] }) {
   const [filter, setFilter] = useState<FilterId>("workouts");
 
   const data = useMemo(
     () =>
-      weeks.map((w) => ({
-        ...w,
-        short: w.label.split("–")[0]?.trim() ?? w.label,
-        value:
+      weeks.map((w) => {
+        const value =
           filter === "workouts"
             ? w.workouts
             : filter === "tonnage"
-              ? w.tonnageKg
-              : w.cardioMinutes,
-      })),
+              ? Math.round((w.tonnageKg / 1000) * 10) / 10
+              : w.cardioMinutes;
+        return {
+          ...w,
+          short: mondayShort(w.monday),
+          value,
+          display:
+            filter === "workouts"
+              ? value > 0
+                ? String(value)
+                : ""
+              : filter === "tonnage"
+                ? value > 0
+                  ? String(value).replace(".", ",")
+                  : ""
+                : value > 0
+                  ? String(value)
+                  : "",
+        };
+      }),
     [weeks, filter],
   );
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1 rounded-xl border border-white/10 bg-black/25 p-1">
+      <div className="-mx-0.5 flex gap-2 overflow-x-auto px-0.5">
         {FILTERS.map((f) => (
           <button
             key={f.id}
             type="button"
             onClick={() => setFilter(f.id)}
             className={cn(
-              "flex-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold tracking-wide transition-colors",
+              "shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition",
               filter === f.id
-                ? "bg-[var(--gym-gold)]/18 text-[var(--gym-gold-bright)]"
-                : "text-white/45 hover:text-white/70",
+                ? "border border-[var(--gym-gold)]/70 bg-[rgba(var(--neon-rgb),0.08)] text-[var(--gym-gold)]"
+                : "border border-transparent bg-black/30 text-white/60",
             )}
           >
             {f.label}
           </button>
         ))}
       </div>
-      <div className="h-[220px] w-full min-w-0">
+      <div className="h-[200px] w-full min-w-0">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+          <BarChart data={data} margin={{ top: 18, right: 4, left: 0, bottom: 0 }}>
             <XAxis
               dataKey="short"
-              tick={{ fill: "rgba(255,255,255,0.38)", fontSize: 9 }}
+              tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
               axisLine={false}
               tickLine={false}
               interval={0}
             />
-            <YAxis
-              tick={{ fill: "rgba(255,255,255,0.38)", fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-              width={32}
-              allowDecimals={filter !== "workouts"}
-            />
+            <YAxis hide domain={[0, "auto"]} />
             <Tooltip
               contentStyle={tooltipStyle}
               labelFormatter={(_, payload) => {
@@ -100,21 +119,33 @@ export function WeekBarChart({ weeks }: { weeks: ProgressWeekBar[] }) {
               formatter={(value) => {
                 const n = Number(value);
                 if (filter === "workouts") return [`${n}`, "Treningi"];
-                if (filter === "tonnage")
-                  return [`${n.toLocaleString("pl-PL")} kg`, "Tonaż"];
+                if (filter === "tonnage") return [`${n} t`, "Tonaż"];
                 return [`${n} min`, "Cardio"];
               }}
             />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={28}>
+            <Bar dataKey="value" radius={[5, 5, 0, 0]} maxBarSize={22} minPointSize={2}>
+              <LabelList
+                dataKey="display"
+                position="top"
+                style={{
+                  fill: "rgba(255,255,255,0.75)",
+                  fontSize: 11,
+                  fontWeight: 600,
+                }}
+              />
               {data.map((entry) => (
                 <Cell
                   key={entry.monday}
                   fill={
                     filter === "cardio"
-                      ? BLUE
+                      ? entry.value > 0
+                        ? BLUE
+                        : GREY
                       : entry.complete
                         ? GOLD
-                        : GOLD_DIM
+                        : entry.value > 0
+                          ? GREY
+                          : "rgba(255,255,255,0.12)"
                   }
                 />
               ))}
@@ -122,6 +153,9 @@ export function WeekBarChart({ weeks }: { weeks: ProgressWeekBar[] }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+      <p className="text-[11px] leading-relaxed text-white/40">
+        Złoty słupek to tydzień z kompletem treningów z planu.
+      </p>
     </div>
   );
 }

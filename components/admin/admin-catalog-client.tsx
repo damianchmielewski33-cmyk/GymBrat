@@ -12,9 +12,11 @@ import {
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import type { CatalogMeal } from "@/lib/meal-catalog-types";
 import { parseCatalogImportPayload } from "@/lib/meal-catalog-import";
+import { MEAL_CATALOG_AI_PROMPT } from "@/lib/meal-catalog-ai-prompt";
 import { MEAL_SLOT_LABELS, type MealSlot } from "@/lib/meal-catalog";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { formatMessage } from "@/lib/i18n/format";
+import { Check, Copy } from "lucide-react";
 
 const PLACEHOLDER_JSON = `[]`;
 
@@ -72,8 +74,20 @@ export function AdminCatalogClient() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [replaceOpen, setReplaceOpen] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
 
   const validation = useMemo(() => validateJsonText(jsonText), [jsonText]);
+
+  async function copyAiPrompt() {
+    try {
+      await navigator.clipboard.writeText(MEAL_CATALOG_AI_PROMPT);
+      setPromptCopied(true);
+      notifySaved("Skopiowano prompt dla AI.");
+      window.setTimeout(() => setPromptCopied(false), 2000);
+    } catch {
+      notifyError("Nie udało się skopiować — zaznacz tekst ręcznie.");
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -247,6 +261,47 @@ export function AdminCatalogClient() {
           {error}
         </p>
       ) : null}
+
+      <div className="app-card space-y-3 p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+              Prompt dla AI
+            </p>
+            <p className="mt-1.5 text-sm text-white/55">
+              Skopiuj i wklej do innego modelu AI. Odpowiedź (JSON) wklej poniżej i kliknij
+              Dodaj / Zastąp.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void copyAiPrompt()}
+            className="shrink-0 border-[var(--gym-gold)]/40 text-[var(--gym-gold)] hover:bg-[var(--gym-gold)]/10"
+          >
+            {promptCopied ? (
+              <>
+                <Check className="mr-1.5 h-4 w-4" />
+                Skopiowano
+              </>
+            ) : (
+              <>
+                <Copy className="mr-1.5 h-4 w-4" />
+                Kopiuj prompt
+              </>
+            )}
+          </Button>
+        </div>
+        <textarea
+          readOnly
+          value={MEAL_CATALOG_AI_PROMPT}
+          rows={14}
+          spellCheck={false}
+          className="w-full resize-y rounded-xl border border-white/10 bg-black/50 p-3 font-mono text-[11px] leading-relaxed text-white/80 outline-none focus:border-[var(--gym-gold)]/40"
+          onFocus={(e) => e.currentTarget.select()}
+          aria-label="Prompt do generowania katalogu przepisów"
+        />
+      </div>
 
       <div className="glass-panel neon-glow space-y-4 p-5 sm:p-6">
         <div className="flex flex-wrap gap-2">

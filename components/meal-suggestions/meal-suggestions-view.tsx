@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  clearDietDayKindAction,
   loadDietDayAction,
   setDietDayKindAction,
 } from "@/actions/diet-day";
@@ -16,7 +17,7 @@ import { MealCatalogBrowser } from "@/components/meal-suggestions/meal-catalog-b
 import { EditMealLogSheet } from "@/components/meal-suggestions/edit-meal-log-sheet";
 import { AddMealScreen } from "@/components/meal-suggestions/add-meal-screen";
 import { FoodPortionScreen } from "@/components/meal-suggestions/food-portion-screen";
-import { DietWeekStrip } from "@/components/meal-suggestions/diet-week-strip";
+import { DietDateNav } from "@/components/meal-suggestions/diet-date-nav";
 import { DietMealPlanPanel } from "@/components/meal-suggestions/diet-meal-plan-panel";
 import { DietDiaryPanel } from "@/components/meal-suggestions/diet-diary-panel";
 import { DietDayMacrosBar } from "@/components/meal-suggestions/diet-day-macros-bar";
@@ -47,7 +48,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useOverlayHistoryBack } from "@/hooks/use-overlay-history-back";
 import { useI18n } from "@/components/i18n/i18n-provider";
-import { AppPageHeader } from "@/components/layout/screen";
+import { appPageKickerClass, appPageTitleClass } from "@/components/layout/screen";
 import { cn } from "@/lib/utils";
 
 function formatDateLabel(dateKey: string): string {
@@ -135,27 +136,30 @@ function DeleteMealButton({
 
 function tabButtonClass(active: boolean) {
   return cn(
-    "rounded-full border px-5 py-2 text-sm",
+    "rounded-full border px-4 py-1.5 text-[13px] leading-none",
     active
-      ? "border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/20 font-semibold text-[var(--gym-gold)]"
-      : "border-white/12 bg-white/[0.04] font-medium text-white/55",
+      ? "border-[#6b5428] bg-[#5a4320] font-semibold text-[var(--gym-gold)]"
+      : "border-white/25 bg-transparent font-medium text-white/80",
   );
 }
 
 function dayKindButtonClass(active: boolean) {
   return cn(
-    "rounded-full border px-3 py-1.5 text-[11px] uppercase tracking-wide",
+    "rounded-full border px-3.5 py-1.5 text-[12px]",
     active
-      ? "border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/20 font-semibold text-[var(--gym-gold)]"
-      : "border-white/12 bg-white/[0.04] font-medium text-white/55",
+      ? "border-[var(--gym-gold)]/55 bg-transparent font-semibold text-[var(--gym-gold)]"
+      : "border-white/18 bg-transparent font-medium text-white/55",
   );
 }
+
+type DayKindChoice = NutritionDayType | "default";
 
 export function MealSuggestionsView({
   initialSummary: _initialSummary,
   initialGaps,
   initialLogs,
   initialDayKind = "rest",
+  initialDayKindExplicit = false,
   mealTemplates = [],
   catalogMeals = [],
   isAdmin = false,
@@ -167,6 +171,7 @@ export function MealSuggestionsView({
   initialGaps: MacroGaps;
   initialLogs: MealLogDto[];
   initialDayKind?: NutritionDayType;
+  initialDayKindExplicit?: boolean;
   mealTemplates?: MealTemplate[];
   catalogMeals?: CatalogMeal[];
   isAdmin?: boolean;
@@ -195,6 +200,9 @@ export function MealSuggestionsView({
   const [gaps, setGaps] = useState(initialGaps);
   const [logs, setLogs] = useState(initialLogs);
   const [dayKind, setDayKind] = useState<NutritionDayType>(initialDayKind);
+  const [dayKindChoice, setDayKindChoice] = useState<DayKindChoice>(
+    initialDayKindExplicit ? initialDayKind : "default",
+  );
   const [pending, start] = useTransition();
   const [addSlot, setAddSlot] = useState<DietDiarySlot | null>(null);
   const [dishPickerOpen, setDishPickerOpen] = useState(false);
@@ -244,6 +252,9 @@ export function MealSuggestionsView({
         setGaps(r.data.gaps);
         setLogs(r.data.logs);
         setDayKind(r.data.dayKind);
+        setDayKindChoice(
+          r.data.dayKindExplicit ? r.data.dayKind : "default",
+        );
       });
     },
     [notifyError],
@@ -317,60 +328,130 @@ export function MealSuggestionsView({
           return;
         }
         setDayKind(kind);
+        setDayKindChoice(kind);
         refreshDay(dateKey);
       });
     },
     [dateKey, notifyError, refreshDay],
   );
 
+  const clearDayKindOptimistic = useCallback(() => {
+    start(async () => {
+      const r = await clearDietDayKindAction(dateKey);
+      if (!r.ok) {
+        notifyError(r.error);
+        return;
+      }
+      setDayKindChoice("default");
+      refreshDay(dateKey);
+    });
+  }, [dateKey, notifyError, refreshDay]);
+
+  const dayKindKicker =
+    dayKind === "training" ? "DZIEŃ TRENINGOWY" : "DZIEŃ NIETRENINGOWY";
+  const kcalKicker =
+    dayMacros.caloriesGoal != null
+      ? `${Math.round(dayMacros.caloriesGoal)} KCAL`
+      : null;
+
   return (
     <div className="relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      <AppPageHeader
-        kicker="Dieta"
-        title="Jadłospis"
-        description={dateLabel}
-        className="px-1"
-      />
+      <header className="space-y-3 px-1 pt-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            {tab === "plan" ? (
+              <>
+                <p className={appPageKickerClass}>
+                  {dayKindKicker}
+                  {kcalKicker ? ` · ${kcalKicker}` : ""}
+                </p>
+                <h1 className={cn(appPageTitleClass, "mt-1.5")}>Twój plan</h1>
+              </>
+            ) : (
+              <>
+                <p className={appPageKickerClass}>Co zjadłeś</p>
+                <h1
+                  className={cn(
+                    "mt-1.5 font-metric text-[34px] font-normal leading-none tracking-tight text-white",
+                  )}
+                >
+                  Dziennik
+                </h1>
+              </>
+            )}
+          </div>
+          <div className="mt-5 flex shrink-0 gap-1.5">
+            <button
+              type="button"
+              onClick={() => setTab("plan")}
+              className={tabButtonClass(tab === "plan")}
+            >
+              {t("diet.tabPlan")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("diary")}
+              className={tabButtonClass(tab === "diary")}
+            >
+              {t("diet.tabDiary")}
+            </button>
+          </div>
+        </div>
 
-      <div className="flex gap-2 px-1 pt-1">
-        <button
-          type="button"
-          onClick={() => setTab("plan")}
-          className={tabButtonClass(tab === "plan")}
-        >
-          {t("diet.tabPlan")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("diary")}
-          className={tabButtonClass(tab === "diary")}
-        >
-          {t("diet.tabDiary")}
-        </button>
-      </div>
+        {tab === "diary" ? (
+          <DietDateNav dateKey={dateKey} onSelect={(k) => refreshDay(k)} />
+        ) : null}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 px-1">
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => setDayKindOptimistic("training")}
-          className={dayKindButtonClass(dayKind === "training")}
-        >
-          Dzień treningowy
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => setDayKindOptimistic("rest")}
-          className={dayKindButtonClass(dayKind === "rest")}
-        >
-          Nietreningowy
-        </button>
-      </div>
-
-      <div className="mt-3 px-1">
-        <DietWeekStrip dateKey={dateKey} onSelect={(k) => refreshDay(k)} />
-      </div>
+        {tab === "plan" ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => setDayKindOptimistic("training")}
+              className={dayKindButtonClass(dayKindChoice === "training")}
+            >
+              Dzień treningowy
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => setDayKindOptimistic("rest")}
+              className={dayKindButtonClass(
+                dayKindChoice === "rest" || dayKindChoice === "default",
+              )}
+            >
+              Nietreningowy
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => setDayKindOptimistic("training")}
+              className={dayKindButtonClass(dayKindChoice === "training")}
+            >
+              Treningowy
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => setDayKindOptimistic("rest")}
+              className={dayKindButtonClass(dayKindChoice === "rest")}
+            >
+              Nietreningowy
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={clearDayKindOptimistic}
+              className={dayKindButtonClass(dayKindChoice === "default")}
+            >
+              domyślnie
+            </button>
+          </div>
+        )}
+      </header>
 
       <div
         key={`${tab}-${dateKey}`}
@@ -396,6 +477,7 @@ export function MealSuggestionsView({
             <DietDiaryPanel
               bySlot={bySlot}
               dayMacros={dayMacros}
+              mealTemplates={mealTemplates}
               defaultScanSlot={defaultScanSlot}
               onScan={openScan}
               onOpenCatalog={(slot) => {

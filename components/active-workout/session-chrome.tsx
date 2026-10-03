@@ -45,39 +45,48 @@ export function SessionChromeHeader({
 }) {
   return (
     <header
-      className={cn(
-        "relative flex items-center justify-between gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]",
-        className,
-      )}
+      className="pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.5rem))]"
+      data-session-chrome-header
     >
-      <button
-        type="button"
-        onClick={onClose}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08]"
-        aria-label="Zamknij sesję"
+      {/*
+        Safe-area jest na zewnętrznym wrapperze — className nie może
+        nadpisać pt-* (wcześniej pt-3 na iOS chował X / listę pod status barem).
+      */}
+      <div
+        className={cn(
+          "relative flex items-center justify-between gap-2 px-3 pb-2",
+          className,
+        )}
       >
-        <X className="h-4 w-4" />
-      </button>
-      <div className="min-w-0 text-center">
-        <p className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-          {title}
-        </p>
-        <p className="mt-0.5 text-xs tabular-nums text-white/65">{subtitle}</p>
-      </div>
-      {listDisabled || !onOpenList ? (
-        <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/12 text-white/35">
-          <List className="h-4 w-4" />
-        </span>
-      ) : (
         <button
           type="button"
-          onClick={onOpenList}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08]"
-          aria-label="Lista ćwiczeń"
+          onClick={onClose}
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08]"
+          aria-label="Zamknij sesję"
         >
-          <List className="h-4 w-4" />
+          <X className="h-4 w-4" />
         </button>
-      )}
+        <div className="min-w-0 flex-1 text-center">
+          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+            {title}
+          </p>
+          <p className="mt-0.5 text-xs tabular-nums text-white/65">{subtitle}</p>
+        </div>
+        {listDisabled || !onOpenList ? (
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 text-white/35">
+            <List className="h-4 w-4" />
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenList}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08]"
+            aria-label="Lista ćwiczeń"
+          >
+            <List className="h-4 w-4" />
+          </button>
+        )}
+      </div>
     </header>
   );
 }

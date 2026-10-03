@@ -51,10 +51,7 @@ function ComplianceRing({
           {count == null ? (
             <p className="font-metric text-[28px] text-white/35">—</p>
           ) : (
-            <AnimatedMetric
-              value={count}
-              className="text-[28px] text-white"
-            />
+            <AnimatedMetric value={count} className="text-[28px] text-white" />
           )}
         </div>
       </div>
@@ -107,6 +104,19 @@ function DotRow({
   );
 }
 
+function FormTile({ label, value }: { label: string; value: number | null }) {
+  return (
+    <div className="rounded-2xl bg-black/35 px-2 py-3.5 text-center">
+      {value != null ? (
+        <AnimatedMetric value={value} className="text-[28px] leading-none text-white" />
+      ) : (
+        <p className="font-metric text-[28px] leading-none text-white/35">—</p>
+      )}
+      <p className="mt-1.5 text-[11px] text-white/50">{label}</p>
+    </div>
+  );
+}
+
 function countTak(slots: HomeComplianceSlot[]): number | null {
   if (slots.length === 0) return null;
   const known = slots.filter((s) => s === "tak" || s === "nie");
@@ -122,6 +132,7 @@ export function HomeZalozeniaSection({
   dietHistory,
   trainingHistory,
   cardioHistory,
+  formToday,
 }: {
   dietPct: number | null;
   trainingPct: number | null;
@@ -130,6 +141,12 @@ export function HomeZalozeniaSection({
   dietHistory: HomeComplianceSlot[];
   trainingHistory: HomeComplianceSlot[];
   cardioHistory: HomeComplianceSlot[];
+  formToday: {
+    energy: number | null;
+    sleep: number | null;
+    digestion: number | null;
+    training: number | null;
+  };
 }) {
   return (
     <section className="space-y-3">
@@ -175,6 +192,18 @@ export function HomeZalozeniaSection({
           <DotRow label="Dieta" slots={dietHistory} />
           <DotRow label="Treningi" slots={trainingHistory} />
           <DotRow label="Cardio" slots={cardioHistory} />
+        </div>
+
+        <div>
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            Forma z ostatniego raportu
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            <FormTile label="Energia" value={formToday.energy} />
+            <FormTile label="Sen" value={formToday.sleep} />
+            <FormTile label="Trawienie" value={formToday.digestion} />
+            <FormTile label="Trening" value={formToday.training} />
+          </div>
         </div>
       </div>
     </section>

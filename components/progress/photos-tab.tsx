@@ -10,22 +10,43 @@ import { cn } from "@/lib/utils";
 
 const BASELINE_KEY = "gymbrat:photo-baseline-id:v1";
 
-function formatShort(iso: string) {
+function formatDayMonth(iso: string) {
   try {
     return new Intl.DateTimeFormat("pl-PL", {
-      day: "numeric",
-      month: "short",
-      year: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
     }).format(new Date(`${iso}T12:00:00`));
   } catch {
     return iso;
   }
 }
 
+function daysBetween(a: string, b: string): number | null {
+  try {
+    const t0 = new Date(`${a}T12:00:00`).getTime();
+    const t1 = new Date(`${b}T12:00:00`).getTime();
+    if (!Number.isFinite(t0) || !Number.isFinite(t1)) return null;
+    return Math.max(0, Math.round(Math.abs(t1 - t0) / (24 * 60 * 60 * 1000)));
+  } catch {
+    return null;
+  }
+}
+
+function fmtNum(n: number | null, digits = 0): string {
+  if (n == null) return "—";
+  return n.toLocaleString("pl-PL", {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  });
+}
+
 function fmtDelta(n: number | null, unit: string): string {
   if (n == null) return "—";
-  const sign = n > 0 ? "+" : "";
-  return `${sign}${n.toLocaleString("pl-PL", { maximumFractionDigits: 1 })} ${unit}`;
+  const sign = n > 0 ? "+" : n < 0 ? "−" : "";
+  const abs = Math.abs(n).toLocaleString("pl-PL", {
+    maximumFractionDigits: 1,
+  });
+  return `${sign}${abs} ${unit}`;
 }
 
 export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
@@ -69,19 +90,18 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
       ? Math.round((now.waistCm - start.waistCm) * 10) / 10
       : data.waistDeltaCm;
 
+  const spanDays =
+    start && now ? daysBetween(start.date, now.date) : null;
   const canCompare = Boolean(start && now && start.id !== now.id);
 
   return (
     <div className="space-y-5">
-      <section className="app-card space-y-3 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-          Porównanie
-        </p>
-
+      <section className="space-y-3">
         {!canCompare ? (
-          <div className="rounded-2xl bg-black/30 px-4 py-10 text-center">
+          <div className="rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] px-4 py-10 text-center">
             <p className="text-sm text-white/55">
-              Dodaj co najmniej dwa zdjęcia w raportach, żeby porównać Start i Teraz.
+              Dodaj co najmniej dwa zdjęcia w raportach, żeby porównać Start i
+              Teraz.
             </p>
             <Link
               href="/reports?new=1"
@@ -92,7 +112,7 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
           </div>
         ) : (
           <>
-            <div className="relative aspect-square w-full overflow-hidden rounded-3xl bg-black">
+            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-black">
               <Image
                 src={now!.dataUrl}
                 alt="Zdjęcie teraz"
@@ -115,20 +135,14 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
                 />
               </div>
               <div
-                className="pointer-events-none absolute inset-y-0 w-px bg-white/90"
+                className="pointer-events-none absolute inset-y-0 w-px bg-[var(--gym-gold)]"
                 style={{ left: `${pos}%` }}
               />
               <div
-                className="pointer-events-none absolute top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black"
+                className="pointer-events-none absolute top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-black/20 bg-[var(--gym-gold)] text-black shadow-[0_0_18px_rgba(235,196,74,0.45)]"
                 style={{ left: `${pos}%` }}
               >
                 <MoveHorizontal className="h-4 w-4" />
-              </div>
-              <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/85">
-                Start
-              </div>
-              <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/85">
-                Teraz · {formatShort(now!.date)}
               </div>
               <input
                 type="range"
@@ -140,10 +154,11 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
                 aria-label="Porównanie Start i Teraz"
               />
             </div>
+
             <button
               type="button"
               onClick={() => setPickerOpen((v) => !v)}
-              className="block w-full text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45 hover:text-white/70"
+              className="block w-full text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]"
             >
               Zmień zdjęcie startowe
             </button>
@@ -151,7 +166,7 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
         )}
 
         {pickerOpen && items.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2 pt-1">
+          <div className="grid grid-cols-3 gap-2">
             {items.map((p) => (
               <button
                 key={p.id}
@@ -172,75 +187,112 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
                   className="object-cover"
                   sizes="120px"
                 />
+                <span className="absolute inset-x-0 bottom-0 bg-black/65 px-1 py-0.5 text-center text-[9px] text-white/80">
+                  {formatDayMonth(p.date)}
+                </span>
               </button>
             ))}
           </div>
         ) : null}
       </section>
 
-      <section className="space-y-3">
-        <SectionLabel index="02" title="Start i Teraz" />
+      <section className="space-y-2.5">
+        <SectionLabel
+          index={2}
+          title="Start i Teraz"
+          trailing={spanDays != null ? `${spanDays} dni` : undefined}
+          titleTone="white"
+        />
+
         <div className="grid grid-cols-2 gap-2.5">
-          <PhotoMetricCard
-            label="Start"
-            photo={start}
-            fallbackDate={data.start?.date}
+          <PhotoMetricCard kind="start" photo={start} />
+          <PhotoMetricCard kind="now" photo={now} />
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+          <MetricRow
+            label="Waga"
+            from={start?.weightKg}
+            to={now?.weightKg}
+            unit="kg"
+            delta={weightDelta}
+            deltaTone={
+              weightDelta != null && weightDelta < 0
+                ? "text-white"
+                : "text-white"
+            }
           />
-          <PhotoMetricCard label="Teraz" photo={now} fallbackDate={data.now?.date} />
+          <MetricRow
+            label="Pas"
+            from={start?.waistCm}
+            to={now?.waistCm}
+            unit="cm"
+            delta={waistDelta}
+            deltaTone={
+              waistDelta != null && waistDelta < 0
+                ? "text-emerald-400"
+                : "text-white"
+            }
+          />
         </div>
-        <div className="app-card grid grid-cols-2 gap-3 px-4 py-3.5">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
-              Waga
-            </p>
-            <p
-              className={cn(
-                "mt-1 font-metric text-xl tabular-nums",
-                weightDelta != null && weightDelta < 0
-                  ? "text-emerald-400"
-                  : "text-white",
-              )}
-            >
-              {fmtDelta(weightDelta, "kg")}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
-              Pas
-            </p>
-            <p
-              className={cn(
-                "mt-1 font-metric text-xl tabular-nums",
-                waistDelta != null && waistDelta < 0
-                  ? "text-emerald-400"
-                  : "text-white",
-              )}
-            >
-              {fmtDelta(waistDelta, "cm")}
-            </p>
-          </div>
-        </div>
+
+        {start && now ? (
+          <p className="px-0.5 text-[11px] leading-relaxed text-white/40">
+            Start to{" "}
+            {data.start?.id === start.id ? "pierwszy raport" : "wybrany raport"}{" "}
+            ({formatDayMonth(start.date)}), teraz to raport z{" "}
+            {formatDayMonth(now.date)}.
+          </p>
+        ) : null}
       </section>
     </div>
   );
 }
 
-function PhotoMetricCard({
+function MetricRow({
   label,
-  photo,
-  fallbackDate,
+  from,
+  to,
+  unit,
+  delta,
+  deltaTone,
 }: {
   label: string;
-  photo: ProgressPhotoItem | null;
-  fallbackDate?: string;
+  from: number | null | undefined;
+  to: number | null | undefined;
+  unit: string;
+  delta: number | null;
+  deltaTone: string;
 }) {
   return (
-    <div className="app-card overflow-hidden p-0">
+    <div className="grid grid-cols-[3.5rem_1fr_auto] items-center gap-2 px-3.5 py-3.5">
+      <p className="text-[13px] text-white/75">{label}</p>
+      <p className="text-center text-[13px] tabular-nums text-white/55">
+        {fmtNum(from ?? null, unit === "kg" ? 0 : 0)} →{" "}
+        {fmtNum(to ?? null, unit === "kg" ? 0 : 0)} {unit}
+      </p>
+      <p className={cn("font-metric text-[16px] tabular-nums", deltaTone)}>
+        {fmtDelta(delta, unit)}
+      </p>
+    </div>
+  );
+}
+
+function PhotoMetricCard({
+  kind,
+  photo,
+}: {
+  kind: "start" | "now";
+  photo: ProgressPhotoItem | null;
+}) {
+  const isNow = kind === "now";
+  return (
+    <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)]">
       <div className="relative aspect-[3/4] bg-black/40">
         {photo ? (
           <Image
             src={photo.dataUrl}
-            alt={label}
+            alt={isNow ? "Teraz" : "Start"}
             fill
             unoptimized
             className="object-cover"
@@ -251,26 +303,28 @@ function PhotoMetricCard({
             Brak zdjęcia
           </div>
         )}
+        <span
+          className={cn(
+            "absolute left-2 top-2 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
+            isNow
+              ? "bg-[var(--gym-gold)] text-black"
+              : "bg-black/55 text-white/90",
+          )}
+        >
+          {isNow
+            ? `Teraz · ${photo ? formatDayMonth(photo.date) : "—"}`
+            : "Start"}
+        </span>
       </div>
-      <div className="space-y-1 px-3 py-2.5">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--gym-gold)]">
-          {label}
+      <div className="space-y-0.5 px-3 py-2.5">
+        <p className="font-metric text-[22px] tabular-nums leading-none text-white">
+          {photo?.weightKg != null ? `${fmtNum(photo.weightKg, 0)} kg` : "—"}
         </p>
         <p className="text-[11px] text-white/45">
-          {photo?.date
-            ? formatShort(photo.date)
-            : fallbackDate
-              ? formatShort(fallbackDate)
-              : "—"}
-        </p>
-        <p className="text-sm text-white/80">
-          {photo?.weightKg != null
-            ? `${photo.weightKg.toLocaleString("pl-PL", { maximumFractionDigits: 1 })} kg`
-            : "— kg"}
-          {" · "}
           {photo?.waistCm != null
-            ? `${photo.waistCm.toLocaleString("pl-PL", { maximumFractionDigits: 1 })} cm`
-            : "— cm"}
+            ? `pas ${fmtNum(photo.waistCm, 0)} cm`
+            : "pas —"}
+          {photo ? ` · ${formatDayMonth(photo.date)}` : ""}
         </p>
       </div>
     </div>

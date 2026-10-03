@@ -10,8 +10,13 @@ export function StartWorkoutFab() {
   const pathname = usePathname();
   const { workoutPlanId, exercises } = useActiveWorkoutStore();
 
-  if (pathname.startsWith("/workout-plan") || pathname.startsWith("/active-workout")) return null;
-  if (pathname.startsWith("/active-workout")) return null;
+  if (
+    pathname.startsWith("/workout-plan") ||
+    pathname.startsWith("/active-workout") ||
+    pathname.startsWith("/cardio/record")
+  ) {
+    return null;
+  }
 
   const hasActiveSession = workoutPlanId != null && exercises.length > 0;
 
@@ -25,8 +30,8 @@ export function StartWorkoutFab() {
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon)]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]",
         "left-3 sm:left-4",
         hasActiveSession
-          ? "bottom-[calc(9.25rem+env(safe-area-inset-bottom))] md:bottom-[calc(6.5rem+env(safe-area-inset-bottom))]"
-          : "bottom-[calc(5.75rem+env(safe-area-inset-bottom))] md:bottom-8",
+          ? "bottom-[calc(10.25rem+env(safe-area-inset-bottom))] md:bottom-[calc(7.25rem+env(safe-area-inset-bottom))]"
+          : "bottom-[calc(6.75rem+env(safe-area-inset-bottom))] md:bottom-8",
       )}
       aria-label="Rozpocznij trening"
     >

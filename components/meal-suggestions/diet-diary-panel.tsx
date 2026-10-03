@@ -1,85 +1,148 @@
 "use client";
 
-import { BookOpen, Pencil, Plus, ScanBarcode } from "lucide-react";
+import { useMemo } from "react";
+import { Pencil, Plus, ScanBarcode, UtensilsCrossed } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import {
   DIET_DIARY_SLOT_LABELS,
-  DIET_DIARY_SLOTS,
   type DietDiarySlot,
 } from "@/lib/diet-diary-slots";
+import {
+  buildMealPlanRows,
+  type MealPlanRow,
+} from "@/lib/diet-recipe-match";
 import type { MealLogDto } from "@/lib/meal-logs";
+import type { MealTemplate } from "@/lib/meal-templates";
 import { cn } from "@/lib/utils";
 
-function MacroProgress({
+function slotTotals(entries: MealLogDto[]) {
+  return {
+    kcal: entries.reduce((s, e) => s + e.calories, 0),
+    protein: entries.reduce((s, e) => s + e.proteinG, 0),
+    carbs: entries.reduce((s, e) => s + e.carbsG, 0),
+    fat: entries.reduce((s, e) => s + e.fatG, 0),
+  };
+}
+
+function MealActionButton({
   label,
-  consumed,
-  goal,
-  barClass,
+  onClick,
+  children,
 }: {
   label: string;
-  consumed: number;
-  goal: number | null;
-  barClass: string;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
-  const pct =
-    goal != null && goal > 0
-      ? Math.min(100, Math.round((consumed / goal) * 100))
-      : 0;
-  const over = goal != null && consumed > goal;
-  const remaining =
-    goal != null && goal > 0 ? Math.round(goal - consumed) : null;
-
   return (
-    <div className="min-w-0 flex-1">
-      <div className="mb-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
-        <div
-          className={cn(
-            "h-full rounded-full transition-[width] duration-500 ease-out",
-            over ? "bg-rose-400" : barClass,
-          )}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
-        {label}
-      </p>
-      <p className="mt-0.5 text-[12px] tabular-nums text-white/85">
-        {Math.round(consumed)}
-        {goal != null ? ` / ${Math.round(goal)}` : ""} g
-      </p>
-      {remaining != null ? (
-        <p
-          className={cn(
-            "mt-0.5 text-[10px] tabular-nums",
-            over ? "text-rose-300" : "text-white/40",
-          )}
-        >
-          {over ? `+${Math.abs(remaining)}` : `${remaining} zostało`}
-        </p>
-      ) : null}
-    </div>
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--gym-gold)]/45 text-[var(--gym-gold)] hover:bg-[var(--gym-gold)]/10"
+    >
+      {children}
+    </button>
   );
 }
 
-function SlotTotals({ entries }: { entries: MealLogDto[] }) {
-  if (entries.length === 0) {
-    return <p className="text-xs text-white/35">Brak wpisów</p>;
-  }
-  const kcal = entries.reduce((s, e) => s + e.calories, 0);
-  const p = entries.reduce((s, e) => s + e.proteinG, 0);
-  const c = entries.reduce((s, e) => s + e.carbsG, 0);
-  const f = entries.reduce((s, e) => s + e.fatG, 0);
+function MealSlotCard({
+  row,
+  entries,
+  onScan,
+  onOpenCatalog,
+  onAddManual,
+  onEditLog,
+  onDeleted,
+  DeleteMealButton,
+}: {
+  row: MealPlanRow;
+  entries: MealLogDto[];
+  onScan: (slot: DietDiarySlot) => void;
+  onOpenCatalog: (slot: DietDiarySlot) => void;
+  onAddManual: (slot: DietDiarySlot) => void;
+  onEditLog: (entry: MealLogDto) => void;
+  onDeleted: () => void;
+  DeleteMealButton: React.ComponentType<{
+    id: string;
+    name?: string | null;
+    onDone: () => void;
+  }>;
+}) {
+  const eaten = slotTotals(entries);
+  const targetKcal = Math.round(row.calories);
+  const targetLine = `B ${Math.round(row.proteinG)} W ${Math.round(row.carbsG)} T ${Math.round(row.fatG)}`;
+
   return (
-    <p className="text-xs tabular-nums text-white/45">
-      {Math.round(kcal)} kcal · {Math.round(p)}B · {Math.round(c)}W ·{" "}
-      {Math.round(f)}T
-    </p>
+    <section className="overflow-hidden rounded-[18px] border border-white/[0.07] bg-[#141414]">
+      <div className="flex items-center gap-2 px-3.5 py-3.5">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[15px] font-semibold text-white">
+            Posiłek {row.index}
+          </h3>
+          <p className="mt-1 text-[12px] tabular-nums text-white/45">
+            {Math.round(eaten.kcal)} / {targetKcal} kcal · {targetLine}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <MealActionButton
+            label={`Skanuj do ${DIET_DIARY_SLOT_LABELS[row.diarySlot]}`}
+            onClick={() => onScan(row.diarySlot)}
+          >
+            <ScanBarcode className="h-4 w-4" />
+          </MealActionButton>
+          <MealActionButton
+            label={`Przepisy do ${DIET_DIARY_SLOT_LABELS[row.diarySlot]}`}
+            onClick={() => onOpenCatalog(row.diarySlot)}
+          >
+            <UtensilsCrossed className="h-4 w-4" />
+          </MealActionButton>
+          <MealActionButton
+            label={`Dodaj ręcznie do ${DIET_DIARY_SLOT_LABELS[row.diarySlot]}`}
+            onClick={() => onAddManual(row.diarySlot)}
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+          </MealActionButton>
+        </div>
+      </div>
+
+      {entries.length > 0 ? (
+        <ul className="divide-y divide-white/[0.05] border-t border-white/[0.06]">
+          {entries.map((e) => (
+            <li key={e.id} className="flex items-start gap-2 px-3.5 py-2.5">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-white/85">
+                  {e.name?.trim() || "Posiłek"}
+                </p>
+                <p className="text-[11px] tabular-nums text-white/40">
+                  {Math.round(e.calories)} kcal · B{Math.round(e.proteinG)} W
+                  {Math.round(e.carbsG)} T{Math.round(e.fatG)}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Edytuj"
+                onClick={() => onEditLog(e)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:bg-white/[0.06] hover:text-white"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <DeleteMealButton
+                id={e.id}
+                name={e.name}
+                onDone={onDeleted}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 }
 
 export function DietDiaryPanel({
   bySlot,
   dayMacros,
+  mealTemplates = [],
   defaultScanSlot,
   onScan,
   onOpenCatalog,
@@ -100,6 +163,7 @@ export function DietDiaryPanel({
     carbsGoal: number | null;
     caloriesRemaining: number | null;
   };
+  mealTemplates?: MealTemplate[];
   defaultScanSlot: DietDiarySlot;
   onScan: (slot: DietDiarySlot) => void;
   onOpenCatalog: (slot: DietDiarySlot) => void;
@@ -112,149 +176,133 @@ export function DietDiaryPanel({
     onDone: () => void;
   }>;
 }) {
-  const kcalLeft = dayMacros.caloriesRemaining;
-  const overGoal =
-    dayMacros.caloriesGoal != null &&
-    dayMacros.caloriesConsumed > dayMacros.caloriesGoal;
+  const rows = useMemo(
+    () =>
+      buildMealPlanRows(mealTemplates, {
+        proteinGoal: dayMacros.proteinGoal,
+        carbsGoal: dayMacros.carbsGoal,
+        fatGoal: dayMacros.fatGoal,
+        caloriesGoal: dayMacros.caloriesGoal,
+      }),
+    [mealTemplates, dayMacros],
+  );
+
+  const kcalGoal = dayMacros.caloriesGoal;
+  const kcalDelta =
+    kcalGoal != null
+      ? Math.round(dayMacros.caloriesConsumed - kcalGoal)
+      : null;
+  const overGoal = kcalDelta != null && kcalDelta > 0;
 
   return (
     <div className="space-y-4">
-      <header className="space-y-3 px-0.5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-          Dziennik
-        </p>
-        <div className="flex items-end gap-2">
-          <AnimatedMetric
-            value={Math.round(dayMacros.caloriesConsumed)}
-            className="text-[52px] leading-none text-white"
-          />
-          <span className="mb-2 text-sm font-medium text-white/45">kcal</span>
-        </div>
-        {dayMacros.caloriesGoal != null ? (
-          <p
-            className={cn(
-              "text-sm tabular-nums",
-              overGoal ? "text-rose-300" : "text-white/55",
+      <section className="app-card relative overflow-hidden px-4 py-4">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gym-gold)]/55 to-transparent"
+          aria-hidden
+        />
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+              Zjedzone
+            </p>
+            <div className="mt-2 flex items-end gap-2">
+              <AnimatedMetric
+                value={Math.round(dayMacros.caloriesConsumed)}
+                className="text-[44px] leading-none text-white sm:text-[48px]"
+              />
+              <span className="mb-1.5 font-metric text-[18px] text-white/55">
+                kcal
+              </span>
+            </div>
+            {kcalGoal != null ? (
+              <p
+                className={cn(
+                  "mt-1.5 text-[13px] tabular-nums",
+                  overGoal ? "text-rose-300" : "text-white/50",
+                )}
+              >
+                z {Math.round(kcalGoal)} kcal ·{" "}
+                {kcalDelta != null && kcalDelta > 0 ? "+" : ""}
+                {kcalDelta}
+              </p>
+            ) : (
+              <p className="mt-1.5 text-[13px] text-white/45">
+                Ustaw cel kcal w profilu
+              </p>
             )}
-          >
-            {overGoal
-              ? `+${Math.round(dayMacros.caloriesConsumed - dayMacros.caloriesGoal)} kcal nad celem`
-              : kcalLeft != null
-                ? `${kcalLeft} kcal zostało (cel ${Math.round(dayMacros.caloriesGoal)})`
-                : `Cel ${Math.round(dayMacros.caloriesGoal)} kcal`}
-          </p>
-        ) : (
-          <p className="text-sm text-white/45">Ustaw cel kcal w profilu</p>
-        )}
+          </div>
 
-        <div className="flex gap-3 rounded-2xl border border-white/10 bg-[#161616] px-3 py-3">
-          <MacroProgress
-            label="Białko"
-            consumed={dayMacros.proteinConsumed}
-            goal={dayMacros.proteinGoal}
-            barClass="bg-sky-400"
-          />
-          <MacroProgress
-            label="Węgle"
-            consumed={dayMacros.carbsConsumed}
-            goal={dayMacros.carbsGoal}
-            barClass="bg-violet-400"
-          />
-          <MacroProgress
-            label="Tłuszcz"
-            consumed={dayMacros.fatConsumed}
-            goal={dayMacros.fatGoal}
-            barClass="bg-amber-400"
-          />
+          <div className="shrink-0 space-y-1.5 text-right font-metric text-[15px] leading-snug tabular-nums">
+            <p>
+              <span className="text-[var(--gym-gold)]">B</span>{" "}
+              <span className="text-white">
+                {Math.round(dayMacros.proteinConsumed)}
+              </span>
+              <span className="text-white/40">
+                {" "}
+                /{" "}
+                {dayMacros.proteinGoal != null
+                  ? Math.round(dayMacros.proteinGoal)
+                  : "—"}{" "}
+                g
+              </span>
+            </p>
+            <p>
+              <span className="text-[var(--gym-gold)]">W</span>{" "}
+              <span className="text-white">
+                {Math.round(dayMacros.carbsConsumed)}
+              </span>
+              <span className="text-white/40">
+                {" "}
+                /{" "}
+                {dayMacros.carbsGoal != null
+                  ? Math.round(dayMacros.carbsGoal)
+                  : "—"}{" "}
+                g
+              </span>
+            </p>
+            <p>
+              <span className="text-[var(--gym-gold)]">T</span>{" "}
+              <span className="text-white">
+                {Math.round(dayMacros.fatConsumed)}
+              </span>
+              <span className="text-white/40">
+                {" "}
+                /{" "}
+                {dayMacros.fatGoal != null
+                  ? Math.round(dayMacros.fatGoal)
+                  : "—"}{" "}
+                g
+              </span>
+            </p>
+          </div>
         </div>
-      </header>
+      </section>
 
       <button
         type="button"
         onClick={() => onScan(defaultScanSlot)}
-        className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold"
+        className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_0_36px_rgba(235,196,74,0.35)]"
       >
         <ScanBarcode className="h-5 w-5" />
         Skanuj kod kreskowy
       </button>
 
       <div className="space-y-2.5">
-        {DIET_DIARY_SLOTS.map((slot) => {
-          const items = bySlot[slot] ?? [];
-          return (
-            <section key={slot} className="app-card overflow-hidden">
-              <div className="flex items-center gap-2 px-3.5 py-3">
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-[15px] font-semibold text-white">
-                    {DIET_DIARY_SLOT_LABELS[slot]}
-                  </h3>
-                  <SlotTotals entries={items} />
-                </div>
-                <div className="flex shrink-0 items-center gap-0.5">
-                  <button
-                    type="button"
-                    aria-label={`Skanuj do ${DIET_DIARY_SLOT_LABELS[slot]}`}
-                    onClick={() => onScan(slot)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--gym-gold)] hover:bg-white/[0.06]"
-                  >
-                    <ScanBarcode className="h-5 w-5" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Przepisy do ${DIET_DIARY_SLOT_LABELS[slot]}`}
-                    onClick={() => onOpenCatalog(slot)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--gym-gold)] hover:bg-white/[0.06]"
-                  >
-                    <BookOpen className="h-5 w-5" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Dodaj ręcznie do ${DIET_DIARY_SLOT_LABELS[slot]}`}
-                    onClick={() => onAddManual(slot)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--gym-gold)] hover:bg-white/[0.06]"
-                  >
-                    <Plus className="h-5 w-5" strokeWidth={2.5} />
-                  </button>
-                </div>
-              </div>
-
-              {items.length > 0 ? (
-                <ul className="divide-y divide-white/[0.05] border-t border-white/[0.06]">
-                  {items.map((e) => (
-                    <li
-                      key={e.id}
-                      className="flex items-start gap-2 px-3.5 py-2.5"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm text-white/85">
-                          {e.name?.trim() || "Posiłek"}
-                        </p>
-                        <p className="text-[11px] tabular-nums text-white/40">
-                          {Math.round(e.calories)} kcal · B
-                          {Math.round(e.proteinG)} W{Math.round(e.carbsG)} T
-                          {Math.round(e.fatG)}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        aria-label="Edytuj"
-                        onClick={() => onEditLog(e)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:bg-white/[0.06] hover:text-white"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <DeleteMealButton
-                        id={e.id}
-                        name={e.name}
-                        onDone={onDeleted}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </section>
-          );
-        })}
+        {rows.map((row) => (
+          <MealSlotCard
+            key={row.id}
+            row={row}
+            entries={bySlot[row.diarySlot] ?? []}
+            onScan={onScan}
+            onOpenCatalog={onOpenCatalog}
+            onAddManual={onAddManual}
+            onEditLog={onEditLog}
+            onDeleted={onDeleted}
+            DeleteMealButton={DeleteMealButton}
+          />
+        ))}
       </div>
     </div>
   );

@@ -113,6 +113,22 @@ export function resolveNutritionDayKind(
   return settings.dayTypes[dateKey] ?? "rest";
 }
 
+/** Czy użytkownik ręcznie oznaczył typ dnia (nie „domyślnie”). */
+export function hasExplicitNutritionDayKind(
+  settingsRow: TodaysNutritionSettingsRow | undefined,
+  dateKey: string,
+): boolean {
+  const settings = nutritionSettingsFromDbRow(
+    settingsRow ?? {
+      trainingNutritionGoalsJson: null,
+      restNutritionGoalsJson: null,
+      nutritionDayTypesJson: null,
+    },
+  );
+  return settings.dayTypes[dateKey] === "training" ||
+    settings.dayTypes[dateKey] === "rest";
+}
+
 /**
  * Tygodnie przed bieżącym (tylko pełne tygodnie kalendarzowe), do rozwinięcia w arkuszu.
  */

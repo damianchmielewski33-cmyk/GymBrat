@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { listMealLogsForDay, type MealLogDto } from "@/lib/meal-logs";
 import {
+  hasExplicitNutritionDayKind,
   loadNutritionSummaryForDate,
   resolveNutritionDayKind,
 } from "@/lib/nutrition-dashboard";
@@ -24,6 +25,8 @@ export type DietDayPayload = {
   gaps: MacroGaps;
   logs: MealLogDto[];
   dayKind: NutritionDayType;
+  /** false = „domyślnie” (brak ręcznego oznaczenia dnia). */
+  dayKindExplicit: boolean;
 };
 
 async function settingsRowFor(userId: string) {
@@ -55,6 +58,7 @@ export async function loadDietDayAction(
   const logs = await listMealLogsForDay(userId, parsed.data);
   const gaps = computeMacroGaps({ ...summary, date: parsed.data });
   const dayKind = resolveNutritionDayKind(settingsRow, parsed.data);
+  const dayKindExplicit = hasExplicitNutritionDayKind(settingsRow, parsed.data);
 
   return {
     ok: true,
@@ -64,6 +68,7 @@ export async function loadDietDayAction(
       gaps: { ...gaps, dateKey: parsed.data },
       logs,
       dayKind,
+      dayKindExplicit,
     },
   };
 }
@@ -105,6 +110,45 @@ export async function setDietDayKindAction(
       userId,
       nutritionDayTypesJson: json,
     });
+  }
+
+  revalidatePath("/meal-suggestions");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/** Usuwa ręczne oznaczenie dnia → „domyślnie” (cele jak dzień nietreningowy). */
+export async function clearDietDayKindAction(
+  dateKey: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Musisz być zalogowany." };
+
+  const parsedDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).safeParse(dateKey);
+  if (!parsedDate.success) return { ok: false, error: "Nieprawidłowa data." };
+
+  const userId = session.user.id;
+  const settingsRow = await settingsRowFor(userId);
+  const current = nutritionSettingsFromDbRow(
+    settingsRow ?? {
+      trainingNutritionGoalsJson: null,
+      restNutritionGoalsJson: null,
+      nutritionDayTypesJson: null,
+    },
+  );
+  if (!(parsedDate.data in current.dayTypes)) {
+    return { ok: true };
+  }
+  const dayTypes = { ...current.dayTypes };
+  delete dayTypes[parsedDate.data];
+  const json = JSON.stringify(dayTypes);
+  const db = getDb();
+
+  if (settingsRow) {
+    await db
+      .update(userSettings)
+      .set({ nutritionDayTypesJson: json })
+      .where(eq(userSettings.userId, userId));
   }
 
   revalidatePath("/meal-suggestions");

@@ -19,6 +19,7 @@ function revalidateCardio(id?: string) {
   revalidatePath("/treningi");
   revalidatePath("/workout-history");
   revalidatePath("/progress");
+  revalidatePath("/cardio");
   if (id) revalidatePath(`/cardio/${id}`);
 }
 

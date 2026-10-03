@@ -37,3 +37,28 @@ export function formatPlanLastDoneLabel(ymd: string | null): string {
   const short = formatPlanLastDoneShort(ymd);
   return short ?? "jeszcze nie";
 }
+
+/**
+ * Etykieta jak na makiecie Trening:
+ * „jeszcze nie robiony” / „ostatnio wczoraj” / „ostatnio 5 dni temu” / „ostatnio 28.09”.
+ */
+export function formatPlanLastDoneRelative(
+  ymd: string | null,
+  todayYmd: string,
+): string {
+  if (!ymd) return "jeszcze nie robiony";
+  try {
+    const t0 = new Date(`${ymd}T12:00:00`).getTime();
+    const t1 = new Date(`${todayYmd}T12:00:00`).getTime();
+    if (!Number.isFinite(t0) || !Number.isFinite(t1)) {
+      return `ostatnio ${formatPlanLastDoneShort(ymd)}`;
+    }
+    const days = Math.round((t1 - t0) / (24 * 60 * 60 * 1000));
+    if (days <= 0) return "ostatnio dziś";
+    if (days === 1) return "ostatnio wczoraj";
+    if (days < 14) return `ostatnio ${days} dni temu`;
+    return `ostatnio ${formatPlanLastDoneShort(ymd)}`;
+  } catch {
+    return `ostatnio ${formatPlanLastDoneShort(ymd) ?? "—"}`;
+  }
+}

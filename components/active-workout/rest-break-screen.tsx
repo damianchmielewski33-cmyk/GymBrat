@@ -119,14 +119,14 @@ export function RestBreakScreen({
         aria-hidden
       />
 
-      <SessionProgressBar progress={progress} className="relative" />
-
       <SessionChromeHeader
         title={title}
         subtitle={`${formatMmSs(elapsedSeconds)} · ${setsDone}/${setsTotal} serii`}
         onClose={onCloseSession}
         onOpenList={onOpenList}
       />
+
+      <SessionProgressBar progress={progress} className="relative" />
 
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-5">
         <p className="text-[12px] font-semibold uppercase tracking-[0.28em] text-[var(--gym-gold)]">

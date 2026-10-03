@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Play } from "lucide-react";
@@ -32,9 +32,21 @@ export function HomeTrainingCard({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(
     recommendedPlanId ?? days[0]?.id ?? null,
   );
+
+  const activeTitle = useActiveWorkoutStore((s) => s.title);
+  const activePlanId = useActiveWorkoutStore((s) => s.workoutPlanId);
+  const activeExercises = useActiveWorkoutStore((s) => s.exercises);
+  const workoutStartedAtMs = useActiveWorkoutStore((s) => s.workoutStartedAtMs);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  const unfinished = hydrated && activeExercises.length > 0 && workoutStartedAtMs != null;
 
   const selected = useMemo(() => {
     if (selectedId) {
@@ -44,8 +56,16 @@ export function HomeTrainingCard({
     return days[0] ?? null;
   }, [days, selectedId]);
 
-  const displayName = selected?.name ?? planName;
-  const displayCount = selected?.exerciseCount ?? exerciseCount;
+  const displayName = unfinished
+    ? activeTitle || planName
+    : selected?.name ?? planName;
+  const displayCount = unfinished
+    ? activeExercises.length
+    : selected?.exerciseCount ?? exerciseCount;
+
+  const planLabel =
+    days.find((d) => d.id === (unfinished ? activePlanId : selected?.id))
+      ?.name ?? null;
 
   function begin(row: WorkoutPlanWithLastWorkoutDTO) {
     start(() => {
@@ -54,7 +74,7 @@ export function HomeTrainingCard({
     });
   }
 
-  if (!displayName || days.length === 0) {
+  if (!displayName && days.length === 0 && !unfinished) {
     return (
       <section className="app-card relative overflow-hidden p-5">
         <div
@@ -77,7 +97,7 @@ export function HomeTrainingCard({
           </p>
           <Link
             href="/profile/workout-plan"
-            className="gold-btn mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm"
+            className="gold-btn mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm"
           >
             <Play className="h-4 w-4 fill-current" aria-hidden />
             Utwórz plan
@@ -92,46 +112,61 @@ export function HomeTrainingCard({
       <div
         className="pointer-events-none absolute inset-0 opacity-90"
         style={{
-          background:
-            "linear-gradient(165deg, rgba(235,196,74,0.16) 0%, transparent 58%)",
+          background: unfinished
+            ? "linear-gradient(145deg, rgba(235,196,74,0.28) 0%, rgba(40,28,8,0.55) 42%, transparent 70%)"
+            : "linear-gradient(165deg, rgba(235,196,74,0.16) 0%, transparent 58%)",
         }}
         aria-hidden
       />
       <div className="relative space-y-5">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            Trening na dziś
+            {unfinished ? "Niedokończony trening" : "Trening na dziś"}
           </p>
           <h2 className="mt-2 text-[28px] font-semibold leading-tight text-white">
             {displayName}
           </h2>
-          <p className="mt-1.5 text-sm text-white/50">
+          <p className="mt-1.5 text-sm text-white/55">
             {displayCount}{" "}
             {displayCount === 1
               ? "ćwiczenie"
               : displayCount >= 2 && displayCount <= 4
                 ? "ćwiczenia"
                 : "ćwiczeń"}
-            {selected?.lastWorkoutDate
-              ? ` · ostatnio ${formatPlanLastDoneLabel(selected.lastWorkoutDate)}`
-              : " · pierwszy raz"}
+            {unfinished
+              ? planLabel
+                ? ` · ${planLabel}`
+                : ""
+              : selected?.lastWorkoutDate
+                ? ` · ostatnio ${formatPlanLastDoneLabel(selected.lastWorkoutDate)}`
+                : " · pierwszy raz"}
           </p>
         </div>
 
-        <button
-          type="button"
-          disabled={pending || !selected}
-          onClick={() => {
-            if (!selected) return;
-            begin(selected.row);
-          }}
-          className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm disabled:opacity-55"
-        >
-          <Play className="h-4 w-4 fill-current" aria-hidden />
-          {pending ? "Startuję…" : "Start trening"}
-        </button>
+        {unfinished ? (
+          <Link
+            href="/active-workout"
+            className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold"
+          >
+            <Play className="h-4 w-4 fill-current" aria-hidden />
+            Kontynuuj trening
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled={pending || !selected}
+            onClick={() => {
+              if (!selected) return;
+              begin(selected.row);
+            }}
+            className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm disabled:opacity-55"
+          >
+            <Play className="h-4 w-4 fill-current" aria-hidden />
+            {pending ? "Startuję…" : "Start trening"}
+          </button>
+        )}
 
-        {days.length > 1 ? (
+        {!unfinished && days.length > 1 ? (
           <>
             <button
               type="button"

@@ -26,6 +26,7 @@ export function CoachChatFab() {
   // when navigating to /progress (coach chat lives elsewhere / inbox).
   const hideOnProgress =
     pathname.startsWith("/progress") || pathname.startsWith("/progress-analysis");
+  const hideOnCardioRecord = pathname.startsWith("/cardio/record");
   const activeWorkout = pathname.startsWith("/active-workout");
   const hasActiveSession = workoutPlanId != null && exercises.length > 0;
 
@@ -54,7 +55,7 @@ export function CoachChatFab() {
     };
   }, [open, hideOnProgress]);
 
-  if (hideOnProgress) return null;
+  if (hideOnProgress || hideOnCardioRecord) return null;
   if (mode === "hidden") return null;
   if (mode === null) return null;
 
@@ -74,8 +75,8 @@ export function CoachChatFab() {
           activeWorkout
             ? "top-[calc(4.25rem+env(safe-area-inset-top))] md:top-[calc(4.5rem+env(safe-area-inset-top))]"
             : hasActiveSession
-              ? "bottom-[calc(9.25rem+env(safe-area-inset-bottom))] md:bottom-[calc(6.5rem+env(safe-area-inset-bottom))]"
-              : "bottom-[5.75rem] md:bottom-8",
+              ? "bottom-[calc(10.25rem+env(safe-area-inset-bottom))] md:bottom-[calc(7.25rem+env(safe-area-inset-bottom))]"
+              : "bottom-[calc(6.75rem+env(safe-area-inset-bottom))] md:bottom-8",
         )}
         aria-label="Otwórz czat z trenerem"
       >

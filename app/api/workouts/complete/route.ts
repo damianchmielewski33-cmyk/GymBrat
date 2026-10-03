@@ -68,13 +68,19 @@ const setSchema = z.object({
   ),
   weight: z.preprocess(preprocessWeightKg, z.number().min(0).max(2000)),
   done: z.boolean().optional(),
+  skipped: z.boolean().optional(),
   rpe: z.union([z.number().finite().min(1).max(10), z.null()]).optional(),
+  rir: z.union([z.number().finite().min(0).max(5), z.null()]).optional(),
 });
 
 const exerciseSchema = z.object({
   id: z.string().max(128).nullish(),
   name: z.string().max(500).nullish(),
   note: z.string().max(4000).nullish(),
+  targetSets: z.number().int().min(1).max(20).nullish(),
+  targetReps: z.number().int().min(1).max(99).nullish(),
+  targetRir: z.union([z.number().finite().min(0).max(5), z.null()]).optional(),
+  tempo: z.string().max(16).nullish(),
   sets: z.array(setSchema).min(0).max(200),
 });
 

@@ -5,6 +5,8 @@ type SectionLabelProps = {
   title: string;
   trailing?: React.ReactNode;
   className?: string;
+  /** Domyślnie złoty jak na DZIŚ; Postępy używają białego tytułu. */
+  titleTone?: "gold" | "white";
 };
 
 export function SectionLabel({
@@ -12,6 +14,7 @@ export function SectionLabel({
   title,
   trailing,
   className,
+  titleTone = "gold",
 }: SectionLabelProps) {
   const indexText =
     typeof index === "number" ? String(index).padStart(2, "0") : index;
@@ -24,7 +27,12 @@ export function SectionLabel({
             {indexText}
           </span>
         ) : null}
-        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+        <span
+          className={cn(
+            "text-[12px] font-semibold uppercase tracking-[0.14em]",
+            titleTone === "white" ? "text-white/85" : "text-[var(--gym-gold)]",
+          )}
+        >
           {title}
         </span>
       </div>

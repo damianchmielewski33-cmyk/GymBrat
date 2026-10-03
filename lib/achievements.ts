@@ -1,7 +1,15 @@
+export type AchievementIcon =
+  | "ribbon"
+  | "flame"
+  | "dumbbell"
+  | "scale"
+  | "trophy";
+
 export type AchievementDef = {
   id: string;
   title: string;
   description: string;
+  icon: AchievementIcon;
   /** ISO date when unlocked, or null if locked */
   unlockedAt: string | null;
 };
@@ -29,90 +37,135 @@ export function computeAchievements(input: AchievementInput): AchievementDef[] {
     id: string;
     title: string;
     description: string;
+    icon: AchievementIcon;
     ok: boolean;
     at: string | null;
   }> = [
     {
       id: "first-workout",
       title: "Pierwszy trening",
-      description: "Zaliczyłeś pierwszą sesję siłową.",
+      description: "łącznie",
+      icon: "dumbbell",
       ok: input.totalStrengthSessions >= 1,
       at: input.firstWorkoutDate,
     },
     {
       id: "sessions-10",
       title: "10 treningów",
-      description: "Dziesięć ukończonych sesji siłowych.",
+      description: "łącznie",
+      icon: "dumbbell",
       ok: input.totalStrengthSessions >= 10,
       at: unlocked,
     },
     {
       id: "sessions-50",
       title: "50 treningów",
-      description: "Pół setki sesji na koncie.",
+      description: "łącznie",
+      icon: "dumbbell",
       ok: input.totalStrengthSessions >= 50,
       at: unlocked,
     },
     {
       id: "tonnage-10t",
-      title: "10 ton",
-      description: "Łączny tonaż przekroczył 10 000 kg.",
+      title: "10 t podniesione",
+      description: "tonaż łączny",
+      icon: "ribbon",
       ok: input.totalTonnageKg >= 10_000,
       at: unlocked,
     },
     {
+      id: "tonnage-25t",
+      title: "25 t podniesione",
+      description: "tonaż łączny",
+      icon: "ribbon",
+      ok: input.totalTonnageKg >= 25_000,
+      at: unlocked,
+    },
+    {
       id: "tonnage-50t",
-      title: "50 ton",
-      description: "Łączny tonaż przekroczył 50 000 kg.",
+      title: "50 t podniesione",
+      description: "tonaż łączny",
+      icon: "ribbon",
       ok: input.totalTonnageKg >= 50_000,
       at: unlocked,
     },
     {
       id: "tonnage-100t",
-      title: "100 ton",
-      description: "Stu-tonowy próg objętości.",
+      title: "100 t podniesione",
+      description: "tonaż łączny",
+      icon: "ribbon",
       ok: input.totalTonnageKg >= 100_000,
       at: unlocked,
     },
     {
+      id: "streak-2",
+      title: "2 tygodnie z rzędu",
+      description: "co tydzień trening",
+      icon: "flame",
+      ok: input.streakWeeks >= 2,
+      at: unlocked,
+    },
+    {
       id: "streak-3",
-      title: "Seria 3 tygodni",
-      description: "Trening siłowy przez 3 tygodnie z rzędu.",
+      title: "3 tygodnie z rzędu",
+      description: "co tydzień trening",
+      icon: "flame",
       ok: input.streakWeeks >= 3,
       at: unlocked,
     },
     {
       id: "streak-8",
-      title: "Seria 8 tygodni",
-      description: "Osiem tygodni bez przerwy w planie.",
+      title: "8 tygodni z rzędu",
+      description: "co tydzień trening",
+      icon: "flame",
       ok: input.streakWeeks >= 8,
       at: unlocked,
     },
     {
       id: "first-report",
       title: "Pierwszy raport",
-      description: "Dodałeś pierwszy raport sylwetki.",
+      description: "sylwetka",
+      icon: "scale",
       ok: Boolean(input.firstReportDate),
       at: input.firstReportDate,
     },
     {
       id: "weight-minus-2",
       title: "−2 kg",
-      description: "Spadek wagi o co najmniej 2 kg od startu.",
+      description: "od startu",
+      icon: "scale",
       ok: input.weightDeltaKg != null && input.weightDeltaKg <= -2,
       at: unlocked,
     },
     {
       id: "weight-minus-5",
       title: "−5 kg",
-      description: "Spadek wagi o co najmniej 5 kg od startu.",
+      description: "od startu",
+      icon: "scale",
       ok: input.weightDeltaKg != null && input.weightDeltaKg <= -5,
+      at: unlocked,
+    },
+    {
+      id: "weight-minus-6",
+      title: "−6 kg",
+      description: "od startu",
+      icon: "scale",
+      ok: input.weightDeltaKg != null && input.weightDeltaKg <= -6,
+      at: unlocked,
+    },
+    {
+      id: "weight-minus-7",
+      title: "−7 kg",
+      description: "od startu",
+      icon: "scale",
+      ok: input.weightDeltaKg != null && input.weightDeltaKg <= -7,
       at: unlocked,
     },
     {
       id: "waist-minus-5",
       title: "−5 cm pasa",
-      description: "Obwód pasa mniejszy o 5 cm lub więcej.",
+      description: "od startu",
+      icon: "scale",
       ok: input.waistDeltaCm != null && input.waistDeltaCm <= -5,
       at: unlocked,
     },
@@ -122,6 +175,7 @@ export function computeAchievements(input: AchievementInput): AchievementDef[] {
     id: d.id,
     title: d.title,
     description: d.description,
+    icon: d.icon,
     unlockedAt: d.ok ? (d.at ?? unlocked) : null,
   }));
 }

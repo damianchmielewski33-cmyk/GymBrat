@@ -7,12 +7,20 @@ export type CompletedSessionSet = {
   reps?: number | null;
   weight?: number | null;
   done?: boolean;
+  rir?: number | null;
+  rpe?: number | null;
+  skipped?: boolean;
 };
 
 export type CompletedSessionExercise = {
   id?: string;
   name?: string;
   sets?: CompletedSessionSet[];
+  targetSets?: number;
+  targetReps?: number;
+  targetRir?: number | null;
+  tempo?: string | null;
+  note?: string;
 };
 
 export type CompletedSessionPayload = {
@@ -42,9 +50,21 @@ export type CompletedWorkoutDetails = CompletedWorkoutListItem & {
   exercises: Array<{
     id: string;
     name: string;
-    sets: Array<{ reps: number | null; weight: number; done: boolean; e1rm: number }>;
+    sets: Array<{
+      reps: number | null;
+      weight: number;
+      done: boolean;
+      e1rm: number;
+      rir?: number | null;
+      skipped?: boolean;
+    }>;
     bestE1rm: number;
     volumeKg: number;
+    targetSets?: number | null;
+    targetReps?: number | null;
+    targetRir?: number | null;
+    tempo?: string | null;
+    note?: string | null;
   }>;
 };
 
@@ -77,6 +97,12 @@ export function safeParseCompletedSession(json: string): CompletedSessionPayload
   }
 }
 
+function optionalInt(v: unknown, min: number, max: number): number | null {
+  const n = typeof v === "number" ? v : Number(v);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
 export function safeNormalizeExercises(exercises: unknown): CompletedSessionExercise[] {
   if (!Array.isArray(exercises)) return [];
   return exercises.map((raw) => {
@@ -89,6 +115,14 @@ export function safeNormalizeExercises(exercises: unknown): CompletedSessionExer
       id: normalizeString(r?.id, ""),
       name: normalizeString(r?.name, ""),
       sets,
+      targetSets: optionalInt(r?.targetSets, 1, 20) ?? undefined,
+      targetReps: optionalInt(r?.targetReps, 1, 99) ?? undefined,
+      targetRir: optionalInt(r?.targetRir, 0, 5),
+      tempo:
+        typeof r?.tempo === "string" && r.tempo.trim()
+          ? r.tempo.trim().slice(0, 16)
+          : null,
+      note: normalizeString(r?.note, "") || undefined,
     };
   });
 }
@@ -125,9 +159,23 @@ export function computeWorkoutDetails(input: {
       const sets = (e.sets ?? []).map((s) => {
         const reps = safeNumber(s.reps);
         const weight = clampNonNegative(safeNumber(s.weight), 0);
-        const done = Boolean(s.done) && reps != null && reps > 0 && weight > 0;
+        const skipped = Boolean(s.skipped);
+        const done =
+          Boolean(s.done) &&
+          !skipped &&
+          reps != null &&
+          reps > 0 &&
+          weight > 0;
         const e1rm = done && reps != null ? estimated1RM(weight, reps) : 0;
-        return { reps: reps != null ? Math.round(reps) : null, weight, done, e1rm };
+        const rir = optionalInt(s.rir, 0, 5);
+        return {
+          reps: reps != null ? Math.round(reps) : null,
+          weight,
+          done: Boolean(s.done) && reps != null && reps > 0 && weight > 0,
+          e1rm,
+          rir,
+          skipped,
+        };
       });
 
       const bestE1rm = sets.reduce((m, s) => Math.max(m, s.e1rm), 0);
@@ -139,6 +187,11 @@ export function computeWorkoutDetails(input: {
         sets,
         bestE1rm,
         volumeKg,
+        targetSets: e.targetSets ?? null,
+        targetReps: e.targetReps ?? null,
+        targetRir: e.targetRir ?? null,
+        tempo: e.tempo ?? null,
+        note: e.note?.trim() ? e.note.trim() : null,
       };
     });
 

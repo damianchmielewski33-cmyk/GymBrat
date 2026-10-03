@@ -23,6 +23,8 @@ type CardioLogSheetProps = {
   open: boolean;
   onClose: () => void;
   cardioGoalMinutes: number;
+  /** Domyślny typ aktywności przy otwarciu. */
+  defaultTitle?: (typeof MACHINES)[number] | string;
 };
 
 function todayLabelPl(): string {
@@ -42,7 +44,12 @@ function clampMinutes(n: number): number {
   return Math.min(300, Math.max(1, Math.round(n)));
 }
 
-export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSheetProps) {
+export function CardioLogSheet({
+  open,
+  onClose,
+  cardioGoalMinutes,
+  defaultTitle = "Marsz",
+}: CardioLogSheetProps) {
   const router = useRouter();
   const { notifySaved, notifyError } = useSaveFeedback();
   const [mounted, setMounted] = useState(false);
@@ -62,12 +69,15 @@ export function CardioLogSheet({ open, onClose, cardioGoalMinutes }: CardioLogSh
 
   useEffect(() => {
     if (!open) return;
-    setMachine("Marsz");
+    const match = MACHINES.find(
+      (m) => m.toLowerCase() === String(defaultTitle).toLowerCase(),
+    );
+    setMachine(match ?? "Marsz");
     setMinutesText("30");
     setDistanceKm("");
     setAvgHr("");
-    setNote("");
-  }, [open]);
+    setNote(match ? "" : String(defaultTitle));
+  }, [open, defaultTitle]);
 
   useEffect(() => {
     if (state?.ok === true) {

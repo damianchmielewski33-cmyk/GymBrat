@@ -2,39 +2,29 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, HeartPulse } from "lucide-react";
+import { ArrowLeft, ChevronDown, Pencil } from "lucide-react";
 import type {
   WorkoutHistoryCard,
-  WorkoutHistoryCardioItem,
   WorkoutHistoryOverview,
 } from "@/lib/workout-history-overview";
 import {
-  formatHistoryShortDate,
+  canEditWorkout,
+  formatEditDeadline,
+  formatHistoryDayChip,
+  formatHistoryKg,
+  formatHistoryWeekRange,
+  formatSetsLabel,
   formatTonnes,
+  workoutEditDeadlineMs,
 } from "@/lib/workout-history-overview";
-import {
-  addCalendarDays,
-  calendarWeekdaySun0,
-} from "@/lib/local-date";
+import { addCalendarDays, calendarWeekdaySun0 } from "@/lib/local-date";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
-import { AppPageHeader } from "@/components/layout/screen";
 import { cn } from "@/lib/utils";
-import type { ProgressDeltaUnit } from "@/lib/progress-delta-unit";
 
 function mondayOfWeek(dateKey: string): string {
   const dow = calendarWeekdaySun0(dateKey);
   const offset = dow === 0 ? -6 : 1 - dow;
   return addCalendarDays(dateKey, offset);
-}
-
-function formatWeekRange(monday: string): string {
-  const sunday = addCalendarDays(monday, 6);
-  return `${formatHistoryShortDate(monday)}–${formatHistoryShortDate(sunday)}`;
-}
-
-function trenWord(n: number): string {
-  if (n === 1) return "tr.";
-  return "tr.";
 }
 
 type WeekGroup = {
@@ -73,7 +63,7 @@ function SetPill({
 }) {
   if (!done) {
     return (
-      <span className="inline-flex h-7 items-center rounded-md border border-dashed border-white/15 px-2 text-[11px] text-white/30">
+      <span className="inline-flex h-8 items-center rounded-lg border border-dashed border-white/15 px-2.5 text-[11px] text-white/30">
         —
       </span>
     );
@@ -81,10 +71,10 @@ function SetPill({
   return (
     <span
       className={cn(
-        "inline-flex h-7 items-center rounded-md border px-2 font-metric text-[12px] tabular-nums",
+        "inline-flex h-8 items-center rounded-lg border px-2.5 font-metric text-[12px] tabular-nums",
         isPr
           ? "border-[var(--gym-gold)] bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]"
-          : "border-white/12 bg-white/[0.04] text-white/80",
+          : "border-white/14 bg-transparent text-white/75",
       )}
       title={isPr ? "Rekord (e1RM)" : undefined}
     >
@@ -97,46 +87,65 @@ function SetPill({
 
 function SessionRow({ card }: { card: WorkoutHistoryCard }) {
   const [open, setOpen] = useState(false);
-  const volumeLabel = formatTonnes(card.volumeKg);
-  const dateLabel = formatHistoryShortDate(card.date);
+  const editable = canEditWorkout(card.endedAt, card.date);
+  const deadlineLabel = formatEditDeadline(
+    workoutEditDeadlineMs(card.endedAt, card.date),
+  );
+  const meta = [
+    card.durationMinutes != null ? `${card.durationMinutes} min` : null,
+    formatSetsLabel(card.setsDone),
+    `tydz. ${card.planOccurrence}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-[var(--gym-surface-sunken)]">
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 px-3.5 py-3 text-left"
+        className="flex w-full items-start gap-3 px-3.5 py-3.5 text-left"
       >
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-semibold text-white">
-            {card.title}
-          </p>
-          <p className="mt-0.5 text-[11px] text-white/45">
-            {dateLabel}
-            {card.planLabel ? ` · ${card.planLabel}` : ""}
-            {card.durationMinutes != null ? ` · ${card.durationMinutes} min` : ""}
+        <div className="w-[52px] shrink-0 pt-0.5">
+          <p className="text-[11px] leading-tight text-white/40">
+            {formatHistoryDayChip(card.date)}
           </p>
         </div>
-        <p className="font-metric shrink-0 text-lg tabular-nums text-[var(--gym-gold)]">
-          {volumeLabel}
-        </p>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 shrink-0 text-white/40 transition",
-            open && "rotate-180",
-          )}
-        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-semibold text-white">
+            {card.planLabel || card.title}
+          </p>
+          <p className="mt-0.5 text-[11px] text-white/40">{meta}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+          <p className="font-metric text-[17px] tabular-nums leading-none text-white">
+            {formatHistoryKg(card.volumeKg)}
+          </p>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-white/45 transition",
+              open && "rotate-180",
+            )}
+          />
+        </div>
       </button>
 
       {open ? (
-        <div className="space-y-3 border-t border-white/[0.06] px-3.5 py-3">
+        <div className="space-y-3.5 border-t border-white/[0.06] px-3.5 pb-3.5 pt-3">
           {card.exercises.length === 0 ? (
             <p className="text-xs text-white/40">Brak szczegółów serii.</p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-3.5">
               {card.exercises.map((ex) => (
                 <li key={ex.id}>
-                  <p className="text-[13px] font-medium text-white/90">{ex.name}</p>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="min-w-0 text-[13px] font-medium text-white/90">
+                      {ex.name}
+                    </p>
+                    <p className="shrink-0 text-[11px] tabular-nums text-white/40">
+                      {Math.round(ex.volumeKg)} kg
+                    </p>
+                  </div>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {ex.sets.map((s, i) => (
                       <SetPill
@@ -152,63 +161,33 @@ function SessionRow({ card }: { card: WorkoutHistoryCard }) {
               ))}
             </ul>
           )}
-          <Link
-            href={`/workout-history/${card.id}`}
-            className="inline-flex h-9 items-center gap-1 text-sm font-medium text-[var(--gym-gold)]"
-          >
-            Szczegóły sesji
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Link>
+
+          {editable ? (
+            <div className="flex items-start gap-3 pt-1">
+              <Link
+                href={`/workout-history/${card.id}/edit`}
+                className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-white/25 px-4 text-sm font-semibold text-white transition hover:bg-white/[0.04]"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Popraw
+              </Link>
+              <p className="pt-2 text-[11px] leading-snug text-white/40">
+                Dopisz brakujące serie albo popraw liczby — do {deadlineLabel}.
+              </p>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
   );
 }
 
-function CardioRow({ item }: { item: WorkoutHistoryCardioItem }) {
-  const inner = (
-    <>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-white">{item.title}</p>
-        <p className="mt-0.5 text-xs text-white/45">
-          {formatHistoryShortDate(item.date)}
-          {item.avgHr != null ? ` · ${item.avgHr} bpm` : ""}
-        </p>
-      </div>
-      <p className="font-metric shrink-0 text-lg tabular-nums text-[var(--gym-gold)]">
-        {item.minutes}
-        <span className="ml-1 text-[11px] text-white/40">min</span>
-      </p>
-    </>
-  );
-
-  if (item.kind === "cardio_log") {
-    return (
-      <Link
-        href={`/cardio/${item.id}`}
-        className="app-card flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
-      >
-        {inner}
-        <ChevronRight className="h-4 w-4 shrink-0 text-white/30" aria-hidden />
-      </Link>
-    );
-  }
-
-  return (
-    <div className="app-card flex items-center gap-3 px-4 py-3.5">{inner}</div>
-  );
-}
-
 type Props = {
   overview: WorkoutHistoryOverview;
-  progressDeltaUnit?: ProgressDeltaUnit;
 };
 
-export function WorkoutHistoryView({
-  overview,
-  progressDeltaUnit: _progressDeltaUnit = "percent",
-}: Props) {
-  const { kpis, cards, cardio, planFilters } = overview;
+export function WorkoutHistoryView({ overview }: Props) {
+  const { kpis, cards, planFilters } = overview;
   const [filterPlanKey, setFilterPlanKey] = useState<string | "all">("all");
 
   const filtered = useMemo(() => {
@@ -217,31 +196,52 @@ export function WorkoutHistoryView({
   }, [cards, filterPlanKey]);
 
   const weekGroups = useMemo(() => groupByWeek(filtered), [filtered]);
-
-  const tonnageTonnes = Math.max(0, kpis.tonnageThisWeekKg) / 1000;
+  const tonnageTonnes = Math.max(0, kpis.tonnageTotalKg) / 1000;
+  const countLabel = (() => {
+    const n = kpis.workoutsTotal;
+    if (n === 1) return "1 TRENING";
+    if (n >= 2 && n <= 4) return `${n} TRENINGI`;
+    return `${n} TRENINGÓW`;
+  })();
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-10">
-      <AppPageHeader
-        kicker="Trening"
-        title="Historia"
-        description="Sesje pogrupowane tygodniami — rozwijaj, żeby zobaczyć serie."
-      />
+      <Link
+        href="/workout-plan"
+        className="inline-flex items-center gap-1.5 text-sm text-white/80"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Wróć
+      </Link>
 
-      <div className="app-card grid grid-cols-3 gap-2 p-3.5 sm:p-4">
+      <header className="space-y-1 px-0.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+          {countLabel}
+        </p>
+        <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-white">
+          Historia treningów
+        </h1>
+      </header>
+
+      <div className="app-card grid grid-cols-3 gap-2 px-3 py-4">
         <div className="text-center">
-          <p className="app-label">Na tydzień</p>
-          <p className="mt-1.5 text-[1.65rem] leading-none text-white sm:text-3xl">
-            <AnimatedMetric value={kpis.workoutsThisWeek} />
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            Na tydzień
           </p>
+          <p className="mt-1.5 text-[1.7rem] leading-none text-white">
+            <AnimatedMetric value={kpis.avgWorkoutsPerWeekLast8} decimals={1} />
+          </p>
+          <p className="mt-1 text-[10px] text-white/35">ost. 8 tyg.</p>
         </div>
         <div className="text-center">
-          <p className="app-label">Średni czas</p>
-          <p className="mt-1.5 text-[1.65rem] leading-none text-white sm:text-3xl">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            Średni czas
+          </p>
+          <p className="mt-1.5 text-[1.7rem] leading-none text-white">
             {kpis.avgDurationMinutes != null ? (
               <>
                 <AnimatedMetric value={kpis.avgDurationMinutes} />
-                <span className="font-metric text-sm text-white/40">′</span>
+                <span className="ml-1 font-metric text-sm text-white/40">min</span>
               </>
             ) : (
               <span className="font-metric text-white/35">—</span>
@@ -249,11 +249,14 @@ export function WorkoutHistoryView({
           </p>
         </div>
         <div className="text-center">
-          <p className="app-label">Tonaż</p>
-          <p className="mt-1.5 text-[1.65rem] leading-none text-[var(--gym-gold)] sm:text-3xl">
-            <AnimatedMetric value={tonnageTonnes} decimals={1} />
-            <span className="font-metric text-sm text-white/40"> t</span>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            Tonaż
           </p>
+          <p className="mt-1.5 text-[1.7rem] leading-none text-white">
+            <AnimatedMetric value={tonnageTonnes} decimals={1} />
+            <span className="ml-1 font-metric text-sm text-white/40">t</span>
+          </p>
+          <p className="mt-1 text-[10px] text-white/35">łącznie</p>
         </div>
       </div>
 
@@ -264,8 +267,8 @@ export function WorkoutHistoryView({
           className={cn(
             "shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition",
             filterPlanKey === "all"
-              ? "bg-[var(--gym-gold)] text-[var(--neon-fg)]"
-              : "border border-white/12 bg-[var(--gym-surface-sunken)] text-white/70",
+              ? "border border-[var(--gym-gold)]/70 bg-[rgba(var(--neon-rgb),0.08)] text-[var(--gym-gold)]"
+              : "border border-white/12 bg-[var(--gym-surface-sunken)] text-white/75",
           )}
         >
           Wszystkie
@@ -278,8 +281,8 @@ export function WorkoutHistoryView({
             className={cn(
               "shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition",
               filterPlanKey === p.id
-                ? "bg-[var(--gym-gold)] text-[var(--neon-fg)]"
-                : "border border-white/12 bg-[var(--gym-surface-sunken)] text-white/70",
+                ? "border border-[var(--gym-gold)]/70 bg-[rgba(var(--neon-rgb),0.08)] text-[var(--gym-gold)]"
+                : "border border-white/12 bg-[var(--gym-surface-sunken)] text-white/75",
             )}
           >
             {p.label}
@@ -287,7 +290,7 @@ export function WorkoutHistoryView({
         ))}
       </div>
 
-      <section className="space-y-5">
+      <section className="space-y-6">
         {weekGroups.length === 0 ? (
           <div className="app-card px-4 py-10 text-center text-sm text-white/50">
             Brak zakończonych treningów — ukończ pierwszą sesję, żeby zobaczyć
@@ -296,43 +299,25 @@ export function WorkoutHistoryView({
         ) : (
           weekGroups.map((week, idx) => (
             <div key={week.monday} className="space-y-2.5">
-              <div className="flex items-baseline gap-2 px-0.5">
-                <span className="font-metric text-[15px] text-[var(--gym-gold)]">
+              <div className="flex items-baseline gap-2.5 px-0.5">
+                <span className="font-metric text-[22px] leading-none text-[var(--gym-gold)]">
                   {String(idx + 1).padStart(2, "0")}
                 </span>
-                <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/55">
-                  {formatWeekRange(week.monday)}
+                <span className="min-w-0 flex-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/70">
+                  {formatHistoryWeekRange(week.monday)}
                 </span>
-                <span className="ml-auto text-[12px] tabular-nums text-white/40">
-                  {week.cards.length} {trenWord(week.cards.length)} ·{" "}
-                  {formatTonnes(week.volumeKg)}
+                <span className="shrink-0 text-[12px] tabular-nums text-white/40">
+                  {week.cards.length} tr. · {formatTonnes(week.volumeKg)}
                 </span>
               </div>
-              <div className="space-y-2">
+              <div className="h-px bg-white/[0.08]" />
+              <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
                 {week.cards.map((card) => (
                   <SessionRow key={card.id} card={card} />
                 ))}
               </div>
             </div>
           ))
-        )}
-      </section>
-
-      <section className="space-y-2.5">
-        <div className="flex items-center gap-2 px-0.5">
-          <HeartPulse className="h-4 w-4 text-[var(--gym-gold)]" />
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
-            Cardio
-          </h2>
-        </div>
-        {cardio.length === 0 ? (
-          <p className="text-sm text-white/40">Brak wpisów cardio.</p>
-        ) : (
-          <div className="space-y-2">
-            {cardio.map((c) => (
-              <CardioRow key={c.id} item={c} />
-            ))}
-          </div>
         )}
       </section>
     </div>

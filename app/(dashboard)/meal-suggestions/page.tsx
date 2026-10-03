@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import {
+  hasExplicitNutritionDayKind,
   loadNutritionSummaryForDate,
   resolveNutritionDayKind,
 } from "@/lib/nutrition-dashboard";
@@ -76,6 +77,10 @@ export default async function MealSuggestionsPage({
   const gaps = computeMacroGaps(summary);
   const logs = await listMealLogsForDay(userId, gaps.dateKey).catch(() => []);
   const dayKind = resolveNutritionDayKind(settingsRow, gaps.dateKey);
+  const dayKindExplicit = hasExplicitNutritionDayKind(
+    settingsRow,
+    gaps.dateKey,
+  );
   const supplementNames = resolveDietSupplements(
     settingsRow?.fitnessGoalsJson,
     settingsRow?.mealTemplatesJson,
@@ -94,6 +99,7 @@ export default async function MealSuggestionsPage({
         initialGaps={gaps}
         initialLogs={logs}
         initialDayKind={dayKind}
+        initialDayKindExplicit={dayKindExplicit}
         mealTemplates={parseMealTemplatesJson(
           settingsRow?.mealTemplatesJson ?? null,
         )}

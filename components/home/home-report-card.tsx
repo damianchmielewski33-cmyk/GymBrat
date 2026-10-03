@@ -4,11 +4,12 @@ import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
 
 function formatLongDate(iso: string): string {
   const d = new Date(`${iso}T12:00:00`);
-  return d.toLocaleDateString("pl-PL", {
+  const s = d.toLocaleDateString("pl-PL", {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function formatShortDate(iso: string): string {
@@ -62,7 +63,8 @@ export function HomeReportCard({
           lastReportDate ? `Ostatni ${formatShortDate(lastReportDate)}` : null,
         ]
           .filter(Boolean)
-          .join(" · ") + ". Możesz wysłać wcześniej.";
+          .join(" · ") +
+        ". Możesz wysłać wcześniej — Damian zobaczy go od razu.";
 
   const nameLabel = firstName?.trim()
     ? `RAPORT DLA ${firstName.trim().toUpperCase()}`
@@ -96,14 +98,12 @@ export function HomeReportCard({
         Wyślij raport
       </Link>
 
-      <div className="text-center">
-        <Link
-          href="/reports"
-          className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]"
-        >
-          Historia raportów
-        </Link>
-      </div>
+      <Link
+        href="/reports"
+        className="inline-flex text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]"
+      >
+        Historia raportów
+      </Link>
     </section>
   );
 }

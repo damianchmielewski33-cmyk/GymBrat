@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
@@ -14,8 +14,8 @@ import {
   formatProgressDelta,
   parseProgressDeltaUnit,
 } from "@/lib/progress-delta-unit";
+import { canEditWorkout } from "@/lib/workout-history-overview";
 import { ScreenHeader } from "@/components/layout/screen";
-import { redirect } from "next/navigation";
 
 function formatDateTime(ms: number | null) {
   if (ms == null || !Number.isFinite(ms)) return "—";
@@ -107,12 +107,22 @@ export default async function WorkoutHistoryDetailsPage({
           </>
         }
         actions={
-          <Link
-            href="/workout-history"
-            className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-medium text-white/85 transition hover:bg-white/10 sm:w-auto"
-          >
-            Wróć do historii
-          </Link>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            {canEditWorkout(w.endedAt, w.date) ? (
+              <Link
+                href={`/workout-history/${w.id}/edit`}
+                className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-[var(--gym-gold)]/50 bg-[rgba(var(--neon-rgb),0.08)] px-4 text-sm font-medium text-[var(--gym-gold)] transition hover:bg-[rgba(var(--neon-rgb),0.14)] sm:w-auto"
+              >
+                Popraw
+              </Link>
+            ) : null}
+            <Link
+              href="/workout-history"
+              className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-medium text-white/85 transition hover:bg-white/10 sm:w-auto"
+            >
+              Wróć do historii
+            </Link>
+          </div>
         }
       />
 

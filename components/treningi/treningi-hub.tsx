@@ -1,52 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   ChevronRight,
+  Download,
   Film,
+  Footprints,
   History,
-  StickyNote,
+  NotebookPen,
+  Play,
   TrendingUp,
   Video,
 } from "lucide-react";
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import type { TreningiHubStats } from "@/lib/treningi-hub-stats";
-import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
-import { AppPageHeader } from "@/components/layout/screen";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
-import { formatPlanLastDoneLabel } from "@/lib/workout-plan-queue";
-import { addCalendarDays, calendarDateKey, calendarWeekdaySun0 } from "@/lib/local-date";
+import { formatPlanLastDoneRelative } from "@/lib/workout-plan-queue";
+import { printWorkoutPlans } from "@/lib/pdf/workout-plan-export";
+import { calendarDateKey } from "@/lib/local-date";
+import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { cn } from "@/lib/utils";
 
-function mondayOfWeek(dateKey: string): string {
-  const dow = calendarWeekdaySun0(dateKey);
-  const offset = dow === 0 ? -6 : 1 - dow;
-  return addCalendarDays(dateKey, offset);
+function cwLabel(n: number): string {
+  if (n === 1) return "1 ćw.";
+  return `${n} ćw.`;
 }
 
-function formatShortDate(ymd: string): string {
-  try {
-    return new Intl.DateTimeFormat("pl-PL", {
-      day: "numeric",
-      month: "short",
-    }).format(new Date(`${ymd}T12:00:00`));
-  } catch {
-    return ymd;
-  }
+function exercisePreview(names: string[], max = 4): string {
+  const clean = names.map((n) => n.trim()).filter(Boolean);
+  if (clean.length === 0) return "Brak ćwiczeń";
+  const head = clean.slice(0, max).join(", ");
+  return clean.length > max ? `${head}…` : head;
 }
 
-function planHasNotes(row: WorkoutPlanWithLastWorkoutDTO): boolean {
-  return row.plan.exercises.some(
-    (ex) => typeof ex.note === "string" && ex.note.trim().length > 0,
-  );
-}
-
-function exerciseCountLabel(n: number): string {
-  if (n === 1) return "1 ćwiczenie";
-  if (n >= 2 && n <= 4) return `${n} ćwiczenia`;
-  return `${n} ćwiczeń`;
+function streakSubtitle(n: number): string {
+  if (n <= 0) return "Zacznij tydzień z treningiem";
+  if (n === 1) return "1. tydzień z rzędu z treningiem";
+  return `${n}. tydzień z rzędu z treningiem`;
 }
 
 type TreningiHubProps = {
@@ -56,138 +48,255 @@ type TreningiHubProps = {
 };
 
 export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
-  const [cardioOpen, setCardioOpen] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [hydrated, setHydrated] = useState(false);
+
+  const activeTitle = useActiveWorkoutStore((s) => s.title);
+  const activeExercises = useActiveWorkoutStore((s) => s.exercises);
+  const workoutStartedAtMs = useActiveWorkoutStore((s) => s.workoutStartedAtMs);
+  const reset = useActiveWorkoutStore((s) => s.reset);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   const today = calendarDateKey();
-  const weekMonday = mondayOfWeek(today);
-  const recentCardioThisWeek = stats.recentCardio.filter(
-    (c) => c.date >= weekMonday,
-  );
+  const unfinished =
+    hydrated && activeExercises.length > 0 && workoutStartedAtMs != null;
+
+  const unfinishedPreview = useMemo(() => {
+    if (!unfinished) return "";
+    return exercisePreview(activeExercises.map((e) => e.name));
+  }, [unfinished, activeExercises]);
+
+  const startedToday =
+    unfinished &&
+    workoutStartedAtMs != null &&
+    calendarDateKey(new Date(workoutStartedAtMs)) === today;
+
+  const kicker = `PLAN · ${plans.length} DNI · ${Math.max(stats.streakWeeks, plans.length > 0 ? 1 : 0)} TYG.`;
 
   return (
-    <div className="mx-auto w-full max-w-lg space-y-6 pb-8">
-      <AppPageHeader
-        kicker="Siłownia"
-        title="Trening"
-        description="Wybierz dzień planu, korektę techniki, postępy albo cardio."
-      />
+    <div className="mx-auto w-full max-w-lg space-y-5 pb-8">
+      <header className="flex items-start justify-between gap-3 px-0.5">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]/85">
+            {kicker}
+          </p>
+          <h1 className="mt-1.5 text-[28px] font-semibold leading-tight tracking-tight text-white">
+            Trening
+          </h1>
+          <p className="mt-1.5 text-[13px] text-white/45">
+            {streakSubtitle(stats.streakWeeks)}
+          </p>
+        </div>
+        <div className="shrink-0 pt-1 text-right">
+          <AnimatedMetric
+            value={stats.workoutsThisWeek}
+            className="text-[2.75rem] leading-none text-white"
+          />
+          <p className="mt-1 text-[11px] text-white/40">w tym tygodniu</p>
+        </div>
+      </header>
 
-      {/* 01 — dni planu */}
-      <section className="space-y-3">
+      {unfinished ? (
+        <section className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/35 bg-[var(--gym-surface-sunken)] p-4 shadow-[0_0_40px_rgba(235,196,74,0.12)]">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-90"
+            style={{
+              background:
+                "linear-gradient(145deg, rgba(235,196,74,0.28) 0%, rgba(40,28,8,0.45) 45%, transparent 72%)",
+            }}
+            aria-hidden
+          />
+          <div className="relative space-y-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+              Niedokończony trening
+            </p>
+            <h2 className="text-[26px] font-semibold leading-tight text-white">
+              {activeTitle.trim() || "Trening"}
+            </h2>
+            <p className="text-[13px] text-white/80">
+              {cwLabel(activeExercises.length)} · {unfinishedPreview}
+            </p>
+            <p className="text-[12px] text-white/45">
+              {startedToday ? "Zaczęty dziś. " : "Sesja w toku. "}
+              Odhaczone serie są zapamiętane.
+            </p>
+            <Link
+              href="/active-workout"
+              className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold"
+            >
+              <Play className="h-4 w-4 fill-current" aria-hidden />
+              Kontynuuj trening
+            </Link>
+            <div className="flex items-center justify-between gap-3 pt-0.5">
+              <Link
+                href="/workout-history"
+                className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]"
+              >
+                <NotebookPen className="h-3.5 w-3.5" aria-hidden />
+                Dziennik obciążeń
+              </Link>
+              <button
+                type="button"
+                onClick={() => reset()}
+                className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]/80"
+              >
+                Porzuć
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="space-y-2.5">
         <SectionLabel
           index={1}
-          title="Plan"
+          title="Dni planu"
+          titleTone="white"
           trailing={
             plans.length > 0 ? (
+              <button
+                type="button"
+                onClick={() =>
+                  printWorkoutPlans(
+                    plans.map((p) => ({ id: p.id, plan: p.plan })),
+                  )
+                }
+                className="inline-flex items-center gap-1 text-[var(--gym-gold)]"
+                aria-label="Pobierz plan PDF"
+              >
+                <Download className="h-3.5 w-3.5" aria-hidden />
+                PDF
+              </button>
+            ) : (
               <Link
                 href="/profile/workout-plan"
-                className="text-[var(--gym-gold)]/80 hover:text-[var(--gym-gold)]"
+                className="text-[var(--gym-gold)]"
               >
                 edytuj
               </Link>
-            ) : null
+            )
           }
         />
 
         {plans.length === 0 ? (
-          <div className="app-card p-5 text-center">
+          <div className="rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] px-4 py-8 text-center">
             <p className="text-sm text-white/70">
               Nie masz jeszcze planu. Ustaw dni i ćwiczenia w Profilu.
             </p>
             <Link
               href="/profile/workout-plan"
-              className="gold-btn mt-4 inline-flex h-12 items-center justify-center rounded-xl px-5 text-sm"
+              className="gold-btn mt-4 inline-flex h-12 items-center justify-center rounded-full px-5 text-sm"
             >
               Ustaw plan w profilu
             </Link>
           </div>
         ) : (
-          <ul className="app-card divide-y divide-white/[0.06] overflow-hidden">
-            {plans.map((row, idx) => {
-              const name = row.plan.planName.trim() || `Dzień ${idx + 1}`;
-              const count = row.plan.exercises.length;
-              const hasNotes = planHasNotes(row);
-              const busy = pending && pendingId === row.id;
-              return (
-                <li key={row.id}>
-                  <button
-                    type="button"
-                    disabled={count === 0 || pending}
-                    onClick={() => {
-                      setPendingId(row.id);
-                      startTransition(() => onBegin(row));
-                    }}
-                    className={cn(
-                      "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors",
-                      "hover:bg-white/[0.03] disabled:opacity-50",
-                    )}
-                  >
-                    <span className="font-metric w-9 shrink-0 text-[15px] leading-none text-[var(--gym-gold)]">
-                      {String(idx + 1).padStart(2, "0")}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-semibold text-white">
-                        {name}
-                      </span>
-                      <span className="mt-0.5 block text-[12px] text-white/45">
-                        {exerciseCountLabel(count)}
-                        {" · "}
-                        ostatnio {formatPlanLastDoneLabel(row.lastWorkoutDate)}
-                      </span>
-                    </span>
-                    {hasNotes ? (
-                      <StickyNote
-                        className="h-4 w-4 shrink-0 text-[var(--gym-gold)]/80"
-                        aria-label="Ma notatki"
-                      />
-                    ) : null}
-                    <ChevronRight
-                      className="h-4 w-4 shrink-0 text-white/30"
-                      aria-hidden
-                    />
-                    <span className="sr-only">
-                      {busy ? "Startuję…" : "Rozpocznij trening"}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            <ul className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
+              {plans.map((row, idx) => {
+                const name = row.plan.planName.trim() || `Dzień ${idx + 1}`;
+                const count = row.plan.exercises.length;
+                const busy = pending && pendingId === row.id;
+                const last = formatPlanLastDoneRelative(
+                  row.lastWorkoutDate,
+                  today,
+                );
+                return (
+                  <li key={row.id}>
+                    <div className="flex items-stretch">
+                      <button
+                        type="button"
+                        disabled={count === 0 || pending}
+                        onClick={() => {
+                          setPendingId(row.id);
+                          startTransition(() => onBegin(row));
+                        }}
+                        className={cn(
+                          "flex min-w-0 flex-1 items-center gap-3 px-3.5 py-3.5 text-left transition-colors",
+                          "hover:bg-white/[0.03] disabled:opacity-50",
+                        )}
+                      >
+                        <span className="w-8 shrink-0 text-[13px] font-semibold text-white/40">
+                          D{idx + 1}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[15px] font-semibold text-white">
+                            {name}
+                          </span>
+                          <span className="mt-0.5 block text-[12px] text-white/45">
+                            {cwLabel(count)} · {last}
+                          </span>
+                        </span>
+                        <span className="sr-only">
+                          {busy ? "Startuję…" : "Rozpocznij trening"}
+                        </span>
+                      </button>
+                      <Link
+                        href="/workout-history"
+                        className="inline-flex items-center px-2 text-white/40 transition hover:text-[var(--gym-gold)]"
+                        aria-label={`Dziennik obciążeń — ${name}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <NotebookPen className="h-4 w-4" aria-hidden />
+                      </Link>
+                      <button
+                        type="button"
+                        disabled={count === 0 || pending}
+                        onClick={() => {
+                          setPendingId(row.id);
+                          startTransition(() => onBegin(row));
+                        }}
+                        className="inline-flex items-center pr-3.5 text-white/30"
+                        aria-label={`Start ${name}`}
+                      >
+                        <ChevronRight className="h-4 w-4" aria-hidden />
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="px-0.5 text-[11px] leading-relaxed text-white/40">
+              Tap = start treningu w kreatorze. Notes = dziennik obciążeń dla
+              tych, którzy wolą wpisywać ciężary po treningu.
+            </p>
+          </>
         )}
       </section>
 
-      {/* 02 — korekta techniki */}
-      <section className="space-y-3">
-        <SectionLabel index={2} title="Korekta techniki" />
-        <div className="app-card divide-y divide-white/[0.06] overflow-hidden">
+      <section className="space-y-2.5">
+        <SectionLabel index={2} title="Korekta techniki" titleTone="white" />
+        <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
           <Link
             href="/technique"
-            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+            className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.03]"
           >
             <Video className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-white">
+              <span className="block text-[14px] font-semibold text-white">
                 Nagraj technikę
               </span>
               <span className="mt-0.5 block text-[12px] text-white/45">
-                wybierz film z telefonu i zapisz lokalnie
+                film z ćwiczenia, Damian odpisze z korektą
               </span>
             </span>
             <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
           </Link>
           <Link
             href="/technique#moje-filmy"
-            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+            className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.03]"
           >
             <Film className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-white">
+              <span className="block text-[14px] font-semibold text-white">
                 Moje filmy
               </span>
               <span className="mt-0.5 block text-[12px] text-white/45">
-                lista zapisanych nagrań techniki
+                filmy i odpowiedzi Damiana
               </span>
             </span>
             <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
@@ -195,39 +304,38 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
         </div>
       </section>
 
-      {/* 03 — postępy */}
-      <section className="space-y-3">
-        <SectionLabel index={3} title="Postępy" />
-        <div className="app-card divide-y divide-white/[0.06] overflow-hidden">
+      <section className="space-y-2.5">
+        <SectionLabel index={3} title="Postępy" titleTone="white" />
+        <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)] divide-y divide-white/[0.06]">
           <Link
             href="/progress"
-            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+            className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.03]"
           >
             <TrendingUp
               className="h-4 w-4 shrink-0 text-[var(--gym-gold)]"
               aria-hidden
             />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-white">
+              <span className="block text-[14px] font-semibold text-white">
                 Postępy
               </span>
               <span className="mt-0.5 block text-[12px] text-white/45">
-                siła, sylwetka, zdjęcia, tydzień
+                siła każdego ćwiczenia, sylwetka, zdjęcia
               </span>
             </span>
             <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
           </Link>
           <Link
             href="/workout-history"
-            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+            className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.03]"
           >
             <History className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-white">
+              <span className="block text-[14px] font-semibold text-white">
                 Historia treningów
               </span>
               <span className="mt-0.5 block text-[12px] text-white/45">
-                każda seria, poprawki do 7 dni
+                każda seria · popraw albo dokończ do 7 dni
               </span>
             </span>
             <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
@@ -235,94 +343,43 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
         </div>
       </section>
 
-      {/* 04 — cardio */}
-      <section className="space-y-3">
+      <section className="space-y-2.5">
         <SectionLabel
           index={4}
           title="Cardio"
+          titleTone="white"
           trailing={
-            <span className="inline-flex items-baseline gap-1 text-white/70">
+            <span className="font-metric tabular-nums text-white">
               <AnimatedMetric
                 value={stats.cardioMinutesThisWeek}
-                className="text-[15px] text-[var(--gym-gold)]"
+                className="text-[15px] text-white"
               />
-              <span className="text-[11px]">
-                / {stats.cardioGoalMinutes} min
-              </span>
+              <span className="ml-1 text-[12px] text-white/45">min</span>
             </span>
           }
         />
-
-        <div className="app-card divide-y divide-white/[0.06] overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setCardioOpen(true)}
-            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.03]"
+        <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--gym-surface-sunken)]">
+          <Link
+            href="/cardio"
+            className="flex w-full items-center gap-3 px-3.5 py-3.5 text-left transition-colors hover:bg-white/[0.03]"
           >
+            <Footprints
+              className="h-4 w-4 shrink-0 text-[var(--gym-gold)]"
+              aria-hidden
+            />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-white">
+              <span className="block text-[14px] font-semibold text-white">
                 Marsz, bieg, bieżnia, zegarek
               </span>
               <span className="mt-0.5 block text-[12px] text-white/45">
-                w tym tygodniu:{" "}
-                <span className="tabular-nums text-white/70">
-                  {stats.cardioSessionsThisWeek}
-                </span>{" "}
-                {stats.cardioSessionsThisWeek === 1 ? "wpis" : "wpisów"}
+                w tym tygodniu {stats.cardioSessionsThisWeek}x ·{" "}
+                {stats.cardioMinutesThisWeek} min
               </span>
             </span>
             <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
-          </button>
-
-          {(recentCardioThisWeek.length > 0
-            ? recentCardioThisWeek
-            : stats.recentCardio
-          )
-            .slice(0, 3)
-            .map((c) => {
-              const inner = (
-                <>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-white">
-                      {c.title}
-                    </span>
-                    <span className="mt-0.5 block text-[12px] text-white/45">
-                      {formatShortDate(c.date)}
-                      {c.avgHr != null ? ` · ${c.avgHr} bpm` : ""}
-                    </span>
-                  </span>
-                  <span className="font-metric shrink-0 text-[18px] tabular-nums text-[var(--gym-gold)]">
-                    {c.minutes}
-                    <span className="ml-1 text-[11px] text-white/40">min</span>
-                  </span>
-                </>
-              );
-              if (c.kind === "cardio_log") {
-                return (
-                  <Link
-                    key={c.id}
-                    href={`/cardio/${c.id}`}
-                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.03]"
-                  >
-                    {inner}
-                    <ChevronRight className="h-4 w-4 shrink-0 text-white/30" aria-hidden />
-                  </Link>
-                );
-              }
-              return (
-                <div key={c.id} className="flex items-center gap-3 px-4 py-3">
-                  {inner}
-                </div>
-              );
-            })}
+          </Link>
         </div>
       </section>
-
-      <CardioLogSheet
-        open={cardioOpen}
-        onClose={() => setCardioOpen(false)}
-        cardioGoalMinutes={stats.cardioGoalMinutes}
-      />
     </div>
   );
 }

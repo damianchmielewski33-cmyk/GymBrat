@@ -57,10 +57,6 @@ export default async function HomePage() {
   });
   const userId = session?.user?.id;
   if (!userId) {
-    /**
-     * APK ładuje `/`. 307 na /login psuło logi Vercel i start WebView.
-     * Ten sam ekran logowania na `/` — GET / jest 200.
-     */
     return <LoginScreen />;
   }
 
@@ -114,9 +110,15 @@ export default async function HomePage() {
       weightDeltaFromPreviousKg={dash.weightDeltaFromPreviousKg}
       weightFromStartKg={dash.weightFromStartKg}
       weightKgPerWeek={weightKgPerWeek(dash.weightSeries)}
+      tempoKgPerMin={dash.tempoKgPerMin}
+      todayMacros={dash.todayMacros}
+      weekMacros={dash.weekMacros}
       weightSeries={dash.weightSeries}
       waistSeries={dash.waistSeries}
       compliance={dash.compliance}
+      formToday={dash.formToday}
+      coachNote={dash.coachNote}
+      transformation={dash.transformation}
       dimensions={{
         waistCm: dash.dimensions.waistCm,
         thighCm: dash.dimensions.thighCm,

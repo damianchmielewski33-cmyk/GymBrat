@@ -5,7 +5,11 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
-import { fitnessGoalsSchema, fitnessGoalsToJson } from "@/lib/fitness-goals";
+import {
+  fitnessGoalsSchema,
+  fitnessGoalsToJson,
+  parseFitnessGoalsJson,
+} from "@/lib/fitness-goals";
 
 export async function saveFitnessGoalsAction(input: unknown) {
   const session = await auth();
@@ -14,8 +18,28 @@ export async function saveFitnessGoalsAction(input: unknown) {
   const parsed = fitnessGoalsSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "Nieprawidłowe cele." };
 
-  const json = fitnessGoalsToJson(parsed.data);
   const db = getDb();
+  const [row] = await db
+    .select({ fitnessGoalsJson: userSettings.fitnessGoalsJson })
+    .from(userSettings)
+    .where(eq(userSettings.userId, session.user.id))
+    .limit(1);
+
+  const prev = parseFitnessGoalsJson(row?.fitnessGoalsJson ?? null);
+  const next = { ...prev, ...parsed.data };
+  // Częściowy zapis z formularza profilu może czyścić cele ćwiczeń —
+  // gdy input nie zawiera exerciseTargets, zostaw poprzednie.
+  if (!("exerciseTargets" in (input as object))) {
+    next.exerciseTargets = prev.exerciseTargets;
+  }
+  if (!("weeklySessionsTarget" in (input as object))) {
+    next.weeklySessionsTarget = prev.weeklySessionsTarget;
+  }
+  if (!("targetWeightKg" in (input as object))) {
+    next.targetWeightKg = prev.targetWeightKg;
+  }
+
+  const json = fitnessGoalsToJson(next);
   await db
     .update(userSettings)
     .set({

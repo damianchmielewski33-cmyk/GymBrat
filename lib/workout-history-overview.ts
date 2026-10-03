@@ -55,6 +55,10 @@ export type WorkoutHistoryKpis = {
   avgDurationMinutes: number | null;
   /** Tonaż siłowy w bieżącym tygodniu (kg). */
   tonnageThisWeekKg: number;
+  /** Średnia liczba treningów / tydzień z ostatnich 8 tygodni. */
+  avgWorkoutsPerWeekLast8: number;
+  /** Tonaż łączny (wszystkie sesje). */
+  tonnageTotalKg: number;
 };
 
 export type WorkoutHistorySetPill = {
@@ -68,6 +72,7 @@ export type WorkoutHistorySetPill = {
 export type WorkoutHistoryExercisePreview = {
   id: string;
   name: string;
+  volumeKg: number;
   sets: WorkoutHistorySetPill[];
 };
 
@@ -102,6 +107,10 @@ export type WorkoutHistoryCard = {
   /** Cardio dodane w popupie po siłowym (min). */
   cardioMinutes: number;
   durationMinutes: number | null;
+  /** ms — do limitu edycji 7 dni. */
+  endedAt: number | null;
+  /** Który z kolei trening tego dnia planu (1 = pierwszy). */
+  planOccurrence: number;
   exercises: WorkoutHistoryExercisePreview[];
 };
 
@@ -202,6 +211,88 @@ export function formatHistoryShortDate(ymd: string): string {
     }).format(d);
   } catch {
     return ymd;
+  }
+}
+
+const PL_MONTH_GENITIVE = [
+  "stycznia",
+  "lutego",
+  "marca",
+  "kwietnia",
+  "maja",
+  "czerwca",
+  "lipca",
+  "sierpnia",
+  "września",
+  "października",
+  "listopada",
+  "grudnia",
+] as const;
+
+const PL_WEEKDAY_SHORT = ["nd", "pon", "wt", "śr", "czw", "pt", "sob"] as const;
+
+/** Zakres tygodnia jak na makiecie: „28 WRZEŚNIA – 4 PAŹDZIERNIKA”. */
+export function formatHistoryWeekRange(monday: string): string {
+  const sunday = addCalendarDays(monday, 6);
+  const start = new Date(`${monday}T12:00:00`);
+  const end = new Date(`${sunday}T12:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return `${formatHistoryShortDate(monday)}–${formatHistoryShortDate(sunday)}`;
+  }
+  const startDay = start.getDate();
+  const endDay = end.getDate();
+  const startMonth = PL_MONTH_GENITIVE[start.getMonth()]?.toUpperCase() ?? "";
+  const endMonth = PL_MONTH_GENITIVE[end.getMonth()]?.toUpperCase() ?? "";
+  if (start.getMonth() === end.getMonth()) {
+    return `${startDay}–${endDay} ${endMonth}`;
+  }
+  return `${startDay} ${startMonth} – ${endDay} ${endMonth}`;
+}
+
+/** np. „pt 02.10”. */
+export function formatHistoryDayChip(ymd: string): string {
+  const dow = calendarWeekdaySun0(ymd);
+  const short = PL_WEEKDAY_SHORT[dow] ?? "";
+  return `${short} ${formatHistoryShortDate(ymd)}`;
+}
+
+export function formatHistoryKg(volumeKg: number): string {
+  return `${new Intl.NumberFormat("pl-PL", {
+    maximumFractionDigits: 0,
+  }).format(Math.max(0, Math.round(volumeKg)))} kg`;
+}
+
+export function formatSetsLabel(n: number): string {
+  if (n === 1) return "1 seria";
+  if (n >= 2 && n <= 4) return `${n} serie`;
+  return `${n} serii`;
+}
+
+/** Limit poprawy sesji — 7 dni od endedAt. */
+export const WORKOUT_EDIT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function workoutEditDeadlineMs(endedAt: number | null, dateYmd: string): number {
+  if (endedAt != null && Number.isFinite(endedAt)) {
+    return endedAt + WORKOUT_EDIT_WINDOW_MS;
+  }
+  const dayEnd = new Date(`${dateYmd}T23:59:59`).getTime();
+  return (Number.isFinite(dayEnd) ? dayEnd : Date.now()) + WORKOUT_EDIT_WINDOW_MS;
+}
+
+export function canEditWorkout(endedAt: number | null, dateYmd: string, now = Date.now()): boolean {
+  return now <= workoutEditDeadlineMs(endedAt, dateYmd);
+}
+
+export function formatEditDeadline(ms: number): string {
+  try {
+    return new Intl.DateTimeFormat("pl-PL", {
+      day: "numeric",
+      month: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(ms));
+  } catch {
+    return "—";
   }
 }
 
@@ -344,6 +435,7 @@ export async function getWorkoutHistoryOverview(
 
   const prevByPlan = new Map<string, CompletedWorkoutDetails>();
   const prevAnyByDate = new Map<string, CompletedWorkoutDetails>();
+  const occurrenceByPlan = new Map<string, number>();
   const bestE1rmByExercise = new Map<string, number>();
   const cardById = new Map<string, WorkoutHistoryCard>();
 
@@ -358,6 +450,8 @@ export async function getWorkoutHistoryOverview(
       planName: w.planName,
       title: w.title,
     });
+    const planOccurrence = (occurrenceByPlan.get(planKey) ?? 0) + 1;
+    occurrenceByPlan.set(planKey, planOccurrence);
     const previous = prevByPlan.get(planKey) ?? null;
     const compare = compareWorkoutExercises(w, previous);
     const volumeDeltaPercent =
@@ -380,6 +474,7 @@ export async function getWorkoutHistoryOverview(
         return {
           id: ex.id,
           name: ex.name,
+          volumeKg: ex.volumeKg,
           sets: ex.sets.map((s) => ({
             reps: s.reps,
             weight: s.weight,
@@ -419,6 +514,8 @@ export async function getWorkoutHistoryOverview(
       setsTotal: sets.total,
       cardioMinutes: cardioMinutesByWorkoutId.get(w.id) ?? 0,
       durationMinutes: durationMinutesFromDetails(w),
+      endedAt: w.endedAt ?? null,
+      planOccurrence,
       exercises: exercisePreviews,
     });
 
@@ -437,13 +534,20 @@ export async function getWorkoutHistoryOverview(
   let tonnageLast30Kg = 0;
   let workoutsThisWeek = 0;
   let tonnageThisWeekKg = 0;
+  let tonnageTotalKg = 0;
   let durationSum = 0;
   let durationCount = 0;
+  const since8w = addCalendarDays(today, -55);
+  let workoutsLast8Weeks = 0;
   const activePlanKeys = new Set<string>();
   for (const c of cards) {
+    tonnageTotalKg += c.volumeKg;
     if (c.date >= since30) {
       workoutsLast30 += 1;
       tonnageLast30Kg += c.volumeKg;
+    }
+    if (c.date >= since8w) {
+      workoutsLast8Weeks += 1;
     }
     if (c.date >= weekMonday && c.date <= weekSunday) {
       workoutsThisWeek += 1;
@@ -457,6 +561,8 @@ export async function getWorkoutHistoryOverview(
   }
   const avgDurationMinutes =
     durationCount > 0 ? Math.round(durationSum / durationCount) : null;
+  const avgWorkoutsPerWeekLast8 =
+    Math.round((workoutsLast8Weeks / 8) * 10) / 10;
 
   const planFiltersMap = new Map<string, { id: string; label: string; count: number }>();
   for (const c of cards) {
@@ -501,6 +607,8 @@ export async function getWorkoutHistoryOverview(
       workoutsThisWeek,
       avgDurationMinutes,
       tonnageThisWeekKg,
+      avgWorkoutsPerWeekLast8,
+      tonnageTotalKg,
     },
     cards,
     cardio: cardio.slice(0, 30),

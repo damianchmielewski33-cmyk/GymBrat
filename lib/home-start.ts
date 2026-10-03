@@ -98,6 +98,11 @@ export type HomeStartDashboard = {
     digestion: number | null;
     training: number | null;
   };
+  /** Notatka / feedback z ostatniego raportu (sekcja „Od Damiana”). */
+  coachNote: {
+    text: string;
+    dateKey: string;
+  } | null;
   compliance: {
     dietPct: number | null;
     trainingPct: number | null;
@@ -701,6 +706,7 @@ async function getReportInsights(userId: string) {
       dietCompliance: bodyReports.dietCompliance,
       trainingCompliance: bodyReports.trainingCompliance,
       cardioCompliance: bodyReports.cardioCompliance,
+      additionalInfo: bodyReports.additionalInfo,
     })
     .from(bodyReports)
     .where(eq(bodyReports.userId, userId))
@@ -708,6 +714,7 @@ async function getReportInsights(userId: string) {
     .limit(45);
 
   const latest = rows[0] ?? null;
+  const coachText = latest?.additionalInfo?.trim() || null;
   const daysSinceLastReport =
     latest?.createdAt != null
       ? Math.max(
@@ -742,6 +749,13 @@ async function getReportInsights(userId: string) {
       digestion: latest?.digestionScore ?? null,
       training: latest?.trainingEnergy ?? null,
     },
+    coachNote:
+      coachText && latest?.createdAt
+        ? {
+            text: coachText,
+            dateKey: reportDateKey(new Date(latest.createdAt)),
+          }
+        : null,
     compliance: {
       dietPct: compliancePct(dietValues),
       trainingPct: compliancePct(trainingValues),
@@ -893,6 +907,7 @@ export async function getHomeStartDashboard(
     todayMacros: macroBundle.today,
     weekMacros: macroBundle.week,
     formToday: reportInsights.formToday,
+    coachNote: reportInsights.coachNote,
     compliance: reportInsights.compliance,
     transformation,
     dimensions: {

@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export const fitnessGoalsSchema = z.object({
   weeklySessionsTarget: z.number().int().min(1).max(14).optional(),
+  /** Waga docelowa (kg) — Postępy → Sylwetka. */
+  targetWeightKg: z.number().positive().max(400).optional(),
   exerciseTargets: z
     .array(
       z.object({
@@ -30,6 +32,12 @@ export function fitnessGoalsToJson(goals: FitnessGoals): string | null {
   const p = fitnessGoalsSchema.safeParse(goals);
   if (!p.success) return null;
   const v = p.data;
-  if (!v.weeklySessionsTarget && !v.exerciseTargets?.length) return null;
+  if (
+    !v.weeklySessionsTarget &&
+    v.targetWeightKg == null &&
+    !v.exerciseTargets?.length
+  ) {
+    return null;
+  }
   return JSON.stringify(v);
 }

@@ -339,7 +339,7 @@ export function GuidedSessionLayout({
             flushDraft();
             setListOpen(true);
           }}
-          className="px-2 py-3 pt-3"
+          className="px-2 pb-3"
         />
         <SessionProgressBar progress={progress} />
       </div>
@@ -788,8 +788,8 @@ export function GuidedSessionLayout({
 
       {listOpen ? (
         <div className="fixed inset-0 z-[70] flex flex-col bg-black">
-          <header className="flex items-start justify-between px-5 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-            <div>
+          <header className="flex items-start justify-between gap-3 px-5 pb-3 pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.5rem))]">
+            <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
                 Lista ćwiczeń
               </p>
@@ -798,7 +798,7 @@ export function GuidedSessionLayout({
             <button
               type="button"
               onClick={() => setListOpen(false)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12"
               aria-label="Zamknij"
             >
               <X className="h-4 w-4" />
