@@ -13,7 +13,6 @@ export default async function InboxPage() {
         </p>
         <h1 className="text-3xl font-semibold text-white">Skrzynka</h1>
         <p className="text-sm text-white/55">
-          Korekty techniki i wiadomości od Damiana.
         </p>
       </header>
 
