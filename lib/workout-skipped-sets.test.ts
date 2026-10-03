@@ -8,6 +8,7 @@ import {
   isCompletedWorkoutSet,
   isExerciseIncomplete,
   isSkippedWorkoutSet,
+  resolveAdvanceAfterSet,
 } from "@/lib/workout-skipped-sets";
 
 function set(done: boolean, skipped = false) {
@@ -27,8 +28,8 @@ describe("workout-skipped-sets", () => {
     ).toBe(false);
   });
 
-  it("zielone zaliczenie: powtórzenia; ciężar 0 = masa ciała", () => {
-    expect(canCompleteWorkoutSet(0, 8)).toBe(true);
+  it("zielone zaliczenie wymaga ciężaru > 0; 0 kg → pomiń", () => {
+    expect(canCompleteWorkoutSet(0, 8)).toBe(false);
     expect(canCompleteWorkoutSet(60, null)).toBe(false);
     expect(canCompleteWorkoutSet(60, 8)).toBe(true);
     expect(
@@ -36,10 +37,10 @@ describe("workout-skipped-sets", () => {
     ).toBe(true);
     expect(
       isCompletedWorkoutSet({ done: true, reps: 8, weight: 0 }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isSkippedWorkoutSet({ done: true, reps: 8, weight: 0 }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       isSkippedWorkoutSet({ done: true, reps: null, weight: 0 }),
     ).toBe(true);
@@ -101,5 +102,68 @@ describe("workout-skipped-sets", () => {
       { id: "2", name: "Ćw. 2", sets: [set(true)] },
     ];
     expect(findNextIncompleteExercise(exercises, "1")).toBeNull();
+  });
+
+  it("resolveAdvanceAfterSet: kolejna seria w tym samym ćwiczeniu", () => {
+    const exercises: WorkoutExerciseState[] = [
+      {
+        id: "a",
+        name: "Przysiad",
+        sets: [
+          { reps: 5, weight: 100, done: true, skipped: true },
+          { reps: 5, weight: 100, done: false },
+          { reps: 5, weight: 100, done: false },
+        ],
+      },
+    ];
+    expect(resolveAdvanceAfterSet(exercises, "a", 0)).toEqual({
+      exerciseId: "a",
+      setIndex: 1,
+    });
+  });
+
+  it("resolveAdvanceAfterSet: po ostatniej serii idzie do następnego niedokończonego", () => {
+    const exercises: WorkoutExerciseState[] = [
+      {
+        id: "a",
+        name: "Przysiad",
+        sets: [
+          { reps: 5, weight: 100, done: true },
+          { reps: 5, weight: 100, done: true, skipped: true },
+        ],
+      },
+      {
+        id: "b",
+        name: "Martwy",
+        sets: [{ reps: 5, weight: 120, done: false }],
+      },
+    ];
+    expect(resolveAdvanceAfterSet(exercises, "a", 1)).toEqual({
+      exerciseId: "b",
+      setIndex: 0,
+    });
+  });
+
+  it("resolveAdvanceAfterSet: stale-bug — po pominięciu ostatniej nie wraca do siebie", () => {
+    const exercises: WorkoutExerciseState[] = [
+      {
+        id: "a",
+        name: "Przysiad",
+        sets: [
+          { reps: 5, weight: 100, done: true },
+          { reps: 5, weight: 100, done: true, skipped: true },
+        ],
+      },
+      {
+        id: "b",
+        name: "Wyciskanie",
+        sets: [
+          { reps: 8, weight: 60, done: false },
+          { reps: 8, weight: 60, done: false },
+        ],
+      },
+    ];
+    // Świeży stan: a domknięte — musi wskazać b, nie a.
+    expect(resolveAdvanceAfterSet(exercises, "a", 1)?.exerciseId).toBe("b");
   });
 });

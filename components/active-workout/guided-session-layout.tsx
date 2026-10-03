@@ -16,7 +16,9 @@ import {
   findNextIncompleteExercise,
   isCompletedWorkoutSet,
   isSkippedWorkoutSet,
+  resolveAdvanceAfterSet,
 } from "@/lib/workout-skipped-sets";
+import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 
 function formatElapsed(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -69,6 +71,13 @@ type GuidedSessionLayoutProps = {
   onFinishSession?: () => void;
   finishPending?: boolean;
   onDeferExercise?: () => void;
+  /** Skok do konkretnej serii (np. „Wróć do pominiętej”) — nonce wymusza ponowne ustawienie. */
+  focusSetRequest?: {
+    exerciseId: string;
+    setIndex: number;
+    nonce: number;
+  } | null;
+  onFocusSetHandled?: () => void;
 };
 
 export function GuidedSessionLayout({
@@ -88,6 +97,8 @@ export function GuidedSessionLayout({
   onFinishSession,
   finishPending,
   onDeferExercise,
+  focusSetRequest,
+  onFocusSetHandled,
 }: GuidedSessionLayoutProps) {
   const [listOpenLocal, setListOpenLocal] = useState(false);
   const listOpen = listOpenControlled ?? listOpenLocal;
@@ -153,6 +164,24 @@ export function GuidedSessionLayout({
     }
     setManualSetIndex(null);
   }, [exercise?.id]);
+
+  useEffect(() => {
+    if (!focusSetRequest || !exercise) return;
+    if (focusSetRequest.exerciseId !== exercise.id) return;
+    const idx = Math.max(
+      0,
+      Math.min(exercise.sets.length - 1, focusSetRequest.setIndex),
+    );
+    setManualSetIndex(idx);
+    onFocusSetHandled?.();
+  }, [
+    focusSetRequest?.nonce,
+    focusSetRequest?.exerciseId,
+    focusSetRequest?.setIndex,
+    exercise?.id,
+    exercise?.sets.length,
+    onFocusSetHandled,
+  ]);
 
   useEffect(() => {
     if (!set) return;
@@ -242,7 +271,9 @@ export function GuidedSessionLayout({
     if (!exercise || !set) return;
     const weight = parseWeightInput(weightText) ?? clampWeight(set.weight);
     const repsParsed = parseRepsInput(repsText);
-    onPatchSet(exercise.id, activeSetIndex, {
+    const exerciseId = exercise.id;
+    const setIndex = activeSetIndex;
+    onPatchSet(exerciseId, setIndex, {
       done: true,
       skipped: true,
       reps: repsParsed != null && repsParsed > 0 ? repsParsed : set.reps,
@@ -250,21 +281,24 @@ export function GuidedSessionLayout({
       rir: set.rir ?? null,
     });
     requestActiveWorkoutCloudPush(true);
-    setManualSetIndex(null);
-    advanceAfterComplete(exercise.id, activeSetIndex);
+    advanceAfterComplete(exerciseId, setIndex);
   }
 
   function advanceAfterComplete(exerciseId: string, setIndex: number) {
-    const ex = exercises.find((e) => e.id === exerciseId);
-    if (!ex) return;
-    const nextSet = setIndex + 1;
-    if (nextSet < ex.sets.length) {
-      setManualSetIndex(nextSet);
+    // Po patchu bierz świeży stan ze store — props `exercises` jest jeszcze stary.
+    const exercisesNow = useActiveWorkoutStore.getState().exercises;
+    const target = resolveAdvanceAfterSet(exercisesNow, exerciseId, setIndex);
+    if (!target) {
+      setManualSetIndex(null);
       return;
     }
+    if (target.exerciseId === exerciseId) {
+      setManualSetIndex(target.setIndex);
+      return;
+    }
+    pendingSetIndexRef.current = target.setIndex;
     setManualSetIndex(null);
-    const nextEx = findNextIncompleteExercise(exercises, exerciseId);
-    if (nextEx) onSelectExercise(nextEx.id);
+    onSelectExercise(target.exerciseId);
   }
 
   function completeSet() {
@@ -273,8 +307,7 @@ export function GuidedSessionLayout({
     const reps = clampReps(fromInput ?? set.reps ?? exercise.targetReps ?? 0);
     const weight = parseWeightInput(weightText) ?? clampWeight(set.weight);
     if (!canCompleteWorkoutSet(weight, reps > 0 ? reps : null)) {
-      // Bez powtórzeń nie zaliczamy na zielono — użyj „Pomiń serię”.
-      // Ciężar 0 jest OK (masa ciała: pompki, podciąganie, plank…).
+      // Bez ciężaru (> 0) lub powtórzeń nie zaliczamy — użyj „Pomiń serię”.
       return;
     }
     onPatchSet(exercise.id, activeSetIndex, {

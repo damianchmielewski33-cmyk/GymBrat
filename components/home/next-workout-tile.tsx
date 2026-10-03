@@ -7,7 +7,10 @@ import { ChevronDown, Play } from "lucide-react";
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import { beginWorkoutFromPlanRow } from "@/lib/start-workout-session";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
-import { formatPlanLastDoneLabel } from "@/lib/workout-plan-queue";
+import {
+  formatPlanLastDoneLabel,
+  formatPlanLastDoneShort,
+} from "@/lib/workout-plan-queue";
 import { cn } from "@/lib/utils";
 
 function MiniStat({
@@ -188,6 +191,7 @@ export function NextWorkoutTile({
           {days.map((day) => {
             const inQueue = day.id === (recommendedPlanId ?? selectedId);
             const active = day.id === selected?.id;
+            const lastDate = formatPlanLastDoneShort(day.lastWorkoutDate);
             return (
               <li key={day.id}>
                 <div
@@ -220,6 +224,14 @@ export function NextWorkoutTile({
                       {inQueue ? " · w kolejce" : ""}
                     </p>
                   </button>
+                  <span
+                    className={cn(
+                      "shrink-0 text-[12px] tabular-nums",
+                      lastDate ? "text-white/55" : "text-white/30",
+                    )}
+                  >
+                    {lastDate ?? "—"}
+                  </span>
                   <button
                     type="button"
                     disabled={pending || day.exerciseCount === 0}

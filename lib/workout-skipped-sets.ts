@@ -17,8 +17,8 @@ export function hasExternalWeight(weight: number | null | undefined): boolean {
 }
 
 /**
- * Seria zaliczona bez realnego wykonania (flaga pomiń albo brak powtórzeń).
- * Ciężar 0 przy powtórzeniach > 0 jest prawidłowym wykonaniem (ćwiczenie bez obciążenia).
+ * Seria zaliczona bez realnego wykonania (flaga pomiń, brak powtórzeń albo 0 kg).
+ * Przy pustym / zerowym ciężarze w sesji jest „Pomiń serię”, nie zielone zaliczenie.
  */
 export function isSkippedWorkoutSet(set: {
   done: boolean;
@@ -28,10 +28,10 @@ export function isSkippedWorkoutSet(set: {
 }): boolean {
   if (!set.done) return false;
   if (set.skipped) return true;
-  return !hasPerformedReps(set.reps);
+  return !hasPerformedReps(set.reps) || !hasExternalWeight(set.weight);
 }
 
-/** Prawdziwie wykonana seria (zielona kropka) — nie pominięta, z powtórzeniami. */
+/** Prawdziwie wykonana seria (zielona kropka) — nie pominięta, z ciężarem i powtórzeniami. */
 export function isCompletedWorkoutSet(set: {
   done: boolean;
   skipped?: boolean;
@@ -43,14 +43,10 @@ export function isCompletedWorkoutSet(set: {
 
 /**
  * Czy dane wystarczą do zielonego zaliczenia (nie pominięcia).
- * Wystarczą powtórzenia > 0; ciężar może być 0 (masa ciała).
+ * Wymaga ciężaru > 0 i powtórzeń > 0 — inaczej UI pokazuje „Pomiń serię”.
  */
 export function canCompleteWorkoutSet(weight: number, reps: number | null): boolean {
-  return (
-    Number.isFinite(weight) &&
-    weight >= 0 &&
-    hasPerformedReps(reps)
-  );
+  return hasExternalWeight(weight) && hasPerformedReps(reps);
 }
 
 /**
@@ -118,4 +114,41 @@ export function findNextIncompleteExercise(
     if (isExerciseIncomplete(ex)) return ex;
   }
   return null;
+}
+
+export type AdvanceAfterSetTarget = {
+  exerciseId: string;
+  setIndex: number;
+};
+
+/**
+ * Dokąd przejść po zaliczeniu / pominięciu serii.
+ * Wymaga **świeżego** stanu exercises (po patchu) — inaczej zostajesz na domkniętym ćwiczeniu.
+ */
+export function resolveAdvanceAfterSet(
+  exercises: WorkoutExerciseState[],
+  exerciseId: string,
+  setIndex: number,
+): AdvanceAfterSetTarget | null {
+  const ex = exercises.find((e) => e.id === exerciseId);
+  if (!ex) return null;
+
+  const nextSet = setIndex + 1;
+  if (nextSet < ex.sets.length) {
+    return { exerciseId, setIndex: nextSet };
+  }
+
+  // Bieżące ćwiczenie domknięte — szukaj kolejnego z open setami.
+  const stillOpen = ex.sets.findIndex((s) => !s.done);
+  if (stillOpen >= 0) {
+    return { exerciseId, setIndex: stillOpen };
+  }
+
+  const nextEx = findNextIncompleteExercise(exercises, exerciseId);
+  if (!nextEx) return null;
+  const open = nextEx.sets.findIndex((s) => !s.done);
+  return {
+    exerciseId: nextEx.id,
+    setIndex: open >= 0 ? open : 0,
+  };
 }

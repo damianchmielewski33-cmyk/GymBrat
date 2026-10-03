@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   comparePlansByWorkoutRecencyAsc,
   formatPlanLastDoneLabel,
+  formatPlanLastDoneRelative,
   formatPlanLastDoneShort,
 } from "@/lib/workout-plan-queue";
 
@@ -32,5 +33,19 @@ describe("formatPlanLastDoneLabel", () => {
   it("data → DD.MM", () => {
     expect(formatPlanLastDoneShort("2026-09-28")).toMatch(/28/);
     expect(formatPlanLastDoneLabel("2026-09-28")).toMatch(/28/);
+  });
+});
+
+describe("formatPlanLastDoneRelative", () => {
+  it("dokłada datę dd.mm przy względnej etykiecie", () => {
+    expect(formatPlanLastDoneRelative("2026-10-03", "2026-10-03")).toMatch(
+      /dziś/,
+    );
+    expect(formatPlanLastDoneRelative("2026-10-03", "2026-10-03")).toMatch(
+      /03/,
+    );
+    expect(formatPlanLastDoneRelative("2026-09-28", "2026-10-03")).toMatch(
+      /28/,
+    );
   });
 });

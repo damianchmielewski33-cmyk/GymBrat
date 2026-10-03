@@ -83,8 +83,9 @@ export function WorkoutAllSetsDoneDialog({
             type="button"
             className="gym-btn-primary h-12 w-full gap-2"
             onClick={() => {
-              onOpenChange(false);
+              // Najpierw nawigacja (target w store), potem zamknięcie dialogu.
               onGoToSkipped();
+              onOpenChange(false);
             }}
           >
             <RotateCcw className="h-4 w-4" />

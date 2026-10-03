@@ -109,6 +109,11 @@ export function ActiveWorkoutView({
     target: ReturnType<typeof findFirstSkippedWorkoutTarget>;
     count: number;
   }>({ target: null, count: 0 });
+  const [focusSetRequest, setFocusSetRequest] = useState<{
+    exerciseId: string;
+    setIndex: number;
+    nonce: number;
+  } | null>(null);
   const [finishOpen, setFinishOpen] = useState(false);
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
   /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/start-workout`. */
@@ -436,7 +441,6 @@ export function ActiveWorkoutView({
     const target = findFirstSkippedWorkoutTarget(exercisesNow);
     if (!target) return;
     stopRest();
-    setSelectedExerciseId(target.exerciseId);
     const set = exercisesNow
       .find((e) => e.id === target.exerciseId)
       ?.sets[target.setIndex];
@@ -446,6 +450,12 @@ export function ActiveWorkoutView({
         skipped: false,
       });
     }
+    setSelectedExerciseId(target.exerciseId);
+    setFocusSetRequest({
+      exerciseId: target.exerciseId,
+      setIndex: target.setIndex,
+      nonce: Date.now(),
+    });
   }
 
   function patchSet(
@@ -482,13 +492,17 @@ export function ActiveWorkoutView({
     patchSetInStore(exerciseId, setIndex, nextPatch);
     requestActiveWorkoutCloudPush(Boolean(nextPatch.done === true));
 
-    // Start odpoczynku tylko przy przejściu false -> true.
+    // Start odpoczynku tylko przy przejściu false -> true (prawdziwe zaliczenie, nie pominięcie).
     const nextReps = nextPatch.reps !== undefined ? nextPatch.reps : current?.reps ?? null;
     const nextWeight = nextPatch.weight !== undefined ? nextPatch.weight : current?.weight ?? 0;
     const isDoneNext =
       nextPatch.done !== undefined
         ? nextPatch.done
         : canCompleteWorkoutSet(nextWeight, nextReps);
+    const isSkippedNext = Boolean(
+      nextPatch.skipped === true ||
+        (isDoneNext && !canCompleteWorkoutSet(nextWeight, nextReps)),
+    );
     if (isDoneNext && !wasDone) {
       const exercisesNow = useActiveWorkoutStore.getState().exercises;
       const snap = buildCompletedSnap(
@@ -498,7 +512,7 @@ export function ActiveWorkoutView({
         Number(nextWeight) || 0,
         Number(nextReps) || 0,
       );
-      if (snap) setLastCompleted(snap);
+      if (snap && !isSkippedNext) setLastCompleted(snap);
 
       const { done, total } = countSetsDone(exercisesNow);
       if (total > 0 && done >= total) {
@@ -513,6 +527,12 @@ export function ActiveWorkoutView({
           setAllSetsDoneSkipped({ target: null, count: 0 });
           setFinishOpen(true);
         }
+        return;
+      }
+
+      // Pominięcie: bez przerwy — od razu widać następną serię / ćwiczenie.
+      if (isSkippedNext) {
+        stopRest();
         return;
       }
 
@@ -662,6 +682,8 @@ export function ActiveWorkoutView({
       onDeferExercise={() => {
         /* lista / kolejność — „Wrócę później” przechodzi do następnego w GuidedSessionLayout */
       }}
+      focusSetRequest={focusSetRequest}
+      onFocusSetHandled={() => setFocusSetRequest(null)}
     />
   );
 

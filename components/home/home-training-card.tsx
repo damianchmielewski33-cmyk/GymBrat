@@ -8,7 +8,10 @@ import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
 import { beginWorkoutFromPlanRow } from "@/lib/start-workout-session";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
-import { formatPlanLastDoneRelative } from "@/lib/workout-plan-queue";
+import {
+  formatPlanLastDoneRelative,
+  formatPlanLastDoneShort,
+} from "@/lib/workout-plan-queue";
 import { calendarDateKey } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
 
@@ -270,6 +273,7 @@ export function HomeTrainingCard({
                   {days.map((day) => {
                     const inQueue = day.id === recommendedPlanId;
                     const active = day.id === selected?.id;
+                    const lastDate = formatPlanLastDoneShort(day.lastWorkoutDate);
                     return (
                       <li key={day.id}>
                         <div
@@ -295,14 +299,33 @@ export function HomeTrainingCard({
                               <span className="font-normal text-white/45">
                                 {" "}
                                 · {day.exerciseCount} ćw.
-                                {inQueue
-                                  ? " · w kolejce"
-                                  : day.lastWorkoutDate
-                                    ? ` · ${formatPlanLastDoneRelative(day.lastWorkoutDate, today)}`
-                                    : ""}
+                                {inQueue ? " · w kolejce" : ""}
                               </span>
                             </p>
+                            <p className="mt-0.5 text-[12px] text-white/40">
+                              {day.lastWorkoutDate
+                                ? formatPlanLastDoneRelative(
+                                    day.lastWorkoutDate,
+                                    today,
+                                  )
+                                : "jeszcze nie robiony"}
+                            </p>
                           </button>
+                          <span
+                            className={cn(
+                              "shrink-0 text-[12px] tabular-nums",
+                              lastDate
+                                ? "text-white/55"
+                                : "text-white/30",
+                            )}
+                            title={
+                              day.lastWorkoutDate
+                                ? `Ostatnio: ${day.lastWorkoutDate}`
+                                : "Jeszcze nie robiony"
+                            }
+                          >
+                            {lastDate ?? "—"}
+                          </span>
                           <button
                             type="button"
                             disabled={pending || day.exerciseCount === 0}

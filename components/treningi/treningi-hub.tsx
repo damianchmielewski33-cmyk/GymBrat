@@ -20,6 +20,7 @@ import { SectionLabel } from "@/components/ui/section-label";
 import {
   comparePlansByWorkoutRecencyAsc,
   formatPlanLastDoneRelative,
+  formatPlanLastDoneShort,
 } from "@/lib/workout-plan-queue";
 import { printWorkoutPlans } from "@/lib/pdf/workout-plan-export";
 import { calendarDateKey } from "@/lib/local-date";
@@ -288,6 +289,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
                   row.lastWorkoutDate,
                   today,
                 );
+                const lastDate = formatPlanLastDoneShort(row.lastWorkoutDate);
                 return (
                   <li key={row.id}>
                     <div className="flex items-stretch">
@@ -313,6 +315,19 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
                           <span className="mt-0.5 block text-[12px] text-white/45">
                             {cwLabel(count)} · {last}
                           </span>
+                        </span>
+                        <span
+                          className={cn(
+                            "shrink-0 text-[12px] tabular-nums",
+                            lastDate ? "text-white/55" : "text-white/30",
+                          )}
+                          title={
+                            row.lastWorkoutDate
+                              ? `Ostatnio: ${row.lastWorkoutDate}`
+                              : "Jeszcze nie robiony"
+                          }
+                        >
+                          {lastDate ?? "—"}
                         </span>
                         <span className="sr-only">
                           {busy ? "Startuję…" : "Rozpocznij trening"}

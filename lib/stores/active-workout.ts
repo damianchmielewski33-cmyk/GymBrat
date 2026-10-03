@@ -75,13 +75,14 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           };
 
           if (patch.done === undefined) {
-            // Auto-ukończenie: powtórzenia > 0 (ciężar 0 = masa ciała).
+            // Auto-ukończenie tylko przy realnym ciężarze i powtórzeniach.
+            // Ciężar 0 / pusty → nie świeć na zielono (użytkownik klika „Pomiń serię”).
             nextSet.done =
               nextSet.reps != null &&
               Number.isFinite(nextSet.reps) &&
               nextSet.reps > 0 &&
               Number.isFinite(nextSet.weight) &&
-              nextSet.weight >= 0;
+              nextSet.weight > 0;
           }
 
           return {

@@ -40,25 +40,33 @@ export function formatPlanLastDoneLabel(ymd: string | null): string {
 
 /**
  * Etykieta jak na makiecie Trening:
- * „jeszcze nie robiony” / „ostatnio wczoraj” / „ostatnio 5 dni temu” / „ostatnio 28.09”.
+ * „jeszcze nie robiony” / „ostatnio wczoraj · 02.10” / „ostatnio 5 dni temu · 28.09”.
+ * Zawsze dokłada konkretną datę dd.mm, gdy trening był wykonany.
  */
 export function formatPlanLastDoneRelative(
   ymd: string | null,
   todayYmd: string,
 ): string {
   if (!ymd) return "jeszcze nie robiony";
+  const short = formatPlanLastDoneShort(ymd);
   try {
     const t0 = new Date(`${ymd}T12:00:00`).getTime();
     const t1 = new Date(`${todayYmd}T12:00:00`).getTime();
     if (!Number.isFinite(t0) || !Number.isFinite(t1)) {
-      return `ostatnio ${formatPlanLastDoneShort(ymd)}`;
+      return short ? `ostatnio ${short}` : "ostatnio —";
     }
     const days = Math.round((t1 - t0) / (24 * 60 * 60 * 1000));
-    if (days <= 0) return "ostatnio dziś";
-    if (days === 1) return "ostatnio wczoraj";
-    if (days < 14) return `ostatnio ${days} dni temu`;
-    return `ostatnio ${formatPlanLastDoneShort(ymd)}`;
+    if (days <= 0) return short ? `ostatnio dziś · ${short}` : "ostatnio dziś";
+    if (days === 1) {
+      return short ? `ostatnio wczoraj · ${short}` : "ostatnio wczoraj";
+    }
+    if (days < 14) {
+      return short
+        ? `ostatnio ${days} dni temu · ${short}`
+        : `ostatnio ${days} dni temu`;
+    }
+    return short ? `ostatnio ${short}` : "ostatnio —";
   } catch {
-    return `ostatnio ${formatPlanLastDoneShort(ymd) ?? "—"}`;
+    return short ? `ostatnio ${short}` : "ostatnio —";
   }
 }
