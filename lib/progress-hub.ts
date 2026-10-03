@@ -4,6 +4,11 @@ import { userSettings, weightLogs, workoutPlans, workouts } from "@/db/schema";
 import { computeAchievements, type AchievementDef } from "@/lib/achievements";
 import { maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
 import { getBodyReports } from "@/lib/body-reports";
+import {
+  emptyProgressDietTrainingBlock,
+  loadProgressDietTrainingBlock,
+  type ProgressDietTrainingBlock,
+} from "@/lib/diet-training-weeks";
 import { estimated1RM, safeNormalizeExercises, safeParseCompletedSession } from "@/lib/workout-history";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
 import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
@@ -12,23 +17,36 @@ import {
   calendarDateKey,
   calendarWeekdaySun0,
 } from "@/lib/local-date";
+import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { CUSTOM_START_PHOTO_ID } from "@/lib/start-photo-id";
+import { resolveExerciseIdentity } from "@/lib/exercise-identity";
+import {
+  buildProgressIntensitySummary,
+  summarizeSessionIntensity,
+  type ProgressIntensitySummary,
+  type SessionIntensity,
+} from "@/lib/intensity-analysis";
 import {
   countableCardioMinutes,
   isCompletedStrengthSession,
   isStandaloneCardioLog,
   parseWorkoutSessionJson,
 } from "@/lib/workout-cardio-attribution";
+import { hasExternalWeight, hasPerformedReps } from "@/lib/workout-skipped-sets";
 
 export type VolumeTrendKind = "up" | "flat" | "down";
 
+export type ProgressMetricKind = "kg" | "reps";
+
 export type ProgressMaxItem = {
   name: string;
+  /** e1RM dla obciążenia; 0 dla masy ciała. */
   bestE1rm: number;
   bestWeight: number;
   bestReps: number;
   date: string;
   isNew: boolean;
+  kind: "weighted" | "bodyweight";
 };
 
 export type ProgressVolumeSession = {
@@ -43,8 +61,11 @@ export type ProgressExerciseStatus = "pending" | "first" | "compare";
 
 export type ProgressExerciseRow = {
   name: string;
+  /** Ostatnia wartość metryki: kg objętości albo suma powtórzeń (masa ciała). */
   lastVolumeKg: number;
   lastBestWeight: number;
+  /** Najlepsza seria powtórzeń (przydatne przy 0 kg). */
+  lastBestReps: number;
   spark: number[];
   trend: VolumeTrendKind;
   status: ProgressExerciseStatus;
@@ -52,6 +73,7 @@ export type ProgressExerciseRow = {
   firstDate: string | null;
   volumeDeltaKg: number | null;
   volumeDeltaPercent: number | null;
+  metric: ProgressMetricKind;
 };
 
 export type ProgressPlanGroup = {
@@ -78,7 +100,12 @@ export type ProgressTempo = {
   lastAvgKg: number | null;
 };
 
-export type ProgressMeasureKey = "waist" | "thigh" | "chest" | "arm";
+export type ProgressMeasureKey =
+  | "waist"
+  | "abdomen"
+  | "thigh"
+  | "chest"
+  | "arm";
 
 export type ProgressMeasureRow = {
   key: ProgressMeasureKey;
@@ -148,6 +175,8 @@ export type ProgressHubData = {
     volumeCounts: { up: number; flat: number; down: number };
     /** Ćwiczenia z porównywalną objętością (ostatnie 2 wpisy). */
     volumeComparedCount: number;
+    /** RPE / RIR / tempo z ostatnich sesji siłowych. */
+    intensity: ProgressIntensitySummary;
     planGroups: ProgressPlanGroup[];
     sinceDate: string | null;
     workoutCount: number;
@@ -170,6 +199,8 @@ export type ProgressHubData = {
   week: {
     summary: ProgressWeekSummary;
     last8: ProgressWeekBar[];
+    /** Kcal/makro z dziennika vs tonaż/RPE w tych samych tygodniach. */
+    dietTraining: ProgressDietTrainingBlock;
     goals: ProgressGoalBar[];
     achievements: AchievementDef[];
   };
@@ -201,11 +232,27 @@ function volumeFromExercises(exercises: ReturnType<typeof safeNormalizeExercises
           ? s.weight
           : Number(s.weight ?? 0);
       const w = clampNonNegative(weight);
-      if (!Boolean(s.done) || reps == null || reps <= 0 || w <= 0) continue;
-      volume += reps * w;
+      if (!Boolean(s.done) || Boolean(s.skipped) || !hasPerformedReps(reps) || !hasExternalWeight(w))
+        continue;
+      volume += reps! * w;
     }
   }
   return safeRound1(volume);
+}
+
+function totalRepsFromExercises(
+  exercises: ReturnType<typeof safeNormalizeExercises>,
+): number {
+  let total = 0;
+  for (const e of exercises) {
+    for (const s of e.sets ?? []) {
+      const reps =
+        typeof s.reps === "number" && Number.isFinite(s.reps) ? Math.round(s.reps) : null;
+      if (!Boolean(s.done) || Boolean(s.skipped) || !hasPerformedReps(reps)) continue;
+      total += reps!;
+    }
+  }
+  return total;
 }
 
 function trendOf(prev: number, next: number): VolumeTrendKind {
@@ -240,6 +287,9 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
         weeklyCardioGoalMinutes: userSettings.weeklyCardioGoalMinutes,
         fitnessGoalsJson: userSettings.fitnessGoalsJson,
         startPhotoDataUrl: userSettings.startPhotoDataUrl,
+        trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
+        restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
+        nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
       })
       .from(userSettings)
       .where(eq(userSettings.userId, userId))
@@ -275,6 +325,8 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
 
   // --- Strength aggregates ---
   type ExAgg = {
+    /** Klucz tożsamości (katalog / złożona nazwa). */
+    key: string;
     name: string;
     bestE1rm: number;
     bestWeight: number;
@@ -283,6 +335,8 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
     firstDate: string;
     volumes: number[];
     lastVolume: number;
+    hasWeighted: boolean;
+    metric: ProgressMetricKind;
   };
 
   function toExerciseRow(input: {
@@ -291,30 +345,35 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
   }): ProgressExerciseRow {
     const agg = input.agg;
     const spark = agg?.volumes ?? [];
+    const displayName = agg?.name ?? input.name;
     if (!agg || spark.length === 0) {
       return {
-        name: input.name,
+        name: displayName,
         lastVolumeKg: 0,
         lastBestWeight: 0,
+        lastBestReps: 0,
         spark: [],
         trend: "flat",
         status: "pending",
         firstDate: null,
         volumeDeltaKg: null,
         volumeDeltaPercent: null,
+        metric: "kg",
       };
     }
     if (spark.length === 1) {
       return {
-        name: agg.name,
+        name: displayName,
         lastVolumeKg: agg.lastVolume,
         lastBestWeight: safeRound1(agg.bestWeight),
+        lastBestReps: agg.bestReps,
         spark,
         trend: "flat",
         status: "first",
         firstDate: agg.firstDate,
         volumeDeltaKg: null,
         volumeDeltaPercent: null,
+        metric: agg.metric,
       };
     }
     const prev = spark[spark.length - 2]!;
@@ -324,19 +383,23 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
     const volumeDeltaPercent =
       prev > 0 ? Math.round(((next - prev) / prev) * 100) : null;
     return {
-      name: agg.name,
+      name: displayName,
       lastVolumeKg: agg.lastVolume,
       lastBestWeight: safeRound1(agg.bestWeight),
+      lastBestReps: agg.bestReps,
       spark,
       trend,
       status: "compare",
       firstDate: agg.firstDate,
       volumeDeltaKg,
       volumeDeltaPercent,
+      metric: agg.metric,
     };
   }
   const byExercise = new Map<string, ExAgg>();
   const volumeSessions: ProgressVolumeSession[] = [];
+  const intensitySessions: SessionIntensity[] = [];
+  const intensityByWeek = new Map<string, SessionIntensity[]>();
   let totalTonnageKg = 0;
   let totalStrengthSessions = 0;
   let firstWorkoutDate: string | null = null;
@@ -407,7 +470,8 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
       parsed?.exercises ?? session?.exercises,
     );
     const vol = volumeFromExercises(ex);
-    if (vol <= 0) continue;
+    const sessionReps = totalRepsFromExercises(ex);
+    if (vol <= 0 && sessionReps <= 0) continue;
 
     totalStrengthSessions += 1;
     totalTonnageKg += vol;
@@ -435,14 +499,22 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
       volumeKg: vol,
       trend: "flat",
     });
+    const sessionIntensity = summarizeSessionIntensity(ex);
+    intensitySessions.push(sessionIntensity);
+    const weekIntensity = intensityByWeek.get(weekMon) ?? [];
+    weekIntensity.push(sessionIntensity);
+    intensityByWeek.set(weekMon, weekIntensity);
 
     for (const e of ex) {
       const name = (e.name ?? "").trim().replace(/\s+/g, " ");
       if (!name) continue;
-      let dayVol = 0;
+      let dayVolKg = 0;
+      let dayTotalReps = 0;
       let dayBestE1rm = 0;
       let dayBestWeight = 0;
-      let dayBestReps = 0;
+      let dayBestRepsAtWeight = 0;
+      let dayBestSetReps = 0;
+      let dayHasWeighted = false;
       for (const s of e.sets ?? []) {
         const reps =
           typeof s.reps === "number" && Number.isFinite(s.reps)
@@ -453,41 +525,89 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
             ? s.weight
             : Number(s.weight ?? 0);
         const w = clampNonNegative(weight);
-        if (!Boolean(s.done) || reps == null || reps <= 0 || w <= 0) continue;
-        dayVol += reps * w;
-        const e1rm = estimated1RM(w, reps);
-        if (e1rm > dayBestE1rm) dayBestE1rm = e1rm;
-        if (w > dayBestWeight) {
-          dayBestWeight = w;
-          dayBestReps = reps;
+        if (!Boolean(s.done) || Boolean(s.skipped) || !hasPerformedReps(reps))
+          continue;
+        dayTotalReps += reps!;
+        if (reps! > dayBestSetReps) dayBestSetReps = reps!;
+        if (hasExternalWeight(w)) {
+          dayHasWeighted = true;
+          dayVolKg += reps! * w;
+          const e1rm = estimated1RM(w, reps!);
+          if (e1rm > dayBestE1rm) dayBestE1rm = e1rm;
+          if (w > dayBestWeight) {
+            dayBestWeight = w;
+            dayBestRepsAtWeight = reps!;
+          }
         }
       }
-      if (dayVol <= 0) continue;
-      const key = name.toLowerCase();
+      if (dayVolKg <= 0 && dayTotalReps <= 0) continue;
+      const identity = resolveExerciseIdentity(name);
+      if (!identity.key) continue;
+      const key = identity.key;
+      const displayName = identity.displayName || name;
       const prev = byExercise.get(key);
+      const hasWeighted = Boolean(prev?.hasWeighted || dayHasWeighted);
+      const metric: ProgressMetricKind = hasWeighted ? "kg" : "reps";
+      const metricValue = hasWeighted
+        ? safeRound1(dayVolKg)
+        : dayTotalReps;
+      // Gdy ćwiczenie ma historię z obciążeniem, pomijamy dni tylko z masą ciała w sparkach kg.
+      if (hasWeighted && dayVolKg <= 0) {
+        if (!prev) continue;
+        byExercise.set(key, {
+          ...prev,
+          key,
+          name: identity.catalogId ? displayName : prev.name,
+          hasWeighted: true,
+          metric: "kg",
+          bestReps: Math.max(prev.bestReps, dayBestSetReps),
+        });
+        continue;
+      }
+
       if (!prev) {
         byExercise.set(key, {
-          name,
+          key,
+          name: displayName,
           bestE1rm: dayBestE1rm,
           bestWeight: dayBestWeight,
-          bestReps: dayBestReps,
+          bestReps: hasWeighted ? dayBestRepsAtWeight : dayBestSetReps,
           date: row.date,
           firstDate: row.date,
-          volumes: [safeRound1(dayVol)],
-          lastVolume: safeRound1(dayVol),
+          volumes: [metricValue],
+          lastVolume: metricValue,
+          hasWeighted,
+          metric,
         });
       } else {
         const isNewE1rm = dayBestE1rm > prev.bestE1rm;
+        const isNewBwReps =
+          !hasWeighted && dayBestSetReps > prev.bestReps;
+        const nextBestReps = hasWeighted
+          ? dayBestWeight > prev.bestWeight
+            ? dayBestRepsAtWeight
+            : prev.bestReps
+          : Math.max(prev.bestReps, dayBestSetReps);
+        const switchedToWeighted = !prev.hasWeighted && hasWeighted;
         byExercise.set(key, {
-          name: prev.name,
+          key,
+          name: identity.catalogId ? displayName : prev.name,
           bestE1rm: Math.max(prev.bestE1rm, dayBestE1rm),
           bestWeight: Math.max(prev.bestWeight, dayBestWeight),
-          bestReps:
-            dayBestWeight > prev.bestWeight ? dayBestReps : prev.bestReps,
-          date: isNewE1rm || dayBestWeight > prev.bestWeight ? row.date : prev.date,
+          bestReps: nextBestReps,
+          date:
+            isNewE1rm ||
+            dayBestWeight > prev.bestWeight ||
+            isNewBwReps
+              ? row.date
+              : prev.date,
           firstDate: prev.firstDate,
-          volumes: [...prev.volumes, safeRound1(dayVol)].slice(-8),
-          lastVolume: safeRound1(dayVol),
+          volumes: switchedToWeighted
+            ? [metricValue]
+            : [...prev.volumes, metricValue].slice(-8),
+          lastVolume: metricValue,
+          hasWeighted,
+          metric,
         });
       }
     }
@@ -518,12 +638,12 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
   const volumeComparedCount =
     volumeCounts.up + volumeCounts.flat + volumeCounts.down;
 
-  // Maxes: top by e1rm, mark new if PR date in last 21 days
+  // Maxes: e1RM + rekordy powtórzeń (masa ciała); nowy = PR w ostatnich 21 dniach
   const cutoffNew = addCalendarDays(today, -21);
-  const maxes: ProgressMaxItem[] = [...byExercise.values()]
-    .filter((e) => e.bestE1rm > 0)
+  const weightedMaxes: ProgressMaxItem[] = [...byExercise.values()]
+    .filter((e) => e.hasWeighted && e.bestE1rm > 0)
     .sort((a, b) => b.bestE1rm - a.bestE1rm)
-    .slice(0, 8)
+    .slice(0, 6)
     .map((e) => ({
       name: e.name,
       bestE1rm: safeRound1(e.bestE1rm),
@@ -531,7 +651,22 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
       bestReps: e.bestReps,
       date: e.date,
       isNew: e.date >= cutoffNew,
+      kind: "weighted" as const,
     }));
+  const bodyweightMaxes: ProgressMaxItem[] = [...byExercise.values()]
+    .filter((e) => !e.hasWeighted && e.bestReps > 0)
+    .sort((a, b) => b.bestReps - a.bestReps)
+    .slice(0, 4)
+    .map((e) => ({
+      name: e.name,
+      bestE1rm: 0,
+      bestWeight: 0,
+      bestReps: e.bestReps,
+      date: e.date,
+      isNew: e.date >= cutoffNew,
+      kind: "bodyweight" as const,
+    }));
+  const maxes: ProgressMaxItem[] = [...weightedMaxes, ...bodyweightMaxes];
 
   // Plan groups
   const planGroups: ProgressPlanGroup[] = [];
@@ -544,13 +679,17 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
     }
     if (!plan?.exercises?.length) continue;
     const exercises: ProgressExerciseRow[] = [];
+    const seenKeys = new Set<string>();
     for (const pe of plan.exercises) {
       const name = pe.name.trim().replace(/\s+/g, " ");
       if (!name) continue;
+      const identity = resolveExerciseIdentity(name);
+      if (!identity.key || seenKeys.has(identity.key)) continue;
+      seenKeys.add(identity.key);
       exercises.push(
         toExerciseRow({
-          name,
-          agg: byExercise.get(name.toLowerCase()),
+          name: identity.displayName || name,
+          agg: byExercise.get(identity.key),
         }),
       );
     }
@@ -565,10 +704,12 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
   // Orphan exercises (not in any plan) under "Inne"
   if (planGroups.length) {
     const inPlan = new Set(
-      planGroups.flatMap((g) => g.exercises.map((e) => e.name.toLowerCase())),
+      planGroups.flatMap((g) =>
+        g.exercises.map((e) => resolveExerciseIdentity(e.name).key),
+      ),
     );
     const orphans = [...byExercise.values()]
-      .filter((e) => !inPlan.has(e.name.toLowerCase()))
+      .filter((e) => !inPlan.has(e.key))
       .sort((a, b) => b.lastVolume - a.lastVolume)
       .slice(0, 12)
       .map((e) => toExerciseRow({ name: e.name, agg: e }));
@@ -684,6 +825,12 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
     lowerIsBetter: boolean;
   }> = [
     { key: "waist", label: "Pas", pick: (r) => r.waistCm, lowerIsBetter: true },
+    {
+      key: "abdomen",
+      label: "Brzuch",
+      pick: (r) => r.abdomenCm,
+      lowerIsBetter: true,
+    },
     { key: "thigh", label: "Udo", pick: (r) => r.thighCm, lowerIsBetter: true },
     {
       key: "chest",
@@ -872,12 +1019,48 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
     firstReportDate,
   });
 
+  const intensity = buildProgressIntensitySummary(intensitySessions);
+
+  const nutritionSettings = nutritionSettingsFromDbRow({
+    trainingNutritionGoalsJson:
+      settingsRow?.trainingNutritionGoalsJson ?? null,
+    restNutritionGoalsJson: settingsRow?.restNutritionGoalsJson ?? null,
+    nutritionDayTypesJson: settingsRow?.nutritionDayTypesJson ?? null,
+  });
+  const trainingByMonday = new Map(
+    last8.map((w) => {
+      const b = weekBuckets.get(w.monday);
+      return [
+        w.monday,
+        {
+          tonnageKg: b?.tonnageKg ?? 0,
+          workouts: b?.workouts ?? 0,
+          intensitySessions: intensityByWeek.get(w.monday) ?? [],
+        },
+      ] as const;
+    }),
+  );
+  let dietTraining = emptyProgressDietTrainingBlock();
+  try {
+    dietTraining = await loadProgressDietTrainingBlock({
+      userId,
+      settings: nutritionSettings,
+      today,
+      mondaysOldestFirst: last8.map((w) => w.monday),
+      weekLabel: weekShortLabel,
+      trainingByMonday,
+    });
+  } catch {
+    dietTraining = emptyProgressDietTrainingBlock();
+  }
+
   return {
     strength: {
       maxes,
       volumeSessions: last6.slice().reverse(),
       volumeCounts,
       volumeComparedCount,
+      intensity,
       planGroups,
       sinceDate: firstWorkoutDate,
       workoutCount: totalStrengthSessions,
@@ -925,6 +1108,7 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
         daysLeft,
       },
       last8,
+      dietTraining,
       goals: goalBars,
       achievements,
     },

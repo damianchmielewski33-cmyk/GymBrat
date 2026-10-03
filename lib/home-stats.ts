@@ -82,11 +82,12 @@ function parseWorkoutExercises(json: string): {
   for (const ex of exercises) {
     const sets = Array.isArray(ex.sets) ? ex.sets : [];
     for (const s of sets) {
-      if (!s.done) continue;
+      if (!s.done || Boolean((s as { skipped?: boolean }).skipped)) continue;
       const reps = Math.max(0, Math.round(Number(s.reps ?? 0)));
       const weight = Math.max(0, Number(s.weight ?? 0));
+      if (!(reps > 0)) continue;
       totalReps += reps;
-      volumeKg += reps * weight;
+      if (weight > 0) volumeKg += reps * weight;
     }
   }
 

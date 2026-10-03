@@ -75,12 +75,14 @@ export function ActiveWorkoutView({
     title,
     workoutPlanId,
     cardioMinutes,
+    cardioExtras,
     exercises,
     selectedExerciseId,
     applyPlan,
     start,
     reset,
     setCardioMinutes,
+    setCardioExtras,
     setExercises,
     setSelectedExerciseId,
     patchSet: patchSetInStore,
@@ -486,11 +488,7 @@ export function ActiveWorkoutView({
     const isDoneNext =
       nextPatch.done !== undefined
         ? nextPatch.done
-        : nextReps != null &&
-          Number.isFinite(nextReps) &&
-          nextReps > 0 &&
-          Number.isFinite(nextWeight) &&
-          nextWeight > 0;
+        : canCompleteWorkoutSet(nextWeight, nextReps);
     if (isDoneNext && !wasDone) {
       const exercisesNow = useActiveWorkoutStore.getState().exercises;
       const snap = buildCompletedSnap(
@@ -555,7 +553,9 @@ export function ActiveWorkoutView({
 
       const endedAt = Date.now();
       const sessionExercises = exercises;
-      const cardioMinutesNow = useActiveWorkoutStore.getState().cardioMinutes;
+      const storeNow = useActiveWorkoutStore.getState();
+      const cardioMinutesNow = storeNow.cardioMinutes;
+      const cardioExtrasNow = storeNow.cardioExtras;
       const newMaxHits = detectSessionNewMaxes(sessionExercises, lastPlanHints);
       const baseSummary = {
         title: title.trim() || "Trening",
@@ -572,6 +572,16 @@ export function ActiveWorkoutView({
         startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),
         endedAt,
         cardioMinutes: cardioMinutesNow,
+        cardio:
+          cardioMinutesNow > 0
+            ? {
+                distanceKm: cardioExtrasNow.distanceKm,
+                avgHr: cardioExtrasNow.avgHr,
+                calories: cardioExtrasNow.calories,
+                steps: cardioExtrasNow.steps,
+                paceMinPerKm: cardioExtrasNow.paceMinPerKm ?? null,
+              }
+            : null,
         exercises: sessionExercises,
         workoutPlanId,
       });
@@ -799,7 +809,9 @@ export function ActiveWorkoutView({
           volumeKg={sessionTotal}
           exercises={exercises}
           cardioMinutes={cardioMinutes}
+          cardioExtras={cardioExtras}
           onCardioMinutesChange={setCardioMinutes}
+          onCardioExtrasChange={setCardioExtras}
           saving={saving}
           newMaxLabel={
             finishNewMaxes[0]

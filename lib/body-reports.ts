@@ -65,35 +65,59 @@ export async function getLatestBodyReportMetrics(
   };
 }
 
-export async function getBodyReports(userId: string): Promise<BodyReport[]> {
+/** Jak hard limit importu — pełna historia do Postępów / osiągnięć. */
+export const BODY_REPORTS_ANALYSIS_LIMIT = 500;
+
+export type GetBodyReportsOptions = {
+  /** Domyślnie 500 (wcześniej 50 ucinało analizę). */
+  limit?: number;
+  /** Gdy false — bez blobów zdjęć (szybsze KPI). Domyślnie true. */
+  includePhotos?: boolean;
+};
+
+export async function getBodyReports(
+  userId: string,
+  options?: GetBodyReportsOptions,
+): Promise<BodyReport[]> {
   const db = getDb();
+  const limit = Math.max(
+    1,
+    Math.min(
+      BODY_REPORTS_ANALYSIS_LIMIT,
+      Math.round(options?.limit ?? BODY_REPORTS_ANALYSIS_LIMIT),
+    ),
+  );
+  const includePhotos = options?.includePhotos !== false;
+
   const reports = await db
     .select()
     .from(bodyReports)
     .where(eq(bodyReports.userId, userId))
     .orderBy(desc(bodyReports.createdAt), desc(bodyReports.id))
-    .limit(50);
+    .limit(limit);
 
   if (reports.length === 0) return [];
 
   const reportIds = reports.map((r) => r.id);
-  const photos = await db
-    .select()
-    .from(bodyReportPhotos)
-    .where(
-      reportIds.length === 1
-        ? eq(bodyReportPhotos.reportId, reportIds[0]!)
-        : inArray(bodyReportPhotos.reportId, reportIds),
-    );
-
   const photosByReport = new Map<string, { id: string; dataUrl: string }[]>();
-  for (const p of photos) {
-    const arr = photosByReport.get(p.reportId) ?? [];
-    arr.push({
-      id: p.id,
-      dataUrl: maybeDecryptSensitiveField(p.dataUrl) ?? "",
-    });
-    photosByReport.set(p.reportId, arr);
+  if (includePhotos) {
+    const photos = await db
+      .select()
+      .from(bodyReportPhotos)
+      .where(
+        reportIds.length === 1
+          ? eq(bodyReportPhotos.reportId, reportIds[0]!)
+          : inArray(bodyReportPhotos.reportId, reportIds),
+      );
+
+    for (const p of photos) {
+      const arr = photosByReport.get(p.reportId) ?? [];
+      arr.push({
+        id: p.id,
+        dataUrl: maybeDecryptSensitiveField(p.dataUrl) ?? "",
+      });
+      photosByReport.set(p.reportId, arr);
+    }
   }
 
   const rows = reports.map((r) => ({

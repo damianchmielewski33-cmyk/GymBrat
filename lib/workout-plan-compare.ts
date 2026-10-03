@@ -1,3 +1,4 @@
+import { resolveExerciseIdentity } from "@/lib/exercise-identity";
 import {
   compareWorkoutExercises,
   type WorkoutHistoryExerciseCompare,
@@ -28,7 +29,10 @@ export type WorkoutPlanComparePayload = {
 };
 
 function normalizeName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, " ");
+  return (
+    resolveExerciseIdentity(name).key ||
+    name.trim().toLowerCase().replace(/\s+/g, " ")
+  );
 }
 
 function exerciseStatus(
@@ -152,8 +156,41 @@ export function completedSessionJsonForCompare(input: {
   workoutPlanId: string | null;
   exercises: unknown;
   cardioMinutes?: number;
+  cardio?: {
+    distanceKm?: number | null;
+    avgHr?: number | null;
+    calories?: number | null;
+    steps?: number | null;
+    paceMinPerKm?: number | null;
+  } | null;
 }): string {
   const cardioMinutes = Math.max(0, Math.round(Number(input.cardioMinutes ?? 0)));
+  const dist =
+    input.cardio?.distanceKm != null &&
+    Number.isFinite(input.cardio.distanceKm) &&
+    input.cardio.distanceKm > 0
+      ? input.cardio.distanceKm
+      : null;
+  const pace =
+    input.cardio?.paceMinPerKm != null &&
+    Number.isFinite(input.cardio.paceMinPerKm) &&
+    input.cardio.paceMinPerKm > 0
+      ? input.cardio.paceMinPerKm
+      : dist != null && cardioMinutes > 0
+        ? cardioMinutes / dist
+        : null;
+  const cardio =
+    cardioMinutes > 0 && input.cardio
+      ? {
+          ...(dist != null ? { distanceKm: dist } : {}),
+          ...(input.cardio.avgHr != null ? { avgHr: input.cardio.avgHr } : {}),
+          ...(input.cardio.calories != null
+            ? { calories: input.cardio.calories }
+            : {}),
+          ...(input.cardio.steps != null ? { steps: input.cardio.steps } : {}),
+          ...(pace != null ? { paceMinPerKm: pace } : {}),
+        }
+      : null;
   return JSON.stringify({
     kind: "completed_session",
     title: input.title,
@@ -162,6 +199,7 @@ export function completedSessionJsonForCompare(input: {
     workoutPlanId: input.workoutPlanId,
     exercises: input.exercises ?? null,
     ...(cardioMinutes > 0 ? { cardioMinutes } : {}),
+    ...(cardio && Object.keys(cardio).length > 0 ? { cardio } : {}),
   });
 }
 

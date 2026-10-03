@@ -26,8 +26,12 @@ export async function logCardioDetailedAction(
     .trim()
     .replace(",", ".");
   const avgHrRaw = String(formData.get("avgHr") ?? "").trim();
+  const caloriesRaw = String(formData.get("calories") ?? "").trim();
+  const stepsRaw = String(formData.get("steps") ?? "").trim();
   const distanceKm = distanceRaw ? Number(distanceRaw) : null;
   const avgHr = avgHrRaw ? Number(avgHrRaw) : null;
+  const calories = caloriesRaw ? Number(caloriesRaw) : null;
+  const steps = stepsRaw ? Number(stepsRaw) : null;
   const { createCardioLog } = await import("@/actions/cardio");
   return createCardioLog({
     title,
@@ -40,6 +44,14 @@ export async function logCardioDetailedAction(
     avgHr:
       avgHr != null && Number.isFinite(avgHr) && avgHr > 0
         ? Math.round(avgHr)
+        : null,
+    calories:
+      calories != null && Number.isFinite(calories) && calories > 0
+        ? Math.round(calories)
+        : null,
+    steps:
+      steps != null && Number.isFinite(steps) && steps > 0
+        ? Math.round(steps)
         : null,
   });
 }

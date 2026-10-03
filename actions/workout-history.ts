@@ -170,7 +170,8 @@ export async function updateCompletedWorkout(input: {
         (Boolean(s.done !== false) &&
           reps != null &&
           reps > 0 &&
-          weight > 0);
+          Number.isFinite(weight) &&
+          weight >= 0);
       return {
         reps,
         weight,

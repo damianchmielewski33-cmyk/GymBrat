@@ -57,6 +57,8 @@ export function CardioLogSheet({
   const [minutesText, setMinutesText] = useState("30");
   const [distanceKm, setDistanceKm] = useState("");
   const [avgHr, setAvgHr] = useState("");
+  const [calories, setCalories] = useState("");
+  const [steps, setSteps] = useState("");
   const [note, setNote] = useState("");
 
   const [state, formAction, pending] = useActionState(logCardioDetailedAction, {} as {
@@ -76,6 +78,8 @@ export function CardioLogSheet({
     setMinutesText("30");
     setDistanceKm("");
     setAvgHr("");
+    setCalories("");
+    setSteps("");
     setNote(match ? "" : String(defaultTitle));
   }, [open, defaultTitle]);
 
@@ -139,6 +143,8 @@ export function CardioLogSheet({
           <input type="hidden" name="minutes" value={minutes} />
           <input type="hidden" name="distanceKm" value={distanceKm} />
           <input type="hidden" name="avgHr" value={avgHr} />
+          <input type="hidden" name="calories" value={calories} />
+          <input type="hidden" name="steps" value={steps} />
           <input type="hidden" name="notes" value={note} />
 
           <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-3">
@@ -219,6 +225,30 @@ export function CardioLogSheet({
                   onChange={(e) => setAvgHr(e.target.value)}
                   inputMode="numeric"
                   placeholder="np. 125"
+                  className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-[rgba(var(--neon-rgb),0.45)]"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
+                  Kalorie
+                </span>
+                <input
+                  value={calories}
+                  onChange={(e) => setCalories(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="np. 280"
+                  className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-[rgba(var(--neon-rgb),0.45)]"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
+                  Kroki
+                </span>
+                <input
+                  value={steps}
+                  onChange={(e) => setSteps(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="np. 4500"
                   className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-[rgba(var(--neon-rgb),0.45)]"
                 />
               </label>

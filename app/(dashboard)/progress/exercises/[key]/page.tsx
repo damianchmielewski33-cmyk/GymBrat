@@ -30,6 +30,8 @@ export default async function ProgressExercisePage({
       name={displayName}
       points={data.points}
       prs={data.prs}
+      intensity={data.intensity}
+      metric={data.metric}
       matchedNames={data.matchedExerciseNames}
     />
   );

@@ -1,7 +1,15 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
+import {
+  EMPTY_CARDIO_EXTRAS,
+  type CardioExtras,
+} from "@/lib/cardio";
 import type { WorkoutPlanPayload } from "@/lib/workout-plan-types";
+
+export type ActiveCardioExtras = Omit<CardioExtras, "paceMinPerKm"> & {
+  paceMinPerKm?: number | null;
+};
 
 type ActiveWorkoutState = {
   /** Kotwica działającego licznika (null = pauza) */
@@ -13,10 +21,13 @@ type ActiveWorkoutState = {
   title: string;
   workoutPlanId: string | null;
   cardioMinutes: number;
+  /** Dystans / HR / kcal / kroki przy cardio po siłowym. */
+  cardioExtras: ActiveCardioExtras;
   exercises: WorkoutExerciseState[];
   selectedExerciseId: string | null;
   setTitle: (t: string) => void;
   setCardioMinutes: (n: number) => void;
+  setCardioExtras: (extras: Partial<ActiveCardioExtras>) => void;
   setSelectedExerciseId: (id: string | null) => void;
   setExercises: (exercises: WorkoutExerciseState[]) => void;
   patchSet: (exerciseId: string, setIndex: number, patch: Partial<WorkoutSetState>) => void;
@@ -41,10 +52,15 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
       title: "Sesja",
       workoutPlanId: null,
       cardioMinutes: 0,
+      cardioExtras: { ...EMPTY_CARDIO_EXTRAS },
       exercises: [],
       selectedExerciseId: null,
       setTitle: (title) => set({ title }),
       setCardioMinutes: (cardioMinutes) => set({ cardioMinutes }),
+      setCardioExtras: (extras) =>
+        set((s) => ({
+          cardioExtras: { ...s.cardioExtras, ...extras },
+        })),
       setSelectedExerciseId: (selectedExerciseId) => set({ selectedExerciseId }),
       setExercises: (exercises) => set({ exercises }),
       patchSet: (exerciseId, setIndex, patch) =>
@@ -59,13 +75,13 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           };
 
           if (patch.done === undefined) {
-            // Auto-ukończenie: wpisane powtórzenia + ciężar oznacza serię jako zakończoną.
+            // Auto-ukończenie: powtórzenia > 0 (ciężar 0 = masa ciała).
             nextSet.done =
               nextSet.reps != null &&
               Number.isFinite(nextSet.reps) &&
               nextSet.reps > 0 &&
               Number.isFinite(nextSet.weight) &&
-              nextSet.weight > 0;
+              nextSet.weight >= 0;
           }
 
           return {
@@ -146,6 +162,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           pausedElapsedSeconds: 0,
           workoutStartedAtMs: null,
           cardioMinutes: 0,
+          cardioExtras: { ...EMPTY_CARDIO_EXTRAS },
           exercises: [],
           selectedExerciseId: null,
         }),
@@ -157,6 +174,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           title: "Sesja",
           workoutPlanId: null,
           cardioMinutes: 0,
+          cardioExtras: { ...EMPTY_CARDIO_EXTRAS },
           exercises: [],
           selectedExerciseId: null,
         }),
@@ -171,10 +189,18 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
         title: s.title,
         workoutPlanId: s.workoutPlanId,
         cardioMinutes: s.cardioMinutes,
+        cardioExtras: s.cardioExtras,
         exercises: s.exercises,
         selectedExerciseId: s.selectedExerciseId,
       }),
-      version: 1,
+      version: 2,
+      migrate: (persisted) => {
+        const p = persisted as Record<string, unknown>;
+        if (!p.cardioExtras || typeof p.cardioExtras !== "object") {
+          p.cardioExtras = { ...EMPTY_CARDIO_EXTRAS };
+        }
+        return p as never;
+      },
     },
   ),
 );

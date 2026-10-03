@@ -9,6 +9,13 @@ export type PendingWorkoutPayload = {
   startedAt: number;
   endedAt: number;
   cardioMinutes: number;
+  cardio?: {
+    distanceKm?: number | null;
+    avgHr?: number | null;
+    calories?: number | null;
+    steps?: number | null;
+    paceMinPerKm?: number | null;
+  } | null;
   exercises: unknown;
   workoutPlanId: string | null;
 };

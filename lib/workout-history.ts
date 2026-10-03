@@ -160,18 +160,21 @@ export function computeWorkoutDetails(input: {
         const reps = safeNumber(s.reps);
         const weight = clampNonNegative(safeNumber(s.weight), 0);
         const skipped = Boolean(s.skipped);
-        const done =
+        const performed =
           Boolean(s.done) &&
           !skipped &&
           reps != null &&
-          reps > 0 &&
-          weight > 0;
-        const e1rm = done && reps != null ? estimated1RM(weight, reps) : 0;
+          reps > 0;
+        const e1rm =
+          performed && reps != null && weight > 0
+            ? estimated1RM(weight, reps)
+            : 0;
         const rir = optionalInt(s.rir, 0, 5);
         return {
           reps: reps != null ? Math.round(reps) : null,
           weight,
-          done: Boolean(s.done) && reps != null && reps > 0 && weight > 0,
+          // done = realnie wykonane (pominięte nie świecą jako zaliczone)
+          done: performed,
           e1rm,
           rir,
           skipped,
@@ -179,7 +182,7 @@ export function computeWorkoutDetails(input: {
       });
 
       const bestE1rm = sets.reduce((m, s) => Math.max(m, s.e1rm), 0);
-      const volumeKg = sessionVolume([{ sets: sets.map((s) => ({ reps: s.reps, weight: s.weight })) }]);
+      const volumeKg = sessionVolume([{ sets }]);
 
       return {
         id,
@@ -195,11 +198,7 @@ export function computeWorkoutDetails(input: {
       };
     });
 
-  const volumeKg = sessionVolume(
-    normalizedExercises.map((e) => ({
-      sets: e.sets.map((s) => ({ reps: s.reps, weight: s.weight })),
-    })),
-  );
+  const volumeKg = sessionVolume(normalizedExercises);
 
   // Strength score: sum of best e1RM per exercise (stable across set count).
   const strengthScore = normalizedExercises.reduce((sum, e) => sum + e.bestE1rm, 0);

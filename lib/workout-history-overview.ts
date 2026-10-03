@@ -20,6 +20,7 @@ import {
   isCompletedStrengthSession,
   isStandaloneCardioLog,
 } from "@/lib/workout-cardio-attribution";
+import { resolveExerciseIdentity } from "@/lib/exercise-identity";
 
 function mondayOfWeek(dateKey: string): string {
   const dow = calendarWeekdaySun0(dateKey);
@@ -139,7 +140,10 @@ type SessionJson = {
 };
 
 function normalizeName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, " ");
+  return (
+    resolveExerciseIdentity(name).key ||
+    name.trim().toLowerCase().replace(/\s+/g, " ")
+  );
 }
 
 function exerciseVolume(ex: CompletedWorkoutDetails["exercises"][number]): number {
@@ -325,7 +329,8 @@ function countSets(details: CompletedWorkoutDetails) {
   for (const ex of details.exercises) {
     for (const s of ex.sets) {
       total += 1;
-      if (s.done) done += 1;
+      // done już oznacza wykonanie (pominięte mają done=false w computeWorkoutDetails)
+      if (s.done && !s.skipped) done += 1;
     }
   }
   return { done, total };

@@ -6,6 +6,7 @@ import {
   ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
+  Gauge,
   Trophy,
 } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
@@ -33,6 +34,16 @@ function formatKg(n: number) {
   return `${new Intl.NumberFormat("pl-PL", {
     maximumFractionDigits: 0,
   }).format(Math.round(n))} kg`;
+}
+
+function formatReps(n: number) {
+  return `${new Intl.NumberFormat("pl-PL", {
+    maximumFractionDigits: 0,
+  }).format(Math.round(n))} powt.`;
+}
+
+function formatMetric(n: number, metric: ProgressExerciseRow["metric"]) {
+  return metric === "reps" ? formatReps(n) : formatKg(n);
 }
 
 function cwiczeniaGenitive(n: number): string {
@@ -75,6 +86,7 @@ function ExerciseRow({ ex }: { ex: ProgressExerciseRow }) {
     const neg = ex.volumeDeltaKg < 0;
     const pos = ex.volumeDeltaKg > 0;
     const deltaAbs = Math.abs(Math.round(ex.volumeDeltaKg));
+    const unit = ex.metric === "reps" ? " powt." : " kg";
     const pct =
       ex.volumeDeltaPercent != null
         ? ` (${ex.volumeDeltaPercent > 0 ? "+" : ""}${ex.volumeDeltaPercent}%)`
@@ -88,7 +100,9 @@ function ExerciseRow({ ex }: { ex: ProgressExerciseRow }) {
         )}
       >
         {pos ? "+" : neg ? "−" : ""}
-        {deltaAbs} kg{pct}
+        {deltaAbs}
+        {unit}
+        {pct}
       </span>
     );
   }
@@ -98,7 +112,7 @@ function ExerciseRow({ ex }: { ex: ProgressExerciseRow }) {
       <span className="font-metric text-lg text-white/30">—</span>
     ) : (
       <span className="font-metric text-[17px] tabular-nums text-white">
-        {formatKg(ex.lastVolumeKg)}
+        {formatMetric(ex.lastVolumeKg, ex.metric)}
       </span>
     );
 
@@ -144,13 +158,39 @@ function ExerciseRow({ ex }: { ex: ProgressExerciseRow }) {
   );
 }
 
+function intensityHeadline(data: ProgressHubData["strength"]["intensity"]): string {
+  if (data.sessionsWithIntensity <= 0) {
+    return "Zapisuj RIR (W zapasie) przy seriach — tu zobaczysz trend";
+  }
+  if (data.avgRir != null && data.rirTrend === "down") {
+    return "Ostatnie serie są twardsze (mniej zapasu RIR)";
+  }
+  if (data.avgRir != null && data.rirTrend === "up") {
+    return "Ostatnie serie są lżejsze (więcej zapasu RIR)";
+  }
+  if (data.targetHitPct != null) {
+    return `RIR zgodny z planem w ${data.targetHitPct}% porównań`;
+  }
+  if (data.avgRir != null) {
+    return `Średni RIR z ostatnich treningów: ${data.avgRir}`;
+  }
+  if (data.avgRpe != null) {
+    return `Średnie RPE z ostatnich treningów: ${data.avgRpe}`;
+  }
+  return "Za mało wpisów RIR/RPE do trendu";
+}
+
 export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
-  const { maxes, volumeCounts, volumeComparedCount, planGroups } = data;
+  const { maxes, volumeCounts, volumeComparedCount, planGroups, intensity } = data;
   const [maxesOpen, setMaxesOpen] = useState(false);
 
   const headline = useMemo(
     () => volumeHeadline(volumeCounts, volumeComparedCount),
     [volumeCounts, volumeComparedCount],
+  );
+  const intensityTitle = useMemo(
+    () => intensityHeadline(intensity),
+    [intensity],
   );
 
   const newestMax = maxes.find((m) => m.isNew) ?? maxes[0] ?? null;
@@ -172,7 +212,7 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
                 Moje maxy
               </span>
               <span className="mt-0.5 block text-[11px] text-white/40">
-                ciężar na 1 powtórzenie
+                e1RM i max powtórzeń (masa ciała)
               </span>
             </span>
           </button>
@@ -193,12 +233,12 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
         {maxesOpen ? (
           maxes.length === 0 ? (
             <div className="app-card px-4 py-6 text-center text-sm text-white/45">
-              Zaliczone serie z ciężarem pojawią się tutaj jako maxy e1RM.
+              Zaliczone serie (także bez ciężaru) pojawią się tu jako maxy.
             </div>
           ) : (
             <ul className="overflow-hidden app-panel divide-y divide-white/[0.06]">
               {maxes.map((m) => (
-                <li key={m.name}>
+                <li key={`${m.kind}-${m.name}`}>
                   <Link
                     href={`/progress/exercises/${exerciseProgressKey(m.name)}`}
                     className="flex items-center gap-3 px-3.5 py-3"
@@ -215,18 +255,19 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
                         ) : null}
                       </div>
                       <p className="mt-0.5 text-[11px] text-white/40">
-                        {m.bestWeight} kg × {m.bestReps} ·{" "}
-                        {formatDayMonth(m.date)}
+                        {m.kind === "bodyweight"
+                          ? `masa ciała · ${formatDayMonth(m.date)}`
+                          : `${m.bestWeight} kg × ${m.bestReps} · ${formatDayMonth(m.date)}`}
                       </p>
                     </div>
                     <div className="text-right">
                       <AnimatedMetric
-                        value={m.bestE1rm}
-                        decimals={1}
+                        value={m.kind === "bodyweight" ? m.bestReps : m.bestE1rm}
+                        decimals={m.kind === "bodyweight" ? 0 : 1}
                         className="text-xl text-white"
                       />
                       <p className="text-[10px] uppercase tracking-wider text-white/35">
-                        e1RM
+                        {m.kind === "bodyweight" ? "powt." : "e1RM"}
                       </p>
                     </div>
                   </Link>
@@ -290,6 +331,105 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
         <p className="mt-3.5 text-[11px] leading-relaxed text-white/40">
           Objętość = powtórzenia × kg × serie w treningu.
         </p>
+      </section>
+
+      <section className="app-card space-y-3 p-4">
+        <div className="flex items-start gap-3">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]">
+            <Gauge className="h-4 w-4" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+              Intensywność · RIR / RPE / tempo
+            </p>
+            <p className="mt-1.5 text-[17px] font-semibold leading-snug tracking-tight text-white">
+              {intensityTitle}
+            </p>
+          </div>
+          {intensity.rirSpark.length >= 2 ? (
+            <div className="w-14 shrink-0 pt-1">
+              <MiniSparkline
+                values={intensity.rirSpark}
+                color={
+                  intensity.rirTrend === "down"
+                    ? "#fb7185"
+                    : intensity.rirTrend === "up"
+                      ? "#34d399"
+                      : "#a3a3a3"
+                }
+                className="h-8 w-full"
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2.5 text-center">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+              Śr. RIR
+            </p>
+            <p className="mt-1 font-metric text-2xl tabular-nums text-white">
+              {intensity.avgRir != null ? (
+                <AnimatedMetric value={intensity.avgRir} decimals={1} />
+              ) : (
+                "—"
+              )}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2.5 text-center">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+              Śr. RPE
+            </p>
+            <p className="mt-1 font-metric text-2xl tabular-nums text-white">
+              {intensity.avgRpe != null ? (
+                <AnimatedMetric value={intensity.avgRpe} decimals={1} />
+              ) : (
+                "—"
+              )}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2.5 text-center">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+              Twarde serie
+            </p>
+            <p className="mt-1 font-metric text-2xl tabular-nums text-white">
+              {intensity.hardSetPct != null ? (
+                <>
+                  <AnimatedMetric value={intensity.hardSetPct} decimals={0} />
+                  <span className="text-sm text-white/35">%</span>
+                </>
+              ) : (
+                "—"
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-1.5 text-[11px] leading-relaxed text-white/45">
+          {intensity.targetComparedCount > 0 ? (
+            <p>
+              vs plan: {intensity.targetHitPct ?? 0}% w celu
+              {intensity.harderThanPlanCount > 0
+                ? ` · ${intensity.harderThanPlanCount}× ciężej`
+                : ""}
+              {intensity.easierThanPlanCount > 0
+                ? ` · ${intensity.easierThanPlanCount}× luźniej`
+                : ""}
+            </p>
+          ) : (
+            <p>Twarde serie = RIR ≤ 1 lub RPE ≥ 8 (ostatnie 6 treningów).</p>
+          )}
+          {intensity.temposUsed.length > 0 ? (
+            <p>
+              Tempo z planu: {intensity.temposUsed.join(" · ")}
+              {intensity.tempoExercisePct != null
+                ? ` · w ${intensity.tempoExercisePct}% ćw.`
+                : ""}
+            </p>
+          ) : (
+            <p>Tempo z planu pojawi się tu, gdy ustawisz je przy ćwiczeniach.</p>
+          )}
+        </div>
       </section>
 
       <section className="space-y-5">

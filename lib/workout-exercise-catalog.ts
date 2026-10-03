@@ -1116,9 +1116,27 @@ export const CATALOG_EXERCISES: CatalogExercise[] = [
   },
 ];
 
-/** Normalizacja zapytania: małe litery, pojedyncze spacje. */
+const PL_FOLD: Record<string, string> = {
+  ą: "a",
+  ć: "c",
+  ę: "e",
+  ł: "l",
+  ń: "n",
+  ó: "o",
+  ś: "s",
+  ź: "z",
+  ż: "z",
+};
+
+/** Normalizacja zapytania: małe litery, bez polskich znaków, pojedyncze spacje. */
 export function normalizeForSearch(s: string): string {
-  return s.toLowerCase().trim().replace(/\s+/g, " ");
+  return s
+    .normalize("NFD")
+    .replace(/\p{M}+/gu, "")
+    .toLowerCase()
+    .replace(/[ąćęłńóśźż]/g, (ch) => PL_FOLD[ch] ?? ch)
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 /** Tekst do przeszukania: polska nazwa + aliasy (bez polskich znaków opcjonalnie później). */

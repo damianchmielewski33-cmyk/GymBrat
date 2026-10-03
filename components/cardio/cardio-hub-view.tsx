@@ -12,12 +12,14 @@ import {
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
+import { formatPace } from "@/lib/cardio";
 import type { CardioHubData } from "@/lib/cardio-hub";
 import {
   formatCardioDurationClock,
   formatCardioRelativeDay,
 } from "@/lib/cardio-hub";
 import { calendarDateKey } from "@/lib/local-date";
+import { MiniSparkline } from "@/components/home/mini-sparkline";
 
 function formatWeekFrom(monday: string): string {
   try {
@@ -107,6 +109,7 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
             </p>
             <p className="mt-1 font-metric text-[2rem] leading-none text-white">
               {data.goalMinutes}
+              <span className="ml-1 text-base text-white/45">min</span>
             </p>
           </div>
 
@@ -145,6 +148,85 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
         </div>
       </section>
 
+      <section className="app-card space-y-3 p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+          Ten tydzień · metryki
+        </p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <MetricTile
+            label="Dystans"
+            value={
+              data.distanceKmThisWeek > 0
+                ? data.distanceKmThisWeek.toLocaleString("pl-PL", {
+                    maximumFractionDigits: 1,
+                  })
+                : "—"
+            }
+            hint="km"
+          />
+          <MetricTile
+            label="Kalorie"
+            value={
+              data.caloriesThisWeek > 0
+                ? String(data.caloriesThisWeek)
+                : "—"
+            }
+            hint="kcal"
+          />
+          <MetricTile
+            label="Kroki"
+            value={
+              data.stepsThisWeek > 0
+                ? data.stepsThisWeek.toLocaleString("pl-PL")
+                : "—"
+            }
+          />
+          <MetricTile
+            label="Tempo"
+            value={formatPace(data.avgPaceMinPerKmThisWeek)}
+            hint="/km"
+          />
+        </div>
+        {data.last8.some((w) => w.minutes > 0) ? (
+          <div className="space-y-2 border-t border-white/[0.06] pt-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] text-white/45">Minuty · 8 tyg.</p>
+              <div className="w-28">
+                <MiniSparkline
+                  values={[...data.last8].reverse().map((w) => w.minutes)}
+                  color="#ebc44a"
+                  className="h-7 w-full"
+                />
+              </div>
+            </div>
+            {data.last8.some((w) => w.distanceKm > 0) ? (
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] text-white/45">Dystans · 8 tyg.</p>
+                <div className="w-28">
+                  <MiniSparkline
+                    values={[...data.last8].reverse().map((w) => w.distanceKm)}
+                    color="#38bdf8"
+                    className="h-7 w-full"
+                  />
+                </div>
+              </div>
+            ) : null}
+            {data.last8.some((w) => w.calories > 0) ? (
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] text-white/45">Kalorie · 8 tyg.</p>
+                <div className="w-28">
+                  <MiniSparkline
+                    values={[...data.last8].reverse().map((w) => w.calories)}
+                    color="#fb7185"
+                    className="h-7 w-full"
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
       <section className="space-y-2.5">
         <SectionLabel
           index={1}
@@ -165,6 +247,18 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
                   ? `/cardio/${item.id}`
                   : `/workout-history/${item.id}`;
               const meta = [
+                item.distanceKm != null
+                  ? `${item.distanceKm.toLocaleString("pl-PL", {
+                      maximumFractionDigits: 1,
+                    })} km`
+                  : null,
+                item.paceMinPerKm != null
+                  ? `${formatPace(item.paceMinPerKm)} /km`
+                  : null,
+                item.calories != null ? `${item.calories} kcal` : null,
+                item.steps != null
+                  ? `${item.steps.toLocaleString("pl-PL")} krok.`
+                  : null,
                 item.avgHr != null ? `${item.avgHr} bpm` : null,
                 formatCardioRelativeDay(item.date, today),
               ]
@@ -209,6 +303,30 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
         cardioGoalMinutes={data.goalMinutes}
         defaultTitle={sheetHint === "watch" ? "Zegarek" : "Marsz"}
       />
+    </div>
+  );
+}
+
+function MetricTile({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/35 px-2.5 py-2.5 text-center">
+      <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+        {label}
+      </p>
+      <p className="mt-1 font-metric text-lg tabular-nums text-white">
+        {value}
+        {hint && value !== "—" ? (
+          <span className="ml-0.5 text-[11px] text-white/35">{hint}</span>
+        ) : null}
+      </p>
     </div>
   );
 }

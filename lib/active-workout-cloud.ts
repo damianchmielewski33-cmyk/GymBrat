@@ -1,4 +1,5 @@
 import type { WorkoutExerciseState } from "@/components/workout/types";
+import type { ActiveCardioExtras } from "@/lib/stores/active-workout";
 
 export type ActiveWorkoutCloudPayload = {
   startedAt: number | null;
@@ -7,6 +8,7 @@ export type ActiveWorkoutCloudPayload = {
   title: string;
   workoutPlanId: string | null;
   cardioMinutes: number;
+  cardioExtras?: ActiveCardioExtras;
   exercises: WorkoutExerciseState[];
   selectedExerciseId: string | null;
 };

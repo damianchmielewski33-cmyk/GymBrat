@@ -2,6 +2,10 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { userSettings, workouts } from "@/db/schema";
 import {
+  extractCardioExtrasFromSessionJson,
+  type CardioExtras,
+} from "@/lib/cardio";
+import {
   addCalendarDays,
   calendarDateKey,
   calendarWeekdaySun0,
@@ -19,9 +23,23 @@ export type CardioHubItem = {
   title: string;
   minutes: number;
   avgHr: number | null;
+  distanceKm: number | null;
+  calories: number | null;
+  steps: number | null;
+  paceMinPerKm: number | null;
   kind: "cardio_log" | "post_strength";
   /** HH:MM lokalnie z endedAt/startedAt jeśli znane. */
   clockLabel: string | null;
+};
+
+export type CardioWeekBar = {
+  monday: string;
+  label: string;
+  minutes: number;
+  distanceKm: number;
+  calories: number;
+  steps: number;
+  entries: number;
 };
 
 export type CardioHubData = {
@@ -30,6 +48,14 @@ export type CardioHubData = {
   entriesThisWeek: number;
   goalMinutes: number;
   historyTotal: number;
+  /** Sumy tygodnia z dostępnych metryk. */
+  distanceKmThisWeek: number;
+  caloriesThisWeek: number;
+  stepsThisWeek: number;
+  /** Średnie tempo (min/km) z wpisów tygodnia mających dystans. */
+  avgPaceMinPerKmThisWeek: number | null;
+  /** Ostatnie 8 tygodni (najnowszy pierwszy). */
+  last8: CardioWeekBar[];
   items: CardioHubItem[];
 };
 
@@ -37,6 +63,15 @@ function mondayOfWeek(dateKey: string): string {
   const dow = calendarWeekdaySun0(dateKey);
   const offset = dow === 0 ? -6 : 1 - dow;
   return addCalendarDays(dateKey, offset);
+}
+
+function weekShortLabel(monday: string): string {
+  const sun = addCalendarDays(monday, 6);
+  const a = new Date(`${monday}T12:00:00`);
+  const b = new Date(`${sun}T12:00:00`);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
+  return `${fmt(a)}–${fmt(b)}`;
 }
 
 function clockFromPayload(raw: string): string | null {
@@ -89,6 +124,10 @@ export function formatCardioRelativeDay(ymd: string, todayYmd: string): string {
   }
 }
 
+function safeRound2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 export async function getCardioHubData(userId: string): Promise<CardioHubData> {
   const db = getDb();
   const today = calendarDateKey();
@@ -111,40 +150,79 @@ export async function getCardioHubData(userId: string): Promise<CardioHubData> {
     .from(workouts)
     .where(eq(workouts.userId, userId))
     .orderBy(desc(workouts.date), desc(workouts.id))
-    .limit(200);
+    .limit(400);
 
   let minutesThisWeek = 0;
   let entriesThisWeek = 0;
+  let distanceKmThisWeek = 0;
+  let caloriesThisWeek = 0;
+  let stepsThisWeek = 0;
+  const paceSamplesThisWeek: number[] = [];
   const items: CardioHubItem[] = [];
+
+  const weekBuckets = new Map<
+    string,
+    {
+      minutes: number;
+      distanceKm: number;
+      calories: number;
+      steps: number;
+      entries: number;
+    }
+  >();
+  for (let w = 0; w < 8; w++) {
+    const m = addCalendarDays(weekMonday, -7 * w);
+    weekBuckets.set(m, {
+      minutes: 0,
+      distanceKm: 0,
+      calories: 0,
+      steps: 0,
+      entries: 0,
+    });
+  }
 
   for (const row of rows) {
     const session = parseWorkoutSessionJson(row.exercises);
     const minutesCol = Math.max(0, row.cardioMinutes ?? 0);
     const standalone = isStandaloneCardioLog(session, minutesCol);
-    const post =
-      isCompletedStrengthSession(session) && minutesCol > 0;
+    const post = isCompletedStrengthSession(session) && minutesCol > 0;
     if (!standalone && !post) continue;
 
     const counted = countableCardioMinutes(session, minutesCol);
+    let parsedJson: unknown = null;
+    try {
+      parsedJson = JSON.parse(row.exercises);
+    } catch {
+      parsedJson = null;
+    }
+    const extras: CardioExtras = extractCardioExtrasFromSessionJson(
+      parsedJson,
+      minutesCol,
+    );
+
+    const weekMon = mondayOfWeek(row.date);
+    const bucket = weekBuckets.get(weekMon);
+    if (bucket && counted > 0) {
+      bucket.minutes += counted;
+      bucket.entries += 1;
+      if (extras.distanceKm != null) bucket.distanceKm += extras.distanceKm;
+      if (extras.calories != null) bucket.calories += extras.calories;
+      if (extras.steps != null) bucket.steps += extras.steps;
+    }
+
     if (row.date >= weekMonday && row.date <= sunday && counted > 0) {
       minutesThisWeek += counted;
       entriesThisWeek += 1;
+      if (extras.distanceKm != null) distanceKmThisWeek += extras.distanceKm;
+      if (extras.calories != null) caloriesThisWeek += extras.calories;
+      if (extras.steps != null) stepsThisWeek += extras.steps;
+      if (extras.paceMinPerKm != null) paceSamplesThisWeek.push(extras.paceMinPerKm);
     }
 
     let title = "Cardio";
-    let avgHr: number | null = null;
     try {
-      const o = JSON.parse(row.exercises) as {
-        title?: unknown;
-        avgHr?: unknown;
-        heartRate?: unknown;
-        kind?: unknown;
-      };
-      if (typeof o.title === "string" && o.title.trim()) title = o.title.trim();
-      const hr = o.avgHr ?? o.heartRate;
-      if (typeof hr === "number" && Number.isFinite(hr) && hr > 0) {
-        avgHr = Math.round(hr);
-      }
+      const o = parsedJson as { title?: unknown } | null;
+      if (typeof o?.title === "string" && o.title.trim()) title = o.title.trim();
       if (!standalone && post) {
         title = `${title} · cardio`;
       }
@@ -157,11 +235,39 @@ export async function getCardioHubData(userId: string): Promise<CardioHubData> {
       date: row.date,
       title,
       minutes: minutesCol,
-      avgHr,
+      avgHr: extras.avgHr,
+      distanceKm: extras.distanceKm,
+      calories: extras.calories,
+      steps: extras.steps,
+      paceMinPerKm: extras.paceMinPerKm,
       kind: standalone ? "cardio_log" : "post_strength",
       clockLabel: clockFromPayload(row.exercises),
     });
   }
+
+  const last8: CardioWeekBar[] = [];
+  for (let w = 0; w < 8; w++) {
+    const m = addCalendarDays(weekMonday, -7 * w);
+    const b = weekBuckets.get(m)!;
+    last8.push({
+      monday: m,
+      label: weekShortLabel(m),
+      minutes: Math.round(b.minutes),
+      distanceKm: safeRound2(b.distanceKm),
+      calories: Math.round(b.calories),
+      steps: Math.round(b.steps),
+      entries: b.entries,
+    });
+  }
+
+  const avgPaceMinPerKmThisWeek =
+    paceSamplesThisWeek.length > 0
+      ? Math.round(
+          (paceSamplesThisWeek.reduce((a, b) => a + b, 0) /
+            paceSamplesThisWeek.length) *
+            100,
+        ) / 100
+      : null;
 
   return {
     weekMonday,
@@ -169,6 +275,11 @@ export async function getCardioHubData(userId: string): Promise<CardioHubData> {
     entriesThisWeek,
     goalMinutes: goalRow?.goal ?? 150,
     historyTotal: items.length,
+    distanceKmThisWeek: safeRound2(distanceKmThisWeek),
+    caloriesThisWeek: Math.round(caloriesThisWeek),
+    stepsThisWeek: Math.round(stepsThisWeek),
+    avgPaceMinPerKmThisWeek,
+    last8,
     items,
   };
 }

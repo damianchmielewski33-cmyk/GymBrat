@@ -165,10 +165,13 @@ export function CardioRecordClient() {
       void wakeLockRef.current?.release().catch(() => undefined);
       wakeLockRef.current = null;
 
+      const estimatedSteps =
+        distanceM > 20 ? Math.round(distanceM / 0.78) : null;
       const res = await createCardioLog({
         title: "Marsz",
         cardioMinutes: minutes,
         distanceKm: km,
+        steps: estimatedSteps,
         notes:
           geoOk === false
             ? "Bez GPS — tylko czas"

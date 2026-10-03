@@ -14,6 +14,7 @@ export function snapshotActiveWorkoutPayload(): ActiveWorkoutCloudPayload {
     title: s.title,
     workoutPlanId: s.workoutPlanId,
     cardioMinutes: s.cardioMinutes,
+    cardioExtras: s.cardioExtras,
     exercises: s.exercises,
     selectedExerciseId: s.selectedExerciseId,
   };

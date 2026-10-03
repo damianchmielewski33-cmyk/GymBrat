@@ -44,14 +44,20 @@ function volumeAndStrengthFromWorkoutExercises(exercises: unknown): {
       const reps = typeof s.reps === "number" && Number.isFinite(s.reps) ? Math.round(s.reps) : null;
       const weight = typeof s.weight === "number" && Number.isFinite(s.weight) ? s.weight : Number(s.weight ?? 0);
       const w = clampNonNegative(weight);
-      const done = Boolean(s.done) && reps != null && reps > 0 && w > 0;
-      if (!done) continue;
+      const performed =
+        Boolean(s.done) &&
+        !Boolean((s as { skipped?: boolean }).skipped) &&
+        reps != null &&
+        reps > 0;
+      if (!performed) continue;
 
       totalRepsDone += reps!;
-      volumeKg += reps! * w;
-      const e1rm = estimated1RM(w, reps!);
-      bestForExercise = Math.max(bestForExercise, e1rm);
-      bestE1rmAny = Math.max(bestE1rmAny, e1rm);
+      if (w > 0) {
+        volumeKg += reps! * w;
+        const e1rm = estimated1RM(w, reps!);
+        bestForExercise = Math.max(bestForExercise, e1rm);
+        bestE1rmAny = Math.max(bestE1rmAny, e1rm);
+      }
     }
     strengthScore += bestForExercise;
   }

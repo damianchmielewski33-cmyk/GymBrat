@@ -27,8 +27,8 @@ describe("workout-skipped-sets", () => {
     ).toBe(false);
   });
 
-  it("zielone zaliczenie wymaga ciężaru i powtórzeń", () => {
-    expect(canCompleteWorkoutSet(0, 8)).toBe(false);
+  it("zielone zaliczenie: powtórzenia; ciężar 0 = masa ciała", () => {
+    expect(canCompleteWorkoutSet(0, 8)).toBe(true);
     expect(canCompleteWorkoutSet(60, null)).toBe(false);
     expect(canCompleteWorkoutSet(60, 8)).toBe(true);
     expect(
@@ -36,7 +36,13 @@ describe("workout-skipped-sets", () => {
     ).toBe(true);
     expect(
       isCompletedWorkoutSet({ done: true, reps: 8, weight: 0 }),
+    ).toBe(true);
+    expect(
+      isSkippedWorkoutSet({ done: true, reps: 8, weight: 0 }),
     ).toBe(false);
+    expect(
+      isSkippedWorkoutSet({ done: true, reps: null, weight: 0 }),
+    ).toBe(true);
   });
 
   it("liczy wiele pominiętych serii i wskazuje pierwszą", () => {

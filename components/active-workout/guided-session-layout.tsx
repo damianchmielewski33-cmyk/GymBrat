@@ -273,7 +273,8 @@ export function GuidedSessionLayout({
     const reps = clampReps(fromInput ?? set.reps ?? exercise.targetReps ?? 0);
     const weight = parseWeightInput(weightText) ?? clampWeight(set.weight);
     if (!canCompleteWorkoutSet(weight, reps > 0 ? reps : null)) {
-      // Bez ciężaru / powtórzeń nie zaliczamy na zielono — użyj „Pomiń serię”.
+      // Bez powtórzeń nie zaliczamy na zielono — użyj „Pomiń serię”.
+      // Ciężar 0 jest OK (masa ciała: pompki, podciąganie, plank…).
       return;
     }
     onPatchSet(exercise.id, activeSetIndex, {

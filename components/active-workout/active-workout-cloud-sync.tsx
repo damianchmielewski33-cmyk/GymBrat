@@ -62,6 +62,13 @@ function applyCloudPayload(payload: ActiveWorkoutCloudPayload) {
     title: payload.title,
     workoutPlanId: payload.workoutPlanId,
     cardioMinutes: payload.cardioMinutes,
+    cardioExtras: payload.cardioExtras ?? {
+      distanceKm: null,
+      avgHr: null,
+      calories: null,
+      steps: null,
+      paceMinPerKm: null,
+    },
     exercises: payload.exercises,
     selectedExerciseId: payload.selectedExerciseId,
   });

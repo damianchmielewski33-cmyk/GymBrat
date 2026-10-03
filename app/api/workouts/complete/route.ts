@@ -89,6 +89,16 @@ const bodySchema = z.object({
   startedAt: z.number().finite().optional().nullable(),
   endedAt: z.number().finite().optional().nullable(),
   cardioMinutes: z.number().finite().min(0).max(24 * 60).optional().nullable(),
+  cardio: z
+    .object({
+      distanceKm: z.number().finite().min(0).max(500).nullable().optional(),
+      avgHr: z.number().finite().min(0).max(250).nullable().optional(),
+      calories: z.number().finite().min(0).max(20000).nullable().optional(),
+      steps: z.number().finite().min(0).max(500000).nullable().optional(),
+      paceMinPerKm: z.number().finite().min(0).max(120).nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   workoutPlanId: z.string().min(1).max(128).optional().nullable(),
   exercises: z.array(exerciseSchema).max(200).optional().nullable(),
 });
@@ -111,7 +121,12 @@ function safeSessionVolume(exercises: unknown): number {
   if (!Array.isArray(exercises)) return 0;
   return sessionVolume(
     exercises as ReadonlyArray<{
-      sets: ReadonlyArray<{ reps: number | null; weight: number }>;
+      sets: ReadonlyArray<{
+        reps: number | null;
+        weight: number;
+        done?: boolean;
+        skipped?: boolean;
+      }>;
     }>,
   );
 }
@@ -189,6 +204,7 @@ export async function POST(req: Request) {
 
   const title = String(parsed.data.title ?? "Sesja").trim() || "Sesja";
   const cardioMinutes = Number(parsed.data.cardioMinutes ?? 0);
+  const cardioExtras = parsed.data.cardio ?? null;
   const startedAt = typeof parsed.data.startedAt === "number"
     ? new Date(parsed.data.startedAt)
     : new Date();
@@ -228,6 +244,7 @@ export async function POST(req: Request) {
     workoutPlanId: rawPlanId,
     exercises: parsed.data.exercises ?? null,
     cardioMinutes,
+    cardio: cardioMinutes > 0 ? cardioExtras : null,
   });
 
   if (rawPlanId) {

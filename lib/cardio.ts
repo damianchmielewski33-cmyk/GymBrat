@@ -76,6 +76,23 @@ export async function getWeeklyCardioProgress(userId: string) {
   };
 }
 
+/** Metryki cardio współdzielone przez cardio_log i cardio po siłowym. */
+export type CardioExtras = {
+  distanceKm: number | null;
+  avgHr: number | null;
+  calories: number | null;
+  steps: number | null;
+  paceMinPerKm: number | null;
+};
+
+export const EMPTY_CARDIO_EXTRAS: CardioExtras = {
+  distanceKm: null,
+  avgHr: null,
+  calories: null,
+  steps: null,
+  paceMinPerKm: null,
+};
+
 export type CardioLogPayload = {
   kind: "cardio_log";
   title: string;
@@ -87,6 +104,86 @@ export type CardioLogPayload = {
   paceMinPerKm?: number | null;
   devicePhotoDataUrl?: string | null;
 };
+
+function finitePositive(n: unknown): number | null {
+  const v = typeof n === "number" ? n : Number(n);
+  if (!Number.isFinite(v) || v <= 0) return null;
+  return v;
+}
+
+export function normalizeCardioExtras(
+  raw: Partial<CardioExtras> | null | undefined,
+  minutes = 0,
+): CardioExtras {
+  const distanceKm = finitePositive(raw?.distanceKm);
+  const avgHr = finitePositive(raw?.avgHr);
+  const calories = finitePositive(raw?.calories);
+  const steps = finitePositive(raw?.steps);
+  const pace =
+    finitePositive(raw?.paceMinPerKm) ??
+    computePaceMinPerKm(distanceKm, minutes);
+  return {
+    distanceKm,
+    avgHr: avgHr != null ? Math.round(avgHr) : null,
+    calories: calories != null ? Math.round(calories) : null,
+    steps: steps != null ? Math.round(steps) : null,
+    paceMinPerKm: pace,
+  };
+}
+
+/** Metryki z cardio_log albo z completed_session.cardio / cardioDetails. */
+export function extractCardioExtrasFromSessionJson(
+  raw: unknown,
+  minutesCol = 0,
+): CardioExtras {
+  if (!raw || typeof raw !== "object") return { ...EMPTY_CARDIO_EXTRAS };
+  const o = raw as Record<string, unknown>;
+  if (o.kind === "cardio_log") {
+    return normalizeCardioExtras(
+      {
+        distanceKm: typeof o.distanceKm === "number" ? o.distanceKm : null,
+        avgHr: typeof o.avgHr === "number" ? o.avgHr : null,
+        calories: typeof o.calories === "number" ? o.calories : null,
+        steps: typeof o.steps === "number" ? o.steps : null,
+        paceMinPerKm:
+          typeof o.paceMinPerKm === "number" ? o.paceMinPerKm : null,
+      },
+      minutesCol,
+    );
+  }
+  const nested =
+    o.cardio && typeof o.cardio === "object"
+      ? (o.cardio as Record<string, unknown>)
+      : o.cardioDetails && typeof o.cardioDetails === "object"
+        ? (o.cardioDetails as Record<string, unknown>)
+        : null;
+  if (nested) {
+    return normalizeCardioExtras(
+      {
+        distanceKm:
+          typeof nested.distanceKm === "number" ? nested.distanceKm : null,
+        avgHr: typeof nested.avgHr === "number" ? nested.avgHr : null,
+        calories: typeof nested.calories === "number" ? nested.calories : null,
+        steps: typeof nested.steps === "number" ? nested.steps : null,
+        paceMinPerKm:
+          typeof nested.paceMinPerKm === "number" ? nested.paceMinPerKm : null,
+      },
+      minutesCol,
+    );
+  }
+  // Legacy: tylko avgHr/heartRate na root completed_session
+  const hr = o.avgHr ?? o.heartRate;
+  return normalizeCardioExtras(
+    {
+      distanceKm: null,
+      avgHr: typeof hr === "number" ? hr : null,
+      calories: null,
+      steps: null,
+      paceMinPerKm: null,
+    },
+    minutesCol,
+  );
+}
 
 export function parseCardioLog(raw: unknown): CardioLogPayload | null {
   if (!raw || typeof raw !== "object") return null;

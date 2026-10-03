@@ -30,6 +30,33 @@ describe("bestSetsFromSession", () => {
       weight: 70,
       reps: 8,
       e1rm: Math.round(estimated1RM(70, 8)),
+      kind: "weighted",
+    });
+  });
+
+  it("dla masy ciała bierze max powtórzeń", () => {
+    const rows = bestSetsFromSession(
+      [
+        {
+          id: "p",
+          name: "Pompki",
+          sets: [
+            { reps: 12, weight: 0, done: true },
+            { reps: 15, weight: 0, done: true },
+            { reps: 20, weight: 0, done: true, skipped: true },
+          ],
+        },
+      ],
+      estimated1RM,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      exerciseId: "p",
+      exerciseName: "Pompki",
+      weight: 0,
+      reps: 15,
+      e1rm: 0,
+      kind: "bodyweight",
     });
   });
 });

@@ -6,7 +6,20 @@ export type SkippedWorkoutTarget = {
   setIndex: number;
 };
 
-/** Seria zaliczona bez realnego wykonania (pomiń / pusty ciężar lub powtórzenia). */
+/** Seria z powtórzeniami — ciężar 0 = masa ciała (pompki, podciąganie, plank…). */
+export function hasPerformedReps(reps: number | null | undefined): boolean {
+  return reps != null && Number.isFinite(reps) && reps > 0;
+}
+
+/** Seria z dodatkowym obciążeniem (kg). */
+export function hasExternalWeight(weight: number | null | undefined): boolean {
+  return weight != null && Number.isFinite(weight) && weight > 0;
+}
+
+/**
+ * Seria zaliczona bez realnego wykonania (flaga pomiń albo brak powtórzeń).
+ * Ciężar 0 przy powtórzeniach > 0 jest prawidłowym wykonaniem (ćwiczenie bez obciążenia).
+ */
 export function isSkippedWorkoutSet(set: {
   done: boolean;
   skipped?: boolean;
@@ -15,12 +28,10 @@ export function isSkippedWorkoutSet(set: {
 }): boolean {
   if (!set.done) return false;
   if (set.skipped) return true;
-  const repsOk = set.reps != null && Number.isFinite(set.reps) && set.reps > 0;
-  const weightOk = Number.isFinite(set.weight) && set.weight > 0;
-  return !repsOk || !weightOk;
+  return !hasPerformedReps(set.reps);
 }
 
-/** Prawdziwie wykonana seria (zielona kropka) — nie pominięta, z ciężarem i powtórzeniami. */
+/** Prawdziwie wykonana seria (zielona kropka) — nie pominięta, z powtórzeniami. */
 export function isCompletedWorkoutSet(set: {
   done: boolean;
   skipped?: boolean;
@@ -30,14 +41,15 @@ export function isCompletedWorkoutSet(set: {
   return set.done && !isSkippedWorkoutSet(set);
 }
 
-/** Czy dane wystarczą do zielonego zaliczenia (nie pominięcia). */
+/**
+ * Czy dane wystarczą do zielonego zaliczenia (nie pominięcia).
+ * Wystarczą powtórzenia > 0; ciężar może być 0 (masa ciała).
+ */
 export function canCompleteWorkoutSet(weight: number, reps: number | null): boolean {
   return (
     Number.isFinite(weight) &&
-    weight > 0 &&
-    reps != null &&
-    Number.isFinite(reps) &&
-    reps > 0
+    weight >= 0 &&
+    hasPerformedReps(reps)
   );
 }
 

@@ -278,6 +278,8 @@ export function CardioDetailClient({
           minutes={minutes}
           distanceKm={payload.distanceKm}
           avgHr={payload.avgHr}
+          calories={payload.calories}
+          steps={payload.steps}
           notes={payload.notes}
           onClose={() => setEditOpen(false)}
           onSaved={() => {
@@ -296,6 +298,8 @@ function ManualEditSheet({
   minutes,
   distanceKm,
   avgHr,
+  calories,
+  steps,
   notes,
   onClose,
   onSaved,
@@ -305,6 +309,8 @@ function ManualEditSheet({
   minutes: number;
   distanceKm?: number | null;
   avgHr?: number | null;
+  calories?: number | null;
+  steps?: number | null;
   notes?: string | null;
   onClose: () => void;
   onSaved: () => void;
@@ -363,6 +369,24 @@ function ManualEditSheet({
             <input
               name="avgHr"
               defaultValue={avgHr ?? ""}
+              inputMode="numeric"
+              className="mt-1 h-11 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white"
+            />
+          </label>
+          <label className="block text-xs text-white/45">
+            kcal
+            <input
+              name="calories"
+              defaultValue={calories ?? ""}
+              inputMode="numeric"
+              className="mt-1 h-11 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white"
+            />
+          </label>
+          <label className="block text-xs text-white/45">
+            Kroki
+            <input
+              name="steps"
+              defaultValue={steps ?? ""}
               inputMode="numeric"
               className="mt-1 h-11 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white"
             />

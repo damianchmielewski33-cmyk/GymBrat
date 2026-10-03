@@ -15,6 +15,7 @@ const WEEKDAY = ["nd", "pon", "wt", "śr", "czw", "pt", "sob"] as const;
 
 const MEASURE_COLORS: Record<string, string> = {
   waist: "#4ade80",
+  abdomen: "#6ee7b7",
   thigh: "#c9a84a",
   chest: "rgba(255,255,255,0.75)",
   arm: "rgba(255,255,255,0.75)",

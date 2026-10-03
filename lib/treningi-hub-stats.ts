@@ -38,7 +38,12 @@ export type TreningiHubStats = {
   recentCardio: RecentCardioItem[];
 };
 
-type ParsedSet = { reps?: number | string; weight?: number | string; done?: boolean };
+type ParsedSet = {
+  reps?: number | string;
+  weight?: number | string;
+  done?: boolean;
+  skipped?: boolean;
+};
 type ParsedExercise = { name?: string; sets?: ParsedSet[] };
 type SessionJson = {
   kind?: string;
@@ -70,9 +75,10 @@ function volumeFromExercises(exercises: ParsedExercise[] | undefined): number {
   let volume = 0;
   for (const ex of exercises ?? []) {
     for (const s of ex.sets ?? []) {
-      if (!s.done) continue;
+      if (!s.done || Boolean(s.skipped)) continue;
       const reps = Math.max(0, Math.round(Number(s.reps ?? 0)));
       const weight = Math.max(0, Number(s.weight ?? 0));
+      if (!(reps > 0) || !(weight > 0)) continue;
       volume += reps * weight;
     }
   }
@@ -83,7 +89,10 @@ function setsDoneFromExercises(exercises: ParsedExercise[] | undefined): number 
   let n = 0;
   for (const ex of exercises ?? []) {
     for (const s of ex.sets ?? []) {
-      if (s.done) n += 1;
+      if (!s.done || Boolean(s.skipped)) continue;
+      const reps = Math.max(0, Math.round(Number(s.reps ?? 0)));
+      if (!(reps > 0)) continue;
+      n += 1;
     }
   }
   return n;
