@@ -2,7 +2,7 @@
   "versionCode": 12,
   "versionName": "0.1.11",
   "apkUrl": "https://gym-brat.vercel.app/gymbrat.apk",
-  "releasedAt": "2026-10-03T19:00:00Z",
-  "commit": "",
-  "notes": "GymBrat Android 0.1.11 — ikona launchera z panelu Branding (WebP/PNG) wbudowana w APK."
+  "releasedAt": "2026-10-03T19:05:36Z",
+  "commit": "bfbfd1525acc27f4bf23d43a4c161fb4cffe4c34",
+  "notes": "GymBrat Android 0.1.11 \u2014 pobieranie z gym-brat.vercel.app/gymbrat.apk."
 }
