@@ -85,7 +85,7 @@ export function DietDiarySections({
     <section className="space-y-3 pb-6">
       <div className="px-0.5">
         <p className="app-label">Dziennik dnia</p>
-        <h2 className="mt-1 text-lg font-semibold text-white">Posiłki jak w Fitatu</h2>
+        <h2 className="mt-1 text-lg font-semibold text-white">Posiłki dnia</h2>
         <p className="mt-1 text-sm text-white/55">
           Śniadanie, drugie śniadanie, lunch, obiad i przekąska — dodawaj produkty ze skanu lub
           wyszukiwania.

@@ -1,6 +1,6 @@
 ## GymBrat
 
-GymBrat is a premium “fitness OS” built with the Next.js App Router: log training, track weekly cardio, pull daily macros via a Fitatu-compatible integration, and generate AI-assisted coaching outputs (training plan, photo analysis, progress comparisons) with safe fallbacks when AI is not configured.
+GymBrat is a premium “fitness OS” built with the Next.js App Router: log training, track weekly cardio, log meals with barcode scan / food search, and generate AI-assisted coaching outputs (training plan, photo analysis, progress comparisons) with safe fallbacks when AI is not configured.
 
 ### Technologies used
 
@@ -24,45 +24,14 @@ GymBrat is a premium “fitness OS” built with the Next.js App Router: log tra
 - Bez tych zmiennych Next nadal serwuje legacy handlery TypeScript (wygodne na Vercel).
 - Szczegóły: [`java-backend/README.md`](./java-backend/README.md).
 
-### Fitatu integration (how it works)
+### Nutrition (local diary — no Fitatu)
 
-Fitatu does not ship a public REST API for third-party apps. GymBrat therefore supports a **Fitatu-compatible proxy/partner endpoint** and/or a **per-user bearer token** stored in the database.
+GymBrat does **not** integrate with Fitatu. Daily macros come from:
 
-- **Where it lives**
-  - **Server integration**: `services/fitatu.ts`
-  - **Types (normalized)**: `types/fitatu.ts`
-  - **Revalidation hook**: `actions/fitatu.ts`
-  - **Token storage**: `db/schema.ts` (`users.fitatuAccessToken`)
+- **Meal logs** (`meal_logs`) — barcode scan, food search, catalog recipes
+- **Profile goals** — training / rest day targets in `user_settings`
 
-- **Expected contract (example)**
-  - **GET** `/v1/diary/{YYYY-MM-DD}`
-  - **Auth**: `Authorization: Bearer <token>`
-  - **Returns JSON**:
-
-```json
-{
-  "calories": 1840,
-  "proteinG": 142,
-  "fatG": 58,
-  "carbsG": 198,
-  "meals": [
-    {
-      "id": "1",
-      "name": "Oats & berries",
-      "calories": 420,
-      "proteinG": 18,
-      "fatG": 12,
-      "carbsG": 58,
-      "loggedAt": "2026-04-07T08:15:00.000Z"
-    }
-  ]
-}
-```
-
-- **Behavior**
-  - If `FITATU_API_BASE_URL` and a token (per-user or `FITATU_API_KEY`) are set, GymBrat fetches live data.
-  - Otherwise, it returns **mock data** for development so the UI stays usable.
-  - Responses are cached via `unstable_cache()` with a tag (`fitatuTag(userId)`) and can be refreshed via `refreshFitatuMacros()`.
+Normalized day snapshot type (legacy filename): `types/fitatu.ts` (`FitatuDaySummary`).
 
 ### Installation guide
 
@@ -159,11 +128,11 @@ app/                         Next.js App Router (RSC)
   (auth)/                    Auth pages/layouts
   (dashboard)/               Protected app shell + pages
   api/                       Route handlers (NextAuth + workout completion)
-actions/                     Server Actions (login, profile, workouts, Fitatu refresh, AI)
+actions/                     Server Actions (login, profile, workouts, meals, AI)
 ai/                          AI coach orchestration + prompts + provider client scaffold
 db/                          Drizzle schema + DB client + migrations output
 components/                  UI components (home, profile, layout, etc.)
-services/                    External integrations (Fitatu)
+lib/                         Domain logic (nutrition, workouts, progress)
 lib/                         Shared logic (cardio calc, reports, validation, stores, utils)
 public/                      Static assets (manifest, icons, PWA output)
 ```
@@ -198,7 +167,7 @@ AI features are designed to be safe-by-default: if no provider key is present, G
 
 - **Capabilities**
   - **Training plan generation**: `generateTrainingPlan(input)`
-    - Uses Fitatu snapshot (if available) to tailor nutrition hints
+    - Uses today’s local nutrition summary (if available) to tailor nutrition hints
     - Validates model output with a strict Zod schema; falls back to a heuristic plan on parse failure
   - **Body photo analysis**: `analyzeBodyPhoto({ images })`
     - Works with Gemini (cloud) or Ollama via self-hosted relay (recommended for free)
@@ -260,8 +229,6 @@ Bez ręcznego Promote produkcja nie przełącza domeny na nowy build (gdy auto-a
     - `EMAIL_CODE_SECRET` (recommended; can reuse `AUTH_SECRET` but better separate)
     - Szczegóły krok po kroku (Gmail: hasło aplikacji po włączeniu 2FA; Outlook: host `smtp-mail.outlook.com` lub firmowy `smtp.office365.com`) są w `env.example`.
   - Optional:
-    - `FITATU_API_BASE_URL`
-    - `FITATU_API_KEY` (or store per-user token in DB)
     - `AI_API_KEY`
     - `AI_MODEL`
 

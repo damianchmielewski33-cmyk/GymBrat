@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, notLike } from "drizzle-orm";
+import { eq, isNotNull, notLike } from "drizzle-orm";
 import { getDb } from "@/db";
 import { bodyReportPhotos, users } from "@/db/schema";
 import {
@@ -16,24 +16,11 @@ export async function migrateSensitiveFieldsAtStartup(): Promise<void> {
 
   const db = getDb();
 
-  const tokenRows = await db
-    .select({ id: users.id, fitatuAccessToken: users.fitatuAccessToken })
-    .from(users)
-    .where(
-      and(
-        isNotNull(users.fitatuAccessToken),
-        notLike(users.fitatuAccessToken, `${ENCRYPTED_FIELD_PREFIX}%`),
-      ),
-    );
-
-  for (const r of tokenRows) {
-    const plain = r.fitatuAccessToken;
-    if (!plain) continue;
-    await db
-      .update(users)
-      .set({ fitatuAccessToken: encryptSensitiveField(plain) })
-      .where(eq(users.id, r.id));
-  }
+  // Wyczyść pozostałości tokenów Fitatu (integracja usunięta).
+  await db
+    .update(users)
+    .set({ fitatuAccessToken: null })
+    .where(isNotNull(users.fitatuAccessToken));
 
   const photoRows = await db
     .select({ id: bodyReportPhotos.id, dataUrl: bodyReportPhotos.dataUrl })

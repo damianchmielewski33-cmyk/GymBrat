@@ -11,13 +11,13 @@ import {
   replaceConsumptionWithMealLogs,
   type MealDayAggregate,
 } from "@/lib/meal-logs";
+import { emptyNutritionDaySummary } from "@/lib/empty-nutrition-day";
 import {
   addCalendarDays,
   calendarDateKey,
   formatPlCalendarRange,
 } from "@/lib/local-date";
 import { buildWeekNutritionRows } from "@/lib/week-nutrition-rows";
-import { getFitatuDayCached } from "@/services/fitatu";
 import type { FitatuDaySummary } from "@/types/fitatu";
 
 export type NutritionDashboardLoad = {
@@ -55,16 +55,16 @@ export type TodaysNutritionSettingsRow = {
 };
 
 function applyProfileGoalsAndManualConsumption(
-  raw: FitatuDaySummary,
   settings: NutritionSettingsState,
   dateKey: string,
   mealAgg: MealDayAggregate | undefined,
 ): FitatuDaySummary {
+  const raw = emptyNutritionDaySummary(dateKey);
   const row = mergeSummaryWithProfileGoals(raw, settings, dateKey);
   return replaceConsumptionWithMealLogs(row, mealAgg);
 }
 
-/** Podsumowanie „dziś” jak na stronie Start: spożycie tylko z ręcznych wpisów, cele z profilu / Fitatu. */
+/** Podsumowanie „dziś”: spożycie z wpisów posiłków, cele z profilu. */
 export async function loadTodaysNutritionSummary(
   userId: string,
   settingsRow: TodaysNutritionSettingsRow | undefined,
@@ -90,9 +90,7 @@ export async function loadNutritionSummaryForDate(
     },
   );
   const mealAggs = await getMealLogAggregatesForDates(userId, [dateKey]);
-  const raw = await getFitatuDayCached(userId, dateKey);
   return applyProfileGoalsAndManualConsumption(
-    raw,
     settings,
     dateKey,
     mealAggs[dateKey],
@@ -125,8 +123,10 @@ export function hasExplicitNutritionDayKind(
       nutritionDayTypesJson: null,
     },
   );
-  return settings.dayTypes[dateKey] === "training" ||
-    settings.dayTypes[dateKey] === "rest";
+  return (
+    settings.dayTypes[dateKey] === "training" ||
+    settings.dayTypes[dateKey] === "rest"
+  );
 }
 
 /**
@@ -148,15 +148,12 @@ export async function loadPreviousWeeksForSheet(
   const uniqueKeys = [...new Set(allDateKeys)];
   const mealAggs = await getMealLogAggregatesForDates(userId, uniqueKeys);
 
-  const loadDay = async (uid: string, dateKey: string) => {
-    const raw = await getFitatuDayCached(uid, dateKey);
-    return applyProfileGoalsAndManualConsumption(
-      raw,
+  const loadDay = async (_uid: string, dateKey: string) =>
+    applyProfileGoalsAndManualConsumption(
       settings,
       dateKey,
       mealAggs[dateKey],
     );
-  };
 
   const weeksData = await Promise.all(
     anchors.map((mondayKey) =>
@@ -198,9 +195,7 @@ export async function loadNutritionDashboard(
   const dateKeysForMeals = [...new Set([todayKey, ...weekKeys])];
   const mealAggs = await getMealLogAggregatesForDates(userId, dateKeysForMeals);
 
-  const rawToday = await getFitatuDayCached(userId, todayKey);
   const today = applyProfileGoalsAndManualConsumption(
-    rawToday,
     settings,
     todayKey,
     mealAggs[todayKey],
@@ -210,15 +205,12 @@ export async function loadNutritionDashboard(
     userId,
     todayKey,
     settings,
-    async (uid, dateKey) => {
-      const raw = await getFitatuDayCached(uid, dateKey);
-      return applyProfileGoalsAndManualConsumption(
-        raw,
+    async (_uid, dateKey) =>
+      applyProfileGoalsAndManualConsumption(
         settings,
         dateKey,
         mealAggs[dateKey],
-      );
-    },
+      ),
   );
   return { todayKey, today, week, settings };
 }

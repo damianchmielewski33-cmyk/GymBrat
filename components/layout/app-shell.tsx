@@ -135,15 +135,18 @@ function TabLink({
   return (
     <Link
       href={item.href}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-2 text-center text-[10px] font-medium transition-colors duration-100 active:scale-[0.96] active:opacity-80",
-        active ? "text-[var(--neon)]" : "text-white/45",
+        "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-0.5 py-2 text-center text-[10px] font-medium transition-[color,box-shadow,background-color] duration-150 active:scale-[0.96] active:opacity-80",
+        active
+          ? "bg-[var(--gym-gold)]/10 text-[var(--gym-gold)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.45),0_0_18px_rgba(var(--neon-rgb),0.55),0_0_36px_rgba(var(--neon-rgb),0.28)]"
+          : "text-white/45 shadow-none",
       )}
     >
       {active ? (
         <span
           aria-hidden
-          className="pointer-events-none absolute -top-1 h-8 w-12 rounded-full bg-[var(--gym-gold)]/25 blur-xl"
+          className="pointer-events-none absolute inset-0 rounded-2xl bg-[var(--gym-gold)]/15 blur-md"
         />
       ) : null}
       <item.icon className="relative h-5 w-5" />

@@ -18,6 +18,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "W Diecie → Dziennik pasek makro (kcal/B/T/W) siedzi nad przyciskiem Raport i nie jest już przez niego zasłaniany.",
       "Nawigacja między zakładkami jest szybsza: schemat bazy nie odpala się przy każdym kliknięciu, a przypomnienia ładują się w tle zamiast blokować ekran.",
       "„Zmień zdjęcie startowe” (DZIŚ i Postępy → Zdjęcia) otwiera galerię telefonu i zapisuje wybrane zdjęcie jako Start w porównaniu przemiany.",
+      "Brak integracji z Fitatu — żywienie liczy się wyłącznie z dziennika GymBrat (skan / wyszukiwanie) i celów z profilu; usunięto most proxy i łączenie konta.",
       "Postępy (Siła) mają nagłówek z datą startu, chipy zakładek, kartę Moje maxy, podsumowanie objętości (rośnie/stoi/spada) oraz listy ćwiczeń per dzień planu z deltą, sparkline i stanem „pierwszy trening” / „jeszcze nie robione”.",
       "Postępy (Sylwetka) mają kartę wagi z wykresem (kropki = raporty, linia = średnia), sekcje Tempo, Cel (waga docelowa + ETA) oraz Obwody ze sparkline od startu.",
       "Postępy (Zdjęcia) mają slider Start/Teraz ze złotym uchwytem, zmianę zdjęcia startowego, karty z wagą/pasem oraz tabelę delt (waga, pas).",

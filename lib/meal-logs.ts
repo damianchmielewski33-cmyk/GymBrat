@@ -30,7 +30,7 @@ export type MealDayAggregate = {
   carbs: number;
 };
 
-/** Spożycie na dashboardzie: wyłącznie z ręcznych wpisów (bez wpisów — zera, cele z profilu/Fitatu zostają). */
+/** Spożycie na dashboardzie: wyłącznie z ręcznych wpisów (bez wpisów — zera, cele z profilu zostają). */
 export function replaceConsumptionWithMealLogs(
   summary: FitatuDaySummary,
   agg: MealDayAggregate | undefined,

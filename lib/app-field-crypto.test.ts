@@ -9,7 +9,7 @@ describe("app-field-crypto", () => {
   it("zaszyfruj i odszyfruj token", async () => {
     const { encryptSensitiveField, decryptSensitiveField, ENCRYPTED_FIELD_PREFIX } =
       await import("./app-field-crypto");
-    const plain = "fitatu-secret-token-example";
+    const plain = "sensitive-token-example";
     const enc = encryptSensitiveField(plain);
     expect(enc.startsWith(ENCRYPTED_FIELD_PREFIX)).toBe(true);
     expect(decryptSensitiveField(enc)).toBe(plain);

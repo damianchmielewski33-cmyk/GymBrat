@@ -1,4 +1,7 @@
-/** Normalized nutrition snapshot for UI (provider-agnostic). */
+/**
+ * Znormalizowane podsumowanie dnia żywienia (lokalne meal_logs + cele profilu).
+ * Nazwa pliku historyczna — bez zewnętrznego Fitatu.
+ */
 export type FitatuMacroGrams = {
   protein: number;
   fat: number;

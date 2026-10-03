@@ -208,6 +208,7 @@ export async function updateProfile(input: unknown) {
   return { ok: true as const };
 }
 
+/** @deprecated użyj loadTodaysNutritionSummary — lokalny dziennik, bez Fitatu. */
 export async function getFitatuData() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -294,7 +295,7 @@ export async function aiGeneratePlan(overrides?: unknown) {
     .from(userSettings)
     .where(eq(userSettings.userId, session.user.id))
     .limit(1);
-  const fitatu = await loadTodaysNutritionSummary(
+  const nutritionToday = await loadTodaysNutritionSummary(
     session.user.id,
     nutritionSettingsRow,
   );
@@ -321,7 +322,7 @@ export async function aiGeneratePlan(overrides?: unknown) {
     injuriesOrLimitations: o.injuriesOrLimitations
       ? [o.injuriesOrLimitations]
       : undefined,
-    fitatuNutrition: fitatu,
+    nutritionToday,
   };
 
   const userAiOff = await getUserAiFeaturesDisabled(session.user.id);

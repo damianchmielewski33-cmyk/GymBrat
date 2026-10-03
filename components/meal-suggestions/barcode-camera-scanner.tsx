@@ -248,7 +248,7 @@ export function BarcodeCameraScanner({
       aria-modal="true"
       aria-label="Skaner kodu kreskowego"
     >
-      {/* Pełny kadr aparatu — viewport jak Fitatu: kwadrat + ciemna maska */}
+      {/* Pełny kadr aparatu — viewport: kwadrat + ciemna maska */}
       <div className="absolute inset-0 bg-[#1a1a1a]">
         <video
           ref={videoRef}

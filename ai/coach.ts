@@ -49,6 +49,9 @@ export type TrainingPlanInput = {
   experienceLevel?: "beginner" | "intermediate" | "advanced";
   equipment?: string[];
   injuriesOrLimitations?: string[];
+  /** Lokalne podsumowanie żywienia (meal_logs + cele profilu). */
+  nutritionToday?: FitatuDaySummary | null;
+  /** @deprecated użyj nutritionToday */
   fitatuNutrition?: FitatuDaySummary | null;
   cardioPerformance?: CardioPerformance;
 };
@@ -185,10 +188,10 @@ function heuristicProteinGPerDay(weightKg: number, goals: string[]) {
 
 function makeHeuristicPlan(input: TrainingPlanInput): TrainingPlan {
   const protein = heuristicProteinGPerDay(input.weightKg, input.goals);
-  const fitatu = input.fitatuNutrition ?? null;
+  const nutrition = input.nutritionToday ?? input.fitatuNutrition ?? null;
   const calorieHint =
-    fitatu?.caloriesGoal != null
-      ? `Keep calories near your Fitatu goal (~${Math.round(fitatu.caloriesGoal)} kcal/day), adjusting by weekly progress.`
+    nutrition?.caloriesGoal != null
+      ? `Keep calories near the profile goal (~${Math.round(nutrition.caloriesGoal)} kcal/day), adjusting by weekly progress.`
       : "Pick a calorie target based on weekly progress (aim for slow, consistent change).";
 
   const strengthDays = clamp(Math.round(input.daysPerWeek * 0.6), 2, 5);
@@ -285,7 +288,7 @@ export async function generateTrainingPlan(
     daysPerWeek: input.daysPerWeek,
     equipment: input.equipment,
     injuriesOrLimitations: input.injuriesOrLimitations,
-    fitatu: input.fitatuNutrition ?? null,
+    nutritionToday: input.nutritionToday ?? input.fitatuNutrition ?? null,
     cardioPerformance: input.cardioPerformance,
   };
 

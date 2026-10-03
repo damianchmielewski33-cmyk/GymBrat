@@ -347,8 +347,8 @@ export function MealLogsList({
                   </span>
                 </div>
                 <p className="text-xs text-white/45">
-                  Zostaw puste, żeby liczyć kcal z makroskładników. Wpisz wartość, żeby nadpisać (np. Fitatu /
-                  etykieta).
+                  Zostaw puste, żeby liczyć kcal z makroskładników. Wpisz wartość, żeby nadpisać
+                  (np. z etykiety).
                 </p>
               </div>
 

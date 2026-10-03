@@ -57,7 +57,7 @@ function MacroCol({
   );
 }
 
-/** Sticky pasek makro dnia — jak w Fitatu (kcal / B / T / W + ile zostało). */
+/** Sticky pasek makro dnia (kcal / B / T / W + ile zostało). */
 export function DietDayMacrosBar({
   caloriesConsumed,
   caloriesGoal,

@@ -306,7 +306,7 @@ function AddMealSheetForm({
             </span>
           </div>
           <p className="text-xs text-white/45">
-            Jeśli wpiszesz kcal, aplikacja zapisze je dokładnie tak (np. z etykiety / Fitatu).
+            Jeśli wpiszesz kcal, aplikacja zapisze je dokładnie tak (np. z etykiety).
             Jeśli zostawisz puste, wyliczymy z makroskładników (4·B + 4·W + 9·T).
           </p>
         </div>

@@ -1,14 +1,4 @@
-import { RefreshCw } from "lucide-react";
-import { refreshFitatuMacros } from "@/actions/fitatu";
-import { Button } from "@/components/ui/button";
 import type { FitatuDaySummary } from "@/types/fitatu";
-
-function fmtDelta(n: number, unit: string) {
-  const r = Math.round(n);
-  if (r > 0) return `+${r} ${unit}`;
-  if (r < 0) return `${r} ${unit}`;
-  return `0 ${unit}`;
-}
 
 function RemainingBlock({
   label,
@@ -102,85 +92,53 @@ export function TodaysMacrosSection({
       ) : (
         <div className="pointer-events-none absolute -left-24 -top-24 h-56 w-56 rounded-full bg-[var(--neon)]/8 blur-3xl opacity-70" />
       )}
-      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-            Żywienie
-          </p>
-          <h2 className="font-heading mt-1 text-lg font-semibold leading-snug sm:text-xl">
-            Wartości odżywcze na dziś — pozostało do spożycia
-          </h2>
-          <p className="mt-1 text-sm text-white/60">
-            {data.source === "error" && data.errorMessage
-              ? data.errorMessage
-              : consumptionHint
-                ? consumptionHint
-                : data.source === "mock"
-                  ? "Tryb demo — dodaj posiłek lub ustaw proxy i token w profilu, aby zobaczyć dane na żywo."
-                  : data.source === "unavailable"
-                    ? "Bez integracji Fitatu nadal widzisz cele z profilu; spożycie to tylko Twoje wpisy posiłków (bez wpisów — zero)."
-                    : "Dodawaj posiłki powyżej — wartości odżywcze na dziś to suma wpisów. Przycisk Odśwież aktualizuje cache integracji (cele z Fitatu)."}
-          </p>
-        </div>
-        <form action={refreshFitatuMacros} className="shrink-0 sm:self-start">
-          <Button
-            type="submit"
-            variant="outline"
-            size="sm"
-            className="w-full border-white/15 bg-white/5 sm:w-auto"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Odśwież
-          </Button>
-        </form>
+      <div className="min-w-0">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
+          Żywienie
+        </p>
+        <h2 className="font-heading mt-1 text-lg font-semibold leading-snug sm:text-xl">
+          Wartości odżywcze na dziś — pozostało do spożycia
+        </h2>
+        <p className="mt-1 text-sm text-white/60">
+          {consumptionHint ??
+            "Spożycie to suma wpisów z dziennika (skan / wyszukiwanie). Cele ustawiasz w profilu."}
+        </p>
       </div>
 
-      {data.source === "error" ? null : (
-        <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <RemainingBlock
-            label="Kalorie"
-            remaining={calRem}
-            consumed={data.caloriesConsumed}
-            goal={calGoal}
-            unit="kcal"
-            hint="Energia na regenerację i trening"
-          />
-          <RemainingBlock
-            label="Białko"
-            remaining={pRem}
-            consumed={consumed.protein}
-            goal={goals?.protein}
-            unit="g"
-            hint="Regeneracja mięśni"
-          />
-          <RemainingBlock
-            label="Węglowodany"
-            remaining={cRem}
-            consumed={consumed.carbs}
-            goal={goals?.carbs}
-            unit="g"
-            hint="Paliwo na wysiłek"
-          />
-          <RemainingBlock
-            label="Tłuszcz"
-            remaining={fRem}
-            consumed={consumed.fat}
-            goal={goals?.fat}
-            unit="g"
-            hint="Hormony i sytość"
-          />
-        </div>
-      )}
-
-      {data.source !== "error" &&
-      calRem != null &&
-      goals == null &&
-      calGoal != null ? (
-        <p className="relative mt-4 text-xs text-amber-200/80">
-          Nie udało się pobrać celów makroskładników z integracji. W tej chwili pokazuję pełny bilans tylko
-          dla kalorii. Bilans: {fmtDelta(calRem, "kcal")} względem celu {Math.round(calGoal)} kcal.
-        </p>
-      ) : null}
+      <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <RemainingBlock
+          label="Kalorie"
+          remaining={calRem}
+          consumed={data.caloriesConsumed}
+          goal={calGoal}
+          unit="kcal"
+          hint="Energia na regenerację i trening"
+        />
+        <RemainingBlock
+          label="Białko"
+          remaining={pRem}
+          consumed={consumed.protein}
+          goal={goals?.protein}
+          unit="g"
+          hint="Budowa i regeneracja mięśni"
+        />
+        <RemainingBlock
+          label="Tłuszcz"
+          remaining={fRem}
+          consumed={consumed.fat}
+          goal={goals?.fat}
+          unit="g"
+          hint="Hormony i sytość"
+        />
+        <RemainingBlock
+          label="Węglowodany"
+          remaining={cRem}
+          consumed={consumed.carbs}
+          goal={goals?.carbs}
+          unit="g"
+          hint="Paliwo na trening"
+        />
+      </div>
     </div>
   );
 }

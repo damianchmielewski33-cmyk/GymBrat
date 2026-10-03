@@ -34,7 +34,7 @@ type SubScreen = "search" | "product" | "quick";
 type ListTab = "search" | "recents" | "favorites";
 
 /**
- * Pełny ekran dodawania jak Fitatu: Szukaj + 3 przyciski na dole.
+ * Pełny ekran dodawania: Szukaj + 3 przyciski na dole.
  */
 export function AddMealScreen({
   open,
@@ -447,7 +447,7 @@ export function AddMealScreen({
         )}
       </div>
 
-      {/* Fitatu-like: 3 przyciski na dole */}
+      {/* 3 przyciski na dole */}
       <div className="absolute inset-x-0 bottom-0 z-10 border-t border-white/10 bg-[#121212] px-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2">
         <div className="mx-auto grid max-w-lg grid-cols-3 gap-1">
           <button

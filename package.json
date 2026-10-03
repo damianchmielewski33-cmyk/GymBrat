@@ -18,8 +18,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:reset": "node scripts/db-reset.js",
-    "bridge:dev": "npm run dev --prefix fitatu-bridge"
+    "db:reset": "node scripts/db-reset.js"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",

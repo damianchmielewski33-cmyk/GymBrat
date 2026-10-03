@@ -11,7 +11,7 @@ export async function completeOnboardingAction(input: unknown) {
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
 
-  const raw = input as { weeklySessions?: unknown; skipFitatu?: unknown };
+  const raw = input as { weeklySessions?: unknown };
   const weekly =
     typeof raw.weeklySessions === "number" && Number.isFinite(raw.weeklySessions)
       ? Math.round(raw.weeklySessions)

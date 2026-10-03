@@ -55,7 +55,7 @@ function IngredientGroup({
   );
 }
 
-/** Rozwinięta karta odżywcza jak w Fitatu: tabela, WW/WBT, składniki, ocena. */
+/** Rozwinięta karta odżywcza: tabela, WW/WBT, składniki, ocena. */
 export function FoodNutritionDetailsPanel({
   product,
   macrosPer100,

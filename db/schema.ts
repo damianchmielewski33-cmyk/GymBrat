@@ -39,6 +39,7 @@ export const users = sqliteTable("users", {
   activityLevel: text("activity_level"),
   /** `zawodnik` | `trener` | `admin` — admin ustawiany przez ADMIN_EMAILS, bootstrap lub panel. */
   appRole: text("app_role").notNull().default("zawodnik"),
+  /** @deprecated kolumna historyczna — integracja Fitatu usunięta, wartość czyszczona przy starcie. */
   fitatuAccessToken: text("fitatu_access_token"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
@@ -271,10 +272,10 @@ export const mealLogs = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    /** YYYY-MM-DD — dzień kalendarzowy jak w treningach / Fitatu */
+    /** YYYY-MM-DD — dzień kalendarzowy jak w treningach */
     date: text("date").notNull(),
     name: text("name"),
-    /** Sekcja dziennika Fitatu: śniadanie / drugie / lunch / obiad / przekąska */
+    /** Sekcja dziennika: śniadanie / drugie / lunch / obiad / przekąska */
     slot: text("slot"),
     /** Kod EAN produktu, jeśli dodano ze skanu / bazy */
     barcode: text("barcode"),

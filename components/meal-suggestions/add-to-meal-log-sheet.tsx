@@ -84,7 +84,7 @@ export function AddToMealLogSheet({
           <SheetTitle className="text-white">Dodaj posiłek</SheetTitle>
           <SheetDescription className="text-white/55">
             Wpis do dziennika na dzień <span className="font-mono">{dateKey}</span> — wybierz sekcję
-            jak w Fitatu.
+            z przeliczeniem makro.
           </SheetDescription>
         </SheetHeader>
         <form action={formAction} className="space-y-4 px-4 pb-6">

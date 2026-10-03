@@ -28,8 +28,8 @@ export type UserDataExport = {
     age: number | null;
     activityLevel: string | null;
     appRole: string | null;
-    /** Odszyfrowany token połączenia Fitatu (wrażliwy). */
-    fitatuAccessToken: string | null;
+    /** Zawsze null — integracja Fitatu usunięta. */
+    fitatuAccessToken: null;
     createdAt: string;
   };
   settings: Record<string, unknown> | null;
@@ -106,7 +106,7 @@ export async function buildUserDataExport(userId: string): Promise<UserDataExpor
       age: u.age ?? null,
       activityLevel: u.activityLevel ?? null,
       appRole: u.appRole ?? null,
-      fitatuAccessToken: maybeDecryptSensitiveField(u.fitatuAccessToken),
+      fitatuAccessToken: null,
       createdAt: u.createdAt.toISOString(),
     },
     settings: settings ? { ...settings } : null,

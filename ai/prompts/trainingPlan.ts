@@ -15,7 +15,7 @@ export type TrainingPlanPromptInput = {
   daysPerWeek: number;
   equipment?: string[];
   injuriesOrLimitations?: string[];
-  fitatu?: FitatuDaySummary | null;
+  nutritionToday?: FitatuDaySummary | null;
   cardioPerformance?: {
     recent5kTimeSec?: number;
     vo2MaxEstimate?: number;
@@ -34,13 +34,12 @@ export function trainingPlanSystemPrompt() {
 }
 
 export function trainingPlanUserPrompt(input: TrainingPlanPromptInput) {
-  const fitatu = input.fitatu
+  const nutrition = input.nutritionToday
     ? {
-        caloriesConsumed: input.fitatu.caloriesConsumed,
-        caloriesGoal: input.fitatu.caloriesGoal,
-        macros: input.fitatu.macros,
-        mealsCount: input.fitatu.meals.length,
-        source: input.fitatu.source,
+        caloriesConsumed: input.nutritionToday.caloriesConsumed,
+        caloriesGoal: input.nutritionToday.caloriesGoal,
+        macros: input.nutritionToday.macros,
+        mealsCount: input.nutritionToday.meals.length,
       }
     : null;
 
@@ -58,8 +57,8 @@ User profile:
 - equipment: ${(input.equipment ?? []).join(", ") || "unknown"}
 - limitations: ${(input.injuriesOrLimitations ?? []).join(", ") || "none stated"}
 
-Fitatu nutrition snapshot (most recent day):
-${JSON.stringify(fitatu)}
+GymBrat nutrition snapshot (local diary, most recent day):
+${JSON.stringify(nutrition)}
 
 Cardio performance:
 ${JSON.stringify(input.cardioPerformance ?? null)}

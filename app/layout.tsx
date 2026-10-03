@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     template: "%s · GymBrat",
   },
   description:
-    "Nowoczesny dziennik treningowy i żywieniowy: plany, historia, raporty, wartości odżywcze i integracja z Fitatu.",
+    "Nowoczesny dziennik treningowy i żywieniowy: plany, historia, raporty, skan posiłków i wartości odżywcze.",
   manifest: "/api/branding/manifest",
   appleWebApp: {
     capable: true,
