@@ -24,27 +24,67 @@ if [ "$HTTP_CODE" != "200" ]; then
 fi
 
 MIME="$(file -b --mime-type "$TMP" || true)"
-case "$MIME" in
-  image/png)
-    cp "$TMP" "$OUT_DIR/ic_launcher_foreground.png"
-    # Adaptive icon XML wskazuje na drawable — przełącz na PNG
-    cat > "$ROOT/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" <<'EOF'
+PNG_OUT="$OUT_DIR/ic_launcher_foreground.png"
+
+apply_png_foreground() {
+  # Adaptive icon XML wskazuje na drawable — przełącz na PNG
+  cat > "$ROOT/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" <<'EOF'
 <?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background" />
     <foreground android:drawable="@drawable/ic_launcher_foreground" />
 </adaptive-icon>
 EOF
-    cp "$ROOT/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" \
-      "$ROOT/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml"
-    # Usuń wektorowy foreground, jeśli jest — Android preferuje tą samą nazwę; PNG wygrywa nad XML przy konflikcie nazw w niektórych setupach — lepiej usunąć XML.
-    if [ -f "$OUT_DIR/ic_launcher_foreground.xml" ]; then
-      mv "$OUT_DIR/ic_launcher_foreground.xml" "$OUT_DIR/ic_launcher_foreground.xml.bak"
+  cp "$ROOT/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" \
+    "$ROOT/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml"
+  # Usuń wektorowy / webp foreground — PNG pod tą samą nazwą musi wygrać.
+  if [ -f "$OUT_DIR/ic_launcher_foreground.xml" ]; then
+    mv "$OUT_DIR/ic_launcher_foreground.xml" "$OUT_DIR/ic_launcher_foreground.xml.bak"
+  fi
+  rm -f "$OUT_DIR/ic_launcher_foreground.webp"
+  echo "[apply-android-branding-icon] OK — PNG foreground z brandingu"
+}
+
+case "$MIME" in
+  image/png)
+    cp "$TMP" "$PNG_OUT"
+    apply_png_foreground
+    ;;
+  image/webp)
+    if command -v dwebp >/dev/null 2>&1; then
+      dwebp "$TMP" -o "$PNG_OUT"
+      apply_png_foreground
+    else
+      cp "$TMP" "$OUT_DIR/ic_launcher_foreground.webp"
+      cat > "$ROOT/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" <<'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>
+EOF
+      cp "$ROOT/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" \
+        "$ROOT/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml"
+      if [ -f "$OUT_DIR/ic_launcher_foreground.xml" ]; then
+        mv "$OUT_DIR/ic_launcher_foreground.xml" "$OUT_DIR/ic_launcher_foreground.xml.bak"
+      fi
+      rm -f "$PNG_OUT"
+      echo "[apply-android-branding-icon] OK — WebP foreground z brandingu (bez dwebp)"
     fi
-    echo "[apply-android-branding-icon] OK — PNG foreground z brandingu"
+    ;;
+  image/jpeg|image/jpg)
+    if command -v magick >/dev/null 2>&1; then
+      magick "$TMP" "$PNG_OUT"
+      apply_png_foreground
+    elif command -v convert >/dev/null 2>&1; then
+      convert "$TMP" "$PNG_OUT"
+      apply_png_foreground
+    else
+      echo "[apply-android-branding-icon] JPEG bez ImageMagick — pomijam (użyj PNG/WebP)."
+    fi
     ;;
   *)
-    echo "[apply-android-branding-icon] Nieobsługiwany typ ($MIME) — pomijam (użyj PNG)."
+    echo "[apply-android-branding-icon] Nieobsługiwany typ ($MIME) — pomijam (użyj PNG lub WebP)."
     ;;
 esac
 rm -f "$TMP"

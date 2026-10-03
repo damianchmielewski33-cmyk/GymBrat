@@ -75,6 +75,9 @@ jobs:
           echo "api.base.url=${{ steps.api.outputs.url }}" >> android/local.properties
           cat android/local.properties
 
+      - name: Install WebP tools (branding icon)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends webp
+
       - name: Apply Android launcher icon from branding API
         shell: bash
         run: |

@@ -1,8 +1,8 @@
 {
-  "versionCode": 11,
-  "versionName": "0.1.10",
-  "apkUrl": "https://gym-brat.vercel.app/gymbrat-0.1.10.apk?v=11",
-  "releasedAt": "2026-09-30T14:40:00Z",
+  "versionCode": 12,
+  "versionName": "0.1.11",
+  "apkUrl": "https://gym-brat.vercel.app/gymbrat.apk",
+  "releasedAt": "2026-10-03T19:00:00Z",
   "commit": "",
-  "notes": "GymBrat 0.1.10 — pobieranie APK przez Share/postęp (bez wiszącego Chrome) + WebView nie ładuje .apk jak strony."
+  "notes": "GymBrat Android 0.1.11 — ikona launchera z panelu Branding (WebP/PNG) wbudowana w APK."
 }

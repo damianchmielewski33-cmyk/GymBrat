@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "2026-10 — Android 0.1.11: ikona z Brandingu w APK",
+    date: "2026-10-03",
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W Profilu jest GymBrat Android 0.1.11 (versionCode 12) — świeży Release z gym-brat.vercel.app/gymbrat.apk.",
+      "Ikona launchera z panelu Branding (także WebP) jest wbudowywana w APK przy buildzie w GitHub Actions.",
+    ],
+  },
+  {
     title: "Zapowiedź — pakiet treningu V1",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
