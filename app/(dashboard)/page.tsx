@@ -61,9 +61,11 @@ export default async function HomePage() {
     row,
   }));
 
-  const orderedDays = [...dayOptions].sort(comparePlansByWorkoutRecencyAsc);
+  // Lista dni = kolejność planu (createdAt); rekomendacja = kolejka „najdawniej robiony”.
   const recommendedId =
-    dash.nextWorkout?.planId ?? orderedDays[0]?.id ?? null;
+    dash.nextWorkout?.planId ??
+    [...dayOptions].sort(comparePlansByWorkoutRecencyAsc)[0]?.id ??
+    null;
 
   const supplements = parseFirstDietSupplements(
     settingsRow?.fitnessGoalsJson,
@@ -81,7 +83,7 @@ export default async function HomePage() {
       recommendedPlanId={recommendedId}
       planName={dash.nextWorkout?.planName ?? null}
       exerciseCount={dash.nextWorkout?.exerciseCount ?? 0}
-      days={orderedDays}
+      days={dayOptions}
       supplements={supplements}
       weightKg={dash.currentWeightKg}
       weightDeltaFromPreviousKg={dash.weightDeltaFromPreviousKg}

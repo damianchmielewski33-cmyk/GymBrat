@@ -117,14 +117,16 @@ export function HomeTrainingCard({
   }
 
   const addCardioButton = (
-    <button
-      type="button"
-      onClick={() => setCardioOpen(true)}
-      className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_8px_28px_rgba(235,196,74,0.45)]"
-    >
-      <Footprints className="h-4 w-4" aria-hidden />
-      Dodaj cardio
-    </button>
+    <div className="flex justify-center">
+      <button
+        type="button"
+        onClick={() => setCardioOpen(true)}
+        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[var(--gym-gold)]/45 bg-[rgba(var(--neon-rgb),0.12)] px-3.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-gold)] shadow-[0_4px_14px_rgba(235,196,74,0.22)] transition hover:bg-[rgba(var(--neon-rgb),0.2)]"
+      >
+        <Footprints className="h-3.5 w-3.5" aria-hidden />
+        Dodaj cardio
+      </button>
+    </div>
   );
 
   if (!displayName && days.length === 0 && !unfinished) {
