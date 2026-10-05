@@ -28,7 +28,7 @@ describe("meal-catalog-import", () => {
     expect(meals[0]!.slot).toBe("sniadanie");
     expect(meals[0]!.approximateMacros.proteinG).toBe(24);
     expect(meals[0]!.imagePrompt).toContain("yogurt");
-    expect(meals[0]!.imageUrl).toContain("image.pollinations.ai");
+    expect(meals[0]!.imageUrl).toContain("/api/recipe-image?");
     expect(meals[0]!.imagePromptEn).toBeTruthy();
     expect(meals[0]!.ingredients.length).toBeGreaterThanOrEqual(2);
   });

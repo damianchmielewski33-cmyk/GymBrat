@@ -13,8 +13,9 @@ describe("pr-achievement-image", () => {
       valueKg: 145,
       atMs: Date.UTC(2026, 8, 27),
     });
-    expect(url).toContain("image.pollinations.ai/prompt/");
-    expect(url).toContain("model=flux");
+    expect(url.startsWith("/api/recipe-image?")).toBe(true);
+    expect(url).toContain("mode=raw");
+    expect(url).not.toContain("image.pollinations.ai");
     expect(buildPrAchievementImagePrompt({ exerciseName: "Bench", valueKg: 100 })).toMatch(
       /no text/i,
     );

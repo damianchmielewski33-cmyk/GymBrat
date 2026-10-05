@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RestBreakScreen } from "@/components/active-workout/rest-break-screen";
 import { WorkoutAllSetsDoneDialog } from "@/components/active-workout/workout-all-sets-done-dialog";
+import { WorkoutDiscardSessionDialog } from "@/components/active-workout/workout-discard-session-dialog";
 import { readRestTimerPrefs } from "@/lib/rest-timer-prefs";
 import { playRestTimerEndSignal, playRestTimerStartSignal, unlockRestTimerAudio } from "@/lib/rest-timer-signal";
 import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
@@ -123,6 +124,7 @@ export function ActiveWorkoutView({
     nonce: number;
   } | null>(null);
   const [finishOpen, setFinishOpen] = useState(false);
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const [sessionExitPending, setSessionExitPending] = useState(false);
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
   /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/start-workout`. */
@@ -342,14 +344,11 @@ export function ActiveWorkoutView({
     return newIndex;
   }
 
-  function discardSession() {
-    if (
-      !window.confirm(
-        "Zakończyć bez zapisu? Postęp z tej sesji nie zostanie zapisany.",
-      )
-    ) {
-      return;
-    }
+  function requestDiscardSession() {
+    setDiscardConfirmOpen(true);
+  }
+
+  function confirmDiscardSession() {
     setSessionExitPending(true);
     setSuppressRouteGate(true);
     reset();
@@ -358,6 +357,7 @@ export function ActiveWorkoutView({
     stopRest();
     setAllSetsDoneOpen(false);
     setFinishOpen(false);
+    setDiscardConfirmOpen(false);
     router.push("/workout-plan");
   }
 
@@ -695,8 +695,8 @@ export function ActiveWorkoutView({
       onExerciseNoteChange={(exerciseId, note) =>
         patchExercise(exerciseId, { note })
       }
-      onCancelSession={discardSession}
-      onDiscardSession={discardSession}
+      onCancelSession={requestDiscardSession}
+      onDiscardSession={requestDiscardSession}
       onFinishSession={() => {
         setFinishOpen(true);
       }}
@@ -760,7 +760,7 @@ export function ActiveWorkoutView({
           }
           onSetSeconds={(sec) => setRestRemaining(sec)}
           onContinue={() => stopRest()}
-          onCloseSession={discardSession}
+          onCloseSession={requestDiscardSession}
           onOpenList={() => {
             stopRest();
             setListOpen(true);
@@ -783,6 +783,12 @@ export function ActiveWorkoutView({
           onGoToSkipped={goToSkippedTarget}
         />
       ) : null}
+
+      <WorkoutDiscardSessionDialog
+        open={discardConfirmOpen}
+        onOpenChange={setDiscardConfirmOpen}
+        onConfirm={confirmDiscardSession}
+      />
 
       <div
         className={

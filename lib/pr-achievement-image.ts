@@ -1,8 +1,9 @@
 /**
- * Grafika tła „NOWY MAX” — agent Pollinations (ten sam co przepisy przy
- * NEXT_PUBLIC_RECIPE_IMAGE_PROVIDER=pollinations). Tekst nakładamy w UI,
- * żeby kg / nazwa ćwiczenia były czytelne.
+ * Grafika tła „NOWY MAX” — ten sam proxy Pollinations co przepisy
+ * (`/api/recipe-image` + POLLINATIONS_API_KEY). Tekst nakładamy w UI.
  */
+
+import { buildAppRecipeImageProxyUrl } from "@/lib/pollinations-image";
 
 function hashSeed(input: string): number {
   let h = 2166136261;
@@ -53,14 +54,14 @@ export function getPrAchievementImageUrl(input: PrAchievementImageInput): string
   const seed = hashSeed(
     `${input.exerciseName}|${input.valueKg}|${day}|pr-v2`,
   );
-  const params = new URLSearchParams({
-    width: "768",
-    height: "1024",
-    nologo: "true",
-    seed: String(seed),
+  return buildAppRecipeImageProxyUrl({
+    prompt,
+    seed,
+    width: 768,
+    height: 1024,
     model: "flux",
+    mode: "raw",
   });
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
 }
 
 export function formatPrDateLabel(atMs?: number): string {

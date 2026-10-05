@@ -87,7 +87,7 @@ const nextConfig: NextConfig = {
       "form-action 'self'",
       // Next/Tailwind często wymagają inline styles; na start zbieramy raporty.
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://image.pollinations.ai https://images.unsplash.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com",
+      "img-src 'self' data: blob: https://image.pollinations.ai https://gen.pollinations.ai https://images.unsplash.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com",
       "font-src 'self' data:",
       "connect-src 'self'",
       `report-to ${reportGroup}`,

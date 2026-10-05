@@ -1,7 +1,13 @@
-/** Generacja — podbij przy zmianie mapowania grafik. */
-export const RECIPE_IMAGE_CACHE_GENERATION = 7;
+import {
+  buildAppRecipeImageProxyUrl,
+  composeFoodImagePrompt,
+  isLegacyPollinationsImageUrl,
+} from "@/lib/pollinations-image";
 
-/** Awaryjny fallback gdy Pollinations nie załaduje się w przeglądarce. */
+/** Generacja — podbij przy zmianie mapowania grafik. */
+export const RECIPE_IMAGE_CACHE_GENERATION = 8;
+
+/** Awaryjny fallback gdy Pollinations / proxy nie załaduje się w przeglądarce. */
 export const RECIPE_IMAGE_FALLBACK =
   "data:image/svg+xml," +
   encodeURIComponent(
@@ -13,7 +19,7 @@ export const RECIPE_IMAGE_FALLBACK =
 
 export type RecipeImageProvider = "pollinations" | "stock";
 
-/** Domyślnie AI (Pollinations). Stock tylko gdy jawnie wymuszone env. */
+/** Domyślnie AI (Pollinations przez /api/recipe-image). Stock tylko gdy jawnie wymuszone env. */
 export function getRecipeImageProvider(): RecipeImageProvider {
   const raw = (process.env.NEXT_PUBLIC_RECIPE_IMAGE_PROVIDER ?? "pollinations")
     .trim()
@@ -54,6 +60,16 @@ function isSafeHttpUrl(url: string): boolean {
   }
 }
 
+function isAppRecipeImageProxy(url: string): boolean {
+  if (url.startsWith("/api/recipe-image?")) return true;
+  try {
+    const u = new URL(url);
+    return u.pathname === "/api/recipe-image";
+  } catch {
+    return false;
+  }
+}
+
 export function resolveImagePrompt(recipe: RecipeImageSource): string {
   return (
     (recipe.imagePromptEn ?? "").trim() ||
@@ -63,41 +79,36 @@ export function resolveImagePrompt(recipe: RecipeImageSource): string {
   );
 }
 
-/** URL generowany przez AI (Pollinations) — używany przy imporcie JSON i w UI. */
+/**
+ * URL grafiki AI — same-origin proxy `/api/recipe-image`
+ * (serwer woła gen.pollinations.ai z POLLINATIONS_API_KEY).
+ */
 export function buildAiRecipeImageUrl(recipe: RecipeImageSource): string {
   const prompt = resolveImagePrompt(recipe);
   const id = (recipe.id ?? "").trim();
   const title = (recipe.title ?? "").trim();
   const seed = recipeImageSeed(`${id || prompt}|g${RECIPE_IMAGE_CACHE_GENERATION}`);
 
-  const fullPrompt = [
-    title ? `Dish: ${title}` : null,
-    `Exact food: ${prompt}`,
-    "only this dish on a plate or in a bowl",
-    "professional food photography",
-    "realistic",
-    "4k",
-    "no people",
-    "no text",
-    "no watermark",
-  ]
-    .filter(Boolean)
-    .join(", ");
-
-  const params = new URLSearchParams({
-    width: "640",
-    height: "400",
-    nologo: "true",
-    seed: String(seed),
+  return buildAppRecipeImageProxyUrl({
+    prompt,
+    title,
+    seed,
+    width: 640,
+    height: 400,
     model: "flux",
   });
+}
 
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?${params.toString()}`;
+/** Pełny prompt (testy / debug) — ten sam skład co proxy. */
+export function buildAiRecipeImageFullPrompt(recipe: RecipeImageSource): string {
+  return composeFoodImagePrompt({
+    title: recipe.title,
+    prompt: resolveImagePrompt(recipe),
+  });
 }
 
 /**
- * Przy imporcie JSON: zawsze ustaw AI imageUrl (chyba że JSON już ma HTTPS imageUrl).
- * Wymaga imagePromptEn — jeśli brak, buduje z tytułu.
+ * Przy imporcie JSON: zawsze ustaw AI imageUrl (chyba że JSON już ma HTTPS imageUrl poza Pollinations/Unsplash).
  */
 export function enrichCatalogMealWithAiImage<
   T extends {
@@ -114,7 +125,12 @@ export function enrichCatalogMealWithAiImage<
     meal.title.trim();
 
   const existing = meal.imageUrl?.trim();
-  if (existing && isSafeHttpUrl(existing) && !existing.includes("unsplash.com")) {
+  if (
+    existing &&
+    isSafeHttpUrl(existing) &&
+    !existing.includes("unsplash.com") &&
+    !isLegacyPollinationsImageUrl(existing)
+  ) {
     return { ...meal, imagePromptEn };
   }
 
@@ -128,18 +144,25 @@ export function enrichCatalogMealWithAiImage<
 }
 
 /**
- * URL grafiki: jawne imageUrl → AI z promptu.
- * Bez stockowych / przykładowych zdjęć Unsplash.
+ * URL grafiki: jawne imageUrl (nie legacy Pollinations) → proxy AI z promptu.
  */
 export function getRecipeImage(recipe: RecipeImageSource): string {
   const custom = (recipe.imageUrl ?? "").trim();
-  if (custom && isSafeHttpUrl(custom)) return custom;
+  if (custom) {
+    if (isAppRecipeImageProxy(custom)) return custom;
+    if (
+      isSafeHttpUrl(custom) &&
+      !custom.includes("unsplash.com") &&
+      !isLegacyPollinationsImageUrl(custom)
+    ) {
+      return custom;
+    }
+  }
 
   if (getRecipeImageProvider() === "pollinations") {
     return buildAiRecipeImageUrl(recipe);
   }
 
-  // stock = tylko awaryjny placeholder (bez przykładowych zdjęć dań)
   return RECIPE_IMAGE_FALLBACK;
 }
 

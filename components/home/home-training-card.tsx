@@ -132,143 +132,145 @@ export function HomeTrainingCard({
     </div>
   );
 
+  const weekStats = (
+    <div className="grid grid-cols-3 gap-2" aria-label="Podsumowanie tygodnia">
+      <MiniStat
+        label="Treningi tyg."
+        value={String(workoutsThisWeek)}
+        hint="tryb prowadzony"
+      />
+      <MiniStat
+        label="Cardio tyg."
+        value={String(Math.round(cardioThisWeekMinutes))}
+        unit="min"
+      />
+      <MiniStat label="Tyg. z rzędu" value={String(workoutStreakWeeks)} />
+    </div>
+  );
+
   if (!displayName && days.length === 0 && !unfinished) {
     return (
-      <section className="app-card relative overflow-hidden p-5">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-80"
-          style={{
-            background:
-              "linear-gradient(165deg, rgba(235,196,74,0.14) 0%, transparent 55%)",
-          }}
-          aria-hidden
-        />
-        <div className="relative space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            Trening na dziś
-          </p>
-          <h2 className="mt-2 text-[26px] font-semibold leading-tight text-white">
-            Dodaj plan treningowy
-          </h2>
-          <p className="mt-2 text-sm text-white/50">
-            Ustaw dni planu, żeby szybko startować sesję.
-          </p>
-          <Link
-            href="/profile/workout-plan"
-            className="gold-btn mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm"
-          >
-            <Play className="h-4 w-4 fill-current" aria-hidden />
-            Utwórz plan
-          </Link>
-          {addCardioButton}
-        </div>
-        <CardioLogSheet
-          open={cardioOpen}
-          onClose={() => setCardioOpen(false)}
-          cardioGoalMinutes={cardioGoalMinutes}
-        />
-      </section>
+      <div className="space-y-3">
+        <section className="app-card relative overflow-hidden p-5">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-80"
+            style={{
+              background:
+                "linear-gradient(165deg, rgba(235,196,74,0.14) 0%, transparent 55%)",
+            }}
+            aria-hidden
+          />
+          <div className="relative space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+              Trening na dziś
+            </p>
+            <h2 className="mt-2 text-[26px] font-semibold leading-tight text-white">
+              Dodaj plan treningowy
+            </h2>
+            <p className="mt-2 text-sm text-white/50">
+              Ustaw dni planu, żeby szybko startować sesję.
+            </p>
+            <Link
+              href="/profile/workout-plan"
+              className="gold-btn mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm"
+            >
+              <Play className="h-4 w-4 fill-current" aria-hidden />
+              Utwórz plan
+            </Link>
+            {addCardioButton}
+          </div>
+          <CardioLogSheet
+            open={cardioOpen}
+            onClose={() => setCardioOpen(false)}
+            cardioGoalMinutes={cardioGoalMinutes}
+          />
+        </section>
+        {weekStats}
+      </div>
     );
   }
 
   return (
-    <section className="app-card relative overflow-hidden p-5">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-90"
-        style={{
-          background: unfinished
-            ? "linear-gradient(145deg, rgba(235,196,74,0.28) 0%, rgba(40,28,8,0.55) 42%, transparent 70%)"
-            : "linear-gradient(165deg, rgba(235,196,74,0.16) 0%, transparent 58%)",
-        }}
-        aria-hidden
-      />
-      <div className="relative space-y-5">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            {unfinished ? "Niedokończony trening" : "Trening na dziś"}
-          </p>
-          <h2 className="mt-2 text-[28px] font-semibold leading-tight text-white">
-            {displayName}
-          </h2>
-          <p className="mt-1.5 text-sm text-white/55">
-            {displayCount}{" "}
-            {displayCount === 1
-              ? "ćwiczenie"
-              : displayCount >= 2 && displayCount <= 4
-                ? "ćwiczenia"
-                : "ćwiczeń"}
-            {unfinished
-              ? planLabel
-                ? ` · ${planLabel}`
-                : ""
-              : selected?.lastWorkoutDate
-                ? ` · ${formatPlanLastDoneRelative(selected.lastWorkoutDate, today)}`
-                : " · pierwszy raz"}
-          </p>
-        </div>
+    <div className="space-y-3">
+      <section className="app-card relative overflow-hidden p-5">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-90"
+          style={{
+            background: unfinished
+              ? "linear-gradient(145deg, rgba(235,196,74,0.28) 0%, rgba(40,28,8,0.55) 42%, transparent 70%)"
+              : "linear-gradient(165deg, rgba(235,196,74,0.16) 0%, transparent 58%)",
+          }}
+          aria-hidden
+        />
+        <div className="relative space-y-5">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+              {unfinished ? "Niedokończony trening" : "Trening na dziś"}
+            </p>
+            <h2 className="mt-2 text-[28px] font-semibold leading-tight text-white">
+              {displayName}
+            </h2>
+            <p className="mt-1.5 text-sm text-white/55">
+              {displayCount}{" "}
+              {displayCount === 1
+                ? "ćwiczenie"
+                : displayCount >= 2 && displayCount <= 4
+                  ? "ćwiczenia"
+                  : "ćwiczeń"}
+              {unfinished
+                ? planLabel
+                  ? ` · ${planLabel}`
+                  : ""
+                : selected?.lastWorkoutDate
+                  ? ` · ${formatPlanLastDoneRelative(selected.lastWorkoutDate, today)}`
+                  : " · pierwszy raz"}
+            </p>
+          </div>
 
-        <div className="space-y-3">
-          {unfinished ? (
-            <Link
-              href="/active-workout"
-              className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold"
-            >
-              <Play className="h-4 w-4 fill-current" aria-hidden />
-              Kontynuuj trening
-            </Link>
-          ) : (
-            <button
-              type="button"
-              disabled={pending || !selected}
-              onClick={() => {
-                if (!selected) return;
-                begin(selected.row);
-              }}
-              className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm disabled:opacity-55"
-            >
-              <Play className="h-4 w-4 fill-current" aria-hidden />
-              {pending ? "Startuję…" : "Zacznij trening"}
-            </button>
-          )}
-          {addCardioButton}
-        </div>
-
-        {!unfinished && days.length > 1 ? (
           <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setPickerOpen((v) => !v)}
-              aria-expanded={pickerOpen}
-              className="app-panel flex w-full items-center justify-center gap-1.5 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55"
-            >
-              Inny dzień
-              <ChevronDown
-                className={cn(
-                  "h-3.5 w-3.5 transition",
-                  pickerOpen && "rotate-180",
-                )}
-              />
-            </button>
+            {unfinished ? (
+              <Link
+                href="/active-workout"
+                className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold"
+              >
+                <Play className="h-4 w-4 fill-current" aria-hidden />
+                Kontynuuj trening
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled={pending || !selected}
+                onClick={() => {
+                  if (!selected) return;
+                  begin(selected.row);
+                }}
+                className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm disabled:opacity-55"
+              >
+                <Play className="h-4 w-4 fill-current" aria-hidden />
+                {pending ? "Startuję…" : "Zacznij trening"}
+              </button>
+            )}
+            {addCardioButton}
+          </div>
 
-            {pickerOpen ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-2">
-                  <MiniStat
-                    label="Treningi tyg."
-                    value={String(workoutsThisWeek)}
-                    hint="tryb prowadzony"
-                  />
-                  <MiniStat
-                    label="Cardio tyg."
-                    value={String(Math.round(cardioThisWeekMinutes))}
-                    unit="min"
-                  />
-                  <MiniStat
-                    label="Tyg. z rzędu"
-                    value={String(workoutStreakWeeks)}
-                  />
-                </div>
+          {!unfinished && days.length > 1 ? (
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setPickerOpen((v) => !v)}
+                aria-expanded={pickerOpen}
+                className="app-panel flex w-full items-center justify-center gap-1.5 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55"
+              >
+                Inny dzień
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 transition",
+                    pickerOpen && "rotate-180",
+                  )}
+                />
+              </button>
 
+              {pickerOpen ? (
                 <ul className="app-panel divide-y divide-white/[0.06] overflow-hidden">
                   {days.map((day) => {
                     const inQueue = day.id === recommendedPlanId;
@@ -339,16 +341,17 @@ export function HomeTrainingCard({
                     );
                   })}
                 </ul>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-      <CardioLogSheet
-        open={cardioOpen}
-        onClose={() => setCardioOpen(false)}
-        cardioGoalMinutes={cardioGoalMinutes}
-      />
-    </section>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        <CardioLogSheet
+          open={cardioOpen}
+          onClose={() => setCardioOpen(false)}
+          cardioGoalMinutes={cardioGoalMinutes}
+        />
+      </section>
+      {weekStats}
+    </div>
   );
 }
