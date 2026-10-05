@@ -1,6 +1,5 @@
 "use client";
 
-import { HomeCardioProgressStrip } from "@/components/home/home-cardio-progress-strip";
 import { HomeTrainingCard, type HomeTrainingDayOption } from "@/components/home/home-training-card";
 import { HomeSupplementsChip } from "@/components/home/home-supplements-chip";
 import { StartMetricTiles } from "@/components/home/start-metric-tiles";
@@ -124,11 +123,6 @@ export function HomeTodayView(props: HomeTodayViewProps) {
 
   return (
     <div className="space-y-5">
-      <HomeCardioProgressStrip
-        minutesCompleted={props.cardioThisWeekMinutes}
-        weeklyGoal={props.cardioGoalMinutes}
-      />
-
       <header className="flex items-start justify-between gap-3 pt-1">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]/80">

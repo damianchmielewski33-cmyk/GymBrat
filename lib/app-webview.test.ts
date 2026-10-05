@@ -4,6 +4,7 @@ import {
   compareAndroidAppVersion,
   compareVersionName,
   ensureAndroidCameraPermission,
+  isAndroidPhoneBrowserUserAgent,
   isAppWebViewUserAgent,
   parseAndroidAppIdentity,
   shouldShowAndroidUpdatePrompt,
@@ -19,6 +20,32 @@ describe("app-webview", () => {
     expect(isAppWebViewUserAgent("Mozilla/5.0 AWPAndroidApp/1.10.3")).toBe(true);
     expect(isAppWebViewUserAgent("Mozilla/5.0 GymBratAndroidApp/0.1.0")).toBe(true);
     expect(isAppWebViewUserAgent("Mozilla/5.0")).toBe(false);
+  });
+
+  it("rozpoznaje przeglądarkę na telefonie Android (nie desktop, nie APK)", () => {
+    expect(
+      isAndroidPhoneBrowserUserAgent(
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+      ),
+    ).toBe(true);
+    expect(
+      isAndroidPhoneBrowserUserAgent(
+        "Mozilla/5.0 (Linux; Android 13; Pixel Tablet) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+      ),
+    ).toBe(false);
+    expect(
+      isAndroidPhoneBrowserUserAgent(
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
+      ),
+    ).toBe(false);
+    expect(
+      isAndroidPhoneBrowserUserAgent(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+      ),
+    ).toBe(false);
+    expect(
+      isAndroidPhoneBrowserUserAgent("Mozilla/5.0 GymBratAndroidApp/0.1.11 GymBratAndroidCode/12"),
+    ).toBe(false);
   });
 
   it("czyta wersję i numer kompilacji z User-Agenta", () => {

@@ -250,9 +250,9 @@ export function AdminCatalogClient() {
               Prompt dla AI
             </p>
             <p className="mt-1.5 text-sm text-white/55">
-              Skopiuj i wklej do innego modelu AI. Prompt wymaga zróżnicowanych makro
-              (profile pod cele posiłków z profilu). Odpowiedź (JSON) wklej poniżej
-              i kliknij Dodaj / Zastąp.
+              Skopiuj i wklej do innego modelu AI. Prompt jest pod stałe Posiłek 1–5
+              (tylko makro w profilu) i wymaga zróżnicowanych profili B/W/T. Odpowiedź
+              (JSON) wklej poniżej i kliknij Dodaj / Zastąp.
             </p>
           </div>
           <Button

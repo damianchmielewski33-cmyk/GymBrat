@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import {
   Bebas_Neue,
   Geist,
@@ -80,11 +81,14 @@ export default function RootLayout({
       className={`dark ${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${bebasNeue.variable} ${playfair.variable} h-full`}
     >
       <body className="min-h-full font-sans antialiased">
+        {process.env.NODE_ENV === "production" ? (
+          <Script src="/client-hardening.js" strategy="beforeInteractive" />
+        ) : null}
         <MetalBackdrop />
-      <AppProviders>
-        {children}
-        <ActiveWorkoutGlobalBar />
-      </AppProviders>
+        <AppProviders>
+          {children}
+          <ActiveWorkoutGlobalBar />
+        </AppProviders>
       </body>
     </html>
   );

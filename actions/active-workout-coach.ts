@@ -2,16 +2,10 @@
 
 import { z } from "zod";
 import { auth } from "@/auth";
-import { chatCoach } from "@/ai/coach";
-import { isAiConfigured } from "@/ai/client";
-import { buildCoachRecentContext, buildCoachUserProfile } from "@/lib/coach-context";
 import {
   UserMessages,
   activeWorkoutCoachZodMessage,
 } from "@/lib/user-facing-errors";
-import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
-import type { ChatCoachPromptInput } from "@/ai/prompts/chatCoach";
-import { isAiGloballyDisabled } from "@/lib/ai-availability";
 import {
   buildLiveCoachTipAfterCompletedSet,
   buildLiveCoachTipForOpenSet,
@@ -96,9 +90,22 @@ function formatSetLine(weight: number, reps: number | null): string {
   return `${weight} kg × ${r}`;
 }
 
-function buildSnapshot(
-  data: z.infer<typeof InputSchema>,
-): NonNullable<ChatCoachPromptInput["activeWorkout"]> {
+type ActiveWorkoutSnapshot = {
+  sessionTitle: string;
+  elapsedMinutes: number;
+  sessionSetsDone: number;
+  sessionSetsTotal: number;
+  currentExercise: string;
+  exerciseIndex: number;
+  exerciseCount: number;
+  currentExerciseSetsDone: number;
+  currentExerciseSetCount: number;
+  lastCompletedSet: string | null;
+  trigger: string;
+  restRemainingSec: number | null;
+};
+
+function buildSnapshot(data: z.infer<typeof InputSchema>): ActiveWorkoutSnapshot {
   const { title, elapsedSeconds, selectedExerciseId, exercises, restRemaining, trigger } = data;
   const idx = Math.max(
     0,
@@ -142,7 +149,7 @@ function buildSnapshot(
 }
 
 function heuristicTip(
-  snapshot: NonNullable<ChatCoachPromptInput["activeWorkout"]>,
+  snapshot: ActiveWorkoutSnapshot,
   liveLine: string | null,
 ): string {
   const { currentExercise, restRemainingSec, lastCompletedSet, sessionSetsDone, sessionSetsTotal } =
@@ -220,9 +227,6 @@ function liveLineFromPayload(data: z.infer<typeof InputSchema>): string | null {
   return liveCoachTipToPlainText(buildLiveCoachTipForOpenSet(mapped, openIdx));
 }
 
-const userPrompt =
-  "Jesteś Trenerem AI GymBrat podczas aktywnego treningu. Odpowiedz wyłącznie 2–4 krótkimi zdaniami po polsku: konkretne rady o ciężarze, powtórzeniach lub RIR na następną serię (np. +2,5 kg, dobij powtórzenia, zdejmij ciężar przy słabej formie). Bazuj na migawce i linii analizy lokalnej, jeśli podana. Bez „cześć”, bez podpisu.";
-
 export async function activeWorkoutCoachAction(input: unknown): Promise<ActiveWorkoutCoachResult> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: UserMessages.sessionExpired };
@@ -238,56 +242,7 @@ export async function activeWorkoutCoachAction(input: unknown): Promise<ActiveWo
   const snapshot = buildSnapshot(parsed.data);
   const liveLine = liveLineFromPayload(parsed.data);
 
-  const entitled = await getUserAiEntitled(session.user.id);
-  const userAiOff = await getUserAiFeaturesDisabled(session.user.id);
-  const globalOff = await isAiGloballyDisabled();
-  if (!isAiConfigured() || !entitled || userAiOff || globalOff) {
-    return {
-      ok: true,
-      text: heuristicTip(snapshot, liveLine),
-      source: "heuristic",
-    };
-  }
-
-  try {
-    const [rc, profile] = await Promise.all([
-      buildCoachRecentContext(session.user.id),
-      buildCoachUserProfile(session.user.id),
-    ]);
-
-    const reply = await chatCoach({
-      messages: [
-        {
-          role: "user",
-          content: [
-            userPrompt,
-            `Zdarzenie (trigger): ${snapshot.trigger}.`,
-            liveLine ? `Analiza lokalna (ciężar/powtórzenia): ${liveLine}` : null,
-          ]
-            .filter(Boolean)
-            .join("\n"),
-        },
-      ],
-      context: {
-        userProfile: profile,
-        recentContext: rc,
-        guardrails: { tone: "supportive" },
-        task: "active_session_tip",
-        activeWorkout: snapshot,
-      },
-    });
-    const t = reply.text.trim();
-    if (t.length > 24) {
-      return {
-        ok: true,
-        text: t,
-        source: reply.source === "web" ? "web" : "ai",
-      };
-    }
-  } catch {
-    /* fall through */
-  }
-
+  /** Brak AI dla zawodników — tylko lokalna heurystyka ciężaru/powtórzeń. */
   return {
     ok: true,
     text: heuristicTip(snapshot, liveLine),

@@ -8,56 +8,55 @@ export type HomeComplianceSlot = "tak" | "nie" | null;
 
 function ComplianceRing({
   label,
-  count,
   pct,
   tone,
 }: {
   label: string;
-  count: number | null;
   pct: number | null;
   tone: string;
 }) {
   const value = pct ?? 0;
-  const r = 34;
+  const r = 26;
   const c = 2 * Math.PI * r;
   const dash = (Math.min(100, Math.max(0, value)) / 100) * c;
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative flex h-[88px] w-[88px] items-center justify-center">
-        <svg viewBox="0 0 88 88" className="absolute inset-0 h-full w-full" aria-hidden>
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="relative flex h-[68px] w-[68px] items-center justify-center">
+        <svg viewBox="0 0 68 68" className="absolute inset-0 h-full w-full" aria-hidden>
           <circle
-            cx="44"
-            cy="44"
+            cx="34"
+            cy="34"
             r={r}
             fill="none"
             stroke="rgba(255,255,255,0.08)"
-            strokeWidth="7"
+            strokeWidth="5"
           />
           <circle
-            cx="44"
-            cy="44"
+            cx="34"
+            cy="34"
             r={r}
             fill="none"
             stroke={tone}
-            strokeWidth="7"
+            strokeWidth="5"
             strokeDasharray={`${dash} ${c}`}
             strokeLinecap="round"
-            transform="rotate(-90 44 44)"
+            transform="rotate(-90 34 34)"
             className="transition-[stroke-dasharray] duration-700 ease-out"
           />
         </svg>
-        <div className="relative z-[1] text-center leading-none">
-          {count == null ? (
-            <p className="font-metric text-[28px] text-white/35">—</p>
+        <div className="relative z-[1] flex items-baseline gap-0.5 leading-none">
+          {pct == null ? (
+            <p className="font-metric text-[22px] text-white/35">—</p>
           ) : (
-            <AnimatedMetric value={count} className="text-[28px] text-white" />
+            <>
+              <AnimatedMetric value={Math.round(value)} className="text-[22px] text-white" />
+              <span className="text-[10px] font-medium text-white/40">%</span>
+            </>
           )}
         </div>
       </div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/55">
-        {label}
-      </p>
+      <p className="text-[11px] font-medium text-white/55">{label}</p>
     </div>
   );
 }
@@ -70,11 +69,9 @@ function DotRow({
   slots: HomeComplianceSlot[];
 }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <p className="w-[4.5rem] shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
-        {label}
-      </p>
-      <div className="flex min-w-0 flex-1 items-end gap-[3px] overflow-hidden">
+    <div className="flex items-center gap-2">
+      <p className="w-14 shrink-0 text-[11px] font-medium text-white/45">{label}</p>
+      <div className="flex min-w-0 flex-1 items-center gap-[2px] overflow-hidden">
         {slots.length === 0 ? (
           <p className="text-[11px] text-white/30">Brak danych</p>
         ) : (
@@ -89,7 +86,7 @@ function DotRow({
                     : "Brak wpisu"
               }
               className={cn(
-                "h-7 w-[7px] shrink-0 rounded-full sm:w-2",
+                "h-4 w-[6px] shrink-0 rounded-full sm:w-[7px]",
                 s === "tak"
                   ? "bg-[#7ddea0]"
                   : s === "nie"
@@ -106,22 +103,18 @@ function DotRow({
 
 function FormTile({ label, value }: { label: string; value: number | null }) {
   return (
-    <div className="rounded-2xl bg-black/35 px-2 py-3.5 text-center">
+    <div className="rounded-xl bg-white/[0.03] px-1.5 py-2.5 text-center">
+      <p className="text-[11px] font-medium text-white/45">{label}</p>
       {value != null ? (
-        <AnimatedMetric value={value} className="text-[28px] leading-none text-white" />
+        <AnimatedMetric
+          value={value}
+          className="mt-1 text-[22px] leading-none text-white"
+        />
       ) : (
-        <p className="font-metric text-[28px] leading-none text-white/35">—</p>
+        <p className="mt-1 font-metric text-[22px] leading-none text-white/35">—</p>
       )}
-      <p className="mt-1.5 text-[11px] text-white/50">{label}</p>
     </div>
   );
-}
-
-function countTak(slots: HomeComplianceSlot[]): number | null {
-  if (slots.length === 0) return null;
-  const known = slots.filter((s) => s === "tak" || s === "nie");
-  if (known.length === 0) return null;
-  return known.filter((s) => s === "tak").length;
 }
 
 export function HomeZalozeniaSection({
@@ -166,39 +159,24 @@ export function HomeZalozeniaSection({
         }
       />
 
-      <div className="app-card space-y-5 p-5">
-        <div className="grid grid-cols-3 gap-2">
-          <ComplianceRing
-            label="Dieta"
-            count={countTak(dietHistory)}
-            pct={dietPct}
-            tone="#e8c547"
-          />
-          <ComplianceRing
-            label="Treningi"
-            count={countTak(trainingHistory)}
-            pct={trainingPct}
-            tone="#7ddea0"
-          />
-          <ComplianceRing
-            label="Cardio"
-            count={countTak(cardioHistory)}
-            pct={cardioPct}
-            tone="#6eb5ff"
-          />
+      <div className="app-card space-y-3.5 p-4">
+        <div className="grid grid-cols-3 gap-1">
+          <ComplianceRing label="Dieta" pct={dietPct} tone="#e8c547" />
+          <ComplianceRing label="Treningi" pct={trainingPct} tone="#7ddea0" />
+          <ComplianceRing label="Cardio" pct={cardioPct} tone="#6eb5ff" />
         </div>
 
-        <div className="space-y-2.5">
+        <div className="space-y-1.5 border-t border-white/[0.06] pt-3">
           <DotRow label="Dieta" slots={dietHistory} />
           <DotRow label="Treningi" slots={trainingHistory} />
           <DotRow label="Cardio" slots={cardioHistory} />
         </div>
 
-        <div>
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+        <div className="border-t border-white/[0.06] pt-3">
+          <p className="mb-2 text-[11px] font-medium text-white/45">
             Forma z ostatniego raportu
           </p>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-1.5">
             <FormTile label="Energia" value={formToday.energy} />
             <FormTile label="Sen" value={formToday.sleep} />
             <FormTile label="Trawienie" value={formToday.digestion} />

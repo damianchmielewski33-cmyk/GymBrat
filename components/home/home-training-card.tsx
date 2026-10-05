@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Footprints, Play } from "lucide-react";
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
+import { HomeCardioProgressStrip } from "@/components/home/home-cardio-progress-strip";
 import { beginWorkoutFromPlanRow } from "@/lib/start-workout-session";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import {
@@ -170,6 +171,11 @@ export function HomeTrainingCard({
             <p className="mt-2 text-sm text-white/50">
               Ustaw dni planu, żeby szybko startować sesję.
             </p>
+            <HomeCardioProgressStrip
+              minutesCompleted={cardioThisWeekMinutes}
+              weeklyGoal={cardioGoalMinutes}
+              embedded
+            />
             <Link
               href="/profile/workout-plan"
               className="gold-btn mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm"
@@ -202,7 +208,7 @@ export function HomeTrainingCard({
           }}
           aria-hidden
         />
-        <div className="relative space-y-5">
+        <div className="relative space-y-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
               {unfinished ? "Niedokończony trening" : "Trening na dziś"}
@@ -226,6 +232,12 @@ export function HomeTrainingCard({
                   : " · pierwszy raz"}
             </p>
           </div>
+
+          <HomeCardioProgressStrip
+            minutesCompleted={cardioThisWeekMinutes}
+            weeklyGoal={cardioGoalMinutes}
+            embedded
+          />
 
           <div className="space-y-3">
             {unfinished ? (

@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { ensureMealLogsTableOncePerProcess } from "@/db/ensure-schema";
 import { mealLogs, userSettings } from "@/db/schema";
 import {
+  defaultMealTemplateName,
   MAX_MEAL_TEMPLATES,
   parseMealTemplatesJson,
   serializeMealTemplates,
@@ -124,30 +125,23 @@ export async function saveMealTemplateAction(
   return { ok: true as const };
 }
 
-/** Zastępuje całą listę posiłków dnia (max 5) — źródło celów makro w Diecie. */
+/** Zastępuje listę 5 stałych posiłków — tylko makro; nazwy Posiłek 1…5. */
 export async function saveMealTemplatesAction(templates: MealTemplate[]) {
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
 
-  if (!Array.isArray(templates) || templates.length === 0) {
-    return { ok: false as const, error: "Dodaj co najmniej jeden posiłek." };
-  }
-  if (templates.length > MAX_MEAL_TEMPLATES) {
-    return {
-      ok: false as const,
-      error: `Możesz zdefiniować max ${MAX_MEAL_TEMPLATES} posiłków.`,
-    };
+  if (!Array.isArray(templates)) {
+    return { ok: false as const, error: "Nieprawidłowe dane posiłków." };
   }
 
   const cleaned: MealTemplate[] = [];
-  for (const t of templates) {
-    const name = String(t.name ?? "").trim();
-    const calories = Number(t.calories);
+  for (let i = 0; i < Math.min(templates.length, MAX_MEAL_TEMPLATES); i++) {
+    const t = templates[i]!;
     const proteinG = Number(t.proteinG);
     const fatG = Number(t.fatG);
     const carbsG = Number(t.carbsG);
+    const calories = Number(t.calories);
     if (
-      !name ||
       !Number.isFinite(calories) ||
       !Number.isFinite(proteinG) ||
       !Number.isFinite(fatG) ||
@@ -161,7 +155,7 @@ export async function saveMealTemplatesAction(templates: MealTemplate[]) {
     }
     cleaned.push({
       id: String(t.id ?? "").trim() || randomUUID(),
-      name: name.slice(0, 120),
+      name: defaultMealTemplateName(i + 1),
       calories,
       proteinG,
       fatG,

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { UtensilsCrossed } from "lucide-react";
 import { saveMealTemplatesAction } from "@/actions/meal-quick";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,10 @@ import { Label } from "@/components/ui/label";
 import { kcalFromMacros } from "@/lib/kcal-from-macros";
 import {
   defaultMealTemplateName,
-  MAX_MEAL_TEMPLATES,
+  MEAL_TEMPLATE_COUNT,
+  normalizeMealTemplates,
   type MealTemplate,
 } from "@/lib/meal-templates";
-import { cn } from "@/lib/utils";
 
 type DraftMeal = {
   id: string;
@@ -25,26 +25,18 @@ type DraftMeal = {
 };
 
 function toDraft(t: MealTemplate): DraftMeal {
+  const hasMacros = t.proteinG > 0 || t.carbsG > 0 || t.fatG > 0 || t.calories > 0;
   return {
     id: t.id,
     name: t.name,
-    proteinG: String(Math.round(t.proteinG * 10) / 10),
-    carbsG: String(Math.round(t.carbsG * 10) / 10),
-    fatG: String(Math.round(t.fatG * 10) / 10),
+    proteinG: hasMacros ? String(Math.round(t.proteinG * 10) / 10) : "",
+    carbsG: hasMacros ? String(Math.round(t.carbsG * 10) / 10) : "",
+    fatG: hasMacros ? String(Math.round(t.fatG * 10) / 10) : "",
   };
 }
 
-function emptyDraft(index: number): DraftMeal {
-  return {
-    id:
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `meal_${Date.now()}_${index}`,
-    name: defaultMealTemplateName(index),
-    proteinG: "",
-    carbsG: "",
-    fatG: "",
-  };
+function draftsFromTemplates(initial: MealTemplate[]): DraftMeal[] {
+  return normalizeMealTemplates(initial).map(toDraft);
 }
 
 function parseGrams(raw: string): number {
@@ -56,18 +48,10 @@ export function MealTemplatesCard({ initial }: { initial: MealTemplate[] }) {
   const router = useRouter();
   const { notifySaved, notifyError } = useSaveFeedback();
   const [pending, start] = useTransition();
-  const [meals, setMeals] = useState<DraftMeal[]>(() =>
-    initial.length > 0
-      ? initial.slice(0, MAX_MEAL_TEMPLATES).map(toDraft)
-      : [emptyDraft(1)],
-  );
+  const [meals, setMeals] = useState<DraftMeal[]>(() => draftsFromTemplates(initial));
 
   useEffect(() => {
-    setMeals(
-      initial.length > 0
-        ? initial.slice(0, MAX_MEAL_TEMPLATES).map(toDraft)
-        : [emptyDraft(1)],
-    );
+    setMeals(draftsFromTemplates(initial));
   }, [initial]);
 
   const dayTotals = useMemo(() => {
@@ -87,22 +71,8 @@ export function MealTemplatesCard({ initial }: { initial: MealTemplate[] }) {
     };
   }, [meals]);
 
-  function updateMeal(id: string, patch: Partial<DraftMeal>) {
-    setMeals((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, ...patch } : m)),
-    );
-  }
-
-  function addMeal() {
-    if (meals.length >= MAX_MEAL_TEMPLATES) return;
-    setMeals((prev) => [...prev, emptyDraft(prev.length + 1)]);
-  }
-
-  function removeMeal(id: string) {
-    setMeals((prev) => {
-      if (prev.length <= 1) return prev;
-      return prev.filter((m) => m.id !== id);
-    });
+  function updateMeal(id: string, patch: Partial<Pick<DraftMeal, "proteinG" | "carbsG" | "fatG">>) {
+    setMeals((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
   }
 
   return (
@@ -118,9 +88,9 @@ export function MealTemplatesCard({ initial }: { initial: MealTemplate[] }) {
               Posiłki i makro
             </h2>
             <p className="mt-2 text-sm text-white/60">
-              Zdefiniuj ile posiłków jesz dziennie (max {MAX_MEAL_TEMPLATES}) i
-              makro każdego z nich. Dieta zaproponuje przepisy z takimi makro —
-              gramatura składników jest skalowana do Twojego celu.
+              Masz {MEAL_TEMPLATE_COUNT} stałych posiłków (Posiłek 1–{MEAL_TEMPLATE_COUNT}).
+              Ustaw tylko zalecane makro B/W/T — nazwy i liczba slotów są stałe. Dieta
+              dobierze przepisy i przeskaluje gramaturę do tych celów.
             </p>
           </div>
           <UtensilsCrossed
@@ -131,7 +101,7 @@ export function MealTemplatesCard({ initial }: { initial: MealTemplate[] }) {
 
         <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white/70">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
-            Suma dnia ({meals.length} posiłków)
+            Suma dnia ({MEAL_TEMPLATE_COUNT} posiłków)
           </p>
           <p className="mt-1.5 font-medium tabular-nums text-white/90">
             {Math.round(dayTotals.proteinG)}B · {Math.round(dayTotals.carbsG)}W ·{" "}
@@ -145,41 +115,17 @@ export function MealTemplatesCard({ initial }: { initial: MealTemplate[] }) {
             const c = parseGrams(m.carbsG);
             const f = parseGrams(m.fatG);
             const kcal = kcalFromMacros(p, f, c);
+            const label = defaultMealTemplateName(index + 1);
             return (
               <li
                 key={m.id}
                 className="rounded-2xl border border-white/10 bg-black/20 p-4"
               >
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-                    Posiłek {index + 1}
-                  </p>
-                  <button
-                    type="button"
-                    disabled={meals.length <= 1 || pending}
-                    onClick={() => removeMeal(m.id)}
-                    className={cn(
-                      "inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/12 text-white/55",
-                      meals.length <= 1 && "opacity-30",
-                    )}
-                    aria-label={`Usuń posiłek ${index + 1}`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
+                  {label}
+                </p>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor={`meal-name-${m.id}`}>Nazwa</Label>
-                    <Input
-                      id={`meal-name-${m.id}`}
-                      value={m.name}
-                      onChange={(e) =>
-                        updateMeal(m.id, { name: e.target.value })
-                      }
-                      placeholder={defaultMealTemplateName(index + 1)}
-                    />
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor={`meal-p-${m.id}`}>Białko (g)</Label>
                     <Input
@@ -227,60 +173,40 @@ export function MealTemplatesCard({ initial }: { initial: MealTemplate[] }) {
           })}
         </ul>
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={pending || meals.length >= MAX_MEAL_TEMPLATES}
-            onClick={addMeal}
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            Dodaj posiłek
-            {meals.length < MAX_MEAL_TEMPLATES
-              ? ` (${meals.length}/${MAX_MEAL_TEMPLATES})`
-              : ` (max ${MAX_MEAL_TEMPLATES})`}
-          </Button>
-          <Button
-            type="button"
-            disabled={pending}
-            variant="cta"
-            onClick={() => {
-              start(async () => {
-                const templates: MealTemplate[] = [];
-                for (let i = 0; i < meals.length; i++) {
-                  const m = meals[i]!;
-                  const proteinG = parseGrams(m.proteinG);
-                  const carbsG = parseGrams(m.carbsG);
-                  const fatG = parseGrams(m.fatG);
-                  const calories = kcalFromMacros(proteinG, fatG, carbsG);
-                  if (calories <= 0 && proteinG + carbsG + fatG <= 0) {
-                    notifyError(
-                      `Posiłek ${i + 1}: podaj makro (białko / węgle / tłuszcz).`,
-                    );
-                    return;
-                  }
-                  templates.push({
-                    id: m.id,
-                    name: m.name.trim() || defaultMealTemplateName(i + 1),
-                    calories,
-                    proteinG,
-                    fatG,
-                    carbsG,
-                  });
-                }
-                const r = await saveMealTemplatesAction(templates);
-                if (r.ok) {
-                  notifySaved("Posiłki zapisane.");
-                  router.refresh();
-                } else {
-                  notifyError(r.error || "Nie udało się zapisać.");
-                }
-              });
-            }}
-          >
-            Zapisz posiłki
-          </Button>
-        </div>
+        <Button
+          type="button"
+          disabled={pending}
+          variant="cta"
+          onClick={() => {
+            start(async () => {
+              const templates: MealTemplate[] = [];
+              for (let i = 0; i < meals.length; i++) {
+                const m = meals[i]!;
+                const proteinG = parseGrams(m.proteinG);
+                const carbsG = parseGrams(m.carbsG);
+                const fatG = parseGrams(m.fatG);
+                const calories = kcalFromMacros(proteinG, fatG, carbsG);
+                templates.push({
+                  id: m.id,
+                  name: defaultMealTemplateName(i + 1),
+                  calories,
+                  proteinG,
+                  fatG,
+                  carbsG,
+                });
+              }
+              const r = await saveMealTemplatesAction(templates);
+              if (r.ok) {
+                notifySaved("Makro posiłków zapisane.");
+                router.refresh();
+              } else {
+                notifyError(r.error || "Nie udało się zapisać.");
+              }
+            });
+          }}
+        >
+          Zapisz makro
+        </Button>
       </div>
     </section>
   );

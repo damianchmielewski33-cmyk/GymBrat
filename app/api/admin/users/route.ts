@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { desc, eq } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import { requireAdminApi } from "@/lib/admin-api";
 import {
   getPrimaryAdminUserId,
@@ -7,7 +7,7 @@ import {
   isPrimaryAdminActor,
 } from "@/lib/admin-session";
 import { getDb } from "@/db";
-import { userSettings, users } from "@/db/schema";
+import { users } from "@/db/schema";
 
 export const runtime = "nodejs";
 
@@ -27,10 +27,8 @@ export async function GET() {
           lastName: users.lastName,
           appRole: users.appRole,
           createdAt: users.createdAt,
-          aiEntitled: userSettings.aiEntitled,
         })
         .from(users)
-        .leftJoin(userSettings, eq(userSettings.userId, users.id))
         .orderBy(desc(users.createdAt)),
       getPrimaryAdminUserId(),
       getProtectedAdminUserId(),

@@ -17,7 +17,9 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[app/global-error.tsx]", error);
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[app/global-error.tsx]", error);
+    }
   }, [error]);
 
   return (

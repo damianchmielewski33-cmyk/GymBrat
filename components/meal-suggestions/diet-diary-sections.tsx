@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   DIET_DIARY_SLOT_LABELS,
   DIET_DIARY_SLOTS,
@@ -37,12 +37,17 @@ function DeleteMealButton({ id }: { id: string }) {
   const [state, action] = useActionState(deleteMealLogFormAction, {} as MealLogFormState);
   const { notifySaved } = useSaveFeedback();
   const router = useRouter();
+  const handledOkRef = useRef(false);
 
   useEffect(() => {
-    if (state?.ok) {
-      notifySaved("Usunięto wpis.");
-      router.refresh();
+    if (!state?.ok) {
+      handledOkRef.current = false;
+      return;
     }
+    if (handledOkRef.current) return;
+    handledOkRef.current = true;
+    notifySaved("Usunięto wpis.");
+    router.refresh();
   }, [state?.ok, notifySaved, router]);
 
   return (

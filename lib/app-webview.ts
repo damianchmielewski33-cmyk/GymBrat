@@ -42,6 +42,24 @@ export function isRunningInAppWebView(): boolean {
   return isAppWebViewUserAgent(navigator.userAgent);
 }
 
+/**
+ * Zwykła przeglądarka na telefonie Android (nie WebView APK, nie desktop, nie iOS).
+ * Do karty „Pobierz APK” w Profilu — tylko RWD na telefonach Android.
+ */
+export function isAndroidPhoneBrowserUserAgent(ua: string | null | undefined): boolean {
+  if (!ua) return false;
+  if (isAppWebViewUserAgent(ua)) return false;
+  if (!/Android/i.test(ua)) return false;
+  // Telefony: „Mobile”; tablety Android często bez Mobile — pomijamy.
+  if (!/Mobile/i.test(ua)) return false;
+  return true;
+}
+
+export function isAndroidPhoneBrowserClient(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return isAndroidPhoneBrowserUserAgent(navigator.userAgent);
+}
+
 /** Zainstalowany APK: most JS albo User-Agent WebView. Zwykła przeglądarka / PWA — nie. */
 export function isInstalledAndroidAppClient(): boolean {
   if (typeof window === "undefined") return false;

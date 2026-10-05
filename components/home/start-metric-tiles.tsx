@@ -86,10 +86,11 @@ function MacroRemainRow({
   consumed: number;
   barClass: string;
 }) {
-  const pct =
+  const pctRaw =
     goal != null && goal > 0
-      ? Math.min(100, Math.max(0, Math.round((consumed / goal) * 100)))
-      : 0;
+      ? Math.max(0, Math.round((consumed / goal) * 100))
+      : null;
+  const barPct = pctRaw == null ? 0 : Math.min(100, pctRaw);
   const over = goal != null && consumed > goal;
   const eaten = formatGrams(consumed);
   const left =
@@ -101,13 +102,25 @@ function MacroRemainRow({
 
   return (
     <div className="min-w-0 space-y-1">
-      <div className="grid grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1fr)] items-baseline gap-x-2">
+      <div className="grid grid-cols-[1.5rem_minmax(0,1fr)_2.75rem_minmax(0,1fr)] items-baseline gap-x-1.5">
         <span className="text-[11px] font-semibold tracking-wide text-white/50">
           {label}
         </span>
         <span className="tabular-nums text-[12px] font-medium leading-none text-white">
           {eaten}
           <span className="ml-0.5 text-[10px] font-normal text-white/35">g</span>
+        </span>
+        <span
+          className={cn(
+            "text-right tabular-nums text-[11px] font-semibold leading-none",
+            pctRaw == null
+              ? "text-white/30"
+              : over
+                ? "text-rose-400"
+                : "text-white/55",
+          )}
+        >
+          {pctRaw == null ? "—" : `${pctRaw}%`}
         </span>
         <span
           className={cn(
@@ -138,7 +151,7 @@ function MacroRemainRow({
             "h-full rounded-full transition-[width] duration-700 ease-out",
             over ? "bg-rose-400" : barClass,
           )}
-          style={{ width: `${pct}%` }}
+          style={{ width: `${barPct}%` }}
         />
       </div>
     </div>
@@ -163,10 +176,13 @@ function MacroProgressTile({
         {title}
       </p>
       {hasGoals ? (
-        <div className="mt-2.5 grid grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1fr)] gap-x-2">
+        <div className="mt-2.5 grid grid-cols-[1.5rem_minmax(0,1fr)_2.75rem_minmax(0,1fr)] gap-x-1.5">
           <span aria-hidden />
           <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-white/35">
             zjedz.
+          </span>
+          <span className="text-right text-[9px] font-semibold uppercase tracking-[0.1em] text-white/35">
+            %
           </span>
           <span className="text-right text-[9px] font-semibold uppercase tracking-[0.1em] text-white/35">
             zostało

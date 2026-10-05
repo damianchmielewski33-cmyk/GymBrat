@@ -17,7 +17,9 @@ export default function ErrorPage({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[app/error.tsx]", error);
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[app/error.tsx]", error);
+    }
   }, [error]);
 
   return (

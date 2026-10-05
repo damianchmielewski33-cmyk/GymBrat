@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ChevronRight, Footprints } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Props = {
   minutesCompleted: number;
   weeklyGoal: number;
+  /** Wewnątrz karty „Trening na dziś” — bez osobnego app-card. */
+  embedded?: boolean;
 };
 
 function weeklyCardioPercent(minutesCompleted: number, weeklyGoal: number): number {
@@ -17,6 +20,7 @@ function weeklyCardioPercent(minutesCompleted: number, weeklyGoal: number): numb
 export function HomeCardioProgressStrip({
   minutesCompleted,
   weeklyGoal,
+  embedded = false,
 }: Props) {
   const safe = weeklyCardioPercent(minutesCompleted, weeklyGoal);
   const width = Math.min(100, Math.max(0, safe));
@@ -25,12 +29,28 @@ export function HomeCardioProgressStrip({
   return (
     <Link
       href="/cardio"
-      className="app-card-raised block px-3.5 py-3 transition-colors hover:bg-white/[0.02]"
+      className={cn(
+        "block transition-colors",
+        embedded
+          ? "rounded-2xl border border-white/[0.08] bg-black/25 px-3 py-2.5 hover:bg-black/35"
+          : "app-card-raised px-3.5 py-3 hover:bg-white/[0.02]",
+      )}
       aria-label={`Cardio w tygodniu: ${mins} z ${weeklyGoal} minut, ${safe.toFixed(safe >= 100 ? 0 : 1)} procent celu`}
     >
-      <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/25 bg-[var(--gym-gold)]/10">
-          <Footprints className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />
+      <div className="flex items-center gap-2.5">
+        <span
+          className={cn(
+            "flex shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/25 bg-[var(--gym-gold)]/10",
+            embedded ? "h-8 w-8" : "h-9 w-9",
+          )}
+        >
+          <Footprints
+            className={cn(
+              "text-[var(--gym-gold)]",
+              embedded ? "h-3.5 w-3.5" : "h-4 w-4",
+            )}
+            aria-hidden
+          />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
@@ -42,7 +62,7 @@ export function HomeCardioProgressStrip({
               <span className="text-white/35"> / {weeklyGoal} min</span>
             </p>
           </div>
-          <div className="relative mt-2.5 h-2 w-full overflow-hidden rounded-full bg-white/10">
+          <div className="relative mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-[var(--gym-gold-deep)] via-[var(--gym-gold)] to-[var(--gym-gold-bright)]"
               initial={false}
@@ -50,11 +70,13 @@ export function HomeCardioProgressStrip({
               transition={{ duration: 0.75, ease: "easeOut" }}
             />
           </div>
-          <p className="mt-1.5 text-[11px] text-white/40">
-            {width >= 100
-              ? "Cel tygodniowy zaliczony"
-              : `${safe.toFixed(safe >= 100 ? 0 : 1)}% zalecenia · kliknij, by dodać wpis`}
-          </p>
+          {!embedded ? (
+            <p className="mt-1.5 text-[11px] text-white/40">
+              {width >= 100
+                ? "Cel tygodniowy zaliczony"
+                : `${safe.toFixed(safe >= 100 ? 0 : 1)}% zalecenia · kliknij, by dodać wpis`}
+            </p>
+          ) : null}
         </div>
         <ChevronRight className="h-4 w-4 shrink-0 text-white/25" aria-hidden />
       </div>

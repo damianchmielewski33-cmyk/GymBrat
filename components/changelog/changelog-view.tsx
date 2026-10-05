@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { CHANGELOG_ENTRIES } from "@/components/changelog/changelog-data";
 import { DeployProvenanceCard } from "@/components/changelog/deploy-provenance";
 import { GYMBRAT_GITHUB_URL } from "@/lib/gymbrat-source";
@@ -10,7 +9,6 @@ export function ChangelogView({
   variant,
   provenance,
 }: {
-  /** `public` — link do eksportu tylko dla zalogowanych (Profil). */
   variant: "public" | "app";
   provenance: DeployProvenance;
 }) {
@@ -23,25 +21,10 @@ export function ChangelogView({
         description={
           <>
             Changelog GymBrat jest pisany przy wdrożeniach z repozytorium{" "}
-            <a
-              href={GYMBRAT_GITHUB_URL}
-              className={screenLinkClass}
-            >
+            <a href={GYMBRAT_GITHUB_URL} className={screenLinkClass}>
               GymBrat
             </a>
             . Każdy wpis ma jasny opis i źródło w tym repo.
-            {variant === "app" ? (
-              <>
-                {" "}
-                Pełna kopia danych:{" "}
-                <Link href="/profile#export-data" className={screenLinkClass}>
-                  Profil → eksport
-                </Link>
-                .
-              </>
-            ) : (
-              <> Po zalogowaniu możesz pobrać swoje dane w Profilu (JSON / CSV).</>
-            )}
           </>
         }
       />
@@ -51,7 +34,9 @@ export function ChangelogView({
       <div className="space-y-6">
         {CHANGELOG_ENTRIES.map((e) => (
           <ScreenCard key={e.title}>
-            <h2 className="font-heading text-center text-2xl font-semibold text-white">{e.title}</h2>
+            <h2 className="font-heading text-center text-2xl font-semibold text-white">
+              {e.title}
+            </h2>
             <p className="mt-2 text-center text-xs text-white/45">
               Źródło: {e.sourceRepo}
               {e.date ? ` · ${e.date}` : ""}

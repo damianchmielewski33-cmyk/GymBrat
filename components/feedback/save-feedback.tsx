@@ -9,13 +9,19 @@ import {
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
-import { CheckCircle2, X } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const SAVE_FEEDBACK_DEFAULT = "Zapisano zmiany.";
 
-type ToastItem = {
+type FeedbackPopup = {
   id: number;
   message: string;
   variant: "success" | "error";
@@ -36,108 +42,115 @@ export function useSaveFeedback(): SaveFeedbackContextValue {
   return ctx;
 }
 
-const DISMISS_MS = 4200;
+const AUTO_DISMISS_MS = 3200;
 
-function ToastBar({
-  toast,
-  onDismiss,
+function FeedbackPopupDialog({
+  popup,
+  onClose,
 }: {
-  toast: ToastItem;
-  onDismiss: (id: number) => void;
+  popup: FeedbackPopup | null;
+  onClose: () => void;
 }) {
-  useEffect(() => {
-    const timer = window.setTimeout(() => onDismiss(toast.id), DISMISS_MS);
-    return () => window.clearTimeout(timer);
-  }, [toast.id, onDismiss]);
+  const open = popup != null;
+  const isSuccess = popup?.variant !== "error";
 
-  const isSuccess = toast.variant === "success";
+  useEffect(() => {
+    if (!popup) return;
+    const timer = window.setTimeout(onClose, AUTO_DISMISS_MS);
+    return () => window.clearTimeout(timer);
+  }, [popup, onClose]);
 
   return (
-    <div
-      className={cn(
-        "pointer-events-auto flex max-w-[min(92vw,420px)] animate-in fade-in slide-in-from-bottom-3 duration-200 items-start gap-3 rounded-2xl border px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl",
-        isSuccess
-          ? "border-emerald-500/30 bg-[#0a0c0f]/95 text-emerald-50"
-          : "border-rose-500/35 bg-[#12080c]/95 text-rose-50",
-      )}
-      style={
-        isSuccess
-          ? {
-              boxShadow:
-                "0 0 0 1px rgba(16,185,129,0.15), 0 16px 48px rgba(0,0,0,0.55), 0 0 28px rgba(var(--neon-rgb),0.08)",
-            }
-          : {
-              boxShadow:
-                "0 0 0 1px rgba(251,113,133,0.2), 0 16px 48px rgba(0,0,0,0.55)",
-            }
-      }
-      role="status"
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
     >
-      {isSuccess ? (
-        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" aria-hidden />
-      ) : (
-        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-500/25 text-xs font-bold text-rose-100">
-          !
-        </span>
-      )}
-      <p className="min-w-0 flex-1 text-sm leading-snug">{toast.message}</p>
-      <button
-        type="button"
-        onClick={() => onDismiss(toast.id)}
-        className="shrink-0 rounded-lg p-1 text-white/45 transition hover:bg-white/10 hover:text-white"
-        aria-label="Zamknij komunikat"
-      >
-        <X className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
+      <AlertDialogContent className="app-dialog w-[min(92vw,380px)] p-0 text-white">
+        <div className="relative overflow-hidden rounded-[22px] px-5 pb-5 pt-6 sm:px-6 sm:pb-6 sm:pt-7">
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 opacity-90",
+              isSuccess
+                ? "bg-[radial-gradient(520px_220px_at_50%_-20%,rgba(235,196,74,0.22),transparent_60%)]"
+                : "bg-[radial-gradient(520px_220px_at_50%_-20%,rgba(244,63,94,0.2),transparent_60%)]",
+            )}
+            aria-hidden
+          />
 
-function ToastHost({
-  toasts,
-  onDismiss,
-}: {
-  toasts: ToastItem[];
-  onDismiss: (id: number) => void;
-}) {
-  const [mounted, setMounted] = useState(false);
+          <div className="relative flex flex-col items-center text-center">
+            <div
+              className={cn(
+                "flex h-14 w-14 items-center justify-center rounded-full border",
+                isSuccess
+                  ? "border-[var(--gym-gold)]/45 bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]"
+                  : "border-rose-400/40 bg-rose-500/15 text-rose-300",
+              )}
+            >
+              {isSuccess ? (
+                <CheckCircle2 className="h-7 w-7" aria-hidden />
+              ) : (
+                <XCircle className="h-7 w-7" aria-hidden />
+              )}
+            </div>
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+            <AlertDialogTitle className="mt-4 text-lg font-semibold tracking-tight text-white">
+              {isSuccess ? "Gotowe" : "Coś poszło nie tak"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-2 text-[15px] leading-relaxed text-white/70">
+              {popup?.message ?? ""}
+            </AlertDialogDescription>
 
-  if (!mounted || typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-[5000] flex flex-col items-center gap-2 px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4"
-      aria-live="polite"
-    >
-      {toasts.map((t) => (
-        <ToastBar key={t.id} toast={t} onDismiss={onDismiss} />
-      ))}
-    </div>,
-    document.body,
+            <Button
+              type="button"
+              className={cn(
+                "mt-6 h-11 w-full rounded-full text-sm font-semibold",
+                isSuccess ? "gold-btn" : "bg-rose-500/90 text-white hover:bg-rose-500",
+              )}
+              onClick={onClose}
+            >
+              OK
+            </Button>
+          </div>
+        </div>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
 export function SaveFeedbackProvider({ children }: { children: React.ReactNode }) {
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [popup, setPopup] = useState<FeedbackPopup | null>(null);
   const idRef = useRef(0);
+  const lastToastRef = useRef<{ key: string; at: number } | null>(null);
 
-  const dismiss = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+  const close = useCallback(() => {
+    setPopup(null);
   }, []);
 
-  const notifySaved = useCallback((message = SAVE_FEEDBACK_DEFAULT) => {
+  const pushPopup = useCallback((message: string, variant: "success" | "error") => {
+    const key = `${variant}:${message}`;
+    const now = Date.now();
+    const last = lastToastRef.current;
+    if (last && last.key === key && now - last.at < 1200) return;
+    lastToastRef.current = { key, at: now };
     const id = ++idRef.current;
-    setToasts((prev) => [...prev.slice(-4), { id, message, variant: "success" }]);
+    setPopup({ id, message, variant });
   }, []);
 
-  const notifyError = useCallback((message: string) => {
-    const id = ++idRef.current;
-    setToasts((prev) => [...prev.slice(-4), { id, message, variant: "error" }]);
-  }, []);
+  const notifySaved = useCallback(
+    (message = SAVE_FEEDBACK_DEFAULT) => {
+      pushPopup(message, "success");
+    },
+    [pushPopup],
+  );
+
+  const notifyError = useCallback(
+    (message: string) => {
+      pushPopup(message, "error");
+    },
+    [pushPopup],
+  );
 
   const value = useMemo(
     () => ({ notifySaved, notifyError }),
@@ -147,7 +160,7 @@ export function SaveFeedbackProvider({ children }: { children: React.ReactNode }
   return (
     <SaveFeedbackContext.Provider value={value}>
       {children}
-      <ToastHost toasts={toasts} onDismiss={dismiss} />
+      <FeedbackPopupDialog popup={popup} onClose={close} />
     </SaveFeedbackContext.Provider>
   );
 }

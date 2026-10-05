@@ -2,15 +2,12 @@ import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
-import { BodyReportImport } from "@/components/reports/body-report-import";
 import { BodyReportForm } from "@/components/reports/body-report-form";
 import { BodyReportHistory } from "@/components/reports/body-report-history";
 import { QueuedWorkoutBanner } from "@/components/reports/queued-workout-banner";
 import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
-import { InlineBanner } from "@/components/ui/inline-banner";
 import { getBodyReports } from "@/lib/body-reports";
 import { AppPageHeader } from "@/components/layout/screen";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -72,16 +69,14 @@ export default async function ReportsPage() {
         kicker="Raporty"
         title="Dodaj raport"
         description={
-          <>
-            Wypełnij pomiary i samopoczucie — historia oraz eksport są niżej.
-            {daysUntilNext != null ? (
-              <>
-                {" "}
-                Kolejny wg cyklu ({cadenceDays} dni):{" "}
-                {daysUntilNext <= 0 ? "teraz" : `za ${daysUntilNext} dni`}.
-              </>
-            ) : null}
-          </>
+          daysUntilNext != null ? (
+            <>
+              Kolejny wg cyklu ({cadenceDays} dni):{" "}
+              {daysUntilNext <= 0 ? "teraz" : `za ${daysUntilNext} dni`}.
+            </>
+          ) : (
+            "Wypełnij pomiary i samopoczucie."
+          )
         }
       />
 
@@ -95,41 +90,26 @@ export default async function ReportsPage() {
         <BodyReportForm daysUntilNext={daysUntilNext} lastHints={lastHints} />
       </Suspense>
 
-      <div className="space-y-6 border-t border-white/10 pt-8">
-        <AppPageHeader kicker="Archiwum" title="Twoje raporty" titleAs="h2" />
-
-        <InlineBanner variant="info">
-          <strong className="font-semibold text-white/90">Eksport danych.</strong> Pełną kopię
-          treningów, raportów i ustawień pobierzesz w formacie JSON lub CSV w{" "}
-          <Link href="/profile#export-data" className="text-[var(--gym-gold)] underline">
-            Profilu (sekcja eksportu)
-          </Link>
-          .
-        </InlineBanner>
-
-        <BodyReportImport />
-
-        <BodyReportHistory
-          reports={reports.map((r) => ({
-            id: r.id,
-            createdAt: r.createdAt.toISOString(),
-            weightKg: r.weightKg,
-            waistCm: r.waistCm,
-            chestCm: r.chestCm,
-            thighCm: r.thighCm,
-            armCm: r.armCm,
-            abdomenCm: r.abdomenCm,
-            trainingEnergy: r.trainingEnergy,
-            sleepQuality: r.sleepQuality,
-            dayEnergy: r.dayEnergy,
-            digestionScore: r.digestionScore,
-            cardioCompliance: r.cardioCompliance,
-            dietCompliance: r.dietCompliance,
-            trainingCompliance: r.trainingCompliance,
-            photos: r.photos,
-          }))}
-        />
-      </div>
+      <BodyReportHistory
+        reports={reports.map((r) => ({
+          id: r.id,
+          createdAt: r.createdAt.toISOString(),
+          weightKg: r.weightKg,
+          waistCm: r.waistCm,
+          chestCm: r.chestCm,
+          thighCm: r.thighCm,
+          armCm: r.armCm,
+          abdomenCm: r.abdomenCm,
+          trainingEnergy: r.trainingEnergy,
+          sleepQuality: r.sleepQuality,
+          dayEnergy: r.dayEnergy,
+          digestionScore: r.digestionScore,
+          cardioCompliance: r.cardioCompliance,
+          dietCompliance: r.dietCompliance,
+          trainingCompliance: r.trainingCompliance,
+          photos: r.photos,
+        }))}
+      />
     </div>
   );
 }

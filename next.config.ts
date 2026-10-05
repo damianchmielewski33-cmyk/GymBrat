@@ -33,6 +33,8 @@ const APK_RESPONSE_HEADERS = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  /** Mniej śladu w Sources / Network — bez map źródeł w przeglądarce. */
+  productionBrowserSourceMaps: false,
   outputFileTracingRoot: path.join(projectRoot),
   /**
    * instrumentation.ts woła Drizzle migrate — bez tego Vercel nie pakuje
@@ -45,6 +47,14 @@ const nextConfig: NextConfig = {
 
   compress: true,
   poweredByHeader: false,
+
+  compiler: {
+    /** Usuwa console.* z bundla klienta na produkcji (mniej w DevTools). */
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? { exclude: ["error"] }
+        : false,
+  },
 
   async headers() {
     const isProd = process.env.NODE_ENV === "production";
@@ -63,6 +73,7 @@ const nextConfig: NextConfig = {
       { key: "Cross-Origin-Opener-Policy", value: "unsafe-none" },
       { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
       { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+      { key: "X-DNS-Prefetch-Control", value: "off" },
     ];
 
     /**

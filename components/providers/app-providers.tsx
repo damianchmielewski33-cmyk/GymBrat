@@ -11,10 +11,12 @@ import { I18nProvider } from "@/components/i18n/i18n-provider";
 import { BrandingProvider } from "@/components/branding/branding-provider";
 import { AndroidAppUpdatePrompt } from "@/components/android-app-update-prompt";
 import { PwaUpdate } from "@/components/pwa-update";
+import { ClientHardening } from "@/components/security/client-hardening";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
+      <ClientHardening />
       <BrandingProvider>
       <PwaUpdate />
       <SentryClientInit />

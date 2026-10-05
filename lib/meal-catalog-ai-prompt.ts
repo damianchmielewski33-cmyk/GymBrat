@@ -3,17 +3,28 @@
  * Musi być zsynchronizowany z walidacją w `meal-catalog-import.ts` (format strict).
  * Grafiki powstają przy imporcie JSON (Pollinations) z pola imagePromptEn.
  *
- * Aplikacja skaluje gramaturę do makro posiłku z profilu (max 5 posiłków) —
- * katalog musi mieć zróżnicowane proporcje B/W/T, żeby dało się dopasować.
+ * Profil GymBrat: zawsze dokładnie 5 stałych posiłków (Posiłek 1…5) — użytkownik
+ * zmienia tylko makro B/W/T, nie nazwy ani liczbę. Aplikacja skaluje gramaturę
+ * przepisów do tych celów → katalog musi mieć zróżnicowane proporcje B/W/T.
  */
 export const MEAL_CATALOG_AI_PROMPT = `Jesteś generatorem katalogu przepisów dla aplikacji GymBrat (dieta / plan posiłków).
 
 Zadanie: wygeneruj poprawny JSON katalogu przepisów.
 
-W GymBrat użytkownik w profilu ustawia do 5 posiłków dziennie z własnym makro
-(np. Posiłek 1: 40 g białka · 20 g węgli · 10 g tłuszczu). Aplikacja DOBIERA
-przepisy do tego celu i SKALUJE gramaturę składników. Dlatego w katalogu muszą
-być przepisy o RÓŻNYCH proporcjach makro (nie klony „zawsze ~30B / 40W / 10T”).
+## Jak działa dieta w GymBrat (stan aktualny — przestrzegaj)
+- W profilu użytkownik ma ZAWSZE dokładnie 5 stałych posiłków:
+  Posiłek 1, Posiłek 2, Posiłek 3, Posiłek 4, Posiłek 5.
+- Nazw i liczby posiłków NIE zmienia — ustawia tylko zalecane makro B/W/T każdego slotu
+  (np. Posiłek 1: 40 g białka · 20 g węgli · 10 g tłuszczu).
+- Mapowanie slotów katalogu → posiłków profilu:
+  Posiłek 1 → "sniadanie"
+  Posiłek 2 → "drugie_sniadanie"
+  Posiłek 3 → "obiad"
+  Posiłek 4 → "podwieczorek"
+  Posiłek 5 → "kolacja"
+- Aplikacja DOBIERA przepisy do makro danego Posiłku 1…5 i SKALUJE gramaturę składników
+  (zwykle ~0,4–2,5×). Dlatego w katalogu muszą być przepisy o RÓŻNYCH proporcjach makro
+  (nie klony „zawsze ~30B / 40W / 10T”).
 
 ## Format wyjścia
 Cały JSON MUSI być w jednym bloku kodu markdown do łatwego kopiowania, dokładnie tak:
@@ -38,7 +49,7 @@ Bez komentarzy wewnątrz JSON. Poza blokiem kodu nie dodawaj innego JSON ani dł
 - title (string, 1–160): polska nazwa dania, konkretna (nie „Przepis 1”).
 - tagline (string, opcjonalnie, max 240): krótkie hasło po polsku; możesz dodać
   skrót profilu makro, np. „wysokie B · niskie W”.
-- slot (enum, WYŁĄCZNIE jedna z wartości):
+- slot (enum, WYŁĄCZNIE jedna z wartości — odpowiada Posiłkom 1–5):
   "sniadanie" | "drugie_sniadanie" | "obiad" | "podwieczorek" | "kolacja"
 - prepMinutes (integer): czas przygotowania w minutach, 1–240.
 - ingredients (array string[], 2–40 pozycji): każda linia to jeden składnik z ilością
@@ -73,7 +84,7 @@ W całej paczce muszą pojawić się (nie wszystkie w każdym slocie, ale łącz
 - różne techniki: pieczenie, patelnia, gotowanie, na zimno / słoik / wrap.
 Nie powtarzaj tego samego dania pod inną nazwą. Unikalne title i imagePromptEn.
 
-## Różnorodność MAKRO (kluczowe — dopasowanie do celów użytkownika)
+## Różnorodność MAKRO (kluczowe — dopasowanie do Posiłek 1…5)
 Nie generuj paczki, w której wszystkie dania mają podobne B/W/T.
 W każdej paczce świadomie rozłóż profile makro — min. po 2 przepisy z każdej grupy poniżej
 (łącznie w całej paczce, niekoniecznie w każdym slocie):
@@ -100,9 +111,9 @@ E) Wyższy tłuszcz · niskie/umiarkowane węgle
 
 F) Lekka przekąska
    calories 180–320, proteinG 12–28, carbsG 10–35, fatG 4–14
-   (idealne pod drugie śniadanie / podwieczorek)
+   (idealne pod Posiłek 2 / Posiłek 4 — drugie śniadanie / podwieczorek)
 
-Dodatkowo w paczce muszą znaleźć się przepisy bliskie typowym celom z profilu
+Dodatkowo w paczce muszą znaleźć się przepisy bliskie typowym celom Posiłek 1…5
 (żeby skalowanie było bliskie 1×, nie zawsze 0,5× albo 2×), np. okolice:
 - 40B / 20W / 10T
 - 35B / 40W / 12T
@@ -113,18 +124,19 @@ Nie kopiuj tych liczb 1:1 w każdym przepisie — trzymaj się ±20%, zachowują
 
 W tagline możesz oznaczyć profil, np. „wysokie B · niskie W”, żeby było widać różnicę.
 
-## Slot a makro
-- sniadanie / drugie_sniadanie: częściej A, B, D, F (nie tylko owsianki o tym samym makro).
-- obiad: głównie B i C, czasem E (ryba).
-- podwieczorek: F i A (szybkie, mniejsze porcje).
-- kolacja: A, B, C — lżejsze niż obiad, nie klony obiadu.
+## Slot (= Posiłek) a makro
+- sniadanie (Posiłek 1) / drugie_sniadanie (Posiłek 2): częściej A, B, D, F.
+- obiad (Posiłek 3): głównie B i C, czasem E (ryba).
+- podwieczorek (Posiłek 4): F i A (szybkie, mniejsze porcje).
+- kolacja (Posiłek 5): A, B, C — lżejsze niż obiad, nie klony obiadu.
 
 ## Zakazy
 1. Nie duplikuj id. Nie używaj null. Nie dodawaj imageUrl.
 2. Nie generuj 20× tego samego makro (±5 g B/W/T od siebie = za mało różnorodności).
 3. Nie dawaj wszystkim daniom ~30B / 40W / 10T.
-4. slot musi pasować do charakteru dania.
+4. slot musi pasować do charakteru dania i mapowania Posiłek 1…5.
 5. Każdy przepis: unikalny imagePromptEn.
+6. Nie zakładaj, że użytkownik może zmienić liczbę posiłków lub ich nazwy — w GymBrat są stałe.
 
 ## Przykład jednego obiektu (profil A — wysokie B, niskie W)
 {
@@ -156,7 +168,7 @@ W tagline możesz oznaczyć profil, np. „wysokie B · niskie W”, żeby było
 }
 
 ## Twoje zadanie teraz
-Wygeneruj 25 przepisów z wyraźnie zróżnicowanym makro:
+Wygeneruj 25 przepisów z wyraźnie zróżnicowanym makro pod stałe Posiłek 1…5:
 - po 5 na każdy slot (sniadanie, drugie_sniadanie, obiad, podwieczorek, kolacja),
 - w całej paczce pokryj grupy A–F (min. po 2 przepisy z każdej),
 - w każdym slocie przynajmniej 3 wyraźnie różne profile B/W/T

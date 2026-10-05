@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 
 const tooltipStyle = {
   backgroundColor: "rgba(7, 8, 13, 0.92)",
@@ -67,20 +66,6 @@ type HourlyJson = {
   by_day?: { ymd: string; label: string; hours: number[]; total: number }[];
 };
 
-type PurgeWorkoutsJson = {
-  ok: true;
-  deleted: { workouts: number; trainingSessions: number };
-};
-
-type PurgeMealsJson = {
-  ok: true;
-  deleted: { mealLogs: number };
-};
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v != null;
-}
-
 function defaultRange(): { from: string; to: string } {
   const to = new Date();
   const from = new Date(to);
@@ -97,7 +82,7 @@ export function AdminOverviewClient() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [includeUntagged, setIncludeUntagged] = useState(false);
-  const [purgeBusy, setPurgeBusy] = useState<"workouts" | "meals" | null>(null);
+  const [activityLogOpen, setActivityLogOpen] = useState(false);
 
   const load = useCallback(
     async (showSuccessToast = false) => {
@@ -161,60 +146,6 @@ export function AdminOverviewClient() {
     return `rgba(255,45,85,${alpha.toFixed(3)})`;
   }, [heatMax]);
 
-  const purge = useCallback(
-    async (kind: "workouts" | "meals") => {
-      if (purgeBusy) return;
-      const label =
-        kind === "workouts"
-          ? "wszystkie treningi (historię treningów)"
-          : "wszystkie posiłki (historię jedzenia)";
-      if (
-        !confirm(
-          `Na pewno wyczyścić ${label} z całej bazy? Tej operacji nie da się cofnąć.`,
-        )
-      ) {
-        return;
-      }
-
-      setPurgeBusy(kind);
-      try {
-        const endpoint =
-          kind === "workouts"
-            ? "/api/admin/purge/workouts"
-            : "/api/admin/purge/meals";
-        await ensureCsrfCookie();
-        const res = await fetch(endpoint, {
-          method: "POST",
-          credentials: "include",
-          headers: { ...getXsrfHeaders() },
-        });
-        const json: unknown = await res.json();
-        if (!res.ok) throw new Error("request_failed");
-        if (!isRecord(json) || json.ok !== true) throw new Error("request_failed");
-
-        if (kind === "workouts") {
-          const j = json as Partial<PurgeWorkoutsJson>;
-          const deleted = isRecord(j.deleted) ? j.deleted : {};
-          const w = Number((deleted as Record<string, unknown>).workouts ?? 0);
-          const ts = Number((deleted as Record<string, unknown>).trainingSessions ?? 0);
-          notifySaved(`Wyczyszczono: treningi ${w}, sesje treningowe ${ts}.`);
-        } else {
-          const j = json as Partial<PurgeMealsJson>;
-          const deleted = isRecord(j.deleted) ? j.deleted : {};
-          const m = Number((deleted as Record<string, unknown>).mealLogs ?? 0);
-          notifySaved(`Wyczyszczono: posiłki ${m}.`);
-        }
-      } catch {
-        notifyError(
-          "Nie udało się wykonać czyszczenia. Sprawdź, czy panel admina jest odblokowany.",
-        );
-      } finally {
-        setPurgeBusy(null);
-      }
-    },
-    [purgeBusy, notifySaved, notifyError],
-  );
-
   return (
     <div className="space-y-8">
       <section className="app-card p-5 sm:p-6">
@@ -248,7 +179,6 @@ export function AdminOverviewClient() {
             type="button"
             onClick={() => void load(true)}
             disabled={loading}
-           
           >
             Odśwież dane
           </Button>
@@ -278,44 +208,6 @@ export function AdminOverviewClient() {
           {error}
         </p>
       ) : null}
-
-      <section className="app-card p-5 sm:p-6">
-        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-          Narzędzia administracyjne
-        </p>
-        <h2 className="font-heading mt-1 text-lg font-semibold text-white">
-          Czyszczenie historii
-        </h2>
-        <p className="mt-2 text-sm text-white/55">
-          Opcje poniżej usuwają dane z całej bazy. Używaj ostrożnie.
-        </p>
-
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <Button
-            type="button"
-            variant="outline"
-            className="border-rose-400/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
-            disabled={purgeBusy != null}
-            onClick={() => void purge("workouts")}
-          >
-            {purgeBusy === "workouts"
-              ? "Czyszczenie…"
-              : "Wyczyść wszystkie treningi"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="border-rose-400/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
-            disabled={purgeBusy != null}
-            onClick={() => void purge("meals")}
-          >
-            {purgeBusy === "meals"
-              ? "Czyszczenie…"
-              : "Wyczyść wszystkie posiłki"}
-          </Button>
-        </div>
-
-      </section>
 
       {!loading && analytics ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -447,34 +339,50 @@ export function AdminOverviewClient() {
 
       {!loading && analytics ? (
         <div className="app-card overflow-hidden">
-          <div className="border-b border-white/10 px-5 py-4">
-            <h2 className="font-heading text-lg font-semibold text-white">
-              Dziennik zachowań
-            </h2>
-            <p className="text-xs text-white/50">
-              Logowania, rejestracje i dalsze typy zdarzeń można rozszerzać w kodzie.
-            </p>
+          <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="font-heading text-lg font-semibold text-white">
+                Dziennik zachowań
+              </h2>
+              <p className="mt-0.5 text-xs text-white/50">
+                {analytics.activity_events.length} zdarzeń · logowania i rejestracje
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 shrink-0 rounded-2xl border-white/15"
+              aria-expanded={activityLogOpen}
+              onClick={() => setActivityLogOpen((v) => !v)}
+            >
+              {activityLogOpen ? "Ukryj dziennik" : "Pokaż dziennik"}
+            </Button>
           </div>
-          <div className="max-h-[420px] overflow-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 bg-zinc-950/95 text-[11px] uppercase tracking-wide text-white/45">
-                <tr>
-                  <th className="px-5 py-3 font-medium">Czas</th>
-                  <th className="px-5 py-3 font-medium">Zdarzenie</th>
-                  <th className="px-5 py-3 font-medium">Kto</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10 text-white/85">
-                {analytics.activity_events.map((ev) => (
-                  <tr key={ev.id} className="hover:bg-white/[0.03]">
-                    <td className="whitespace-nowrap px-5 py-2.5 text-white/65">{ev.time_display}</td>
-                    <td className="px-5 py-2.5">{ev.action}</td>
-                    <td className="px-5 py-2.5 text-white/75">{ev.actor_label}</td>
+
+          {activityLogOpen ? (
+            <div className="max-h-[420px] overflow-auto border-t border-white/10">
+              <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 bg-zinc-950/95 text-[11px] uppercase tracking-wide text-white/45">
+                  <tr>
+                    <th className="px-5 py-3 font-medium">Czas</th>
+                    <th className="px-5 py-3 font-medium">Zdarzenie</th>
+                    <th className="px-5 py-3 font-medium">Kto</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-white/10 text-white/85">
+                  {analytics.activity_events.map((ev) => (
+                    <tr key={ev.id} className="hover:bg-white/[0.03]">
+                      <td className="whitespace-nowrap px-5 py-2.5 text-white/65">
+                        {ev.time_display}
+                      </td>
+                      <td className="px-5 py-2.5">{ev.action}</td>
+                      <td className="px-5 py-2.5 text-white/75">{ev.actor_label}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

@@ -8,11 +8,8 @@ import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { LogoutButton } from "@/components/profile/logout-button";
 import { CalendarRange, Dumbbell, ScrollText, Shield, User as UserIcon } from "lucide-react";
 import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
-import { DataRightsCard } from "@/components/profile/data-rights-card";
-import { ReminderSettingsCard } from "@/components/profile/reminder-settings-card";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
-import { parseRemindersJson } from "@/lib/reminders-types";
-import { parseMealTemplatesJson } from "@/lib/meal-templates";
+import { mealTemplatesForProfile } from "@/lib/meal-templates";
 import { LocaleSwitchCard } from "@/components/profile/locale-switch-card";
 import { AndroidAppVersionCard } from "@/components/android-app-version-card";
 import { ProgressDeltaUnitCard } from "@/components/profile/progress-delta-unit-card";
@@ -81,7 +78,6 @@ export default async function ProfilePage() {
         trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
         restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
         nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
-        remindersJson: userSettings.remindersJson,
         mealTemplatesJson: userSettings.mealTemplatesJson,
         progressDeltaUnit: userSettings.progressDeltaUnit,
       })
@@ -181,9 +177,7 @@ export default async function ProfilePage() {
         <ReportCadenceForm initialDays={s?.reportCadenceDays ?? 14} />
       </ProfileSection>
 
-      <ReminderSettingsCard initial={parseRemindersJson(s?.remindersJson ?? null)} />
-
-      <MealTemplatesCard initial={parseMealTemplatesJson(s?.mealTemplatesJson ?? null)} />
+      <MealTemplatesCard initial={mealTemplatesForProfile(s?.mealTemplatesJson ?? null)} />
 
       <ProfileSection
         kicker="Dieta"
@@ -230,8 +224,6 @@ export default async function ProfilePage() {
       >
         <ChangePasswordForm />
       </ProfileSection>
-
-      <DataRightsCard />
     </div>
   );
 }

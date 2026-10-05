@@ -69,6 +69,14 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  /**
+   * Grafiki przepisów / NOWY MAX — klucz Pollinations jest tylko na serwerze.
+   * Bez sesji img/proxy nie może iść na /login (307 psuje <img>).
+   */
+  if (pathname === "/api/recipe-image") {
+    return NextResponse.next();
+  }
+
   /** Token CSRF (double-submit) — publiczny GET, bez sesji. */
   if (pathname === "/api/csrf") {
     return NextResponse.next();

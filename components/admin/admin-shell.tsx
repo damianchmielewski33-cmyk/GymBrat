@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ImageIcon, Dumbbell, LayoutDashboard, ScrollText, UtensilsCrossed, Users } from "lucide-react";
+import { ImageIcon, Dumbbell, LayoutDashboard, UtensilsCrossed, Users } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,12 @@ const links = [
   { href: "/admin/catalog", label: "Przepisy", icon: UtensilsCrossed },
   { href: "/admin/exercises", label: "Ćwiczenia", icon: Dumbbell },
   { href: "/admin/branding", label: "Branding", icon: ImageIcon },
-  { href: "/admin/audit", label: "Dziennik", icon: ScrollText },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { notifySaved, notifyError } = useSaveFeedback();
+  const { notifyError } = useSaveFeedback();
 
   return (
     <div className="space-y-8">
@@ -68,22 +67,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   headers: { ...getXsrfHeaders() },
                 });
                 if (!res.ok) {
-                  notifyError("Nie udało się zablokować panelu.");
+                  notifyError("Nie udało się wyjść z panelu.");
                   return;
                 }
-                notifySaved("Zablokowano panel administratora.");
                 router.push("/");
                 router.refresh();
               })();
             }}
           >
-            Wyjdź z panelu
+            Wróć do aplikacji
           </Button>
-          <Link href="/">
-            <Button type="button" variant="ghost" size="sm" className="text-white/70">
-              Wróć do aplikacji
-            </Button>
-          </Link>
         </nav>
       </header>
       {children}

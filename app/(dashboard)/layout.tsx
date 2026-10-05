@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { AuthPageFrame } from "@/components/auth/auth-page-frame";
 import { AppShell } from "@/components/layout/app-shell";
-import { ReminderRunnerBoot } from "@/components/reminders/reminder-runner-boot";
 import { isAdminEligible } from "@/lib/admin-session";
 
 /** Node.js: lokalny SQLite (`file:...`) w @libsql/client działa tylko poza Edge. */
@@ -19,10 +18,5 @@ export default async function DashboardLayout({
 
   const showAdminNav = await isAdminEligible(session).catch(() => false);
 
-  return (
-    <AppShell showAdminNav={showAdminNav}>
-      <ReminderRunnerBoot />
-      {children}
-    </AppShell>
-  );
+  return <AppShell showAdminNav={showAdminNav}>{children}</AppShell>;
 }

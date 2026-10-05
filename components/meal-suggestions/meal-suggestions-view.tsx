@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   clearDietDayKindAction,
@@ -78,16 +78,22 @@ function DeleteMealButton({
     {} as MealLogFormState,
   );
   const { notifySaved, notifyError } = useSaveFeedback();
+  const handledStateRef = useRef<MealLogFormState | null>(null);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useEffect(() => {
-    if (state?.ok) {
+    if (!state || state === handledStateRef.current) return;
+    if (state.ok) {
+      handledStateRef.current = state;
       notifySaved("Usunięto produkt z dziennika.");
       setOpen(false);
-      onDone();
-    } else if (state?.error) {
+      onDoneRef.current();
+    } else if (state.error) {
+      handledStateRef.current = state;
       notifyError(state.error);
     }
-  }, [state, notifySaved, notifyError, onDone]);
+  }, [state, notifySaved, notifyError]);
 
   return (
     <>

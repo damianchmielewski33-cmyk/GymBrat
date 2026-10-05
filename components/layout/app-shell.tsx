@@ -16,7 +16,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { BrandMark } from "@/components/layout/brand-mark";
-import { AppMenuButton } from "@/components/layout/app-menu-button";
 
 export function AppShell({
   children,
@@ -71,9 +70,8 @@ export function AppShell({
         <div className="pt-[env(safe-area-inset-top)]" aria-hidden />
       ) : (
         <header className="sticky top-0 z-40 bg-black/55 pt-[env(safe-area-inset-top)] backdrop-blur-md">
-          <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
+          <div className="mx-auto flex max-w-lg items-center px-4 py-3">
             <BrandMark />
-            <AppMenuButton variant="icon" />
           </div>
         </header>
       )}

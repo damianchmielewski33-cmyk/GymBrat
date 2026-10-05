@@ -5,7 +5,11 @@ import { ExternalLink, RefreshCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ApkDownloadButton } from "@/components/apk-download-button";
 import { useInstalledAndroidAppIdentity } from "@/hooks/use-android-app-identity";
-import { compareAndroidAppVersion, requestNativeAndroidUpdate } from "@/lib/app-webview";
+import {
+  compareAndroidAppVersion,
+  isAndroidPhoneBrowserClient,
+  requestNativeAndroidUpdate,
+} from "@/lib/app-webview";
 import { cn } from "@/lib/utils";
 
 type LatestInfo = {
@@ -15,8 +19,30 @@ type LatestInfo = {
   notes?: string | null;
 };
 
+/** RWD telefon — spójne z typowym breakpointem sm (640px) / layoutem mobilnym. */
+const PHONE_RWD_MQ = "(max-width: 767px)";
+
+function useAndroidPhoneRwd(): boolean {
+  const [ok, setOk] = useState(false);
+
+  useEffect(() => {
+    if (!isAndroidPhoneBrowserClient()) {
+      setOk(false);
+      return;
+    }
+    const mq = window.matchMedia(PHONE_RWD_MQ);
+    const sync = () => setOk(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  return ok;
+}
+
 export function AndroidAppVersionCard() {
   const installed = useInstalledAndroidAppIdentity();
+  const androidPhoneRwd = useAndroidPhoneRwd();
   const [hydrated, setHydrated] = useState(false);
   const [latest, setLatest] = useState<LatestInfo | null>(null);
   const [checking, setChecking] = useState(false);
@@ -61,19 +87,25 @@ export function AndroidAppVersionCard() {
     }
   }, []);
 
+  const shouldShow =
+    hydrated && (Boolean(installed) || androidPhoneRwd);
+
   useEffect(() => {
-    if (!hydrated) return;
+    if (!shouldShow) return;
     const timer = window.setTimeout(() => {
       void loadLatest();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [hydrated, loadLatest]);
+  }, [shouldShow, loadLatest]);
 
   if (!hydrated) return null;
 
+  /** Pobieranie APK — tylko telefon Android w widoku RWD (nie PC, nie iPhone). */
   if (!installed) {
+    if (!androidPhoneRwd) return null;
+
     return (
-      <section className="app-card p-5 sm:p-6">
+      <section className="app-card p-5 sm:p-6 md:hidden">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="app-label text-[var(--gym-gold)]">Telefon</p>
