@@ -8,6 +8,63 @@ export type NewMaxHit = {
   value: number;
 };
 
+/** Rekord ciężaru w sesji vs poprzedni trening tego planu (do ekranu „Trening zrobiony”). */
+export type SessionWeightRecord = {
+  exerciseId: string;
+  exerciseName: string;
+  previousKg: number;
+  newKg: number;
+};
+
+function maxDoneWeightAndReps(
+  sets: WorkoutExerciseState["sets"],
+): { weight: number; reps: number } | null {
+  let bestWeight = 0;
+  let repsAtBest = 0;
+  for (const s of sets) {
+    if (!s.done || s.skipped) continue;
+    if (s.reps == null || s.reps <= 0 || s.weight <= 0) continue;
+    if (s.weight > bestWeight + 0.05) {
+      bestWeight = s.weight;
+      repsAtBest = s.reps;
+    }
+  }
+  if (bestWeight <= 0) return null;
+  return { weight: bestWeight, reps: repsAtBest };
+}
+
+function maxPrevWeight(hints: LastPlanHintsMap[string] | undefined): number {
+  const sets = hints?.sets ?? [];
+  let prevWeight = 0;
+  for (const s of sets) {
+    if (s.reps == null || s.reps <= 0 || s.weight <= 0) continue;
+    prevWeight = Math.max(prevWeight, s.weight);
+  }
+  return prevWeight;
+}
+
+/** Wyłącznie wzrost max ciężaru (kg) względem ostatniej sesji planu. */
+export function detectSessionWeightRecords(
+  exercises: WorkoutExerciseState[],
+  hints: LastPlanHintsMap,
+): SessionWeightRecord[] {
+  const out: SessionWeightRecord[] = [];
+  for (const ex of exercises) {
+    const best = maxDoneWeightAndReps(ex.sets);
+    if (!best) continue;
+    const prevWeight = maxPrevWeight(hints[ex.id]);
+    if (prevWeight <= 0) continue;
+    if (best.weight <= prevWeight + 0.05) continue;
+    out.push({
+      exerciseId: ex.id,
+      exerciseName: ex.name,
+      previousKg: Math.round(prevWeight * 10) / 10,
+      newKg: Math.round(best.weight * 10) / 10,
+    });
+  }
+  return out;
+}
+
 /** Porównuje ukończoną sesję z podpowiedziami z poprzedniej — wykrywa NOWY MAX. */
 export function detectSessionNewMaxes(
   exercises: WorkoutExerciseState[],

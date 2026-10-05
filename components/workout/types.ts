@@ -28,6 +28,8 @@ export type WorkoutExerciseState = {
   supersetGroupId?: string | null;
   /** Sugestia ciężaru per seria (z ostatniej sesji). */
   suggestedWeights?: Array<number | null>;
+  /** Ostatnia sesja tego ćwiczenia — do „Ostatnio …” i progresji. */
+  lastSessionSets?: Array<WorkoutSetState | null>;
   /** Link YouTube techniki (z panelu admina, po dopasowaniu katalogu). */
   techniqueYoutubeUrl?: string | null;
 };

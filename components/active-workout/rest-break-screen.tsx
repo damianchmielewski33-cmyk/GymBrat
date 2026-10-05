@@ -50,6 +50,8 @@ export type RestBreakScreenProps = {
   nextLabel: string;
   /** np. „Seria 2 z 2” albo nazwa ćwiczenia */
   nextValue: string;
+  /** Aktywna rada na następną serię (ciężar / powtórzenia). */
+  coachTip?: string | null;
   soundOn: boolean;
   onToggleSound: () => void;
   onAddSeconds: (sec: number) => void;
@@ -72,6 +74,7 @@ export function RestBreakScreen({
   completedLine,
   nextLabel,
   nextValue,
+  coachTip,
   soundOn,
   onToggleSound,
   onAddSeconds,
@@ -186,6 +189,12 @@ export function RestBreakScreen({
         <p className="mt-1.5 font-display text-2xl leading-tight text-white">
           {nextValue}
         </p>
+        {coachTip ? (
+          <p className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-2.5 text-[13px] leading-snug text-emerald-100/90">
+            <span aria-hidden>🔥 </span>
+            {coachTip}
+          </p>
+        ) : null}
       </div>
 
       <div className="relative flex items-center gap-2.5 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">

@@ -42,12 +42,24 @@ async function main() {
   console.log(`[fetch-android-apk] Źródło: ${SOURCE}`);
   console.log(`[fetch-android-apk] Cel: ${OUT}`);
 
+  const token =
+    process.env.ANDROID_APK_GITHUB_TOKEN?.trim() ||
+    process.env.GITHUB_TOKEN?.trim() ||
+    process.env.GH_TOKEN?.trim() ||
+    "";
+
+  const headers = {
+    Accept: "application/vnd.android.package-archive,*/*",
+    "User-Agent": "GymBrat-Vercel-Build-Fetch-APK",
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+    console.log("[fetch-android-apk] Auth: token GitHub (prywatny release / wyższy limit)");
+  }
+
   const res = await fetch(SOURCE, {
     redirect: "follow",
-    headers: {
-      Accept: "application/vnd.android.package-archive,*/*",
-      "User-Agent": "GymBrat-Vercel-Build-Fetch-APK",
-    },
+    headers,
     signal: AbortSignal.timeout(180_000),
   });
 
@@ -57,7 +69,11 @@ async function main() {
       console.warn(`${msg} — zostawiam istniejący public/gymbrat.apk`);
       return;
     }
-    throw new Error(msg);
+    // Brak release / APK nie może blokować deployu web (Preview / produkcja).
+    console.warn(
+      `${msg} — brak APK w release (${SOURCE}). Kontynuuję build bez public/gymbrat.apk.`,
+    );
+    return;
   }
 
   const tmp = `${OUT}.tmp`;
@@ -85,7 +101,10 @@ async function main() {
       console.warn(`[fetch-android-apk] Błąd pobierania, używam istniejącego APK:`, e);
       return;
     }
-    throw e;
+    console.warn(
+      `[fetch-android-apk] Błąd pobierania — kontynuuję build bez APK:`,
+      e instanceof Error ? e.message : e,
+    );
   }
 }
 

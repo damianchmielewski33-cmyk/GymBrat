@@ -15,6 +15,10 @@ import {
   detectSessionNewMaxes,
   detectSessionWeightRecords,
 } from "@/lib/session-new-max";
+import {
+  buildLiveCoachTipAfterCompletedSet,
+  liveCoachTipToPlainText,
+} from "@/lib/live-set-coach";
 import { whenActiveWorkoutCloudHydrated } from "@/lib/active-workout-cloud-ready";
 import { ActiveSessionCard } from "@/components/active-workout/active-session-card";
 import { GuidedSessionLayout } from "@/components/active-workout/guided-session-layout";
@@ -129,6 +133,14 @@ export function ActiveWorkoutView({
     () => detectSessionWeightRecords(exercises, lastPlanHints),
     [exercises, lastPlanHints],
   );
+  const restCoachTip = useMemo(() => {
+    if (!lastCompleted) return null;
+    const ex = exercises.find((e) => e.id === lastCompleted.exerciseId);
+    if (!ex) return null;
+    return liveCoachTipToPlainText(
+      buildLiveCoachTipAfterCompletedSet(ex, lastCompleted.setIndex),
+    );
+  }, [lastCompleted, exercises]);
 
   const hasLoadedPlan = workoutPlanId != null && exercises.length > 0;
 
@@ -733,6 +745,7 @@ export function ActiveWorkoutView({
           }
           nextLabel={lastCompleted?.nextLabel ?? "Następna seria"}
           nextValue={lastCompleted?.nextValue ?? "—"}
+          coachTip={restCoachTip}
           soundOn={restSoundOn}
           onToggleSound={() => {
             void unlockRestTimerAudio();

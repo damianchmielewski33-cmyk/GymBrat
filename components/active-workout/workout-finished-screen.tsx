@@ -1,25 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Flame } from "lucide-react";
-import { PrAchievementGraphic } from "@/components/reports/pr-achievement-graphic";
-import type { NewMaxHit } from "@/lib/session-new-max";
+import { Flame, Trophy } from "lucide-react";
+import { fetchWorkoutFinishContextAction } from "@/actions/workout-finish-context";
+import type { SessionWeightRecord } from "@/lib/session-new-max";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import {
-  SessionChromeHeader,
-  SessionProgressBar,
-} from "@/components/active-workout/session-chrome";
-import {
   bestSetsFromSession,
-  exerciseVolume,
 } from "@/lib/workout-session-calculations";
 import { estimated1RM } from "@/lib/workout-history";
 import {
-  isCompletedWorkoutSet,
-  isSkippedWorkoutSet,
-} from "@/lib/workout-skipped-sets";
+  formatTonnagePl,
+  formatWeightRecordLine,
+  formatWorkoutDurationPl,
+  workoutFinishFooterLine,
+} from "@/lib/workout-finish-format";
+import { formatKgPl } from "@/lib/set-progression-suggestion";
+import { SectionLabel } from "@/components/ui/section-label";
 import type { ActiveCardioExtras } from "@/lib/stores/active-workout";
-import type { WorkoutSetState } from "@/components/workout/types";
 import { cn } from "@/lib/utils";
 
 type WorkoutFinishedScreenProps = {
@@ -29,6 +27,7 @@ type WorkoutFinishedScreenProps = {
   setsTotal: number;
   volumeKg: number;
   exercises: WorkoutExerciseState[];
+  weightRecords: SessionWeightRecord[];
   cardioMinutes: number;
   cardioExtras: ActiveCardioExtras;
   onCardioMinutesChange: (minutes: number) => void;
@@ -37,75 +36,27 @@ type WorkoutFinishedScreenProps = {
   onReturn: () => void;
   onClose?: () => void;
   saving?: boolean;
-  newMaxLabel?: string | null;
-  newMaxHit?: NewMaxHit | null;
 };
 
 function numOrEmpty(n: number | null | undefined): string {
   return n != null && Number.isFinite(n) && n > 0 ? String(n) : "";
 }
 
-function formatElapsed(totalSeconds: number) {
-  const s = Math.max(0, Math.floor(totalSeconds));
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${String(sec).padStart(2, "0")}`;
-}
-
-function SummarySetPill({ set }: { set: WorkoutSetState }) {
-  if (!set.done) {
-    return (
-      <span className="inline-flex h-8 items-center rounded-lg border border-dashed border-white/15 px-2.5 text-[11px] text-white/30">
-        —
-      </span>
-    );
-  }
-  if (isSkippedWorkoutSet(set)) {
-    return (
-      <span
-        className="inline-flex h-8 items-center rounded-lg border border-amber-400/35 bg-amber-400/10 px-2.5 text-[11px] font-medium text-amber-200/90"
-        title="Pominięta"
-      >
-        pomiń
-      </span>
-    );
-  }
-  if (isCompletedWorkoutSet(set)) {
-    return (
-      <span className="inline-flex h-8 items-center rounded-lg border border-white/14 bg-transparent px-2.5 font-metric text-[12px] tabular-nums text-white/75">
-        {set.weight}
-        <span className="mx-0.5 text-white/35">×</span>
-        {set.reps ?? "—"}
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex h-8 items-center rounded-lg border border-dashed border-white/15 px-2.5 text-[11px] text-white/30">
-      —
-    </span>
-  );
-}
-
 export function WorkoutFinishedScreen({
   title,
   elapsedSeconds,
   setsDone,
-  setsTotal,
   volumeKg,
   exercises,
+  weightRecords,
   cardioMinutes,
   cardioExtras,
   onCardioMinutesChange,
   onCardioExtrasChange,
   onDone,
-  onReturn,
-  onClose,
   saving,
-  newMaxLabel,
-  newMaxHit,
 }: WorkoutFinishedScreenProps) {
-  const minutes = Math.max(1, Math.round(elapsedSeconds / 60));
-  const progress = setsTotal > 0 ? Math.min(1, setsDone / setsTotal) : 1;
+  const exerciseCount = exercises.length;
   const bestSets = useMemo(
     () => bestSetsFromSession(exercises, estimated1RM),
     [exercises],
@@ -123,6 +74,17 @@ export function WorkoutFinishedScreen({
     numOrEmpty(cardioExtras.calories),
   );
   const [draftSteps, setDraftSteps] = useState(numOrEmpty(cardioExtras.steps));
+  const [workoutsThisWeek, setWorkoutsThisWeek] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchWorkoutFinishContextAction().then((ctx) => {
+      if (!cancelled) setWorkoutsThisWeek(ctx.workoutsThisWeek);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (cardioMinutes > 0) setDraftMinutes(cardioMinutes);
@@ -157,130 +119,139 @@ export function WorkoutFinishedScreen({
     cardioExtras.steps != null ? `${cardioExtras.steps} kroków` : null,
   ].filter(Boolean);
 
+  const footerLine =
+    workoutsThisWeek != null
+      ? workoutFinishFooterLine(workoutsThisWeek)
+      : "Po „Gotowe” ciężary trafią do historii i Postępów — Damian widzi je w raporcie.";
+
+  const planLabel = title.trim().toUpperCase() || "TRENING";
+
   return (
     <div className="fixed inset-0 z-[90] flex flex-col bg-[var(--gym-black)] text-white">
-      <SessionProgressBar progress={progress} className="relative" />
-      <SessionChromeHeader
-        title={title}
-        subtitle={`${formatElapsed(elapsedSeconds)} · ${setsDone}/${setsTotal} serii`}
-        onClose={onClose ?? onReturn}
-        listDisabled
-        className="py-3"
-      />
-
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5">
-        {newMaxHit ? (
-          <div className="mt-1 w-full max-w-sm self-center">
-            <PrAchievementGraphic
-              exerciseName={newMaxHit.exerciseName}
-              valueKg={newMaxHit.value}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <header className="flex items-start gap-3 pt-2">
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10">
+            <Trophy
+              className="h-5 w-5 text-[var(--gym-gold)]"
+              strokeWidth={1.5}
+              aria-hidden
             />
+          </span>
+          <div className="min-w-0 pt-0.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
+              {planLabel}
+            </p>
+            <h1 className="mt-1 font-display text-[1.85rem] font-semibold leading-tight text-white sm:text-[2rem]">
+              Trening zrobiony
+            </h1>
           </div>
-        ) : null}
+        </header>
 
-        <h1 className="mt-4 text-center font-display text-[2rem] font-semibold leading-tight text-white sm:text-[2.15rem]">
-          Trening zrobiony
-        </h1>
-        {newMaxLabel && !newMaxHit ? (
-          <p className="mt-3 self-center rounded-full border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/15 px-4 py-1.5 text-center text-xs font-bold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            NOWY MAX · {newMaxLabel}
-          </p>
-        ) : null}
-
-        <div className="app-card mt-5 grid w-full grid-cols-3 divide-x divide-white/10 py-4">
-          <div className="px-2 text-center">
-            <p className="app-label text-[var(--gym-gold)]">Czas</p>
-            <p className="mt-1 font-display text-2xl tabular-nums text-[var(--gym-gold-bright)]">
-              {minutes}
-              <span className="text-sm text-white/45"> min</span>
+        <div className="app-card relative mt-6 overflow-hidden px-5 py-5">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(480px_220px_at_50%_0%,rgba(235,196,74,0.12),transparent_60%)]"
+            aria-hidden
+          />
+          <div className="relative">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--gym-gold)]">
+              Tonaż
             </p>
-          </div>
-          <div className="px-2 text-center">
-            <p className="app-label text-[var(--gym-gold)]">Serie</p>
-            <p className="mt-1 font-display text-2xl tabular-nums text-[var(--gym-gold-bright)]">
-              {setsDone}
+            <p className="mt-2 font-display text-[2.75rem] leading-none tabular-nums text-white sm:text-[3rem]">
+              {formatTonnagePl(volumeKg)}
             </p>
-          </div>
-          <div className="px-2 text-center">
-            <p className="app-label text-[var(--gym-gold)]">Tonaż</p>
-            <p className="mt-1 font-display text-2xl tabular-nums text-[var(--gym-gold-bright)]">
-              {Math.round(volumeKg)}
-              <span className="text-sm text-white/45"> kg</span>
-            </p>
+            <div className="mt-5 grid grid-cols-3 gap-2 border-t border-white/10 pt-4">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
+                  Czas
+                </p>
+                <p className="mt-1 text-[15px] font-semibold tabular-nums text-white">
+                  {formatWorkoutDurationPl(elapsedSeconds)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
+                  Serie
+                </p>
+                <p className="mt-1 text-[15px] font-semibold tabular-nums text-white">
+                  {setsDone}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
+                  Ćwiczenia
+                </p>
+                <p className="mt-1 text-[15px] font-semibold tabular-nums text-white">
+                  {exerciseCount}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {exercises.length > 0 ? (
-          <div className="app-card mt-3 w-full space-y-3.5 px-4 py-4">
-            <p className="app-label text-[var(--gym-gold)]">Ćwiczenia</p>
-            <ul className="space-y-3.5">
-              {exercises.map((ex) => {
-                const vol = Math.round(exerciseVolume(ex.sets));
-                const doneN = ex.sets.filter((s) =>
-                  isCompletedWorkoutSet(s),
-                ).length;
-                return (
-                  <li key={ex.id}>
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="min-w-0 text-[14px] font-medium text-white/90">
-                        {ex.name}
-                      </p>
-                      <p className="shrink-0 text-[11px] tabular-nums text-white/40">
-                        {doneN}/{ex.sets.length}
-                        {vol > 0 ? ` · ${vol} kg` : ""}
-                      </p>
-                    </div>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {ex.sets.map((s, i) => (
-                        <SummarySetPill key={`${ex.id}-${i}`} set={s} />
-                      ))}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ) : null}
-
-        {bestSets.length > 0 ? (
-          <div className="app-card mt-3 w-full overflow-hidden py-1">
-            <p className="app-label px-4 pb-1 pt-3 text-[var(--gym-gold)]">
-              Najlepsze serie
-            </p>
-            <ul className="divide-y divide-white/[0.06]">
-              {bestSets.map((row) => (
+        {weightRecords.length > 0 ? (
+          <section className="mt-6 space-y-2.5">
+            <SectionLabel
+              index={1}
+              title="Nowe rekordy"
+              trailing={String(weightRecords.length)}
+            />
+            <ul className="app-card divide-y divide-white/[0.06] overflow-hidden">
+              {weightRecords.map((row) => (
                 <li
                   key={row.exerciseId}
-                  className="flex items-baseline justify-between gap-3 px-4 py-2.5"
+                  className="flex items-center justify-between gap-3 px-4 py-3.5"
                 >
                   <p className="min-w-0 truncate text-[14px] font-medium text-white/90">
                     {row.exerciseName}
                   </p>
-                  <p className="shrink-0 text-right text-[13px] tabular-nums text-[var(--gym-gold)]">
+                  <p className="shrink-0 text-[14px] font-semibold tabular-nums text-[var(--gym-gold)]">
+                    {formatWeightRecordLine(row.previousKg, row.newKg)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {bestSets.length > 0 ? (
+          <section className="mt-6 space-y-2.5">
+            <SectionLabel
+              index={weightRecords.length > 0 ? 2 : 1}
+              title="Najlepsze serie"
+              trailing={String(bestSets.length)}
+            />
+            <ul className="app-card divide-y divide-white/[0.06] overflow-hidden">
+              {bestSets.map((row) => (
+                <li
+                  key={row.exerciseId}
+                  className="flex items-baseline justify-between gap-3 px-4 py-3"
+                >
+                  <p className="min-w-0 truncate text-[14px] font-medium text-white/88">
+                    {row.exerciseName}
+                  </p>
+                  <p className="shrink-0 text-[14px] font-semibold tabular-nums text-[var(--gym-gold)]">
                     {row.kind === "bodyweight" ? (
                       <>
                         {row.reps}
-                        <span className="text-white/35"> powt.</span>
+                        <span className="font-normal text-white/40"> powt.</span>
                       </>
                     ) : (
                       <>
-                        {row.weight} × {row.reps}
-                        <span className="text-white/35"> · </span>
-                        e1RM {row.e1rm}
+                        {formatKgPl(row.weight)} × {row.reps}
                       </>
                     )}
                   </p>
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         ) : setsDone === 0 ? (
-          <p className="mt-3 text-center text-sm text-white/45">
+          <p className="mt-6 text-center text-sm text-white/45">
             Brak zaliczonych serii.
           </p>
         ) : null}
 
-        <div className="mt-auto flex w-full flex-col items-center pt-6 pb-[max(1.25rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))]">
+        <div className="mt-6 flex w-full flex-col gap-3">
           <button
             type="button"
             disabled={saving}
@@ -291,7 +262,7 @@ export function WorkoutFinishedScreen({
           </button>
 
           {cardioOpen ? (
-            <div className="mt-4 w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4">
+            <div className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4">
               <p className="text-center text-sm text-white/55">
                 Minuty cardio po siłowym
               </p>
@@ -380,7 +351,7 @@ export function WorkoutFinishedScreen({
             <button
               type="button"
               onClick={() => setCardioOpen(true)}
-              className="mt-4 inline-flex min-h-11 items-center gap-2 px-2 text-sm text-[var(--gym-gold)] hover:text-[var(--gym-gold-bright)]"
+              className="inline-flex min-h-11 items-center justify-center gap-2 text-sm text-[var(--gym-gold)] hover:text-[var(--gym-gold-bright)]"
             >
               <Flame className="h-4 w-4" aria-hidden />
               Cardio: {cardioSummaryBits.join(" · ")}
@@ -390,13 +361,26 @@ export function WorkoutFinishedScreen({
               type="button"
               onClick={() => setCardioOpen(true)}
               className={cn(
-                "mt-4 inline-flex min-h-11 items-center gap-2 px-2 text-sm font-medium text-white/70 transition hover:text-white",
+                "inline-flex min-h-11 items-center justify-center gap-2 text-sm font-medium text-white/70 transition hover:text-white",
               )}
             >
               <Flame className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />
               Dodaj cardio po treningu
             </button>
           )}
+        </div>
+      </div>
+
+      <div
+        className="shrink-0 border-t border-white/[0.06] bg-black/80 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        role="status"
+      >
+        <div className="flex gap-3 rounded-2xl border border-white/[0.08] bg-[#101010] py-3 pl-3 pr-4">
+          <span
+            className="mt-0.5 w-1 shrink-0 self-stretch rounded-full bg-emerald-400"
+            aria-hidden
+          />
+          <p className="text-[12px] leading-relaxed text-white/65">{footerLine}</p>
         </div>
       </div>
     </div>

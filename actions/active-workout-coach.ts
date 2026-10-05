@@ -12,6 +12,12 @@ import {
 import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import type { ChatCoachPromptInput } from "@/ai/prompts/chatCoach";
 import { isAiGloballyDisabled } from "@/lib/ai-availability";
+import {
+  buildLiveCoachTipAfterCompletedSet,
+  buildLiveCoachTipForOpenSet,
+  liveCoachTipToPlainText,
+} from "@/lib/live-set-coach";
+import type { WorkoutExerciseState } from "@/components/workout/types";
 
 const SetSchema = z.object({
   /** Klient może pominąć pole w JSON (undefined) — traktuj jak brak wpisu. */
@@ -34,12 +40,25 @@ const SetSchema = z.object({
     return 0;
   }, z.number().finite().min(0).max(2000)),
   done: z.boolean(),
+  rir: z.preprocess((v) => {
+    if (v == null || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.max(0, Math.min(5, Math.round(n))) : null;
+  }, z.union([z.number().int().min(0).max(5), z.null()]).optional()),
+  rpe: z.preprocess((v) => {
+    if (v == null || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.max(1, Math.min(10, Math.round(n))) : null;
+  }, z.union([z.number().int().min(1).max(10), z.null()]).optional()),
 });
 
 const ExerciseSchema = z.object({
   id: z.string().max(80),
   name: z.string().max(120),
   sets: z.array(SetSchema).max(36),
+  targetReps: z.number().int().min(1).max(99).nullish(),
+  targetRir: z.number().min(0).max(5).nullish(),
+  lastSessionSets: z.array(SetSchema.nullable()).max(36).optional(),
 });
 
 const InputSchema = z.object({
@@ -122,9 +141,18 @@ function buildSnapshot(
   };
 }
 
-function heuristicTip(snapshot: NonNullable<ChatCoachPromptInput["activeWorkout"]>): string {
+function heuristicTip(
+  snapshot: NonNullable<ChatCoachPromptInput["activeWorkout"]>,
+  liveLine: string | null,
+): string {
   const { currentExercise, restRemainingSec, lastCompletedSet, sessionSetsDone, sessionSetsTotal } =
     snapshot;
+  if (liveLine) {
+    if (restRemainingSec != null && restRemainingSec > 0) {
+      return `${liveLine} Przerwa ${restRemainingSec} s — oddychaj spokojnie.`;
+    }
+    return `${liveLine} Sesja: ${sessionSetsDone}/${sessionSetsTotal} serii.`;
+  }
   if (restRemainingSec != null && restRemainingSec > 0) {
     return [
       `Przerwa ${restRemainingSec} s przed kolejną serią ${currentExercise} — złap oddech przez nos, rozluźnij kark i barki.`,
@@ -145,8 +173,55 @@ function heuristicTip(snapshot: NonNullable<ChatCoachPromptInput["activeWorkout"
   ].join(" ");
 }
 
+function liveLineFromPayload(data: z.infer<typeof InputSchema>): string | null {
+  const { selectedExerciseId, exercises, trigger } = data;
+  const current =
+    exercises.find((e) => e.id === selectedExerciseId) ?? exercises[0] ?? null;
+  if (!current) return null;
+  const mapped: WorkoutExerciseState = {
+    id: current.id,
+    name: current.name,
+    targetReps: current.targetReps ?? undefined,
+    targetRir: current.targetRir ?? undefined,
+    lastSessionSets: (current.lastSessionSets ?? []).map((s) =>
+      s
+        ? {
+            reps: s.reps,
+            weight: s.weight,
+            done: s.done,
+            rir: s.rir ?? null,
+            rpe: s.rpe ?? null,
+          }
+        : null,
+    ),
+    sets: current.sets.map((s) => ({
+      reps: s.reps,
+      weight: s.weight,
+      done: s.done,
+      rir: s.rir ?? null,
+      rpe: s.rpe ?? null,
+    })),
+  };
+  const openIdx = Math.max(
+    0,
+    mapped.sets.findIndex((s) => !s.done),
+  );
+  if (trigger === "set_done" || trigger === "rest_start") {
+    let lastDone = -1;
+    for (let i = 0; i < mapped.sets.length; i++) {
+      if (mapped.sets[i]?.done) lastDone = i;
+    }
+    if (lastDone >= 0) {
+      return liveCoachTipToPlainText(
+        buildLiveCoachTipAfterCompletedSet(mapped, lastDone),
+      );
+    }
+  }
+  return liveCoachTipToPlainText(buildLiveCoachTipForOpenSet(mapped, openIdx));
+}
+
 const userPrompt =
-  "Jesteś Trenerem AI GymBrat podczas aktywnego treningu użytkownika. Odpowiedz wyłącznie 2–4 krótkimi zdaniami po polsku: konkretne wskazówki techniczne lub mentalne dopasowane do migawki i typu zdarzenia (trigger). Bez „cześć”, bez podpisu.";
+  "Jesteś Trenerem AI GymBrat podczas aktywnego treningu. Odpowiedz wyłącznie 2–4 krótkimi zdaniami po polsku: konkretne rady o ciężarze, powtórzeniach lub RIR na następną serię (np. +2,5 kg, dobij powtórzenia, zdejmij ciężar przy słabej formie). Bazuj na migawce i linii analizy lokalnej, jeśli podana. Bez „cześć”, bez podpisu.";
 
 export async function activeWorkoutCoachAction(input: unknown): Promise<ActiveWorkoutCoachResult> {
   const session = await auth();
@@ -161,12 +236,17 @@ export async function activeWorkoutCoachAction(input: unknown): Promise<ActiveWo
   if (exercises.length === 0) return { ok: false, error: UserMessages.coachNoExercises };
 
   const snapshot = buildSnapshot(parsed.data);
+  const liveLine = liveLineFromPayload(parsed.data);
 
   const entitled = await getUserAiEntitled(session.user.id);
   const userAiOff = await getUserAiFeaturesDisabled(session.user.id);
   const globalOff = await isAiGloballyDisabled();
   if (!isAiConfigured() || !entitled || userAiOff || globalOff) {
-    return { ok: true, text: heuristicTip(snapshot), source: "heuristic" };
+    return {
+      ok: true,
+      text: heuristicTip(snapshot, liveLine),
+      source: "heuristic",
+    };
   }
 
   try {
@@ -179,7 +259,13 @@ export async function activeWorkoutCoachAction(input: unknown): Promise<ActiveWo
       messages: [
         {
           role: "user",
-          content: `${userPrompt}\nZdarzenie (trigger): ${snapshot.trigger}.`,
+          content: [
+            userPrompt,
+            `Zdarzenie (trigger): ${snapshot.trigger}.`,
+            liveLine ? `Analiza lokalna (ciężar/powtórzenia): ${liveLine}` : null,
+          ]
+            .filter(Boolean)
+            .join("\n"),
         },
       ],
       context: {
@@ -202,5 +288,9 @@ export async function activeWorkoutCoachAction(input: unknown): Promise<ActiveWo
     /* fall through */
   }
 
-  return { ok: true, text: heuristicTip(snapshot), source: "heuristic" };
+  return {
+    ok: true,
+    text: heuristicTip(snapshot, liveLine),
+    source: "heuristic",
+  };
 }

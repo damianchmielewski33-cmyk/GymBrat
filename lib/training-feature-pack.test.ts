@@ -7,7 +7,10 @@ import {
   mergeHintsIntoExercises,
 } from "@/lib/last-workout-hints";
 import { resolveSessionRevisionConflict } from "@/lib/active-workout-cloud";
-import { detectSessionNewMaxes } from "@/lib/session-new-max";
+import {
+  detectSessionNewMaxes,
+  detectSessionWeightRecords,
+} from "@/lib/session-new-max";
 import { trainingPlanToWorkoutPayloads } from "@/lib/ai-training-plan-to-payload";
 
 describe("workout plan normalize — RIR/tempo/note/superset", () => {
@@ -42,11 +45,18 @@ describe("workout plan normalize — RIR/tempo/note/superset", () => {
 });
 
 describe("sugestia ciężaru", () => {
-  it("zaokrągla do 2.5 i dodaje przy twardym RIR", () => {
+  it("zaokrągla do 2.5 i dodaje przy twardym RIR / górze zakresu", () => {
     expect(roundToPlateStep(61)).toBe(60);
-    expect(suggestWeightFromLastSet({ weight: 60, rir: 1 })).toBe(62.5);
-    expect(suggestWeightFromLastSet({ weight: 60, rir: 3 })).toBe(60);
-    expect(suggestWeightFromLastSet({ weight: 60, rpe: 9 })).toBe(62.5);
+    expect(suggestWeightFromLastSet({ weight: 60, rir: 1, reps: 8 })).toBe(
+      62.5,
+    );
+    expect(suggestWeightFromLastSet({ weight: 60, rir: 2, reps: 8 })).toBe(60);
+    expect(suggestWeightFromLastSet({ weight: 60, rpe: 9, reps: 8 })).toBe(
+      62.5,
+    );
+    expect(
+      suggestWeightFromLastSet({ weight: 36, reps: 10, rir: 1 }, 10),
+    ).toBe(38.5);
   });
 });
 
@@ -61,6 +71,34 @@ describe("sync revision", () => {
     expect(
       resolveSessionRevisionConflict({ clientRevision: 2, serverRevision: 2 }),
     ).toBe("noop");
+  });
+});
+
+describe("rekordy ciężaru sesji", () => {
+  it("pokazuje 36 → 40 kg gdy max ciężar wzrósł", () => {
+    const rows = detectSessionWeightRecords(
+      [
+        {
+          id: "ex1",
+          name: "Incline DB Press",
+          sets: [
+            { reps: 10, weight: 40, done: true },
+            { reps: 8, weight: 38, done: true },
+          ],
+        },
+      ],
+      {
+        ex1: {
+          sets: [{ reps: 10, weight: 36, done: true }],
+        },
+      },
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      exerciseName: "Incline DB Press",
+      previousKg: 36,
+      newKg: 40,
+    });
   });
 });
 

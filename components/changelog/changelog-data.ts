@@ -33,7 +33,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Tło aplikacji ma głębszą atmosferę (dryfujące światła, winieta, ziarno); ciemne kafle mają żywe światło krawędzi i powolny sheen — bez zmiany koloru na jasny.",
       "Usunięto pakiet ~100 startowych przepisów i stockowe grafiki Unsplash; katalog w diecie jest tylko z zewnętrznego JSON, a przy imporcie grafiki generuje AI (Pollinations z imagePromptEn).",
       "W Profilu definiujesz do 5 posiłków dziennie z własnym makro (B/W/T); Dieta proponuje tylko przepisy dopasowane do tego celu i skaluje gramaturę składników oraz makro porcji.",
-      "W sesji treningu, gdy ostatnio była góra zakresu powtórzeń albo duży zapas, widać zielony tekst „Dziś spróbuj … kg × …” (z uzasadnieniem); stuknięcie wpisuje sugerowany ciężar i powtórzenia.",
+      "W sesji treningu system na bieżąco analizuje ostatni trening i zaliczone serie: pokazuje aktywną radę o ciężarze/powtórzeniach (np. „Dziś spróbuj…”, zdejmij ciężar po twardej serii, dobij powtórzenia) — na ekranie serii i w przerwie; stuknięcie wpisuje wartości.",
       "Kafelki i karty na wszystkich ekranach mają delikatny złoty cień (app-card / app-panel).",
       "Na ekranie Trening z powrotem jest karta Kontynuuj / Rozpocznij trening (rekomendowany dzień planu).",
       "Wgranie ikony Android w panelu Branding odpala przebudowę APK (GitHub Actions) i odświeżenie pliku na Vercel (Deploy Hook).",

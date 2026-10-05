@@ -2,6 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { workouts } from "@/db/schema";
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
+import { suggestedWeightFromProgression } from "@/lib/set-progression-suggestion";
 
 type CompletedPayload = {
   kind?: string;
@@ -47,13 +48,28 @@ export function roundToPlateStep(kg: number, step = 2.5): number {
 }
 
 /**
- * Sugestia ciężaru: ostatni ciężar; +2.5 kg gdy RIR≤1 lub RPE≥8.
+ * Sugestia ciężaru: ostatni ciężar; +2.5 kg gdy RIR≤1 lub RPE≥8
+ * albo gdy ostatnio była góra zakresu powtórzeń.
  */
-export function suggestWeightFromLastSet(last: {
-  weight: number;
-  rpe?: number | null;
-  rir?: number | null;
-}): number {
+export function suggestWeightFromLastSet(
+  last: {
+    weight: number;
+    reps?: number | null;
+    rpe?: number | null;
+    rir?: number | null;
+  },
+  targetReps?: number | null,
+): number {
+  const fromProgression = suggestedWeightFromProgression({
+    last: {
+      weight: last.weight,
+      reps: last.reps ?? null,
+      rpe: last.rpe,
+      rir: last.rir,
+    },
+    targetReps,
+  });
+  if (fromProgression != null && fromProgression > 0) return fromProgression;
   const base = Math.max(0, Number(last.weight) || 0);
   if (base <= 0) return 0;
   const hard =
@@ -120,7 +136,7 @@ export async function getLastWorkoutHintsForPlan(
   return out;
 }
 
-/** Scala podpowiedzi z ostatniej sesji do bieżącej sesji (tylko gdy serie się zgadzają liczebnie). */
+/** Scala podpowiedzi z ostatniej sesji do bieżącej sesji. */
 export function mergeHintsIntoExercises(
   exercises: WorkoutExerciseState[],
   hints: LastPlanHintsMap,
@@ -128,15 +144,20 @@ export function mergeHintsIntoExercises(
   return exercises.map((ex) => {
     const h = hints[ex.id];
     if (!h?.sets?.length) return ex;
+    const lastSessionSets = ex.sets.map((_, i) => {
+      const hs = h.sets[i] ?? h.sets[h.sets.length - 1] ?? null;
+      return hs;
+    });
     const suggestedWeights = ex.sets.map((_, i) => {
-      const hs = h.sets[i] ?? h.sets[h.sets.length - 1];
+      const hs = lastSessionSets[i];
       if (!hs || hs.weight <= 0) return null;
-      return suggestWeightFromLastSet(hs);
+      return suggestWeightFromLastSet(hs, ex.targetReps);
     });
     if (h.sets.length !== ex.sets.length) {
       return {
         ...ex,
         suggestedWeights,
+        lastSessionSets,
         note: ex.note?.trim() ? ex.note : h.note,
       };
     }
@@ -145,7 +166,7 @@ export function mergeHintsIntoExercises(
       if (!hs) return s;
       return {
         ...s,
-        // Ciężar zostaje 0 — użytkownik klika chip „Sugestia”.
+        // Ciężar zostaje 0 — użytkownik klika chip „Sugestia” / „Dziś spróbuj”.
         reps: s.reps != null ? s.reps : hs.reps,
         rpe: hs.rpe != null ? hs.rpe : s.rpe,
         rir: hs.rir != null ? hs.rir : s.rir,
@@ -155,6 +176,7 @@ export function mergeHintsIntoExercises(
       ...ex,
       sets,
       suggestedWeights,
+      lastSessionSets,
       note: ex.note?.trim() ? ex.note : h.note,
     };
   });

@@ -3,7 +3,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Flag, Minus, Plus, X } from "lucide-react";
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
-import { formatExerciseTargetLine, buildSupersetLabels } from "@/lib/start-workout-session";
+import {
+  formatExerciseTargetLine,
+  buildSupersetLabels,
+} from "@/lib/start-workout-session";
+import {
+  formatLastSetLine,
+  formatRepRangeLabel,
+  resolveRepRange,
+} from "@/lib/set-progression-suggestion";
+import { buildLiveCoachTipForOpenSet } from "@/lib/live-set-coach";
+import { LiveCoachBanner } from "@/components/active-workout/live-coach-banner";
 import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
@@ -212,6 +222,20 @@ export function GuidedSessionLayout({
       ? exercise.suggestedWeights[activeSetIndex]!
       : null;
 
+  const lastSessionSet =
+    exercise?.lastSessionSets?.[activeSetIndex] ?? null;
+  const lastSetLine = lastSessionSet
+    ? formatLastSetLine(lastSessionSet)
+    : null;
+  const liveTip = useMemo(
+    () =>
+      exercise
+        ? buildLiveCoachTipForOpenSet(exercise, activeSetIndex)
+        : null,
+    [exercise, activeSetIndex, exercise?.sets, exercise?.lastSessionSets],
+  );
+  const repRange = resolveRepRange(exercise?.targetReps);
+
   /** Zapisuje bieżące pola do store bez zmiany statusu zaliczenia. */
   function flushDraft(opts?: { keepDone?: boolean; pushImmediate?: boolean }) {
     const ex = exerciseRef.current;
@@ -354,13 +378,20 @@ export function GuidedSessionLayout({
   const rirValue = set.rir ?? exercise.targetRir ?? 1;
   const progress = totals.total > 0 ? Math.min(1, totals.done / totals.total) : 0;
   const techniqueUrl = exercise.techniqueYoutubeUrl?.trim() || null;
-  const goalReps =
-    exercise.targetReps != null && exercise.targetReps > 0
-      ? exercise.targetReps
+  const goalRepsLabel = repRange
+    ? formatRepRangeLabel(repRange)
+    : exercise.targetReps != null && exercise.targetReps > 0
+      ? String(exercise.targetReps)
       : null;
 
   const inputClass =
     "h-14 min-w-0 flex-1 rounded-xl border border-transparent bg-transparent px-2 text-center font-display text-4xl tabular-nums text-[var(--gym-gold)] outline-none transition focus:border-[var(--gym-gold)]/40 focus:ring-1 focus:ring-[var(--gym-gold)]/30";
+
+  function applyLiveTip(apply: { weightKg: number; reps: number }) {
+    if (!exercise || !set) return;
+    patchWeight(clampWeight(apply.weightKg));
+    patchReps(clampReps(apply.reps));
+  }
 
   return (
     <div className="relative mx-auto w-full max-w-lg pb-8">
@@ -454,11 +485,25 @@ export function GuidedSessionLayout({
                 : ""}
           </span>
         </div>
-        {goalReps != null ? (
-          <p className="mt-2 text-sm text-white/45">Cel {goalReps} powt.</p>
+        {goalRepsLabel != null ? (
+          <p className="mt-2 text-sm text-white/45">
+            Cel {goalRepsLabel} powt.
+          </p>
         ) : (
           <p className="mt-2 text-sm text-white/35">Cel — powt.</p>
         )}
+
+        {lastSetLine ? (
+          <p className="mt-1.5 text-sm font-medium tabular-nums text-white/55">
+            {lastSetLine}
+          </p>
+        ) : null}
+
+        <LiveCoachBanner
+          tip={liveTip}
+          onApply={applyLiveTip}
+          className="mt-2"
+        />
 
         <div className="mt-2 flex flex-wrap gap-2">
           {onRemoveLastSet && exercise.sets.length > 1 ? (
@@ -500,7 +545,9 @@ export function GuidedSessionLayout({
             <label htmlFor="set-weight">Ciężar · kg</label>
             <span>krok 2,5</span>
           </div>
-          {suggestedWeight != null && set.weight <= 0 ? (
+          {suggestedWeight != null &&
+          set.weight <= 0 &&
+          !(liveTip?.apply && liveTip.apply.weightKg > 0) ? (
             <button
               type="button"
               onClick={() => patchWeight(clampWeight(suggestedWeight))}

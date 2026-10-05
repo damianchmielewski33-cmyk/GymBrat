@@ -26,10 +26,25 @@ function serializeExercises(exercises: WorkoutExerciseState[]) {
   return exercises.map((e) => ({
     id: e.id,
     name: e.name,
+    targetReps: e.targetReps ?? null,
+    targetRir: e.targetRir ?? null,
+    lastSessionSets: (e.lastSessionSets ?? []).map((s) =>
+      s
+        ? {
+            reps: s.reps ?? null,
+            weight: Number.isFinite(s.weight) ? s.weight : 0,
+            done: Boolean(s.done),
+            rir: s.rir ?? null,
+            rpe: s.rpe ?? null,
+          }
+        : null,
+    ),
     sets: e.sets.map((s) => ({
       reps: s.reps ?? null,
       weight: Number.isFinite(s.weight) ? s.weight : 0,
       done: Boolean(s.done),
+      rir: s.rir ?? null,
+      rpe: s.rpe ?? null,
     })),
   }));
 }
