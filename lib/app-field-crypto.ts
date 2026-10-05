@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
 /** Prefiks zaszyfrowanych wartości w DB (AES-256-GCM). */

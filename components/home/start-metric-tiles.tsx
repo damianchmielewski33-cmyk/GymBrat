@@ -158,6 +158,10 @@ function MacroRemainRow({
   );
 }
 
+function formatKcal(n: number): string {
+  return String(Math.round(n));
+}
+
 function MacroProgressTile({
   title,
   macros,
@@ -169,14 +173,43 @@ function MacroProgressTile({
     macros.proteinGoal != null ||
     macros.carbsGoal != null ||
     macros.fatGoal != null;
+  const kcalRemaining =
+    macros.caloriesGoal != null && Number.isFinite(macros.caloriesGoal)
+      ? Math.round(macros.caloriesGoal - macros.caloriesConsumed)
+      : null;
+  const kcalOver = kcalRemaining != null && kcalRemaining < 0;
 
   return (
     <div className="app-card flex min-h-[118px] flex-col px-3.5 py-3.5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
         {title}
       </p>
+      {kcalRemaining != null ? (
+        <div className="mt-2 flex items-baseline justify-between gap-2 border-b border-white/[0.06] pb-2">
+          <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-white/35">
+            pozostałe kcal
+          </span>
+          <span
+            className={cn(
+              "tabular-nums text-[15px] font-semibold leading-none",
+              kcalOver ? "text-rose-400" : "text-white",
+            )}
+          >
+            {kcalOver ? "+" : ""}
+            {formatKcal(Math.abs(kcalRemaining))}
+            <span className="ml-0.5 text-[10px] font-normal text-white/40">
+              kcal
+            </span>
+          </span>
+        </div>
+      ) : null}
       {hasGoals ? (
-        <div className="mt-2.5 grid grid-cols-[1.5rem_minmax(0,1fr)_2.75rem_minmax(0,1fr)] gap-x-1.5">
+        <div
+          className={cn(
+            "grid grid-cols-[1.5rem_minmax(0,1fr)_2.75rem_minmax(0,1fr)] gap-x-1.5",
+            kcalRemaining != null ? "mt-2" : "mt-2.5",
+          )}
+        >
           <span aria-hidden />
           <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-white/35">
             zjedz.

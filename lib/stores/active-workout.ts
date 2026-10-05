@@ -4,7 +4,7 @@ import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout
 import {
   EMPTY_CARDIO_EXTRAS,
   type CardioExtras,
-} from "@/lib/cardio";
+} from "@/lib/cardio-utils";
 import type { WorkoutPlanPayload } from "@/lib/workout-plan-types";
 
 export type ActiveCardioExtras = Omit<CardioExtras, "paceMinPerKm"> & {

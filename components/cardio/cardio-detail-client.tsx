@@ -22,7 +22,7 @@ import {
   formatDurationMmSs,
   formatPace,
   type CardioLogPayload,
-} from "@/lib/cardio";
+} from "@/lib/cardio-utils";
 import { cn } from "@/lib/utils";
 import { cardioDevicePhotoMediaPath } from "@/lib/user-photo-media";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";

@@ -12,12 +12,12 @@ import {
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
-import { formatPace } from "@/lib/cardio";
-import type { CardioHubData } from "@/lib/cardio-hub";
+import { formatPace } from "@/lib/cardio-utils";
+import type { CardioHubData } from "@/lib/cardio-hub-shared";
 import {
   formatCardioDurationClock,
   formatCardioRelativeDay,
-} from "@/lib/cardio-hub";
+} from "@/lib/cardio-hub-shared";
 import { calendarDateKey } from "@/lib/local-date";
 import { MiniSparkline } from "@/components/home/mini-sparkline";
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   extractCardioExtrasFromSessionJson,
   normalizeCardioExtras,
-} from "@/lib/cardio";
+} from "@/lib/cardio-utils";
 
 describe("cardio extras", () => {
   it("normalizuje metryki i liczy tempo", () => {
