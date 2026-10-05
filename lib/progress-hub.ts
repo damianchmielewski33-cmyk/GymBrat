@@ -18,6 +18,7 @@ import {
   calendarWeekdaySun0,
 } from "@/lib/local-date";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
+import { frontBodyReportPhoto } from "@/lib/body-report-photo-slots";
 import { CUSTOM_START_PHOTO_ID } from "@/lib/start-photo-id";
 import { resolveExerciseIdentity } from "@/lib/exercise-identity";
 import {
@@ -875,17 +876,16 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
   const photoItems: ProgressPhotoItem[] = [];
   for (const r of [...bodyReports].reverse()) {
     const date = calendarDateKey(r.createdAt);
-    for (const p of r.photos) {
-      if (!p.dataUrl) continue;
-      photoItems.push({
-        id: p.id,
-        reportId: r.id,
-        dataUrl: p.dataUrl,
-        date,
-        weightKg: r.weightKg,
-        waistCm: r.waistCm,
-      });
-    }
+    const front = frontBodyReportPhoto(r.photos);
+    if (!front?.dataUrl) continue;
+    photoItems.push({
+      id: front.id,
+      reportId: r.id,
+      dataUrl: front.dataUrl,
+      date,
+      weightKg: r.weightKg,
+      waistCm: r.waistCm,
+    });
   }
   const customStartUrl = maybeDecryptSensitiveField(
     settingsRow?.startPhotoDataUrl ?? null,

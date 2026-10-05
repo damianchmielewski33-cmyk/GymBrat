@@ -115,9 +115,10 @@
 
   /* Delikatny złoty cień kafelków — wspólny na wszystkich ekranach */
   --gym-tile-shadow:
-    0 8px 22px rgba(0, 0, 0, 0.36),
-    0 0 16px rgba(var(--neon-rgb), 0.1),
-    0 1px 0 rgba(255, 232, 160, 0.04) inset;
+    0 10px 28px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 1px 0 rgba(255, 236, 180, 0.05) inset,
+    0 0 22px rgba(var(--neon-rgb), 0.06);
 }
 
 /* Alias kept for auth / legacy classNames — same tokens as :root */
@@ -191,9 +192,31 @@
 @layer utilities {
   /* ── Animations ── */
   @keyframes gym-ambient-shift {
-    0%   { transform: translate3d(-2%, -1%, 0) rotate(0deg);  filter: hue-rotate(0deg); }
-    50%  { transform: translate3d(2%,   1%, 0) rotate(6deg);  filter: hue-rotate(5deg); }
-    100% { transform: translate3d(-2%, -1%, 0) rotate(0deg);  filter: hue-rotate(0deg); }
+    0%   { transform: translate3d(-2%, -1%, 0) scale(1); }
+    50%  { transform: translate3d(3%, 2%, 0) scale(1.06); }
+    100% { transform: translate3d(-2%, -1%, 0) scale(1); }
+  }
+
+  @keyframes gym-ambient-drift-a {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.55; }
+    50% { transform: translate3d(6%, 4%, 0) scale(1.12); opacity: 0.85; }
+  }
+
+  @keyframes gym-ambient-drift-b {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); opacity: 0.4; }
+    50% { transform: translate3d(-8%, -3%, 0) scale(1); opacity: 0.7; }
+  }
+
+  @keyframes gym-ambient-drift-c {
+    0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.35; }
+    50% { transform: translate3d(4%, -6%, 0); opacity: 0.6; }
+  }
+
+  @keyframes gym-card-sheen {
+    0% { transform: translateX(-130%) skewX(-12deg); opacity: 0; }
+    12% { opacity: 0.55; }
+    28% { opacity: 0.2; }
+    40%, 100% { transform: translateX(160%) skewX(-12deg); opacity: 0; }
   }
 
   @keyframes conic-rotate {
@@ -476,14 +499,71 @@
   /* ── Background surfaces ── */
   .metal-surface {
     background-image:
-      radial-gradient(1200px 900px at 20% 10%, rgba(255, 255, 255, 0.055), transparent 60%),
-      radial-gradient(900px 700px at 85% 15%, rgba(var(--neon-rgb), 0.09), transparent 60%),
-      linear-gradient(180deg, rgba(46, 46, 51, 0.55), rgba(10, 10, 12, 0.85));
+      radial-gradient(1200px 900px at 20% 10%, rgba(255, 255, 255, 0.04), transparent 60%),
+      radial-gradient(900px 700px at 85% 15%, rgba(var(--neon-rgb), 0.07), transparent 60%),
+      linear-gradient(180deg, rgba(46, 46, 51, 0.4), rgba(10, 10, 12, 0.9));
   }
 
   .animated-ambient {
-    animation: gym-ambient-shift 20s ease-in-out infinite;
-    will-change: transform, filter;
+    animation: gym-ambient-shift 28s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .app-ambient-orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(72px);
+    will-change: transform, opacity;
+  }
+
+  .app-ambient-orb--a {
+    left: -12%;
+    top: -8%;
+    width: min(78vw, 420px);
+    height: min(78vw, 420px);
+    background: radial-gradient(
+      circle,
+      rgba(235, 196, 74, 0.22) 0%,
+      rgba(196, 154, 31, 0.08) 42%,
+      transparent 70%
+    );
+    animation: gym-ambient-drift-a 22s ease-in-out infinite;
+  }
+
+  .app-ambient-orb--b {
+    right: -18%;
+    top: 18%;
+    width: min(70vw, 360px);
+    height: min(70vw, 360px);
+    background: radial-gradient(
+      circle,
+      rgba(247, 226, 143, 0.14) 0%,
+      rgba(120, 90, 30, 0.06) 45%,
+      transparent 72%
+    );
+    animation: gym-ambient-drift-b 28s ease-in-out infinite;
+  }
+
+  .app-ambient-orb--c {
+    left: 18%;
+    bottom: -16%;
+    width: min(90vw, 480px);
+    height: min(70vw, 380px);
+    background: radial-gradient(
+      circle,
+      rgba(180, 130, 40, 0.12) 0%,
+      rgba(40, 28, 12, 0.08) 40%,
+      transparent 70%
+    );
+    animation: gym-ambient-drift-c 32s ease-in-out infinite;
+  }
+
+  .app-ambient-mesh {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
   }
 
   .grain-overlay {
@@ -492,44 +572,110 @@
     mix-blend-mode: overlay;
   }
 
-  /* ── Hazard accent ── diagonal decorative edge ── */
-  .hazard-accent {
-    background-image: repeating-linear-gradient(
-      45deg,
-      rgba(var(--neon-rgb), 0.75) 0px,
-      rgba(var(--neon-rgb), 0.75) 3px,
-      transparent 3px,
-      transparent 18px
-    );
+  /* Flat dark cards — ciemne, ale z życiem (światło krawędzi + sheen) */
+  .app-card,
+  .app-card-raised,
+  .app-panel {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background-color: var(--gym-surface);
+    background-image:
+      linear-gradient(
+        155deg,
+        rgba(255, 255, 255, 0.055) 0%,
+        rgba(255, 255, 255, 0.012) 38%,
+        rgba(0, 0, 0, 0.18) 100%
+      ),
+      radial-gradient(
+        120% 80% at 0% 0%,
+        rgba(var(--neon-rgb), 0.07),
+        transparent 55%
+      );
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-top-color: rgba(255, 236, 180, 0.14);
+    box-shadow: var(--gym-tile-shadow);
   }
 
-  /* ── Chrome edge ── top highlight simulating machined metal ── */
-  .chrome-edge {
-    border-top: 1px solid rgba(255, 255, 255, 0.28);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
-  }
-
-  /* Flat dark cards — język ekranów jak na referencji mobilnej */
   .app-card {
     border-radius: 22px;
-    background: var(--gym-surface);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: var(--gym-tile-shadow);
   }
 
   .app-card-raised {
     border-radius: 16px;
-    background: var(--gym-surface-raised);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: var(--gym-tile-shadow);
+    background-color: var(--gym-surface-raised);
   }
 
-  /* Listy / panele sunken (Treningi, Postępy, Cardio, Historia…) */
   .app-panel {
     border-radius: 16px;
-    background: var(--gym-surface-sunken);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: var(--gym-tile-shadow);
+    background-color: var(--gym-surface-sunken);
+  }
+
+  .app-card::before,
+  .app-card-raised::before,
+  .app-panel::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset-inline: 12%;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 236, 180, 0.45),
+      transparent
+    );
+    z-index: 1;
+  }
+
+  .app-card::after,
+  .app-card-raised::after,
+  .app-panel::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    top: -20%;
+    left: 0;
+    width: 42%;
+    height: 140%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.035) 45%,
+      rgba(255, 236, 180, 0.07) 50%,
+      rgba(255, 255, 255, 0.025) 55%,
+      transparent 100%
+    );
+    animation: gym-card-sheen 9.5s ease-in-out infinite;
+    z-index: 0;
+  }
+
+  .app-card-raised::after {
+    animation-delay: 3.2s;
+  }
+
+  .app-panel::after {
+    animation-delay: 6.1s;
+  }
+
+  .app-card > *,
+  .app-card-raised > *,
+  .app-panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animated-ambient,
+    .app-ambient-orb--a,
+    .app-ambient-orb--b,
+    .app-ambient-orb--c,
+    .app-card::after,
+    .app-card-raised::after,
+    .app-panel::after {
+      animation: none !important;
+    }
   }
 
   .app-dialog {

@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** Max liczba posiłków dziennie definiowanych w profilu. */
+export const MAX_MEAL_TEMPLATES = 5;
+
 const templateSchema = z.object({
   id: z.string().min(1),
   name: z.string().trim().max(120),
@@ -21,7 +24,7 @@ export function parseMealTemplatesJson(raw: string | null | undefined): MealTemp
       const p = templateSchema.safeParse(item);
       if (p.success) out.push(p.data);
     }
-    return out.slice(0, 24);
+    return out.slice(0, MAX_MEAL_TEMPLATES);
   } catch {
     return [];
   }
@@ -29,5 +32,9 @@ export function parseMealTemplatesJson(raw: string | null | undefined): MealTemp
 
 export function serializeMealTemplates(templates: MealTemplate[]): string | null {
   if (!templates.length) return null;
-  return JSON.stringify(templates.slice(0, 24));
+  return JSON.stringify(templates.slice(0, MAX_MEAL_TEMPLATES));
+}
+
+export function defaultMealTemplateName(index: number): string {
+  return `Posiłek ${index}`;
 }

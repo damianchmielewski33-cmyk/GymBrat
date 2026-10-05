@@ -205,6 +205,28 @@ CREATE TABLE IF NOT EXISTS "app_branding_assets" (
   "updated_at" integer NOT NULL
 );
 `);
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "schema_flags" (
+  "key" text PRIMARY KEY NOT NULL,
+  "value" text NOT NULL,
+  "updated_at" integer NOT NULL
+);
+`);
+
+  /** Jednorazowo: usuń wbudowany pakiet ~100 startowych przepisów z bazy. */
+  const purgeFlag = "purge_starter_meal_catalog_v1";
+  const flagRows = await client.execute({
+    sql: `SELECT value FROM schema_flags WHERE key = ? LIMIT 1`,
+    args: [purgeFlag],
+  });
+  if ((flagRows.rows?.length ?? 0) === 0) {
+    await client.execute(`DELETE FROM meal_catalog`);
+    await client.execute({
+      sql: `INSERT INTO schema_flags ("key", "value", "updated_at") VALUES (?, ?, ?)`,
+      args: [purgeFlag, "1", Date.now()],
+    });
+  }
 }
 
 let mealLogsEnsured = false;

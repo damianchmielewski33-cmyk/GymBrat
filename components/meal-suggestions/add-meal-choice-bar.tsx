@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Calculator, ChefHat, PackagePlus, X } from "lucide-react";
 import { addMealLogAction, type MealLogFormState } from "@/actions/meal-log";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
@@ -47,6 +47,7 @@ export function AddMealChoiceBar({
     addMealLogAction,
     {} as MealLogFormState,
   );
+  const handledStateRef = useRef<MealLogFormState | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -60,7 +61,9 @@ export function AddMealChoiceBar({
   }, [open]);
 
   useEffect(() => {
-    if (state?.ok) {
+    if (!state || state === handledStateRef.current) return;
+    if (state.ok) {
+      handledStateRef.current = state;
       notifySaved(
         mode === "product"
           ? "Produkt dodany do dziennika."
@@ -68,7 +71,8 @@ export function AddMealChoiceBar({
       );
       onSaved();
       onClose();
-    } else if (state?.error) {
+    } else if (state.error) {
+      handledStateRef.current = state;
       notifyError(state.error);
     }
   }, [state, mode, notifySaved, notifyError, onSaved, onClose]);

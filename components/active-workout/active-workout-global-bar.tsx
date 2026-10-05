@@ -45,6 +45,8 @@ export function ActiveWorkoutGlobalBar() {
     start,
     stopTimer,
     reset,
+    hideGlobalBarForRoute,
+    setHideGlobalBarForRoute,
   } = useActiveWorkoutStore();
 
   const [now, setNow] = useState(() => Date.now());
@@ -61,6 +63,16 @@ export function ActiveWorkoutGlobalBar() {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [isRunning]);
+
+  useEffect(() => {
+    if (pathname.startsWith("/active-workout")) {
+      setHideGlobalBarForRoute(false);
+      return;
+    }
+    if (!hideGlobalBarForRoute) return;
+    const t = window.setTimeout(() => setHideGlobalBarForRoute(false), 10_000);
+    return () => window.clearTimeout(t);
+  }, [hideGlobalBarForRoute, pathname, setHideGlobalBarForRoute]);
 
   const elapsedSeconds = useMemo(() => {
     const running = startedAt != null ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
@@ -81,6 +93,7 @@ export function ActiveWorkoutGlobalBar() {
 
   if (!hasSession) return null;
   if (pathname.startsWith("/active-workout")) return null;
+  if (hideGlobalBarForRoute) return null;
 
   const canShowPopup = true;
 

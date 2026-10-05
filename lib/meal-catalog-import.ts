@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CatalogMeal, MealSlot } from "@/lib/meal-catalog-types";
+import { enrichCatalogMealWithAiImage } from "@/lib/recipe-image";
 
 /** Wyciąga JSON z odpowiedzi AI (blok ```json ... ``` albo sam tekst). */
 export function extractJsonTextFromAiResponse(raw: string): string {
@@ -202,7 +203,7 @@ export function parseCatalogImportPayload(input: unknown): {
 
   const meals = list.map((item, i) => {
     try {
-      return normalizeOne(item);
+      return enrichCatalogMealWithAiImage(normalizeOne(item));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "błąd";
       throw new Error(`Pozycja ${i + 1}: ${msg}`);

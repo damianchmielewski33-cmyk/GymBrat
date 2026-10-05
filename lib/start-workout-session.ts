@@ -49,14 +49,17 @@ export type ActiveWorkoutStartApi = {
   setExercises: (exercises: WorkoutExerciseState[]) => void;
   setSelectedExerciseId: (id: string | null) => void;
   start: () => void;
+  setHideGlobalBarForRoute: (hide: boolean) => void;
 };
 
 /** Reset + załaduj plan i oznacz sesję jako świeży start (bez promptu wznowienia). */
+
 export function beginWorkoutFromPlanRow(
   store: ActiveWorkoutStartApi,
   row: WorkoutPlanWithLastWorkoutDTO,
 ): boolean {
   if (row.plan.exercises.length === 0) return false;
+  store.setHideGlobalBarForRoute(true);
   store.reset();
   store.applyPlan(row.id, row.plan);
   const next = planExercisesToSession(row.plan.exercises);
@@ -69,13 +72,20 @@ export function beginWorkoutFromPlanRow(
   return true;
 }
 
-/** Etykieta celu jak w planie trenera: `2s 8p · RIR 1`. */
+/** Etykieta celu jak w planie trenera: `2s 8-10 · RIR 1`. */
 export function formatExerciseTargetLine(ex: WorkoutExerciseState): string {
   const sets = ex.targetSets ?? ex.sets.length;
   const reps = ex.targetReps;
   const parts: string[] = [];
-  if (reps != null && reps > 0) parts.push(`${sets}s ${reps}p`);
-  else parts.push(`${sets}s`);
+  if (reps != null && reps > 0) {
+    const max = Math.round(reps);
+    const min = max >= 5 ? Math.max(1, max - 2) : max;
+    parts.push(
+      min === max ? `${sets}s ${max}p` : `${sets}s ${min}-${max}`,
+    );
+  } else {
+    parts.push(`${sets}s`);
+  }
   if (ex.targetRir != null) parts.push(`RIR ${ex.targetRir}`);
   if (ex.tempo) parts.push(`tempo ${ex.tempo}`);
   if (ex.supersetGroupId) parts.push("superseria");

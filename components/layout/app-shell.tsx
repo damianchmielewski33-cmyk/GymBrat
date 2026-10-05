@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Home,
   LineChart,
@@ -40,10 +41,29 @@ export function AppShell({
   );
 
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    const routes = [
+      "/",
+      "/workout-plan",
+      "/meal-suggestions",
+      "/progress",
+      showAdminNav ? "/admin" : "/profile",
+    ];
+    for (const href of routes) {
+      router.prefetch(href);
+    }
+  }, [router, showAdminNav]);
+
   const sessionFullscreen =
     pathname.startsWith("/active-workout") ||
     pathname.startsWith("/cardio/record");
   const hideChromeHeader = pathname === "/";
+  const showReportFab =
+    pathname === "/" ||
+    pathname.startsWith("/workout-plan") ||
+    pathname.startsWith("/progress");
 
   return (
     <div className="relative min-h-screen bg-transparent">
@@ -75,10 +95,17 @@ export function AppShell({
           aria-label="Nawigacja główna"
         >
           <div className="relative mx-auto max-w-lg">
-            <Suspense fallback={null}>
-              <ReportFab />
-            </Suspense>
-            <div className="grid grid-cols-5 items-end px-1 pb-2 pt-7">
+            {showReportFab ? (
+              <Suspense fallback={null}>
+                <ReportFab />
+              </Suspense>
+            ) : null}
+            <div
+              className={cn(
+                "grid grid-cols-5 items-end px-1 pb-2",
+                showReportFab ? "pt-7" : "pt-2",
+              )}
+            >
               {tabs.map((item) => (
                 <TabLink key={item.href} item={item} pathname={pathname} />
               ))}
@@ -121,6 +148,12 @@ function TabLink({
   item: { href: string; label: string; icon: typeof Home };
   pathname: string;
 }) {
+  const [optimisticHref, setOptimisticHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOptimisticHref(null);
+  }, [pathname]);
+
   const active =
     item.href === "/"
       ? pathname === "/"
@@ -132,18 +165,23 @@ function TabLink({
           : item.href === "/admin"
             ? pathname.startsWith("/admin")
             : pathname.startsWith(item.href);
+  const visuallyActive = active || optimisticHref === item.href;
+
   return (
     <Link
       href={item.href}
+      prefetch
+      onClick={() => setOptimisticHref(item.href)}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-0.5 py-2 text-center text-[10px] font-medium transition-[color,box-shadow,background-color] duration-150 active:scale-[0.96] active:opacity-80",
-        active
+        "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-0.5 py-2 text-center text-[10px] font-medium transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80",
+        visuallyActive
           ? "bg-[var(--gym-gold)]/10 text-[var(--gym-gold)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.45),0_0_18px_rgba(var(--neon-rgb),0.55),0_0_36px_rgba(var(--neon-rgb),0.28)]"
           : "text-white/45 shadow-none",
+        optimisticHref === item.href && !active ? "opacity-90" : null,
       )}
     >
-      {active ? (
+      {visuallyActive ? (
         <span
           aria-hidden
           className="pointer-events-none absolute inset-0 rounded-2xl bg-[var(--gym-gold)]/15 blur-md"

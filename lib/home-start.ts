@@ -11,6 +11,7 @@ import {
   workouts,
 } from "@/db/schema";
 import { maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
+import { frontBodyReportPhotoDataUrl } from "@/lib/body-report-photo-slots";
 import { loadStartPhotoDataUrl } from "@/lib/start-photo";
 import { getWeeklyCardioProgress } from "@/lib/cardio";
 import { getHomeStats } from "@/lib/home-stats";
@@ -606,6 +607,7 @@ async function getTransformationPhotos(userId: string): Promise<{
   const reportIds = reports.map((r) => r.id);
   const photos = await db
     .select({
+      id: bodyReportPhotos.id,
       reportId: bodyReportPhotos.reportId,
       dataUrl: bodyReportPhotos.dataUrl,
       createdAt: bodyReportPhotos.createdAt,
@@ -626,12 +628,19 @@ async function getTransformationPhotos(userId: string): Promise<{
     };
   }
 
-  const photosByReport = new Map<string, string[]>();
+  const photosByReport = new Map<
+    string,
+    { id: string; dataUrl: string; createdAt: Date }[]
+  >();
   for (const p of photos) {
     const url = maybeDecryptSensitiveField(p.dataUrl);
     if (!url) continue;
     const arr = photosByReport.get(p.reportId) ?? [];
-    arr.push(url);
+    arr.push({
+      id: p.id,
+      dataUrl: url,
+      createdAt: p.createdAt,
+    });
     photosByReport.set(p.reportId, arr);
   }
 
@@ -639,10 +648,11 @@ async function getTransformationPhotos(userId: string): Promise<{
   let latestPhotoUrl: string | null = null;
   let latestPhotoDate: string | null = null;
   for (const r of reports) {
-    const urls = photosByReport.get(r.id);
-    if (!urls?.length) continue;
-    if (!firstPhotoUrl) firstPhotoUrl = urls[0]!;
-    latestPhotoUrl = urls[0]!;
+    const reportPhotos = photosByReport.get(r.id) ?? [];
+    const frontUrl = frontBodyReportPhotoDataUrl(reportPhotos);
+    if (!frontUrl) continue;
+    if (!firstPhotoUrl) firstPhotoUrl = frontUrl;
+    latestPhotoUrl = frontUrl;
     latestPhotoDate = calendarDateKey(new Date(r.createdAt));
   }
 

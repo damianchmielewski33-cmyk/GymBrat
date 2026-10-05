@@ -25,7 +25,7 @@ function MacroCol({
 
   return (
     <div className="min-w-0 flex-1">
-      <div className="mb-1.5 h-1 overflow-hidden rounded-full bg-white/10">
+      <div className="mb-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
         <div
           className={cn(
             "h-full rounded-full transition-[width] duration-500 ease-out",
@@ -34,18 +34,21 @@ function MacroCol({
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
         {label}
       </p>
-      <p className="mt-0.5 text-[11px] tabular-nums leading-tight text-white/85">
+      <p className="mt-0.5 text-[11px] tabular-nums leading-tight text-white/90">
         {Math.round(consumed)}
-        {goal != null ? ` / ${Math.round(goal)}` : ""} {unit}
+        {goal != null ? (
+          <span className="text-white/40"> / {Math.round(goal)}</span>
+        ) : null}{" "}
+        <span className="text-white/40">{unit}</span>
       </p>
       {remaining != null ? (
         <p
           className={cn(
             "mt-0.5 text-[10px] tabular-nums leading-tight",
-            over ? "text-rose-400" : "text-white/45",
+            over ? "text-rose-400" : "text-white/40",
           )}
         >
           {over
@@ -57,7 +60,21 @@ function MacroCol({
   );
 }
 
-/** Sticky pasek makro dnia (kcal / B / T / W + ile zostało). */
+export type DietDayMacrosBarProps = {
+  caloriesConsumed: number;
+  caloriesGoal: number | null;
+  proteinConsumed: number;
+  proteinGoal: number | null;
+  fatConsumed: number;
+  fatGoal: number | null;
+  carbsConsumed: number;
+  carbsGoal: number | null;
+  /** `sticky` — belka dolna; `embedded` — wewnątrz karty dziennika. */
+  variant?: "sticky" | "embedded";
+  className?: string;
+};
+
+/** Pasek makro dnia (kcal / B / T / W + ile zostało). */
 export function DietDayMacrosBar({
   caloriesConsumed,
   caloriesGoal,
@@ -67,19 +84,19 @@ export function DietDayMacrosBar({
   fatGoal,
   carbsConsumed,
   carbsGoal,
-}: {
-  caloriesConsumed: number;
-  caloriesGoal: number | null;
-  proteinConsumed: number;
-  proteinGoal: number | null;
-  fatConsumed: number;
-  fatGoal: number | null;
-  carbsConsumed: number;
-  carbsGoal: number | null;
-}) {
+  variant = "sticky",
+  className,
+}: DietDayMacrosBarProps) {
+  const embedded = variant === "embedded";
+
   return (
-    <div className="bg-[#0a0a0a]/95 px-3 py-2.5 backdrop-blur-md">
-      <div className="flex gap-3">
+    <div
+      className={cn(
+        embedded ? "px-0 py-0" : "bg-[#0a0a0a]/95 px-3 py-2.5 backdrop-blur-md",
+        className,
+      )}
+    >
+      <div className={cn("flex gap-3", embedded && "gap-2.5")}>
         <MacroCol
           label="Kcal"
           consumed={caloriesConsumed}

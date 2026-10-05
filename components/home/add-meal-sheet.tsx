@@ -34,6 +34,7 @@ function AddMealSheetForm({
 }) {
   const { notifySaved } = useSaveFeedback();
   const [state, formAction] = useActionState(addMealLogAction, {} as MealLogFormState);
+  const handledStateRef = useRef<MealLogFormState | null>(null);
   const [followUpOpen, setFollowUpOpen] = useState(false);
   const suppressSheetCloseRef = useRef(false);
 
@@ -61,10 +62,10 @@ function AddMealSheetForm({
   }
 
   useEffect(() => {
-    if (state?.ok) {
-      notifySaved("Posiłek został zapisany.");
-      setFollowUpOpen(true);
-    }
+    if (!state?.ok || state === handledStateRef.current) return;
+    handledStateRef.current = state;
+    notifySaved("Posiłek został zapisany.");
+    setFollowUpOpen(true);
   }, [state, notifySaved]);
 
   function handleAddAnother() {

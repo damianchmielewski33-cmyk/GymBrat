@@ -17,12 +17,15 @@ import {
   countByDifficulty,
   countByTaste,
   filterCatalogForMealPlan,
+  formatMealMacroLine,
+  proposalAsCatalogMeal,
   recipeDifficulty,
   RECIPE_CATEGORY_LABELS,
   type MealPlanRow,
   type RecipeCategory,
   type RecipeDifficulty,
   type RecipeTaste,
+  type ScaledRecipeProposal,
 } from "@/lib/diet-recipe-match";
 import {
   addRecipeIngredientsToShoppingList,
@@ -41,7 +44,9 @@ function ChefHats({
   dimRest?: boolean;
 }) {
   const cls = size === "md" ? "h-3.5 w-3.5" : "h-3 w-3";
-  const icons = dimRest ? ([1, 2, 3] as const) : ([1, 2, 3] as const).slice(0, level);
+  const icons = dimRest
+    ? ([1, 2, 3] as const)
+    : ([1, 2, 3] as const).slice(0, level);
   return (
     <span className="inline-flex items-center gap-0.5" aria-hidden>
       {icons.map((i) => (
@@ -104,7 +109,7 @@ export function DietRecipeGrid({
   const [taste, setTaste] = useState<RecipeTaste>("all");
   const [category, setCategory] = useState<RecipeCategory>("all");
   const [catOpen, setCatOpen] = useState(false);
-  const [selected, setSelected] = useState<CatalogMeal | null>(null);
+  const [selected, setSelected] = useState<ScaledRecipeProposal | null>(null);
 
   const forCounts = useMemo(
     () =>
@@ -142,8 +147,19 @@ export function DietRecipeGrid({
       ? "wszystkie"
       : RECIPE_CATEGORY_LABELS[category].toLowerCase();
 
+  const targetLine = formatMealMacroLine(row);
+
   return (
     <section className="mt-3 space-y-3">
+      <p className="px-0.5 text-[11px] leading-relaxed text-white/50">
+        Przepisy dopasowane do celu{" "}
+        <span className="font-semibold tabular-nums text-white/75">
+          {targetLine}
+        </span>
+        {" · "}
+        gramatura składników jest skalowana do tego makro.
+      </p>
+
       <div className="relative">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--gym-gold)]/70" />
         <input
@@ -245,20 +261,22 @@ export function DietRecipeGrid({
       </div>
 
       <p className="px-0.5 text-[12px] font-medium text-white/70">
-        {filtered.length} dań
+        {filtered.length} dań dopasowanych do makro
       </p>
 
       {filtered.length === 0 ? (
         <p className="py-8 text-center text-sm text-white/40">
           {meals.length === 0
             ? "Brak przepisów w katalogu — wgraj JSON w panelu admina."
-            : "Brak dań dla tych filtrów."}
+            : "Brak dań bliskich temu makro — zmień cel w Profilu albo filtry."}
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-2.5">
-          {filtered.map((meal) => {
+          {filtered.map((proposal) => {
+            const meal = proposal.meal;
             const diff = recipeDifficulty(meal.prepMinutes);
-            const kcal = Math.round(meal.approximateMacros.calories);
+            const kcal = Math.round(proposal.scaledMacros.calories);
+            const scalePct = Math.round(proposal.scale * 100);
             return (
               <div
                 key={meal.id}
@@ -267,7 +285,7 @@ export function DietRecipeGrid({
                 <div className="relative aspect-square">
                   <button
                     type="button"
-                    onClick={() => setSelected(meal)}
+                    onClick={() => setSelected(proposal)}
                     className="absolute inset-0"
                     aria-label={meal.title}
                   >
@@ -278,6 +296,11 @@ export function DietRecipeGrid({
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                   </button>
+                  {Math.abs(proposal.scale - 1) >= 0.05 ? (
+                    <span className="pointer-events-none absolute left-2 top-2 rounded-full border border-white/15 bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-[var(--gym-gold)] backdrop-blur-sm">
+                      ×{proposal.scale.toFixed(1)} ({scalePct}%)
+                    </span>
+                  ) : null}
                   <span
                     className="pointer-events-none absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center text-white/85"
                     aria-hidden
@@ -288,7 +311,8 @@ export function DietRecipeGrid({
                     type="button"
                     aria-label={`Dodaj składniki „${meal.title}” do listy zakupów`}
                     onClick={() => {
-                      const next = addRecipeIngredientsToShoppingList(meal);
+                      const scaled = proposalAsCatalogMeal(proposal);
+                      const next = addRecipeIngredientsToShoppingList(scaled);
                       onShoppingChange?.(next);
                       notifySaved(`Dodano składniki: ${meal.title}`);
                     }}
@@ -299,11 +323,16 @@ export function DietRecipeGrid({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setSelected(meal)}
-                  className="w-full space-y-1.5 px-2.5 py-2.5 text-left"
+                  onClick={() => setSelected(proposal)}
+                  className="w-full space-y-1 px-2.5 py-2.5 text-left"
                 >
                   <p className="line-clamp-2 min-h-[2.4em] text-[12px] font-semibold leading-snug text-white">
                     {meal.title}
+                  </p>
+                  <p className="text-[10px] font-medium tabular-nums text-white/55">
+                    {Math.round(proposal.scaledMacros.proteinG)}B ·{" "}
+                    {Math.round(proposal.scaledMacros.carbsG)}W ·{" "}
+                    {Math.round(proposal.scaledMacros.fatG)}T
                   </p>
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11px] font-semibold tabular-nums text-white/75">
@@ -319,7 +348,9 @@ export function DietRecipeGrid({
       )}
 
       <DietRecipeFlipCard
-        meal={selected}
+        meal={selected ? proposalAsCatalogMeal(selected) : null}
+        scale={selected?.scale ?? 1}
+        targetMacroLine={targetLine}
         open={Boolean(selected)}
         onClose={() => setSelected(null)}
         dateKey={dateKey}

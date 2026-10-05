@@ -1,25 +1,109 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { saveMealTemplateAction } from "@/actions/meal-quick";
-import { kcalFromMacros } from "@/lib/kcal-from-macros";
-import type { MealTemplate } from "@/lib/meal-templates";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { saveMealTemplatesAction } from "@/actions/meal-quick";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSaveFeedback } from "@/components/feedback/save-feedback";
-import { Bookmark } from "lucide-react";
+import { kcalFromMacros } from "@/lib/kcal-from-macros";
+import {
+  defaultMealTemplateName,
+  MAX_MEAL_TEMPLATES,
+  type MealTemplate,
+} from "@/lib/meal-templates";
+import { cn } from "@/lib/utils";
+
+type DraftMeal = {
+  id: string;
+  name: string;
+  proteinG: string;
+  carbsG: string;
+  fatG: string;
+};
+
+function toDraft(t: MealTemplate): DraftMeal {
+  return {
+    id: t.id,
+    name: t.name,
+    proteinG: String(Math.round(t.proteinG * 10) / 10),
+    carbsG: String(Math.round(t.carbsG * 10) / 10),
+    fatG: String(Math.round(t.fatG * 10) / 10),
+  };
+}
+
+function emptyDraft(index: number): DraftMeal {
+  return {
+    id:
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `meal_${Date.now()}_${index}`,
+    name: defaultMealTemplateName(index),
+    proteinG: "",
+    carbsG: "",
+    fatG: "",
+  };
+}
+
+function parseGrams(raw: string): number {
+  const n = Number(String(raw).trim().replace(",", "."));
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
 
 export function MealTemplatesCard({ initial }: { initial: MealTemplate[] }) {
   const router = useRouter();
   const { notifySaved, notifyError } = useSaveFeedback();
   const [pending, start] = useTransition();
-  const [name, setName] = useState("");
-  const [p, setP] = useState("");
-  const [f, setF] = useState("");
-  const [c, setC] = useState("");
-  const [kcal, setKcal] = useState("");
+  const [meals, setMeals] = useState<DraftMeal[]>(() =>
+    initial.length > 0
+      ? initial.slice(0, MAX_MEAL_TEMPLATES).map(toDraft)
+      : [emptyDraft(1)],
+  );
+
+  useEffect(() => {
+    setMeals(
+      initial.length > 0
+        ? initial.slice(0, MAX_MEAL_TEMPLATES).map(toDraft)
+        : [emptyDraft(1)],
+    );
+  }, [initial]);
+
+  const dayTotals = useMemo(() => {
+    let proteinG = 0;
+    let carbsG = 0;
+    let fatG = 0;
+    for (const m of meals) {
+      proteinG += parseGrams(m.proteinG);
+      carbsG += parseGrams(m.carbsG);
+      fatG += parseGrams(m.fatG);
+    }
+    return {
+      proteinG,
+      carbsG,
+      fatG,
+      calories: kcalFromMacros(proteinG, fatG, carbsG),
+    };
+  }, [meals]);
+
+  function updateMeal(id: string, patch: Partial<DraftMeal>) {
+    setMeals((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+    );
+  }
+
+  function addMeal() {
+    if (meals.length >= MAX_MEAL_TEMPLATES) return;
+    setMeals((prev) => [...prev, emptyDraft(prev.length + 1)]);
+  }
+
+  function removeMeal(id: string) {
+    setMeals((prev) => {
+      if (prev.length <= 1) return prev;
+      return prev.filter((m) => m.id !== id);
+    });
+  }
 
   return (
     <section className="glass-panel relative overflow-hidden p-8">
@@ -28,95 +112,175 @@ export function MealTemplatesCard({ initial }: { initial: MealTemplate[] }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">
-              Posiłki
+              Dieta
             </p>
-            <h2 className="font-heading mt-2 text-xl font-semibold">Szablony na Start</h2>
+            <h2 className="font-heading mt-2 text-xl font-semibold">
+              Posiłki i makro
+            </h2>
             <p className="mt-2 text-sm text-white/60">
-              Zapisz ulubione zestawy makro — pojawią się jako przyciski przy szybkich posiłkach.
+              Zdefiniuj ile posiłków jesz dziennie (max {MAX_MEAL_TEMPLATES}) i
+              makro każdego z nich. Dieta zaproponuje przepisy z takimi makro —
+              gramatura składników jest skalowana do Twojego celu.
             </p>
           </div>
-          <Bookmark className="h-5 w-5 text-[var(--neon)]" aria-hidden />
+          <UtensilsCrossed
+            className="h-5 w-5 shrink-0 text-[var(--neon)]"
+            aria-hidden
+          />
         </div>
 
-        {initial.length > 0 ? (
-          <ul className="space-y-1 text-sm text-white/70">
-            {initial.map((t) => (
-              <li key={t.id}>
-                <span className="font-medium text-white/85">{t.name}</span> · {Math.round(t.calories)}{" "}
-                kcal · B {t.proteinG} / T {t.fatG} / W {t.carbsG}
+        <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white/70">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            Suma dnia ({meals.length} posiłków)
+          </p>
+          <p className="mt-1.5 font-medium tabular-nums text-white/90">
+            {Math.round(dayTotals.proteinG)}B · {Math.round(dayTotals.carbsG)}W ·{" "}
+            {Math.round(dayTotals.fatG)}T · {dayTotals.calories} kcal
+          </p>
+        </div>
+
+        <ul className="space-y-4">
+          {meals.map((m, index) => {
+            const p = parseGrams(m.proteinG);
+            const c = parseGrams(m.carbsG);
+            const f = parseGrams(m.fatG);
+            const kcal = kcalFromMacros(p, f, c);
+            return (
+              <li
+                key={m.id}
+                className="rounded-2xl border border-white/10 bg-black/20 p-4"
+              >
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
+                    Posiłek {index + 1}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={meals.length <= 1 || pending}
+                    onClick={() => removeMeal(m.id)}
+                    className={cn(
+                      "inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/12 text-white/55",
+                      meals.length <= 1 && "opacity-30",
+                    )}
+                    aria-label={`Usuń posiłek ${index + 1}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor={`meal-name-${m.id}`}>Nazwa</Label>
+                    <Input
+                      id={`meal-name-${m.id}`}
+                      value={m.name}
+                      onChange={(e) =>
+                        updateMeal(m.id, { name: e.target.value })
+                      }
+                      placeholder={defaultMealTemplateName(index + 1)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`meal-p-${m.id}`}>Białko (g)</Label>
+                    <Input
+                      id={`meal-p-${m.id}`}
+                      inputMode="decimal"
+                      value={m.proteinG}
+                      onChange={(e) =>
+                        updateMeal(m.id, { proteinG: e.target.value })
+                      }
+                      placeholder="np. 40"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`meal-c-${m.id}`}>Węglowodany (g)</Label>
+                    <Input
+                      id={`meal-c-${m.id}`}
+                      inputMode="decimal"
+                      value={m.carbsG}
+                      onChange={(e) =>
+                        updateMeal(m.id, { carbsG: e.target.value })
+                      }
+                      placeholder="np. 20"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`meal-f-${m.id}`}>Tłuszcz (g)</Label>
+                    <Input
+                      id={`meal-f-${m.id}`}
+                      inputMode="decimal"
+                      value={m.fatG}
+                      onChange={(e) =>
+                        updateMeal(m.id, { fatG: e.target.value })
+                      }
+                      placeholder="np. 10"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <p className="pb-2 text-sm tabular-nums text-white/55">
+                      ≈ {kcal} kcal
+                    </p>
+                  </div>
+                </div>
               </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-white/45">Brak szablonów — dodaj pierwszy poniżej.</p>
-        )}
+            );
+          })}
+        </ul>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2 sm:col-span-2">
-            <Label>Nazwa</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="np. Koktajl proteinowy"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Białko (g)</Label>
-            <Input value={p} onChange={(e) => setP(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Tłuszcz (g)</Label>
-            <Input value={f} onChange={(e) => setF(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Węgle (g)</Label>
-            <Input value={c} onChange={(e) => setC(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Kcal (opcjonalnie)</Label>
-            <Input value={kcal} onChange={(e) => setKcal(e.target.value)} />
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          disabled={pending}
-          variant="cta"
-          onClick={() => {
-            start(async () => {
-              const proteinG = Number(p) || 0;
-              const fatG = Number(f) || 0;
-              const carbsG = Number(c) || 0;
-              const manualK = kcal === "" ? undefined : Number(kcal);
-              const calories =
-                manualK != null && Number.isFinite(manualK) && manualK > 0
-                  ? manualK
-                  : kcalFromMacros(proteinG, fatG, carbsG);
-              if (!name.trim() || calories <= 0) {
-                notifyError("Podaj nazwę i makro lub kcal.");
-                return;
-              }
-              const r = await saveMealTemplateAction({
-                name: name.trim(),
-                calories,
-                proteinG,
-                fatG,
-                carbsG,
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={pending || meals.length >= MAX_MEAL_TEMPLATES}
+            onClick={addMeal}
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
+            Dodaj posiłek
+            {meals.length < MAX_MEAL_TEMPLATES
+              ? ` (${meals.length}/${MAX_MEAL_TEMPLATES})`
+              : ` (max ${MAX_MEAL_TEMPLATES})`}
+          </Button>
+          <Button
+            type="button"
+            disabled={pending}
+            variant="cta"
+            onClick={() => {
+              start(async () => {
+                const templates: MealTemplate[] = [];
+                for (let i = 0; i < meals.length; i++) {
+                  const m = meals[i]!;
+                  const proteinG = parseGrams(m.proteinG);
+                  const carbsG = parseGrams(m.carbsG);
+                  const fatG = parseGrams(m.fatG);
+                  const calories = kcalFromMacros(proteinG, fatG, carbsG);
+                  if (calories <= 0 && proteinG + carbsG + fatG <= 0) {
+                    notifyError(
+                      `Posiłek ${i + 1}: podaj makro (białko / węgle / tłuszcz).`,
+                    );
+                    return;
+                  }
+                  templates.push({
+                    id: m.id,
+                    name: m.name.trim() || defaultMealTemplateName(i + 1),
+                    calories,
+                    proteinG,
+                    fatG,
+                    carbsG,
+                  });
+                }
+                const r = await saveMealTemplatesAction(templates);
+                if (r.ok) {
+                  notifySaved("Posiłki zapisane.");
+                  router.refresh();
+                } else {
+                  notifyError(r.error || "Nie udało się zapisać.");
+                }
               });
-              if (r.ok) {
-                notifySaved("Szablon zapisany.");
-                setName("");
-                setP("");
-                setF("");
-                setC("");
-                setKcal("");
-                router.refresh();
-              } else notifyError("Nie udało się zapisać.");
-            });
-          }}
-        >
-          Dodaj szablon
-        </Button>
+            }}
+          >
+            Zapisz posiłki
+          </Button>
+        </div>
       </div>
     </section>
   );

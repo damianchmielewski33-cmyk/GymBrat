@@ -300,6 +300,13 @@ export function DietMealPlanPanel({
           title="Posiłki"
           trailing={`${rows.length} na dzień`}
         />
+        {mealTemplates.length === 0 ? (
+          <p className="rounded-[18px] border border-dashed border-white/12 bg-[#141414] px-4 py-3 text-[13px] leading-relaxed text-white/50">
+            Brak własnych posiłków w profilu — pokazujemy 5 domyślnych slotów
+            z makro podzielonym z celu dnia. Ustaw B/W/T per posiłek w Profilu
+            (max 5), żeby przepisy były skalowane dokładnie pod Ciebie.
+          </p>
+        ) : null}
         <ul className="space-y-2.5">
           {rows.map((row) => {
             const open = openId === row.id;

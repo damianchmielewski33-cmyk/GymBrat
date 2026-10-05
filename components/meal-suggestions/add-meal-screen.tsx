@@ -79,6 +79,7 @@ export function AddMealScreen({
     addMealLogAction,
     {} as MealLogFormState,
   );
+  const handledStateRef = useRef<MealLogFormState | null>(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -97,13 +98,16 @@ export function AddMealScreen({
   }, [open]);
 
   useEffect(() => {
-    if (state?.ok) {
+    if (!state || state === handledStateRef.current) return;
+    if (state.ok) {
+      handledStateRef.current = state;
       notifySaved(
         sub === "product" ? "Produkt dodany do dziennika." : "Zapisano szybkie dodawanie.",
       );
       onSaved();
       onClose();
-    } else if (state?.error) {
+    } else if (state.error) {
+      handledStateRef.current = state;
       notifyError(state.error);
     }
   }, [state, sub, notifySaved, notifyError, onSaved, onClose]);

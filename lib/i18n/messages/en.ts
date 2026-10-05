@@ -24,7 +24,7 @@ export const en = {
     catalogLabel: "Meal catalog",
     catalogEmptyTitle: "No recipes in Diet yet",
     catalogEmptyAdmin:
-      "The catalog is empty. Load the starter pack or your own JSON in the admin panel — meals will show up here.",
+      "The catalog is empty. Upload your own JSON from an external AI in the admin panel — meals will show up here.",
     catalogEmptyUser:
       "The recipe catalog has not been filled yet. You can still log products in the food diary.",
     openAdminCatalog: "Open catalog admin",
@@ -40,7 +40,6 @@ export const en = {
   adminCatalog: {
     title: "Recipes in the app",
     subtitle: "shown in Diet · managed from the admin panel",
-    starterPack: "Starter pack (~100 recipes)",
     exportJson: "Export database JSON",
     add: "Add",
     replace: "Replace database…",

@@ -1,48 +1,13 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { ProgressTabs } from "@/components/progress/progress-tabs";
-import { StrengthTab } from "@/components/progress/strength-tab";
-import { BodyTab } from "@/components/progress/body-tab";
-import { PhotosTab } from "@/components/progress/photos-tab";
-import { WeekTab } from "@/components/progress/week-tab";
-import { getProgressHubData } from "@/lib/progress-hub";
+import { ProgressPageContent } from "@/components/progress/progress-page-content";
+import { DashboardRouteSkeleton } from "@/components/layout/dashboard-route-skeleton";
 import { parseProgressTab } from "@/lib/progress-tabs";
 import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
-
-const PL_MONTH = [
-  "STYCZNIA",
-  "LUTEGO",
-  "MARCA",
-  "KWIETNIA",
-  "MAJA",
-  "CZERWCA",
-  "LIPCA",
-  "SIERPNIA",
-  "WRZEŚNIA",
-  "PAŹDZIERNIKA",
-  "LISTOPADA",
-  "GRUDNIA",
-] as const;
-
-function formatSinceKicker(iso: string | null, workouts: number): string {
-  const tren =
-    workouts === 1
-      ? "1 TRENING"
-      : workouts >= 2 && workouts <= 4
-        ? `${workouts} TRENINGI`
-        : `${workouts} TRENINGÓW`;
-  if (!iso) return tren;
-  try {
-    const d = new Date(`${iso}T12:00:00`);
-    if (Number.isNaN(d.getTime())) return tren;
-    const month = PL_MONTH[d.getMonth()] ?? "";
-    return `OD ${d.getDate()} ${month} • ${tren}`;
-  } catch {
-    return tren;
-  }
-}
 
 export default async function ProgressPage({
   searchParams,
@@ -55,7 +20,6 @@ export default async function ProgressPage({
 
   const sp = await searchParams;
   const tab = parseProgressTab(sp?.tab);
-  const data = await getProgressHubData(userId);
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-8">
@@ -69,10 +33,7 @@ export default async function ProgressPage({
 
       <header className="space-y-1 px-0.5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
-          {formatSinceKicker(
-            data.strength.sinceDate,
-            data.strength.workoutCount,
-          )}
+          Analiza postępów
         </p>
         <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-white">
           Postępy
@@ -81,10 +42,9 @@ export default async function ProgressPage({
 
       <ProgressTabs active={tab} />
 
-      {tab === "sila" ? <StrengthTab data={data.strength} /> : null}
-      {tab === "sylwetka" ? <BodyTab data={data.body} /> : null}
-      {tab === "zdjecia" ? <PhotosTab data={data.photos} /> : null}
-      {tab === "tydzien" ? <WeekTab data={data.week} /> : null}
+      <Suspense fallback={<DashboardRouteSkeleton />}>
+        <ProgressPageContent userId={userId} tab={tab} />
+      </Suspense>
 
       <WorkoutCompletePopup />
     </div>

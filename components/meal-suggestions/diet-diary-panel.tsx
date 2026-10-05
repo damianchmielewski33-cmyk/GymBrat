@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Pencil, Plus, ScanBarcode, UtensilsCrossed } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
+import { DietDayMacrosBar } from "@/components/meal-suggestions/diet-day-macros-bar";
 import {
   DIET_DIARY_SLOT_LABELS,
   type DietDiarySlot,
@@ -201,82 +202,39 @@ export function DietDiaryPanel({
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gym-gold)]/55 to-transparent"
           aria-hidden
         />
-        <div className="flex items-end justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-              Zjedzone
-            </p>
-            <div className="mt-2 flex items-end gap-2">
-              <AnimatedMetric
-                value={Math.round(dayMacros.caloriesConsumed)}
-                className="text-[44px] leading-none text-white sm:text-[48px]"
-              />
-              <span className="mb-1.5 font-metric text-[18px] text-white/55">
-                kcal
-              </span>
-            </div>
-            {kcalGoal != null ? (
-              <p
-                className={cn(
-                  "mt-1.5 text-[13px] tabular-nums",
-                  overGoal ? "text-rose-300" : "text-white/50",
-                )}
-              >
-                z {Math.round(kcalGoal)} kcal ·{" "}
-                {kcalDelta != null && kcalDelta > 0 ? "+" : ""}
-                {kcalDelta}
-              </p>
-            ) : (
-              <p className="mt-1.5 text-[13px] text-white/45">
-                Ustaw cel kcal w profilu
-              </p>
-            )}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+            Zjedzone dziś
+          </p>
+          <div className="mt-2 flex items-end gap-2">
+            <AnimatedMetric
+              value={Math.round(dayMacros.caloriesConsumed)}
+              className="text-[44px] leading-none text-white sm:text-[48px]"
+            />
+            <span className="mb-1.5 font-metric text-[18px] text-white/55">
+              kcal
+            </span>
           </div>
+          {kcalGoal != null ? (
+            <p
+              className={cn(
+                "mt-1.5 text-[13px] tabular-nums",
+                overGoal ? "text-rose-300" : "text-white/50",
+              )}
+            >
+              cel {Math.round(kcalGoal)} kcal ·{" "}
+              {kcalDelta != null && kcalDelta > 0 ? "+" : ""}
+              {kcalDelta} {overGoal ? "nadwyżka" : "zostało"}
+            </p>
+          ) : (
+            <p className="mt-1.5 text-[13px] text-white/45">
+              Ustaw cel kcal w profilu
+            </p>
+          )}
+        </div>
 
-          <div className="shrink-0 space-y-1.5 text-right font-metric text-[15px] leading-snug tabular-nums">
-            <p>
-              <span className="text-[var(--gym-gold)]">B</span>{" "}
-              <span className="text-white">
-                {Math.round(dayMacros.proteinConsumed)}
-              </span>
-              <span className="text-white/40">
-                {" "}
-                /{" "}
-                {dayMacros.proteinGoal != null
-                  ? Math.round(dayMacros.proteinGoal)
-                  : "—"}{" "}
-                g
-              </span>
-            </p>
-            <p>
-              <span className="text-[var(--gym-gold)]">W</span>{" "}
-              <span className="text-white">
-                {Math.round(dayMacros.carbsConsumed)}
-              </span>
-              <span className="text-white/40">
-                {" "}
-                /{" "}
-                {dayMacros.carbsGoal != null
-                  ? Math.round(dayMacros.carbsGoal)
-                  : "—"}{" "}
-                g
-              </span>
-            </p>
-            <p>
-              <span className="text-[var(--gym-gold)]">T</span>{" "}
-              <span className="text-white">
-                {Math.round(dayMacros.fatConsumed)}
-              </span>
-              <span className="text-white/40">
-                {" "}
-                /{" "}
-                {dayMacros.fatGoal != null
-                  ? Math.round(dayMacros.fatGoal)
-                  : "—"}{" "}
-                g
-              </span>
-            </p>
-          </div>
+        <div className="mt-4 border-t border-white/[0.07] pt-3.5">
+          <DietDayMacrosBar variant="embedded" {...dayMacros} />
         </div>
       </section>
 

@@ -2,6 +2,7 @@ import { desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { bodyReportPhotos, bodyReports, weightLogs } from "@/db/schema";
 import { encryptSensitiveField, maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
+import { sortBodyReportPhotos } from "@/lib/body-report-photo-slots";
 
 export type BodyReport = {
   id: string;
@@ -21,7 +22,7 @@ export type BodyReport = {
   trainingCompliance: string | null;
   complianceNotes: string | null;
   additionalInfo: string | null;
-  photos: { id: string; dataUrl: string }[];
+  photos: { id: string; dataUrl: string; createdAt: Date }[];
 };
 
 export type LatestBodyReportMetrics = {
@@ -99,7 +100,10 @@ export async function getBodyReports(
   if (reports.length === 0) return [];
 
   const reportIds = reports.map((r) => r.id);
-  const photosByReport = new Map<string, { id: string; dataUrl: string }[]>();
+  const photosByReport = new Map<
+    string,
+    { id: string; dataUrl: string; createdAt: Date }[]
+  >();
   if (includePhotos) {
     const photos = await db
       .select()
@@ -115,8 +119,12 @@ export async function getBodyReports(
       arr.push({
         id: p.id,
         dataUrl: maybeDecryptSensitiveField(p.dataUrl) ?? "",
+        createdAt: p.createdAt,
       });
       photosByReport.set(p.reportId, arr);
+    }
+    for (const [reportId, arr] of photosByReport) {
+      photosByReport.set(reportId, sortBodyReportPhotos(arr));
     }
   }
 

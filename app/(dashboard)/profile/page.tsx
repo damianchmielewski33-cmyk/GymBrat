@@ -59,35 +59,38 @@ export default async function ProfilePage() {
   if (!userId) redirect("/login");
   const db = getDb();
 
-  const [u] = await db
-    .select({
-      email: users.email,
-      name: users.name,
-      firstName: users.firstName,
-      lastName: users.lastName,
-      weightKg: users.weightKg,
-      heightCm: users.heightCm,
-      age: users.age,
-      activityLevel: users.activityLevel,
-    })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
-  const [s] = await db
-    .select({
-      goal: userSettings.weeklyCardioGoalMinutes,
-      reportCadenceDays: userSettings.reportCadenceDays,
-      trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
-      restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
-      nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
-      remindersJson: userSettings.remindersJson,
-      mealTemplatesJson: userSettings.mealTemplatesJson,
-      progressDeltaUnit: userSettings.progressDeltaUnit,
-    })
-    .from(userSettings)
-    .where(eq(userSettings.userId, userId))
-    .limit(1);
+  const [userRows, settingsRows] = await Promise.all([
+    db
+      .select({
+        email: users.email,
+        name: users.name,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        weightKg: users.weightKg,
+        heightCm: users.heightCm,
+        age: users.age,
+        activityLevel: users.activityLevel,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1),
+    db
+      .select({
+        goal: userSettings.weeklyCardioGoalMinutes,
+        reportCadenceDays: userSettings.reportCadenceDays,
+        trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
+        restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
+        nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
+        remindersJson: userSettings.remindersJson,
+        mealTemplatesJson: userSettings.mealTemplatesJson,
+        progressDeltaUnit: userSettings.progressDeltaUnit,
+      })
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1),
+  ]);
+  const u = userRows[0];
+  const s = settingsRows[0];
 
   const nutritionInitial = nutritionSettingsFromDbRow(
     s ?? {

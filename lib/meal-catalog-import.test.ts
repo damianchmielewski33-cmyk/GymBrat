@@ -28,6 +28,8 @@ describe("meal-catalog-import", () => {
     expect(meals[0]!.slot).toBe("sniadanie");
     expect(meals[0]!.approximateMacros.proteinG).toBe(24);
     expect(meals[0]!.imagePrompt).toContain("yogurt");
+    expect(meals[0]!.imageUrl).toContain("image.pollinations.ai");
+    expect(meals[0]!.imagePromptEn).toBeTruthy();
     expect(meals[0]!.ingredients.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -147,19 +149,5 @@ describe("primary admin", () => {
     expect(isPrimaryAdminEmail(PRIMARY_ADMIN_EMAIL)).toBe(true);
     expect(isPrimaryAdminEmail("DAMIANCHMIELEWSKI33@GMAIL.COM")).toBe(true);
     expect(parseAdminEmails().has(PRIMARY_ADMIN_EMAIL)).toBe(true);
-  });
-});
-
-describe("pakiet startowy", () => {
-  it("data/meal-catalog-starter.json przechodzi walidację importu", async () => {
-    const fs = await import("node:fs");
-    const path = await import("node:path");
-    const file = path.join(process.cwd(), "data", "meal-catalog-starter.json");
-    expect(fs.existsSync(file)).toBe(true);
-    const raw = JSON.parse(fs.readFileSync(file, "utf8")) as unknown;
-    const { meals } = parseCatalogImportPayload(raw);
-    expect(meals.length).toBeGreaterThan(50);
-    expect(meals[0]?.id).toBeTruthy();
-    expect(meals[0]?.approximateMacros.calories).toBeGreaterThan(0);
   });
 });

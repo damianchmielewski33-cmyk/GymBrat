@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { ensureMealLogsTableOncePerProcess } from "@/db/ensure-schema";
 import { mealLogs, userSettings } from "@/db/schema";
 import {
+  MAX_MEAL_TEMPLATES,
   parseMealTemplatesJson,
   serializeMealTemplates,
   type MealTemplate,
@@ -82,7 +83,9 @@ export async function addMealFromTemplateAction(date: string, templateId: string
   return { ok: true as const };
 }
 
-export async function saveMealTemplateAction(template: Omit<MealTemplate, "id"> & { id?: string }) {
+export async function saveMealTemplateAction(
+  template: Omit<MealTemplate, "id"> & { id?: string },
+) {
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
 
@@ -104,7 +107,7 @@ export async function saveMealTemplateAction(template: Omit<MealTemplate, "id"> 
 
   const existing = parseMealTemplatesJson(row?.mealTemplatesJson ?? null);
   const without = existing.filter((x) => x.id !== entry.id);
-  const next = [entry, ...without].slice(0, 24);
+  const next = [...without, entry].slice(0, MAX_MEAL_TEMPLATES);
   const json = serializeMealTemplates(next);
 
   await db
@@ -117,5 +120,67 @@ export async function saveMealTemplateAction(template: Omit<MealTemplate, "id"> 
 
   revalidatePath("/");
   revalidatePath("/profile");
+  revalidatePath("/meal-suggestions");
+  return { ok: true as const };
+}
+
+/** Zastępuje całą listę posiłków dnia (max 5) — źródło celów makro w Diecie. */
+export async function saveMealTemplatesAction(templates: MealTemplate[]) {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
+
+  if (!Array.isArray(templates) || templates.length === 0) {
+    return { ok: false as const, error: "Dodaj co najmniej jeden posiłek." };
+  }
+  if (templates.length > MAX_MEAL_TEMPLATES) {
+    return {
+      ok: false as const,
+      error: `Możesz zdefiniować max ${MAX_MEAL_TEMPLATES} posiłków.`,
+    };
+  }
+
+  const cleaned: MealTemplate[] = [];
+  for (const t of templates) {
+    const name = String(t.name ?? "").trim();
+    const calories = Number(t.calories);
+    const proteinG = Number(t.proteinG);
+    const fatG = Number(t.fatG);
+    const carbsG = Number(t.carbsG);
+    if (
+      !name ||
+      !Number.isFinite(calories) ||
+      !Number.isFinite(proteinG) ||
+      !Number.isFinite(fatG) ||
+      !Number.isFinite(carbsG) ||
+      calories < 0 ||
+      proteinG < 0 ||
+      fatG < 0 ||
+      carbsG < 0
+    ) {
+      return { ok: false as const, error: "Nieprawidłowe dane posiłku." };
+    }
+    cleaned.push({
+      id: String(t.id ?? "").trim() || randomUUID(),
+      name: name.slice(0, 120),
+      calories,
+      proteinG,
+      fatG,
+      carbsG,
+    });
+  }
+
+  const json = serializeMealTemplates(cleaned);
+  const db = getDb();
+  await db
+    .update(userSettings)
+    .set({
+      mealTemplatesJson: json,
+      updatedAt: new Date(),
+    })
+    .where(eq(userSettings.userId, session.user.id));
+
+  revalidatePath("/");
+  revalidatePath("/profile");
+  revalidatePath("/meal-suggestions");
   return { ok: true as const };
 }

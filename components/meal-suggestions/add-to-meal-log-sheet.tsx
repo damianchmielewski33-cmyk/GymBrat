@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useActionState } from "react";
+import { useEffect, useRef, useState, useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +49,7 @@ export function AddToMealLogSheet({
   const [kcal, setKcal] = useState(calories != null ? String(Math.round(calories)) : "");
   const [slot, setSlot] = useState<DietDiarySlot>(defaultSlot);
   const [state, formAction] = useActionState(addMealLogAction, {} as MealLogFormState);
+  const handledStateRef = useRef<MealLogFormState | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -58,11 +59,14 @@ export function AddToMealLogSheet({
   }, [open, presetName, calories, defaultSlot]);
 
   useEffect(() => {
-    if (state?.ok) {
+    if (!state || state === handledStateRef.current) return;
+    if (state.ok) {
+      handledStateRef.current = state;
       notifySaved("Posiłek dodany do dziennika.");
       setOpen(false);
       router.refresh();
-    } else if (state?.error) {
+    } else if (state.error) {
+      handledStateRef.current = state;
       notifyError(state.error);
     }
   }, [state, notifyError, notifySaved, router]);

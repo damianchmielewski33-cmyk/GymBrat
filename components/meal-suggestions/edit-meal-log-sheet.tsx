@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { updateMealLogAction, type MealLogFormState } from "@/actions/meal-log";
 import { SubmitButton } from "@/components/home/submit-button";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ export function EditMealLogSheet({
 }) {
   const { notifySaved, notifyError } = useSaveFeedback();
   const [state, action] = useActionState(updateMealLogAction, {} as MealLogFormState);
+  const handledStateRef = useRef<MealLogFormState | null>(null);
   const [name, setName] = useState("");
   const [slot, setSlot] = useState<DietDiarySlot | "">("");
   const [protein, setProtein] = useState("");
@@ -55,12 +56,14 @@ export function EditMealLogSheet({
   }, [entry, open]);
 
   useEffect(() => {
-    if (!open) return;
-    if (state?.ok) {
+    if (!open || !state || state === handledStateRef.current) return;
+    if (state.ok) {
+      handledStateRef.current = state;
       notifySaved("Zapisano zmiany wpisu.");
       onSaved();
       onOpenChange(false);
-    } else if (state?.error) {
+    } else if (state.error) {
+      handledStateRef.current = state;
       notifyError(state.error);
     }
   }, [state, open, notifySaved, notifyError, onSaved, onOpenChange]);

@@ -4,7 +4,6 @@ import { memo, useCallback, useMemo, useState } from "react";
 import {
   getRecipeImage,
   getRecipeImageFallback,
-  getRecipeImageProvider,
   type RecipeImageSource,
 } from "@/lib/recipe-image";
 import { cn } from "@/lib/utils";
@@ -16,8 +15,7 @@ type RecipeImageProps = {
 };
 
 /**
- * Grafika przepisu: domyślnie stock dobrany po imagePrompt (trafny).
- * Pollinations tylko gdy włączony provider — z fallbackiem stock.
+ * Grafika przepisu: AI (Pollinations) z imageUrl / imagePromptEn zapisanych przy imporcie JSON.
  */
 export const RecipeImage = memo(function RecipeImage({
   recipe,
@@ -44,35 +42,24 @@ export const RecipeImage = memo(function RecipeImage({
     [id, title, slot, imageUrl, imagePrompt, imagePromptEn],
   );
 
-  const fallback = useMemo(
-    () =>
-      getRecipeImageFallback({
-        id,
-        title,
-        slot,
-        imagePrompt,
-        imagePromptEn,
-      }),
-    [id, title, slot, imagePrompt, imagePromptEn],
-  );
+  const fallback = useMemo(() => getRecipeImageFallback(), []);
 
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const failed = failedSrc === src;
-  const usePollinations = getRecipeImageProvider() === "pollinations";
 
   const onError = useCallback(() => {
     setFailedSrc(src);
   }, [src]);
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- Unsplash / Pollinations
+    // eslint-disable-next-line @next/next/no-img-element -- Pollinations AI / HTTPS
     <img
       src={failed ? fallback : src}
       alt={alt ?? (title || "Posiłek")}
       loading="lazy"
       decoding="async"
       referrerPolicy="no-referrer"
-      onError={usePollinations || Boolean(imageUrl) ? onError : undefined}
+      onError={onError}
       className={cn("h-full w-full object-cover", className)}
     />
   );

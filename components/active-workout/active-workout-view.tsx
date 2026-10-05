@@ -11,7 +11,10 @@ import { attachTechniqueUrls } from "@/lib/attach-technique-urls";
 import { mergeHintsIntoExercises } from "@/lib/last-workout-hints";
 import type { LastPlanHintsMap } from "@/lib/last-workout-hints";
 import { planExercisesToSession } from "@/lib/start-workout-session";
-import { detectSessionNewMaxes } from "@/lib/session-new-max";
+import {
+  detectSessionNewMaxes,
+  detectSessionWeightRecords,
+} from "@/lib/session-new-max";
 import { whenActiveWorkoutCloudHydrated } from "@/lib/active-workout-cloud-ready";
 import { ActiveSessionCard } from "@/components/active-workout/active-session-card";
 import { GuidedSessionLayout } from "@/components/active-workout/guided-session-layout";
@@ -89,6 +92,7 @@ export function ActiveWorkoutView({
     patchExercise,
     addSet: addSetInStore,
     removeLastSet: removeLastSetInStore,
+    setHideGlobalBarForRoute,
   } = useActiveWorkoutStore();
   const { t } = useI18n();
   const [now, setNow] = useState(() => Date.now());
@@ -115,13 +119,14 @@ export function ActiveWorkoutView({
     nonce: number;
   } | null>(null);
   const [finishOpen, setFinishOpen] = useState(false);
+  const [sessionExitPending, setSessionExitPending] = useState(false);
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
   /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/start-workout`. */
   const [storeHydrated, setStoreHydrated] = useState(false);
   /** Czekamy na pull chmury, żeby nie wyrzucić sesji z innego urządzenia. */
   const [cloudHydrated, setCloudHydrated] = useState(false);
-  const finishNewMaxes = useMemo(
-    () => detectSessionNewMaxes(exercises, lastPlanHints),
+  const finishWeightRecords = useMemo(
+    () => detectSessionWeightRecords(exercises, lastPlanHints),
     [exercises, lastPlanHints],
   );
 
@@ -333,6 +338,8 @@ export function ActiveWorkoutView({
     ) {
       return;
     }
+    setSessionExitPending(true);
+    setSuppressRouteGate(true);
     reset();
     setExercises([]);
     setSelectedExerciseId(null);
@@ -549,6 +556,7 @@ export function ActiveWorkoutView({
 
   function beginWorkoutFromPlan(row: WorkoutPlanWithLastWorkoutDTO) {
     if (row.plan.exercises.length === 0) return;
+    setHideGlobalBarForRoute(true);
     hintsMergedRef.current = false;
     applyPlan(row.id, row.plan);
     const next = planExercisesToSession(row.plan.exercises);
@@ -608,6 +616,7 @@ export function ActiveWorkoutView({
       if (result.status === "error") {
         throw new Error(result.message);
       }
+      setSessionExitPending(true);
       reset();
       setExercises([]);
       setSelectedExerciseId(null);
@@ -648,6 +657,7 @@ export function ActiveWorkoutView({
       }
     } catch (e) {
       setSaveError(mapUnknownFetchError(e, UserMessages.workoutSaveUnknown));
+      setSessionExitPending(false);
       setSuppressRouteGate(false);
     } finally {
       setSaving(false);
@@ -779,10 +789,14 @@ export function ActiveWorkoutView({
                 startPlansContent
               ) : (
               entry === "active" ? (
-                !storeHydrated || !cloudHydrated ? (
+                !storeHydrated || !cloudHydrated || sessionExitPending ? (
                   <div className="flex flex-1 flex-col items-center justify-center gap-2 px-2 py-16 text-center">
                     <div className="h-9 w-9 animate-pulse rounded-full bg-white/[0.08]" />
-                    <p className="text-sm text-white/45">{t("session.loading")}</p>
+                    <p className="text-sm text-white/45">
+                      {sessionExitPending && saving
+                        ? "Zapisuję trening…"
+                        : t("session.loading")}
+                    </p>
                   </div>
                 ) : (
                   <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
@@ -830,17 +844,12 @@ export function ActiveWorkoutView({
           setsTotal={completedSets.total}
           volumeKg={sessionTotal}
           exercises={exercises}
+          weightRecords={finishWeightRecords}
           cardioMinutes={cardioMinutes}
           cardioExtras={cardioExtras}
           onCardioMinutesChange={setCardioMinutes}
           onCardioExtrasChange={setCardioExtras}
           saving={saving}
-          newMaxLabel={
-            finishNewMaxes[0]
-              ? `${finishNewMaxes[0].exerciseName} ${finishNewMaxes[0].value} kg`
-              : null
-          }
-          newMaxHit={finishNewMaxes[0] ?? null}
           onDone={() => {
             void completeWorkout();
           }}

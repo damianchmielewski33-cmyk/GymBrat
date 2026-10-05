@@ -120,28 +120,6 @@ export function AdminCatalogClient() {
     setJsonText(text);
   }
 
-  async function loadStarterPack() {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/admin/catalog?pack=starter");
-      const data = (await res.json().catch(() => null)) as
-        | { ok?: boolean; meals?: unknown; error?: string }
-        | null;
-      if (!res.ok || !data?.meals) {
-        throw new Error(data?.error ?? "Nie udało się wczytać pakietu startowego.");
-      }
-      setJsonText(JSON.stringify(data.meals, null, 2));
-      notifySaved("Załadowano pakiet startowy do pola JSON — kliknij Dodaj lub Zastąp.");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Pakiet startowy niedostępny.";
-      setError(msg);
-      notifyError(msg);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   function exportDb() {
     if (dbMeals.length === 0) return;
     const stamp = new Date().toISOString().slice(0, 10);
@@ -311,15 +289,6 @@ export function AdminCatalogClient() {
           <Button
             type="button"
             variant="outline"
-            disabled={busy}
-            onClick={() => void loadStarterPack()}
-            className="border-[var(--neon)]/40 text-[var(--neon)] hover:bg-[var(--neon)]/10"
-          >
-            {t("adminCatalog.starterPack")}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
             disabled={busy || dbMeals.length === 0}
             onClick={exportDb}
             className="border-white/15 text-white/70"
@@ -327,6 +296,13 @@ export function AdminCatalogClient() {
             {t("adminCatalog.exportJson")}
           </Button>
         </div>
+
+        <p className="text-xs text-white/45">
+          Przepisy tylko z zewnętrznego JSON (prompt AI powyżej). Przy imporcie
+          grafiki są generowane przez AI (Pollinations) z pola{" "}
+          <span className="font-mono text-white/60">imagePromptEn</span> — bez
+          pakietu startowego i bez przykładowych stocków.
+        </p>
 
         <label className="block text-sm text-white/70">
           Plik JSON (opcjonalnie)

@@ -25,6 +25,9 @@ type ActiveWorkoutState = {
   cardioExtras: ActiveCardioExtras;
   exercises: WorkoutExerciseState[];
   selectedExerciseId: string | null;
+  /** Ukryj dolny pasek aktywnej sesji do czasu wejścia na `/active-workout` (unika mignięcia przy starcie). */
+  hideGlobalBarForRoute: boolean;
+  setHideGlobalBarForRoute: (hide: boolean) => void;
   setTitle: (t: string) => void;
   setCardioMinutes: (n: number) => void;
   setCardioExtras: (extras: Partial<ActiveCardioExtras>) => void;
@@ -55,6 +58,9 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
       cardioExtras: { ...EMPTY_CARDIO_EXTRAS },
       exercises: [],
       selectedExerciseId: null,
+      hideGlobalBarForRoute: false,
+      setHideGlobalBarForRoute: (hideGlobalBarForRoute) =>
+        set({ hideGlobalBarForRoute }),
       setTitle: (title) => set({ title }),
       setCardioMinutes: (cardioMinutes) => set({ cardioMinutes }),
       setCardioExtras: (extras) =>

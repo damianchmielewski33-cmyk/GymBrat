@@ -24,7 +24,7 @@ export const pl = {
     catalogLabel: "Katalog posiłków",
     catalogEmptyTitle: "Brak przepisów w Dietcie",
     catalogEmptyAdmin:
-      "Katalog jest pusty. Wgraj pakiet startowy albo własny JSON w panelu admina — wtedy dania pojawią się tutaj.",
+      "Katalog jest pusty. Wgraj własny JSON z zewnętrznego AI w panelu admina — wtedy dania pojawią się tutaj.",
     catalogEmptyUser:
       "Katalog przepisów nie został jeszcze uzupełniony. Możesz na razie logować produkty w Jadłospisie.",
     openAdminCatalog: "Otwórz panel katalogu",
@@ -40,7 +40,6 @@ export const pl = {
   adminCatalog: {
     title: "Przepisy w aplikacji",
     subtitle: "widoczne w Dietcie · zarządzane z panelu",
-    starterPack: "Pakiet startowy (~100 przepisów)",
     exportJson: "Eksportuj bazę JSON",
     add: "Dodaj",
     replace: "Zastąp bazę…",

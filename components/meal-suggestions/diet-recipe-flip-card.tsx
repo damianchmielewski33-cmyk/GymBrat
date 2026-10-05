@@ -40,12 +40,18 @@ export function DietRecipeFlipCard({
   onClose,
   dateKey,
   diarySlot,
+  scale = 1,
+  targetMacroLine,
 }: {
   meal: CatalogMeal | null;
   open: boolean;
   onClose: () => void;
   dateKey: string;
   diarySlot: DietDiarySlot;
+  /** Współczynnik porcji względem katalogu (1 = bez zmian). */
+  scale?: number;
+  /** Cel makro posiłku z profilu, np. „40B · 20W · 10T”. */
+  targetMacroLine?: string;
 }) {
   const [side, setSide] = useState<"photo" | "recipe">("photo");
   const enriched = useMemo(
@@ -58,6 +64,7 @@ export function DietRecipeFlipCard({
   const macros = meal.approximateMacros;
   const diff = recipeDifficulty(meal.prepMinutes);
   const preview = ingredientPreview(meal, 6);
+  const scaled = Math.abs(scale - 1) >= 0.05;
 
   return (
     <div className="fixed inset-0 z-[180] flex flex-col bg-black/95 px-3 pb-8 pt-[max(0.75rem,env(safe-area-inset-top))]">
@@ -110,6 +117,24 @@ export function DietRecipeFlipCard({
               {Math.round(macros.proteinG)}B / {Math.round(macros.carbsG)}W /{" "}
               {Math.round(macros.fatG)}T · {Math.round(macros.calories)} KCAL
             </p>
+            {targetMacroLine || scaled ? (
+              <p className="mt-1 text-[11px] text-white/45">
+                {targetMacroLine ? (
+                  <>
+                    Cel posiłku:{" "}
+                    <span className="tabular-nums text-white/65">
+                      {targetMacroLine}
+                    </span>
+                  </>
+                ) : null}
+                {targetMacroLine && scaled ? " · " : null}
+                {scaled ? (
+                  <span className="tabular-nums">
+                    porcja ×{scale.toFixed(1)}
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
             <div className="mt-2">
               <ChefHats level={diff} />
             </div>

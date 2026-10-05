@@ -20,7 +20,6 @@ import { FoodPortionScreen } from "@/components/meal-suggestions/food-portion-sc
 import { DietDateNav } from "@/components/meal-suggestions/diet-date-nav";
 import { DietMealPlanPanel } from "@/components/meal-suggestions/diet-meal-plan-panel";
 import { DietDiaryPanel } from "@/components/meal-suggestions/diet-diary-panel";
-import { DietDayMacrosBar } from "@/components/meal-suggestions/diet-day-macros-bar";
 import { BarcodeCameraScanner } from "@/components/meal-suggestions/barcode-camera-scanner";
 import {
   DIET_DIARY_SLOT_LABELS,
@@ -359,9 +358,7 @@ export function MealSuggestionsView({
     <div
       className={cn(
         "relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col",
-        tab === "diary"
-          ? "pb-[calc(12rem+env(safe-area-inset-bottom))]"
-          : "pb-[calc(5.5rem+env(safe-area-inset-bottom))]",
+        "pb-[calc(5.5rem+env(safe-area-inset-bottom))]",
       )}
     >
       <header className="space-y-3 px-1 pt-2">
@@ -641,15 +638,6 @@ export function MealSuggestionsView({
           router.refresh();
         }}
       />
-
-      {tab === "diary" && !mealOverlayOpen ? (
-        /* Nad belką nav + wystającym FAB „Raport” (~h-12 / 2). */
-        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-40 px-0">
-          <div className="pointer-events-auto mx-auto max-w-lg overflow-hidden rounded-t-2xl border-t border-white/10 shadow-[0_-8px_28px_rgba(0,0,0,0.45)]">
-            <DietDayMacrosBar {...dayMacros} />
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 /**
  * Prompt do skopiowania z panelu admina → zewnętrzny model AI generuje JSON katalogu.
  * Musi być zsynchronizowany z walidacją w `meal-catalog-import.ts` (format strict).
+ * Grafiki powstają przy imporcie JSON (Pollinations) z pola imagePromptEn.
  */
 export const MEAL_CATALOG_AI_PROMPT = `Jesteś generatorem katalogu przepisów dla aplikacji GymBrat (dieta / plan posiłków).
 
@@ -39,8 +40,10 @@ Bez komentarzy wewnątrz JSON. Poza blokiem kodu nie dodawaj innego JSON ani dł
   - proteinG (number ≥ 0) — białko w gramach
   - fatG (number ≥ 0) — tłuszcz w gramach
   - carbsG (number ≥ 0) — węglowodany w gramach
-- imagePromptEn (string, opcjonalnie, max 400): krótki angielski opis zdjęcia dania
-  (np. "grilled chicken rice broccoli bowl"), bez polskich znaków.
+- imagePromptEn (string, WYMAGANE, max 400): krótki angielski opis zdjęcia TEGO dania
+  pod AI (np. "grilled chicken rice broccoli bowl on dark plate"), bez polskich znaków,
+  bez ludzi, bez tekstu na grafice. GymBrat wygeneruje z tego grafikę AI przy imporcie JSON.
+  NIE podawaj imageUrl (aplikacja sama tworzy URL AI).
 
 ## Zasady jakości
 1. Makro muszą być spójne ze składnikami (Atwater: białko/węgle ≈ 4 kcal/g, tłuszcz ≈ 9 kcal/g).
@@ -48,8 +51,9 @@ Bez komentarzy wewnątrz JSON. Poza blokiem kodu nie dodawaj innego JSON ani dł
 2. Jedna porcja = jeden zestaw makro (nie „na 100 g”, tylko na danie jak w ingredients).
 3. Przepisy realistyczne, fitness / redukcja / budowa — bez fantazyjnych dań niedostępnych w PL.
 4. Różnorodność: słone i słodkie, mięso / ryby / wege / nabiał.
-5. Nie duplikuj id. Nie używaj null. Nie dodawaj pól spoza listy (imageUrl tylko jeśli masz prawdziwy HTTPS URL).
+5. Nie duplikuj id. Nie używaj null. Nie dodawaj imageUrl.
 6. slot musi pasować do charakteru dania (śniadanie ≠ ciężki obiad).
+7. Każdy przepis MUSI mieć unikalny, precyzyjny imagePromptEn (nie kopiuj tego samego opisu).
 
 ## Przykład jednego obiektu
 {
@@ -76,7 +80,7 @@ Bez komentarzy wewnątrz JSON. Poza blokiem kodu nie dodawaj innego JSON ani dł
     "fatG": 8,
     "carbsG": 52
   },
-  "imagePromptEn": "protein oatmeal apple cinnamon bowl",
+  "imagePromptEn": "protein oatmeal with diced apple and cinnamon in ceramic bowl",
   "prepMinutes": 12
 }
 
