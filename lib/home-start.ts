@@ -10,9 +10,12 @@ import {
   workoutPlans,
   workouts,
 } from "@/db/schema";
-import { maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
-import { frontBodyReportPhotoDataUrl } from "@/lib/body-report-photo-slots";
-import { loadStartPhotoDataUrl } from "@/lib/start-photo";
+import { frontBodyReportPhoto } from "@/lib/body-report-photo-slots";
+import { hasStartPhoto } from "@/lib/start-photo";
+import {
+  bodyReportPhotoMediaPath,
+  startPhotoMediaPath,
+} from "@/lib/user-photo-media";
 import { getWeeklyCardioProgress } from "@/lib/cardio";
 import { getHomeStats } from "@/lib/home-stats";
 import {
@@ -581,14 +584,14 @@ async function getProgramStartAndReportCount(userId: string): Promise<{
   return { daysInProgram, reportCount, firstReportAt };
 }
 
-async function getTransformationPhotos(userId: string): Promise<{
+export async function getTransformationPhotos(userId: string): Promise<{
   firstPhotoUrl: string | null;
   latestPhotoUrl: string | null;
   latestPhotoDate: string | null;
 }> {
   const db = getDb();
   const [customStart, reports] = await Promise.all([
-    loadStartPhotoDataUrl(userId),
+    hasStartPhoto(userId),
     db
       .select({ id: bodyReports.id, createdAt: bodyReports.createdAt })
       .from(bodyReports)
@@ -596,10 +599,12 @@ async function getTransformationPhotos(userId: string): Promise<{
       .orderBy(asc(bodyReports.createdAt), asc(bodyReports.id)),
   ]);
 
+  const customStartUrl = customStart ? startPhotoMediaPath() : null;
+
   if (reports.length === 0) {
     return {
-      firstPhotoUrl: customStart,
-      latestPhotoUrl: customStart,
+      firstPhotoUrl: customStartUrl,
+      latestPhotoUrl: customStartUrl,
       latestPhotoDate: null,
     };
   }
@@ -622,8 +627,8 @@ async function getTransformationPhotos(userId: string): Promise<{
 
   if (photos.length === 0) {
     return {
-      firstPhotoUrl: customStart,
-      latestPhotoUrl: customStart,
+      firstPhotoUrl: customStartUrl,
+      latestPhotoUrl: customStartUrl,
       latestPhotoDate: null,
     };
   }
@@ -633,12 +638,11 @@ async function getTransformationPhotos(userId: string): Promise<{
     { id: string; dataUrl: string; createdAt: Date }[]
   >();
   for (const p of photos) {
-    const url = maybeDecryptSensitiveField(p.dataUrl);
-    if (!url) continue;
+    if (!p.dataUrl?.trim()) continue;
     const arr = photosByReport.get(p.reportId) ?? [];
     arr.push({
       id: p.id,
-      dataUrl: url,
+      dataUrl: "1",
       createdAt: p.createdAt,
     });
     photosByReport.set(p.reportId, arr);
@@ -649,15 +653,16 @@ async function getTransformationPhotos(userId: string): Promise<{
   let latestPhotoDate: string | null = null;
   for (const r of reports) {
     const reportPhotos = photosByReport.get(r.id) ?? [];
-    const frontUrl = frontBodyReportPhotoDataUrl(reportPhotos);
-    if (!frontUrl) continue;
-    if (!firstPhotoUrl) firstPhotoUrl = frontUrl;
-    latestPhotoUrl = frontUrl;
+    const front = frontBodyReportPhoto(reportPhotos);
+    if (!front?.dataUrl) continue;
+    const mediaSrc = bodyReportPhotoMediaPath(front.id);
+    if (!firstPhotoUrl) firstPhotoUrl = mediaSrc;
+    latestPhotoUrl = mediaSrc;
     latestPhotoDate = calendarDateKey(new Date(r.createdAt));
   }
 
   return {
-    firstPhotoUrl: customStart ?? firstPhotoUrl,
+    firstPhotoUrl: customStartUrl ?? firstPhotoUrl,
     latestPhotoUrl,
     latestPhotoDate,
   };
@@ -828,7 +833,6 @@ export async function getHomeStartDashboard(
     weightFromStart,
     weightSeries,
     macroBundle,
-    transformation,
     dimensions,
     reportInsights,
     programMeta,
@@ -863,7 +867,6 @@ export async function getHomeStartDashboard(
     getWeightFromStart(userId),
     getWeightSeries(userId),
     getMacroSeriesAndToday(userId),
-    getTransformationPhotos(userId),
     getLatestDimensions(userId),
     getReportInsights(userId),
     getProgramStartAndReportCount(userId),
@@ -935,7 +938,11 @@ export async function getHomeStartDashboard(
     formToday: reportInsights.formToday,
     coachNote: reportInsights.coachNote,
     compliance: reportInsights.compliance,
-    transformation,
+    transformation: {
+      firstPhotoUrl: null,
+      latestPhotoUrl: null,
+      latestPhotoDate: null,
+    },
     dimensions: {
       weightKg: dimensions.weightKg ?? currentWeightKg,
       waistCm: dimensions.waistCm,

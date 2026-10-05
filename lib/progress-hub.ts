@@ -20,6 +20,10 @@ import {
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { frontBodyReportPhoto } from "@/lib/body-report-photo-slots";
 import { CUSTOM_START_PHOTO_ID } from "@/lib/start-photo-id";
+import {
+  bodyReportPhotoMediaPath,
+  startPhotoMediaPath,
+} from "@/lib/user-photo-media";
 import { resolveExerciseIdentity } from "@/lib/exercise-identity";
 import {
   buildProgressIntensitySummary,
@@ -120,7 +124,8 @@ export type ProgressMeasureRow = {
 export type ProgressPhotoItem = {
   id: string;
   reportId: string;
-  dataUrl: string;
+  /** Autoryzowany URL — bez data URL w payloadzie RSC. */
+  src: string;
   date: string;
   weightKg: number | null;
   waistCm: number | null;
@@ -881,21 +886,21 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
     photoItems.push({
       id: front.id,
       reportId: r.id,
-      dataUrl: front.dataUrl,
+      src: bodyReportPhotoMediaPath(front.id),
       date,
       weightKg: r.weightKg,
       waistCm: r.waistCm,
     });
   }
-  const customStartUrl = maybeDecryptSensitiveField(
-    settingsRow?.startPhotoDataUrl ?? null,
+  const hasCustomStartPhoto = Boolean(
+    settingsRow?.startPhotoDataUrl?.trim(),
   );
   const firstReportPhoto = photoItems[0] ?? null;
-  const startPhoto: ProgressPhotoItem | null = customStartUrl
+  const startPhoto: ProgressPhotoItem | null = hasCustomStartPhoto
     ? {
         id: CUSTOM_START_PHOTO_ID,
         reportId: "",
-        dataUrl: customStartUrl,
+        src: startPhotoMediaPath(),
         date: firstReportPhoto?.date ?? today,
         weightKg: firstReportPhoto?.weightKg ?? null,
         waistCm: firstReportPhoto?.waistCm ?? null,
@@ -1087,7 +1092,7 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
       items: photoItems,
       start: startPhoto,
       now: nowPhoto,
-      hasCustomStart: Boolean(customStartUrl),
+      hasCustomStart: hasCustomStartPhoto,
       weightDeltaKg,
       waistDeltaCm,
     },

@@ -6,6 +6,7 @@ import {
   parseCardioLog,
   type CardioLogPayload,
 } from "@/lib/cardio";
+import { cardioLogHasDevicePhoto } from "@/lib/cardio-device-photo";
 
 export type CardioActivity = {
   id: string;
@@ -13,6 +14,7 @@ export type CardioActivity = {
   minutes: number;
   payload: CardioLogPayload;
   paceMinPerKm: number | null;
+  hasDevicePhoto: boolean;
 };
 
 export async function getCardioActivity(
@@ -36,6 +38,13 @@ export async function getCardioActivity(
   const payload = parseCardioLog(parsed);
   if (!payload) return null;
 
+  const rawPhoto =
+    parsed &&
+    typeof parsed === "object" &&
+    typeof (parsed as Record<string, unknown>).devicePhotoDataUrl === "string"
+      ? ((parsed as Record<string, unknown>).devicePhotoDataUrl as string)
+      : null;
+
   const minutes = row.cardioMinutes ?? 0;
   const pace =
     payload.paceMinPerKm ??
@@ -45,7 +54,8 @@ export async function getCardioActivity(
     id: row.id,
     date: row.date,
     minutes,
-    payload: { ...payload, paceMinPerKm: pace },
+    payload: { ...payload, paceMinPerKm: pace, devicePhotoDataUrl: null },
     paceMinPerKm: pace,
+    hasDevicePhoto: cardioLogHasDevicePhoto(rawPhoto),
   };
 }

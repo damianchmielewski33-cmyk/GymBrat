@@ -137,7 +137,7 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
           <>
             <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-black">
               <Image
-                src={now!.dataUrl}
+                src={now!.src}
                 alt="Zdjęcie teraz"
                 fill
                 unoptimized
@@ -149,7 +149,7 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
                 style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
               >
                 <Image
-                  src={start!.dataUrl}
+                  src={start!.src}
                   alt="Zdjęcie startowe"
                   fill
                   unoptimized
@@ -207,7 +207,7 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
                 )}
               >
                 <Image
-                  src={p.dataUrl}
+                  src={p.src}
                   alt={`Zdjęcie z ${p.date}`}
                   fill
                   unoptimized
@@ -322,7 +322,7 @@ function PhotoMetricCard({
       <div className="relative aspect-[3/4] bg-black/40">
         {photo ? (
           <Image
-            src={photo.dataUrl}
+            src={photo.src}
             alt={isNow ? "Teraz" : "Start"}
             fill
             unoptimized

@@ -24,6 +24,7 @@ import {
   type CardioLogPayload,
 } from "@/lib/cardio";
 import { cn } from "@/lib/utils";
+import { cardioDevicePhotoMediaPath } from "@/lib/user-photo-media";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 
 type Props = {
@@ -32,6 +33,7 @@ type Props = {
   minutes: number;
   payload: CardioLogPayload;
   paceMinPerKm: number | null;
+  hasDevicePhoto: boolean;
 };
 
 export function CardioDetailClient({
@@ -40,12 +42,17 @@ export function CardioDetailClient({
   minutes,
   payload,
   paceMinPerKm,
+  hasDevicePhoto: hasDevicePhotoInitial,
 }: Props) {
   const router = useRouter();
   const { notifySaved, notifyError } = useSaveFeedback();
   const [pending, start] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
-  const [photo, setPhoto] = useState(payload.devicePhotoDataUrl);
+  const [photoVersion, setPhotoVersion] = useState(0);
+  const [hasDevicePhoto, setHasDevicePhoto] = useState(hasDevicePhotoInitial);
+  const photoSrc = hasDevicePhoto
+    ? `${cardioDevicePhotoMediaPath(id)}?v=${photoVersion}`
+    : null;
   const fileRef = useRef<HTMLInputElement>(null);
 
   const title = payload.title || "Cardio";
@@ -76,7 +83,8 @@ export function CardioDetailClient({
       start(async () => {
         const res = await setCardioDevicePhotoAction(id, dataUrl);
         if (res.ok) {
-          setPhoto(dataUrl);
+          setHasDevicePhoto(true);
+          setPhotoVersion((v) => v + 1);
           notifySaved("Dodano zdjęcie ekranu.");
         } else {
           notifyError(res.error);
@@ -241,10 +249,10 @@ export function CardioDetailClient({
             onChange={(e) => onPickPhoto(e.target.files?.[0] ?? null)}
           />
         </div>
-        {photo ? (
+        {photoSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={photo}
+            src={photoSrc}
             alt="Ekran urządzenia"
             className="mt-2 max-h-56 w-full rounded-2xl object-cover"
           />

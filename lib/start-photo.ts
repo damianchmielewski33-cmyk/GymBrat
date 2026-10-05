@@ -6,6 +6,16 @@ import {
   maybeDecryptSensitiveField,
 } from "@/lib/app-field-crypto";
 
+export async function hasStartPhoto(userId: string): Promise<boolean> {
+  const db = getDb();
+  const [row] = await db
+    .select({ startPhotoDataUrl: userSettings.startPhotoDataUrl })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
+  return Boolean(row?.startPhotoDataUrl?.trim());
+}
+
 export async function loadStartPhotoDataUrl(
   userId: string,
 ): Promise<string | null> {

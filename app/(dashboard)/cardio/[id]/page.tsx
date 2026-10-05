@@ -22,6 +22,7 @@ export default async function CardioDetailPage({
       minutes={activity.minutes}
       payload={activity.payload}
       paceMinPerKm={activity.paceMinPerKm}
+      hasDevicePhoto={activity.hasDevicePhoto}
     />
   );
 }

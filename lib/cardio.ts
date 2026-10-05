@@ -6,6 +6,7 @@ import {
   countableCardioMinutes,
   parseWorkoutSessionJson,
 } from "@/lib/workout-cardio-attribution";
+import { decryptCardioDevicePhoto } from "@/lib/cardio-device-photo";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -209,8 +210,9 @@ export function parseCardioLog(raw: unknown): CardioLogPayload | null {
       typeof o.paceMinPerKm === "number" && Number.isFinite(o.paceMinPerKm)
         ? o.paceMinPerKm
         : null,
-    devicePhotoDataUrl:
+    devicePhotoDataUrl: decryptCardioDevicePhoto(
       typeof o.devicePhotoDataUrl === "string" ? o.devicePhotoDataUrl : null,
+    ),
   };
 }
 

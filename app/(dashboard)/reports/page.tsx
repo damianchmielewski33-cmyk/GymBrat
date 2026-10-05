@@ -59,7 +59,7 @@ export default async function ReportsPage() {
     : null;
 
   return (
-    <div className="theme-black-gold space-y-6">
+    <div className="theme-black-gold space-y-6 pb-2">
       <Suspense fallback={null}>
         <QueuedWorkoutBanner />
       </Suspense>
@@ -107,7 +107,7 @@ export default async function ReportsPage() {
           cardioCompliance: r.cardioCompliance,
           dietCompliance: r.dietCompliance,
           trainingCompliance: r.trainingCompliance,
-          photos: r.photos,
+          photos: r.photos.map((p) => ({ id: p.id })),
         }))}
       />
     </div>

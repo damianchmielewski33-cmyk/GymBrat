@@ -11,6 +11,7 @@ import {
   type CardioLogPayload,
 } from "@/lib/cardio";
 import { calendarDateKey } from "@/lib/local-date";
+import { encryptCardioDevicePhoto } from "@/lib/cardio-device-photo";
 
 function revalidateCardio(id?: string) {
   revalidatePath("/");
@@ -142,7 +143,7 @@ export async function updateCardioLogAction(
     calories: kcal,
     steps: stepN,
     paceMinPerKm: computePaceMinPerKm(dist, minutes),
-    devicePhotoDataUrl: existingPhoto,
+    devicePhotoDataUrl: encryptCardioDevicePhoto(existingPhoto),
   };
 
   await db
@@ -209,7 +210,10 @@ export async function setCardioDevicePhotoAction(
   );
   if (!payload) return { ok: false as const, error: "To nie jest wpis cardio." };
 
-  payload = { ...payload, devicePhotoDataUrl: dataUrl };
+  payload = {
+    ...payload,
+    devicePhotoDataUrl: dataUrl ? encryptCardioDevicePhoto(dataUrl) : null,
+  };
   await db
     .update(workouts)
     .set({ exercises: JSON.stringify(payload) })

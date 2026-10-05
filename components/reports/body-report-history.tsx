@@ -21,7 +21,7 @@ export type HistoryReportRow = {
   cardioCompliance: string | null;
   dietCompliance: string | null;
   trainingCompliance: string | null;
-  photos: { id: string; dataUrl: string }[];
+  photos: { id: string }[];
 };
 
 type Props = {
@@ -109,7 +109,7 @@ export function BodyReportHistory({ reports }: Props) {
   }, [reports, chronological]);
 
   return (
-    <div className="theme-black-gold overflow-hidden rounded-3xl border border-white/[0.08] bg-[#161618] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+    <div className="theme-black-gold rounded-3xl border border-white/[0.08] bg-[#161618] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-4 sm:px-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d4af37]">
           Historia pomiarów
@@ -149,8 +149,8 @@ export function BodyReportHistory({ reports }: Props) {
             ))}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-sm">
+          <div className="overflow-x-auto overscroll-x-contain rounded-b-3xl pb-3 [-webkit-overflow-scrolling:touch] [scrollbar-color:rgba(255,255,255,0.18)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent">
+            <table className="min-w-[640px] w-full border-collapse text-sm">
               <thead>
                 <tr className="text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
                   <th className="sticky left-0 z-10 bg-[#161618] px-3 py-3 sm:px-4">Data</th>
@@ -225,8 +225,12 @@ export function BodyReportHistory({ reports }: Props) {
                           </td>
                         </>
                       ) : null}
-                      <td className="px-3 py-3">
-                        <ReportPhotoToggle reportId={r.id} photos={r.photos} />
+                      <td className="px-3 py-3 align-top">
+                        <ReportPhotoToggle
+                          reportId={r.id}
+                          photos={r.photos}
+                          compact
+                        />
                       </td>
                     </tr>
                   ),

@@ -1,4 +1,7 @@
+import { Suspense } from "react";
 import { getWorkoutPlansWithLastWorkout } from "@/actions/workout-plan";
+import { HomePrzemianaSectionLoader } from "@/components/home/home-przemiana-section-loader";
+import { HomePrzemianaSkeleton } from "@/components/home/home-przemiana-skeleton";
 import { HomeTodayView } from "@/components/home/home-today-view";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
@@ -59,11 +62,8 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
 
   return (
     <HomeTodayView
-      firstName={dash.firstName}
-      lastName={dash.lastName}
       reportCount={dash.reportCount}
       daysSinceLastReport={dash.daysSinceLastReport}
-      reportCadenceDays={dash.reportCadenceDays}
       showOnboarding={!settingsRow?.onboardingCompletedAt}
       recommendedPlanId={recommendedId}
       planName={dash.nextWorkout?.planName ?? null}
@@ -82,7 +82,14 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
       compliance={dash.compliance}
       formToday={dash.formToday}
       coachNote={dash.coachNote}
-      transformation={dash.transformation}
+      przemianaSlot={
+        <Suspense fallback={<HomePrzemianaSkeleton />}>
+          <HomePrzemianaSectionLoader
+            userId={userId}
+            weightFromStartKg={dash.weightFromStartKg}
+          />
+        </Suspense>
+      }
       dimensions={{
         waistCm: dash.dimensions.waistCm,
         thighCm: dash.dimensions.thighCm,
