@@ -197,6 +197,9 @@ export async function POST(req: Request) {
         revalidatePath("/");
         revalidatePath("/reports");
         revalidatePath("/active-workout");
+        revalidatePath("/workout-history");
+        revalidatePath("/workout-plan");
+        revalidatePath("/progress");
       }
       return passThroughJavaResponse(javaRes);
     }

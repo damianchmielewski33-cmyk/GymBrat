@@ -11,7 +11,6 @@ import {
   Menu,
   ScrollText,
   Shield,
-  Sparkles,
   User,
   X,
 } from "lucide-react";
@@ -23,8 +22,11 @@ import { cn } from "@/lib/utils";
 
 export function AppMenuButton({
   variant = "icon",
+  initials,
 }: {
-  variant?: "icon" | "home";
+  variant?: "icon" | "initials";
+  /** Skrót imienia/nazwiska — trigger menu na Pulpicie (bez osobnego „Menu”). */
+  initials?: string;
 }) {
   const { t } = useI18n();
   const pathname = usePathname();
@@ -39,7 +41,6 @@ export function AppMenuButton({
     { href: "/reports", label: t("nav.reports"), icon: BarChart3 },
     { href: "/progress", label: t("nav.progress"), icon: LineChart },
     { href: "/workout-history", label: t("nav.history"), icon: ScrollText },
-    { href: "/changelog", label: t("nav.news"), icon: Sparkles },
   ];
 
   useEffect(() => {
@@ -65,23 +66,24 @@ export function AppMenuButton({
       <SheetTrigger
         ref={triggerRef}
         className={cn(
-          "outline-none",
-          variant === "home"
-            ? "flex flex-col items-center gap-0.5 text-[var(--gym-gold)]"
+          "outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]",
+          variant === "initials"
+            ? "inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-[var(--gym-gold)]/70 bg-[var(--gym-gold)]/10 text-sm font-semibold tracking-wide text-white transition-colors hover:border-[var(--gym-gold)] hover:bg-[var(--gym-gold)]/15"
             : "inline-flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white",
         )}
         aria-label={open ? "Zamknij menu" : "Otwórz menu"}
       >
-        {open ? (
+        {variant === "initials" ? (
+          open ? (
+            <X className="h-5 w-5 text-[var(--gym-gold)]" aria-hidden />
+          ) : (
+            <span aria-hidden>{initials?.trim() || "?"}</span>
+          )
+        ) : open ? (
           <X className="h-5 w-5" />
         ) : (
           <Menu className="h-5 w-5" />
         )}
-        {variant === "home" ? (
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em]">
-            Menu
-          </span>
-        ) : null}
       </SheetTrigger>
       <SheetContent
         side="right"

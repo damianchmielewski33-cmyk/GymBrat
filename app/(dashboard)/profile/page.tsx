@@ -6,7 +6,7 @@ import { ProfileGoalForm } from "@/components/profile/profile-goal-form";
 import { BodyParamsForm } from "@/components/profile/body-params-form";
 import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { LogoutButton } from "@/components/profile/logout-button";
-import { CalendarRange, Dumbbell, ScrollText, Shield, User as UserIcon } from "lucide-react";
+import { CalendarRange, Dumbbell, Shield, User as UserIcon } from "lucide-react";
 import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { mealTemplatesForProfile } from "@/lib/meal-templates";
@@ -102,18 +102,7 @@ export default async function ProfilePage() {
         kicker="Zawodnik"
         title="Profil"
         description="Ustawienia używane w Pulpicie, Diecie, Treningach i Raportach."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/changelog"
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-white/15 bg-white/[0.04] px-4 text-sm font-medium text-white/85 hover:bg-white/[0.08]"
-            >
-              <ScrollText className="h-4 w-4" aria-hidden />
-              Nowości
-            </Link>
-            <LogoutButton className="h-11 rounded-2xl" />
-          </div>
-        }
+        actions={<LogoutButton className="h-11 rounded-2xl" />}
       />
 
       <AndroidAppVersionCard />

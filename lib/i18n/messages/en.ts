@@ -12,7 +12,6 @@ export const en = {
     analysis: "Analysis",
     progress: "Progress",
     history: "History",
-    news: "What’s new",
     messages: "Messages",
     inbox: "Inbox",
     profile: "Profile",

@@ -245,7 +245,7 @@ Zmiany GymBrat mają być **jasno opisane** i iść **z tego repozytorium** (`da
 - Prompt automatyzacji (do wklejenia w Cursor Automations): `.cursor/automations/deploy-guardian.md`
 - CI: `.github/workflows/deploy-guardian.yml` — blokuje obce repo i PR-y UI bez changelogu
 - Lokalnie: `npm run deploy:check`
-- Produkcja: publiczny `GET /api/version` oraz karta źródła na `/changelog`
+- Produkcja: publiczny `GET /api/version` (kontrakt wersji / changelogu wdrożeń)
 - Preview: ten sam endpoint może zawierać `plannedChangelog` (zapowiedź); na produkcji tylko wdrożone wpisy
 
 ### Database retention (protect free Turso storage)

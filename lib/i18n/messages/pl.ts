@@ -12,7 +12,6 @@ export const pl = {
     analysis: "Analiza",
     progress: "Postępy",
     history: "Historia",
-    news: "Nowości",
     messages: "Wiadomości",
     inbox: "Skrzynka",
     profile: "Profil",

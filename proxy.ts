@@ -87,11 +87,6 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  /** Changelog dostępny bez logowania (sesja opcjonalna). */
-  if (pathname === "/changelog") {
-    return NextResponse.next();
-  }
-
   const token = await readSessionToken(req);
 
   if (isAnonymousPublicPath(pathname)) {

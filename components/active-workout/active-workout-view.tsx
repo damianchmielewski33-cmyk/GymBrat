@@ -657,10 +657,12 @@ export function ActiveWorkoutView({
         router.push(
           `/progress/exercises/${encodeURIComponent(primary.exerciseName)}`,
         );
+        router.refresh();
       } else {
         hapticWorkoutDone();
         sessionStorage.removeItem("gymbrat:newMaxToast");
         router.push("/workout-plan");
+        router.refresh();
       }
       if (result.status === "queued") {
         sessionStorage.setItem("gymbrat:workoutQueued", "1");

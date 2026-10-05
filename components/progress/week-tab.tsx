@@ -5,6 +5,7 @@ import { Dumbbell, Flame, Medal, Scale, Trophy, Utensils } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
 import { WeekBarChart } from "@/components/progress/week-bar-chart";
+import { WeekProgressCalendarCard } from "@/components/progress/week-progress-calendar-card";
 import type { AchievementIcon } from "@/lib/achievements";
 import {
   dietWeekStatusLabel,
@@ -12,15 +13,8 @@ import {
   type ProgressDietTrainingWeek,
 } from "@/lib/diet-training-weeks";
 import type { ProgressHubData } from "@/lib/progress-hub";
-import { formatHistoryWeekRange, formatTonnes } from "@/lib/workout-history-overview";
+import { formatTonnes } from "@/lib/workout-history-overview";
 import { cn } from "@/lib/utils";
-
-function daysLeftLabel(n: number): string {
-  if (n <= 0) return "tydzień się kończy";
-  if (n === 1) return "został 1 dzień";
-  if (n >= 2 && n <= 4) return `zostało ${n} dni`;
-  return `zostało ${n} dni`;
-}
 
 function wejscLabel(n: number): string {
   if (n === 1) return "1 wejście";
@@ -204,99 +198,54 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/30 bg-gradient-to-b from-[rgba(var(--neon-rgb),0.14)] via-[var(--gym-surface-sunken)] to-[var(--gym-surface-sunken)] p-4">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-            {formatHistoryWeekRange(summary.monday)}
-          </p>
-          <p className="text-[11px] text-white/40">
-            {daysLeftLabel(summary.daysLeft)}
-          </p>
-        </div>
-
-        <p className="mt-3 flex items-baseline gap-2">
-          <AnimatedMetric
-            value={summary.done}
-            className="text-[2.75rem] leading-none text-white"
-          />
-          <span className="text-[15px] text-white/55">
-            z {summary.target} treningów
-          </span>
-        </p>
-
-        <div className="mt-4 flex justify-between gap-1">
-          {summary.days.map((d) => {
-            const isToday = d.date === summary.today;
-            return (
-              <div
-                key={d.date}
-                className="flex flex-1 flex-col items-center gap-1.5"
-              >
-                <span
-                  className={cn(
-                    "text-[10px] font-semibold uppercase tracking-wider",
-                    d.strength || isToday ? "text-white/70" : "text-white/35",
-                  )}
-                >
-                  {d.label}
-                </span>
-                <div className="relative flex h-10 w-10 items-center justify-center">
-                  <div
-                    className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-full border",
-                      d.strength
-                        ? "border-[var(--gym-gold)] bg-[var(--gym-gold)] text-black"
-                        : isToday
-                          ? "border-[var(--gym-gold)]/80 bg-transparent"
-                          : "border-white/12 bg-white/[0.03]",
-                    )}
-                  />
-                  {d.cardio ? (
-                    <span
-                      className="absolute -bottom-0.5 h-1.5 w-1.5 rounded-full bg-sky-400"
-                      aria-label="Cardio"
-                    />
-                  ) : null}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <p className="mt-3.5 text-[11px] text-white/40">
-          Złote kółko — trening, niebieska kropka — cardio.
-        </p>
-      </section>
+      <WeekProgressCalendarCard
+        monday={summary.monday}
+        daysLeft={summary.daysLeft}
+        done={summary.done}
+        target={summary.target}
+        days={summary.days}
+        today={summary.today}
+      />
 
       <section className="space-y-2.5">
-        <SectionLabel index={1} title="W tym tygodniu" titleTone="white" />
+        <SectionLabel
+          className="items-center"
+          index={1}
+          title="W tym tygodniu"
+          titleTone="white"
+        />
         <div className="space-y-3 app-panel px-3.5 py-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-4">
+            <div className="flex min-w-0 items-start justify-between gap-2">
+              <p className="pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
                 Tonaż
               </p>
-              <p className="mt-1.5 font-metric text-[1.85rem] leading-none text-white">
-                <AnimatedMetric value={tonnageTonnes} decimals={1} />
-                <span className="ml-1 text-base text-white/40">t</span>
-              </p>
-              <p className="mt-1.5 text-[11px] text-white/40">
-                cały poprzedni tydzień {formatTonnes(summary.prevWeekTonnageKg).replace(" t", "")} t
-              </p>
+              <div className="min-w-0 text-right">
+                <p className="font-metric text-[1.85rem] leading-none text-white">
+                  <AnimatedMetric value={tonnageTonnes} decimals={1} />
+                  <span className="ml-1 text-base text-white/40">t</span>
+                </p>
+                <p className="mt-1.5 text-[11px] leading-snug text-white/40">
+                  cały poprzedni tydzień{" "}
+                  {formatTonnes(summary.prevWeekTonnageKg).replace(" t", "")} t
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            <div className="flex min-w-0 items-start justify-between gap-2">
+              <p className="pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
                 Cardio
               </p>
-              <p className="mt-1.5 font-metric text-[1.85rem] leading-none text-white">
-                <AnimatedMetric value={summary.cardioMinutes} />
-                <span className="ml-1 text-base text-white/40">min</span>
-              </p>
-              <p className="mt-1.5 text-[11px] text-white/40">
-                {wejscLabel(summary.cardioEntries)}
-                <span className="mx-1 text-white/25">·</span>
-                Zalecenie: {summary.cardioGoalMinutes}
-              </p>
+              <div className="min-w-0 text-right">
+                <p className="font-metric text-[1.85rem] leading-none text-white">
+                  <AnimatedMetric value={summary.cardioMinutes} />
+                  <span className="ml-1 text-base text-white/40">min</span>
+                </p>
+                <p className="mt-1.5 text-[11px] leading-snug text-white/40">
+                  {wejscLabel(summary.cardioEntries)}
+                  <span className="mx-1 text-white/25">·</span>
+                  Zalecenie: {summary.cardioGoalMinutes}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -317,6 +266,7 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
 
       <section className="space-y-2.5">
         <SectionLabel
+          className="items-center"
           index={2}
           title="Dieta vs trening"
           trailing="8 tyg."
@@ -352,7 +302,12 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
       </section>
 
       <section className="space-y-2.5">
-        <SectionLabel index={3} title="Ostatnie 8 tygodni" titleTone="white" />
+        <SectionLabel
+          className="items-center"
+          index={3}
+          title="Ostatnie 8 tygodni"
+          titleTone="white"
+        />
         <div className="app-panel p-3.5">
           <WeekBarChart weeks={last8} />
         </div>

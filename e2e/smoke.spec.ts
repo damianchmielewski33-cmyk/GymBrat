@@ -5,15 +5,6 @@ test("strona logowania wyświetla markę GymBrat", async ({ page }) => {
   await expect(page.getByRole("link", { name: /gym.?brat/i }).first()).toBeVisible();
 });
 
-test("changelog jest dostępny bez logowania", async ({ page }) => {
-  await page.goto("/changelog");
-  await expect(page.getByRole("heading", { name: /nowości i plan/i })).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: /źródło tej wersji: repozytorium gymbrat/i }),
-  ).toBeVisible();
-  await expect(page.getByText("damianchmielewski33-cmyk/GymBrat").first()).toBeVisible();
-});
-
 test("endpoint wersji Androida jest publiczny i zwraca JSON", async ({ request }) => {
   const res = await request.get("/api/android/version");
   expect(res.status()).toBe(200);

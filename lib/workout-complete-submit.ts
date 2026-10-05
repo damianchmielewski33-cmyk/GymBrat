@@ -10,6 +10,7 @@ import {
   type PendingWorkoutPayload,
 } from "@/lib/workout-outbox-db";
 import type { WorkoutPlanComparePayload } from "@/lib/workout-plan-compare";
+import { markWorkoutDataStaleForRouter } from "@/lib/workout-data-stale";
 
 export type CompleteWorkoutInput = PendingWorkoutPayload;
 
@@ -64,11 +65,13 @@ export async function submitCompletedWorkout(
         : null;
     const planCompare =
       data.planCompare && typeof data.planCompare === "object" ? data.planCompare : null;
+    markWorkoutDataStaleForRouter();
     return { status: "saved", strengthDeltaPercent, planCompare };
   } catch (e) {
     if (isLikelyNetworkFailure(e) && isOutboxSupported()) {
       try {
         const localId = await outboxEnqueue(body);
+        markWorkoutDataStaleForRouter();
         return { status: "queued", localId };
       } catch {
         /* fall through */

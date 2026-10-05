@@ -155,12 +155,10 @@ export function HomeTodayView(props: HomeTodayViewProps) {
           </p>
         </div>
 
-        <div className="flex shrink-0 flex-col items-center gap-2">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border-2 border-[var(--gym-gold)]/70 bg-[var(--gym-gold)]/10 font-semibold tracking-wide text-white">
-            {initials(props.firstName, props.lastName)}
-          </span>
-          <AppMenuButton variant="home" />
-        </div>
+        <AppMenuButton
+          variant="initials"
+          initials={initials(props.firstName, props.lastName)}
+        />
       </header>
 
       {props.showOnboarding ? <OnboardingBanner /> : null}

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { outboxList, outboxRemove } from "@/lib/workout-outbox-db";
+import { markWorkoutDataStaleForRouter } from "@/lib/workout-data-stale";
 
 /**
  * Próbuje wysłać oczekujące treningi po powrocie online / przy starcie aplikacji.
@@ -34,6 +35,7 @@ export function WorkoutOutboxFlush() {
             const data = (await res.json()) as { ok?: boolean };
             if (res.ok && data.ok) {
               await outboxRemove(item.id);
+              markWorkoutDataStaleForRouter();
             }
           } catch {
             /* następna próba przy kolejnym odświeżeniu / online */
