@@ -3,15 +3,15 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { NutritionWeekView } from "@/components/nutrition/nutrition-week-view";
+import { NutritionTodayView } from "@/components/nutrition/nutrition-today-view";
 import { loadNutritionWeekHistory } from "@/lib/nutrition-dashboard";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { calendarDateKey } from "@/lib/local-date";
 
-export default async function NutritionWeekPage() {
+export default async function NutritionTodayPage() {
   const session = await auth();
   const userId = session?.user?.id;
-  if (!userId) redirect("/login?callbackUrl=/nutrition/week");
+  if (!userId) redirect("/login?callbackUrl=/nutrition/today");
 
   const db = getDb();
   const [settingsRow] = await db
@@ -32,7 +32,10 @@ export default async function NutritionWeekPage() {
       nutritionDayTypesJson: null,
     },
   );
-  const weeks = await loadNutritionWeekHistory(userId, settings, todayKey);
+  const weeks = await loadNutritionWeekHistory(userId, settings, todayKey, 0);
+  const currentWeek = weeks[0] ?? null;
 
-  return <NutritionWeekView todayKey={todayKey} weeks={weeks} />;
+  return (
+    <NutritionTodayView todayKey={todayKey} currentWeek={currentWeek} />
+  );
 }

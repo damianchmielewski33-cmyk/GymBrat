@@ -7,7 +7,6 @@ import { ProgressTabs } from "@/components/progress/progress-tabs";
 import { ProgressPageContent } from "@/components/progress/progress-page-content";
 import { DashboardRouteSkeleton } from "@/components/layout/dashboard-route-skeleton";
 import { parseProgressTab } from "@/lib/progress-tabs";
-import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
 
 export default async function ProgressPage({
   searchParams,
@@ -45,8 +44,6 @@ export default async function ProgressPage({
       <Suspense fallback={<DashboardRouteSkeleton />}>
         <ProgressPageContent userId={userId} tab={tab} />
       </Suspense>
-
-      <WorkoutCompletePopup />
     </div>
   );
 }

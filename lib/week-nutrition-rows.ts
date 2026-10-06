@@ -1,4 +1,9 @@
 import type { FitatuDaySummary } from "@/types/fitatu";
+import {
+  rollupWeekThroughIndex,
+  weekDayIndexThroughToday as weekDayIndexThroughTodayImpl,
+  weekRollupPickFromMacros,
+} from "@/lib/nutrition-week-stats";
 
 /** Jedna linia tygodnia do podglądu szczegółów (popup). */
 export type WeekDayNutritionRow = {
@@ -46,4 +51,34 @@ export function buildWeekNutritionRows(
       carbsGoal: mg != null && mg.carbs > 0 ? mg.carbs : null,
     };
   });
+}
+
+/**
+ * Sumy makro od poniedziałku do indeksu dnia (0 = pn … 6 = nd).
+ * Spożycie i cele tylko z dni mających cel — bez zawyżania % przez dni bez celu.
+ */
+export function rollupDayRowsThroughIndex(
+  rows: WeekDayNutritionRow[],
+  throughIndexInclusive: number,
+): {
+  sumProteinGoal: number;
+  sumProteinConsumed: number;
+  sumFatGoal: number;
+  sumFatConsumed: number;
+  sumCarbsGoal: number;
+  sumCarbsConsumed: number;
+  sumCaloriesGoal: number;
+  sumCaloriesConsumed: number;
+} {
+  return weekRollupPickFromMacros(
+    rollupWeekThroughIndex(rows, throughIndexInclusive),
+  );
+}
+
+/** Indeks dnia w tygodniu pn→nd dla `todayKey`, albo ostatni dzień gdy poza zakresem. */
+export function weekDayIndexThroughToday(
+  dayRows: WeekDayNutritionRow[],
+  todayKey: string,
+): number {
+  return weekDayIndexThroughTodayImpl(dayRows, todayKey);
 }

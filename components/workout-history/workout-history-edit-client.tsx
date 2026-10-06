@@ -269,7 +269,7 @@ export function WorkoutHistoryEditClient({
         </p>
       ) : null}
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-black/90 px-4 py-3 backdrop-blur-md">
+      <div className="fixed inset-x-0 bottom-0 z-[60] border-t border-white/10 bg-black/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-lg gap-2">
           <button
             type="button"

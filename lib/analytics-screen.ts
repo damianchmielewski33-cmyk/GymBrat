@@ -8,6 +8,8 @@ export const SCREEN_LABELS: Record<string, string> = {
   progress_analysis: "Analiza postępów",
   progress: "Postępy",
   nutrition_week: "Makro tydzień",
+  nutrition_today: "Makro dziś",
+  cardio: "Cardio",
   workout_history: "Historia treningów",
   profile: "Profil",
   login: "Logowanie",
@@ -35,8 +37,12 @@ export function getScreenFromPathname(
     return { key: "progress", label: SCREEN_LABELS.progress };
   if (path.startsWith("/progress-analysis"))
     return { key: "progress_analysis", label: SCREEN_LABELS.progress_analysis };
+  if (path.startsWith("/nutrition/today"))
+    return { key: "nutrition_today", label: SCREEN_LABELS.nutrition_today };
   if (path.startsWith("/nutrition/week"))
     return { key: "nutrition_week", label: SCREEN_LABELS.nutrition_week };
+  if (path.startsWith("/cardio"))
+    return { key: "cardio", label: SCREEN_LABELS.cardio };
   if (path.startsWith("/workout-history"))
     return { key: "workout_history", label: SCREEN_LABELS.workout_history };
   if (path.startsWith("/profile"))

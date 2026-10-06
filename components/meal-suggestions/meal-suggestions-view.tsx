@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   clearDietDayKindAction,
@@ -301,6 +308,17 @@ export function MealSuggestionsView({
     setScanSlot(slot);
     setScanOpen(true);
   }, []);
+
+  /** Wejście z pulpitu: ?tab=diary&add=1 → ekran dodawania / skanu. */
+  useEffect(() => {
+    if (searchParams.get("add") !== "1") return;
+    const slot = dietDiarySlotFromHour(new Date().getHours());
+    setAddSlot(slot);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("add");
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : "?", { scroll: false });
+  }, [searchParams, router]);
 
   const onBarcode = useCallback(
     (code: string) => {

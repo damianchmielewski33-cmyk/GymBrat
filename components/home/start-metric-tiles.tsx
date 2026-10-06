@@ -167,10 +167,12 @@ function MacroProgressTile({
   title,
   macros,
   href,
+  linkHint = "Kalendarz tygodnia →",
 }: {
   title: string;
   macros: HomeStartTodayMacros | HomeStartWeekMacros;
   href?: string;
+  linkHint?: string;
 }) {
   const hasGoals =
     macros.proteinGoal != null ||
@@ -252,7 +254,7 @@ function MacroProgressTile({
         <p className="mt-2 text-[10px] text-white/35">Ustaw cele w profilu</p>
       ) : href ? (
         <p className="mt-2 text-[10px] font-medium text-[var(--gym-gold)]/80">
-          Kalendarz tygodnia →
+          {linkHint}
         </p>
       ) : null}
     </>
@@ -266,7 +268,7 @@ function MacroProgressTile({
       <Link
         href={href}
         className={className}
-        aria-label={`${title} — otwórz kalendarz makro`}
+        aria-label={`${title} — otwórz szczegóły makro`}
       >
         {body}
       </Link>
@@ -328,7 +330,12 @@ export function StartMetricTiles({
           hint="z ostatniej sesji"
           hintTone="muted"
         />
-        <MacroProgressTile title="Makro dziś" macros={todayMacros} />
+        <MacroProgressTile
+          title="Makro dziś"
+          macros={todayMacros}
+          href="/nutrition/today"
+          linkHint="Bilans i odchylenia →"
+        />
         <MacroProgressTile
           title="Makro tydzień"
           macros={weekMacros}

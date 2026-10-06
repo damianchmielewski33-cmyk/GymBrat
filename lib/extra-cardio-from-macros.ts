@@ -2,6 +2,15 @@
  * Dodatkowe cardio przy nadwyżce makro / kcal.
  * Dług jest dynamiczny w skali tygodnia (pon–dziś): wczorajsza nadwyżka
  * widać dziś; po wyrównaniu dietą / cardio pasek znika.
+ *
+ * Wzór (skrót):
+ * 1) Nadwyżka dnia = max(kcal ponad cel, B×4 + W×4 + T×9 ponad cele)
+ * 2) Otwarty dług = Σ bilansów dni z danymi (pon–wczoraj)
+ *                 + dzisiejsza nadwyżka
+ *                 − miękki kredyt dziś (≥55% celu i poniżej celu)
+ *                 − spalenie cardio w tygodniu
+ * 3) Effective = dług × (1 − defer), defer ≤ 35% × szansa wyrównania dietą
+ * 4) Minuty = ceil(effective / kcal_na_min), clamp 5–90
  */
 
 export type MacroDaySnapshot = {
@@ -63,6 +72,13 @@ export type ExtraCardioAdvice = {
 const KCAL_PER_G = { protein: 4, carbs: 4, fat: 9 } as const;
 /** Poniżej progu nie męczymy UI drobnymi wahaniami. */
 const MIN_DEBT_KCAL = 60;
+/**
+ * Dzień bez sensownego spożycia nie jest „deficytem −cel”.
+ * Inaczej pusty wtorek (−2000) kasowałby wczorajszą nadwyżkę.
+ */
+const MEANINGFUL_INTAKE_PCT = 0.1;
+/** Miękki kredyt / kredyt z przeszłości dopiero przy realnym dniu posiłków. */
+const SOFT_CREDIT_INTAKE_PCT = 0.55;
 
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
@@ -99,16 +115,46 @@ export function macroSurplusKcal(day: MacroDaySnapshot): {
   return { surplusKcal, exceeded };
 }
 
-/** Bilans dnia: + nadwyżka, − deficyt względem celu kcal (z uwzględnieniem makro). */
-export function dayCalorieBalance(day: MacroDaySnapshot): number | null {
-  if (day.caloriesGoal == null || !(day.caloriesGoal > 0)) {
-    const { surplusKcal } = macroSurplusKcal(day);
-    return surplusKcal > 0 ? surplusKcal : null;
-  }
-  const calNet = Math.round(day.caloriesConsumed - day.caloriesGoal);
+function hasMeaningfulIntake(day: MacroDaySnapshot): boolean {
   const { surplusKcal } = macroSurplusKcal(day);
-  if (calNet >= 0) return Math.max(calNet, surplusKcal);
-  return calNet;
+  if (surplusKcal > 0) return true;
+  if (day.caloriesConsumed > 0) {
+    if (day.caloriesGoal == null || !(day.caloriesGoal > 0)) return true;
+    return day.caloriesConsumed >= day.caloriesGoal * MEANINGFUL_INTAKE_PCT;
+  }
+  return (
+    day.proteinConsumed > 0 || day.carbsConsumed > 0 || day.fatConsumed > 0
+  );
+}
+
+/**
+ * Bilans dnia do sumy tygodnia:
+ * - nadwyżka → +kcal,
+ * - realny deficyt (≥55% celu i poniżej) → −kcal,
+ * - pusty / ledwo zaczęty dzień → null (nie kasuje długu).
+ */
+export function dayCalorieBalance(day: MacroDaySnapshot): number | null {
+  const { surplusKcal } = macroSurplusKcal(day);
+  if (surplusKcal > 0) {
+    if (day.caloriesGoal != null && day.caloriesGoal > 0) {
+      const calNet = Math.round(day.caloriesConsumed - day.caloriesGoal);
+      return Math.max(calNet, surplusKcal);
+    }
+    return surplusKcal;
+  }
+
+  if (!hasMeaningfulIntake(day)) return null;
+
+  if (day.caloriesGoal == null || !(day.caloriesGoal > 0)) return null;
+
+  const calNet = Math.round(day.caloriesConsumed - day.caloriesGoal);
+  if (calNet >= 0) return calNet;
+
+  // Kredyt deficytu tylko gdy dzień jest „w toku” (≥55% celu).
+  if (day.caloriesConsumed >= day.caloriesGoal * SOFT_CREDIT_INTAKE_PCT) {
+    return calNet;
+  }
+  return null;
 }
 
 export function daysLeftInWeekIncludingToday(
@@ -122,6 +168,7 @@ export function daysLeftInWeekIncludingToday(
 
 /**
  * Szacunek spalania kcal/min z historii albo z tempa + masy.
+ * kcal/min ≈ MET × masa_kg / 60; MET ≈ 1.15 × km/h z tempa.
  */
 export function estimateBurnKcalPerMin(input: {
   weightKg: number | null;
@@ -174,15 +221,26 @@ export function estimateBurnKcalPerMin(input: {
   };
 }
 
-function cardioKcalInWeek(
+/**
+ * Spalone kcal cardio w bieżącym tygodniu.
+ * Gdy brak kcal w wpisie — szacunek z minut × burnKcalPerMin.
+ */
+export function cardioKcalInWeek(
   samples: RecentCardioSample[],
   weekKeys: string[],
+  burnKcalPerMin: number,
 ): number {
   const set = new Set(weekKeys);
   let sum = 0;
   for (const s of samples) {
-    if (s.dateKey && !set.has(s.dateKey)) continue;
-    if (s.calories != null && s.calories > 0) sum += s.calories;
+    if (!s.dateKey || !set.has(s.dateKey)) continue;
+    if (s.calories != null && s.calories > 0) {
+      sum += s.calories;
+      continue;
+    }
+    if (s.minutes > 0 && burnKcalPerMin > 0) {
+      sum += s.minutes * burnKcalPerMin;
+    }
   }
   return Math.round(sum);
 }
@@ -190,16 +248,17 @@ function cardioKcalInWeek(
 /**
  * Otwarty dług makro/kcal w tygodniu:
  * - wczorajsza (i wcześniejsza) nadwyżka przenosi się na dziś,
- * - dzisiejszy niewykorzystany cel NIE kasuje długu rano (inaczej pasek znikałby bez sensu),
+ * - puste dni nie kasują długu (nie liczą się jako −cel),
+ * - dzisiejszy niewykorzystany cel NIE kasuje długu rano,
  * - wieczorem / po zjedzeniu ≥55% celu pod celem — miękki kredyt z dziś,
- * - spalenie z cardio w tygodniu obniża dług,
- * - po pełnym wyrównaniu (jutro w „przeszłości”) pasek znika.
+ * - spalenie z cardio w tygodniu obniża dług.
  */
 export function computeOpenMacroDebt(input: {
   todayKey: string;
   elapsedDays: Array<{ dateKey: string; day: MacroDaySnapshot }>;
   recentCardio: RecentCardioSample[];
   weekKeys: string[];
+  burnKcalPerMin: number;
 }): {
   openDebtKcal: number;
   pastDebtKcal: number;
@@ -233,14 +292,20 @@ export function computeOpenMacroDebt(input: {
     if (
       today.caloriesGoal != null &&
       today.caloriesGoal > 0 &&
-      today.caloriesConsumed >= today.caloriesGoal * 0.55 &&
+      today.caloriesConsumed >= today.caloriesGoal * SOFT_CREDIT_INTAKE_PCT &&
       today.caloriesConsumed < today.caloriesGoal
     ) {
-      todaySoftCreditKcal = Math.round(today.caloriesGoal - today.caloriesConsumed);
+      todaySoftCreditKcal = Math.round(
+        today.caloriesGoal - today.caloriesConsumed,
+      );
     }
   }
 
-  const cardioOffsetKcal = cardioKcalInWeek(input.recentCardio, input.weekKeys);
+  const cardioOffsetKcal = cardioKcalInWeek(
+    input.recentCardio,
+    input.weekKeys,
+    input.burnKcalPerMin,
+  );
 
   const openDebtKcal = Math.max(
     0,
@@ -265,11 +330,17 @@ export function computeExtraCardioAdvice(
   const daysLeft = daysLeftInWeekIncludingToday(input.todayKey, input.weekKeys);
   const daysAfterToday = Math.max(0, daysLeft - 1);
 
+  const { burnKcalPerMin, recentPaceMinPerKm } = estimateBurnKcalPerMin({
+    weightKg: input.weightKg,
+    recentCardio: input.recentCardio,
+  });
+
   const debt = computeOpenMacroDebt({
     todayKey: input.todayKey,
     elapsedDays: input.elapsedDays,
     recentCardio: input.recentCardio,
     weekKeys: input.weekKeys,
+    burnKcalPerMin,
   });
 
   const surplusKcal = debt.openDebtKcal;
@@ -329,13 +400,8 @@ export function computeExtraCardioAdvice(
     );
   }
 
-  const { burnKcalPerMin, recentPaceMinPerKm } = estimateBurnKcalPerMin({
-    weightKg: input.weightKg,
-    recentCardio: input.recentCardio,
-  });
-
   let extraMinutes =
-    effectiveSurplusKcal >= MIN_DEBT_KCAL
+    effectiveSurplusKcal >= MIN_DEBT_KCAL && burnKcalPerMin > 0
       ? Math.ceil(effectiveSurplusKcal / burnKcalPerMin)
       : 0;
   extraMinutes = Math.min(90, Math.max(0, extraMinutes));

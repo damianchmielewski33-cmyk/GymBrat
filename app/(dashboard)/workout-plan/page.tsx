@@ -3,7 +3,6 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { DashboardRouteSkeleton } from "@/components/layout/dashboard-route-skeleton";
 import { WorkoutPlanPageContent } from "@/components/treningi/workout-plan-page-content";
-import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
 
 export default async function WorkoutPlanPage() {
   const session = await auth();
@@ -15,7 +14,6 @@ export default async function WorkoutPlanPage() {
       <Suspense fallback={<DashboardRouteSkeleton />}>
         <WorkoutPlanPageContent userId={userId} />
       </Suspense>
-      <WorkoutCompletePopup />
     </div>
   );
 }

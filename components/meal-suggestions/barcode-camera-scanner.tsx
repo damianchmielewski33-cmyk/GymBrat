@@ -15,8 +15,8 @@ import { cn } from "@/lib/utils";
 
 type ZoomCaps = { min: number; max: number; step?: number };
 
-/** idle → starting → ready | failed — błąd UI tylko przy `failed`. */
-type CameraPhase = "idle" | "starting" | "ready" | "failed";
+/** idle → ready | failed — bez osobnego ekranu „uruchamianie”. */
+type CameraPhase = "idle" | "ready" | "failed";
 
 function asZoomCaps(caps: MediaTrackCapabilities | undefined): ZoomCaps | null {
   const z = (caps as { zoom?: ZoomCaps } | undefined)?.zoom;
@@ -170,8 +170,8 @@ export function BarcodeCameraScanner({
 
     const signal = { cancelled: false };
     handledRef.current = false;
-    setPhase("starting");
     setError(null);
+    setTorchAvailable(false);
 
     void (async () => {
       try {
@@ -181,6 +181,9 @@ export function BarcodeCameraScanner({
           setError("To urządzenie nie udostępnia aparatu — wpisz kod EAN poniżej.");
           return;
         }
+
+        // Video w portalu jest już w DOM po paint — równolegle z uprawnieniami.
+        const videoReady = waitForVideoElement(() => videoRef.current, signal);
 
         if (isInstalledAndroidAppClient()) {
           const granted = await ensureAndroidCameraPermission();
@@ -194,13 +197,10 @@ export function BarcodeCameraScanner({
           }
         }
 
+        // Bez sztywnej rozdzielczości — szybsza negocjacja strumienia.
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280, max: 1920 },
-            height: { ideal: 720, max: 1080 },
-          },
+          video: { facingMode: { ideal: "environment" } },
         });
         if (signal.cancelled) {
           stream.getTracks().forEach((t) => t.stop());
@@ -210,25 +210,7 @@ export function BarcodeCameraScanner({
         const track = stream.getVideoTracks()[0] ?? null;
         trackRef.current = track;
 
-        if (track) {
-          const caps = track.getCapabilities?.();
-          const zoom = asZoomCaps(caps);
-          if (zoom) {
-            try {
-              await track.applyConstraints({
-                // @ts-expect-error zoom w advanced constraints
-                advanced: [{ zoom: zoom.min }],
-              });
-            } catch {
-              /* ignore */
-            }
-          }
-          if (!signal.cancelled) {
-            setTorchAvailable(supportsTorch(caps));
-          }
-        }
-
-        const video = await waitForVideoElement(() => videoRef.current, signal);
+        const video = await videoReady;
         if (signal.cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -245,20 +227,40 @@ export function BarcodeCameraScanner({
         video.muted = true;
         video.playsInline = true;
         video.srcObject = stream;
-        try {
-          await video.play();
-        } catch {
-          await new Promise<void>((resolve) => {
-            video.onloadedmetadata = () => {
-              void video.play().finally(() => resolve());
-            };
-            setTimeout(() => resolve(), 800);
-          });
-        }
+
+        // Podgląd od razu — zoom / latarka / dekoder w tle.
+        const playPromise = video.play().catch(() =>
+          new Promise<void>((resolve) => {
+            const done = () => resolve();
+            video.addEventListener("loadedmetadata", () => {
+              void video.play().finally(done);
+            }, { once: true });
+            window.setTimeout(done, 400);
+          }),
+        );
+        await playPromise;
         if (signal.cancelled) return;
 
         setPhase("ready");
         setError(null);
+
+        if (track) {
+          const caps = track.getCapabilities?.();
+          if (!signal.cancelled) {
+            setTorchAvailable(supportsTorch(caps));
+          }
+          const zoom = asZoomCaps(caps);
+          if (zoom) {
+            void track
+              .applyConstraints({
+                // @ts-expect-error zoom w advanced constraints
+                advanced: [{ zoom: zoom.min }],
+              })
+              .catch(() => {
+                /* ignore */
+              });
+          }
+        }
 
         const hints = new Map();
         hints.set(DecodeHintType.POSSIBLE_FORMATS, [
@@ -364,7 +366,7 @@ export function BarcodeCameraScanner({
         <button
           type="button"
           aria-label={torchOn ? "Wyłącz latarkę" : "Włącz latarkę"}
-          disabled={!torchAvailable && phase === "ready"}
+          disabled={!torchAvailable || phase !== "ready"}
           className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md disabled:opacity-35"
           onClick={() => void setTorch(!torchOn)}
         >
@@ -424,9 +426,7 @@ export function BarcodeCameraScanner({
           ) : (
             <>
               <p className="text-[17px] font-semibold leading-snug text-white">
-                {phase === "starting"
-                  ? "Uruchamianie aparatu…"
-                  : "Nakieruj na kod kreskowy"}
+                Nakieruj na kod kreskowy
               </p>
               <p className="mt-1.5 text-[13px] leading-snug text-white/55">
                 EAN-13 i EAN-8 z opakowań. Kod z wagi sklepowej nie zadziała.

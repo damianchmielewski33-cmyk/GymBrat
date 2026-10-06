@@ -1,5 +1,7 @@
 /** Typy i formatowanie huba cardio — bez DB (bezpieczne dla klienta). */
 
+import type { CardioWeekDays } from "@/lib/cardio-week-stats";
+
 export type CardioHubItem = {
   id: string;
   date: string;
@@ -14,18 +16,11 @@ export type CardioHubItem = {
   clockLabel: string | null;
 };
 
-export type CardioWeekBar = {
-  monday: string;
-  label: string;
-  minutes: number;
-  distanceKm: number;
-  calories: number;
-  steps: number;
-  entries: number;
-};
+export type CardioWeekBar = CardioWeekDays;
 
 export type CardioHubData = {
   weekMonday: string;
+  todayKey: string;
   minutesThisWeek: number;
   entriesThisWeek: number;
   goalMinutes: number;
@@ -34,6 +29,7 @@ export type CardioHubData = {
   caloriesThisWeek: number;
   stepsThisWeek: number;
   avgPaceMinPerKmThisWeek: number | null;
+  /** Bieżący tydzień pierwszy, potem wstecz (8 tygodni). */
   last8: CardioWeekBar[];
   items: CardioHubItem[];
 };

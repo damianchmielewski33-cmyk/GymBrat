@@ -20,6 +20,10 @@ import {
   calendarWeekdaySun0,
 } from "@/lib/local-date";
 import {
+  emptyDayMinutes,
+  weekdayIndexMon0,
+} from "@/lib/cardio-week-stats";
+import {
   countableCardioMinutes,
   isCompletedStrengthSession,
   isStandaloneCardioLog,
@@ -105,6 +109,7 @@ export async function getCardioHubData(userId: string): Promise<CardioHubData> {
       calories: number;
       steps: number;
       entries: number;
+      dayMinutes: number[];
     }
   >();
   for (let w = 0; w < 8; w++) {
@@ -115,6 +120,7 @@ export async function getCardioHubData(userId: string): Promise<CardioHubData> {
       calories: 0,
       steps: 0,
       entries: 0,
+      dayMinutes: emptyDayMinutes(),
     });
   }
 
@@ -142,6 +148,8 @@ export async function getCardioHubData(userId: string): Promise<CardioHubData> {
     if (bucket && counted > 0) {
       bucket.minutes += counted;
       bucket.entries += 1;
+      const dayIdx = weekdayIndexMon0(row.date, weekMon);
+      if (dayIdx >= 0) bucket.dayMinutes[dayIdx]! += counted;
       if (extras.distanceKm != null) bucket.distanceKm += extras.distanceKm;
       if (extras.calories != null) bucket.calories += extras.calories;
       if (extras.steps != null) bucket.steps += extras.steps;
@@ -190,6 +198,7 @@ export async function getCardioHubData(userId: string): Promise<CardioHubData> {
       monday: m,
       label: weekShortLabel(m),
       minutes: Math.round(b.minutes),
+      dayMinutes: b.dayMinutes.map((n) => Math.round(n)),
       distanceKm: safeRound2(b.distanceKm),
       calories: Math.round(b.calories),
       steps: Math.round(b.steps),
@@ -208,6 +217,7 @@ export async function getCardioHubData(userId: string): Promise<CardioHubData> {
 
   return {
     weekMonday,
+    todayKey: today,
     minutesThisWeek,
     entriesThisWeek,
     goalMinutes: goalRow?.goal ?? 150,

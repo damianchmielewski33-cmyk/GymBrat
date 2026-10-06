@@ -5,7 +5,6 @@ import { userSettings } from "@/db/schema";
 import { BodyReportForm } from "@/components/reports/body-report-form";
 import { BodyReportHistory } from "@/components/reports/body-report-history";
 import { QueuedWorkoutBanner } from "@/components/reports/queued-workout-banner";
-import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
 import { getBodyReports } from "@/lib/body-reports";
 import { AppPageHeader } from "@/components/layout/screen";
 import { redirect } from "next/navigation";
@@ -63,7 +62,6 @@ export default async function ReportsPage() {
       <Suspense fallback={null}>
         <QueuedWorkoutBanner />
       </Suspense>
-      <WorkoutCompletePopup />
 
       <AppPageHeader
         kicker="Raporty"

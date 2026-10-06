@@ -30,14 +30,16 @@ function MiniStat({
   value,
   unit,
   hint,
+  href,
 }: {
   label: string;
   value: string;
   unit?: string;
   hint?: string;
+  href?: string;
 }) {
-  return (
-    <div className="app-card-raised px-2 py-3 text-center">
+  const body = (
+    <>
       <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/45">
         {label}
       </p>
@@ -52,8 +54,22 @@ function MiniStat({
       {hint ? (
         <p className="mt-1.5 text-[10px] leading-tight text-white/40">{hint}</p>
       ) : null}
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="app-card-raised block px-2 py-3 text-center transition hover:bg-white/[0.02]"
+        aria-label={`${label} — otwórz statystyki`}
+      >
+        {body}
+      </Link>
+    );
+  }
+
+  return <div className="app-card-raised px-2 py-3 text-center">{body}</div>;
 }
 
 export function HomeTrainingCard({
@@ -147,6 +163,8 @@ export function HomeTrainingCard({
         label="Cardio tyg."
         value={String(Math.round(cardioThisWeekMinutes))}
         unit="min"
+        hint="statystyki →"
+        href="/cardio"
       />
       <MiniStat label="Tyg. z rzędu" value={String(workoutStreakWeeks)} />
     </div>

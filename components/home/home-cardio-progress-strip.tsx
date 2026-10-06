@@ -157,5 +157,5 @@ function widthLabel(safe: number, extraMinutes: number): string {
     return `Cel tygodnia + ${extraMinutes} min dodatkowych (nadwyżka makro)`;
   }
   if (safe >= 100) return "Cel tygodniowy zaliczony";
-  return `${safe.toFixed(safe >= 100 ? 0 : 1)}% zalecenia · kliknij, by dodać wpis`;
+  return `${safe.toFixed(safe >= 100 ? 0 : 1)}% zalecenia · statystyki i porównania`;
 }

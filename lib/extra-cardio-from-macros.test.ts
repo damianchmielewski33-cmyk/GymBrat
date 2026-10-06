@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  cardioKcalInWeek,
   computeExtraCardioAdvice,
   computeOpenMacroDebt,
+  dayCalorieBalance,
   daysLeftInWeekIncludingToday,
   estimateBurnKcalPerMin,
   macroSurplusKcal,
@@ -64,6 +66,60 @@ describe("extra-cardio-from-macros", () => {
     expect(recentPaceMinPerKm).toBeCloseTo(7.2, 1);
   });
 
+  it("pusty dzień nie jest bilansem −cel", () => {
+    expect(dayCalorieBalance(day({ caloriesConsumed: 0 }))).toBeNull();
+    expect(
+      dayCalorieBalance(day({ caloriesConsumed: 100 })), // 5% celu
+    ).toBeNull();
+  });
+
+  it("realny deficyt (≥55% celu) daje kredyt ujemny", () => {
+    expect(
+      dayCalorieBalance(
+        day({
+          caloriesConsumed: 1600,
+          proteinConsumed: 140,
+          carbsConsumed: 150,
+          fatConsumed: 50,
+        }),
+      ),
+    ).toBe(-400);
+  });
+
+  it("pusty dzień między nadwyżkami nie kasuje długu", () => {
+    const debt = computeOpenMacroDebt({
+      todayKey: "2026-10-08",
+      weekKeys,
+      burnKcalPerMin: 8,
+      elapsedDays: [
+        {
+          dateKey: "2026-10-05",
+          day: day({
+            caloriesConsumed: 2400,
+            proteinConsumed: 150,
+            carbsConsumed: 200,
+            fatConsumed: 60,
+          }),
+        },
+        // wtorek bez wpisów — wcześniej dawał −2000 i zerował dług
+        { dateKey: "2026-10-06", day: day({ caloriesConsumed: 0 }) },
+        {
+          dateKey: "2026-10-07",
+          day: day({
+            caloriesConsumed: 2200,
+            proteinConsumed: 150,
+            carbsConsumed: 200,
+            fatConsumed: 60,
+          }),
+        },
+        { dateKey: "2026-10-08", day: day({ caloriesConsumed: 0 }) },
+      ],
+      recentCardio: [],
+    });
+    expect(debt.pastDebtKcal).toBe(600);
+    expect(debt.openDebtKcal).toBe(600);
+  });
+
   it("wczorajsza nadwyżka widać dziś rano (niewykorzystany cel dziś nie kasuje długu)", () => {
     const yesterday = day({
       caloriesConsumed: 2400,
@@ -81,8 +137,17 @@ describe("extra-cardio-from-macros", () => {
     const debt = computeOpenMacroDebt({
       todayKey: "2026-10-07",
       weekKeys,
+      burnKcalPerMin: 8,
       elapsedDays: [
-        { dateKey: "2026-10-05", day: day({ caloriesConsumed: 2000, proteinConsumed: 150, carbsConsumed: 200, fatConsumed: 60 }) },
+        {
+          dateKey: "2026-10-05",
+          day: day({
+            caloriesConsumed: 2000,
+            proteinConsumed: 150,
+            carbsConsumed: 200,
+            fatConsumed: 60,
+          }),
+        },
         { dateKey: "2026-10-06", day: yesterday },
         { dateKey: "2026-10-07", day: todayMorning },
       ],
@@ -98,7 +163,15 @@ describe("extra-cardio-from-macros", () => {
       weekKeys,
       today: todayMorning,
       elapsedDays: [
-        { dateKey: "2026-10-05", day: day({ caloriesConsumed: 2000, proteinConsumed: 150, carbsConsumed: 200, fatConsumed: 60 }) },
+        {
+          dateKey: "2026-10-05",
+          day: day({
+            caloriesConsumed: 2000,
+            proteinConsumed: 150,
+            carbsConsumed: 200,
+            fatConsumed: 60,
+          }),
+        },
         { dateKey: "2026-10-06", day: yesterday },
         { dateKey: "2026-10-07", day: todayMorning },
       ],
@@ -106,7 +179,10 @@ describe("extra-cardio-from-macros", () => {
       recentCardio: [{ minutes: 40, calories: 320, paceMinPerKm: 8 }],
     });
     expect(advice.show).toBe(true);
-    expect(advice.extraMinutes).toBeGreaterThanOrEqual(5);
+    expect(advice.effectiveSurplusKcal).toBeGreaterThanOrEqual(Math.round(400 * 0.65));
+    expect(advice.extraMinutes).toBe(
+      Math.min(90, Math.ceil(advice.effectiveSurplusKcal / advice.burnKcalPerMin)),
+    );
   });
 
   it("po odrobieniu wczorajszej nadwyżki dietą pasek znika następnego dnia", () => {
@@ -165,6 +241,7 @@ describe("extra-cardio-from-macros", () => {
     const debt = computeOpenMacroDebt({
       todayKey: "2026-10-07",
       weekKeys,
+      burnKcalPerMin: 8,
       elapsedDays: [
         {
           dateKey: "2026-10-06",
@@ -179,6 +256,16 @@ describe("extra-cardio-from-macros", () => {
     expect(debt.pastDebtKcal).toBe(500);
     expect(debt.cardioOffsetKcal).toBe(300);
     expect(debt.openDebtKcal).toBe(200);
+  });
+
+  it("cardio bez kcal liczy offset z minut × spalanie", () => {
+    expect(
+      cardioKcalInWeek(
+        [{ minutes: 40, calories: null, paceMinPerKm: 8, dateKey: "2026-10-07" }],
+        weekKeys,
+        8,
+      ),
+    ).toBe(320);
   });
 
   it("bez żadnej nadwyżki nie pokazuje dodatkowego cardio", () => {
@@ -211,5 +298,36 @@ describe("extra-cardio-from-macros", () => {
     });
     expect(advice.show).toBe(false);
     expect(advice.extraMinutes).toBe(0);
+  });
+
+  it("minuty = ceil(effective / kcal_na_min) zgodnie ze wzorem", () => {
+    const advice = computeExtraCardioAdvice({
+      todayKey: "2026-10-11", // niedziela — mało defer
+      weekKeys,
+      today: day({
+        caloriesConsumed: 2500,
+        proteinConsumed: 150,
+        carbsConsumed: 200,
+        fatConsumed: 60,
+      }),
+      elapsedDays: [
+        {
+          dateKey: "2026-10-11",
+          day: day({
+            caloriesConsumed: 2500,
+            proteinConsumed: 150,
+            carbsConsumed: 200,
+            fatConsumed: 60,
+          }),
+        },
+      ],
+      weightKg: 80,
+      recentCardio: [{ minutes: 40, calories: 320, paceMinPerKm: 8 }],
+    });
+    expect(advice.show).toBe(true);
+    expect(advice.burnKcalPerMin).toBe(8);
+    expect(advice.extraMinutes).toBe(
+      Math.min(90, Math.ceil(advice.effectiveSurplusKcal / 8)),
+    );
   });
 });

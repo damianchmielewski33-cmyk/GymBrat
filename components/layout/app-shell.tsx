@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { BrandMark } from "@/components/layout/brand-mark";
+import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
 
 export function AppShell({
   children,
@@ -58,6 +59,9 @@ export function AppShell({
   const sessionFullscreen =
     pathname.startsWith("/active-workout") ||
     pathname.startsWith("/cardio/record");
+  /** Formularz poprawy treningu — własna belka Zapisz zamiast dolnego menu. */
+  const hideBottomNav =
+    sessionFullscreen || /\/workout-history\/[^/]+\/edit\/?$/.test(pathname);
   const hideChromeHeader = pathname === "/";
   const showReportFab =
     pathname === "/" ||
@@ -81,13 +85,18 @@ export function AppShell({
           "mx-auto min-w-0 w-full max-w-lg flex-1 overflow-x-clip",
           sessionFullscreen
             ? "px-0 py-0 pb-[env(safe-area-inset-bottom)]"
-            : "px-4 py-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-5",
+            : hideBottomNav
+              ? "px-4 py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-5"
+              : "px-4 py-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-5",
         )}
       >
         {children}
       </main>
 
-      {sessionFullscreen ? null : (
+      {/* Po zakończeniu treningu — rekordy / podsumowanie zaraz po nawigacji (nie dopiero na /progress). */}
+      <WorkoutCompletePopup />
+
+      {hideBottomNav ? null : (
         <nav
           className="fixed inset-x-0 bottom-0 z-50 border-t border-white/[0.06] bg-black/70 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
           aria-label="Nawigacja główna"

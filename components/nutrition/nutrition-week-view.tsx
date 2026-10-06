@@ -1,37 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Beef,
+  ChevronLeft,
   ChevronRight,
   Droplets,
   Flame,
   Wheat,
 } from "lucide-react";
 import type { PreviousWeekNutritionSheetWeek } from "@/lib/nutrition-dashboard";
-import type { NutritionWeekRollup } from "@/lib/nutrition-goals";
+import {
+  adherenceDeltaPp,
+  adherencePct,
+  avgDayAdherencePct,
+  avgWeeksAdherencePct,
+  dayVsWeekAverageDelta,
+  formatSignedPp,
+  rollupWeekThroughIndex,
+  weekDayIndexThroughToday,
+  type MacroKey,
+  type MacroTotals,
+  type WeekMacroRollup,
+} from "@/lib/nutrition-week-stats";
 import type { WeekDayNutritionRow } from "@/lib/week-nutrition-rows";
-import { formatPlCalendarRange } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
 
-type WeekRollupPick = Pick<
-  NutritionWeekRollup,
-  | "sumProteinGoal"
-  | "sumProteinConsumed"
-  | "sumFatGoal"
-  | "sumFatConsumed"
-  | "sumCarbsGoal"
-  | "sumCarbsConsumed"
-  | "sumCaloriesGoal"
-  | "sumCaloriesConsumed"
->;
-
 type DayStatus = "on_track" | "under" | "over" | "empty" | "future";
-
-type MacroKey = "calories" | "protein" | "carbs" | "fat";
 
 function dayStatus(row: WeekDayNutritionRow, todayKey: string): DayStatus {
   if (row.dateKey > todayKey) return "future";
@@ -90,24 +88,6 @@ function dayNum(dateKey: string): string {
   return dateKey.slice(8).replace(/^0/, "");
 }
 
-function pctOf(consumed: number, goal: number | null): number | null {
-  if (goal == null || !(goal > 0)) return null;
-  return Math.round((consumed / goal) * 100);
-}
-
-function signedPct(delta: number | null): string | null {
-  if (delta == null || !Number.isFinite(delta)) return null;
-  const r = Math.round(delta);
-  if (r === 0) return "0%";
-  return r > 0 ? `+${r}%` : `${r}%`;
-}
-
-/** Różnica procentowa: a względem b (np. dzień vs średnia). */
-function pctVs(a: number | null, b: number | null): number | null {
-  if (a == null || b == null || !(b > 0)) return null;
-  return ((a - b) / b) * 100;
-}
-
 function dayMacro(
   row: WeekDayNutritionRow,
   key: MacroKey,
@@ -124,65 +104,8 @@ function dayMacro(
   }
 }
 
-function rollupMacro(
-  r: WeekRollupPick,
-  key: MacroKey,
-): { consumed: number; goal: number | null } {
-  switch (key) {
-    case "calories":
-      return {
-        consumed: r.sumCaloriesConsumed,
-        goal: r.sumCaloriesGoal > 0 ? r.sumCaloriesGoal : null,
-      };
-    case "protein":
-      return {
-        consumed: r.sumProteinConsumed,
-        goal: r.sumProteinGoal > 0 ? r.sumProteinGoal : null,
-      };
-    case "carbs":
-      return {
-        consumed: r.sumCarbsConsumed,
-        goal: r.sumCarbsGoal > 0 ? r.sumCarbsGoal : null,
-      };
-    case "fat":
-      return {
-        consumed: r.sumFatConsumed,
-        goal: r.sumFatGoal > 0 ? r.sumFatGoal : null,
-      };
-  }
-}
-
-function avgDayPct(
-  rows: WeekDayNutritionRow[],
-  todayKey: string,
-  key: MacroKey,
-): number | null {
-  const vals: number[] = [];
-  for (const row of rows) {
-    if (row.dateKey > todayKey) continue;
-    const m = dayMacro(row, key);
-    if (m.consumed <= 0) continue;
-    const p = pctOf(m.consumed, m.goal);
-    if (p != null) vals.push(p);
-  }
-  if (!vals.length) return null;
-  return vals.reduce((s, v) => s + v, 0) / vals.length;
-}
-
-function avgDayConsumed(
-  rows: WeekDayNutritionRow[],
-  todayKey: string,
-  key: MacroKey,
-): number | null {
-  const vals: number[] = [];
-  for (const row of rows) {
-    if (row.dateKey > todayKey) continue;
-    const m = dayMacro(row, key);
-    if (m.consumed <= 0) continue;
-    vals.push(m.consumed);
-  }
-  if (!vals.length) return null;
-  return vals.reduce((s, v) => s + v, 0) / vals.length;
+function macroFromRollup(r: WeekMacroRollup, key: MacroKey): MacroTotals {
+  return r[key];
 }
 
 function deltaTone(delta: number | null, invert = false): string {
@@ -212,7 +135,7 @@ function MacroBar({
   barClass: string;
   compareLabel?: ReactNode;
 }) {
-  const pct = pctOf(consumed, goal);
+  const pct = adherencePct(consumed, goal);
   const width = pct == null ? 0 : Math.min(100, pct);
   const over = pct != null && pct > 100;
 
@@ -281,13 +204,13 @@ function DayCompareBars({
   const maxPct = useMemo(() => {
     let m = 100;
     for (const row of dayRows) {
-      const p = pctOf(row.caloriesConsumed, row.caloriesGoal);
+      const p = adherencePct(row.caloriesConsumed, row.caloriesGoal);
       if (p != null) m = Math.max(m, p);
     }
     return Math.max(100, Math.min(160, m));
   }, [dayRows]);
 
-  const weekAvg = avgDayPct(dayRows, todayKey, "calories");
+  const weekAvg = avgDayAdherencePct(dayRows, todayKey, "calories");
 
   return (
     <section className="app-card space-y-3 p-4">
@@ -297,7 +220,7 @@ function DayCompareBars({
             Porównanie dni
           </p>
           <p className="mt-1 text-[13px] text-white/50">
-            % celu kalorii w tym tygodniu
+            % celu kalorii · średnia z dni z celem
           </p>
         </div>
         {weekAvg != null ? (
@@ -317,13 +240,13 @@ function DayCompareBars({
         ) : null}
         {dayRows.map((row) => {
           const st = dayStatus(row, todayKey);
-          const p = pctOf(row.caloriesConsumed, row.caloriesGoal);
+          const p = adherencePct(row.caloriesConsumed, row.caloriesGoal);
           const height =
             p == null || row.caloriesConsumed <= 0
               ? 4
               : Math.max(8, (p / maxPct) * 100);
           const active = row.dateKey === selectedKey;
-          const vsAvg = pctVs(p, weekAvg);
+          const vsAvg = adherenceDeltaPp(p, weekAvg);
 
           return (
             <button
@@ -379,7 +302,7 @@ function DayCompareBars({
                     deltaTone(vsAvg, true),
                   )}
                 >
-                  {signedPct(vsAvg)} śr.
+                  {formatSignedPp(vsAvg)} śr.
                 </span>
               ) : (
                 <span className="h-3.5" />
@@ -414,15 +337,8 @@ function DayDetailCard({
     ];
     return keys.map(({ key, unit, invert }) => {
       const m = dayMacro(row, key);
-      const dayPct = pctOf(m.consumed, m.goal);
-      const avgPct = avgDayPct(dayRows, todayKey, key);
-      const avgCons = avgDayConsumed(dayRows, todayKey, key);
-      const vsPct = pctVs(dayPct, avgPct);
-      const vsCons =
-        avgCons != null && avgCons > 0
-          ? ((m.consumed - avgCons) / avgCons) * 100
-          : null;
-      const delta = vsPct ?? vsCons;
+      const dayPct = adherencePct(m.consumed, m.goal);
+      const delta = dayVsWeekAverageDelta(row, dayRows, todayKey, key);
       return { key, unit, invert, dayPct, delta };
     });
   }, [row, dayRows, todayKey]);
@@ -485,7 +401,7 @@ function DayDetailCard({
           const d = c?.delta ?? null;
           const compareLabel =
             d != null
-              ? `${signedPct(d)} vs średnia dni tygodnia`
+              ? `${formatSignedPp(d)} vs średnia dni tygodnia`
               : null;
           return (
             <MacroBar
@@ -519,40 +435,81 @@ function DayDetailCard({
   );
 }
 
-function WeekVsWeeksCard({
-  weekRollup,
-  previousWeeks,
+function WeekNavButton({
+  direction,
+  disabled,
+  label,
+  onClick,
 }: {
-  weekRollup: WeekRollupPick;
-  previousWeeks: PreviousWeekNutritionSheetWeek[];
+  direction: "prev" | "next";
+  disabled: boolean;
+  label: string;
+  onClick: () => void;
 }) {
-  const thisPct = pctOf(
-    weekRollup.sumCaloriesConsumed,
-    weekRollup.sumCaloriesGoal > 0 ? weekRollup.sumCaloriesGoal : null,
+  const Icon = direction === "prev" ? ChevronLeft : ChevronRight;
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/80 transition",
+        disabled
+          ? "cursor-not-allowed opacity-30"
+          : "hover:bg-white/[0.08] hover:text-white",
+      )}
+    >
+      <Icon className="h-5 w-5" />
+    </button>
   );
-  const last = previousWeeks[0] ?? null;
-  const lastPct = last
-    ? pctOf(
-        last.rollup.sumCaloriesConsumed,
-        last.rollup.sumCaloriesGoal > 0 ? last.rollup.sumCaloriesGoal : null,
+}
+
+function WeekVsWeeksCard({
+  weekToDateRollup,
+  compareWeek,
+  compareRollup,
+  compareIndex,
+  maxCompareIndex,
+  minCompareIndex,
+  onCompareIndexChange,
+  throughDayIndex,
+  avgSourceWeeks,
+  periodHint,
+}: {
+  weekToDateRollup: WeekMacroRollup;
+  compareWeek: PreviousWeekNutritionSheetWeek | null;
+  compareRollup: WeekMacroRollup | null;
+  compareIndex: number;
+  maxCompareIndex: number;
+  minCompareIndex: number;
+  onCompareIndexChange: (index: number) => void;
+  throughDayIndex: number;
+  avgSourceWeeks: PreviousWeekNutritionSheetWeek[];
+  periodHint: string;
+}) {
+  const thisPct = adherencePct(
+    weekToDateRollup.calories.consumed,
+    weekToDateRollup.calories.goal,
+  );
+  const comparePct = compareRollup
+    ? adherencePct(
+        compareRollup.calories.consumed,
+        compareRollup.calories.goal,
       )
     : null;
-  const vsLast = pctVs(thisPct, lastPct);
+  const vsCompare = adherenceDeltaPp(thisPct, comparePct);
 
-  const prevPcts = previousWeeks
-    .slice(0, 4)
-    .map((w) =>
-      pctOf(
-        w.rollup.sumCaloriesConsumed,
-        w.rollup.sumCaloriesGoal > 0 ? w.rollup.sumCaloriesGoal : null,
-      ),
-    )
-    .filter((p): p is number => p != null);
-  const avgPrev =
-    prevPcts.length > 0
-      ? prevPcts.reduce((s, v) => s + v, 0) / prevPcts.length
-      : null;
-  const vsAvg = pctVs(thisPct, avgPrev);
+  const avgPrev = avgWeeksAdherencePct(
+    avgSourceWeeks.map((w) => w.dayRows),
+    throughDayIndex,
+    "calories",
+  );
+  const vsAvg = adherenceDeltaPp(thisPct, avgPrev);
+  const avgWeekCount = avgSourceWeeks.filter((w) => {
+    const t = rollupWeekThroughIndex(w.dayRows, throughDayIndex).calories;
+    return adherencePct(t.consumed, t.goal) != null;
+  }).length;
 
   const macros: {
     key: MacroKey;
@@ -565,40 +522,67 @@ function WeekVsWeeksCard({
     { key: "fat", label: "Tłuszcz", invert: true },
   ];
 
-  if (!last && previousWeeks.length === 0) return null;
+  if (!compareWeek && avgSourceWeeks.length === 0) return null;
 
   return (
     <section className="app-card space-y-3.5 p-4">
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-          Ten tydzień vs inne
+          Porównanie tygodni
         </p>
-        <p className="mt-1 text-[13px] text-white/50">
-          Porównanie % realizacji celu
-        </p>
+        <p className="mt-1 text-[13px] text-white/50">{periodHint}</p>
       </div>
+
+      {compareWeek ? (
+        <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-black/25 px-2 py-2">
+          <WeekNavButton
+            direction="prev"
+            disabled={compareIndex >= maxCompareIndex}
+            label="Starszy tydzień do porównania"
+            onClick={() =>
+              onCompareIndexChange(Math.min(maxCompareIndex, compareIndex + 1))
+            }
+          />
+          <div className="min-w-0 flex-1 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
+              Porównaj z
+            </p>
+            <p className="truncate text-[13px] font-semibold text-white">
+              {compareWeek.weekLabel}
+            </p>
+          </div>
+          <WeekNavButton
+            direction="next"
+            disabled={compareIndex <= minCompareIndex}
+            label="Nowszy tydzień do porównania"
+            onClick={() =>
+              onCompareIndexChange(Math.max(minCompareIndex, compareIndex - 1))
+            }
+          />
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-2.5">
         <div className="rounded-xl border border-white/[0.08] bg-black/25 px-3 py-2.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
-            Vs poprzedni
+            Vs wybrany
           </p>
           <p
             className={cn(
               "mt-1 font-display text-[26px] leading-none tabular-nums",
-              vsLast != null ? deltaTone(vsLast, true) : "text-white/35",
+              vsCompare != null ? deltaTone(vsCompare, true) : "text-white/35",
             )}
           >
-            {signedPct(vsLast) ?? "—"}
+            {formatSignedPp(vsCompare) ?? "—"}
           </p>
           <p className="mt-1.5 text-[11px] tabular-nums text-white/40">
-            ten {thisPct != null ? `${thisPct}%` : "—"} · poprz.{" "}
-            {lastPct != null ? `${lastPct}%` : "—"}
+            ten {thisPct != null ? `${thisPct}%` : "—"} · wybr.{" "}
+            {comparePct != null ? `${comparePct}%` : "—"}
           </p>
         </div>
         <div className="rounded-xl border border-white/[0.08] bg-black/25 px-3 py-2.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
-            Vs średnia {prevPcts.length || "—"} tyg.
+            Vs średnia {avgWeekCount || "—"} tyg.
           </p>
           <p
             className={cn(
@@ -606,10 +590,10 @@ function WeekVsWeeksCard({
               vsAvg != null ? deltaTone(vsAvg, true) : "text-white/35",
             )}
           >
-            {signedPct(vsAvg) ?? "—"}
+            {formatSignedPp(vsAvg) ?? "—"}
           </p>
           <p className="mt-1.5 text-[11px] tabular-nums text-white/40">
-            średnia {avgPrev != null ? `${Math.round(avgPrev)}%` : "—"}
+            średnia {avgPrev != null ? `${avgPrev}%` : "—"}
           </p>
         </div>
       </div>
@@ -618,15 +602,17 @@ function WeekVsWeeksCard({
         <div className="grid grid-cols-[1fr_repeat(3,minmax(0,1fr))] gap-px bg-white/[0.06] text-[10px] font-semibold uppercase tracking-[0.08em] text-white/40">
           <div className="bg-[#121212] px-2.5 py-2">Makro</div>
           <div className="bg-[#121212] px-2 py-2 text-center">Ten</div>
-          <div className="bg-[#121212] px-2 py-2 text-center">Poprz.</div>
-          <div className="bg-[#121212] px-2 py-2 text-center">Δ%</div>
+          <div className="bg-[#121212] px-2 py-2 text-center">Wybr.</div>
+          <div className="bg-[#121212] px-2 py-2 text-center">Δ pp</div>
         </div>
         {macros.map(({ key, label, invert }) => {
-          const cur = rollupMacro(weekRollup, key);
-          const prev = last ? rollupMacro(last.rollup, key) : null;
-          const curP = pctOf(cur.consumed, cur.goal);
-          const prevP = prev ? pctOf(prev.consumed, prev.goal) : null;
-          const d = pctVs(curP, prevP);
+          const cur = macroFromRollup(weekToDateRollup, key);
+          const prev = compareRollup
+            ? macroFromRollup(compareRollup, key)
+            : null;
+          const curP = adherencePct(cur.consumed, cur.goal);
+          const prevP = prev ? adherencePct(prev.consumed, prev.goal) : null;
+          const d = adherenceDeltaPp(curP, prevP);
           return (
             <div
               key={key}
@@ -647,7 +633,7 @@ function WeekVsWeeksCard({
                   d != null ? deltaTone(d, invert) : "text-white/30",
                 )}
               >
-                {signedPct(d) ?? "—"}
+                {formatSignedPp(d) ?? "—"}
               </div>
             </div>
           );
@@ -657,22 +643,102 @@ function WeekVsWeeksCard({
   );
 }
 
+function macroCompareLabel(
+  current: WeekMacroRollup,
+  previous: WeekMacroRollup | null,
+  key: MacroKey,
+  compareWeekLabel: string | null,
+): string | null {
+  const cur = macroFromRollup(current, key);
+  const prev = previous ? macroFromRollup(previous, key) : null;
+  const d = adherenceDeltaPp(
+    adherencePct(cur.consumed, cur.goal),
+    prev ? adherencePct(prev.consumed, prev.goal) : null,
+  );
+  if (d == null) return null;
+  const target = compareWeekLabel
+    ? `vs ${compareWeekLabel}`
+    : "vs wybrany tydzień";
+  return `${formatSignedPp(d)} ${target}`;
+}
+
+function defaultSelectedDayKey(
+  dayRows: WeekDayNutritionRow[],
+  todayKey: string,
+): string {
+  if (dayRows.some((r) => r.dateKey === todayKey)) return todayKey;
+  for (let i = dayRows.length - 1; i >= 0; i--) {
+    if (dayRows[i]!.dateKey <= todayKey) return dayRows[i]!.dateKey;
+  }
+  return dayRows[0]?.dateKey ?? todayKey;
+}
+
 export function NutritionWeekView({
   todayKey,
-  weekStart,
-  weekEnd,
-  dayRows,
-  weekRollup,
-  previousWeeks,
+  weeks,
 }: {
   todayKey: string;
-  weekStart: string;
-  weekEnd: string;
-  dayRows: WeekDayNutritionRow[];
-  weekRollup: WeekRollupPick;
-  previousWeeks: PreviousWeekNutritionSheetWeek[];
+  /** Najnowszy pierwszy: [bieżący, -1 tyg., … do ~roku wstecz]. */
+  weeks: PreviousWeekNutritionSheetWeek[];
 }) {
-  const [selectedKey, setSelectedKey] = useState(todayKey);
+  const [viewIndex, setViewIndex] = useState(0);
+  const [compareIndex, setCompareIndex] = useState(
+    weeks.length > 1 ? 1 : 0,
+  );
+  const [selectedKey, setSelectedKey] = useState(() =>
+    defaultSelectedDayKey(weeks[0]?.dayRows ?? [], todayKey),
+  );
+
+  const maxViewIndex = Math.max(0, weeks.length - 1);
+  const minCompareIndex = Math.min(viewIndex + 1, maxViewIndex);
+  const maxCompareIndex = maxViewIndex;
+
+  const viewWeek = weeks[viewIndex] ?? weeks[0] ?? null;
+  const dayRows = viewWeek?.dayRows ?? [];
+
+  useEffect(() => {
+    if (!viewWeek) return;
+    setSelectedKey(defaultSelectedDayKey(viewWeek.dayRows, todayKey));
+    setCompareIndex(Math.min(viewIndex + 1, maxViewIndex));
+  }, [viewIndex, viewWeek, todayKey, maxViewIndex]);
+
+  const isCurrentWeek = Boolean(
+    viewWeek &&
+      viewWeek.weekStart <= todayKey &&
+      todayKey <= viewWeek.weekEnd,
+  );
+
+  const throughDayIndex = useMemo(() => {
+    if (!viewWeek) return 0;
+    if (isCurrentWeek) {
+      return weekDayIndexThroughToday(viewWeek.dayRows, todayKey);
+    }
+    return Math.max(0, viewWeek.dayRows.length - 1);
+  }, [viewWeek, isCurrentWeek, todayKey]);
+
+  const weekToDateRollup = useMemo(
+    () => rollupWeekThroughIndex(dayRows, throughDayIndex),
+    [dayRows, throughDayIndex],
+  );
+
+  const compareWeek =
+    compareIndex > viewIndex && compareIndex < weeks.length
+      ? (weeks[compareIndex] ?? null)
+      : null;
+
+  const compareRollup = useMemo(() => {
+    if (!compareWeek) return null;
+    return rollupWeekThroughIndex(compareWeek.dayRows, throughDayIndex);
+  }, [compareWeek, throughDayIndex]);
+
+  const avgSourceWeeks = useMemo(
+    () => weeks.slice(viewIndex + 1, viewIndex + 5),
+    [weeks, viewIndex],
+  );
+
+  const periodHint = isCurrentWeek
+    ? "Różnica realizacji celu (pp) · pn→dziś vs ten sam okres"
+    : "Różnica realizacji celu (pp) · cały tydzień vs ten sam okres";
 
   const selected = useMemo(
     () => dayRows.find((r) => r.dateKey === selectedKey) ?? dayRows[0] ?? null,
@@ -683,21 +749,26 @@ export function NutritionWeekView({
     ? dayStatus(selected, todayKey)
     : ("empty" as DayStatus);
 
-  const kcalPct = pctOf(
-    weekRollup.sumCaloriesConsumed,
-    weekRollup.sumCaloriesGoal > 0 ? weekRollup.sumCaloriesGoal : null,
+  const kcalPct = adherencePct(
+    weekToDateRollup.calories.consumed,
+    weekToDateRollup.calories.goal,
   );
 
-  const lastWeek = previousWeeks[0] ?? null;
-  const lastWeekPct = lastWeek
-    ? pctOf(
-        lastWeek.rollup.sumCaloriesConsumed,
-        lastWeek.rollup.sumCaloriesGoal > 0
-          ? lastWeek.rollup.sumCaloriesGoal
-          : null,
+  const comparePct = compareRollup
+    ? adherencePct(
+        compareRollup.calories.consumed,
+        compareRollup.calories.goal,
       )
     : null;
-  const vsLastWeek = pctVs(kcalPct, lastWeekPct);
+  const vsCompareWeek = adherenceDeltaPp(kcalPct, comparePct);
+
+  if (!viewWeek) {
+    return (
+      <div className="mx-auto w-full max-w-lg pb-10 text-[14px] text-white/55">
+        Brak danych tygodnia.
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-4 pb-10">
@@ -709,13 +780,34 @@ export function NutritionWeekView({
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
             Makro tydzień
           </p>
-          <h1 className="truncate text-[22px] font-semibold text-white">
-            {formatPlCalendarRange(weekStart, weekEnd)}
-          </h1>
+          <div className="mt-0.5 flex items-center gap-1.5">
+            <WeekNavButton
+              direction="prev"
+              disabled={viewIndex >= maxViewIndex}
+              label="Poprzedni tydzień"
+              onClick={() => setViewIndex((i) => Math.min(maxViewIndex, i + 1))}
+            />
+            <div className="min-w-0 flex-1 text-center">
+              <h1 className="truncate text-[18px] font-semibold text-white sm:text-[20px]">
+                {viewWeek.weekLabel}
+              </h1>
+              <p className="text-[11px] text-white/40">
+                {isCurrentWeek
+                  ? "Bieżący tydzień"
+                  : `Historia · ${viewIndex} tyg. wstecz`}
+              </p>
+            </div>
+            <WeekNavButton
+              direction="next"
+              disabled={viewIndex <= 0}
+              label="Nowszy tydzień"
+              onClick={() => setViewIndex((i) => Math.max(0, i - 1))}
+            />
+          </div>
         </div>
       </div>
 
@@ -737,21 +829,21 @@ export function NutritionWeekView({
               <p className="mt-1 font-display text-[40px] leading-none text-white">
                 {kcalPct != null ? `${kcalPct}%` : "—"}
               </p>
-              {vsLastWeek != null ? (
+              {vsCompareWeek != null && compareWeek ? (
                 <p
                   className={cn(
                     "mt-1.5 text-[12px] font-semibold tabular-nums",
-                    deltaTone(vsLastWeek, true),
+                    deltaTone(vsCompareWeek, true),
                   )}
                 >
-                  {signedPct(vsLastWeek)} vs poprzedni tydzień
+                  {formatSignedPp(vsCompareWeek)} vs {compareWeek.weekLabel}
                 </p>
               ) : null}
             </div>
             <p className="pb-1 text-right text-[12px] tabular-nums text-white/50">
-              {Math.round(weekRollup.sumCaloriesConsumed)}
-              {weekRollup.sumCaloriesGoal > 0
-                ? ` / ${Math.round(weekRollup.sumCaloriesGoal)} kcal`
+              {Math.round(weekToDateRollup.calories.consumed)}
+              {weekToDateRollup.calories.goal != null
+                ? ` / ${Math.round(weekToDateRollup.calories.goal)} kcal`
                 : " kcal"}
             </p>
           </div>
@@ -761,7 +853,10 @@ export function NutritionWeekView({
               const st = dayStatus(row, todayKey);
               const active = row.dateKey === selectedKey;
               const isToday = row.dateKey === todayKey;
-              const dayPct = pctOf(row.caloriesConsumed, row.caloriesGoal);
+              const dayPct = adherencePct(
+                row.caloriesConsumed,
+                row.caloriesGoal,
+              );
               return (
                 <button
                   key={row.dateKey}
@@ -834,102 +929,85 @@ export function NutritionWeekView({
         onSelect={setSelectedKey}
       />
 
-      <WeekVsWeeksCard weekRollup={weekRollup} previousWeeks={previousWeeks} />
+      <WeekVsWeeksCard
+        weekToDateRollup={weekToDateRollup}
+        compareWeek={compareWeek}
+        compareRollup={compareRollup}
+        compareIndex={compareIndex}
+        maxCompareIndex={maxCompareIndex}
+        minCompareIndex={minCompareIndex}
+        onCompareIndexChange={setCompareIndex}
+        throughDayIndex={throughDayIndex}
+        avgSourceWeeks={avgSourceWeeks}
+        periodHint={periodHint}
+      />
 
       <section className="app-card space-y-4 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-          Statystyki tygodnia
-        </p>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
+            Statystyki tygodnia
+          </p>
+          <p className="mt-1 text-[13px] text-white/50">
+            {isCurrentWeek
+              ? "Pn→dziś · tylko dni z celem makro"
+              : "Cały tydzień · tylko dni z celem makro"}
+          </p>
+        </div>
         <MacroBar
           label="Kalorie"
           icon={<Flame className="h-3.5 w-3.5" />}
-          consumed={weekRollup.sumCaloriesConsumed}
-          goal={
-            weekRollup.sumCaloriesGoal > 0 ? weekRollup.sumCaloriesGoal : null
-          }
+          consumed={weekToDateRollup.calories.consumed}
+          goal={weekToDateRollup.calories.goal}
           unit="kcal"
           barClass="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400"
-          compareLabel={
-            vsLastWeek != null
-              ? `${signedPct(vsLastWeek)} vs poprzedni tydzień`
-              : null
-          }
+          compareLabel={macroCompareLabel(
+            weekToDateRollup,
+            compareRollup,
+            "calories",
+            compareWeek?.weekLabel ?? null,
+          )}
         />
         <MacroBar
           label="Białko"
           icon={<Beef className="h-3.5 w-3.5" />}
-          consumed={weekRollup.sumProteinConsumed}
-          goal={
-            weekRollup.sumProteinGoal > 0 ? weekRollup.sumProteinGoal : null
-          }
+          consumed={weekToDateRollup.protein.consumed}
+          goal={weekToDateRollup.protein.goal}
           unit="g"
           barClass="bg-gradient-to-r from-sky-400 to-cyan-300"
-          compareLabel={(() => {
-            const cur = pctOf(
-              weekRollup.sumProteinConsumed,
-              weekRollup.sumProteinGoal > 0
-                ? weekRollup.sumProteinGoal
-                : null,
-            );
-            const prev = lastWeek
-              ? pctOf(
-                  lastWeek.rollup.sumProteinConsumed,
-                  lastWeek.rollup.sumProteinGoal > 0
-                    ? lastWeek.rollup.sumProteinGoal
-                    : null,
-                )
-              : null;
-            const d = pctVs(cur, prev);
-            return d != null ? `${signedPct(d)} vs poprzedni tydzień` : null;
-          })()}
+          compareLabel={macroCompareLabel(
+            weekToDateRollup,
+            compareRollup,
+            "protein",
+            compareWeek?.weekLabel ?? null,
+          )}
         />
         <MacroBar
           label="Węglowodany"
           icon={<Wheat className="h-3.5 w-3.5" />}
-          consumed={weekRollup.sumCarbsConsumed}
-          goal={weekRollup.sumCarbsGoal > 0 ? weekRollup.sumCarbsGoal : null}
+          consumed={weekToDateRollup.carbs.consumed}
+          goal={weekToDateRollup.carbs.goal}
           unit="g"
           barClass="bg-gradient-to-r from-violet-400 to-fuchsia-300"
-          compareLabel={(() => {
-            const cur = pctOf(
-              weekRollup.sumCarbsConsumed,
-              weekRollup.sumCarbsGoal > 0 ? weekRollup.sumCarbsGoal : null,
-            );
-            const prev = lastWeek
-              ? pctOf(
-                  lastWeek.rollup.sumCarbsConsumed,
-                  lastWeek.rollup.sumCarbsGoal > 0
-                    ? lastWeek.rollup.sumCarbsGoal
-                    : null,
-                )
-              : null;
-            const d = pctVs(cur, prev);
-            return d != null ? `${signedPct(d)} vs poprzedni tydzień` : null;
-          })()}
+          compareLabel={macroCompareLabel(
+            weekToDateRollup,
+            compareRollup,
+            "carbs",
+            compareWeek?.weekLabel ?? null,
+          )}
         />
         <MacroBar
           label="Tłuszcz"
           icon={<Droplets className="h-3.5 w-3.5" />}
-          consumed={weekRollup.sumFatConsumed}
-          goal={weekRollup.sumFatGoal > 0 ? weekRollup.sumFatGoal : null}
+          consumed={weekToDateRollup.fat.consumed}
+          goal={weekToDateRollup.fat.goal}
           unit="g"
           barClass="bg-gradient-to-r from-amber-300 to-yellow-200"
-          compareLabel={(() => {
-            const cur = pctOf(
-              weekRollup.sumFatConsumed,
-              weekRollup.sumFatGoal > 0 ? weekRollup.sumFatGoal : null,
-            );
-            const prev = lastWeek
-              ? pctOf(
-                  lastWeek.rollup.sumFatConsumed,
-                  lastWeek.rollup.sumFatGoal > 0
-                    ? lastWeek.rollup.sumFatGoal
-                    : null,
-                )
-              : null;
-            const d = pctVs(cur, prev);
-            return d != null ? `${signedPct(d)} vs poprzedni tydzień` : null;
-          })()}
+          compareLabel={macroCompareLabel(
+            weekToDateRollup,
+            compareRollup,
+            "fat",
+            compareWeek?.weekLabel ?? null,
+          )}
         />
       </section>
 
@@ -940,81 +1018,6 @@ export function NutritionWeekView({
           dayRows={dayRows}
           todayKey={todayKey}
         />
-      ) : null}
-
-      {previousWeeks.length > 0 ? (
-        <section className="space-y-2.5">
-          <p className="px-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-            Poprzednie tygodnie
-          </p>
-          {previousWeeks.slice(0, 4).map((w) => {
-            const p = pctOf(
-              w.rollup.sumCaloriesConsumed,
-              w.rollup.sumCaloriesGoal > 0 ? w.rollup.sumCaloriesGoal : null,
-            );
-            const vsThis = pctVs(p, kcalPct);
-            return (
-              <details
-                key={w.weekStart}
-                className="app-card group overflow-hidden"
-              >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 marker:content-none [&::-webkit-details-marker]:hidden">
-                  <div className="min-w-0">
-                    <p className="truncate text-[14px] font-medium text-white">
-                      {w.weekLabel}
-                    </p>
-                    <p className="mt-0.5 text-[11px] tabular-nums text-white/45">
-                      {Math.round(w.rollup.sumCaloriesConsumed)}
-                      {w.rollup.sumCaloriesGoal > 0
-                        ? ` / ${Math.round(w.rollup.sumCaloriesGoal)} kcal`
-                        : " kcal"}
-                      {p != null ? ` · ${p}%` : ""}
-                      {vsThis != null ? (
-                        <span className={cn("ml-1.5", deltaTone(vsThis, true))}>
-                          {signedPct(vsThis)} vs ten tydzień
-                        </span>
-                      ) : null}
-                    </p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-white/35 transition group-open:rotate-90" />
-                </summary>
-                <div className="space-y-2 border-t border-white/[0.06] px-4 py-3">
-                  {w.dayRows.map((row) => {
-                    const st = dayStatus(row, todayKey);
-                    const dayPct = pctOf(row.caloriesConsumed, row.caloriesGoal);
-                    return (
-                      <div
-                        key={row.dateKey}
-                        className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.06] bg-black/20 px-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-[13px] text-white/85">
-                            {row.headline}
-                          </p>
-                          <p className="text-[11px] tabular-nums text-white/40">
-                            {Math.round(row.caloriesConsumed)} kcal
-                            {dayPct != null ? ` · ${dayPct}%` : ""} · B
-                            {Math.round(row.proteinConsumed)} W
-                            {Math.round(row.carbsConsumed)} T
-                            {Math.round(row.fatConsumed)}
-                          </p>
-                        </div>
-                        <span
-                          className={cn(
-                            "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                            statusTone(st),
-                          )}
-                        >
-                          {statusLabel(st)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </details>
-            );
-          })}
-        </section>
       ) : null}
     </div>
   );

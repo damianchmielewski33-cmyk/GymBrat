@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -254,6 +255,7 @@ function PlanCompareDialog({
 }
 
 export function WorkoutCompletePopup() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
   const [summary, setSummary] = useState<WorkoutCompleteSummary | null>(null);
@@ -261,7 +263,15 @@ export function WorkoutCompletePopup() {
   const [progressDeltaUnit, setProgressDeltaUnit] =
     useState<ProgressDeltaUnit>("percent");
 
+  /**
+   * Po zapisie treningu podsumowanie ląduje w sessionStorage, a nawigacja
+   * często idzie na inny ekran (np. ćwiczenie z PR). Layout AppShell zostaje
+   * zamontowany — więc odczytujemy storage przy każdej zmianie ścieżki,
+   * nie tylko przy pierwszym mountcie.
+   */
   useEffect(() => {
+    if (pathname.startsWith("/active-workout")) return;
+
     setProgressDeltaUnit(readProgressDeltaUnitLocal("percent"));
     const raw = sessionStorage.getItem(STORAGE_KEY);
     const toast = sessionStorage.getItem(TOAST_KEY);
@@ -287,7 +297,7 @@ export function WorkoutCompletePopup() {
       sessionStorage.removeItem(STORAGE_KEY);
       sessionStorage.removeItem(TOAST_KEY);
     }
-  }, []);
+  }, [pathname]);
 
   const endedLabel = useMemo(() => {
     if (!summary?.endedAt) return "";

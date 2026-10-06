@@ -47,12 +47,35 @@ export type PreviousWeekNutritionSheetWeek = {
 };
 
 const PREVIOUS_WEEKS_IN_SHEET = 8;
+/** Bieżący + tyle pełnych tygodni wstecz (ok. rok historii na ekranie makro). */
+export const NUTRITION_WEEK_HISTORY_PAST_WEEKS = 52;
 
 export type TodaysNutritionSettingsRow = {
   trainingNutritionGoalsJson: string | null;
   restNutritionGoalsJson: string | null;
   nutritionDayTypesJson: string | null;
 };
+
+function weekSheetFromRollup(
+  week: NutritionWeekRollup,
+): PreviousWeekNutritionSheetWeek {
+  return {
+    weekLabel: formatPlCalendarRange(week.weekStart, week.weekEnd),
+    weekStart: week.weekStart,
+    weekEnd: week.weekEnd,
+    rollup: {
+      sumProteinGoal: week.sumProteinGoal,
+      sumProteinConsumed: week.sumProteinConsumed,
+      sumFatGoal: week.sumFatGoal,
+      sumFatConsumed: week.sumFatConsumed,
+      sumCarbsGoal: week.sumCarbsGoal,
+      sumCarbsConsumed: week.sumCarbsConsumed,
+      sumCaloriesGoal: week.sumCaloriesGoal,
+      sumCaloriesConsumed: week.sumCaloriesConsumed,
+    },
+    dayRows: buildWeekNutritionRows(week.days),
+  };
+}
 
 function applyProfileGoalsAndManualConsumption(
   settings: NutritionSettingsState,
@@ -130,17 +153,19 @@ export function hasExplicitNutritionDayKind(
 }
 
 /**
- * Tygodnie przed bieżącym (tylko pełne tygodnie kalendarzowe), do rozwinięcia w arkuszu.
+ * Tygodnie od bieżącego wstecz (pn→nd), najnowszy pierwszy.
+ * `pastWeeks` = ile pełnych tygodni przed bieżącym (domyślnie ~rok).
  */
-export async function loadPreviousWeeksForSheet(
+export async function loadNutritionWeekHistory(
   userId: string,
   settings: NutritionSettingsState,
   todayKey: string,
+  pastWeeks: number = NUTRITION_WEEK_HISTORY_PAST_WEEKS,
 ): Promise<PreviousWeekNutritionSheetWeek[]> {
   const thisMonday = weekDateKeysMondayFirst(todayKey)[0]!;
   const anchors: string[] = [];
   const allDateKeys: string[] = [];
-  for (let w = 1; w <= PREVIOUS_WEEKS_IN_SHEET; w++) {
+  for (let w = 0; w <= pastWeeks; w++) {
     const monday = addCalendarDays(thisMonday, -7 * w);
     anchors.push(monday);
     allDateKeys.push(...weekDateKeysMondayFirst(monday));
@@ -161,22 +186,25 @@ export async function loadPreviousWeeksForSheet(
     ),
   );
 
-  return weeksData.map((week) => ({
-    weekLabel: formatPlCalendarRange(week.weekStart, week.weekEnd),
-    weekStart: week.weekStart,
-    weekEnd: week.weekEnd,
-    rollup: {
-      sumProteinGoal: week.sumProteinGoal,
-      sumProteinConsumed: week.sumProteinConsumed,
-      sumFatGoal: week.sumFatGoal,
-      sumFatConsumed: week.sumFatConsumed,
-      sumCarbsGoal: week.sumCarbsGoal,
-      sumCarbsConsumed: week.sumCarbsConsumed,
-      sumCaloriesGoal: week.sumCaloriesGoal,
-      sumCaloriesConsumed: week.sumCaloriesConsumed,
-    },
-    dayRows: buildWeekNutritionRows(week.days),
-  }));
+  return weeksData.map(weekSheetFromRollup);
+}
+
+/**
+ * Tygodnie przed bieżącym (tylko pełne tygodnie kalendarzowe), do rozwinięcia w arkuszu.
+ */
+export async function loadPreviousWeeksForSheet(
+  userId: string,
+  settings: NutritionSettingsState,
+  todayKey: string,
+  count: number = PREVIOUS_WEEKS_IN_SHEET,
+): Promise<PreviousWeekNutritionSheetWeek[]> {
+  const history = await loadNutritionWeekHistory(
+    userId,
+    settings,
+    todayKey,
+    count,
+  );
+  return history.slice(1);
 }
 
 export async function loadNutritionDashboard(
