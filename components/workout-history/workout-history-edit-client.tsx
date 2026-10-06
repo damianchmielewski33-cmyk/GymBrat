@@ -193,8 +193,9 @@ export function WorkoutHistoryEditClient({
         setError(res.error);
         return;
       }
-      router.push("/workout-history");
+      // Odśwież cache RSC (m.in. /progress), potem wróć do historii.
       router.refresh();
+      router.push("/workout-history");
     });
   }
 

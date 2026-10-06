@@ -203,6 +203,11 @@ export async function updateCompletedWorkout(input: {
   revalidatePath(`/workout-history/${row.id}/edit`);
   revalidatePath("/");
   revalidatePath("/workout-plan");
+  // Analiza / Postępy liczą tonnaż i maxy z JSON sesji — bez tego widać stare ciężary.
+  revalidatePath("/progress");
+  revalidatePath("/progress", "layout");
+  revalidatePath("/progress-analysis");
+  revalidatePath("/cardio");
 
   return { ok: true as const };
 }
