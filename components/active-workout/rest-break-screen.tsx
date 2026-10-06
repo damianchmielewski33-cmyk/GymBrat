@@ -37,9 +37,112 @@ function formatMmSs(totalSeconds: number) {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
+/** Płynne odliczanie między tickami sekundowymi — koło nie skacze co 1 s. */
+function useSmoothRemaining(remaining: number, open: boolean) {
+  const [smooth, setSmooth] = useState(remaining);
+  const tickFromRef = useRef(remaining);
+  const tickAtRef = useRef(typeof performance !== "undefined" ? performance.now() : 0);
+
+  useEffect(() => {
+    tickFromRef.current = remaining;
+    tickAtRef.current = performance.now();
+    setSmooth(remaining);
+  }, [remaining]);
+
+  useEffect(() => {
+    if (!open) return;
+    let raf = 0;
+    const loop = (now: number) => {
+      const elapsed = (now - tickAtRef.current) / 1000;
+      setSmooth(Math.max(0, tickFromRef.current - elapsed));
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [open, remaining]);
+
+  return smooth;
+}
+
+function RestCountdownClock({
+  remaining,
+  totalSeconds,
+}: {
+  remaining: number;
+  totalSeconds: number;
+}) {
+  const smooth = useSmoothRemaining(remaining, true);
+  const total = Math.max(1, totalSeconds);
+  const ratio = Math.min(1, Math.max(0, smooth / total));
+
+  const size = 236;
+  const stroke = 10;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const dashOffset = c * (1 - ratio);
+  const urgent = remaining <= 10;
+
+  return (
+    <div
+      className="relative mx-auto flex items-center justify-center"
+      style={{ width: size, height: size }}
+      role="timer"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-label={`Pozostało ${formatMmSs(remaining)}`}
+    >
+      <svg
+        viewBox={`0 0 ${size} ${size}`}
+        className="absolute inset-0 h-full w-full -rotate-90"
+        aria-hidden
+      >
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={urgent ? "var(--gym-gold-bright)" : "var(--gym-gold)"}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={dashOffset}
+          className={cn(
+            "drop-shadow-[0_0_14px_rgba(235,196,74,0.45)]",
+            urgent && "drop-shadow-[0_0_22px_rgba(235,196,74,0.7)]",
+          )}
+          style={{ transition: "stroke 200ms ease" }}
+        />
+      </svg>
+
+      <div className="relative z-[1] flex flex-col items-center justify-center px-4 text-center">
+        <p
+          className="font-display text-[64px] leading-none tabular-nums tracking-tight text-[var(--gym-gold-bright)] sm:text-[72px]"
+          style={{
+            textShadow: urgent
+              ? "0 0 28px rgba(235,196,74,0.55)"
+              : "0 0 36px rgba(235,196,74,0.35)",
+          }}
+        >
+          {formatMmSs(remaining)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export type RestBreakScreenProps = {
   open: boolean;
   remaining: number;
+  /** Pełny czas bieżącego cyklu przerwy (do animacji koła). */
+  durationTotal: number;
   title: string;
   elapsedSeconds: number;
   setsDone: number;
@@ -62,11 +165,12 @@ export type RestBreakScreenProps = {
 };
 
 /**
- * Pełnoekranowa PRZERWA: duży timer, złote presety, karta zaliczone/następne, Dalej.
+ * Pełnoekranowa PRZERWA: zegar w kole odliczającym, złote presety, karta zaliczone/następne, Dalej.
  */
 export function RestBreakScreen({
   open,
   remaining,
+  durationTotal,
   title,
   elapsedSeconds,
   setsDone,
@@ -111,6 +215,8 @@ export function RestBreakScreen({
   const progress =
     setsTotal > 0 ? Math.min(1, Math.max(0, setsDone / setsTotal)) : 0;
 
+  const ringTotal = Math.max(durationTotal, remaining, 1);
+
   return createPortal(
     <div className="fixed inset-0 z-[1100] flex flex-col bg-[var(--gym-black)] text-white">
       <div
@@ -132,14 +238,13 @@ export function RestBreakScreen({
       <SessionProgressBar progress={progress} className="relative" />
 
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-5">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.28em] text-[var(--gym-gold)]">
+        <p className="mb-5 text-[12px] font-semibold uppercase tracking-[0.28em] text-[var(--gym-gold)]">
           Przerwa
         </p>
-        <p className="mt-4 font-display text-[76px] leading-none tabular-nums tracking-tight text-[var(--gym-gold-bright)] drop-shadow-[0_0_40px_rgba(235,196,74,0.35)] sm:text-[92px]">
-          {formatMmSs(remaining)}
-        </p>
 
-        <div className="mt-10 flex items-center justify-center gap-2.5 sm:gap-3">
+        <RestCountdownClock remaining={remaining} totalSeconds={ringTotal} />
+
+        <div className="mt-8 flex items-center justify-center gap-2.5 sm:gap-3">
           {PRESETS_SEC.map((sec) => {
             const active = activePreset === sec;
             return (

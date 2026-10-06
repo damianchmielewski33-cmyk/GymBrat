@@ -109,6 +109,8 @@ export function ActiveWorkoutView({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [restRemaining, setRestRemaining] = useState<number | null>(null);
+  /** Pełny czas bieżącego cyklu przerwy — do animacji koła odliczania. */
+  const [restDurationTotal, setRestDurationTotal] = useState(90);
   const [restSoundOn, setRestSoundOn] = useState(true);
   const [lastCompleted, setLastCompleted] = useState<LastCompletedSnap | null>(null);
   const [listOpen, setListOpen] = useState(false);
@@ -264,7 +266,9 @@ export function ActiveWorkoutView({
     if (restSoundOn) {
       playRestTimerStartSignal();
     }
-    setRestRemaining(seconds);
+    const sec = Math.max(1, Math.round(seconds));
+    setRestDurationTotal(sec);
+    setRestRemaining(sec);
   }
 
   function stopRest() {
@@ -736,6 +740,7 @@ export function ActiveWorkoutView({
         <RestBreakScreen
           open
           remaining={restRemaining}
+          durationTotal={restDurationTotal}
           title={title}
           elapsedSeconds={elapsed}
           setsDone={completedSets.done}
@@ -757,10 +762,16 @@ export function ActiveWorkoutView({
               return next;
             });
           }}
-          onAddSeconds={(sec) =>
-            setRestRemaining((r) => (r == null ? sec : r + sec))
-          }
-          onSetSeconds={(sec) => setRestRemaining(sec)}
+          onAddSeconds={(sec) => {
+            const add = Math.max(1, Math.round(sec));
+            setRestDurationTotal((t) => t + add);
+            setRestRemaining((r) => (r == null ? add : r + add));
+          }}
+          onSetSeconds={(sec) => {
+            const next = Math.max(1, Math.round(sec));
+            setRestDurationTotal(next);
+            setRestRemaining(next);
+          }}
           onContinue={() => stopRest()}
           onCloseSession={requestDiscardSession}
           onOpenList={() => {

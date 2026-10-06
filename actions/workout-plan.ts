@@ -5,10 +5,17 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
-import { workoutPlans, workouts } from "@/db/schema";
+import { activeWorkoutSessions, workoutPlans, workouts } from "@/db/schema";
 import type { WorkoutPlanPayload } from "@/lib/workout-plan-types";
 import { getLastWorkoutHintsForPlan } from "@/lib/last-workout-hints";
 import { comparePlansByWorkoutRecencyAsc } from "@/lib/workout-plan-queue";
+import {
+  applyRenamesToCustomNames,
+  collectExerciseRenames,
+  planExerciseNameById,
+  rewriteSessionExercisesJson,
+  type ExerciseRename,
+} from "@/lib/workout-exercise-rename";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
 import { UserMessages } from "@/lib/user-facing-errors";
 
@@ -114,8 +121,63 @@ export async function getWorkoutPlans(): Promise<WorkoutPlanListItemDTO[]> {
   return out;
 }
 
+async function migrateExerciseRenamesInHistory(
+  userId: string,
+  renames: ExerciseRename[],
+  nameById: Map<string, string>,
+) {
+  if (!renames.length && nameById.size === 0) return;
+
+  const db = getDb();
+  const workoutRows = await db
+    .select({ id: workouts.id, exercises: workouts.exercises })
+    .from(workouts)
+    .where(eq(workouts.userId, userId));
+
+  for (const row of workoutRows) {
+    const nextJson = rewriteSessionExercisesJson(
+      row.exercises,
+      renames,
+      nameById,
+    );
+    if (!nextJson) continue;
+    await db
+      .update(workouts)
+      .set({ exercises: nextJson })
+      .where(and(eq(workouts.id, row.id), eq(workouts.userId, userId)));
+  }
+
+  const [active] = await db
+    .select({
+      payloadJson: activeWorkoutSessions.payloadJson,
+      revision: activeWorkoutSessions.revision,
+    })
+    .from(activeWorkoutSessions)
+    .where(eq(activeWorkoutSessions.userId, userId))
+    .limit(1);
+
+  if (active) {
+    const nextPayload = rewriteSessionExercisesJson(
+      active.payloadJson,
+      renames,
+      nameById,
+    );
+    if (nextPayload) {
+      await db
+        .update(activeWorkoutSessions)
+        .set({
+          payloadJson: nextPayload,
+          revision: active.revision + 1,
+          updatedAt: new Date(),
+        })
+        .where(eq(activeWorkoutSessions.userId, userId));
+    }
+  }
+}
+
 /**
  * Zapisuje plan: bez `planId` tworzy nowy wpis; z `planId` aktualizuje istniejący.
+ * Przy zmianie nazwy ćwiczenia (to samo id) przepisuje historię sesji, żeby nie zgubić progresu.
  */
 export async function saveWorkoutPlan(plan: WorkoutPlanPayload, planId?: string) {
   const session = await auth();
@@ -128,36 +190,67 @@ export async function saveWorkoutPlan(plan: WorkoutPlanPayload, planId?: string)
   }
 
   const db = getDb();
-  const json = JSON.stringify(plan);
+  const userId = session.user.id;
   const now = new Date();
 
   if (planId) {
     const [existing] = await db
-      .select({ id: workoutPlans.id })
+      .select({ id: workoutPlans.id, planJson: workoutPlans.planJson })
       .from(workoutPlans)
-      .where(
-        and(eq(workoutPlans.id, planId), eq(workoutPlans.userId, session.user.id)),
-      )
+      .where(and(eq(workoutPlans.id, planId), eq(workoutPlans.userId, userId)))
       .limit(1);
     if (!existing) {
       return { ok: false as const, error: "Plan nie został znaleziony." };
     }
+
+    let planToSave = plan;
+    let renames: ExerciseRename[] = [];
+    try {
+      const previous = normalizeWorkoutPlan(
+        JSON.parse(existing.planJson) as unknown,
+      );
+      if (previous) {
+        renames = collectExerciseRenames(previous, plan);
+        if (renames.length) {
+          planToSave = {
+            ...plan,
+            userCustomExerciseNames: applyRenamesToCustomNames(
+              plan.userCustomExerciseNames,
+              renames,
+            ),
+          };
+        }
+      }
+    } catch {
+      // uszkodzony poprzedni JSON — zapisujemy nowy plan bez migracji nazw
+    }
+
     await db
       .update(workoutPlans)
-      .set({ planJson: json, updatedAt: now })
+      .set({ planJson: JSON.stringify(planToSave), updatedAt: now })
       .where(eq(workoutPlans.id, planId));
+
+    // Sync po id leczy też wcześniejsze rename bez migracji; renames pokrywają sesje tylko po nazwie.
+    await migrateExerciseRenamesInHistory(
+      userId,
+      renames,
+      planExerciseNameById(planToSave),
+    );
+
     revalidatePath("/workout-plan");
     revalidatePath("/profile/workout-plan");
     revalidatePath("/profile");
     revalidatePath("/active-workout");
+    revalidatePath("/progress");
+    revalidatePath("/workout-history");
     return { ok: true as const, id: planId };
   }
 
   const id = randomUUID();
   await db.insert(workoutPlans).values({
     id,
-    userId: session.user.id,
-    planJson: json,
+    userId,
+    planJson: JSON.stringify(plan),
     createdAt: now,
     updatedAt: now,
   });

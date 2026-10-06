@@ -52,6 +52,8 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Na ekranie Trening z powrotem jest karta Kontynuuj / Rozpocznij trening (rekomendowany dzień planu).",
       "Wgranie ikony Android w panelu Branding odpala przebudowę APK (GitHub Actions) i odświeżenie pliku na Vercel (Deploy Hook).",
       "Nazwy ćwiczeń z importu / AI / własnego wpisu zostają dokładnie jak w planie — bez automatycznego tłumaczenia na polskie z katalogu.",
+      "Zmiana nazwy ćwiczenia w planie (np. po imporcie z PDF/Excela) nie czyści już progresu i nie wrzuca historii do „Inne” — zapis planu przepisuje nazwę w historii treningów.",
+      "Ekran przerwy ma zegar z płynnie odliczającym złotym kołem (presety i +30 s resetują / wydłużają cykl animacji).",
       "Cardio ma osobny ekran: zalecenie, Nagraj trasę / Dodaj wpis / Z zegarka oraz historię wpisów; po zapisie otwiera się podsumowanie (np. Marsz) z metrykami, Udostępnij i zdjęciem ekranu urządzenia.",
       "Ekran Nagraj trasę jest pełnoekranowy: ciemna mapa GPS, badge „Nagrywam trasę”, dystans/czas, tempo/kroki/punkty GPS, czerwony Stop oraz informacja o wake-locku (ekran nie gaśnie podczas nagrywania).",
       "Obrót telefonu nie restartuje już aplikacji Android (WebView) ani PWA — Activity zachowuje stan, a manifest pozwala na dowolną orientację.",
