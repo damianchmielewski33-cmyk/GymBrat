@@ -148,21 +148,35 @@ function MacroBar({
   );
 }
 
+function remainingHint(
+  consumed: number,
+  goal: number | null,
+  unit: string,
+): string | null {
+  if (goal == null || !(goal > 0)) return null;
+  const diff = Math.round(goal - consumed);
+  if (diff > 0) return `zostało ${diff} ${unit}`;
+  if (diff < 0) return `+${Math.abs(diff)} ${unit} ponad cel`;
+  return "cel osiągnięty";
+}
+
 function DayDetailCard({ row, status }: { row: WeekDayNutritionRow; status: DayStatus }) {
+  const kcalHint = remainingHint(row.caloriesConsumed, row.caloriesGoal, "kcal");
+
   return (
     <section className="app-card space-y-4 p-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-            Dzień
-          </p>
-          <h2 className="mt-1 text-[18px] font-semibold text-white">
+        <div className="min-w-0">
+          <h2 className="text-[17px] font-semibold leading-snug text-white">
             {row.headline}
           </h2>
+          {kcalHint ? (
+            <p className="mt-1 text-[13px] text-white/50">{kcalHint}</p>
+          ) : null}
         </div>
         <span
           className={cn(
-            "rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+            "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold",
             statusTone(status),
           )}
         >
@@ -170,36 +184,39 @@ function DayDetailCard({ row, status }: { row: WeekDayNutritionRow; status: DayS
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5">
-        {(
-          [
-            ["Kcal", row.caloriesConsumed, row.caloriesGoal, "kcal"],
-            ["Białko", row.proteinConsumed, row.proteinGoal, "g"],
-            ["Węgle", row.carbsConsumed, row.carbsGoal, "g"],
-            ["Tłuszcz", row.fatConsumed, row.fatGoal, "g"],
-          ] as const
-        ).map(([label, consumed, goal, unit]) => {
-          const p = pctOf(consumed, goal);
-          return (
-            <div
-              key={label}
-              className="rounded-xl border border-white/[0.08] bg-black/25 px-3 py-2.5"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                {label}
-              </p>
-              <p className="mt-1 font-metric text-[22px] leading-none text-white">
-                {Math.round(consumed)}
-                <span className="ml-1 text-[12px] text-white/40">{unit}</span>
-              </p>
-              <p className="mt-1.5 text-[11px] tabular-nums text-white/45">
-                {goal != null
-                  ? `cel ${Math.round(goal)} · ${p ?? "—"}%`
-                  : "brak celu"}
-              </p>
-            </div>
-          );
-        })}
+      <div className="space-y-3.5">
+        <MacroBar
+          label="Kalorie"
+          icon={<Flame className="h-3.5 w-3.5" />}
+          consumed={row.caloriesConsumed}
+          goal={row.caloriesGoal}
+          unit="kcal"
+          barClass="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400"
+        />
+        <MacroBar
+          label="Białko"
+          icon={<Beef className="h-3.5 w-3.5" />}
+          consumed={row.proteinConsumed}
+          goal={row.proteinGoal}
+          unit="g"
+          barClass="bg-gradient-to-r from-sky-400 to-cyan-300"
+        />
+        <MacroBar
+          label="Węgle"
+          icon={<Wheat className="h-3.5 w-3.5" />}
+          consumed={row.carbsConsumed}
+          goal={row.carbsGoal}
+          unit="g"
+          barClass="bg-gradient-to-r from-violet-400 to-fuchsia-300"
+        />
+        <MacroBar
+          label="Tłuszcz"
+          icon={<Droplets className="h-3.5 w-3.5" />}
+          consumed={row.fatConsumed}
+          goal={row.fatGoal}
+          unit="g"
+          barClass="bg-gradient-to-r from-amber-300 to-yellow-200"
+        />
       </div>
 
       <Link

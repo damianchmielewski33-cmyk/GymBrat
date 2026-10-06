@@ -22,10 +22,10 @@ import { DietMealPlanPanel } from "@/components/meal-suggestions/diet-meal-plan-
 import { DietDiaryPanel } from "@/components/meal-suggestions/diet-diary-panel";
 import { BarcodeCameraScanner } from "@/components/meal-suggestions/barcode-camera-scanner";
 import {
-  DIET_DIARY_SLOT_LABELS,
   dietDiarySlotFromHour,
   type DietDiarySlot,
 } from "@/lib/diet-diary-slots";
+import { MEAL_PLAN_DIARY_SLOTS } from "@/lib/diet-recipe-match";
 import type { FoodProduct } from "@/lib/food-products-types";
 import type { MealLogDto } from "@/lib/meal-logs";
 import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
@@ -603,9 +603,19 @@ export function MealSuggestionsView({
         open={Boolean(portionProduct)}
         onClose={() => setPortionProduct(null)}
         slot={portionSlot}
-        dateLabel={dateLabel}
+        onSlotChange={setPortionSlot}
         pending={pending}
+        mealTemplates={mealTemplates}
         dayMacros={dayMacros}
+        slotEaten={(() => {
+          const entries = bySlot[portionSlot] ?? [];
+          return {
+            proteinG: entries.reduce((s, e) => s + e.proteinG, 0),
+            carbsG: entries.reduce((s, e) => s + e.carbsG, 0),
+            fatG: entries.reduce((s, e) => s + e.fatG, 0),
+            calories: entries.reduce((s, e) => s + e.calories, 0),
+          };
+        })()}
         onConfirm={({ product, macros }) => {
           start(async () => {
             const added = await addMealProductAction({
@@ -623,7 +633,9 @@ export function MealSuggestionsView({
               return;
             }
             notifySaved(
-              `Dodano „${product.name}” (${macros.label}) do ${DIET_DIARY_SLOT_LABELS[portionSlot]}.`,
+              `Dodano „${product.name}” (${macros.label}) do Posiłek ${
+                MEAL_PLAN_DIARY_SLOTS.indexOf(portionSlot) + 1
+              }.`,
             );
             setPortionProduct(null);
             refreshDay(dateKey);
