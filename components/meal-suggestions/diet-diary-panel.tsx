@@ -71,7 +71,8 @@ function MealSlotCard({
 }) {
   const eaten = slotTotals(entries);
   const targetKcal = Math.round(row.calories);
-  const targetLine = `B ${Math.round(row.proteinG)} W ${Math.round(row.carbsG)} T ${Math.round(row.fatG)}`;
+  // Nagłówek = to, co użytkownik wpisał (suma logów), nie cele z szablonu posiłku.
+  const eatenLine = `B ${Math.round(eaten.protein)} W ${Math.round(eaten.carbs)} T ${Math.round(eaten.fat)}`;
 
   return (
     <section className="overflow-hidden rounded-[18px] border border-white/[0.07] bg-[#141414]">
@@ -81,7 +82,7 @@ function MealSlotCard({
             Posiłek {row.index}
           </h3>
           <p className="mt-1 text-[12px] tabular-nums text-white/45">
-            {Math.round(eaten.kcal)} / {targetKcal} kcal · {targetLine}
+            {Math.round(eaten.kcal)} / {targetKcal} kcal · {eatenLine}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">

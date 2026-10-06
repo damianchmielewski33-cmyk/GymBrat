@@ -40,6 +40,7 @@ import { extractCardioExtrasFromSessionJson } from "@/lib/cardio-utils";
 import {
   computeExtraCardioAdvice,
   type ExtraCardioAdvice,
+  type MacroDaySnapshot,
   type RecentCardioSample,
 } from "@/lib/extra-cardio-from-macros";
 
@@ -204,6 +205,7 @@ async function getRecentCardioSamples(
   const fromKey = addCalendarDays(todayKey, -lookbackDays);
   const rows = await db
     .select({
+      date: workouts.date,
       cardioMinutes: workouts.cardioMinutes,
       exercises: workouts.exercises,
     })
@@ -236,6 +238,7 @@ async function getRecentCardioSamples(
       minutes,
       calories: extras.calories,
       paceMinPerKm: extras.paceMinPerKm,
+      dateKey: row.date,
     });
     if (out.length >= limit) break;
   }
@@ -433,6 +436,8 @@ async function getMacroSeriesAndToday(
   series: HomeStartMacroPoint[];
   today: HomeStartTodayMacros;
   week: HomeStartWeekMacros;
+  /** Dni pon–dziś z celami i spożyciem — do długu cardio. */
+  elapsedWeekDays: Array<{ dateKey: string; day: MacroDaySnapshot }>;
 }> {
   const todayKey = calendarDateKey();
   const weekKeys = weekDateKeysMondayFirst(todayKey);
@@ -528,6 +533,27 @@ async function getMacroSeriesAndToday(
   const wFatGoal = hasWeekGoals ? round1(weekFatGoal) : null;
   const wCaloriesGoal = hasWeekGoals ? Math.round(weekCaloriesGoal) : null;
 
+  const elapsedWeekDays: Array<{ dateKey: string; day: MacroDaySnapshot }> = [];
+  for (const date of weekKeys) {
+    if (date > todayKey) break;
+    const agg = aggregates[date];
+    const goals = resolveProfileDayGoals(settings, date);
+    elapsedWeekDays.push({
+      dateKey: date,
+      day: {
+        caloriesConsumed: Math.round(agg?.calories ?? 0),
+        caloriesGoal:
+          goals != null ? Math.round(goals.caloriesGoal) : null,
+        proteinConsumed: round1(agg?.protein ?? 0),
+        carbsConsumed: round1(agg?.carbs ?? 0),
+        fatConsumed: round1(agg?.fat ?? 0),
+        proteinGoal: goals?.macroGoals.protein ?? null,
+        carbsGoal: goals?.macroGoals.carbs ?? null,
+        fatGoal: goals?.macroGoals.fat ?? null,
+      },
+    });
+  }
+
   return {
     series,
     today: {
@@ -556,6 +582,7 @@ async function getMacroSeriesAndToday(
       carbsRemaining: remainingOrNull(wCarbsGoal, wCarbs),
       fatRemaining: remainingOrNull(wFatGoal, wFat),
     },
+    elapsedWeekDays,
   };
 }
 
@@ -971,7 +998,7 @@ export async function getHomeStartDashboard(
 
   const extraCardio = computeExtraCardioAdvice({
     today: macroBundle.today,
-    week: macroBundle.week,
+    elapsedDays: macroBundle.elapsedWeekDays,
     todayKey,
     weekKeys,
     weightKg: currentWeightKg,

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Activity, Scale, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { HomeStartTodayMacros, HomeStartWeekMacros } from "@/lib/home-start";
@@ -165,9 +166,11 @@ function formatKcal(n: number): string {
 function MacroProgressTile({
   title,
   macros,
+  href,
 }: {
   title: string;
   macros: HomeStartTodayMacros | HomeStartWeekMacros;
+  href?: string;
 }) {
   const hasGoals =
     macros.proteinGoal != null ||
@@ -179,8 +182,8 @@ function MacroProgressTile({
       : null;
   const kcalOver = kcalRemaining != null && kcalRemaining < 0;
 
-  return (
-    <div className="app-card flex min-h-[118px] flex-col px-3.5 py-3.5">
+  const body = (
+    <>
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
         {title}
       </p>
@@ -247,9 +250,30 @@ function MacroProgressTile({
       </div>
       {!hasGoals ? (
         <p className="mt-2 text-[10px] text-white/35">Ustaw cele w profilu</p>
+      ) : href ? (
+        <p className="mt-2 text-[10px] font-medium text-[var(--gym-gold)]/80">
+          Kalendarz tygodnia →
+        </p>
       ) : null}
-    </div>
+    </>
   );
+
+  const className =
+    "app-card flex min-h-[118px] flex-col px-3.5 py-3.5 transition hover:bg-white/[0.02]";
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={className}
+        aria-label={`${title} — otwórz kalendarz makro`}
+      >
+        {body}
+      </Link>
+    );
+  }
+
+  return <div className={className}>{body}</div>;
 }
 
 export function StartMetricTiles({
@@ -305,7 +329,11 @@ export function StartMetricTiles({
           hintTone="muted"
         />
         <MacroProgressTile title="Makro dziś" macros={todayMacros} />
-        <MacroProgressTile title="Makro tydzień" macros={weekMacros} />
+        <MacroProgressTile
+          title="Makro tydzień"
+          macros={weekMacros}
+          href="/nutrition/week"
+        />
       </div>
     </section>
   );

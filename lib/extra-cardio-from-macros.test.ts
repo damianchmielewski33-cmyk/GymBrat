@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeExtraCardioAdvice,
+  computeOpenMacroDebt,
   daysLeftInWeekIncludingToday,
   estimateBurnKcalPerMin,
   macroSurplusKcal,
@@ -41,7 +42,6 @@ describe("extra-cardio-from-macros", () => {
         caloriesConsumed: 2100,
       }),
     );
-    // 20g białka * 4 = 80; kcal over = 100 → max = 100
     expect(surplusKcal).toBe(100);
     expect(exceeded).toContain("protein");
     expect(exceeded).toContain("calories");
@@ -64,60 +64,124 @@ describe("extra-cardio-from-macros", () => {
     expect(recentPaceMinPerKm).toBeCloseTo(7.2, 1);
   });
 
-  it("na początku tygodnia odkłada część nadwyżki — mniej dodatkowego cardio", () => {
-    const monday = computeExtraCardioAdvice({
-      todayKey: "2026-10-05",
+  it("wczorajsza nadwyżka widać dziś rano (niewykorzystany cel dziś nie kasuje długu)", () => {
+    const yesterday = day({
+      caloriesConsumed: 2400,
+      proteinConsumed: 150,
+      carbsConsumed: 200,
+      fatConsumed: 60,
+    });
+    const todayMorning = day({
+      caloriesConsumed: 0,
+      proteinConsumed: 0,
+      carbsConsumed: 0,
+      fatConsumed: 0,
+    });
+
+    const debt = computeOpenMacroDebt({
+      todayKey: "2026-10-07",
       weekKeys,
-      today: day({
-        caloriesConsumed: 2400,
-        proteinConsumed: 180,
-        carbsConsumed: 250,
-        fatConsumed: 80,
-      }),
-      week: day({
-        caloriesConsumed: 2400,
-        caloriesGoal: 14_000,
-        proteinConsumed: 180,
-        carbsConsumed: 250,
-        fatConsumed: 80,
-        proteinGoal: 1050,
-        carbsGoal: 1400,
-        fatGoal: 420,
-      }),
+      elapsedDays: [
+        { dateKey: "2026-10-05", day: day({ caloriesConsumed: 2000, proteinConsumed: 150, carbsConsumed: 200, fatConsumed: 60 }) },
+        { dateKey: "2026-10-06", day: yesterday },
+        { dateKey: "2026-10-07", day: todayMorning },
+      ],
+      recentCardio: [],
+    });
+
+    expect(debt.pastDebtKcal).toBe(400);
+    expect(debt.todaySoftCreditKcal).toBe(0);
+    expect(debt.openDebtKcal).toBe(400);
+
+    const advice = computeExtraCardioAdvice({
+      todayKey: "2026-10-07",
+      weekKeys,
+      today: todayMorning,
+      elapsedDays: [
+        { dateKey: "2026-10-05", day: day({ caloriesConsumed: 2000, proteinConsumed: 150, carbsConsumed: 200, fatConsumed: 60 }) },
+        { dateKey: "2026-10-06", day: yesterday },
+        { dateKey: "2026-10-07", day: todayMorning },
+      ],
       weightKg: 80,
       recentCardio: [{ minutes: 40, calories: 320, paceMinPerKm: 8 }],
     });
-
-    const sunday = computeExtraCardioAdvice({
-      todayKey: "2026-10-11",
-      weekKeys,
-      today: day({
-        caloriesConsumed: 2400,
-        proteinConsumed: 180,
-        carbsConsumed: 250,
-        fatConsumed: 80,
-      }),
-      week: day({
-        caloriesConsumed: 14_500,
-        caloriesGoal: 14_000,
-        proteinConsumed: 1100,
-        carbsConsumed: 1500,
-        fatConsumed: 450,
-        proteinGoal: 1050,
-        carbsGoal: 1400,
-        fatGoal: 420,
-      }),
-      weightKg: 80,
-      recentCardio: [{ minutes: 40, calories: 320, paceMinPerKm: 8 }],
-    });
-
-    expect(monday.show).toBe(true);
-    expect(sunday.show).toBe(true);
-    expect(sunday.extraMinutes).toBeGreaterThanOrEqual(monday.extraMinutes);
-    expect(sunday.balanceChancePct).toBeLessThan(monday.balanceChancePct);
+    expect(advice.show).toBe(true);
+    expect(advice.extraMinutes).toBeGreaterThanOrEqual(5);
   });
 
-  it("bez przekroczenia nie pokazuje dodatkowego cardio", () => {
+  it("po odrobieniu wczorajszej nadwyżki dietą pasek znika następnego dnia", () => {
+    const mondayOk = day({
+      caloriesConsumed: 2000,
+      proteinConsumed: 150,
+      carbsConsumed: 200,
+      fatConsumed: 60,
+    });
+    const tuesdayOver = day({
+      caloriesConsumed: 2400,
+      proteinConsumed: 150,
+      carbsConsumed: 200,
+      fatConsumed: 60,
+    });
+    const wednesdayUnder = day({
+      caloriesConsumed: 1600,
+      proteinConsumed: 140,
+      carbsConsumed: 150,
+      fatConsumed: 50,
+    });
+
+    const duringCatchUp = computeExtraCardioAdvice({
+      todayKey: "2026-10-07",
+      weekKeys,
+      today: wednesdayUnder,
+      elapsedDays: [
+        { dateKey: "2026-10-05", day: mondayOk },
+        { dateKey: "2026-10-06", day: tuesdayOver },
+        { dateKey: "2026-10-07", day: wednesdayUnder },
+      ],
+      weightKg: 80,
+      recentCardio: [],
+    });
+    // Środa: zjedzone 80% celu i poniżej — miękki kredyt 400 → dług ~0
+    expect(duringCatchUp.show).toBe(false);
+
+    const nextMorning = computeExtraCardioAdvice({
+      todayKey: "2026-10-08",
+      weekKeys,
+      today: day({ caloriesConsumed: 0 }),
+      elapsedDays: [
+        { dateKey: "2026-10-05", day: mondayOk },
+        { dateKey: "2026-10-06", day: tuesdayOver },
+        { dateKey: "2026-10-07", day: wednesdayUnder },
+        { dateKey: "2026-10-08", day: day({ caloriesConsumed: 0 }) },
+      ],
+      weightKg: 80,
+      recentCardio: [],
+    });
+    // Wt +400, Śr −400 → pastNet 0
+    expect(nextMorning.show).toBe(false);
+  });
+
+  it("cardio w tygodniu obniża otwarty dług", () => {
+    const debt = computeOpenMacroDebt({
+      todayKey: "2026-10-07",
+      weekKeys,
+      elapsedDays: [
+        {
+          dateKey: "2026-10-06",
+          day: day({ caloriesConsumed: 2500 }),
+        },
+        { dateKey: "2026-10-07", day: day({ caloriesConsumed: 0 }) },
+      ],
+      recentCardio: [
+        { minutes: 40, calories: 300, paceMinPerKm: 8, dateKey: "2026-10-07" },
+      ],
+    });
+    expect(debt.pastDebtKcal).toBe(500);
+    expect(debt.cardioOffsetKcal).toBe(300);
+    expect(debt.openDebtKcal).toBe(200);
+  });
+
+  it("bez żadnej nadwyżki nie pokazuje dodatkowego cardio", () => {
     const advice = computeExtraCardioAdvice({
       todayKey: "2026-10-06",
       weekKeys,
@@ -127,16 +191,21 @@ describe("extra-cardio-from-macros", () => {
         carbsConsumed: 180,
         fatConsumed: 50,
       }),
-      week: day({
-        caloriesConsumed: 3600,
-        caloriesGoal: 14_000,
-        proteinConsumed: 280,
-        carbsConsumed: 360,
-        fatConsumed: 100,
-        proteinGoal: 1050,
-        carbsGoal: 1400,
-        fatGoal: 420,
-      }),
+      elapsedDays: [
+        {
+          dateKey: "2026-10-05",
+          day: day({ caloriesConsumed: 1900 }),
+        },
+        {
+          dateKey: "2026-10-06",
+          day: day({
+            caloriesConsumed: 1800,
+            proteinConsumed: 140,
+            carbsConsumed: 180,
+            fatConsumed: 50,
+          }),
+        },
+      ],
       weightKg: 75,
       recentCardio: [],
     });
