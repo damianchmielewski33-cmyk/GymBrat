@@ -105,6 +105,7 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
       cardioThisWeekMinutes={dash.cardioThisWeekMinutes}
       workoutStreakWeeks={dash.workoutStreakWeeks}
       cardioGoalMinutes={dash.cardioWeeklyGoal}
+      extraCardio={dash.extraCardio}
     />
   );
 }

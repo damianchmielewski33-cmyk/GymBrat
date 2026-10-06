@@ -18,6 +18,7 @@ import type {
   HomeStartWeekMacros,
   HomeStartWeightPoint,
 } from "@/lib/home-start";
+import type { ExtraCardioAdvice } from "@/lib/extra-cardio-from-macros";
 import type { DietSupplement } from "@/lib/diet-supplements";
 import type { RecentWorkoutItem } from "@/lib/treningi-hub-stats";
 import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
@@ -67,6 +68,7 @@ export type HomeTodayViewProps = {
   cardioThisWeekMinutes: number;
   workoutStreakWeeks: number;
   cardioGoalMinutes: number;
+  extraCardio?: ExtraCardioAdvice | null;
 };
 
 export function HomeTodayView(props: HomeTodayViewProps) {
@@ -89,6 +91,7 @@ export function HomeTodayView(props: HomeTodayViewProps) {
         cardioThisWeekMinutes={props.cardioThisWeekMinutes}
         workoutStreakWeeks={props.workoutStreakWeeks}
         cardioGoalMinutes={props.cardioGoalMinutes}
+        extraCardio={props.extraCardio}
       />
 
       <HomeSupplementsChip items={props.supplements} />

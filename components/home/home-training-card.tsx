@@ -9,6 +9,7 @@ import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
 import { HomeCardioProgressStrip } from "@/components/home/home-cardio-progress-strip";
 import { beginWorkoutFromPlanRow } from "@/lib/start-workout-session";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
+import type { ExtraCardioAdvice } from "@/lib/extra-cardio-from-macros";
 import {
   formatPlanLastDoneRelative,
   formatPlanLastDoneShort,
@@ -64,6 +65,7 @@ export function HomeTrainingCard({
   cardioThisWeekMinutes,
   workoutStreakWeeks,
   cardioGoalMinutes,
+  extraCardio = null,
 }: {
   recommendedPlanId: string | null;
   planName: string | null;
@@ -73,6 +75,7 @@ export function HomeTrainingCard({
   cardioThisWeekMinutes: number;
   workoutStreakWeeks: number;
   cardioGoalMinutes: number;
+  extraCardio?: ExtraCardioAdvice | null;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -174,6 +177,7 @@ export function HomeTrainingCard({
             <HomeCardioProgressStrip
               minutesCompleted={cardioThisWeekMinutes}
               weeklyGoal={cardioGoalMinutes}
+              extraCardio={extraCardio}
               embedded
             />
             <Link
@@ -236,6 +240,7 @@ export function HomeTrainingCard({
           <HomeCardioProgressStrip
             minutesCompleted={cardioThisWeekMinutes}
             weeklyGoal={cardioGoalMinutes}
+            extraCardio={extraCardio}
             embedded
           />
 

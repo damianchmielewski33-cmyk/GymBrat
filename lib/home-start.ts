@@ -36,6 +36,12 @@ import {
   countableCardioMinutes,
   parseWorkoutSessionJson,
 } from "@/lib/workout-cardio-attribution";
+import { extractCardioExtrasFromSessionJson } from "@/lib/cardio-utils";
+import {
+  computeExtraCardioAdvice,
+  type ExtraCardioAdvice,
+  type RecentCardioSample,
+} from "@/lib/extra-cardio-from-macros";
 
 export type HomeStartWeightPoint = { date: string; kg: number };
 export type HomeStartWaistPoint = { date: string; cm: number };
@@ -82,6 +88,8 @@ export type HomeStartDashboard = {
   weeklySessionsTarget: number;
   cardioThisWeekMinutes: number;
   cardioWeeklyGoal: number;
+  /** Dodatkowe cardio przy nadwyżce makro (pasek na Pulpicie). */
+  extraCardio: ExtraCardioAdvice;
   /** Kolejne tygodnie kalendarzowe (pon–niedz.) z ≥1 treningiem. */
   workoutStreakWeeks: number;
   daysInProgram: number | null;
@@ -183,6 +191,55 @@ async function sumCardioMinutesInCalendarWeek(
     );
 
   return fromWorkouts + Number(fromLegacy?.total ?? 0);
+}
+
+/** Ostatnie sesje cardio z metrykami (tempo / kcal) — do szacunku spalania. */
+async function getRecentCardioSamples(
+  userId: string,
+  todayKey: string,
+  lookbackDays = 21,
+  limit = 12,
+): Promise<RecentCardioSample[]> {
+  const db = getDb();
+  const fromKey = addCalendarDays(todayKey, -lookbackDays);
+  const rows = await db
+    .select({
+      cardioMinutes: workouts.cardioMinutes,
+      exercises: workouts.exercises,
+    })
+    .from(workouts)
+    .where(
+      and(
+        eq(workouts.userId, userId),
+        gte(workouts.date, fromKey),
+        lte(workouts.date, todayKey),
+      ),
+    )
+    .orderBy(desc(workouts.date))
+    .limit(40);
+
+  const out: RecentCardioSample[] = [];
+  for (const row of rows) {
+    const parsed = parseWorkoutSessionJson(row.exercises);
+    const minutes = countableCardioMinutes(parsed, row.cardioMinutes ?? 0);
+    if (minutes <= 0) continue;
+    let raw: unknown = parsed;
+    if (!raw) {
+      try {
+        raw = JSON.parse(row.exercises) as unknown;
+      } catch {
+        raw = null;
+      }
+    }
+    const extras = extractCardioExtrasFromSessionJson(raw, minutes);
+    out.push({
+      minutes,
+      calories: extras.calories,
+      paceMinPerKm: extras.paceMinPerKm,
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 async function getNextWorkoutPlan(userId: string) {
@@ -828,6 +885,7 @@ export async function getHomeStartDashboard(
     workoutsThisWeek,
     cardioThisWeekMinutes,
     cardioRolling,
+    recentCardioSamples,
     workoutStreakWeeks,
     stats,
     weightFromStart,
@@ -862,6 +920,7 @@ export async function getHomeStartDashboard(
     countDistinctWorkoutDaysInRange(userId, weekStart, weekEnd),
     sumCardioMinutesInCalendarWeek(userId, weekKeys),
     getWeeklyCardioProgress(userId),
+    getRecentCardioSamples(userId, todayKey),
     getWorkoutStreakWeeks(userId, todayKey),
     getHomeStats(userId),
     getWeightFromStart(userId),
@@ -910,6 +969,15 @@ export async function getHomeStartDashboard(
     parseFitnessGoalsJson(settingsRow?.fitnessGoalsJson ?? null)
       .weeklySessionsTarget ?? 4;
 
+  const extraCardio = computeExtraCardioAdvice({
+    today: macroBundle.today,
+    week: macroBundle.week,
+    todayKey,
+    weekKeys,
+    weightKg: currentWeightKg,
+    recentCardio: recentCardioSamples,
+  });
+
   return {
     firstName,
     lastName,
@@ -918,6 +986,7 @@ export async function getHomeStartDashboard(
     weeklySessionsTarget,
     cardioThisWeekMinutes,
     cardioWeeklyGoal: cardioRolling.weeklyGoal,
+    extraCardio,
     workoutStreakWeeks,
     daysInProgram,
     reportCount: programMeta.reportCount,
