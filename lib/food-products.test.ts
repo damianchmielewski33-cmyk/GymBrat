@@ -7,6 +7,7 @@ import {
 } from "@/lib/diet-diary-slots";
 import {
   findLocalProductByBarcode,
+  findLocalProductByName,
   mapOpenFoodFactsProduct,
   normalizeFoodQuery,
   searchLocalProducts,
@@ -71,6 +72,24 @@ describe("food-products local db", () => {
     expect(searchLocalProducts("jablko").some((p) => /jabł/i.test(p.name))).toBe(true);
   });
 
+  it("liczba mnoga trafia w lokalne owoce (truskawki → Truskawka)", () => {
+    const hits = searchLocalProducts("truskawki");
+    expect(hits[0]?.name).toMatch(/truskawk/i);
+    expect(hits[0]?.basisAmount).toBe(100);
+    expect(hits[0]?.calories).toBe(33);
+  });
+
+  it("rozszerzona baza ma typowe produkty PL", () => {
+    expect(FOOD_PRODUCTS_LOCAL.length).toBeGreaterThanOrEqual(120);
+    expect(searchLocalProducts("brokul").some((p) => /broku/i.test(p.name))).toBe(
+      true,
+    );
+    expect(searchLocalProducts("skyr").some((p) => /skyr/i.test(p.name))).toBe(true);
+    expect(
+      searchLocalProducts("kasza gryczana").some((p) => /gryczan/i.test(p.name)),
+    ).toBe(true);
+  });
+
   it("szuka szerzej: Longer KFC, chleb górski Lidl, bułka maślana Biedronka", () => {
     const longer = searchLocalProducts("longer kfc");
     expect(longer.some((p) => /longer/i.test(p.name) && /kfc/i.test(p.brand ?? ""))).toBe(
@@ -103,6 +122,38 @@ describe("food-portion", () => {
     const m = scaleFoodMacros(kiwi, 200, "g");
     expect(m.calories).toBe(Math.round(kiwi.calories * 2));
     expect(m.proteinG).toBeCloseTo(kiwi.proteinG * 2, 5);
+  });
+
+  it("findLocalProductByName dopasowuje odmianę i skaluje porcję jak Fitatu", () => {
+    const p = findLocalProductByName("Truskawki")!;
+    expect(p.id).toBe("local-truskawka");
+    expect(p.calories).toBe(33);
+    expect(p.proteinG).toBe(0.7);
+    const m = scaleFoodMacros(p, 150, "g");
+    expect(m.calories).toBe(50); // round(33 * 1.5)
+    expect(m.proteinG).toBe(1.1); // round1(0.7 * 1.5)
+    expect(m.fatG).toBe(0.6); // round1(0.4 * 1.5)
+    expect(m.carbsG).toBe(11.6); // round1(7.7 * 1.5) — 11.55→11.6
+  });
+
+  it("porcja z logu (basis = gramatura wpisu) skaluje się liniowo", () => {
+    const recentLike = {
+      id: "recent-test",
+      barcode: null,
+      name: "Truskawka",
+      servingLabel: "150 g",
+      calories: 50,
+      proteinG: 1.1,
+      fatG: 0.6,
+      carbsG: 11.6,
+      source: "local" as const,
+      basisAmount: 150,
+      basisUnit: "g" as const,
+    };
+    const again = scaleFoodMacros(recentLike, 150, "g");
+    expect(again.calories).toBe(50);
+    const half = scaleFoodMacros(recentLike, 75, "g");
+    expect(half.calories).toBe(25);
   });
 
   it("skaluje sztuki przez gramsPerPiece", () => {

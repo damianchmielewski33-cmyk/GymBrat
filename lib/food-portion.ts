@@ -11,7 +11,8 @@ export type FoodPortionMacros = {
 };
 
 function round1(n: number): number {
-  return Math.round(n * 10) / 10;
+  // Unikaj 0.7*1.5 → 1.049999… → 1.0 zamiast 1.1
+  return Math.round((n + Number.EPSILON) * 10) / 10;
 }
 
 /** Parsuje „150 g”, „250 ml”, „1 szt. (58 g)” z etykiety porcji. */

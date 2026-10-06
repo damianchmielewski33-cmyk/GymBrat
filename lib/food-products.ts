@@ -1,5 +1,6 @@
 import { FOOD_PRODUCTS_LOCAL } from "@/lib/food-products-data";
 import { emptyDetails, formatFoodDisplayName } from "@/lib/food-nutrition";
+import { englishFoodQueryVariants } from "@/lib/food-query-i18n";
 import type { FoodNutritionDetails, FoodAmountUnit, FoodProduct } from "@/lib/food-products-types";
 
 function normalizeBarcode(raw: string): string {
@@ -17,6 +18,52 @@ export function normalizeFoodQuery(raw: string): string {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/**
+ * Rdzeń PL do dopasowań liczby mnogiej / odmiany
+ * (truskawki ↔ truskawka, jagody ↔ jagoda, jajka ↔ jajko).
+ */
+export function foodTokenStem(token: string): string {
+  const t = normalizeFoodQuery(token);
+  if (t.length < 4) return t;
+  const endings = [
+    "ami",
+    "ach",
+    "owi",
+    "owie",
+    "ow",
+    "om",
+    "ach",
+    "ami",
+    "ami",
+    "y",
+    "i",
+    "e",
+    "a",
+  ];
+  for (const end of endings) {
+    if (t.length - end.length >= 4 && t.endsWith(end)) {
+      return t.slice(0, -end.length);
+    }
+  }
+  return t;
+}
+
+function foodTokensLooseMatch(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (a.includes(b) || b.includes(a)) return true;
+  const sa = foodTokenStem(a);
+  const sb = foodTokenStem(b);
+  if (sa === sb) return true;
+  if (sa.length >= 5 && sb.length >= 5) {
+    if (sa.startsWith(sb) || sb.startsWith(sa)) return true;
+    // wspólny prefix (truskaw…)
+    const n = Math.min(6, sa.length, sb.length);
+    if (sa.slice(0, n) === sb.slice(0, n)) return true;
+  }
+  return false;
 }
 
 /** Znane sieci / marki w zapytaniach PL (Longer KFC, chleb Lidl…). */
@@ -83,14 +130,22 @@ export function scoreProductAgainstQuery(query: string, p: FoodProduct): number 
   const hay = normalizeFoodQuery(
     `${p.name} ${p.brand ?? ""} ${p.barcode ?? ""} ${p.servingLabel}`,
   );
+  const nameOnly = normalizeFoodQuery(p.name);
   let score = 0;
-  if (hay === q) score += 20;
-  if (hay.startsWith(q)) score += 12;
-  if (hay.includes(q)) score += 8;
+  if (hay === q || nameOnly === q) score += 20;
+  if (hay.startsWith(q) || nameOnly.startsWith(q)) score += 12;
+  if (hay.includes(q) || nameOnly.includes(q)) score += 8;
+  if (foodTokensLooseMatch(nameOnly, q)) score += 14;
 
   let matched = 0;
+  const nameParts = nameOnly.split(" ").filter((x) => x.length >= 2);
   for (const part of parts) {
-    if (hay.includes(part)) {
+    if (hay.includes(part) || foodTokensLooseMatch(part, nameOnly)) {
+      score += part.length >= 4 ? 4 : 2;
+      matched += 1;
+      continue;
+    }
+    if (nameParts.some((np) => foodTokensLooseMatch(part, np))) {
       score += part.length >= 4 ? 4 : 2;
       matched += 1;
     }
@@ -98,7 +153,7 @@ export function scoreProductAgainstQuery(query: string, p: FoodProduct): number 
   if (parts.length >= 2) {
     if (matched === parts.length) score += 10;
     else if (matched < Math.ceil(parts.length * 0.5)) return 0;
-  } else if (matched === 0) {
+  } else if (matched === 0 && score < 8) {
     return 0;
   }
 
@@ -107,7 +162,29 @@ export function scoreProductAgainstQuery(query: string, p: FoodProduct): number 
     const brandHay = normalizeFoodQuery(p.brand ?? "");
     if (brandHay.includes(b) || hay.includes(b)) score += 6;
   }
+  // Preferuj lokalną bazę GymBrat nad losowymi wynikami OFF przy tym samym trafieniu.
+  if (p.source === "local") score += 5;
   return score;
+}
+
+/** Najlepsze dopasowanie nazwy w lokalnej bazie (np. „Truskawki” → Truskawka). */
+export function findLocalProductByName(name: string): FoodProduct | null {
+  const q = normalizeFoodQuery(name.replace(/\s*\([^)]*\)\s*$/, ""));
+  if (!q) return null;
+  let best: FoodProduct | null = null;
+  let bestScore = 0;
+  for (const p of FOOD_PRODUCTS_LOCAL) {
+    const score = scoreProductAgainstQuery(q, p);
+    if (score > bestScore) {
+      bestScore = score;
+      best = p;
+    }
+  }
+  // Wymagaj sensownego dopasowania nazwy (nie przypadkowego tokenu).
+  if (!best || bestScore < 10) return null;
+  const nameScore = foodTokensLooseMatch(normalizeFoodQuery(best.name), q);
+  if (!nameScore && bestScore < 18) return null;
+  return best;
 }
 
 export function findLocalProductByBarcode(barcode: string): FoodProduct | null {
@@ -381,14 +458,28 @@ export async function lookupBarcodeRemote(barcode: string): Promise<FoodProduct 
       if (mapped) return mapped;
     }
   }
+
+  try {
+    const { lookupUsdaByBarcode } = await import("@/lib/food-products-usda");
+    const usda = await lookupUsdaByBarcode(code);
+    if (usda) return usda;
+  } catch {
+    /* opcjonalne */
+  }
   return null;
 }
 
 export async function searchOpenFoodFacts(query: string, limit = 12): Promise<FoodProduct[]> {
-  const variants = buildFoodSearchVariants(query);
+  const variants = [
+    ...buildFoodSearchVariants(query),
+    ...englishFoodQueryVariants(query),
+  ].filter(
+    (v, i, arr) =>
+      arr.findIndex((x) => normalizeFoodQuery(x) === normalizeFoodQuery(v)) === i,
+  );
   if (variants.length === 0) return [];
 
-  const hosts = ["https://world.openfoodfacts.org", "https://pl.openfoodfacts.org"];
+  const hosts = ["https://pl.openfoodfacts.org", "https://world.openfoodfacts.org"];
   const collected: FoodProduct[] = [];
   const seen = new Set<string>();
 
@@ -398,7 +489,7 @@ export async function searchOpenFoodFacts(query: string, limit = 12): Promise<Fo
     url.searchParams.set("search_simple", "1");
     url.searchParams.set("action", "process");
     url.searchParams.set("json", "1");
-    url.searchParams.set("page_size", String(Math.max(limit, 24)));
+    url.searchParams.set("page_size", String(Math.min(50, Math.max(limit, 30))));
     url.searchParams.set(
       "fields",
       "code,product_name,product_name_pl,generic_name,generic_name_pl,brands,serving_size,quantity,product_quantity,product_quantity_unit,ingredients_text,ingredients_text_pl,nutriments",
@@ -426,18 +517,14 @@ export async function searchOpenFoodFacts(query: string, limit = 12): Promise<Fo
     }
   }
 
-  // Najpierw warianty bez filtra PL (szersze), potem z PL — równolegle w ramach hosta.
+  const jobs: Promise<void>[] = [];
   for (const host of hosts) {
-    if (collected.length >= limit) break;
-    const jobs: Promise<void>[] = [];
-    for (const v of variants.slice(0, 3)) {
+    for (const v of variants.slice(0, 4)) {
       jobs.push(runOne(host, v, false));
     }
-    await Promise.all(jobs);
-    if (collected.length < Math.ceil(limit / 2)) {
-      await Promise.all(variants.slice(0, 2).map((v) => runOne(host, v, true)));
-    }
+    jobs.push(...variants.slice(0, 2).map((v) => runOne(host, v, true)));
   }
+  await Promise.all(jobs);
 
   return collected
     .map((p) => ({ p, score: scoreProductAgainstQuery(query, p) }))

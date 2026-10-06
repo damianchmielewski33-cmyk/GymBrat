@@ -5,9 +5,9 @@ import {
   findLocalProductByBarcode,
   lookupBarcodeRemote,
   searchLocalProducts,
-  searchOpenFoodFacts,
   scoreProductAgainstQuery,
 } from "@/lib/food-products";
+import { searchRemoteFoodProducts } from "@/lib/food-products-remote";
 import { listRecentFoodProductsFromLogs } from "@/lib/meal-logs";
 import type { FoodProduct } from "@/lib/food-products-types";
 
@@ -32,7 +32,7 @@ export async function lookupFoodByBarcodeAction(barcode: string): Promise<FoodLo
     const remote = await lookupBarcodeRemote(code);
     if (remote) return { ok: true, product: remote };
   } catch {
-    /* sieć / OFF */
+    /* sieć / OFF / USDA */
   }
 
   return {
@@ -71,10 +71,10 @@ export async function searchFoodProductsAction(query: string): Promise<FoodSearc
     if (byCode.ok) return { ok: true, products: [byCode.product] };
   }
 
-  const local = searchLocalProducts(q, 20);
+  const local = searchLocalProducts(q, 28);
   let remote: FoodProduct[] = [];
   try {
-    remote = await searchOpenFoodFacts(q, 16);
+    remote = await searchRemoteFoodProducts(q, 48);
   } catch {
     /* opcjonalne */
   }
@@ -86,9 +86,13 @@ export async function searchFoodProductsAction(query: string): Promise<FoodSearc
     if (seen.has(key)) continue;
     seen.add(key);
     const score = scoreProductAgainstQuery(q, p);
-    if (score <= 0 && !local.includes(p)) continue;
-    merged.push({ p, score: score || 1 });
+    // Lokalne i USDA (po tłumaczeniu) mogą mieć niski score tekstowy — nie odrzucaj lokalnych
+    if (score <= 0 && p.source !== "local" && !local.includes(p)) continue;
+    merged.push({
+      p,
+      score: score || (p.source === "local" ? 8 : p.source === "usda" ? 3 : 1),
+    });
   }
   merged.sort((a, b) => b.score - a.score);
-  return { ok: true, products: merged.slice(0, 28).map((x) => x.p) };
+  return { ok: true, products: merged.slice(0, 40).map((x) => x.p) };
 }

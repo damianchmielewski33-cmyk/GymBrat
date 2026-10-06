@@ -32,4 +32,10 @@ describe("food-macro-source", () => {
     expect(getFoodMacroSourceKind(p)).toBe("openfoodfacts");
     expect(getFoodMacroSourceHint(p)).toBeNull();
   });
+
+  it("oznacza USDA", () => {
+    const p = product({ id: "usda-167762", source: "usda" });
+    expect(getFoodMacroSourceKind(p)).toBe("usda");
+    expect(getFoodMacroSourceLabel(p)).toMatch(/USDA/i);
+  });
 });

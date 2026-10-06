@@ -1,10 +1,11 @@
 import type { FoodProduct } from "@/lib/food-products-types";
 import { FOOD_PRODUCTS_RETAIL_PL } from "@/lib/food-products-retail-pl";
+import { FOOD_PRODUCTS_STAPLES_PL } from "@/lib/food-products-staples-pl";
 
 /**
- * Lokalna baza produktów GymBrat (makro na porcję).
+ * Lokalna baza produktów GymBrat.
+ * Makro: albo na porcję z `servingLabel` / `basisAmount`, albo na 100 g (staples).
  * Skan kodu najpierw szuka tutaj, potem w Open Food Facts.
- * Na końcu: popularne produkty sieci PL / QSR (`FOOD_PRODUCTS_RETAIL_PL`).
  */
 const FOOD_PRODUCTS_CORE: FoodProduct[] = [
   {
@@ -573,13 +574,33 @@ const FOOD_PRODUCTS_CORE: FoodProduct[] = [
     barcode: null,
     name: "Truskawka",
     servingLabel: "100 g",
-    calories: 32,
+    // Tabela PL (IŻŻ / Fitatu): świeże truskawki na 100 g
+    calories: 33,
     proteinG: 0.7,
-    fatG: 0.3,
+    fatG: 0.4,
     carbsG: 7.7,
     source: "local",
     basisAmount: 100,
     basisUnit: "g",
+    details: {
+      saturatedFatG: 0,
+      monoFatG: null,
+      polyFatG: null,
+      omega3G: null,
+      omega6G: null,
+      sugarsG: 4.9,
+      fiberG: 2,
+      saltG: 0,
+      sodiumMg: 1,
+      cholesterolMg: 0,
+      caffeineMg: null,
+      vitaminAUg: 1,
+      vitaminCMg: 59,
+      vitaminDUg: null,
+      calciumMg: 16,
+      ironMg: 0.4,
+      ingredientsText: "Truskawka",
+    },
   },
   {
     id: "local-borowka",
@@ -664,5 +685,6 @@ const FOOD_PRODUCTS_CORE: FoodProduct[] = [
 
 export const FOOD_PRODUCTS_LOCAL: FoodProduct[] = [
   ...FOOD_PRODUCTS_CORE,
+  ...FOOD_PRODUCTS_STAPLES_PL,
   ...FOOD_PRODUCTS_RETAIL_PL,
 ];

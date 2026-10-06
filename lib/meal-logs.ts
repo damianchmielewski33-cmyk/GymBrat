@@ -6,7 +6,7 @@ import type { DietDiarySlot } from "@/lib/diet-diary-slots";
 import { isDietDiarySlot } from "@/lib/diet-diary-slots";
 import type { FitatuDaySummary } from "@/types/fitatu";
 import type { FoodProduct } from "@/lib/food-products-types";
-import { findLocalProductByBarcode, normalizeFoodQuery } from "@/lib/food-products";
+import { findLocalProductByBarcode, normalizeFoodQuery, findLocalProductByName } from "@/lib/food-products";
 
 /** Wpis posiłku na potrzeby UI (lista / edycja). */
 export type MealLogDto = {
@@ -194,24 +194,52 @@ export async function listRecentFoodProductsFromLogs(
     if (seen.has(key)) continue;
     seen.add(key);
 
-    const fromCatalog = code ? findLocalProductByBarcode(code) : null;
+    const fromCatalog = code
+      ? findLocalProductByBarcode(code)
+      : findLocalProductByName(baseName);
     if (fromCatalog) {
       out.push(fromCatalog);
     } else {
+      // Makro w logu są dla zapisanej porcji — odtwórz bazę z etykiety „(150 g)”.
+      const portion = rawName.match(
+        /\((\d+(?:[.,]\d+)?)\s*(g|ml|szt\.?|sztuk[aiy]?)\)\s*$/i,
+      );
+      let basisAmount = 1;
+      let basisUnit: "g" | "ml" | "pcs" = "pcs";
+      let servingLabel = "ostatni wpis";
+      if (portion) {
+        const amt = Number(String(portion[1]).replace(",", "."));
+        const u = portion[2].toLowerCase();
+        if (Number.isFinite(amt) && amt > 0) {
+          if (u === "g") {
+            basisAmount = amt;
+            basisUnit = "g";
+            servingLabel = `${amt} g`;
+          } else if (u === "ml") {
+            basisAmount = amt;
+            basisUnit = "ml";
+            servingLabel = `${amt} ml`;
+          } else {
+            basisAmount = amt;
+            basisUnit = "pcs";
+            servingLabel = `${amt} szt.`;
+          }
+        }
+      }
       out.push({
         id: code
           ? `recent-ean-${code}`
           : `recent-name-${normalizeFoodQuery(baseName).slice(0, 48) || out.length}`,
         barcode: code || null,
         name: baseName,
-        servingLabel: "ostatni wpis",
+        servingLabel,
         calories: Number(r.calories),
         proteinG: Number(r.proteinG),
         fatG: Number(r.fatG),
         carbsG: Number(r.carbsG),
         source: "local",
-        basisAmount: 1,
-        basisUnit: "pcs",
+        basisAmount,
+        basisUnit,
       });
     }
     if (out.length >= limit) break;

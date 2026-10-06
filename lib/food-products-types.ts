@@ -43,7 +43,7 @@ export type FoodProduct = {
   proteinG: number;
   fatG: number;
   carbsG: number;
-  source: "local" | "openfoodfacts";
+  source: "local" | "openfoodfacts" | "usda";
   /** Ilość, do której odnoszą się makro (domyślnie 100). */
   basisAmount?: number;
   /** Jednostka bazy makro (domyślnie g). */

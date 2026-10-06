@@ -94,7 +94,11 @@ export function FoodPortionSheet({
           </SheetTitle>
           <SheetDescription className="text-white/55">
             {[product.brand, product.servingLabel].filter(Boolean).join(" · ")}
-            {product.source === "openfoodfacts" ? " · Open Food Facts (na 100 g)" : " · baza GymBrat"}
+            {product.source === "openfoodfacts"
+              ? " · Open Food Facts (na 100 g)"
+              : product.source === "usda"
+                ? " · USDA (na 100 g)"
+                : " · baza GymBrat"}
           </SheetDescription>
         </SheetHeader>
 
