@@ -10,6 +10,7 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import {
   AuthProviderDivider,
+  FacebookSignInButton,
   GoogleSignInButton,
 } from "@/components/auth/google-sign-in-button";
 import { RoleAuthCards } from "@/components/auth/role-auth-cards";
@@ -26,18 +27,24 @@ export type LoginRole = AppRole;
 function oauthErrorMessage(code: string | null): string | null {
   if (!code) return null;
   if (code === "OAuthAccountNotLinked") {
-    return "Ten e-mail ma już konto w GymBrat. Zaloguj się hasłem, a potem Google z tym samym adresem — konta się połączą. Albo od razu użyj hasła.";
+    return "Ten e-mail ma już konto w GymBrat. Zaloguj się hasłem, a potem Google/Facebook z tym samym adresem — konta się połączą. Albo od razu użyj hasła.";
   }
   if (code === "AccessDenied" || code === "OAuthCallback" || code === "OAuthSignin") {
-    return "Logowanie Google zostało anulowane lub nie powiodło się. Spróbuj ponownie.";
+    return "Logowanie społecznościowe zostało anulowane lub nie powiodło się. Spróbuj ponownie.";
   }
   if (code === "Configuration") {
-    return "Logowanie Google nie jest jeszcze skonfigurowane na serwerze.";
+    return "Logowanie społecznościowe nie jest jeszcze skonfigurowane na serwerze.";
   }
-  return "Nie udało się zalogować przez Google. Spróbuj ponownie.";
+  return "Nie udało się zalogować przez konto zewnętrzne. Spróbuj ponownie.";
 }
 
-export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
+export function LoginForm({
+  googleEnabled = false,
+  facebookEnabled = false,
+}: {
+  googleEnabled?: boolean;
+  facebookEnabled?: boolean;
+}) {
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") ?? "/";
@@ -127,10 +134,21 @@ export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }
         />
       ) : null}
 
-      {googleEnabled ? (
-        <div className="space-y-4">
-          <GoogleSignInButton callbackUrl="/complete-profile" />
-          <AuthProviderDivider />
+      {googleEnabled || facebookEnabled ? (
+        <div className="space-y-3">
+          {googleEnabled ? (
+            <GoogleSignInButton
+              callbackUrl="/complete-profile"
+              label="Zaloguj się przez Google"
+            />
+          ) : null}
+          {facebookEnabled ? (
+            <FacebookSignInButton
+              callbackUrl="/complete-profile"
+              label="Zaloguj się przez Facebook"
+            />
+          ) : null}
+          <AuthProviderDivider label="lub e-mailem" />
         </div>
       ) : null}
 

@@ -139,19 +139,18 @@ public/                      Static assets (manifest, icons, PWA output)
 
 ### Authentication flow
 
-GymBrat uses **NextAuth v5 (beta)** with **Credentials**, optional **Google OAuth**, and **JWT sessions**.
+GymBrat uses **NextAuth v5 (beta)** with **Credentials**, optional **Google / Facebook OAuth**, and **JWT sessions**.
 
 - **Login**
   - UI submits credentials → `signIn("credentials", { redirect: false })`
   - Provider validates email/password against `users` in SQLite/libSQL (see `auth.ts`)
   - Password verification uses `bcryptjs` (`users.passwordHash`)
-  - Google: `signIn("google")` when `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` are set; creates or links a `users` row and stores the link in `oauth_accounts`
+  - Google / Facebook: `signIn("google"|"facebook")` when the matching `AUTH_*_ID` + `AUTH_*_SECRET` are set; creates or links a `users` row and stores the link in `oauth_accounts`
 
 - **Registration**
-  - `registerUser()` (see `actions/auth.ts`) validates input (Zod) and stores:
-    - user row in `users`
-    - default settings row in `user_settings` (weekly cardio goal default: 150 min)
-  - Or „Załóż konto z Google” on `/register` (same OAuth flow as login)
+  - Welcome step offers three CTAs: Google, e-mail, Facebook
+  - E-mail path: `registerUser()` (see `actions/auth.ts`) validates input (Zod) and stores user + default `user_settings` (weekly cardio goal default: 150 min)
+  - Google / Facebook use the same OAuth link/create flow as login, then `/complete-profile` when body data is missing
 
 - **Route protection**
   - `proxy.ts` (Next.js „proxy”, dawniej `middleware`) blokuje trasy spoza listy publicznej, dopóki nie ma ważnego tokenu.
@@ -205,6 +204,7 @@ Bez ręcznego Promote produkcja nie przełącza domeny na nowy build (gdy auto-a
   - `AUTH_SECRET`
   - `NEXTAUTH_URL` (set to your production URL)
   - `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` (optional — Google login/register)
+  - `AUTH_FACEBOOK_ID` / `AUTH_FACEBOOK_SECRET` (optional — Facebook login/register)
   - Email verification (registration code) — **Nodemailer + SMTP** (e.g. Gmail / Outlook):
     - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`
     - `EMAIL_FROM` (optional; defaults to `SMTP_USER`)

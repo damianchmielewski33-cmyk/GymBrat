@@ -5,8 +5,10 @@ import { LoginForm } from "@/components/auth/login-form";
 /** Ekran logowania — ten sam na /login i na / bez sesji. */
 export function LoginScreen({
   googleEnabled = false,
+  facebookEnabled = false,
 }: {
   googleEnabled?: boolean;
+  facebookEnabled?: boolean;
 }) {
   return (
     <div>
@@ -26,7 +28,10 @@ export function LoginScreen({
         />
         <div className="relative">
           <Suspense fallback={<div className="text-sm text-white/50">Ładowanie…</div>}>
-            <LoginForm googleEnabled={googleEnabled} />
+            <LoginForm
+              googleEnabled={googleEnabled}
+              facebookEnabled={facebookEnabled}
+            />
           </Suspense>
         </div>
       </div>

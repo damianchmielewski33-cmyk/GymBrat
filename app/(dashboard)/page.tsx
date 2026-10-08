@@ -1,7 +1,10 @@
 import { Suspense } from "react";
 import { auth } from "@/auth";
 import { LoginScreen } from "@/components/auth/login-screen";
-import { isGoogleAuthConfigured } from "@/lib/google-auth";
+import {
+  isFacebookAuthConfigured,
+  isGoogleAuthConfigured,
+} from "@/lib/google-auth";
 import { HomeHeaderSkeleton } from "@/components/home/home-header-skeleton";
 import { HomeTodayHeader } from "@/components/home/home-today-header";
 import { HomeTodayPageContent } from "@/components/home/home-today-page-content";
@@ -14,7 +17,12 @@ export default async function HomePage() {
   });
   const userId = session?.user?.id;
   if (!userId) {
-    return <LoginScreen googleEnabled={isGoogleAuthConfigured()} />;
+    return (
+      <LoginScreen
+        googleEnabled={isGoogleAuthConfigured()}
+        facebookEnabled={isFacebookAuthConfigured()}
+      />
+    );
   }
 
   return (

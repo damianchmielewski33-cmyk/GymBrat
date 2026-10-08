@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
@@ -11,17 +12,28 @@ import {
   parseAdminEmails,
 } from "@/lib/admin-config";
 import {
+  isFacebookAuthConfigured,
   isGoogleAuthConfigured,
   resolveGoogleSignInUser,
+  type OAuthProviderId,
 } from "@/lib/google-auth";
 import { isUserBodyProfileComplete } from "@/lib/profile-complete";
 
-function googleProfileFields(profile: unknown, user?: { email?: string | null; name?: string | null }) {
+function isOAuthProvider(id: string | undefined): id is OAuthProviderId {
+  return id === "google" || id === "facebook";
+}
+
+function oauthProfileFields(
+  profile: unknown,
+  user?: { email?: string | null; name?: string | null },
+) {
   const p = profile as {
     email?: unknown;
     name?: unknown;
     given_name?: unknown;
     family_name?: unknown;
+    first_name?: unknown;
+    last_name?: unknown;
     email_verified?: unknown;
   } | null;
   const email =
@@ -33,9 +45,17 @@ function googleProfileFields(profile: unknown, user?: { email?: string | null; n
     (typeof user?.name === "string" && user.name) ||
     null;
   const givenName =
-    typeof p?.given_name === "string" ? p.given_name : null;
+    typeof p?.given_name === "string"
+      ? p.given_name
+      : typeof p?.first_name === "string"
+        ? p.first_name
+        : null;
   const familyName =
-    typeof p?.family_name === "string" ? p.family_name : null;
+    typeof p?.family_name === "string"
+      ? p.family_name
+      : typeof p?.last_name === "string"
+        ? p.last_name
+        : null;
   const emailVerified = p?.email_verified;
   return { email, name, givenName, familyName, emailVerified };
 }
@@ -106,14 +126,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...(isGoogleAuthConfigured()
       ? [
           Google({
-            // To samo e-mail co konto hasłowe → jedno konto GymBrat.
             allowDangerousEmailAccountLinking: true,
             authorization: {
               params: {
-                // profile → given_name / family_name / name
                 scope: "openid email profile",
               },
             },
+          }),
+        ]
+      : []),
+    ...(isFacebookAuthConfigured()
+      ? [
+          Facebook({
+            allowDangerousEmailAccountLinking: true,
           }),
         ]
       : []),
@@ -125,11 +150,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async signIn({ account, profile }) {
-      if (account?.provider !== "google") return true;
+      if (!isOAuthProvider(account?.provider)) return true;
       const { email, name, givenName, familyName, emailVerified } =
-        googleProfileFields(profile);
+        oauthProfileFields(profile);
       if (!email.trim()) return false;
-      // Google czasem nie potwierdza e-maila — nie wpuszczamy bez weryfikacji.
+      // Google / Facebook — bez zweryfikowanego e-maila nie łączymy kont.
       if (emailVerified === false) return false;
 
       const providerAccountId =
@@ -138,19 +163,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           : "";
       if (!providerAccountId) return false;
 
-      // Wczesne powiązanie z kontem e-mail/hasło (to samo e-mail) — przed JWT.
       const resolved = await resolveGoogleSignInUser({
         email,
         name,
         givenName,
         familyName,
         providerAccountId,
+        provider: account.provider,
       });
       return Boolean(resolved);
     },
     async jwt({ token, user, account, profile, trigger }) {
-      if (account?.provider === "google") {
-        const { email, name, givenName, familyName } = googleProfileFields(
+      if (isOAuthProvider(account?.provider)) {
+        const { email, name, givenName, familyName } = oauthProfileFields(
           profile,
           user,
         );
@@ -165,16 +190,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           givenName,
           familyName,
           providerAccountId,
+          provider: account.provider,
         });
         if (!resolved) {
-          throw new Error("Nie udało się utworzyć lub połączyć konta Google.");
+          throw new Error("Nie udało się utworzyć lub połączyć konta OAuth.");
         }
         token.id = resolved.id;
         token.sub = resolved.id;
         token.email = resolved.email;
         token.role = resolved.role;
         if (resolved.name) token.name = resolved.name;
-        // Nowe konto Google — wymuś /complete-profile; powiązane hasłowe zachowuje status z DB.
+        // Nowe konto OAuth — wymuś /complete-profile; powiązane hasłowe zachowuje status z DB.
         token.profileComplete = resolved.isNew ? false : undefined;
       } else {
         const uid =
@@ -197,7 +223,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
-      // Uzupełnij e-mail z DB tylko gdy brakuje w JWT (stare sesje).
       let email =
         typeof token.email === "string" ? normalizeAdminEmail(token.email) : "";
       const userId =
@@ -244,7 +269,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
-      // Odśwież kompletność profilu po zapisie albo gdy jeszcze niekompletny.
       if (
         userId &&
         (trigger === "update" ||
@@ -288,7 +312,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (typeof token.email === "string" && token.email) {
           session.user.email = token.email;
         }
-        // Główny admin zawsze widoczny jako admin w sesji klienta.
         if (
           typeof token.email === "string" &&
           parseAdminEmails().has(normalizeAdminEmail(token.email))
@@ -306,8 +329,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         let userId: string | null =
           typeof user?.id === "string" ? user.id : null;
 
-        // Po Google JWT ma już nasze id, ale event dostaje profil OAuth — szukaj po e-mailu.
-        if (account?.provider === "google" && typeof user?.email === "string") {
+        if (
+          isOAuthProvider(account?.provider) &&
+          typeof user?.email === "string"
+        ) {
           const [row] = await db
             .select({ id: users.id })
             .from(users)

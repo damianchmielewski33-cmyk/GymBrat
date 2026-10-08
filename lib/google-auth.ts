@@ -15,12 +15,14 @@ import {
   users,
 } from "@/db/schema";
 
+export type OAuthProviderId = "google" | "facebook";
+
 export type GoogleResolvedUser = {
   id: string;
   email: string;
   name: string | null;
   role: "zawodnik" | "trener" | "admin";
-  /** true = nowe konto; false = istniejące (w tym powiązanie Google ↔ e-mail/hasło). */
+  /** true = nowe konto; false = istniejące (w tym powiązanie OAuth ↔ e-mail/hasło). */
   isNew: boolean;
 };
 
@@ -29,6 +31,14 @@ export function isGoogleAuthConfigured(): boolean {
   return Boolean(
     process.env.AUTH_GOOGLE_ID?.trim() &&
       process.env.AUTH_GOOGLE_SECRET?.trim(),
+  );
+}
+
+/** AUTH_FACEBOOK_ID + AUTH_FACEBOOK_SECRET (Auth.js v5). */
+export function isFacebookAuthConfigured(): boolean {
+  return Boolean(
+    process.env.AUTH_FACEBOOK_ID?.trim() &&
+      process.env.AUTH_FACEBOOK_SECRET?.trim(),
   );
 }
 
@@ -142,7 +152,7 @@ async function ensureOauthLink(input: {
 }
 
 /**
- * Tworzy albo łączy konto GymBrat z logowaniem Google (JWT bez pełnego adaptera Auth.js).
+ * Tworzy albo łączy konto GymBrat z logowaniem OAuth (JWT bez pełnego adaptera Auth.js).
  * Istniejące konto e-mail/hasło z tym samym adresem jest powiązywane (bez duplikatu).
  */
 export async function resolveGoogleSignInUser(input: {
@@ -151,13 +161,14 @@ export async function resolveGoogleSignInUser(input: {
   givenName?: string | null;
   familyName?: string | null;
   providerAccountId: string;
+  provider?: OAuthProviderId;
 }): Promise<GoogleResolvedUser | null> {
   const email = input.email.trim().toLowerCase();
   if (!email || !input.providerAccountId.trim()) return null;
 
   await ensureCriticalSchema();
   const db = getDb();
-  const provider = "google";
+  const provider: OAuthProviderId = input.provider ?? "google";
   const providerAccountId = input.providerAccountId.trim();
   const person = resolveGooglePersonName({
     givenName: input.givenName,
@@ -297,8 +308,8 @@ export async function resolveGoogleSignInUser(input: {
     try {
       await db.insert(siteActivityLog).values({
         userId: existing.id,
-        action: "Powiązanie konta Google",
-        metaJson: JSON.stringify({ provider: "google", email }),
+        action: "Powiązanie konta OAuth",
+        metaJson: JSON.stringify({ provider, email }),
         deploymentEnv: getAnalyticsDeployment(),
       });
     } catch {
@@ -340,7 +351,7 @@ export async function resolveGoogleSignInUser(input: {
   await db.insert(siteActivityLog).values({
     userId,
     action: "Rejestracja konta",
-    metaJson: JSON.stringify({ provider: "google", role }),
+    metaJson: JSON.stringify({ provider, role }),
     deploymentEnv: getAnalyticsDeployment(),
   });
 

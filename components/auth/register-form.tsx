@@ -6,11 +6,11 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Mail } from "lucide-react";
 import { registerUser, sendRegisterCode, type RegisterState } from "@/actions/auth";
 import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
 import {
-  AuthProviderDivider,
+  FacebookSignInButton,
   GoogleSignInButton,
 } from "@/components/auth/google-sign-in-button";
 import { Button } from "@/components/ui/button";
@@ -62,7 +62,7 @@ const STEP_COPY: Record<
   welcome: {
     kicker: "Krok 1",
     title: "Dołącz do GymBrat",
-    support: "Trening, dieta i postępy w jednym miejscu — zacznij od konta.",
+    support: "Wybierz sposób rejestracji — Google, e-mail albo Facebook.",
   },
   name: {
     kicker: "Krok 2",
@@ -98,8 +98,10 @@ const STEP_COPY: Record<
 
 export function RegisterForm({
   googleEnabled = false,
+  facebookEnabled = false,
 }: {
   googleEnabled?: boolean;
+  facebookEnabled?: boolean;
 }) {
   const [stepIndex, setStepIndex] = useState(0);
   const step = STEPS[stepIndex]!;
@@ -258,9 +260,7 @@ export function RegisterForm({
       ? isSubmitting
         ? "Tworzenie konta…"
         : "Utwórz konto"
-      : step === "welcome"
-        ? "Dalej e-mailem"
-        : "Dalej";
+      : "Dalej";
 
   return (
     <div className="space-y-5">
@@ -324,21 +324,37 @@ export function RegisterForm({
               className="space-y-5"
             >
               {step === "welcome" ? (
-                <div className="space-y-4">
-                  {googleEnabled ? (
-                    <>
-                      <GoogleSignInButton
-                        callbackUrl="/complete-profile"
-                        label="Załóż konto z Google"
-                      />
-                      <AuthProviderDivider label="lub e-mailem" />
-                    </>
-                  ) : (
-                    <p className="text-sm leading-relaxed text-white/55">
-                      Za chwilę zapytamy o dane, których GymBrat realnie używa:
-                      imię, e-mail, parametry ciała, aktywność i cel tygodnia.
+                <div className="space-y-3">
+                  <GoogleSignInButton
+                    callbackUrl="/complete-profile"
+                    label="Zarejestruj się przez Google"
+                    disabled={!googleEnabled}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-12 w-full gap-2.5 border-white/18 bg-white/[0.04] text-[15px] font-semibold text-white hover:border-white/28 hover:bg-white/[0.07]"
+                    onClick={() => void goNext()}
+                  >
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10">
+                      <Mail className="h-3.5 w-3.5 text-white/80" aria-hidden />
+                    </span>
+                    Zarejestruj się przez e-mail
+                  </Button>
+                  <FacebookSignInButton
+                    callbackUrl="/complete-profile"
+                    label="Zarejestruj się przez Facebook"
+                    disabled={!facebookEnabled}
+                  />
+                  {!googleEnabled || !facebookEnabled ? (
+                    <p className="text-center text-[11px] leading-relaxed text-white/40">
+                      {!googleEnabled && !facebookEnabled
+                        ? "Google i Facebook będą dostępne po konfiguracji na serwerze — e-mail działa od razu."
+                        : !googleEnabled
+                          ? "Google będzie dostępne po konfiguracji na serwerze."
+                          : "Facebook będzie dostępny po konfiguracji na serwerze."}
                     </p>
-                  )}
+                  ) : null}
                 </div>
               ) : null}
 
@@ -637,16 +653,18 @@ export function RegisterForm({
 
           <input type="hidden" {...register("role")} />
 
-          <Button
-            type="button"
-            variant="cta"
-            className="w-full"
-            disabled={isSubmitting}
-            aria-busy={isSubmitting}
-            onClick={() => void goNext()}
-          >
-            {primaryLabel}
-          </Button>
+          {step !== "welcome" ? (
+            <Button
+              type="button"
+              variant="cta"
+              className="w-full"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+              onClick={() => void goNext()}
+            >
+              {primaryLabel}
+            </Button>
+          ) : null}
 
           <p className="text-center text-sm text-white/55">
             Masz już konto?{" "}

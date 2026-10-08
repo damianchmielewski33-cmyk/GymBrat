@@ -34,16 +34,34 @@ function GoogleMark({ className }: { className?: string }) {
   );
 }
 
+function FacebookMark({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      aria-hidden
+      focusable="false"
+    >
+      <path
+        fill="#1877F2"
+        d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.27h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"
+      />
+    </svg>
+  );
+}
+
 type Props = {
   callbackUrl?: string;
   className?: string;
   label?: string;
+  disabled?: boolean;
 };
 
 export function GoogleSignInButton({
   callbackUrl = "/",
   className,
   label = "Kontynuuj z Google",
+  disabled = false,
 }: Props) {
   const [pending, setPending] = useState(false);
 
@@ -51,7 +69,7 @@ export function GoogleSignInButton({
     <Button
       type="button"
       variant="outline"
-      disabled={pending}
+      disabled={disabled || pending}
       aria-busy={pending}
       className={cn(
         "h-12 w-full gap-2.5 border-white/18 bg-white/[0.04] text-[15px] font-semibold text-white",
@@ -59,6 +77,7 @@ export function GoogleSignInButton({
         className,
       )}
       onClick={() => {
+        if (disabled) return;
         setPending(true);
         void signIn("google", { callbackUrl }).finally(() => {
           setPending(false);
@@ -67,6 +86,41 @@ export function GoogleSignInButton({
     >
       <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
         <GoogleMark className="h-3.5 w-3.5" />
+      </span>
+      {pending ? "Przekierowanie…" : label}
+    </Button>
+  );
+}
+
+export function FacebookSignInButton({
+  callbackUrl = "/",
+  className,
+  label = "Kontynuuj z Facebook",
+  disabled = false,
+}: Props) {
+  const [pending, setPending] = useState(false);
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      disabled={disabled || pending}
+      aria-busy={pending}
+      className={cn(
+        "h-12 w-full gap-2.5 border-white/18 bg-white/[0.04] text-[15px] font-semibold text-white",
+        "hover:border-white/28 hover:bg-white/[0.07]",
+        className,
+      )}
+      onClick={() => {
+        if (disabled) return;
+        setPending(true);
+        void signIn("facebook", { callbackUrl }).finally(() => {
+          setPending(false);
+        });
+      }}
+    >
+      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+        <FacebookMark className="h-4 w-4" />
       </span>
       {pending ? "Przekierowanie…" : label}
     </Button>
