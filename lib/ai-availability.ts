@@ -1,21 +1,20 @@
 import "server-only";
 
-import { isAiConfigured } from "@/ai/client";
-import { computeAiEnabledForUser } from "@/lib/ai-availability-logic";
-import { getUserAiEntitled, getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { getAppSettings } from "@/lib/app-settings";
+import { computeAiEnabledForUser } from "@/lib/ai-availability-logic";
+import {
+  getUserAiEntitled,
+  getUserAiFeaturesDisabled,
+} from "@/lib/user-ai-preference";
 
+/** Wbudowany LLM usunięty — zawsze false. */
 export async function isAiEnabledForUser(userId: string): Promise<boolean> {
-  const [settings, entitled, userOff] = await Promise.all([
-    getAppSettings(),
-    getUserAiEntitled(userId),
-    getUserAiFeaturesDisabled(userId),
-  ]);
+  const settings = await getAppSettings();
   return computeAiEnabledForUser({
-    isConfigured: isAiConfigured(),
+    isConfigured: false,
     globalDisabled: settings.aiGloballyDisabled,
-    entitled,
-    userDisabled: userOff,
+    entitled: await getUserAiEntitled(userId),
+    userDisabled: await getUserAiFeaturesDisabled(userId),
   });
 }
 
@@ -23,4 +22,3 @@ export async function isAiGloballyDisabled(): Promise<boolean> {
   const s = await getAppSettings();
   return s.aiGloballyDisabled;
 }
-

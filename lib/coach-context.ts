@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { userSettings, users } from "@/db/schema";
-import type { ChatCoachPromptInput } from "@/ai/prompts/chatCoach";
 import type { LatestBodyReportMetrics } from "@/lib/body-reports";
 import { getLatestBodyReportMetrics } from "@/lib/body-reports";
 import type { HomeStats } from "@/lib/home-stats";
@@ -11,6 +10,29 @@ import { getStreaks } from "@/lib/streaks";
 import { loadNutritionDashboard } from "@/lib/nutrition-dashboard";
 import type { FitatuDaySummary } from "@/types/fitatu";
 
+/** Kontekst briefingu / podpowiedzi (bez LLM — tylko dane z aplikacji). */
+export type CoachBriefingContext = {
+  userProfile?: {
+    age?: number;
+    weightKg?: number;
+    heightCm?: number;
+    activityLevel?: string;
+    goals?: string[];
+    experienceLevel?: string;
+    limitations?: string[];
+  };
+  recentContext?: {
+    nutritionSummary?: string;
+    nutritionMacrosLine?: string;
+    nutritionMealsLine?: string;
+    trainingSummary?: string;
+    trainingTrendLine?: string;
+    progressSummary?: string;
+    streakLine?: string;
+    briefingLocalTime?: string;
+  };
+};
+
 /** Z już wczytanych danych Start — bez powtórnego SELECT / dashboardu. */
 export function coachRecentContextFromDashboardParts(
   dashToday: Pick<
@@ -19,7 +41,7 @@ export function coachRecentContextFromDashboardParts(
   >,
   stats: HomeStats,
   streaks: Streaks,
-): NonNullable<ChatCoachPromptInput["recentContext"]> {
+): NonNullable<CoachBriefingContext["recentContext"]> {
   const calConsumed = Math.round(dashToday.caloriesConsumed);
   const calGoal =
     dashToday.caloriesGoal != null ? Math.round(dashToday.caloriesGoal) : null;
@@ -85,7 +107,7 @@ export type CoachUserRow = {
 export function coachUserProfileFromParts(
   u: CoachUserRow | null | undefined,
   latestReport: LatestBodyReportMetrics | null,
-): ChatCoachPromptInput["userProfile"] {
+): CoachBriefingContext["userProfile"] {
   if (!u) return {};
   return {
     age: u.age ?? undefined,
@@ -97,7 +119,7 @@ export function coachUserProfileFromParts(
 
 export async function buildCoachRecentContext(
   userId: string,
-): Promise<NonNullable<ChatCoachPromptInput["recentContext"]>> {
+): Promise<NonNullable<CoachBriefingContext["recentContext"]>> {
   const db = getDb();
   const [settingsRow] = await db
     .select({
@@ -130,7 +152,7 @@ export async function buildCoachRecentContext(
 
 export async function buildCoachUserProfile(
   userId: string,
-): Promise<ChatCoachPromptInput["userProfile"]> {
+): Promise<CoachBriefingContext["userProfile"]> {
   const db = getDb();
   const [u, latestReport] = await Promise.all([
     db

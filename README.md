@@ -158,33 +158,13 @@ GymBrat uses **NextAuth v5 (beta)** with **Credentials**, optional **Google OAut
   - Public paths: `/login`, `/register`
   - Auth routes under `/api/auth/*` are excluded from protection.
 
-### AI Coach documentation
+### AI (tylko grafiki przepisów)
 
-AI features are designed to be safe-by-default: if no provider key is present, GymBrat returns **heuristic** outputs (or a friendly “AI not configured” response) instead of failing.
+GymBrat **nie** ma wbudowanego modelu LLM ani lokalnego serwera Ollama/relay (`ai-server` usunięty).
 
-- **Where it lives**
-  - Orchestrator: `ai/coach.ts`
-  - Provider scaffold: `ai/client.ts`
-  - Prompts: `ai/prompts/*`
-
-- **Capabilities**
-  - **Training plan generation**: `generateTrainingPlan(input)`
-    - Uses today’s local nutrition summary (if available) to tailor nutrition hints
-    - Validates model output with a strict Zod schema; falls back to a heuristic plan on parse failure
-  - **Body photo analysis**: `analyzeBodyPhoto({ images })`
-    - Works with Gemini (cloud) or Ollama via self-hosted relay (recommended for free)
-  - **Progress photo comparison**: `compareProgressPhotos({ earlier, later })`
-  - **Chat coach**: `chatCoach({ messages, context })`
-
-- **Config**
-  - `AI_PROVIDER`: `gemini` (cloud) or `ollama` (self-hosted, free)
-  - `AI_MODEL`: identyfikator modelu pod **REST** `:generateContent` (Gemini: domyślnie `gemini-2.5-flash`). Lista: [modele Gemini API](https://ai.google.dev/gemini-api/docs/models) — wybieraj warianty z obsługą **generateContent**, nie wyłącznie Live.
-  - **Gemini 2.5 Flash Native Dialog Audio** ([np. `gemini-2.5-flash-native-audio-preview-12-2025`](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-native-audio-preview-12-2025)) jest przeznaczony do **Gemini Live API** (WebSocket, audio na żywo). GymBrat **nie** używa Live API — cały trener tekstowy idzie przez `generateContent`. „Nieograniczony” w AI Studio przy **API na żywo** nie przenosi się automatycznie na limity REST; pełna obsługa głosu wymagałaby nowej ścieżki (Live + [ephemeral tokens](https://ai.google.dev/gemini-api/docs/ephemeral-tokens) itd.).
-  - For `gemini`:
-    - `AI_API_KEY`
-  - For `ollama` (recommended free setup):
-    - `AI_API_BASE_URL`: `http://localhost:11435` (AI relay; see `docker-compose.yml`)
-    - `AI_API_KEY`: relay token (shared secret)
+- **Jedyny zewnętrzny AI**: Pollinations (`POLLINATIONS_API_KEY`) — generacja grafik przepisów **raz przy imporcie JSON** w panelu admina; potem serwowanie z bazy (`/api/catalog-meal-image/…`).
+- Plan treningowy / briefing / podpowiedzi w sesji: lokalne heurystyki (`ai/coach.ts`, `lib/live-set-coach.ts`, `lib/briefing-heuristic.ts`) — bez Gemini/Ollama.
+- Prompt do katalogu przepisów (`lib/meal-catalog-ai-prompt.ts`) jest do skopiowania do **zewnętrznego** modelu (ChatGPT itd.), nie do wbudowanego agenta.
 
 ### Weekly cardio tracking logic
 
@@ -231,9 +211,8 @@ Bez ręcznego Promote produkcja nie przełącza domeny na nowy build (gdy auto-a
     - `EMAIL_REPLY_TO` (optional)
     - `EMAIL_CODE_SECRET` (recommended; can reuse `AUTH_SECRET` but better separate)
     - Szczegóły krok po kroku (Gmail: hasło aplikacji po włączeniu 2FA; Outlook: host `smtp-mail.outlook.com` lub firmowy `smtp.office365.com`) są w `env.example`.
-  - Optional:
-    - `AI_API_KEY`
-    - `AI_MODEL`
+  - Optional (grafiki przepisów):
+    - `POLLINATIONS_API_KEY` (enter.pollinations.ai)
 
 - **Build & runtime notes**
   - Proxy (edge) i dostęp sieciowy do libSQL są zgodne z wdrożeniami w stylu edge.

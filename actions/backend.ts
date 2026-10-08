@@ -7,15 +7,14 @@ import { auth, signIn } from "@/auth";
 import {
   analyzeBodyPhoto,
   generateTrainingPlan,
+  type AiImage,
   type TrainingPlanInput,
 } from "@/ai/coach";
-import type { AiImage } from "@/ai/client";
 import { updateBodyParams } from "@/actions/profile";
 import { getDb } from "@/db";
 import { users, userSettings, workouts } from "@/db/schema";
 import { getReportsData } from "@/lib/reports";
 import { getLatestBodyReportMetrics } from "@/lib/body-reports";
-import { getUserAiFeaturesDisabled } from "@/lib/user-ai-preference";
 import { getWeeklyCardioProgress as getWeeklyCardioProgressData } from "@/lib/cardio";
 import { calendarDateKey } from "@/lib/local-date";
 import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
@@ -325,8 +324,7 @@ export async function aiGeneratePlan(overrides?: unknown) {
     nutritionToday,
   };
 
-  const userAiOff = await getUserAiFeaturesDisabled(session.user.id);
-  const plan = await generateTrainingPlan(input, { forceHeuristic: userAiOff });
+  const plan = await generateTrainingPlan(input);
   return { ok: true as const, plan };
 }
 
@@ -358,7 +356,6 @@ export async function aiAnalyzePhoto(input: unknown) {
     base64: im.base64,
   }));
 
-  const userAiOff = await getUserAiFeaturesDisabled(session.user.id);
-  const analysis = await analyzeBodyPhoto({ images, forceHeuristic: userAiOff });
+  const analysis = await analyzeBodyPhoto({ images });
   return { ok: true as const, analysis };
 }

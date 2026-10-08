@@ -16,10 +16,6 @@ type Props = {
   exercises: WorkoutExerciseState[];
   selectedExerciseId: string | null;
   restRemaining: number | null;
-  /** Użytkownik wyłączył AI w profilu */
-  userAiOff?: boolean;
-  /** Administrator odebrał dostęp do funkcji AI */
-  notEntitledToAi?: boolean;
 };
 
 function serializeExercises(exercises: WorkoutExerciseState[]) {
@@ -55,12 +51,9 @@ export function ActiveWorkoutCoachPanel({
   exercises,
   selectedExerciseId,
   restRemaining,
-  userAiOff = false,
-  notEntitledToAi = false,
 }: Props) {
-  const heuristicOnly = userAiOff || notEntitledToAi;
   const [text, setText] = useState<string | null>(null);
-  const [source, setSource] = useState<"ai" | "heuristic" | "web" | null>(null);
+  const [source, setSource] = useState<"heuristic" | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -129,7 +122,7 @@ export function ActiveWorkoutCoachPanel({
       if (myId !== tipRequestId.current) return;
       if (r.ok) {
         setText(r.text);
-        setSource(r.source);
+        setSource("heuristic");
       } else {
         setError(r.error);
       }
@@ -195,7 +188,7 @@ export function ActiveWorkoutCoachPanel({
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">
-                {heuristicOnly ? "Podpowiedzi" : "Trener AI"}
+                Podpowiedzi
               </p>
               <p className="font-heading text-base font-semibold text-white">Rady na żywo</p>
             </div>
@@ -222,21 +215,15 @@ export function ActiveWorkoutCoachPanel({
             <>
               <p className="text-sm leading-relaxed text-white/85">{text}</p>
               <p className="text-[11px] text-white/40">
-                {source === "web"
-                  ? "Model AI był niedostępny — skróty z publicznego wyszukiwania; sprawdź u źródeł."
-                  : source === "ai"
-                    ? "Na podstawie Twojej bieżącej sesji i danych z aplikacji."
-                    : userAiOff
-                      ? "Wyłączyłeś funkcje AI w profilu — bez modelu, tylko skrót z bieżącej sesji."
-                      : notEntitledToAi
-                        ? "To konto nie ma uprawnień do funkcji AI — poniżej skrót wyłącznie z bieżącej sesji."
-                        : "Tryb offline / bez AI — krótki skrypt z Twojej sesji. Włącz dostawcę AI, aby dostać pełniejsze podpowiedzi."}
+                {source
+                  ? "Skrót z bieżącej sesji (ciężar, powtórzenia, RIR) — bez modelu AI."
+                  : null}
               </p>
             </>
           ) : loading ? (
             <p className="flex items-center gap-2 text-sm text-white/55">
               <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
-              {heuristicOnly ? "Przygotowuję skrót z sesji…" : "Trener AI przygotowuje wskazówkę…"}
+              Przygotowuję skrót z sesji…
             </p>
           ) : (
             <p className="text-sm text-white/50">Ładowanie wskazówki…</p>

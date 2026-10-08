@@ -32,9 +32,9 @@ export const UserMessages = {
     "Dane bieżącej sesji są niekompletne. Wróć do listy ćwiczeń lub odśwież trening i spróbuj ponownie.",
   coachNoExercises: "Brak ćwiczeń w sesji — najpierw wczytaj plan lub dodaj ćwiczenia.",
   coachAiTimeout:
-    "Trener AI nie zdążył z odpowiedzią. Spróbuj ponownie za chwilę (przycisk „Odśwież”).",
+    "Podpowiedź nie zdążyła się wczytać. Spróbuj ponownie (przycisk „Odśwież”).",
   coachAiUnavailable:
-    "Trener AI jest chwilowo niedostępny. Sprawdź połączenie z internetem lub spróbuj ponownie później.",
+    "Nie udało się wczytać podpowiedzi. Sprawdź połączenie i spróbuj ponownie.",
   coachAiQuota:
     "Limit zapytań do trenera AI został chwilowo wyczerpany. Spróbuj ponownie za kilka minut.",
   coachChatNoMessage: "Napisz wiadomość do trenera, zanim wyślesz zapytanie.",

@@ -2,27 +2,16 @@ import "server-only";
 
 import { z } from "zod";
 import type { FitatuDaySummary } from "@/types/fitatu";
-import type { AiImage, AiMessage, CompleteChatOptions } from "@/ai/client";
-import { completeChat, completeVision } from "@/ai/client";
-import { isAiConfigured } from "@/ai/client";
-import {
-  bodyAnalysisSystemPrompt,
-  bodyAnalysisUserPrompt,
-  chatCoachSystemPrompt,
-  progressComparisonSystemPrompt,
-  progressComparisonUserPrompt,
-  trainingPlanSystemPrompt,
-  trainingPlanUserPrompt,
-  type TrainingPlanPromptInput,
-  type BodyAnalysisPromptInput,
-  type ProgressComparisonPromptInput,
-  type ChatCoachPromptInput,
-} from "@/ai/prompts";
-import {
-  buildCoachSearchQuery,
-  fetchWebKnowledgeForCoachQuery,
-  isWebSearchKnowledgeConfigured,
-} from "@/lib/web-search-fallback";
+
+/**
+ * Heurystyki planu / analizy zdjęć — bez wbudowanego modelu LLM.
+ * Jedyny zewnętrzny AI w GymBrat to Pollinations (grafiki przepisów).
+ */
+
+export type AiImage = {
+  mimeType: string;
+  base64: string;
+};
 
 export type ActivityLevel =
   | "sedentary"
@@ -49,7 +38,6 @@ export type TrainingPlanInput = {
   experienceLevel?: "beginner" | "intermediate" | "advanced";
   equipment?: string[];
   injuriesOrLimitations?: string[];
-  /** Lokalne podsumowanie żywienia (meal_logs + cele profilu). */
   nutritionToday?: FitatuDaySummary | null;
   /** @deprecated użyj nutritionToday */
   fitatuNutrition?: FitatuDaySummary | null;
@@ -157,24 +145,6 @@ const ProgressReportSchema = z.object({
 
 export type ProgressReport = z.infer<typeof ProgressReportSchema>;
 
-function safeJsonParse(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    // Some providers may wrap JSON in text. Best-effort extraction.
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try {
-        return JSON.parse(text.slice(start, end + 1));
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-}
-
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
@@ -210,7 +180,7 @@ function makeHeuristicPlan(input: TrainingPlanInput): TrainingPlan {
     return {
       day,
       title: "Rest / Recovery",
-      type: "rest",
+      type: "rest" as const,
       session: { warmup: [], main: [], cardio: null, cooldown: ["Easy walk 10 min (optional)"] },
     };
   });
@@ -274,213 +244,58 @@ function makeHeuristicPlan(input: TrainingPlanInput): TrainingPlan {
   };
 }
 
+/** Plan treningowy — wyłącznie heurystyka (bez LLM). */
 export async function generateTrainingPlan(
   input: TrainingPlanInput,
-  options?: { forceHeuristic?: boolean },
+  _options?: { forceHeuristic?: boolean },
 ): Promise<TrainingPlan> {
-  const promptInput: TrainingPlanPromptInput = {
-    age: input.age,
-    weightKg: input.weightKg,
-    heightCm: input.heightCm,
-    activityLevel: input.activityLevel,
-    goals: input.goals,
-    experienceLevel: input.experienceLevel,
-    daysPerWeek: input.daysPerWeek,
-    equipment: input.equipment,
-    injuriesOrLimitations: input.injuriesOrLimitations,
-    nutritionToday: input.nutritionToday ?? input.fitatuNutrition ?? null,
-    cardioPerformance: input.cardioPerformance,
-  };
-
-  if (!isAiConfigured() || options?.forceHeuristic === true) {
-    return makeHeuristicPlan(input);
-  }
-
-  const messages: AiMessage[] = [
-    { role: "system", content: trainingPlanSystemPrompt() },
-    { role: "user", content: trainingPlanUserPrompt(promptInput) },
-  ];
-
-  const raw = await completeChat(messages, { model: process.env.AI_MODEL });
-  const parsed = safeJsonParse(raw);
-  const result = TrainingPlanSchema.safeParse(parsed);
-  if (result.success) return result.data;
   return makeHeuristicPlan(input);
 }
 
-export async function analyzeBodyPhoto(input: {
+export async function analyzeBodyPhoto(_input: {
   images: AiImage[];
-  context?: BodyAnalysisPromptInput["context"];
-  /** Użytkownik wyłączył AI w profilu — ten sam fallback co przy braku dostawcy. */
+  context?: { sex?: string; age?: number };
   forceHeuristic?: boolean;
 }): Promise<BodyAnalysis> {
-  const context = input.context ?? {};
-
-  if (!isAiConfigured() || input.forceHeuristic === true) {
-    const userDisabled = input.forceHeuristic === true && isAiConfigured();
-    return {
-      posture: {
-        summary: userDisabled
-          ? "Wyłączyłeś funkcje AI w profilu. Zdjęcia mogą być zapisane, ale analiza modelu jest niedostępna."
-          : "AI is not configured. Upload photos can be stored, but analysis requires an AI provider.",
-        flags: [],
-        confidence: "low",
-      },
-      proportions: { summary: "Not available.", notes: [] },
-      bodyFatEstimate: {
-        percentRange: [0, 0],
-        confidence: "low",
-        disclaimer: userDisabled
-          ? "Włącz funkcje AI w profilu, aby z powrotem korzystać z analizy zdjęć."
-          : "AI provider not configured. This feature will produce an approximate range once enabled.",
-      },
-      recommendations: {
-        strengthPriorities: ["Full-body strength 2–4x/week"],
-        mobilityPriorities: ["Thoracic + hips mobility 3–5x/week"],
-        habits: ["Standardize photos weekly (same lighting/pose)."],
-        photoRetakeTips: ["Front/side/back, neutral posture, consistent distance."],
-      },
-    };
-  }
-
-  const messages: AiMessage[] = [
-    { role: "system", content: bodyAnalysisSystemPrompt() },
-    { role: "user", content: bodyAnalysisUserPrompt({ context }) },
-  ];
-
-  const raw = await completeVision(messages, input.images, { model: process.env.AI_MODEL });
-  const parsed = safeJsonParse(raw);
-  const result = BodyAnalysisSchema.safeParse(parsed);
-  if (result.success) return result.data;
-
   return {
-    posture: { summary: "Could not parse model output.", flags: [], confidence: "low" },
-    proportions: { summary: "Could not parse model output.", notes: [] },
+    posture: {
+      summary:
+        "Analiza zdjęć przez model LLM została usunięta z GymBrat. Zdjęcia możesz zapisać w postępach; ocena sylwetki — u trenera lub z pomiarów.",
+      flags: [],
+      confidence: "low",
+    },
+    proportions: { summary: "Niedostępne bez modelu AI.", notes: [] },
     bodyFatEstimate: {
       percentRange: [0, 0],
       confidence: "low",
-      disclaimer: "Could not parse model output.",
+      disclaimer:
+        "GymBrat nie używa wbudowanego modelu AI do analizy zdjęć. Jedyny zewnętrzny AI to generowanie grafik przepisów (Pollinations).",
     },
     recommendations: {
-      strengthPriorities: [],
-      mobilityPriorities: [],
-      habits: [],
-      photoRetakeTips: [],
+      strengthPriorities: ["Full-body strength 2–4x/week"],
+      mobilityPriorities: ["Thoracic + hips mobility 3–5x/week"],
+      habits: ["Standardize photos weekly (same lighting/pose)."],
+      photoRetakeTips: ["Front/side/back, neutral posture, consistent distance."],
     },
   };
 }
 
-export async function compareProgressPhotos(input: {
+export async function compareProgressPhotos(_input: {
   earlier: AiImage[];
   later: AiImage[];
-  context?: ProgressComparisonPromptInput["context"];
+  context?: unknown;
   forceHeuristic?: boolean;
 }): Promise<ProgressReport> {
-  const context = input.context ?? null;
-
-  if (!isAiConfigured() || input.forceHeuristic === true) {
-    const userDisabled = input.forceHeuristic === true && isAiConfigured();
-    return {
-      summary: userDisabled
-        ? "Wyłączyłeś funkcje AI w profilu — porównanie zdjęć przez model jest niedostępne."
-        : "AI is not configured yet. Once enabled, this will compare the two dates and generate a report.",
-      observations: { composition: [], posture: [], symmetry: [], confidence: "low" },
-      wins: [],
-      focusNext: [],
-      measurementSuggestions: ["Track scale trend (weekly average).", "Waist/hips/chest measurements."],
-      photoStandardizationTips: [
-        "Same lighting, same camera distance, same time of day.",
-        "Relaxed posture + consistent pose.",
-      ],
-    };
-  }
-
-  const messages: AiMessage[] = [
-    { role: "system", content: progressComparisonSystemPrompt() },
-    { role: "user", content: progressComparisonUserPrompt({ context: context ?? undefined }) },
-  ];
-
-  const raw = await completeVision(messages, [...input.earlier, ...input.later], {
-    model: process.env.AI_MODEL,
-  });
-  const parsed = safeJsonParse(raw);
-  const result = ProgressReportSchema.safeParse(parsed);
-  if (result.success) return result.data;
-
   return {
-    summary: "Could not parse model output.",
+    summary:
+      "Porównanie zdjęć przez model LLM zostało usunięte. Porównuj zdjęcia wizualnie albo przez pomiary (waga, obwody).",
     observations: { composition: [], posture: [], symmetry: [], confidence: "low" },
     wins: [],
     focusNext: [],
-    measurementSuggestions: [],
-    photoStandardizationTips: [],
+    measurementSuggestions: ["Track scale trend (weekly average).", "Waist/hips/chest measurements."],
+    photoStandardizationTips: [
+      "Same lighting, same camera distance, same time of day.",
+      "Relaxed posture + consistent pose.",
+    ],
   };
 }
-
-export type ChatCoachSource = "ai" | "web";
-
-export type ChatCoachReply = {
-  text: string;
-  source: ChatCoachSource;
-};
-
-/** Odpowiedź wygląda na komunikat błędu dostawcy zamiast treści coacha. */
-function isProviderFailureChatResponse(text: string): boolean {
-  const t = text.trim();
-  if (t.length === 0) return true;
-  if (t.length > 2800) return false;
-  if (/^AI is not configured\b/i.test(t)) return false;
-  if (/^Empty model response\b/i.test(t)) return true;
-  return (
-    /AI request failed|AI response parse error/i.test(t) ||
-    /\brate limited\b/i.test(t) ||
-    /\bquota\b|\bResource exhausted\b|\bPERMISSION_DENIED\b/i.test(t) ||
-    /\bAPI key\b|\binvalid api key\b|\bbilling\b/i.test(t) ||
-    /\bHTTP\s*[45]\d\d\b|\b422\b|\b429\b|\b500\b|\b503\b/i.test(t) ||
-    /\boverloaded\b|\bUNAVAILABLE\b|\bUNAUTHENTICATED\b/i.test(t) ||
-    /\bECONNREFUSED\b|\bfetch failed\b|\bFailed to fetch\b|\bnetwork\b/i.test(t)
-  );
-}
-
-async function completeChatWithOptionalWebFallback(
-  msgs: AiMessage[],
-  opts?: CompleteChatOptions,
-): Promise<ChatCoachReply> {
-  try {
-    const modelText = await completeChat(msgs, opts);
-    if (isProviderFailureChatResponse(modelText) && isWebSearchKnowledgeConfigured()) {
-      const web = await fetchWebKnowledgeForCoachQuery(buildCoachSearchQuery(msgs));
-      if (web) return { text: web, source: "web" };
-    }
-    return { text: modelText, source: "ai" };
-  } catch (err) {
-    if (isWebSearchKnowledgeConfigured()) {
-      const web = await fetchWebKnowledgeForCoachQuery(buildCoachSearchQuery(msgs));
-      if (web) return { text: web, source: "web" };
-    }
-    throw err;
-  }
-}
-
-export async function chatCoach(input: {
-  messages: Array<{ role: "user" | "assistant"; content: string }>;
-  context?: ChatCoachPromptInput;
-}): Promise<ChatCoachReply> {
-  const system = chatCoachSystemPrompt(input.context ?? {});
-  const msgs: AiMessage[] = [
-    { role: "system", content: system },
-    ...input.messages.map((m) => ({ role: m.role, content: m.content }) as AiMessage),
-  ];
-  const task = input.context?.task;
-  const maxOutputTokens =
-    task === "daily_briefing"
-      ? 384
-      : task === "active_session_tip"
-        ? 640
-        : undefined;
-  return completeChatWithOptionalWebFallback(msgs, {
-    model: process.env.AI_MODEL,
-    ...(maxOutputTokens != null ? { maxOutputTokens } : {}),
-  });
-}
-

@@ -48,6 +48,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Usunięto pakiet ~100 startowych przepisów i stockowe grafiki Unsplash; katalog w diecie jest tylko z zewnętrznego JSON, a przy imporcie grafiki generuje AI (Pollinations z imagePromptEn).",
       "Prompt AI do generowania JSON przepisów jest pod stałe Posiłek 1–5 (mapowanie slotów sniadanie…kolacja) i wymaga zróżnicowanych makro (profile A–F), bo użytkownik zmienia tylko B/W/T.",
       "Grafiki przepisów generuje AI raz przy wgrywaniu JSON w panelu admina (Pollinations → zapis w bazie, URL /api/catalog-meal-image/…); przy otwieraniu diety nie ma ponownej generacji — serwowany jest zapisany plik.",
+      "Usunięto wbudowany serwer/agenta AI (ai-server, Ollama/Gemini, czat Trener AI) — strona nie korzysta z wewnętrznego LLM; jedyny zewnętrzny AI to Pollinations do zdjęć przepisów.",
       "W Profilu masz zawsze 5 stałych posiłków (Posiłek 1–5) — zmieniasz tylko zalecane makro B/W/T, bez zmiany nazw ani liczby; Dieta dopasowuje przepisy i skaluje gramaturę.",
       "W sesji treningu system na bieżąco analizuje ostatni trening i zaliczone serie: pokazuje aktywną radę o ciężarze/powtórzeniach (np. „Dziś spróbuj…”, zdejmij ciężar po twardej serii, dobij powtórzenia) — na ekranie serii i w przerwie; stuknięcie wpisuje wartości.",
       "Zamknięcie treningu bez zapisu (X) pokazuje dedykowany popup GymBrat (ciemna karta, wyśrodkowany nagłówek, złote „Wróć do treningu” i czerwony secondary) zamiast systemowego okna przeglądarki.",
