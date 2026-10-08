@@ -11,6 +11,8 @@ import {
 } from "@/lib/meal-catalog-store";
 
 export const runtime = "nodejs";
+/** Import + pierwsza paczka grafik AI (Pollinations). */
+export const maxDuration = 60;
 
 export async function GET(req: Request) {
   const gate = await requireAdminApi();

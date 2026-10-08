@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { userSettings, users } from "@/db/schema";
+import { fitnessGoalsToJson, parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { activityLevels } from "@/lib/validations/register";
 import { UserMessages } from "@/lib/user-facing-errors";
 
@@ -17,6 +18,7 @@ const bodyParamsSchema = z.object({
   heightCm: z.coerce.number().int().min(100).max(250),
   age: z.coerce.number().int().min(13).max(120),
   activityLevel: z.enum(activityLevels),
+  weeklySessionsTarget: z.coerce.number().int().min(1).max(7).optional(),
 });
 
 export async function updateBodyParamsFormAction(
@@ -30,6 +32,7 @@ export async function updateBodyParamsFormAction(
     heightCm: formData.get("heightCm"),
     age: formData.get("age"),
     activityLevel: formData.get("activityLevel"),
+    weeklySessionsTarget: formData.get("weeklySessionsTarget") || undefined,
   };
   return updateBodyParams(input);
 }
@@ -69,7 +72,39 @@ export async function updateBodyParams(input: unknown) {
     })
     .where(eq(users.id, session.user.id));
 
+  if (data.weeklySessionsTarget != null) {
+    const [row] = await db
+      .select({ fitnessGoalsJson: userSettings.fitnessGoalsJson })
+      .from(userSettings)
+      .where(eq(userSettings.userId, session.user.id))
+      .limit(1);
+    const prev = parseFitnessGoalsJson(row?.fitnessGoalsJson ?? null);
+    const json = fitnessGoalsToJson({
+      ...prev,
+      weeklySessionsTarget: data.weeklySessionsTarget,
+    });
+    const patch = {
+      ...(json != null ? { fitnessGoalsJson: json } : {}),
+      onboardingCompletedAt: new Date(),
+      updatedAt: new Date(),
+    };
+    if (row) {
+      await db
+        .update(userSettings)
+        .set(patch)
+        .where(eq(userSettings.userId, session.user.id));
+    } else {
+      await db.insert(userSettings).values({
+        userId: session.user.id,
+        weeklyCardioGoalMinutes: 150,
+        ...patch,
+      });
+    }
+  }
+
   revalidatePath("/profile");
+  revalidatePath("/complete-profile");
+  revalidatePath("/");
   return { ok: true as const };
 }
 

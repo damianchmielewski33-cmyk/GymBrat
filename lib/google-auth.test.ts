@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { splitDisplayName } from "@/lib/google-auth";
+import {
+  resolveGooglePersonName,
+  splitDisplayName,
+} from "@/lib/google-auth";
 
 describe("splitDisplayName", () => {
   it("rozbija imię i nazwisko", () => {
@@ -21,6 +24,36 @@ describe("splitDisplayName", () => {
     expect(splitDisplayName("Damian")).toEqual({
       firstName: "Damian",
       lastName: null,
+    });
+  });
+});
+
+describe("resolveGooglePersonName", () => {
+  it("bierze given_name i family_name z Google", () => {
+    expect(
+      resolveGooglePersonName({
+        givenName: "Jan",
+        familyName: "Kowalski",
+        name: "Jan Kowalski",
+      }),
+    ).toEqual({
+      firstName: "Jan",
+      lastName: "Kowalski",
+      displayName: "Jan Kowalski",
+    });
+  });
+
+  it("gdy brak given/family — rozbija name", () => {
+    expect(
+      resolveGooglePersonName({
+        givenName: null,
+        familyName: null,
+        name: "Anna Nowak",
+      }),
+    ).toEqual({
+      firstName: "Anna",
+      lastName: "Nowak",
+      displayName: "Anna Nowak",
     });
   });
 });

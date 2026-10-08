@@ -5,6 +5,8 @@ declare module "next-auth" {
     user: {
       id: string;
       role: "zawodnik" | "trener" | "admin";
+      /** false = trzeba dokończyć profil (np. po Google). */
+      profileComplete?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -18,5 +20,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     role?: "zawodnik" | "trener" | "admin";
+    profileComplete?: boolean;
   }
 }

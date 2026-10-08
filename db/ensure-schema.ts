@@ -203,6 +203,16 @@ CREATE TABLE IF NOT EXISTS "meal_catalog" (
   );
 
   await client.execute(`
+CREATE TABLE IF NOT EXISTS "meal_catalog_images" (
+  "meal_id" text PRIMARY KEY NOT NULL,
+  "mime_type" text NOT NULL,
+  "data_url" text NOT NULL,
+  "updated_at" integer NOT NULL,
+  FOREIGN KEY ("meal_id") REFERENCES "meal_catalog"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+
+  await client.execute(`
 CREATE TABLE IF NOT EXISTS "exercise_technique_links" (
   "id" text PRIMARY KEY NOT NULL,
   "youtube_url" text NOT NULL,

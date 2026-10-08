@@ -74,7 +74,7 @@ export function AppShell({
         <div className="pt-[env(safe-area-inset-top)]" aria-hidden />
       ) : (
         <header className="sticky top-0 z-40 bg-black/55 pt-[env(safe-area-inset-top)] backdrop-blur-md">
-          <div className="mx-auto flex max-w-lg items-center px-4 py-3">
+          <div className="mx-auto flex max-w-lg items-center px-4 py-3.5 sm:py-4">
             <BrandMark />
           </div>
         </header>

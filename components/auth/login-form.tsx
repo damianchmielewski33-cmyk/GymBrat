@@ -26,7 +26,7 @@ export type LoginRole = AppRole;
 function oauthErrorMessage(code: string | null): string | null {
   if (!code) return null;
   if (code === "OAuthAccountNotLinked") {
-    return "Ten e-mail jest już powiązany z innym sposobem logowania. Zaloguj się hasłem albo użyj tego samego Google.";
+    return "Ten e-mail ma już konto w GymBrat. Zaloguj się hasłem, a potem Google z tym samym adresem — konta się połączą. Albo od razu użyj hasła.";
   }
   if (code === "AccessDenied" || code === "OAuthCallback" || code === "OAuthSignin") {
     return "Logowanie Google zostało anulowane lub nie powiodło się. Spróbuj ponownie.";
@@ -118,16 +118,18 @@ export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }
         });
       }}
     >
-      <RoleAuthCards
-        role={role}
-        onSelectRole={onSelectRole}
-        trainerLocked={!trainerEnabled}
-        heading="Logujesz się jako"
-      />
+      {trainerEnabled ? (
+        <RoleAuthCards
+          role={role}
+          onSelectRole={onSelectRole}
+          trainerLocked={false}
+          heading="Logujesz się jako"
+        />
+      ) : null}
 
       {googleEnabled ? (
         <div className="space-y-4">
-          <GoogleSignInButton callbackUrl={callbackUrl} />
+          <GoogleSignInButton callbackUrl="/complete-profile" />
           <AuthProviderDivider />
         </div>
       ) : null}
@@ -207,9 +209,9 @@ export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }
       >
         {pending
           ? "Logowanie…"
-          : role === "trener"
+          : trainerEnabled && role === "trener"
             ? "Zaloguj się jako trener"
-            : "Zaloguj się jako zawodnik"}
+            : "Zaloguj się"}
       </Button>
       <p className="text-center text-sm text-white/55">
         Nie masz konta?{" "}

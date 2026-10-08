@@ -1,40 +1,99 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { ChevronLeft } from "lucide-react";
 import { registerUser, sendRegisterCode, type RegisterState } from "@/actions/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
-import { ScreenCard, ScreenHeading } from "@/components/layout/screen";
-import {
-  isTrainerFlowEnabled,
-  roleFromSearchParam,
-} from "@/lib/auth-role";
+import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
 import {
   AuthProviderDivider,
   GoogleSignInButton,
 } from "@/components/auth/google-sign-in-button";
-import { RoleAuthCards } from "@/components/auth/role-auth-cards";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { InlineBanner } from "@/components/ui/inline-banner";
+import { cn } from "@/lib/utils";
 import {
   activityLevels,
   registerSchema,
+  registerStepFields,
   type RegisterFormValues,
 } from "@/lib/validations/register";
+
+const easeOut = [0.22, 1, 0.36, 1] as const;
 
 const activityCopy: Record<
   (typeof activityLevels)[number],
   { label: string; hint: string }
 > = {
-  low: { label: "Niska", hint: "Biurko / lekkie spacery" },
+  low: { label: "Niska", hint: "Biurko, lekkie spacery" },
   medium: { label: "Średnia", hint: "3–5 treningów / tydzień" },
-  high: { label: "Wysoka", hint: "Codziennie lub intensywnie" },
+  high: { label: "Wysoka", hint: "Codziennie lub bardzo intensywnie" },
+};
+
+type StepId =
+  | "welcome"
+  | "name"
+  | "email"
+  | "password"
+  | "body"
+  | "activity"
+  | "goal";
+
+const STEPS: StepId[] = [
+  "welcome",
+  "name",
+  "email",
+  "password",
+  "body",
+  "activity",
+  "goal",
+];
+
+const STEP_COPY: Record<
+  StepId,
+  { kicker: string; title: string; support: string }
+> = {
+  welcome: {
+    kicker: "Krok 1",
+    title: "Dołącz do GymBrat",
+    support: "Trening, dieta i postępy w jednym miejscu — zacznij od konta.",
+  },
+  name: {
+    kicker: "Krok 2",
+    title: "Jak masz na imię?",
+    support: "Tak będziemy Cię witać na Pulpicie i w profilu.",
+  },
+  email: {
+    kicker: "Krok 3",
+    title: "Twój e-mail",
+    support: "Wyślemy krótki kod, żeby potwierdzić adres.",
+  },
+  password: {
+    kicker: "Krok 4",
+    title: "Ustaw hasło",
+    support: "Minimum 8 znaków — do logowania e-mailem.",
+  },
+  body: {
+    kicker: "Krok 5",
+    title: "Parametry ciała",
+    support: "Potrzebne do Pulpitu, diety (g/kg) i podpowiedzi treningowych.",
+  },
+  activity: {
+    kicker: "Krok 6",
+    title: "Aktywność na co dzień",
+    support: "Pomaga dopasować obciążenie i szacunki regeneracji.",
+  },
+  goal: {
+    kicker: "Krok 7",
+    title: "Cel na tydzień",
+    support: "Ile dni w tygodniu chcesz trenować? Zobaczysz to w Postępach.",
+  },
 };
 
 export function RegisterForm({
@@ -42,22 +101,11 @@ export function RegisterForm({
 }: {
   googleEnabled?: boolean;
 }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const trainerEnabled = isTrainerFlowEnabled();
-  const roleFromUrl = roleFromSearchParam(searchParams.get("role"));
-  const role = trainerEnabled ? roleFromUrl : "zawodnik";
+  const [stepIndex, setStepIndex] = useState(0);
+  const step = STEPS[stepIndex]!;
   const [rootError, setRootError] = useState<string | null>(null);
+  const [direction, setDirection] = useState<1 | -1>(1);
   const passwordRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (trainerEnabled) return;
-    if (searchParams.get("role") === "trener") {
-      const next = new URLSearchParams(searchParams.toString());
-      next.set("role", "zawodnik");
-      router.replace(`/register?${next.toString()}`);
-    }
-  }, [trainerEnabled, searchParams, router]);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -71,8 +119,10 @@ export function RegisterForm({
       heightCm: "",
       age: "",
       activityLevel: "medium",
+      weeklySessionsTarget: 4,
       role: "zawodnik",
     },
+    mode: "onSubmit",
   });
 
   const {
@@ -81,12 +131,14 @@ export function RegisterForm({
     watch,
     setError,
     setValue,
+    trigger,
     formState: { errors, isSubmitting },
   } = form;
 
   const activityLevel = watch("activityLevel");
   const emailValue = watch("email");
   const emailCodeValue = watch("emailCode");
+  const weeklySessionsTarget = Number(watch("weeklySessionsTarget") || 4);
   const [codeInfo, setCodeInfo] = useState<string | null>(null);
   const [sendingCode, setSendingCode] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
@@ -112,10 +164,40 @@ export function RegisterForm({
     if (digits !== raw) {
       setValue("emailCode", digits, { shouldValidate: digits.length === 6 });
     }
-    if (digits.length === 6) {
+    if (digits.length === 6 && step === "email") {
       queueMicrotask(() => passwordRef.current?.focus());
     }
-  }, [emailCodeValue, setValue]);
+  }, [emailCodeValue, setValue, step]);
+
+  const copy = STEP_COPY[step];
+  const progress = ((stepIndex + 1) / STEPS.length) * 100;
+
+  async function goNext() {
+    setRootError(null);
+    if (step === "welcome") {
+      setDirection(1);
+      setStepIndex(1);
+      return;
+    }
+    const fields = registerStepFields[step as keyof typeof registerStepFields];
+    if (fields) {
+      const ok = await trigger([...fields]);
+      if (!ok) return;
+    }
+    if (stepIndex >= STEPS.length - 1) {
+      await handleSubmit(onSubmit)();
+      return;
+    }
+    setDirection(1);
+    setStepIndex((i) => Math.min(STEPS.length - 1, i + 1));
+  }
+
+  function goBack() {
+    setRootError(null);
+    if (stepIndex <= 0) return;
+    setDirection(-1);
+    setStepIndex((i) => Math.max(0, i - 1));
+  }
 
   async function onSubmit(values: RegisterFormValues) {
     setRootError(null);
@@ -129,6 +211,16 @@ export function RegisterForm({
               message: messages[0],
             });
           }
+        }
+        const fieldKeys = Object.keys(result.fieldErrors) as (keyof RegisterFormValues)[];
+        const jump = STEPS.findIndex((s) => {
+          if (s === "welcome") return false;
+          const f = registerStepFields[s as keyof typeof registerStepFields];
+          return f?.some((name) => fieldKeys.includes(name));
+        });
+        if (jump >= 0) {
+          setDirection(-1);
+          setStepIndex(jump);
         }
       }
       setRootError(result.error);
@@ -146,13 +238,13 @@ export function RegisterForm({
       });
     } catch {
       setRootError(
-        "Konto zostało utworzone, ale nie udało się zalogować automatycznie. Zaloguj się ręcznie.",
+        "Konto utworzone, ale automatyczne logowanie nie wyszło. Zaloguj się ręcznie.",
       );
       return;
     }
     if (!sign?.ok || sign.error) {
       setRootError(
-        "Konto zostało utworzone, ale nie udało się zalogować automatycznie. Zaloguj się ręcznie.",
+        "Konto utworzone, ale automatyczne logowanie nie wyszło. Zaloguj się ręcznie.",
       );
       return;
     }
@@ -161,374 +253,412 @@ export function RegisterForm({
 
   const { ref: passwordRhfRef, ...passwordRegister } = register("password");
 
+  const primaryLabel =
+    step === "goal"
+      ? isSubmitting
+        ? "Tworzenie konta…"
+        : "Utwórz konto"
+      : step === "welcome"
+        ? "Dalej e-mailem"
+        : "Dalej";
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <ScreenCard>
-        <ScreenHeading
-          showBrand
-          className="mb-8"
-          description="Zbuduj swój profil sportowca"
+    <div className="space-y-5">
+      <AuthHeroBrand
+        headline={copy.title}
+        support={copy.support}
+        compact={step !== "welcome"}
+      />
+
+      <div className="glass-panel gold-panel relative overflow-hidden p-6 sm:p-8">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[var(--neon)]/12 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-24 -right-16 h-48 w-48 rounded-full bg-[var(--neon)]/8 blur-3xl"
         />
 
-        <div className="space-y-6">
-          <RoleAuthCards
-            role={role}
-            onSelectRole={(next) => {
-              if (!trainerEnabled && next === "trener") return;
-              const nextParams = new URLSearchParams(searchParams.toString());
-              nextParams.set("role", next);
-              router.replace(`/register?${nextParams.toString()}`);
-            }}
-            trainerLocked={!trainerEnabled}
-            heading="Tworzysz konto jako"
-          />
-
-          {googleEnabled ? (
-            <div className="space-y-4">
-              <GoogleSignInButton
-                callbackUrl="/"
-                label="Załóż konto z Google"
-              />
-              <AuthProviderDivider label="lub e-mailem" />
+        <div className="relative space-y-5">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                {copy.kicker} · {stepIndex + 1}/{STEPS.length}
+              </p>
+              {stepIndex > 0 ? (
+                <button
+                  type="button"
+                  onClick={goBack}
+                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-white/55 transition hover:bg-white/[0.06] hover:text-white"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+                  Wstecz
+                </button>
+              ) : null}
             </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <motion.div
+                className="h-full rounded-full bg-[var(--gym-gold)]"
+                initial={false}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.35, ease: easeOut }}
+              />
+            </div>
+          </div>
+
+          {rootError ? (
+            <InlineBanner role="alert" variant="error">
+              {rootError}
+            </InlineBanner>
           ) : null}
 
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
-            {rootError ? (
-              <p
-                id="register-root-error"
-                role="alert"
-                aria-live="assertive"
-                className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-100"
-              >
-                {rootError}
-              </p>
-            ) : null}
-
-            <input type="hidden" {...register("role")} />
-
-            <section
-              className="space-y-4 rounded-xl border border-white/[0.08] bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md"
-              aria-labelledby="register-heading-basic"
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={step}
+              custom={direction}
+              initial={{ opacity: 0, x: direction * 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direction * -18 }}
+              transition={{ duration: 0.28, ease: easeOut }}
+              className="space-y-5"
             >
-              <p
-                id="register-heading-basic"
-                className="text-[10px] font-bold uppercase tracking-wider text-white/35"
-              >
-                Dane podstawowe
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-white/80">
-                    Imię
-                  </Label>
-                  <Input
-                    id="firstName"
-                    autoComplete="given-name"
-                    aria-invalid={errors.firstName ? true : undefined}
-                    aria-describedby={errors.firstName ? "register-error-firstName" : undefined}
-                    className={cn(errors.firstName && "border-destructive")}
-                    {...register("firstName")}
-                  />
-                  {errors.firstName ? (
-                    <p id="register-error-firstName" className="text-xs text-red-100">
-                      {errors.firstName.message}
+              {step === "welcome" ? (
+                <div className="space-y-4">
+                  {googleEnabled ? (
+                    <>
+                      <GoogleSignInButton
+                        callbackUrl="/complete-profile"
+                        label="Załóż konto z Google"
+                      />
+                      <AuthProviderDivider label="lub e-mailem" />
+                    </>
+                  ) : (
+                    <p className="text-sm leading-relaxed text-white/55">
+                      Za chwilę zapytamy o dane, których GymBrat realnie używa:
+                      imię, e-mail, parametry ciała, aktywność i cel tygodnia.
                     </p>
-                  ) : null}
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-white/80">
-                    Nazwisko
-                  </Label>
-                  <Input
-                    id="lastName"
-                    autoComplete="family-name"
-                    aria-invalid={errors.lastName ? true : undefined}
-                    aria-describedby={errors.lastName ? "register-error-lastName" : undefined}
-                    className={cn(errors.lastName && "border-destructive")}
-                    {...register("lastName")}
-                  />
-                  {errors.lastName ? (
-                    <p id="register-error-lastName" className="text-xs text-red-100">
-                      {errors.lastName.message}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-white/80">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  aria-invalid={errors.email ? true : undefined}
-                  aria-describedby={errors.email ? "register-error-email" : undefined}
-                  className={cn(errors.email && "border-destructive")}
-                  {...register("email")}
-                />
-                {errors.email ? (
-                  <p id="register-error-email" className="text-xs text-red-100">
-                    {errors.email.message}
-                  </p>
-                ) : null}
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-end justify-between gap-3">
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <Label htmlFor="emailCode" className="text-white/80">
-                      Kod z e-maila
-                    </Label>
+              ) : null}
+
+              {step === "name" ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">Imię</Label>
                     <Input
-                      id="emailCode"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      placeholder="123456"
-                      aria-invalid={errors.emailCode ? true : undefined}
-                      aria-describedby={
-                        [codeInfo ? "register-code-info" : "", errors.emailCode ? "register-error-emailCode" : ""]
-                          .filter(Boolean)
-                          .join(" ") || undefined
-                      }
-                      className={cn(errors.emailCode && "border-destructive")}
-                      {...register("emailCode")}
+                      id="firstName"
+                      autoComplete="given-name"
+                      autoFocus
+                      aria-invalid={errors.firstName ? true : undefined}
+                      className={cn(errors.firstName && "border-destructive")}
+                      {...register("firstName")}
                     />
+                    {errors.firstName ? (
+                      <p className="text-xs text-red-100">
+                        {errors.firstName.message}
+                      </p>
+                    ) : null}
                   </div>
-                  <Button
-                    type="button"
-                    disabled={sendingCode || !emailValue?.trim() || cooldownSeconds > 0}
-                    aria-busy={sendingCode}
-                    className="h-11 min-h-11 shrink-0 bg-white/10 text-white hover:bg-white/15 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
-                    onClick={async () => {
-                      setRootError(null);
-                      setCodeInfo(null);
-                      const email = (emailValue ?? "").trim().toLowerCase();
-                      if (!email) {
-                        setRootError("Wpisz e-mail, aby wysłać kod.");
-                        return;
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Nazwisko</Label>
+                    <Input
+                      id="lastName"
+                      autoComplete="family-name"
+                      aria-invalid={errors.lastName ? true : undefined}
+                      className={cn(errors.lastName && "border-destructive")}
+                      {...register("lastName")}
+                    />
+                    {errors.lastName ? (
+                      <p className="text-xs text-red-100">
+                        {errors.lastName.message}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {step === "email" ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">E-mail</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      autoFocus
+                      aria-invalid={errors.email ? true : undefined}
+                      className={cn(errors.email && "border-destructive")}
+                      {...register("email")}
+                    />
+                    {errors.email ? (
+                      <p className="text-xs text-red-100">
+                        {errors.email.message}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex items-end gap-3">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Label htmlFor="emailCode">Kod z e-maila</Label>
+                      <Input
+                        id="emailCode"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        placeholder="6 cyfr"
+                        aria-invalid={errors.emailCode ? true : undefined}
+                        className={cn(errors.emailCode && "border-destructive")}
+                        {...register("emailCode")}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      disabled={
+                        sendingCode || !emailValue?.trim() || cooldownSeconds > 0
                       }
-                      setSendingCode(true);
-                      try {
-                        const res = await sendRegisterCode({ email });
-                        if (!res.ok) {
-                          setRootError(res.error);
+                      className="h-11 shrink-0 bg-white/10 text-white hover:bg-white/15"
+                      onClick={async () => {
+                        setRootError(null);
+                        setCodeInfo(null);
+                        const email = (emailValue ?? "").trim().toLowerCase();
+                        if (!email) {
+                          setRootError("Wpisz e-mail, aby wysłać kod.");
                           return;
                         }
-                        setCodeInfo("Kod wysłany. Sprawdź skrzynkę (oraz SPAM) i wpisz 6 cyfr.");
-                        setCooldownUntil(Date.now() + 60_000);
-                      } catch {
-                        setRootError(
-                          "Nie udało się wysłać kodu. Sprawdź SMTP w Vercel (SMTP_HOST, SMTP_USER, SMTP_PASS) i ewentualnie hasło aplikacji Gmail / MFA w Outlook.",
-                        );
-                      } finally {
-                        setSendingCode(false);
-                      }
-                    }}
-                  >
-                    {sendingCode
-                      ? "Wysyłanie…"
-                      : cooldownSeconds > 0
-                        ? `Wyślij ponownie (${cooldownSeconds}s)`
-                        : "Wyślij kod"}
-                  </Button>
-                </div>
-                {codeInfo ? (
-                  <p id="register-code-info" role="status" aria-live="polite" className="text-xs text-white/65">
-                    {codeInfo}
-                  </p>
-                ) : null}
-                {errors.emailCode ? (
-                  <p id="register-error-emailCode" className="text-xs text-red-100">
-                    {errors.emailCode.message}
-                  </p>
-                ) : null}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-white/80">
-                  Hasło
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="new-password"
-                  aria-invalid={errors.password ? true : undefined}
-                  aria-describedby={errors.password ? "register-error-password" : undefined}
-                  ref={(el) => {
-                    passwordRef.current = el;
-                    passwordRhfRef(el);
-                  }}
-                  className={cn(errors.password && "border-destructive")}
-                  {...passwordRegister}
-                />
-                {errors.password ? (
-                  <p id="register-error-password" className="text-xs text-red-100">
-                    {errors.password.message}
-                  </p>
-                ) : null}
-              </div>
-            </section>
-
-            <section
-              className="space-y-4 rounded-xl border border-white/[0.08] bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md"
-              aria-labelledby="register-heading-body"
-            >
-              <p
-                id="register-heading-body"
-                className="text-[10px] font-bold uppercase tracking-wider text-white/35"
-              >
-                Parametry ciała
-              </p>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="weightKg" className="text-white/80">
-                    Waga (kg)
-                  </Label>
-                  <Input
-                    id="weightKg"
-                    type="number"
-                    inputMode="decimal"
-                    step="0.1"
-                    min={30}
-                    max={400}
-                    aria-invalid={errors.weightKg ? true : undefined}
-                    aria-describedby={errors.weightKg ? "register-error-weightKg" : undefined}
-                    className={cn(errors.weightKg && "border-destructive")}
-                    {...register("weightKg")}
-                  />
-                  {errors.weightKg ? (
-                    <p id="register-error-weightKg" className="text-xs text-red-100">
-                      {errors.weightKg.message}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="heightCm" className="text-white/80">
-                    Wzrost (cm)
-                  </Label>
-                  <Input
-                    id="heightCm"
-                    type="number"
-                    inputMode="numeric"
-                    step={1}
-                    min={100}
-                    max={250}
-                    aria-invalid={errors.heightCm ? true : undefined}
-                    aria-describedby={errors.heightCm ? "register-error-heightCm" : undefined}
-                    className={cn(errors.heightCm && "border-destructive")}
-                    {...register("heightCm")}
-                  />
-                  {errors.heightCm ? (
-                    <p id="register-error-heightCm" className="text-xs text-red-100">
-                      {errors.heightCm.message}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="age" className="text-white/80">
-                    Wiek
-                  </Label>
-                  <Input
-                    id="age"
-                    type="number"
-                    inputMode="numeric"
-                    min={13}
-                    max={120}
-                    aria-invalid={errors.age ? true : undefined}
-                    aria-describedby={errors.age ? "register-error-age" : undefined}
-                    className={cn(errors.age && "border-destructive")}
-                    {...register("age")}
-                  />
-                  {errors.age ? (
-                    <p id="register-error-age" className="text-xs text-red-100">
-                      {errors.age.message}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            </section>
-
-            <section
-              className="space-y-3 rounded-xl border border-white/[0.08] bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md"
-              aria-labelledby="register-heading-activity"
-            >
-              <p
-                id="register-heading-activity"
-                className="text-[10px] font-bold uppercase tracking-wider text-white/35"
-              >
-                Poziom aktywności
-              </p>
-              <div
-                className="grid gap-2 sm:grid-cols-3"
-                role="radiogroup"
-                aria-labelledby="register-heading-activity"
-                aria-describedby={
-                  errors.activityLevel ? "register-error-activityLevel" : undefined
-                }
-              >
-                {activityLevels.map((level) => {
-                  const active = activityLevel === level;
-                  const { label, hint } = activityCopy[level];
-                  return (
-                    <button
-                      key={level}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      onClick={() => setValue("activityLevel", level, { shouldValidate: true })}
-                      className={cn(
-                        "min-h-[3.25rem] rounded-xl border px-3 py-3 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
-                        active
-                          ? "border-[var(--neon)]/60 bg-[var(--neon)]/15 shadow-[0_0_24px_rgba(var(--neon-rgb),0.22)]"
-                          : "border-white/10 bg-black/30 hover:border-white/20 hover:bg-black/40",
-                      )}
+                        setSendingCode(true);
+                        try {
+                          const res = await sendRegisterCode({ email });
+                          if (!res.ok) {
+                            setRootError(res.error);
+                            return;
+                          }
+                          setCodeInfo(
+                            "Kod wysłany. Sprawdź skrzynkę (także SPAM).",
+                          );
+                          setCooldownUntil(Date.now() + 60_000);
+                        } catch {
+                          setRootError(
+                            "Nie udało się wysłać kodu. Spróbuj ponownie za chwilę.",
+                          );
+                        } finally {
+                          setSendingCode(false);
+                        }
+                      }}
                     >
-                      <span
-                        className={cn(
-                          "block text-sm font-semibold",
-                          active ? "text-white" : "text-white/85",
-                        )}
-                      >
-                        {label}
-                      </span>
-                      <span className="mt-0.5 block text-xs text-white/55">{hint}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <input type="hidden" {...register("activityLevel")} />
-              {errors.activityLevel ? (
-                <p id="register-error-activityLevel" className="text-xs text-red-100">
-                  {errors.activityLevel.message}
-                </p>
+                      {sendingCode
+                        ? "Wysyłanie…"
+                        : cooldownSeconds > 0
+                          ? `${cooldownSeconds}s`
+                          : "Wyślij kod"}
+                    </Button>
+                  </div>
+                  {codeInfo ? (
+                    <p className="text-xs text-white/65">{codeInfo}</p>
+                  ) : null}
+                  {errors.emailCode ? (
+                    <p className="text-xs text-red-100">
+                      {errors.emailCode.message}
+                    </p>
+                  ) : null}
+                </div>
               ) : null}
-            </section>
 
-            <Button
-              type="submit"
-              variant="cta"
-              disabled={isSubmitting}
-              aria-busy={isSubmitting}
-              className="w-full"
+              {step === "password" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Hasło</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="new-password"
+                    autoFocus
+                    aria-invalid={errors.password ? true : undefined}
+                    ref={(el) => {
+                      passwordRef.current = el;
+                      passwordRhfRef(el);
+                    }}
+                    className={cn(errors.password && "border-destructive")}
+                    {...passwordRegister}
+                  />
+                  {errors.password ? (
+                    <p className="text-xs text-red-100">
+                      {errors.password.message}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {step === "body" ? (
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="weightKg">Waga (kg)</Label>
+                    <Input
+                      id="weightKg"
+                      type="number"
+                      inputMode="decimal"
+                      step="0.1"
+                      min={30}
+                      max={400}
+                      autoFocus
+                      aria-invalid={errors.weightKg ? true : undefined}
+                      className={cn(errors.weightKg && "border-destructive")}
+                      {...register("weightKg")}
+                    />
+                    {errors.weightKg ? (
+                      <p className="text-xs text-red-100">
+                        {errors.weightKg.message}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="heightCm">Wzrost (cm)</Label>
+                    <Input
+                      id="heightCm"
+                      type="number"
+                      inputMode="numeric"
+                      min={100}
+                      max={250}
+                      aria-invalid={errors.heightCm ? true : undefined}
+                      className={cn(errors.heightCm && "border-destructive")}
+                      {...register("heightCm")}
+                    />
+                    {errors.heightCm ? (
+                      <p className="text-xs text-red-100">
+                        {errors.heightCm.message}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="age">Wiek</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      inputMode="numeric"
+                      min={13}
+                      max={120}
+                      aria-invalid={errors.age ? true : undefined}
+                      className={cn(errors.age && "border-destructive")}
+                      {...register("age")}
+                    />
+                    {errors.age ? (
+                      <p className="text-xs text-red-100">
+                        {errors.age.message}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {step === "activity" ? (
+                <div className="space-y-3">
+                  <div
+                    className="grid gap-2"
+                    role="radiogroup"
+                    aria-label="Poziom aktywności"
+                  >
+                    {activityLevels.map((level) => {
+                      const active = activityLevel === level;
+                      const { label, hint } = activityCopy[level];
+                      return (
+                        <button
+                          key={level}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          onClick={() =>
+                            setValue("activityLevel", level, {
+                              shouldValidate: true,
+                            })
+                          }
+                          className={cn(
+                            "rounded-2xl border px-4 py-3.5 text-left transition",
+                            active
+                              ? "border-[var(--gym-gold)]/70 bg-[rgba(var(--neon-rgb),0.12)]"
+                              : "border-white/12 bg-black/30 hover:border-white/20",
+                          )}
+                        >
+                          <span className="block text-[15px] font-semibold text-white">
+                            {label}
+                          </span>
+                          <span className="mt-0.5 block text-[12px] text-white/50">
+                            {hint}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input type="hidden" {...register("activityLevel")} />
+                  {errors.activityLevel ? (
+                    <p className="text-xs text-red-100">
+                      {errors.activityLevel.message}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {step === "goal" ? (
+                <div className="space-y-4">
+                  <p className="text-center font-metric text-5xl tabular-nums text-[var(--gym-gold)]">
+                    {weeklySessionsTarget}
+                  </p>
+                  <p className="text-center text-sm text-white/50">
+                    {weeklySessionsTarget === 1
+                      ? "dzień treningowy / tydzień"
+                      : weeklySessionsTarget >= 2 && weeklySessionsTarget <= 4
+                        ? "dni treningowe / tydzień"
+                        : "dni treningowych / tydzień"}
+                  </p>
+                  <input
+                    type="range"
+                    min={1}
+                    max={7}
+                    step={1}
+                    value={weeklySessionsTarget}
+                    onChange={(e) =>
+                      setValue("weeklySessionsTarget", Number(e.target.value), {
+                        shouldValidate: true,
+                      })
+                    }
+                    className="w-full accent-[var(--gym-gold)]"
+                    aria-label="Dni treningowe w tygodniu"
+                  />
+                  <div className="flex justify-between text-[11px] text-white/35">
+                    <span>1</span>
+                    <span>7</span>
+                  </div>
+                  <input type="hidden" {...register("weeklySessionsTarget")} />
+                  {errors.weeklySessionsTarget ? (
+                    <p className="text-xs text-red-100">
+                      {errors.weeklySessionsTarget.message}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
+
+          <input type="hidden" {...register("role")} />
+
+          <Button
+            type="button"
+            variant="cta"
+            className="w-full"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+            onClick={() => void goNext()}
+          >
+            {primaryLabel}
+          </Button>
+
+          <p className="text-center text-sm text-white/55">
+            Masz już konto?{" "}
+            <Link
+              href="/login"
+              className="rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             >
-              {isSubmitting ? "Tworzenie profilu…" : "Utwórz konto i trenuj"}
-            </Button>
-            <p className="text-center text-sm text-white/55">
-              Masz już konto?{" "}
-              <Link
-                href="/login?role=zawodnik"
-                className="rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
-              >
-                Zaloguj się
-              </Link>
-            </p>
-          </form>
+              Zaloguj się
+            </Link>
+          </p>
         </div>
-      </ScreenCard>
-    </motion.div>
+      </div>
+    </div>
   );
 }

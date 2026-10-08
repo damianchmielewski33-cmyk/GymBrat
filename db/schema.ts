@@ -265,7 +265,7 @@ export const adminAuditLog = sqliteTable(
   (t) => [index("idx_admin_audit_created").on(t.createdAt)],
 );
 
-/** Globalny katalog przepisów (import JSON z panelu admina) — bez obrazów. */
+/** Globalny katalog przepisów (import JSON z panelu admina). */
 export const mealCatalog = sqliteTable(
   "meal_catalog",
   {
@@ -279,6 +279,22 @@ export const mealCatalog = sqliteTable(
   },
   (t) => [index("idx_meal_catalog_updated").on(t.updatedAt)],
 );
+
+/**
+ * Grafiki przepisów wygenerowane raz przy imporcie JSON (Pollinations).
+ * Serwowane przez /api/catalog-meal-image/[id] — bez ponownej generacji przy przeglądaniu.
+ */
+export const mealCatalogImages = sqliteTable("meal_catalog_images", {
+  mealId: text("meal_id")
+    .primaryKey()
+    .references(() => mealCatalog.id, { onDelete: "cascade" }),
+  mimeType: text("mime_type").notNull(),
+  /** data:image/…;base64,… */
+  dataUrl: text("data_url").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
 
 /**
  * Linki techniki (YouTube) do ćwiczeń z katalogu — konfiguracja w panelu admina.

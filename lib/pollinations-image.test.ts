@@ -4,6 +4,7 @@ import {
   buildPollinationsGenImageUrl,
   clampPollinationsSeed,
   composeFoodImagePrompt,
+  snapPollinationsSize,
 } from "@/lib/pollinations-image";
 
 describe("pollinations-image", () => {
@@ -20,12 +21,19 @@ describe("pollinations-image", () => {
       seed: 1,
       width: 640,
       height: 400,
-      model: "flux",
+      model: "zimage",
       apiKey: "sk_test",
     });
     expect(url).toContain("https://gen.pollinations.ai/image/");
-    expect(url).toContain("model=flux");
+    expect(url).toContain("model=zimage");
+    expect(url).toContain("width=512");
+    expect(url).toContain("height=512");
     expect(url).toContain("key=sk_test");
+  });
+
+  it("snapPollinationsSize mapuje kartę 640x400 do 512 (szybkość)", () => {
+    expect(snapPollinationsSize(640, 400)).toEqual({ width: 512, height: 512 });
+    expect(snapPollinationsSize(1024, 768)).toEqual({ width: 768, height: 512 });
   });
 
   it("proxy app nie ujawnia klucza", () => {

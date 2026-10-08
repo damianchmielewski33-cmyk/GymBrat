@@ -14,6 +14,31 @@ import {
   isGoogleAuthConfigured,
   resolveGoogleSignInUser,
 } from "@/lib/google-auth";
+import { isUserBodyProfileComplete } from "@/lib/profile-complete";
+
+function googleProfileFields(profile: unknown, user?: { email?: string | null; name?: string | null }) {
+  const p = profile as {
+    email?: unknown;
+    name?: unknown;
+    given_name?: unknown;
+    family_name?: unknown;
+    email_verified?: unknown;
+  } | null;
+  const email =
+    (typeof p?.email === "string" && p.email) ||
+    (typeof user?.email === "string" && user.email) ||
+    "";
+  const name =
+    (typeof p?.name === "string" && p.name) ||
+    (typeof user?.name === "string" && user.name) ||
+    null;
+  const givenName =
+    typeof p?.given_name === "string" ? p.given_name : null;
+  const familyName =
+    typeof p?.family_name === "string" ? p.family_name : null;
+  const emailVerified = p?.email_verified;
+  return { email, name, givenName, familyName, emailVerified };
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -83,6 +108,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           Google({
             // To samo e-mail co konto hasłowe → jedno konto GymBrat.
             allowDangerousEmailAccountLinking: true,
+            authorization: {
+              params: {
+                // profile → given_name / family_name / name
+                scope: "openid email profile",
+              },
+            },
           }),
         ]
       : []),
@@ -95,33 +126,44 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ account, profile }) {
       if (account?.provider !== "google") return true;
-      const email =
-        typeof profile?.email === "string" ? profile.email.trim() : "";
-      if (!email) return false;
+      const { email, name, givenName, familyName, emailVerified } =
+        googleProfileFields(profile);
+      if (!email.trim()) return false;
       // Google czasem nie potwierdza e-maila — nie wpuszczamy bez weryfikacji.
-      if (profile && "email_verified" in profile && profile.email_verified === false) {
-        return false;
-      }
-      return true;
+      if (emailVerified === false) return false;
+
+      const providerAccountId =
+        typeof account.providerAccountId === "string"
+          ? account.providerAccountId
+          : "";
+      if (!providerAccountId) return false;
+
+      // Wczesne powiązanie z kontem e-mail/hasło (to samo e-mail) — przed JWT.
+      const resolved = await resolveGoogleSignInUser({
+        email,
+        name,
+        givenName,
+        familyName,
+        providerAccountId,
+      });
+      return Boolean(resolved);
     },
-    async jwt({ token, user, account, profile }) {
+    async jwt({ token, user, account, profile, trigger }) {
       if (account?.provider === "google") {
-        const email =
-          (typeof profile?.email === "string" && profile.email) ||
-          (typeof user?.email === "string" && user.email) ||
-          "";
+        const { email, name, givenName, familyName } = googleProfileFields(
+          profile,
+          user,
+        );
         const providerAccountId =
           typeof account.providerAccountId === "string"
             ? account.providerAccountId
             : "";
-        const name =
-          (typeof profile?.name === "string" && profile.name) ||
-          (typeof user?.name === "string" && user.name) ||
-          null;
 
         const resolved = await resolveGoogleSignInUser({
           email,
           name,
+          givenName,
+          familyName,
           providerAccountId,
         });
         if (!resolved) {
@@ -132,26 +174,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = resolved.email;
         token.role = resolved.role;
         if (resolved.name) token.name = resolved.name;
-        return token;
-      }
-
-      const uid =
-        typeof user?.id === "string"
-          ? user.id
-          : typeof token.id === "string"
-            ? token.id
-            : typeof token.sub === "string"
-              ? token.sub
-              : undefined;
-      if (uid) {
-        token.id = uid;
-        token.sub = uid;
-      }
-      if (user && "role" in user && user.role) {
-        token.role = user.role as "zawodnik" | "trener" | "admin";
-      }
-      if (user && typeof user.email === "string" && user.email) {
-        token.email = user.email;
+        // Nowe konto Google — wymuś /complete-profile; powiązane hasłowe zachowuje status z DB.
+        token.profileComplete = resolved.isNew ? false : undefined;
+      } else {
+        const uid =
+          typeof user?.id === "string"
+            ? user.id
+            : typeof token.id === "string"
+              ? token.id
+              : typeof token.sub === "string"
+                ? token.sub
+                : undefined;
+        if (uid) {
+          token.id = uid;
+          token.sub = uid;
+        }
+        if (user && "role" in user && user.role) {
+          token.role = user.role as "zawodnik" | "trener" | "admin";
+        }
+        if (user && typeof user.email === "string" && user.email) {
+          token.email = user.email;
+        }
       }
 
       // Uzupełnij e-mail z DB tylko gdy brakuje w JWT (stare sesje).
@@ -201,6 +244,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
+      // Odśwież kompletność profilu po zapisie albo gdy jeszcze niekompletny.
+      if (
+        userId &&
+        (trigger === "update" ||
+          trigger === "signIn" ||
+          token.profileComplete !== true)
+      ) {
+        try {
+          const db = getDb();
+          const [row] = await db
+            .select({
+              firstName: users.firstName,
+              lastName: users.lastName,
+              weightKg: users.weightKg,
+              heightCm: users.heightCm,
+              age: users.age,
+              activityLevel: users.activityLevel,
+            })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+          token.profileComplete = row
+            ? isUserBodyProfileComplete(row)
+            : false;
+        } catch {
+          token.profileComplete = false;
+        }
+      }
+
       return token;
     },
     session({ session, token }) {
@@ -212,6 +284,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.role =
           (token.role as "zawodnik" | "trener" | "admin" | undefined) ??
           "zawodnik";
+        session.user.profileComplete = token.profileComplete === true;
         if (typeof token.email === "string" && token.email) {
           session.user.email = token.email;
         }

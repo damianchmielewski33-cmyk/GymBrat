@@ -5,6 +5,9 @@
 
 export const POLLINATIONS_GEN_BASE = "https://gen.pollinations.ai";
 
+/** Szybki model na przepisy (Vercel cold start + limity czasu). */
+export const POLLINATIONS_FOOD_MODEL = "zimage";
+
 export function getPollinationsApiKey(): string | null {
   const key =
     process.env.POLLINATIONS_API_KEY?.trim() ||
@@ -21,6 +24,21 @@ export function clampPollinationsSeed(seed: number): number {
   return Math.min(n, 2_147_483_647);
 }
 
+/** Typowe rozmiary OpenAI-compatible — nietypowe (np. 640x400) bywają wolniejsze/niestabilne. */
+export function snapPollinationsSize(width: number, height: number): {
+  width: number;
+  height: number;
+} {
+  const w = Math.max(64, Math.min(1280, Math.round(width)));
+  const h = Math.max(64, Math.min(1280, Math.round(height)));
+  const area = w * h;
+  if (area <= 512 * 512) return { width: 512, height: 512 };
+  if (w === h) return { width: Math.min(1024, w), height: Math.min(1024, h) };
+  // Landscape food cards ≈ 640×400 → 768×512
+  if (w > h) return { width: 768, height: 512 };
+  return { width: 512, height: 768 };
+}
+
 export function buildPollinationsGenImageUrl(args: {
   prompt: string;
   seed: number;
@@ -29,11 +47,12 @@ export function buildPollinationsGenImageUrl(args: {
   model?: string;
   apiKey?: string | null;
 }): string {
-  const model = (args.model ?? "flux").trim() || "flux";
+  const model = (args.model ?? POLLINATIONS_FOOD_MODEL).trim() || POLLINATIONS_FOOD_MODEL;
+  const size = snapPollinationsSize(args.width, args.height);
   const params = new URLSearchParams({
     model,
-    width: String(Math.max(64, Math.min(1280, Math.round(args.width)))),
-    height: String(Math.max(64, Math.min(1280, Math.round(args.height)))),
+    width: String(size.width),
+    height: String(size.height),
     seed: String(clampPollinationsSeed(args.seed)),
     nologo: "true",
   });
@@ -71,6 +90,30 @@ function decodeDataUrlOrB64(raw: string): { bytes: Uint8Array; contentType: stri
   }
 }
 
+export function createFetchTimeoutSignal(
+  ms: number,
+  parent?: AbortSignal,
+): { signal: AbortSignal; clear: () => void } {
+  const ctrl = new AbortController();
+  const onParentAbort = () => ctrl.abort(parent?.reason);
+  if (parent) {
+    if (parent.aborted) ctrl.abort(parent.reason);
+    else parent.addEventListener("abort", onParentAbort, { once: true });
+  }
+  const timer = setTimeout(() => {
+    const err = new Error(`Pollinations timeout ${ms}ms`);
+    err.name = "TimeoutError";
+    ctrl.abort(err);
+  }, ms);
+  return {
+    signal: ctrl.signal,
+    clear: () => {
+      clearTimeout(timer);
+      if (parent) parent.removeEventListener("abort", onParentAbort);
+    },
+  };
+}
+
 /**
  * Preferowane: OpenAI-compatible POST (bez limitu długości ścieżki GET).
  */
@@ -83,9 +126,8 @@ export async function fetchPollinationsImageViaGenerations(args: {
   model?: string;
   signal?: AbortSignal;
 }): Promise<PollinationsImageResult> {
-  const model = (args.model ?? "flux").trim() || "flux";
-  const width = Math.max(64, Math.min(1280, Math.round(args.width)));
-  const height = Math.max(64, Math.min(1280, Math.round(args.height)));
+  const model = (args.model ?? POLLINATIONS_FOOD_MODEL).trim() || POLLINATIONS_FOOD_MODEL;
+  const size = snapPollinationsSize(args.width, args.height);
   const seed = clampPollinationsSeed(args.seed);
 
   const res = await fetch(`${POLLINATIONS_GEN_BASE}/v1/images/generations`, {
@@ -98,9 +140,9 @@ export async function fetchPollinationsImageViaGenerations(args: {
       prompt: args.prompt.slice(0, 3200),
       model,
       n: 1,
-      size: `${width}x${height}`,
+      size: `${size.width}x${size.height}`,
+      quality: "low",
       response_format: "b64_json",
-      // Pollinations extension — seed for flux/zimage
       seed,
     }),
     signal: args.signal,
@@ -215,18 +257,19 @@ export async function fetchPollinationsImage(args: {
   model?: string;
   signal?: AbortSignal;
 }): Promise<PollinationsImageResult> {
-  const viaPost = await fetchPollinationsImageViaGenerations(args);
-  if (viaPost.ok) return viaPost;
-  /** 401/402 — nie ma sensu retry GET tym samym kluczem/saldem */
-  if (viaPost.status === 401 || viaPost.status === 402 || viaPost.status === 403) {
-    return viaPost;
-  }
+  // GET najpierw — szybszy JPEG stream, lepszy na limicie czasu Vercel.
   const viaGet = await fetchPollinationsImageViaGet(args);
   if (viaGet.ok) return viaGet;
+  if (viaGet.status === 401 || viaGet.status === 402 || viaGet.status === 403) {
+    return viaGet;
+  }
+
+  const viaPost = await fetchPollinationsImageViaGenerations(args);
+  if (viaPost.ok) return viaPost;
   return {
     ok: false,
-    status: viaGet.status || viaPost.status,
-    detail: `POST: ${viaPost.detail} | GET: ${viaGet.detail}`,
+    status: viaPost.status || viaGet.status,
+    detail: `GET: ${viaGet.detail} | POST: ${viaPost.detail}`,
   };
 }
 
@@ -246,7 +289,7 @@ export function buildAppRecipeImageProxyUrl(args: {
     seed: String(clampPollinationsSeed(args.seed)),
     w: String(args.width ?? 640),
     h: String(args.height ?? 400),
-    model: args.model ?? "flux",
+    model: args.model ?? POLLINATIONS_FOOD_MODEL,
     mode: args.mode ?? "food",
   });
   const title = (args.title ?? "").trim();
@@ -287,4 +330,15 @@ export function composeFoodImagePrompt(args: {
   ]
     .filter(Boolean)
     .join(", ");
+}
+
+export function sanitizePollinationsErrorDetail(err: unknown): string {
+  if (err instanceof Error) {
+    const name = err.name || "Error";
+    if (name === "TimeoutError" || name === "AbortError") {
+      return "timeout";
+    }
+    return `${name}: ${err.message}`.slice(0, 200);
+  }
+  return String(err).slice(0, 200);
 }

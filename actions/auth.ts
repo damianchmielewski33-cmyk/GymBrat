@@ -14,9 +14,23 @@ import {
   registerSchema,
   type RegisterInput,
 } from "@/lib/validations/register";
+import { fitnessGoalsToJson } from "@/lib/fitness-goals";
 import { sendRegisterVerificationCodeEmail } from "@/lib/email";
 import { createHash, randomInt } from "node:crypto";
 import { z } from "zod";
+
+function newUserSettingsRow(
+  userId: string,
+  weeklySessionsTarget: number,
+) {
+  return {
+    userId,
+    weeklyCardioGoalMinutes: 150,
+    fitnessGoalsJson: fitnessGoalsToJson({ weeklySessionsTarget }),
+    /** Cel tygodnia zebrany w rejestracji — bez ponownego banera onboardingu. */
+    onboardingCompletedAt: new Date(),
+  };
+}
 
 export type RegisterState =
   | { ok: true }
@@ -194,15 +208,18 @@ export async function registerUser(
       appRole: data.role,
       createdAt: now,
     });
-    await db.insert(userSettings).values({
-      userId,
-      weeklyCardioGoalMinutes: 150,
-    });
+    await db.insert(userSettings).values(
+      newUserSettingsRow(userId, data.weeklySessionsTarget),
+    );
 
     await db.insert(siteActivityLog).values({
       userId,
       action: "Rejestracja konta",
-      metaJson: JSON.stringify({ role: data.role, emailCodeMock: true }),
+      metaJson: JSON.stringify({
+        role: data.role,
+        emailCodeMock: true,
+        weeklySessionsTarget: data.weeklySessionsTarget,
+      }),
       deploymentEnv: getAnalyticsDeployment(),
     });
 
@@ -279,15 +296,17 @@ export async function registerUser(
     appRole: data.role,
     createdAt: now,
   });
-  await db.insert(userSettings).values({
-    userId,
-    weeklyCardioGoalMinutes: 150,
-  });
+  await db.insert(userSettings).values(
+    newUserSettingsRow(userId, data.weeklySessionsTarget),
+  );
 
   await db.insert(siteActivityLog).values({
     userId,
     action: "Rejestracja konta",
-    metaJson: JSON.stringify({ role: data.role }),
+    metaJson: JSON.stringify({
+      role: data.role,
+      weeklySessionsTarget: data.weeklySessionsTarget,
+    }),
     deploymentEnv: getAnalyticsDeployment(),
   });
 

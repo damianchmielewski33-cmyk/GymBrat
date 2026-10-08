@@ -63,8 +63,9 @@ Bez komentarzy wewnątrz JSON. Poza blokiem kodu nie dodawaj innego JSON ani dł
   - carbsG (number ≥ 0)
 - imagePromptEn (string, WYMAGANE, max 400): krótki angielski opis zdjęcia TEGO dania
   pod AI (np. "grilled chicken rice broccoli bowl on dark plate"), bez polskich znaków,
-  bez ludzi, bez tekstu na grafice. GymBrat wygeneruje z tego grafikę AI przy imporcie JSON.
-  NIE podawaj imageUrl (aplikacja sama tworzy URL AI).
+  bez ludzi, bez tekstu na grafice. GymBrat generuje grafikę RAZ przy wgrywaniu JSON
+  i zapisuje ją w bazie — przy przeglądaniu diety nie generuje ponownie.
+  NIE podawaj imageUrl (aplikacja sama zapisze trwały URL po generacji).
 
 ## Spójność makro (obowiązkowe)
 1. Atwater: calories ≈ 4*proteinG + 4*carbsG + 9*fatG (±8% tolerancji).

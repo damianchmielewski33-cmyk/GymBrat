@@ -6,6 +6,12 @@ import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { mealCatalog } from "@/db/schema";
 import type { CatalogMeal } from "@/lib/meal-catalog";
 import { parseCatalogImportPayload, type CatalogImportMode } from "@/lib/meal-catalog-import";
+import {
+  clearAllCatalogMealImages,
+  deleteCatalogMealImages,
+  generateMissingCatalogImages,
+  type GenerateCatalogImagesResult,
+} from "@/lib/meal-catalog-images";
 
 let catalogTableEnsured = false;
 
@@ -77,7 +83,13 @@ export async function loadMergedMealCatalog(): Promise<CatalogMeal[]> {
 export async function importCatalogMealsFromJson(
   input: unknown,
   actorUserId: string,
-): Promise<{ upserted: number; removed: number; mode: CatalogImportMode; totalMerged: number }> {
+): Promise<{
+  upserted: number;
+  removed: number;
+  mode: CatalogImportMode;
+  totalMerged: number;
+  images: GenerateCatalogImagesResult;
+}> {
   await ensureMealCatalogTable();
   const { meals, mode } = parseCatalogImportPayload(input);
   const db = getDb();
@@ -86,10 +98,12 @@ export async function importCatalogMealsFromJson(
   if (mode === "replace") {
     const existing = await db.select({ id: mealCatalog.id }).from(mealCatalog);
     removed = existing.length;
+    await clearAllCatalogMealImages();
     await db.delete(mealCatalog);
   }
 
   const now = new Date();
+  const importedIds = meals.map((m) => m.id);
   for (const meal of meals) {
     const payloadJson = JSON.stringify(meal);
     const [prev] = await db
@@ -116,14 +130,37 @@ export async function importCatalogMealsFromJson(
     }
   }
 
+  // Generacja AI raz przy imporcie → zapis w meal_catalog_images + trwały imageUrl.
+  const images = await generateMissingCatalogImages({
+    mealIds: importedIds,
+    limit: Math.min(40, Math.max(8, importedIds.length)),
+    concurrency: 2,
+    actorUserId,
+  });
+
   const totalMerged = (await loadMergedMealCatalog()).length;
-  return { upserted: meals.length, removed, mode, totalMerged };
+  return { upserted: meals.length, removed, mode, totalMerged, images };
 }
 
 export async function clearDbCatalogMeals(): Promise<number> {
   await ensureMealCatalogTable();
   const db = getDb();
   const existing = await db.select({ id: mealCatalog.id }).from(mealCatalog);
+  await clearAllCatalogMealImages();
   await db.delete(mealCatalog);
   return existing.length;
+}
+
+export async function removeCatalogMeal(mealId: string): Promise<boolean> {
+  await ensureMealCatalogTable();
+  const db = getDb();
+  const [prev] = await db
+    .select({ id: mealCatalog.id })
+    .from(mealCatalog)
+    .where(eq(mealCatalog.id, mealId))
+    .limit(1);
+  if (!prev) return false;
+  await deleteCatalogMealImages([mealId]);
+  await db.delete(mealCatalog).where(eq(mealCatalog.id, mealId));
+  return true;
 }

@@ -41,9 +41,25 @@ export const registerSchema = z.object({
   activityLevel: z.enum(activityLevels, {
     message: "Wybierz poziom aktywności",
   }),
+  /** Cel treningów / tydzień — Postępy, onboarding, hub Trening. */
+  weeklySessionsTarget: z.coerce
+    .number("Podaj liczbę dni")
+    .int("Użyj liczby całkowitej")
+    .min(1, "Minimum 1 dzień")
+    .max(7, "Maksimum 7 dni"),
   /** Na razie rejestracja tylko jako zawodnik (trener — w przyszłości). */
   role: z.literal("zawodnik"),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type RegisterFormValues = z.input<typeof registerSchema>;
+
+/** Pola walidowane na poszczególnych krokach wizarda. */
+export const registerStepFields = {
+  name: ["firstName", "lastName"],
+  email: ["email", "emailCode"],
+  password: ["password"],
+  body: ["weightKg", "heightCm", "age"],
+  activity: ["activityLevel"],
+  goal: ["weeklySessionsTarget"],
+} as const satisfies Record<string, readonly (keyof RegisterFormValues)[]>;

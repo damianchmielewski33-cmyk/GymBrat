@@ -20,6 +20,8 @@ export type GoogleResolvedUser = {
   email: string;
   name: string | null;
   role: "zawodnik" | "trener" | "admin";
+  /** true = nowe konto; false = istniejące (w tym powiązanie Google ↔ e-mail/hasło). */
+  isNew: boolean;
 };
 
 /** AUTH_GOOGLE_ID + AUTH_GOOGLE_SECRET (Auth.js v5). */
@@ -45,10 +47,98 @@ export function splitDisplayName(name: string | null | undefined): {
   };
 }
 
+/**
+ * Imię/nazwisko z profilu Google: preferuj given_name / family_name,
+ * potem rozbicie `name`.
+ */
+export function resolveGooglePersonName(input: {
+  givenName?: string | null;
+  familyName?: string | null;
+  name?: string | null;
+}): { firstName: string | null; lastName: string | null; displayName: string | null } {
+  const given = input.givenName?.trim() || null;
+  const family = input.familyName?.trim() || null;
+  if (given || family) {
+    const displayName = [given, family].filter(Boolean).join(" ") || null;
+    return { firstName: given, lastName: family, displayName };
+  }
+  const split = splitDisplayName(input.name);
+  const displayName = input.name?.trim() || null;
+  return { ...split, displayName };
+}
+
 function resolveAppRole(email: string, stored?: string | null): GoogleResolvedUser["role"] {
   if (parseAdminEmails().has(normalizeAdminEmail(email))) return "admin";
   if (stored === "admin" || stored === "trener") return stored;
   return "zawodnik";
+}
+
+async function ensureOauthLink(input: {
+  userId: string;
+  provider: string;
+  providerAccountId: string;
+}): Promise<void> {
+  const db = getDb();
+  const [already] = await db
+    .select({
+      id: oauthAccounts.id,
+      userId: oauthAccounts.userId,
+    })
+    .from(oauthAccounts)
+    .where(
+      and(
+        eq(oauthAccounts.provider, input.provider),
+        eq(oauthAccounts.providerAccountId, input.providerAccountId),
+      ),
+    )
+    .limit(1);
+
+  if (already) {
+    // To samo Google już powiązane z tym kontem — OK.
+    if (already.userId === input.userId) return;
+    // Konflikt: Google było na innym userId — przenieś na konto z tym e-mailem.
+    await db
+      .update(oauthAccounts)
+      .set({ userId: input.userId })
+      .where(eq(oauthAccounts.id, already.id));
+    return;
+  }
+
+  try {
+    await db.insert(oauthAccounts).values({
+      id: crypto.randomUUID(),
+      userId: input.userId,
+      provider: input.provider,
+      providerAccountId: input.providerAccountId,
+      createdAt: new Date(),
+    });
+  } catch {
+    // Wyścig / ponowne logowanie — sprawdź, czy link już istnieje.
+    const [again] = await db
+      .select({ userId: oauthAccounts.userId })
+      .from(oauthAccounts)
+      .where(
+        and(
+          eq(oauthAccounts.provider, input.provider),
+          eq(oauthAccounts.providerAccountId, input.providerAccountId),
+        ),
+      )
+      .limit(1);
+    if (again?.userId === input.userId) return;
+    if (again) {
+      await db
+        .update(oauthAccounts)
+        .set({ userId: input.userId })
+        .where(
+          and(
+            eq(oauthAccounts.provider, input.provider),
+            eq(oauthAccounts.providerAccountId, input.providerAccountId),
+          ),
+        );
+      return;
+    }
+    throw new Error("Nie udało się powiązać konta Google.");
+  }
 }
 
 /**
@@ -58,6 +148,8 @@ function resolveAppRole(email: string, stored?: string | null): GoogleResolvedUs
 export async function resolveGoogleSignInUser(input: {
   email: string;
   name?: string | null;
+  givenName?: string | null;
+  familyName?: string | null;
   providerAccountId: string;
 }): Promise<GoogleResolvedUser | null> {
   const email = input.email.trim().toLowerCase();
@@ -67,12 +159,50 @@ export async function resolveGoogleSignInUser(input: {
   const db = getDb();
   const provider = "google";
   const providerAccountId = input.providerAccountId.trim();
+  const person = resolveGooglePersonName({
+    givenName: input.givenName,
+    familyName: input.familyName,
+    name: input.name,
+  });
+
+  async function fillMissingNames(userId: string, row: {
+    name: string | null;
+    firstName: string | null;
+    lastName: string | null;
+  }) {
+    if (!person.firstName && !person.lastName && !person.displayName) return row.name;
+    const nextFirst = row.firstName?.trim() || person.firstName;
+    const nextLast = row.lastName?.trim() || person.lastName;
+    const nextName =
+      row.name?.trim() ||
+      person.displayName ||
+      [nextFirst, nextLast].filter(Boolean).join(" ") ||
+      null;
+    if (
+      nextFirst === row.firstName &&
+      nextLast === row.lastName &&
+      nextName === row.name
+    ) {
+      return row.name;
+    }
+    await db
+      .update(users)
+      .set({
+        name: nextName,
+        firstName: nextFirst,
+        lastName: nextLast,
+      })
+      .where(eq(users.id, userId));
+    return nextName;
+  }
 
   const [linked] = await db
     .select({
       userId: oauthAccounts.userId,
       email: users.email,
       name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
       appRole: users.appRole,
     })
     .from(oauthAccounts)
@@ -86,6 +216,42 @@ export async function resolveGoogleSignInUser(input: {
     .limit(1);
 
   if (linked) {
+    // Google już powiązane — jeśli e-mail wskazuje inne konto hasłowe, scal do niego.
+    const linkedEmail = linked.email.trim().toLowerCase();
+    if (linkedEmail !== email) {
+      const [byEmail] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+      if (byEmail && byEmail.id !== linked.userId) {
+        await ensureOauthLink({
+          userId: byEmail.id,
+          provider,
+          providerAccountId,
+        });
+        const role = resolveAppRole(byEmail.email, byEmail.appRole);
+        if (role === "admin" && byEmail.appRole !== "admin") {
+          await db
+            .update(users)
+            .set({ appRole: "admin" })
+            .where(eq(users.id, byEmail.id));
+        }
+        const name = await fillMissingNames(byEmail.id, {
+          name: byEmail.name,
+          firstName: byEmail.firstName,
+          lastName: byEmail.lastName,
+        });
+        return {
+          id: byEmail.id,
+          email: byEmail.email,
+          name,
+          role,
+          isNew: false,
+        };
+      }
+    }
+
     const role = resolveAppRole(linked.email, linked.appRole);
     if (role === "admin" && linked.appRole !== "admin") {
       await db
@@ -93,14 +259,17 @@ export async function resolveGoogleSignInUser(input: {
         .set({ appRole: "admin" })
         .where(eq(users.id, linked.userId));
     }
+    const name = await fillMissingNames(linked.userId, linked);
     return {
       id: linked.userId,
       email: linked.email,
-      name: linked.name,
+      name,
       role,
+      isNew: false,
     };
   }
 
+  // To samo e-mail co konto e-mail/hasło → jedno konto (powiąż Google).
   const [existing] = await db
     .select()
     .from(users)
@@ -108,7 +277,7 @@ export async function resolveGoogleSignInUser(input: {
     .limit(1);
 
   if (existing) {
-    await db.insert(oauthAccounts).values({
+    await ensureOauthLink({
       userId: existing.id,
       provider,
       providerAccountId,
@@ -120,29 +289,32 @@ export async function resolveGoogleSignInUser(input: {
         .set({ appRole: "admin" })
         .where(eq(users.id, existing.id));
     }
-    if ((!existing.name || !existing.firstName) && input.name?.trim()) {
-      const { firstName, lastName } = splitDisplayName(input.name);
-      await db
-        .update(users)
-        .set({
-          name: existing.name?.trim() || input.name.trim(),
-          firstName: existing.firstName ?? firstName,
-          lastName: existing.lastName ?? lastName,
-        })
-        .where(eq(users.id, existing.id));
+    const name = await fillMissingNames(existing.id, {
+      name: existing.name,
+      firstName: existing.firstName,
+      lastName: existing.lastName,
+    });
+    try {
+      await db.insert(siteActivityLog).values({
+        userId: existing.id,
+        action: "Powiązanie konta Google",
+        metaJson: JSON.stringify({ provider: "google", email }),
+        deploymentEnv: getAnalyticsDeployment(),
+      });
+    } catch {
+      /* nie blokuj logowania */
     }
     return {
       id: existing.id,
       email: existing.email,
-      name: existing.name,
+      name,
       role,
+      isNew: false,
     };
   }
 
   const userId = crypto.randomUUID();
   const passwordHash = await hash(randomBytes(32).toString("hex"), 12);
-  const { firstName, lastName } = splitDisplayName(input.name);
-  const displayName = input.name?.trim() || null;
   const role = resolveAppRole(email, "zawodnik");
   const now = new Date();
 
@@ -150,9 +322,9 @@ export async function resolveGoogleSignInUser(input: {
     id: userId,
     email,
     passwordHash,
-    name: displayName,
-    firstName,
-    lastName,
+    name: person.displayName,
+    firstName: person.firstName,
+    lastName: person.lastName,
     appRole: role,
     createdAt: now,
   });
@@ -160,7 +332,7 @@ export async function resolveGoogleSignInUser(input: {
     userId,
     weeklyCardioGoalMinutes: 150,
   });
-  await db.insert(oauthAccounts).values({
+  await ensureOauthLink({
     userId,
     provider,
     providerAccountId,
@@ -175,7 +347,8 @@ export async function resolveGoogleSignInUser(input: {
   return {
     id: userId,
     email,
-    name: displayName,
+    name: person.displayName,
     role,
+    isNew: true,
   };
 }

@@ -4,6 +4,9 @@ import { getToken } from "next-auth/jwt";
 import { getAuthSecret } from "@/lib/auth-secret";
 import {
   isAnonymousPublicPath,
+  isCompleteProfilePath,
+  mustCompleteProfile,
+  postAuthDestination,
   shouldBounceAuthenticatedFromAuthPage,
 } from "@/lib/auth-public-paths";
 
@@ -77,6 +80,11 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  /** Trwałe grafiki katalogu (wygenerowane przy imporcie) — publiczne dla <img>. */
+  if (pathname.startsWith("/api/catalog-meal-image/")) {
+    return NextResponse.next();
+  }
+
   /** Token CSRF (double-submit) — publiczny GET, bez sesji. */
   if (pathname === "/api/csrf") {
     return NextResponse.next();
@@ -88,10 +96,17 @@ export async function proxy(req: NextRequest) {
   }
 
   const token = await readSessionToken(req);
+  const profileComplete = token?.profileComplete === true;
 
   if (isAnonymousPublicPath(pathname)) {
     if (token && shouldBounceAuthenticatedFromAuthPage(pathname)) {
-      return NextResponse.redirect(new URL("/", req.url));
+      return NextResponse.redirect(
+        new URL(postAuthDestination(profileComplete), req.url),
+      );
+    }
+    // Start (/) z sesją, ale bez parametrów ciała (np. po Google) → formularz.
+    if (token && pathname === "/" && mustCompleteProfile(pathname, profileComplete)) {
+      return NextResponse.redirect(new URL(postAuthDestination(false), req.url));
     }
     return NextResponse.next();
   }
@@ -103,6 +118,14 @@ export async function proxy(req: NextRequest) {
     const from = req.nextUrl.searchParams.get("from");
     if (from) login.searchParams.set("from", from);
     return NextResponse.redirect(login);
+  }
+
+  if (mustCompleteProfile(pathname, profileComplete)) {
+    return NextResponse.redirect(new URL(postAuthDestination(false), req.url));
+  }
+
+  if (profileComplete && isCompleteProfilePath(pathname)) {
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
   return NextResponse.next();

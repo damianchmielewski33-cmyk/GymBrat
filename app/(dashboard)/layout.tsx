@@ -16,6 +16,11 @@ export default async function DashboardLayout({
     return <AuthPageFrame>{children}</AuthPageFrame>;
   }
 
+  // Po Google (bez wagi/wzrostu itd.) tylko formularz — bez dolnej nawigacji.
+  if (session.user.profileComplete !== true) {
+    return <AuthPageFrame>{children}</AuthPageFrame>;
+  }
+
   const showAdminNav = await isAdminEligible(session).catch(() => false);
 
   return <AppShell showAdminNav={showAdminNav}>{children}</AppShell>;

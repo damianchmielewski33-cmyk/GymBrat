@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   isAnonymousPublicPath,
+  mustCompleteProfile,
+  postAuthDestination,
   shouldBounceAuthenticatedFromAuthPage,
 } from "@/lib/auth-public-paths";
 
@@ -17,5 +19,13 @@ describe("auth-public-paths", () => {
     expect(shouldBounceAuthenticatedFromAuthPage("/login")).toBe(true);
     expect(shouldBounceAuthenticatedFromAuthPage("/register")).toBe(true);
     expect(shouldBounceAuthenticatedFromAuthPage("/")).toBe(false);
+  });
+
+  it("niepełny profil (Google) → /complete-profile", () => {
+    expect(postAuthDestination(false)).toBe("/complete-profile");
+    expect(postAuthDestination(true)).toBe("/");
+    expect(mustCompleteProfile("/workout-plan", false)).toBe(true);
+    expect(mustCompleteProfile("/complete-profile", false)).toBe(false);
+    expect(mustCompleteProfile("/", true)).toBe(false);
   });
 });

@@ -80,10 +80,11 @@ export function formatLastSetLine(last: LastSetSnapshot): string | null {
   return `Ostatnio ${r} powt.`;
 }
 
-function isHardSet(last: LastSetSnapshot): boolean {
+/** Padnięcie / awaria formy — nie dokładaj ciężaru. RIR 1 przy górze zakresu to OK. */
+function isGrindingSet(last: LastSetSnapshot): boolean {
   return (
-    (last.rir != null && Number.isFinite(last.rir) && last.rir <= 1) ||
-    (last.rpe != null && Number.isFinite(last.rpe) && last.rpe >= 8)
+    (last.rir != null && Number.isFinite(last.rir) && last.rir <= 0) ||
+    (last.rpe != null && Number.isFinite(last.rpe) && last.rpe >= 9)
   );
 }
 
@@ -143,8 +144,25 @@ export function buildSetProgressionSuggestion(args: {
   if (reps == null) return null;
 
   const range = resolveRepRange(args.targetReps);
-  const hard = isHardSet(last);
   const easy = isEasySet(last);
+  const grinding = isGrindingSet(last);
+
+  // Padnięcie (RIR 0 / RPE 9+) → nie dokładaj kg; ewentualnie dobij powt. w zakresie.
+  if (grinding) {
+    if (range && reps < range.max) {
+      const nextReps = Math.min(range.max, reps + 1);
+      if (nextReps > reps) {
+        return buildSuggestion({
+          weightKg: weight,
+          reps: nextReps,
+          deltaKg: 0,
+          kind: "reps",
+          reason: "ostatnio było na styk — najpierw domknij zakres",
+        });
+      }
+    }
+    return null;
+  }
 
   // Góra zakresu → +ciężar, zejdź do dołu zakresu (albo zostaw te same powt. gdy brak zakresu).
   if (range && reps >= range.max) {
@@ -155,7 +173,9 @@ export function buildSetProgressionSuggestion(args: {
       reps: range.min,
       deltaKg: nextW - weight,
       kind: "weight",
-      reason: "ostatnio była góra zakresu",
+      reason: easy
+        ? "góra zakresu z zapasem"
+        : "ostatnio była góra zakresu",
     });
   }
 
@@ -186,19 +206,6 @@ export function buildSetProgressionSuggestion(args: {
         reps <= range.min
           ? "ostatnio był dół zakresu"
           : "ostatnio było poniżej góry zakresu",
-    });
-  }
-
-  // Twarda seria bez jasnego zakresu → +ciężar (jak dotychczasowa sugestia RIR).
-  if (hard) {
-    const nextW = bumpWeightByPlate(weight);
-    if (nextW <= weight) return null;
-    return buildSuggestion({
-      weightKg: nextW,
-      reps,
-      deltaKg: nextW - weight,
-      kind: "weight",
-      reason: "ostatnio seria była twarda",
     });
   }
 

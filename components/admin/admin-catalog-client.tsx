@@ -163,19 +163,63 @@ export function AdminCatalogClient() {
             upserted?: number;
             totalMerged?: number;
             removed?: number;
+            images?: {
+              generated?: number;
+              pending?: number;
+              hasMore?: boolean;
+              failed?: number;
+            };
           }
         | null;
       if (!res.ok) {
         throw new Error(data?.error ?? "Import nie powiódł się.");
       }
 
+      let imagesGenerated = data?.images?.generated ?? 0;
+      let rounds = 0;
+      while (data?.images?.hasMore && rounds < 40) {
+        rounds += 1;
+        notifySaved(
+          `Generuję grafiki AI… (zapisane: ${imagesGenerated}, pozostało: ${data.images.pending ?? "—"})`,
+        );
+        const imgRes = await fetch("/api/admin/catalog/images", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...getXsrfHeaders(),
+          },
+          body: JSON.stringify({ limit: 8 }),
+        });
+        const imgData = (await imgRes.json().catch(() => null)) as
+          | {
+              ok?: boolean;
+              error?: string;
+              images?: {
+                generated?: number;
+                pending?: number;
+                hasMore?: boolean;
+              };
+            }
+          | null;
+        if (!imgRes.ok) {
+          throw new Error(
+            imgData?.error ??
+              "Import OK, ale generacja grafik się urwała — uruchom ponownie merge tej samej paczki.",
+          );
+        }
+        imagesGenerated += imgData?.images?.generated ?? 0;
+        if (!imgData?.images?.hasMore) break;
+        data.images = imgData.images;
+      }
+
       if (mode === "replace") {
         notifySaved(
-          `Zastąpiono bazę: ${data?.upserted ?? 0} przepisów w Dietcie.`,
+          `Zastąpiono bazę: ${data?.upserted ?? 0} przepisów, grafik AI: ${imagesGenerated}.`,
         );
       } else {
         notifySaved(
-          `Dodano / zaktualizowano ${data?.upserted ?? 0} przepisów (łącznie: ${data?.totalMerged ?? "—"}).`,
+          `Dodano / zaktualizowano ${data?.upserted ?? 0} przepisów (łącznie: ${data?.totalMerged ?? "—"}), grafik AI: ${imagesGenerated}.`,
         );
       }
       setJsonText("");
@@ -183,6 +227,61 @@ export function AdminCatalogClient() {
       await load();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Import nie powiódł się.";
+      setError(msg);
+      notifyError(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function generateMissingImages() {
+    setBusy(true);
+    setError(null);
+    try {
+      await ensureCsrfCookie();
+      let total = 0;
+      let rounds = 0;
+      for (;;) {
+        rounds += 1;
+        if (rounds > 40) break;
+        const res = await fetch("/api/admin/catalog/images", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...getXsrfHeaders(),
+          },
+          body: JSON.stringify({ limit: 8 }),
+        });
+        const data = (await res.json().catch(() => null)) as
+          | {
+              ok?: boolean;
+              error?: string;
+              images?: {
+                generated?: number;
+                pending?: number;
+                hasMore?: boolean;
+                failed?: number;
+              };
+            }
+          | null;
+        if (!res.ok) {
+          throw new Error(data?.error ?? "Generacja grafik nie powiodła się.");
+        }
+        total += data?.images?.generated ?? 0;
+        if (!data?.images?.hasMore) break;
+        notifySaved(
+          `Generuję grafiki AI… (zapisane w tej sesji: ${total}, pozostało: ${data.images.pending ?? "—"})`,
+        );
+      }
+      notifySaved(
+        total > 0
+          ? `Zapisano ${total} grafik AI w bazie.`
+          : "Wszystkie przepisy mają już trwałe grafiki (albo brak klucza Pollinations).",
+      );
+      await load();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Generacja grafik nie powiodła się.";
       setError(msg);
       notifyError(msg);
     } finally {
@@ -296,13 +395,24 @@ export function AdminCatalogClient() {
           >
             {t("adminCatalog.exportJson")}
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy || dbMeals.length === 0}
+            onClick={() => void generateMissingImages()}
+            className="border-[var(--gym-gold)]/35 text-[var(--gym-gold)]/90"
+          >
+            Dokończ grafiki AI
+          </Button>
         </div>
 
         <p className="text-xs text-white/45">
           Przepisy tylko z zewnętrznego JSON (prompt AI powyżej). Przy imporcie
-          grafiki są generowane przez AI (Pollinations) z pola{" "}
-          <span className="font-mono text-white/60">imagePromptEn</span> — bez
-          pakietu startowego i bez przykładowych stocków.
+          grafiki są generowane{" "}
+          <span className="text-white/70">raz</span> (Pollinations → zapis w
+          bazie) z pola{" "}
+          <span className="font-mono text-white/60">imagePromptEn</span>. W
+          Diecie serwowany jest zapisany plik — bez ponownej generacji.
         </p>
 
         <label className="block text-sm text-white/70">
