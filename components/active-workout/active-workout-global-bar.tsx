@@ -20,6 +20,7 @@ import {
   mapUnknownFetchError,
   UserMessages,
 } from "@/lib/user-facing-errors";
+import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 
 function formatDuration(totalSeconds: number) {
@@ -125,6 +126,7 @@ export function ActiveWorkoutGlobalBar() {
         throw new Error(result.message);
       }
       reset();
+      requestActiveWorkoutCloudPush(true);
       const completedSummary = {
         ...baseSummary,
         strengthDeltaPercent:
@@ -337,6 +339,7 @@ export function ActiveWorkoutGlobalBar() {
               onClick={() => {
                 setConfirmDiscardOpen(false);
                 reset();
+                requestActiveWorkoutCloudPush(true);
               }}
             >
               Odrzuć

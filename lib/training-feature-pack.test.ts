@@ -6,7 +6,10 @@ import {
   suggestWeightFromLastSet,
   mergeHintsIntoExercises,
 } from "@/lib/last-workout-hints";
-import { resolveSessionRevisionConflict } from "@/lib/active-workout-cloud";
+import {
+  decideCloudHydrateAction,
+  resolveSessionRevisionConflict,
+} from "@/lib/active-workout-cloud";
 import {
   detectSessionNewMaxes,
   detectSessionWeightRecords,
@@ -71,6 +74,54 @@ describe("sync revision", () => {
     expect(
       resolveSessionRevisionConflict({ clientRevision: 2, serverRevision: 2 }),
     ).toBe("noop");
+  });
+
+  it("nie wznawia ducha sesji na tym samym urządzeniu", () => {
+    const now = 1_700_000_000_000;
+    expect(
+      decideCloudHydrateAction({
+        localActive: false,
+        cloudActive: true,
+        cloudDeviceId: "device-a",
+        localDeviceId: "device-a",
+        localRevision: 0,
+        cloudRevision: 4,
+        cloudUpdatedAt: now - 60_000,
+        now,
+      }),
+    ).toBe("delete-cloud");
+  });
+
+  it("wznawia świeżą sesję z innego urządzenia", () => {
+    const now = 1_700_000_000_000;
+    expect(
+      decideCloudHydrateAction({
+        localActive: false,
+        cloudActive: true,
+        cloudDeviceId: "phone",
+        localDeviceId: "laptop",
+        localRevision: 0,
+        cloudRevision: 4,
+        cloudUpdatedAt: now - 60_000,
+        now,
+      }),
+    ).toBe("apply-other-device");
+  });
+
+  it("usuwa przeterminowaną sesję w chmurze", () => {
+    const now = 1_700_000_000_000;
+    expect(
+      decideCloudHydrateAction({
+        localActive: false,
+        cloudActive: true,
+        cloudDeviceId: "phone",
+        localDeviceId: "laptop",
+        localRevision: 0,
+        cloudRevision: 4,
+        cloudUpdatedAt: now - 25 * 60 * 60 * 1000,
+        now,
+      }),
+    ).toBe("delete-cloud");
   });
 });
 

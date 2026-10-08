@@ -7,6 +7,7 @@ import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { activeWorkoutSessions } from "@/db/schema";
 import {
   hasActiveLocalSession,
+  isActiveWorkoutCloudFresh,
   isActiveWorkoutCloudPayload,
   type ActiveWorkoutCloudPayload,
 } from "@/lib/active-workout-cloud";
@@ -57,7 +58,20 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, session: null });
   }
   const payload = parsePayloadJson(row.payloadJson);
-  if (!payload || !hasActiveLocalSession(payload)) {
+  const updatedAt =
+    row.updatedAt instanceof Date
+      ? row.updatedAt.getTime()
+      : Number(row.updatedAt);
+
+  if (
+    !payload ||
+    !hasActiveLocalSession(payload) ||
+    !isActiveWorkoutCloudFresh(updatedAt)
+  ) {
+    // Duch po nieudanym DELETE / przeterminowana sesja — nie wznawiaj.
+    await db
+      .delete(activeWorkoutSessions)
+      .where(eq(activeWorkoutSessions.userId, session.user.id));
     return NextResponse.json({ ok: true, session: null });
   }
 
@@ -67,10 +81,7 @@ export async function GET(req: Request) {
       payload,
       revision: row.revision,
       deviceId: row.deviceId,
-      updatedAt:
-        row.updatedAt instanceof Date
-          ? row.updatedAt.getTime()
-          : Number(row.updatedAt),
+      updatedAt,
     },
   });
 }

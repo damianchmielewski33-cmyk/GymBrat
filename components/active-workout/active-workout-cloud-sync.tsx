@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import {
+  decideCloudHydrateAction,
   hasActiveLocalSession,
   type ActiveWorkoutCloudPayload,
   type ActiveWorkoutCloudRecord,
@@ -22,18 +23,31 @@ const REVISION_KEY = "gymbrat:activeSessionRevision";
 const PUSH_DEBOUNCE_MS = 700;
 const PUSH_INTERVAL_MS = 8_000;
 
+/** Stabilny ID w pamięci, gdy localStorage jest niedostępny (nie regeneruj co wywołanie). */
+let memoryDeviceId: string | null = null;
+
 function getOrCreateDeviceId(): string {
+  if (memoryDeviceId && memoryDeviceId.length >= 8) return memoryDeviceId;
   try {
     const existing = localStorage.getItem(DEVICE_KEY);
-    if (existing && existing.length >= 8) return existing;
+    if (existing && existing.length >= 8) {
+      memoryDeviceId = existing;
+      return existing;
+    }
     const id =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     localStorage.setItem(DEVICE_KEY, id);
+    memoryDeviceId = id;
     return id;
   } catch {
-    return `dev-${Date.now()}`;
+    const id =
+      memoryDeviceId && memoryDeviceId.length >= 8
+        ? memoryDeviceId
+        : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    memoryDeviceId = id;
+    return id;
   }
 }
 
@@ -124,19 +138,21 @@ async function putCloud(
   return { ok: true, revision: json.revision };
 }
 
-async function deleteCloud(): Promise<void> {
+async function deleteCloud(): Promise<boolean> {
   await ensureCsrfCookie();
-  await fetch("/api/active-workout-session", {
+  const res = await fetch("/api/active-workout-session", {
     method: "DELETE",
     credentials: "include",
     headers: { ...getXsrfHeaders() },
   });
+  if (!res.ok) return false;
   writeRevision(0);
+  return true;
 }
 
 /**
  * Synchronizuje lokalny zustand z chmurą:
- * - na starcie: pull nowszej sesji z innego urządzenia
+ * - na starcie: pull nowszej sesji z innego urządzenia (bez wskrzeszania duchów)
  * - po każdej zmianie (debounce) + co ~8 s + pagehide/visibility: push
  * - kolejka: gdy push trwa, kolejna zmiana nie ginie
  * - po resecie (pusta sesja): DELETE
@@ -170,21 +186,34 @@ export function ActiveWorkoutCloudSync() {
         }
         if (cancelled) return;
 
+        const localDeviceId = deviceIdRef.current || getOrCreateDeviceId();
+        deviceIdRef.current = localDeviceId;
+
         const local = snapshotActiveWorkoutPayload();
         const cloud = await fetchCloud();
         if (cancelled) return;
 
-        if (cloud && hasActiveLocalSession(cloud.payload)) {
-          const localRev = readRevision();
-          const cloudNewer = cloud.revision > localRev;
-          const localEmpty = !hasActiveLocalSession(local);
-          if (localEmpty || cloudNewer) {
-            applyCloudPayload(cloud.payload);
-            writeRevision(cloud.revision);
-            if (cloud.deviceId !== deviceIdRef.current) {
-              setBanner(t("session.cloudResumed"));
-              window.setTimeout(() => setBanner(null), 4500);
-            }
+        const action = decideCloudHydrateAction({
+          localActive: hasActiveLocalSession(local),
+          cloudActive: Boolean(cloud && hasActiveLocalSession(cloud.payload)),
+          cloudDeviceId: cloud?.deviceId ?? "",
+          localDeviceId,
+          localRevision: readRevision(),
+          cloudRevision: cloud?.revision ?? 0,
+          cloudUpdatedAt: cloud?.updatedAt ?? 0,
+        });
+
+        if (action === "delete-cloud") {
+          await deleteCloud();
+        } else if (
+          (action === "apply" || action === "apply-other-device") &&
+          cloud
+        ) {
+          applyCloudPayload(cloud.payload);
+          writeRevision(cloud.revision);
+          if (action === "apply-other-device") {
+            setBanner(t("session.cloudResumed"));
+            window.setTimeout(() => setBanner(null), 4500);
           }
         }
       } finally {
@@ -218,7 +247,8 @@ export function ActiveWorkoutCloudSync() {
         if (readRevision() > 0) {
           pushingRef.current = true;
           try {
-            await deleteCloud();
+            const ok = await deleteCloud();
+            if (!ok) pendingPushRef.current = true;
           } finally {
             pushingRef.current = false;
             if (pendingPushRef.current) {

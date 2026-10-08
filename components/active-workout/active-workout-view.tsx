@@ -362,6 +362,7 @@ export function ActiveWorkoutView({
     setAllSetsDoneOpen(false);
     setFinishOpen(false);
     setDiscardConfirmOpen(false);
+    requestActiveWorkoutCloudPush(true);
     router.push("/workout-plan");
   }
 
@@ -638,6 +639,7 @@ export function ActiveWorkoutView({
       setSelectedExerciseId(null);
       stopRest();
       setFinishOpen(false);
+      requestActiveWorkoutCloudPush(true);
       const completedSummary = {
         ...baseSummary,
         strengthDeltaPercent:
@@ -913,6 +915,7 @@ export function ActiveWorkoutView({
                   setSelectedExerciseId(null);
                   setRestRemaining(null);
                   setResumePromptOpen(false);
+                  requestActiveWorkoutCloudPush(true);
                 }}
               >
                 Odrzuć

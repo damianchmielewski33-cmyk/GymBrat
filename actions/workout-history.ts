@@ -211,3 +211,59 @@ export async function updateCompletedWorkout(input: {
 
   return { ok: true as const };
 }
+
+const deleteSchema = z.object({
+  workoutId: z.string().min(1).max(128),
+});
+
+/** Usuwa zakończony trening z historii (właściciel konta). */
+export async function deleteCompletedWorkout(input: { workoutId: string }) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) {
+    return { ok: false as const, error: UserMessages.sessionExpired };
+  }
+
+  const parsed = deleteSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: "Niepoprawne dane treningu." };
+  }
+
+  const db = getDb();
+  const [row] = await db
+    .select({
+      id: workouts.id,
+      exercisesJson: workouts.exercises,
+    })
+    .from(workouts)
+    .where(and(eq(workouts.userId, userId), eq(workouts.id, parsed.data.workoutId)))
+    .limit(1);
+
+  if (!row) {
+    return { ok: false as const, error: "Nie znaleziono treningu." };
+  }
+
+  const existing = safeParseCompletedSession(row.exercisesJson);
+  if (!existing) {
+    return {
+      ok: false as const,
+      error: "Ten wpis nie jest zakończonym treningiem siłowym.",
+    };
+  }
+
+  await db
+    .delete(workouts)
+    .where(and(eq(workouts.userId, userId), eq(workouts.id, row.id)));
+
+  revalidatePath("/workout-history");
+  revalidatePath(`/workout-history/${row.id}`);
+  revalidatePath(`/workout-history/${row.id}/edit`);
+  revalidatePath("/");
+  revalidatePath("/workout-plan");
+  revalidatePath("/progress");
+  revalidatePath("/progress", "layout");
+  revalidatePath("/progress-analysis");
+  revalidatePath("/cardio");
+
+  return { ok: true as const };
+}

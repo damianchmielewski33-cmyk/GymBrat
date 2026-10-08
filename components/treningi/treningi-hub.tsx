@@ -24,6 +24,7 @@ import {
 } from "@/lib/workout-plan-queue";
 import { printWorkoutPlans } from "@/lib/pdf/workout-plan-export";
 import { calendarDateKey } from "@/lib/local-date";
+import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { cn } from "@/lib/utils";
 
@@ -158,7 +159,10 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
               </Link>
               <button
                 type="button"
-                onClick={() => reset()}
+                onClick={() => {
+                  reset();
+                  requestActiveWorkoutCloudPush(true);
+                }}
                 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]/80"
               >
                 Porzuć

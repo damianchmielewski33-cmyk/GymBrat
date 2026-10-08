@@ -1,8 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, ArrowLeft, ChevronDown, Pencil } from "lucide-react";
+import { deleteCompletedWorkout } from "@/actions/workout-history";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import type {
   WorkoutHistoryCard,
   WorkoutHistoryOverview,
@@ -20,6 +30,8 @@ import {
 import { addCalendarDays, calendarWeekdaySun0 } from "@/lib/local-date";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { cn } from "@/lib/utils";
+
+const LONG_PRESS_MS = 520;
 
 function mondayOfWeek(dateKey: string): string {
   const dow = calendarWeekdaySun0(dateKey);
@@ -85,8 +97,22 @@ function SetPill({
   );
 }
 
-function SessionRow({ card }: { card: WorkoutHistoryCard }) {
+function SessionRow({
+  card,
+  onDeleted,
+}: {
+  card: WorkoutHistoryCard;
+  onDeleted: (id: string) => void;
+}) {
+  const router = useRouter();
+  const { notifySaved, notifyError } = useSaveFeedback();
   const [open, setOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [pressing, setPressing] = useState(false);
+  const timerRef = useRef<number | null>(null);
+  const longPressFiredRef = useRef(false);
+
   const editable = canEditWorkout(card.endedAt, card.date);
   const deadlineLabel = formatEditDeadline(
     workoutEditDeadlineMs(card.endedAt, card.date),
@@ -99,12 +125,80 @@ function SessionRow({ card }: { card: WorkoutHistoryCard }) {
     .filter(Boolean)
     .join(" · ");
 
+  const label = card.planLabel || card.title;
+
+  function clearLongPressTimer() {
+    if (timerRef.current != null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setPressing(false);
+  }
+
+  function startLongPress() {
+    longPressFiredRef.current = false;
+    clearLongPressTimer();
+    setPressing(true);
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null;
+      longPressFiredRef.current = true;
+      setPressing(false);
+      setDeleteOpen(true);
+      try {
+        navigator.vibrate?.(12);
+      } catch {
+        /* ignore */
+      }
+    }, LONG_PRESS_MS);
+  }
+
+  function confirmDelete() {
+    startTransition(async () => {
+      const res = await deleteCompletedWorkout({ workoutId: card.id });
+      if (!res.ok) {
+        notifyError(res.error);
+        return;
+      }
+      setDeleteOpen(false);
+      onDeleted(card.id);
+      notifySaved("Usunięto trening z historii.");
+      router.refresh();
+    });
+  }
+
   return (
     <div>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-start gap-3 px-3.5 py-3.5 text-left"
+        onClick={() => {
+          if (longPressFiredRef.current) {
+            longPressFiredRef.current = false;
+            return;
+          }
+          setOpen((v) => !v);
+        }}
+        onPointerDown={(e) => {
+          if (e.button !== 0) return;
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          } catch {
+            /* ignore */
+          }
+          startLongPress();
+        }}
+        onPointerUp={clearLongPressTimer}
+        onPointerCancel={clearLongPressTimer}
+        onLostPointerCapture={clearLongPressTimer}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          clearLongPressTimer();
+          longPressFiredRef.current = true;
+          setDeleteOpen(true);
+        }}
+        className={cn(
+          "flex w-full items-start gap-3 px-3.5 py-3.5 text-left select-none transition",
+          pressing && "bg-white/[0.04]",
+        )}
       >
         <div className="w-[52px] shrink-0 pt-0.5">
           <p className="text-[11px] leading-tight text-white/40">
@@ -113,7 +207,7 @@ function SessionRow({ card }: { card: WorkoutHistoryCard }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-semibold text-white">
-            {card.planLabel || card.title}
+            {label}
           </p>
           <p className="mt-0.5 text-[11px] text-white/40">{meta}</p>
         </div>
@@ -178,6 +272,58 @@ function SessionRow({ card }: { card: WorkoutHistoryCard }) {
           ) : null}
         </div>
       ) : null}
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent className="app-dialog w-[min(92vw,400px)] border-white/10 p-0 text-white">
+          <div className="relative overflow-hidden rounded-[22px] px-5 pb-5 pt-6 sm:px-6 sm:pb-6 sm:pt-7">
+            <div
+              className="pointer-events-none absolute inset-0 opacity-90 [background:radial-gradient(520px_220px_at_50%_-20%,rgba(244,63,94,0.18),transparent_62%)]"
+              aria-hidden
+            />
+
+            <div className="relative flex flex-col items-center text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-rose-400/40 bg-rose-500/12 text-rose-300">
+                <AlertTriangle
+                  className="h-7 w-7"
+                  strokeWidth={1.75}
+                  aria-hidden
+                />
+              </div>
+
+              <AlertDialogTitle className="mt-4 text-lg font-semibold leading-snug tracking-tight text-white">
+                Usunąć cały trening?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="mt-2 max-w-[18rem] text-[15px] leading-relaxed text-white/65">
+                „{label}” zniknie z historii wraz z seriami i tonnażem. Tej
+                operacji nie można cofnąć.
+              </AlertDialogDescription>
+
+              <div className="mt-6 w-full space-y-2.5">
+                <Button
+                  type="button"
+                  className="gym-btn-primary h-12 w-full rounded-2xl text-base font-semibold"
+                  disabled={pending}
+                  onClick={() => setDeleteOpen(false)}
+                >
+                  Anuluj
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={pending}
+                  className={cn(
+                    "h-12 w-full rounded-2xl border border-rose-500/35 bg-rose-950/35 text-[15px] font-semibold text-rose-200",
+                    "hover:border-rose-400/45 hover:bg-rose-950/55 hover:text-rose-100",
+                  )}
+                  onClick={confirmDelete}
+                >
+                  {pending ? "Usuwam…" : "Usuń trening"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -189,16 +335,23 @@ type Props = {
 export function WorkoutHistoryView({ overview }: Props) {
   const { kpis, cards, planFilters } = overview;
   const [filterPlanKey, setFilterPlanKey] = useState<string | "all">("all");
+  const [removedIds, setRemovedIds] = useState<Set<string>>(() => new Set());
+
+  const visibleCards = useMemo(
+    () => cards.filter((c) => !removedIds.has(c.id)),
+    [cards, removedIds],
+  );
 
   const filtered = useMemo(() => {
-    if (filterPlanKey === "all") return cards;
-    return cards.filter((c) => c.planCompareKey === filterPlanKey);
-  }, [cards, filterPlanKey]);
+    if (filterPlanKey === "all") return visibleCards;
+    return visibleCards.filter((c) => c.planCompareKey === filterPlanKey);
+  }, [visibleCards, filterPlanKey]);
 
   const weekGroups = useMemo(() => groupByWeek(filtered), [filtered]);
+  const workoutsShown = Math.max(0, kpis.workoutsTotal - removedIds.size);
   const tonnageTonnes = Math.max(0, kpis.tonnageTotalKg) / 1000;
   const countLabel = (() => {
-    const n = kpis.workoutsTotal;
+    const n = workoutsShown;
     if (n === 1) return "1 TRENING";
     if (n >= 2 && n <= 4) return `${n} TRENINGI`;
     return `${n} TRENINGÓW`;
@@ -313,7 +466,17 @@ export function WorkoutHistoryView({ overview }: Props) {
               <div className="h-px bg-white/[0.08]" />
               <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
                 {week.cards.map((card) => (
-                  <SessionRow key={card.id} card={card} />
+                  <SessionRow
+                    key={card.id}
+                    card={card}
+                    onDeleted={(id) =>
+                      setRemovedIds((prev) => {
+                        const next = new Set(prev);
+                        next.add(id);
+                        return next;
+                      })
+                    }
+                  />
                 ))}
               </div>
             </div>
