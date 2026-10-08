@@ -35,10 +35,18 @@ export function HomeCardioProgressStrip({
       ? extraCardio.extraMinutes
       : 0;
 
-  const totalUnits = Math.max(weeklyGoal + extraMinutes, 1);
-  const goldPct = Math.min(100, (mins / totalUnits) * 100);
+  // Skala = cel tygodnia + dodatkowe minuty (nadwyżka makro).
+  // Nie ucinamy złotego do 100% kosztem niebieskiego — oba segmenty muszą być widoczne.
+  const totalUnits = Math.max(weeklyGoal + extraMinutes, mins, 1);
+  const goldPct = Math.min(100, (Math.min(mins, weeklyGoal) / totalUnits) * 100);
+  const overGoalPct =
+    mins > weeklyGoal
+      ? Math.min(100 - goldPct, ((mins - weeklyGoal) / totalUnits) * 100)
+      : 0;
   const bluePct =
-    extraMinutes > 0 ? Math.min(100 - goldPct, (extraMinutes / totalUnits) * 100) : 0;
+    extraMinutes > 0
+      ? Math.min(100 - goldPct - overGoalPct, (extraMinutes / totalUnits) * 100)
+      : 0;
 
   return (
     <div
@@ -94,9 +102,18 @@ export function HomeCardioProgressStrip({
                 animate={{ width: `${goldPct}%` }}
                 transition={{ duration: 0.75, ease: "easeOut" }}
               />
+              {overGoalPct > 0 ? (
+                <motion.div
+                  className="h-full bg-gradient-to-r from-[var(--gym-gold)]/70 to-[var(--gym-gold-bright)]/80"
+                  title="Cardio powyżej celu tygodnia"
+                  initial={false}
+                  animate={{ width: `${overGoalPct}%` }}
+                  transition={{ duration: 0.75, ease: "easeOut", delay: 0.03 }}
+                />
+              ) : null}
               {bluePct > 0 ? (
                 <motion.div
-                  className="ml-auto h-full rounded-r-full bg-gradient-to-r from-sky-500/90 to-sky-300"
+                  className="h-full rounded-r-full bg-gradient-to-r from-sky-500/90 to-sky-300"
                   title="Dodatkowe cardio przy nadwyżce makro"
                   initial={false}
                   animate={{ width: `${bluePct}%` }}

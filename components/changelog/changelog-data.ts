@@ -59,6 +59,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Zmiana nazwy ćwiczenia w planie (np. po imporcie z PDF/Excela) nie czyści już progresu i nie wrzuca historii do „Inne” — zapis planu przepisuje nazwę w historii treningów.",
       "Ekran przerwy ma zegar z płynnie odliczającym złotym kołem (presety i +30 s resetują / wydłużają cykl animacji).",
       "Przy przekroczeniu białka, tłuszczu lub węgli Pulpit pokazuje na pasku cardio niebieski segment z dodatkowymi minutami (algorytm liczy nadwyżkę kcal, dni do końca tygodnia, szansę wyrównania dietą oraz tempo/spalanie z Twojego cardio) oraz zamknięty tooltip z wyjaśnieniem.",
+      "Makro tydzień i dodatkowe cardio liczą się od poniedziałku do dziś: cele tygodnia bez przyszłych dni, a zwykłe cardio „w celu” nie kasuje już propozycji dodatkowych minut przy widocznych przekroczeniach.",
       "Niebieski segment cardio jest dynamiczny w skali tygodnia: wczorajsza nadwyżka makro widać dziś; po odrobieniu dietą lub cardio pasek sam znika.",
       "Kafelek „Makro tydzień” na Pulpicie otwiera kalendarz ze statusem dni, słupkami porównania % celu między dniami, kartą „ten tydzień vs inne” (Δ% vs poprzedni i średnia tygodni) oraz szczegółami dnia względem średniej tygodnia.",
       "W Diecie → Dziennik przy Posiłek 1…5 wiersz B/W/T to suma wpisanych produktów, a nie cele z szablonu „ile możesz zjeść”.",

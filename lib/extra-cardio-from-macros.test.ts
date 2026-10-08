@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  cardioKcalAboveProRataGoal,
   cardioKcalInWeek,
   computeExtraCardioAdvice,
   computeOpenMacroDebt,
@@ -237,11 +238,13 @@ describe("extra-cardio-from-macros", () => {
     expect(nextMorning.show).toBe(false);
   });
 
-  it("cardio w tygodniu obniża otwarty dług", () => {
+  it("cardio w ramach pro-rata celu NIE kasuje długu makro", () => {
+    // Środa = 3/7 tygodnia → pro-rata 150 ≈ 64 min; 40 min jest „w celu”.
     const debt = computeOpenMacroDebt({
       todayKey: "2026-10-07",
       weekKeys,
       burnKcalPerMin: 8,
+      weeklyCardioGoalMinutes: 150,
       elapsedDays: [
         {
           dateKey: "2026-10-06",
@@ -254,8 +257,101 @@ describe("extra-cardio-from-macros", () => {
       ],
     });
     expect(debt.pastDebtKcal).toBe(500);
-    expect(debt.cardioOffsetKcal).toBe(300);
-    expect(debt.openDebtKcal).toBe(200);
+    expect(debt.cardioOffsetKcal).toBe(0);
+    expect(debt.openDebtKcal).toBe(500);
+  });
+
+  it("tylko cardio powyżej pro-rata obniża dług", () => {
+    const debt = computeOpenMacroDebt({
+      todayKey: "2026-10-07",
+      weekKeys,
+      burnKcalPerMin: 8,
+      weeklyCardioGoalMinutes: 150,
+      elapsedDays: [
+        {
+          dateKey: "2026-10-06",
+          day: day({ caloriesConsumed: 2500 }),
+        },
+        { dateKey: "2026-10-07", day: day({ caloriesConsumed: 0 }) },
+      ],
+      recentCardio: [
+        // 100 min; pro-rata ~64 → excess ~36 → ~36% z 800 kcal
+        { minutes: 100, calories: 800, paceMinPerKm: 8, dateKey: "2026-10-07" },
+      ],
+    });
+    expect(debt.pastDebtKcal).toBe(500);
+    const { offsetKcal, proRataGoalMinutes } = cardioKcalAboveProRataGoal({
+      samples: [
+        { minutes: 100, calories: 800, paceMinPerKm: 8, dateKey: "2026-10-07" },
+      ],
+      weekKeys,
+      todayKey: "2026-10-07",
+      weeklyCardioGoalMinutes: 150,
+      burnKcalPerMin: 8,
+    });
+    expect(proRataGoalMinutes).toBe(Math.round((150 * 3) / 7));
+    expect(debt.cardioOffsetKcal).toBe(offsetKcal);
+    expect(debt.openDebtKcal).toBe(Math.max(0, 500 - offsetKcal));
+  });
+
+  it("przy przekroczeniach pn→dziś proponuje dodatkowe cardio (mimo cardio w celu)", () => {
+    const advice = computeExtraCardioAdvice({
+      todayKey: "2026-10-08",
+      weekKeys,
+      weeklyCardioGoalMinutes: 150,
+      today: day({
+        caloriesConsumed: 2300,
+        proteinConsumed: 180,
+        carbsConsumed: 220,
+        fatConsumed: 70,
+      }),
+      elapsedDays: [
+        {
+          dateKey: "2026-10-05",
+          day: day({
+            caloriesConsumed: 2300,
+            proteinConsumed: 170,
+            carbsConsumed: 220,
+            fatConsumed: 70,
+          }),
+        },
+        {
+          dateKey: "2026-10-06",
+          day: day({
+            caloriesConsumed: 2400,
+            proteinConsumed: 160,
+            carbsConsumed: 230,
+            fatConsumed: 65,
+          }),
+        },
+        {
+          dateKey: "2026-10-07",
+          day: day({
+            caloriesConsumed: 2200,
+            proteinConsumed: 155,
+            carbsConsumed: 210,
+            fatConsumed: 62,
+          }),
+        },
+        {
+          dateKey: "2026-10-08",
+          day: day({
+            caloriesConsumed: 2300,
+            proteinConsumed: 180,
+            carbsConsumed: 220,
+            fatConsumed: 70,
+          }),
+        },
+      ],
+      weightKg: 80,
+      recentCardio: [
+        { minutes: 40, calories: 320, paceMinPerKm: 7.5, dateKey: "2026-10-06" },
+        { minutes: 30, calories: 240, paceMinPerKm: 7.5, dateKey: "2026-10-07" },
+      ],
+    });
+    expect(advice.show).toBe(true);
+    expect(advice.extraMinutes).toBeGreaterThanOrEqual(5);
+    expect(advice.exceededMacros.length).toBeGreaterThan(0);
   });
 
   it("cardio bez kcal liczy offset z minut × spalanie", () => {

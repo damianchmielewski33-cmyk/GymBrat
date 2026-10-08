@@ -70,7 +70,7 @@ export type HomeStartTodayMacros = {
   fatRemaining: number | null;
 };
 
-/** Sumaryczne B/W/T w bieżącym tygodniu (pon–niedz.) vs suma celów dziennych. */
+/** Sumaryczne B/W/T w bieżącym tygodniu (pon→dziś) vs suma celów tych dni. */
 export type HomeStartWeekMacros = HomeStartTodayMacros;
 
 export type HomeStartDashboard = {
@@ -499,6 +499,7 @@ async function getMacroSeriesAndToday(
   const caloriesGoal =
     todayGoals != null ? Math.round(todayGoals.caloriesGoal) : null;
 
+  // Makro tydzień = pon→dziś (nie pełne pn–nd z przyszłymi celami).
   let weekProtein = 0;
   let weekCarbs = 0;
   let weekFat = 0;
@@ -509,6 +510,7 @@ async function getMacroSeriesAndToday(
   let weekCaloriesGoal = 0;
   let weekGoalDays = 0;
   for (const date of weekKeys) {
+    if (date > todayKey) break;
     const agg = aggregates[date];
     weekProtein += agg?.protein ?? 0;
     weekCarbs += agg?.carbs ?? 0;
@@ -1003,6 +1005,7 @@ export async function getHomeStartDashboard(
     weekKeys,
     weightKg: currentWeightKg,
     recentCardio: recentCardioSamples,
+    weeklyCardioGoalMinutes: cardioRolling.weeklyGoal,
   });
 
   return {
