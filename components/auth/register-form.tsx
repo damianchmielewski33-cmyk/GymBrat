@@ -17,6 +17,10 @@ import {
   isTrainerFlowEnabled,
   roleFromSearchParam,
 } from "@/lib/auth-role";
+import {
+  AuthProviderDivider,
+  GoogleSignInButton,
+} from "@/components/auth/google-sign-in-button";
 import { RoleAuthCards } from "@/components/auth/role-auth-cards";
 import {
   activityLevels,
@@ -33,7 +37,11 @@ const activityCopy: Record<
   high: { label: "Wysoka", hint: "Codziennie lub intensywnie" },
 };
 
-export function RegisterForm() {
+export function RegisterForm({
+  googleEnabled = false,
+}: {
+  googleEnabled?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const trainerEnabled = isTrainerFlowEnabled();
@@ -178,6 +186,16 @@ export function RegisterForm() {
             trainerLocked={!trainerEnabled}
             heading="Tworzysz konto jako"
           />
+
+          {googleEnabled ? (
+            <div className="space-y-4">
+              <GoogleSignInButton
+                callbackUrl="/"
+                label="Załóż konto z Google"
+              />
+              <AuthProviderDivider label="lub e-mailem" />
+            </div>
+          ) : null}
 
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
             {rootError ? (

@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export const appSettings = sqliteTable("app_settings", {
   id: text("id").primaryKey(),
@@ -45,6 +52,34 @@ export const users = sqliteTable("users", {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+/**
+ * Powiązania OAuth (Google itd.) z kontem `users`.
+ * Logowanie hasłem nadal używa `users.password_hash`; konta Google mają losowy hash.
+ */
+export const oauthAccounts = sqliteTable(
+  "oauth_accounts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    providerAccountId: text("provider_account_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("oauth_accounts_provider_account").on(
+      t.provider,
+      t.providerAccountId,
+    ),
+    index("oauth_accounts_user").on(t.userId),
+  ],
+);
 
 /**
  * Jednorazowe kody weryfikacyjne wysyłane e-mailem (rejestracja / reset hasła w przyszłości).
@@ -299,6 +334,14 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   bodyReports: many(bodyReports),
   mealLogs: many(mealLogs),
   dailyCheckins: many(dailyCheckins),
+  oauthAccounts: many(oauthAccounts),
+}));
+
+export const oauthAccountsRelations = relations(oauthAccounts, ({ one }) => ({
+  user: one(users, {
+    fields: [oauthAccounts.userId],
+    references: [users.id],
+  }),
 }));
 
 export const mealLogsRelations = relations(mealLogs, ({ one }) => ({

@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
+import {
+  AuthProviderDivider,
+  GoogleSignInButton,
+} from "@/components/auth/google-sign-in-button";
 import { RoleAuthCards } from "@/components/auth/role-auth-cards";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import {
@@ -19,15 +23,30 @@ import {
 /** @deprecated użyj AppRole z @/lib/auth-role */
 export type LoginRole = AppRole;
 
-export function LoginForm() {
+function oauthErrorMessage(code: string | null): string | null {
+  if (!code) return null;
+  if (code === "OAuthAccountNotLinked") {
+    return "Ten e-mail jest już powiązany z innym sposobem logowania. Zaloguj się hasłem albo użyj tego samego Google.";
+  }
+  if (code === "AccessDenied" || code === "OAuthCallback" || code === "OAuthSignin") {
+    return "Logowanie Google zostało anulowane lub nie powiodło się. Spróbuj ponownie.";
+  }
+  if (code === "Configuration") {
+    return "Logowanie Google nie jest jeszcze skonfigurowane na serwerze.";
+  }
+  return "Nie udało się zalogować przez Google. Spróbuj ponownie.";
+}
+
+export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") ?? "/";
   const registered = params.get("registered");
+  const oauthError = oauthErrorMessage(params.get("error"));
   const trainerEnabled = isTrainerFlowEnabled();
   const roleFromUrl = roleFromSearchParam(params.get("role"));
   const role: AppRole = trainerEnabled ? roleFromUrl : "zawodnik";
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(oauthError);
   const [pending, start] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -105,6 +124,13 @@ export function LoginForm() {
         trainerLocked={!trainerEnabled}
         heading="Logujesz się jako"
       />
+
+      {googleEnabled ? (
+        <div className="space-y-4">
+          <GoogleSignInButton callbackUrl={callbackUrl} />
+          <AuthProviderDivider />
+        </div>
+      ) : null}
 
       {hasBanner ? (
         <div className="space-y-2">

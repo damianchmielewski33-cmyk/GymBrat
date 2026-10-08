@@ -1,5 +1,6 @@
 import { RegisterForm } from "@/components/auth/register-form";
 import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
+import { isGoogleAuthConfigured } from "@/lib/google-auth";
 import { Suspense } from "react";
 
 export default function RegisterPage() {
@@ -10,7 +11,7 @@ export default function RegisterPage() {
         support="Załóż profil zawodnika i prowadź treningi w czarno-złotym rytmie siłowni."
       />
       <Suspense fallback={<div className="text-center text-sm text-white/50">Ładowanie…</div>}>
-        <RegisterForm />
+        <RegisterForm googleEnabled={isGoogleAuthConfigured()} />
       </Suspense>
     </div>
   );

@@ -139,17 +139,19 @@ public/                      Static assets (manifest, icons, PWA output)
 
 ### Authentication flow
 
-GymBrat uses **NextAuth v5 (beta)** with a **Credentials provider** and **JWT sessions**.
+GymBrat uses **NextAuth v5 (beta)** with **Credentials**, optional **Google OAuth**, and **JWT sessions**.
 
 - **Login**
-  - UI submits credentials → `signIn("credentials", { redirect: false })` (see `actions/backend.ts`)
+  - UI submits credentials → `signIn("credentials", { redirect: false })`
   - Provider validates email/password against `users` in SQLite/libSQL (see `auth.ts`)
   - Password verification uses `bcryptjs` (`users.passwordHash`)
+  - Google: `signIn("google")` when `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` are set; creates or links a `users` row and stores the link in `oauth_accounts`
 
 - **Registration**
   - `registerUser()` (see `actions/auth.ts`) validates input (Zod) and stores:
     - user row in `users`
     - default settings row in `user_settings` (weekly cardio goal default: 150 min)
+  - Or „Załóż konto z Google” on `/register` (same OAuth flow as login)
 
 - **Route protection**
   - `proxy.ts` (Next.js „proxy”, dawniej `middleware`) blokuje trasy spoza listy publicznej, dopóki nie ma ważnego tokenu.
@@ -222,6 +224,7 @@ Bez ręcznego Promote produkcja nie przełącza domeny na nowy build (gdy auto-a
   - `TURSO_AUTH_TOKEN`
   - `AUTH_SECRET`
   - `NEXTAUTH_URL` (set to your production URL)
+  - `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` (optional — Google login/register)
   - Email verification (registration code) — **Nodemailer + SMTP** (e.g. Gmail / Outlook):
     - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`
     - `EMAIL_FROM` (optional; defaults to `SMTP_USER`)

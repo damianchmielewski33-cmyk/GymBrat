@@ -101,6 +101,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Wpisany ciężar i powtórzenia zapisują się od razu; Wstecz oraz skoki między seriami/ćwiczeniami nie czyszczą wcześniej wpisanych wartości. Seria bez ciężaru nie świeci na zielono — zaliczenie wymaga danych, pominięcie jest pomarańczowe.",
       "Aktywny trening zapisuje się na bieżąco (telefon + chmura), nie dopiero przy zakończeniu sesji.",
       "Komunikat „sesja z innego urządzenia” nie pojawia się już po starcie strony, gdy trening dawno zakończony — duchy w chmurze są czyszczone, a usunięcie sesji po zapisie/odrzuceniu idzie od razu.",
+      "Na logowaniu i rejestracji jest „Kontynuuj / Załóż konto z Google” (gdy ustawisz AUTH_GOOGLE_ID i AUTH_GOOGLE_SECRET) — tworzy konto zawodnika albo łączy istniejące e-mail.",
       "W panelu admina (Branding) wgrywasz logo i ikony web/PWA/Android/iOS bez edycji kodu — web i logo w aplikacji od razu; ikona Android na launcherze przy pushu na master (APK buduje się w Actions równolegle ze stroną).",
       "Przyciski w wizardzie raportu i na ekranie przerwy mają jednolity złoty styl CTA; podczas treningu ciężar i serie są edytowalne.",
       "Po imporcie planu z PDF/Word/Excel można edytować ćwiczenia, a w planie ustawisz RIR, tempo, notatki i superserie.",

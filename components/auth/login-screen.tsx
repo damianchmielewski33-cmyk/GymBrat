@@ -3,7 +3,11 @@ import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
 import { LoginForm } from "@/components/auth/login-form";
 
 /** Ekran logowania — ten sam na /login i na / bez sesji. */
-export function LoginScreen() {
+export function LoginScreen({
+  googleEnabled = false,
+}: {
+  googleEnabled?: boolean;
+}) {
   return (
     <div>
       <AuthHeroBrand
@@ -22,7 +26,7 @@ export function LoginScreen() {
         />
         <div className="relative">
           <Suspense fallback={<div className="text-sm text-white/50">Ładowanie…</div>}>
-            <LoginForm />
+            <LoginForm googleEnabled={googleEnabled} />
           </Suspense>
         </div>
       </div>

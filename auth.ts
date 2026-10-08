@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
@@ -9,6 +10,10 @@ import {
   normalizeAdminEmail,
   parseAdminEmails,
 } from "@/lib/admin-config";
+import {
+  isGoogleAuthConfigured,
+  resolveGoogleSignInUser,
+} from "@/lib/google-auth";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -35,7 +40,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .from(users)
           .where(eq(users.email, email.toLowerCase()))
           .limit(1);
-        if (!user) return null;
+        if (!user?.passwordHash) return null;
 
         const { compare } = await import("bcryptjs");
         const valid = await compare(password, user.passwordHash);
@@ -73,10 +78,63 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       },
     }),
+    ...(isGoogleAuthConfigured()
+      ? [
+          Google({
+            // To samo e-mail co konto hasłowe → jedno konto GymBrat.
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
+      : []),
   ],
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30 },
+  pages: {
+    signIn: "/login",
+    error: "/login",
+  },
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ account, profile }) {
+      if (account?.provider !== "google") return true;
+      const email =
+        typeof profile?.email === "string" ? profile.email.trim() : "";
+      if (!email) return false;
+      // Google czasem nie potwierdza e-maila — nie wpuszczamy bez weryfikacji.
+      if (profile && "email_verified" in profile && profile.email_verified === false) {
+        return false;
+      }
+      return true;
+    },
+    async jwt({ token, user, account, profile }) {
+      if (account?.provider === "google") {
+        const email =
+          (typeof profile?.email === "string" && profile.email) ||
+          (typeof user?.email === "string" && user.email) ||
+          "";
+        const providerAccountId =
+          typeof account.providerAccountId === "string"
+            ? account.providerAccountId
+            : "";
+        const name =
+          (typeof profile?.name === "string" && profile.name) ||
+          (typeof user?.name === "string" && user.name) ||
+          null;
+
+        const resolved = await resolveGoogleSignInUser({
+          email,
+          name,
+          providerAccountId,
+        });
+        if (!resolved) {
+          throw new Error("Nie udało się utworzyć lub połączyć konta Google.");
+        }
+        token.id = resolved.id;
+        token.sub = resolved.id;
+        token.email = resolved.email;
+        token.role = resolved.role;
+        if (resolved.name) token.name = resolved.name;
+        return token;
+      }
+
       const uid =
         typeof user?.id === "string"
           ? user.id
@@ -169,13 +227,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   events: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       try {
-        const id = user?.id;
-        if (!id || typeof id !== "string") return;
         const db = getDb();
+        let userId: string | null =
+          typeof user?.id === "string" ? user.id : null;
+
+        // Po Google JWT ma już nasze id, ale event dostaje profil OAuth — szukaj po e-mailu.
+        if (account?.provider === "google" && typeof user?.email === "string") {
+          const [row] = await db
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.email, user.email.toLowerCase()))
+            .limit(1);
+          userId = row?.id ?? null;
+        }
+
+        if (!userId) return;
         await db.insert(siteActivityLog).values({
-          userId: id,
+          userId,
           action: "Logowanie",
           deploymentEnv: getAnalyticsDeployment(),
         });

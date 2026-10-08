@@ -72,6 +72,23 @@ CREATE TABLE IF NOT EXISTS "meal_logs" (
   );
 
   await client.execute(`
+CREATE TABLE IF NOT EXISTS "oauth_accounts" (
+  "id" text PRIMARY KEY NOT NULL,
+  "user_id" text NOT NULL,
+  "provider" text NOT NULL,
+  "provider_account_id" text NOT NULL,
+  "created_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await db.$client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "oauth_accounts_provider_account" ON "oauth_accounts" ("provider","provider_account_id")`,
+  );
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "oauth_accounts_user" ON "oauth_accounts" ("user_id")`,
+  );
+
+  await client.execute(`
 CREATE TABLE IF NOT EXISTS "email_verification_codes" (
   "id" text PRIMARY KEY NOT NULL,
   "email" text NOT NULL,
