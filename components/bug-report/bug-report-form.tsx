@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
@@ -27,6 +27,9 @@ const PRIORITY_RING: Record<BugPriority, string> = {
 
 export function BugReportForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromAdmin = searchParams.get("from") === "admin";
+  const backHref = fromAdmin ? "/admin/bugs" : "/";
   const { notifySaved, notifyError } = useSaveFeedback();
   const [description, setDescription] = useState("");
   const [expectedBehavior, setExpectedBehavior] = useState("");
@@ -75,7 +78,7 @@ export function BugReportForm() {
         return;
       }
       notifySaved("Zgłoszenie wysłane. Dziękujemy!");
-      router.push("/");
+      router.push(fromAdmin ? "/admin/bugs" : "/");
       router.refresh();
     } catch {
       notifyError("Nie udało się wysłać zgłoszenia.");
@@ -88,14 +91,14 @@ export function BugReportForm() {
     <div className="space-y-5 pb-8">
       <div className="space-y-3">
         <Link
-          href="/"
+          href={backHref}
           className="inline-flex items-center gap-1.5 px-0.5 text-sm text-white/60 transition-colors hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" />
-          Wróć
+          {fromAdmin ? "Wróć do panelu" : "Wróć"}
         </Link>
         <AppPageHeader
-          kicker="Testy"
+          kicker={fromAdmin ? "Admin" : "Testy"}
           title="Zgłoś błąd"
           description="Opisz problem tak, żeby dało się go odtworzyć i naprawić."
         />

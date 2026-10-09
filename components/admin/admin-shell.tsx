@@ -61,6 +61,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          <Link href="/bug-report?from=admin">
+            <span
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                pathname.startsWith("/bug-report")
+                  ? "bg-[var(--neon)]/20 text-white ring-1 ring-[var(--neon)]/40"
+                  : "text-white/65 hover:bg-white/[0.06] hover:text-white",
+              )}
+            >
+              <Bug className="h-4 w-4" />
+              Zgłoś błąd
+            </span>
+          </Link>
           <Button
             type="button"
             variant="secondary"

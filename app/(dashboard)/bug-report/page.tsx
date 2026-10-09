@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { BugReportForm } from "@/components/bug-report/bug-report-form";
@@ -10,7 +11,9 @@ export default async function BugReportPage() {
 
   return (
     <div className="px-1 pt-1 sm:px-0">
-      <BugReportForm />
+      <Suspense fallback={null}>
+        <BugReportForm />
+      </Suspense>
     </div>
   );
 }

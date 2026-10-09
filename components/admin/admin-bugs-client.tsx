@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import {
@@ -140,14 +141,22 @@ export function AdminBugsClient() {
 
   return (
     <div className="space-y-4">
-      <div className="app-card space-y-2 p-5 sm:p-6">
-        <h2 className="font-heading text-xl font-semibold text-white">
-          Zgłoszenia błędów
-        </h2>
-        <p className="text-sm text-white/55">
-          Lista od testerów i użytkowników. Naprawione przenoś do zakładki
-          Naprawione.
-        </p>
+      <div className="app-card flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
+        <div className="space-y-2">
+          <h2 className="font-heading text-xl font-semibold text-white">
+            Zgłoszenia błędów
+          </h2>
+          <p className="text-sm text-white/55">
+            Lista od testerów, użytkowników i administratorów. Naprawione
+            przenoś do zakładki Naprawione.
+          </p>
+        </div>
+        <Link
+          href="/bug-report?from=admin"
+          className="gym-btn-primary inline-flex h-9 shrink-0 items-center justify-center rounded-xl px-3.5 text-[0.8rem] font-semibold"
+        >
+          Zgłoś błąd
+        </Link>
       </div>
 
       <div className="flex gap-2 border-b border-white/10 pb-px">
