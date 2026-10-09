@@ -62,6 +62,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Przy przekroczeniu białka, tłuszczu lub węgli Pulpit pokazuje na pasku cardio niebieski segment z dodatkowymi minutami (algorytm liczy nadwyżkę kcal, dni do końca tygodnia, szansę wyrównania dietą oraz tempo/spalanie z Twojego cardio) oraz zamknięty tooltip z wyjaśnieniem.",
       "Makro tydzień i dodatkowe cardio liczą się od poniedziałku do dziś: cele tygodnia bez przyszłych dni, a zwykłe cardio „w celu” nie kasuje już propozycji dodatkowych minut przy widocznych przekroczeniach.",
       "Niebieski segment cardio jest dynamiczny w skali tygodnia: wczorajsza nadwyżka makro widać dziś; po odrobieniu dietą lub cardio pasek sam znika.",
+      "Dodatkowe cardio v2: effective ≤ open debt, płynny soft credit (bez skoku 55%), brak kary za samo białko przy deficycie kcal, spalanie z historii/tętna/MET, offset cardio max 80% długu oraz tooltip Open/Effective/Offset + źródło spalania.",
       "Kafelek „Makro tydzień” na Pulpicie otwiera kalendarz ze statusem dni, słupkami porównania % celu między dniami, kartą „ten tydzień vs inne” (Δ% vs poprzedni i średnia tygodni) oraz szczegółami dnia względem średniej tygodnia.",
       "W Diecie → Dziennik przy Posiłek 1…5 wiersz B/W/T to suma wpisanych produktów, a nie cele z szablonu „ile możesz zjeść”.",
       "Skaner EAN nie miga już komunikatem „Nie udało się uruchomić aparatu” przy starcie kamery — błąd widać dopiero po realnej porażce.",

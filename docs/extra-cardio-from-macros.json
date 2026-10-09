@@ -1,0 +1,110 @@
+{
+  "title": "GymBrat — dodatkowe cardio przy nadwyżce energetycznej",
+  "version": "2.0",
+  "date": "2026-10-09",
+  "sourceOfTruth": "lib/extra-cardio-from-macros.ts",
+  "tests": "lib/extra-cardio-from-macros.test.ts",
+  "purpose": "Dodatkowe cardio rekompensuje rzeczywistą nadwyżkę energetyczną (kcal / tłuszcz / węgle). Nie karze za samo wysokie białko przy deficycie kalorii.",
+  "invariants": [
+    "effectiveSurplusKcal <= openDebt",
+    "cardioOffsetKcal <= debtBeforeCardio * 0.80",
+    "burnKcalPerMin ∈ [3, 18]",
+    "extraMinutes ∈ {0} ∪ [5, 90]",
+    "avgHeartRate poza [70, 210] jest odrzucane"
+  ],
+  "constants": {
+    "KCAL_PER_G": { "protein": 4, "carbs": 4, "fat": 9 },
+    "MIN_DEBT_KCAL": 60,
+    "MEANINGFUL_INTAKE_PCT": 0.1,
+    "SOFT_CREDIT_START_PCT": 0.55,
+    "MAX_CARDIO_OFFSET_SHARE": 0.8,
+    "PERSONAL_MIN_WORKOUTS": 10,
+    "PERSONAL_MIN_MINUTES": 200,
+    "HR_MIN": 70,
+    "HR_MAX": 210,
+    "MAX_DEFER_SHARE": 0.35,
+    "FUTURE_DAY_SLACK_PCT_OF_GOAL": 0.12
+  },
+  "macroSurplus": {
+    "rule": "surplus = max(kcal_over, energyMacrosOver)",
+    "energyMacrosOver": "gdy caloriesConsumed <= caloriesGoal: C_over×4 + F_over×9 (bez białka); inaczej P×4 + C×4 + F×9",
+    "exampleNoCardio": {
+      "goals": { "P": 150, "C": 250, "F": 60, "kcal": 2000 },
+      "intake": { "P": 180, "C": 200, "F": 50, "kcal": 1800 },
+      "surplusKcal": 0,
+      "reason": "wysokie białko przy deficycie kcal nie jest nadwyżką energetyczną"
+    }
+  },
+  "softCredit": {
+    "type": "smooth",
+    "formula": [
+      "creditStart = goal × 0.55",
+      "if intake <= creditStart: softCredit = 0",
+      "else: progress = (intake − creditStart) / (goal − creditStart)",
+      "softCredit = (goal − intake) × progress"
+    ],
+    "effect": {
+      "55%": "0% kredytu",
+      "70%": "częściowy kredyt",
+      "85%": "duży kredyt",
+      "100%": "brak luki (kredyt 0 — cel osiągnięty)"
+    }
+  },
+  "openDebt": {
+    "formula": "openDebt = max(0, pastDebt + todaySurplus − todaySoftCredit − cardioOffset)",
+    "cardioOffset": "min(computedProRataExcessOffset, debtBeforeCardio × 0.80)"
+  },
+  "effectiveSurplus": {
+    "formula": [
+      "baseEffective = openDebt × (1 − balanceChance × 0.35)",
+      "effectiveFloor = max(hardMacroFloor, pastDebtFloor)",
+      "effectiveSurplus = min(openDebt, max(baseEffective, effectiveFloor))"
+    ],
+    "note": "Nigdy nie spalamy większego długu niż openDebt."
+  },
+  "burnHierarchy": [
+    {
+      "rank": 1,
+      "name": "calories_entered (per entry)",
+      "rule": "Jeśli wpis ma calories — użyj ich bez przeliczania (offset / suma tygodnia)."
+    },
+    {
+      "rank": 2,
+      "name": "personal_model",
+      "rule": "≥10 treningów z kcal i ≥200 min → personalBurnRate = Σkcal/Σmin. Przy dostępnym HR: 0.7×personal + 0.3×HR."
+    },
+    {
+      "rank": 3,
+      "name": "calories_entered (aggregate)",
+      "rule": "Historia z kcal, ale poniżej progu personal (<10 lub <200 min), ≥10 min łącznie."
+    },
+    {
+      "rank": 4,
+      "name": "heart_rate_model",
+      "rule": "Keytel (unisex) z avgHeartRate + weight + age; HR ∈ [70,210]."
+    },
+    {
+      "rank": 5,
+      "name": "met_model / default",
+      "rule": "MET z tempa (1.15×km/h) lub MET=5.5; burn = MET×masa/60."
+    }
+  ],
+  "heartRate": {
+    "fields": ["avgHeartRate", "maxHeartRate"],
+    "reliability": "Ręczne tętno NIE jest najwyższą wiarygodnością — tylko korekta / fallback.",
+    "reject": "avgHeartRate < 70 lub > 210 → kolejne źródło"
+  },
+  "tooltip": {
+    "fields": [
+      "Open debt (kcal)",
+      "Effective debt (kcal)",
+      "Cardio offset (kcal)",
+      "Spalanie (kcal/min)",
+      "Źródło spalania: Calories entered | Personal model | Heart rate model | MET model"
+    ]
+  },
+  "ui": {
+    "location": "Pulpit → pasek Cardio",
+    "visual": "Niebieski segment = extraMinutes"
+  }
+}

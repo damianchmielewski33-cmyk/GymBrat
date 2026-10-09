@@ -198,8 +198,9 @@ async function sumCardioMinutesInCalendarWeek(
 async function getRecentCardioSamples(
   userId: string,
   todayKey: string,
-  lookbackDays = 21,
-  limit = 12,
+  /** Więcej historii pod personal burn (≥10 treningów / ≥200 min). */
+  lookbackDays = 120,
+  limit = 60,
 ): Promise<RecentCardioSample[]> {
   const db = getDb();
   const fromKey = addCalendarDays(todayKey, -lookbackDays);
@@ -218,7 +219,7 @@ async function getRecentCardioSamples(
       ),
     )
     .orderBy(desc(workouts.date))
-    .limit(40);
+    .limit(120);
 
   const out: RecentCardioSample[] = [];
   for (const row of rows) {
@@ -234,10 +235,26 @@ async function getRecentCardioSamples(
       }
     }
     const extras = extractCardioExtrasFromSessionJson(raw, minutes);
+    let maxHeartRate: number | null = null;
+    if (raw && typeof raw === "object") {
+      const o = raw as Record<string, unknown>;
+      const nested =
+        o.cardio && typeof o.cardio === "object"
+          ? (o.cardio as Record<string, unknown>)
+          : o.cardioDetails && typeof o.cardioDetails === "object"
+            ? (o.cardioDetails as Record<string, unknown>)
+            : null;
+      const maxRaw = o.maxHr ?? o.maxHeartRate ?? nested?.maxHr ?? nested?.maxHeartRate;
+      if (typeof maxRaw === "number" && Number.isFinite(maxRaw) && maxRaw > 0) {
+        maxHeartRate = Math.round(maxRaw);
+      }
+    }
     out.push({
       minutes,
       calories: extras.calories,
       paceMinPerKm: extras.paceMinPerKm,
+      avgHeartRate: extras.avgHr,
+      maxHeartRate,
       dateKey: row.date,
     });
     if (out.length >= limit) break;
@@ -930,6 +947,7 @@ export async function getHomeStartDashboard(
         lastName: users.lastName,
         name: users.name,
         weightKg: users.weightKg,
+        age: users.age,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -998,12 +1016,18 @@ export async function getHomeStartDashboard(
     parseFitnessGoalsJson(settingsRow?.fitnessGoalsJson ?? null)
       .weeklySessionsTarget ?? 4;
 
+  const ageYears =
+    userRow?.age != null && Number.isFinite(userRow.age) && userRow.age > 0
+      ? userRow.age
+      : null;
+
   const extraCardio = computeExtraCardioAdvice({
     today: macroBundle.today,
     elapsedDays: macroBundle.elapsedWeekDays,
     todayKey,
     weekKeys,
     weightKg: currentWeightKg,
+    ageYears,
     recentCardio: recentCardioSamples,
     weeklyCardioGoalMinutes: cardioRolling.weeklyGoal,
   });

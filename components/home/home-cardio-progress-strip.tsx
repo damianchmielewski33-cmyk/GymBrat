@@ -153,13 +153,44 @@ export function HomeCardioProgressStrip({
           {tipOpen ? (
             <div
               id={tipId}
-              className="mt-2 space-y-1.5 rounded-xl border border-sky-400/20 bg-sky-500/10 px-3 py-2.5 text-[11px] leading-snug text-sky-50/90"
+              className="mt-2 space-y-2 rounded-xl border border-sky-400/20 bg-sky-500/10 px-3 py-2.5 text-[11px] leading-snug text-sky-50/90"
             >
               <p className="font-semibold text-sky-100">{extraCardio.summary}</p>
-              <ul className="list-disc space-y-1 pl-4">
-                {extraCardio.explanation.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+                <dt className="text-sky-200/70">Open debt</dt>
+                <dd className="font-medium text-sky-50">
+                  {extraCardio.surplusKcal} kcal
+                </dd>
+                <dt className="text-sky-200/70">Effective debt</dt>
+                <dd className="font-medium text-sky-50">
+                  {extraCardio.effectiveSurplusKcal} kcal
+                </dd>
+                <dt className="text-sky-200/70">Cardio offset</dt>
+                <dd className="font-medium text-sky-50">
+                  {extraCardio.cardioOffsetKcal} kcal
+                </dd>
+                <dt className="text-sky-200/70">Spalanie</dt>
+                <dd className="font-medium text-sky-50">
+                  {extraCardio.burnKcalPerMin} kcal/min
+                </dd>
+                <dt className="text-sky-200/70">Źródło spalania</dt>
+                <dd className="font-medium text-sky-50">
+                  {burnSourceLabel(extraCardio.burnSource)}
+                </dd>
+              </dl>
+              <ul className="list-disc space-y-1 border-t border-sky-400/15 pt-2 pl-4 text-sky-50/80">
+                {extraCardio.explanation
+                  .filter(
+                    (line) =>
+                      !line.startsWith("Open debt:") &&
+                      !line.startsWith("Effective debt:") &&
+                      !line.startsWith("Cardio offset:") &&
+                      !line.startsWith("Spalanie:") &&
+                      !line.startsWith("Źródło spalania:"),
+                  )
+                  .map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
               </ul>
             </div>
           ) : null}
@@ -167,6 +198,24 @@ export function HomeCardioProgressStrip({
       ) : null}
     </div>
   );
+}
+
+function burnSourceLabel(
+  source: NonNullable<ExtraCardioAdvice["burnSource"]>,
+): string {
+  switch (source) {
+    case "calories_entered":
+      return "Calories entered";
+    case "personal_model":
+      return "Personal model";
+    case "heart_rate_model":
+      return "Heart rate model";
+    case "met_model":
+    case "default":
+      return "MET model";
+    default:
+      return source;
+  }
 }
 
 function widthLabel(safe: number, extraMinutes: number): string {
