@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import {
   BUG_PRIORITY_LABELS,
+  BUG_REPORTS_CHANGED_EVENT,
   bugPriorityRank,
   type BugPriority,
   type BugStatus,
@@ -13,6 +13,11 @@ import {
 } from "@/lib/bug-reports";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { cn } from "@/lib/utils";
+
+function notifyBugReportsChanged() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(BUG_REPORTS_CHANGED_EVENT));
+}
 
 type BugRow = {
   id: string;
@@ -27,6 +32,7 @@ type BugRow = {
   reporterName: string | null;
   reporterFirstName: string | null;
   reporterLastName: string | null;
+  photos?: string[];
 };
 
 const PRIORITY_BADGE: Record<BugPriority, string> = {
@@ -132,6 +138,7 @@ export function AdminBugsClient() {
           : "Przywrócono do otwartych.",
       );
       setBugs((prev) => prev.filter((b) => b.id !== id));
+      notifyBugReportsChanged();
     } catch {
       notifyError("Nie udało się zaktualizować zgłoszenia.");
     } finally {
@@ -141,22 +148,14 @@ export function AdminBugsClient() {
 
   return (
     <div className="space-y-4">
-      <div className="app-card flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
-        <div className="space-y-2">
-          <h2 className="font-heading text-xl font-semibold text-white">
-            Zgłoszenia błędów
-          </h2>
-          <p className="text-sm text-white/55">
-            Lista od testerów, użytkowników i administratorów. Naprawione
-            przenoś do zakładki Naprawione.
-          </p>
-        </div>
-        <Link
-          href="/bug-report?from=admin"
-          className="gym-btn-primary inline-flex h-9 shrink-0 items-center justify-center rounded-xl px-3.5 text-[0.8rem] font-semibold"
-        >
-          Zgłoś błąd
-        </Link>
+      <div className="app-card space-y-2 p-5 sm:p-6">
+        <h2 className="font-heading text-xl font-semibold text-white">
+          Zgłoszenia błędów
+        </h2>
+        <p className="text-sm text-white/55">
+          Lista od testerów i użytkowników. Naprawione przenieś do zakładki
+          Naprawione.
+        </p>
       </div>
 
       <div className="flex gap-2 border-b border-white/10 pb-px">
@@ -267,6 +266,32 @@ export function AdminBugsClient() {
                         {bug.stepsToReproduce}
                       </p>
                     </div>
+                    {bug.photos && bug.photos.length > 0 ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-white/35">
+                          Zdjęcia
+                        </p>
+                        <ul className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                          {bug.photos.map((src, i) => (
+                            <li key={`${bug.id}-photo-${i}`}>
+                              <a
+                                href={src}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block overflow-hidden rounded-lg border border-white/12 bg-black/40"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={src}
+                                  alt={`Załącznik ${i + 1}`}
+                                  className="aspect-square w-full object-cover"
+                                />
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
                     {tab === "fixed" && bug.resolvedAt ? (
                       <p className="text-[11px] text-white/40">
                         Naprawione: {formatWhen(bug.resolvedAt)}

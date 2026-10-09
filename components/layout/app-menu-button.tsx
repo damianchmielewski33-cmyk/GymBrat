@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   BarChart3,
+  Bug,
   LineChart,
   LogOut,
   Menu,
@@ -41,6 +42,7 @@ export function AppMenuButton({
     { href: "/reports", label: t("nav.reports"), icon: BarChart3 },
     { href: "/progress", label: t("nav.progress"), icon: LineChart },
     { href: "/workout-history", label: t("nav.history"), icon: ScrollText },
+    { href: "/bug-report", label: "Zgłoś błąd", icon: Bug },
   ];
 
   useEffect(() => {

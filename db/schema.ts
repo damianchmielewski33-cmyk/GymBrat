@@ -556,9 +556,35 @@ export const bugReports = sqliteTable(
   ],
 );
 
-export const bugReportsRelations = relations(bugReports, ({ one }) => ({
+export const bugReportPhotos = sqliteTable(
+  "bug_report_photos",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    bugReportId: text("bug_report_id")
+      .notNull()
+      .references(() => bugReports.id, { onDelete: "cascade" }),
+    /** Data URL — szyfrowany jak zdjęcia raportów. */
+    dataUrl: text("data_url").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("bug_report_photos_bug").on(t.bugReportId)],
+);
+
+export const bugReportsRelations = relations(bugReports, ({ one, many }) => ({
   user: one(users, {
     fields: [bugReports.userId],
     references: [users.id],
+  }),
+  photos: many(bugReportPhotos),
+}));
+
+export const bugReportPhotosRelations = relations(bugReportPhotos, ({ one }) => ({
+  bugReport: one(bugReports, {
+    fields: [bugReportPhotos.bugReportId],
+    references: [bugReports.id],
   }),
 }));

@@ -5,7 +5,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Bug,
   Home,
   LineChart,
   Plus,
@@ -103,7 +102,6 @@ export function AppShell({
           aria-label="Nawigacja główna"
         >
           <div className="relative mx-auto max-w-lg">
-            <BugReportNavButton />
             {showReportFab ? (
               <Suspense fallback={null}>
                 <ReportFab />
@@ -112,7 +110,7 @@ export function AppShell({
             <div
               className={cn(
                 "grid grid-cols-5 items-end px-1 pb-2",
-                "pt-7",
+                showReportFab ? "pt-7" : "pt-2",
               )}
             >
               {tabs.map((item) => (
@@ -123,30 +121,6 @@ export function AppShell({
         </nav>
       )}
     </div>
-  );
-}
-
-/** Przycisk zgłoszenia błędu — lewa strona belki, widoczny dla wszystkich. */
-function BugReportNavButton() {
-  const pathname = usePathname();
-  const active = pathname.startsWith("/bug-report");
-
-  return (
-    <Link
-      href="/bug-report"
-      className={cn(
-        "absolute left-2 top-0 z-10 inline-flex h-10 max-w-[42%] -translate-y-1/2 items-center gap-1 rounded-full border px-2.5 text-[10px] font-semibold uppercase tracking-[0.04em] shadow-[0_6px_20px_rgba(0,0,0,0.35)] transition-colors sm:left-3 sm:gap-1.5 sm:px-3 sm:text-[11px]",
-        active
-          ? "border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/20 text-[var(--gym-gold)]"
-          : "border-white/15 bg-black/85 text-white/80 hover:border-white/30 hover:text-white",
-      )}
-      aria-label="Zgłoś błąd"
-      title="Zgłoś błąd"
-      aria-current={active ? "page" : undefined}
-    >
-      <Bug className="h-3.5 w-3.5 shrink-0" aria-hidden />
-      <span className="truncate">Zgłoś błąd</span>
-    </Link>
   );
 }
 

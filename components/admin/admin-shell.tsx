@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import {
   Bug,
   ImageIcon,
@@ -11,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { BUG_REPORTS_CHANGED_EVENT } from "@/lib/bug-reports";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,7 +20,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/admin/overview", label: "Analityka", icon: LayoutDashboard },
   { href: "/admin/users", label: "Użytkownicy", icon: Users },
-  { href: "/admin/bugs", label: "Błędy", icon: Bug },
+  { href: "/admin/bugs", label: "Błędy", icon: Bug, badge: "bugs" as const },
   { href: "/admin/catalog", label: "Przepisy", icon: UtensilsCrossed },
   { href: "/admin/exercises", label: "Ćwiczenia", icon: Dumbbell },
   { href: "/admin/branding", label: "Branding", icon: ImageIcon },
@@ -28,6 +30,36 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { notifyError } = useSaveFeedback();
+  const [openBugs, setOpenBugs] = useState(0);
+
+  const refreshOpenCount = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/bug-reports?summary=1", {
+        credentials: "include",
+      });
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        openCount?: number;
+      } | null;
+      if (res.ok && data?.ok && typeof data.openCount === "number") {
+        setOpenBugs(data.openCount);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshOpenCount();
+  }, [refreshOpenCount, pathname]);
+
+  useEffect(() => {
+    const onChanged = () => {
+      void refreshOpenCount();
+    };
+    window.addEventListener(BUG_REPORTS_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(BUG_REPORTS_CHANGED_EVENT, onChanged);
+  }, [refreshOpenCount]);
 
   return (
     <div className="space-y-8">
@@ -43,8 +75,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <nav className="flex flex-wrap gap-2">
-          {links.map(({ href, label, icon: Icon }) => {
+          {links.map(({ href, label, icon: Icon, badge }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
+            const showBadge = badge === "bugs" && openBugs > 0;
             return (
               <Link key={href} href={href}>
                 <span
@@ -57,23 +90,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 >
                   <Icon className="h-4 w-4" />
                   {label}
+                  {showBadge ? (
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white">
+                      {openBugs > 99 ? "99+" : openBugs}
+                    </span>
+                  ) : null}
                 </span>
               </Link>
             );
           })}
-          <Link href="/bug-report?from=admin">
-            <span
-              className={cn(
-                "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-                pathname.startsWith("/bug-report")
-                  ? "bg-[var(--neon)]/20 text-white ring-1 ring-[var(--neon)]/40"
-                  : "text-white/65 hover:bg-white/[0.06] hover:text-white",
-              )}
-            >
-              <Bug className="h-4 w-4" />
-              Zgłoś błąd
-            </span>
-          </Link>
           <Button
             type="button"
             variant="secondary"

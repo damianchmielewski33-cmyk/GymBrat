@@ -1,3 +1,6 @@
+/** Event okna — odśwież badge liczby otwartych zgłoszeń w panelu admina. */
+export const BUG_REPORTS_CHANGED_EVENT = "gymbrat:bug-reports-changed";
+
 export const BUG_PRIORITIES = [
   "highest",
   "high",
