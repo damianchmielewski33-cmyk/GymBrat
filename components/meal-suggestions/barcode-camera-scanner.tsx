@@ -345,9 +345,8 @@ export function BarcodeCameraScanner({
             facingMode: { ideal: "environment" },
             width: { ideal: 1280 },
             height: { ideal: 720 },
-            // @ts-expect-error focusMode w constraints niektórych przeglądarek
             focusMode: { ideal: "continuous" },
-          },
+          } as MediaTrackConstraints,
         });
         if (signal.cancelled) {
           stream.getTracks().forEach((t) => t.stop());
@@ -415,8 +414,7 @@ export function BarcodeCameraScanner({
           if (advanced.length > 0) {
             void track
               .applyConstraints({
-                // @ts-expect-error advanced constraints (zoom / focusMode)
-                advanced,
+                advanced: advanced as MediaTrackConstraintSet[],
               })
               .catch(() => {
                 /* ignore */
