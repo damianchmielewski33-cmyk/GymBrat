@@ -83,6 +83,7 @@ export const RATE = {
   adminMutation: { limit: 120, windowMs: 60_000 },
   bodyReportImport: { limit: 12, windowMs: 60_000 },
   bodyReportCreate: { limit: 24, windowMs: 60_000 },
+  bugReportCreate: { limit: 12, windowMs: 60_000 },
   progressExercise: { limit: 60, windowMs: 60_000 },
   activeWorkoutSession: { limit: 90, windowMs: 60_000 },
   userExport: { limit: 12, windowMs: 60 * 60_000 },

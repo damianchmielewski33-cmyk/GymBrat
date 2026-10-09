@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ImageIcon, Dumbbell, LayoutDashboard, UtensilsCrossed, Users } from "lucide-react";
+import {
+  Bug,
+  ImageIcon,
+  Dumbbell,
+  LayoutDashboard,
+  UtensilsCrossed,
+  Users,
+} from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { Button } from "@/components/ui/button";
@@ -11,6 +18,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/admin/overview", label: "Analityka", icon: LayoutDashboard },
   { href: "/admin/users", label: "Użytkownicy", icon: Users },
+  { href: "/admin/bugs", label: "Błędy", icon: Bug },
   { href: "/admin/catalog", label: "Przepisy", icon: UtensilsCrossed },
   { href: "/admin/exercises", label: "Ćwiczenia", icon: Dumbbell },
   { href: "/admin/branding", label: "Branding", icon: ImageIcon },

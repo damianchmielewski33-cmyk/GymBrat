@@ -526,3 +526,39 @@ export const workoutsRelations = relations(workouts, ({ one }) => ({
     references: [workoutPlans.id],
   }),
 }));
+
+/**
+ * Zgłoszenia błędów od testerów / użytkowników.
+ * status: `open` | `fixed`; priority jak w Jira: highest|high|medium|low|lowest
+ */
+export const bugReports = sqliteTable(
+  "bug_reports",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    description: text("description").notNull(),
+    expectedBehavior: text("expected_behavior").notNull(),
+    stepsToReproduce: text("steps_to_reproduce").notNull(),
+    priority: text("priority").notNull(),
+    status: text("status").notNull().default("open"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    index("bug_reports_status_created").on(t.status, t.createdAt),
+    index("bug_reports_user").on(t.userId),
+  ],
+);
+
+export const bugReportsRelations = relations(bugReports, ({ one }) => ({
+  user: one(users, {
+    fields: [bugReports.userId],
+    references: [users.id],
+  }),
+}));

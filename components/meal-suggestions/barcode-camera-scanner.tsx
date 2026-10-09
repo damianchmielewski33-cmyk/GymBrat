@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
+import { BrowserMultiFormatOneDReader } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { Flashlight, FlashlightOff, X } from "lucide-react";
 import {
@@ -18,6 +18,24 @@ type ZoomCaps = { min: number; max: number; step?: number };
 /** idle → ready | failed — bez osobnego ekranu „uruchamianie”. */
 type CameraPhase = "idle" | "ready" | "failed";
 
+const NATIVE_FORMATS = [
+  "ean_13",
+  "ean_8",
+  "upc_a",
+  "upc_e",
+  "code_128",
+] as const;
+
+type NativeBarcodeDetector = {
+  detect: (
+    source: ImageBitmapSource,
+  ) => Promise<Array<{ rawValue?: string | null }>>;
+};
+
+type BarcodeDetectorCtor = new (options?: {
+  formats?: string[];
+}) => NativeBarcodeDetector;
+
 function asZoomCaps(caps: MediaTrackCapabilities | undefined): ZoomCaps | null {
   const z = (caps as { zoom?: ZoomCaps } | undefined)?.zoom;
   if (!z || typeof z.min !== "number" || typeof z.max !== "number") return null;
@@ -26,6 +44,14 @@ function asZoomCaps(caps: MediaTrackCapabilities | undefined): ZoomCaps | null {
 
 function supportsTorch(caps: MediaTrackCapabilities | undefined): boolean {
   return Boolean((caps as { torch?: boolean } | undefined)?.torch);
+}
+
+function supportsFocusMode(
+  caps: MediaTrackCapabilities | undefined,
+  mode: string,
+): boolean {
+  const modes = (caps as { focusMode?: string[] } | undefined)?.focusMode;
+  return Array.isArray(modes) && modes.includes(mode);
 }
 
 function waitForVideoElement(
@@ -56,23 +82,131 @@ function waitForVideoElement(
   });
 }
 
+function waitForVideoDimensions(
+  video: HTMLVideoElement,
+  signal: { cancelled: boolean },
+  timeoutMs = 2500,
+): Promise<boolean> {
+  if (video.videoWidth > 0 && video.videoHeight > 0) {
+    return Promise.resolve(true);
+  }
+  return new Promise((resolve) => {
+    const done = (ok: boolean) => {
+      video.removeEventListener("loadeddata", onReady);
+      video.removeEventListener("loadedmetadata", onReady);
+      window.clearTimeout(timer);
+      resolve(ok);
+    };
+    const onReady = () => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) done(true);
+    };
+    const timer = window.setTimeout(() => done(video.videoWidth > 0), timeoutMs);
+    video.addEventListener("loadeddata", onReady);
+    video.addEventListener("loadedmetadata", onReady);
+    const poll = () => {
+      if (signal.cancelled) {
+        done(false);
+        return;
+      }
+      if (video.videoWidth > 0) {
+        done(true);
+        return;
+      }
+      requestAnimationFrame(poll);
+    };
+    requestAnimationFrame(poll);
+  });
+}
+
+async function createNativeDetector(): Promise<NativeBarcodeDetector | null> {
+  const Ctor = (
+    globalThis as typeof globalThis & { BarcodeDetector?: BarcodeDetectorCtor }
+  ).BarcodeDetector;
+  if (typeof Ctor !== "function") return null;
+
+  const preferred = [...NATIVE_FORMATS];
+  try {
+    const getFormats = (
+      Ctor as unknown as {
+        getSupportedFormats?: () => Promise<string[]>;
+      }
+    ).getSupportedFormats;
+    if (typeof getFormats === "function") {
+      const supported = await getFormats.call(Ctor);
+      const usable = preferred.filter((f) => supported.includes(f));
+      if (usable.length === 0) return null;
+      return new Ctor({ formats: usable });
+    }
+    return new Ctor({ formats: preferred });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Wycina szeroki pas środka kadru (EAN jest poziomy) i lekko powiększa do dekodera.
+ * Mniejszy ROI = szybszy i pewniejszy odczyt niż cały frame.
+ */
+function drawScanRoi(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+): HTMLCanvasElement | null {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (vw < 16 || vh < 16) return null;
+
+  const roiW = Math.floor(vw * 0.92);
+  const roiH = Math.floor(Math.min(vh * 0.42, roiW * 0.45));
+  const sx = Math.floor((vw - roiW) / 2);
+  const sy = Math.floor((vh - roiH) / 2);
+
+  // Skaluj do stałej szerokości — ZXing lepiej czyta ~720–960 px niż 4K.
+  const targetW = Math.min(960, Math.max(640, roiW));
+  const targetH = Math.max(160, Math.round((roiH / roiW) * targetW));
+
+  if (canvas.width !== targetW) canvas.width = targetW;
+  if (canvas.height !== targetH) canvas.height = targetH;
+
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.drawImage(video, sx, sy, roiW, roiH, 0, 0, targetW, targetH);
+  return canvas;
+}
+
+function normalizeBarcodeText(raw: string): string {
+  return raw.replace(/\s/g, "").trim();
+}
+
+function looksLikeProductBarcode(code: string): boolean {
+  if (!/^\d{8,14}$/.test(code)) return false;
+  // EAN-8 / UPC-E / EAN-13 / UPC-A (+ ewentualne wiodące 0)
+  return code.length === 8 || code.length === 12 || code.length === 13 || code.length === 14;
+}
+
+/** Preferuj zoom ~1.5–2× zamiast ultra-szerokiego min (częsta przyczyna „nie wykrywa”). */
+function preferredZoom(zoom: ZoomCaps): number {
+  const target = 1.75;
+  if (zoom.max <= zoom.min) return zoom.min;
+  if (target <= zoom.min) return zoom.min;
+  if (target >= zoom.max) return zoom.max;
+  const step = typeof zoom.step === "number" && zoom.step > 0 ? zoom.step : 0.1;
+  const steps = Math.round((target - zoom.min) / step);
+  return Math.min(zoom.max, zoom.min + steps * step);
+}
+
 /** Złote narożniki ramki skanu (jak na makiecie). */
 function ScanCornerFrame({ className }: { className?: string }) {
   const arm = "absolute bg-[var(--gym-gold)]";
-  const thick = "h-[3px] w-7 sm:w-8";
+  const thick = "h-[3px] w-8 sm:w-10";
   const tall = "h-7 w-[3px] sm:h-8";
   return (
     <div className={cn("pointer-events-none absolute inset-0", className)} aria-hidden>
-      {/* TL */}
       <span className={cn(arm, thick, "left-0 top-0 rounded-full")} />
       <span className={cn(arm, tall, "left-0 top-0 rounded-full")} />
-      {/* TR */}
       <span className={cn(arm, thick, "right-0 top-0 rounded-full")} />
       <span className={cn(arm, tall, "right-0 top-0 rounded-full")} />
-      {/* BL */}
       <span className={cn(arm, thick, "bottom-0 left-0 rounded-full")} />
       <span className={cn(arm, tall, "bottom-0 left-0 rounded-full")} />
-      {/* BR */}
       <span className={cn(arm, thick, "bottom-0 right-0 rounded-full")} />
       <span className={cn(arm, tall, "bottom-0 right-0 rounded-full")} />
     </div>
@@ -81,6 +215,7 @@ function ScanCornerFrame({ className }: { className?: string }) {
 
 /**
  * Pełnoekranowy skaner EAN — UI jak makieta: X / latarka, złote narożniki, dolny pasek.
+ * Preferuje natywne BarcodeDetector (Android/Chrome), ZXing jako fallback; skanuje ROI środka.
  */
 export function BarcodeCameraScanner({
   open,
@@ -92,8 +227,8 @@ export function BarcodeCameraScanner({
   onDetected: (code: string) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const controlsRef = useRef<IScannerControls | null>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
+  const scanTimerRef = useRef<number | null>(null);
   const handledRef = useRef(false);
   const onDetectedRef = useRef(onDetected);
   const onCloseRef = useRef(onClose);
@@ -114,12 +249,10 @@ export function BarcodeCameraScanner({
   }, [onClose]);
 
   const stop = useCallback(() => {
-    try {
-      controlsRef.current?.stop();
-    } catch {
-      /* ignore */
+    if (scanTimerRef.current != null) {
+      window.clearTimeout(scanTimerRef.current);
+      scanTimerRef.current = null;
     }
-    controlsRef.current = null;
     try {
       trackRef.current?.stop();
     } catch {
@@ -173,6 +306,16 @@ export function BarcodeCameraScanner({
     setError(null);
     setTorchAvailable(false);
 
+    const acceptCode = (raw: string) => {
+      if (signal.cancelled || handledRef.current) return;
+      const text = normalizeBarcodeText(raw);
+      if (!text || !looksLikeProductBarcode(text)) return;
+      handledRef.current = true;
+      hapticTap();
+      stop();
+      onDetectedRef.current(text);
+    };
+
     void (async () => {
       try {
         if (!navigator.mediaDevices?.getUserMedia) {
@@ -182,7 +325,6 @@ export function BarcodeCameraScanner({
           return;
         }
 
-        // Video w portalu jest już w DOM po paint — równolegle z uprawnieniami.
         const videoReady = waitForVideoElement(() => videoRef.current, signal);
 
         if (isInstalledAndroidAppClient()) {
@@ -197,10 +339,15 @@ export function BarcodeCameraScanner({
           }
         }
 
-        // Bez sztywnej rozdzielczości — szybsza negocjacja strumienia.
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: { facingMode: { ideal: "environment" } },
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            // @ts-expect-error focusMode w constraints niektórych przeglądarek
+            focusMode: { ideal: "continuous" },
+          },
         });
         if (signal.cancelled) {
           stream.getTracks().forEach((t) => t.stop());
@@ -228,17 +375,24 @@ export function BarcodeCameraScanner({
         video.playsInline = true;
         video.srcObject = stream;
 
-        // Podgląd od razu — zoom / latarka / dekoder w tle.
-        const playPromise = video.play().catch(() =>
-          new Promise<void>((resolve) => {
-            const done = () => resolve();
-            video.addEventListener("loadedmetadata", () => {
-              void video.play().finally(done);
-            }, { once: true });
-            window.setTimeout(done, 400);
-          }),
+        const playPromise = video.play().catch(
+          () =>
+            new Promise<void>((resolve) => {
+              const done = () => resolve();
+              video.addEventListener(
+                "loadedmetadata",
+                () => {
+                  void video.play().finally(done);
+                },
+                { once: true },
+              );
+              window.setTimeout(done, 400);
+            }),
         );
         await playPromise;
+        if (signal.cancelled) return;
+
+        await waitForVideoDimensions(video, signal);
         if (signal.cancelled) return;
 
         setPhase("ready");
@@ -249,12 +403,20 @@ export function BarcodeCameraScanner({
           if (!signal.cancelled) {
             setTorchAvailable(supportsTorch(caps));
           }
+
+          const advanced: Record<string, unknown>[] = [];
+          if (supportsFocusMode(caps, "continuous")) {
+            advanced.push({ focusMode: "continuous" });
+          }
           const zoom = asZoomCaps(caps);
           if (zoom) {
+            advanced.push({ zoom: preferredZoom(zoom) });
+          }
+          if (advanced.length > 0) {
             void track
               .applyConstraints({
-                // @ts-expect-error zoom w advanced constraints
-                advanced: [{ zoom: zoom.min }],
+                // @ts-expect-error advanced constraints (zoom / focusMode)
+                advanced,
               })
               .catch(() => {
                 /* ignore */
@@ -262,34 +424,87 @@ export function BarcodeCameraScanner({
           }
         }
 
-        const hints = new Map();
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        const roiCanvas = document.createElement("canvas");
+        const nativeDetector = await createNativeDetector();
+
+        // Szybki reader 1D (EAN/UPC) + osobny z TRY_HARDER co kilka klatek.
+        const baseHints = new Map<DecodeHintType, unknown>();
+        baseHints.set(DecodeHintType.POSSIBLE_FORMATS, [
           BarcodeFormat.EAN_13,
           BarcodeFormat.EAN_8,
           BarcodeFormat.UPC_A,
           BarcodeFormat.UPC_E,
+          BarcodeFormat.CODE_128,
         ]);
-        hints.set(DecodeHintType.TRY_HARDER, true);
+        const hardHints = new Map(baseHints);
+        hardHints.set(DecodeHintType.TRY_HARDER, true);
 
-        const reader = new BrowserMultiFormatReader(hints, {
-          delayBetweenScanAttempts: 120,
-          delayBetweenScanSuccess: 600,
+        const zxingFast = new BrowserMultiFormatOneDReader(baseHints, {
+          delayBetweenScanAttempts: 0,
+          delayBetweenScanSuccess: 0,
         });
-        const controls = await reader.decodeFromVideoElement(video, (result) => {
+        const zxingHard = new BrowserMultiFormatOneDReader(hardHints, {
+          delayBetweenScanAttempts: 0,
+          delayBetweenScanSuccess: 0,
+        });
+
+        let frame = 0;
+        const tick = async () => {
           if (signal.cancelled || handledRef.current) return;
-          if (!result) return;
-          const text = result.getText()?.trim();
-          if (!text) return;
-          handledRef.current = true;
-          hapticTap();
-          stop();
-          onDetectedRef.current(text.replace(/\s/g, ""));
-        });
-        if (signal.cancelled) {
-          controls.stop();
-          return;
-        }
-        controlsRef.current = controls;
+
+          const started = performance.now();
+          try {
+            const canvas = drawScanRoi(video, roiCanvas);
+            if (canvas) {
+              if (nativeDetector) {
+                const codes = await nativeDetector.detect(canvas);
+                const raw = codes.find((c) => c.rawValue)?.rawValue;
+                if (raw) {
+                  acceptCode(raw);
+                  return;
+                }
+                // Co 3. klatka: ZXing dogania gdy native pominie trudniejszy EAN.
+                if (frame % 3 === 0) {
+                  try {
+                    const result = zxingHard.decodeFromCanvas(canvas);
+                    const text = result.getText();
+                    if (text) {
+                      acceptCode(text);
+                      return;
+                    }
+                  } catch {
+                    /* brak kodu */
+                  }
+                }
+              } else {
+                const reader = frame % 3 === 2 ? zxingHard : zxingFast;
+                try {
+                  const result = reader.decodeFromCanvas(canvas);
+                  const text = result.getText();
+                  if (text) {
+                    acceptCode(text);
+                    return;
+                  }
+                } catch {
+                  /* brak kodu w tej klatce */
+                }
+              }
+            }
+          } catch {
+            /* ignore pojedynczej klatki */
+          }
+
+          frame += 1;
+          if (signal.cancelled || handledRef.current) return;
+          const elapsed = performance.now() - started;
+          // ~12–18 fps: dość często, bez dławienia UI na słabszych telefonach.
+          const delay = Math.max(35, 65 - elapsed);
+          scanTimerRef.current = window.setTimeout(() => {
+            void tick();
+          }, delay);
+        };
+
+        void tick();
       } catch (e) {
         if (signal.cancelled) return;
         const msg = e instanceof Error ? e.message : String(e);
@@ -335,25 +550,23 @@ export function BarcodeCameraScanner({
         />
       </div>
 
-      {/* Lekka winieta — bez pełnej maski, żeby kadr był widoczny jak na makiecie */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 70% 55% at 50% 42%, transparent 42%, rgba(0,0,0,0.45) 100%)",
+            "radial-gradient(ellipse 78% 48% at 50% 42%, transparent 38%, rgba(0,0,0,0.5) 100%)",
         }}
         aria-hidden
       />
 
-      {/* Ramka z złotymi narożnikami */}
+      {/* Szeroka ramka pod kody EAN (poziome), łatwiejsze celowanie */}
       <div
-        className="pointer-events-none absolute left-1/2 top-[44%] h-[min(68vw,280px)] w-[min(68vw,280px)] -translate-x-1/2 -translate-y-1/2"
+        className="pointer-events-none absolute left-1/2 top-[42%] h-[min(34vw,150px)] w-[min(92vw,400px)] -translate-x-1/2 -translate-y-1/2"
         aria-hidden
       >
         <ScanCornerFrame />
       </div>
 
-      {/* Góra: X + latarka */}
       <div className="absolute inset-x-0 top-0 z-[1] flex items-center justify-between px-4 pt-[max(0.85rem,env(safe-area-inset-top))]">
         <button
           type="button"
@@ -378,7 +591,6 @@ export function BarcodeCameraScanner({
         </button>
       </div>
 
-      {/* Dół: instrukcja (+ awaryjny wpis EAN tylko przy błędzie) */}
       <div className="absolute inset-x-0 bottom-0 z-[1] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="mx-3 mb-2 rounded-2xl bg-black/72 px-4 py-4 text-center backdrop-blur-md sm:mx-5">
           {showError ? (
@@ -429,7 +641,8 @@ export function BarcodeCameraScanner({
                 Nakieruj na kod kreskowy
               </p>
               <p className="mt-1.5 text-[13px] leading-snug text-white/55">
-                EAN-13 i EAN-8 z opakowań. Kod z wagi sklepowej nie zadziała.
+                Trzymaj kod w złotej ramce, blisko i w dobrym świetle. EAN z
+                opakowań — kod z wagi sklepowej nie zadziała.
               </p>
             </>
           )}
