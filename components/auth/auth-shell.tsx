@@ -12,9 +12,9 @@ export function AuthShell({ children }: { children: ReactNode }) {
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <motion.div
           className="absolute inset-0"
-          initial={{ scale: 1.08 }}
+          // Bez zoomu 1.08→1 — w iframe / nowej karcie wyglądało jak „skaczący” ekran.
+          initial={false}
           animate={{ scale: 1 }}
-          transition={{ duration: 8, ease: "easeOut" }}
         >
           <Image
             src="/images/gym/hero-barbell.jpg"

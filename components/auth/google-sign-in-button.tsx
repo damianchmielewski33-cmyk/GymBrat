@@ -3,7 +3,15 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { isLikelyInIframe, promoteGymBratOutOfIframe } from "@/lib/iframe-embed";
 import { cn } from "@/lib/utils";
+
+/** OAuth w iframe Academii pada (Google nie pozwala na frame) — najpierw wyjdź na top. */
+function ensureTopLevelForOauth(): boolean {
+  if (!isLikelyInIframe()) return true;
+  promoteGymBratOutOfIframe(window.location.href);
+  return false;
+}
 
 /** Oficjalne „G” Google — kompaktowe, czytelne na ciemnym CTA. */
 function GoogleMark({ className }: { className?: string }) {
@@ -78,6 +86,7 @@ export function GoogleSignInButton({
       )}
       onClick={() => {
         if (disabled) return;
+        if (!ensureTopLevelForOauth()) return;
         setPending(true);
         void signIn("google", { callbackUrl }).finally(() => {
           setPending(false);
@@ -113,6 +122,7 @@ export function FacebookSignInButton({
       )}
       onClick={() => {
         if (disabled) return;
+        if (!ensureTopLevelForOauth()) return;
         setPending(true);
         void signIn("facebook", { callbackUrl }).finally(() => {
           setPending(false);

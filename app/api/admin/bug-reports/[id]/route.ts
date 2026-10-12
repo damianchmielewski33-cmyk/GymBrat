@@ -61,7 +61,7 @@ export async function PATCH(
     .update(bugReports)
     .set({
       status: parsed.data.status,
-      resolvedAt: parsed.data.status === "fixed" ? now : null,
+      resolvedAt: parsed.data.status === "retest" ? now : null,
     })
     .where(eq(bugReports.id, id))
     .returning({ id: bugReports.id, status: bugReports.status });

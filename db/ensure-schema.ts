@@ -238,10 +238,10 @@ CREATE TABLE IF NOT EXISTS "bug_reports" (
   "id" text PRIMARY KEY NOT NULL,
   "user_id" text NOT NULL,
   "description" text NOT NULL,
-  "expected_behavior" text NOT NULL,
-  "steps_to_reproduce" text NOT NULL,
+  "expected_behavior" text DEFAULT '' NOT NULL,
+  "steps_to_reproduce" text DEFAULT '' NOT NULL,
   "priority" text NOT NULL,
-  "status" text DEFAULT 'open' NOT NULL,
+  "status" text DEFAULT 'analysis' NOT NULL,
   "created_at" integer NOT NULL,
   "resolved_at" integer,
   FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
@@ -286,6 +286,34 @@ CREATE TABLE IF NOT EXISTS "schema_flags" (
     await client.execute({
       sql: `INSERT INTO schema_flags ("key", "value", "updated_at") VALUES (?, ?, ?)`,
       args: [purgeFlag, "1", Date.now()],
+    });
+  }
+
+  /** Jednorazowo: mapowanie starych priorytetów/statusów zgłoszeń błędów. */
+  const bugWorkflowFlag = "bug_report_workflow_v1";
+  const bugWorkflowRows = await client.execute({
+    sql: `SELECT value FROM schema_flags WHERE key = ? LIMIT 1`,
+    args: [bugWorkflowFlag],
+  });
+  if ((bugWorkflowRows.rows?.length ?? 0) === 0) {
+    await client.execute(
+      `UPDATE bug_reports SET priority = 'critical' WHERE priority = 'highest'`,
+    );
+    await client.execute(
+      `UPDATE bug_reports SET priority = 'normal' WHERE priority = 'medium'`,
+    );
+    await client.execute(
+      `UPDATE bug_reports SET priority = 'low' WHERE priority = 'lowest'`,
+    );
+    await client.execute(
+      `UPDATE bug_reports SET status = 'analysis' WHERE status = 'open'`,
+    );
+    await client.execute(
+      `UPDATE bug_reports SET status = 'retest' WHERE status = 'fixed'`,
+    );
+    await client.execute({
+      sql: `INSERT INTO schema_flags ("key", "value", "updated_at") VALUES (?, ?, ?)`,
+      args: [bugWorkflowFlag, "1", Date.now()],
     });
   }
 }

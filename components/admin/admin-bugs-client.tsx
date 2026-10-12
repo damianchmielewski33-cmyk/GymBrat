@@ -4,8 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import {
+  BUG_PRIORITIES,
   BUG_PRIORITY_LABELS,
   BUG_REPORTS_CHANGED_EVENT,
+  BUG_STATUSES,
+  BUG_STATUS_LABELS,
   bugPriorityRank,
   type BugPriority,
   type BugStatus,
@@ -36,11 +39,28 @@ type BugRow = {
 };
 
 const PRIORITY_BADGE: Record<BugPriority, string> = {
-  highest: "bg-red-500/20 text-red-200 ring-red-400/40",
+  critical: "bg-red-500/20 text-red-200 ring-red-400/40",
   high: "bg-orange-400/20 text-orange-100 ring-orange-300/40",
-  medium: "bg-amber-300/20 text-amber-50 ring-amber-200/35",
+  normal: "bg-amber-300/20 text-amber-50 ring-amber-200/35",
   low: "bg-sky-400/20 text-sky-100 ring-sky-300/40",
-  lowest: "bg-white/10 text-white/70 ring-white/20",
+};
+
+const STATUS_ACTIONS: Record<
+  BugStatus,
+  { status: BugStatus; label: string }[]
+> = {
+  analysis: [
+    { status: "in_fix", label: "W naprawie" },
+    { status: "retest", label: "Do retestu" },
+  ],
+  in_fix: [
+    { status: "retest", label: "Do retestu" },
+    { status: "analysis", label: "Wróć do analizy" },
+  ],
+  retest: [
+    { status: "analysis", label: "Wróć do analizy" },
+    { status: "in_fix", label: "W naprawie" },
+  ],
 };
 
 function formatWhen(value: Date | string | number | null | undefined): string {
@@ -76,7 +96,7 @@ function sortBugs(rows: BugRow[]): BugRow[] {
 
 export function AdminBugsClient() {
   const { notifySaved, notifyError } = useSaveFeedback();
-  const [tab, setTab] = useState<BugStatus>("open");
+  const [tab, setTab] = useState<BugStatus>("analysis");
   const [bugs, setBugs] = useState<BugRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -132,11 +152,7 @@ export function AdminBugsClient() {
         notifyError(data?.error ?? "Nie udało się zaktualizować zgłoszenia.");
         return;
       }
-      notifySaved(
-        status === "fixed"
-          ? "Oznaczono jako naprawione."
-          : "Przywrócono do otwartych.",
-      );
+      notifySaved(`Status: ${BUG_STATUS_LABELS[status]}.`);
       setBugs((prev) => prev.filter((b) => b.id !== id));
       notifyBugReportsChanged();
     } catch {
@@ -153,30 +169,25 @@ export function AdminBugsClient() {
           Zgłoszenia błędów
         </h2>
         <p className="text-sm text-white/55">
-          Lista od testerów i użytkowników. Naprawione przenieś do zakładki
-          Naprawione.
+          Workflow: Analiza → W naprawie → Do retestu. Priorytety:{" "}
+          {BUG_PRIORITIES.map((p) => BUG_PRIORITY_LABELS[p]).join(", ")}.
         </p>
       </div>
 
-      <div className="flex gap-2 border-b border-white/10 pb-px">
-        {(
-          [
-            { id: "open", label: "Otwarte" },
-            { id: "fixed", label: "Naprawione" },
-          ] as const
-        ).map((item) => (
+      <div className="flex flex-wrap gap-2 border-b border-white/10 pb-px">
+        {BUG_STATUSES.map((id) => (
           <button
-            key={item.id}
+            key={id}
             type="button"
-            onClick={() => setTab(item.id)}
+            onClick={() => setTab(id)}
             className={cn(
               "relative px-1 pb-2 text-sm font-medium transition-colors",
-              tab === item.id
+              tab === id
                 ? "text-[var(--gym-gold)] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--gym-gold)]"
                 : "text-white/55 hover:text-white/80",
             )}
           >
-            {item.label}
+            {BUG_STATUS_LABELS[id]}
           </button>
         ))}
       </div>
@@ -186,9 +197,7 @@ export function AdminBugsClient() {
           <p className="text-sm text-white/50">Ładowanie…</p>
         ) : bugs.length === 0 ? (
           <div className="app-card p-6 text-sm text-white/50">
-            {tab === "open"
-              ? "Brak otwartych zgłoszeń."
-              : "Brak naprawionych zgłoszeń."}
+            Brak zgłoszeń w statusie „{BUG_STATUS_LABELS[tab]}”.
           </div>
         ) : (
           <ul className="space-y-3">
@@ -196,6 +205,8 @@ export function AdminBugsClient() {
               const priority = isBugPriority(bug.priority)
                 ? bug.priority
                 : null;
+              const legacyExpected = bug.expectedBehavior?.trim();
+              const legacySteps = bug.stepsToReproduce?.trim();
               return (
                 <li key={bug.id} className="app-card space-y-3 p-4 sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-2">
@@ -219,26 +230,25 @@ export function AdminBugsClient() {
                         Zgłosił: {reporterLabel(bug)} ({bug.reporterEmail})
                       </p>
                     </div>
-                    {tab === "open" ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={busyId === bug.id}
-                        onClick={() => void setStatus(bug.id, "fixed")}
-                      >
-                        {busyId === bug.id ? "…" : "Oznacz jako zrobione"}
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        disabled={busyId === bug.id}
-                        onClick={() => void setStatus(bug.id, "open")}
-                      >
-                        {busyId === bug.id ? "…" : "Przywróć"}
-                      </Button>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {STATUS_ACTIONS[tab].map((action) => (
+                        <Button
+                          key={action.status}
+                          type="button"
+                          size="sm"
+                          variant={
+                            action.status === "retest" ||
+                            (tab === "analysis" && action.status === "in_fix")
+                              ? "default"
+                              : "secondary"
+                          }
+                          disabled={busyId === bug.id}
+                          onClick={() => void setStatus(bug.id, action.status)}
+                        >
+                          {busyId === bug.id ? "…" : action.label}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="space-y-2 text-sm">
@@ -250,22 +260,26 @@ export function AdminBugsClient() {
                         {bug.description}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-white/35">
-                        Jak powinno wyglądać
-                      </p>
-                      <p className="whitespace-pre-wrap text-white/80">
-                        {bug.expectedBehavior}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-white/35">
-                        Kroki odtworzenia
-                      </p>
-                      <p className="whitespace-pre-wrap text-white/80">
-                        {bug.stepsToReproduce}
-                      </p>
-                    </div>
+                    {legacyExpected ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-white/35">
+                          Jak powinno wyglądać
+                        </p>
+                        <p className="whitespace-pre-wrap text-white/80">
+                          {legacyExpected}
+                        </p>
+                      </div>
+                    ) : null}
+                    {legacySteps ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-white/35">
+                          Kroki odtworzenia
+                        </p>
+                        <p className="whitespace-pre-wrap text-white/80">
+                          {legacySteps}
+                        </p>
+                      </div>
+                    ) : null}
                     {bug.photos && bug.photos.length > 0 ? (
                       <div>
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-white/35">
@@ -292,9 +306,9 @@ export function AdminBugsClient() {
                         </ul>
                       </div>
                     ) : null}
-                    {tab === "fixed" && bug.resolvedAt ? (
+                    {tab === "retest" && bug.resolvedAt ? (
                       <p className="text-[11px] text-white/40">
-                        Naprawione: {formatWhen(bug.resolvedAt)}
+                        Przekazano do retestu: {formatWhen(bug.resolvedAt)}
                       </p>
                     ) : null}
                   </div>

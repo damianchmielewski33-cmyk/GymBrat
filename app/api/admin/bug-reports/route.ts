@@ -5,7 +5,7 @@ import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { bugReportPhotos, bugReports, users } from "@/db/schema";
 import { requireAdminApi } from "@/lib/admin-api";
 import { maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
-import { isBugStatus } from "@/lib/bug-reports";
+import { BUG_ACTIVE_STATUSES, isBugStatus } from "@/lib/bug-reports";
 
 export const runtime = "nodejs";
 
@@ -21,14 +21,14 @@ export async function GET(req: Request) {
     const [row] = await db
       .select({ openCount: count() })
       .from(bugReports)
-      .where(eq(bugReports.status, "open"));
+      .where(inArray(bugReports.status, [...BUG_ACTIVE_STATUSES]));
     return NextResponse.json({
       ok: true,
       openCount: Number(row?.openCount ?? 0),
     });
   }
 
-  const statusParam = url.searchParams.get("status") ?? "open";
+  const statusParam = url.searchParams.get("status") ?? "analysis";
   if (!isBugStatus(statusParam)) {
     return NextResponse.json({ error: "Nieprawidłowy status." }, { status: 400 });
   }
@@ -69,10 +69,10 @@ export async function GET(req: Request) {
 
   const photosByBug = new Map<string, string[]>();
   for (const p of photoRows) {
-    const url = maybeDecryptSensitiveField(p.dataUrl);
-    if (!url) continue;
+    const decrypted = maybeDecryptSensitiveField(p.dataUrl);
+    if (!decrypted) continue;
     const list = photosByBug.get(p.bugReportId) ?? [];
-    list.push(url);
+    list.push(decrypted);
     photosByBug.set(p.bugReportId, list);
   }
 

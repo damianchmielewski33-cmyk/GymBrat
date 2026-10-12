@@ -2,10 +2,6 @@ import { NextResponse } from "next/server";
 import { and, gte, lte } from "drizzle-orm";
 import { requireAdminApi } from "@/lib/admin-api";
 import {
-  analyticsDeploymentPredicate,
-  getAnalyticsDeployment,
-} from "@/lib/analytics-deployment";
-import {
   addCalendarDaysYmd,
   listLocalYmdsInclusive,
   localYmdInclusiveUtcRange,
@@ -20,12 +16,10 @@ export const runtime = "nodejs";
 
 const TZ = () => process.env.ANALYTICS_TIMEZONE?.trim() || "Europe/Warsaw";
 
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
-  const includeUntagged =
-    new URL(req.url).searchParams.get("include_untagged") === "1";
   const timeZone = TZ();
   const toYmd = nowLocalYmd(timeZone);
   const fromYmd = addCalendarDaysYmd(toYmd, -6);
@@ -64,11 +58,7 @@ export async function GET(req: Request) {
     .select({ createdAt: pageViews.createdAt })
     .from(pageViews)
     .where(
-      and(
-        gte(pageViews.createdAt, fromIso),
-        lte(pageViews.createdAt, toIso),
-        analyticsDeploymentPredicate(pageViews.deploymentEnv, includeUntagged),
-      ),
+      and(gte(pageViews.createdAt, fromIso), lte(pageViews.createdAt, toIso)),
     );
 
   const byHourTotal = new Array<number>(24).fill(0);
@@ -137,10 +127,6 @@ export async function GET(req: Request) {
   }));
 
   return NextResponse.json({
-    deployment: {
-      filter: getAnalyticsDeployment(),
-      include_untagged: includeUntagged,
-    },
     timezone: timeZone,
     range: { from: fromYmd, to: toYmd },
     utc_range: { from: fromIso, to: toIso },

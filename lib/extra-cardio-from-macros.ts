@@ -432,16 +432,21 @@ export function elapsedWeekDayCount(
 }
 
 /**
- * Tylko cardio powyżej pro-rata celu tygodnia (pn→dziś) obniża dług makro.
+ * Tylko cardio powyżej pełnego celu tygodnia obniża dług makro.
+ *
+ * Nie używamy pro-rata (cel × dni/7): wczesne domknięcie planu w sobotę
+ * tworzyło „sztuczny nadmiar”, który znikał w niedzielę i zawyżał dodatkowe minuty.
+ * Zwykłe cardio w ramach tygodniowego celu nadal nie kasuje propozycji.
  * Wpisy z calories używają podanych kcal (bez przeliczenia).
  */
-export function cardioKcalAboveProRataGoal(input: {
+export function cardioKcalAboveWeeklyGoal(input: {
   samples: RecentCardioSample[];
   weekKeys: string[];
-  todayKey: string;
+  /** Zachowane dla kompatybilności wywołań — próg to pełny cel tygodnia. */
+  todayKey?: string;
   weeklyCardioGoalMinutes: number;
   burnKcalPerMin: number;
-}): { offsetKcal: number; totalMinutes: number; proRataGoalMinutes: number } {
+}): { offsetKcal: number; totalMinutes: number; goalMinutes: number } {
   const set = new Set(input.weekKeys);
   let totalMinutes = 0;
   let totalKcal = 0;
@@ -456,16 +461,13 @@ export function cardioKcalAboveProRataGoal(input: {
     }
   }
 
-  const elapsed = elapsedWeekDayCount(input.todayKey, input.weekKeys);
-  const goal = Math.max(0, input.weeklyCardioGoalMinutes);
-  const proRataGoalMinutes =
-    goal > 0 ? Math.round((goal * elapsed) / 7) : 0;
-  const excessMinutes = Math.max(0, totalMinutes - proRataGoalMinutes);
+  const goalMinutes = Math.max(0, input.weeklyCardioGoalMinutes);
+  const excessMinutes = Math.max(0, totalMinutes - goalMinutes);
   if (excessMinutes <= 0 || totalMinutes <= 0) {
-    return { offsetKcal: 0, totalMinutes, proRataGoalMinutes };
+    return { offsetKcal: 0, totalMinutes, goalMinutes };
   }
   const offsetKcal = Math.round(totalKcal * (excessMinutes / totalMinutes));
-  return { offsetKcal, totalMinutes, proRataGoalMinutes };
+  return { offsetKcal, totalMinutes, goalMinutes };
 }
 
 /**
@@ -515,7 +517,7 @@ export function computeOpenMacroDebt(input: {
     Math.round(pastDebtKcal + todaySurplusKcal - todaySoftCreditKcal),
   );
 
-  const { offsetKcal: computedOffset } = cardioKcalAboveProRataGoal({
+  const { offsetKcal: computedOffset } = cardioKcalAboveWeeklyGoal({
     samples: input.recentCardio,
     weekKeys: input.weekKeys,
     todayKey: input.todayKey,
@@ -544,12 +546,13 @@ export function computeOpenMacroDebt(input: {
   };
 }
 
-const BURN_SOURCE_LABEL: Record<BurnSource, string> = {
-  calories_entered: "Calories entered",
-  personal_model: "Personal model",
-  heart_rate_model: "Heart rate model",
-  met_model: "MET model",
-  default: "MET model",
+/** Etykiety PL do tooltipa Pulpitu. */
+export const BURN_SOURCE_LABEL_PL: Record<BurnSource, string> = {
+  calories_entered: "Wpisane kcal z treningu",
+  personal_model: "Twój model spalania",
+  heart_rate_model: "Model z tętna",
+  met_model: "Model MET (tempo)",
+  default: "Model MET (domyślny)",
 };
 
 export function computeExtraCardioAdvice(
@@ -645,11 +648,11 @@ export function computeExtraCardioAdvice(
     extraMinutes > 0;
 
   const explanation: string[] = [
-    `Open debt: ${show ? openDebt : 0} kcal`,
-    `Effective debt: ${show ? effectiveSurplusKcal : 0} kcal`,
-    `Cardio offset: ${debt.cardioOffsetKcal} kcal`,
+    `Otwarty dług: ${show ? openDebt : 0} kcal`,
+    `Dług do odrobienia: ${show ? effectiveSurplusKcal : 0} kcal`,
+    `Offset z cardio: ${debt.cardioOffsetKcal} kcal`,
     `Spalanie: ${burnKcalPerMin} kcal/min`,
-    `Źródło spalania: ${BURN_SOURCE_LABEL[burnSource]}`,
+    `Źródło spalania: ${BURN_SOURCE_LABEL_PL[burnSource]}`,
   ];
   if (daysLeft > 0) {
     explanation.push(

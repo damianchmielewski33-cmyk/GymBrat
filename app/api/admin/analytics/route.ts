@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { requireAdminApi } from "@/lib/admin-api";
-import {
-  analyticsDeploymentPredicate,
-  getAnalyticsDeployment,
-} from "@/lib/analytics-deployment";
 import { localYmdInclusiveUtcRange } from "@/lib/analytics-date-range";
 import { SCREEN_LABELS } from "@/lib/analytics-screen";
 import { formatActivityTimePl } from "@/lib/activity-display";
@@ -50,7 +46,6 @@ export async function GET(req: Request) {
     );
   }
 
-  const includeUntagged = url.searchParams.get("include_untagged") === "1";
   const { fromDate, toDate, fromIso, toIso } = range;
   const db = getDb();
 
@@ -61,7 +56,6 @@ export async function GET(req: Request) {
       and(
         gte(pageViews.createdAt, fromIso),
         lte(pageViews.createdAt, toIso),
-        analyticsDeploymentPredicate(pageViews.deploymentEnv, includeUntagged),
       ),
     );
 
@@ -124,10 +118,6 @@ export async function GET(req: Request) {
       and(
         gte(siteActivityLog.createdAt, new Date(fromIso)),
         lte(siteActivityLog.createdAt, new Date(toIso)),
-        analyticsDeploymentPredicate(
-          siteActivityLog.deploymentEnv,
-          includeUntagged,
-        ),
       ),
     )
     .orderBy(desc(siteActivityLog.createdAt))
@@ -146,10 +136,6 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     range: { from: fromDate, to: toDate },
-    deployment: {
-      filter: getAnalyticsDeployment(),
-      include_untagged: includeUntagged,
-    },
     totals,
     screens,
     accounts: {

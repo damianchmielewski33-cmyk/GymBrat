@@ -21,5 +21,5 @@ export function formatWeightRecordLine(previousKg: number, newKg: number): strin
 
 export function workoutFinishFooterLine(workoutsThisWeekBeforeSave: number): string {
   const n = Math.max(1, workoutsThisWeekBeforeSave + 1);
-  return `Po „Gotowe” zapiszesz ${n}. trening w tym tygodniu. Ciężary są w arkuszu postępów — Damian to widzi.`;
+  return `Po „Gotowe” zapiszesz ${n}. trening w tym tygodniu. Ciężary trafią do historii i Postępów.`;
 }

@@ -8,11 +8,11 @@ import { HomeSylwetkaChart } from "@/components/home/home-sylwetka-chart";
 import type { HomeStartWaistPoint, HomeStartWeightPoint } from "@/lib/home-start";
 import { cn } from "@/lib/utils";
 
-function fmtSignedKg(n: number | null): string {
+function fmtSignedValue(n: number | null, unit: string): string {
   if (n == null || !Number.isFinite(n)) return "—";
   const r = Math.round(n * 10) / 10;
   const sign = r > 0 ? "+" : "";
-  return `${sign}${String(r).replace(".", ",")} kg`;
+  return `${sign}${String(r).replace(".", ",")} ${unit}`;
 }
 
 function deltaTone(n: number | null): string {
@@ -48,8 +48,8 @@ export function HomeSylwetkaSection({
       />
 
       <div className="app-card space-y-4 p-5">
-        <div className="flex items-end justify-between gap-4">
-          <div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
             <p className="text-[11px] font-medium text-white/55">Waga</p>
             <div className="mt-1 flex items-baseline gap-2">
               {weightKg != null && Number.isFinite(weightKg) ? (
@@ -69,19 +69,22 @@ export function HomeSylwetkaSection({
             </div>
           </div>
 
-          <div className="space-y-1 text-right text-[12px] tabular-nums">
-            <p className={cn(deltaTone(weightDeltaFromPreviousKg))}>
-              {fmtSignedKg(weightDeltaFromPreviousKg)}
-              <span className="text-white/35"> · od raportu</span>
-            </p>
-            <p className={cn(deltaTone(weightFromStartKg))}>
-              {fmtSignedKg(weightFromStartKg)}
-              <span className="text-white/35"> · od startu</span>
-            </p>
-            <p className="text-white/55">
-              {fmtSignedKg(weightKgPerWeek).replace(" kg", "")} kg/tydz
-              <span className="text-white/35"> · tempo</span>
-            </p>
+          <div
+            className="grid shrink-0 grid-cols-[auto_auto] items-baseline gap-x-1.5 gap-y-1 text-[12px] tabular-nums"
+            aria-label="Zmiany wagi"
+          >
+            <span className={cn("text-right", deltaTone(weightDeltaFromPreviousKg))}>
+              {fmtSignedValue(weightDeltaFromPreviousKg, "kg")}
+            </span>
+            <span className="text-white/35">od raportu</span>
+            <span className={cn("text-right", deltaTone(weightFromStartKg))}>
+              {fmtSignedValue(weightFromStartKg, "kg")}
+            </span>
+            <span className="text-white/35">od startu</span>
+            <span className={cn("text-right", deltaTone(weightKgPerWeek))}>
+              {fmtSignedValue(weightKgPerWeek, "kg/tydz")}
+            </span>
+            <span className="text-white/35">tempo</span>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  cardioKcalAboveProRataGoal,
+  cardioKcalAboveWeeklyGoal,
   cardioKcalInWeek,
   computeExtraCardioAdvice,
   computeOpenMacroDebt,
@@ -288,7 +288,7 @@ describe("extra-cardio-from-macros", () => {
     expect(debt.openDebtKcal).toBe(100);
   });
 
-  it("cardio w ramach pro-rata celu NIE kasuje długu makro", () => {
+  it("cardio w ramach celu tygodnia NIE kasuje długu makro", () => {
     const debt = computeOpenMacroDebt({
       todayKey: "2026-10-07",
       weekKeys,
@@ -302,7 +302,8 @@ describe("extra-cardio-from-macros", () => {
         { dateKey: "2026-10-07", day: day({ caloriesConsumed: 0 }) },
       ],
       recentCardio: [
-        { minutes: 40, calories: 300, paceMinPerKm: 8, dateKey: "2026-10-07" },
+        // 100 min < cel 150 — nawet „przed tempem” pro-rata nie offsetuje
+        { minutes: 100, calories: 800, paceMinPerKm: 8, dateKey: "2026-10-07" },
       ],
     });
     expect(debt.pastDebtKcal).toBe(500);
@@ -310,17 +311,19 @@ describe("extra-cardio-from-macros", () => {
     expect(debt.openDebtKcal).toBe(500);
   });
 
-  it("tylko cardio powyżej pro-rata obniża dług (z limitem 80%)", () => {
-    const { offsetKcal, proRataGoalMinutes } = cardioKcalAboveProRataGoal({
+  it("tylko cardio powyżej celu tygodnia obniża dług (z limitem 80%)", () => {
+    const { offsetKcal, goalMinutes } = cardioKcalAboveWeeklyGoal({
       samples: [
-        { minutes: 100, calories: 800, paceMinPerKm: 8, dateKey: "2026-10-07" },
+        { minutes: 200, calories: 1600, paceMinPerKm: 8, dateKey: "2026-10-07" },
       ],
       weekKeys,
       todayKey: "2026-10-07",
       weeklyCardioGoalMinutes: 150,
       burnKcalPerMin: 8,
     });
-    expect(proRataGoalMinutes).toBe(Math.round((150 * 3) / 7));
+    expect(goalMinutes).toBe(150);
+    // 50/200 minut ponad cel → 25% z 1600 kcal
+    expect(offsetKcal).toBe(400);
 
     const debt = computeOpenMacroDebt({
       todayKey: "2026-10-07",
@@ -335,7 +338,7 @@ describe("extra-cardio-from-macros", () => {
         { dateKey: "2026-10-07", day: day({ caloriesConsumed: 0 }) },
       ],
       recentCardio: [
-        { minutes: 100, calories: 800, paceMinPerKm: 8, dateKey: "2026-10-07" },
+        { minutes: 200, calories: 1600, paceMinPerKm: 8, dateKey: "2026-10-07" },
       ],
     });
     expect(debt.cardioOffsetKcal).toBe(
@@ -344,6 +347,56 @@ describe("extra-cardio-from-macros", () => {
     expect(debt.openDebtKcal).toBe(
       Math.max(0, 500 - debt.cardioOffsetKcal),
     );
+  });
+
+  it("domknięty cel w sobotę nie zawyża dodatkowego cardio w niedzielę bez jedzenia", () => {
+    const weeklyGoal = 210;
+    const cardio = [
+      {
+        minutes: 210,
+        calories: 1680,
+        paceMinPerKm: 7.5,
+        dateKey: "2026-10-10",
+      },
+    ];
+    const ok = day({ caloriesConsumed: 2000 });
+    const surplusFri = day({ caloriesConsumed: 2400 });
+    const surplusSat = day({ caloriesConsumed: 2200 });
+    const empty = day({ caloriesConsumed: 0 });
+
+    const elapsedSat = [
+      { dateKey: "2026-10-05", day: ok },
+      { dateKey: "2026-10-06", day: ok },
+      { dateKey: "2026-10-07", day: ok },
+      { dateKey: "2026-10-08", day: ok },
+      { dateKey: "2026-10-09", day: surplusFri },
+      { dateKey: "2026-10-10", day: surplusSat },
+    ];
+
+    const sat = computeExtraCardioAdvice({
+      todayKey: "2026-10-10",
+      weekKeys,
+      today: surplusSat,
+      elapsedDays: elapsedSat,
+      weightKg: 80,
+      recentCardio: cardio,
+      weeklyCardioGoalMinutes: weeklyGoal,
+    });
+    const sun = computeExtraCardioAdvice({
+      todayKey: "2026-10-11",
+      weekKeys,
+      today: empty,
+      elapsedDays: [...elapsedSat, { dateKey: "2026-10-11", day: empty }],
+      weightKg: 80,
+      recentCardio: cardio,
+      weeklyCardioGoalMinutes: weeklyGoal,
+    });
+
+    // Ten sam wolumen cardio — offset nie znika z dnia na dzień
+    expect(sat.cardioOffsetKcal).toBe(sun.cardioOffsetKcal);
+    // Pusty niedzielny dzień nie powinien skakać do capu 90 przez znikający offset
+    expect(sun.extraMinutes).toBeLessThanOrEqual(sat.extraMinutes + 15);
+    expect(sun.extraMinutes).toBeLessThan(90);
   });
 
   it("wpis z calories używa podanych kcal (bez przeliczania)", () => {
@@ -562,7 +615,7 @@ describe("extra-cardio-from-macros", () => {
       Math.min(90, Math.ceil(advice.effectiveSurplusKcal / advice.burnKcalPerMin)),
     );
     expect(typeof advice.cardioOffsetKcal).toBe("number");
-    expect(advice.explanation.some((l) => l.startsWith("Open debt:"))).toBe(
+    expect(advice.explanation.some((l) => l.startsWith("Otwarty dług:"))).toBe(
       true,
     );
   });

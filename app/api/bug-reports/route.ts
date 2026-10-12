@@ -15,8 +15,6 @@ const MAX_PHOTOS = 4;
 
 const createSchema = z.object({
   description: z.string().trim().min(1).max(8_000),
-  expectedBehavior: z.string().trim().min(1).max(8_000),
-  stepsToReproduce: z.string().trim().min(1).max(8_000),
   priority: z.enum(BUG_PRIORITIES),
   photoDataUrls: z
     .array(z.string().startsWith("data:image/").max(1_500_000))
@@ -62,7 +60,7 @@ export async function POST(req: Request) {
         ok: false,
         error: photoIssue
           ? "Zdjęcie jest zbyt duże lub w złym formacie — spróbuj innego."
-          : "Uzupełnij opis, oczekiwany wygląd, kroki odtworzenia oraz priorytet.",
+          : "Uzupełnij opis błędu oraz priorytet.",
       },
       { status: 400 },
     );
@@ -75,10 +73,10 @@ export async function POST(req: Request) {
     .values({
       userId: session.user.id,
       description: parsed.data.description,
-      expectedBehavior: parsed.data.expectedBehavior,
-      stepsToReproduce: parsed.data.stepsToReproduce,
+      expectedBehavior: "",
+      stepsToReproduce: "",
       priority: parsed.data.priority,
-      status: "open",
+      status: "analysis",
     })
     .returning({ id: bugReports.id });
 

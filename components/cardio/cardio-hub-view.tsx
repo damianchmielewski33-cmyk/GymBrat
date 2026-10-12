@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Pencil,
   Play,
-  Watch,
 } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
@@ -60,7 +59,6 @@ function wejscLabel(n: number): string {
 
 export function CardioHubView({ data }: { data: CardioHubData }) {
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [sheetHint, setSheetHint] = useState<"manual" | "watch">("manual");
   /** 1 = zeszły tydzień, 2 = dwa tygodnie wstecz… */
   const [compareWeekIndex, setCompareWeekIndex] = useState(1);
   const today = data.todayKey;
@@ -95,11 +93,6 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
     }
     return max;
   }, [data.last8]);
-
-  function openAdd(kind: "manual" | "watch") {
-    setSheetHint(kind);
-    setSheetOpen(true);
-  }
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-10">
@@ -163,30 +156,14 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
             Nagraj trasę
           </Link>
 
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => openAdd("manual")}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/15 bg-black/25 text-[13px] font-semibold text-white/85"
-            >
-              <Pencil className="h-3.5 w-3.5" aria-hidden />
-              Dodaj wpis
-            </button>
-            <button
-              type="button"
-              onClick={() => openAdd("watch")}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/15 bg-black/25 text-[13px] font-semibold text-white/85"
-            >
-              <Watch className="h-3.5 w-3.5" aria-hidden />
-              Z zegarka
-            </button>
-          </div>
-          {sheetHint === "watch" && sheetOpen ? (
-            <p className="text-[11px] text-white/40">
-              Wpisz wynik z zegarka — na następnym ekranie możesz dodać zdjęcie
-              ekranu.
-            </p>
-          ) : null}
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-black/25 text-[13px] font-semibold text-white/85"
+          >
+            <Pencil className="h-3.5 w-3.5" aria-hidden />
+            Dodaj wpis
+          </button>
         </div>
       </section>
 
@@ -599,7 +576,7 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         cardioGoalMinutes={data.goalMinutes}
-        defaultTitle={sheetHint === "watch" ? "Zegarek" : "Marsz"}
+        defaultTitle="Marsz"
       />
     </div>
   );

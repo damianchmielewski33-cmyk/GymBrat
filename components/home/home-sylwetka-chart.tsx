@@ -139,7 +139,7 @@ export function HomeSylwetkaChart({
           <LineChart
             key={range}
             data={filtered}
-            margin={{ top: 16, right: 8, left: 0, bottom: 0 }}
+            margin={{ top: 18, right: 4, left: 0, bottom: 0 }}
           >
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
             <XAxis
@@ -155,7 +155,7 @@ export function HomeSylwetkaChart({
               tick={{ fill: "rgba(232,197,71,0.65)", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
-              width={36}
+              width={34}
               domain={["dataMin - 1", "dataMax + 1"]}
               tickFormatter={(v) => formatNum(Number(v), 1)}
             />
@@ -165,9 +165,9 @@ export function HomeSylwetkaChart({
               tick={{ fill: "rgba(134,239,172,0.7)", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
-              width={36}
+              width={28}
               domain={["dataMin - 1", "dataMax + 1"]}
-              tickFormatter={(v) => formatNum(Number(v), 1)}
+              tickFormatter={(v) => formatNum(Number(v), 0)}
             />
             <Tooltip
               contentStyle={tooltipStyle}
@@ -209,9 +209,9 @@ export function HomeSylwetkaChart({
                           />
                           {isLast ? (
                             <text
-                              x={cx}
+                              x={cx - 8}
                               y={cy - 10}
-                              textAnchor="middle"
+                              textAnchor="end"
                               fill="rgba(232,197,71,0.95)"
                               fontSize={11}
                               fontWeight={600}

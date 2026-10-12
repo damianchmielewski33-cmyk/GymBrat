@@ -52,7 +52,8 @@
   },
   "openDebt": {
     "formula": "openDebt = max(0, pastDebt + todaySurplus − todaySoftCredit − cardioOffset)",
-    "cardioOffset": "min(computedProRataExcessOffset, debtBeforeCardio × 0.80)"
+    "cardioOffset": "min(computedWeeklyExcessOffset, debtBeforeCardio × 0.80)",
+    "weeklyExcess": "tylko minuty powyżej pełnego celu cardio/tydzień (nie pro-rata pn→dziś) — unika klifu sobota→niedziela po wczesnym domknięciu planu"
   },
   "effectiveSurplus": {
     "formula": [
@@ -96,12 +97,13 @@
   },
   "tooltip": {
     "fields": [
-      "Open debt (kcal)",
-      "Effective debt (kcal)",
-      "Cardio offset (kcal)",
+      "Otwarty dług (kcal)",
+      "Dług do odrobienia (kcal)",
+      "Offset z cardio (kcal)",
       "Spalanie (kcal/min)",
-      "Źródło spalania: Calories entered | Personal model | Heart rate model | MET model"
-    ]
+      "Źródło spalania: Wpisane kcal z treningu | Twój model spalania | Model z tętna | Model MET"
+    ],
+    "language": "pl"
   },
   "ui": {
     "location": "Pulpit → pasek Cardio",

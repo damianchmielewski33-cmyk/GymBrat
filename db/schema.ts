@@ -529,7 +529,9 @@ export const workoutsRelations = relations(workouts, ({ one }) => ({
 
 /**
  * Zgłoszenia błędów od testerów / użytkowników.
- * status: `open` | `fixed`; priority jak w Jira: highest|high|medium|low|lowest
+ * status: `analysis` | `in_fix` | `retest`
+ * priority: `critical` | `high` | `normal` | `low`
+ * expected_behavior / steps_to_reproduce: legacy (puste przy nowych zgłoszeniach).
  */
 export const bugReports = sqliteTable(
   "bug_reports",
@@ -541,10 +543,10 @@ export const bugReports = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     description: text("description").notNull(),
-    expectedBehavior: text("expected_behavior").notNull(),
-    stepsToReproduce: text("steps_to_reproduce").notNull(),
+    expectedBehavior: text("expected_behavior").notNull().default(""),
+    stepsToReproduce: text("steps_to_reproduce").notNull().default(""),
     priority: text("priority").notNull(),
-    status: text("status").notNull().default("open"),
+    status: text("status").notNull().default("analysis"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .notNull()
       .$defaultFn(() => new Date()),

@@ -48,6 +48,14 @@ function tonnageParts(kg: number): { value: string; unit: string } {
   };
 }
 
+/** Skraca nazwy z planu (np. „(film w panelu)”) — mniej ucięć w liście. */
+function displayExerciseName(name: string): string {
+  return name
+    .replace(/\s*\(\s*film[^)]*\)\s*/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function BestSetStat({
   row,
 }: {
@@ -55,7 +63,7 @@ function BestSetStat({
 }) {
   if (row.kind === "bodyweight") {
     return (
-      <span className="whitespace-nowrap">
+      <span className="whitespace-nowrap tabular-nums">
         {row.reps}
         <span className="font-normal text-white/40"> powt.</span>
       </span>
@@ -64,7 +72,8 @@ function BestSetStat({
   return (
     <span className="whitespace-nowrap tabular-nums">
       {formatKgPl(row.weight)}
-      <span className="mx-0.5 font-normal text-white/35">×</span>
+      <span className="font-normal text-white/45"> kg</span>
+      <span className="mx-1 font-normal text-white/35">×</span>
       {row.reps}
     </span>
   );
@@ -78,11 +87,11 @@ function FinishListRow({
   stat: ReactNode;
 }) {
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-3.5">
-      <p className="text-[14px] font-medium leading-snug text-white/90 line-clamp-2">
-        {name}
+    <li className="grid grid-cols-[minmax(0,1fr)_minmax(5.75rem,auto)] items-center gap-x-3 px-4 py-3.5">
+      <p className="min-w-0 text-[14px] font-medium leading-snug text-white/90 line-clamp-2">
+        {displayExerciseName(name)}
       </p>
-      <p className="text-right text-[14px] font-semibold text-[var(--gym-gold)]">
+      <p className="justify-self-end text-right text-[14px] font-semibold leading-none text-[var(--gym-gold)]">
         {stat}
       </p>
     </li>
@@ -178,29 +187,29 @@ export function WorkoutFinishedScreen(props: WorkoutFinishedScreenProps) {
   const footerLine =
     workoutsThisWeek != null
       ? workoutFinishFooterLine(workoutsThisWeek)
-      : "Po „Gotowe” ciężary trafią do historii i Postępów — Damian widzi je w raporcie.";
+      : "Po „Gotowe” ciężary trafią do historii i Postępów.";
 
   const planLabel = title.trim().toUpperCase() || "TRENING";
   const recordsSectionIndex = 1;
   const bestSetsSectionIndex = weightRecords.length > 0 ? 2 : 1;
 
   const content = (
-    <div className="fixed inset-0 z-[90] flex flex-col bg-[var(--gym-black)] text-white">
+    <div className="fixed inset-0 z-[120] flex flex-col bg-[var(--gym-black)] text-white">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-        <div className="mx-auto w-full max-w-lg px-4 pb-6 pt-[max(1rem,env(safe-area-inset-top))] sm:px-5">
-          <header className="flex items-center gap-3 pt-2">
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10">
+        <div className="mx-auto w-full max-w-lg px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] sm:px-5">
+          <header className="flex items-start gap-3 pt-1">
+            <span className="mt-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10">
               <Trophy
                 className="h-5 w-5 text-[var(--gym-gold)]"
                 strokeWidth={1.5}
                 aria-hidden
               />
             </span>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
                 {planLabel}
               </p>
-              <h1 className="mt-0.5 font-display text-[1.75rem] font-semibold leading-[1.05] text-white sm:text-[2rem]">
+              <h1 className="mt-1 font-heading text-[1.65rem] font-semibold leading-[1.1] tracking-tight text-white sm:text-[1.85rem]">
                 Trening zrobiony
               </h1>
             </div>
@@ -216,15 +225,15 @@ export function WorkoutFinishedScreen(props: WorkoutFinishedScreenProps) {
                 Tonaż
               </p>
               <p className="mt-2 flex items-baseline gap-2">
-                <span className="font-metric text-[2.85rem] leading-none tabular-nums text-white sm:text-[3.15rem]">
+                <span className="font-metric text-[2.75rem] leading-none tabular-nums text-white sm:text-[3.1rem]">
                   {tonnage.value}
                 </span>
-                <span className="pb-1 text-lg font-semibold uppercase tracking-wide text-white/75">
+                <span className="pb-1 text-base font-semibold uppercase tracking-wide text-white/70">
                   {tonnage.unit}
                 </span>
               </p>
-              <div className="mt-5 grid grid-cols-3 gap-2 border-t border-white/10 pt-4">
-                <div>
+              <div className="mt-5 grid grid-cols-3 gap-0 border-t border-white/10 pt-4">
+                <div className="pr-2">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
                     Czas
                   </p>
@@ -232,7 +241,7 @@ export function WorkoutFinishedScreen(props: WorkoutFinishedScreenProps) {
                     {formatWorkoutDurationPl(elapsedSeconds)}
                   </p>
                 </div>
-                <div className="border-x border-white/[0.06] px-2 text-center">
+                <div className="border-x border-white/[0.07] px-3 text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
                     Serie
                   </p>
@@ -243,7 +252,7 @@ export function WorkoutFinishedScreen(props: WorkoutFinishedScreenProps) {
                     ) : null}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="pl-2 text-right">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
                     Ćwiczenia
                   </p>
@@ -263,7 +272,7 @@ export function WorkoutFinishedScreen(props: WorkoutFinishedScreenProps) {
                 title="Nowe rekordy"
                 trailing={String(weightRecords.length)}
               />
-              <ul className="app-card divide-y divide-white/[0.06]">
+              <ul className="app-card divide-y divide-white/[0.06] overflow-hidden">
                 {weightRecords.map((row) => (
                   <FinishListRow
                     key={row.exerciseId}
@@ -283,7 +292,7 @@ export function WorkoutFinishedScreen(props: WorkoutFinishedScreenProps) {
                 title="Najlepsze serie"
                 trailing={String(bestSets.length)}
               />
-              <ul className="app-card divide-y divide-white/[0.06]">
+              <ul className="app-card divide-y divide-white/[0.06] overflow-hidden">
                 {bestSets.map((row) => (
                   <FinishListRow
                     key={row.exerciseId}
@@ -301,17 +310,17 @@ export function WorkoutFinishedScreen(props: WorkoutFinishedScreenProps) {
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-white/[0.06] bg-[var(--gym-black)]/95 backdrop-blur-md">
-        <div className="mx-auto w-full max-w-lg space-y-3 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
+      <div className="shrink-0 border-t border-white/[0.06] bg-[var(--gym-black)]/98 backdrop-blur-md">
+        <div className="mx-auto w-full max-w-lg space-y-2.5 px-4 py-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] sm:px-5">
           <div
-            className="flex gap-3 rounded-2xl border border-white/[0.08] bg-[#101010] py-3 pl-3 pr-4"
+            className="flex gap-3 rounded-2xl border border-white/[0.08] bg-[#101010] py-3 pl-3 pr-3.5"
             role="status"
           >
             <span
-              className="w-1 shrink-0 rounded-full bg-emerald-400"
+              className="w-1 shrink-0 self-stretch rounded-full bg-emerald-400"
               aria-hidden
             />
-            <p className="text-[12px] leading-relaxed text-white/65">{footerLine}</p>
+            <p className="text-[12px] leading-snug text-white/65">{footerLine}</p>
           </div>
 
           {cardioOpen ? (
@@ -328,7 +337,7 @@ export function WorkoutFinishedScreen(props: WorkoutFinishedScreenProps) {
                 >
                   −
                 </button>
-                <p className="min-w-[5rem] text-center font-display text-3xl tabular-nums text-[var(--gym-gold)]">
+                <p className="min-w-[5rem] text-center font-heading text-3xl tabular-nums text-[var(--gym-gold)]">
                   {draftMinutes}
                   <span className="ml-1 text-sm text-white/45">min</span>
                 </p>
@@ -400,25 +409,24 @@ export function WorkoutFinishedScreen(props: WorkoutFinishedScreenProps) {
                 </button>
               </div>
             </div>
-          ) : cardioMinutes > 0 ? (
-            <button
-              type="button"
-              onClick={() => setCardioOpen(true)}
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 text-sm text-[var(--gym-gold)] hover:text-[var(--gym-gold-bright)]"
-            >
-              <Flame className="h-4 w-4 shrink-0" aria-hidden />
-              Cardio: {cardioSummaryBits.join(" · ")}
-            </button>
           ) : (
             <button
               type="button"
               onClick={() => setCardioOpen(true)}
               className={cn(
-                "inline-flex min-h-11 w-full items-center justify-center gap-2 text-sm font-medium text-white/70 transition hover:text-white",
+                "inline-flex min-h-10 w-full items-center justify-center gap-2 text-sm font-medium transition",
+                cardioMinutes > 0
+                  ? "text-[var(--gym-gold)] hover:text-[var(--gym-gold-bright)]"
+                  : "text-white/70 hover:text-white",
               )}
             >
-              <Flame className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
-              Dodaj cardio po treningu
+              <Flame
+                className="h-4 w-4 shrink-0 text-[var(--gym-gold)]"
+                aria-hidden
+              />
+              {cardioMinutes > 0
+                ? `Cardio: ${cardioSummaryBits.join(" · ")}`
+                : "Dodaj cardio po treningu"}
             </button>
           )}
 

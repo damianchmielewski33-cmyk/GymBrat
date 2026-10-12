@@ -114,6 +114,19 @@ describe("food-products local db", () => {
     const kiwi = searchLocalProducts("kiwi")[0]!;
     expect(kiwi.details?.vitaminCMg).toBeGreaterThan(50);
   });
+
+  it("banan ma makro jak Fitatu (97 kcal / 100 g, 1 szt. 120 g → 116 kcal)", () => {
+    const banan = searchLocalProducts("banan")[0]!;
+    expect(banan.id).toBe("local-banan");
+    expect(banan.calories).toBe(97);
+    expect(banan.proteinG).toBe(1);
+    expect(banan.fatG).toBe(0.3);
+    expect(banan.carbsG).toBe(21.8);
+    expect(banan.gramsPerPiece).toBe(120);
+    const piece = scaleFoodMacros(banan, 1, "pcs");
+    expect(piece.calories).toBe(116);
+    expect(piece.effectiveGrams).toBe(120);
+  });
 });
 
 describe("food-portion", () => {

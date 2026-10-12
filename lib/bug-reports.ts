@@ -2,25 +2,36 @@
 export const BUG_REPORTS_CHANGED_EVENT = "gymbrat:bug-reports-changed";
 
 export const BUG_PRIORITIES = [
-  "highest",
+  "critical",
   "high",
-  "medium",
+  "normal",
   "low",
-  "lowest",
 ] as const;
 
 export type BugPriority = (typeof BUG_PRIORITIES)[number];
 
 export const BUG_PRIORITY_LABELS: Record<BugPriority, string> = {
-  highest: "Najwyższy",
+  critical: "Krytyczny",
   high: "Wysoki",
-  medium: "Średni",
+  normal: "Normalny",
   low: "Niski",
-  lowest: "Najniższy",
 };
 
-export const BUG_STATUSES = ["open", "fixed"] as const;
+/** Statusy workflow zgłoszenia. */
+export const BUG_STATUSES = ["analysis", "in_fix", "retest"] as const;
 export type BugStatus = (typeof BUG_STATUSES)[number];
+
+export const BUG_STATUS_LABELS: Record<BugStatus, string> = {
+  analysis: "Analiza",
+  in_fix: "W naprawie",
+  retest: "Do retestu",
+};
+
+/** Statusy liczone w czerwonej cyferce admina (jeszcze nie do retestu). */
+export const BUG_ACTIVE_STATUSES: readonly BugStatus[] = [
+  "analysis",
+  "in_fix",
+];
 
 export function isBugPriority(value: unknown): value is BugPriority {
   return (
@@ -36,7 +47,7 @@ export function isBugStatus(value: unknown): value is BugStatus {
   );
 }
 
-/** Kolejność jak w Jira — najwyższy pierwszy. */
+/** Kolejność: krytyczny pierwszy. */
 export function bugPriorityRank(priority: BugPriority): number {
   return BUG_PRIORITIES.indexOf(priority);
 }

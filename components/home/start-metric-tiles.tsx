@@ -74,6 +74,10 @@ function MetricTile({
   );
 }
 
+/** Stała siatka B/W/T — te same torów w nagłówku i wierszach (wyrównane kolumny). */
+const MACRO_COLS =
+  "grid grid-cols-[1.15rem_minmax(0,1.15fr)_2.4rem_minmax(0,1fr)] gap-x-1";
+
 function MacroRemainRow({
   label,
   remaining,
@@ -103,11 +107,11 @@ function MacroRemainRow({
 
   return (
     <div className="min-w-0 space-y-1">
-      <div className="grid grid-cols-[1.5rem_minmax(0,1fr)_2.75rem_minmax(0,1fr)] items-baseline gap-x-1.5">
+      <div className={cn(MACRO_COLS, "items-baseline")}>
         <span className="text-[11px] font-semibold tracking-wide text-white/50">
           {label}
         </span>
-        <span className="tabular-nums text-[12px] font-medium leading-none text-white">
+        <span className="truncate text-right tabular-nums text-[12px] font-medium leading-none text-white">
           {eaten}
           <span className="ml-0.5 text-[10px] font-normal text-white/35">g</span>
         </span>
@@ -125,7 +129,7 @@ function MacroRemainRow({
         </span>
         <span
           className={cn(
-            "text-right tabular-nums text-[12px] font-medium leading-none",
+            "truncate text-right tabular-nums text-[12px] font-medium leading-none",
             left == null
               ? "text-white/35"
               : over
@@ -211,19 +215,20 @@ function MacroProgressTile({
       {hasGoals ? (
         <div
           className={cn(
-            "grid grid-cols-[1.5rem_minmax(0,1fr)_2.75rem_minmax(0,1fr)] gap-x-1.5",
+            MACRO_COLS,
+            "items-end",
             kcalRemaining != null ? "mt-2" : "mt-2.5",
           )}
         >
           <span aria-hidden />
-          <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-white/35">
+          <span className="text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-white/35">
             zjedz.
           </span>
-          <span className="text-right text-[9px] font-semibold uppercase tracking-[0.1em] text-white/35">
+          <span className="text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-white/35">
             %
           </span>
-          <span className="text-right text-[9px] font-semibold uppercase tracking-[0.1em] text-white/35">
-            zostało
+          <span className="text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-white/35">
+            zost.
           </span>
         </div>
       ) : null}

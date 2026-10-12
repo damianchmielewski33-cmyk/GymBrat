@@ -117,7 +117,7 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
       tempo.lastAvgKg != null
         ? ` · średnia ${fmtKg(tempo.lastAvgKg)}`
         : "";
-    return `${dow} ${formatDayMonth(tempo.lastReportDate)} · ${fmtKg(tempo.currentKg, 0)} kg${avg}`;
+    return `${dow} ${formatDayMonth(tempo.lastReportDate)} · ${fmtKg(tempo.currentKg, 1)} kg${avg}`;
   }, [tempo]);
 
   function saveGoal() {
@@ -175,7 +175,7 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
           </div>
           <div className="pt-1 text-right">
             <p className="font-metric text-[22px] leading-none text-white">
-              {fmtSigned(tempo.deltaFromStartKg, " kg", 0)}
+              {fmtSigned(tempo.deltaFromStartKg, " kg", 1)}
             </p>
             <p className="mt-1 text-[11px] text-white/40">od startu</p>
             <p className="mt-2 text-[12px] text-[var(--gym-gold)]/85">
@@ -220,7 +220,7 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
                   tempo.startDate ? ` · ${formatDayMonth(tempo.startDate)}` : ""
                 }`,
                 value:
-                  tempo.startKg != null ? `${fmtKg(tempo.startKg, 0)} kg` : "—",
+                  tempo.startKg != null ? `${fmtKg(tempo.startKg, 1)} kg` : "—",
               },
             ] as const
           ).map((row) => (

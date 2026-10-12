@@ -21,7 +21,10 @@ describe("workout-finish-format", () => {
     expect(formatWeightRecordLine(38.5, 40)).toBe("38,5 → 40 kg");
   });
 
-  it("stopka tygodnia", () => {
-    expect(workoutFinishFooterLine(2)).toContain("3. trening w tym tygodniu");
+  it("stopka tygodnia bez wzmianki o Damianie", () => {
+    const line = workoutFinishFooterLine(2);
+    expect(line).toContain("3. trening w tym tygodniu");
+    expect(line).toContain("historii i Postępów");
+    expect(line.toLowerCase()).not.toContain("damian");
   });
 });

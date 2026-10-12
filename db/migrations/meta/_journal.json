@@ -57,6 +57,13 @@
       "when": 1782000000000,
       "tag": "0010_bug_report_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1783000000000,
+      "tag": "0011_bug_report_workflow",
+      "breakpoints": true
     }
   ]
 }
