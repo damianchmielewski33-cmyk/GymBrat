@@ -18,16 +18,22 @@ export const BUG_PRIORITY_LABELS: Record<BugPriority, string> = {
 };
 
 /** Statusy workflow zgłoszenia. */
-export const BUG_STATUSES = ["analysis", "in_fix", "retest"] as const;
+export const BUG_STATUSES = [
+  "analysis",
+  "in_fix",
+  "retest",
+  "fixed",
+] as const;
 export type BugStatus = (typeof BUG_STATUSES)[number];
 
 export const BUG_STATUS_LABELS: Record<BugStatus, string> = {
   analysis: "Analiza",
   in_fix: "W naprawie",
   retest: "Do retestu",
+  fixed: "Naprawiony",
 };
 
-/** Statusy liczone w czerwonej cyferce admina (jeszcze nie do retestu). */
+/** Statusy liczone w czerwonej cyferce admina (jeszcze nie do retestu / naprawione). */
 export const BUG_ACTIVE_STATUSES: readonly BugStatus[] = [
   "analysis",
   "in_fix",

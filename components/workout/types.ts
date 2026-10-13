@@ -30,6 +30,19 @@ export type WorkoutExerciseState = {
   suggestedWeights?: Array<number | null>;
   /** Ostatnia sesja tego ćwiczenia — do „Ostatnio …” i progresji. */
   lastSessionSets?: Array<WorkoutSetState | null>;
+  /** Kontekst 2–4 ostatnich treningów (przerwa, stagnacja, średni top). */
+  coachContext?: ExerciseCoachContext | null;
+  /** Kategoria katalogu (izolacja vs compound). */
+  categoryId?: string | null;
   /** Link YouTube techniki (z panelu admina, po dopasowaniu katalogu). */
   techniqueYoutubeUrl?: string | null;
+};
+
+/** Agregat historii ćwiczenia dla live coach / chipów. */
+export type ExerciseCoachContext = {
+  daysSinceLastSession: number | null;
+  recentSessionCount: number;
+  avgTopSetWeightKg: number | null;
+  /** Brak progresji ciężaru/powtórzeń przez kilka treningów. */
+  stagnant: boolean;
 };

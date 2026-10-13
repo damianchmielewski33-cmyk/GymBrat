@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { AnimatedDumbbellMark } from "@/components/branding/animated-dumbbell-mark";
 import { useBrandingUrl } from "@/components/branding/branding-provider";
 import { cn } from "@/lib/utils";
 
@@ -22,18 +23,18 @@ export function AuthHeroBrand({
   return (
     <div className={cn("text-center", compact ? "mb-5" : "mb-8 sm:mb-10")}>
       <motion.div
-        initial={{ opacity: 1, y: 8 }}
+        className="flex flex-col items-center"
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: easeOut }}
       >
+        <AnimatedDumbbellMark size={compact ? "sm" : "lg"} />
+
         <Link
           href="/login"
           className={cn(
-            "inline-flex items-center justify-center rounded-sm font-display font-normal uppercase tracking-[0.04em] text-white",
+            "mt-4 inline-flex max-w-full flex-col items-center justify-center rounded-sm",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]/80",
-            compact
-              ? "max-w-[min(100%,14rem)] text-4xl"
-              : "w-full max-w-[min(100%,22rem)] text-6xl sm:max-w-[min(100%,26rem)] sm:text-7xl md:text-8xl",
           )}
           aria-label="GymBrat — strona główna"
         >
@@ -43,17 +44,22 @@ export function AuthHeroBrand({
               src={logoUrl}
               alt="GymBrat"
               className={cn(
-                "mx-auto h-auto w-full object-contain object-center",
+                "mx-auto h-auto w-auto object-contain object-center",
                 compact
-                  ? "max-h-14"
-                  : "max-h-[7.5rem] sm:max-h-[9rem] md:max-h-[10rem]",
+                  ? "max-h-10 max-w-[min(70vw,11rem)]"
+                  : "max-h-14 max-w-[min(72vw,14rem)] sm:max-h-16 sm:max-w-[16rem]",
               )}
             />
           ) : (
-            <>
+            <span
+              className={cn(
+                "font-display font-normal uppercase leading-none tracking-[0.08em] text-white",
+                compact ? "text-4xl" : "text-5xl sm:text-6xl md:text-7xl",
+              )}
+            >
               Gym
               <span className="text-[var(--neon)]">Brat</span>
-            </>
+            </span>
           )}
         </Link>
       </motion.div>
@@ -65,7 +71,7 @@ export function AuthHeroBrand({
             ? "mt-4 text-xl sm:text-[1.35rem]"
             : "mt-6 text-xl sm:mt-7 sm:text-2xl",
         )}
-        initial={{ opacity: 1, y: 6 }}
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, delay: 0.12, ease: easeOut }}
       >
@@ -79,7 +85,7 @@ export function AuthHeroBrand({
             ? "mt-2 max-w-sm text-sm"
             : "mt-3 max-w-md text-sm sm:text-base",
         )}
-        initial={{ opacity: 1, y: 4 }}
+        initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, delay: 0.22, ease: easeOut }}
       >

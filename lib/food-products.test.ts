@@ -67,9 +67,20 @@ describe("food-products local db", () => {
 
   it("znajduje kiwi po wpisaniu z klawiatury", () => {
     const hits = searchLocalProducts("kiwi");
-    expect(hits.some((p) => /kiwi/i.test(p.name))).toBe(true);
+    expect(hits[0]?.id).toBe("local-kiwi");
     expect(normalizeFoodQuery("Jabłko")).toBe("jablko");
     expect(searchLocalProducts("jablko").some((p) => /jabł/i.test(p.name))).toBe(true);
+  });
+
+  it("podpowiada jak Fitatu: ban→Banan, ki/kiw→Kiwi (bez mid-word)", () => {
+    expect(searchLocalProducts("ban")[0]?.id).toBe("local-banan");
+    expect(searchLocalProducts("bana")[0]?.id).toBe("local-banan");
+    expect(searchLocalProducts("ki")[0]?.id).toBe("local-kiwi");
+    expect(searchLocalProducts("kiw")[0]?.id).toBe("local-kiwi");
+    // „ki” nie może wyciągać „grecki” (mid-word)
+    expect(
+      searchLocalProducts("ki").every((p) => !/grecki/i.test(p.name)),
+    ).toBe(true);
   });
 
   it("liczba mnoga trafia w lokalne owoce (truskawki → Truskawka)", () => {
@@ -126,6 +137,16 @@ describe("food-products local db", () => {
     const piece = scaleFoodMacros(banan, 1, "pcs");
     expect(piece.calories).toBe(116);
     expect(piece.effectiveGrams).toBe(120);
+  });
+
+  it("kiwi ma makro jak Fitatu (61 kcal / 100 g)", () => {
+    const kiwi = searchLocalProducts("kiwi")[0]!;
+    expect(kiwi.id).toBe("local-kiwi");
+    expect(kiwi.calories).toBe(61);
+    expect(kiwi.proteinG).toBe(1.1);
+    expect(kiwi.fatG).toBe(0.5);
+    expect(kiwi.carbsG).toBe(14.7);
+    expect(kiwi.gramsPerPiece).toBe(75);
   });
 });
 

@@ -1,11 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { englishFoodQueryVariants } from "@/lib/food-query-i18n";
+import {
+  englishFoodQueryVariants,
+  polishStapleQueriesFromEnglishName,
+} from "@/lib/food-query-i18n";
 import { mapUsdaFoodToProduct } from "@/lib/food-products-usda";
 
 describe("food-query-i18n", () => {
   it("tłumaczy truskawki → strawberry", () => {
     expect(englishFoodQueryVariants("truskawki")).toContain("strawberry");
     expect(englishFoodQueryVariants("pierś kurczak").length).toBeGreaterThan(0);
+  });
+
+  it("prefix PL→EN jak Fitatu: ban→banana, kiw→kiwi", () => {
+    expect(englishFoodQueryVariants("ban")).toContain("banana");
+    expect(englishFoodQueryVariants("kiw")).toContain("kiwi");
+  });
+
+  it("EN nazwa USDA → PL stapel (Banana, raw → banan)", () => {
+    expect(polishStapleQueriesFromEnglishName("Banana, raw")).toContain("banan");
+    expect(polishStapleQueriesFromEnglishName("Kiwi fruit")).toContain("kiwi");
   });
 });
 

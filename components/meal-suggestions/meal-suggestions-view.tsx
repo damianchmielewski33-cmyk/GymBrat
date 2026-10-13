@@ -309,12 +309,22 @@ export function MealSuggestionsView({
     setScanOpen(true);
   }, []);
 
-  /** Wejście z pulpitu: ?tab=diary&add=1 → ekran dodawania / skanu. */
+  /** Wejście z pulpitu: ?tab=diary&scan=1 → od razu aparat; ?add=1 → ekran dodawania. */
   useEffect(() => {
-    if (searchParams.get("add") !== "1") return;
+    const openScanDeepLink = searchParams.get("scan") === "1";
+    const openAddDeepLink = searchParams.get("add") === "1";
+    if (!openScanDeepLink && !openAddDeepLink) return;
+
     const slot = dietDiarySlotFromHour(new Date().getHours());
-    setAddSlot(slot);
+    if (openScanDeepLink) {
+      setScanSlot(slot);
+      setScanOpen(true);
+    } else {
+      setAddSlot(slot);
+    }
+
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("scan");
     params.delete("add");
     const qs = params.toString();
     router.replace(qs ? `?${qs}` : "?", { scroll: false });

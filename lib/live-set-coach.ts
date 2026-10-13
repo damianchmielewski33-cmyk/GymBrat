@@ -5,10 +5,24 @@
 
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
 import {
+  easySetsRequiredForWeightBump,
+  inferMovementKind,
+} from "@/lib/exercise-movement-kind";
+import {
+  classifyEffort,
+  isEasyEffort,
+  isHardEffort,
+  isWarnEffort,
+} from "@/lib/set-effort";
+import {
+  analyzeSessionTrend,
+  applyDeload,
   buildSetProgressionSuggestion,
   bumpWeightByPlate,
+  countTrailingEasySets,
   formatKgPl,
   resolveRepRange,
+  type LastSetSnapshot,
   type SetProgressionSuggestion,
 } from "@/lib/set-progression-suggestion";
 import { isCompletedWorkoutSet } from "@/lib/workout-skipped-sets";
@@ -27,12 +41,7 @@ export type LiveCoachTip = {
   apply: { weightKg: number; reps: number } | null;
 };
 
-function dropWeightByPlate(kg: number, step = 2.5): number {
-  if (!Number.isFinite(kg) || kg <= 0) return 0;
-  return Math.max(0, Math.round((kg - step) * 2) / 2);
-}
-
-function snap(s: WorkoutSetState | null | undefined) {
+function snap(s: WorkoutSetState | null | undefined): LastSetSnapshot | null {
   if (!s) return null;
   return {
     weight: Math.max(0, Number(s.weight) || 0),
@@ -137,20 +146,37 @@ function tipFromProgression(
   const lead = pickCoachVariant(`${seed}|lead`, leads);
   const reason = pickCoachVariant(`${seed}|reason`, reasons);
   const body = `${fillTemplate(lead, { hl: p.highlight })}${reason}`;
-  return tipPlain(id, "progress", body, {
-    weightKg: p.weightKg,
-    reps: p.reps,
-  }, p.highlight);
+  return tipPlain(
+    id,
+    "progress",
+    body,
+    {
+      weightKg: p.weightKg,
+      reps: p.reps,
+    },
+    p.highlight,
+  );
 }
 
+/** Kolejne twarde (RIR≤0 / RPE≥9) wstecz. */
 function countHardStreak(sets: WorkoutSetState[], beforeIndex: number): number {
   let n = 0;
   for (let i = beforeIndex - 1; i >= 0; i--) {
     const s = sets[i]!;
     if (!isCompletedWorkoutSet(s)) break;
-    const hard =
-      (s.rir != null && s.rir <= 0) || (s.rpe != null && s.rpe >= 9);
-    if (!hard) break;
+    if (!isHardEffort(s)) break;
+    n += 1;
+  }
+  return n;
+}
+
+/** Kolejne „na styk” (RIR=1 / warn) wstecz — ostrzeżenie przed forsowaniem. */
+function countWarnStreak(sets: WorkoutSetState[], beforeIndex: number): number {
+  let n = 0;
+  for (let i = beforeIndex - 1; i >= 0; i--) {
+    const s = sets[i]!;
+    if (!isCompletedWorkoutSet(s)) break;
+    if (!isWarnEffort(s)) break;
     n += 1;
   }
   return n;
@@ -164,6 +190,20 @@ function sessionVolumeKg(sets: WorkoutSetState[], upToExclusive: number): number
     if (s.weight > 0 && s.reps > 0) v += s.weight * s.reps;
   }
   return v;
+}
+
+function completedSnapsBefore(
+  sets: WorkoutSetState[],
+  beforeIndex: number,
+): LastSetSnapshot[] {
+  const out: LastSetSnapshot[] = [];
+  for (let i = 0; i < beforeIndex; i++) {
+    const s = sets[i]!;
+    if (!isCompletedWorkoutSet(s)) continue;
+    const sn = snap(s);
+    if (sn && sn.weight > 0 && sn.reps != null) out.push(sn);
+  }
+  return out;
 }
 
 /**
@@ -182,6 +222,12 @@ export function buildLiveCoachTipForOpenSet(
   const setLabel = `${setIndex + 1}/${sets.length}`;
   const isLastSet = setIndex === sets.length - 1;
   const isFirstSet = setIndex === 0;
+  const movementKind = inferMovementKind(
+    exercise.name || "",
+    exercise.categoryId,
+  );
+  const easyNeeded = easySetsRequiredForWeightBump(movementKind);
+  const ctx = exercise.coachContext ?? null;
 
   if (isCompletedWorkoutSet(current)) {
     const w = current.weight;
@@ -206,33 +252,56 @@ export function buildLiveCoachTipForOpenSet(
 
   const range = resolveRepRange(exercise.targetReps);
   const targetRir = exercise.targetRir ?? 1;
-  const prevInSession = setIndex > 0 ? snap(sets[setIndex - 1]!) : null;
-  const prevDone =
-    prevInSession &&
-    sets[setIndex - 1] &&
-    isCompletedWorkoutSet(sets[setIndex - 1]!)
-      ? prevInSession
-      : null;
+  const priorSnaps = completedSnapsBefore(sets, setIndex);
+  const prevDone = priorSnaps.length > 0 ? priorSnaps[priorSnaps.length - 1]! : null;
   const hardStreak = countHardStreak(sets, setIndex);
+  const warnStreak = countWarnStreak(sets, setIndex);
   const doneVolume = sessionVolumeKg(sets, setIndex);
+  const trend = analyzeSessionTrend(priorSnaps);
 
-  // —— Analiza vs poprzednia seria w tym treningu ——
+  // —— Analiza vs poprzednie serie w tym treningu ——
   if (prevDone && prevDone.weight > 0 && prevDone.reps != null) {
-    const hard =
-      (prevDone.rir != null && prevDone.rir <= 0) ||
-      (prevDone.rpe != null && prevDone.rpe >= 9) ||
-      hardStreak >= 1;
-    const easy =
-      (prevDone.rir != null && prevDone.rir >= 3) ||
-      (prevDone.rpe != null && prevDone.rpe > 0 && prevDone.rpe <= 6);
+    const effort = classifyEffort(prevDone);
+    const hard = effort === "hard" || hardStreak >= 1;
+    const conflict = effort === "conflict";
+    const easy = isEasyEffort(prevDone);
     const belowMin = range != null && prevDone.reps < range.min;
     const atMax = range != null && prevDone.reps >= range.max;
     const midRange =
-      range != null && prevDone.reps >= range.min && prevDone.reps < range.max;
+      range != null &&
+      prevDone.reps >= range.min &&
+      prevDone.reps < range.max;
+    const fatigueDrop = trend != null && trend.repsDrop >= 2 && setIndex >= 1;
+    const highVol =
+      setIndex >= 3 ||
+      (doneVolume > 0 &&
+        prevDone.weight > 0 &&
+        doneVolume >=
+          prevDone.weight *
+            (exercise.targetReps != null ? exercise.targetReps : 8) *
+            2.5);
+    const trailingEasy = countTrailingEasySets(priorSnaps);
 
-    // Kilka twardych z rzędu albo zdecydowanie poniżej zakresu → deload.
-    if (hard || belowMin || hardStreak >= 2) {
-      const nextW = dropWeightByPlate(prevDone.weight);
+    // Konflikt RIR/RPE → bezpieczny hold
+    if (conflict) {
+      const hl = `${formatKgPl(prevDone.weight)} kg × ${prevDone.reps}`;
+      const body = pickCoachVariant(`${seedBase}|conflict`, [
+        `RIR i RPE się gryzą — seria {set}: trzymaj {hl}, bez dokładki.`,
+        `Niespójne dane wysiłku. Powtórz {hl} i oceń zapas na czysto.`,
+        `{ex}: bezpieczny hold na {hl} (sprzeczny RIR/RPE).`,
+      ]);
+      return tipPlain(
+        "session-conflict-hold",
+        "hold",
+        fillTemplate(body, { hl, set: setLabel, ex: exName }),
+        { weightKg: prevDone.weight, reps: prevDone.reps },
+        hl,
+      );
+    }
+
+    // Twardo / poniżej zakresu / hard streak / kilka warn (RIR=1) z rzędu
+    if (hard || belowMin || hardStreak >= 2 || warnStreak >= 3 || fatigueDrop) {
+      const nextW = applyDeload(prevDone.weight);
       const nextR = range ? range.min : prevDone.reps;
       if (nextW > 0 && nextW < prevDone.weight) {
         const hl = `${formatKgPl(nextW)} kg × ${nextR}`;
@@ -243,7 +312,9 @@ export function buildLiveCoachTipForOpenSet(
           `Zmęczenie rośnie (seria {set}) — spróbuj {hl}, zdejmij {drop} kg.`,
           belowMin
             ? `Nie dobiłeś zakresu — za ciężko. Na serię {set}: {hl}.`
-            : `Ostatnia na styk — na {set}: {hl} (−{drop} kg).`,
+            : warnStreak >= 3
+              ? `Kilka serii na styk (RIR≈1) — zejdź: {hl} (−{drop} kg).`
+              : `Ostatnia na styk — na {set}: {hl} (−{drop} kg).`,
         ]);
         return tipPlain(
           "session-deload",
@@ -276,14 +347,14 @@ export function buildLiveCoachTipForOpenSet(
       );
     }
 
-    // Duży zapas + góra zakresu → +ciężar.
-    if (easy && atMax) {
+    // Duży zapas + góra zakresu + N łatwych z rzędu (nie przy wysokiej objętości)
+    if (easy && atMax && trailingEasy >= easyNeeded && !highVol) {
       const nextW = bumpWeightByPlate(prevDone.weight);
       const nextR = range ? range.min : prevDone.reps;
       const hl = `${formatKgPl(nextW)} kg × ${nextR}`;
       const body = pickCoachVariant(`${seedBase}|bump`, [
-        `Zapas był duży — seria {set}: idź na {hl}.`,
-        `{ex}: czas na dokładkę. Cel: {hl}.`,
+        `Zapas był duży przez kilka serii — seria {set}: idź na {hl}.`,
+        `{ex}: czas na dokładkę po łatwych seriach. Cel: {hl}.`,
         `Góra zakresu przyszła łatwo → {hl} (potem wracasz do dołu zakresu).`,
         isLastSet
           ? `Ostatnia seria {ex}: jeśli forma trzyma, spróbuj {hl}.`
@@ -303,7 +374,32 @@ export function buildLiveCoachTipForOpenSet(
       );
     }
 
-    // Środek / dół zakresu — dobij powtórzenia (różne akcenty).
+    // Na górze, ale za mało łatwych / wysoka objętość → hold
+    if (atMax && (!easy || trailingEasy < easyNeeded || highVol)) {
+      const hl = `${formatKgPl(prevDone.weight)} kg × ${prevDone.reps}`;
+      const body = pickCoachVariant(`${seedBase}|need-easy`, [
+        highVol
+          ? `Duża objętość już zrobiona — seria {set}: trzymaj {hl}, bez dokładki.`
+          : `Góra zakresu OK, ale potrzeba jeszcze łatwej serii zanim +kg. Trzymaj {hl}.`,
+        `{ex}: utrzymaj {hl} — potwierdź zapas zanim ruszysz talerz.`,
+        isLastSet
+          ? `Ostatnia seria: domknij na {hl}, bez forsowania.`
+          : `Stabilny blok: {hl}. Nie dokładaj „na jedno RIR”.`,
+      ]);
+      return tipPlain(
+        "session-hold",
+        "hold",
+        fillTemplate(body, {
+          hl,
+          set: setLabel,
+          ex: exName,
+        }),
+        { weightKg: prevDone.weight, reps: prevDone.reps },
+        hl,
+      );
+    }
+
+    // Środek / dół zakresu — dobij powtórzenia
     if (midRange || (range && prevDone.reps < range.max && !hard)) {
       const nextR = Math.min(range!.max, prevDone.reps + 1);
       const hl = `${formatKgPl(prevDone.weight)} kg × ${nextR}`;
@@ -340,7 +436,6 @@ export function buildLiveCoachTipForOpenSet(
       );
     }
 
-    // Solidna seria na górze bez dużego zapasu → hold.
     const hl = `${formatKgPl(prevDone.weight)} kg × ${prevDone.reps}`;
     const body = pickCoachVariant(`${seedBase}|hold`, [
       `Powtórz jakość: {hl} na serię {set}.`,
@@ -366,19 +461,75 @@ export function buildLiveCoachTipForOpenSet(
     );
   }
 
-  // —— Pierwsza otwarta seria: progresja vs ostatni trening ——
+  // —— Pierwsza otwarta seria: historia 2–4 treningów / layoff / stagnacja ——
   const lastHist =
     exercise.lastSessionSets?.[setIndex] ??
     exercise.lastSessionSets?.[0] ??
     null;
   const lastSnap = snap(lastHist);
+  const histSets = (exercise.lastSessionSets ?? [])
+    .map((s) => snap(s))
+    .filter((s): s is LastSetSnapshot => s != null && s.weight > 0 && s.reps != null);
+
+  if (
+    isFirstSet &&
+    ctx?.daysSinceLastSession != null &&
+    ctx.daysSinceLastSession >= 14 &&
+    lastSnap &&
+    lastSnap.weight > 0
+  ) {
+    const base =
+      ctx.avgTopSetWeightKg != null && ctx.avgTopSetWeightKg > 0
+        ? ctx.avgTopSetWeightKg
+        : lastSnap.weight;
+    const nextW = applyDeload(base);
+    const reps = range?.min ?? lastSnap.reps ?? 8;
+    if (nextW > 0 && nextW < base) {
+      const hl = `${formatKgPl(nextW)} kg × ${reps}`;
+      const body = pickCoachVariant(`${seedBase}|layoff`, [
+        `Długa przerwa ({days} dni) — start lżej: {hl}.`,
+        `Po powrocie nie zaczynaj od ego. Otwórz {ex} na {hl}.`,
+        `Historia + przerwa → dziś {hl}, potem ocenisz zapas.`,
+      ]);
+      return tipPlain(
+        "hist-layoff",
+        "caution",
+        fillTemplate(body, {
+          hl,
+          ex: exName,
+          days: ctx.daysSinceLastSession,
+        }),
+        { weightKg: nextW, reps },
+        hl,
+      );
+    }
+  }
+
+  if (isFirstSet && ctx?.stagnant && lastSnap && lastSnap.weight > 0) {
+    const nextW = applyDeload(lastSnap.weight);
+    const reps = range?.min ?? lastSnap.reps ?? 8;
+    if (nextW > 0 && nextW < lastSnap.weight) {
+      const hl = `${formatKgPl(nextW)} kg × ${reps}`;
+      const body = pickCoachVariant(`${seedBase}|stagnation`, [
+        `Brak progresji od kilku treningów — deload: {hl}, potem nowy zakres.`,
+        `{ex} stoi w miejscu. Zejdź na {hl} i domknij czysto.`,
+        `Stagnacja → reset: {hl}.`,
+      ]);
+      return tipPlain(
+        "hist-stagnation",
+        "caution",
+        fillTemplate(body, { hl, ex: exName }),
+        { weightKg: nextW, reps },
+        hl,
+      );
+    }
+  }
+
   const histHard =
-    lastSnap != null &&
-    ((lastSnap.rir != null && lastSnap.rir <= 0) ||
-      (lastSnap.rpe != null && lastSnap.rpe >= 9));
+    lastSnap != null && isHardEffort(lastSnap);
 
   if (histHard && lastSnap && lastSnap.weight > 0 && lastSnap.reps != null) {
-    const nextW = dropWeightByPlate(lastSnap.weight);
+    const nextW = applyDeload(lastSnap.weight);
     const reps = range
       ? Math.min(Math.max(lastSnap.reps, range.min), range.max)
       : lastSnap.reps;
@@ -411,11 +562,27 @@ export function buildLiveCoachTipForOpenSet(
     );
   }
 
+  const histPrior =
+    histSets.length > 1 ? histSets.slice(0, -1) : histSets.slice(0, 0);
+  const histLast = histSets.length > 0 ? histSets[histSets.length - 1]! : lastSnap;
+
   const progression = buildSetProgressionSuggestion({
-    last: lastSnap,
+    last: histLast,
+    priorSets: histPrior,
     targetReps: exercise.targetReps,
+    movementKind,
+    exerciseName: exercise.name,
+    categoryId: exercise.categoryId,
+    setIndex,
+    sessionVolumeKg: doneVolume,
+    daysSinceLastSession: ctx?.daysSinceLastSession,
+    stagnant: ctx?.stagnant,
+    avgRecentTopWeightKg: ctx?.avgTopSetWeightKg,
   });
-  if (progression) {
+  if (
+    progression &&
+    (progression.kind === "weight" || progression.kind === "reps")
+  ) {
     return tipFromProgression("hist-progress", progression, seedBase);
   }
 

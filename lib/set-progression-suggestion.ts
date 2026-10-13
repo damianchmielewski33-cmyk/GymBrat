@@ -1,7 +1,22 @@
 /**
- * Sugestia progresji serii (double progression) — teksty jak w makiecie sesji.
- * Pokazuj tylko gdy warto zwiększyć ciężar albo powtórzenia względem ostatniego treningu.
+ * Double progression + deload % — wspólny silnik dla Live Coach i chipów.
+ *
+ * - Najpierw powtórzenia do range.max (bez easy_anywhere).
+ * - +kg dopiero po N kolejnych łatwych seriach na górze zakresu.
+ * - RIR > RPE; konflikt → brak progresji (hold).
+ * - Deload: max(2.5 kg, 5% ciężaru).
  */
+
+import {
+  easySetsRequiredForWeightBump,
+  inferMovementKind,
+  type MovementKind,
+} from "@/lib/exercise-movement-kind";
+import {
+  classifyEffort,
+  isEasyEffort,
+  isHardEffort,
+} from "@/lib/set-effort";
 
 export type LastSetSnapshot = {
   weight: number;
@@ -26,9 +41,12 @@ export type SetProgressionSuggestion = {
   deltaKg: number;
   kind: "weight" | "reps";
   reason: string;
+  /** Kod reguły (testy / debug). */
+  rule?: string;
 };
 
 const PLATE_STEP = 2.5;
+const DELOAD_PCT = 0.05;
 
 export function formatKgPl(kg: number): string {
   if (!Number.isFinite(kg)) return "0";
@@ -42,15 +60,26 @@ export function roundToPlateStep(kg: number, step = PLATE_STEP): number {
   return Math.round(kg / step) * step;
 }
 
-/** +2,5 kg z precyzją 0,5 (jak steppers w sesji) — bez cofania 38,5 → 37,5. */
+/** +2,5 kg z precyzją 0,5 (jak steppers w sesji). */
 export function bumpWeightByPlate(kg: number, step = PLATE_STEP): number {
   if (!Number.isFinite(kg) || kg <= 0) return 0;
   return Math.round((kg + step) * 2) / 2;
 }
 
+/** Deload: max(2.5 kg, 5% ciężaru roboczego). */
+export function deloadDropKg(workingKg: number): number {
+  if (!Number.isFinite(workingKg) || workingKg <= 0) return PLATE_STEP;
+  return Math.max(PLATE_STEP, workingKg * DELOAD_PCT);
+}
+
+export function applyDeload(workingKg: number): number {
+  const drop = deloadDropKg(workingKg);
+  return Math.max(0, Math.round((workingKg - drop) * 2) / 2);
+}
+
 /**
- * Zakres powtórzeń z planu: `targetReps` traktujemy jako górę zakresu
- * (np. 10 → 8–10), szerokość 2 gdy cel ≥ 5.
+ * Zakresy: low-rep (siła) dostaje przestrzeń 3–4, 2–3, 1–2
+ * zamiast sztywnego 4–4 / 3–3.
  */
 export function resolveRepRange(
   targetReps: number | null | undefined,
@@ -59,8 +88,11 @@ export function resolveRepRange(
     return null;
   }
   const max = Math.max(1, Math.min(99, Math.round(targetReps)));
-  const min = max >= 5 ? Math.max(1, max - 2) : max;
-  return { min, max };
+  if (max <= 1) return { min: 1, max: 1 };
+  if (max === 2) return { min: 1, max: 2 };
+  if (max === 3) return { min: 2, max: 3 };
+  if (max === 4) return { min: 3, max: 4 };
+  return { min: Math.max(1, max - 2), max };
 }
 
 export function formatRepRangeLabel(range: RepRange): string {
@@ -80,27 +112,13 @@ export function formatLastSetLine(last: LastSetSnapshot): string | null {
   return `Ostatnio ${r} powt.`;
 }
 
-/** Padnięcie / awaria formy — nie dokładaj ciężaru. RIR 1 przy górze zakresu to OK. */
-function isGrindingSet(last: LastSetSnapshot): boolean {
-  return (
-    (last.rir != null && Number.isFinite(last.rir) && last.rir <= 0) ||
-    (last.rpe != null && Number.isFinite(last.rpe) && last.rpe >= 9)
-  );
-}
-
-function isEasySet(last: LastSetSnapshot): boolean {
-  return (
-    (last.rir != null && Number.isFinite(last.rir) && last.rir >= 3) ||
-    (last.rpe != null && Number.isFinite(last.rpe) && last.rpe > 0 && last.rpe <= 6)
-  );
-}
-
 function buildSuggestion(args: {
   weightKg: number;
   reps: number;
   deltaKg: number;
   kind: "weight" | "reps";
   reason: string;
+  rule?: string;
 }): SetProgressionSuggestion {
   const highlight = `${formatKgPl(args.weightKg)} kg × ${args.reps}`;
   const suffixParts: string[] = [];
@@ -122,17 +140,96 @@ function buildSuggestion(args: {
     deltaKg: args.deltaKg,
     kind: args.kind,
     reason: args.reason,
+    rule: args.rule,
   };
+}
+
+export function countTrailingEasySets(sets: LastSetSnapshot[]): number {
+  let n = 0;
+  for (let i = sets.length - 1; i >= 0; i--) {
+    const s = sets[i]!;
+    if (
+      s.reps == null ||
+      !Number.isFinite(s.reps) ||
+      s.reps < 1 ||
+      !isEasyEffort(s)
+    ) {
+      break;
+    }
+    n += 1;
+  }
+  return n;
+}
+
+export type SessionTrend = {
+  bestReps: number;
+  avgReps: number;
+  repsDrop: number;
+  setCount: number;
+};
+
+export function analyzeSessionTrend(sets: LastSetSnapshot[]): SessionTrend | null {
+  const reps = sets
+    .map((s) =>
+      s.reps != null && Number.isFinite(s.reps) && s.reps > 0
+        ? Math.round(s.reps)
+        : null,
+    )
+    .filter((r): r is number => r != null);
+  if (reps.length === 0) return null;
+  const bestReps = Math.max(...reps);
+  const avgReps = reps.reduce((a, b) => a + b, 0) / reps.length;
+  const repsDrop = Math.max(0, reps[0]! - reps[reps.length - 1]!);
+  return { bestReps, avgReps, repsDrop, setCount: sets.length };
+}
+
+export type BuildProgressionArgs = {
+  last: LastSetSnapshot | null | undefined;
+  targetReps?: number | null;
+  /** Serie przed `last` (ta sama sesja / historia). */
+  priorSets?: LastSetSnapshot[];
+  movementKind?: MovementKind;
+  exerciseName?: string;
+  categoryId?: string | null;
+  setIndex?: number;
+  sessionVolumeKg?: number;
+  daysSinceLastSession?: number | null;
+  stagnant?: boolean;
+  avgRecentTopWeightKg?: number | null;
+  /**
+   * Gdy true — zwraca też deload jako kind=reps z niższym ciężarem
+   * (live coach używa osobnych tipów; chipy wolą null + hold).
+   */
+  includeDeload?: boolean;
+};
+
+const LAYOFF_DAYS = 14;
+const HIGH_VOLUME_SETS_FACTOR = 2.5;
+
+function isHighSessionVolume(
+  volumeKg: number | undefined,
+  weightKg: number,
+  targetReps: number | null | undefined,
+  setIndex: number,
+): boolean {
+  if (setIndex >= 3) return true;
+  if (volumeKg == null || !Number.isFinite(volumeKg) || volumeKg <= 0) {
+    return false;
+  }
+  const midReps =
+    targetReps != null && Number.isFinite(targetReps)
+      ? Math.max(1, targetReps)
+      : 8;
+  return volumeKg >= weightKg * midReps * HIGH_VOLUME_SETS_FACTOR;
 }
 
 /**
  * Buduje propozycję „Dziś spróbuj…”, gdy warto zwiększyć ciężar lub powtórzenia.
- * Zwraca `null`, gdy brak historii albo brak sensu progresji.
+ * Hold / konflikt / „za mało easy” → null (caller pokazuje hold).
  */
-export function buildSetProgressionSuggestion(args: {
-  last: LastSetSnapshot | null | undefined;
-  targetReps?: number | null;
-}): SetProgressionSuggestion | null {
+export function buildSetProgressionSuggestion(
+  args: BuildProgressionArgs,
+): SetProgressionSuggestion | null {
   const last = args.last;
   if (!last) return null;
   const weight = Math.max(0, Number(last.weight) || 0);
@@ -143,12 +240,85 @@ export function buildSetProgressionSuggestion(args: {
       : null;
   if (reps == null) return null;
 
+  const kind =
+    args.movementKind ??
+    inferMovementKind(args.exerciseName ?? "", args.categoryId);
+  const easyNeeded = easySetsRequiredForWeightBump(kind);
   const range = resolveRepRange(args.targetReps);
-  const easy = isEasySet(last);
-  const grinding = isGrindingSet(last);
+  const effort = classifyEffort(last);
+  const setIndex = args.setIndex ?? 0;
+  const prior = args.priorSets ?? [];
+  const trail = [...prior, last];
+  const trailingEasy = countTrailingEasySets(trail);
+  const trend = analyzeSessionTrend(trail);
+  const highVol = isHighSessionVolume(
+    args.sessionVolumeKg,
+    weight,
+    args.targetReps,
+    setIndex,
+  );
 
-  // Padnięcie (RIR 0 / RPE 9+) → nie dokładaj kg; ewentualnie dobij powt. w zakresie.
-  if (grinding) {
+  if (effort === "conflict") return null;
+
+  // Layoff / stagnacja — deload tylko gdy includeDeload (live coach ma własne tipy)
+  if (
+    args.includeDeload &&
+    setIndex === 0 &&
+    args.daysSinceLastSession != null &&
+    args.daysSinceLastSession >= LAYOFF_DAYS
+  ) {
+    const base =
+      args.avgRecentTopWeightKg != null &&
+      Number.isFinite(args.avgRecentTopWeightKg) &&
+      args.avgRecentTopWeightKg > 0
+        ? args.avgRecentTopWeightKg
+        : weight;
+    const nextW = applyDeload(base);
+    if (nextW < weight) {
+      return buildSuggestion({
+        weightKg: nextW,
+        reps: range?.min ?? Math.max(1, reps - 1),
+        deltaKg: 0,
+        kind: "reps",
+        reason: "długa przerwa — zejdź z ciężarem",
+        rule: "layoff_reduce",
+      });
+    }
+  }
+
+  if (args.includeDeload && args.stagnant && setIndex === 0) {
+    const nextW = applyDeload(weight);
+    if (nextW < weight) {
+      return buildSuggestion({
+        weightKg: nextW,
+        reps: range?.min ?? reps,
+        deltaKg: 0,
+        kind: "reps",
+        reason: "stagnacja — deload i reset zakresu",
+        rule: "stagnation_deload",
+      });
+    }
+  }
+
+  // Spadek powtórzeń między seriami → nie bumpuj
+  if (trend && trend.setCount >= 2 && trend.repsDrop >= 2 && setIndex >= 1) {
+    return null;
+  }
+
+  if (effort === "hard" || isHardEffort(last)) {
+    if (args.includeDeload) {
+      const nextW = applyDeload(weight);
+      if (nextW < weight) {
+        return buildSuggestion({
+          weightKg: nextW,
+          reps: range?.min ?? Math.max(1, reps - 1),
+          deltaKg: 0,
+          kind: "reps",
+          reason: "ostatnio było na styk — zejdź i domknij czysto",
+          rule: "below_range_or_hard",
+        });
+      }
+    }
     if (range && reps < range.max) {
       const nextReps = Math.min(range.max, reps + 1);
       if (nextReps > reps) {
@@ -158,43 +328,22 @@ export function buildSetProgressionSuggestion(args: {
           deltaKg: 0,
           kind: "reps",
           reason: "ostatnio było na styk — najpierw domknij zakres",
+          rule: "in_range_add_reps",
         });
       }
     }
     return null;
   }
 
-  // Góra zakresu → +ciężar, zejdź do dołu zakresu (albo zostaw te same powt. gdy brak zakresu).
-  if (range && reps >= range.max) {
-    const nextW = bumpWeightByPlate(weight);
-    if (nextW <= weight) return null;
-    return buildSuggestion({
-      weightKg: nextW,
-      reps: range.min,
-      deltaKg: nextW - weight,
-      kind: "weight",
-      reason: easy
-        ? "góra zakresu z zapasem"
-        : "ostatnio była góra zakresu",
-    });
+  if (!range) return null;
+
+  if (reps < range.min) {
+    return null;
   }
 
-  // Duży zapas → też +ciężar (nawet poniżej góry).
-  if (easy) {
-    const nextW = bumpWeightByPlate(weight);
-    if (nextW <= weight) return null;
-    const nextReps = range ? Math.min(Math.max(reps, range.min), range.max) : reps;
-    return buildSuggestion({
-      weightKg: nextW,
-      reps: nextReps,
-      deltaKg: nextW - weight,
-      kind: "weight",
-      reason: "ostatnio był duży zapas",
-    });
-  }
-
-  // W zakresie, ale poniżej góry → dobij powtórzenia przy tym samym ciężarze.
-  if (range && reps < range.max) {
+  // W zakresie poniżej max → zawsze +reps (nigdy +kg / easy_anywhere)
+  if (reps < range.max) {
+    if (kind === "isolation" && effort === "warn") return null;
     const nextReps = Math.min(range.max, reps + 1);
     if (nextReps <= reps) return null;
     return buildSuggestion({
@@ -206,6 +355,26 @@ export function buildSetProgressionSuggestion(args: {
         reps <= range.min
           ? "ostatnio był dół zakresu"
           : "ostatnio było poniżej góry zakresu",
+      rule: "in_range_add_reps",
+    });
+  }
+
+  // Na górze zakresu — +kg tylko po N łatwych z rzędu
+  if (reps >= range.max) {
+    if (highVol) return null;
+    if (!isEasyEffort(last) || trailingEasy < easyNeeded) return null;
+    const nextW = bumpWeightByPlate(weight);
+    if (nextW <= weight) return null;
+    return buildSuggestion({
+      weightKg: nextW,
+      reps: range.min,
+      deltaKg: nextW - weight,
+      kind: "weight",
+      reason:
+        trailingEasy >= easyNeeded
+          ? "góra zakresu po kolejnych łatwych seriach"
+          : "góra zakresu z zapasem",
+      rule: "top_of_range_easy",
     });
   }
 
@@ -216,11 +385,19 @@ export function buildSetProgressionSuggestion(args: {
 export function suggestedWeightFromProgression(args: {
   last: LastSetSnapshot | null | undefined;
   targetReps?: number | null;
+  priorSets?: LastSetSnapshot[];
+  movementKind?: MovementKind;
+  exerciseName?: string;
+  setIndex?: number;
+  sessionVolumeKg?: number;
 }): number | null {
   const suggestion = buildSetProgressionSuggestion(args);
   if (suggestion) return suggestion.weightKg;
   const last = args.last;
   if (!last) return null;
   const w = Math.max(0, Number(last.weight) || 0);
-  return w > 0 ? roundToPlateStep(w) : null;
+  // Hold: zachowaj ciężar roboczy (nie roundToPlateStep — 36 → 35).
+  return w > 0 ? Math.round(w * 2) / 2 : null;
 }
+
+export { classifyEffort, isEasyEffort, isHardEffort };

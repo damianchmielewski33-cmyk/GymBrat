@@ -53,15 +53,20 @@ export function foodTokenStem(token: string): string {
 function foodTokensLooseMatch(a: string, b: string): boolean {
   if (!a || !b) return false;
   if (a === b) return true;
-  if (a.includes(b) || b.includes(a)) return true;
+  // Krótkie tokeny („w”, „i”, „z”) nie mogą matchować przez includes w środku słowa
+  // (inaczej „w” w „Tuńczyk w wodzie” trafia „truskawki”).
+  if (a.length < 3 || b.length < 3) return false;
+  const shorter = a.length <= b.length ? a : b;
+  const longer = a.length <= b.length ? b : a;
+  if (shorter.length >= 3 && longer.includes(shorter)) return true;
   const sa = foodTokenStem(a);
   const sb = foodTokenStem(b);
-  if (sa === sb) return true;
+  if (sa.length >= 4 && sa === sb) return true;
   if (sa.length >= 5 && sb.length >= 5) {
     if (sa.startsWith(sb) || sb.startsWith(sa)) return true;
-    // wspólny prefix (truskaw…)
-    const n = Math.min(6, sa.length, sb.length);
-    if (sa.slice(0, n) === sb.slice(0, n)) return true;
+    // wspólny prefix (truskaw…) — min. 5 znaków, żeby nie łączyć przypadkowych słów
+    const n = Math.min(5, sa.length, sb.length);
+    if (n >= 5 && sa.slice(0, n) === sb.slice(0, n)) return true;
   }
   return false;
 }
@@ -123,68 +128,120 @@ export function buildFoodSearchVariants(query: string): string[] {
   return [...variants].filter((v) => normalizeFoodQuery(v).length >= 2).slice(0, 6);
 }
 
+/**
+ * Scoring jak w Fitatu: prefix nazwy / tokenu (ban→Banan, ki→Kiwi),
+ * bez mid-word („ki” w „grecki”). Lokalna baza silnie preferowana.
+ */
 export function scoreProductAgainstQuery(query: string, p: FoodProduct): number {
   const q = normalizeFoodQuery(query);
   if (!q) return 0;
-  const parts = q.split(" ").filter((x) => x.length >= 2);
+  const parts = q.split(" ").filter(Boolean);
+  const nameOnly = normalizeFoodQuery(p.name);
+  const brandOnly = normalizeFoodQuery(p.brand ?? "");
   const hay = normalizeFoodQuery(
     `${p.name} ${p.brand ?? ""} ${p.barcode ?? ""} ${p.servingLabel}`,
   );
-  const nameOnly = normalizeFoodQuery(p.name);
+  const nameTokens = nameOnly.split(" ").filter((t) => t.length >= 2);
+  const brandTokens = brandOnly.split(" ").filter((t) => t.length >= 2);
+
   let score = 0;
-  if (hay === q || nameOnly === q) score += 20;
-  if (hay.startsWith(q) || nameOnly.startsWith(q)) score += 12;
-  if (hay.includes(q) || nameOnly.includes(q)) score += 8;
-  if (foodTokensLooseMatch(nameOnly, q)) score += 14;
+
+  if (nameOnly === q) score += 100;
+  else if (hay === q) score += 90;
+
+  // Wpisywanie litery po literze: „ban” → „banan”, „kiw” → „kiwi”
+  if (nameOnly.startsWith(q)) score += 70;
+  else if (nameTokens.some((t) => t.startsWith(q))) score += 55;
+  else if (brandTokens.some((t) => t.startsWith(q))) score += 35;
+
+  // Odmiana / liczba mnoga: truskawki ↔ truskawka (ten sam rdzeń)
+  const qStem = foodTokenStem(q);
+  if (
+    qStem.length >= 4 &&
+    nameTokens.some((t) => foodTokenStem(t) === qStem)
+  ) {
+    score += 65;
+  }
 
   let matched = 0;
-  const nameParts = nameOnly.split(" ").filter((x) => x.length >= 2);
   for (const part of parts) {
-    if (hay.includes(part) || foodTokensLooseMatch(part, nameOnly)) {
-      score += part.length >= 4 ? 4 : 2;
+    if (part.length < 2) continue;
+    const tokenPrefix =
+      nameTokens.some((t) => t === part || t.startsWith(part)) ||
+      brandTokens.some((t) => t === part || t.startsWith(part));
+    if (tokenPrefix) {
+      score += part.length >= 4 ? 10 : 6;
       matched += 1;
       continue;
     }
-    if (nameParts.some((np) => foodTokensLooseMatch(part, np))) {
-      score += part.length >= 4 ? 4 : 2;
-      matched += 1;
+    // Luźniejsze dopasowanie tylko dla dłuższych tokenów (truskawki↔truskawka)
+    if (part.length >= 4) {
+      if (nameTokens.some((t) => foodTokensLooseMatch(part, t))) {
+        score += 8;
+        matched += 1;
+        continue;
+      }
+      if (hay.includes(part)) {
+        score += 2;
+        matched += 1;
+      }
     }
   }
+
   if (parts.length >= 2) {
-    if (matched === parts.length) score += 10;
+    if (matched === parts.length) score += 15;
     else if (matched < Math.ceil(parts.length * 0.5)) return 0;
-  } else if (matched === 0 && score < 8) {
+  } else if (matched === 0 && score < 35) {
+    // Jedno krótkie zapytanie bez prefixu tokenu → odrzuć (np. „ki” ≠ grecki)
     return 0;
   }
 
   const brands = detectFoodBrandTokens(q);
   for (const b of brands) {
-    const brandHay = normalizeFoodQuery(p.brand ?? "");
-    if (brandHay.includes(b) || hay.includes(b)) score += 6;
+    if (brandOnly.includes(b) || hay.includes(b)) score += 8;
   }
-  // Preferuj lokalną bazę GymBrat nad losowymi wynikami OFF przy tym samym trafieniu.
-  if (p.source === "local") score += 5;
+
+  // Krótsza, „czysta” nazwa stapli (Banan) ponad „Banan chips …”
+  if (nameOnly.startsWith(q) && nameTokens.length === 1) score += 12;
+
+  // Preferuj lokalną bazę (makro jak Fitatu) nad OFF / USDA
+  if (p.source === "local") score += 30;
   return score;
+}
+
+/** Sortowanie wyników: score ↓, lokalne ↑, krótsza nazwa ↑ (jak Fitatu). */
+export function compareFoodSearchHits(
+  a: { p: FoodProduct; score: number },
+  b: { p: FoodProduct; score: number },
+): number {
+  if (b.score !== a.score) return b.score - a.score;
+  const aLocal = a.p.source === "local" ? 0 : 1;
+  const bLocal = b.p.source === "local" ? 0 : 1;
+  if (aLocal !== bLocal) return aLocal - bLocal;
+  return a.p.name.length - b.p.name.length;
 }
 
 /** Najlepsze dopasowanie nazwy w lokalnej bazie (np. „Truskawki” → Truskawka). */
 export function findLocalProductByName(name: string): FoodProduct | null {
   const q = normalizeFoodQuery(name.replace(/\s*\([^)]*\)\s*$/, ""));
   if (!q) return null;
-  let best: FoodProduct | null = null;
-  let bestScore = 0;
-  for (const p of FOOD_PRODUCTS_LOCAL) {
-    const score = scoreProductAgainstQuery(q, p);
-    if (score > bestScore) {
-      bestScore = score;
-      best = p;
-    }
-  }
+  const scored = FOOD_PRODUCTS_LOCAL.map((p) => ({
+    p,
+    score: scoreProductAgainstQuery(q, p),
+  }))
+    .filter((x) => x.score > 0)
+    .sort(compareFoodSearchHits);
+  const best = scored[0];
   // Wymagaj sensownego dopasowania nazwy (nie przypadkowego tokenu).
-  if (!best || bestScore < 10) return null;
-  const nameScore = foodTokensLooseMatch(normalizeFoodQuery(best.name), q);
-  if (!nameScore && bestScore < 18) return null;
-  return best;
+  if (!best || best.score < 40) return null;
+  const bestName = normalizeFoodQuery(best.p.name);
+  const stemHit =
+    foodTokenStem(bestName) === foodTokenStem(q) ||
+    foodTokensLooseMatch(bestName, q) ||
+    bestName.startsWith(q) ||
+    q.startsWith(bestName);
+  if (!stemHit && best.score < 80) return null;
+  return best.p;
 }
 
 export function findLocalProductByBarcode(barcode: string): FoodProduct | null {
@@ -201,7 +258,7 @@ export function searchLocalProducts(query: string, limit = 20): FoodProduct[] {
     score: scoreProductAgainstQuery(query, p),
   }))
     .filter((x) => x.score > 0)
-    .sort((a, b) => b.score - a.score);
+    .sort(compareFoodSearchHits);
   return scored.slice(0, limit).map((x) => x.p);
 }
 
@@ -529,7 +586,7 @@ export async function searchOpenFoodFacts(query: string, limit = 12): Promise<Fo
   return collected
     .map((p) => ({ p, score: scoreProductAgainstQuery(query, p) }))
     .filter((x) => x.score > 0)
-    .sort((a, b) => b.score - a.score)
+    .sort(compareFoodSearchHits)
     .slice(0, limit)
     .map((x) => x.p);
 }

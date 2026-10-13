@@ -120,5 +120,31 @@ export function englishFoodQueryVariants(query: string): string[] {
   }
   if (PL_EN_EXACT[n]) out.add(PL_EN_EXACT[n]!);
 
-  return [...out].filter((v) => v.length >= 2).slice(0, 4);
+  // Prefix jak w Fitatu: „ban” → banana, „kiw” → kiwi (min. 3 znaki)
+  if (n.length >= 3 && !n.includes(" ")) {
+    for (const [pl, en] of Object.entries(PL_EN_EXACT)) {
+      if (pl.startsWith(n)) out.add(en);
+    }
+  }
+
+  return [...out].filter((v) => v.length >= 2).slice(0, 6);
+}
+
+/**
+ * Odwrotne mapowanie EN→PL: „Banana, raw” / „Kiwi fruit” → lokalne nazwy PL.
+ * Służy do pomijania duplikatów USDA/OFF gdy mamy stapel z makro jak Fitatu.
+ */
+export function polishStapleQueriesFromEnglishName(name: string): string[] {
+  const n = norm(name);
+  if (!n) return [];
+  const tokens = new Set(n.split(" ").filter(Boolean));
+  const out = new Set<string>();
+  for (const [pl, en] of Object.entries(PL_EN_EXACT)) {
+    const enN = norm(en);
+    if (!enN) continue;
+    if (n === enN || n.startsWith(`${enN} `) || tokens.has(enN)) {
+      out.add(pl);
+    }
+  }
+  return [...out];
 }

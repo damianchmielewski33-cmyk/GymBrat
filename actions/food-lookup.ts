@@ -2,14 +2,27 @@
 
 import { auth } from "@/auth";
 import {
+  compareFoodSearchHits,
   findLocalProductByBarcode,
+  findLocalProductByName,
   lookupBarcodeRemote,
+  normalizeFoodQuery,
   searchLocalProducts,
   scoreProductAgainstQuery,
 } from "@/lib/food-products";
+import { polishStapleQueriesFromEnglishName } from "@/lib/food-query-i18n";
 import { searchRemoteFoodProducts } from "@/lib/food-products-remote";
 import { listRecentFoodProductsFromLogs } from "@/lib/meal-logs";
 import type { FoodProduct } from "@/lib/food-products-types";
+
+/** Remote (USDA/OFF) pokryty lokalnym staplem z makro jak Fitatu. */
+function coveredByLocalStaple(remote: FoodProduct): boolean {
+  if (findLocalProductByName(remote.name)) return true;
+  for (const pl of polishStapleQueriesFromEnglishName(remote.name)) {
+    if (findLocalProductByName(pl)) return true;
+  }
+  return false;
+}
 
 export type FoodLookupResult =
   | { ok: true; product: FoodProduct }
@@ -72,6 +85,13 @@ export async function searchFoodProductsAction(query: string): Promise<FoodSearc
   }
 
   const local = searchLocalProducts(q, 28);
+  const qNorm = normalizeFoodQuery(q);
+
+  // Jak Fitatu: 1–2 znaki → tylko lokalne podpowiedzi (ban / ki), bez OFF/USDA.
+  if (qNorm.length < 3) {
+    return { ok: true, products: local.slice(0, 40) };
+  }
+
   let remote: FoodProduct[] = [];
   try {
     remote = await searchRemoteFoodProducts(q, 48);
@@ -81,18 +101,21 @@ export async function searchFoodProductsAction(query: string): Promise<FoodSearc
 
   const seen = new Set<string>();
   const merged: Array<{ p: FoodProduct; score: number }> = [];
-  for (const p of [...local, ...remote]) {
+  for (const p of local) {
+    const key = `${(p.barcode ?? "").toLowerCase()}|${p.name.toLowerCase()}|${(p.brand ?? "").toLowerCase()}`;
+    seen.add(key);
+    merged.push({ p, score: scoreProductAgainstQuery(q, p) });
+  }
+  for (const p of remote) {
     const key = `${(p.barcode ?? "").toLowerCase()}|${p.name.toLowerCase()}|${(p.brand ?? "").toLowerCase()}`;
     if (seen.has(key)) continue;
-    seen.add(key);
+    // Duplikat stapla z lokalną bazą (np. USDA Banana vs lokalny Banan) → zostaw Fitatu makro
+    if (coveredByLocalStaple(p)) continue;
     const score = scoreProductAgainstQuery(q, p);
-    // Lokalne i USDA (po tłumaczeniu) mogą mieć niski score tekstowy — nie odrzucaj lokalnych
-    if (score <= 0 && p.source !== "local" && !local.includes(p)) continue;
-    merged.push({
-      p,
-      score: score || (p.source === "local" ? 8 : p.source === "usda" ? 3 : 1),
-    });
+    if (score <= 0) continue;
+    seen.add(key);
+    merged.push({ p, score });
   }
-  merged.sort((a, b) => b.score - a.score);
+  merged.sort(compareFoodSearchHits);
   return { ok: true, products: merged.slice(0, 40).map((x) => x.p) };
 }

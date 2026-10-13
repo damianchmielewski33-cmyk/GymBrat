@@ -25,11 +25,14 @@ describe("live-set-coach", () => {
     );
   });
 
-  it("pierwsza seria: góra zakresu z historii → +ciężar", () => {
+  it("pierwsza seria: góra zakresu po 2 łatwych w historii → +ciężar", () => {
     const tip = buildLiveCoachTipForOpenSet(
       ex({
         sets: [{ reps: 8, weight: 0, done: false }],
-        lastSessionSets: [{ reps: 10, weight: 36, done: true, rir: 1 }],
+        lastSessionSets: [
+          { reps: 10, weight: 36, done: true, rir: 3 },
+          { reps: 10, weight: 36, done: true, rir: 3 },
+        ],
       }),
       0,
     );
@@ -38,6 +41,19 @@ describe("live-set-coach", () => {
     expect(tip!.apply?.reps).toBe(8);
     expect(tip!.tone).toBe("progress");
     expect(tip!.body).toMatch(/38,5 kg × 8/);
+  });
+
+  it("pierwsza seria: jedna łatwa na górze → hold (bez +kg)", () => {
+    const tip = buildLiveCoachTipForOpenSet(
+      ex({
+        sets: [{ reps: 8, weight: 0, done: false }],
+        lastSessionSets: [{ reps: 10, weight: 36, done: true, rir: 3 }],
+      }),
+      0,
+    );
+    expect(tip).not.toBeNull();
+    expect(tip!.tone).toBe("hold");
+    expect(tip!.apply?.weightKg).toBe(36);
   });
 
   it("po twardej historii nie dokładaj — zejdź lub utrzymaj", () => {
@@ -53,7 +69,7 @@ describe("live-set-coach", () => {
     expect(tip!.apply?.weightKg).toBeLessThan(40);
   });
 
-  it("po twardej serii w sesji → zdejmij ciężar", () => {
+  it("po twardej serii w sesji → zdejmij ciężar (deload %)", () => {
     const tip = buildLiveCoachTipForOpenSet(
       ex({
         sets: [
@@ -69,7 +85,7 @@ describe("live-set-coach", () => {
     expect(tip!.body).toMatch(/Incline|seria|tward|zejdź|−|hamuj|styk/i);
   });
 
-  it("po łatwej serii na górze zakresu → +ciężar", () => {
+  it("po jednej łatwej na górze → hold (wymagane 2 easy)", () => {
     const tip = buildLiveCoachTipForOpenSet(
       ex({
         sets: [
@@ -80,8 +96,39 @@ describe("live-set-coach", () => {
       1,
     );
     expect(tip).not.toBeNull();
+    expect(tip!.tone).toBe("hold");
+    expect(tip!.apply?.weightKg).toBe(36);
+  });
+
+  it("po dwóch łatwych na górze → +ciężar", () => {
+    const tip = buildLiveCoachTipForOpenSet(
+      ex({
+        sets: [
+          { reps: 10, weight: 36, done: true, rir: 3 },
+          { reps: 10, weight: 36, done: true, rir: 3 },
+          { reps: null, weight: 0, done: false },
+        ],
+      }),
+      2,
+    );
+    expect(tip).not.toBeNull();
     expect(tip!.tone).toBe("progress");
     expect(tip!.apply?.weightKg).toBe(38.5);
+  });
+
+  it("konflikt RIR/RPE → hold", () => {
+    const tip = buildLiveCoachTipForOpenSet(
+      ex({
+        sets: [
+          { reps: 10, weight: 60, done: true, rir: 5, rpe: 10 },
+          { reps: null, weight: 0, done: false },
+        ],
+      }),
+      1,
+    );
+    expect(tip).not.toBeNull();
+    expect(tip!.tone).toBe("hold");
+    expect(tip!.id).toBe("session-conflict-hold");
   });
 
   it("różne ćwiczenia → różne brzmienie tej samej logiki", () => {
@@ -124,5 +171,25 @@ describe("live-set-coach", () => {
     expect(tip).not.toBeNull();
     expect(tip!.apply?.reps).toBe(9);
     expect(tip!.body).toMatch(/seria|kolejn|następn|przerw|dalej|celuj|baz/i);
+  });
+
+  it("długa przerwa → deload startu", () => {
+    const tip = buildLiveCoachTipForOpenSet(
+      ex({
+        sets: [{ reps: null, weight: 0, done: false }],
+        lastSessionSets: [{ reps: 8, weight: 100, done: true, rir: 2 }],
+        coachContext: {
+          daysSinceLastSession: 21,
+          recentSessionCount: 2,
+          avgTopSetWeightKg: 100,
+          stagnant: false,
+        },
+      }),
+      0,
+    );
+    expect(tip).not.toBeNull();
+    expect(tip!.tone).toBe("caution");
+    expect(tip!.apply?.weightKg).toBe(95);
+    expect(tip!.id).toBe("hist-layoff");
   });
 });

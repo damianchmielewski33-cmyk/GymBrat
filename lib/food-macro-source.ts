@@ -23,7 +23,7 @@ export function getFoodMacroSourceLabel(product: FoodProduct): string {
     case "retail_estimate":
       return "Szacunek · sprawdź etykietę";
     default:
-      return "Baza GymBrat";
+      return "Baza · jak Fitatu · 100 g";
   }
 }
 

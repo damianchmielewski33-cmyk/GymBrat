@@ -82,7 +82,7 @@ export async function HomeTodayHeader({ userId }: { userId: string }) {
           initials={initials(data.firstName, data.lastName)}
         />
         <Link
-          href="/meal-suggestions?tab=diary&add=1"
+          href="/meal-suggestions?tab=diary&scan=1"
           aria-label="Skanuj produkt i dodaj posiłek"
           className="inline-flex h-12 w-12 items-center justify-center rounded-full border-2 border-[var(--gym-gold)]/70 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)] transition-colors hover:border-[var(--gym-gold)] hover:bg-[var(--gym-gold)]/15"
         >

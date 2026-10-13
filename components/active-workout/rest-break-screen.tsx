@@ -306,7 +306,7 @@ export function RestBreakScreen({
         <button
           type="button"
           onClick={() => onAddSeconds(30)}
-          className="gold-btn inline-flex h-14 w-[4.75rem] shrink-0 items-center justify-center rounded-2xl text-sm font-bold"
+          className="inline-flex h-14 w-[4.75rem] shrink-0 items-center justify-center rounded-2xl border border-white/12 bg-[#1a1a1a] text-sm font-bold text-white/85 transition hover:bg-white/[0.06]"
         >
           +30 s
         </button>
@@ -314,10 +314,10 @@ export function RestBreakScreen({
           type="button"
           onClick={onToggleSound}
           className={cn(
-            "inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl transition",
+            "inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border transition",
             soundOn
-              ? "gold-btn"
-              : "border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)]",
+              ? "border-white/12 bg-[#1a1a1a] text-white/85 hover:bg-white/[0.06]"
+              : "border-white/12 bg-[#1a1a1a] text-white/40 hover:bg-white/[0.06]",
           )}
           aria-label={soundOn ? "Wycisz sygnał" : "Włącz sygnał"}
         >
@@ -327,7 +327,7 @@ export function RestBreakScreen({
           ref={continueRef}
           type="button"
           onClick={onContinue}
-          className="gold-btn inline-flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-bold"
+          className="gold-btn inline-flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-bold shadow-[0_10px_28px_rgba(235,196,74,0.28)]"
         >
           <SkipForward className="h-5 w-5" />
           Dalej

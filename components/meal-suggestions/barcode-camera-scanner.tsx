@@ -43,7 +43,70 @@ function asZoomCaps(caps: MediaTrackCapabilities | undefined): ZoomCaps | null {
 }
 
 function supportsTorch(caps: MediaTrackCapabilities | undefined): boolean {
-  return Boolean((caps as { torch?: boolean } | undefined)?.torch);
+  const torch = (caps as { torch?: boolean | unknown } | undefined)?.torch;
+  // Chrome/WebView: `true` albo czasem puste zgłoszenie — Boolean(true) wystarczy.
+  return torch === true;
+}
+
+/**
+ * Włącza/wyłącza latarkę — Android Chrome/WebView różnie akceptuje constraint.
+ * Próbujemy kilka wariantów (non-advanced, advanced, fillLightMode).
+ */
+async function applyTrackTorch(
+  track: MediaStreamTrack,
+  on: boolean,
+): Promise<boolean> {
+  const attempts: MediaTrackConstraints[] = [
+    // Chrome Android (nowsze): torch jako zwykły constraint
+    { torch: on } as MediaTrackConstraints,
+    // Klasyczny ImageCapture / WebView: advanced
+    { advanced: [{ torch: on } as MediaTrackConstraintSet] },
+    // Część urządzeń: tryb światła wypełniającego
+    {
+      advanced: [
+        {
+          fillLightMode: on ? "torch" : "off",
+        } as MediaTrackConstraintSet,
+      ],
+    },
+  ];
+
+  for (const constraints of attempts) {
+    try {
+      await track.applyConstraints(constraints);
+      // Potwierdź stan ustawień, jeśli API je zwraca
+      const settings = track.getSettings?.() as
+        | { torch?: boolean }
+        | undefined;
+      if (settings && typeof settings.torch === "boolean") {
+        if (settings.torch === on) return true;
+        continue;
+      }
+      return true;
+    } catch {
+      /* kolejny wariant */
+    }
+  }
+  return false;
+}
+
+/** Czy warto pokazać przycisk latarki (tył / mobile) nawet gdy caps.torch jeszcze kłamie. */
+function shouldOfferTorchButton(
+  track: MediaStreamTrack | null,
+  caps: MediaTrackCapabilities | undefined,
+): boolean {
+  if (supportsTorch(caps)) return true;
+  if (!track) return false;
+  const settings = track.getSettings?.() as
+    | { facingMode?: string; deviceId?: string }
+    | undefined;
+  const facing = settings?.facingMode?.toLowerCase() ?? "";
+  if (facing === "environment" || facing === "back") return true;
+  // APK / telefon: często caps.torch === undefined mimo działającej latarki
+  if (typeof navigator !== "undefined" && /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)) {
+    return facing !== "user" && facing !== "front";
+  }
+  return false;
 }
 
 function supportsFocusMode(
@@ -238,6 +301,8 @@ export function BarcodeCameraScanner({
   const [manualCode, setManualCode] = useState("");
   const [torchOn, setTorchOn] = useState(false);
   const [torchAvailable, setTorchAvailable] = useState(false);
+  const [torchBusy, setTorchBusy] = useState(false);
+  const [torchHint, setTorchHint] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -253,8 +318,14 @@ export function BarcodeCameraScanner({
       window.clearTimeout(scanTimerRef.current);
       scanTimerRef.current = null;
     }
+    const track = trackRef.current;
+    if (track) {
+      void applyTrackTorch(track, false).catch(() => {
+        /* ignore */
+      });
+    }
     try {
-      trackRef.current?.stop();
+      track?.stop();
     } catch {
       /* ignore */
     }
@@ -264,6 +335,7 @@ export function BarcodeCameraScanner({
     stream?.getTracks().forEach((t) => t.stop());
     if (video) video.srcObject = null;
     setTorchOn(false);
+    setTorchHint(null);
   }, []);
 
   const closeScanner = useCallback(() => {
@@ -274,17 +346,26 @@ export function BarcodeCameraScanner({
 
   const setTorch = useCallback(async (on: boolean) => {
     const track = trackRef.current;
-    if (!track) return;
+    if (!track || torchBusy) return;
+    setTorchBusy(true);
+    setTorchHint(null);
     try {
-      await track.applyConstraints({
-        // @ts-expect-error torch nie jest w standardowych typach DOM
-        advanced: [{ torch: on }],
-      });
-      setTorchOn(on);
-    } catch {
-      setTorchAvailable(false);
+      const ok = await applyTrackTorch(track, on);
+      if (ok) {
+        setTorchOn(on);
+        setTorchAvailable(true);
+        hapticTap();
+      } else {
+        setTorchHint(
+          on
+            ? "Latarka niedostępna na tej kamerze — spróbuj bliżej światła."
+            : null,
+        );
+      }
+    } finally {
+      setTorchBusy(false);
     }
-  }, []);
+  }, [torchBusy]);
 
   useEffect(() => {
     if (!open || !mounted) {
@@ -305,6 +386,8 @@ export function BarcodeCameraScanner({
     handledRef.current = false;
     setError(null);
     setTorchAvailable(false);
+    setTorchOn(false);
+    setTorchHint(null);
 
     const acceptCode = (raw: string) => {
       if (signal.cancelled || handledRef.current) return;
@@ -399,10 +482,6 @@ export function BarcodeCameraScanner({
 
         if (track) {
           const caps = track.getCapabilities?.();
-          if (!signal.cancelled) {
-            setTorchAvailable(supportsTorch(caps));
-          }
-
           const advanced: Record<string, unknown>[] = [];
           if (supportsFocusMode(caps, "continuous")) {
             advanced.push({ focusMode: "continuous" });
@@ -412,13 +491,19 @@ export function BarcodeCameraScanner({
             advanced.push({ zoom: preferredZoom(zoom) });
           }
           if (advanced.length > 0) {
-            void track
-              .applyConstraints({
+            try {
+              await track.applyConstraints({
                 advanced: advanced as MediaTrackConstraintSet[],
-              })
-              .catch(() => {
-                /* ignore */
               });
+            } catch {
+              /* ignore */
+            }
+          }
+
+          // Po zoom/focus caps.torch bywa dopiero wtedy wiarygodne (Android WebView).
+          if (!signal.cancelled) {
+            const capsAfter = track.getCapabilities?.() ?? caps;
+            setTorchAvailable(shouldOfferTorchButton(track, capsAfter));
           }
         }
 
@@ -577,8 +662,13 @@ export function BarcodeCameraScanner({
         <button
           type="button"
           aria-label={torchOn ? "Wyłącz latarkę" : "Włącz latarkę"}
-          disabled={!torchAvailable || phase !== "ready"}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md disabled:opacity-35"
+          disabled={!torchAvailable || phase !== "ready" || torchBusy}
+          className={cn(
+            "inline-flex h-11 w-11 items-center justify-center rounded-full backdrop-blur-md disabled:opacity-35",
+            torchOn
+              ? "bg-[var(--gym-gold)] text-black"
+              : "bg-black/55 text-white",
+          )}
           onClick={() => void setTorch(!torchOn)}
         >
           {torchOn ? (
@@ -588,6 +678,12 @@ export function BarcodeCameraScanner({
           )}
         </button>
       </div>
+
+      {torchHint ? (
+        <p className="pointer-events-none absolute inset-x-4 top-[max(4.25rem,calc(env(safe-area-inset-top)+3.25rem))] z-[1] rounded-xl bg-black/70 px-3 py-2 text-center text-[12px] text-amber-100 backdrop-blur-md">
+          {torchHint}
+        </p>
+      ) : null}
 
       <div className="absolute inset-x-0 bottom-0 z-[1] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="mx-3 mb-2 rounded-2xl bg-black/72 px-4 py-4 text-center backdrop-blur-md sm:mx-5">

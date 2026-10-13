@@ -22,6 +22,7 @@ import {
 } from "@/lib/diet-diary-slots";
 import type { FoodProduct } from "@/lib/food-products-types";
 import { getFoodMacroSourceLabel } from "@/lib/food-macro-source";
+import { searchLocalProducts } from "@/lib/food-products";
 import {
   favoriteToFoodProduct,
   listFavoriteFoods,
@@ -184,7 +185,11 @@ export function AddMealScreen({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = query.trim();
     if (!q) return;
-    debounceRef.current = setTimeout(() => runSearch(q), 260);
+    // Natychmiast lokalne podpowiedzi jak w Fitatu (ban→Banan), potem pełne API.
+    setFromRecents(false);
+    setProducts(searchLocalProducts(q, 24));
+    setHint(null);
+    debounceRef.current = setTimeout(() => runSearch(q), 220);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };

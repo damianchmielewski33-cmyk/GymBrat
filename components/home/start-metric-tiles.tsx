@@ -74,9 +74,12 @@ function MetricTile({
   );
 }
 
-/** Stała siatka B/W/T — te same torów w nagłówku i wierszach (wyrównane kolumny). */
+/**
+ * Stała siatka B/W/T — te same tory w nagłówku i wierszach.
+ * Jednostka „g” tylko w nagłówku (liczby w kolumnach bez suffixów = równe odstępy).
+ */
 const MACRO_COLS =
-  "grid grid-cols-[1.15rem_minmax(0,1.15fr)_2.4rem_minmax(0,1fr)] gap-x-1";
+  "grid grid-cols-[0.875rem_minmax(0,1fr)_2.5rem_minmax(0,1fr)] gap-x-1.5 items-center";
 
 function MacroRemainRow({
   label,
@@ -106,18 +109,17 @@ function MacroRemainRow({
         : formatGrams(Math.abs(remaining));
 
   return (
-    <div className="min-w-0 space-y-1">
-      <div className={cn(MACRO_COLS, "items-baseline")}>
-        <span className="text-[11px] font-semibold tracking-wide text-white/50">
+    <div className="min-w-0 space-y-0.5">
+      <div className={MACRO_COLS}>
+        <span className="text-[11px] font-semibold leading-none tracking-wide text-white/50">
           {label}
         </span>
-        <span className="truncate text-right tabular-nums text-[12px] font-medium leading-none text-white">
+        <span className="text-right text-[12px] font-medium leading-none tabular-nums text-white">
           {eaten}
-          <span className="ml-0.5 text-[10px] font-normal text-white/35">g</span>
         </span>
         <span
           className={cn(
-            "text-right tabular-nums text-[11px] font-semibold leading-none",
+            "text-right text-[11px] font-semibold leading-none tabular-nums",
             pctRaw == null
               ? "text-white/30"
               : over
@@ -129,7 +131,7 @@ function MacroRemainRow({
         </span>
         <span
           className={cn(
-            "truncate text-right tabular-nums text-[12px] font-medium leading-none",
+            "text-right text-[12px] font-medium leading-none tabular-nums",
             left == null
               ? "text-white/35"
               : over
@@ -137,20 +139,10 @@ function MacroRemainRow({
                 : "text-white/80",
           )}
         >
-          {left == null ? (
-            "—"
-          ) : (
-            <>
-              {over ? "+" : ""}
-              {left}
-              <span className="ml-0.5 text-[10px] font-normal text-white/35">
-                g
-              </span>
-            </>
-          )}
+          {left == null ? "—" : `${over ? "+" : ""}${left}`}
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
+      <div className="h-1 overflow-hidden rounded-full bg-white/[0.08]">
         <div
           className={cn(
             "h-full rounded-full transition-[width] duration-700 ease-out",
@@ -194,13 +186,13 @@ function MacroProgressTile({
         {title}
       </p>
       {kcalRemaining != null ? (
-        <div className="mt-2 flex items-baseline justify-between gap-2 border-b border-white/[0.06] pb-2">
+        <div className="mt-1.5 flex items-center justify-between gap-2 border-b border-white/[0.06] pb-1.5">
           <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-white/35">
             pozostałe kcal
           </span>
           <span
             className={cn(
-              "tabular-nums text-[15px] font-semibold leading-none",
+              "text-[15px] font-semibold leading-none tabular-nums",
               kcalOver ? "text-rose-400" : "text-white",
             )}
           >
@@ -213,26 +205,20 @@ function MacroProgressTile({
         </div>
       ) : null}
       {hasGoals ? (
-        <div
-          className={cn(
-            MACRO_COLS,
-            "items-end",
-            kcalRemaining != null ? "mt-2" : "mt-2.5",
-          )}
-        >
+        <div className={cn(MACRO_COLS, "mt-1.5")}>
           <span aria-hidden />
-          <span className="text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-white/35">
-            zjedz.
+          <span className="text-right text-[9px] font-semibold uppercase tracking-[0.06em] text-white/35">
+            zjedz. g
           </span>
-          <span className="text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-white/35">
+          <span className="text-right text-[9px] font-semibold uppercase tracking-[0.06em] text-white/35">
             %
           </span>
-          <span className="text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-white/35">
-            zost.
+          <span className="text-right text-[9px] font-semibold uppercase tracking-[0.06em] text-white/35">
+            zost. g
           </span>
         </div>
       ) : null}
-      <div className="mt-1.5 flex flex-1 flex-col justify-center gap-2.5">
+      <div className="mt-1 flex flex-1 flex-col justify-center gap-1.5">
         <MacroRemainRow
           label="B"
           remaining={macros.proteinRemaining}
@@ -256,9 +242,11 @@ function MacroProgressTile({
         />
       </div>
       {!hasGoals ? (
-        <p className="mt-2 text-[10px] text-white/35">Ustaw cele w profilu</p>
+        <p className="mt-1.5 text-[10px] leading-tight text-white/35">
+          Ustaw cele w profilu
+        </p>
       ) : href ? (
-        <p className="mt-2 text-[10px] font-medium text-[var(--gym-gold)]/80">
+        <p className="mt-1.5 text-[10px] font-medium leading-tight text-[var(--gym-gold)]/80">
           {linkHint}
         </p>
       ) : null}

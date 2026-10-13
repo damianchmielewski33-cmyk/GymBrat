@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AnimatedDumbbellMark } from "@/components/branding/animated-dumbbell-mark";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { cn } from "@/lib/utils";
 
@@ -195,13 +196,12 @@ export function ScreenLoading({
   label?: string;
 }) {
   return (
-    <ScreenCard className="mx-auto max-w-md text-center">
-      <BrandMark as="span" />
-      <div
-        className="mx-auto mt-6 h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-[var(--neon)]"
-        aria-hidden
-      />
-      <p className={cn(screenSubtitleClass, "mt-4")}>{label}</p>
-    </ScreenCard>
+    <div className="mx-auto flex min-h-[40vh] max-w-md flex-col items-center justify-center px-4 text-center">
+      <AnimatedDumbbellMark size="md" />
+      <p className="mt-5 font-display text-2xl uppercase tracking-[0.12em] text-white">
+        Gym<span className="text-[var(--neon)]">Brat</span>
+      </p>
+      <p className={cn(screenSubtitleClass, "mt-3")}>{label}</p>
+    </div>
   );
 }

@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   ChevronRight,
   Download,
-  Film,
   Footprints,
   History,
   NotebookPen,
@@ -372,7 +371,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
 
       <section className="space-y-2.5">
         <SectionLabel index={2} title="Korekta techniki" titleTone="white" />
-        <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
+        <div className="overflow-hidden app-panel">
           <Link
             href="/technique"
             className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.03]"
@@ -380,25 +379,10 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
             <Video className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
             <span className="min-w-0 flex-1">
               <span className="block text-[14px] font-semibold text-white">
-                Nagraj technikę
+                Dodaj filmy
               </span>
               <span className="mt-0.5 block text-[12px] text-white/45">
-                film z ćwiczenia
-              </span>
-            </span>
-            <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
-          </Link>
-          <Link
-            href="/technique#moje-filmy"
-            className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.03]"
-          >
-            <Film className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
-            <span className="min-w-0 flex-1">
-              <span className="block text-[14px] font-semibold text-white">
-                Moje filmy
-              </span>
-              <span className="mt-0.5 block text-[12px] text-white/45">
-                filmy
+                nagranie techniki i lista filmów
               </span>
             </span>
             <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />

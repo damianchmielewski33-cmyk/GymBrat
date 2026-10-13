@@ -11,10 +11,13 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.animation.ObjectAnimator;
+import android.animation.AnimatorSet;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.OpenableColumns;
 import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
 import android.webkit.URLUtil;
@@ -24,6 +27,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -50,6 +54,8 @@ public final class MainActivity extends AppCompatActivity {
     private WebView webView;
     private ProgressBar progressBar;
     private View splash;
+    private ImageView splashDumbbell;
+    private AnimatorSet splashLiftAnim;
     private UpdateInstaller updateInstaller;
     private GymBratAndroidJsBridge jsBridge;
     private boolean contentReady;
@@ -119,7 +125,9 @@ public final class MainActivity extends AppCompatActivity {
         webView = findViewById(R.id.webview);
         progressBar = findViewById(R.id.progress);
         splash = findViewById(R.id.splash);
+        splashDumbbell = findViewById(R.id.splash_dumbbell);
         updateInstaller = new UpdateInstaller(this);
+        startSplashLiftAnimation();
 
         setupWebView();
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -545,13 +553,41 @@ public final class MainActivity extends AppCompatActivity {
         }
     }
 
+    /** Hantel podnosi się w górę/dół na splashu — spójnie z czarno-złotym brandem. */
+    private void startSplashLiftAnimation() {
+        if (splashDumbbell == null) return;
+        ObjectAnimator lift = ObjectAnimator.ofFloat(splashDumbbell, View.TRANSLATION_Y, 18f, -22f);
+        lift.setDuration(900);
+        lift.setRepeatCount(ObjectAnimator.INFINITE);
+        lift.setRepeatMode(ObjectAnimator.REVERSE);
+        lift.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        ObjectAnimator tilt = ObjectAnimator.ofFloat(splashDumbbell, View.ROTATION, -7f, 7f);
+        tilt.setDuration(900);
+        tilt.setRepeatCount(ObjectAnimator.INFINITE);
+        tilt.setRepeatMode(ObjectAnimator.REVERSE);
+        tilt.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        splashLiftAnim = new AnimatorSet();
+        splashLiftAnim.playTogether(lift, tilt);
+        splashLiftAnim.start();
+    }
+
+    private void stopSplashLiftAnimation() {
+        if (splashLiftAnim != null) {
+            splashLiftAnim.cancel();
+            splashLiftAnim = null;
+        }
+    }
+
     private void markContentReady() {
         if (contentReady) return;
         contentReady = true;
+        stopSplashLiftAnimation();
         if (splash != null) {
             splash.animate()
                     .alpha(0f)
-                    .setDuration(280)
+                    .setDuration(320)
                     .withEndAction(() -> splash.setVisibility(View.GONE))
                     .start();
         }
@@ -565,6 +601,7 @@ public final class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        stopSplashLiftAnimation();
         // Nie kasuj callbacka przy rotacji / odtworzeniu pod galerią — tylko przy prawdziwym zamknięciu.
         if (isFinishing() && filePathCallback != null) {
             filePathCallback.onReceiveValue(null);

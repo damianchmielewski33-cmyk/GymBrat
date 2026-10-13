@@ -528,6 +528,7 @@ const FOOD_PRODUCTS_CORE: FoodProduct[] = [
     barcode: null,
     name: "Kiwi",
     servingLabel: "100 g",
+    // Fitatu „Kiwi” (katalog): 61 kcal / 100 g; 1 szt. ≈ 75 g
     calories: 61,
     proteinG: 1.1,
     fatG: 0.5,

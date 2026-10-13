@@ -38,4 +38,10 @@ describe("food-macro-source", () => {
     expect(getFoodMacroSourceKind(p)).toBe("usda");
     expect(getFoodMacroSourceLabel(p)).toMatch(/USDA/i);
   });
+
+  it("lokalne stapel oznacza jak Fitatu", () => {
+    const p = product({ id: "local-banan", source: "local" });
+    expect(getFoodMacroSourceKind(p)).toBe("local");
+    expect(getFoodMacroSourceLabel(p)).toMatch(/Fitatu/i);
+  });
 });

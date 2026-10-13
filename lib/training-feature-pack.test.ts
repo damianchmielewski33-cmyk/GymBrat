@@ -48,17 +48,25 @@ describe("workout plan normalize — RIR/tempo/note/superset", () => {
 });
 
 describe("sugestia ciężaru", () => {
-  it("zaokrągla do 2.5 i dodaje przy twardym RIR / górze zakresu", () => {
+  it("zaokrągla do 2.5; hard nie dokładamy; +kg dopiero po 2 easy na górze", () => {
     expect(roundToPlateStep(61)).toBe(60);
-    expect(suggestWeightFromLastSet({ weight: 60, rir: 1, reps: 8 })).toBe(
-      62.5,
-    );
+    // RIR=1 / RPE hard bez zakresu → hold (bez starego +2.5)
+    expect(suggestWeightFromLastSet({ weight: 60, rir: 1, reps: 8 })).toBe(60);
     expect(suggestWeightFromLastSet({ weight: 60, rir: 2, reps: 8 })).toBe(60);
-    expect(suggestWeightFromLastSet({ weight: 60, rpe: 9, reps: 8 })).toBe(
-      62.5,
-    );
+    expect(suggestWeightFromLastSet({ weight: 60, rpe: 9, reps: 8 })).toBe(60);
+    // Jedna seria na górze z RIR=1 → hold
     expect(
       suggestWeightFromLastSet({ weight: 36, reps: 10, rir: 1 }, 10),
+    ).toBe(36);
+    // Dwie łatwe na górze → +2.5
+    expect(
+      suggestWeightFromLastSet(
+        { weight: 36, reps: 10, rir: 3 },
+        10,
+        {
+          priorSets: [{ weight: 36, reps: 10, rir: 3 }],
+        },
+      ),
     ).toBe(38.5);
   });
 });
@@ -195,7 +203,7 @@ describe("NOWY MAX sesji", () => {
 });
 
 describe("mergeHintsIntoExercises", () => {
-  it("dokłada suggestedWeights z ostatniej sesji", () => {
+  it("dokłada suggestedWeights z ostatniej sesji (bez łatwego bumpa na RIR=1)", () => {
     const merged = mergeHintsIntoExercises(
       [
         {
@@ -216,7 +224,8 @@ describe("mergeHintsIntoExercises", () => {
         },
       },
     );
-    expect(merged[0]?.suggestedWeights?.[0]).toBe(62.5);
+    // Mid-range → hold ciężaru (progresja reps, nie kg)
+    expect(merged[0]?.suggestedWeights?.[0]).toBe(60);
     expect(merged[0]?.suggestedWeights?.[1]).toBe(60);
     expect(merged[0]?.sets[0]?.weight).toBe(0);
   });

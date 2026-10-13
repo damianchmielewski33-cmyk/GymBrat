@@ -297,8 +297,9 @@ export function ActiveWorkoutView({
         nextLabel = "Następne ćwiczenie";
         nextValue = nextEx.name;
       } else {
-        nextLabel = "Koniec";
-        nextValue = "Ostatnia seria zaliczona";
+        // Ekran pauzy po ostatniej serii — jak makieta: „Koniec treningu”.
+        nextLabel = "Następne ćwiczenie";
+        nextValue = "Koniec treningu";
         workoutFinished = true;
       }
     }
@@ -419,6 +420,8 @@ export function ActiveWorkoutView({
 
   const restSoundOnRef = useRef(restSoundOn);
   restSoundOnRef.current = restSoundOn;
+  const lastCompletedRef = useRef(lastCompleted);
+  lastCompletedRef.current = lastCompleted;
 
   useEffect(() => {
     if (restRemaining === null) return;
@@ -431,7 +434,11 @@ export function ActiveWorkoutView({
         if (restSoundOnRef.current) {
           playRestTimerEndSignal();
         }
+        const finished = Boolean(lastCompletedRef.current?.workoutFinished);
         setRestRemaining(null);
+        if (finished) {
+          setFinishOpen(true);
+        }
         return;
       }
       setRestRemaining(restRemaining - 1);
@@ -540,14 +547,20 @@ export function ActiveWorkoutView({
 
       const { done, total } = countSetsDone(exercisesNow);
       if (total > 0 && done >= total) {
-        stopRest();
         hapticWorkoutDone();
         const skipped = findFirstSkippedWorkoutTarget(exercisesNow);
         const skipCount = countSkippedWorkoutSets(exercisesNow);
         if (skipped) {
+          stopRest();
           setAllSetsDoneSkipped({ target: skipped, count: skipCount });
           setAllSetsDoneOpen(true);
+        } else if (!isSkippedNext) {
+          // Po ostatniej serii — pauza z „Koniec treningu”, potem Dalej → podsumowanie.
+          setAllSetsDoneSkipped({ target: null, count: 0 });
+          const { defaultSeconds } = readRestTimerPrefs();
+          startRest(defaultSeconds);
         } else {
+          stopRest();
           setAllSetsDoneSkipped({ target: null, count: 0 });
           setFinishOpen(true);
         }
@@ -568,6 +581,14 @@ export function ActiveWorkoutView({
       if (autoStart) {
         startRest(defaultSeconds);
       }
+    }
+  }
+
+  function continueAfterRest() {
+    const finished = Boolean(lastCompleted?.workoutFinished);
+    stopRest();
+    if (finished) {
+      setFinishOpen(true);
     }
   }
 
@@ -774,7 +795,7 @@ export function ActiveWorkoutView({
             setRestDurationTotal(next);
             setRestRemaining(next);
           }}
-          onContinue={() => stopRest()}
+          onContinue={continueAfterRest}
           onCloseSession={requestDiscardSession}
           onOpenList={() => {
             stopRest();

@@ -529,7 +529,7 @@ export const workoutsRelations = relations(workouts, ({ one }) => ({
 
 /**
  * Zgłoszenia błędów od testerów / użytkowników.
- * status: `analysis` | `in_fix` | `retest`
+ * status: `analysis` | `in_fix` | `retest` | `fixed`
  * priority: `critical` | `high` | `normal` | `low`
  * expected_behavior / steps_to_reproduce: legacy (puste przy nowych zgłoszeniach).
  */

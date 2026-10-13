@@ -1,0 +1,370 @@
+{
+  "title": "GymBrat — podpowiedzi podczas treningu (live set coach)",
+  "version": "2.0",
+  "date": "2026-10-13",
+  "purpose": "Lokalne, deterministyczne rady ciężaru/powtórzeń w aktywnej sesji — bez modelu AI. Double progression bez easy_anywhere: najpierw powtórzenia do range.max, potem +talerz dopiero po N kolejnych łatwych seriach; wspólne progi HARD/EASY; RIR > RPE.",
+  "sourceOfTruth": [
+    "lib/set-effort.ts",
+    "lib/exercise-movement-kind.ts",
+    "lib/set-progression-suggestion.ts",
+    "lib/live-set-coach.ts",
+    "lib/last-workout-hints.ts"
+  ],
+  "tests": [
+    "lib/set-effort.ts (via set-progression / live-set-coach)",
+    "lib/exercise-movement-kind.test.ts",
+    "lib/live-set-coach.test.ts",
+    "lib/set-progression-suggestion.test.ts",
+    "lib/training-feature-pack.test.ts"
+  ],
+  "uiSurfaces": [
+    {
+      "id": "live_banner",
+      "component": "components/active-workout/live-coach-banner.tsx",
+      "when": "Otwarta (bieżąca) seria na ekranie ćwiczenia",
+      "builder": "buildLiveCoachTipForOpenSet(exercise, activeSetIndex)"
+    },
+    {
+      "id": "rest_card",
+      "component": "components/active-workout/rest-break-screen.tsx (coachTip)",
+      "when": "Ekran przerwy po zaliczeniu serii",
+      "builder": "buildLiveCoachTipAfterCompletedSet → liveCoachTipToPlainText"
+    },
+    {
+      "id": "suggestion_chip",
+      "component": "components/active-workout/guided-session-layout.tsx",
+      "when": "Chip sugestii ciężaru z poprzedniej sesji planu",
+      "builder": "mergeHintsIntoExercises → suggestedWeights[i] via suggestWeightFromLastSet"
+    },
+    {
+      "id": "server_fallback",
+      "action": "actions/active-workout-coach.ts",
+      "when": "Opcjonalny endpoint / heurystyka (source: heuristic) — ten sam builder lokalny",
+      "note": "Nie jest to LLM; tekst z live-set-coach"
+    }
+  ],
+  "invariants": [
+    "Brak losowości przy re-renderze: wariant tekstu = FNV-1a hash(seed) % N",
+    "seed = exerciseId|setIndex|exerciseName (+ |lead| / |reason| / |tone| …)",
+    "Krok talerza PLATE_STEP = 2.5 kg; bump z precyzją 0.5 kg; deload = max(2.5, 5%×kg)",
+    "Wspólne stałe HARD_RIR/HARD_RPE/EASY_RIR/EASY_RPE w lib/set-effort.ts — Live Coach i chipy",
+    "Gdy jest RIR — wyłącznie RIR; RPE tylko jako fallback; konflikt RIR↔RPE → hold",
+    "Bez easy_anywhere: poniżej range.max nigdy +kg (tylko +reps)",
+    "+kg dopiero po N kolejnych łatwych seriach na górze (compound N=2, isolation N=3)",
+    "Tip.apply (jeśli nie null) po stuknięciu wpisuje weightKg + reps do bieżącej serii",
+    "Seria pominięta (skipped / 0 kg bez zaliczenia) nie uruchamia przerwy ani tipu „po zaliczeniu”",
+    "Priorytet: analiza serii w bieżącej sesji > layoff/stagnacja/historia 2–4 > zakres planu > warmup"
+  ],
+  "constants": {
+    "PLATE_STEP_KG": 2.5,
+    "WEIGHT_PRECISION": 0.5,
+    "DELOAD": "max(2.5 kg, 5% ciężaru roboczego), zaokrąglenie do 0.5",
+    "DEFAULT_TARGET_RIR": 1,
+    "LAYOFF_DAYS": 14,
+    "HISTORY_SESSIONS": "2–4 (getLastWorkoutHintsForPlan LIMIT 4)",
+    "STAGNATION_SESSIONS": 3,
+    "REP_RANGE": {
+      "rule": "targetReps = góra; max≥5 → min=max−2; max=4→3–4; max=3→2–3; max=2→1–2; max=1→1–1",
+      "example": "targetReps=10 → 8–10; targetReps=4 → 3–4 (nie 4–4)"
+    },
+    "HARD_SET": {
+      "rir": "≤ HARD_RIR (0)",
+      "rpe": "≥ HARD_RPE (9) — tylko gdy brak RIR",
+      "meaning": "grinding — deload / hold, nie +kg"
+    },
+    "EASY_SET": {
+      "rir": "≥ EASY_RIR (3)",
+      "rpe": "≤ EASY_RPE (6) i >0 — tylko gdy brak RIR",
+      "meaning": "duży zapas — kandydat do +talerza dopiero na górze zakresu po N easy"
+    },
+    "WARN_SET": {
+      "rir": "= WARN_RIR (1)",
+      "rpe": "≥ WARN_RPE (8) — gdy brak RIR",
+      "meaning": "na styk; warnStreak≥3 → deload jak hard"
+    },
+    "CONFLICT": {
+      "when": "(RIR≥3 ∧ RPE≥9) ∨ (RIR≤0 ∧ RPE≤6)",
+      "then": "hold — nie ufamy danym"
+    },
+    "MOVEMENT_KIND": {
+      "compound": "easyNeeded=2",
+      "isolation": "easyNeeded=3 (kategoria biceps/triceps/… lub nazwa curl/fly/…)"
+    },
+    "NAME_TRUNCATE": 28
+  },
+  "dataInputs": {
+    "currentExercise": {
+      "id": "string",
+      "name": "string",
+      "categoryId": "string|null — izolacja vs compound",
+      "targetReps": "number|null — góra zakresu z planu",
+      "targetRir": "number|null — domyślnie 1 w tipach",
+      "sets[]": {
+        "weight": "kg ≥ 0",
+        "reps": "number|null",
+        "done": "boolean",
+        "skipped": "boolean (opcjonalnie)",
+        "rir": "0–5 | null",
+        "rpe": "1–10 | null"
+      },
+      "lastSessionSets[]": "serie z ostatniej sesji tego planu",
+      "suggestedWeights[]": "kg|null — chip UI",
+      "coachContext": {
+        "daysSinceLastSession": "number|null",
+        "recentSessionCount": "number",
+        "avgTopSetWeightKg": "number|null — średnia z 2–4 treningów",
+        "stagnant": "boolean — brak progresji przez ≥3 sesje"
+      }
+    },
+    "historySource": {
+      "function": "getLastWorkoutHintsForPlan(userId, planId)",
+      "query": "do 4 ostatnich workoutów z tym workoutPlanId (ORDER BY date DESC)",
+      "merge": "lastSessionSets z najnowszej; coachContext z agregatu 2–4; reps/RPE/RIR mogą być podpowiedziane, ciężar zostaje 0 do kliknięcia chipa"
+    }
+  },
+  "tipSchema": {
+    "id": "string — np. session-deload, hist-progress, session-conflict-hold, hist-layoff",
+    "tone": {
+      "progress": "dokładka ciężaru lub powtórzeń (UI zielony)",
+      "caution": "deload / forma / layoff / stagnacja (UI bursztyn)",
+      "hold": "utrzymaj bazę / konflikt / need more easy (UI złoty)",
+      "info": "edycja / plan / warmup (UI neutralny)"
+    },
+    "body": "pełny tekst PL",
+    "prefix": "część przed highlight",
+    "highlight": "np. „37,5 kg × 8” albo null",
+    "suffix": "część po highlight",
+    "apply": {
+      "weightKg": "number",
+      "reps": "number",
+      "or": null
+    }
+  },
+  "decisionTreeOpenSet": {
+    "entry": "buildLiveCoachTipForOpenSet(exercise, setIndex)",
+    "steps": [
+      {
+        "order": 1,
+        "id": "edit-done",
+        "condition": "bieżąca seria już zaliczona",
+        "tone": "info"
+      },
+      {
+        "order": 2,
+        "id": "session-analysis",
+        "condition": "istnieje ≥1 zaliczona seria wcześniej w sesji",
+        "uses": ["sessionTrend (best/avg/repsDrop)", "sessionVolumeKg", "hardStreak", "warnStreak", "trailingEasy"],
+        "subrules": [
+          {
+            "id": "session-conflict-hold",
+            "when": "classifyEffort(prev)=conflict",
+            "tone": "hold"
+          },
+          {
+            "id": "session-deload",
+            "when": "hard OR belowMin OR hardStreak≥2 OR warnStreak≥3 OR repsDrop≥2",
+            "calc": {
+              "nextWeight": "applyDeload(prevWeight) = max(2.5, 5%×kg)",
+              "nextReps": "range.min | prevReps"
+            },
+            "tone": "caution"
+          },
+          {
+            "id": "session-bump",
+            "when": "easy AND atMax AND trailingEasy≥easyNeeded AND !highVolume",
+            "calc": {
+              "nextWeight": "bumpWeightByPlate(+2.5)",
+              "nextReps": "range.min"
+            },
+            "tone": "progress"
+          },
+          {
+            "id": "session-hold (need-easy / volume)",
+            "when": "atMax AND (nie dość easy OR highVolume)",
+            "tone": "hold",
+            "principle": "pojedynczy wysoki RIR nie wystarcza do +kg"
+          },
+          {
+            "id": "session-reps",
+            "when": "reps < range.max",
+            "calc": "ten sam ciężar, +1 powt.",
+            "tone": "progress",
+            "principle": "double progression — najpierw powtórzenia (bez easy_anywhere)"
+          },
+          {
+            "id": "session-hold",
+            "when": "fallback",
+            "tone": "hold"
+          }
+        ]
+      },
+      {
+        "order": 3,
+        "id": "hist-layoff",
+        "condition": "setIndex=0 AND daysSinceLastSession≥14",
+        "calc": "applyDeload(avgTop|lastWeight)",
+        "tone": "caution"
+      },
+      {
+        "order": 4,
+        "id": "hist-stagnation",
+        "condition": "setIndex=0 AND coachContext.stagnant",
+        "calc": "applyDeload(lastWeight)",
+        "tone": "caution"
+      },
+      {
+        "order": 5,
+        "id": "history-hard",
+        "condition": "lastSessionSets hard (RIR≤0)",
+        "tone": "caution | hold",
+        "calc": "applyDeload"
+      },
+      {
+        "order": 6,
+        "id": "hist-progress",
+        "condition": "buildSetProgressionSuggestion ≠ null (priorSets z lastSessionSets)",
+        "tone": "progress"
+      },
+      {
+        "order": 7,
+        "id": "hist-hold",
+        "condition": "jest lastSnap, bez progresji",
+        "tone": "hold"
+      },
+      {
+        "order": 8,
+        "id": "plan-range",
+        "tone": "info"
+      },
+      {
+        "order": 9,
+        "id": "warmup",
+        "tone": "info"
+      }
+    ]
+  },
+  "decisionTreeAfterCompletedSet": {
+    "entry": "buildLiveCoachTipAfterCompletedSet(exercise, completedSetIndex)",
+    "steps": [
+      {
+        "id": "ex-done",
+        "when": "ostatnia seria ćwiczenia",
+        "tone": "info"
+      },
+      {
+        "id": "rest-wrap-next",
+        "when": "jest kolejna seria",
+        "rule": "nextTip = buildLiveCoachTipForOpenSet(...); id = rest-{nextTip.id}"
+      }
+    ]
+  },
+  "doubleProgression": {
+    "module": "lib/set-progression-suggestion.ts → buildSetProgressionSuggestion",
+    "usedBy": ["hist-progress", "suggestedWeightFromProgression", "suggestWeightFromLastSet"],
+    "rulesInOrder": [
+      {
+        "id": "conflict",
+        "when": "RIR/RPE sprzeczne",
+        "then": "null (hold)"
+      },
+      {
+        "id": "fatigue_drop",
+        "when": "repsDrop≥2 między seriami (setIndex≥1)",
+        "then": "null — bez agresywnej progresji"
+      },
+      {
+        "id": "hard",
+        "when": "RIR≤0 (lub RPE≥9 bez RIR)",
+        "then": "null albo +reps w zakresie; nigdy +kg"
+      },
+      {
+        "id": "below_top",
+        "when": "range && reps < range.max",
+        "then": "ten sam ciężar, +1 powt. (kind=reps) — USUNIĘTO easy_anywhere"
+      },
+      {
+        "id": "top_of_range_easy",
+        "when": "reps≥range.max AND trailingEasy≥N AND !highVolume",
+        "then": "+2.5 kg, reps=range.min (kind=weight)"
+      },
+      {
+        "id": "need_more_easy",
+        "when": "na górze ale trailingEasy < N",
+        "then": "null (hold)"
+      }
+    ],
+    "removed": ["easy_anywhere — easy poniżej góry nie daje już +kg"],
+    "nullWhen": [
+      "brak last / weight≤0 / reps null",
+      "konflikt / need more easy / high volume / fatigue drop",
+      "hard bez miejsca na +reps"
+    ]
+  },
+  "chipWeightSuggestion": {
+    "function": "suggestWeightFromLastSet(last, targetReps, opts?)",
+    "primary": "suggestedWeightFromProgression (te same progi HARD/EASY)",
+    "fallback": "zachowaj ciężar roboczy (zaokrąglenie 0.5) — BEZ starego hard→+2.5",
+    "ui": "ciężar nie jest auto-wpisywany; użytkownik klika chip / tip"
+  },
+  "helpers": {
+    "classifyEffort": "lib/set-effort — hard|easy|moderate|warn|conflict|unknown",
+    "inferMovementKind": "compound|isolation z categoryId + nazwy",
+    "analyzeSessionTrend": "bestReps, avgReps, repsDrop, setCount",
+    "countTrailingEasySets": "ile łatwych z rzędu od końca",
+    "countHardStreak / countWarnStreak": "serie wstecz",
+    "sessionVolumeKg": "Σ weight×reps; przy wysokiej objętości preferuj hold",
+    "applyDeload": "max(2.5, 5%×kg)",
+    "pickCoachVariant": "FNV-1a 32-bit na seed → stabilny wybór szablonów PL"
+  },
+  "examples": [
+    {
+      "scenario": "W sesji 2× łatwa na górze 36×10 RIR3, zakres 8–10",
+      "openSet": 3,
+      "expectedTipId": "session-bump",
+      "apply": { "weightKg": 38.5, "reps": 8 },
+      "why": "trailingEasy≥2 + góra zakresu → +talerz"
+    },
+    {
+      "scenario": "W sesji jedna łatwa 36×10 RIR3",
+      "openSet": 2,
+      "expectedTipId": "session-hold",
+      "apply": { "weightKg": 36, "reps": 10 },
+      "why": "jedna easy nie wystarcza — bez easy_anywhere i bez premature bump"
+    },
+    {
+      "scenario": "W sesji 60×8 RIR3, zakres 8–10",
+      "openSet": 2,
+      "expectedTipId": "session-reps",
+      "apply": { "weightKg": 60, "reps": 9 },
+      "why": "easy poniżej góry → +reps, nie +kg"
+    },
+    {
+      "scenario": "W sesji 40×6 RIR0",
+      "openSet": 2,
+      "expectedTipId": "session-deload",
+      "apply": { "weightKg": 37.5, "reps": 8 },
+      "why": "hard → applyDeload (max 2.5 / 5%)"
+    },
+    {
+      "scenario": "RIR=5 i RPE=10",
+      "expectedTipId": "session-conflict-hold",
+      "why": "sprzeczne dane → hold"
+    },
+    {
+      "scenario": "Pierwsza seria; przerwa 21 dni; avg top 100 kg",
+      "expectedTipId": "hist-layoff",
+      "apply": { "weightKg": 95 },
+      "why": "layoff ≥14 dni → deload 5%"
+    },
+    {
+      "scenario": "Po zaliczeniu serii 1 z 3; next tip ma apply",
+      "builder": "buildLiveCoachTipAfterCompletedSet",
+      "expectedIdPrefix": "rest-"
+    }
+  ],
+  "nonGoals": [
+    "Brak LLM / zewnętrznego modelu w ścieżce live tip",
+    "Brak auto-zmiany ciężaru bez gestu użytkownika (stuknięcie tipu / chipa)",
+    "Rady cardio i diety są osobnymi modułami (nie ten dokument)"
+  ]
+}

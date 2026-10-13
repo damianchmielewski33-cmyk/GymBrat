@@ -10,6 +10,7 @@ import { addMealProductAction } from "@/actions/meal-log";
 import type { FoodProduct } from "@/lib/food-products-types";
 import type { DietDiarySlot } from "@/lib/diet-diary-slots";
 import { DIET_DIARY_SLOT_LABELS, DIET_DIARY_SLOTS } from "@/lib/diet-diary-slots";
+import { searchLocalProducts } from "@/lib/food-products";
 import { BarcodeCameraScanner } from "@/components/meal-suggestions/barcode-camera-scanner";
 import { FoodPortionSheet } from "@/components/meal-suggestions/food-portion-sheet";
 import { Button } from "@/components/ui/button";
@@ -76,7 +77,7 @@ export function FoodSearchScan({
     if (initialOpen) runSearch("");
   }, [initialOpen, runSearch]);
 
-  // Wyszukiwanie na żywo przy wpisywaniu (debounce).
+  // Wyszukiwanie na żywo: od razu lokalne (jak Fitatu), potem pełne API.
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = query.trim();
@@ -84,7 +85,9 @@ export function FoodSearchScan({
       setSearchHint(null);
       return;
     }
-    debounceRef.current = setTimeout(() => runSearch(q), 280);
+    setProducts(searchLocalProducts(q, 24));
+    setSearchHint(null);
+    debounceRef.current = setTimeout(() => runSearch(q), 220);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };

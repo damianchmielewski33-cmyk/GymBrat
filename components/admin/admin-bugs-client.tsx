@@ -58,8 +58,13 @@ const STATUS_ACTIONS: Record<
     { status: "analysis", label: "Wróć do analizy" },
   ],
   retest: [
-    { status: "analysis", label: "Wróć do analizy" },
+    { status: "fixed", label: "Naprawiony" },
     { status: "in_fix", label: "W naprawie" },
+    { status: "analysis", label: "Wróć do analizy" },
+  ],
+  fixed: [
+    { status: "retest", label: "Do retestu" },
+    { status: "analysis", label: "Wróć do analizy" },
   ],
 };
 
@@ -169,7 +174,7 @@ export function AdminBugsClient() {
           Zgłoszenia błędów
         </h2>
         <p className="text-sm text-white/55">
-          Workflow: Analiza → W naprawie → Do retestu. Priorytety:{" "}
+          Workflow: Analiza → W naprawie → Do retestu → Naprawiony. Priorytety:{" "}
           {BUG_PRIORITIES.map((p) => BUG_PRIORITY_LABELS[p]).join(", ")}.
         </p>
       </div>
@@ -237,6 +242,7 @@ export function AdminBugsClient() {
                           type="button"
                           size="sm"
                           variant={
+                            action.status === "fixed" ||
                             action.status === "retest" ||
                             (tab === "analysis" && action.status === "in_fix")
                               ? "default"
@@ -309,6 +315,11 @@ export function AdminBugsClient() {
                     {tab === "retest" && bug.resolvedAt ? (
                       <p className="text-[11px] text-white/40">
                         Przekazano do retestu: {formatWhen(bug.resolvedAt)}
+                      </p>
+                    ) : null}
+                    {tab === "fixed" && bug.resolvedAt ? (
+                      <p className="text-[11px] text-white/40">
+                        Naprawiono: {formatWhen(bug.resolvedAt)}
                       </p>
                     ) : null}
                   </div>
