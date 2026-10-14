@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import {
+  areAllWorkoutSetsDone,
   canCompleteWorkoutSet,
   countSkippedWorkoutSets,
   findFirstSkippedWorkoutTarget,
@@ -165,5 +166,45 @@ describe("workout-skipped-sets", () => {
     ];
     // Świeży stan: a domknięte — musi wskazać b, nie a.
     expect(resolveAdvanceAfterSet(exercises, "a", 1)?.exerciseId).toBe("b");
+  });
+
+  it("resolveAdvanceAfterSet: domknięcie środkowej serii gdy późniejsze już done → null", () => {
+    const exercises: WorkoutExerciseState[] = [
+      {
+        id: "a",
+        name: "Przysiad",
+        sets: [
+          { reps: 5, weight: 100, done: true },
+          { reps: 5, weight: 100, done: true },
+          { reps: 5, weight: 100, done: true },
+        ],
+      },
+      {
+        id: "b",
+        name: "Martwy",
+        sets: [{ reps: 5, weight: 120, done: true }],
+      },
+    ];
+    // Ostatnia otwarta była seria 1; po patchu wszystko done — koniec treningu.
+    expect(resolveAdvanceAfterSet(exercises, "a", 1)).toBeNull();
+    expect(areAllWorkoutSetsDone(exercises)).toBe(true);
+  });
+
+  it("resolveAdvanceAfterSet: pomija już zaliczone serie po bieżącej", () => {
+    const exercises: WorkoutExerciseState[] = [
+      {
+        id: "a",
+        name: "Przysiad",
+        sets: [
+          { reps: 5, weight: 100, done: true },
+          { reps: 5, weight: 100, done: false },
+          { reps: 5, weight: 100, done: true },
+        ],
+      },
+    ];
+    expect(resolveAdvanceAfterSet(exercises, "a", 0)).toEqual({
+      exerciseId: "a",
+      setIndex: 1,
+    });
   });
 });

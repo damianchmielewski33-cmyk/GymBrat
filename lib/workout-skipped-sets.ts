@@ -124,6 +124,7 @@ export type AdvanceAfterSetTarget = {
 /**
  * Dokąd przejść po zaliczeniu / pominięciu serii.
  * Wymaga **świeżego** stanu exercises (po patchu) — inaczej zostajesz na domkniętym ćwiczeniu.
+ * Pomija serie już z `done=true` (kolejność poza sekwencją / domknięcie „środkowej” ostatniej otwartej).
  */
 export function resolveAdvanceAfterSet(
   exercises: WorkoutExerciseState[],
@@ -133,12 +134,13 @@ export function resolveAdvanceAfterSet(
   const ex = exercises.find((e) => e.id === exerciseId);
   if (!ex) return null;
 
-  const nextSet = setIndex + 1;
-  if (nextSet < ex.sets.length) {
-    return { exerciseId, setIndex: nextSet };
+  for (let i = setIndex + 1; i < ex.sets.length; i++) {
+    if (!ex.sets[i]!.done) {
+      return { exerciseId, setIndex: i };
+    }
   }
 
-  // Bieżące ćwiczenie domknięte — szukaj kolejnego z open setami.
+  // Wcześniejsza otwarta seria w tym samym ćwiczeniu (poza kolejnością).
   const stillOpen = ex.sets.findIndex((s) => !s.done);
   if (stillOpen >= 0) {
     return { exerciseId, setIndex: stillOpen };
@@ -151,4 +153,16 @@ export function resolveAdvanceAfterSet(
     exerciseId: nextEx.id,
     setIndex: open >= 0 ? open : 0,
   };
+}
+
+/** Wszystkie serie mają done=true (niezależnie od pominięć). */
+export function areAllWorkoutSetsDone(exercises: WorkoutExerciseState[]): boolean {
+  let total = 0;
+  for (const ex of exercises) {
+    for (const s of ex.sets) {
+      total += 1;
+      if (!s.done) return false;
+    }
+  }
+  return total > 0;
 }

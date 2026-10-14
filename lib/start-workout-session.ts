@@ -1,10 +1,22 @@
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
+import { findBestCatalogMatch } from "@/lib/workout-exercise-catalog";
+import { isMuscleRegionId } from "@/lib/resolve-exercise-muscles";
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
   return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+/** categoryId z planu albo dopasowanie z katalogu (manekin na pauzie). */
+export function resolveSessionCategoryId(
+  name: string,
+  categoryId?: string | null,
+): string | null {
+  if (isMuscleRegionId(categoryId)) return categoryId;
+  const hit = findBestCatalogMatch(name);
+  return hit && isMuscleRegionId(hit.categoryId) ? hit.categoryId : null;
 }
 
 /** Mapuje ćwiczenia z planu na stan sesji prowadzonej. */
@@ -25,6 +37,7 @@ export function planExercisesToSession(
     return {
       id: ex.id,
       name: ex.name,
+      categoryId: resolveSessionCategoryId(ex.name, ex.categoryId),
       targetSets: setCount,
       targetReps: reps ?? undefined,
       targetRir,
@@ -41,6 +54,24 @@ export function planExercisesToSession(
       })),
     };
   });
+}
+
+/**
+ * Uzupełnia brakujące categoryId w aktywnej sesji (np. wznowienie sprzed poprawki).
+ * Zwraca tę samą referencję, gdy nic się nie zmienia.
+ */
+export function backfillSessionExerciseCategories(
+  exercises: WorkoutExerciseState[],
+): WorkoutExerciseState[] {
+  let changed = false;
+  const next = exercises.map((ex) => {
+    if (isMuscleRegionId(ex.categoryId)) return ex;
+    const categoryId = resolveSessionCategoryId(ex.name, ex.categoryId);
+    if (!categoryId || categoryId === ex.categoryId) return ex;
+    changed = true;
+    return { ...ex, categoryId };
+  });
+  return changed ? next : exercises;
 }
 
 export type ActiveWorkoutStartApi = {

@@ -218,16 +218,29 @@ export function MuscleMannequin({
   preferBackView = false,
   label,
   className,
+  /** Większy pojedynczy widok (pauza między ćwiczeniami). */
+  prominent = false,
 }: {
   primary: MuscleRegionId | null;
   secondary?: MuscleRegionId[];
   preferBackView?: boolean;
   label?: string | null;
   className?: string;
+  prominent?: boolean;
 }) {
   if (!primary || primary === "cardio") {
     return null;
   }
+
+  const mainClass = prominent
+    ? "h-[200px] w-[96px] sm:h-[240px] sm:w-[114px]"
+    : "h-[168px] w-[80px] sm:h-[196px] sm:w-[94px]";
+  const sideClass = prominent
+    ? "h-[132px] w-[64px] opacity-40 sm:h-[156px] sm:w-[74px]"
+    : cn(
+        "h-[168px] w-[80px] sm:h-[196px] sm:w-[94px]",
+        "opacity-45",
+      );
 
   return (
     <div
@@ -242,23 +255,26 @@ export function MuscleMannequin({
           : "Partia mięśniowa następnego ćwiczenia"
       }
     >
-      <div className="flex items-end justify-center gap-3">
-        <div
-          className={cn(
-            "h-[168px] w-[80px] sm:h-[196px] sm:w-[94px]",
-            preferBackView && "opacity-45",
-          )}
-        >
-          <FrontFigure primary={primary} secondary={secondary} />
-        </div>
-        <div
-          className={cn(
-            "h-[168px] w-[80px] sm:h-[196px] sm:w-[94px]",
-            !preferBackView && "opacity-45",
-          )}
-        >
-          <BackFigure primary={primary} secondary={secondary} />
-        </div>
+      <div className="flex items-end justify-center gap-2.5 sm:gap-3">
+        {preferBackView ? (
+          <>
+            <div className={sideClass}>
+              <FrontFigure primary={primary} secondary={secondary} />
+            </div>
+            <div className={mainClass}>
+              <BackFigure primary={primary} secondary={secondary} />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className={mainClass}>
+              <FrontFigure primary={primary} secondary={secondary} />
+            </div>
+            <div className={sideClass}>
+              <BackFigure primary={primary} secondary={secondary} />
+            </div>
+          </>
+        )}
       </div>
       {label ? (
         <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">

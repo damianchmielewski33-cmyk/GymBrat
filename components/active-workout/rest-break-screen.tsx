@@ -255,13 +255,14 @@ export function RestBreakScreen({
           Przerwa
         </p>
 
-        {nextMuscles?.primary ? (
+        {nextMuscles?.primary && nextMuscles.primary !== "cardio" ? (
           <MuscleMannequin
             primary={nextMuscles.primary}
             secondary={nextMuscles.secondary}
             preferBackView={nextMuscles.preferBackView}
             label={nextMuscles.label}
-            className="mb-3"
+            prominent
+            className="mb-2"
           />
         ) : null}
 

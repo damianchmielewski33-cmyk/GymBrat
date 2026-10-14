@@ -194,7 +194,7 @@ export function WorkoutFinishedScreen(props: WorkoutFinishedScreenProps) {
   const bestSetsSectionIndex = weightRecords.length > 0 ? 2 : 1;
 
   const content = (
-    <div className="fixed inset-0 z-[120] flex flex-col bg-[var(--gym-black)] text-white">
+    <div className="fixed inset-0 z-[1200] flex flex-col bg-[var(--gym-black)] text-white">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
         <div className="mx-auto w-full max-w-lg px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] sm:px-5">
           <header className="flex items-start gap-3 pt-1">

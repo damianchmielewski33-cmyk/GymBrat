@@ -10,7 +10,10 @@ import { getExerciseTechniqueUrlMap } from "@/actions/exercise-technique";
 import { attachTechniqueUrls } from "@/lib/attach-technique-urls";
 import { mergeHintsIntoExercises } from "@/lib/last-workout-hints";
 import type { LastPlanHintsMap } from "@/lib/last-workout-hints";
-import { planExercisesToSession } from "@/lib/start-workout-session";
+import {
+  backfillSessionExerciseCategories,
+  planExercisesToSession,
+} from "@/lib/start-workout-session";
 import {
   detectSessionNewMaxes,
   detectSessionWeightRecords,
@@ -38,11 +41,12 @@ import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 import {
+  areAllWorkoutSetsDone,
   canCompleteWorkoutSet,
   countSkippedWorkoutSets,
   findFirstSkippedWorkoutTarget,
-  findNextIncompleteExercise,
   isSkippedWorkoutSet,
+  resolveAdvanceAfterSet,
 } from "@/lib/workout-skipped-sets";
 import { hapticExerciseDone, hapticNewMax, hapticWorkoutDone } from "@/lib/haptics";
 import {
@@ -152,6 +156,33 @@ export function ActiveWorkoutView({
     );
   }, [lastCompleted, exercises]);
 
+  /** Manekin na pauzie: snap albo żywe dopasowanie (categoryId / katalog). */
+  const restNextMuscles = useMemo((): ResolvedExerciseMuscles | null => {
+    if (!lastCompleted || lastCompleted.workoutFinished) return null;
+    if (lastCompleted.nextMuscles?.primary) return lastCompleted.nextMuscles;
+    if (
+      lastCompleted.nextLabel === "Następne ćwiczenie" &&
+      lastCompleted.nextValue !== "Koniec treningu"
+    ) {
+      const nextEx = exercises.find((e) => e.name === lastCompleted.nextValue);
+      if (nextEx) {
+        return resolveExerciseMuscles({
+          name: nextEx.name,
+          categoryId: nextEx.categoryId,
+        });
+      }
+      return resolveExerciseMuscles({ name: lastCompleted.nextValue });
+    }
+    const ex = exercises.find((e) => e.id === lastCompleted.exerciseId);
+    if (ex) {
+      return resolveExerciseMuscles({
+        name: ex.name,
+        categoryId: ex.categoryId,
+      });
+    }
+    return resolveExerciseMuscles({ name: lastCompleted.exerciseName });
+  }, [lastCompleted, exercises]);
+
   const hasLoadedPlan = workoutPlanId != null && exercises.length > 0;
 
   useLayoutEffect(() => {
@@ -203,10 +234,31 @@ export function ActiveWorkoutView({
     const ex = useActiveWorkoutStore.getState().exercises;
     if (!ex.length) return;
     if (Object.keys(lastPlanHints).length) {
-      setExercises(mergeHintsIntoExercises(ex, lastPlanHints));
+      setExercises(
+        backfillSessionExerciseCategories(
+          mergeHintsIntoExercises(ex, lastPlanHints),
+        ),
+      );
+    } else {
+      const filled = backfillSessionExerciseCategories(ex);
+      if (filled !== ex) setExercises(filled);
     }
     hintsMergedRef.current = true;
   }, [lastPlanHints, hintsFetchDone, workoutPlanId, setExercises]);
+
+  /** Sesje wznowione sprzed poprawki — bez categoryId manekin na pauzie był pusty. */
+  useEffect(() => {
+    if (!storeHydrated || !cloudHydrated || !hasLoadedPlan) return;
+    const ex = useActiveWorkoutStore.getState().exercises;
+    const filled = backfillSessionExerciseCategories(ex);
+    if (filled !== ex) setExercises(filled);
+  }, [
+    storeHydrated,
+    cloudHydrated,
+    hasLoadedPlan,
+    workoutPlanId,
+    setExercises,
+  ]);
 
   const techniqueMapRef = useRef<Record<string, string>>({});
   const techniqueAppliedKeyRef = useRef("");
@@ -288,12 +340,12 @@ export function ActiveWorkoutView({
     weight: number,
     reps: number,
   ): LastCompletedSnap | null {
-    const idx = list.findIndex((e) => e.id === exerciseId);
-    const ex = list[idx];
+    const ex = list.find((e) => e.id === exerciseId);
     if (!ex) return null;
-    const nextSetIdx = setIndex + 1;
+
+    const advance = resolveAdvanceAfterSet(list, exerciseId, setIndex);
     let nextLabel = "Następna seria";
-    let nextValue = `Seria ${nextSetIdx + 1} z ${ex.sets.length}`;
+    let nextValue = `Seria ${setIndex + 2} z ${ex.sets.length}`;
     let exerciseFinished = false;
     let workoutFinished = false;
     /** Manekin: partia tego, co zaraz będzie robione. */
@@ -301,24 +353,30 @@ export function ActiveWorkoutView({
       name: ex.name,
       categoryId: ex.categoryId,
     });
-    if (nextSetIdx >= ex.sets.length) {
+
+    if (!advance) {
+      // Brak otwartej serii / ćwiczenia — pauza z „Koniec treningu”.
       exerciseFinished = true;
-      const nextEx = findNextIncompleteExercise(list, exerciseId);
-      if (nextEx) {
-        nextLabel = "Następne ćwiczenie";
-        nextValue = nextEx.name;
-        nextMuscles = resolveExerciseMuscles({
-          name: nextEx.name,
-          categoryId: nextEx.categoryId,
-        });
-      } else {
-        // Ekran pauzy po ostatniej serii — jak makieta: „Koniec treningu”.
-        nextLabel = "Następne ćwiczenie";
-        nextValue = "Koniec treningu";
-        workoutFinished = true;
-        nextMuscles = null;
-      }
+      workoutFinished = true;
+      nextLabel = "Następne ćwiczenie";
+      nextValue = "Koniec treningu";
+      nextMuscles = null;
+    } else if (advance.exerciseId === exerciseId) {
+      nextLabel = "Następna seria";
+      nextValue = `Seria ${advance.setIndex + 1} z ${ex.sets.length}`;
+    } else {
+      exerciseFinished = true;
+      const nextEx = list.find((e) => e.id === advance.exerciseId);
+      nextLabel = "Następne ćwiczenie";
+      nextValue = nextEx?.name ?? "—";
+      nextMuscles = nextEx
+        ? resolveExerciseMuscles({
+            name: nextEx.name,
+            categoryId: nextEx.categoryId,
+          })
+        : null;
     }
+
     return {
       exerciseId,
       exerciseName: ex.name,
@@ -332,6 +390,12 @@ export function ActiveWorkoutView({
       workoutFinished,
       nextMuscles,
     };
+  }
+
+  /** Dalej / koniec odliczania → podsumowanie, gdy snap albo stan sesji mówi „wszystko zaliczone”. */
+  function shouldOpenFinishAfterRest(): boolean {
+    if (lastCompletedRef.current?.workoutFinished) return true;
+    return areAllWorkoutSetsDone(useActiveWorkoutStore.getState().exercises);
   }
 
   function countSetsDone(list: WorkoutExerciseState[]) {
@@ -451,7 +515,7 @@ export function ActiveWorkoutView({
         if (restSoundOnRef.current) {
           playRestTimerEndSignal();
         }
-        const finished = Boolean(lastCompletedRef.current?.workoutFinished);
+        const finished = shouldOpenFinishAfterRest();
         setRestRemaining(null);
         if (finished) {
           setFinishOpen(true);
@@ -560,10 +624,24 @@ export function ActiveWorkoutView({
         Number(nextWeight) || 0,
         Number(nextReps) || 0,
       );
-      if (snap && !isSkippedNext) setLastCompleted(snap);
-
       const { done, total } = countSetsDone(exercisesNow);
-      if (total > 0 && done >= total) {
+      const workoutComplete = total > 0 && done >= total;
+      // Gdy sesja jest domknięta, wymuś etykietę „Koniec treningu” nawet jeśli
+      // domknięto „środkową” serię (kolejność poza sekwencją).
+      const restSnap =
+        snap && workoutComplete && !isSkippedNext
+          ? {
+              ...snap,
+              exerciseFinished: true,
+              workoutFinished: true,
+              nextLabel: "Następne ćwiczenie",
+              nextValue: "Koniec treningu",
+              nextMuscles: null,
+            }
+          : snap;
+      if (restSnap && !isSkippedNext) setLastCompleted(restSnap);
+
+      if (workoutComplete) {
         hapticWorkoutDone();
         const skipped = findFirstSkippedWorkoutTarget(exercisesNow);
         const skipCount = countSkippedWorkoutSets(exercisesNow);
@@ -602,7 +680,7 @@ export function ActiveWorkoutView({
   }
 
   function continueAfterRest() {
-    const finished = Boolean(lastCompleted?.workoutFinished);
+    const finished = shouldOpenFinishAfterRest();
     stopRest();
     if (finished) {
       setFinishOpen(true);
@@ -792,7 +870,7 @@ export function ActiveWorkoutView({
           }
           nextLabel={lastCompleted?.nextLabel ?? "Następna seria"}
           nextValue={lastCompleted?.nextValue ?? "—"}
-          nextMuscles={lastCompleted?.nextMuscles ?? null}
+          nextMuscles={restNextMuscles}
           coachTip={restCoachTip}
           soundOn={restSoundOn}
           onToggleSound={() => {
