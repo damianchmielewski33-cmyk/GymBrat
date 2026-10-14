@@ -67,7 +67,9 @@ export function backfillSessionExerciseCategories(
   const next = exercises.map((ex) => {
     if (isMuscleRegionId(ex.categoryId)) return ex;
     const categoryId = resolveSessionCategoryId(ex.name, ex.categoryId);
-    if (!categoryId || categoryId === ex.categoryId) return ex;
+    // Po nieudanym type-guardzie TS zwęża categoryId do null|undefined —
+    // porównanie ze stringiem jest zbędne (resolve zwraca tylko valid id albo null).
+    if (!categoryId) return ex;
     changed = true;
     return { ...ex, categoryId };
   });
