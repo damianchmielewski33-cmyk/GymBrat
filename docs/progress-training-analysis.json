@@ -304,7 +304,8 @@
   ],
   "relatedDocs": [
     "docs/live-set-coach-tips.json",
-    "docs/extra-cardio-from-macros.json"
+    "docs/extra-cardio-from-macros.json",
+    "docs/performance-intelligence-engine-v2.md"
   ],
   "examples": {
     "sessionVolume": {
