@@ -1,0 +1,338 @@
+{
+  "title": "GymBrat — Analiza treningu (sekcja Analiza / Postępy)",
+  "version": "1.0",
+  "date": "2026-10-14",
+  "purpose": "Dokumentacja analityczna: co widać w Analizie, skąd biorą się liczby, jakie serie/sesje są brane pod uwagę i jak liczone są trendy, tonaż, e1RM, intensywność (RPE/RIR) oraz spięcie z dietą.",
+  "uiRoute": "/progress",
+  "tabs": [
+    { "id": "sila", "label": "Siła", "focus": "tonaż, e1RM, trendy objętości, RPE/RIR, ćwiczenia per plan" },
+    { "id": "sylwetka", "label": "Sylwetka", "focus": "waga, tempo kg/tydzień, obwody" },
+    { "id": "zdjecia", "label": "Zdjęcia", "focus": "Start vs Teraz (tylko przód raportu)" },
+    { "id": "tydzien", "label": "Tydzień", "focus": "kalendarz pn→nd, tonaż vs poprzedni tydzień, cardio, dieta×trening, cele, osiągnięcia" }
+  ],
+  "sourceOfTruth": [
+    "lib/progress-hub.ts",
+    "lib/intensity-analysis.ts",
+    "lib/diet-training-weeks.ts",
+    "lib/workout-history.ts (estimated1RM)",
+    "lib/workout-session-calculations.ts",
+    "lib/workout-cardio-attribution.ts",
+    "lib/workout-skipped-sets.ts",
+    "lib/exercise-identity.ts",
+    "lib/achievements.ts",
+    "lib/progress-tabs.ts"
+  ],
+  "tests": [
+    "lib/intensity-analysis (via progress / diet-training)",
+    "lib/diet-training-weeks (classifyDietWeekStatus)",
+    "lib/workout-session-calculations",
+    "lib/workout-history (estimated1RM)"
+  ],
+  "dataWindow": {
+    "workoutsLookbackDays": 180,
+    "workoutsLimit": 400,
+    "weekBars": 8,
+    "exerciseVolumeSparkMax": 8,
+    "intensitySparkSessions": 6,
+    "newPrWindowDays": 21,
+    "weightTempoLastWindowDays": 42
+  },
+  "eligibility": {
+    "strengthSession": {
+      "rule": "isCompletedStrengthSession",
+      "source": "lib/workout-cardio-attribution.ts",
+      "include": "JSON sesji z exercises.length > 0 i kind ≠ cardio_log",
+      "exclude": "samodzielny log cardio (cardio_log)"
+    },
+    "countedSetForVolumeKg": {
+      "allOf": [
+        "set.done === true",
+        "set.skipped !== true",
+        "reps > 0 (hasPerformedReps)",
+        "weight > 0 (hasExternalWeight)"
+      ],
+      "note": "Serie pominięte i 0 kg nie wchodzą do tonażu kg."
+    },
+    "countedSetForBodyweightReps": {
+      "allOf": [
+        "set.done === true",
+        "set.skipped !== true",
+        "reps > 0"
+      ],
+      "note": "Dla ćwiczeń bez historii z obciążeniem metryka = suma powtórzeń."
+    },
+    "intensitySet": {
+      "rule": "done && !skipped",
+      "rirRange": [0, 5],
+      "rpeRange": [1, 10]
+    },
+    "cardioMinutes": {
+      "rule": "countableCardioMinutes",
+      "include": [
+        "pełne minuty z cardio_log",
+        "dodatkowe cardioMinutes przy sesji siłowej (popup po treningu)"
+      ],
+      "exclude": "czas samej sesji siłowej bez wpisanego cardioMinutes"
+    }
+  },
+  "formulas": {
+    "setVolumeKg": {
+      "formula": "reps × weight",
+      "rounding": "suma sesji/ćwiczenia zaokrąglana do 0.1 kg (safeRound1)"
+    },
+    "sessionTonnageKg": {
+      "formula": "Σ (reps × weight) po wszystkich zaliczonych seriach z obciążeniem w sesji",
+      "alias": ["volumeKg", "tonnageKg"]
+    },
+    "estimated1RM": {
+      "name": "Epley",
+      "formula": "weight × (1 + reps / 30)",
+      "source": "lib/workout-history.ts → estimated1RM",
+      "usedFor": "rekordy (maxes), porównanie PR per ćwiczenie",
+      "zeroWhen": "weight ≤ 0 lub reps ≤ 0"
+    },
+    "volumeTrend": {
+      "function": "trendOf(prev, next)",
+      "thresholdsPercent": {
+        "up": "≥ +3%",
+        "down": "≤ −3%",
+        "flat": "w przedziale (−3%, +3%) lub prev ≤ 0"
+      },
+      "appliedTo": [
+        "ostatnie vs poprzednie volume spark ćwiczenia",
+        "kolejne sesje w volumeSessions (ostatnie 6)"
+      ]
+    },
+    "exerciseMetric": {
+      "weighted": {
+        "when": "kiedykolwiek w historii ćwiczenia wystąpiło weight > 0",
+        "metric": "kg",
+        "sparkValue": "dzienna objętość kg (suma reps×weight tego dnia)",
+        "skipDays": "dni tylko z masą ciała (0 kg) nie dopisują sparku kg"
+      },
+      "bodyweight": {
+        "when": "brak historii z obciążeniem",
+        "metric": "reps",
+        "sparkValue": "suma powtórzeń w dniu"
+      }
+    },
+    "exerciseStatus": {
+      "pending": "brak sparku / brak agregatu",
+      "first": "dokładnie 1 wpis w spark",
+      "compare": "≥ 2 wpisy — wtedy trend + volumeDelta"
+    },
+    "volumeDelta": {
+      "volumeDeltaKg": "next − prev (ostatnie dwa sparki)",
+      "volumeDeltaPercent": "round(((next − prev) / prev) × 100) gdy prev > 0"
+    }
+  },
+  "tabsDetail": {
+    "sila": {
+      "maxes": {
+        "weighted": {
+          "sort": "bestE1rm malejąco",
+          "limit": 6,
+          "fields": ["bestE1rm", "bestWeight", "bestReps", "date", "isNew"],
+          "isNew": "data PR ≥ today − 21 dni"
+        },
+        "bodyweight": {
+          "sort": "bestReps malejąco",
+          "limit": 4,
+          "bestE1rm": 0
+        }
+      },
+      "volumeSessions": {
+        "count": "ostatnie 6 sesji siłowych z volumeKg lub reps",
+        "orderInUi": "najnowsze pierwsze (reverse chronologicznego sparku)",
+        "trend": "vs poprzednia sesja w tej szóstce (±3%)"
+      },
+      "volumeCounts": {
+        "meaning": "ile ćwiczeń z ≥2 sparkami ma trend up / flat / down",
+        "volumeComparedCount": "up + flat + down"
+      },
+      "intensity": {
+        "source": "buildProgressIntensitySummary(intensitySessions)",
+        "window": "ostatnie 6 sesji siłowych (chronologicznie)",
+        "avgRir": "średnia avgRir sesji mających RIR",
+        "avgRpe": "średnia avgRpe sesji mających RPE",
+        "hardSet": "RIR ≤ 1 LUB RPE ≥ 8",
+        "hardSetPct": "round(hardSets / scoredSets × 100)",
+        "rirVsTarget": {
+          "tolerance": 0.75,
+          "harder": "avgRir − targetRir ≤ −0.75 (mniej zapasu niż plan)",
+          "easier": "avgRir − targetRir ≥ +0.75",
+          "on": "w tolerancji",
+          "targetHitPct": "round(targetOn / targetCompared × 100)"
+        },
+        "tempo": {
+          "note": "tempo z planu (cel), nie pomiar wykonania",
+          "tempoExercisePct": "ćwiczenia z tempem / ćwiczenia scorowane × 100"
+        },
+        "rirTrend": {
+          "up": "RIR ↑ o ≥ 0.4 (więcej zapasu = lżej)",
+          "down": "RIR ↓ o ≥ 0.4",
+          "flat": "|Δ| < 0.4"
+        }
+      },
+      "planGroups": {
+        "grouping": "ćwiczenia z aktywnych planów użytkownika (workoutPlans), po resolveExerciseIdentity.key",
+        "orphanBucket": "Inne — ćwiczenia z historii spoza planów (max 12)",
+        "noPlansBucket": "Ćwiczenia — top 40 po lastVolume gdy brak planów",
+        "row": "toExerciseRow: lastVolume, spark, trend, status, delta"
+      }
+    },
+    "sylwetka": {
+      "weights": {
+        "sources": ["bodyReports.weightKg", "weightLogs (gdy brak raportu tego dnia)"],
+        "onePointPerDay": "ostatni/wybrany kg na datę kalendarzową"
+      },
+      "tempo": {
+        "deltaVsPrevKg": "ostatni − przedostatni punkt",
+        "deltaFromStartKg": "ostatni − pierwszy",
+        "kgPerWeekLast6": "((ostatni − pierwszy w oknie 42 dni) / days) × 7",
+        "kgPerWeekFromStart": "((ostatni − pierwszy ever) / days) × 7",
+        "lastAvgKg": "średnia z ostatnich ≤3 punktów",
+        "targetWeightKg": "z fitnessGoalsJson"
+      },
+      "measures": {
+        "keys": [
+          { "key": "waist", "label": "Pas", "lowerIsBetter": true },
+          { "key": "thigh", "label": "Udo", "lowerIsBetter": true },
+          { "key": "chest", "label": "Klatka", "lowerIsBetter": false },
+          { "key": "arm", "label": "Ramię", "lowerIsBetter": false }
+        ],
+        "spark": "ostatnie 12 wartości z raportów",
+        "deltaFromStartCm": "ostatni − pierwszy w serii"
+      }
+    },
+    "zdjecia": {
+      "photoSource": "tylko zdjęcie przodu z raportu (frontBodyReportPhoto)",
+      "start": "własne startPhotoDataUrl LUB pierwsze zdjęcie z raportów",
+      "now": "najnowsze zdjęcie przodu",
+      "weightDeltaKg": "now.weight − start.weight (fallback na punkty wagi)",
+      "waistDeltaCm": "ostatni pas − pierwszy pas z raportów (lub Start/Teraz)"
+    },
+    "tydzien": {
+      "calendarWeek": "poniedziałek → niedziela (lokalny calendarDateKey)",
+      "summary": {
+        "done": "liczba sesji siłowych w bieżącym tygodniu",
+        "target": "fitnessGoals.weeklySessionsTarget (domyślnie 5)",
+        "tonnageKg": "suma volumeKg sesji siłowych w tym tygodniu",
+        "prevWeekTonnageKg": "tonaż poprzedniego tygodnia kalendarzowego",
+        "cardioMinutes": "suma countableCardioMinutes w tym tygodniu",
+        "cardioGoalMinutes": "userSettings.weeklyCardioGoalMinutes (domyślnie 150)",
+        "days": "7 dni z flagami strength / cardio",
+        "streakWeeks": "ile kolejnych tygodni wstecz (max 12) miało ≥1 sesję siłową, start od bieżącego",
+        "daysLeft": "dni do niedzieli włącznie (≥ 0)"
+      },
+      "last8": {
+        "bars": "8 tygodni: workouts, tonnageKg, cardioMinutes",
+        "complete": "workouts ≥ weeklySessionsTarget"
+      },
+      "dietTraining": {
+        "source": "lib/diet-training-weeks.ts",
+        "join": "te same poniedziałki co last8",
+        "diet": {
+          "caloriesConsumed": "suma meal-logów w oknie (bieżący tydzień: pn→dziś)",
+          "caloriesGoal": "suma dziennych celów z profilu (treningowy/nietreningowy)",
+          "proteinConsumed_proteinGoal": "analogicznie",
+          "adherencePct": "round(consumed/goal × 100)",
+          "status": {
+            "on_track": "kcal adherence 85–110% i wystarczająco dni z logami",
+            "under": "< 85%",
+            "over": "> 110%",
+            "no_data": "za mało dni z logami (min(3, daysInWindow))",
+            "no_goal": "brak celu kcal"
+          },
+          "uiLabelOnTrack": "W diecie"
+        },
+        "trainingSide": {
+          "tonnageKg": "z week bucket",
+          "workouts": "z week bucket",
+          "avgRpe_avgRir_hardSetPct": "z intensity sesji tego tygodnia"
+        }
+      },
+      "goalBars": [
+        {
+          "id": "waist-15",
+          "label": "−15 cm w pasie",
+          "progress": "min(100, round(waistLostCm / 15 × 100))",
+          "waistLostCm": "abs(delta) gdy delta < 0, inaczej 0"
+        },
+        {
+          "id": "tonnage-50t",
+          "label": "50 t podniesione",
+          "goalKg": 50000,
+          "progress": "min(100, round(totalTonnageKg / 50000 × 100))",
+          "totalTonnageKg": "suma volumeKg wszystkich sesji siłowych w oknie 180 dni"
+        },
+        {
+          "id": "streak-4",
+          "label": "4 tygodnie z rzędu",
+          "progress": "min(100, round(streakWeeks / 4 × 100))"
+        }
+      ],
+      "achievements": {
+        "source": "lib/achievements.ts → computeAchievements",
+        "inputs": [
+          "totalTonnageKg",
+          "totalStrengthSessions",
+          "streakWeeks",
+          "weightDeltaKg",
+          "waistDeltaCm",
+          "firstWorkoutDate",
+          "firstReportDate"
+        ]
+      }
+    }
+  },
+  "exerciseIdentity": {
+    "purpose": "Stabilny klucz ćwiczenia mimo wariantów nazwy (katalog / normalizacja)",
+    "source": "lib/exercise-identity.ts → resolveExerciseIdentity",
+    "effect": "historia i PR nie giną przy drobnej zmianie nazwy; rename w planie przepisuje historię osobną ścieżką"
+  },
+  "exerciseDetail": {
+    "route": "/progress/exercises/[key]",
+    "note": "Szczegóły pojedynczego ćwiczenia (wykresy / rekordy) budowane z tej samej historii sesji; klucz = exerciseProgressKey(name)"
+  },
+  "whatIsNotIncluded": [
+    "Serie skipped / niedokończone nie liczą się do tonażu ani intensywności",
+    "Czas trwania sesji siłowej ≠ cardio minutes (chyba że użytkownik doda cardio w popupie)",
+    "Tempo w intensywności = cel z planu, nie sensor wykonania",
+    "e1RM Epley to szacunek — nie pomiar laboratoryjny",
+    "Analiza live coach / progresja serii w trakcie treningu jest osobnym dokumentem (docs/live-set-coach-tips.json)"
+  ],
+  "relatedDocs": [
+    "docs/live-set-coach-tips.json",
+    "docs/extra-cardio-from-macros.json"
+  ],
+  "examples": {
+    "sessionVolume": {
+      "sets": [
+        { "done": true, "skipped": false, "reps": 8, "weight": 100 },
+        { "done": true, "skipped": false, "reps": 8, "weight": 100 },
+        { "done": true, "skipped": true, "reps": 0, "weight": 0 }
+      ],
+      "volumeKg": 1600,
+      "note": "trzecia seria pominięta — 0 do tonażu"
+    },
+    "e1rm": {
+      "weight": 100,
+      "reps": 5,
+      "estimated1RM": 116.7,
+      "calc": "100 × (1 + 5/30) = 116.666… → UI często safeRound1"
+    },
+    "trend": {
+      "prevVolume": 1000,
+      "nextVolume": 1040,
+      "pct": 4,
+      "trend": "up"
+    },
+    "dietOnTrack": {
+      "calorieAdherencePct": 97,
+      "daysLogged": 4,
+      "daysInWindow": 7,
+      "status": "on_track"
+    }
+  }
+}

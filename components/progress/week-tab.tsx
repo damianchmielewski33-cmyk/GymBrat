@@ -73,11 +73,13 @@ function fmtIntensity(n: number | null, digits = 1): string {
 
 function DietTrainingCurrent({ week }: { week: ProgressDietTrainingWeek }) {
   return (
-    <div className="space-y-3 app-panel px-3.5 py-4">
+    <div className="space-y-2.5 app-panel px-3.5 py-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Utensils className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />
-          <p className="text-[13px] font-medium text-white/85">Ten tydzień</p>
+          <p className="text-[13px] font-semibold leading-snug text-white/85">
+            Ten tydzień
+          </p>
         </div>
         <span
           className={cn(
@@ -89,15 +91,15 @@ function DietTrainingCurrent({ week }: { week: ProgressDietTrainingWeek }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
             Kcal vs cel
           </p>
-          <p className="mt-1.5 font-metric text-[1.85rem] leading-none text-white">
+          <p className="mt-1 font-metric text-[1.5rem] leading-none text-white">
             {fmtPct(week.calorieAdherencePct)}
           </p>
-          <p className="mt-1.5 text-[11px] text-white/40">
+          <p className="mt-1 text-[11px] leading-snug text-white/40">
             {week.caloriesConsumed.toLocaleString("pl-PL")} /{" "}
             {week.caloriesGoal > 0
               ? week.caloriesGoal.toLocaleString("pl-PL")
@@ -106,13 +108,13 @@ function DietTrainingCurrent({ week }: { week: ProgressDietTrainingWeek }) {
           </p>
         </div>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
             Białko vs cel
           </p>
-          <p className="mt-1.5 font-metric text-[1.85rem] leading-none text-white">
+          <p className="mt-1 font-metric text-[1.5rem] leading-none text-white">
             {fmtPct(week.proteinAdherencePct)}
           </p>
-          <p className="mt-1.5 text-[11px] text-white/40">
+          <p className="mt-1 text-[11px] leading-snug text-white/40">
             {week.proteinConsumed.toLocaleString("pl-PL")} /{" "}
             {week.proteinGoal > 0
               ? week.proteinGoal.toLocaleString("pl-PL")
@@ -122,12 +124,12 @@ function DietTrainingCurrent({ week }: { week: ProgressDietTrainingWeek }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 border-t border-white/[0.06] pt-3">
+      <div className="grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-2.5">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
             Tonaż
           </p>
-          <p className="mt-1 font-metric text-[1.15rem] text-white">
+          <p className="mt-1 font-metric text-[15px] leading-none text-white">
             {formatTonnes(week.tonnageKg)}
           </p>
         </div>
@@ -135,7 +137,7 @@ function DietTrainingCurrent({ week }: { week: ProgressDietTrainingWeek }) {
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
             Śr. RPE
           </p>
-          <p className="mt-1 font-metric text-[1.15rem] text-white">
+          <p className="mt-1 font-metric text-[15px] leading-none text-white">
             {fmtIntensity(week.avgRpe)}
           </p>
         </div>
@@ -143,7 +145,7 @@ function DietTrainingCurrent({ week }: { week: ProgressDietTrainingWeek }) {
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
             Śr. RIR
           </p>
-          <p className="mt-1 font-metric text-[1.15rem] text-white">
+          <p className="mt-1 font-metric text-[15px] leading-none text-white">
             {fmtIntensity(week.avgRir)}
           </p>
         </div>
@@ -197,7 +199,7 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
   const tonnageTonnes = Math.max(0, summary.tonnageKg) / 1000;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
       <WeekProgressCalendarCard
         monday={summary.monday}
         daysLeft={summary.daysLeft}
@@ -207,40 +209,40 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
         today={summary.today}
       />
 
-      <section className="space-y-2.5">
+      <section className="space-y-2">
         <SectionLabel
           className="items-center"
           index={1}
           title="W tym tygodniu"
           titleTone="white"
         />
-        <div className="space-y-3 app-panel px-3.5 py-4">
-          <div className="grid grid-cols-2 gap-x-3 gap-y-4">
+        <div className="space-y-2.5 app-panel px-3.5 py-3">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-3">
             <div className="flex min-w-0 items-start justify-between gap-2">
-              <p className="pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+              <p className="pt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
                 Tonaż
               </p>
               <div className="min-w-0 text-right">
-                <p className="font-metric text-[1.85rem] leading-none text-white">
+                <p className="font-metric text-[1.5rem] leading-none text-white">
                   <AnimatedMetric value={tonnageTonnes} decimals={1} />
-                  <span className="ml-1 text-base text-white/40">t</span>
+                  <span className="ml-1 text-[13px] text-white/40">t</span>
                 </p>
-                <p className="mt-1.5 text-[11px] leading-snug text-white/40">
+                <p className="mt-1 text-[11px] leading-snug text-white/40">
                   cały poprzedni tydzień{" "}
                   {formatTonnes(summary.prevWeekTonnageKg).replace(" t", "")} t
                 </p>
               </div>
             </div>
             <div className="flex min-w-0 items-start justify-between gap-2">
-              <p className="pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+              <p className="pt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
                 Cardio
               </p>
               <div className="min-w-0 text-right">
-                <p className="font-metric text-[1.85rem] leading-none text-white">
+                <p className="font-metric text-[1.5rem] leading-none text-white">
                   <AnimatedMetric value={summary.cardioMinutes} />
-                  <span className="ml-1 text-base text-white/40">min</span>
+                  <span className="ml-1 text-[13px] text-white/40">min</span>
                 </p>
-                <p className="mt-1.5 text-[11px] leading-snug text-white/40">
+                <p className="mt-1 text-[11px] leading-snug text-white/40">
                   {wejscLabel(summary.cardioEntries)}
                   <span className="mx-1 text-white/25">·</span>
                   Zalecenie: {summary.cardioGoalMinutes}
@@ -249,9 +251,9 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 border-t border-white/[0.06] pt-3">
-            <Flame className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />
-            <p className="text-[13px] text-white/80">
+          <div className="flex items-center gap-2 border-t border-white/[0.06] pt-2.5">
+            <Flame className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
+            <p className="text-[13px] leading-snug text-white/80">
               {summary.streakWeeks === 0
                 ? "Brak serii tygodni z treningiem"
                 : summary.streakWeeks === 1
@@ -264,7 +266,7 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
         </div>
       </section>
 
-      <section className="space-y-2.5">
+      <section className="space-y-2">
         <SectionLabel
           className="items-center"
           index={2}
@@ -272,9 +274,9 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
           trailing="8 tyg."
           titleTone="white"
         />
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {!dietTraining.hasGoals ? (
-            <div className="app-panel px-4 py-4 text-center text-sm text-white/45">
+            <div className="app-panel px-3.5 py-3 text-center text-[13px] text-white/45">
               Ustaw cele kcal/makro w Profilu — wtedy zobaczysz status „W diecie”
               obok tonażu i RPE.
             </div>
@@ -289,11 +291,11 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
               ))}
             </ul>
           ) : (
-            <div className="app-panel px-4 py-6 text-center text-sm text-white/45">
+            <div className="app-panel px-3.5 py-4 text-center text-[13px] text-white/45">
               Brak danych tygodniowych do porównania.
             </div>
           )}
-          <p className="px-1 text-[11px] text-white/35">
+          <p className="px-0.5 text-[11px] leading-snug text-white/35">
             „W diecie” = kcal 85–110% celu przy ≥3 dniach z dziennika (w bieżącym
             tygodniu — proporcjonalnie do minionych dni). To nie jest tak/nie z
             raportu sylwetki.
@@ -301,21 +303,21 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
         </div>
       </section>
 
-      <section className="space-y-2.5">
+      <section className="space-y-2">
         <SectionLabel
           className="items-center"
           index={3}
           title="Ostatnie 8 tygodni"
           titleTone="white"
         />
-        <div className="app-panel p-3.5">
+        <div className="app-panel p-3">
           <WeekBarChart weeks={last8} />
         </div>
       </section>
 
-      <section className="space-y-2.5">
+      <section className="space-y-2">
         <SectionLabel index={4} title="Następne cele" titleTone="white" />
-        <div className="space-y-3.5 app-panel px-3.5 py-4">
+        <div className="space-y-3 app-panel px-3.5 py-3">
           {goals.map((g) => (
             <div key={g.id} className="space-y-1.5">
               <div className="flex items-baseline justify-between gap-2">

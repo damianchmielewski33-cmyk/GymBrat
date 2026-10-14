@@ -14,6 +14,7 @@ import {
   Dumbbell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { hapticTap } from "@/lib/haptics";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
@@ -139,6 +140,7 @@ function ReportFab() {
   return (
     <Link
       href="/reports?new=1"
+      onClick={() => hapticTap()}
       className="gym-btn-primary absolute left-1/2 top-0 z-10 inline-flex h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 rounded-full px-5 text-sm shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)]"
       aria-label="Dodaj raport"
     >
@@ -178,7 +180,10 @@ function TabLink({
     <Link
       href={item.href}
       prefetch
-      onClick={() => setOptimisticHref(item.href)}
+      onClick={() => {
+        hapticTap();
+        setOptimisticHref(item.href);
+      }}
       aria-current={active ? "page" : undefined}
       className={cn(
         "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-0.5 py-2 text-center text-[10px] font-medium transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80",

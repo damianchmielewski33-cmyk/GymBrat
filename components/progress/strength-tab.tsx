@@ -109,9 +109,9 @@ function ExerciseRow({ ex }: { ex: ProgressExerciseRow }) {
 
   const rightValue =
     ex.status === "pending" ? (
-      <span className="font-metric text-lg text-white/30">—</span>
+      <span className="font-metric text-[15px] text-white/30">—</span>
     ) : (
-      <span className="font-metric text-[17px] tabular-nums text-white">
+      <span className="font-metric text-[14px] tabular-nums text-white">
         {formatMetric(ex.lastVolumeKg, ex.metric)}
       </span>
     );
@@ -119,15 +119,17 @@ function ExerciseRow({ ex }: { ex: ProgressExerciseRow }) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.02]"
+      className="grid grid-cols-[1fr_auto] items-center gap-2.5 px-3.5 py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[1fr_3rem_auto]"
     >
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-semibold text-white">{ex.name}</p>
-        <p className="mt-0.5 text-[11px]">{sub}</p>
+      <div className="min-w-0">
+        <p className="truncate text-[13px] font-semibold leading-snug text-white">
+          {ex.name}
+        </p>
+        <p className="mt-0.5 text-[11px] leading-snug">{sub}</p>
       </div>
 
       {ex.status === "compare" && ex.spark.length >= 2 ? (
-        <div className="w-12 shrink-0">
+        <div className="hidden w-12 shrink-0 sm:block">
           <MiniSparkline
             values={ex.spark.slice(-6)}
             color={
@@ -137,12 +139,14 @@ function ExerciseRow({ ex }: { ex: ProgressExerciseRow }) {
                   ? "#34d399"
                   : "#a3a3a3"
             }
-            className="h-7 w-full"
+            className="h-6 w-full"
           />
         </div>
-      ) : null}
+      ) : (
+        <span className="hidden sm:block" aria-hidden />
+      )}
 
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 items-center justify-end gap-1">
         {rightValue}
         {ex.status === "compare" ? (
           ex.trend === "down" ? (
@@ -196,22 +200,22 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
   const newestMax = maxes.find((m) => m.isNew) ?? maxes[0] ?? null;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
       <section className="space-y-2">
-        <div className="app-card flex items-center gap-3 px-3.5 py-3.5">
+        <div className="app-card flex items-center gap-2.5 px-3.5 py-3">
           <button
             type="button"
             onClick={() => setMaxesOpen((v) => !v)}
-            className="flex min-w-0 flex-1 items-center gap-3 text-left"
+            className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
           >
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]">
-              <Trophy className="h-4 w-4" aria-hidden />
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]">
+              <Trophy className="h-3.5 w-3.5" aria-hidden />
             </span>
             <span className="min-w-0">
-              <span className="block text-[15px] font-semibold text-white">
+              <span className="block text-[14px] font-semibold leading-snug text-white">
                 Moje maxy
               </span>
-              <span className="mt-0.5 block text-[11px] text-white/40">
+              <span className="mt-0.5 block text-[11px] leading-snug text-white/40">
                 e1RM i max powtórzeń (masa ciała)
               </span>
             </span>
@@ -219,12 +223,12 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
           {newestMax ? (
             <Link
               href={`/progress/exercises/${exerciseProgressKey(newestMax.name)}`}
-              className="inline-flex h-9 shrink-0 items-center rounded-xl border border-white/15 bg-white/[0.04] px-3 text-[12px] font-semibold text-white/85"
+              className="inline-flex h-8 shrink-0 items-center rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[11px] font-semibold text-white/85"
             >
               + Nowy max
             </Link>
           ) : (
-            <span className="inline-flex h-9 shrink-0 items-center rounded-xl border border-white/12 px-3 text-[12px] font-semibold text-white/35">
+            <span className="inline-flex h-8 shrink-0 items-center rounded-lg border border-white/12 px-2.5 text-[11px] font-semibold text-white/35">
               + Nowy max
             </span>
           )}
@@ -232,7 +236,7 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
 
         {maxesOpen ? (
           maxes.length === 0 ? (
-            <div className="app-card px-4 py-6 text-center text-sm text-white/45">
+            <div className="app-card px-3.5 py-4 text-center text-[13px] text-white/45">
               Zaliczone serie (także bez ciężaru) pojawią się tu jako maxy.
             </div>
           ) : (
@@ -241,11 +245,11 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
                 <li key={`${m.kind}-${m.name}`}>
                   <Link
                     href={`/progress/exercises/${exerciseProgressKey(m.name)}`}
-                    className="flex items-center gap-3 px-3.5 py-3"
+                    className="grid grid-cols-[1fr_auto] items-center gap-2.5 px-3.5 py-2.5"
                   >
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-medium text-white">
+                        <p className="truncate text-[13px] font-semibold leading-snug text-white">
                           {m.name}
                         </p>
                         {m.isNew ? (
@@ -254,19 +258,19 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-0.5 text-[11px] text-white/40">
+                      <p className="mt-0.5 text-[11px] leading-snug text-white/40">
                         {m.kind === "bodyweight"
                           ? `masa ciała · ${formatDayMonth(m.date)}`
                           : `${m.bestWeight} kg × ${m.bestReps} · ${formatDayMonth(m.date)}`}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="min-w-[3.5rem] text-right">
                       <AnimatedMetric
                         value={m.kind === "bodyweight" ? m.bestReps : m.bestE1rm}
                         decimals={m.kind === "bodyweight" ? 0 : 1}
-                        className="text-xl text-white"
+                        className="text-[16px] leading-none text-white"
                       />
-                      <p className="text-[10px] uppercase tracking-wider text-white/35">
+                      <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-white/35">
                         {m.kind === "bodyweight" ? "powt." : "e1RM"}
                       </p>
                     </div>
@@ -278,15 +282,15 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
         ) : null}
       </section>
 
-      <section className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/35 bg-gradient-to-b from-[rgba(var(--neon-rgb),0.14)] via-[var(--gym-surface-sunken)] to-[var(--gym-surface-sunken)] p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+      <section className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/35 bg-gradient-to-b from-[rgba(var(--neon-rgb),0.14)] via-[var(--gym-surface-sunken)] to-[var(--gym-surface-sunken)] px-3.5 py-3.5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
           Objętość z ostatnich 6 treningów
         </p>
-        <p className="mt-2 text-[22px] font-semibold leading-snug tracking-tight text-white">
+        <p className="mt-1.5 text-[17px] font-semibold leading-snug tracking-tight text-white">
           {headline}
         </p>
 
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="mt-3 grid grid-cols-3 gap-2">
           {(
             [
               {
@@ -315,39 +319,39 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
             <div
               key={label}
               className={cn(
-                "rounded-xl border bg-black/35 px-2 py-2.5 text-center",
+                "rounded-xl border bg-black/35 px-2 py-2 text-center",
                 border,
               )}
             >
               <div className={cn("flex items-center justify-center gap-1", tone)}>
-                <AnimatedMetric value={n} className={cn("text-2xl", tone)} />
+                <AnimatedMetric value={n} className={cn("text-[1.35rem] leading-none", tone)} />
                 <Icon className="h-3.5 w-3.5" aria-hidden />
               </div>
-              <p className={cn("mt-1 text-[11px]", tone)}>{label}</p>
+              <p className={cn("mt-1 text-[11px] leading-none", tone)}>{label}</p>
             </div>
           ))}
         </div>
 
-        <p className="mt-3.5 text-[11px] leading-relaxed text-white/40">
+        <p className="mt-2.5 text-[11px] leading-snug text-white/40">
           Objętość = powtórzenia × kg × serie w treningu.
         </p>
       </section>
 
-      <section className="app-card space-y-3 p-4">
-        <div className="flex items-start gap-3">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]">
-            <Gauge className="h-4 w-4" aria-hidden />
+      <section className="app-card space-y-2.5 px-3.5 py-3.5">
+        <div className="flex items-start gap-2.5">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]">
+            <Gauge className="h-3.5 w-3.5" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
               Intensywność · RIR / RPE / tempo
             </p>
-            <p className="mt-1.5 text-[17px] font-semibold leading-snug tracking-tight text-white">
+            <p className="mt-1 text-[14px] font-semibold leading-snug tracking-tight text-white">
               {intensityTitle}
             </p>
           </div>
           {intensity.rirSpark.length >= 2 ? (
-            <div className="w-14 shrink-0 pt-1">
+            <div className="w-12 shrink-0 pt-0.5">
               <MiniSparkline
                 values={intensity.rirSpark}
                 color={
@@ -357,18 +361,18 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
                       ? "#34d399"
                       : "#a3a3a3"
                 }
-                className="h-8 w-full"
+                className="h-7 w-full"
               />
             </div>
           ) : null}
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2.5 text-center">
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+          <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
               Śr. RIR
             </p>
-            <p className="mt-1 font-metric text-2xl tabular-nums text-white">
+            <p className="mt-1 font-metric text-[1.35rem] leading-none tabular-nums text-white">
               {intensity.avgRir != null ? (
                 <AnimatedMetric value={intensity.avgRir} decimals={1} />
               ) : (
@@ -376,11 +380,11 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
               )}
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2.5 text-center">
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+          <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
               Śr. RPE
             </p>
-            <p className="mt-1 font-metric text-2xl tabular-nums text-white">
+            <p className="mt-1 font-metric text-[1.35rem] leading-none tabular-nums text-white">
               {intensity.avgRpe != null ? (
                 <AnimatedMetric value={intensity.avgRpe} decimals={1} />
               ) : (
@@ -388,15 +392,15 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
               )}
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2.5 text-center">
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
-              Twarde serie
+          <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+              Twarde
             </p>
-            <p className="mt-1 font-metric text-2xl tabular-nums text-white">
+            <p className="mt-1 font-metric text-[1.35rem] leading-none tabular-nums text-white">
               {intensity.hardSetPct != null ? (
                 <>
                   <AnimatedMetric value={intensity.hardSetPct} decimals={0} />
-                  <span className="text-sm text-white/35">%</span>
+                  <span className="text-[12px] text-white/35">%</span>
                 </>
               ) : (
                 "—"
@@ -405,7 +409,7 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
           </div>
         </div>
 
-        <div className="space-y-1.5 text-[11px] leading-relaxed text-white/45">
+        <div className="space-y-1 text-[11px] leading-snug text-white/45">
           {intensity.targetComparedCount > 0 ? (
             <p>
               vs plan: {intensity.targetHitPct ?? 0}% w celu
@@ -432,14 +436,14 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
         </div>
       </section>
 
-      <section className="space-y-5">
+      <section className="space-y-3.5">
         {planGroups.length === 0 ? (
-          <div className="app-card px-4 py-8 text-center text-sm text-white/45">
+          <div className="app-card px-3.5 py-5 text-center text-[13px] text-white/45">
             Ustaw plan treningowy albo zalicz pierwsze serie.
           </div>
         ) : (
           planGroups.map((group, idx) => (
-            <div key={group.planId} className="space-y-2.5">
+            <div key={group.planId} className="space-y-2">
               <SectionLabel
                 index={idx + 1}
                 title={group.planName}

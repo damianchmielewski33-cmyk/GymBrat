@@ -118,11 +118,11 @@ export function PhotosTab({ data }: { data: ProgressHubData["photos"] }) {
   const canCompare = Boolean(start && now && start.id !== now.id);
 
   return (
-    <div className="space-y-5">
-      <section className="space-y-3">
+    <div className="space-y-3.5">
+      <section className="space-y-2.5">
         {!canCompare ? (
-          <div className="app-panel px-4 py-10 text-center">
-            <p className="text-sm text-white/55">
+          <div className="app-panel px-3.5 py-5 text-center">
+            <p className="text-[13px] leading-snug text-white/55">
               Dodaj co najmniej dwa zdjęcia w raportach, żeby porównać Start i
               Teraz.
             </p>

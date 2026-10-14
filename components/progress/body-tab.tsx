@@ -15,7 +15,6 @@ const WEEKDAY = ["nd", "pon", "wt", "śr", "czw", "pt", "sob"] as const;
 
 const MEASURE_COLORS: Record<string, string> = {
   waist: "#4ade80",
-  abdomen: "#6ee7b7",
   thigh: "#c9a84a",
   chest: "rgba(255,255,255,0.75)",
   arm: "rgba(255,255,255,0.75)",
@@ -142,58 +141,64 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
   }
 
   return (
-    <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/30 bg-gradient-to-b from-[rgba(var(--neon-rgb),0.16)] via-[var(--gym-surface-sunken)] to-[var(--gym-surface-sunken)] p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+    <div className="space-y-3.5">
+      <section className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/30 bg-gradient-to-b from-[rgba(var(--neon-rgb),0.16)] via-[var(--gym-surface-sunken)] to-[var(--gym-surface-sunken)] px-3.5 py-3.5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
           Ostatni raport
           {tempo.lastReportDate
             ? ` · ${formatDayMonth(tempo.lastReportDate)}`
             : ""}
         </p>
 
-        <div className="mt-2 flex items-start justify-between gap-3">
-          <div>
+        <div className="mt-2 flex items-end justify-between gap-3">
+          <div className="min-w-0">
             {tempo.currentKg != null ? (
               <p className="flex items-baseline gap-1.5">
                 <AnimatedMetric
                   value={tempo.currentKg}
                   decimals={1}
-                  className="text-[2.5rem] leading-none text-white"
+                  className="text-[2rem] leading-none text-white"
                 />
-                <span className="font-metric text-lg text-white/50">kg</span>
+                <span className="font-metric text-[15px] text-white/50">kg</span>
               </p>
             ) : (
-              <p className="font-metric text-3xl text-white/35">—</p>
+              <p className="font-metric text-[2rem] leading-none text-white/35">
+                —
+              </p>
             )}
             {lastLine ? (
-              <p className="mt-2 text-[11px] text-white/45">{lastLine}</p>
+              <p className="mt-1.5 text-[11px] leading-snug text-white/45">
+                {lastLine}
+              </p>
             ) : (
-              <p className="mt-2 text-[11px] text-white/40">
+              <p className="mt-1.5 text-[11px] leading-snug text-white/40">
                 Brak raportów wagi — dodaj pierwszy w Raportach.
               </p>
             )}
           </div>
-          <div className="pt-1 text-right">
-            <p className="font-metric text-[22px] leading-none text-white">
+          <div className="shrink-0 text-right">
+            <p className="font-metric text-[18px] leading-none tabular-nums text-white">
               {fmtSigned(tempo.deltaFromStartKg, " kg", 1)}
             </p>
-            <p className="mt-1 text-[11px] text-white/40">od startu</p>
-            <p className="mt-2 text-[12px] text-[var(--gym-gold)]/85">
+            <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-white/40">
+              od startu
+            </p>
+            <p className="mt-1.5 font-metric text-[12px] tabular-nums text-[var(--gym-gold)]/90">
               {fmtSigned(tempo.kgPerWeekLast6, " kg/tydz.", 2)}
             </p>
           </div>
         </div>
 
-        <div className="mt-3">
+        <div className="mt-2.5">
           <WeightAverageChart weights={weights} />
         </div>
 
-        <p className="mt-2 text-[11px] leading-relaxed text-white/40">
+        <p className="mt-1.5 text-[11px] leading-snug text-white/40">
           Kropki to raporty, linia to średnia z ostatnich raportów.
         </p>
       </section>
 
-      <section className="space-y-2.5">
+      <section className="space-y-2">
         <SectionLabel
           index={1}
           title="Tempo"
@@ -226,10 +231,10 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
           ).map((row) => (
             <div
               key={row.label}
-              className="flex items-center justify-between gap-3 px-3.5 py-3.5"
+              className="grid grid-cols-[1fr_auto] items-center gap-3 px-3.5 py-2.5"
             >
-              <p className="text-[13px] text-white/80">{row.label}</p>
-              <p className="shrink-0 font-metric text-[15px] tabular-nums text-[var(--gym-gold)]">
+              <p className="text-[13px] leading-snug text-white/80">{row.label}</p>
+              <p className="text-right font-metric text-[14px] tabular-nums text-[var(--gym-gold)]">
                 {row.value}
               </p>
             </div>
@@ -237,26 +242,26 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
         </div>
       </section>
 
-      <section className="space-y-2.5">
+      <section className="space-y-2">
         <SectionLabel index={2} title="Cel" titleTone="white" />
-        <div className="app-card flex items-start gap-3 px-3.5 py-3.5">
+        <div className="app-card flex items-start gap-3 px-3.5 py-3">
           <div className="min-w-0 flex-1">
             {targetWeightKg != null && !editingGoal ? (
               <>
-                <p className="text-[15px] font-semibold text-white">
+                <p className="text-[14px] font-semibold leading-snug text-white">
                   Cel:{" "}
                   <span className="font-metric text-[var(--gym-gold)]">
                     {fmtKg(targetWeightKg, 1)} kg
                   </span>
                 </p>
-                <p className="mt-1 text-[12px] leading-relaxed text-white/45">
+                <p className="mt-1 text-[11px] leading-snug text-white/45">
                   {eta ??
                     "Ustaw tempo z raportów, żebym policzył termin osiągnięcia celu."}
                 </p>
               </>
             ) : editingGoal ? (
               <div className="space-y-2">
-                <p className="text-[12px] text-white/45">
+                <p className="text-[11px] text-white/45">
                   Wpisz wagę docelową (kg).
                 </p>
                 <input
@@ -264,27 +269,27 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
                   value={goalDraft}
                   onChange={(e) => setGoalDraft(e.target.value)}
                   placeholder="np. 65"
-                  className="h-11 w-full max-w-[160px] rounded-xl border border-white/15 bg-black/40 px-3 font-metric text-lg text-white outline-none focus:border-[var(--gym-gold)]/50"
+                  className="h-10 w-full max-w-[160px] rounded-xl border border-white/15 bg-black/40 px-3 font-metric text-[16px] text-white outline-none focus:border-[var(--gym-gold)]/50"
                   autoFocus
                 />
                 {goalError ? (
-                  <p className="text-xs text-rose-300">{goalError}</p>
+                  <p className="text-[11px] text-rose-300">{goalError}</p>
                 ) : null}
               </div>
             ) : (
-              <p className="text-[13px] leading-relaxed text-white/70">
+              <p className="text-[13px] leading-snug text-white/70">
                 Wpisz wagę docelową, a policzę, kiedy ją osiągniesz przy
                 obecnym tempie.
               </p>
             )}
           </div>
           {editingGoal ? (
-            <div className="flex shrink-0 flex-col gap-2">
+            <div className="flex shrink-0 flex-col items-end gap-1.5">
               <button
                 type="button"
                 onClick={saveGoal}
                 disabled={pending}
-                className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)] disabled:opacity-50"
+                className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-gold)] disabled:opacity-50"
               >
                 Zapisz
               </button>
@@ -310,7 +315,7 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
                 );
                 setEditingGoal(true);
               }}
-              className="shrink-0 pt-0.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]"
+              className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-gold)]"
             >
               Ustaw
             </button>
@@ -318,7 +323,7 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
         </div>
       </section>
 
-      <section className="space-y-2.5">
+      <section className="space-y-2">
         <SectionLabel
           index={3}
           title="Obwody"
@@ -327,7 +332,7 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
         />
         <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
           {measures.every((m) => m.currentCm == null) ? (
-            <p className="px-3.5 py-8 text-center text-sm text-white/45">
+            <p className="px-3.5 py-5 text-center text-[13px] text-white/45">
               Dodaj obwody w raporcie, żeby zobaczyć trendy.
             </p>
           ) : (
@@ -352,33 +357,40 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
               return (
                 <div
                   key={row.key}
-                  className="grid grid-cols-[3.25rem_1fr_auto] items-center gap-3 px-3.5 py-3.5"
+                  className="grid grid-cols-[4.25rem_1fr_4.75rem] items-center gap-2.5 px-3.5 py-2.5"
                 >
-                  <p className="text-[13px] font-semibold text-white/85">
+                  <p className="text-[13px] font-semibold leading-snug text-white/85">
                     {row.label}
                   </p>
                   <MiniSparkline
                     values={
-                      row.spark.length >= 2 ? row.spark : row.spark.concat(row.spark)
+                      row.spark.length >= 2
+                        ? row.spark
+                        : row.spark.concat(row.spark)
                     }
                     color={color}
-                    className="h-9 w-full"
+                    className="h-8 w-full"
                   />
-                  <div className="min-w-[4.5rem] text-right">
+                  <div className="text-right">
                     {row.currentCm != null ? (
                       <>
-                        <p className="font-metric text-[17px] tabular-nums text-white">
+                        <p className="font-metric text-[15px] leading-none tabular-nums text-white">
                           {fmtKg(row.currentCm, row.currentCm % 1 ? 1 : 0)}
-                          <span className="ml-1 text-[11px] text-white/40">
+                          <span className="ml-0.5 text-[10px] text-white/40">
                             cm
                           </span>
                         </p>
-                        <p className={cn("mt-0.5 text-[12px]", deltaTone)}>
+                        <p
+                          className={cn(
+                            "mt-0.5 text-[11px] leading-none tabular-nums",
+                            deltaTone,
+                          )}
+                        >
                           {fmtSigned(row.deltaFromStartCm, " cm", 1)}
                         </p>
                       </>
                     ) : (
-                      <p className="font-metric text-lg text-white/30">—</p>
+                      <p className="font-metric text-[15px] text-white/30">—</p>
                     )}
                   </div>
                 </div>

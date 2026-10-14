@@ -7,8 +7,10 @@ import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { Flashlight, FlashlightOff, X } from "lucide-react";
 import {
   ensureAndroidCameraPermission,
+  hasAndroidNativeTorch,
   isInstalledAndroidAppClient,
   openAndroidAppSettings,
+  setAndroidNativeTorch,
 } from "@/lib/app-webview";
 import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
@@ -48,20 +50,40 @@ function supportsTorch(caps: MediaTrackCapabilities | undefined): boolean {
   return torch === true;
 }
 
+function readTrackTorchState(track: MediaStreamTrack): boolean | null {
+  const settings = track.getSettings?.() as { torch?: boolean } | undefined;
+  if (typeof settings?.torch === "boolean") return settings.torch;
+  try {
+    const ImageCaptureCtor = (
+      globalThis as unknown as {
+        ImageCapture?: new (
+          track: MediaStreamTrack,
+        ) => { getPhotoSettings?: () => { fillLightMode?: string } };
+      }
+    ).ImageCapture;
+    if (!ImageCaptureCtor) return null;
+    const photo = new ImageCaptureCtor(track).getPhotoSettings?.();
+    if (photo?.fillLightMode === "torch") return true;
+    if (photo?.fillLightMode === "off") return false;
+  } catch {
+    /* ImageCapture niedostępne / tor niedozwolony */
+  }
+  return null;
+}
+
+type TorchApplyResult = "verified" | "unverified" | "failed";
+
 /**
- * Włącza/wyłącza latarkę — Android Chrome/WebView różnie akceptuje constraint.
- * Próbujemy kilka wariantów (non-advanced, advanced, fillLightMode).
+ * Latarka przez MediaStream — Chrome Android; WebView APK często milczy
+ * (wtedy most GymBratAndroid.setTorch).
  */
 async function applyTrackTorch(
   track: MediaStreamTrack,
   on: boolean,
-): Promise<boolean> {
+): Promise<TorchApplyResult> {
   const attempts: MediaTrackConstraints[] = [
-    // Chrome Android (nowsze): torch jako zwykły constraint
     { torch: on } as MediaTrackConstraints,
-    // Klasyczny ImageCapture / WebView: advanced
     { advanced: [{ torch: on } as MediaTrackConstraintSet] },
-    // Część urządzeń: tryb światła wypełniającego
     {
       advanced: [
         {
@@ -71,23 +93,34 @@ async function applyTrackTorch(
     },
   ];
 
+  let sawUnverified = false;
   for (const constraints of attempts) {
     try {
       await track.applyConstraints(constraints);
-      // Potwierdź stan ustawień, jeśli API je zwraca
-      const settings = track.getSettings?.() as
-        | { torch?: boolean }
-        | undefined;
-      if (settings && typeof settings.torch === "boolean") {
-        if (settings.torch === on) return true;
-        continue;
-      }
-      return true;
+      const state = readTrackTorchState(track);
+      if (state === on) return "verified";
+      if (state === null) sawUnverified = true;
     } catch {
       /* kolejny wariant */
     }
   }
-  return false;
+  return sawUnverified ? "unverified" : "failed";
+}
+
+async function applyTorch(track: MediaStreamTrack | null, on: boolean): Promise<boolean> {
+  // 1) Zweryfikowany MediaStream (ta sama sesja kamery co podgląd — działa w Chrome).
+  if (track) {
+    const web = await applyTrackTorch(track, on);
+    if (web === "verified") return true;
+    // 2) Most APK (CameraManager) — na wielu OEM działa mimo otwartego getUserMedia.
+    const native = setAndroidNativeTorch(on);
+    if (native === true) return true;
+    // 3) Niezweryfikowany web (stare WebView / brak torch w getSettings).
+    if (web === "unverified") return true;
+    return false;
+  }
+
+  return setAndroidNativeTorch(on) === true;
 }
 
 /** Czy warto pokazać przycisk latarki (tył / mobile) nawet gdy caps.torch jeszcze kłamie. */
@@ -95,6 +128,7 @@ function shouldOfferTorchButton(
   track: MediaStreamTrack | null,
   caps: MediaTrackCapabilities | undefined,
 ): boolean {
+  if (hasAndroidNativeTorch()) return true;
   if (supportsTorch(caps)) return true;
   if (!track) return false;
   const settings = track.getSettings?.() as
@@ -179,6 +213,98 @@ function waitForVideoDimensions(
     };
     requestAnimationFrame(poll);
   });
+}
+
+/**
+ * Android WebView często „udaje” play, a pokazuje szary kadr z ikoną ▶.
+ * Czekamy na realny stream: playing + videoWidth + nie-paused.
+ */
+async function waitUntilVideoPlaying(
+  video: HTMLVideoElement,
+  signal: { cancelled: boolean },
+  timeoutMs = 8000,
+): Promise<boolean> {
+  const tryPlay = async () => {
+    try {
+      await video.play();
+    } catch {
+      /* retry poniżej */
+    }
+  };
+
+  await tryPlay();
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("loadeddata", onPlaying);
+      window.clearInterval(retryTimer);
+      window.clearTimeout(deadline);
+      resolve(ok);
+    };
+
+    const isLive = () =>
+      !video.paused &&
+      !video.ended &&
+      video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+      video.videoWidth > 0 &&
+      video.videoHeight > 0;
+
+    const onPlaying = () => {
+      if (isLive()) finish(true);
+    };
+
+    video.addEventListener("playing", onPlaying);
+    video.addEventListener("loadeddata", onPlaying);
+
+    const retryTimer = window.setInterval(() => {
+      if (signal.cancelled) {
+        finish(false);
+        return;
+      }
+      if (isLive()) {
+        finish(true);
+        return;
+      }
+      if (video.paused) void tryPlay();
+    }, 280);
+
+    const deadline = window.setTimeout(() => {
+      finish(isLive());
+    }, timeoutMs);
+
+    if (isLive()) finish(true);
+  });
+}
+
+/** Lekkie constraints najpierw — ideal 1280×720 + focusMode spowalnia start na OEM. */
+async function openCameraStream(): Promise<MediaStream> {
+  const attempts: MediaStreamConstraints[] = [
+    {
+      audio: false,
+      video: { facingMode: { ideal: "environment" } },
+    },
+    {
+      audio: false,
+      video: { facingMode: "environment" },
+    },
+    { audio: false, video: true },
+  ];
+
+  let lastError: unknown;
+  for (const constraints of attempts) {
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("getUserMedia failed");
 }
 
 async function createNativeDetector(): Promise<NativeBarcodeDetector | null> {
@@ -319,11 +445,9 @@ export function BarcodeCameraScanner({
       scanTimerRef.current = null;
     }
     const track = trackRef.current;
-    if (track) {
-      void applyTrackTorch(track, false).catch(() => {
-        /* ignore */
-      });
-    }
+    void applyTorch(track, false).catch(() => {
+      /* ignore */
+    });
     try {
       track?.stop();
     } catch {
@@ -345,12 +469,14 @@ export function BarcodeCameraScanner({
   }, [stop]);
 
   const setTorch = useCallback(async (on: boolean) => {
+    if (torchBusy) return;
     const track = trackRef.current;
-    if (!track || torchBusy) return;
+    // Most natywny nie wymaga tracku; web — tak.
+    if (!track && !hasAndroidNativeTorch()) return;
     setTorchBusy(true);
     setTorchHint(null);
     try {
-      const ok = await applyTrackTorch(track, on);
+      const ok = await applyTorch(track, on);
       if (ok) {
         setTorchOn(on);
         setTorchAvailable(true);
@@ -408,8 +534,8 @@ export function BarcodeCameraScanner({
           return;
         }
 
+        // Równolegle: DOM video + zgoda Android — bez czekania sekwencyjnego.
         const videoReady = waitForVideoElement(() => videoRef.current, signal);
-
         if (isInstalledAndroidAppClient()) {
           const granted = await ensureAndroidCameraPermission();
           if (signal.cancelled) return;
@@ -422,24 +548,10 @@ export function BarcodeCameraScanner({
           }
         }
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            focusMode: { ideal: "continuous" },
-          } as MediaTrackConstraints,
-        });
-        if (signal.cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-
-        const track = stream.getVideoTracks()[0] ?? null;
-        trackRef.current = track;
-
-        const video = await videoReady;
+        const [stream, video] = await Promise.all([
+          openCameraStream(),
+          videoReady,
+        ]);
         if (signal.cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -451,32 +563,39 @@ export function BarcodeCameraScanner({
           return;
         }
 
+        const track = stream.getVideoTracks()[0] ?? null;
+        trackRef.current = track;
+
         video.setAttribute("playsinline", "true");
         video.setAttribute("webkit-playsinline", "true");
+        video.setAttribute("muted", "");
         video.muted = true;
+        video.defaultMuted = true;
         video.playsInline = true;
+        video.controls = false;
+        video.disablePictureInPicture = true;
         video.srcObject = stream;
 
-        const playPromise = video.play().catch(
-          () =>
-            new Promise<void>((resolve) => {
-              const done = () => resolve();
-              video.addEventListener(
-                "loadedmetadata",
-                () => {
-                  void video.play().finally(done);
-                },
-                { once: true },
-              );
-              window.setTimeout(done, 400);
-            }),
-        );
-        await playPromise;
+        const playing = await waitUntilVideoPlaying(video, signal);
         if (signal.cancelled) return;
+        if (!playing) {
+          // Ostatnia szansa — wymiary bez playing (rzadkie OEM).
+          const dims = await waitForVideoDimensions(video, signal, 1500);
+          if (signal.cancelled) return;
+          if (!dims || video.paused) {
+            setPhase("failed");
+            setError(
+              "Podgląd aparatu nie wystartował. Zamknij skaner i spróbuj ponownie albo wpisz EAN.",
+            );
+            stream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          void video.play().catch(() => {
+            /* ignore */
+          });
+        }
 
-        await waitForVideoDimensions(video, signal);
-        if (signal.cancelled) return;
-
+        // Dopiero gdy jest żywy obraz — koniec „szarego ekranu” z ▶.
         setPhase("ready");
         setError(null);
 
@@ -486,7 +605,16 @@ export function BarcodeCameraScanner({
           if (supportsFocusMode(caps, "continuous")) {
             advanced.push({ focusMode: "continuous" });
           }
-          const zoom = asZoomCaps(caps);
+          // Rozdzielczość / zoom dopiero po pierwszym kadrze — nie blokuje startu.
+          try {
+            await track.applyConstraints({
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            });
+          } catch {
+            /* ignore */
+          }
+          const zoom = asZoomCaps(track.getCapabilities?.() ?? caps);
           if (zoom) {
             advanced.push({ zoom: preferredZoom(zoom) });
           }
@@ -621,16 +749,29 @@ export function BarcodeCameraScanner({
       aria-modal="true"
       aria-label="Skaner kodu kreskowego"
     >
-      <div className="absolute inset-0 bg-black">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden bg-black">
         <video
           ref={videoRef}
-          className="h-full w-full object-cover"
+          className={cn(
+            "pointer-events-none h-full w-full object-cover transition-opacity duration-200",
+            phase === "ready" ? "opacity-100" : "opacity-0",
+          )}
           playsInline
           muted
           autoPlay
           controls={false}
           disablePictureInPicture
+          // Ukryj natywny „play” WebView zanim poleci pierwszy kadr.
+          style={{ background: "#000" }}
         />
+        {phase !== "ready" && phase !== "failed" ? (
+          <div
+            className="absolute inset-0 flex items-center justify-center bg-black"
+            aria-hidden
+          >
+            <span className="h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-[var(--gym-gold)]" />
+          </div>
+        ) : null}
       </div>
 
       <div
@@ -650,12 +791,23 @@ export function BarcodeCameraScanner({
         <ScanCornerFrame />
       </div>
 
-      <div className="absolute inset-x-0 top-0 z-[1] flex items-center justify-between px-4 pt-[max(0.85rem,env(safe-area-inset-top))]">
+      {/*
+        Nad warstwą video (Android WebView często kradnie touch mimo z-index).
+        translateZ wymusza compositing powyżej surface kamery.
+      */}
+      <div
+        className="pointer-events-auto absolute inset-x-0 top-0 z-[100] flex items-center justify-between px-4 pt-[max(0.85rem,env(safe-area-inset-top))]"
+        style={{ transform: "translateZ(0)" }}
+      >
         <button
           type="button"
           aria-label="Zamknij skaner"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md"
-          onClick={closeScanner}
+          className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeScanner();
+          }}
         >
           <X className="h-5 w-5" strokeWidth={2.25} />
         </button>
@@ -664,12 +816,16 @@ export function BarcodeCameraScanner({
           aria-label={torchOn ? "Wyłącz latarkę" : "Włącz latarkę"}
           disabled={!torchAvailable || phase !== "ready" || torchBusy}
           className={cn(
-            "inline-flex h-11 w-11 items-center justify-center rounded-full backdrop-blur-md disabled:opacity-35",
+            "inline-flex h-12 w-12 items-center justify-center rounded-full backdrop-blur-md disabled:opacity-35",
             torchOn
               ? "bg-[var(--gym-gold)] text-black"
               : "bg-black/55 text-white",
           )}
-          onClick={() => void setTorch(!torchOn)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void setTorch(!torchOn);
+          }}
         >
           {torchOn ? (
             <FlashlightOff className="h-5 w-5" />
@@ -680,12 +836,15 @@ export function BarcodeCameraScanner({
       </div>
 
       {torchHint ? (
-        <p className="pointer-events-none absolute inset-x-4 top-[max(4.25rem,calc(env(safe-area-inset-top)+3.25rem))] z-[1] rounded-xl bg-black/70 px-3 py-2 text-center text-[12px] text-amber-100 backdrop-blur-md">
+        <p className="pointer-events-none absolute inset-x-4 top-[max(4.25rem,calc(env(safe-area-inset-top)+3.25rem))] z-[100] rounded-xl bg-black/70 px-3 py-2 text-center text-[12px] text-amber-100 backdrop-blur-md">
           {torchHint}
         </p>
       ) : null}
 
-      <div className="absolute inset-x-0 bottom-0 z-[1] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div
+        className="pointer-events-auto absolute inset-x-0 bottom-0 z-[100] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        style={{ transform: "translateZ(0)" }}
+      >
         <div className="mx-3 mb-2 rounded-2xl bg-black/72 px-4 py-4 text-center backdrop-blur-md sm:mx-5">
           {showError ? (
             <div className="space-y-3">
@@ -729,6 +888,15 @@ export function BarcodeCameraScanner({
                 </button>
               </div>
             </div>
+          ) : phase !== "ready" ? (
+            <>
+              <p className="text-[17px] font-semibold leading-snug text-white">
+                Uruchamiam aparat…
+              </p>
+              <p className="mt-1.5 text-[13px] leading-snug text-white/55">
+                Za chwilę pojawi się podgląd — trzymaj telefon gotowy do skanu.
+              </p>
+            </>
           ) : (
             <>
               <p className="text-[17px] font-semibold leading-snug text-white">

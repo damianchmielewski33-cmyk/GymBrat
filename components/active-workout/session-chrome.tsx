@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { List, X } from "lucide-react";
+import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 export function SessionProgressBar({
@@ -60,7 +61,10 @@ export function SessionChromeHeader({
       >
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => {
+            hapticTap();
+            onClose?.();
+          }}
           className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08]"
           aria-label="Zamknij sesję"
         >
@@ -79,7 +83,10 @@ export function SessionChromeHeader({
         ) : (
           <button
             type="button"
-            onClick={onOpenList}
+            onClick={() => {
+              hapticTap();
+              onOpenList?.();
+            }}
             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08]"
             aria-label="Lista ćwiczeń"
           >

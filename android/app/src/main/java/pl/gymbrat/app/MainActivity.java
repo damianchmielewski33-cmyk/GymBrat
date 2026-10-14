@@ -595,6 +595,9 @@ public final class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
+        if (jsBridge != null) {
+            jsBridge.ensureTorchOff();
+        }
         CookieManager.getInstance().flush();
         super.onPause();
     }
@@ -602,6 +605,9 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         stopSplashLiftAnimation();
+        if (jsBridge != null) {
+            jsBridge.ensureTorchOff();
+        }
         // Nie kasuj callbacka przy rotacji / odtworzeniu pod galerią — tylko przy prawdziwym zamknięciu.
         if (isFinishing() && filePathCallback != null) {
             filePathCallback.onReceiveValue(null);

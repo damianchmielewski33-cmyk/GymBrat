@@ -25,7 +25,7 @@ function WeekDayCell({
     <div className="flex min-w-0 flex-col items-center">
       <span
         className={cn(
-          "mb-2 text-[10px] font-semibold uppercase tracking-[0.1em]",
+          "mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
           active ? "text-white/80" : "text-white/35",
         )}
       >
@@ -74,7 +74,7 @@ export function WeekProgressCalendarCard({
   today: string;
 }) {
   return (
-    <section className="app-card relative overflow-hidden p-4 sm:p-5">
+    <section className="app-card relative overflow-hidden px-3.5 py-3.5">
       <div
         className="pointer-events-none absolute inset-0 opacity-90 [background:linear-gradient(165deg,rgba(var(--neon-rgb),0.16)_0%,rgba(40,28,8,0.35)_38%,transparent_72%)]"
         aria-hidden
@@ -89,17 +89,17 @@ export function WeekProgressCalendarCard({
           </p>
         </div>
 
-        <div className="mt-4 flex items-end gap-2">
+        <div className="mt-2.5 flex items-end gap-2">
           <AnimatedMetric
             value={done}
-            className="text-[3rem] leading-none text-white sm:text-[3.15rem]"
+            className="text-[2.25rem] leading-none text-white"
           />
-          <p className="pb-1 text-[15px] leading-tight text-white/55">
+          <p className="pb-0.5 text-[13px] leading-tight text-white/55">
             z {target} treningów
           </p>
         </div>
 
-        <div className="mt-5 grid grid-cols-7 gap-0.5 sm:gap-1">
+        <div className="mt-3.5 grid grid-cols-7 gap-0.5 sm:gap-1">
           {days.map((d) => (
             <WeekDayCell
               key={d.date}
@@ -109,7 +109,7 @@ export function WeekProgressCalendarCard({
           ))}
         </div>
 
-        <p className="mt-3 text-[11px] leading-relaxed text-white/40">
+        <p className="mt-2.5 text-[11px] leading-snug text-white/40">
           Złote kółko — trening, niebieska kropka — cardio.
         </p>
       </div>

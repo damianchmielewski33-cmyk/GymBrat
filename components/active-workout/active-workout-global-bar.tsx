@@ -21,6 +21,7 @@ import {
   UserMessages,
 } from "@/lib/user-facing-errors";
 import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
+import { hapticTap } from "@/lib/haptics";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 
 function formatDuration(totalSeconds: number) {
@@ -164,7 +165,10 @@ export function ActiveWorkoutGlobalBar() {
               type="button"
               className="min-w-0 flex-1 rounded-xl text-left outline-none transition hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/40"
               aria-label="Otwórz aktywny trening"
-              onClick={() => setSessionPopupOpen(true)}
+              onClick={() => {
+                hapticTap();
+                setSessionPopupOpen(true);
+              }}
             >
               <div className="min-w-0 px-1 py-1">
                 <div className="flex items-center gap-2">
@@ -225,7 +229,10 @@ export function ActiveWorkoutGlobalBar() {
               type="button"
               className="gap-2 bg-[#FF1A4B] text-white hover:bg-[#e61645] disabled:opacity-50"
               disabled={completing}
-              onClick={() => setConfirmCompleteOpen(true)}
+              onClick={() => {
+                hapticTap();
+                setConfirmCompleteOpen(true);
+              }}
             >
               {completing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

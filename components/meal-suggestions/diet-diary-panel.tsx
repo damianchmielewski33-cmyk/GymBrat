@@ -2,15 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ChevronDown,
-  Pencil,
-  Plus,
-  ScanBarcode,
-  UtensilsCrossed,
-} from "lucide-react";
+import { Pencil, Plus, ScanBarcode, UtensilsCrossed } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
-import { DietDayMacrosBar } from "@/components/meal-suggestions/diet-day-macros-bar";
 import {
   DIET_DIARY_SLOT_LABELS,
   type DietDiarySlot,
@@ -82,53 +75,71 @@ function MealSlotCard({
 }) {
   const eaten = slotTotals(entries);
   const targetKcal = Math.round(row.calories);
-  // Nagłówek = to, co użytkownik wpisał (suma logów), nie cele z szablonu posiłku.
-  const eatenLine = `B ${Math.round(eaten.protein)} W ${Math.round(eaten.carbs)} T ${Math.round(eaten.fat)}`;
   const slotLabel = DIET_DIARY_SLOT_LABELS[row.diarySlot];
   const entryCount = entries.length;
+  const macroCells = [
+    {
+      key: "kcal",
+      value: `${Math.round(eaten.kcal)}/${targetKcal}`,
+      label: "kcal",
+    },
+    {
+      key: "B",
+      value: String(Math.round(row.proteinG)),
+      label: "B",
+    },
+    {
+      key: "W",
+      value: String(Math.round(row.carbsG)),
+      label: "W",
+    },
+    {
+      key: "T",
+      value: String(Math.round(row.fatG)),
+      label: "T",
+    },
+  ] as const;
 
   return (
     <section className="overflow-hidden rounded-[18px] border border-white/[0.07] bg-[#141414]">
-      <div className="flex items-center gap-1.5 px-2 py-2 sm:gap-2 sm:px-3 sm:py-2.5">
+      <div className="flex items-start gap-2 px-3 py-3 sm:gap-2.5 sm:px-3.5">
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={expanded}
           aria-controls={`diet-slot-${row.diarySlot}`}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-1.5 py-1.5 text-left transition-colors hover:bg-white/[0.04] active:bg-white/[0.06]"
+          className="min-w-0 flex-1 space-y-2.5 rounded-xl py-0.5 text-left transition-colors hover:bg-white/[0.03] active:bg-white/[0.05]"
         >
-          <div className="min-w-0 flex-1">
-            <h3 className="text-[15px] font-semibold text-white">
-              Posiłek {row.index}
-              <span className="ml-1.5 text-[12px] font-normal text-white/40">
-                {slotLabel}
-              </span>
-            </h3>
-            <p className="mt-1 text-[12px] tabular-nums text-white/45">
-              {Math.round(eaten.kcal)} / {targetKcal} kcal · {eatenLine}
-              {entryCount > 0 ? (
-                <span className="text-white/30">
-                  {" "}
-                  · {entryCount}{" "}
-                  {entryCount === 1
-                    ? "pozycja"
-                    : entryCount < 5
-                      ? "pozycje"
-                      : "pozycji"}
-                </span>
-              ) : null}
-            </p>
+          <h3 className="truncate text-[15px] font-semibold text-white">
+            Posiłek {row.index}
+          </h3>
+          <div className="grid w-full grid-cols-4 gap-x-1.5 font-metric tabular-nums">
+            {macroCells.map((cell, i) => (
+              <div
+                key={cell.key}
+                className={cn(
+                  "min-w-0",
+                  i > 0 && "border-l border-white/[0.08] pl-1.5",
+                )}
+              >
+                <p className="truncate text-[13px] font-semibold leading-none text-white">
+                  {cell.value}
+                </p>
+                <p
+                  className={cn(
+                    "mt-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+                    cell.key === "kcal"
+                      ? "text-white/40"
+                      : "text-[var(--gym-gold)]",
+                  )}
+                >
+                  {cell.label}
+                </p>
+              </div>
+            ))}
           </div>
-          <motion.span
-            animate={{ rotate: expanded ? 180 : 0 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/40"
-            aria-hidden
-          >
-            <ChevronDown className="h-4 w-4" />
-          </motion.span>
         </button>
-        <div className="flex shrink-0 items-center gap-1.5 pr-1">
+        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
           <MealActionButton
             label={`Skanuj do ${slotLabel}`}
             onClick={() => onScan(row.diarySlot)}
@@ -265,11 +276,32 @@ export function DietDiaryPanel({
   );
 
   const kcalGoal = dayMacros.caloriesGoal;
+  const kcalEaten = Math.round(dayMacros.caloriesConsumed);
   const kcalDelta =
-    kcalGoal != null
-      ? Math.round(dayMacros.caloriesConsumed - kcalGoal)
-      : null;
+    kcalGoal != null ? Math.round(kcalEaten - kcalGoal) : null;
   const overGoal = kcalDelta != null && kcalDelta > 0;
+  const kcalPct =
+    kcalGoal != null && kcalGoal > 0
+      ? Math.min(100, Math.round((kcalEaten / kcalGoal) * 100))
+      : 0;
+
+  const macroLines = [
+    {
+      key: "B",
+      consumed: dayMacros.proteinConsumed,
+      goal: dayMacros.proteinGoal,
+    },
+    {
+      key: "W",
+      consumed: dayMacros.carbsConsumed,
+      goal: dayMacros.carbsGoal,
+    },
+    {
+      key: "T",
+      consumed: dayMacros.fatConsumed,
+      goal: dayMacros.fatGoal,
+    },
+  ] as const;
 
   /** Jednocześnie jeden otwarty posiłek — czytelniejszy dziennik. */
   const [expandedSlot, setExpandedSlot] = useState<DietDiarySlot | null>(null);
@@ -281,39 +313,80 @@ export function DietDiaryPanel({
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gym-gold)]/55 to-transparent"
           aria-hidden
         />
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            Zjedzone dziś
-          </p>
-          <div className="mt-2 flex items-end gap-2">
-            <AnimatedMetric
-              value={Math.round(dayMacros.caloriesConsumed)}
-              className="text-[44px] leading-none text-white sm:text-[48px]"
-            />
-            <span className="mb-1.5 font-metric text-[18px] text-white/55">
-              kcal
-            </span>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+          Zjedzone
+        </p>
+
+        {/* Jak makieta: kcal + B/W/T wypełniają kafelek (bez pustej dziury). */}
+        <div className="mt-3 grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] items-center gap-x-3 sm:gap-x-4">
+          <div className="min-w-0">
+            <div className="flex items-baseline gap-1.5">
+              <AnimatedMetric
+                value={kcalEaten}
+                className="text-[40px] leading-none text-white sm:text-[44px]"
+              />
+              <span className="font-metric text-[16px] text-white/55">kcal</span>
+            </div>
+            {kcalGoal != null ? (
+              <p
+                className={cn(
+                  "mt-1.5 text-[13px] tabular-nums",
+                  overGoal ? "text-rose-300" : "text-white/50",
+                )}
+              >
+                z {Math.round(kcalGoal)} kcal ·{" "}
+                {kcalDelta != null && kcalDelta > 0 ? "+" : ""}
+                {kcalDelta}
+              </p>
+            ) : (
+              <p className="mt-1.5 text-[13px] text-white/45">
+                Ustaw cel w profilu
+              </p>
+            )}
           </div>
-          {kcalGoal != null ? (
-            <p
-              className={cn(
-                "mt-1.5 text-[13px] tabular-nums",
-                overGoal ? "text-rose-300" : "text-white/50",
-              )}
-            >
-              cel {Math.round(kcalGoal)} kcal ·{" "}
-              {kcalDelta != null && kcalDelta > 0 ? "+" : ""}
-              {kcalDelta} {overGoal ? "nadwyżka" : "zostało"}
-            </p>
-          ) : (
-            <p className="mt-1.5 text-[13px] text-white/45">
-              Ustaw cel kcal w profilu
-            </p>
-          )}
+
+          <div className="min-w-0 space-y-1.5 font-metric text-[14px] leading-none tabular-nums text-white">
+            {macroLines.map((m) => {
+              const over =
+                m.goal != null && m.consumed > m.goal;
+              return (
+                <div
+                  key={m.key}
+                  className="flex items-baseline justify-between gap-2"
+                >
+                  <span className="text-[12px] font-semibold text-white/45">
+                    {m.key}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-right",
+                      over ? "text-rose-300" : "text-white",
+                    )}
+                  >
+                    {Math.round(m.consumed)}
+                    {m.goal != null ? (
+                      <span className="text-white/40">
+                        {" "}
+                        / {Math.round(m.goal)} g
+                      </span>
+                    ) : (
+                      <span className="text-white/40"> g</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="mt-4 border-t border-white/[0.07] pt-3.5">
-          <DietDayMacrosBar variant="embedded" {...dayMacros} />
+        <div className="mt-4 h-1 overflow-hidden rounded-full bg-white/[0.08]">
+          <div
+            className={cn(
+              "h-full rounded-full transition-[width] duration-700 ease-out",
+              overGoal ? "bg-rose-400" : "bg-[var(--gym-gold)]",
+            )}
+            style={{ width: `${kcalPct}%` }}
+          />
         </div>
       </section>
 

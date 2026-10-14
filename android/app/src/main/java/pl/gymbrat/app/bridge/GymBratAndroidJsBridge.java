@@ -2,6 +2,10 @@ package pl.gymbrat.app.bridge;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -12,6 +16,7 @@ import android.os.VibratorManager;
 import android.webkit.JavascriptInterface;
 
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 
 import pl.gymbrat.app.BuildConfig;
 import pl.gymbrat.app.MainActivity;
@@ -27,6 +32,9 @@ public final class GymBratAndroidJsBridge {
     private final UpdateInstaller updateInstaller;
     @Nullable
     private final MainActivity activity;
+    @Nullable
+    private String torchCameraId;
+    private boolean torchEnabled;
 
     public GymBratAndroidJsBridge(
             MainActivity activity,
@@ -71,6 +79,125 @@ public final class GymBratAndroidJsBridge {
             return;
         }
         act.requestCameraPermissionForWeb();
+    }
+
+    /** Czy urządzenie ma latarkę (tył z FLASH_INFO_AVAILABLE). */
+    @JavascriptInterface
+    public boolean hasTorch() {
+        return resolveTorchCameraId() != null;
+    }
+
+    /**
+     * Włącza/wyłącza latarkę przez CameraManager — WebView często nie honoruje
+     * MediaTrackConstraints.torch przy otwartym getUserMedia.
+     * Wymaga runtime CAMERA (to samo co skaner).
+     * Próbujemy wszystkie ID z fleszem: WebView może trzymać jedną kamerę
+     * (CAMERA_IN_USE), a latarka siedzi na innym logical id.
+     */
+    @JavascriptInterface
+    public boolean setTorch(boolean enabled) {
+        if (ContextCompat.checkSelfPermission(appContext, android.Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            return false;
+        }
+        CameraManager manager = appContext.getSystemService(CameraManager.class);
+        if (manager == null) return false;
+        String[] candidates = listFlashCameraIds(manager);
+        if (candidates.length == 0) return false;
+
+        if (!enabled) {
+            boolean any = false;
+            for (String id : candidates) {
+                try {
+                    manager.setTorchMode(id, false);
+                    any = true;
+                } catch (Exception ignored) {
+                    /* ta kamera niedostępna */
+                }
+            }
+            torchEnabled = false;
+            return any || torchCameraId != null;
+        }
+
+        // Najpierw zapamiętane ID, potem tył, potem reszta.
+        String preferred = torchCameraId;
+        for (String id : candidates) {
+            if (preferred != null && !id.equals(preferred)) continue;
+            try {
+                manager.setTorchMode(id, true);
+                torchCameraId = id;
+                torchEnabled = true;
+                return true;
+            } catch (Exception ignored) {
+                /* CAMERA_IN_USE / brak obsługi torch na tym id */
+            }
+        }
+        for (String id : candidates) {
+            if (preferred != null && id.equals(preferred)) continue;
+            try {
+                manager.setTorchMode(id, true);
+                torchCameraId = id;
+                torchEnabled = true;
+                return true;
+            } catch (Exception ignored) {
+                /* kolejny kandydat */
+            }
+        }
+        return false;
+    }
+
+    /** Wyłącz latarkę przy pauzie/zamknięciu Activity (bezpieczeństwo baterii). */
+    public void ensureTorchOff() {
+        if (!torchEnabled) return;
+        String cameraId = torchCameraId != null ? torchCameraId : resolveTorchCameraId();
+        if (cameraId == null) {
+            torchEnabled = false;
+            return;
+        }
+        CameraManager manager = appContext.getSystemService(CameraManager.class);
+        if (manager == null) return;
+        try {
+            manager.setTorchMode(cameraId, false);
+        } catch (Exception ignored) {
+            /* kamera niedostępna / już wyłączona */
+        }
+        torchEnabled = false;
+    }
+
+    @Nullable
+    private String resolveTorchCameraId() {
+        if (torchCameraId != null) return torchCameraId;
+        CameraManager manager = appContext.getSystemService(CameraManager.class);
+        if (manager == null) return null;
+        String[] flashIds = listFlashCameraIds(manager);
+        if (flashIds.length == 0) return null;
+        torchCameraId = flashIds[0];
+        return torchCameraId;
+    }
+
+    /** ID z fleszem: najpierw tył, potem pozostałe. */
+    private static String[] listFlashCameraIds(CameraManager manager) {
+        java.util.ArrayList<String> back = new java.util.ArrayList<>();
+        java.util.ArrayList<String> other = new java.util.ArrayList<>();
+        try {
+            for (String id : manager.getCameraIdList()) {
+                CameraCharacteristics chars = manager.getCameraCharacteristics(id);
+                Boolean flash = chars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+                if (!Boolean.TRUE.equals(flash)) continue;
+                Integer facing = chars.get(CameraCharacteristics.LENS_FACING);
+                if (facing != null && facing == CameraCharacteristics.LENS_FACING_BACK) {
+                    back.add(id);
+                } else {
+                    other.add(id);
+                }
+            }
+        } catch (CameraAccessException e) {
+            return new String[0];
+        } catch (Exception e) {
+            return new String[0];
+        }
+        back.addAll(other);
+        return back.toArray(new String[0]);
     }
 
     /** Otwiera ustawienia aplikacji (gdy użytkownik wcześniej trwale odmówił kamery). */

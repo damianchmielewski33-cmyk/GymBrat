@@ -19,7 +19,24 @@ describe("haptics", () => {
     expect(navVibrate).toHaveBeenCalledWith(HAPTIC_TAP);
   });
 
-  it("preferuje most AwpAndroid.vibrate", () => {
+  it("preferuje most GymBratAndroid.vibrate", () => {
+    const bridgeVibrate = vi.fn();
+    const navVibrate = vi.fn(() => true);
+    vi.stubGlobal("navigator", { vibrate: navVibrate });
+    vi.stubGlobal("window", {
+      GymBratAndroid: {
+        getVersionName: () => "1.0",
+        getVersionCode: () => 1,
+        checkUpdate: () => undefined,
+        vibrate: bridgeVibrate,
+      },
+    });
+    hapticNewMax();
+    expect(bridgeVibrate).toHaveBeenCalledWith(HAPTIC_NEW_MAX.join(","));
+    expect(navVibrate).not.toHaveBeenCalled();
+  });
+
+  it("fallback do AwpAndroid.vibrate gdy brak GymBratAndroid", () => {
     const bridgeVibrate = vi.fn();
     const navVibrate = vi.fn(() => true);
     vi.stubGlobal("navigator", { vibrate: navVibrate });

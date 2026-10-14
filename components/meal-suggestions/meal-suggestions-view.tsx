@@ -33,7 +33,10 @@ import {
   dietDiarySlotFromHour,
   type DietDiarySlot,
 } from "@/lib/diet-diary-slots";
-import { MEAL_PLAN_DIARY_SLOTS } from "@/lib/diet-recipe-match";
+import {
+  buildMealPlanRows,
+  MEAL_PLAN_DIARY_SLOTS,
+} from "@/lib/diet-recipe-match";
 import type { FoodProduct } from "@/lib/food-products-types";
 import type { MealLogDto } from "@/lib/meal-logs";
 import type { MacroGaps } from "@/lib/meal-suggestions-gaps";
@@ -304,6 +307,29 @@ export function MealSuggestionsView({
     caloriesRemaining: gaps.caloriesRemaining,
   };
 
+  const mealPlanRows = useMemo(
+    () =>
+      buildMealPlanRows(mealTemplates, {
+        proteinGoal: dayMacros.proteinGoal,
+        carbsGoal: dayMacros.carbsGoal,
+        fatGoal: dayMacros.fatGoal,
+        caloriesGoal: dayMacros.caloriesGoal,
+      }),
+    [
+      mealTemplates,
+      dayMacros.proteinGoal,
+      dayMacros.carbsGoal,
+      dayMacros.fatGoal,
+      dayMacros.caloriesGoal,
+    ],
+  );
+
+  const addSlotCaloriesGoal = useMemo(() => {
+    if (!addSlot) return null;
+    const row = mealPlanRows.find((r) => r.diarySlot === addSlot);
+    return row?.calories ?? null;
+  }, [addSlot, mealPlanRows]);
+
   const openScan = useCallback((slot: DietDiarySlot) => {
     setScanSlot(slot);
     setScanOpen(true);
@@ -408,14 +434,8 @@ export function MealSuggestionsView({
               </>
             ) : (
               <>
-                <p className={appPageKickerClass}>Co zjadłeś</p>
-                <h1
-                  className={cn(
-                    "mt-1.5 font-metric text-[34px] font-normal leading-none tracking-tight text-white",
-                  )}
-                >
-                  Dziennik
-                </h1>
+                <p className={appPageKickerClass}>Co jesz</p>
+                <h1 className={cn(appPageTitleClass, "mt-1.5")}>Dziennik</h1>
               </>
             )}
           </div>
@@ -572,6 +592,7 @@ export function MealSuggestionsView({
         slot={addSlot ?? "sniadanie"}
         dateKey={dateKey}
         dateLabel={dateLabel}
+        slotCaloriesGoal={addSlotCaloriesGoal}
         onClose={() => setAddSlot(null)}
         onOpenDish={() => {
           setDishPickerSlot(addSlot);

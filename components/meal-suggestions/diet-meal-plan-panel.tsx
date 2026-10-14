@@ -51,6 +51,7 @@ const CHEATSHEET_TIPS = [
   },
 ];
 
+/** Makro w 4 kolumnach — wypełnia szerokość kafelka (jak makieta). */
 function MealMacroLine({
   row,
   calories,
@@ -60,33 +61,57 @@ function MealMacroLine({
   calories?: number;
   className?: string;
 }) {
-  const parts = [
-    { n: Math.round(row.proteinG), u: "B" },
-    { n: Math.round(row.carbsG), u: "W" },
-    { n: Math.round(row.fatG), u: "T" },
-  ];
+  const cells = [
+    { n: Math.round(row.proteinG), label: "B" },
+    { n: Math.round(row.carbsG), label: "W" },
+    { n: Math.round(row.fatG), label: "T" },
+    {
+      n: calories != null && calories > 0 ? Math.round(calories) : null,
+      label: "kcal",
+    },
+  ] as const;
+
   return (
-    <p
+    <div
       className={cn(
-        "font-metric text-[13px] tabular-nums leading-none tracking-wide",
+        "grid w-full grid-cols-4 gap-x-1.5 font-metric tabular-nums",
         className,
       )}
     >
-      {parts.map((p, i) => (
-        <span key={p.u}>
-          {i > 0 ? <span className="text-white/35"> · </span> : null}
-          <span className="text-white">{p.n}</span>
-          <span className="text-[var(--gym-gold)]">{p.u}</span>
-        </span>
+      {cells.map((cell, i) => (
+        <div
+          key={cell.label}
+          className={cn(
+            "min-w-0",
+            i > 0 && "border-l border-white/[0.08] pl-1.5",
+          )}
+        >
+          <p className="truncate text-[15px] font-semibold leading-none text-white">
+            {cell.n != null ? cell.n : "—"}
+          </p>
+          <p
+            className={cn(
+              "mt-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+              cell.label === "kcal"
+                ? "text-white/40"
+                : "text-[var(--gym-gold)]",
+            )}
+          >
+            {cell.label}
+          </p>
+        </div>
       ))}
-      {calories != null && calories > 0 ? (
-        <>
-          <span className="text-white/35"> · </span>
-          <span className="text-white">{Math.round(calories)} kcal</span>
-        </>
-      ) : null}
-    </p>
+    </div>
   );
+}
+
+function mealTileTitle(row: MealPlanRow): string {
+  const label = row.label.trim();
+  const fallback = `Posiłek ${row.index}`;
+  if (!label || label.toLowerCase() === fallback.toLowerCase()) {
+    return fallback;
+  }
+  return `${fallback} · ${label}`;
 }
 
 function ShoppingListCard({
@@ -254,43 +279,85 @@ export function DietMealPlanPanel({
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
           Makro na dzień
         </p>
-        <div className="mt-3 flex items-end justify-between gap-4">
-          <div className="flex min-w-0 items-end gap-2">
-            {kcalGoal != null ? (
-              <AnimatedMetric
-                value={Math.round(kcalGoal)}
-                className="text-[44px] leading-none text-white sm:text-[48px]"
-              />
-            ) : (
-              <span className="font-metric text-[44px] leading-none text-white/35">
-                —
-              </span>
-            )}
-            <span className="mb-1.5 font-metric text-[18px] text-white/55">
-              kcal
-            </span>
-          </div>
-          <div className="shrink-0 space-y-1 text-right font-metric text-[15px] leading-snug tabular-nums text-white">
-            <p>
-              {dayMacros.proteinGoal != null
-                ? Math.round(dayMacros.proteinGoal)
-                : "—"}{" "}
-              g{" "}
-              <span className="text-[12px] text-white/45">białko</span>
-            </p>
-            <p>
-              {dayMacros.carbsGoal != null
-                ? Math.round(dayMacros.carbsGoal)
-                : "—"}{" "}
-              g <span className="text-[12px] text-white/45">węgle</span>
-            </p>
-            <p>
-              {dayMacros.fatGoal != null
-                ? Math.round(dayMacros.fatGoal)
-                : "—"}{" "}
-              g <span className="text-[12px] text-white/45">tłuszcz</span>
-            </p>
-          </div>
+        {/* 4 równe kolumny — wypełniają kafelek bez pustej dziury na środku */}
+        <div className="mt-3 grid grid-cols-4 gap-x-2 sm:gap-x-3">
+          {(
+            [
+              {
+                key: "kcal",
+                value:
+                  kcalGoal != null ? Math.round(kcalGoal) : null,
+                unit: "kcal",
+                label: null,
+              },
+              {
+                key: "protein",
+                value:
+                  dayMacros.proteinGoal != null
+                    ? Math.round(dayMacros.proteinGoal)
+                    : null,
+                unit: "g",
+                label: "białko",
+              },
+              {
+                key: "carbs",
+                value:
+                  dayMacros.carbsGoal != null
+                    ? Math.round(dayMacros.carbsGoal)
+                    : null,
+                unit: "g",
+                label: "węgle",
+              },
+              {
+                key: "fat",
+                value:
+                  dayMacros.fatGoal != null
+                    ? Math.round(dayMacros.fatGoal)
+                    : null,
+                unit: "g",
+                label: "tłuszcz",
+              },
+            ] as const
+          ).map((cell, i) => (
+            <div
+              key={cell.key}
+              className={cn(
+                "min-w-0",
+                i > 0 && "border-l border-white/[0.08] pl-2 sm:pl-3",
+              )}
+            >
+              <div className="flex items-baseline gap-0.5">
+                {cell.value != null ? (
+                  <AnimatedMetric
+                    value={cell.value}
+                    className={cn(
+                      "leading-none text-white",
+                      cell.key === "kcal"
+                        ? "text-[28px] sm:text-[32px]"
+                        : "text-[22px] sm:text-[24px]",
+                    )}
+                  />
+                ) : (
+                  <span
+                    className={cn(
+                      "font-metric leading-none text-white/35",
+                      cell.key === "kcal" ? "text-[28px]" : "text-[22px]",
+                    )}
+                  >
+                    —
+                  </span>
+                )}
+                {cell.key !== "kcal" ? (
+                  <span className="text-[11px] font-medium text-white/40">
+                    {cell.unit}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-1 truncate text-[11px] font-medium leading-tight text-white/45">
+                {cell.label ?? cell.unit}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -321,21 +388,19 @@ export function DietMealPlanPanel({
                 <button
                   type="button"
                   onClick={() => setOpenId(open ? null : row.id)}
-                  className="flex w-full items-center gap-3 px-3.5 py-3.5 text-left"
+                  className="flex w-full items-start gap-2.5 px-3.5 py-3.5 text-left"
                   aria-expanded={open}
                 >
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 space-y-2.5">
                     <p className="truncate text-[15px] font-semibold text-white">
-                      Posiłek {row.index} · {row.label}
+                      {mealTileTitle(row)}
                     </p>
-                    <div className="mt-1.5">
-                      <MealMacroLine row={row} calories={row.calories} />
-                    </div>
+                    <MealMacroLine row={row} calories={row.calories} />
                   </div>
                   {open ? (
-                    <ChevronDown className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" />
+                    <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-[var(--gym-gold)]" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 shrink-0 rotate-[-90deg] text-white/35" />
+                    <ChevronDown className="mt-1 h-4 w-4 shrink-0 rotate-[-90deg] text-white/35" />
                   )}
                 </button>
                 {open ? (

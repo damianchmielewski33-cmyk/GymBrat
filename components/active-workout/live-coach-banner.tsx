@@ -1,6 +1,7 @@
 "use client";
 
 import type { LiveCoachTip } from "@/lib/live-set-coach";
+import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 const TONE_CLASS: Record<LiveCoachTip["tone"], string> = {
@@ -73,7 +74,10 @@ export function LiveCoachBanner({
     return (
       <button
         type="button"
-        onClick={() => tip.apply && onApply?.(tip.apply)}
+        onClick={() => {
+          hapticTap();
+          if (tip.apply) onApply?.(tip.apply);
+        }}
         className={cn(
           "flex w-full items-start gap-2 rounded-2xl border px-3 py-2.5 text-left text-[13px] leading-snug transition",
           TONE_CLASS[tip.tone],

@@ -36,10 +36,19 @@ export function DietDateNav({
         <ChevronLeft className="h-5 w-5" />
       </button>
       <div className="min-w-0 text-center">
-        <p className="text-[15px] font-semibold text-white">{title}</p>
         {isToday ? (
-          <p className="mt-0.5 text-[12px] capitalize text-white/45">{long}</p>
-        ) : null}
+          <p className="text-[15px] font-semibold text-white">
+            Dziś
+            <span className="font-normal text-white/40"> / </span>
+            <span className="text-[13px] font-normal capitalize text-white/55">
+              {long}
+            </span>
+          </p>
+        ) : (
+          <p className="text-[15px] font-semibold capitalize text-white">
+            {title}
+          </p>
+        )}
       </div>
       <button
         type="button"

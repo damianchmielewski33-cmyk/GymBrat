@@ -15,6 +15,7 @@ import {
 import { buildLiveCoachTipForOpenSet } from "@/lib/live-set-coach";
 import { LiveCoachBanner } from "@/components/active-workout/live-coach-banner";
 import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
+import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -279,6 +280,7 @@ export function GuidedSessionLayout({
 
   function goPrev() {
     if (!exercise) return;
+    hapticTap();
     flushDraft();
     if (activeSetIndex > 0) {
       setManualSetIndex(activeSetIndex - 1);
@@ -293,6 +295,7 @@ export function GuidedSessionLayout({
 
   function skipSet() {
     if (!exercise || !set) return;
+    hapticTap();
     const weight = parseWeightInput(weightText) ?? clampWeight(set.weight);
     const repsParsed = parseRepsInput(repsText);
     const exerciseId = exercise.id;
@@ -334,6 +337,7 @@ export function GuidedSessionLayout({
       // Bez ciężaru (> 0) lub powtórzeń nie zaliczamy — użyj „Pomiń serię”.
       return;
     }
+    hapticTap();
     onPatchSet(exercise.id, activeSetIndex, {
       done: true,
       skipped: false,
@@ -829,6 +833,7 @@ export function GuidedSessionLayout({
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
+              hapticTap();
               flushDraft();
               onDeferExercise?.();
               const next = findNextIncompleteExercise(
@@ -846,6 +851,7 @@ export function GuidedSessionLayout({
             disabled={finishPending}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
+              hapticTap();
               flushDraft();
               onFinishSession?.();
             }}
@@ -859,7 +865,10 @@ export function GuidedSessionLayout({
           <button
             type="button"
             disabled={finishPending}
-            onClick={onDiscardSession}
+            onClick={() => {
+              hapticTap();
+              onDiscardSession();
+            }}
             className="mt-3 inline-flex h-10 w-full items-center justify-center text-xs font-medium text-white/40 hover:text-white/70 disabled:opacity-50"
           >
             Zakończ bez zapisu

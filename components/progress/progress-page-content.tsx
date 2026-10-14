@@ -32,7 +32,7 @@ function formatSinceKicker(iso: string | null, workouts: number): string {
     const d = new Date(`${iso}T12:00:00`);
     if (Number.isNaN(d.getTime())) return tren;
     const month = PL_MONTH[d.getMonth()] ?? "";
-    return `OD ${d.getDate()} ${month} • ${tren}`;
+    return `OD ${d.getDate()} ${month} · ${tren}`;
   } catch {
     return tren;
   }
@@ -48,8 +48,8 @@ export async function ProgressPageContent({
   const data = await getProgressHubData(userId);
 
   return (
-    <>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45 px-0.5">
+    <div className="space-y-3.5">
+      <p className="px-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
         {formatSinceKicker(data.strength.sinceDate, data.strength.workoutCount)}
       </p>
 
@@ -57,6 +57,6 @@ export async function ProgressPageContent({
       {tab === "sylwetka" ? <BodyTab data={data.body} /> : null}
       {tab === "zdjecia" ? <PhotosTab data={data.photos} /> : null}
       {tab === "tydzien" ? <WeekTab data={data.week} /> : null}
-    </>
+    </div>
   );
 }

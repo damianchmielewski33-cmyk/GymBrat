@@ -4,9 +4,11 @@ import {
   compareAndroidAppVersion,
   compareVersionName,
   ensureAndroidCameraPermission,
+  hasAndroidNativeTorch,
   isAndroidPhoneBrowserUserAgent,
   isAppWebViewUserAgent,
   parseAndroidAppIdentity,
+  setAndroidNativeTorch,
   shouldShowAndroidUpdatePrompt,
   stableAndroidIdentity,
 } from "@/lib/app-webview";
@@ -163,5 +165,27 @@ describe("app-webview", () => {
     });
     await expect(ensureAndroidCameraPermission()).resolves.toBe(true);
     expect(requestCameraPermission).not.toHaveBeenCalled();
+  });
+
+  it("most latarki: hasAndroidNativeTorch / setAndroidNativeTorch", () => {
+    const setTorch = vi.fn(() => true);
+    vi.stubGlobal("window", {
+      GymBratAndroid: {
+        getVersionName: () => "0.1.12",
+        getVersionCode: () => 13,
+        checkUpdate: () => {},
+        hasTorch: () => true,
+        setTorch,
+      },
+    });
+    expect(hasAndroidNativeTorch()).toBe(true);
+    expect(setAndroidNativeTorch(true)).toBe(true);
+    expect(setTorch).toHaveBeenCalledWith(true);
+  });
+
+  it("setAndroidNativeTorch zwraca null bez mostu", () => {
+    vi.stubGlobal("window", {});
+    expect(hasAndroidNativeTorch()).toBe(false);
+    expect(setAndroidNativeTorch(true)).toBeNull();
   });
 });

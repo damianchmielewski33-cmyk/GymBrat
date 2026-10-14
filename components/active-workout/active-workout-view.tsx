@@ -45,6 +45,10 @@ import {
   isSkippedWorkoutSet,
 } from "@/lib/workout-skipped-sets";
 import { hapticExerciseDone, hapticNewMax, hapticWorkoutDone } from "@/lib/haptics";
+import {
+  resolveExerciseMuscles,
+  type ResolvedExerciseMuscles,
+} from "@/lib/resolve-exercise-muscles";
 import { RotateCcw } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18n-provider";
 
@@ -61,6 +65,8 @@ type LastCompletedSnap = {
   exerciseFinished: boolean;
   /** Ostatnia seria całego treningu. */
   workoutFinished: boolean;
+  /** Partie mięśniowe tego, co zaraz będzie robione (kolejna seria / kolejne ćwiczenie). */
+  nextMuscles: ResolvedExerciseMuscles | null;
 };
 
 export function ActiveWorkoutView({
@@ -290,17 +296,27 @@ export function ActiveWorkoutView({
     let nextValue = `Seria ${nextSetIdx + 1} z ${ex.sets.length}`;
     let exerciseFinished = false;
     let workoutFinished = false;
+    /** Manekin: partia tego, co zaraz będzie robione. */
+    let nextMuscles: ResolvedExerciseMuscles | null = resolveExerciseMuscles({
+      name: ex.name,
+      categoryId: ex.categoryId,
+    });
     if (nextSetIdx >= ex.sets.length) {
       exerciseFinished = true;
       const nextEx = findNextIncompleteExercise(list, exerciseId);
       if (nextEx) {
         nextLabel = "Następne ćwiczenie";
         nextValue = nextEx.name;
+        nextMuscles = resolveExerciseMuscles({
+          name: nextEx.name,
+          categoryId: nextEx.categoryId,
+        });
       } else {
         // Ekran pauzy po ostatniej serii — jak makieta: „Koniec treningu”.
         nextLabel = "Następne ćwiczenie";
         nextValue = "Koniec treningu";
         workoutFinished = true;
+        nextMuscles = null;
       }
     }
     return {
@@ -314,6 +330,7 @@ export function ActiveWorkoutView({
       nextValue,
       exerciseFinished,
       workoutFinished,
+      nextMuscles,
     };
   }
 
@@ -775,6 +792,7 @@ export function ActiveWorkoutView({
           }
           nextLabel={lastCompleted?.nextLabel ?? "Następna seria"}
           nextValue={lastCompleted?.nextValue ?? "—"}
+          nextMuscles={lastCompleted?.nextMuscles ?? null}
           coachTip={restCoachTip}
           soundOn={restSoundOn}
           onToggleSound={() => {

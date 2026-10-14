@@ -1139,10 +1139,10 @@ export function normalizeForSearch(s: string): string {
     .replace(/\s+/g, " ");
 }
 
-/** Tekst do przeszukania: polska nazwa + aliasy (bez polskich znaków opcjonalnie później). */
+/** Tekst do przeszukania: polska nazwa + aliasy (złożone jak zapytanie — bez ogonków). */
 function exerciseSearchHaystack(ex: CatalogExercise): string {
   const parts = [ex.name, ...(ex.aliasesEn ?? [])];
-  return parts.join(" ").toLowerCase();
+  return normalizeForSearch(parts.join(" "));
 }
 
 /**

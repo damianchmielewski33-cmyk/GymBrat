@@ -7,7 +7,7 @@ import { PROGRESS_TABS, type ProgressTabId } from "@/lib/progress-tabs";
 export function ProgressTabs({ active }: { active: ProgressTabId }) {
   return (
     <nav
-      className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5"
+      className="-mx-1 flex gap-1.5 overflow-x-auto px-1"
       aria-label="Zakładki postępów"
     >
       {PROGRESS_TABS.map((tab) => {
@@ -18,10 +18,10 @@ export function ProgressTabs({ active }: { active: ProgressTabId }) {
             href={`/progress?tab=${tab.id}`}
             scroll={false}
             className={cn(
-              "shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition",
+              "shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold leading-none transition",
               isActive
                 ? "border border-[var(--gym-gold)]/70 bg-[rgba(var(--neon-rgb),0.08)] text-[var(--gym-gold)]"
-                : "border border-transparent bg-[var(--gym-surface-sunken)] text-white/70",
+                : "border border-transparent bg-[var(--gym-surface-sunken)] text-white/65",
             )}
             aria-current={isActive ? "page" : undefined}
           >

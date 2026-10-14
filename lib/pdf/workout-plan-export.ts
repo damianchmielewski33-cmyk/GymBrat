@@ -14,7 +14,7 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function planToHtml(plans: PrintablePlan[]): string {
+export function planToHtml(plans: PrintablePlan[]): string {
   const blocks = plans
     .map(({ plan }) => {
       const labels = buildSupersetLabels(plan.exercises);
@@ -55,10 +55,18 @@ function planToHtml(plans: PrintablePlan[]): string {
 <html lang="pl">
 <head>
 <meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Plan treningowy — GymBrat</title>
 <style>
   @page { margin: 16mm; }
-  body { font-family: system-ui, Segoe UI, sans-serif; color: #111; margin: 0; padding: 12px; }
+  body { font-family: system-ui, Segoe UI, sans-serif; color: #111; margin: 0; padding: 12px; background: #fff; }
+  .toolbar { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+  .toolbar button {
+    appearance: none; border: 0; border-radius: 999px; padding: 10px 16px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    background: #ebc44a; color: #111;
+  }
+  .toolbar button.secondary { background: #eee; color: #333; }
   h1 { font-size: 22px; margin: 0 0 4px; }
   .sub { color: #555; font-size: 12px; margin: 0 0 16px; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -70,27 +78,45 @@ function planToHtml(plans: PrintablePlan[]): string {
   .break { page-break-after: always; height: 0; }
   @media print {
     body { padding: 0; }
-    button { display: none !important; }
+    .toolbar { display: none !important; }
   }
 </style>
 </head>
 <body>
+<div class="toolbar">
+  <button type="button" onclick="window.print()">Drukuj / Zapisz PDF</button>
+</div>
 ${blocks}
-<script>window.onload=function(){window.focus();window.print();}</script>
 </body>
 </html>`;
 }
 
-/** Otwiera okno druku / „Zapisz jako PDF” dla wybranych planów. */
+/**
+ * Otwiera plan w nowej karcie (treść + druk / Zapisz PDF).
+ * Blob URL — bez `noopener` + `document.write` (na Androidzie/WebView dawało pustą stronę).
+ */
 export function printWorkoutPlans(plans: PrintablePlan[]): boolean {
   if (typeof window === "undefined") return false;
-  const list = plans.filter((p) => p.plan.exercises.length >= 0);
+  const list = plans.filter((p) => p?.plan != null);
   if (list.length === 0) return false;
+
   const html = planToHtml(list);
-  const w = window.open("", "_blank", "noopener,noreferrer,width=820,height=900");
-  if (!w) return false;
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  const opened = window.open(url, "_blank");
+  if (!opened) {
+    // Popup zablokowany — ta sama karta.
+    window.location.assign(url);
+  }
+
+  window.setTimeout(() => {
+    try {
+      URL.revokeObjectURL(url);
+    } catch {
+      /* ignore */
+    }
+  }, 120_000);
+
   return true;
 }

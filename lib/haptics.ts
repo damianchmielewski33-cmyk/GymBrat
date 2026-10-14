@@ -1,13 +1,13 @@
 /**
  * Wibracje / haptyka: `navigator.vibrate` w przeglądarce oraz most
- * `AwpAndroid.vibrate` w WebView APK (gdy dostępny).
+ * `GymBratAndroid.vibrate` / `AwpAndroid.vibrate` w WebView APK.
  *
  * iOS Safari nie wspiera Vibration API — wywołanie jest no-op.
  */
 
 export type HapticPattern = number[];
 
-/** Lekkie potwierdzenie (skan, krótki tap). */
+/** Lekkie potwierdzenie (nawigacja, tap, skan). */
 export const HAPTIC_TAP: HapticPattern = [40];
 
 /** Koniec przerwy między seriami. */
@@ -28,14 +28,26 @@ function patternToCsv(pattern: HapticPattern): string {
 
 function tryNativeBridge(pattern: HapticPattern): boolean {
   if (typeof window === "undefined") return false;
-  const vibrate = window.AwpAndroid?.vibrate;
-  if (typeof vibrate !== "function") return false;
-  try {
-    vibrate.call(window.AwpAndroid, patternToCsv(pattern));
-    return true;
-  } catch {
-    return false;
+  const csv = patternToCsv(pattern);
+  const gym = window.GymBratAndroid?.vibrate;
+  if (typeof gym === "function") {
+    try {
+      gym.call(window.GymBratAndroid, csv);
+      return true;
+    } catch {
+      /* fallback poniżej */
+    }
   }
+  const awp = window.AwpAndroid?.vibrate;
+  if (typeof awp === "function") {
+    try {
+      awp.call(window.AwpAndroid, csv);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 function tryNavigatorVibrate(pattern: HapticPattern): boolean {

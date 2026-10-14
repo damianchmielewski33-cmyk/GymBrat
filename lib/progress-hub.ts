@@ -107,7 +107,6 @@ export type ProgressTempo = {
 
 export type ProgressMeasureKey =
   | "waist"
-  | "abdomen"
   | "thigh"
   | "chest"
   | "arm";
@@ -831,12 +830,6 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
     lowerIsBetter: boolean;
   }> = [
     { key: "waist", label: "Pas", pick: (r) => r.waistCm, lowerIsBetter: true },
-    {
-      key: "abdomen",
-      label: "Brzuch",
-      pick: (r) => r.abdomenCm,
-      lowerIsBetter: true,
-    },
     { key: "thigh", label: "Udo", pick: (r) => r.thighCm, lowerIsBetter: true },
     {
       key: "chest",

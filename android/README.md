@@ -7,7 +7,7 @@ Front web pozostaje w Next.js; przy `JAVA_API_BASE_URL` Next proxuje do Javy.
 ## Co dostajesz
 
 - WebView 1:1 ze stroną `https://gym-brat.vercel.app`
-- Most JS `window.GymBratAndroid` (`getVersionName`, `getVersionCode`, `checkUpdate`)
+- Most JS `window.GymBratAndroid` (`getVersionName`, `getVersionCode`, `checkUpdate`, `hasTorch` / `setTorch`, kamera)
 - User-Agent: `GymBratAndroidApp/<wersja> GymBratAndroidCode/<kod>`
 - In-app update z `GET /api/android/version`
 - Wybór plików / zdjęć z HTML (`input type=file`) przez `WebChromeClient.onShowFileChooser`

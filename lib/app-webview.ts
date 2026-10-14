@@ -26,6 +26,11 @@ declare global {
       hasCameraPermission?: () => boolean;
       requestCameraPermission?: () => void;
       openAppSettings?: () => void;
+      /** Latarka przez CameraManager (APK ≥ 0.1.12) — WebView często nie wspiera torch w getUserMedia. */
+      hasTorch?: () => boolean;
+      setTorch?: (enabled: boolean) => boolean;
+      /** Wibracja (CSV ms jak navigator.vibrate). */
+      vibrate?: (patternCsv: string) => void;
     };
     /** Callback ustawiany przez ensureAndroidCameraPermission przed mostem. */
     __gymbratOnCameraPermission?: (granted: boolean) => void;
@@ -247,4 +252,31 @@ export function openAndroidAppSettings(): boolean {
     /* ignore */
   }
   return false;
+}
+
+/** Czy most APK udostępnia latarkę (CameraManager). */
+export function hasAndroidNativeTorch(): boolean {
+  if (typeof window === "undefined") return false;
+  const bridge = window.GymBratAndroid;
+  if (!bridge?.hasTorch || !bridge.setTorch) return false;
+  try {
+    return Boolean(bridge.hasTorch());
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Włącza/wyłącza latarkę przez most GymBratAndroid.
+ * Zwraca null gdy most niedostępny (np. przeglądarka / stary APK).
+ */
+export function setAndroidNativeTorch(on: boolean): boolean | null {
+  if (typeof window === "undefined") return null;
+  const setTorch = window.GymBratAndroid?.setTorch;
+  if (typeof setTorch !== "function") return null;
+  try {
+    return Boolean(setTorch.call(window.GymBratAndroid, on));
+  } catch {
+    return false;
+  }
 }

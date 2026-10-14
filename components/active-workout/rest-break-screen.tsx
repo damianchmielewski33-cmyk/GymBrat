@@ -3,6 +3,7 @@
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { SkipForward, Volume2, VolumeX } from "lucide-react";
+import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import {
   readRestTimerPrefs,
@@ -12,6 +13,8 @@ import {
   SessionChromeHeader,
   SessionProgressBar,
 } from "@/components/active-workout/session-chrome";
+import { MuscleMannequin } from "@/components/active-workout/muscle-mannequin";
+import type { ResolvedExerciseMuscles } from "@/lib/resolve-exercise-muscles";
 
 const PRESETS_SEC = [60, 90, 120, 180] as const;
 
@@ -67,16 +70,18 @@ function useSmoothRemaining(remaining: number, open: boolean) {
 function RestCountdownClock({
   remaining,
   totalSeconds,
+  compact = false,
 }: {
   remaining: number;
   totalSeconds: number;
+  compact?: boolean;
 }) {
   const smooth = useSmoothRemaining(remaining, true);
   const total = Math.max(1, totalSeconds);
   const ratio = Math.min(1, Math.max(0, smooth / total));
 
-  const size = 236;
-  const stroke = 10;
+  const size = compact ? 168 : 236;
+  const stroke = compact ? 8 : 10;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const dashOffset = c * (1 - ratio);
@@ -124,7 +129,12 @@ function RestCountdownClock({
 
       <div className="relative z-[1] flex flex-col items-center justify-center px-4 text-center">
         <p
-          className="font-display text-[64px] leading-none tabular-nums tracking-tight text-[var(--gym-gold-bright)] sm:text-[72px]"
+          className={cn(
+            "font-display leading-none tabular-nums tracking-tight text-[var(--gym-gold-bright)]",
+            compact
+              ? "text-[44px] sm:text-[52px]"
+              : "text-[64px] sm:text-[72px]",
+          )}
           style={{
             textShadow: urgent
               ? "0 0 28px rgba(235,196,74,0.55)"
@@ -153,6 +163,8 @@ export type RestBreakScreenProps = {
   nextLabel: string;
   /** np. „Seria 2 z 2” albo nazwa ćwiczenia */
   nextValue: string;
+  /** Manekin: partie mięśniowe następnej serii / ćwiczenia. */
+  nextMuscles?: ResolvedExerciseMuscles | null;
   /** Aktywna rada na następną serię (ciężar / powtórzenia). */
   coachTip?: string | null;
   soundOn: boolean;
@@ -178,6 +190,7 @@ export function RestBreakScreen({
   completedLine,
   nextLabel,
   nextValue,
+  nextMuscles = null,
   coachTip,
   soundOn,
   onToggleSound,
@@ -237,14 +250,28 @@ export function RestBreakScreen({
 
       <SessionProgressBar progress={progress} className="relative" />
 
-      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-5">
-        <p className="mb-5 text-[12px] font-semibold uppercase tracking-[0.28em] text-[var(--gym-gold)]">
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-5 py-3">
+        <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.28em] text-[var(--gym-gold)]">
           Przerwa
         </p>
 
-        <RestCountdownClock remaining={remaining} totalSeconds={ringTotal} />
+        {nextMuscles?.primary ? (
+          <MuscleMannequin
+            primary={nextMuscles.primary}
+            secondary={nextMuscles.secondary}
+            preferBackView={nextMuscles.preferBackView}
+            label={nextMuscles.label}
+            className="mb-3"
+          />
+        ) : null}
 
-        <div className="mt-8 flex items-center justify-center gap-2.5 sm:gap-3">
+        <RestCountdownClock
+          remaining={remaining}
+          totalSeconds={ringTotal}
+          compact={Boolean(nextMuscles?.primary)}
+        />
+
+        <div className="mt-5 flex items-center justify-center gap-2.5 sm:gap-3">
           {PRESETS_SEC.map((sec) => {
             const active = activePreset === sec;
             return (
@@ -252,6 +279,7 @@ export function RestBreakScreen({
                 key={sec}
                 type="button"
                 onClick={() => {
+                  hapticTap();
                   onSetSeconds(sec);
                   setRememberPreset(sec);
                   writeRestDefaultSeconds(sec);
@@ -272,9 +300,10 @@ export function RestBreakScreen({
         <button
           type="button"
           onClick={() => {
+            hapticTap();
             writeRestDefaultSeconds(rememberPreset);
           }}
-          className="mt-5 rounded-full border border-[var(--gym-gold)]/25 bg-[var(--gym-gold)]/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold-bright)] transition hover:bg-[var(--gym-gold)]/18"
+          className="mt-4 rounded-full border border-[var(--gym-gold)]/25 bg-[var(--gym-gold)]/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold-bright)] transition hover:bg-[var(--gym-gold)]/18"
         >
           Zapamiętam przy tym ćwiczeniu
         </button>
@@ -294,6 +323,11 @@ export function RestBreakScreen({
         <p className="mt-1.5 font-display text-2xl leading-tight text-white">
           {nextValue}
         </p>
+        {nextMuscles?.label && nextMuscles.primary ? (
+          <p className="mt-1.5 text-[12px] text-white/45">
+            Partia: {nextMuscles.label}
+          </p>
+        ) : null}
         {coachTip ? (
           <p className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-2.5 text-[13px] leading-snug text-emerald-100/90">
             <span aria-hidden>🔥 </span>
@@ -305,14 +339,20 @@ export function RestBreakScreen({
       <div className="relative flex items-center gap-2.5 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <button
           type="button"
-          onClick={() => onAddSeconds(30)}
+          onClick={() => {
+            hapticTap();
+            onAddSeconds(30);
+          }}
           className="inline-flex h-14 w-[4.75rem] shrink-0 items-center justify-center rounded-2xl border border-white/12 bg-[#1a1a1a] text-sm font-bold text-white/85 transition hover:bg-white/[0.06]"
         >
           +30 s
         </button>
         <button
           type="button"
-          onClick={onToggleSound}
+          onClick={() => {
+            hapticTap();
+            onToggleSound();
+          }}
           className={cn(
             "inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border transition",
             soundOn
@@ -326,7 +366,10 @@ export function RestBreakScreen({
         <button
           ref={continueRef}
           type="button"
-          onClick={onContinue}
+          onClick={() => {
+            hapticTap();
+            onContinue();
+          }}
           className="gold-btn inline-flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-bold shadow-[0_10px_28px_rgba(235,196,74,0.28)]"
         >
           <SkipForward className="h-5 w-5" />

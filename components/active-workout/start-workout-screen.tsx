@@ -7,6 +7,7 @@ import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import type { HomeStats } from "@/lib/home-stats";
 import { Input } from "@/components/ui/input";
 import { WorkoutTrendChart } from "@/components/home/workout-trend-chart";
+import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -232,7 +233,10 @@ export function StartWorkoutScreen({
       <button
         type="button"
         disabled={plans.length === 0}
-        onClick={() => setPickerOpen(true)}
+        onClick={() => {
+          hapticTap();
+          setPickerOpen(true);
+        }}
         className="gym-btn-primary inline-flex h-14 w-full items-center justify-center rounded-full text-base font-bold uppercase tracking-wide disabled:opacity-40"
       >
         Rozpocznij trening
@@ -298,7 +302,10 @@ export function StartWorkoutScreen({
                     <button
                       type="button"
                       disabled={empty}
-                      onClick={() => beginFromPicker(row)}
+                      onClick={() => {
+                        hapticTap();
+                        beginFromPicker(row);
+                      }}
                       className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left disabled:opacity-40"
                     >
                       <div className="min-w-0">
