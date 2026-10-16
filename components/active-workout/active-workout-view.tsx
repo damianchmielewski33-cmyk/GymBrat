@@ -120,6 +120,7 @@ export function ActiveWorkoutView({
   const [restRemaining, setRestRemaining] = useState<number | null>(null);
   /** Pełny czas bieżącego cyklu przerwy — do animacji koła odliczania. */
   const [restDurationTotal, setRestDurationTotal] = useState(90);
+  const restStartedAtRef = useRef<number | null>(null);
   const [restSoundOn, setRestSoundOn] = useState(true);
   const [lastCompleted, setLastCompleted] = useState<LastCompletedSnap | null>(null);
   const [listOpen, setListOpen] = useState(false);
@@ -344,9 +345,45 @@ export function ActiveWorkoutView({
     const sec = Math.max(1, Math.round(seconds));
     setRestDurationTotal(sec);
     setRestRemaining(sec);
+    restStartedAtRef.current = Date.now();
+  }
+
+  /** Zapisuje faktyczną przerwę na następną serię (rest-aware coach). */
+  function persistRestSecondsFromTimer() {
+    const started = restStartedAtRef.current;
+    restStartedAtRef.current = null;
+    const snap = lastCompletedRef.current;
+    if (started == null || !snap) return;
+    const restSec = Math.max(
+      0,
+      Math.min(3600, Math.round((Date.now() - started) / 1000)),
+    );
+    const prev = useActiveWorkoutStore.getState().exercises;
+    const exIdx = prev.findIndex((e) => e.id === snap.exerciseId);
+    if (exIdx < 0) return;
+    const ex = prev[exIdx]!;
+    let targetExIdx = exIdx;
+    let targetSetIdx = snap.setIndex + 1;
+    if (targetSetIdx >= ex.sets.length) {
+      targetExIdx = exIdx + 1;
+      targetSetIdx = 0;
+    }
+    if (targetExIdx >= prev.length) return;
+    setExercises(
+      prev.map((e, i) => {
+        if (i !== targetExIdx) return e;
+        const sets = e.sets.map((s, si) =>
+          si === targetSetIdx ? { ...s, restSeconds: restSec } : s,
+        );
+        return { ...e, sets };
+      }),
+    );
   }
 
   function stopRest() {
+    if (restRemaining != null) {
+      persistRestSecondsFromTimer();
+    }
     setRestRemaining(null);
   }
 
@@ -524,6 +561,7 @@ export function ActiveWorkoutView({
   useEffect(() => {
     if (restRemaining === null) return;
     if (restRemaining <= 0) {
+      persistRestSecondsFromTimer();
       setRestRemaining(null);
       return;
     }
@@ -533,6 +571,7 @@ export function ActiveWorkoutView({
           playRestTimerEndSignal();
         }
         const finished = shouldOpenFinishAfterRest();
+        persistRestSecondsFromTimer();
         setRestRemaining(null);
         if (finished) {
           setFinishOpen(true);

@@ -60,10 +60,14 @@ export function roundToPlateStep(kg: number, step = PLATE_STEP): number {
   return Math.round(kg / step) * step;
 }
 
-/** +2,5 kg z precyzją 0,5 (jak steppers w sesji). */
+/**
+ * Exact +step kg z precyzją 0,5 (jak steppers w sesji).
+ * step domyślnie 2.5; v3 może podać minimum/aggressive.
+ */
 export function bumpWeightByPlate(kg: number, step = PLATE_STEP): number {
   if (!Number.isFinite(kg) || kg <= 0) return 0;
-  return Math.round((kg + step) * 2) / 2;
+  const s = Number.isFinite(step) && step > 0 ? step : PLATE_STEP;
+  return Math.round((kg + s) * 2) / 2;
 }
 
 /** Deload: max(2.5 kg, 5% ciężaru roboczego). */
@@ -201,6 +205,12 @@ export type BuildProgressionArgs = {
    * (live coach używa osobnych tipów; chipy wolą null + hold).
    */
   includeDeload?: boolean;
+  /** Autoregulated bump (v3); domyślnie 2.5. */
+  plateStepKg?: number;
+  /** Przerwa przed ostatnią serią — rest-aware fatigue drop. */
+  restSeconds?: number | null;
+  /** 0–1+ z rest-awareness; domyślnie 1. */
+  fatigueDropSensitivity?: number;
 };
 
 const LAYOFF_DAYS = 14;
@@ -300,8 +310,15 @@ export function buildSetProgressionSuggestion(
     }
   }
 
-  // Spadek powtórzeń między seriami → nie bumpuj
-  if (trend && trend.setCount >= 2 && trend.repsDrop >= 2 && setIndex >= 1) {
+  // Spadek powtórzeń między seriami → nie bumpuj (rest-aware)
+  const dropSens =
+    args.fatigueDropSensitivity != null &&
+    Number.isFinite(args.fatigueDropSensitivity)
+      ? args.fatigueDropSensitivity
+      : 1;
+  const effectiveDrop =
+    trend && trend.setCount >= 2 ? trend.repsDrop * dropSens : 0;
+  if (effectiveDrop >= 2 && setIndex >= 1) {
     return null;
   }
 
@@ -363,7 +380,13 @@ export function buildSetProgressionSuggestion(
   if (reps >= range.max) {
     if (highVol) return null;
     if (!isEasyEffort(last) || trailingEasy < easyNeeded) return null;
-    const nextW = bumpWeightByPlate(weight);
+    const step =
+      args.plateStepKg != null &&
+      Number.isFinite(args.plateStepKg) &&
+      args.plateStepKg > 0
+        ? args.plateStepKg
+        : PLATE_STEP;
+    const nextW = bumpWeightByPlate(weight, step);
     if (nextW <= weight) return null;
     return buildSuggestion({
       weightKg: nextW,

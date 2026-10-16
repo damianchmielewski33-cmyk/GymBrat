@@ -192,4 +192,87 @@ describe("live-set-coach", () => {
     expect(tip!.apply?.weightKg).toBe(95);
     expect(tip!.id).toBe("hist-layoff");
   });
+
+  it("v3: tip ma decision, reason, readiness, confidence", () => {
+    const tip = buildLiveCoachTipForOpenSet(
+      ex({
+        sets: [
+          { reps: 10, weight: 36, done: true, rir: 3 },
+          { reps: 10, weight: 36, done: true, rir: 3 },
+          { reps: null, weight: 0, done: false },
+        ],
+      }),
+      2,
+    );
+    expect(tip).not.toBeNull();
+    expect(tip!.decision.length).toBeGreaterThan(0);
+    expect(tip!.reason.length).toBeGreaterThan(0);
+    expect(tip!.readiness).toBeGreaterThanOrEqual(0);
+    expect(tip!.readiness).toBeLessThanOrEqual(100);
+    expect(tip!.confidence).toBeGreaterThanOrEqual(0);
+    expect(tip!.confidence).toBeLessThanOrEqual(100);
+  });
+
+  it("v3 trend-over-event: jedna hard + rosnący e1RM → hold, nie deload", () => {
+    const tip = buildLiveCoachTipForOpenSet(
+      ex({
+        sets: [
+          // w zakresie 8–10, ale hard — bez belowMin
+          { reps: 8, weight: 100, done: true, rir: 0 },
+          { reps: null, weight: 0, done: false },
+        ],
+        coachContext: {
+          daysSinceLastSession: 3,
+          recentSessionCount: 4,
+          avgTopSetWeightKg: 100,
+          stagnant: false,
+          e1rm: { last: 130, avg: 120, best: 130, trend4: "up" },
+          recentSessions: [
+            {
+              topKg: 100,
+              bestReps: 8,
+              bestE1rm: 130,
+              avgRir: 1,
+              volumeKg: 2000,
+            },
+            {
+              topKg: 95,
+              bestReps: 8,
+              bestE1rm: 120,
+              avgRir: 1,
+              volumeKg: 1900,
+            },
+            {
+              topKg: 90,
+              bestReps: 8,
+              bestE1rm: 110,
+              avgRir: 2,
+              volumeKg: 1800,
+            },
+          ],
+        },
+      }),
+      1,
+    );
+    expect(tip).not.toBeNull();
+    expect(tip!.id).toBe("session-hold-form");
+    expect(tip!.apply?.weightKg).toBe(100);
+    expect(tip!.reason).toMatch(/trend/i);
+  });
+
+  it("v3: konflikt nie ukrywa tipu — ma confidence", () => {
+    const tip = buildLiveCoachTipForOpenSet(
+      ex({
+        sets: [
+          { reps: 10, weight: 60, done: true, rir: 5, rpe: 10 },
+          { reps: null, weight: 0, done: false },
+        ],
+      }),
+      1,
+    );
+    expect(tip).not.toBeNull();
+    expect(tip!.id).toBe("session-conflict-hold");
+    expect(typeof tip!.confidence).toBe("number");
+    expect(tip!.suspicious || tip!.confidence < 70).toBe(true);
+  });
 });

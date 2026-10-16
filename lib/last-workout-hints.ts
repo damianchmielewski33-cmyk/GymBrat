@@ -3,9 +3,15 @@ import { getDb } from "@/db";
 import { workouts } from "@/db/schema";
 import type {
   ExerciseCoachContext,
+  ExerciseRecentSessionSnap,
   WorkoutExerciseState,
   WorkoutSetState,
 } from "@/components/workout/types";
+import {
+  bestE1rmFromSets,
+  buildE1rmTrendReport,
+} from "@/lib/live-coach/e1rm-trend";
+import { volumeFromSets } from "@/lib/live-coach/personal-records";
 import { suggestedWeightFromProgression } from "@/lib/set-progression-suggestion";
 import { isCompletedWorkoutSet } from "@/lib/workout-skipped-sets";
 
@@ -121,12 +127,39 @@ function daysBetween(olderMs: number, newerMs: number): number {
   return Math.max(0, Math.floor((newerMs - olderMs) / (24 * 60 * 60 * 1000)));
 }
 
-function isStagnant(
-  sessions: Array<{ topKg: number; bestReps: number }>,
+function avgRirFromSets(sets: WorkoutSetState[]): number | null {
+  const rirs: number[] = [];
+  for (const s of sets) {
+    if (!isCompletedWorkoutSet(s)) continue;
+    if (s.rir != null && Number.isFinite(s.rir)) rirs.push(s.rir);
+  }
+  if (!rirs.length) return null;
+  return rirs.reduce((a, b) => a + b, 0) / rirs.length;
+}
+
+/**
+ * Stagnacja 2.0 — wszystkie warunki AND:
+ * ≥3 sesje, brak wzrostu kg, reps, e1RM, średni RIR ≤1.
+ * Rosnący e1RM wyklucza stagnację.
+ */
+export function isStagnantV2(
+  sessions: Array<{
+    topKg: number;
+    bestReps: number;
+    bestE1rm: number;
+    avgRir: number | null;
+  }>,
 ): boolean {
   if (sessions.length < STAGNATION_SESSIONS) return false;
   const recent = sessions.slice(0, STAGNATION_SESSIONS);
-  // sessions[0] = najnowszy
+
+  // e1RM rośnie w oknie → nie stagnacja
+  const e1Newest = recent[0]!.bestE1rm;
+  const e1Oldest = recent[recent.length - 1]!.bestE1rm;
+  if (e1Newest > 0 && e1Oldest > 0 && e1Newest > e1Oldest + 1.5) {
+    return false;
+  }
+
   for (let i = 0; i < recent.length - 1; i++) {
     const newer = recent[i]!;
     const older = recent[i + 1]!;
@@ -137,7 +170,16 @@ function isStagnant(
     ) {
       return false;
     }
+    if (newer.bestE1rm > older.bestE1rm + 1.5) return false;
   }
+
+  const rirs = recent
+    .map((s) => s.avgRir)
+    .filter((v): v is number => v != null && Number.isFinite(v));
+  if (rirs.length === 0) return false;
+  const meanRir = rirs.reduce((a, b) => a + b, 0) / rirs.length;
+  if (meanRir > 1) return false;
+
   return true;
 }
 
@@ -242,21 +284,46 @@ export async function getLastWorkoutHintsForPlan(
     // rows już DESC; w ramach id mogą być w kolejności dodania = kolejność rows
     sessions.sort((a, b) => b.dateMs - a.dateMs);
     const latest = sessions[0]!;
-    const tops = sessions.map((s) => ({
+    const snaps: ExerciseRecentSessionSnap[] = sessions.map((s) => ({
       topKg: topSetWeight(s.sets),
       bestReps: bestRepsAtTop(s.sets),
+      bestE1rm: bestE1rmFromSets(s.sets),
+      avgRir: avgRirFromSets(s.sets),
+      volumeKg: volumeFromSets(s.sets),
     }));
-    const topWeights = tops.map((t) => t.topKg).filter((w) => w > 0);
+    const topWeights = snaps.map((t) => t.topKg).filter((w) => w > 0);
     const avgTop =
       topWeights.length > 0
         ? topWeights.reduce((a, b) => a + b, 0) / topWeights.length
         : null;
 
+    const e1rmReport = buildE1rmTrendReport(snaps);
+    const prWeight = Math.max(0, ...snaps.map((s) => s.topKg));
+    const prReps = Math.max(0, ...snaps.map((s) => s.bestReps));
+    const prVol = Math.max(0, ...snaps.map((s) => s.volumeKg));
+    const prE1 = Math.max(0, ...snaps.map((s) => s.bestE1rm));
+
     const coachContext: ExerciseCoachContext = {
       daysSinceLastSession: daysBetween(latest.dateMs, now),
       recentSessionCount: sessions.length,
       avgTopSetWeightKg: avgTop,
-      stagnant: isStagnant(tops),
+      stagnant: isStagnantV2(snaps),
+      e1rm: {
+        last: e1rmReport.last,
+        avg: e1rmReport.avg,
+        best: e1rmReport.best,
+        trend4: e1rmReport.trend4,
+      },
+      recentSessions: snaps,
+      prs:
+        prWeight > 0 || prE1 > 0
+          ? {
+              weightKg: prWeight,
+              reps: prReps,
+              volumeKg: prVol,
+              e1rm: prE1,
+            }
+          : null,
     };
 
     out[id] = {

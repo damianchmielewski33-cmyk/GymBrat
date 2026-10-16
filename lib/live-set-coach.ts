@@ -1,9 +1,18 @@
 /**
  * Aktywne rady w trakcie sesji: kontekst serii, zmęczenia, historii planu
  * i zróżnicowane sformułowania (deterministyczne — bez migania przy re-renderze).
+ *
+ * v3: readiness / confidence / e1RM / fatigue / trend-over-event — bez usuwania drzewa v2.
  */
 
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
+import { buildCoachSignals } from "@/lib/live-coach/build-coach-signals";
+import { resolveEffectiveTargetRir } from "@/lib/live-coach/movement-profiles";
+import { shouldIgnoreFatigueDrop } from "@/lib/live-coach/rest-awareness";
+import type {
+  CoachSignals,
+  ProgressionBumpKind,
+} from "@/lib/live-coach/types";
 import {
   easySetsRequiredForWeightBump,
   inferMovementKind,
@@ -39,6 +48,14 @@ export type LiveCoachTip = {
   suffix: string;
   /** Stuknięcie w tip wpisuje ciężar/powtórzenia. */
   apply: { weightKg: number; reps: number } | null;
+  /** v3 — krótka decyzja (np. „Dodaj 2,5 kg”). */
+  decision: string;
+  /** v3 — najważniejszy powód. */
+  reason: string;
+  readiness: number;
+  confidence: number;
+  suspicious?: boolean;
+  bumpKind?: ProgressionBumpKind;
 };
 
 function snap(s: WorkoutSetState | null | undefined): LastSetSnapshot | null {
@@ -82,13 +99,52 @@ function fillTemplate(
   return out;
 }
 
+function defaultDecision(
+  tone: LiveCoachTone,
+  apply: LiveCoachTip["apply"],
+): string {
+  if (!apply) {
+    if (tone === "caution") return "Rozważ lżejszy start";
+    if (tone === "hold") return "Utrzymaj obciążenie";
+    return "Kontynuuj według planu";
+  }
+  return `${formatKgPl(apply.weightKg)} kg × ${apply.reps}`;
+}
+
 function tipPlain(
   id: string,
   tone: LiveCoachTone,
   body: string,
   apply: LiveCoachTip["apply"] = null,
   highlight: string | null = null,
+  meta?: {
+    signals?: CoachSignals | null;
+    decision?: string;
+    reason?: string;
+    bumpKind?: ProgressionBumpKind;
+  },
 ): LiveCoachTip {
+  const signals = meta?.signals ?? null;
+  const readiness = signals?.readiness.score ?? 70;
+  const confidence = signals?.confidence.score ?? 55;
+  const suspicious = signals?.suspicious.suspicious ?? false;
+  const decision = meta?.decision ?? defaultDecision(tone, apply);
+  const reason =
+    meta?.reason ??
+    (suspicious
+      ? "dane niepewne — ostrożna rekomendacja"
+      : "analiza serii i historii");
+  const bumpKind = meta?.bumpKind ?? signals?.bump.kind;
+
+  const base = {
+    decision,
+    reason,
+    readiness,
+    confidence,
+    suspicious: suspicious || undefined,
+    bumpKind,
+  };
+
   if (highlight && body.includes(highlight)) {
     const i = body.indexOf(highlight);
     return {
@@ -99,6 +155,7 @@ function tipPlain(
       highlight,
       suffix: body.slice(i + highlight.length),
       apply,
+      ...base,
     };
   }
   return {
@@ -109,6 +166,7 @@ function tipPlain(
     highlight: null,
     suffix: "",
     apply,
+    ...base,
   };
 }
 
@@ -116,6 +174,7 @@ function tipFromProgression(
   id: string,
   p: SetProgressionSuggestion,
   seed: string,
+  signals: CoachSignals,
 ): LiveCoachTip {
   const leads =
     p.kind === "weight"
@@ -144,8 +203,12 @@ function tipFromProgression(
           ` · domykaj zakres; ${p.reason}`,
         ];
   const lead = pickCoachVariant(`${seed}|lead`, leads);
-  const reason = pickCoachVariant(`${seed}|reason`, reasons);
-  const body = `${fillTemplate(lead, { hl: p.highlight })}${reason}`;
+  const reasonSuffix = pickCoachVariant(`${seed}|reason`, reasons);
+  const body = `${fillTemplate(lead, { hl: p.highlight })}${reasonSuffix}`;
+  const decision =
+    p.kind === "weight"
+      ? `Dodaj ${formatKgPl(p.deltaKg)} kg`
+      : `Dobij do ${p.reps} powt.`;
   return tipPlain(
     id,
     "progress",
@@ -155,7 +218,29 @@ function tipFromProgression(
       reps: p.reps,
     },
     p.highlight,
+    {
+      signals,
+      decision,
+      reason: p.reason,
+      bumpKind: p.kind === "weight" ? signals.bump.kind : "hold",
+    },
   );
+}
+
+/**
+ * Trend-over-event: nie deload’uj agresywnie po jednej twardej przy rosnącym e1RM.
+ * Readiness nie jest tu progiem — sama twarda seria obniża score i blokowałaby soft-pedal.
+ */
+function shouldSoftPedalDeload(signals: CoachSignals, hardStreak: number, warnStreak: number): boolean {
+  if (hardStreak >= 2 || warnStreak >= 3) return false;
+  if (signals.e1rm.trend4 === "up") return true;
+  if (
+    signals.readiness.band === "normal" ||
+    signals.readiness.band === "progress_ready"
+  ) {
+    return hardStreak < 2;
+  }
+  return false;
 }
 
 /** Kolejne twarde (RIR≤0 / RPE≥9) wstecz. */
@@ -206,12 +291,19 @@ function completedSnapsBefore(
   return out;
 }
 
+export type BuildLiveCoachTipOpts = {
+  sessionExercises?: WorkoutExerciseState[];
+  exerciseIndex?: number;
+  durationMinutes?: number | null;
+};
+
 /**
  * Rada na otwartą (bieżącą) serię — przed zaliczeniem.
  */
 export function buildLiveCoachTipForOpenSet(
   exercise: WorkoutExerciseState,
   setIndex: number,
+  opts?: BuildLiveCoachTipOpts,
 ): LiveCoachTip | null {
   const sets = exercise.sets;
   if (!sets.length || setIndex < 0 || setIndex >= sets.length) return null;
@@ -229,6 +321,59 @@ export function buildLiveCoachTipForOpenSet(
   const easyNeeded = easySetsRequiredForWeightBump(movementKind);
   const ctx = exercise.coachContext ?? null;
 
+  const priorSnapsEarly = completedSnapsBefore(sets, setIndex);
+  const trailingEasyEarly = countTrailingEasySets(priorSnapsEarly);
+  const rangeEarly = resolveRepRange(exercise.targetReps);
+  const lastPriorEarly =
+    priorSnapsEarly.length > 0
+      ? priorSnapsEarly[priorSnapsEarly.length - 1]!
+      : null;
+  const atMaxEarly =
+    lastPriorEarly != null &&
+    rangeEarly != null &&
+    lastPriorEarly.reps != null &&
+    lastPriorEarly.reps >= rangeEarly.max;
+  const sessionAllowsBump =
+    trailingEasyEarly >= easyNeeded &&
+    atMaxEarly &&
+    lastPriorEarly != null &&
+    isEasyEffort(lastPriorEarly);
+
+  const histSnapsEarly = (exercise.lastSessionSets ?? [])
+    .map((s) => snap(s))
+    .filter(
+      (s): s is LastSetSnapshot =>
+        s != null && s.weight > 0 && s.reps != null,
+    );
+  const histTrailing = countTrailingEasySets(histSnapsEarly);
+  const histLastEarly =
+    histSnapsEarly.length > 0
+      ? histSnapsEarly[histSnapsEarly.length - 1]!
+      : null;
+  const histAtMax =
+    histLastEarly != null &&
+    rangeEarly != null &&
+    histLastEarly.reps != null &&
+    histLastEarly.reps >= rangeEarly.max;
+  const historyAllowsBump =
+    setIndex === 0 &&
+    histTrailing >= easyNeeded &&
+    histAtMax &&
+    histLastEarly != null &&
+    isEasyEffort(histLastEarly);
+
+  const allowWeightBump = sessionAllowsBump || historyAllowsBump;
+
+  const signals = buildCoachSignals({
+    exercise,
+    setIndex,
+    sessionExercises: opts?.sessionExercises,
+    exerciseIndex: opts?.exerciseIndex,
+    durationMinutes: opts?.durationMinutes,
+    allowWeightBump,
+  });
+  const S = { signals };
+
   if (isCompletedWorkoutSet(current)) {
     const w = current.weight;
     const r = current.reps;
@@ -245,19 +390,30 @@ export function buildLiveCoachTipForOpenSet(
         fillTemplate(body, { hl, set: setLabel, ex: exName }),
         null,
         hl,
+        {
+          ...S,
+          decision: "Seria zapisana",
+          reason: "możesz poprawić liczby albo iść dalej",
+        },
       );
     }
     return null;
   }
 
   const range = resolveRepRange(exercise.targetReps);
-  const targetRir = exercise.targetRir ?? 1;
-  const priorSnaps = completedSnapsBefore(sets, setIndex);
+  const targetRir = resolveEffectiveTargetRir(
+    exercise.targetRir,
+    exercise.name || "",
+    exercise.categoryId,
+  );
+  const priorSnaps = priorSnapsEarly;
   const prevDone = priorSnaps.length > 0 ? priorSnaps[priorSnaps.length - 1]! : null;
   const hardStreak = countHardStreak(sets, setIndex);
   const warnStreak = countWarnStreak(sets, setIndex);
   const doneVolume = sessionVolumeKg(sets, setIndex);
   const trend = analyzeSessionTrend(priorSnaps);
+  const plateStep =
+    signals.bump.stepKg > 0 ? signals.bump.stepKg : 2.5;
 
   // —— Analiza vs poprzednie serie w tym treningu ——
   if (prevDone && prevDone.weight > 0 && prevDone.reps != null) {
@@ -271,7 +427,16 @@ export function buildLiveCoachTipForOpenSet(
       range != null &&
       prevDone.reps >= range.min &&
       prevDone.reps < range.max;
-    const fatigueDrop = trend != null && trend.repsDrop >= 2 && setIndex >= 1;
+    const restSec = sets[setIndex]?.restSeconds ?? null;
+    const rawFatigueDrop =
+      trend != null && trend.repsDrop >= 2 && setIndex >= 1;
+    const fatigueDrop =
+      rawFatigueDrop &&
+      !shouldIgnoreFatigueDrop({
+        repsDrop: trend!.repsDrop,
+        restSeconds: restSec,
+        setIndex,
+      });
     const highVol =
       setIndex >= 3 ||
       (doneVolume > 0 &&
@@ -296,11 +461,50 @@ export function buildLiveCoachTipForOpenSet(
         fillTemplate(body, { hl, set: setLabel, ex: exName }),
         { weightKg: prevDone.weight, reps: prevDone.reps },
         hl,
+        {
+          ...S,
+          decision: "Utrzymaj obciążenie",
+          reason: "sprzeczny RIR/RPE — nie ufamy danym",
+          bumpKind: "hold",
+        },
       );
     }
 
     // Twardo / poniżej zakresu / hard streak / kilka warn (RIR=1) z rzędu
-    if (hard || belowMin || hardStreak >= 2 || warnStreak >= 3 || fatigueDrop) {
+    const wantsDeload =
+      hard || belowMin || hardStreak >= 2 || warnStreak >= 3 || fatigueDrop;
+    const softPedal =
+      wantsDeload &&
+      !belowMin &&
+      shouldSoftPedalDeload(signals, hardStreak, warnStreak) &&
+      !(hardStreak >= 2 || warnStreak >= 3 || fatigueDrop);
+
+    if (wantsDeload && softPedal) {
+      const hl = `${formatKgPl(prevDone.weight)} kg × ${range?.min ?? prevDone.reps}`;
+      const body = pickCoachVariant(`${seedBase}|trend-hold`, [
+        `Jedna twardsza seria, ale trend e1RM/historii trzyma — seria {set}: {hl}, bez paniki.`,
+        `{ex}: nie karzemy za jeden słabszy set. Powtórz {hl}.`,
+        `Trend > event: utrzymaj {hl} na serię {set}.`,
+      ]);
+      return tipPlain(
+        "session-hold-form",
+        "caution",
+        fillTemplate(body, { hl, set: setLabel, ex: exName }),
+        {
+          weightKg: prevDone.weight,
+          reps: range?.min ?? prevDone.reps,
+        },
+        hl,
+        {
+          ...S,
+          decision: "Utrzymaj obciążenie",
+          reason: "trend ważniejszy niż pojedyncza seria",
+          bumpKind: "hold",
+        },
+      );
+    }
+
+    if (wantsDeload) {
       const nextW = applyDeload(prevDone.weight);
       const nextR = range ? range.min : prevDone.reps;
       if (nextW > 0 && nextW < prevDone.weight) {
@@ -322,6 +526,17 @@ export function buildLiveCoachTipForOpenSet(
           fillTemplate(body, { hl, drop, set: setLabel, ex: exName }),
           { weightKg: nextW, reps: nextR },
           hl,
+          {
+            ...S,
+            decision: `Zdejmij ${drop} kg`,
+            reason:
+              warnStreak >= 3
+                ? "kilka serii na styk z rzędu"
+                : hardStreak >= 2
+                  ? "kolejne twarde serie"
+                  : "poprzednia seria zbyt twarda",
+            bumpKind: "deload",
+          },
         );
       }
       const hl = `${formatKgPl(prevDone.weight)} kg × ${range?.min ?? prevDone.reps}`;
@@ -344,13 +559,32 @@ export function buildLiveCoachTipForOpenSet(
           reps: range?.min ?? prevDone.reps,
         },
         hl,
+        {
+          ...S,
+          decision: "Utrzymaj i pilnuj formy",
+          reason: "po twardej serii bez dokładki",
+          bumpKind: "hold",
+        },
       );
     }
 
     // Duży zapas + góra zakresu + N łatwych z rzędu (nie przy wysokiej objętości)
-    if (easy && atMax && trailingEasy >= easyNeeded && !highVol) {
-      const nextW = bumpWeightByPlate(prevDone.weight);
+    // Readiness hold/deload_consider → nie bumpuj (trend / zmęczenie)
+    const readinessBlocksBump =
+      signals.readiness.band === "hold" ||
+      signals.readiness.band === "deload_consider" ||
+      signals.bump.kind === "hold";
+
+    if (
+      easy &&
+      atMax &&
+      trailingEasy >= easyNeeded &&
+      !highVol &&
+      !readinessBlocksBump
+    ) {
+      const nextW = bumpWeightByPlate(prevDone.weight, plateStep);
       const nextR = range ? range.min : prevDone.reps;
+      const delta = nextW - prevDone.weight;
       const hl = `${formatKgPl(nextW)} kg × ${nextR}`;
       const body = pickCoachVariant(`${seedBase}|bump`, [
         `Zapas był duży przez kilka serii — seria {set}: idź na {hl}.`,
@@ -371,16 +605,35 @@ export function buildLiveCoachTipForOpenSet(
         }),
         { weightKg: nextW, reps: nextR },
         hl,
+        {
+          ...S,
+          decision: `Dodaj ${formatKgPl(delta)} kg`,
+          reason: `${trailingEasy} kolejne łatwe serie na górze zakresu`,
+          bumpKind: signals.bump.kind,
+        },
       );
     }
 
-    // Na górze, ale za mało łatwych / wysoka objętość → hold
-    if (atMax && (!easy || trailingEasy < easyNeeded || highVol)) {
+    // Na górze, ale za mało łatwych / wysoka objętość / readiness → hold
+    if (
+      atMax &&
+      (!easy ||
+        trailingEasy < easyNeeded ||
+        highVol ||
+        readinessBlocksBump)
+    ) {
       const hl = `${formatKgPl(prevDone.weight)} kg × ${prevDone.reps}`;
+      const holdReason = readinessBlocksBump
+        ? "readiness nie pozwala na dokładkę"
+        : highVol
+          ? "duża objętość — bez dokładki"
+          : "potrzeba więcej łatwych serii zanim +kg";
       const body = pickCoachVariant(`${seedBase}|need-easy`, [
         highVol
           ? `Duża objętość już zrobiona — seria {set}: trzymaj {hl}, bez dokładki.`
-          : `Góra zakresu OK, ale potrzeba jeszcze łatwej serii zanim +kg. Trzymaj {hl}.`,
+          : readinessBlocksBump
+            ? `Readiness niski — seria {set}: trzymaj {hl}.`
+            : `Góra zakresu OK, ale potrzeba jeszcze łatwej serii zanim +kg. Trzymaj {hl}.`,
         `{ex}: utrzymaj {hl} — potwierdź zapas zanim ruszysz talerz.`,
         isLastSet
           ? `Ostatnia seria: domknij na {hl}, bez forsowania.`
@@ -396,6 +649,12 @@ export function buildLiveCoachTipForOpenSet(
         }),
         { weightKg: prevDone.weight, reps: prevDone.reps },
         hl,
+        {
+          ...S,
+          decision: "Utrzymaj obciążenie",
+          reason: holdReason,
+          bumpKind: "hold",
+        },
       );
     }
 
@@ -433,6 +692,12 @@ export function buildLiveCoachTipForOpenSet(
         }),
         { weightKg: prevDone.weight, reps: nextR },
         hl,
+        {
+          ...S,
+          decision: `Dobij do ${nextR} powt.`,
+          reason: "double progression — najpierw powtórzenia",
+          bumpKind: "hold",
+        },
       );
     }
 
@@ -458,6 +723,12 @@ export function buildLiveCoachTipForOpenSet(
       }),
       { weightKg: prevDone.weight, reps: prevDone.reps },
       hl,
+      {
+        ...S,
+        decision: "Utrzymaj obciążenie",
+        reason: "stabilny blok — ten sam ciężar",
+        bumpKind: "hold",
+      },
     );
   }
 
@@ -501,6 +772,12 @@ export function buildLiveCoachTipForOpenSet(
         }),
         { weightKg: nextW, reps },
         hl,
+        {
+          ...S,
+          decision: "Start lżej po przerwie",
+          reason: `przerwa ${ctx.daysSinceLastSession} dni`,
+          bumpKind: "deload",
+        },
       );
     }
   }
@@ -521,6 +798,12 @@ export function buildLiveCoachTipForOpenSet(
         fillTemplate(body, { hl, ex: exName }),
         { weightKg: nextW, reps },
         hl,
+        {
+          ...S,
+          decision: "Deload ze stagnacji",
+          reason: "brak wzrostu kg/reps/e1RM przy niskim RIR",
+          bumpKind: "deload",
+        },
       );
     }
   }
@@ -533,6 +816,30 @@ export function buildLiveCoachTipForOpenSet(
     const reps = range
       ? Math.min(Math.max(lastSnap.reps, range.min), range.max)
       : lastSnap.reps;
+    // Trend-over-event: rosnący e1RM → hold zamiast hist-deload
+    if (
+      signals.e1rm.trend4 === "up" &&
+      signals.readiness.score >= 45
+    ) {
+      const hl = `${formatKgPl(lastSnap.weight)} kg × ${reps}`;
+      const body = pickCoachVariant(`${seedBase}|hist-hard-trend`, [
+        `Ostatnio było ciężko, ale e1RM rośnie — start na {hl}, bez paniki.`,
+        `{ex}: trend siłowy w górę. Otwórz na {hl}.`,
+      ]);
+      return tipPlain(
+        "hist-hard-hold",
+        "hold",
+        fillTemplate(body, { hl, ex: exName }),
+        { weightKg: lastSnap.weight, reps },
+        hl,
+        {
+          ...S,
+          decision: "Utrzymaj bazę",
+          reason: "e1RM rośnie mimo twardej serii",
+          bumpKind: "hold",
+        },
+      );
+    }
     if (nextW > 0 && nextW < lastSnap.weight) {
       const hl = `${formatKgPl(nextW)} kg × ${range?.min ?? reps}`;
       const body = pickCoachVariant(`${seedBase}|hist-hard`, [
@@ -546,6 +853,12 @@ export function buildLiveCoachTipForOpenSet(
         fillTemplate(body, { hl, ex: exName }),
         { weightKg: nextW, reps: range?.min ?? reps },
         hl,
+        {
+          ...S,
+          decision: "Start lżej",
+          reason: "ostatnia sesja bardzo twarda",
+          bumpKind: "deload",
+        },
       );
     }
     const hl = `${formatKgPl(lastSnap.weight)} kg × ${reps}`;
@@ -559,12 +872,23 @@ export function buildLiveCoachTipForOpenSet(
       fillTemplate(body, { hl, ex: exName }),
       { weightKg: lastSnap.weight, reps },
       hl,
+      {
+        ...S,
+        decision: "Utrzymaj bazę",
+        reason: "po twardej historii bez dokładki",
+        bumpKind: "hold",
+      },
     );
   }
 
   const histPrior =
     histSets.length > 1 ? histSets.slice(0, -1) : histSets.slice(0, 0);
   const histLast = histSets.length > 0 ? histSets[histSets.length - 1]! : lastSnap;
+
+  const histAllowBump =
+    signals.readiness.band !== "hold" &&
+    signals.readiness.band !== "deload_consider" &&
+    signals.bump.kind !== "hold";
 
   const progression = buildSetProgressionSuggestion({
     last: histLast,
@@ -578,12 +902,15 @@ export function buildLiveCoachTipForOpenSet(
     daysSinceLastSession: ctx?.daysSinceLastSession,
     stagnant: ctx?.stagnant,
     avgRecentTopWeightKg: ctx?.avgTopSetWeightKg,
+    plateStepKg: histAllowBump ? plateStep : undefined,
+    fatigueDropSensitivity: signals.fatigueDropSensitivity,
   });
   if (
     progression &&
-    (progression.kind === "weight" || progression.kind === "reps")
+    (progression.kind === "weight" || progression.kind === "reps") &&
+    !(progression.kind === "weight" && !histAllowBump)
   ) {
-    return tipFromProgression("hist-progress", progression, seedBase);
+    return tipFromProgression("hist-progress", progression, seedBase, signals);
   }
 
   if (lastSnap && lastSnap.weight > 0 && lastSnap.reps != null && lastSnap.reps > 0) {
@@ -613,6 +940,12 @@ export function buildLiveCoachTipForOpenSet(
       }),
       { weightKg: lastSnap.weight, reps },
       hl,
+      {
+        ...S,
+        decision: "Start jak ostatnio",
+        reason: "baza z poprzedniego treningu",
+        bumpKind: "hold",
+      },
     );
   }
 
@@ -632,6 +965,14 @@ export function buildLiveCoachTipForOpenSet(
         rmax: String(range.max),
         rir: targetRir,
       }),
+      null,
+      null,
+      {
+        ...S,
+        decision: "Dobierz ciężar do zakresu",
+        reason: `profil ${signals.profile.label}, RIR ≈ ${targetRir}`,
+        bumpKind: "hold",
+      },
     );
   }
 
@@ -644,6 +985,14 @@ export function buildLiveCoachTipForOpenSet(
     "warmup",
     "info",
     fillTemplate(body, { ex: exName, set: setLabel }),
+    null,
+    null,
+    {
+      ...S,
+      decision: "Rozruch techniką",
+      reason: "brak historii i zakresu planu",
+      bumpKind: "hold",
+    },
   );
 }
 
@@ -653,6 +1002,7 @@ export function buildLiveCoachTipForOpenSet(
 export function buildLiveCoachTipAfterCompletedSet(
   exercise: WorkoutExerciseState,
   completedSetIndex: number,
+  opts?: BuildLiveCoachTipOpts,
 ): LiveCoachTip | null {
   const done = snap(exercise.sets[completedSetIndex]);
   if (!done || done.reps == null) return null;
@@ -660,6 +1010,13 @@ export function buildLiveCoachTipAfterCompletedSet(
   const seedBase = `${exercise.id}|rest|${completedSetIndex}`;
   const exName = shortExerciseName(exercise.name || "Ćwiczenie");
   const nextIndex = completedSetIndex + 1;
+  const signals = buildCoachSignals({
+    exercise,
+    setIndex: Math.min(completedSetIndex, exercise.sets.length - 1),
+    sessionExercises: opts?.sessionExercises,
+    exerciseIndex: opts?.exerciseIndex,
+    durationMinutes: opts?.durationMinutes,
+  });
 
   if (nextIndex >= exercise.sets.length) {
     if (done.weight > 0) {
@@ -675,6 +1032,11 @@ export function buildLiveCoachTipAfterCompletedSet(
         fillTemplate(body, { hl, ex: exName }),
         null,
         hl,
+        {
+          signals,
+          decision: "Ćwiczenie domknięte",
+          reason: "przejdź do kolejnego ruchu",
+        },
       );
     }
     const body = pickCoachVariant(`${seedBase}|done-bw`, [
@@ -685,10 +1047,17 @@ export function buildLiveCoachTipAfterCompletedSet(
       "ex-done-bw",
       "info",
       fillTemplate(body, { ex: exName }),
+      null,
+      null,
+      {
+        signals,
+        decision: "Ćwiczenie domknięte",
+        reason: "przejdź dalej",
+      },
     );
   }
 
-  const nextTip = buildLiveCoachTipForOpenSet(exercise, nextIndex);
+  const nextTip = buildLiveCoachTipForOpenSet(exercise, nextIndex, opts);
   if (!nextTip) return null;
   if (nextTip.apply) {
     const hl =
@@ -746,7 +1115,14 @@ export function buildLiveCoachTipAfterCompletedSet(
   };
 }
 
-/** Skrót tekstowy do heurystyk / AI (bez UI). */
+/** Skrót tekstowy do heurystyk / API (bez UI). */
 export function liveCoachTipToPlainText(tip: LiveCoachTip | null): string | null {
-  return tip?.body ?? null;
+  if (!tip) return null;
+  return [
+    tip.decision,
+    `Powód: ${tip.reason}`,
+    `Readiness: ${tip.readiness}/100`,
+    `Confidence: ${tip.confidence}/100`,
+    tip.body,
+  ].join("\n");
 }

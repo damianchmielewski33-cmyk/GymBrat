@@ -39,12 +39,31 @@ export function LiveCoachBanner({
   if (!tip) return null;
   const clickable = Boolean(tip.apply && onApply);
 
+  const metaLine = (
+    <span className="mt-1.5 block text-[10px] leading-snug opacity-50">
+      {tip.reason ? (
+        <span className="block opacity-80">Powód: {tip.reason}</span>
+      ) : null}
+      <span className="tabular-nums">
+        Readiness {tip.readiness}/100 · Confidence {tip.confidence}/100
+      </span>
+      {tip.suspicious || tip.confidence < 45 ? (
+        <span className="mt-0.5 block text-amber-200/70">dane niepewne</span>
+      ) : null}
+    </span>
+  );
+
   const inner = (
     <>
       <span className="mt-0.5 shrink-0" aria-hidden>
         {ICON[tip.tone]}
       </span>
       <span className="min-w-0">
+        {tip.decision ? (
+          <span className="mb-0.5 block text-[11px] font-semibold tracking-wide opacity-90">
+            {tip.decision}
+          </span>
+        ) : null}
         {tip.highlight ? (
           <>
             {tip.prefix}
@@ -61,6 +80,7 @@ export function LiveCoachBanner({
         ) : (
           tip.body
         )}
+        {metaLine}
         {clickable ? (
           <span className="mt-1 block text-[11px] font-medium opacity-55">
             Stuknij, żeby wpisać

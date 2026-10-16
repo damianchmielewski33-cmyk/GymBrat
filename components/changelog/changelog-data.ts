@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Live Set Coach v3",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Podpowiedzi w sesji mają readiness i confidence (0–100), krótki powód decyzji oraz ostrożniejsze dokładki — trend z 2–4 treningów ważniejszy niż jedna seria.",
+      "Progresja autoregulowana (minimum / normal / agresywna dokładka), profile RIR per ćwiczenie, stagnacja 2.0 z e1RM oraz wykrywanie podejrzanych danych (bez ukrywania tipu).",
+      "Przerwa z timera trafia do serii (rest-aware); zmęczenie i tętno (gdy wpisane) wpływają na scores, a nie na paniczny deload.",
+    ],
+  },
+  {
     title: "Zapowiedź — pakiety HotPay + AdMob",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -12,6 +12,10 @@ export type WorkoutSetState = {
   rpe?: number | null;
   /** RIR 0–3+ (w zapasie), opcjonalnie */
   rir?: number | null;
+  /** Faktyczna przerwa przed tą serią (s) — z timera rest. */
+  restSeconds?: number | null;
+  /** Tętno przy serii (opcjonalnie). */
+  heartRate?: number | null;
 };
 
 export type WorkoutExerciseState = {
@@ -38,11 +42,43 @@ export type WorkoutExerciseState = {
   techniqueYoutubeUrl?: string | null;
 };
 
+/** Jedna sesja historyczna (2–4) dla trendów e1RM / stagnacji. */
+export type ExerciseRecentSessionSnap = {
+  topKg: number;
+  bestReps: number;
+  bestE1rm: number;
+  avgRir: number | null;
+  volumeKg: number;
+};
+
+export type ExerciseE1rmContext = {
+  last: number | null;
+  avg: number | null;
+  best: number | null;
+  /** Slope e1RM po 2–4 sesjach: ujemny / płaski / dodatni. */
+  trend4: "down" | "flat" | "up";
+};
+
+export type ExercisePrContext = {
+  weightKg: number;
+  reps: number;
+  volumeKg: number;
+  e1rm: number;
+};
+
 /** Agregat historii ćwiczenia dla live coach / chipów. */
 export type ExerciseCoachContext = {
   daysSinceLastSession: number | null;
   recentSessionCount: number;
   avgTopSetWeightKg: number | null;
-  /** Brak progresji ciężaru/powtórzeń przez kilka treningów. */
+  /**
+   * Stagnacja 2.0: ≥3 sesje AND brak wzrostu kg/reps/e1RM AND średni RIR ≤1.
+   * Rosnący e1RM wyklucza stagnację.
+   */
   stagnant: boolean;
+  e1rm?: ExerciseE1rmContext | null;
+  recentSessions?: ExerciseRecentSessionSnap[];
+  prs?: ExercisePrContext | null;
+  restingHR?: number | null;
+  recoveryHR?: number | null;
 };
