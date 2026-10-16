@@ -26,9 +26,10 @@ export function ActiveSessionCard({
       initial={{ opacity: 0, y: 28 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className={hasLoadedPlan ? "flex h-full min-h-0 flex-1 flex-col" : undefined}
     >
       <div
-        className={`flex flex-col bg-black ${hasLoadedPlan ? "min-h-0 flex-1 rounded-none border-0 p-0 pb-2 sm:min-h-[min(72vh,820px)]" : "min-h-0 rounded-2xl border border-white/[0.08] p-4 sm:p-5"}`}
+        className={`flex flex-col bg-black ${hasLoadedPlan ? "h-full min-h-0 flex-1 rounded-none border-0 p-0" : "min-h-0 rounded-2xl border border-white/[0.08] p-4 sm:p-5"}`}
       >
         {!hasLoadedPlan ? (
           emptyContent ?? (
@@ -69,7 +70,7 @@ export function ActiveSessionCard({
           )
         ) : (
           <>
-            <div className="min-h-0 flex-1 overflow-y-auto pr-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
               {children}
             </div>
           </>

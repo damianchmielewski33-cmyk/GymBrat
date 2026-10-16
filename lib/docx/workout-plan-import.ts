@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import mammoth from "mammoth";
-import { findBestCatalogMatch } from "@/lib/workout-exercise-catalog";
+import { resolveExerciseCategoryIdForPlan } from "@/lib/resolve-exercise-muscles";
 import type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
 
 export type ParsedWorkoutPlanImport = {
@@ -105,12 +105,11 @@ function parseSetsReps(line: string): {
 }
 
 function toExercise(name: string, sets: number, reps: number): WorkoutPlanExercise {
-  const match = findBestCatalogMatch(name);
   return {
     id: randomUUID(),
-    // Nazwa z planu bez tłumaczenia na katalog — katalog tylko do kategorii.
+    // Nazwa z planu bez tłumaczenia na katalog — katalog / heurystyka → kategoria.
     name,
-    categoryId: match?.categoryId ?? "shoulders",
+    categoryId: resolveExerciseCategoryIdForPlan(name),
     sets,
     reps,
   };

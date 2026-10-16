@@ -1,4 +1,8 @@
 import {
+  FALLBACK_MUSCLE_CATEGORY,
+  inferMuscleCategoryFromName,
+} from "@/lib/infer-muscle-category";
+import {
   categoryLabel,
   findBestCatalogMatch,
   type MuscleCategory,
@@ -32,16 +36,31 @@ export function isMuscleRegionId(id: string | null | undefined): id is MuscleReg
 }
 
 /**
- * Partia mięśniowa ćwiczenia: najpierw categoryId z planu, potem katalog PL/EN.
+ * Partia mięśniowa ćwiczenia.
+ * Katalog po nazwie, potem heurystyka PL/EN, na końcu categoryId z planu.
+ * (Stare importy miały domyślne „shoulders” — nie mogą wygrywać z nazwą.)
  */
 export function resolveExerciseMuscleCategory(args: {
   name: string;
   categoryId?: string | null;
 }): MuscleRegionId | null {
-  if (isMuscleRegionId(args.categoryId)) return args.categoryId;
   const hit = findBestCatalogMatch(args.name);
   if (hit && isMuscleRegionId(hit.categoryId)) return hit.categoryId;
+  const inferred = inferMuscleCategoryFromName(args.name);
+  if (inferred) return inferred;
+  if (isMuscleRegionId(args.categoryId)) return args.categoryId;
   return null;
+}
+
+/** categoryId do zapisu w planie / sesji — nigdy nie fallbackuj na „shoulders”. */
+export function resolveExerciseCategoryIdForPlan(
+  name: string,
+  categoryId?: string | null,
+): string {
+  return (
+    resolveExerciseMuscleCategory({ name, categoryId }) ??
+    FALLBACK_MUSCLE_CATEGORY
+  );
 }
 
 export type ResolvedExerciseMuscles = {

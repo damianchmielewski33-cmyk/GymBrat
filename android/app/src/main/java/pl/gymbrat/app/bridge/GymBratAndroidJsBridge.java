@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat;
 
 import pl.gymbrat.app.BuildConfig;
 import pl.gymbrat.app.MainActivity;
+import pl.gymbrat.app.ads.InterstitialAdHelper;
 import pl.gymbrat.app.update.UpdateInstaller;
 
 /**
@@ -33,6 +34,8 @@ public final class GymBratAndroidJsBridge {
     @Nullable
     private final MainActivity activity;
     @Nullable
+    private InterstitialAdHelper interstitialAds;
+    @Nullable
     private String torchCameraId;
     private boolean torchEnabled;
 
@@ -45,6 +48,11 @@ public final class GymBratAndroidJsBridge {
         this.appContext = activity.getApplicationContext();
         this.updateInstaller = updateInstaller;
         this.onContentReady = onContentReady;
+    }
+
+    /** Podłącz helper reklam po utworzeniu WebView. */
+    public void setInterstitialAdHelper(@Nullable InterstitialAdHelper helper) {
+        this.interstitialAds = helper;
     }
 
     @JavascriptInterface
@@ -261,6 +269,34 @@ public final class GymBratAndroidJsBridge {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             appContext.startActivity(intent);
         });
+    }
+
+    @JavascriptInterface
+    public boolean hasInterstitialAds() {
+        InterstitialAdHelper helper = interstitialAds;
+        return helper != null && helper.isConfigured();
+    }
+
+    /**
+     * Pokazuje interstitial AdMob; po zamknięciu woła
+     * {@code window.__gymbratOnInterstitial(true|false)}.
+     */
+    @JavascriptInterface
+    public void showInterstitialAd(String placement) {
+        InterstitialAdHelper helper = interstitialAds;
+        if (helper == null || !helper.isConfigured()) {
+            Handler main = new Handler(Looper.getMainLooper());
+            main.post(() -> {
+                MainActivity act = activity;
+                if (act == null || act.getWebView() == null) return;
+                act.getWebView().evaluateJavascript(
+                        "try{if(typeof window.__gymbratOnInterstitial==='function'){window.__gymbratOnInterstitial(false);}}catch(e){}",
+                        null
+                );
+            });
+            return;
+        }
+        helper.show(placement);
     }
 
     @JavascriptInterface

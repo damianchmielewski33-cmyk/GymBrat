@@ -35,6 +35,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Locale;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -150,6 +151,22 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * App Link / powrót z OAuth przy {@code launchMode=singleTask} — bez tego
+     * callback Google otwiera się „obok” WebView i ekran skacze / nic nie działa.
+     */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent == null || webView == null) return;
+        Uri data = intent.getData();
+        if (data == null) return;
+        String url = data.toString();
+        if (url.isEmpty()) return;
+        webView.loadUrl(url);
+    }
+
+    /**
      * Bez ciasteczka sesji NextAuth od razu otwieramy /login — unikamy zbędnego
      * GET / → 307 → /login w logach Vercel. Z sesją idziemy na /.
      */
@@ -163,6 +180,63 @@ public final class MainActivity extends AppCompatActivity {
             return withSlash;
         }
         return base + "/login";
+    }
+
+    /**
+     * Nawigacja, która musi zostać w WebView (nie Chrome).
+     * OAuth Google/Facebook poza APK zabija sesję i „skacze” ekranem.
+     */
+    private boolean shouldKeepNavigationInWebView(Uri uri) {
+        if (uri == null) return false;
+        String scheme = uri.getScheme();
+        if (scheme == null) return false;
+        if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
+            return false;
+        }
+        String host = uri.getHost();
+        if (host == null || host.isEmpty()) return false;
+        String h = host.toLowerCase(Locale.US);
+
+        String siteHost = Uri.parse(AppUpdater.siteBase()).getHost();
+        if (siteHost != null && h.equals(siteHost.toLowerCase(Locale.US))) {
+            return true;
+        }
+        // Preview Vercel tego samego projektu
+        if (h.endsWith(".vercel.app") && h.contains("gym")) {
+            return true;
+        }
+
+        // Google OAuth + assety konta
+        if (h.equals("accounts.google.com")
+                || h.equals("accounts.youtube.com")
+                || h.equals("oauthaccountmanager.googleapis.com")
+                || h.equals("www.googleapis.com")
+                || h.equals("googleapis.com")
+                || h.equals("apis.google.com")
+                || h.equals("ssl.gstatic.com")
+                || h.equals("www.gstatic.com")
+                || h.equals("gstatic.com")
+                || h.equals("fonts.gstatic.com")
+                || h.equals("www.google.com")
+                || h.equals("google.com")
+                || h.endsWith(".googleusercontent.com")
+                || h.endsWith(".google.com")) {
+            return true;
+        }
+
+        // Facebook OAuth
+        if (h.equals("facebook.com")
+                || h.equals("www.facebook.com")
+                || h.equals("m.facebook.com")
+                || h.equals("mbasic.facebook.com")
+                || h.equals("staticxx.facebook.com")
+                || h.equals("fb.com")
+                || h.equals("www.fb.com")
+                || h.endsWith(".facebook.com")) {
+            return true;
+        }
+
+        return false;
     }
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
@@ -187,7 +261,11 @@ public final class MainActivity extends AppCompatActivity {
         settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
 
-        String ua = settings.getUserAgentString()
+        // Usuń znacznik WebView (; wv) — Google OAuth często blokuje „disallowed_useragent”.
+        String baseUa = settings.getUserAgentString();
+        if (baseUa == null) baseUa = "";
+        baseUa = baseUa.replace("; wv)", ")");
+        String ua = baseUa
                 + " GymBratAndroidApp/" + BuildConfig.VERSION_NAME
                 + " GymBratAndroidCode/" + BuildConfig.VERSION_CODE;
         settings.setUserAgentString(ua);
@@ -195,6 +273,9 @@ public final class MainActivity extends AppCompatActivity {
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         jsBridge = new GymBratAndroidJsBridge(this, updateInstaller, this::markContentReady);
         webView.addJavascriptInterface(jsBridge, "GymBratAndroid");
+        jsBridge.setInterstitialAdHelper(
+                new pl.gymbrat.app.ads.InterstitialAdHelper(this, webView)
+        );
 
         webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
             String guessed = URLUtil.guessFileName(url, contentDisposition, mimeType);
@@ -215,16 +296,21 @@ public final class MainActivity extends AppCompatActivity {
                     enqueueApkDownload(uri);
                     return true;
                 }
-                String host = uri.getHost();
-                String siteHost = android.net.Uri.parse(AppUpdater.siteBase()).getHost();
-                if (host != null && siteHost != null && host.equalsIgnoreCase(siteHost)) {
+                // Google / Facebook OAuth + nasza domena — ZOSTAJĄ w WebView.
+                // Wyjście do Chrome psuje sesję i powoduje „skaczący” ekran.
+                if (shouldKeepNavigationInWebView(uri)) {
                     return false;
                 }
-                android.content.Intent intent = new android.content.Intent(
-                        android.content.Intent.ACTION_VIEW,
-                        uri
-                );
-                startActivity(intent);
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                    startActivity(intent);
+                } catch (ActivityNotFoundException e) {
+                    Toast.makeText(
+                            MainActivity.this,
+                            "Nie można otworzyć linku",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
                 return true;
             }
 

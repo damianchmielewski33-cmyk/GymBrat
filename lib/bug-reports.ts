@@ -1,4 +1,4 @@
-/** Event okna — odśwież badge liczby otwartych zgłoszeń w panelu admina. */
+/** Event okna — odśwież badge niewidzianych zgłoszeń w panelu admina. */
 export const BUG_REPORTS_CHANGED_EVENT = "gymbrat:bug-reports-changed";
 
 export const BUG_PRIORITIES = [
@@ -20,7 +20,7 @@ export const BUG_PRIORITY_LABELS: Record<BugPriority, string> = {
 /** Statusy workflow zgłoszenia. */
 export const BUG_STATUSES = [
   "analysis",
-  "in_fix",
+  "in_progress",
   "retest",
   "fixed",
 ] as const;
@@ -28,15 +28,15 @@ export type BugStatus = (typeof BUG_STATUSES)[number];
 
 export const BUG_STATUS_LABELS: Record<BugStatus, string> = {
   analysis: "Analiza",
-  in_fix: "W naprawie",
+  in_progress: "W naprawie",
   retest: "Do retestu",
   fixed: "Naprawiony",
 };
 
-/** Statusy liczone w czerwonej cyferce admina (jeszcze nie do retestu / naprawione). */
+/** Historyczne: aktywne w workflow (badge używa teraz `admin_seen_at`). */
 export const BUG_ACTIVE_STATUSES: readonly BugStatus[] = [
   "analysis",
-  "in_fix",
+  "in_progress",
 ];
 
 export function isBugPriority(value: unknown): value is BugPriority {

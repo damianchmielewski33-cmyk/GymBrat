@@ -1,10 +1,10 @@
 import * as XLSX from "xlsx";
 import { randomUUID } from "node:crypto";
-import { findBestCatalogMatch } from "@/lib/workout-exercise-catalog";
 import {
   parseWorkoutPlansFromText,
   type ParsedWorkoutPlanImport,
 } from "@/lib/docx/workout-plan-import";
+import { resolveExerciseCategoryIdForPlan } from "@/lib/resolve-exercise-muscles";
 import type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
 
 const SETS_REPS_CELL_RE = /(\d{1,2})\s*[x×]\s*(\d{1,3}(?:-\d{1,3})?)/i;
@@ -57,12 +57,11 @@ function parseSetsRepsCell(v: unknown): { sets: number; reps: number } | null {
 }
 
 function toExercise(name: string, sets: number, reps: number): WorkoutPlanExercise {
-  const match = findBestCatalogMatch(name);
   return {
     id: randomUUID(),
-    // Nazwa z planu bez tłumaczenia na katalog — katalog tylko do kategorii.
+    // Nazwa z planu bez tłumaczenia na katalog — katalog / heurystyka → kategoria.
     name,
-    categoryId: match?.categoryId ?? "shoulders",
+    categoryId: resolveExerciseCategoryIdForPlan(name),
     sets: Math.min(20, Math.max(1, Math.round(sets))),
     reps: Math.min(100, Math.max(1, Math.round(reps))),
   };

@@ -77,6 +77,7 @@ function MealSlotCard({
   const targetKcal = Math.round(row.calories);
   const slotLabel = DIET_DIARY_SLOT_LABELS[row.diarySlot];
   const entryCount = entries.length;
+  /** Zjedzone w slocie (nie cele szablonu) — jak makieta Dziennika. */
   const macroCells = [
     {
       key: "kcal",
@@ -85,41 +86,41 @@ function MealSlotCard({
     },
     {
       key: "B",
-      value: String(Math.round(row.proteinG)),
+      value: String(Math.round(eaten.protein)),
       label: "B",
     },
     {
       key: "W",
-      value: String(Math.round(row.carbsG)),
+      value: String(Math.round(eaten.carbs)),
       label: "W",
     },
     {
       key: "T",
-      value: String(Math.round(row.fatG)),
+      value: String(Math.round(eaten.fat)),
       label: "T",
     },
   ] as const;
 
   return (
     <section className="overflow-hidden rounded-[18px] border border-white/[0.07] bg-[#141414]">
-      <div className="flex items-start gap-2 px-3 py-3 sm:gap-2.5 sm:px-3.5">
+      <div className="flex items-center gap-2 px-3 py-2.5 sm:px-3.5">
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={expanded}
           aria-controls={`diet-slot-${row.diarySlot}`}
-          className="min-w-0 flex-1 space-y-2.5 rounded-xl py-0.5 text-left transition-colors hover:bg-white/[0.03] active:bg-white/[0.05]"
+          className="min-w-0 flex-1 space-y-1.5 rounded-xl py-0.5 text-left transition-colors hover:bg-white/[0.03] active:bg-white/[0.05]"
         >
-          <h3 className="truncate text-[15px] font-semibold text-white">
+          <h3 className="truncate text-[14px] font-semibold leading-tight text-white">
             Posiłek {row.index}
           </h3>
-          <div className="grid w-full grid-cols-4 gap-x-1.5 font-metric tabular-nums">
+          <div className="grid w-full grid-cols-4 gap-x-0 font-metric tabular-nums">
             {macroCells.map((cell, i) => (
               <div
                 key={cell.key}
                 className={cn(
-                  "min-w-0",
-                  i > 0 && "border-l border-white/[0.08] pl-1.5",
+                  "min-w-0 px-1 first:pl-0 last:pr-0",
+                  i > 0 && "border-l border-white/[0.1]",
                 )}
               >
                 <p className="truncate text-[13px] font-semibold leading-none text-white">
@@ -139,7 +140,7 @@ function MealSlotCard({
             ))}
           </div>
         </button>
-        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+        <div className="flex shrink-0 items-center gap-1">
           <MealActionButton
             label={`Skanuj do ${slotLabel}`}
             onClick={() => onScan(row.diarySlot)}
@@ -285,101 +286,129 @@ export function DietDiaryPanel({
       ? Math.min(100, Math.round((kcalEaten / kcalGoal) * 100))
       : 0;
 
-  const macroLines = [
-    {
-      key: "B",
-      consumed: dayMacros.proteinConsumed,
-      goal: dayMacros.proteinGoal,
-    },
-    {
-      key: "W",
-      consumed: dayMacros.carbsConsumed,
-      goal: dayMacros.carbsGoal,
-    },
-    {
-      key: "T",
-      consumed: dayMacros.fatConsumed,
-      goal: dayMacros.fatGoal,
-    },
-  ] as const;
-
   /** Jednocześnie jeden otwarty posiłek — czytelniejszy dziennik. */
   const [expandedSlot, setExpandedSlot] = useState<DietDiarySlot | null>(null);
 
+  const dayMacroCells = [
+    {
+      key: "kcal",
+      value: kcalEaten,
+      label: "kcal",
+      over: overGoal,
+    },
+    {
+      key: "B",
+      value: Math.round(dayMacros.proteinConsumed),
+      sub:
+        dayMacros.proteinGoal != null
+          ? `/ ${Math.round(dayMacros.proteinGoal)}`
+          : null,
+      label: "B",
+      over:
+        dayMacros.proteinGoal != null &&
+        dayMacros.proteinConsumed > dayMacros.proteinGoal,
+    },
+    {
+      key: "W",
+      value: Math.round(dayMacros.carbsConsumed),
+      sub:
+        dayMacros.carbsGoal != null
+          ? `/ ${Math.round(dayMacros.carbsGoal)}`
+          : null,
+      label: "W",
+      over:
+        dayMacros.carbsGoal != null &&
+        dayMacros.carbsConsumed > dayMacros.carbsGoal,
+    },
+    {
+      key: "T",
+      value: Math.round(dayMacros.fatConsumed),
+      sub:
+        dayMacros.fatGoal != null
+          ? `/ ${Math.round(dayMacros.fatGoal)}`
+          : null,
+      label: "T",
+      over:
+        dayMacros.fatGoal != null &&
+        dayMacros.fatConsumed > dayMacros.fatGoal,
+    },
+  ] as const;
+
   return (
-    <div className="space-y-4">
-      <section className="app-card relative overflow-hidden px-4 py-4">
+    <div className="space-y-3">
+      <section className="app-card relative overflow-hidden px-3.5 py-3">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gym-gold)]/55 to-transparent"
           aria-hidden
         />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-          Zjedzone
-        </p>
-
-        {/* Jak makieta: kcal + B/W/T wypełniają kafelek (bez pustej dziury). */}
-        <div className="mt-3 grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] items-center gap-x-3 sm:gap-x-4">
-          <div className="min-w-0">
-            <div className="flex items-baseline gap-1.5">
-              <AnimatedMetric
-                value={kcalEaten}
-                className="text-[40px] leading-none text-white sm:text-[44px]"
-              />
-              <span className="font-metric text-[16px] text-white/55">kcal</span>
-            </div>
-            {kcalGoal != null ? (
-              <p
-                className={cn(
-                  "mt-1.5 text-[13px] tabular-nums",
-                  overGoal ? "text-rose-300" : "text-white/50",
-                )}
-              >
-                z {Math.round(kcalGoal)} kcal ·{" "}
-                {kcalDelta != null && kcalDelta > 0 ? "+" : ""}
-                {kcalDelta}
-              </p>
-            ) : (
-              <p className="mt-1.5 text-[13px] text-white/45">
-                Ustaw cel w profilu
-              </p>
-            )}
-          </div>
-
-          <div className="min-w-0 space-y-1.5 font-metric text-[14px] leading-none tabular-nums text-white">
-            {macroLines.map((m) => {
-              const over =
-                m.goal != null && m.consumed > m.goal;
-              return (
-                <div
-                  key={m.key}
-                  className="flex items-baseline justify-between gap-2"
-                >
-                  <span className="text-[12px] font-semibold text-white/45">
-                    {m.key}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-right",
-                      over ? "text-rose-300" : "text-white",
-                    )}
-                  >
-                    {Math.round(m.consumed)}
-                    {m.goal != null ? (
-                      <span className="text-white/40">
-                        {" "}
-                        / {Math.round(m.goal)} g
-                      </span>
-                    ) : (
-                      <span className="text-white/40"> g</span>
-                    )}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+            Zjedzone
+          </p>
+          {kcalGoal != null ? (
+            <p
+              className={cn(
+                "truncate text-[11px] tabular-nums",
+                overGoal ? "text-rose-300" : "text-white/45",
+              )}
+            >
+              cel {Math.round(kcalGoal)}
+              {kcalDelta != null
+                ? ` · ${kcalDelta > 0 ? "+" : ""}${kcalDelta}`
+                : ""}
+            </p>
+          ) : (
+            <p className="truncate text-[11px] text-white/40">
+              Ustaw cel w profilu
+            </p>
+          )}
         </div>
 
-        <div className="mt-4 h-1 overflow-hidden rounded-full bg-white/[0.08]">
+        {/* 4 kolumny na pełną szerokość — bez dziury i bez pustego dołu. */}
+        <div className="mt-2 grid w-full grid-cols-4 gap-x-0 font-metric tabular-nums">
+          {dayMacroCells.map((cell, i) => (
+            <div
+              key={cell.key}
+              className={cn(
+                "min-w-0 px-1.5 first:pl-0 last:pr-0",
+                i > 0 && "border-l border-white/[0.1]",
+              )}
+            >
+              <p
+                className={cn(
+                  "truncate text-[20px] font-semibold leading-none sm:text-[22px]",
+                  cell.over ? "text-rose-300" : "text-white",
+                )}
+              >
+                {cell.key === "kcal" ? (
+                  <AnimatedMetric
+                    value={cell.value}
+                    className="text-[20px] leading-none sm:text-[22px]"
+                  />
+                ) : (
+                  cell.value
+                )}
+                {"sub" in cell && cell.sub ? (
+                  <span className="text-[12px] font-medium text-white/40">
+                    {cell.sub}
+                  </span>
+                ) : null}
+              </p>
+              <p
+                className={cn(
+                  "mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.08em]",
+                  cell.key === "kcal"
+                    ? "text-white/45"
+                    : "text-[var(--gym-gold)]",
+                )}
+              >
+                {cell.label}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-white/[0.08]">
           <div
             className={cn(
               "h-full rounded-full transition-[width] duration-700 ease-out",
@@ -393,13 +422,13 @@ export function DietDiaryPanel({
       <button
         type="button"
         onClick={() => onScan(defaultScanSlot)}
-        className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_0_36px_rgba(235,196,74,0.35)]"
+        className="gold-btn inline-flex h-11 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_0_36px_rgba(235,196,74,0.35)]"
       >
         <ScanBarcode className="h-5 w-5" />
         Skanuj kod kreskowy
       </button>
 
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         {rows.map((row) => (
           <MealSlotCard
             key={row.id}

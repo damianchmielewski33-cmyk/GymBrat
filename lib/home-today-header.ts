@@ -4,6 +4,7 @@ import { count, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { bodyReports, userSettings, users } from "@/db/schema";
 import { calendarDateKey } from "@/lib/local-date";
+import { computePackageStatus } from "@/lib/user-package";
 
 export type HomeTodayHeaderData = {
   firstName: string | null;
@@ -11,6 +12,9 @@ export type HomeTodayHeaderData = {
   reportCount: number;
   daysSinceLastReport: number | null;
   reportCadenceDays: number;
+  packageDaysLeft: number | null;
+  packageEndsLabel: string | null;
+  packageName: string | null;
 };
 
 export async function getHomeTodayHeaderData(
@@ -25,6 +29,8 @@ export async function getHomeTodayHeaderData(
         firstName: users.firstName,
         lastName: users.lastName,
         name: users.name,
+        packageEndsAt: users.packageEndsAt,
+        packagePlanSku: users.packagePlanSku,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -75,11 +81,23 @@ export async function getHomeTodayHeaderData(
     );
   }
 
+  const pkg = computePackageStatus({
+    packageEndsAt: userRow?.packageEndsAt,
+    packagePlanSku: userRow?.packagePlanSku,
+  });
+
   return {
     firstName,
     lastName,
     reportCount: Number(countRow?.reportCount ?? 0),
     daysSinceLastReport,
     reportCadenceDays,
+    packageDaysLeft: pkg.active ? pkg.daysLeft : 0,
+    packageEndsLabel: pkg.endsLabel,
+    packageName: pkg.active
+      ? pkg.planSku
+        ? `Pakiet ${pkg.planSku}`
+        : "Pakiet aktywny"
+      : null,
   };
 }

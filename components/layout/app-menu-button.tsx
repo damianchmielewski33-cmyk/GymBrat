@@ -172,8 +172,8 @@ export function AppMenuButton({
           href: "/package",
           title: "Twój pakiet",
           subtitle: packageEndsLabel
-            ? `aktywny ${packageEndsLabel}`
-            : "status współpracy — wkrótce",
+            ? `aktywny do ${packageEndsLabel}`
+            : "kup pakiet albo oglądaj reklamy",
           icon: CalendarCheck2,
           iconTone: "gold",
         },

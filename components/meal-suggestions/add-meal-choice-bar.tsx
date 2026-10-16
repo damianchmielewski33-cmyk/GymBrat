@@ -3,6 +3,10 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Calculator, ChefHat, PackagePlus, X } from "lucide-react";
 import { addMealLogAction, type MealLogFormState } from "@/actions/meal-log";
+import {
+  FullscreenAdOverlay,
+  useFullscreenAdGate,
+} from "@/components/ads/fullscreen-ad-gate";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { kcalFromMacros, parseMacroGrams } from "@/lib/kcal-from-macros";
 import {
@@ -36,6 +40,7 @@ export function AddMealChoiceBar({
   onSaved,
 }: Props) {
   const { notifySaved, notifyError } = useSaveFeedback();
+  const productAd = useFullscreenAdGate("before_add_product");
   const [mode, setMode] = useState<Mode>("menu");
   const [name, setName] = useState("");
   const [protein, setProtein] = useState("");
@@ -98,7 +103,9 @@ export function AddMealChoiceBar({
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
-              onClick={() => setMode("product")}
+              onClick={() =>
+                void productAd.runWithAd(() => setMode("product"))
+              }
               className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/12 bg-white/[0.04] px-2 py-3 text-center"
             >
               <PackagePlus className="h-5 w-5 text-[var(--gym-gold)]" />
@@ -132,12 +139,22 @@ export function AddMealChoiceBar({
           </div>
           <button
             type="button"
-            onClick={onOpenSearch}
+            onClick={() =>
+              void productAd.runWithAd(() => {
+                onOpenSearch();
+                onClose();
+              })
+            }
             className="mt-1 text-center text-xs text-white/45 underline-offset-2 hover:text-white/70 hover:underline"
           >
             Albo wyszukaj produkt w bazie
           </button>
         </div>
+        <FullscreenAdOverlay
+          open={productAd.open}
+          onContinue={productAd.continueAfterAd}
+          placement="before_add_product"
+        />
       </div>
     );
   }

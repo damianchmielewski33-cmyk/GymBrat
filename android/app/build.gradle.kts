@@ -42,8 +42,8 @@ android {
         applicationId = "pl.gymbrat.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 13
-        versionName = "0.1.12"
+        versionCode = 14
+        versionName = "0.1.13"
 
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a")
@@ -54,6 +54,17 @@ android {
             ?: "https://gym-brat.vercel.app/"
         buildConfigField("String", "API_BASE_URL", "\"$apiBase\"")
         manifestPlaceholders["appLinkHost"] = hostFromUrl(apiBase)
+
+        // AdMob — puste = reklamy tylko z WebView fallback; test IDs z dokumentacji Google.
+        val admobAppId = readLocalProperty("admob.app.id")
+            ?: (project.findProperty("ADMOB_APP_ID") as String?)
+            ?: "ca-app-pub-3940256099942544~3347511713"
+        val admobInterstitial = readLocalProperty("admob.interstitial.unit.id")
+            ?: (project.findProperty("ADMOB_INTERSTITIAL_UNIT_ID") as String?)
+            ?: ""
+        buildConfigField("String", "ADMOB_APP_ID", "\"$admobAppId\"")
+        buildConfigField("String", "ADMOB_INTERSTITIAL_UNIT_ID", "\"$admobInterstitial\"")
+        manifestPlaceholders["admobAppId"] = admobAppId
     }
 
     signingConfigs {
@@ -121,4 +132,5 @@ dependencies {
     implementation("androidx.webkit:webkit:1.12.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.android.material:material:1.12.0")
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
 }

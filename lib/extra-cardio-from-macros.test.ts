@@ -615,9 +615,9 @@ describe("extra-cardio-from-macros", () => {
       Math.min(90, Math.ceil(advice.effectiveSurplusKcal / advice.burnKcalPerMin)),
     );
     expect(typeof advice.cardioOffsetKcal).toBe("number");
-    expect(advice.explanation.some((l) => l.startsWith("Otwarty dług:"))).toBe(
-      true,
-    );
+    expect(
+      advice.explanation.some((l) => l.startsWith("Niewyrównana nadwyżka:")),
+    ).toBe(true);
   });
 
   it("przy przekroczeniach pn→dziś proponuje dodatkowe cardio", () => {

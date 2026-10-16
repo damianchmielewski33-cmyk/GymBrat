@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ChevronRight, CircleHelp, Footprints } from "lucide-react";
 import {
   BURN_SOURCE_LABEL_PL,
+  EXTRA_CARDIO_LABEL_PL,
   type ExtraCardioAdvice,
 } from "@/lib/extra-cardio-from-macros";
 import { cn } from "@/lib/utils";
@@ -130,7 +131,7 @@ export function HomeCardioProgressStrip({
               </p>
             ) : extraMinutes > 0 ? (
               <p className="mt-1.5 text-[10px] leading-snug text-sky-200/80">
-                Niebieskie pole: dodatkowe cardio na nadwyżkę makro
+                Niebieskie pole: dodatkowe minuty przy nadwyżce makro
               </p>
             ) : null}
           </div>
@@ -160,23 +161,33 @@ export function HomeCardioProgressStrip({
             >
               <p className="font-semibold text-sky-100">{extraCardio.summary}</p>
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                <dt className="text-sky-200/70">Otwarty dług</dt>
+                <dt className="text-sky-200/70">
+                  {EXTRA_CARDIO_LABEL_PL.openDebt}
+                </dt>
                 <dd className="font-medium text-sky-50">
                   {extraCardio.surplusKcal} kcal
                 </dd>
-                <dt className="text-sky-200/70">Dług do odrobienia</dt>
+                <dt className="text-sky-200/70">
+                  {EXTRA_CARDIO_LABEL_PL.effectiveDebt}
+                </dt>
                 <dd className="font-medium text-sky-50">
                   {extraCardio.effectiveSurplusKcal} kcal
                 </dd>
-                <dt className="text-sky-200/70">Offset z cardio</dt>
+                <dt className="text-sky-200/70">
+                  {EXTRA_CARDIO_LABEL_PL.cardioOffset}
+                </dt>
                 <dd className="font-medium text-sky-50">
                   {extraCardio.cardioOffsetKcal} kcal
                 </dd>
-                <dt className="text-sky-200/70">Spalanie</dt>
+                <dt className="text-sky-200/70">
+                  {EXTRA_CARDIO_LABEL_PL.burnRate}
+                </dt>
                 <dd className="font-medium text-sky-50">
                   {extraCardio.burnKcalPerMin} kcal/min
                 </dd>
-                <dt className="text-sky-200/70">Źródło spalania</dt>
+                <dt className="text-sky-200/70">
+                  {EXTRA_CARDIO_LABEL_PL.burnSource}
+                </dt>
                 <dd className="font-medium text-sky-50">
                   {BURN_SOURCE_LABEL_PL[extraCardio.burnSource]}
                 </dd>
@@ -185,11 +196,17 @@ export function HomeCardioProgressStrip({
                 {extraCardio.explanation
                   .filter(
                     (line) =>
-                      !line.startsWith("Otwarty dług:") &&
-                      !line.startsWith("Dług do odrobienia:") &&
-                      !line.startsWith("Offset z cardio:") &&
-                      !line.startsWith("Spalanie:") &&
-                      !line.startsWith("Źródło spalania:"),
+                      !line.startsWith(`${EXTRA_CARDIO_LABEL_PL.openDebt}:`) &&
+                      !line.startsWith(
+                        `${EXTRA_CARDIO_LABEL_PL.effectiveDebt}:`,
+                      ) &&
+                      !line.startsWith(
+                        `${EXTRA_CARDIO_LABEL_PL.cardioOffset}:`,
+                      ) &&
+                      !line.startsWith(`${EXTRA_CARDIO_LABEL_PL.burnRate}:`) &&
+                      !line.startsWith(
+                        `${EXTRA_CARDIO_LABEL_PL.burnSource}:`,
+                      ),
                   )
                   .map((line) => (
                     <li key={line}>{line}</li>

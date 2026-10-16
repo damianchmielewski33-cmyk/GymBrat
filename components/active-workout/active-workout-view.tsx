@@ -43,7 +43,6 @@ import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 import {
   areAllWorkoutSetsDone,
   canCompleteWorkoutSet,
-  countSkippedWorkoutSets,
   findFirstSkippedWorkoutTarget,
   isSkippedWorkoutSet,
   resolveAdvanceAfterSet,
@@ -204,6 +203,24 @@ export function ActiveWorkoutView({
       cancelled = true;
     };
   }, []);
+
+  /** Sesja pełnoekranowa: bez scrolla dokumentu (tylko wewnętrzna lista ćwiczenia). */
+  useEffect(() => {
+    if (!hasLoadedPlan || display === "modal") return;
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevHtmlOverscroll = html.style.overscrollBehavior;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      html.style.overscrollBehavior = prevHtmlOverscroll;
+    };
+  }, [hasLoadedPlan, display]);
 
   useEffect(() => {
     hintsMergedRef.current = false;
@@ -626,10 +643,12 @@ export function ActiveWorkoutView({
       );
       const { done, total } = countSetsDone(exercisesNow);
       const workoutComplete = total > 0 && done >= total;
-      // Gdy sesja jest domknięta, wymuś etykietę „Koniec treningu” nawet jeśli
-      // domknięto „środkową” serię (kolejność poza sekwencją).
-      const restSnap =
-        snap && workoutComplete && !isSkippedNext
+
+      if (workoutComplete) {
+        // Zawsze pauza z „Koniec treningu” (także przy pominięciach / masie ciała) —
+        // dialog pominięć i „Trening zrobiony” dopiero po Dalej / końcu odliczania.
+        hapticWorkoutDone();
+        const endSnap = snap
           ? {
               ...snap,
               exerciseFinished: true,
@@ -638,35 +657,22 @@ export function ActiveWorkoutView({
               nextValue: "Koniec treningu",
               nextMuscles: null,
             }
-          : snap;
-      if (restSnap && !isSkippedNext) setLastCompleted(restSnap);
-
-      if (workoutComplete) {
-        hapticWorkoutDone();
-        const skipped = findFirstSkippedWorkoutTarget(exercisesNow);
-        const skipCount = countSkippedWorkoutSets(exercisesNow);
-        if (skipped) {
-          stopRest();
-          setAllSetsDoneSkipped({ target: skipped, count: skipCount });
-          setAllSetsDoneOpen(true);
-        } else if (!isSkippedNext) {
-          // Po ostatniej serii — pauza z „Koniec treningu”, potem Dalej → podsumowanie.
-          setAllSetsDoneSkipped({ target: null, count: 0 });
-          const { defaultSeconds } = readRestTimerPrefs();
-          startRest(defaultSeconds);
-        } else {
-          stopRest();
-          setAllSetsDoneSkipped({ target: null, count: 0 });
-          setFinishOpen(true);
-        }
+          : null;
+        if (endSnap) setLastCompleted(endSnap);
+        setAllSetsDoneOpen(false);
+        setAllSetsDoneSkipped({ target: null, count: 0 });
+        const { defaultSeconds } = readRestTimerPrefs();
+        startRest(defaultSeconds);
         return;
       }
 
-      // Pominięcie: bez przerwy — od razu widać następną serię / ćwiczenie.
+      // Pominięcie w trakcie sesji: bez przerwy — od razu następna seria / ćwiczenie.
       if (isSkippedNext) {
         stopRest();
         return;
       }
+
+      if (snap) setLastCompleted(snap);
 
       if (snap?.exerciseFinished) {
         hapticExerciseDone();
@@ -679,6 +685,7 @@ export function ActiveWorkoutView({
     }
   }
 
+  /** Dalej / koniec odliczania → podsumowanie, gdy sesja jest domknięta. */
   function continueAfterRest() {
     const finished = shouldOpenFinishAfterRest();
     stopRest();
@@ -849,8 +856,8 @@ export function ActiveWorkoutView({
       className={
         hasLoadedPlan
           ? display === "modal"
-            ? "relative bg-black"
-            : "relative ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-x-hidden bg-black pb-36 pt-0 sm:pb-40"
+            ? "relative flex h-full min-h-0 flex-col bg-black"
+            : "relative flex h-[100dvh] max-h-[100dvh] w-full flex-col overflow-hidden bg-black"
           : "relative min-h-[calc(100dvh-6rem)] rounded-2xl bg-[#0f0f0f] p-4 sm:p-6 lg:min-h-[calc(100dvh-5rem)]"
       }
     >
@@ -925,13 +932,15 @@ export function ActiveWorkoutView({
       <div
         className={
           hasLoadedPlan
-            ? display === "modal"
-              ? "mx-auto w-full max-w-[min(100%,720px)] px-4 pb-4 pt-2 sm:px-6"
-              : "mx-auto w-full max-w-[min(100%,720px)] px-4 pb-4 pt-2 sm:px-6"
+            ? "mx-auto flex h-full min-h-0 w-full max-w-[min(100%,720px)] flex-1 flex-col px-0"
             : "mx-auto max-w-[1400px]"
         }
       >
-        <div className={hasLoadedPlan ? "grid gap-0" : ""}>
+        <div
+          className={
+            hasLoadedPlan ? "flex h-full min-h-0 flex-1 flex-col gap-0" : ""
+          }
+        >
           <ActiveSessionCard
             hasLoadedPlan={hasLoadedPlan}
             initialPlansEmpty={initialPlans.length === 0}

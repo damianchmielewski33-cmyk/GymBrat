@@ -97,11 +97,11 @@
   },
   "tooltip": {
     "fields": [
-      "Otwarty dług (kcal)",
-      "Dług do odrobienia (kcal)",
-      "Offset z cardio (kcal)",
-      "Spalanie (kcal/min)",
-      "Źródło spalania: Wpisane kcal z treningu | Twój model spalania | Model z tętna | Model MET"
+      "Niewyrównana nadwyżka (kcal)",
+      "Do odrobienia cardio (kcal)",
+      "Już odrobione cardio (kcal)",
+      "Tempo spalania (kcal/min)",
+      "Skąd tempo spalania: Z kcal wpisanych przy cardio | Z Twojej historii cardio | Z tętna | Z tempa (MET) | Szacunek (MET)"
     ],
     "language": "pl"
   },

@@ -24,7 +24,11 @@ export function WorkoutDiscardSessionDialog({
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="app-dialog w-[min(92vw,400px)] border-white/10 p-0 text-white">
+      <AlertDialogContent
+        /* Nad ekranem przerwy (z-1100) — inaczej X na pauzie „nic nie robi”. */
+        overlayClassName="z-[1200]"
+        className="app-dialog z-[1201] w-[min(92vw,400px)] border-white/10 p-0 text-white"
+      >
         <div className="relative overflow-hidden rounded-[22px] px-5 pb-5 pt-6 sm:px-6 sm:pb-6 sm:pt-7">
           <div
             className="pointer-events-none absolute inset-0 opacity-90 [background:radial-gradient(520px_220px_at_50%_-20%,rgba(244,63,94,0.18),transparent_62%)]"

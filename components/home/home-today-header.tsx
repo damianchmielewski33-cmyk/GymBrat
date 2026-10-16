@@ -80,6 +80,9 @@ export async function HomeTodayHeader({ userId }: { userId: string }) {
           variant="initials"
           initials={initials(data.firstName, data.lastName)}
           firstName={data.firstName}
+          packageName={data.packageName}
+          packageDaysLeft={data.packageDaysLeft}
+          packageEndsLabel={data.packageEndsLabel}
         />
         <HomeScanButton />
       </div>

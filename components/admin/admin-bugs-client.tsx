@@ -50,16 +50,16 @@ const STATUS_ACTIONS: Record<
   { status: BugStatus; label: string }[]
 > = {
   analysis: [
-    { status: "in_fix", label: "W naprawie" },
+    { status: "in_progress", label: "W naprawie" },
     { status: "retest", label: "Do retestu" },
   ],
-  in_fix: [
+  in_progress: [
     { status: "retest", label: "Do retestu" },
     { status: "analysis", label: "Wróć do analizy" },
   ],
   retest: [
     { status: "fixed", label: "Naprawiony" },
-    { status: "in_fix", label: "W naprawie" },
+    { status: "in_progress", label: "W naprawie" },
     { status: "analysis", label: "Wróć do analizy" },
   ],
   fixed: [
@@ -124,6 +124,7 @@ export function AdminBugsClient() {
         return;
       }
       setBugs(sortBugs(data.bugs));
+      notifyBugReportsChanged();
     } catch {
       notifyError("Nie udało się wczytać zgłoszeń.");
       setBugs([]);
@@ -244,7 +245,7 @@ export function AdminBugsClient() {
                           variant={
                             action.status === "fixed" ||
                             action.status === "retest" ||
-                            (tab === "analysis" && action.status === "in_fix")
+                            (tab === "analysis" && action.status === "in_progress")
                               ? "default"
                               : "secondary"
                           }

@@ -418,10 +418,10 @@ export function MealSuggestionsView({
     <div
       className={cn(
         "relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col",
-        "pb-[calc(5.5rem+env(safe-area-inset-bottom))]",
+        "pb-[calc(6.75rem+env(safe-area-inset-bottom))]",
       )}
     >
-      <header className="space-y-3 px-1 pt-2">
+      <header className="space-y-2.5 px-1 pt-1.5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             {tab === "plan" ? (
@@ -514,7 +514,7 @@ export function MealSuggestionsView({
 
       <div
         key={`${tab}-${dateKey}`}
-        className="mt-4 min-h-0 flex-1 animate-page-enter-opacity px-1 pb-6"
+        className="mt-3 min-h-0 flex-1 animate-page-enter-opacity px-1 pb-8"
       >
         {tab === "plan" ? (
           <DietMealPlanPanel

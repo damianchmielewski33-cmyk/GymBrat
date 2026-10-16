@@ -48,10 +48,70 @@ export const users = sqliteTable("users", {
   appRole: text("app_role").notNull().default("zawodnik"),
   /** @deprecated kolumna historyczna — integracja Fitatu usunięta, wartość czyszczona przy starcie. */
   fitatuAccessToken: text("fitatu_access_token"),
+  /** Koniec aktywnego pakietu (NULL = brak / reklamy AdMob). */
+  packageEndsAt: integer("package_ends_at", { mode: "timestamp_ms" }),
+  /** Ostatni zakupiony / nadany plan (sku). */
+  packagePlanSku: text("package_plan_sku"),
+  /** Notatka administratora na karcie konta. */
+  adminNote: text("admin_note"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+/** Oferty pakietów — ceny i opisy edytowalne w panelu admina. */
+export const subscriptionPlans = sqliteTable(
+  "subscription_plans",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    /** np. d7 | d30 | d90 | d365 */
+    sku: text("sku").notNull().unique(),
+    title: text("title").notNull(),
+    description: text("description").notNull().default(""),
+    days: integer("days").notNull(),
+    /** Cena w groszach PLN (np. 399 = 3,99 zł). */
+    priceGrosze: integer("price_grosze").notNull(),
+    active: integer("active").notNull().default(1),
+    sortOrder: integer("sort_order").notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("subscription_plans_active_sort").on(t.active, t.sortOrder)],
+);
+
+/** Zamówienia HotPay / ręczne nadania pakietu. */
+export const subscriptionOrders = sqliteTable(
+  "subscription_orders",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    planId: text("plan_id").references(() => subscriptionPlans.id, {
+      onDelete: "set null",
+    }),
+    planSku: text("plan_sku").notNull(),
+    days: integer("days").notNull(),
+    amountGrosze: integer("amount_grosze").notNull(),
+    /** pending | paid | failed | cancelled | manual */
+    status: text("status").notNull().default("pending"),
+    hotpayPaymentId: text("hotpay_payment_id"),
+    source: text("source").notNull().default("hotpay"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    paidAt: integer("paid_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    index("subscription_orders_user_created").on(t.userId, t.createdAt),
+    index("subscription_orders_status").on(t.status),
+  ],
+);
 
 /**
  * Powiązania OAuth (Google itd.) z kontem `users`.
@@ -351,7 +411,29 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   mealLogs: many(mealLogs),
   dailyCheckins: many(dailyCheckins),
   oauthAccounts: many(oauthAccounts),
+  subscriptionOrders: many(subscriptionOrders),
 }));
+
+export const subscriptionPlansRelations = relations(
+  subscriptionPlans,
+  ({ many }) => ({
+    orders: many(subscriptionOrders),
+  }),
+);
+
+export const subscriptionOrdersRelations = relations(
+  subscriptionOrders,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [subscriptionOrders.userId],
+      references: [users.id],
+    }),
+    plan: one(subscriptionPlans, {
+      fields: [subscriptionOrders.planId],
+      references: [subscriptionPlans.id],
+    }),
+  }),
+);
 
 export const oauthAccountsRelations = relations(oauthAccounts, ({ one }) => ({
   user: one(users, {
@@ -551,6 +633,8 @@ export const bugReports = sqliteTable(
       .notNull()
       .$defaultFn(() => new Date()),
     resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
+    /** Kiedy admin pierwszy raz zobaczył zgłoszenie na liście (NULL = niewidziane → badge). */
+    adminSeenAt: integer("admin_seen_at", { mode: "timestamp_ms" }),
   },
   (t) => [
     index("bug_reports_status_created").on(t.status, t.createdAt),

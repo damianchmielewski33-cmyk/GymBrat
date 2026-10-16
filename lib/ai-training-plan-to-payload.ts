@@ -1,5 +1,5 @@
 import type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
-import { findBestCatalogMatch } from "@/lib/workout-exercise-catalog";
+import { resolveExerciseCategoryIdForPlan } from "@/lib/resolve-exercise-muscles";
 
 /** Minimalny kształt dnia z generateTrainingPlan (bez importu server-only). */
 export type AiTrainingPlanLike = {
@@ -41,12 +41,11 @@ export function trainingPlanToWorkoutPayloads(
     const main = day.session.main ?? [];
     if (main.length === 0) continue;
     const exercises: WorkoutPlanExercise[] = main.map((ex) => {
-      const hit = findBestCatalogMatch(ex.name);
       return {
         id: crypto.randomUUID(),
-        // Nazwa z planu/AI bez tłumaczenia na katalog — katalog tylko do kategorii.
+        // Nazwa z planu/AI bez tłumaczenia na katalog — katalog / heurystyka → kategoria.
         name: ex.name,
-        categoryId: hit?.categoryId ?? "chest",
+        categoryId: resolveExerciseCategoryIdForPlan(ex.name),
         sets: parseSets(ex.sets),
         reps: parseReps(ex.reps),
         rir: 1,

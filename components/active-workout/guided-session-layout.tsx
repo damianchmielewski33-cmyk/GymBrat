@@ -398,8 +398,8 @@ export function GuidedSessionLayout({
   }
 
   return (
-    <div className="relative mx-auto w-full max-w-lg pb-8">
-      <div className="sticky top-0 z-20 bg-[var(--gym-app-bg)]/95 backdrop-blur">
+    <div className="relative mx-auto w-full max-w-lg pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="sticky top-0 z-20 bg-black/95 backdrop-blur">
         <SessionChromeHeader
           title={title}
           subtitle={`${formatElapsed(elapsedSeconds)} · ${totals.done}/${totals.total} serii · zapis na bieżąco`}
@@ -408,12 +408,12 @@ export function GuidedSessionLayout({
             flushDraft();
             setListOpen(true);
           }}
-          className="px-2 pb-3"
+          className="px-2 pb-2"
         />
         <SessionProgressBar progress={progress} />
       </div>
 
-      <div className="px-4 pt-5">
+      <div className="px-4 pt-3">
         <h2 className="text-[1.65rem] font-semibold leading-tight text-white sm:text-3xl">
           {supersetLabels[exercise.id] ? (
             <span className="mr-2 text-[var(--gym-gold)]">

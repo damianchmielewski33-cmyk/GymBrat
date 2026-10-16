@@ -14,7 +14,7 @@ export const BRANDING_SLOT_LABELS: Record<BrandingSlot, string> = {
   logo_login: "Logo na logowaniu",
   icon_web: "Ikona web / favicon",
   icon_pwa: "Ikona PWA / „Dodaj do ekranu”",
-  icon_android: "Ikona Android (launcher — kolejny build APK)",
+  icon_android: "Ikona Android (wypełnia kafelek launchera — kolejny build APK)",
   icon_ios: "Ikona iOS / Apple touch",
 };
 

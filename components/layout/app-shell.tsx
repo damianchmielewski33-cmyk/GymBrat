@@ -70,7 +70,14 @@ export function AppShell({
     pathname.startsWith("/progress");
 
   return (
-    <div className="relative min-h-screen bg-transparent">
+    <div
+      className={cn(
+        "relative bg-transparent",
+        sessionFullscreen
+          ? "h-[100dvh] max-h-[100dvh] overflow-hidden"
+          : "min-h-screen",
+      )}
+    >
       {sessionFullscreen ? null : hideChromeHeader ? (
         <div className="pt-[env(safe-area-inset-top)]" aria-hidden />
       ) : (
@@ -85,7 +92,7 @@ export function AppShell({
         className={cn(
           "mx-auto min-w-0 w-full max-w-lg flex-1 overflow-x-clip",
           sessionFullscreen
-            ? "px-0 py-0 pb-[env(safe-area-inset-bottom)]"
+            ? "h-[100dvh] max-h-[100dvh] overflow-hidden px-0 py-0"
             : hideBottomNav
               ? "px-4 py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-5"
               : "px-4 py-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-5",

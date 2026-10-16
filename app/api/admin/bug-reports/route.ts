@@ -1,11 +1,11 @@
-import { asc, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { bugReportPhotos, bugReports, users } from "@/db/schema";
 import { requireAdminApi } from "@/lib/admin-api";
 import { maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
-import { BUG_ACTIVE_STATUSES, isBugStatus } from "@/lib/bug-reports";
+import { isBugStatus } from "@/lib/bug-reports";
 
 export const runtime = "nodejs";
 
@@ -21,7 +21,9 @@ export async function GET(req: Request) {
     const [row] = await db
       .select({ openCount: count() })
       .from(bugReports)
-      .where(inArray(bugReports.status, [...BUG_ACTIVE_STATUSES]));
+      .where(
+        and(isNull(bugReports.adminSeenAt), ne(bugReports.status, "fixed")),
+      );
     return NextResponse.json({
       ok: true,
       openCount: Number(row?.openCount ?? 0),
@@ -54,6 +56,14 @@ export async function GET(req: Request) {
     .orderBy(desc(bugReports.createdAt));
 
   const ids = rows.map((r) => r.id);
+  if (ids.length > 0) {
+    const now = new Date();
+    await db
+      .update(bugReports)
+      .set({ adminSeenAt: now })
+      .where(and(inArray(bugReports.id, ids), isNull(bugReports.adminSeenAt)));
+  }
+
   const photoRows =
     ids.length === 0
       ? []

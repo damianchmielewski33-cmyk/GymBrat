@@ -8,6 +8,7 @@ import {
   ImageIcon,
   Dumbbell,
   LayoutDashboard,
+  Package,
   UtensilsCrossed,
   Users,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/admin/overview", label: "Analityka", icon: LayoutDashboard },
   { href: "/admin/users", label: "Użytkownicy", icon: Users },
+  { href: "/admin/packages", label: "Pakiety", icon: Package },
   { href: "/admin/bugs", label: "Błędy", icon: Bug, badge: "bugs" as const },
   { href: "/admin/catalog", label: "Przepisy", icon: UtensilsCrossed },
   { href: "/admin/exercises", label: "Ćwiczenia", icon: Dumbbell },

@@ -180,9 +180,10 @@ export function AdminBrandingClient() {
                   <p className="mt-0.5 font-mono text-[11px] text-white/35">{s.slot}</p>
                   {s.slot === "icon_android" ? (
                     <p className="mt-1 text-[11px] text-amber-200/70">
-                      Po wgraniu startuje przebudowa APK (~kilka minut). Potem
-                      Profil → pobierz APK (bez podbicia versionCode in-app
-                      update może się nie pokazać).
+                      Wgraj kwadrat bez białej ramki — build sam obcina
+                      przezroczyste/białe marginesy i wypełnia cały kafelek
+                      launchera. Po wgraniu: przebudowa APK (~kilka minut),
+                      potem Profil → pobierz APK.
                     </p>
                   ) : null}
                 </div>

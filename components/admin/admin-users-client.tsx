@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import {
@@ -160,40 +161,52 @@ export function AdminUsersClient() {
                           : u.createdAt.toLocaleString("pl-PL")}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {isProtected ? (
-                          <span className="text-xs text-white/40">—</span>
-                        ) : (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              type="button"
-                              className="inline-flex h-8 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] px-3 text-xs font-medium text-white/90 transition-colors hover:bg-white/10"
-                            >
-                              Rola / usuń
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              className="border-white/10 bg-zinc-950 text-white"
-                            >
-                              <DropdownMenuItem onClick={() => void setRole(u.id, "zawodnik")}>
-                                Ustaw: zawodnik
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => void setRole(u.id, "trener")}>
-                                Ustaw: trener
-                              </DropdownMenuItem>
-                              {canGrantAdmin ? (
-                                <DropdownMenuItem onClick={() => void setRole(u.id, "admin")}>
-                                  Nadaj: admin
-                                </DropdownMenuItem>
-                              ) : null}
-                              <DropdownMenuItem
-                                className="text-red-300 focus:text-red-200"
-                                onClick={() => void removeUser(u.id)}
+                        <div className="inline-flex items-center justify-end gap-2">
+                          <Link
+                            href={`/admin/users/${encodeURIComponent(u.id)}`}
+                            className="inline-flex h-8 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] px-3 text-xs font-medium text-white/90 transition-colors hover:bg-white/10"
+                          >
+                            Szczegóły
+                          </Link>
+                          {isProtected ? null : (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                type="button"
+                                className="inline-flex h-8 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] px-3 text-xs font-medium text-white/90 transition-colors hover:bg-white/10"
                               >
-                                Usuń konto
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                                Rola / usuń
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className="border-white/10 bg-zinc-950 text-white"
+                              >
+                                <DropdownMenuItem
+                                  onClick={() => void setRole(u.id, "zawodnik")}
+                                >
+                                  Ustaw: zawodnik
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => void setRole(u.id, "trener")}
+                                >
+                                  Ustaw: trener
+                                </DropdownMenuItem>
+                                {canGrantAdmin ? (
+                                  <DropdownMenuItem
+                                    onClick={() => void setRole(u.id, "admin")}
+                                  >
+                                    Nadaj: admin
+                                  </DropdownMenuItem>
+                                ) : null}
+                                <DropdownMenuItem
+                                  className="text-red-300 focus:text-red-200"
+                                  onClick={() => void removeUser(u.id)}
+                                >
+                                  Usuń konto
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

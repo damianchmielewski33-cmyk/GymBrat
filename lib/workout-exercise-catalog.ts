@@ -1149,13 +1149,37 @@ function exerciseSearchHaystack(ex: CatalogExercise): string {
  * Dopasowanie po tokenach: każdy wyraz zapytania musi wystąpić w nazwie lub aliasach.
  * Dzięki temu "single arm cable row" znajdzie ćwiczenie z aliasem "single arm cable row".
  */
+/** Spójniki / przyimki — nie mogą same „pasować” do pół katalogu (np. „ze sztangą”). */
+const SEARCH_STOPWORDS = new Set([
+  "ze",
+  "z",
+  "na",
+  "do",
+  "w",
+  "i",
+  "oraz",
+  "the",
+  "of",
+  "a",
+  "an",
+  "with",
+  "for",
+  "to",
+  "and",
+  "lub",
+]);
+
 export function exerciseMatchesQuery(ex: CatalogExercise, rawQuery: string): boolean {
   const q = normalizeForSearch(rawQuery);
   if (!q) return true;
   const haystack = exerciseSearchHaystack(ex);
-  const tokens = q.split(" ").filter(Boolean);
-  if (tokens.length === 0) return true;
-  return tokens.every((t) => haystack.includes(t));
+  const allTokens = q.split(" ").filter(Boolean);
+  const tokens = allTokens.filter(
+    (t) => t.length >= 2 && !SEARCH_STOPWORDS.has(t),
+  );
+  const effective = tokens.length > 0 ? tokens : allTokens;
+  if (effective.length === 0) return true;
+  return effective.every((t) => haystack.includes(t));
 }
 
 function scoreCatalogMatch(ex: CatalogExercise, rawQuery: string): number {

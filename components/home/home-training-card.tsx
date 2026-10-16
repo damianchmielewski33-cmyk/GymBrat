@@ -7,6 +7,10 @@ import { ChevronDown, Footprints, Play } from "lucide-react";
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
 import { HomeCardioProgressStrip } from "@/components/home/home-cardio-progress-strip";
+import {
+  FullscreenAdOverlay,
+  useFullscreenAdGate,
+} from "@/components/ads/fullscreen-ad-gate";
 import { beginWorkoutFromPlanRow } from "@/lib/start-workout-session";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import type { ExtraCardioAdvice } from "@/lib/extra-cardio-from-macros";
@@ -98,6 +102,7 @@ export function HomeTrainingCard({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [cardioOpen, setCardioOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const workoutAd = useFullscreenAdGate("before_workout_start");
   const [selectedId, setSelectedId] = useState<string | null>(
     recommendedPlanId ?? days[0]?.id ?? null,
   );
@@ -134,9 +139,11 @@ export function HomeTrainingCard({
       ?.name ?? null;
 
   function begin(row: WorkoutPlanWithLastWorkoutDTO) {
-    if (!beginWorkoutFromPlanRow(useActiveWorkoutStore.getState(), row)) return;
-    setPending(true);
-    router.push("/active-workout");
+    void workoutAd.runWithAd(() => {
+      if (!beginWorkoutFromPlanRow(useActiveWorkoutStore.getState(), row)) return;
+      setPending(true);
+      router.push("/active-workout");
+    });
   }
 
   const addCardioButton = (
@@ -387,6 +394,11 @@ export function HomeTrainingCard({
         />
       </section>
       {weekStats}
+      <FullscreenAdOverlay
+        open={workoutAd.open}
+        onContinue={workoutAd.continueAfterAd}
+        placement="before_workout_start"
+      />
     </div>
   );
 }

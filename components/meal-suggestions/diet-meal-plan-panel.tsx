@@ -271,7 +271,7 @@ export function DietMealPlanPanel({
 
   return (
     <div className="space-y-5">
-      <section className="app-card relative overflow-hidden px-4 py-4">
+      <section className="app-card relative overflow-hidden px-3.5 py-3">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gym-gold)]/55 to-transparent"
           aria-hidden
@@ -279,16 +279,14 @@ export function DietMealPlanPanel({
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
           Makro na dzień
         </p>
-        {/* 4 równe kolumny — wypełniają kafelek bez pustej dziury na środku */}
-        <div className="mt-3 grid grid-cols-4 gap-x-2 sm:gap-x-3">
+        {/* Jedna gęsta siatka 4 kolumn — jak makieta / kafle posiłków, bez pustej dziury. */}
+        <div className="mt-2 grid w-full grid-cols-4 gap-x-0 font-metric tabular-nums">
           {(
             [
               {
                 key: "kcal",
-                value:
-                  kcalGoal != null ? Math.round(kcalGoal) : null,
-                unit: "kcal",
-                label: null,
+                value: kcalGoal != null ? Math.round(kcalGoal) : null,
+                label: "kcal",
               },
               {
                 key: "protein",
@@ -296,7 +294,6 @@ export function DietMealPlanPanel({
                   dayMacros.proteinGoal != null
                     ? Math.round(dayMacros.proteinGoal)
                     : null,
-                unit: "g",
                 label: "białko",
               },
               {
@@ -305,7 +302,6 @@ export function DietMealPlanPanel({
                   dayMacros.carbsGoal != null
                     ? Math.round(dayMacros.carbsGoal)
                     : null,
-                unit: "g",
                 label: "węgle",
               },
               {
@@ -314,7 +310,6 @@ export function DietMealPlanPanel({
                   dayMacros.fatGoal != null
                     ? Math.round(dayMacros.fatGoal)
                     : null,
-                unit: "g",
                 label: "tłuszcz",
               },
             ] as const
@@ -322,39 +317,22 @@ export function DietMealPlanPanel({
             <div
               key={cell.key}
               className={cn(
-                "min-w-0",
-                i > 0 && "border-l border-white/[0.08] pl-2 sm:pl-3",
+                "min-w-0 px-1.5 first:pl-0 last:pr-0",
+                i > 0 && "border-l border-white/[0.1]",
               )}
             >
-              <div className="flex items-baseline gap-0.5">
-                {cell.value != null ? (
-                  <AnimatedMetric
-                    value={cell.value}
-                    className={cn(
-                      "leading-none text-white",
-                      cell.key === "kcal"
-                        ? "text-[28px] sm:text-[32px]"
-                        : "text-[22px] sm:text-[24px]",
-                    )}
-                  />
-                ) : (
-                  <span
-                    className={cn(
-                      "font-metric leading-none text-white/35",
-                      cell.key === "kcal" ? "text-[28px]" : "text-[22px]",
-                    )}
-                  >
-                    —
-                  </span>
-                )}
-                {cell.key !== "kcal" ? (
-                  <span className="text-[11px] font-medium text-white/40">
-                    {cell.unit}
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-1 truncate text-[11px] font-medium leading-tight text-white/45">
-                {cell.label ?? cell.unit}
+              {cell.value != null ? (
+                <AnimatedMetric
+                  value={cell.value}
+                  className="block truncate text-[22px] leading-none text-white sm:text-[24px]"
+                />
+              ) : (
+                <span className="block text-[22px] leading-none text-white/35">
+                  —
+                </span>
+              )}
+              <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-white/45">
+                {cell.label}
               </p>
             </div>
           ))}

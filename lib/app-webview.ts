@@ -31,9 +31,14 @@ declare global {
       setTorch?: (enabled: boolean) => boolean;
       /** Wibracja (CSV ms jak navigator.vibrate). */
       vibrate?: (patternCsv: string) => void;
+      /** Pełnoekranowa reklama AdMob (bez pakietu). Callback: __gymbratOnInterstitial(ok). */
+      showInterstitialAd?: (placement: string) => void;
+      hasInterstitialAds?: () => boolean;
     };
     /** Callback ustawiany przez ensureAndroidCameraPermission przed mostem. */
     __gymbratOnCameraPermission?: (granted: boolean) => void;
+    /** Callback po interstitial AdMob (lub natychmiast gdy brak reklamy). */
+    __gymbratOnInterstitial?: (shownOrSkipped: boolean) => void;
   }
 }
 

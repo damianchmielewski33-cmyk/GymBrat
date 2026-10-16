@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { resolveExerciseCategoryIdForPlan } from "@/lib/resolve-exercise-muscles";
 import type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
 import { normalizeYoutubeUrl } from "@/lib/youtube-url";
 
@@ -52,7 +53,7 @@ function migrateV1ToV2(legacy: LegacyWorkoutPlanV1): WorkoutPlanPayload {
       exercises.push({
         id: ex.id,
         name: ex.name,
-        categoryId: "shoulders",
+        categoryId: resolveExerciseCategoryIdForPlan(ex.name),
         reps: 10,
         sets: 3,
         rir: null,

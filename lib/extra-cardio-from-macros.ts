@@ -61,11 +61,11 @@ export type ExtraCardioAdvice = {
   show: boolean;
   /** Minuty cardio ponad tygodniowy cel — do „spalenia” nadwyżki. */
   extraMinutes: number;
-  /** Otwarty dług kcal (po diecie / cardio w tygodniu). */
+  /** Niewyrównana nadwyżka kcal (po diecie / cardio w tygodniu). */
   surplusKcal: number;
-  /** Nadwyżka po defer / floors — zawsze ≤ surplusKcal. */
+  /** Nadwyżka do odrobienia cardio — zawsze ≤ surplusKcal. */
   effectiveSurplusKcal: number;
-  /** Ile kcal zneutralizował offset cardio (po limicie 80%). */
+  /** Ile kcal już odrobione cardio (po limicie 80%). */
   cardioOffsetKcal: number;
   /** Dni od dziś do niedzieli włącznie. */
   daysLeftInWeek: number;
@@ -471,8 +471,8 @@ export function cardioKcalAboveWeeklyGoal(input: {
 }
 
 /**
- * Otwarty dług makro/kcal w tygodniu.
- * Cardio offset ≤ 80% długu przed offsetem.
+ * Niewyrównana nadwyżka makro/kcal w tygodniu.
+ * Offset cardio ≤ 80% nadwyżki przed odjęciem.
  */
 export function computeOpenMacroDebt(input: {
   todayKey: string;
@@ -548,12 +548,21 @@ export function computeOpenMacroDebt(input: {
 
 /** Etykiety PL do tooltipa Pulpitu. */
 export const BURN_SOURCE_LABEL_PL: Record<BurnSource, string> = {
-  calories_entered: "Wpisane kcal z treningu",
-  personal_model: "Twój model spalania",
-  heart_rate_model: "Model z tętna",
-  met_model: "Model MET (tempo)",
-  default: "Model MET (domyślny)",
+  calories_entered: "Z kcal wpisanych przy cardio",
+  personal_model: "Z Twojej historii cardio",
+  heart_rate_model: "Z tętna",
+  met_model: "Z tempa (MET)",
+  default: "Szacunek (MET)",
 };
+
+/** Prefiksy linii explanation — muszą zgadzać się z UI (filtr duplikatów). */
+export const EXTRA_CARDIO_LABEL_PL = {
+  openDebt: "Niewyrównana nadwyżka",
+  effectiveDebt: "Do odrobienia cardio",
+  cardioOffset: "Już odrobione cardio",
+  burnRate: "Tempo spalania",
+  burnSource: "Skąd tempo spalania",
+} as const;
 
 export function computeExtraCardioAdvice(
   input: ExtraCardioInput,
@@ -648,15 +657,15 @@ export function computeExtraCardioAdvice(
     extraMinutes > 0;
 
   const explanation: string[] = [
-    `Otwarty dług: ${show ? openDebt : 0} kcal`,
-    `Dług do odrobienia: ${show ? effectiveSurplusKcal : 0} kcal`,
-    `Offset z cardio: ${debt.cardioOffsetKcal} kcal`,
-    `Spalanie: ${burnKcalPerMin} kcal/min`,
-    `Źródło spalania: ${BURN_SOURCE_LABEL_PL[burnSource]}`,
+    `${EXTRA_CARDIO_LABEL_PL.openDebt}: ${show ? openDebt : 0} kcal`,
+    `${EXTRA_CARDIO_LABEL_PL.effectiveDebt}: ${show ? effectiveSurplusKcal : 0} kcal`,
+    `${EXTRA_CARDIO_LABEL_PL.cardioOffset}: ${debt.cardioOffsetKcal} kcal`,
+    `${EXTRA_CARDIO_LABEL_PL.burnRate}: ${burnKcalPerMin} kcal/min`,
+    `${EXTRA_CARDIO_LABEL_PL.burnSource}: ${BURN_SOURCE_LABEL_PL[burnSource]}`,
   ];
   if (daysLeft > 0) {
     explanation.push(
-      `Do końca tygodnia: ${daysLeft} ${daysLeft === 1 ? "dzień" : "dni"} — szansa dociągnięcia dietą: ${balanceChancePct}%.`,
+      `Do końca tygodnia: ${daysLeft} ${daysLeft === 1 ? "dzień" : "dni"} — szansa wyrównania dietą: ${balanceChancePct}%.`,
     );
   }
   if (show) {
@@ -670,7 +679,7 @@ export function computeExtraCardioAdvice(
   }
 
   const summary = show
-    ? `+${extraMinutes} min cardio na otwartą nadwyżkę (~${effectiveSurplusKcal} kcal).`
+    ? `+${extraMinutes} min dodatkowego cardio (~${effectiveSurplusKcal} kcal do odrobienia).`
     : "Brak rekomendacji dodatkowego cardio.";
 
   return {

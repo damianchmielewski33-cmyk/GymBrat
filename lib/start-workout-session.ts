@@ -1,22 +1,22 @@
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
-import { findBestCatalogMatch } from "@/lib/workout-exercise-catalog";
-import { isMuscleRegionId } from "@/lib/resolve-exercise-muscles";
+import {
+  resolveExerciseCategoryIdForPlan,
+  resolveExerciseMuscleCategory,
+} from "@/lib/resolve-exercise-muscles";
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
-/** categoryId z planu albo dopasowanie z katalogu (manekin na pauzie). */
+/** categoryId z nazwy / planu (manekin na pauzie) — nazwa ma pierwszeństwo przed starym „shoulders”. */
 export function resolveSessionCategoryId(
   name: string,
   categoryId?: string | null,
 ): string | null {
-  if (isMuscleRegionId(categoryId)) return categoryId;
-  const hit = findBestCatalogMatch(name);
-  return hit && isMuscleRegionId(hit.categoryId) ? hit.categoryId : null;
+  return resolveExerciseMuscleCategory({ name, categoryId });
 }
 
 /** Mapuje ćwiczenia z planu na stan sesji prowadzonej. */
@@ -37,7 +37,7 @@ export function planExercisesToSession(
     return {
       id: ex.id,
       name: ex.name,
-      categoryId: resolveSessionCategoryId(ex.name, ex.categoryId),
+      categoryId: resolveExerciseCategoryIdForPlan(ex.name, ex.categoryId),
       targetSets: setCount,
       targetReps: reps ?? undefined,
       targetRir,
@@ -65,11 +65,9 @@ export function backfillSessionExerciseCategories(
 ): WorkoutExerciseState[] {
   let changed = false;
   const next = exercises.map((ex) => {
-    if (isMuscleRegionId(ex.categoryId)) return ex;
-    const categoryId = resolveSessionCategoryId(ex.name, ex.categoryId);
-    // Po nieudanym type-guardzie TS zwęża categoryId do null|undefined —
-    // porównanie ze stringiem jest zbędne (resolve zwraca tylko valid id albo null).
-    if (!categoryId) return ex;
+    const categoryId = resolveExerciseCategoryIdForPlan(ex.name, ex.categoryId);
+    // Nadpisz też stare importy z fałszywym „shoulders”, gdy nazwa mówi inaczej.
+    if (ex.categoryId === categoryId) return ex;
     changed = true;
     return { ...ex, categoryId };
   });

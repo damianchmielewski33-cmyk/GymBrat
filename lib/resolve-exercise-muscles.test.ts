@@ -5,13 +5,31 @@ import {
 } from "@/lib/resolve-exercise-muscles";
 
 describe("resolveExerciseMuscles", () => {
-  it("używa categoryId z planu", () => {
+  it("gdy brak trafienia w katalogu, używa categoryId z planu", () => {
     expect(
       resolveExerciseMuscleCategory({
-        name: "Cokolwiek",
+        name: "Cokolwiek-xyz-nieistniejace-999",
         categoryId: "biceps",
       }),
     ).toBe("biceps");
+  });
+
+  it("nazwa z katalogu wygrywa ze starym domyślnym shoulders z importu", () => {
+    expect(
+      resolveExerciseMuscleCategory({
+        name: "Przysiad ze sztangą",
+        categoryId: "shoulders",
+      }),
+    ).toBe("quads");
+  });
+
+  it("heurystyka: francuz → triceps mimo złego categoryId", () => {
+    expect(
+      resolveExerciseMuscleCategory({
+        name: "Francuz sztangą łamaną",
+        categoryId: "shoulders",
+      }),
+    ).toBe("triceps");
   });
 
   it("dopasowuje biceps z katalogu po nazwie PL", () => {
