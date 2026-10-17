@@ -24,17 +24,19 @@ async function fileToResizedDataUrl(
   return canvas.toDataURL("image/jpeg", opts.quality);
 }
 
-/** Kompresja pod limit zapisu (~1.2M znaków). */
+/** Kompresja pod limit zapisu Turso (~450k znaków data URL). */
+const MAX_DATA_URL_CHARS = 450_000;
+
 export async function fileToCompressedImageDataUrl(file: File): Promise<string> {
   const attempts = [
-    { maxSide: 960, quality: 0.72 },
     { maxSide: 720, quality: 0.62 },
     { maxSide: 560, quality: 0.55 },
+    { maxSide: 420, quality: 0.48 },
   ];
   let last = "";
   for (const opts of attempts) {
     last = await fileToResizedDataUrl(file, opts);
-    if (last.length <= 1_200_000) return last;
+    if (last.length <= MAX_DATA_URL_CHARS) return last;
   }
   return last;
 }

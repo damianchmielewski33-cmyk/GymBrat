@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
   ChevronDown,
@@ -30,7 +31,14 @@ import {
   toggleShoppingItem,
   type ShoppingListItem,
 } from "@/lib/shopping-list";
+import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+
+const PLAN_GOLD = "#DDBB6D";
+const PLAN_GOLD_RGB = "221, 187, 109";
+
+const springSoft = { type: "spring" as const, stiffness: 380, damping: 28 };
+const springExpand = { type: "spring" as const, stiffness: 320, damping: 30 };
 
 const CHEATSHEET_TIPS = [
   {
@@ -50,60 +58,6 @@ const CHEATSHEET_TIPS = [
     body: "Jedno większe gotowanie (ryż, mięso, warzywa) skraca decyzje w ciągu tygodnia i trzyma Cię w planie.",
   },
 ];
-
-/** Makro w 4 kolumnach — wypełnia szerokość kafelka (jak makieta). */
-function MealMacroLine({
-  row,
-  calories,
-  className,
-}: {
-  row: Pick<MealPlanRow, "proteinG" | "carbsG" | "fatG">;
-  calories?: number;
-  className?: string;
-}) {
-  const cells = [
-    { n: Math.round(row.proteinG), label: "B" },
-    { n: Math.round(row.carbsG), label: "W" },
-    { n: Math.round(row.fatG), label: "T" },
-    {
-      n: calories != null && calories > 0 ? Math.round(calories) : null,
-      label: "kcal",
-    },
-  ] as const;
-
-  return (
-    <div
-      className={cn(
-        "grid w-full grid-cols-4 gap-x-1.5 font-metric tabular-nums",
-        className,
-      )}
-    >
-      {cells.map((cell, i) => (
-        <div
-          key={cell.label}
-          className={cn(
-            "min-w-0",
-            i > 0 && "border-l border-white/[0.08] pl-1.5",
-          )}
-        >
-          <p className="truncate text-[15px] font-semibold leading-none text-white">
-            {cell.n != null ? cell.n : "—"}
-          </p>
-          <p
-            className={cn(
-              "mt-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
-              cell.label === "kcal"
-                ? "text-white/40"
-                : "text-[var(--gym-gold)]",
-            )}
-          >
-            {cell.label}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function mealTileTitle(row: MealPlanRow): string {
   const label = row.label.trim();
@@ -128,7 +82,12 @@ function ShoppingListCard({
   }, [items.length]);
 
   return (
-    <div className="app-card overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: 0.72, ease: [0.22, 1, 0.36, 1] }}
+      className="overflow-hidden rounded-[22px] border border-white/[0.08] bg-[#0E0E0E]/90 shadow-[0_12px_40px_rgba(0,0,0,0.4)]"
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -136,7 +95,7 @@ function ShoppingListCard({
         aria-expanded={open}
       >
         <ShoppingBag
-          className="h-5 w-5 shrink-0 text-[var(--gym-gold)]"
+          className="h-5 w-5 shrink-0 text-[#DDBB6D]"
           aria-hidden
         />
         <div className="min-w-0 flex-1">
@@ -187,7 +146,7 @@ function ShoppingListCard({
                   className={cn(
                     "mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border",
                     item.checked
-                      ? "border-[var(--gym-gold)]/60 bg-[var(--gym-gold)] text-black"
+                      ? "border-[#DDBB6D]/60 bg-[#DDBB6D] text-black"
                       : "border-white/25 text-transparent",
                   )}
                 >
@@ -221,7 +180,139 @@ function ShoppingListCard({
           </ul>
         </div>
       ) : null}
-    </div>
+    </motion.div>
+  );
+}
+
+function PlanMealCard({
+  row,
+  index,
+  open,
+  catalogMeals,
+  dateKey,
+  onToggle,
+  onShoppingChange,
+}: {
+  row: MealPlanRow;
+  index: number;
+  open: boolean;
+  catalogMeals: CatalogMeal[];
+  dateKey: string;
+  onToggle: () => void;
+  onShoppingChange: (next: ShoppingListItem[]) => void;
+}) {
+  const macros = [
+    { n: Math.round(row.proteinG), label: "Białko" },
+    { n: Math.round(row.carbsG), label: "Węgle" },
+    { n: Math.round(row.fatG), label: "Tłuszcze" },
+  ] as const;
+  const kcal = row.calories > 0 ? Math.round(row.calories) : null;
+
+  return (
+    <motion.li
+      initial={{ opacity: 0, y: 22 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ ...springSoft, delay: 0.6 + index * 0.06 }}
+      className="list-none"
+    >
+      <motion.div
+        whileTap={{ scale: 0.98 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
+        className={cn(
+          "overflow-hidden rounded-[22px] border",
+          "bg-[#0E0E0E]/92 backdrop-blur-xl",
+          "shadow-[0_12px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.04)]",
+          open
+            ? "border-[rgba(221,187,109,0.32)] shadow-[0_0_0_1px_rgba(221,187,109,0.12),0_16px_48px_rgba(0,0,0,0.5)]"
+            : "border-white/[0.08]",
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            hapticTap();
+            onToggle();
+          }}
+          className="flex w-full items-center gap-3 px-4 py-4 text-left"
+          aria-expanded={open}
+        >
+          <div className="min-w-0 flex-1 space-y-3">
+            <p className="truncate text-[16px] font-semibold tracking-tight text-white">
+              {mealTileTitle(row)}
+            </p>
+            <div className="flex flex-wrap items-end gap-x-5 gap-y-2">
+              {macros.map((m) => (
+                <div key={m.label} className="min-w-0 font-metric tabular-nums">
+                  <p className="text-[15px] font-semibold leading-none text-white">
+                    {m.n}
+                    <span className="ml-0.5 text-[11px] font-medium text-white/40">
+                      g
+                    </span>
+                  </p>
+                  <p
+                    className="mt-1 text-[10px] font-semibold uppercase tracking-[0.1em]"
+                    style={{ color: PLAN_GOLD }}
+                  >
+                    {m.label}
+                  </p>
+                </div>
+              ))}
+              {kcal != null ? (
+                <div className="ml-auto min-w-0 font-metric tabular-nums sm:ml-0">
+                  <p className="text-[15px] font-semibold leading-none text-white/85">
+                    {kcal}
+                    <span className="ml-1 text-[11px] font-medium text-white/40">
+                      kcal
+                    </span>
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+          <motion.span
+            animate={{ rotate: open ? 180 : 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 28 }}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03]"
+          >
+            <ChevronDown
+              className={cn(
+                "h-4 w-4",
+                open ? "text-[#DDBB6D]" : "text-white/40",
+              )}
+            />
+          </motion.span>
+        </button>
+
+        <AnimatePresence initial={false}>
+          {open ? (
+            <motion.div
+              key="body"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={springExpand}
+              className="overflow-hidden"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                className="border-t border-white/[0.06] px-3 pb-4 pt-2"
+              >
+                <DietRecipeGrid
+                  key={row.id}
+                  meals={catalogMeals}
+                  row={row}
+                  dateKey={dateKey}
+                  onShoppingChange={onShoppingChange}
+                />
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </motion.div>
+    </motion.li>
   );
 }
 
@@ -268,145 +359,157 @@ export function DietMealPlanPanel({
   }, [rows, openId]);
 
   const kcalGoal = dayMacros.caloriesGoal;
+  const proteinGoal = dayMacros.proteinGoal;
+  const carbsGoal = dayMacros.carbsGoal;
+  const fatGoal = dayMacros.fatGoal;
 
   return (
     <div className="space-y-5">
-      <section className="app-card relative overflow-hidden px-3.5 py-3">
+      {/* Hero makro */}
+      <motion.section
+        initial={{ opacity: 0, y: 28 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springSoft, delay: 0.35 }}
+        className="relative overflow-hidden rounded-[26px] border border-white/[0.08] px-5 py-5 sm:px-6 sm:py-6"
+        style={{
+          background: `
+            radial-gradient(110% 90% at 18% -15%, rgba(${PLAN_GOLD_RGB}, 0.18) 0%, transparent 55%),
+            radial-gradient(70% 50% at 100% 80%, rgba(${PLAN_GOLD_RGB}, 0.05) 0%, transparent 45%),
+            linear-gradient(165deg, rgba(255,255,255,0.04) 0%, transparent 40%),
+            #0A0A0A
+          `,
+          boxShadow: `
+            0 0 0 1px rgba(${PLAN_GOLD_RGB}, 0.08),
+            0 0 56px rgba(${PLAN_GOLD_RGB}, 0.08),
+            inset 0 1px 0 rgba(255,255,255,0.06)
+          `,
+        }}
+      >
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gym-gold)]/55 to-transparent"
           aria-hidden
+          className="diary-macro-sheen pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-gradient-to-r from-transparent via-white/18 to-transparent"
         />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+
+        <p
+          className="relative text-[10px] font-semibold uppercase tracking-[0.18em]"
+          style={{ color: PLAN_GOLD }}
+        >
           Makro na dzień
         </p>
-        {/* Jedna gęsta siatka 4 kolumn — jak makieta / kafle posiłków, bez pustej dziury. */}
-        <div className="mt-2 grid w-full grid-cols-4 gap-x-0 font-metric tabular-nums">
-          {(
-            [
-              {
-                key: "kcal",
-                value: kcalGoal != null ? Math.round(kcalGoal) : null,
-                label: "kcal",
-              },
-              {
-                key: "protein",
-                value:
-                  dayMacros.proteinGoal != null
-                    ? Math.round(dayMacros.proteinGoal)
-                    : null,
-                label: "białko",
-              },
-              {
-                key: "carbs",
-                value:
-                  dayMacros.carbsGoal != null
-                    ? Math.round(dayMacros.carbsGoal)
-                    : null,
-                label: "węgle",
-              },
-              {
-                key: "fat",
-                value:
-                  dayMacros.fatGoal != null
-                    ? Math.round(dayMacros.fatGoal)
-                    : null,
-                label: "tłuszcz",
-              },
-            ] as const
-          ).map((cell, i) => (
-            <div
-              key={cell.key}
-              className={cn(
-                "min-w-0 px-1.5 first:pl-0 last:pr-0",
-                i > 0 && "border-l border-white/[0.1]",
-              )}
-            >
-              {cell.value != null ? (
-                <AnimatedMetric
-                  value={cell.value}
-                  className="block truncate text-[22px] leading-none text-white sm:text-[24px]"
-                />
-              ) : (
-                <span className="block text-[22px] leading-none text-white/35">
+
+        <div className="relative mt-4 flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            {kcalGoal != null ? (
+              <>
+                <p className="font-metric text-[clamp(2.75rem,11vw,3.75rem)] font-semibold leading-none tracking-tight text-white">
+                  <AnimatedMetric
+                    value={Math.round(kcalGoal)}
+                    durationMs={700}
+                    className="text-[clamp(2.75rem,11vw,3.75rem)] leading-none"
+                  />
+                </p>
+                <p className="mt-2 text-[13px] font-medium uppercase tracking-[0.14em] text-white/45">
+                  kcal
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-metric text-[2.75rem] font-semibold leading-none text-white/30">
                   —
-                </span>
-              )}
-              <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-white/45">
-                {cell.label}
-              </p>
-            </div>
-          ))}
+                </p>
+                <p className="mt-2 text-[13px] font-medium uppercase tracking-[0.14em] text-white/35">
+                  kcal · ustaw cel w profilu
+                </p>
+              </>
+            )}
+          </div>
+
+          <div className="shrink-0 space-y-3.5 text-right font-metric tabular-nums">
+            {(
+              [
+                { value: proteinGoal, label: "białko", unit: "g" },
+                { value: carbsGoal, label: "węgle", unit: "g" },
+                { value: fatGoal, label: "tłuszcze", unit: "g" },
+              ] as const
+            ).map((row) => (
+              <div key={row.label}>
+                {row.value != null ? (
+                  <p className="text-[18px] font-semibold leading-none text-white sm:text-[20px]">
+                    <AnimatedMetric
+                      value={Math.round(row.value)}
+                      durationMs={700}
+                      className="text-[18px] leading-none sm:text-[20px]"
+                    />
+                    <span className="ml-1 text-[12px] font-medium text-white/40">
+                      {row.unit}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-[18px] font-semibold leading-none text-white/30">
+                    —
+                  </p>
+                )}
+                <p
+                  className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                  style={{ color: PLAN_GOLD }}
+                >
+                  {row.label}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
-      </section>
+      </motion.section>
 
       <section className="space-y-3">
-        <SectionLabel
-          index={1}
-          title="Posiłki"
-          trailing={`${rows.length} na dzień`}
-        />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.52 }}
+        >
+          <SectionLabel
+            index={1}
+            title="Posiłki"
+            trailing={`${rows.length} na dzień`}
+          />
+        </motion.div>
         {mealTemplates.length === 0 ? (
-          <p className="rounded-[18px] border border-dashed border-white/12 bg-[#141414] px-4 py-3 text-[13px] leading-relaxed text-white/50">
+          <p className="rounded-[20px] border border-dashed border-white/12 bg-[#0E0E0E] px-4 py-3 text-[13px] leading-relaxed text-white/50">
             Brak własnych posiłków w profilu — pokazujemy 5 domyślnych slotów
             z makro podzielonym z celu dnia. Ustaw B/W/T per posiłek w Profilu
             (max 5), żeby przepisy były skalowane dokładnie pod Ciebie.
           </p>
         ) : null}
         <ul className="space-y-2.5">
-          {rows.map((row) => {
-            const open = openId === row.id;
-            return (
-              <li
-                key={row.id}
-                className={cn(
-                  "overflow-hidden rounded-[18px] border border-white/[0.07] bg-[#141414]",
-                  open && "border-[var(--gym-gold)]/25",
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenId(open ? null : row.id)}
-                  className="flex w-full items-start gap-2.5 px-3.5 py-3.5 text-left"
-                  aria-expanded={open}
-                >
-                  <div className="min-w-0 flex-1 space-y-2.5">
-                    <p className="truncate text-[15px] font-semibold text-white">
-                      {mealTileTitle(row)}
-                    </p>
-                    <MealMacroLine row={row} calories={row.calories} />
-                  </div>
-                  {open ? (
-                    <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-[var(--gym-gold)]" />
-                  ) : (
-                    <ChevronDown className="mt-1 h-4 w-4 shrink-0 rotate-[-90deg] text-white/35" />
-                  )}
-                </button>
-                {open ? (
-                  <div className="border-t border-white/[0.05] px-3 pb-4 pt-1">
-                    <DietRecipeGrid
-                      key={row.id}
-                      meals={catalogMeals}
-                      row={row}
-                      dateKey={dateKey}
-                      onShoppingChange={setShopping}
-                    />
-                  </div>
-                ) : null}
-              </li>
-            );
-          })}
+          {rows.map((row, index) => (
+            <PlanMealCard
+              key={row.id}
+              row={row}
+              index={index}
+              open={openId === row.id}
+              catalogMeals={catalogMeals}
+              dateKey={dateKey}
+              onToggle={() => setOpenId(openId === row.id ? null : row.id)}
+              onShoppingChange={setShopping}
+            />
+          ))}
         </ul>
       </section>
 
       <ShoppingListCard items={shopping} onChange={setShopping} />
 
-      <section className="space-y-3">
+      <motion.section
+        className="space-y-3"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.78 }}
+      >
         <SectionLabel
           index={2}
           title="Suplementy"
           trailing={`${supplements.length}`}
         />
-        <div className="app-card overflow-hidden">
+        <div className="overflow-hidden rounded-[22px] border border-white/[0.08] bg-[#0E0E0E]/90">
           <button
             type="button"
             onClick={() => setSuppOpen((v) => !v)}
@@ -436,7 +539,7 @@ export function DietMealPlanPanel({
                     key={`${item.name}-${item.amount ?? ""}`}
                     className="flex items-center gap-3 px-4 py-3 text-sm text-white/85"
                   >
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--gym-gold)]" />
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#DDBB6D]" />
                     <span className="min-w-0 flex-1">
                       <span className="block">{item.name}</span>
                       {item.amount?.trim() ? (
@@ -451,7 +554,7 @@ export function DietMealPlanPanel({
               <div className="border-t border-white/[0.06] px-4 py-3">
                 <Link
                   href="/supplements"
-                  className="text-sm font-medium text-[var(--gym-gold)] hover:text-[var(--gym-gold-bright)]"
+                  className="text-sm font-medium text-[#DDBB6D] hover:text-[#E8D08A]"
                 >
                   Zarządzaj suplementami
                 </Link>
@@ -459,11 +562,16 @@ export function DietMealPlanPanel({
             </div>
           ) : null}
         </div>
-      </section>
+      </motion.section>
 
-      <section className="space-y-3">
+      <motion.section
+        className="space-y-3"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.84 }}
+      >
         <SectionLabel index={3} title="Zalecenia" />
-        <div className="app-card space-y-4 p-4">
+        <div className="space-y-4 rounded-[22px] border border-white/[0.08] bg-[#0E0E0E]/90 p-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
               Nawodnienie
@@ -480,7 +588,7 @@ export function DietMealPlanPanel({
             <div className="mt-2 flex items-end gap-2">
               <AnimatedMetric
                 value={weeklyCardioGoalMinutes}
-                className="text-[40px] leading-none text-[var(--gym-gold)]"
+                className="text-[40px] leading-none text-[#DDBB6D]"
               />
               <span className="mb-1.5 text-sm text-white/45">min</span>
             </div>
@@ -489,11 +597,16 @@ export function DietMealPlanPanel({
             </p>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="space-y-3">
+      <motion.section
+        className="space-y-3"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.9 }}
+      >
         <SectionLabel index={4} title="Ściąga" />
-        <div className="app-card overflow-hidden">
+        <div className="overflow-hidden rounded-[22px] border border-white/[0.08] bg-[#0E0E0E]/90">
           <button
             type="button"
             onClick={() => setTipsOpen((v) => !v)}
@@ -518,7 +631,7 @@ export function DietMealPlanPanel({
             <ul className="space-y-3 border-t border-white/[0.06] px-4 py-4">
               {CHEATSHEET_TIPS.map((tip) => (
                 <li key={tip.title}>
-                  <p className="text-sm font-semibold text-[var(--gym-gold)]">
+                  <p className="text-sm font-semibold text-[#DDBB6D]">
                     {tip.title}
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-white/65">
@@ -529,7 +642,7 @@ export function DietMealPlanPanel({
             </ul>
           ) : null}
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 }

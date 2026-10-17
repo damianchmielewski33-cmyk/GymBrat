@@ -5,6 +5,62 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Ochrona limitu bazy Turso",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Codzienne sprzątanie retencji (analytics, eventy, czat, notyfikacje) chroni darmowy limit Turso — bez kasowania treningów, posiłków ani zdjęć użytkowników.",
+      "Soft/hard limit storage (MB): powyżej soft nowe zdjęcia są odrzucane; powyżej hard cleanup czyści tylko dane efemeryczne (nie zdjęcia).",
+      "Zdjęcia na tablicy są mocniej kompresowane; cron Vercel odpala cleanup o 03:00 UTC.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Szybsza tablica grupy",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Szczegóły grupy ładują ranking, live i zaproszenia równolegle (mniej kolejek do bazy), więc tablica nie czeka ~10+ s na pierwsze malowanie.",
+      "Pusty stan „aktywne treningi” jest krótki — LCP pada na nazwę grupy, a nie na szary komunikat.",
+      "Reakcje na tablicy (Beast / Strong / King…) znów reagują od razu po tapnięciu — optymistyczny toggle zamiast czekania na pełny refresh.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Regulamin pod weryfikację HotPay",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Publiczne strony /regulamin i /polityka-prywatnosci (sprzedawca, pakiety cyfrowe, płatności HotPay, odstąpienie, reklamacje, RODO).",
+      "Przed zakupem pakietu wymagana akceptacja Regulaminu; linki także w menu bocznym. Dane sprzedawcy z LEGAL_SELLER_* / LEGAL_CONTACT_*.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Twój plan + Dziennik premium",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Dieta → Twój plan: hero makro (ogromne kcal + B/W/T), segmented Plan/Dziennik jak iOS, złote szkło dnia treningowego, posiłki glass ze spring i strzałką 180°.",
+      "Dieta → Dziennik: ambient złoto/niebieski, count-up, refleks na karcie Zjedzone, CTA skanu Apple Pay; floating nav z oddychającym glow na Diecie.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Google na rejestracji uruchamia wizard, nie Pulpit",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "„Zarejestruj się przez Google/Facebook” wraca na /register?oauth=1 i kontynuuje rejestrację (imię, ciało, aktywność, cel) zamiast od razu wpuszczać na Pulpit.",
+      "Gdy konto Google jest już kompletne, zamiast cichego logowania jest komunikat „konto już istnieje” z wejściem do aplikacji.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Pasek serii i wyrównane karty ciężaru",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W sesji prowadzonej jest segmentowy pasek serii: zielony = zaliczona, pomarańczowy = pominięta, złoty = aktualna.",
+      "Karty Ciężar i Powtórzenia mają ten sam układ (steppery ±, drobne ±0,5 przy ciężarze); przy zaliczonej serii CTA jest zielone „Popraw serię”.",
+    ],
+  },
+  {
     title: "Zapowiedź — Team na dolnym pasku nawigacji",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
@@ -36,8 +92,8 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
-      "Podpowiedzi w trakcie treningu to krótka decyzja po polsku (np. „Utrzymaj obciążenie” + kg × powtórzenia), bez angielskich Readiness/Confidence i bez długiego „Powód:”.",
-      "Teksty silnika coacha bez angielskich wstawek; skrót API też zwraca max 1–2 linie.",
+      "Podpowiedzi w trakcie treningu to jedna krótka linia po polsku (treść silnika z kg × powtórzeniami), bez drugiej linii decyzji i bez angielskich Readiness/Confidence / „Powód:”.",
+      "Teksty silnika coacha bez angielskich wstawek; skrót API też zwraca jedną linię.",
       "„Start jak ostatnio” pokazuje te same kg × powtórzenia co linia „Ostatnio” (bez przycinania do zakresu planu).",
     ],
   },

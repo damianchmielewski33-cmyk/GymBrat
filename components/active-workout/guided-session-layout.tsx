@@ -102,16 +102,22 @@ function exerciseTargetBadges(exercise: WorkoutExerciseState): string[] {
 
 /** Steppery / metryki skalują się z wysokością viewport (RWD bez scrolla). */
 const stepperBtnClass =
-  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border border-white/12 bg-white/[0.04] text-white transition active:scale-[0.96] hover:border-[#D6B36A]/35 hover:bg-white/[0.07] min-[700px]:h-11 min-[700px]:w-11 min-[700px]:rounded-[14px] sm:h-12 sm:w-12";
+  "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-white/12 bg-[#121212] text-white transition active:scale-[0.96] hover:border-[#D6B36A]/35 hover:bg-white/[0.07] min-[700px]:h-12 min-[700px]:w-12 min-[700px]:rounded-[16px] sm:h-14 sm:w-14";
 
 const fineBtnClass =
-  "inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-[11px] font-semibold tabular-nums text-white/70 transition active:scale-[0.98] hover:border-[#D6B36A]/30 hover:text-white min-[700px]:h-9 min-[700px]:text-[12px]";
+  "inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/10 bg-[#121212] text-[11px] font-semibold tabular-nums text-white/70 transition active:scale-[0.98] hover:border-[#D6B36A]/30 hover:text-white min-[700px]:h-9 min-[700px]:text-[12px]";
 
-const metricInputClass =
-  "h-10 min-w-0 w-full bg-transparent px-0.5 text-center font-metric text-[clamp(1.65rem,5.5dvh,2.75rem)] leading-none tabular-nums tracking-tight text-[#D6B36A] outline-none placeholder:text-[#D6B36A]/35 min-[700px]:h-12 sm:h-14";
+const metricInputBaseClass =
+  "h-10 min-w-0 w-full bg-transparent px-0.5 text-center font-metric text-[clamp(1.65rem,5.5dvh,2.75rem)] leading-none tabular-nums tracking-tight outline-none min-[700px]:h-12 sm:h-14";
+
+const weightInputClass =
+  `${metricInputBaseClass} text-[#D6B36A] placeholder:text-[#D6B36A]/35`;
+
+const repsInputClass =
+  `${metricInputBaseClass} text-white placeholder:text-white/30`;
 
 const premiumCardClass =
-  "rounded-[18px] border border-white/[0.08] border-t-[#D6B36A]/20 bg-[#0A0A0A] p-2.5 shadow-[0_0_28px_rgba(214,179,106,0.06),inset_0_1px_0_rgba(255,255,255,0.04)] min-[700px]:rounded-[20px] min-[700px]:p-3 sm:rounded-[24px] sm:p-3.5";
+  "rounded-[18px] border border-white/[0.08] border-t-[#D6B36A]/20 bg-[#121212] p-3 shadow-[0_0_28px_rgba(214,179,106,0.06),inset_0_1px_0_rgba(255,255,255,0.04)] min-[700px]:rounded-[20px] min-[700px]:p-3.5 sm:rounded-[24px] sm:p-4";
 
 type GuidedSessionLayoutProps = {
   title: string;
@@ -446,12 +452,12 @@ export function GuidedSessionLayout({
     patchReps(clampReps(apply.reps));
   }
 
-  const primaryLabel =
-    set.done && !isSkippedWorkoutSet(set)
-      ? "Zapisz zmiany serii"
-      : canZaliczyc
-        ? "Zalicz serię"
-        : "Pomiń serię";
+  const setCompleted = set.done && !isSkippedWorkoutSet(set);
+  const primaryLabel = setCompleted
+    ? "Popraw serię"
+    : canZaliczyc
+      ? "Zalicz serię"
+      : "Pomiń serię";
 
   return (
     <div className="relative mx-auto flex h-full min-h-0 w-full max-w-lg flex-col overflow-hidden bg-black text-white">
@@ -533,49 +539,66 @@ export function GuidedSessionLayout({
                   {badge}
                 </span>
               ))}
-              <span className="text-[11px] font-semibold text-white/50">
-                Seria {activeSetIndex + 1}/{exercise.sets.length}
-                {set && isCompletedWorkoutSet(set)
-                  ? " · edycja"
-                  : set && isSkippedWorkoutSet(set)
-                    ? " · pominięta"
-                    : ""}
-              </span>
             </div>
 
-            <div className="mt-2 flex items-center gap-2">
-              {exercise.sets.map((s, i) => {
-                const completed = isCompletedWorkoutSet(s);
-                const skipped = isSkippedWorkoutSet(s);
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    aria-label={`Seria ${i + 1}${
-                      completed ? ", zaliczona" : skipped ? ", pominięta" : ""
-                    }`}
-                    aria-pressed={i === activeSetIndex}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => selectSetIndex(i)}
-                    className={cn(
-                      "h-3.5 w-3.5 rounded-full transition",
-                      i === activeSetIndex
-                        ? "bg-[#D6B36A] shadow-[0_0_12px_rgba(214,179,106,0.55)] ring-2 ring-[#D6B36A]/40 ring-offset-2 ring-offset-black"
-                        : completed
-                          ? "bg-emerald-400"
+            {/* Pasek wykonanych serii — zielony = zaliczona */}
+            <div className="mt-2.5">
+              <div
+                className="flex gap-1"
+                role="tablist"
+                aria-label="Postęp serii"
+              >
+                {exercise.sets.map((s, i) => {
+                  const completed = isCompletedWorkoutSet(s);
+                  const skipped = isSkippedWorkoutSet(s);
+                  const active = i === activeSetIndex;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      role="tab"
+                      aria-label={`Seria ${i + 1}${
+                        completed
+                          ? ", zaliczona"
+                          : skipped
+                            ? ", pominięta"
+                            : active
+                              ? ", aktualna"
+                              : ""
+                      }`}
+                      aria-selected={active}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => selectSetIndex(i)}
+                      className={cn(
+                        "h-2.5 min-w-0 flex-1 rounded-full transition",
+                        completed
+                          ? "bg-[#76D686] shadow-[0_0_12px_rgba(118,214,134,0.45)]"
                           : skipped
                             ? "bg-orange-400"
-                            : "bg-white/20 hover:bg-white/35",
-                    )}
-                  />
-                );
-              })}
-              {lastSetLine ? (
-                <p className="ml-1 min-w-0 truncate text-[11px] font-medium tabular-nums text-white/45">
-                  {lastSetLine}
-                  {lastWhen ? ` · ${lastWhen}` : ""}
+                            : active
+                              ? "bg-[#D6B36A]/75 shadow-[0_0_10px_rgba(214,179,106,0.35)]"
+                              : "bg-white/15 hover:bg-white/25",
+                      )}
+                    />
+                  );
+                })}
+              </div>
+              <div className="mt-1.5 flex items-baseline justify-between gap-2">
+                <p className="shrink-0 text-[12px] font-semibold tabular-nums text-white/75">
+                  Seria {activeSetIndex + 1} z {exercise.sets.length}
+                  {setCompleted
+                    ? " · edycja"
+                    : isSkippedWorkoutSet(set)
+                      ? " · pominięta"
+                      : ""}
                 </p>
-              ) : null}
+                {lastSetLine ? (
+                  <p className="min-w-0 truncate text-right text-[11px] font-medium tabular-nums text-white/45">
+                    {lastSetLine}
+                    {lastWhen ? ` · ${lastWhen}` : ""}
+                  </p>
+                ) : null}
+              </div>
             </div>
 
             <LiveCoachBanner
@@ -654,13 +677,13 @@ export function GuidedSessionLayout({
             ) : null}
           </div>
 
-          {/* Ciężar → powtórzenia → RIR (pionowo), skalowane pod wysokość ekranu */}
-          <div className="mt-1.5 flex min-h-0 flex-1 flex-col justify-end gap-1.5 min-[700px]:mt-2 min-[700px]:gap-2">
+          {/* Ciężar → powtórzenia → RIR (pionowo), wyrównane karty jak na mocku */}
+          <div className="mt-1.5 flex min-h-0 flex-1 flex-col justify-end gap-2 min-[700px]:mt-2 min-[700px]:gap-2.5">
             <div className={cn(premiumCardClass, "shrink min-h-0")}>
-              <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+              <div className="flex items-center justify-between text-[11px] font-semibold tracking-wide text-white/55">
                 <label htmlFor="set-weight">Ciężar</label>
-                <span className="normal-case tracking-normal text-white/30">
-                  kg · krok {WEIGHT_STEP}
+                <span className="text-[10px] font-medium text-white/35">
+                  krok {WEIGHT_STEP}
                 </span>
               </div>
               {suggestedWeight != null &&
@@ -669,12 +692,12 @@ export function GuidedSessionLayout({
                 <button
                   type="button"
                   onClick={() => patchWeight(clampWeight(suggestedWeight))}
-                  className="mt-1 inline-flex h-7 items-center rounded-full border border-[#D6B36A]/40 bg-[#D6B36A]/15 px-2 text-[10px] font-semibold text-[#D6B36A]"
+                  className="mt-1.5 inline-flex h-7 items-center rounded-full border border-[#D6B36A]/40 bg-[#D6B36A]/15 px-2 text-[10px] font-semibold text-[#D6B36A]"
                 >
                   Sugestia {suggestedWeight} kg
                 </button>
               ) : null}
-              <div className="mt-1 flex items-center justify-center gap-1.5 min-[700px]:mt-1.5 min-[700px]:gap-2">
+              <div className="mt-2 flex items-center justify-center gap-2 min-[700px]:mt-2.5 min-[700px]:gap-2.5">
                 <button
                   type="button"
                   aria-label="Zmniejsz ciężar"
@@ -729,9 +752,9 @@ export function GuidedSessionLayout({
                         parsed != null && parsed > 0 ? String(parsed) : "",
                       );
                     }}
-                    className={cn(metricInputClass, "flex-1")}
+                    className={cn(weightInputClass, "flex-1")}
                   />
-                  <span className="mb-1.5 shrink-0 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#D6B36A]/75 min-[700px]:mb-2.5 min-[700px]:text-[14px]">
+                  <span className="mb-1.5 shrink-0 text-[13px] font-semibold lowercase tracking-wide text-[#D6B36A]/80 min-[700px]:mb-2.5 min-[700px]:text-[15px]">
                     kg
                   </span>
                 </div>
@@ -751,7 +774,7 @@ export function GuidedSessionLayout({
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
-              <div className="mt-1 flex gap-1.5 min-[700px]:mt-1.5">
+              <div className="mt-2 flex gap-2 min-[700px]:mt-2.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -764,7 +787,7 @@ export function GuidedSessionLayout({
                   }}
                   className={fineBtnClass}
                 >
-                  −0,5
+                  − 0,5
                 </button>
                 <button
                   type="button"
@@ -778,19 +801,16 @@ export function GuidedSessionLayout({
                   }}
                   className={fineBtnClass}
                 >
-                  +0,5
+                  + 0,5
                 </button>
               </div>
             </div>
 
             <div className={cn(premiumCardClass, "shrink min-h-0")}>
-              <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+              <div className="flex items-center justify-between text-[11px] font-semibold tracking-wide text-white/55">
                 <label htmlFor="set-reps">Powtórzenia</label>
-                <span className="normal-case tracking-normal text-white/30">
-                  krok 1
-                </span>
               </div>
-              <div className="mt-1 flex items-center justify-center gap-1.5 min-[700px]:mt-1.5 min-[700px]:gap-2">
+              <div className="mt-2 flex items-center justify-center gap-2 min-[700px]:mt-2.5 min-[700px]:gap-2.5">
                 <button
                   type="button"
                   aria-label="Mniej powtórzeń"
@@ -841,7 +861,7 @@ export function GuidedSessionLayout({
                       parsed != null && parsed > 0 ? String(parsed) : "",
                     );
                   }}
-                  className={metricInputClass}
+                  className={repsInputClass}
                 />
                 <button
                   type="button"
@@ -911,14 +931,14 @@ export function GuidedSessionLayout({
             }
             skipSet();
           }}
-          className="gym-btn-primary inline-flex h-14 w-full items-center justify-center gap-2 rounded-[22px] text-[15px] font-bold uppercase tracking-[0.06em] shadow-[0_0_36px_rgba(214,179,106,0.42)] sm:h-[64px] sm:rounded-[24px] sm:text-[16px]"
+          className={cn(
+            "inline-flex h-14 w-full items-center justify-center gap-2 rounded-[22px] text-[15px] font-bold uppercase tracking-[0.06em] sm:h-[64px] sm:rounded-[24px] sm:text-[16px]",
+            setCompleted
+              ? "border border-[#76D686]/55 bg-[#76D686] text-[#0A1A0E] shadow-[0_0_36px_rgba(118,214,134,0.42)]"
+              : "gym-btn-primary shadow-[0_0_36px_rgba(214,179,106,0.42)]",
+          )}
         >
-          {set.done && !isSkippedWorkoutSet(set) ? (
-            <>
-              <Check className="h-5 w-5" />
-              {primaryLabel}
-            </>
-          ) : canZaliczyc ? (
+          {setCompleted || canZaliczyc ? (
             <>
               <Check className="h-5 w-5" />
               {primaryLabel}

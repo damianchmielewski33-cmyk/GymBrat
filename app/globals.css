@@ -268,6 +268,58 @@
     animation: page-enter-opacity 0.18s ease forwards;
   }
 
+  /* ── Dieta → Dziennik (premium ambient + sheen) ── */
+  @keyframes diary-sheen-sweep {
+    0%,
+    88% {
+      transform: translateX(-140%) skewX(-14deg);
+      opacity: 0;
+    }
+    92% {
+      opacity: 0.45;
+    }
+    96% {
+      opacity: 0.12;
+    }
+    100% {
+      transform: translateX(160%) skewX(-14deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes diary-nav-breathe {
+    0%,
+    100% {
+      box-shadow:
+        0 0 0 1px rgba(221, 187, 109, 0.28),
+        0 0 14px rgba(221, 187, 109, 0.18),
+        0 0 28px rgba(221, 187, 109, 0.08);
+      opacity: 0.72;
+    }
+    50% {
+      box-shadow:
+        0 0 0 1px rgba(221, 187, 109, 0.48),
+        0 0 22px rgba(221, 187, 109, 0.32),
+        0 0 44px rgba(221, 187, 109, 0.16);
+      opacity: 1;
+    }
+  }
+
+  .diary-macro-sheen {
+    animation: diary-sheen-sweep 15s ease-in-out infinite;
+  }
+
+  .diary-nav-breathe {
+    animation: diary-nav-breathe 4s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .diary-macro-sheen,
+    .diary-nav-breathe {
+      animation: none;
+    }
+  }
+
   /* ── Panels ── */
   .glass-panel {
     border-radius: 14px;

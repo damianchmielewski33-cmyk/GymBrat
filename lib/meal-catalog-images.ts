@@ -77,6 +77,14 @@ export async function upsertCatalogMealImage(args: {
   const dataUrl = `data:${mime};base64,${b64}`;
   const updatedAt = new Date();
 
+  const { assertCanStoreBlob, DB_BLOB_FULL_MESSAGE } = await import(
+    "@/lib/db-storage-budget"
+  );
+  const budget = await assertCanStoreBlob(args.bytes.byteLength);
+  if (!budget.ok) {
+    throw new Error(budget.error || DB_BLOB_FULL_MESSAGE);
+  }
+
   const [prev] = await db
     .select({ mealId: mealCatalogImages.mealId })
     .from(mealCatalogImages)

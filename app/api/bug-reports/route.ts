@@ -17,7 +17,7 @@ const createSchema = z.object({
   description: z.string().trim().min(1).max(8_000),
   priority: z.enum(BUG_PRIORITIES),
   photoDataUrls: z
-    .array(z.string().startsWith("data:image/").max(1_500_000))
+    .array(z.string().startsWith("data:image/").max(450_000))
     .max(MAX_PHOTOS)
     .optional(),
 });
@@ -94,6 +94,20 @@ export async function POST(req: Request) {
     .slice(0, MAX_PHOTOS);
 
   if (photos.length > 0) {
+    const { assertCanStoreBlob, DB_BLOB_FULL_MESSAGE } = await import(
+      "@/lib/db-storage-budget"
+    );
+    const approxBytes = photos.reduce(
+      (sum, u) => sum + Math.ceil(u.length * 0.75),
+      0,
+    );
+    const budget = await assertCanStoreBlob(approxBytes);
+    if (!budget.ok) {
+      return NextResponse.json(
+        { ok: false, error: budget.error || DB_BLOB_FULL_MESSAGE },
+        { status: 507 },
+      );
+    }
     await db.insert(bugReportPhotos).values(
       photos.map((dataUrl) => ({
         bugReportId: bugId,

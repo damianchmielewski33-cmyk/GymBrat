@@ -105,9 +105,21 @@ export async function proxy(req: NextRequest) {
 
   const token = await readSessionToken(req);
   const profileComplete = token?.profileComplete === true;
+  const oauthExisting = req.nextUrl.searchParams.get("oauth") === "existing";
+  const oauthRegisterContinue =
+    pathname === "/register" &&
+    req.nextUrl.searchParams.get("oauth") === "1";
 
   if (isAnonymousPublicPath(pathname)) {
-    if (token && shouldBounceAuthenticatedFromAuthPage(pathname)) {
+    // /login?oauth=existing — komunikat „konto już jest”, bez odbicia na Pulpit.
+    if (token && pathname === "/login" && oauthExisting) {
+      return NextResponse.next();
+    }
+    if (token && shouldBounceAuthenticatedFromAuthPage(pathname, profileComplete)) {
+      // Rejestracja Google przy już kompletnym koncie → nie ciche logowanie na Pulpit.
+      if (oauthRegisterContinue && profileComplete) {
+        return NextResponse.redirect(new URL("/login?oauth=existing", req.url));
+      }
       return NextResponse.redirect(
         new URL(postAuthDestination(profileComplete), req.url),
       );

@@ -49,6 +49,7 @@ export function LoginForm({
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") ?? "/";
   const registered = params.get("registered");
+  const oauthExisting = params.get("oauth") === "existing";
   const oauthError = oauthErrorMessage(params.get("error"));
   const trainerEnabled = isTrainerFlowEnabled();
   const roleFromUrl = roleFromSearchParam(params.get("role"));
@@ -74,7 +75,41 @@ export function LoginForm({
   }
 
   const registerHref = "/register?role=zawodnik";
-  const hasBanner = Boolean(registered && !error) || Boolean(error);
+  const hasBanner =
+    Boolean(registered && !error) ||
+    Boolean(error) ||
+    Boolean(oauthExisting && !error);
+
+  if (oauthExisting) {
+    return (
+      <div className="space-y-6">
+        <InlineBanner role="status" variant="success">
+          To konto Google jest już zarejestrowane w GymBrat — nie tworzymy
+          drugiego. Możesz wejść do aplikacji albo wrócić do rejestracji innym
+          sposobem.
+        </InlineBanner>
+        <Button
+          type="button"
+          variant="cta"
+          className="w-full"
+          onClick={() => {
+            window.location.assign(`${window.location.origin}/`);
+          }}
+        >
+          Wejdź do GymBrat
+        </Button>
+        <p className="text-center text-sm text-white/55">
+          Chcesz inne konto?{" "}
+          <Link
+            href={registerHref}
+            className="rounded-sm text-[var(--neon)] underline-offset-4 hover:underline"
+          >
+            Wróć do rejestracji
+          </Link>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form
@@ -138,13 +173,13 @@ export function LoginForm({
         <div className="space-y-3">
           {googleEnabled ? (
             <GoogleSignInButton
-              callbackUrl="/complete-profile"
+              redirectTo="/complete-profile"
               label="Zaloguj się przez Google"
             />
           ) : null}
           {facebookEnabled ? (
             <FacebookSignInButton
-              callbackUrl="/complete-profile"
+              redirectTo="/complete-profile"
               label="Zaloguj się przez Facebook"
             />
           ) : null}
@@ -238,6 +273,18 @@ export function LoginForm({
           className="rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
         >
           Utwórz konto
+        </Link>
+      </p>
+      <p className="text-center text-[11px] text-white/35">
+        <Link href="/regulamin" className="underline-offset-2 hover:underline">
+          Regulamin
+        </Link>
+        {" · "}
+        <Link
+          href="/polityka-prywatnosci"
+          className="underline-offset-2 hover:underline"
+        >
+          Polityka prywatności
         </Link>
       </p>
     </form>

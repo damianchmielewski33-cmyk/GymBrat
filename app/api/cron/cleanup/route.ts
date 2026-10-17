@@ -3,6 +3,8 @@ import { runDbCleanup } from "@/lib/db-retention";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** Cleanup może trwać dłużej przy dużych batchach. */
+export const maxDuration = 60;
 
 function authorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -15,7 +17,7 @@ function authorized(req: Request): boolean {
   return token === secret;
 }
 
-export async function POST(req: Request) {
+async function handle(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
@@ -23,3 +25,11 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, ...result });
 }
 
+/** Vercel Cron woła GET (z Authorization: Bearer CRON_SECRET). */
+export async function GET(req: Request) {
+  return handle(req);
+}
+
+export async function POST(req: Request) {
+  return handle(req);
+}

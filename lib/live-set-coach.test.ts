@@ -293,7 +293,7 @@ describe("live-set-coach", () => {
     expect(tip!.suspicious || tip!.confidence < 70).toBe(true);
   });
 
-  it("plainText: zwięźle po polsku, bez Readiness/Confidence", () => {
+  it("plainText: jedna linia body, bez Readiness/Confidence", () => {
     const tip = buildLiveCoachTipForOpenSet(
       ex({
         sets: [
@@ -307,7 +307,7 @@ describe("live-set-coach", () => {
     const plain = liveCoachTipToPlainText(tip);
     expect(plain).toBeTruthy();
     expect(plain!).not.toMatch(/Readiness|Confidence|Powód:/i);
-    expect(plain!.split("\n").length).toBeLessThanOrEqual(2);
-    expect(plain!).toContain(tip!.decision);
+    expect(plain!.split("\n").length).toBe(1);
+    expect(plain!).toBe(tip!.body.trim());
   });
 });

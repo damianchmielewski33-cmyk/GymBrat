@@ -2,7 +2,6 @@
 
 import type { LiveCoachTip } from "@/lib/live-set-coach";
 import { hapticTap } from "@/lib/haptics";
-import { formatKgPl } from "@/lib/set-progression-suggestion";
 import { cn } from "@/lib/utils";
 
 const TONE_CLASS: Record<LiveCoachTip["tone"], string> = {
@@ -14,6 +13,13 @@ const TONE_CLASS: Record<LiveCoachTip["tone"], string> = {
   info: "border-white/12 bg-white/[0.04] text-white/80 hover:bg-white/[0.07]",
 };
 
+const HIGHLIGHT_CLASS: Record<LiveCoachTip["tone"], string> = {
+  progress: "text-emerald-300",
+  caution: "text-amber-200",
+  hold: "text-[#D6B36A]",
+  info: "text-white",
+};
+
 const ICON: Record<LiveCoachTip["tone"], string> = {
   progress: "🔥",
   caution: "⚠️",
@@ -22,8 +28,8 @@ const ICON: Record<LiveCoachTip["tone"], string> = {
 };
 
 /**
- * Zwięzły tip coacha: jedna linia po polsku (decyzja + opcjonalnie kg×reps).
- * Bez Readiness / Confidence / „Powód:”.
+ * Jedna podpowiedź coacha: treść silnika (body z highlight kg×reps).
+ * Bez drugiej linii decyzji, bez Readiness / Confidence / „Powód:”.
  */
 export function LiveCoachBanner({
   tip,
@@ -40,42 +46,39 @@ export function LiveCoachBanner({
   if (!tip) return null;
   const clickable = Boolean(tip.apply && onApply);
 
-  const headline = (tip.decision || tip.body).trim();
-  const applyLine =
-    tip.apply != null
-      ? `${formatKgPl(tip.apply.weightKg)} kg × ${tip.apply.reps}`
-      : null;
-
   const inner = (
     <>
       <span className="shrink-0" aria-hidden>
         {ICON[tip.tone]}
       </span>
-      <span className="min-w-0">
-        <span
-          className={cn(
-            "block font-semibold tracking-wide",
-            compact ? "truncate text-[12px]" : "text-[13px]",
-          )}
-        >
-          {headline}
-        </span>
-        {applyLine && tip.decision ? (
-          <span
-            className={cn(
-              "mt-0.5 block tabular-nums opacity-75",
-              compact ? "truncate text-[11px]" : "text-[12px]",
-            )}
-          >
-            {applyLine}
-          </span>
-        ) : null}
+      <span
+        className={cn(
+          "min-w-0",
+          compact ? "text-[12px] leading-snug" : "text-[13px] leading-snug",
+        )}
+      >
+        {tip.highlight ? (
+          <>
+            {tip.prefix}
+            <span
+              className={cn(
+                "font-semibold tabular-nums",
+                HIGHLIGHT_CLASS[tip.tone],
+              )}
+            >
+              {tip.highlight}
+            </span>
+            <span className="opacity-80">{tip.suffix}</span>
+          </>
+        ) : (
+          tip.body
+        )}
       </span>
     </>
   );
 
   const shell = cn(
-    "flex w-full items-start gap-2 border text-left leading-snug transition",
+    "flex w-full items-start gap-2 border text-left transition",
     compact
       ? "rounded-xl px-2.5 py-1.5 text-[12px]"
       : "rounded-2xl px-3 py-2.5 text-[13px]",
@@ -92,9 +95,7 @@ export function LiveCoachBanner({
           if (tip.apply) onApply?.(tip.apply);
         }}
         className={shell}
-        aria-label={
-          applyLine ? `${headline}. ${applyLine}` : headline
-        }
+        aria-label={tip.body}
       >
         {inner}
       </button>

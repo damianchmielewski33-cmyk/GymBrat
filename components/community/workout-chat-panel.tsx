@@ -361,18 +361,6 @@ export function WorkoutChatPanel({
           </p>
         ) : null}
 
-        {!loading && !error && messages.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-12 text-center">
-            <p className="text-[15px] font-semibold text-white/80">
-              Tu zaczyna się rozmowa
-            </p>
-            <p className="max-w-[16rem] text-[12px] text-white/40">
-              Emoji, odpowiedzi, reakcje i @oznaczenia — jak na Discordzie, tylko
-              przy sztandze.
-            </p>
-          </div>
-        ) : null}
-
         {messages.map((m) => {
           const day = formatDay(m.createdAt);
           const showDay = day !== lastDay;

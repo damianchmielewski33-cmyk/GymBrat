@@ -120,6 +120,13 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
+    const { DB_BLOB_FULL_MESSAGE } = await import("@/lib/db-storage-budget");
+    if (e instanceof Error && e.message === DB_BLOB_FULL_MESSAGE) {
+      return NextResponse.json(
+        { ok: false, error: DB_BLOB_FULL_MESSAGE },
+        { status: 507 },
+      );
+    }
     console.error("[admin/branding] upsert failed:", e);
     return NextResponse.json(
       {

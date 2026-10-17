@@ -23,7 +23,6 @@ export function DietDateNav({
   const today = calendarDateKey();
   const isToday = dateKey === today;
   const long = formatLongDate(dateKey);
-  const title = isToday ? "Dziś" : long;
 
   return (
     <div className="flex items-center justify-center gap-3 px-1">
@@ -31,22 +30,23 @@ export function DietDateNav({
         type="button"
         aria-label="Poprzedni dzień"
         onClick={() => onSelect(addCalendarDays(dateKey, -1))}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/55 hover:bg-white/[0.06] hover:text-white"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/[0.06] hover:text-white"
       >
         <ChevronLeft className="h-5 w-5" />
       </button>
       <div className="min-w-0 text-center">
         {isToday ? (
-          <p className="text-[15px] font-semibold text-white">
-            Dziś
-            <span className="font-normal text-white/40"> / </span>
-            <span className="text-[13px] font-normal capitalize text-white/55">
+          <>
+            <p className="text-[16px] font-semibold tracking-tight text-white">
+              Dziś
+            </p>
+            <p className="mt-0.5 text-[12px] font-medium capitalize tracking-wide text-white/45">
               {long}
-            </span>
-          </p>
+            </p>
+          </>
         ) : (
-          <p className="text-[15px] font-semibold capitalize text-white">
-            {title}
+          <p className="text-[15px] font-semibold capitalize tracking-tight text-white">
+            {long}
           </p>
         )}
       </div>
@@ -54,7 +54,7 @@ export function DietDateNav({
         type="button"
         aria-label="Następny dzień"
         onClick={() => onSelect(addCalendarDays(dateKey, 1))}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/55 hover:bg-white/[0.06] hover:text-white"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/[0.06] hover:text-white"
       >
         <ChevronRight className="h-5 w-5" />
       </button>

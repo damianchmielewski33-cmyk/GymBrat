@@ -151,27 +151,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ account, profile }) {
       if (!isOAuthProvider(account?.provider)) return true;
-      const { email, name, givenName, familyName, emailVerified } =
-        oauthProfileFields(profile);
+      const { email, emailVerified } = oauthProfileFields(profile);
       if (!email.trim()) return false;
       // Google / Facebook — bez zweryfikowanego e-maila nie łączymy kont.
       if (emailVerified === false) return false;
-
       const providerAccountId =
         typeof account.providerAccountId === "string"
           ? account.providerAccountId
           : "";
-      if (!providerAccountId) return false;
-
-      const resolved = await resolveGoogleSignInUser({
-        email,
-        name,
-        givenName,
-        familyName,
-        providerAccountId,
-        provider: account.provider,
-      });
-      return Boolean(resolved);
+      // Tworzenie / łączenie konta wyłącznie w jwt — tu tylko walidacja,
+      // żeby isNew nie padało przez podwójne wywołanie resolve.
+      return Boolean(providerAccountId);
     },
     async jwt({ token, user, account, profile, trigger }) {
       if (isOAuthProvider(account?.provider)) {
@@ -200,8 +190,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = resolved.email;
         token.role = resolved.role;
         if (resolved.name) token.name = resolved.name;
-        // Nowe konto OAuth — wymuś /complete-profile; powiązane hasłowe zachowuje status z DB.
-        token.profileComplete = resolved.isNew ? false : undefined;
+        // Nowe konto OAuth — zawsze dokończenie rejestracji (nie Pulpit).
+        if (resolved.isNew) {
+          token.profileComplete = false;
+        }
       } else {
         const uid =
           typeof user?.id === "string"

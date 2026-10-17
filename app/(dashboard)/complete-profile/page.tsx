@@ -52,12 +52,12 @@ export default async function CompleteProfilePage() {
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-10">
       <AuthHeroBrand
-        headline="Dokończ profil"
-        support="Konto Google jest gotowe — uzupełnij dane jak przy rejestracji, żeby Start i dieta działały poprawnie."
+        headline="Dokończ rejestrację"
+        support="Konto Google jest połączone — uzupełnij imię, parametry ciała i aktywność, żeby dokończyć rejestrację (jak przy e-mailu)."
       />
       <div className="glass-panel gold-panel relative overflow-hidden p-6 sm:p-8">
         <p className="mb-5 text-sm text-white/55">
-          Zalogowano jako{" "}
+          Rejestracja:{" "}
           <span className="font-medium text-white/85">{row.email}</span>
         </p>
         <CompleteProfileForm

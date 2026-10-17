@@ -11,13 +11,19 @@ describe("auth-public-paths", () => {
     expect(isAnonymousPublicPath("/")).toBe(true);
     expect(isAnonymousPublicPath("/login")).toBe(true);
     expect(isAnonymousPublicPath("/register")).toBe(true);
+    expect(isAnonymousPublicPath("/regulamin")).toBe(true);
+    expect(isAnonymousPublicPath("/polityka-prywatnosci")).toBe(true);
     expect(isAnonymousPublicPath("/reports")).toBe(false);
     expect(isAnonymousPublicPath("/profile")).toBe(false);
   });
 
-  it("po zalogowaniu odbija tylko /login i /register, nie sam Start", () => {
+  it("po zalogowaniu odbija /login; /register tylko przy kompletnym profilu", () => {
     expect(shouldBounceAuthenticatedFromAuthPage("/login")).toBe(true);
-    expect(shouldBounceAuthenticatedFromAuthPage("/register")).toBe(true);
+    expect(shouldBounceAuthenticatedFromAuthPage("/register", true)).toBe(true);
+    expect(shouldBounceAuthenticatedFromAuthPage("/register", false)).toBe(
+      false,
+    );
+    expect(shouldBounceAuthenticatedFromAuthPage("/register")).toBe(false);
     expect(shouldBounceAuthenticatedFromAuthPage("/")).toBe(false);
   });
 
@@ -26,6 +32,7 @@ describe("auth-public-paths", () => {
     expect(postAuthDestination(true)).toBe("/");
     expect(mustCompleteProfile("/workout-plan", false)).toBe(true);
     expect(mustCompleteProfile("/complete-profile", false)).toBe(false);
+    expect(mustCompleteProfile("/regulamin", false)).toBe(false);
     expect(mustCompleteProfile("/", true)).toBe(false);
   });
 });

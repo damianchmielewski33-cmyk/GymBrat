@@ -1,6 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import {
   addTeamFeedCommentAction,
   deleteTeamFeedPostAction,
@@ -14,6 +20,7 @@ import { screenInputClass } from "@/components/layout/screen";
 import {
   FEED_REACTIONS,
   feedReactionMeta,
+  type FeedReactionKind,
 } from "@/lib/community/feed-reactions";
 import { teamPostTypeLabel } from "@/lib/community/feed-types";
 import type {
@@ -83,10 +90,17 @@ export function TeamFeedPostCard({
     setCommentsHasMore(post.commentCount > post.comments.length);
   }, [post.comments, post.commentCount]);
 
-  const [reactState, reactAction, reactPending] = useActionState(
-    setTeamFeedReactionAction,
-    {} as TeamFeedActionState,
+  const [reactPending, startReact] = useTransition();
+  const [myReaction, setMyReaction] = useState(post.myReaction);
+  const [reactionBreakdown, setReactionBreakdown] = useState(
+    post.reactionBreakdown,
   );
+
+  useEffect(() => {
+    setMyReaction(post.myReaction);
+    setReactionBreakdown(post.reactionBreakdown);
+  }, [post.id, post.myReaction, post.reactionBreakdown]);
+
   const [commentState, commentAction, commentPending] = useActionState(
     addTeamFeedCommentAction,
     {} as TeamFeedActionState,
@@ -96,9 +110,43 @@ export function TeamFeedPostCard({
     {} as TeamFeedActionState,
   );
 
-  useEffect(() => {
-    if (reactState.error) notifyError(reactState.error);
-  }, [reactState, notifyError]);
+  function applyReactionOptimistic(kind: FeedReactionKind) {
+    const prev = myReaction;
+    const next: FeedReactionKind | null = prev === kind ? null : kind;
+    setReactionBreakdown((b) => {
+      const copy: Partial<Record<FeedReactionKind, number>> = { ...b };
+      if (prev) {
+        const n = Math.max(0, (copy[prev] ?? 1) - 1);
+        if (n === 0) delete copy[prev];
+        else copy[prev] = n;
+      }
+      if (next) copy[next] = (copy[next] ?? 0) + 1;
+      return copy;
+    });
+    setMyReaction(next);
+    return { prev, next };
+  }
+
+  function onReact(kind: FeedReactionKind) {
+    if (reactPending) return;
+    const snapshot = {
+      myReaction,
+      reactionBreakdown: { ...reactionBreakdown },
+    };
+    applyReactionOptimistic(kind);
+    startReact(async () => {
+      const fd = new FormData();
+      fd.set("teamId", teamId);
+      fd.set("postId", post.id);
+      fd.set("kind", kind);
+      const result = await setTeamFeedReactionAction({}, fd);
+      if (result.error) {
+        setMyReaction(snapshot.myReaction);
+        setReactionBreakdown(snapshot.reactionBreakdown);
+        notifyError(result.error);
+      }
+    });
+  }
 
   useEffect(() => {
     if (commentState.error) notifyError(commentState.error);
@@ -224,44 +272,50 @@ export function TeamFeedPostCard({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-1.5">
+      <div
+        className="relative z-[1] flex flex-wrap gap-1.5 pointer-events-auto"
+        role="group"
+        aria-label="Reakcje"
+      >
         {FEED_REACTIONS.map((r) => {
-          const count = post.reactionBreakdown[r.kind] ?? 0;
-          const active = post.myReaction === r.kind;
+          const count = reactionBreakdown[r.kind] ?? 0;
+          const active = myReaction === r.kind;
           return (
-            <form key={r.kind} action={reactAction}>
-              <input type="hidden" name="teamId" value={teamId} />
-              <input type="hidden" name="postId" value={post.id} />
-              <input type="hidden" name="kind" value={r.kind} />
-              <button
-                type="submit"
-                disabled={reactPending}
-                title={r.label}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[12px] transition-colors",
-                  active
-                    ? "border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]"
-                    : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]",
-                )}
-              >
-                <span aria-hidden>{r.emoji}</span>
-                {count > 0 ? (
-                  <span className="tabular-nums">{count}</span>
-                ) : (
-                  <span className="text-[10px] uppercase tracking-wide opacity-70">
-                    {r.label}
-                  </span>
-                )}
-              </button>
-            </form>
+            <button
+              key={r.kind}
+              type="button"
+              disabled={reactPending}
+              title={r.label}
+              aria-label={r.label}
+              aria-pressed={active}
+              onClick={() => onReact(r.kind)}
+              className={cn(
+                "inline-flex min-h-9 min-w-9 touch-manipulation items-center gap-1 rounded-full border px-2.5 py-1.5 text-[12px] transition-colors",
+                "enabled:active:scale-[0.97] enabled:cursor-pointer disabled:opacity-55",
+                active
+                  ? "border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]"
+                  : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]",
+              )}
+            >
+              <span aria-hidden className="text-[15px] leading-none">
+                {r.emoji}
+              </span>
+              {count > 0 ? (
+                <span className="tabular-nums">{count}</span>
+              ) : (
+                <span className="text-[10px] uppercase tracking-wide opacity-70">
+                  {r.label}
+                </span>
+              )}
+            </button>
           );
         })}
       </div>
 
-      {post.myReaction ? (
+      {myReaction ? (
         <p className="text-[11px] text-white/40">
-          Twoja reakcja: {feedReactionMeta(post.myReaction).emoji}{" "}
-          {feedReactionMeta(post.myReaction).label}
+          Twoja reakcja: {feedReactionMeta(myReaction).emoji}{" "}
+          {feedReactionMeta(myReaction).label}
         </p>
       ) : null}
 

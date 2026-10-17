@@ -29,7 +29,8 @@ import {
 import { getActiveMembership } from "@/lib/community/teams";
 
 const MAX_IMAGES = 6;
-const MAX_IMAGE_CHARS = 1_200_000;
+/** ~300–350 KB JPEG jako data URL — chroni darmowy limit Turso. */
+const MAX_IMAGE_CHARS = 450_000;
 const MAX_BODY = 2000;
 const MAX_COMMENT = 1000;
 /** Preview komentarzy na listę feedu — reszta lazy przez API. */
@@ -161,6 +162,20 @@ export async function createTeamPost(input: {
     }
     if (img.dataUrl.length > MAX_IMAGE_CHARS) {
       return { ok: false, error: "Zdjęcie jest za duże — skompresuj je." };
+    }
+  }
+
+  if (images.length > 0) {
+    const { assertCanStoreBlob, DB_BLOB_FULL_MESSAGE } = await import(
+      "@/lib/db-storage-budget"
+    );
+    const approxBytes = images.reduce(
+      (sum, img) => sum + Math.ceil(img.dataUrl.length * 0.75),
+      0,
+    );
+    const budget = await assertCanStoreBlob(approxBytes);
+    if (!budget.ok) {
+      return { ok: false, error: budget.error || DB_BLOB_FULL_MESSAGE };
     }
   }
 

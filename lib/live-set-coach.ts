@@ -1113,10 +1113,6 @@ export function buildLiveCoachTipAfterCompletedSet(
 /** Skrót tekstowy do heurystyk / API — max 1–2 linie po polsku. */
 export function liveCoachTipToPlainText(tip: LiveCoachTip | null): string | null {
   if (!tip) return null;
-  const headline = (tip.decision || tip.body).trim();
-  if (!headline) return null;
-  if (tip.apply) {
-    return `${headline}\n${formatKgPl(tip.apply.weightKg)} kg × ${tip.apply.reps}`;
-  }
-  return headline;
+  const line = tip.body.trim();
+  return line || null;
 }

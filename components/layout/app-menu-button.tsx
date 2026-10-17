@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Clock3,
   Dumbbell,
+  FileText,
   Flame,
   History,
   LineChart,
@@ -30,6 +31,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { isPrimaryAdminEmail } from "@/lib/admin-config";
+import { PRIVACY_PATH, REGULAMIN_PATH } from "@/lib/legal-seller";
 import { cn } from "@/lib/utils";
 
 type MenuIcon = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
@@ -288,6 +290,24 @@ export function AppMenuButton({
           title: "Korekta techniki",
           subtitle: "filmy i uwagi do formy",
           icon: Video,
+        },
+      ],
+    },
+    {
+      index: "05",
+      title: "Prawne",
+      rows: [
+        {
+          href: REGULAMIN_PATH,
+          title: "Regulamin",
+          subtitle: "pakiety, HotPay, reklamacje",
+          icon: FileText,
+        },
+        {
+          href: PRIVACY_PATH,
+          title: "Polityka prywatności",
+          subtitle: "RODO i dane konta",
+          icon: Shield,
         },
       ],
     },

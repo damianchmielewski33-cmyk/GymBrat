@@ -59,19 +59,31 @@ function FacebookMark({ className }: { className?: string }) {
 }
 
 type Props = {
+  /** @deprecated Auth.js v5 — użyj `redirectTo`. */
   callbackUrl?: string;
+  /** Dokąd wrócić po OAuth (np. `/register?oauth=1` przy rejestracji). */
+  redirectTo?: string;
   className?: string;
   label?: string;
   disabled?: boolean;
 };
 
+function resolveOauthRedirect(props: {
+  redirectTo?: string;
+  callbackUrl?: string;
+}): string {
+  return props.redirectTo ?? props.callbackUrl ?? "/";
+}
+
 export function GoogleSignInButton({
-  callbackUrl = "/",
+  callbackUrl,
+  redirectTo,
   className,
   label = "Kontynuuj z Google",
   disabled = false,
 }: Props) {
   const [pending, setPending] = useState(false);
+  const target = resolveOauthRedirect({ redirectTo, callbackUrl });
 
   return (
     <Button
@@ -88,7 +100,7 @@ export function GoogleSignInButton({
         if (disabled) return;
         if (!ensureTopLevelForOauth()) return;
         setPending(true);
-        void signIn("google", { callbackUrl }).finally(() => {
+        void signIn("google", { redirectTo: target }).finally(() => {
           setPending(false);
         });
       }}
@@ -102,12 +114,14 @@ export function GoogleSignInButton({
 }
 
 export function FacebookSignInButton({
-  callbackUrl = "/",
+  callbackUrl,
+  redirectTo,
   className,
   label = "Kontynuuj z Facebook",
   disabled = false,
 }: Props) {
   const [pending, setPending] = useState(false);
+  const target = resolveOauthRedirect({ redirectTo, callbackUrl });
 
   return (
     <Button
@@ -124,7 +138,7 @@ export function FacebookSignInButton({
         if (disabled) return;
         if (!ensureTopLevelForOauth()) return;
         setPending(true);
-        void signIn("facebook", { callbackUrl }).finally(() => {
+        void signIn("facebook", { redirectTo: target }).finally(() => {
           setPending(false);
         });
       }}

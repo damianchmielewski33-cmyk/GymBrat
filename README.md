@@ -232,19 +232,21 @@ Zmiany GymBrat mają być **jasno opisane** i iść **z tego repozytorium** (`da
 
 ### Database retention (protect free Turso storage)
 
-Turso free tier storage is limited, and some tables grow indefinitely (especially analytics/log tables). GymBrat includes a built-in **cleanup** mechanism that enforces a retention policy.
+Turso free tier storage is limited. GymBrat enforces **retention**, a **soft/hard storage budget**, and **blocks new image blobs** when the soft limit is reached. Workouts, meal logs, weights, and accounts are **never** deleted by cleanup.
 
-- **What gets cleaned by default**
-  - `page_views`: delete rows older than `RETENTION_PAGE_VIEWS_DAYS` (default 30)
-  - `site_activity_log`: delete rows older than `RETENTION_ACTIVITY_LOG_DAYS` (default 90)
-  - `email_verification_codes`: delete expired rows (always) and consumed rows older than `RETENTION_EMAIL_CODES_DAYS` (default 14)
-  - `body_report_photos`: optional (disabled by default) via `RETENTION_BODY_REPORT_PHOTOS_DAYS`
-
+- **Storage budget** (`TURSO_STORAGE_SOFT_LIMIT_MB` default 700, `HARD` default 850)
+  - Soft: new feed / bug / branding / catalog images are rejected with a Polish error
+  - Hard: emergency purge of ephemeral data only (read notifications, oldest page views / activity log) — **never user photos**
+- **User photos are never deleted** by cleanup (body report photos, team feed media, bug report photos)
+- **Retention defaults** (override via `RETENTION_*` in env)
+  - Analytics: `page_views` 21d, `site_activity_log` 45d, `admin_audit_log` 180d
+  - Email codes: expired always + consumed older than 14d
+  - Community ephemeral: feed/notification events 7d; read notifications 60d (max 180d); chat messages 90d; typing/presence/stale active sessions 2–7d
 - **How to run cleanup**
-  - **Admin-only**: `POST /api/admin/maintenance/cleanup` (requires admin unlock)
-  - **Cron**: `POST /api/cron/cleanup` with header `Authorization: Bearer <CRON_SECRET>`
-
-On Vercel you can wire this to Vercel Cron (daily) and keep storage growth bounded.
+  - **Admin preview**: `GET /api/admin/maintenance/cleanup` (usage MB + policy)
+  - **Admin run**: `POST /api/admin/maintenance/cleanup` (CSRF + admin)
+  - **Cron**: `GET|POST /api/cron/cleanup` with `Authorization: Bearer <CRON_SECRET>`
+  - **Vercel**: `vercel.json` schedules cleanup daily at 03:00 UTC
 
 ### PWA configuration
 

@@ -95,6 +95,15 @@ export async function upsertBrandingAsset(
   if (!parsed) {
     throw new Error("INVALID_DATA_URL");
   }
+  const { assertCanStoreBlob, DB_BLOB_FULL_MESSAGE } = await import(
+    "@/lib/db-storage-budget"
+  );
+  const budget = await assertCanStoreBlob(
+    Math.ceil(parsed.dataUrl.length * 0.75),
+  );
+  if (!budget.ok) {
+    throw new Error(budget.error || DB_BLOB_FULL_MESSAGE);
+  }
   await ensureCriticalSchema();
   const db = getDb();
   const now = new Date();

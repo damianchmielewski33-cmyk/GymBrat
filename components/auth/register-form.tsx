@@ -3,11 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { signIn, useSession } from "next-auth/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { ChevronLeft, Mail } from "lucide-react";
 import { registerUser, sendRegisterCode, type RegisterState } from "@/actions/auth";
+import { updateBodyParams } from "@/actions/profile";
 import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
 import {
   FacebookSignInButton,
@@ -55,6 +57,9 @@ const STEPS: StepId[] = [
   "goal",
 ];
 
+/** Kroki po Google/Facebook — bez welcome / e-mail / hasła. */
+const OAUTH_STEPS: StepId[] = ["name", "body", "activity", "goal"];
+
 const STEP_COPY: Record<
   StepId,
   { kicker: string; title: string; support: string }
@@ -99,24 +104,44 @@ const STEP_COPY: Record<
 export function RegisterForm({
   googleEnabled = false,
   facebookEnabled = false,
+  oauthContinue = false,
+  oauthPrefill = null,
 }: {
   googleEnabled?: boolean;
   facebookEnabled?: boolean;
+  /** Po Google/Facebook — kontynuacja wizarda rejestracji (nie Pulpit). */
+  oauthContinue?: boolean;
+  oauthPrefill?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
 }) {
+  const router = useRouter();
+  const { update: updateSession, status: sessionStatus } = useSession();
+  const steps = oauthContinue ? OAUTH_STEPS : STEPS;
   const [stepIndex, setStepIndex] = useState(0);
-  const step = STEPS[stepIndex]!;
+  const step = steps[stepIndex]!;
   const [rootError, setRootError] = useState<string | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
   const passwordRef = useRef<HTMLInputElement | null>(null);
 
+  // Po powrocie z Google cookie bywa gotowe później niż pierwszy SSR — odśwież RSC.
+  useEffect(() => {
+    if (!oauthContinue || oauthPrefill) return;
+    if (sessionStatus === "loading") return;
+    const t = window.setTimeout(() => router.refresh(), 400);
+    return () => window.clearTimeout(t);
+  }, [oauthContinue, oauthPrefill, sessionStatus, router]);
+
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      emailCode: "",
-      password: "",
+      firstName: oauthPrefill?.firstName ?? "",
+      lastName: oauthPrefill?.lastName ?? "",
+      email: oauthPrefill?.email ?? "",
+      emailCode: oauthContinue ? "000000" : "",
+      password: oauthContinue ? "oauth-placeholder-8" : "",
       weightKg: "",
       heightCm: "",
       age: "",
@@ -171,8 +196,20 @@ export function RegisterForm({
     }
   }, [emailCodeValue, setValue, step]);
 
-  const copy = STEP_COPY[step];
-  const progress = ((stepIndex + 1) / STEPS.length) * 100;
+  const copy = oauthContinue
+    ? {
+        ...STEP_COPY[step],
+        kicker:
+          step === "name"
+            ? "Rejestracja Google"
+            : STEP_COPY[step].kicker.replace(/^Krok \d+/, `Krok ${stepIndex + 1}`),
+        support:
+          step === "name"
+            ? "Potwierdź imię i nazwisko z Google, potem parametry ciała — jak przy rejestracji e-mailem."
+            : STEP_COPY[step].support,
+      }
+    : STEP_COPY[step];
+  const progress = ((stepIndex + 1) / steps.length) * 100;
 
   async function goNext() {
     setRootError(null);
@@ -186,12 +223,12 @@ export function RegisterForm({
       const ok = await trigger([...fields]);
       if (!ok) return;
     }
-    if (stepIndex >= STEPS.length - 1) {
+    if (stepIndex >= steps.length - 1) {
       await handleSubmit(onSubmit)();
       return;
     }
     setDirection(1);
-    setStepIndex((i) => Math.min(STEPS.length - 1, i + 1));
+    setStepIndex((i) => Math.min(steps.length - 1, i + 1));
   }
 
   function goBack() {
@@ -201,7 +238,35 @@ export function RegisterForm({
     setStepIndex((i) => Math.max(0, i - 1));
   }
 
+  async function onSubmitOauth(values: RegisterFormValues) {
+    setRootError(null);
+    const result = await updateBodyParams({
+      firstName: values.firstName,
+      lastName: values.lastName,
+      weightKg: values.weightKg,
+      heightCm: values.heightCm,
+      age: values.age,
+      activityLevel: values.activityLevel,
+      weeklySessionsTarget: values.weeklySessionsTarget,
+    });
+    if (!result.ok) {
+      setRootError(result.error);
+      return;
+    }
+    try {
+      await updateSession();
+    } catch {
+      /* hard-nav i tak odświeży JWT */
+    }
+    window.location.assign(`${window.location.origin}/start-workout`);
+  }
+
   async function onSubmit(values: RegisterFormValues) {
+    if (oauthContinue) {
+      await onSubmitOauth(values);
+      return;
+    }
+
     setRootError(null);
     setCodeInfo(null);
     const result: RegisterState = await registerUser(values);
@@ -215,7 +280,7 @@ export function RegisterForm({
           }
         }
         const fieldKeys = Object.keys(result.fieldErrors) as (keyof RegisterFormValues)[];
-        const jump = STEPS.findIndex((s) => {
+        const jump = steps.findIndex((s) => {
           if (s === "welcome") return false;
           const f = registerStepFields[s as keyof typeof registerStepFields];
           return f?.some((name) => fieldKeys.includes(name));
@@ -236,7 +301,7 @@ export function RegisterForm({
         password: values.password,
         role: values.role,
         redirect: false,
-        callbackUrl: "/start-workout",
+        redirectTo: "/start-workout",
       });
     } catch {
       setRootError(
@@ -258,14 +323,38 @@ export function RegisterForm({
   const primaryLabel =
     step === "goal"
       ? isSubmitting
-        ? "Tworzenie konta…"
-        : "Utwórz konto"
+        ? oauthContinue
+          ? "Kończenie rejestracji…"
+          : "Tworzenie konta…"
+        : oauthContinue
+          ? "Dokończ rejestrację"
+          : "Utwórz konto"
       : "Dalej";
+
+  if (oauthContinue && !oauthPrefill) {
+    return (
+      <div className="space-y-5">
+        <AuthHeroBrand
+          headline="Kończymy logowanie Google…"
+          support="Sesja się dogrywa — zaraz wrócisz do rejestracji (imię, parametry ciała)."
+        />
+        <div className="glass-panel gold-panel p-6 text-center text-sm text-white/65">
+          Jeśli nic się nie dzieje,{" "}
+          <Link href="/register" className="text-[var(--neon)] underline-offset-4 hover:underline">
+            wróć do rejestracji
+          </Link>{" "}
+          i spróbuj ponownie.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
       <AuthHeroBrand
-        headline={copy.title}
+        headline={
+          oauthContinue && step === "name" ? "Dokończ rejestrację" : copy.title
+        }
         support={copy.support}
         compact={step !== "welcome"}
       />
@@ -284,7 +373,7 @@ export function RegisterForm({
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
-                {copy.kicker} · {stepIndex + 1}/{STEPS.length}
+                {copy.kicker} · {stepIndex + 1}/{steps.length}
               </p>
               {stepIndex > 0 ? (
                 <button
@@ -326,7 +415,7 @@ export function RegisterForm({
               {step === "welcome" ? (
                 <div className="space-y-3">
                   <GoogleSignInButton
-                    callbackUrl="/complete-profile"
+                    redirectTo="/register?oauth=1"
                     label="Zarejestruj się przez Google"
                     disabled={!googleEnabled}
                   />
@@ -342,7 +431,7 @@ export function RegisterForm({
                     Zarejestruj się przez e-mail
                   </Button>
                   <FacebookSignInButton
-                    callbackUrl="/complete-profile"
+                    redirectTo="/register?oauth=1"
                     label="Zarejestruj się przez Facebook"
                     disabled={!facebookEnabled}
                   />
@@ -666,6 +755,15 @@ export function RegisterForm({
             </Button>
           ) : null}
 
+          {oauthContinue && oauthPrefill?.email ? (
+            <p className="text-center text-xs text-white/45">
+              Rejestracja:{" "}
+              <span className="font-medium text-white/75">
+                {oauthPrefill.email}
+              </span>
+            </p>
+          ) : null}
+
           <p className="text-center text-sm text-white/55">
             Masz już konto?{" "}
             <Link
@@ -674,6 +772,20 @@ export function RegisterForm({
             >
               Zaloguj się
             </Link>
+          </p>
+          <p className="text-center text-[11px] text-white/35">
+            Rejestrując się, akceptujesz{" "}
+            <Link href="/regulamin" className="underline-offset-2 hover:underline">
+              Regulamin
+            </Link>{" "}
+            i{" "}
+            <Link
+              href="/polityka-prywatnosci"
+              className="underline-offset-2 hover:underline"
+            >
+              Politykę prywatności
+            </Link>
+            .
           </p>
         </div>
       </div>

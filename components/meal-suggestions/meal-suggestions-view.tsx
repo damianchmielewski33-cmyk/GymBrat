@@ -10,6 +10,7 @@ import {
   useTransition,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
   clearDietDayKindAction,
   loadDietDayAction,
@@ -152,19 +153,19 @@ function DeleteMealButton({
 
 function tabButtonClass(active: boolean) {
   return cn(
-    "rounded-full border px-4 py-1.5 text-[13px] leading-none",
+    "relative z-[1] rounded-full px-4 py-1.5 text-[13px] leading-none transition-colors duration-200",
     active
-      ? "border-[#6b5428] bg-[#5a4320] font-semibold text-[var(--gym-gold)]"
-      : "border-white/25 bg-transparent font-medium text-white/80",
+      ? "font-semibold text-[#1A1408]"
+      : "font-medium text-white/65 hover:text-white/90",
   );
 }
 
 function dayKindButtonClass(active: boolean) {
   return cn(
-    "rounded-full border px-3.5 py-1.5 text-[12px]",
+    "rounded-full border px-3.5 py-2 text-[12px] backdrop-blur-md transition-[border-color,background-color,box-shadow,color] duration-200",
     active
-      ? "border-[var(--gym-gold)]/55 bg-transparent font-semibold text-[var(--gym-gold)]"
-      : "border-white/18 bg-transparent font-medium text-white/55",
+      ? "border-[#DDBB6D]/50 bg-[#DDBB6D]/16 font-semibold text-[#DDBB6D] shadow-[0_0_20px_rgba(221,187,109,0.22)]"
+      : "border-white/[0.1] bg-white/[0.03] font-medium text-white/50",
   );
 }
 
@@ -414,32 +415,110 @@ export function MealSuggestionsView({
       ? `${Math.round(dayMacros.caloriesGoal)} KCAL`
       : null;
 
+  const isDiary = tab === "diary";
+  const isPlan = tab === "plan";
+  const { scrollY } = useScroll();
+  const ambientY = useTransform(scrollY, [0, 280], [0, 10]);
+
   return (
     <div
       className={cn(
-        "relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col",
+        "relative -mx-1 flex min-h-[calc(100dvh-8rem)] flex-col overflow-x-clip bg-black",
         "pb-[calc(6.75rem+env(safe-area-inset-bottom))]",
       )}
     >
-      <header className="space-y-2.5 px-1 pt-1.5">
+      <motion.div
+        aria-hidden
+        style={{ y: ambientY }}
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[420px]"
+      >
+        <div
+          className="absolute -left-24 -top-16 h-72 w-72 rounded-full blur-[100px]"
+          style={{
+            background: "rgba(221, 187, 109, 0.045)",
+          }}
+        />
+        <div
+          className="absolute -right-20 -top-10 h-80 w-80 rounded-full blur-[110px]"
+          style={{
+            background: "rgba(90, 140, 220, 0.04)",
+          }}
+        />
+      </motion.div>
+
+      <header className="relative z-[1] space-y-3 px-1 pt-1.5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            {tab === "plan" ? (
-              <>
-                <p className={appPageKickerClass}>
+            {isPlan ? (
+              <div>
+                <motion.p
+                  key={`plan-kicker-${dayKind}-${kcalKicker}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.25, delay: 0 }}
+                  className={cn(
+                    appPageKickerClass,
+                    "tracking-[0.16em] text-[#DDBB6D]/85",
+                  )}
+                >
                   {dayKindKicker}
                   {kcalKicker ? ` · ${kcalKicker}` : ""}
-                </p>
-                <h1 className={cn(appPageTitleClass, "mt-1.5")}>Twój plan</h1>
-              </>
+                </motion.p>
+                <motion.h1
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 380,
+                    damping: 28,
+                    delay: 0.15,
+                  }}
+                  className={cn(appPageTitleClass, "mt-1.5 text-white")}
+                >
+                  Twój plan
+                </motion.h1>
+              </div>
             ) : (
-              <>
-                <p className={appPageKickerClass}>Co jesz</p>
-                <h1 className={cn(appPageTitleClass, "mt-1.5")}>Dziennik</h1>
-              </>
+              <motion.div
+                key={`diary-title-${dateKey}`}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <p
+                  className={cn(
+                    appPageKickerClass,
+                    "tracking-[0.18em] text-[#DDBB6D]/85",
+                  )}
+                >
+                  Co jesz
+                </p>
+                <h1 className={cn(appPageTitleClass, "mt-1.5 text-white")}>
+                  Dziennik
+                </h1>
+              </motion.div>
             )}
           </div>
-          <div className="mt-5 flex shrink-0 gap-1.5">
+
+          {/* Segmented control — iOS spring pill */}
+          <motion.div
+            className="relative mt-4 grid shrink-0 grid-cols-2 rounded-full border border-white/[0.1] bg-white/[0.04] p-1 backdrop-blur-md"
+            initial={{ opacity: 0, y: 10, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 28,
+              delay: isPlan ? 0.25 : 0.12,
+            }}
+          >
+            <motion.span
+              aria-hidden
+              className="absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-gradient-to-b from-[#F5E4A3] via-[#E4C56D] to-[#D1A84A] shadow-[0_2px_12px_rgba(221,187,109,0.35)]"
+              initial={false}
+              animate={{ left: tab === "plan" ? 4 : "calc(50%)" }}
+              transition={{ type: "spring", stiffness: 420, damping: 32 }}
+            />
             <button
               type="button"
               onClick={() => setTab("plan")}
@@ -454,15 +533,27 @@ export function MealSuggestionsView({
             >
               {t("diet.tabDiary")}
             </button>
-          </div>
+          </motion.div>
         </div>
 
-        {tab === "diary" ? (
-          <DietDateNav dateKey={dateKey} onSelect={(k) => refreshDay(k)} />
+        {isDiary ? (
+          <motion.div
+            key={`diary-date-${dateKey}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.35, delay: 0.2, ease: "easeOut" }}
+          >
+            <DietDateNav dateKey={dateKey} onSelect={(k) => refreshDay(k)} />
+          </motion.div>
         ) : null}
 
-        {tab === "plan" ? (
-          <div className="flex flex-wrap items-center gap-2">
+        {isPlan ? (
+          <motion.div
+            className="flex flex-wrap items-center gap-2"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          >
             <button
               type="button"
               disabled={pending}
@@ -481,9 +572,14 @@ export function MealSuggestionsView({
             >
               Nietreningowy
             </button>
-          </div>
+          </motion.div>
         ) : (
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          <motion.div
+            className="flex flex-wrap items-center justify-center gap-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.24 }}
+          >
             <button
               type="button"
               disabled={pending}
@@ -508,13 +604,13 @@ export function MealSuggestionsView({
             >
               domyślnie
             </button>
-          </div>
+          </motion.div>
         )}
       </header>
 
       <div
         key={`${tab}-${dateKey}`}
-        className="mt-3 min-h-0 flex-1 animate-page-enter-opacity px-1 pb-8"
+        className="relative z-[1] mt-3 min-h-0 flex-1 px-1 pb-8"
       >
         {tab === "plan" ? (
           <DietMealPlanPanel

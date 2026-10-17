@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
+import { PRIVACY_PATH, REGULAMIN_PATH } from "@/lib/legal-seller";
 import { formatPlnFromGrosze } from "@/lib/subscription-plans-format";
 import { cn } from "@/lib/utils";
 
@@ -32,8 +34,15 @@ export function PackagePageClient({
 }) {
   const { notifyError, notifySaved } = useSaveFeedback();
   const [busySku, setBusySku] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   async function checkout(sku: string) {
+    if (!termsAccepted) {
+      notifyError(
+        "Aby kupić pakiet, zaakceptuj Regulamin i zgodę na rozpoczęcie świadczenia.",
+      );
+      return;
+    }
     setBusySku(sku);
     try {
       await ensureCsrfCookie();
@@ -100,6 +109,38 @@ export function PackagePageClient({
         ) : null}
       </header>
 
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3.5 py-3.5">
+        <input
+          type="checkbox"
+          checked={termsAccepted}
+          onChange={(e) => setTermsAccepted(e.target.checked)}
+          className="mt-1 h-4 w-4 shrink-0 accent-[var(--gym-gold)]"
+        />
+        <span className="text-[13px] leading-relaxed text-white/70">
+          Akceptuję{" "}
+          <Link
+            href={REGULAMIN_PATH}
+            className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Regulamin
+          </Link>{" "}
+          oraz{" "}
+          <Link
+            href={PRIVACY_PATH}
+            className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Politykę prywatności
+          </Link>
+          . Żądam rozpoczęcia świadczenia Pakietu przed upływem 14-dniowego
+          terminu odstąpienia i przyjmuję do wiadomości, że po aktywacji
+          tracę prawo odstąpienia od umowy o treść cyfrową.
+        </span>
+      </label>
+
       <div className="space-y-3">
         {plans.map((p) => {
           const featured = p.sku === "d30";
@@ -125,7 +166,7 @@ export function PackagePageClient({
               <Button
                 type="button"
                 className="gym-btn-primary mt-4 w-full"
-                disabled={busySku != null}
+                disabled={busySku != null || !termsAccepted}
                 onClick={() => void checkout(p.sku)}
               >
                 {busySku === p.sku ? "Przekierowanie…" : "Kup przez HotPay"}
@@ -138,6 +179,17 @@ export function PackagePageClient({
       {plans.length === 0 ? (
         <p className="text-sm text-white/45">Brak aktywnych pakietów w ofercie.</p>
       ) : null}
+
+      <p className="text-center text-[11px] leading-relaxed text-white/35">
+        Płatności e-przelewem obsługuje HotPay. Dokumenty:{" "}
+        <Link href={REGULAMIN_PATH} className="underline-offset-2 hover:underline">
+          Regulamin
+        </Link>
+        {" · "}
+        <Link href={PRIVACY_PATH} className="underline-offset-2 hover:underline">
+          Polityka prywatności
+        </Link>
+      </p>
 
       <button
         type="button"

@@ -525,15 +525,8 @@ async function computeTeamRanking(
 
 async function listLiveNow(teamId: string): Promise<TeamLiveMember[]> {
   const db = getDb();
-  const memberIds = await db
-    .select({ userId: teamMembers.userId })
-    .from(teamMembers)
-    .where(
-      and(eq(teamMembers.teamId, teamId), eq(teamMembers.status, "active")),
-    );
-  if (memberIds.length === 0) return [];
-
-  const ids = memberIds.map((m) => m.userId);
+  const cutoff = new Date(Date.now() - 1000 * 60 * 60 * 24);
+  // Jedno zapytanie (join) zamiast members → sessions (2× RTT Turso).
   const rows = await db
     .select({
       userId: activeWorkoutSessions.userId,
@@ -544,17 +537,22 @@ async function listLiveNow(teamId: string): Promise<TeamLiveMember[]> {
       email: users.email,
     })
     .from(activeWorkoutSessions)
+    .innerJoin(
+      teamMembers,
+      and(
+        eq(teamMembers.userId, activeWorkoutSessions.userId),
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.status, "active"),
+      ),
+    )
     .innerJoin(users, eq(users.id, activeWorkoutSessions.userId))
-    .where(inArray(activeWorkoutSessions.userId, ids));
+    .where(gte(activeWorkoutSessions.updatedAt, cutoff));
 
-  const cutoff = Date.now() - 1000 * 60 * 60 * 24;
-  return rows
-    .filter((r) => (r.updatedAt?.getTime() ?? 0) >= cutoff)
-    .map((r) => ({
-      userId: r.userId,
-      displayName: displayNameFromUser(r),
-      updatedAt: r.updatedAt,
-    }));
+  return rows.map((r) => ({
+    userId: r.userId,
+    displayName: displayNameFromUser(r),
+    updatedAt: r.updatedAt,
+  }));
 }
 
 function buildAchievementSummaries(
@@ -602,20 +600,29 @@ export async function getTeamDetail(
 ): Promise<TeamDetailView | null> {
   await ensureCriticalSchema();
   const db = getDb();
-  const [team] = await db
-    .select()
-    .from(teams)
-    .where(and(eq(teams.id, teamId), isNull(teams.archivedAt)))
-    .limit(1);
+
+  // Team + membership równolegle — jedna runda sieci zamiast waterfalla.
+  const [[team], membership] = await Promise.all([
+    db
+      .select()
+      .from(teams)
+      .where(and(eq(teams.id, teamId), isNull(teams.archivedAt)))
+      .limit(1),
+    getActiveMembership(teamId, viewerId),
+  ]);
   if (!team) return null;
 
-  const membership = await getActiveMembership(teamId, viewerId);
   const privacy = asPrivacy(team.privacy);
   if (!canViewPrivateTeam(privacy, membership?.role ?? null)) {
     return null;
   }
 
-  const memberRows = await db
+  const myRole = membership?.role ?? null;
+  const canManage = canManageTeamSettings(myRole);
+  const canInvite = canInviteMembers(myRole);
+  const rankingMetric = asMetric(team.rankingMetric);
+
+  const membersQuery = db
     .select({
       membershipId: teamMembers.id,
       userId: teamMembers.userId,
@@ -633,6 +640,47 @@ export async function getTeamDetail(
     )
     .orderBy(desc(teamMembers.joinedAt));
 
+  const invitesQuery = canInvite
+    ? db
+        .select({
+          id: teamInvitations.id,
+          inviteeEmail: teamInvitations.inviteeEmail,
+          inviteeUserId: teamInvitations.inviteeUserId,
+          role: teamInvitations.role,
+          status: teamInvitations.status,
+          createdAt: teamInvitations.createdAt,
+          expiresAt: teamInvitations.expiresAt,
+          token: teamInvitations.token,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          name: users.name,
+          email: users.email,
+        })
+        .from(teamInvitations)
+        .leftJoin(users, eq(users.id, teamInvitations.inviteeUserId))
+        .where(
+          and(
+            eq(teamInvitations.teamId, teamId),
+            eq(teamInvitations.status, "pending"),
+          ),
+        )
+        .orderBy(desc(teamInvitations.createdAt))
+    : Promise.resolve([]);
+
+  const { listLiveGroupSessionsForTeam } = await import(
+    "@/lib/community/group-workout"
+  );
+
+  // Ranking / live / feed-sesje / zaproszenia w jednej rundzie (Turso: mniej RTT).
+  const [memberRows, inviteRows, ranking, liveNow, liveGroupSessions] =
+    await Promise.all([
+      membersQuery,
+      invitesQuery,
+      computeTeamRanking(teamId, rankingMetric),
+      listLiveNow(teamId),
+      listLiveGroupSessionsForTeam(teamId),
+    ]);
+
   const members: TeamMemberView[] = memberRows
     .filter((row) => isTeamRole(row.role))
     .map((row) => ({
@@ -648,67 +696,43 @@ export async function getTeamDetail(
         a.displayName.localeCompare(b.displayName),
     );
 
-  const myRole = membership?.role ?? null;
-  const canManage = canManageTeamSettings(myRole);
-  const canInvite = canInviteMembers(myRole);
+  const now = Date.now();
+  const pendingInvites: TeamInviteView[] = (
+    inviteRows as Array<{
+      id: string;
+      inviteeEmail: string | null;
+      inviteeUserId: string | null;
+      role: string;
+      status: string;
+      createdAt: Date;
+      expiresAt: Date;
+      token: string;
+      firstName: string | null;
+      lastName: string | null;
+      name: string | null;
+      email: string | null;
+    }>
+  )
+    .filter((row) => row.expiresAt.getTime() > now)
+    .map((row) => ({
+      id: row.id,
+      inviteeEmail: row.inviteeEmail,
+      inviteeUserId: row.inviteeUserId,
+      inviteeName: row.email
+        ? displayNameFromUser({
+            firstName: row.firstName,
+            lastName: row.lastName,
+            name: row.name,
+            email: row.email,
+          })
+        : null,
+      role: isAssignableTeamRole(row.role) ? row.role : "member",
+      status: row.status,
+      createdAt: row.createdAt,
+      expiresAt: row.expiresAt,
+      token: row.token,
+    }));
 
-  let pendingInvites: TeamInviteView[] = [];
-  if (canInvite) {
-    const inviteRows = await db
-      .select({
-        id: teamInvitations.id,
-        inviteeEmail: teamInvitations.inviteeEmail,
-        inviteeUserId: teamInvitations.inviteeUserId,
-        role: teamInvitations.role,
-        status: teamInvitations.status,
-        createdAt: teamInvitations.createdAt,
-        expiresAt: teamInvitations.expiresAt,
-        token: teamInvitations.token,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        name: users.name,
-        email: users.email,
-      })
-      .from(teamInvitations)
-      .leftJoin(users, eq(users.id, teamInvitations.inviteeUserId))
-      .where(
-        and(
-          eq(teamInvitations.teamId, teamId),
-          eq(teamInvitations.status, "pending"),
-        ),
-      )
-      .orderBy(desc(teamInvitations.createdAt));
-
-    const now = Date.now();
-    pendingInvites = inviteRows
-      .filter((row) => row.expiresAt.getTime() > now)
-      .map((row) => ({
-        id: row.id,
-        inviteeEmail: row.inviteeEmail,
-        inviteeUserId: row.inviteeUserId,
-        inviteeName: row.email
-          ? displayNameFromUser({
-              firstName: row.firstName,
-              lastName: row.lastName,
-              name: row.name,
-              email: row.email,
-            })
-          : null,
-        role: isAssignableTeamRole(row.role) ? row.role : "member",
-        status: row.status,
-        createdAt: row.createdAt,
-        expiresAt: row.expiresAt,
-        token: row.token,
-      }));
-  }
-
-  const rankingMetric = asMetric(team.rankingMetric);
-  const ranking = await computeTeamRanking(teamId, rankingMetric);
-  const liveNow = await listLiveNow(teamId);
-  const { listLiveGroupSessionsForTeam } = await import(
-    "@/lib/community/group-workout"
-  );
-  const liveGroupSessions = await listLiveGroupSessionsForTeam(teamId);
   const achievementSummaries = buildAchievementSummaries(
     ranking,
     team.memberCount,

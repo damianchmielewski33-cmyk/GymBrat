@@ -11,7 +11,12 @@ export function HomeHeaderSkeleton() {
         <div className="h-9 w-56 max-w-[85%] rounded bg-white/[0.08]" />
         <div className="h-4 w-48 max-w-[90%] rounded bg-white/[0.06]" />
       </div>
-      <div className="h-12 w-12 shrink-0 rounded-full bg-white/[0.06]" />
+      <div className="flex shrink-0 flex-col items-end gap-2">
+        <div className="flex items-center gap-1.5">
+          <div className="h-10 w-10 rounded-2xl bg-white/[0.06]" />
+          <div className="h-12 w-12 rounded-full bg-white/[0.06]" />
+        </div>
+      </div>
     </header>
   );
 }

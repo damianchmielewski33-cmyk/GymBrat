@@ -151,10 +151,10 @@ export function AppShell({
 
       {hideBottomNav ? null : (
         <nav
-          className="fixed inset-x-0 bottom-0 z-50 border-t border-white/[0.06] bg-black/70 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-50 pb-[max(0.65rem,env(safe-area-inset-bottom))]"
           aria-label="Nawigacja główna"
         >
-          <div className={cn("relative mx-auto", APP_SHELL_MAX)}>
+          <div className={cn("pointer-events-auto relative mx-auto px-3", APP_SHELL_MAX)}>
             {showReportFab ? (
               <Suspense fallback={null}>
                 <ReportFab />
@@ -162,7 +162,9 @@ export function AppShell({
             ) : null}
             <div
               className={cn(
-                "grid grid-cols-5 items-stretch px-0.5 pb-1.5 sm:px-1 sm:pb-2",
+                "grid grid-cols-5 items-stretch gap-0.5 rounded-[30px] border border-white/[0.1]",
+                "bg-black/55 px-1.5 pb-1.5 backdrop-blur-2xl",
+                "shadow-[0_8px_40px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.04)_inset]",
                 showReportFab ? "pt-7" : "pt-1.5",
               )}
             >
@@ -226,6 +228,8 @@ function TabLink({
           : pathname.startsWith(item.href);
   const visuallyActive = active || optimisticHref === item.href;
 
+  const isDietTab = item.href === "/meal-suggestions";
+
   return (
     <Link
       href={item.href}
@@ -236,9 +240,11 @@ function TabLink({
       }}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex min-h-[3.25rem] min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-0.5 py-1.5 text-center text-[9px] font-medium transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80 sm:gap-1 sm:text-[10px]",
+        "relative flex min-h-[3.25rem] min-w-0 flex-col items-center justify-center gap-0.5 rounded-[22px] px-0.5 py-1.5 text-center text-[9px] font-medium transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80 sm:gap-1 sm:text-[10px]",
         visuallyActive
-          ? "bg-[var(--gym-gold)]/10 text-[var(--gym-gold)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.45),0_0_18px_rgba(var(--neon-rgb),0.55),0_0_36px_rgba(var(--neon-rgb),0.28)]"
+          ? isDietTab
+            ? "bg-[#DDBB6D]/12 text-[#DDBB6D]"
+            : "bg-[var(--gym-gold)]/10 text-[var(--gym-gold)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.45),0_0_18px_rgba(var(--neon-rgb),0.55),0_0_36px_rgba(var(--neon-rgb),0.28)]"
           : "text-white/45 shadow-none",
         optimisticHref === item.href && !active ? "opacity-90" : null,
       )}
@@ -246,7 +252,12 @@ function TabLink({
       {visuallyActive ? (
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-2xl bg-[var(--gym-gold)]/15 blur-md"
+          className={cn(
+            "pointer-events-none absolute inset-0 rounded-[22px]",
+            isDietTab
+              ? "diary-nav-breathe bg-[#DDBB6D]/12"
+              : "bg-[var(--gym-gold)]/15 blur-md",
+          )}
         />
       ) : null}
       <item.icon className="relative h-5 w-5 sm:h-[1.35rem] sm:w-[1.35rem]" />

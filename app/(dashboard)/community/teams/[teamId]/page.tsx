@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { ChallengeCelebrationOverlay } from "@/components/community/challenge-celebration";
@@ -11,6 +12,11 @@ import {
 import { listTeamMentionCandidates } from "@/lib/community/feed-mentions";
 import { listTeamFeed } from "@/lib/community/team-feed";
 import { getTeamDetail } from "@/lib/community/teams";
+
+async function TeamCelebrations({ userId }: { userId: string }) {
+  const celebrations = await listPendingCelebrations(userId);
+  return <ChallengeCelebrationOverlay celebrations={celebrations} />;
+}
 
 export default async function TeamDetailPage({
   params,
@@ -25,18 +31,20 @@ export default async function TeamDetailPage({
   const team = await getTeamDetail(teamId, userId);
   if (!team) notFound();
 
-  const [feedPosts, mentionCandidates, challenges, celebrations] = team.isMember
+  const [feedPosts, mentionCandidates, challenges] = team.isMember
     ? await Promise.all([
         listTeamFeed(teamId, userId, { limit: 12 }),
         listTeamMentionCandidates(teamId),
         listTeamChallenges(teamId, userId),
-        listPendingCelebrations(userId),
       ])
-    : [[], [], [], []];
+    : [[], [], []];
 
   return (
     <div className="space-y-4">
-      <ChallengeCelebrationOverlay celebrations={celebrations} />
+      {/* Celebracje poza krytyczną ścieżką LCP — nie blokują tablicy. */}
+      <Suspense fallback={null}>
+        <TeamCelebrations userId={userId} />
+      </Suspense>
       <Link
         href="/community/teams"
         className="inline-flex items-center gap-1.5 text-[13px] text-white/60 hover:text-white"
