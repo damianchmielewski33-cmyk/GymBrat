@@ -68,7 +68,7 @@ export function SessionChromeHeader({
       */}
       <div
         className={cn(
-          "relative flex items-start justify-between gap-3 px-3 pb-3",
+          "relative flex items-start justify-between gap-2.5 px-3 pb-2",
           className,
         )}
       >
@@ -78,21 +78,21 @@ export function SessionChromeHeader({
             hapticTap();
             onClose?.();
           }}
-          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/85 shadow-[0_0_20px_rgba(214,179,106,0.08)] transition hover:border-[#D6B36A]/35 hover:bg-white/[0.07]"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/85 shadow-[0_0_20px_rgba(214,179,106,0.08)] transition hover:border-[#D6B36A]/35 hover:bg-white/[0.07]"
           aria-label="Zamknij sesję"
         >
           <X className="h-4 w-4" />
         </button>
         <div className="min-w-0 flex-1 pt-0.5 text-center">
-          <p className="truncate text-[15px] font-semibold tracking-tight text-white">
+          <p className="truncate text-[14px] font-semibold tracking-tight text-white sm:text-[15px]">
             {title}
           </p>
-          <div className="mt-1 text-[12px] tabular-nums leading-snug text-white/55">
+          <div className="mt-0.5 text-[11px] tabular-nums leading-snug text-white/55 sm:text-[12px]">
             {subtitle}
           </div>
         </div>
         {listDisabled || !onOpenList ? (
-          <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 text-white/35">
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 text-white/35">
             <List className="h-4 w-4" />
           </span>
         ) : (
@@ -102,7 +102,7 @@ export function SessionChromeHeader({
               hapticTap();
               onOpenList?.();
             }}
-            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/85 shadow-[0_0_20px_rgba(214,179,106,0.08)] transition hover:border-[#D6B36A]/35 hover:bg-white/[0.07]"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/85 shadow-[0_0_20px_rgba(214,179,106,0.08)] transition hover:border-[#D6B36A]/35 hover:bg-white/[0.07]"
             aria-label="Menu ćwiczeń"
           >
             <List className="h-4 w-4" />

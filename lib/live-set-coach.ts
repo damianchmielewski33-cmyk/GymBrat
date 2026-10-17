@@ -482,9 +482,9 @@ export function buildLiveCoachTipForOpenSet(
     if (wantsDeload && softPedal) {
       const hl = `${formatKgPl(prevDone.weight)} kg × ${range?.min ?? prevDone.reps}`;
       const body = pickCoachVariant(`${seedBase}|trend-hold`, [
-        `Jedna twardsza seria, ale trend e1RM/historii trzyma — seria {set}: {hl}, bez paniki.`,
+        `Jedna twardsza seria, ale trend siły trzyma — seria {set}: {hl}, bez paniki.`,
         `{ex}: nie karzemy za jeden słabszy set. Powtórz {hl}.`,
-        `Trend > event: utrzymaj {hl} na serię {set}.`,
+        `Trend ważniejszy niż jedna seria: utrzymaj {hl} na serię {set}.`,
       ]);
       return tipPlain(
         "session-hold-form",
@@ -624,7 +624,7 @@ export function buildLiveCoachTipForOpenSet(
     ) {
       const hl = `${formatKgPl(prevDone.weight)} kg × ${prevDone.reps}`;
       const holdReason = readinessBlocksBump
-        ? "readiness nie pozwala na dokładkę"
+        ? "forma / zmęczenie — bez dokładki"
         : highVol
           ? "duża objętość — bez dokładki"
           : "potrzeba więcej łatwych serii zanim +kg";
@@ -632,7 +632,7 @@ export function buildLiveCoachTipForOpenSet(
         highVol
           ? `Duża objętość już zrobiona — seria {set}: trzymaj {hl}, bez dokładki.`
           : readinessBlocksBump
-            ? `Readiness niski — seria {set}: trzymaj {hl}.`
+            ? `Zmęczenie / forma — seria {set}: trzymaj {hl}.`
             : `Góra zakresu OK, ale potrzeba jeszcze łatwej serii zanim +kg. Trzymaj {hl}.`,
         `{ex}: utrzymaj {hl} — potwierdź zapas zanim ruszysz talerz.`,
         isLastSet
@@ -695,7 +695,7 @@ export function buildLiveCoachTipForOpenSet(
         {
           ...S,
           decision: `Dobij do ${nextR} powt.`,
-          reason: "double progression — najpierw powtórzenia",
+          reason: "najpierw powtórzenia, potem ciężar",
           bumpKind: "hold",
         },
       );
@@ -801,7 +801,7 @@ export function buildLiveCoachTipForOpenSet(
         {
           ...S,
           decision: "Deload ze stagnacji",
-          reason: "brak wzrostu kg/reps/e1RM przy niskim RIR",
+          reason: "brak wzrostu kg/powtórzeń przy niskim RIR",
           bumpKind: "deload",
         },
       );
@@ -823,7 +823,7 @@ export function buildLiveCoachTipForOpenSet(
     ) {
       const hl = `${formatKgPl(lastSnap.weight)} kg × ${reps}`;
       const body = pickCoachVariant(`${seedBase}|hist-hard-trend`, [
-        `Ostatnio było ciężko, ale e1RM rośnie — start na {hl}, bez paniki.`,
+        `Ostatnio było ciężko, ale siła rośnie — start na {hl}, bez paniki.`,
         `{ex}: trend siłowy w górę. Otwórz na {hl}.`,
       ]);
       return tipPlain(
@@ -835,7 +835,7 @@ export function buildLiveCoachTipForOpenSet(
         {
           ...S,
           decision: "Utrzymaj bazę",
-          reason: "e1RM rośnie mimo twardej serii",
+          reason: "siła rośnie mimo twardej serii",
           bumpKind: "hold",
         },
       );
@@ -1115,14 +1115,13 @@ export function buildLiveCoachTipAfterCompletedSet(
   };
 }
 
-/** Skrót tekstowy do heurystyk / API (bez UI). */
+/** Skrót tekstowy do heurystyk / API — max 1–2 linie po polsku. */
 export function liveCoachTipToPlainText(tip: LiveCoachTip | null): string | null {
   if (!tip) return null;
-  return [
-    tip.decision,
-    `Powód: ${tip.reason}`,
-    `Readiness: ${tip.readiness}/100`,
-    `Confidence: ${tip.confidence}/100`,
-    tip.body,
-  ].join("\n");
+  const headline = (tip.decision || tip.body).trim();
+  if (!headline) return null;
+  if (tip.apply) {
+    return `${headline}\n${formatKgPl(tip.apply.weightKg)} kg × ${tip.apply.reps}`;
+  }
+  return headline;
 }

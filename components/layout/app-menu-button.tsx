@@ -23,6 +23,7 @@ import {
   TestTube2,
   Trophy,
   User,
+  UserPlus,
   Users,
   Video,
   X,
@@ -227,26 +228,33 @@ export function AppMenuButton({
     },
     {
       index: "03",
-      title: "Community",
+      title: "Społeczność",
       rows: [
         {
           href: "/community/teams",
-          title: "Teams",
+          title: "Grupy",
           subtitle: "grupy, zaproszenia, ranking zespołu",
           icon: Users,
           iconTone: "gold",
         },
         {
+          href: "/community/friends",
+          title: "Znajomi",
+          subtitle: "udostępnianie treningu i podgląd na żywo",
+          icon: UserPlus,
+          iconTone: "gold",
+        },
+        {
           href: "/community/challenges",
           title: "Wyzwania",
-          subtitle: "globalne challenge, XP i odznaki",
+          subtitle: "globalne wyzwania, XP i odznaki",
           icon: Trophy,
           iconTone: "gold",
         },
         {
           href: "/community/notifications",
           title: "Powiadomienia",
-          subtitle: "komentarze, live, wyzwania, ogłoszenia",
+          subtitle: "komentarze, trening na żywo, wyzwania, ogłoszenia",
           icon: Bell,
           iconTone: "gold",
         },
@@ -295,17 +303,17 @@ export function AppMenuButton({
     if (typeof document === "undefined") return;
     const body = document.body;
     const root = document.documentElement;
+    const prevBody = body.style.overflow;
+    const prevRoot = root.style.overflow;
     if (open) {
       wasOpenRef.current = true;
       body.style.overflow = "hidden";
       root.style.overflow = "hidden";
       return () => {
-        body.style.overflow = "";
-        root.style.overflow = "";
+        body.style.overflow = prevBody;
+        root.style.overflow = prevRoot;
       };
     }
-    body.style.overflow = "";
-    root.style.overflow = "";
     // Fokus tylko po zamknięciu menu — nie przy mount (iOS scrollIntoView = skok viewportu).
     if (wasOpenRef.current) {
       wasOpenRef.current = false;

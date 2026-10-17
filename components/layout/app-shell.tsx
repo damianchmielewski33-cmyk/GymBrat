@@ -44,6 +44,13 @@ const WorkoutChatLauncher = dynamic(
     })),
   { ssr: false },
 );
+const FriendLiveWatchWidget = dynamic(
+  () =>
+    import("@/components/community/friend-live-watch-widget").then((m) => ({
+      default: m.FriendLiveWatchWidget,
+    })),
+  { ssr: false },
+);
 
 /** Phone → tablet → desktop: treść w kolumnie, bez „pustego” tabletu. */
 export const APP_SHELL_MAX =
@@ -126,7 +133,7 @@ export function AppShell({
                   href="/community/teams"
                   onClick={() => hapticTap()}
                   className="touch-target inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/70 transition hover:border-white/20 hover:text-white"
-                  aria-label="Community — Teams"
+                  aria-label="Społeczność — Grupy"
                 >
                   <Users className="h-4 w-4" aria-hidden />
                 </Link>
@@ -155,6 +162,7 @@ export function AppShell({
       {/* Po zakończeniu treningu — rekordy / podsumowanie zaraz po nawigacji (nie dopiero na /progress). */}
       <WorkoutCompletePopup />
       <GroupWorkoutFloatingWidget />
+      <FriendLiveWatchWidget />
       <WorkoutChatLauncher />
 
       {hideBottomNav ? null : (

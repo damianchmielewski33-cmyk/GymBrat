@@ -276,12 +276,12 @@ export async function createTeamPost(input: {
           .from(users)
           .where(eq(users.id, input.authorUserId))
           .limit(1);
-        const actorName = actor ? displayName(actor) : "Team";
+        const actorName = actor ? displayName(actor) : "Grupa";
         await notifyTeamMembers({
           teamId: input.teamId,
           exceptUserId: input.authorUserId,
           kind: "team_announcement",
-          title: "Ogłoszenie Team",
+          title: "Ogłoszenie grupy",
           body: body.slice(0, 160) || `${actorName} dodał ogłoszenie.`,
           href: `/community/teams/${input.teamId}`,
           actorUserId: input.authorUserId,

@@ -111,7 +111,7 @@ export function TeamFeedPostCard({
 
   useEffect(() => {
     if (deleteState.error) notifyError(deleteState.error);
-    if (deleteState.ok) notifySaved("Post usunięty");
+    if (deleteState.ok) notifySaved("Wpis usunięty");
   }, [deleteState, notifyError, notifySaved]);
 
   const roots = useMemo(

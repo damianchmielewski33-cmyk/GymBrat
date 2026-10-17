@@ -131,7 +131,7 @@ export function TeamFeedSection({
           id="team-feed-heading"
           className="text-[15px] font-semibold text-white"
         >
-          Feed grupy
+          Tablica grupy
         </h2>
         {canPost ? (
           <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90">
@@ -139,7 +139,7 @@ export function TeamFeedSection({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/50" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
             </span>
-            <span>Live</span>
+            <span>Na żywo</span>
             <span className="sr-only">Aktualizacje w czasie rzeczywistym</span>
           </span>
         ) : null}
@@ -159,7 +159,7 @@ export function TeamFeedSection({
       {posts.length === 0 ? (
         <CommunityEmptyState
           icon={<Dumbbell className="h-6 w-6" />}
-          title="Feed jest pusty"
+          title="Tablica jest pusta"
           description="Ukończ trening albo napisz pierwszy post — tu pojawią się PR-y i wspólne momenty."
         />
       ) : (

@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Pause, Play, Trash2 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -12,7 +11,6 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ActiveWorkoutView } from "@/components/active-workout/active-workout-view";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { cn } from "@/lib/utils";
 import { sessionVolume } from "@/lib/workout-session-calculations";
@@ -23,6 +21,7 @@ import {
 import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
 import { hapticTap } from "@/lib/haptics";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
+import { unlockDocumentInteraction } from "@/lib/unlock-document-interaction";
 
 function formatDuration(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -55,10 +54,10 @@ export function ActiveWorkoutGlobalBar() {
   const [completing, setCompleting] = useState(false);
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false);
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
-  const [sessionPopupOpen, setSessionPopupOpen] = useState(false);
 
   const hasSession = workoutPlanId != null && exercises.length > 0;
   const isRunning = hasSession && startedAt != null;
+  const onActiveWorkout = pathname.startsWith("/active-workout");
 
   useEffect(() => {
     if (!isRunning) return;
@@ -67,14 +66,18 @@ export function ActiveWorkoutGlobalBar() {
   }, [isRunning]);
 
   useEffect(() => {
-    if (pathname.startsWith("/active-workout")) {
+    if (onActiveWorkout) {
       setHideGlobalBarForRoute(false);
+      // Dialog / scroll-lock z paska nie może zostać po wejściu na pełny ekran treningu.
+      setConfirmCompleteOpen(false);
+      setConfirmDiscardOpen(false);
+      unlockDocumentInteraction();
       return;
     }
     if (!hideGlobalBarForRoute) return;
     const t = window.setTimeout(() => setHideGlobalBarForRoute(false), 10_000);
     return () => window.clearTimeout(t);
-  }, [hideGlobalBarForRoute, pathname, setHideGlobalBarForRoute]);
+  }, [hideGlobalBarForRoute, onActiveWorkout, setHideGlobalBarForRoute]);
 
   const elapsedSeconds = useMemo(() => {
     const running = startedAt != null ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
@@ -94,10 +97,8 @@ export function ActiveWorkoutGlobalBar() {
   }, [exercises]);
 
   if (!hasSession) return null;
-  if (pathname.startsWith("/active-workout")) return null;
+  if (onActiveWorkout) return null;
   if (hideGlobalBarForRoute) return null;
-
-  const canShowPopup = true;
 
   async function completeWorkoutFromBar() {
     if (completing) return;
@@ -160,44 +161,17 @@ export function ActiveWorkoutGlobalBar() {
         }}
       >
         <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
-          {canShowPopup ? (
-            <button
-              type="button"
-              className="min-w-0 flex-1 rounded-xl text-left outline-none transition hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/40"
-              aria-label="Otwórz aktywny trening"
-              onClick={() => {
-                hapticTap();
-                setSessionPopupOpen(true);
-              }}
-            >
-              <div className="min-w-0 px-1 py-1">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={cn(
-                      "h-2 w-2 rounded-full",
-                      isRunning ? "bg-[var(--neon)]" : "bg-white/35",
-                    )}
-                    aria-hidden
-                  />
-                  <p className="truncate text-sm font-semibold text-white/90">
-                    {title || "Trening"}
-                  </p>
-                  <span className="shrink-0 text-xs text-white/50">
-                    {formatDuration(elapsedSeconds)}
-                  </span>
-                  {progress.total > 0 ? (
-                    <span className="shrink-0 text-xs text-white/45">
-                      • {progress.done}/{progress.total}
-                    </span>
-                  ) : null}
-                </div>
-                <p className="truncate text-[11px] text-white/45">
-                  Masz aktywny trening — kliknij, aby otworzyć
-                </p>
-              </div>
-            </button>
-          ) : (
-            <div className="min-w-0 flex-1">
+          <button
+            type="button"
+            className="min-w-0 flex-1 rounded-xl text-left outline-none transition hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/40"
+            aria-label="Kontynuuj trening"
+            onClick={() => {
+              hapticTap();
+              unlockDocumentInteraction();
+              router.push("/active-workout");
+            }}
+          >
+            <div className="min-w-0 px-1 py-1">
               <div className="flex items-center gap-2">
                 <div
                   className={cn(
@@ -219,10 +193,10 @@ export function ActiveWorkoutGlobalBar() {
                 ) : null}
               </div>
               <p className="truncate text-[11px] text-white/45">
-                Jesteś w widoku treningu
+                Kontynuuj trening — wróć do sesji
               </p>
             </div>
-          )}
+          </button>
 
           <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
             <Button
@@ -244,15 +218,17 @@ export function ActiveWorkoutGlobalBar() {
               </span>
             </Button>
 
-            <Link
-              href="/active-workout"
-              className={cn(
-                buttonVariants({ variant: "secondary" }),
-                "hidden sm:inline-flex",
-              )}
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                hapticTap();
+                unlockDocumentInteraction();
+                router.push("/active-workout");
+              }}
             >
-              Wróć
-            </Link>
+              Kontynuuj
+            </Button>
 
             <Button
               type="button"
@@ -355,33 +331,6 @@ export function ActiveWorkoutGlobalBar() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={sessionPopupOpen} onOpenChange={setSessionPopupOpen}>
-        <AlertDialogContent className="w-[min(96vw,1100px)] p-0">
-          <div className="flex max-h-[min(88dvh,860px)] min-h-[min(70dvh,640px)] flex-col overflow-hidden rounded-2xl">
-            <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-zinc-950/80 px-4 py-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-white/90">{title || "Trening"}</p>
-                <p className="text-[11px] text-white/45">Aktywny trening</p>
-              </div>
-              <AlertDialogClose
-                render={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
-                  />
-                }
-              >
-                Zamknij
-              </AlertDialogClose>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto bg-black">
-              <ActiveWorkoutView initialPlans={[]} entry="active" display="modal" />
-            </div>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

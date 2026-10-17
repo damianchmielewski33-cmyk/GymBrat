@@ -428,6 +428,62 @@ export async function listNotificationEventsSince(
     .slice(0, cap);
 }
 
+/**
+ * Powiadom znajomych z wzajemnym udostępnianiem treningu o starcie sesji.
+ * Dedupe: groupKey per actor w oknie grupowania emitNotification.
+ */
+export async function notifyMutualShareFriendsOnWorkoutStart(input: {
+  actorUserId: string;
+  actorDisplayName?: string | null;
+  href?: string;
+}): Promise<void> {
+  try {
+    const { listMutualShareFriendIds } = await import(
+      "@/lib/community/friendships"
+    );
+    const friendIds = await listMutualShareFriendIds(input.actorUserId);
+    if (friendIds.length === 0) return;
+
+    let actorName = input.actorDisplayName?.trim() || null;
+    if (!actorName) {
+      await ensureCriticalSchema();
+      const db = getDb();
+      const [row] = await db
+        .select({
+          firstName: users.firstName,
+          lastName: users.lastName,
+          name: users.name,
+          email: users.email,
+        })
+        .from(users)
+        .where(eq(users.id, input.actorUserId))
+        .limit(1);
+      actorName = row ? displayName(row) : "Znajomy";
+    }
+
+    const href =
+      input.href ?? `/community/friends/${input.actorUserId}/live`;
+    const groupKey = `friend_live:${input.actorUserId}`;
+
+    for (const friendId of friendIds) {
+      await emitNotification({
+        userId: friendId,
+        kind: "friend_live",
+        title: "Znajomy trenuje",
+        body: `${actorName} właśnie zaczął trening — możesz podglądać bez dołączania.`,
+        href,
+        actorUserId: input.actorUserId,
+        actorDisplayName: actorName,
+        entityType: "friend_live",
+        entityId: input.actorUserId,
+        groupKey,
+      });
+    }
+  } catch {
+    /* nie psuj ścieżki treningu */
+  }
+}
+
 /** Stub helpers — HoF / ranking podłączą się gdy moduły będą live. */
 export async function notifyRankingChange(input: {
   teamId: string;
@@ -466,7 +522,7 @@ export async function notifyHallOfFameWin(input: {
   await emitNotification({
     userId: input.userId,
     kind: "hall_of_fame",
-    title: "Hall of Fame",
+    title: "Galeria sławy",
     body: `Wygrałeś kategorię ${input.categoryLabel} w sezonie ${input.seasonKey}.`,
     href: "/community/hall-of-fame",
     teamId: input.teamId ?? null,
@@ -488,7 +544,7 @@ export async function notifyHallOfFameWin(input: {
       teamId: input.teamId,
       exceptUserId: input.userId,
       kind: "hall_of_fame",
-      title: "Hall of Fame Team",
+      title: "Galeria sławy grupy",
       body: `Nowy zwycięzca: ${input.categoryLabel} · ${input.seasonKey}.`,
       href: "/community/hall-of-fame",
       groupKey: `hof:team:${input.teamId}:${input.seasonKey}:${input.categoryLabel}`,

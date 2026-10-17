@@ -8,6 +8,7 @@ import { SentryClientInit } from "@/components/sentry-client";
 import { WorkoutOutboxFlush } from "@/components/workout/workout-outbox-flush";
 import { WorkoutDataRouterRefresh } from "@/components/workout/workout-data-router-refresh";
 import { ActiveWorkoutCloudSync } from "@/components/active-workout/active-workout-cloud-sync";
+import { FriendLivePresenceSync } from "@/components/community/friend-live-presence-sync";
 import { I18nProvider } from "@/components/i18n/i18n-provider";
 import { BrandingProvider } from "@/components/branding/branding-provider";
 import { AndroidAppUpdatePrompt } from "@/components/android-app-update-prompt";
@@ -26,6 +27,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       <WorkoutDataRouterRefresh />
       <I18nProvider>
         <ActiveWorkoutCloudSync />
+        <FriendLivePresenceSync />
         <SaveFeedbackProvider>
           <AnalyticsTracker />
           <AndroidAppUpdatePrompt />

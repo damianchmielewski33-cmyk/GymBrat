@@ -5,6 +5,54 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Społeczność / Grupy po polsku",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Ekrany grup: Feed → Tablica, Teams → Grupy, Community → Społeczność, role Właściciel/Administrator/Członek, Live → Na żywo.",
+      "Ranking zamiast Leaderboard, Galeria sławy zamiast Hall of Fame; powiadomienia i widżet treningu grupowego też po polsku.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Zwięzłe tipy coacha po polsku",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Podpowiedzi w trakcie treningu to krótka decyzja po polsku (np. „Utrzymaj obciążenie” + kg × powtórzenia), bez angielskich Readiness/Confidence i bez długiego „Powód:”.",
+      "Teksty silnika coacha bez angielskich wstawek; skrót API też zwraca max 1–2 linie.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Aktywny trening dopasowany do ekranu telefonu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Sesja prowadzona mieści się w wysokości telefonu: nagłówek i przycisk Zalicz zawsze widoczne, bez scrollowania całej strony od góry.",
+      "Ciężar i powtórzenia obok siebie, gęstszy layout i kompaktowy tip coacha — mniej pustej przestrzeni, więcej treści w jednym viewport.",
+      "Scroll środka tylko awaryjnie (klawiatura / bardzo niski ekran), nie jako domyślny sposób nawigacji po treningu.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Przerwa między seriami (premium timer)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Ekran przerwy przeprojektowany na czarno-złoty layout: ogromny timer z animowanym pierścieniem, pasek postępu i CTA „Dalej” na pełną szerokość.",
+      "Karta następnej serii (cel / zaliczone), szybkie czasy 60s–3 min, przełącznik dźwięku oraz zwięzły tip AI Coach.",
+      "Usunięty manekin mięśniowy i zbędne komunikaty na pauzie — fokus wyłącznie na starcie kolejnej serii.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Znajomi + podgląd treningu (mutual share)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Znajomości: zaproszenie e-mailem albo z listy członków Teamu; po akceptacji obie strony włączają „Udostępniaj trening”.",
+      "Podgląd live bez dołączania do sesji — widget + strona szczegółów (ćwiczenie, seria, czas); osobno od Team group workout.",
+      "Start treningu (solo lub Team) wysyła powiadomienie znajomym z wzajemnym share (kind friend_live).",
+    ],
+  },
+  {
     title: "Zapowiedź — Performance Community Teams (LCP)",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
@@ -14,6 +62,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "App shell: ciężkie widgety treningu/czatu ładują się leniwie; powiadomienia SSE startują po idle zamiast blokować pierwszy paint.",
     ],
   },
+
   {
     title: "Zapowiedź — iOS: stabilne logowanie Google (bez skaczącego ekranu)",
     planned: true,

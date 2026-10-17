@@ -32,11 +32,11 @@ export default async function GlobalChallengesPage() {
         className="inline-flex min-h-10 items-center gap-1.5 text-[13px] text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
-        Teams
+        Grupy
       </Link>
 
       <header>
-        <p className="app-label text-[var(--gym-gold)]">Community</p>
+        <p className="app-label text-[var(--gym-gold)]">Społeczność</p>
         <h1 className="mt-1.5 font-heading text-[24px] font-semibold tracking-tight text-white sm:text-[28px]">
           Wyzwania globalne
         </h1>

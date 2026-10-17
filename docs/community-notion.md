@@ -4,7 +4,7 @@
 >
 > **Repo:** `github.com/damianchmielewski33-cmyk/GymBrat`  
 > **Stack:** Next.js App Router · Auth.js (JWT) · Drizzle + Turso (SQLite/libSQL) · Server Actions + REST · SSE (bez WebSocket) · Zustand  
-> **Status:** Teams · Feed · Live · Chat · Challenges · Notifications · Analytics (PostHog) — **live w kodzie**. Fair Ranking FCS / Reputation / pełny Hall of Fame seasons — **zaplanowane / stuby powiadomień**.
+> **Status:** Teams · Friends (mutual workout share) · Feed · Live · Chat · Challenges · Notifications · Analytics (PostHog) — **live w kodzie**. Fair Ranking FCS / Reputation / pełny Hall of Fame seasons — **zaplanowane / stuby powiadomień**.
 
 ---
 
@@ -280,7 +280,7 @@ Wszystkie endpointy wymagają sesji (401 bez logowania). Autoryzacja członkostw
 | `team-feed-composer.tsx` | Nowy post + zdjęcia + @mention |
 | `team-feed-post-card.tsx` | Post, reakcje, komentarze lazy |
 
-### 4.3 Live + Chat
+### 4.3 Live + Chat + Znajomi
 
 | Komponent | Rola |
 |-----------|------|
@@ -288,6 +288,11 @@ Wszystkie endpointy wymagają sesji (401 bez logowania). Autoryzacja członkostw
 | `join-group-workout-button.tsx` | Dołącz do live |
 | `group-workout-presence-sync.tsx` | Sync presence |
 | `group-workout-floating-widget.tsx` | Widżet awatarów / progresu |
+| `friends-page-client.tsx` | Lista znajomych, invite e-mail, share toggle |
+| `friend-live-presence-sync.tsx` | Publikacja presence dla mutual share |
+| `friend-live-watch-widget.tsx` | Chip / panel podglądu + skrót „X trenuje” |
+| `friend-live-detail-client.tsx` | Strona szczegółów podglądu |
+| `add-friend-from-team-button.tsx` | CTA na liście członków Team |
 | `workout-chat-panel.tsx` | Pełny panel czatu |
 | `workout-chat-launcher.tsx` | Floating chat w active-workout |
 
@@ -362,8 +367,24 @@ Target reached → award XP + badge → celebration → community_challenge_comp
 
 ### 5.5 Powiadomienia
 
-Emit przy: komentarz, reakcja, invite, live, challenge, achievement, ranking, HoF, team announcement.  
+Emit przy: komentarz, reakcja, invite, live, **friend_live**, challenge, achievement, ranking, HoF, team announcement.  
 **Grupowanie:** ten sam `group_key` w oknie ~2 h → `collapsed_count++` (bez floodu inboxa).
+
+### 5.6 Znajomi + podgląd treningu (mutual share)
+
+```
+Invite (email | członek Team)
+  → accept → accepted friendship
+  → obie strony: share_workout = true
+  → mutual share
+Start treningu (solo/Team) → FriendLivePresenceSync
+  → upsert friend_live_presence + notify friend_live
+Znajomy: widget / /community/friends/[id]/live (read-only, bez join)
+```
+
+- Tabele: `friendships` (para kanoniczna `user_a < user_b`), `friend_live_presence` (sanitized JSON).
+- **Nie** wymaga uczestnictwa w `group_workout_participants`.
+- ALAC: presence GET tylko przy mutual share.
 
 ---
 
@@ -612,6 +633,7 @@ Page-view keys (wewnętrzna analityka): `community_teams`, `community_team_detai
 | Moduł | Status |
 |-------|--------|
 | Teams + roles + invites | ✅ |
+| Friends + mutual workout share + watch | ✅ |
 | Team Feed + SSE + infinite | ✅ |
 | Live group workout + presence | ✅ |
 | Workout Chat | ✅ |

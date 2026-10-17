@@ -88,13 +88,13 @@ export function GroupWorkoutFloatingWidget() {
               aria-expanded={false}
               aria-label={
                 liveCount > 0
-                  ? `Pokaż Team live, ${liveCount} osób trenuje`
-                  : "Pokaż Team live"
+                  ? `Pokaż grupę na żywo, ${liveCount} osób trenuje`
+                  : "Pokaż grupę na żywo"
               }
             >
               <Users className="h-4 w-4" aria-hidden />
               <span className="max-w-[9rem] truncate">
-                {teamName ? `Team · ${teamName}` : "Team live"}
+                {teamName ? `Grupa · ${teamName}` : "Grupa na żywo"}
               </span>
               <span className="rounded-full bg-[var(--gym-gold)]/20 px-1.5 py-0.5 font-metric text-[11px] tabular-nums text-[var(--gym-gold)]">
                 {liveCount}
@@ -105,7 +105,7 @@ export function GroupWorkoutFloatingWidget() {
             <div
               className="pointer-events-auto w-[min(100vw-1.5rem,20rem)] overflow-hidden rounded-3xl border border-white/12 bg-black/85 shadow-[0_16px_48px_rgba(0,0,0,0.55)] backdrop-blur-xl"
               role="dialog"
-              aria-label="Progres Team na żywo"
+              aria-label="Progres grupy na żywo"
             >
               <div className="flex items-center gap-2 border-b border-white/[0.08] px-3 py-2.5">
                 <Users
@@ -114,7 +114,7 @@ export function GroupWorkoutFloatingWidget() {
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[12px] font-semibold uppercase tracking-wide text-[var(--gym-gold)]">
-                    {teamName ? `Team · ${teamName}` : "Team live"}
+                    {teamName ? `Grupa · ${teamName}` : "Grupa na żywo"}
                   </p>
                   <p className="text-[11px] text-white/40">
                     {liveCount > 0
@@ -126,7 +126,7 @@ export function GroupWorkoutFloatingWidget() {
                   type="button"
                   onClick={() => setExpanded(false)}
                   className="touch-target inline-flex items-center justify-center rounded-xl text-white/55 transition hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45"
-                  aria-label="Zwiń panel Team"
+                  aria-label="Zwiń panel grupy"
                 >
                   <X className="h-4 w-4" aria-hidden />
                 </button>
@@ -167,10 +167,10 @@ export function GroupWorkoutFloatingWidget() {
                             </p>
                             <p className="text-[10px] text-white/40">
                               {pr.phase === "rest"
-                                ? `Rest ${pr.restRemaining ?? 0}s`
+                                ? `Przerwa ${pr.restRemaining ?? 0}s`
                                 : pr.phase === "done"
-                                  ? "Done"
-                                  : "Live"}
+                                  ? "Koniec"
+                                  : "Na żywo"}
                             </p>
                           </div>
                         </div>

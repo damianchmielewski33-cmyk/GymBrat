@@ -69,11 +69,9 @@ export function ActiveSessionCard({
             </>
           )
         ) : (
-          <>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
-              {children}
-            </div>
-          </>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            {children}
+          </div>
         )}
       </div>
     </motion.div>

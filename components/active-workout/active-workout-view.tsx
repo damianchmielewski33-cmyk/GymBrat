@@ -20,7 +20,7 @@ import {
 } from "@/lib/session-new-max";
 import {
   buildLiveCoachTipAfterCompletedSet,
-  liveCoachTipToPlainText,
+  type LiveCoachTip,
 } from "@/lib/live-set-coach";
 import { whenActiveWorkoutCloudHydrated } from "@/lib/active-workout-cloud-ready";
 import { ActiveSessionCard } from "@/components/active-workout/active-session-card";
@@ -29,7 +29,10 @@ import { WorkoutFinishedScreen } from "@/components/active-workout/workout-finis
 import { StartWorkoutScreen } from "@/components/active-workout/start-workout-screen";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { RestBreakScreen } from "@/components/active-workout/rest-break-screen";
+import {
+  RestBreakScreen,
+  type RestNextSetInfo,
+} from "@/components/active-workout/rest-break-screen";
 import { WorkoutAllSetsDoneDialog } from "@/components/active-workout/workout-all-sets-done-dialog";
 import { WorkoutDiscardSessionDialog } from "@/components/active-workout/workout-discard-session-dialog";
 import { readRestTimerPrefs } from "@/lib/rest-timer-prefs";
@@ -51,9 +54,10 @@ import {
 } from "@/lib/workout-skipped-sets";
 import { hapticExerciseDone, hapticNewMax, hapticWorkoutDone } from "@/lib/haptics";
 import {
-  resolveExerciseMuscles,
-  type ResolvedExerciseMuscles,
-} from "@/lib/resolve-exercise-muscles";
+  formatKgPl,
+  formatRepRangeLabel,
+  resolveRepRange,
+} from "@/lib/set-progression-suggestion";
 import { RotateCcw } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18n-provider";
 
@@ -70,8 +74,6 @@ type LastCompletedSnap = {
   exerciseFinished: boolean;
   /** Ostatnia seria całego treningu. */
   workoutFinished: boolean;
-  /** Partie mięśniowe tego, co zaraz będzie robione (kolejna seria / kolejne ćwiczenie). */
-  nextMuscles: ResolvedExerciseMuscles | null;
 };
 
 export function ActiveWorkoutView({
@@ -123,8 +125,14 @@ export function ActiveWorkoutView({
   /** Pełny czas bieżącego cyklu przerwy — do animacji koła odliczania. */
   const [restDurationTotal, setRestDurationTotal] = useState(90);
   const restStartedAtRef = useRef<number | null>(null);
+  /** Absolutny koniec przerwy (wall-clock) — odporne na blokadę ekranu / throttling. */
+  const restEndsAtRef = useRef<number | null>(null);
   const [restSoundOn, setRestSoundOn] = useState(true);
+  const restSoundOnRef = useRef(restSoundOn);
+  restSoundOnRef.current = restSoundOn;
   const [lastCompleted, setLastCompleted] = useState<LastCompletedSnap | null>(null);
+  const lastCompletedRef = useRef(lastCompleted);
+  lastCompletedRef.current = lastCompleted;
   const [listOpen, setListOpen] = useState(false);
   const [resumePromptOpen, setResumePromptOpen] = useState(false);
   const [allSetsDoneOpen, setAllSetsDoneOpen] = useState(false);
@@ -149,41 +157,77 @@ export function ActiveWorkoutView({
     () => detectSessionWeightRecords(exercises, lastPlanHints),
     [exercises, lastPlanHints],
   );
-  const restCoachTip = useMemo(() => {
+  const restCoachTip = useMemo((): LiveCoachTip | null => {
     if (!lastCompleted) return null;
     const ex = exercises.find((e) => e.id === lastCompleted.exerciseId);
     if (!ex) return null;
-    return liveCoachTipToPlainText(
-      buildLiveCoachTipAfterCompletedSet(ex, lastCompleted.setIndex),
-    );
+    return buildLiveCoachTipAfterCompletedSet(ex, lastCompleted.setIndex);
   }, [lastCompleted, exercises]);
 
-  /** Manekin na pauzie: snap albo żywe dopasowanie (categoryId / katalog). */
-  const restNextMuscles = useMemo((): ResolvedExerciseMuscles | null => {
+  const restNextSet = useMemo((): RestNextSetInfo | null => {
     if (!lastCompleted || lastCompleted.workoutFinished) return null;
-    if (lastCompleted.nextMuscles?.primary) return lastCompleted.nextMuscles;
-    if (
-      lastCompleted.nextLabel === "Następne ćwiczenie" &&
-      lastCompleted.nextValue !== "Koniec treningu"
-    ) {
-      const nextEx = exercises.find((e) => e.name === lastCompleted.nextValue);
-      if (nextEx) {
-        return resolveExerciseMuscles({
-          name: nextEx.name,
-          categoryId: nextEx.categoryId,
-        });
+    const advance = resolveAdvanceAfterSet(
+      exercises,
+      lastCompleted.exerciseId,
+      lastCompleted.setIndex,
+    );
+    if (!advance) return null;
+    const nextEx = exercises.find((e) => e.id === advance.exerciseId);
+    if (!nextEx) return null;
+
+    const setLine =
+      advance.exerciseId === lastCompleted.exerciseId
+        ? `Seria ${advance.setIndex + 1} z ${nextEx.sets.length}`
+        : `${nextEx.name} · seria ${advance.setIndex + 1}/${nextEx.sets.length}`;
+
+    const setsCount = nextEx.targetSets ?? nextEx.sets.length;
+    const repRange = resolveRepRange(nextEx.targetReps);
+    const schemeLine = repRange
+      ? `${setsCount}s ${formatRepRangeLabel(repRange)}`
+      : nextEx.targetReps != null && nextEx.targetReps > 0
+        ? `${setsCount}s ${nextEx.targetReps}`
+        : `${setsCount}s`;
+    const rirLine =
+      nextEx.targetRir != null ? `RIR ${nextEx.targetRir}` : null;
+
+    let targetLine: string | null = null;
+    if (restCoachTip?.apply) {
+      targetLine = `${formatKgPl(restCoachTip.apply.weightKg)} kg × ${restCoachTip.apply.reps}`;
+    } else {
+      const suggested = nextEx.suggestedWeights?.[advance.setIndex];
+      const nextSet = nextEx.sets[advance.setIndex];
+      const kg =
+        nextSet && nextSet.weight > 0
+          ? nextSet.weight
+          : suggested != null && suggested > 0
+            ? suggested
+            : advance.exerciseId === lastCompleted.exerciseId &&
+                lastCompleted.weight > 0
+              ? lastCompleted.weight
+              : null;
+      const reps =
+        nextSet?.reps && nextSet.reps > 0
+          ? nextSet.reps
+          : nextEx.targetReps != null && nextEx.targetReps > 0
+            ? Math.round(nextEx.targetReps)
+            : null;
+      if (kg != null && reps != null) {
+        targetLine = `${formatKgPl(kg)} kg × ${reps}`;
+      } else if (kg != null) {
+        targetLine = `${formatKgPl(kg)} kg`;
       }
-      return resolveExerciseMuscles({ name: lastCompleted.nextValue });
     }
-    const ex = exercises.find((e) => e.id === lastCompleted.exerciseId);
-    if (ex) {
-      return resolveExerciseMuscles({
-        name: ex.name,
-        categoryId: ex.categoryId,
-      });
-    }
-    return resolveExerciseMuscles({ name: lastCompleted.exerciseName });
-  }, [lastCompleted, exercises]);
+
+    return { setLine, schemeLine, rirLine, targetLine };
+  }, [lastCompleted, exercises, restCoachTip]);
+
+  const exercisesProgress = useMemo(() => {
+    const total = exercises.length;
+    const done = exercises.filter((ex) =>
+      ex.sets.every((s) => s.done),
+    ).length;
+    return { done, total };
+  }, [exercises]);
 
   const hasLoadedPlan = workoutPlanId != null && exercises.length > 0;
 
@@ -210,17 +254,24 @@ export function ActiveWorkoutView({
   /** Sesja pełnoekranowa: bez scrolla dokumentu (tylko wewnętrzna lista ćwiczenia). */
   useEffect(() => {
     if (!hasLoadedPlan || display === "modal") return;
+    // Po powrocie z paska / dialogu — zdejmij pointer-events i osierocone locki.
+    void import("@/lib/unlock-document-interaction").then((m) =>
+      m.unlockDocumentInteraction(),
+    );
     const html = document.documentElement;
     const body = document.body;
     const prevHtmlOverflow = html.style.overflow;
     const prevBodyOverflow = body.style.overflow;
+    const prevBodyPointer = body.style.pointerEvents;
     const prevHtmlOverscroll = html.style.overscrollBehavior;
+    body.style.pointerEvents = "";
     html.style.overflow = "hidden";
     body.style.overflow = "hidden";
     html.style.overscrollBehavior = "none";
     return () => {
       html.style.overflow = prevHtmlOverflow;
       body.style.overflow = prevBodyOverflow;
+      body.style.pointerEvents = prevBodyPointer;
       html.style.overscrollBehavior = prevHtmlOverscroll;
     };
   }, [hasLoadedPlan, display]);
@@ -345,9 +396,11 @@ export function ActiveWorkoutView({
       playRestTimerStartSignal();
     }
     const sec = Math.max(1, Math.round(seconds));
+    const nowMs = Date.now();
     setRestDurationTotal(sec);
+    restStartedAtRef.current = nowMs;
+    restEndsAtRef.current = nowMs + sec * 1000;
     setRestRemaining(sec);
-    restStartedAtRef.current = Date.now();
   }
 
   /** Zapisuje faktyczną przerwę na następną serię (rest-aware coach). */
@@ -383,10 +436,26 @@ export function ActiveWorkoutView({
   }
 
   function stopRest() {
-    if (restRemaining != null) {
+    if (restRemaining != null || restEndsAtRef.current != null) {
       persistRestSecondsFromTimer();
     }
+    restEndsAtRef.current = null;
     setRestRemaining(null);
+  }
+
+  /** Koniec odliczania (także po odblokowaniu ekranu) → ekran ćwiczenia / finish. */
+  function finishRestFromTimer() {
+    if (restEndsAtRef.current == null) return;
+    restEndsAtRef.current = null;
+    if (restSoundOnRef.current) {
+      playRestTimerEndSignal();
+    }
+    const finished = shouldOpenFinishAfterRest();
+    persistRestSecondsFromTimer();
+    setRestRemaining(null);
+    if (finished) {
+      setFinishOpen(true);
+    }
   }
 
   function buildCompletedSnap(
@@ -404,11 +473,6 @@ export function ActiveWorkoutView({
     let nextValue = `Seria ${setIndex + 2} z ${ex.sets.length}`;
     let exerciseFinished = false;
     let workoutFinished = false;
-    /** Manekin: partia tego, co zaraz będzie robione. */
-    let nextMuscles: ResolvedExerciseMuscles | null = resolveExerciseMuscles({
-      name: ex.name,
-      categoryId: ex.categoryId,
-    });
 
     if (!advance) {
       // Brak otwartej serii / ćwiczenia — pauza z „Koniec treningu”.
@@ -416,7 +480,6 @@ export function ActiveWorkoutView({
       workoutFinished = true;
       nextLabel = "Następne ćwiczenie";
       nextValue = "Koniec treningu";
-      nextMuscles = null;
     } else if (advance.exerciseId === exerciseId) {
       nextLabel = "Następna seria";
       nextValue = `Seria ${advance.setIndex + 1} z ${ex.sets.length}`;
@@ -425,12 +488,6 @@ export function ActiveWorkoutView({
       const nextEx = list.find((e) => e.id === advance.exerciseId);
       nextLabel = "Następne ćwiczenie";
       nextValue = nextEx?.name ?? "—";
-      nextMuscles = nextEx
-        ? resolveExerciseMuscles({
-            name: nextEx.name,
-            categoryId: nextEx.categoryId,
-          })
-        : null;
     }
 
     return {
@@ -444,7 +501,6 @@ export function ActiveWorkoutView({
       nextValue,
       exerciseFinished,
       workoutFinished,
-      nextMuscles,
     };
   }
 
@@ -575,39 +631,51 @@ export function ActiveWorkoutView({
     }
   }, [entry]);
 
-  const restSoundOnRef = useRef(restSoundOn);
-  restSoundOnRef.current = restSoundOn;
-  const lastCompletedRef = useRef(lastCompleted);
-  lastCompletedRef.current = lastCompleted;
-
   useEffect(() => {
     useCommunityWorkoutStore.getState().setRestRemaining(restRemaining);
   }, [restRemaining]);
 
+  const restActive = restRemaining != null;
+  const finishRestFromTimerRef = useRef(finishRestFromTimer);
+  finishRestFromTimerRef.current = finishRestFromTimer;
+
+  /**
+   * Wall-clock timer: przy zablokowanym ekranie setTimeout jest zawieszany,
+   * więc remaining liczymy z restEndsAt + sync na visibility/focus.
+   * Po upływie czasu automatycznie wracamy do ekranu ćwiczenia.
+   */
   useEffect(() => {
-    if (restRemaining === null) return;
-    if (restRemaining <= 0) {
-      persistRestSecondsFromTimer();
-      setRestRemaining(null);
-      return;
-    }
-    const id = window.setTimeout(() => {
-      if (restRemaining === 1) {
-        if (restSoundOnRef.current) {
-          playRestTimerEndSignal();
-        }
-        const finished = shouldOpenFinishAfterRest();
-        persistRestSecondsFromTimer();
-        setRestRemaining(null);
-        if (finished) {
-          setFinishOpen(true);
-        }
+    if (!restActive) return;
+
+    const tick = () => {
+      const endsAt = restEndsAtRef.current;
+      if (endsAt == null) return;
+      const left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      if (left <= 0) {
+        finishRestFromTimerRef.current();
         return;
       }
-      setRestRemaining(restRemaining - 1);
-    }, 1000);
-    return () => window.clearTimeout(id);
-  }, [restRemaining]);
+      setRestRemaining((prev) => (prev === left ? prev : left));
+    };
+
+    tick();
+    const id = window.setInterval(tick, 250);
+
+    const onResume = () => {
+      if (document.visibilityState === "hidden") return;
+      tick();
+    };
+    document.addEventListener("visibilitychange", onResume);
+    window.addEventListener("focus", onResume);
+    window.addEventListener("pageshow", onResume);
+
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onResume);
+      window.removeEventListener("focus", onResume);
+      window.removeEventListener("pageshow", onResume);
+    };
+  }, [restActive]);
 
   const elapsed = useMemo(() => {
     const running =
@@ -720,7 +788,6 @@ export function ActiveWorkoutView({
               workoutFinished: true,
               nextLabel: "Następne ćwiczenie",
               nextValue: "Koniec treningu",
-              nextMuscles: null,
             }
           : null;
         if (endSnap) setLastCompleted(endSnap);
@@ -949,18 +1016,16 @@ export function ActiveWorkoutView({
           open
           remaining={restRemaining}
           durationTotal={restDurationTotal}
-          title={title}
+          title={title || "Trening"}
+          exerciseLabel={lastCompleted?.exerciseName?.trim() || ""}
           elapsedSeconds={elapsed}
           setsDone={completedSets.done}
           setsTotal={completedSets.total}
-          completedLine={
-            lastCompleted
-              ? `${lastCompleted.exerciseName} · seria ${lastCompleted.setIndex + 1}: ${lastCompleted.weight} kg × ${lastCompleted.reps}`
-              : null
-          }
-          nextLabel={lastCompleted?.nextLabel ?? "Następna seria"}
-          nextValue={lastCompleted?.nextValue ?? "—"}
-          nextMuscles={restNextMuscles}
+          exercisesDone={exercisesProgress.done}
+          exercisesTotal={exercisesProgress.total}
+          completedWeightKg={lastCompleted?.weight ?? null}
+          completedReps={lastCompleted?.reps ?? null}
+          nextSet={restNextSet}
           coachTip={restCoachTip}
           soundOn={restSoundOn}
           onToggleSound={() => {
@@ -973,12 +1038,24 @@ export function ActiveWorkoutView({
           }}
           onAddSeconds={(sec) => {
             const add = Math.max(1, Math.round(sec));
+            const nowMs = Date.now();
             setRestDurationTotal((t) => t + add);
-            setRestRemaining((r) => (r == null ? add : r + add));
+            if (restEndsAtRef.current != null) {
+              restEndsAtRef.current += add * 1000;
+            } else {
+              restEndsAtRef.current = nowMs + add * 1000;
+            }
+            const left = Math.max(
+              0,
+              Math.ceil((restEndsAtRef.current - nowMs) / 1000),
+            );
+            setRestRemaining(left > 0 ? left : add);
           }}
           onSetSeconds={(sec) => {
             const next = Math.max(1, Math.round(sec));
+            const nowMs = Date.now();
             setRestDurationTotal(next);
+            restEndsAtRef.current = nowMs + next * 1000;
             setRestRemaining(next);
           }}
           onContinue={continueAfterRest}

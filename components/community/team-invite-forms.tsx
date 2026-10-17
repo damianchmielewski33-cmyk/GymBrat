@@ -82,9 +82,9 @@ export function InviteByEmailForm({ teamId }: { teamId: string }) {
             "flex w-full rounded-2xl border px-3 text-sm",
           )}
         >
-          <option value="member">Member</option>
+          <option value="member">Członek</option>
           <option value="moderator">Moderator</option>
-          <option value="admin">Admin</option>
+          <option value="admin">Administrator</option>
         </select>
       </div>
       <Button type="submit" className="w-full" disabled={pending}>

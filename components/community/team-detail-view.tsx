@@ -289,7 +289,7 @@ export function TeamDetailClient({
         <section className="app-card space-y-3 p-5">
           <div className="flex items-center gap-2">
             <Dumbbell className="h-4 w-4 text-white/70" aria-hidden />
-            <h2 className="text-[15px] font-semibold text-white">Feed grupy</h2>
+            <h2 className="text-[15px] font-semibold text-white">Tablica grupy</h2>
           </div>
           <p className="text-[13px] leading-relaxed text-white/45">
             Dołącz do grupy, aby zobaczyć feed i publikować.

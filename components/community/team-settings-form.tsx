@@ -137,7 +137,7 @@ export function TeamSettingsForm({ team }: { team: TeamDetailView }) {
           }}
         >
           <input type="hidden" name="teamId" value={team.id} />
-          <p className="text-sm font-semibold text-red-300">Strefa Owner</p>
+          <p className="text-sm font-semibold text-red-300">Strefa właściciela</p>
           <p className="text-[13px] text-white/45">
             Archiwizacja ukrywa grupę i blokuje nowe dołączenia.
           </p>

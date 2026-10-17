@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Plus, Search, Ticket, Trophy, Users } from "lucide-react";
+import { Plus, Search, Ticket, Trophy, UserPlus, Users } from "lucide-react";
 import { auth } from "@/auth";
 import { CommunityEmptyState } from "@/components/community/community-empty-state";
 import { PendingInviteActions } from "@/components/community/team-invite-forms";
@@ -34,21 +34,28 @@ export default async function CommunityTeamsPage({
     <div className="space-y-6 pb-thumb-bar">
       {/* Shell od razu — LCP nie czeka na zapytania Community. */}
       <AppPageHeader
-        kicker="Community"
-        title="Teams"
-        description="Trenuj razem — ranking tygodnia, live sesje, wyzwania i feed jak w Twojej drużynie."
+        kicker="Społeczność"
+        title="Grupy"
+        description="Trenuj razem — ranking tygodnia, sesje na żywo, wyzwania i tablica jak w Twojej drużynie."
       />
 
       <nav
         className="chip-scroll -mx-0.5 px-0.5"
-        aria-label="Skróty Community"
+        aria-label="Skróty społeczności"
       >
         <Link
           href="/community/challenges"
           className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[var(--gym-gold)]/25 bg-[var(--gym-gold)]/10 px-3.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--gym-gold)]"
         >
           <Trophy className="h-3.5 w-3.5" aria-hidden />
-          Global Challenges
+          Globalne wyzwania
+        </Link>
+        <Link
+          href="/community/friends"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3.5 text-[11px] font-semibold uppercase tracking-wide text-white/55"
+        >
+          <UserPlus className="h-3.5 w-3.5" aria-hidden />
+          Znajomi
         </Link>
         <Link
           href="/community/notifications"
@@ -195,7 +202,7 @@ async function MyTeamsSection({
           <CommunityEmptyState
             icon={<Users className="h-6 w-6" />}
             title="Jeszcze nie masz grupy"
-            description="Utwórz Team albo dołącz kodem — ranking i live pojawią się od pierwszego treningu."
+            description="Utwórz grupę albo dołącz kodem — ranking i trening na żywo pojawią się od pierwszej sesji."
             action={
               <Link
                 href="/community/teams/new"

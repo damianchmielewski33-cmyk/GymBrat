@@ -14,7 +14,7 @@ export function TeamSubnav({ teamId }: { teamId: string }) {
   const items = [
     {
       href: `/community/teams/${teamId}`,
-      label: "Feed",
+      label: "Tablica",
       icon: MessageCircle,
       match: (p: string) =>
         p === `/community/teams/${teamId}` ||

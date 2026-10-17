@@ -7,6 +7,7 @@ import {
   transferOwnershipAction,
   type TeamActionState,
 } from "@/actions/teams";
+import { AddFriendFromTeamButton } from "@/components/community/add-friend-from-team-button";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,11 +29,13 @@ export function TeamMembersPanel({
   viewerUserId,
   viewerRole,
   members,
+  friendshipStatusByUserId = {},
 }: {
   teamId: string;
   viewerUserId: string;
   viewerRole: TeamRole;
   members: TeamMemberView[];
+  friendshipStatusByUserId?: Record<string, "none" | "pending" | "accepted" | "blocked">;
 }) {
   return (
     <div className="space-y-3">
@@ -43,6 +46,9 @@ export function TeamMembersPanel({
           viewerUserId={viewerUserId}
           viewerRole={viewerRole}
           member={member}
+          friendshipStatus={
+            friendshipStatusByUserId[member.userId] ?? "none"
+          }
         />
       ))}
     </div>
@@ -54,11 +60,13 @@ function MemberRow({
   viewerUserId,
   viewerRole,
   member,
+  friendshipStatus,
 }: {
   teamId: string;
   viewerUserId: string;
   viewerRole: TeamRole;
   member: TeamMemberView;
+  friendshipStatus: "none" | "pending" | "accepted" | "blocked";
 }) {
   const { notifySaved, notifyError } = useSaveFeedback();
   const [roleState, roleAction, rolePending] = useActionState(
@@ -147,6 +155,19 @@ function MemberRow({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
+        {member.userId !== viewerUserId && friendshipStatus === "none" ? (
+          <AddFriendFromTeamButton otherUserId={member.userId} />
+        ) : null}
+        {member.userId !== viewerUserId && friendshipStatus === "pending" ? (
+          <span className="inline-flex min-h-10 items-center rounded-xl border border-white/10 px-3 text-[12px] text-white/45">
+            Zaproszenie wysłane
+          </span>
+        ) : null}
+        {member.userId !== viewerUserId && friendshipStatus === "accepted" ? (
+          <span className="inline-flex min-h-10 items-center rounded-xl border border-[var(--gym-gold)]/20 bg-[var(--gym-gold)]/10 px-3 text-[12px] text-[var(--gym-gold)]">
+            Znajomy
+          </span>
+        ) : null}
         {showTransfer ? (
           <form action={transferAction}>
             <input type="hidden" name="teamId" value={teamId} />
@@ -157,7 +178,7 @@ function MemberRow({
               variant="outline"
               disabled={transferPending}
             >
-              Przekaż Owner
+              Przekaż własność
             </Button>
           </form>
         ) : null}

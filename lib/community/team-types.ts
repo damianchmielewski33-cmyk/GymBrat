@@ -49,13 +49,13 @@ export function isAssignableTeamRole(value: string): value is AssignableTeamRole
 export function teamRoleLabel(role: TeamRole): string {
   switch (role) {
     case "owner":
-      return "Owner";
+      return "Właściciel";
     case "admin":
-      return "Admin";
+      return "Administrator";
     case "moderator":
       return "Moderator";
     case "member":
-      return "Member";
+      return "Członek";
   }
 }
 

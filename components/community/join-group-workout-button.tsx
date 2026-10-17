@@ -45,7 +45,7 @@ export function JoinGroupWorkoutButton({
       useCommunityWorkoutStore.getState().setGroupSession({
         sessionId: data.sessionId,
         teamId: data.teamId,
-        teamName: data.teamName ?? "Team",
+        teamName: data.teamName ?? "Grupa",
       });
       notifySaved("Dołączono do treningu grupowego");
 

@@ -220,7 +220,7 @@ export function WorkoutChatPanel({
       ? "Czat grupy"
       : target.kind === "workout"
         ? "Czat treningowy"
-        : "Czat challenge");
+        : "Czat wyzwania");
 
   if (!open) {
     return (
@@ -268,7 +268,7 @@ export function WorkoutChatPanel({
               ? "Czat grupowy · live"
               : target.kind === "workout"
                 ? "Czat treningowy · live"
-                : "Czat challenge · live"}
+                : "Czat wyzwania · na żywo"}
           </p>
         </div>
         <button

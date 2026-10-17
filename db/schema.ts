@@ -1525,3 +1525,61 @@ export const notificationEvents = sqliteTable(
     index("notification_events_user_created_idx").on(t.userId, t.createdAt),
   ],
 );
+
+/**
+ * Znajomości 1:1 — para kanoniczna user_a_id < user_b_id.
+ * status: pending | accepted | blocked
+ * Udostępnianie treningu: wzajemne (share_workout_a AND share_workout_b).
+ */
+export const friendships = sqliteTable(
+  "friendships",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userAId: text("user_a_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    userBId: text("user_b_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("pending"),
+    requestedBy: text("requested_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    shareWorkoutA: integer("share_workout_a").notNull().default(0),
+    shareWorkoutB: integer("share_workout_b").notNull().default(0),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    respondedAt: integer("responded_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    uniqueIndex("friendships_pair_uidx").on(t.userAId, t.userBId),
+    index("friendships_user_a_status_idx").on(t.userAId, t.status),
+    index("friendships_user_b_status_idx").on(t.userBId, t.status),
+    index("friendships_requested_by_idx").on(t.requestedBy, t.status),
+  ],
+);
+
+/** Sanitized presence do podglądu znajomych (bez payload_json sesji). */
+export const friendLivePresence = sqliteTable(
+  "friend_live_presence",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    presenceJson: text("presence_json").notNull().default("{}"),
+    active: integer("active").notNull().default(0),
+    startedAt: integer("started_at", { mode: "timestamp_ms" }),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("friend_live_presence_active_updated_idx").on(t.active, t.updatedAt),
+  ],
+);

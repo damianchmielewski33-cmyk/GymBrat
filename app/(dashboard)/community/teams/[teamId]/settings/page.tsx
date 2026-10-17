@@ -29,7 +29,7 @@ export default async function TeamSettingsPage({
         {team.name}
       </Link>
       <AppPageHeader
-        kicker="Teams"
+        kicker="Grupy"
         title="Ustawienia grupy"
         description="Nazwa, banner, prywatność i metryka rankingu."
       />

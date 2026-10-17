@@ -101,7 +101,7 @@ export function ChallengeCelebrationOverlay({
         </div>
 
         <p className="mt-3 text-[12px] text-white/45">
-          Łącznie {current.xpTotal.toLocaleString("pl-PL")} XP w Community
+          Łącznie {current.xpTotal.toLocaleString("pl-PL")} XP w społeczności
         </p>
 
         <button

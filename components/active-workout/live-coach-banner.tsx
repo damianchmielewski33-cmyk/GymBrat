@@ -2,6 +2,7 @@
 
 import type { LiveCoachTip } from "@/lib/live-set-coach";
 import { hapticTap } from "@/lib/haptics";
+import { formatKgPl } from "@/lib/set-progression-suggestion";
 import { cn } from "@/lib/utils";
 
 const TONE_CLASS: Record<LiveCoachTip["tone"], string> = {
@@ -13,13 +14,6 @@ const TONE_CLASS: Record<LiveCoachTip["tone"], string> = {
   info: "border-white/12 bg-white/[0.04] text-white/80 hover:bg-white/[0.07]",
 };
 
-const HIGHLIGHT_CLASS: Record<LiveCoachTip["tone"], string> = {
-  progress: "text-emerald-300",
-  caution: "text-amber-200",
-  hold: "text-[#D6B36A]",
-  info: "text-white",
-};
-
 const ICON: Record<LiveCoachTip["tone"], string> = {
   progress: "🔥",
   caution: "⚠️",
@@ -27,67 +21,66 @@ const ICON: Record<LiveCoachTip["tone"], string> = {
   info: "💡",
 };
 
+/**
+ * Zwięzły tip coacha: jedna linia po polsku (decyzja + opcjonalnie kg×reps).
+ * Bez Readiness / Confidence / „Powód:”.
+ */
 export function LiveCoachBanner({
   tip,
   onApply,
   className,
+  compact = false,
 }: {
   tip: LiveCoachTip | null;
   onApply?: (apply: NonNullable<LiveCoachTip["apply"]>) => void;
   className?: string;
+  /** Gęstszy padding — ten sam kontrakt copy co full. */
+  compact?: boolean;
 }) {
   if (!tip) return null;
   const clickable = Boolean(tip.apply && onApply);
 
-  const metaLine = (
-    <span className="mt-1.5 block text-[10px] leading-snug opacity-50">
-      {tip.reason ? (
-        <span className="block opacity-80">Powód: {tip.reason}</span>
-      ) : null}
-      <span className="tabular-nums">
-        Readiness {tip.readiness}/100 · Confidence {tip.confidence}/100
-      </span>
-      {tip.suspicious || tip.confidence < 45 ? (
-        <span className="mt-0.5 block text-amber-200/70">dane niepewne</span>
-      ) : null}
-    </span>
-  );
+  const headline = (tip.decision || tip.body).trim();
+  const applyLine =
+    tip.apply != null
+      ? `${formatKgPl(tip.apply.weightKg)} kg × ${tip.apply.reps}`
+      : null;
 
   const inner = (
     <>
-      <span className="mt-0.5 shrink-0" aria-hidden>
+      <span className="shrink-0" aria-hidden>
         {ICON[tip.tone]}
       </span>
       <span className="min-w-0">
-        {tip.decision ? (
-          <span className="mb-0.5 block text-[11px] font-semibold tracking-wide opacity-90">
-            {tip.decision}
-          </span>
-        ) : null}
-        {tip.highlight ? (
-          <>
-            {tip.prefix}
-            <span
-              className={cn(
-                "font-semibold tabular-nums",
-                HIGHLIGHT_CLASS[tip.tone],
-              )}
-            >
-              {tip.highlight}
-            </span>
-            <span className="opacity-80">{tip.suffix}</span>
-          </>
-        ) : (
-          tip.body
-        )}
-        {metaLine}
-        {clickable ? (
-          <span className="mt-1 block text-[11px] font-medium opacity-55">
-            Stuknij, żeby wpisać
+        <span
+          className={cn(
+            "block font-semibold tracking-wide",
+            compact ? "truncate text-[12px]" : "text-[13px]",
+          )}
+        >
+          {headline}
+        </span>
+        {applyLine && tip.decision ? (
+          <span
+            className={cn(
+              "mt-0.5 block tabular-nums opacity-75",
+              compact ? "truncate text-[11px]" : "text-[12px]",
+            )}
+          >
+            {applyLine}
           </span>
         ) : null}
       </span>
     </>
+  );
+
+  const shell = cn(
+    "flex w-full items-start gap-2 border text-left leading-snug transition",
+    compact
+      ? "rounded-xl px-2.5 py-1.5 text-[12px]"
+      : "rounded-2xl px-3 py-2.5 text-[13px]",
+    TONE_CLASS[tip.tone],
+    className,
   );
 
   if (clickable) {
@@ -98,11 +91,10 @@ export function LiveCoachBanner({
           hapticTap();
           if (tip.apply) onApply?.(tip.apply);
         }}
-        className={cn(
-          "flex w-full items-start gap-2 rounded-2xl border px-3 py-2.5 text-left text-[13px] leading-snug transition",
-          TONE_CLASS[tip.tone],
-          className,
-        )}
+        className={shell}
+        aria-label={
+          applyLine ? `${headline}. ${applyLine}` : headline
+        }
       >
         {inner}
       </button>
@@ -110,14 +102,7 @@ export function LiveCoachBanner({
   }
 
   return (
-    <div
-      className={cn(
-        "flex w-full items-start gap-2 rounded-2xl border px-3 py-2.5 text-left text-[13px] leading-snug",
-        TONE_CLASS[tip.tone],
-        className,
-      )}
-      role="status"
-    >
+    <div className={shell} role="status">
       {inner}
     </div>
   );

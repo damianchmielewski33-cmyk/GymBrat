@@ -45,7 +45,7 @@ export function StartWorkoutModeSheet({
             Jak zaczynasz?
           </SheetTitle>
           <p className="text-[13px] text-white/50">
-            Ten sam trening GymBrat — solo albo z Team (presence na żywo).
+            Ten sam trening GymBrat — sam albo z grupą (status na żywo).
           </p>
         </SheetHeader>
 
@@ -61,7 +61,7 @@ export function StartWorkoutModeSheet({
             </span>
             <span>
               <span className="block text-[15px] font-semibold text-white">
-                Solo
+                Samodzielnie
               </span>
               <span className="mt-0.5 block text-[12px] text-white/45">
                 Klasyczny start — bez widżetu grupy
@@ -86,14 +86,14 @@ export function StartWorkoutModeSheet({
                   Trening grupowy
                 </span>
                 <span className="mt-0.5 block text-[12px] text-white/45">
-                  Team widzi Twoje ćwiczenie, serię i progres (&lt;1s)
+                  Grupa widzi Twoje ćwiczenie, serię i progres (&lt;1s)
                 </span>
               </span>
             </div>
 
             {teams.length === 0 ? (
               <p className="mt-3 text-[12px] text-white/40">
-                Dołącz do Team w Community, by startować grupowo.
+                Dołącz do grupy w Społeczności, by startować wspólnie.
               </p>
             ) : (
               <div className="mt-3 space-y-2">
@@ -134,7 +134,7 @@ export function StartWorkoutModeSheet({
                   disabled={loading || !selectedTeamId}
                   onClick={() => selectedTeamId && onGroup(selectedTeamId)}
                 >
-                  {loading ? "Start…" : "Start z Team"}
+                  {loading ? "Start…" : "Start z grupą"}
                 </Button>
               </div>
             )}

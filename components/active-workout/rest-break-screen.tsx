@@ -1,27 +1,29 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState } from "react";
-import { SkipForward, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { List, Play, Volume2, VolumeX, X } from "lucide-react";
 import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
-import {
-  readRestTimerPrefs,
-  writeRestDefaultSeconds,
-} from "@/lib/rest-timer-prefs";
-import {
-  SessionChromeHeader,
-  SessionProgressBar,
-} from "@/components/active-workout/session-chrome";
-import { MuscleMannequin } from "@/components/active-workout/muscle-mannequin";
-import type { ResolvedExerciseMuscles } from "@/lib/resolve-exercise-muscles";
+import { writeRestDefaultSeconds } from "@/lib/rest-timer-prefs";
+import type { LiveCoachTip } from "@/lib/live-set-coach";
+import { formatKgPl } from "@/lib/set-progression-suggestion";
 
-const PRESETS_SEC = [60, 90, 120, 180] as const;
+/** Palette premium — lokalnie na ekranie przerwy (brief). */
+const GOLD = "#DDBB6D";
+const GOLD_SOFT = "rgba(221,187,109,0.35)";
+const GOLD_GLOW = "rgba(221,187,109,0.45)";
+
+const PRESETS: Array<{ sec: number; label: string }> = [
+  { sec: 60, label: "60s" },
+  { sec: 90, label: "90s" },
+  { sec: 120, label: "2 min" },
+  { sec: 180, label: "3 min" },
+];
 
 function dismissMobileKeyboard() {
   const active = document.activeElement;
   if (active instanceof HTMLElement) active.blur();
-  // iOS: blur samego inputu czasem nie chowa klawiatury — przełącz fokus na readonly.
   const probe = document.createElement("input");
   probe.setAttribute("readonly", "true");
   probe.setAttribute("inputmode", "none");
@@ -40,11 +42,13 @@ function formatMmSs(totalSeconds: number) {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-/** Płynne odliczanie między tickami sekundowymi — koło nie skacze co 1 s. */
+/** Płynne odliczanie 60 fps między tickami sekundowymi. */
 function useSmoothRemaining(remaining: number, open: boolean) {
   const [smooth, setSmooth] = useState(remaining);
   const tickFromRef = useRef(remaining);
-  const tickAtRef = useRef(typeof performance !== "undefined" ? performance.now() : 0);
+  const tickAtRef = useRef(
+    typeof performance !== "undefined" ? performance.now() : 0,
+  );
 
   useEffect(() => {
     tickFromRef.current = remaining;
@@ -67,46 +71,74 @@ function useSmoothRemaining(remaining: number, open: boolean) {
   return smooth;
 }
 
-function RestCountdownClock({
+function PremiumTimerRing({
   remaining,
   totalSeconds,
-  compact = false,
 }: {
   remaining: number;
   totalSeconds: number;
-  compact?: boolean;
 }) {
   const smooth = useSmoothRemaining(remaining, true);
   const total = Math.max(1, totalSeconds);
   const ratio = Math.min(1, Math.max(0, smooth / total));
+  const urgent = remaining <= 10;
 
-  const size = compact ? 168 : 236;
-  const stroke = compact ? 8 : 10;
-  const r = (size - stroke) / 2;
+  // SVG viewBox; CSS size ≈ 45–50% wysokości ekranu
+  const size = 320;
+  const stroke = 4;
+  const r = (size - stroke) / 2 - 6;
   const c = 2 * Math.PI * r;
   const dashOffset = c * (1 - ratio);
-  const urgent = remaining <= 10;
 
   return (
     <div
       className="relative mx-auto flex items-center justify-center"
-      style={{ width: size, height: size }}
+      style={{
+        width: "min(78vw, 46dvh, 340px)",
+        height: "min(78vw, 46dvh, 340px)",
+      }}
       role="timer"
       aria-live="polite"
       aria-atomic="true"
       aria-label={`Pozostało ${formatMmSs(remaining)}`}
     >
+      {/* Radial luxury glow */}
+      <div
+        className="pointer-events-none absolute inset-[-12%] rounded-full"
+        style={{
+          background: `radial-gradient(circle at 50% 45%, ${GOLD_SOFT} 0%, transparent 62%)`,
+          animation: urgent
+            ? "rest-ring-pulse 1.1s ease-in-out infinite"
+            : "rest-ring-pulse 2.8s ease-in-out infinite",
+        }}
+        aria-hidden
+      />
+
       <svg
         viewBox={`0 0 ${size} ${size}`}
         className="absolute inset-0 h-full w-full -rotate-90"
         aria-hidden
       >
+        <defs>
+          <filter id="rest-gold-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="3.5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <linearGradient id="rest-gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#F0D58A" />
+            <stop offset="45%" stopColor={GOLD} />
+            <stop offset="100%" stopColor="#A8893F" />
+          </linearGradient>
+        </defs>
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="rgba(255,255,255,0.08)"
+          stroke="rgba(255,255,255,0.06)"
           strokeWidth={stroke}
         />
         <circle
@@ -114,31 +146,27 @@ function RestCountdownClock({
           cy={size / 2}
           r={r}
           fill="none"
-          stroke={urgent ? "var(--gym-gold-bright)" : "var(--gym-gold)"}
+          stroke="url(#rest-gold-grad)"
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={dashOffset}
-          className={cn(
-            "drop-shadow-[0_0_14px_rgba(235,196,74,0.45)]",
-            urgent && "drop-shadow-[0_0_22px_rgba(235,196,74,0.7)]",
-          )}
-          style={{ transition: "stroke 200ms ease" }}
+          filter="url(#rest-gold-glow)"
+          style={{
+            transition: "stroke-dashoffset 80ms linear",
+          }}
         />
       </svg>
 
       <div className="relative z-[1] flex flex-col items-center justify-center px-4 text-center">
         <p
-          className={cn(
-            "font-display leading-none tabular-nums tracking-tight text-[var(--gym-gold-bright)]",
-            compact
-              ? "text-[44px] sm:text-[52px]"
-              : "text-[64px] sm:text-[72px]",
-          )}
+          className="font-display leading-none tabular-nums tracking-tight"
           style={{
+            fontSize: "clamp(5rem, 22vw, 7.5rem)",
+            color: GOLD,
             textShadow: urgent
-              ? "0 0 28px rgba(235,196,74,0.55)"
-              : "0 0 36px rgba(235,196,74,0.35)",
+              ? `0 0 40px ${GOLD_GLOW}, 0 0 80px rgba(221,187,109,0.25)`
+              : `0 0 48px rgba(221,187,109,0.28)`,
           }}
         >
           {formatMmSs(remaining)}
@@ -148,25 +176,34 @@ function RestCountdownClock({
   );
 }
 
+export type RestNextSetInfo = {
+  /** np. „Seria 2 z 2” */
+  setLine: string;
+  /** np. „2s 10–12” */
+  schemeLine: string | null;
+  /** np. „RIR 1” */
+  rirLine: string | null;
+  /** Cel: 75 kg × 11 */
+  targetLine: string | null;
+};
+
 export type RestBreakScreenProps = {
   open: boolean;
   remaining: number;
-  /** Pełny czas bieżącego cyklu przerwy (do animacji koła). */
   durationTotal: number;
+  /** Tytuł sesji w headerze (np. „Pull”). */
   title: string;
+  /** Nazwa ćwiczenia pod timerem (np. „Teres Pulldown”). */
+  exerciseLabel: string;
   elapsedSeconds: number;
   setsDone: number;
   setsTotal: number;
-  /** np. „Pompki · seria 1: 6 kg × 10” */
-  completedLine: string | null;
-  /** nagłówek dolnej sekcji */
-  nextLabel: string;
-  /** np. „Seria 2 z 2” albo nazwa ćwiczenia */
-  nextValue: string;
-  /** Manekin: partie mięśniowe następnej serii / ćwiczenia. */
-  nextMuscles?: ResolvedExerciseMuscles | null;
-  /** Aktywna rada na następną serię (ciężar / powtórzenia). */
-  coachTip?: string | null;
+  exercisesDone: number;
+  exercisesTotal: number;
+  completedWeightKg: number | null;
+  completedReps: number | null;
+  nextSet: RestNextSetInfo | null;
+  coachTip: LiveCoachTip | null;
   soundOn: boolean;
   onToggleSound: () => void;
   onAddSeconds: (sec: number) => void;
@@ -177,20 +214,22 @@ export type RestBreakScreenProps = {
 };
 
 /**
- * Pełnoekranowa PRZERWA: zegar w kole odliczającym, złote presety, karta zaliczone/następne, Dalej.
+ * Pełnoekranowa przerwa — premium timer (Apple Fitness+ / Whoop aesthetic).
  */
 export function RestBreakScreen({
   open,
   remaining,
   durationTotal,
   title,
+  exerciseLabel,
   elapsedSeconds,
   setsDone,
   setsTotal,
-  completedLine,
-  nextLabel,
-  nextValue,
-  nextMuscles = null,
+  exercisesDone,
+  exercisesTotal,
+  completedWeightKg,
+  completedReps,
+  nextSet,
   coachTip,
   soundOn,
   onToggleSound,
@@ -201,14 +240,12 @@ export function RestBreakScreen({
   onOpenList,
 }: RestBreakScreenProps) {
   const [mounted, setMounted] = useState(false);
-  const [rememberPreset, setRememberPreset] = useState(90);
   const continueRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
-    setRememberPreset(readRestTimerPrefs().defaultSeconds);
     dismissMobileKeyboard();
     const t = window.setTimeout(() => {
       dismissMobileKeyboard();
@@ -217,165 +254,293 @@ export function RestBreakScreen({
     return () => window.clearTimeout(t);
   }, [open]);
 
-  if (!open || !mounted) return null;
-
-  const activePreset = PRESETS_SEC.includes(remaining as (typeof PRESETS_SEC)[number])
-    ? remaining
-    : PRESETS_SEC.reduce((best, p) =>
-        Math.abs(p - remaining) < Math.abs(best - remaining) ? p : best,
-      );
+  const activePreset = useMemo(
+    () => PRESETS.find((p) => p.sec === remaining)?.sec ?? null,
+    [remaining],
+  );
 
   const progress =
     setsTotal > 0 ? Math.min(1, Math.max(0, setsDone / setsTotal)) : 0;
-
   const ringTotal = Math.max(durationTotal, remaining, 1);
 
+  const completedLine =
+    completedWeightKg != null &&
+    completedReps != null &&
+    completedReps > 0
+      ? `${completedWeightKg} kg × ${completedReps}`
+      : null;
+
+  const coachPraise = coachTip
+    ? coachTip.tone === "caution"
+      ? "Uwaga."
+      : coachTip.tone === "hold"
+        ? "Trzymaj."
+        : "Świetnie."
+    : null;
+  const coachAction = coachTip
+    ? coachTip.apply
+      ? `Powtórz ${formatKgPl(coachTip.apply.weightKg)} kg i utrzymaj technikę.`
+      : coachTip.decision || coachTip.body
+    : null;
+
+  if (!open || !mounted) return null;
+
   return createPortal(
-    <div className="fixed inset-0 z-[1100] flex flex-col bg-[var(--gym-black)] text-white">
+    <div
+      className="fixed inset-0 z-[1100] flex flex-col text-white"
+      style={{ background: "#000000" }}
+    >
+      <style>{`
+        @keyframes rest-ring-pulse {
+          0%, 100% { opacity: 0.55; transform: scale(1); }
+          50% { opacity: 0.9; transform: scale(1.03); }
+        }
+      `}</style>
+
+      {/* Ambient gold wash — ultra subtle */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-70"
+        className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(900px 420px at 50% 18%, rgba(235,196,74,0.16), transparent 58%), radial-gradient(700px 360px at 80% 100%, rgba(235,196,74,0.08), transparent 55%)",
+            "radial-gradient(ellipse 80% 50% at 50% 22%, rgba(221,187,109,0.12), transparent 70%)",
         }}
         aria-hidden
       />
 
-      <SessionChromeHeader
-        title={title}
-        subtitle={`${formatMmSs(elapsedSeconds)} · ${setsDone}/${setsTotal} serii`}
-        onClose={onCloseSession}
-        onOpenList={onOpenList}
-      />
+      {/* HEADER */}
+      <header className="relative z-[2] shrink-0 px-4 pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.35rem))]">
+        <div className="flex items-start justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              hapticTap();
+              onCloseSession?.();
+            }}
+            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.03] text-white/80 transition hover:border-[rgba(221,187,109,0.4)] hover:bg-white/[0.06]"
+            aria-label="Zamknij sesję"
+          >
+            <X className="h-4 w-4" strokeWidth={1.75} />
+          </button>
 
-      <SessionProgressBar progress={progress} className="relative" />
+          <div className="min-w-0 flex-1 pt-1 text-center">
+            <p className="truncate text-[15px] font-semibold tracking-tight text-white">
+              {title || "Trening"}
+            </p>
+            <p className="mt-1 text-[12px] tabular-nums leading-snug text-white/45">
+              {formatMmSs(elapsedSeconds)}
+              <span className="text-white/20"> · </span>
+              {setsDone}/{setsTotal} serii
+              <span className="text-white/20"> · </span>
+              {exercisesDone}/{exercisesTotal} ćw.
+            </p>
+          </div>
 
-      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-5 py-3">
-        <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.28em] text-[var(--gym-gold)]">
-          Przerwa
-        </p>
+          {onOpenList ? (
+            <button
+              type="button"
+              onClick={() => {
+                hapticTap();
+                onOpenList();
+              }}
+              className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.03] text-white/80 transition hover:border-[rgba(221,187,109,0.4)] hover:bg-white/[0.06]"
+              aria-label="Lista ćwiczeń"
+            >
+              <List className="h-4 w-4" strokeWidth={1.75} />
+            </button>
+          ) : (
+            <span className="inline-flex h-12 w-12 shrink-0" aria-hidden />
+          )}
+        </div>
 
-        {nextMuscles?.primary && nextMuscles.primary !== "cardio" ? (
-          <MuscleMannequin
-            primary={nextMuscles.primary}
-            secondary={nextMuscles.secondary}
-            preferBackView={nextMuscles.preferBackView}
-            label={nextMuscles.label}
-            prominent
-            className="mb-2"
+        <div
+          className="mt-3 h-[2px] w-full overflow-hidden rounded-full bg-white/[0.06]"
+          role="progressbar"
+          aria-valuenow={Math.round(progress * 100)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            className="h-full rounded-full transition-[width] duration-500 ease-out"
+            style={{
+              width: `${Math.round(progress * 100)}%`,
+              background: `linear-gradient(90deg, #A8893F, ${GOLD}, #F0D58A)`,
+              boxShadow: `0 0 12px ${GOLD_GLOW}`,
+            }}
           />
-        ) : null}
+        </div>
+      </header>
 
-        <RestCountdownClock
-          remaining={remaining}
-          totalSeconds={ringTotal}
-          compact={Boolean(nextMuscles?.primary)}
-        />
+      {/* SCROLLABLE BODY */}
+      <div className="relative z-[1] flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+        {/* HERO TIMER ~45–50% */}
+        <section className="flex min-h-[min(48dvh,420px)] flex-col items-center justify-center px-5 pb-2 pt-4 sm:pt-6">
+          <PremiumTimerRing remaining={remaining} totalSeconds={ringTotal} />
 
-        <div className="mt-5 flex items-center justify-center gap-2.5 sm:gap-3">
-          {PRESETS_SEC.map((sec) => {
-            const active = activePreset === sec;
+          <p
+            className="mt-5 max-w-[90%] truncate text-center text-[11px] font-semibold uppercase text-white/50"
+            style={{ letterSpacing: "0.28em" }}
+          >
+            Przerwa
+            {exerciseLabel ? (
+              <>
+                <span className="text-white/25"> · </span>
+                <span style={{ color: GOLD }}>{exerciseLabel}</span>
+              </>
+            ) : null}
+          </p>
+
+          {/* Sound pill */}
+          <button
+            type="button"
+            onClick={() => {
+              hapticTap();
+              onToggleSound();
+            }}
+            className={cn(
+              "mt-5 inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[12px] font-semibold transition",
+              soundOn
+                ? "border-[rgba(221,187,109,0.35)] bg-[rgba(221,187,109,0.1)] text-[rgba(240,213,138,0.95)]"
+                : "border-white/12 bg-white/[0.03] text-white/40",
+            )}
+            aria-label={soundOn ? "Wycisz sygnał" : "Włącz sygnał"}
+          >
+            {soundOn ? (
+              <Volume2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+            ) : (
+              <VolumeX className="h-3.5 w-3.5" strokeWidth={1.75} />
+            )}
+            Dźwięk
+          </button>
+        </section>
+
+        {/* NEXT SET CARD */}
+        <section className="mx-5 mt-4 rounded-[22px] border border-white/[0.08] bg-[#0A0A0A] px-5 py-4 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+          <p
+            className="text-[10px] font-semibold uppercase text-white/35"
+            style={{ letterSpacing: "0.2em" }}
+          >
+            Następna seria
+          </p>
+          {nextSet ? (
+            <>
+              <p className="mt-2 text-[22px] font-semibold tracking-tight text-white">
+                {nextSet.setLine}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-white/50">
+                {nextSet.schemeLine ? <span>{nextSet.schemeLine}</span> : null}
+                {nextSet.rirLine ? <span>{nextSet.rirLine}</span> : null}
+              </div>
+              {nextSet.targetLine ? (
+                <p className="mt-3 text-[15px] font-semibold" style={{ color: GOLD }}>
+                  <span aria-hidden>🎯 </span>
+                  Cel: {nextSet.targetLine}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="mt-2 text-[18px] font-semibold text-white/70">
+              Koniec treningu
+            </p>
+          )}
+
+          {completedLine ? (
+            <>
+              <div className="my-4 h-px bg-white/[0.07]" />
+              <p className="text-[12px] text-white/40">
+                <span className="text-emerald-400/90" aria-hidden>
+                  ✓{" "}
+                </span>
+                Zaliczone
+              </p>
+              <p className="mt-1 font-metric text-[20px] tabular-nums text-white/90">
+                {completedLine}
+              </p>
+            </>
+          ) : null}
+        </section>
+
+        {/* QUICK PRESETS */}
+        <section className="mx-5 mt-5 grid grid-cols-4 gap-2.5">
+          {PRESETS.map((p) => {
+            const active = activePreset === p.sec;
             return (
               <button
-                key={sec}
+                key={p.sec}
                 type="button"
                 onClick={() => {
                   hapticTap();
-                  onSetSeconds(sec);
-                  setRememberPreset(sec);
-                  writeRestDefaultSeconds(sec);
+                  onSetSeconds(p.sec);
+                  writeRestDefaultSeconds(p.sec);
                 }}
                 className={cn(
-                  "inline-flex h-14 min-w-14 items-center justify-center rounded-full px-1 text-sm font-bold tabular-nums transition",
+                  "inline-flex h-12 items-center justify-center rounded-full text-[13px] font-bold tabular-nums transition active:scale-[0.97]",
                   active
-                    ? "gold-btn scale-105"
-                    : "border border-white/15 bg-white/[0.04] text-white/70 hover:border-[var(--gym-gold)]/45 hover:text-white",
+                    ? "text-black"
+                    : "border bg-transparent text-white/70 hover:text-white",
                 )}
+                style={
+                  active
+                    ? {
+                        background: `linear-gradient(180deg, #F0D58A 0%, ${GOLD} 55%, #A8893F 100%)`,
+                        boxShadow: `0 0 24px ${GOLD_GLOW}`,
+                      }
+                    : {
+                        borderColor: "rgba(221,187,109,0.35)",
+                      }
+                }
               >
-                {formatMmSs(sec)}
+                {p.label}
               </button>
             );
           })}
+        </section>
+
+        {/* AI COACH — zwięźle po polsku */}
+        {coachTip && coachPraise && coachAction ? (
+          <section className="mx-5 mt-5 mb-2 rounded-[18px] border border-[rgba(221,187,109,0.18)] bg-[rgba(221,187,109,0.06)] px-4 py-3.5">
+            <p className="text-[14px] font-semibold leading-snug text-white/95">
+              <span aria-hidden>🔥 </span>
+              {coachPraise} {coachAction}
+            </p>
+          </section>
+        ) : (
+          <div className="mb-2" />
+        )}
+      </div>
+
+      {/* BOTTOM CTA */}
+      <div className="relative z-[2] shrink-0 border-t border-white/[0.06] bg-black/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              hapticTap();
+              onAddSeconds(30);
+            }}
+            className="inline-flex h-[72px] w-[4.75rem] shrink-0 items-center justify-center rounded-[22px] border border-white/12 bg-[#0A0A0A] text-[14px] font-bold text-white/80 transition hover:border-[rgba(221,187,109,0.35)] hover:text-white"
+          >
+            +30 s
+          </button>
+          <button
+            ref={continueRef}
+            type="button"
+            onClick={() => {
+              hapticTap();
+              if (PRESETS.some((p) => p.sec === remaining)) {
+                writeRestDefaultSeconds(remaining);
+              }
+              onContinue();
+            }}
+            className="inline-flex h-[72px] min-w-0 flex-1 items-center justify-center gap-2.5 rounded-[26px] text-[17px] font-bold uppercase tracking-[0.06em] text-black transition active:scale-[0.99]"
+            style={{
+              background: `linear-gradient(180deg, #F0D58A 0%, ${GOLD} 48%, #A8893F 100%)`,
+              boxShadow: `0 0 36px ${GOLD_GLOW}, 0 12px 32px rgba(0,0,0,0.45)`,
+            }}
+          >
+            <Play className="h-5 w-5 fill-current" strokeWidth={0} />
+            Dalej
+          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            hapticTap();
-            writeRestDefaultSeconds(rememberPreset);
-          }}
-          className="mt-4 rounded-full border border-[var(--gym-gold)]/25 bg-[var(--gym-gold)]/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold-bright)] transition hover:bg-[var(--gym-gold)]/18"
-        >
-          Zapamiętam przy tym ćwiczeniu
-        </button>
-      </div>
-
-      <div className="app-card relative mx-4 mb-3 overflow-hidden px-4 py-4">
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gym-gold)]/50 to-transparent"
-          aria-hidden
-        />
-        <p className="app-label">Zaliczone</p>
-        <p className="mt-1.5 text-sm leading-snug text-white/90">
-          {completedLine ?? "—"}
-        </p>
-        <div className="my-3 h-px bg-white/[0.08]" />
-        <p className="app-label text-[var(--gym-gold)]">{nextLabel}</p>
-        <p className="mt-1.5 font-display text-2xl leading-tight text-white">
-          {nextValue}
-        </p>
-        {nextMuscles?.label && nextMuscles.primary ? (
-          <p className="mt-1.5 text-[12px] text-white/45">
-            Partia: {nextMuscles.label}
-          </p>
-        ) : null}
-        {coachTip ? (
-          <p className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-2.5 text-[13px] leading-snug text-emerald-100/90">
-            <span aria-hidden>🔥 </span>
-            {coachTip}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="relative flex items-center gap-2.5 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <button
-          type="button"
-          onClick={() => {
-            hapticTap();
-            onAddSeconds(30);
-          }}
-          className="inline-flex h-14 w-[4.75rem] shrink-0 items-center justify-center rounded-2xl border border-white/12 bg-[#1a1a1a] text-sm font-bold text-white/85 transition hover:bg-white/[0.06]"
-        >
-          +30 s
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            hapticTap();
-            onToggleSound();
-          }}
-          className={cn(
-            "inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border transition",
-            soundOn
-              ? "border-white/12 bg-[#1a1a1a] text-white/85 hover:bg-white/[0.06]"
-              : "border-white/12 bg-[#1a1a1a] text-white/40 hover:bg-white/[0.06]",
-          )}
-          aria-label={soundOn ? "Wycisz sygnał" : "Włącz sygnał"}
-        >
-          {soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-        </button>
-        <button
-          ref={continueRef}
-          type="button"
-          onClick={() => {
-            hapticTap();
-            onContinue();
-          }}
-          className="gold-btn inline-flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-bold shadow-[0_10px_28px_rgba(235,196,74,0.28)]"
-        >
-          <SkipForward className="h-5 w-5" />
-          Dalej
-        </button>
       </div>
     </div>,
     document.body,

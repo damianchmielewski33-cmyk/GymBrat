@@ -581,7 +581,7 @@ function buildAchievementSummaries(
   if (liveCount > 0) {
     items.push({
       id: "live-now",
-      title: "Live na siłowni",
+      title: "Na żywo na siłowni",
       detail: `${liveCount} trenuje teraz`,
     });
   }
@@ -1076,7 +1076,7 @@ export async function createEmailInvitation(
         await emitNotification({
           userId: invitee.id,
           kind: "invite",
-          title: "Zaproszenie do Team",
+          title: "Zaproszenie do grupy",
           body: `${actorName} zaprasza Cię do „${team.name}”.`,
           href: `/community/teams`,
           actorUserId: actorUserId,

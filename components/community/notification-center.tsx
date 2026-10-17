@@ -32,6 +32,7 @@ function kindIcon(kind: NotificationKind) {
     case "invite":
       return Users;
     case "live":
+    case "friend_live":
       return Zap;
     case "challenge":
     case "achievement":
@@ -180,7 +181,7 @@ export function NotificationCenterClient() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="app-label text-[var(--gym-gold)]">Community</p>
+          <p className="app-label text-[var(--gym-gold)]">Społeczność</p>
           <h1 className="mt-1.5 font-heading text-[24px] font-semibold tracking-tight text-white sm:text-[28px]">
             Powiadomienia
           </h1>

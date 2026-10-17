@@ -46,12 +46,12 @@ export default async function TeamChallengesPage({
         className="inline-flex min-h-10 items-center gap-1.5 text-[13px] text-white/60 hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
-        Team
+        Grupa
       </Link>
 
       <div>
         <h1 className="font-heading text-[24px] font-semibold text-white sm:text-[26px]">
-          Wyzwania Team
+          Wyzwania grupy
         </h1>
         <p className="mt-1 text-[13px] text-white/45">
           Indywidualne, grupowe i sezonowe — postęp, XP i odznaki.

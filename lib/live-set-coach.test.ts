@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildLiveCoachTipAfterCompletedSet,
   buildLiveCoachTipForOpenSet,
+  liveCoachTipToPlainText,
   pickCoachVariant,
 } from "@/lib/live-set-coach";
 import type { WorkoutExerciseState } from "@/components/workout/types";
@@ -274,5 +275,23 @@ describe("live-set-coach", () => {
     expect(tip!.id).toBe("session-conflict-hold");
     expect(typeof tip!.confidence).toBe("number");
     expect(tip!.suspicious || tip!.confidence < 70).toBe(true);
+  });
+
+  it("plainText: zwięźle po polsku, bez Readiness/Confidence", () => {
+    const tip = buildLiveCoachTipForOpenSet(
+      ex({
+        sets: [
+          { reps: 10, weight: 36, done: true, rir: 3 },
+          { reps: null, weight: 0, done: false },
+        ],
+      }),
+      1,
+    );
+    expect(tip).not.toBeNull();
+    const plain = liveCoachTipToPlainText(tip);
+    expect(plain).toBeTruthy();
+    expect(plain!).not.toMatch(/Readiness|Confidence|Powód:/i);
+    expect(plain!.split("\n").length).toBeLessThanOrEqual(2);
+    expect(plain!).toContain(tip!.decision);
   });
 });

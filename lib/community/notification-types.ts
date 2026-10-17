@@ -5,6 +5,7 @@ export const NOTIFICATION_KINDS = [
   "achievement",
   "challenge",
   "live",
+  "friend_live",
   "ranking",
   "hall_of_fame",
   "team_announcement",
@@ -29,11 +30,13 @@ export function notificationKindLabel(kind: NotificationKind): string {
     case "challenge":
       return "Wyzwania";
     case "live":
-      return "Live trening";
+      return "Trening na żywo";
+    case "friend_live":
+      return "Trening znajomego";
     case "ranking":
       return "Ranking";
     case "hall_of_fame":
-      return "Hall of Fame";
+      return "Galeria sławy";
     case "team_announcement":
       return "Ogłoszenia";
   }

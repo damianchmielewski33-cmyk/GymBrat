@@ -16,10 +16,10 @@ export default async function CreateTeamPage() {
         className="inline-flex min-h-10 items-center gap-1.5 text-[13px] text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
-        Teams
+        Grupy
       </Link>
       <AppPageHeader
-        kicker="Community"
+        kicker="Społeczność"
         title="Nowa grupa"
         description="Publiczna — widoczna w wyszukiwarce. Prywatna — tylko kod lub zaproszenie e-mail."
       />

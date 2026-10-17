@@ -141,7 +141,7 @@ export function ChallengeDetailClient({
       <section className="app-card space-y-3 p-5">
         <div className="flex items-center gap-2">
           <Trophy className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />
-          <h2 className="text-[15px] font-semibold text-white">Leaderboard</h2>
+          <h2 className="text-[15px] font-semibold text-white">Ranking</h2>
         </div>
         {challenge.leaderboard.length === 0 ? (
           <p className="text-[13px] text-white/45">
@@ -204,7 +204,7 @@ export function ChallengeDetailClient({
           <div className="flex items-center gap-2 px-0.5">
             <MessageCircle className="h-4 w-4 text-[var(--gym-gold)]" />
             <h2 className="text-[15px] font-semibold text-white">
-              Czat challenge
+              Czat wyzwania
             </h2>
           </div>
           <WorkoutChatPanel

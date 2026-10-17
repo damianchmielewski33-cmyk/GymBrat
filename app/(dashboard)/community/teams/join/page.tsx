@@ -22,17 +22,17 @@ export default async function JoinTeamPage({
         className="inline-flex min-h-10 items-center gap-1.5 text-[13px] text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
-        Teams
+        Grupy
       </Link>
       <AppPageHeader
-        kicker="Community"
+        kicker="Społeczność"
         title="Dołącz do grupy"
-        description="Wpisz kod od Ownera / Admina albo otwórz link z zaproszenia."
+        description="Wpisz kod od właściciela / administratora albo otwórz link z zaproszenia."
       />
       <JoinTeamForm initialCode={params.code ?? ""} />
       {params.token ? (
         <p className="px-1 text-[13px] text-white/45">
-          Masz token zaproszenia — otwórz listę Teams i zaakceptuj zaproszenie
+          Masz token zaproszenia — otwórz listę grup i zaakceptuj zaproszenie
           na górze listy, albo użyj kodu grupy.
         </p>
       ) : null}
