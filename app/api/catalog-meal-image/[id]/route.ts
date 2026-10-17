@@ -29,7 +29,17 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   const row = await getCatalogMealImage(id);
   if (!row) {
-    return NextResponse.json({ error: "Brak grafiki" }, { status: 404 });
+    console.error(
+      `[catalog-meal-image] Brak grafiki dla id=${id} — nie wygenerowano przy imporcie JSON (sprawdź POLLINATIONS_API_KEY, potem Admin → Dokończ grafiki AI).`,
+    );
+    return NextResponse.json(
+      {
+        error: "Brak grafiki",
+        reason:
+          "Grafika nie została wygenerowana przy imporcie JSON. Ustaw POLLINATIONS_API_KEY i uruchom „Dokończ grafiki AI”.",
+      },
+      { status: 404 },
+    );
   }
 
   const parsed = decodeDataUrl(row.dataUrl);

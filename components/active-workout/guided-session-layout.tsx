@@ -487,9 +487,9 @@ export function GuidedSessionLayout({
         </div>
       </div>
 
-      {/* Środkowa treść: mieści się w viewport; scroll tylko awaryjnie (klawiatura / bardzo niski ekran). */}
+      {/* Środkowa treść: od góry pod sobą (bez pustej luki); scroll tylko awaryjnie. */}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3.5 pb-2 pt-2.5 sm:px-4 sm:pt-3">
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex flex-col">
           <div className="shrink-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -677,9 +677,9 @@ export function GuidedSessionLayout({
             ) : null}
           </div>
 
-          {/* Ciężar → powtórzenia → RIR (pionowo), wyrównane karty jak na mocku */}
-          <div className="mt-1.5 flex min-h-0 flex-1 flex-col justify-end gap-2 min-[700px]:mt-2 min-[700px]:gap-2.5">
-            <div className={cn(premiumCardClass, "shrink min-h-0")}>
+          {/* Ciężar → powtórzenia → RIR — zaraz pod akcjami, bez flex-1/justify-end */}
+          <div className="mt-2.5 flex flex-col gap-2 min-[700px]:mt-3 min-[700px]:gap-2.5">
+            <div className={cn(premiumCardClass, "shrink-0")}>
               <div className="flex items-center justify-between text-[11px] font-semibold tracking-wide text-white/55">
                 <label htmlFor="set-weight">Ciężar</label>
                 <span className="text-[10px] font-medium text-white/35">
@@ -806,7 +806,7 @@ export function GuidedSessionLayout({
               </div>
             </div>
 
-            <div className={cn(premiumCardClass, "shrink min-h-0")}>
+            <div className={cn(premiumCardClass, "shrink-0")}>
               <div className="flex items-center justify-between text-[11px] font-semibold tracking-wide text-white/55">
                 <label htmlFor="set-reps">Powtórzenia</label>
               </div>

@@ -168,6 +168,8 @@ export function AdminCatalogClient() {
               pending?: number;
               hasMore?: boolean;
               failed?: number;
+              missingApiKey?: boolean;
+              error?: string;
             };
           }
         | null;
@@ -175,12 +177,19 @@ export function AdminCatalogClient() {
         throw new Error(data?.error ?? "Import nie powiódł się.");
       }
 
+      if (data?.images?.missingApiKey) {
+        throw new Error(
+          data.images.error ??
+            "Przepisy zapisane, ale brak POLLINATIONS_API_KEY — bez klucza AI grafiki nie powstaną.",
+        );
+      }
+
       let imagesGenerated = data?.images?.generated ?? 0;
       let rounds = 0;
       while (data?.images?.hasMore && rounds < 40) {
         rounds += 1;
         notifySaved(
-          `Generuję grafiki AI… (zapisane: ${imagesGenerated}, pozostało: ${data.images.pending ?? "—"})`,
+          `Generuję grafiki AI (raz przy imporcie)… zapisane: ${imagesGenerated}, pozostało: ${data.images.pending ?? "—"}`,
         );
         const imgRes = await fetch("/api/admin/catalog/images", {
           method: "POST",
@@ -199,23 +208,39 @@ export function AdminCatalogClient() {
                 generated?: number;
                 pending?: number;
                 hasMore?: boolean;
+                missingApiKey?: boolean;
+                error?: string;
+                failed?: number;
               };
             }
           | null;
         if (!imgRes.ok) {
           throw new Error(
             imgData?.error ??
-              "Import OK, ale generacja grafik się urwała — uruchom ponownie merge tej samej paczki.",
+              "Import OK, ale generacja grafik się urwała — kliknij „Dokończ grafiki AI”.",
+          );
+        }
+        if (imgData?.images?.missingApiKey) {
+          throw new Error(
+            imgData.images.error ??
+              "Brak POLLINATIONS_API_KEY — ustaw klucz i Redeploy.",
           );
         }
         imagesGenerated += imgData?.images?.generated ?? 0;
-        if (!imgData?.images?.hasMore) break;
+        if (!imgData?.images?.hasMore) {
+          if ((imgData?.images?.failed ?? 0) > 0 && imagesGenerated === 0) {
+            throw new Error(
+              "Nie udało się wygenerować grafik AI (Pollinations). Sprawdź klucz i spróbuj „Dokończ grafiki AI”.",
+            );
+          }
+          break;
+        }
         data.images = imgData.images;
       }
 
       if (mode === "replace") {
         notifySaved(
-          `Zastąpiono bazę: ${data?.upserted ?? 0} przepisów, grafik AI: ${imagesGenerated}.`,
+          `Zastąpiono bazę: ${data?.upserted ?? 0} przepisów, grafik AI (Pollinations): ${imagesGenerated}.`,
         );
       } else {
         notifySaved(
@@ -407,12 +432,13 @@ export function AdminCatalogClient() {
         </div>
 
         <p className="text-xs text-white/45">
-          Przepisy tylko z zewnętrznego JSON (prompt AI powyżej). Przy imporcie
-          grafiki są generowane{" "}
-          <span className="text-white/70">raz</span> (Pollinations → zapis w
-          bazie) z pola{" "}
-          <span className="font-mono text-white/60">imagePromptEn</span>. W
-          Diecie serwowany jest zapisany plik — bez ponownej generacji.
+          Przy wgrywaniu JSON grafiki robi{" "}
+          <span className="text-white/70">zewnętrzne AI (Pollinations)</span>{" "}
+          <span className="text-white/70">jeden raz</span> z{" "}
+          <span className="font-mono text-white/60">imagePromptEn</span> i
+          zapisuje je w bazie. Dieta tylko pokazuje zapisany plik — bez
+          generacji przy każdym otwarciu. Wymaga{" "}
+          <span className="font-mono text-white/60">POLLINATIONS_API_KEY</span>.
         </p>
 
         <label className="block text-sm text-white/70">

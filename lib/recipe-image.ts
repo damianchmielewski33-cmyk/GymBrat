@@ -8,13 +8,19 @@ import {
 /** Generacja — podbij przy zmianie mapowania grafik. */
 export const RECIPE_IMAGE_CACHE_GENERATION = 10;
 
+/** Powód braku grafiki (import AI / POLLINATIONS_API_KEY). */
+export const RECIPE_IMAGE_MISSING_REASON =
+  "Brak grafiki AI — nie wygenerowano przy imporcie JSON (sprawdź POLLINATIONS_API_KEY).";
+
 /** Awaryjny fallback gdy brak trwałej grafiki w katalogu. */
 export const RECIPE_IMAGE_FALLBACK =
   "data:image/svg+xml," +
   encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
       <rect fill="#121214" width="640" height="400"/>
-      <text x="320" y="205" fill="#ebc44a99" font-family="system-ui,sans-serif" font-size="18" text-anchor="middle">GymBrat</text>
+      <text x="320" y="178" fill="#ebc44a" font-family="system-ui,sans-serif" font-size="20" font-weight="600" text-anchor="middle">Brak grafiki AI</text>
+      <text x="320" y="212" fill="#ebc44a88" font-family="system-ui,sans-serif" font-size="13" text-anchor="middle">Import JSON + POLLINATIONS_API_KEY</text>
+      <text x="320" y="236" fill="#ffffff55" font-family="system-ui,sans-serif" font-size="12" text-anchor="middle">Admin → Dokończ grafiki AI</text>
     </svg>`,
   );
 
@@ -161,8 +167,9 @@ export function enrichCatalogMealWithAiImage<
 }
 
 /**
- * URL grafiki w UI: tylko trwały asset / HTTPS.
- * Brak on-demand Pollinations przy otwieraniu diety.
+ * URL grafiki w UI: wyłącznie asset wygenerowany raz przy imporcie JSON
+ * (Pollinations → meal_catalog_images → /api/catalog-meal-image/…).
+ * Bez on-demand AI przy otwieraniu diety.
  */
 export function getRecipeImage(recipe: RecipeImageSource): string {
   const custom = (recipe.imageUrl ?? "").trim();
@@ -174,7 +181,12 @@ export function getRecipeImage(recipe: RecipeImageSource): string {
     return RECIPE_IMAGE_FALLBACK;
   }
 
-  // Katalog bez zapisanej grafiki → placeholder (generacja tylko przy imporcie).
+  const id = (recipe.id ?? "").trim();
+  if (id) {
+    // Asset z DB (zapis przy imporcie). Brak pliku → 404 → placeholder w <img onError>.
+    return `/api/catalog-meal-image/${encodeURIComponent(id)}`;
+  }
+
   return RECIPE_IMAGE_FALLBACK;
 }
 

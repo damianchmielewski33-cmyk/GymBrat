@@ -66,6 +66,9 @@ export async function POST(req: Request) {
         upserted: result.upserted,
         removed: result.removed,
         totalMerged: result.totalMerged,
+        imagesGenerated: result.images.generated,
+        imagesFailed: result.images.failed,
+        imagesMissingApiKey: !!result.images.missingApiKey,
       },
     });
     return NextResponse.json({ ok: true, ...result });

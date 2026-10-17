@@ -35,7 +35,7 @@ describe("getRecipeImage — trwałe grafiki katalogu", () => {
     expect(getRecipeImage({ id: "meal_011", imageUrl: url })).toBe(url);
   });
 
-  it("legacy Pollinations / proxy nie są używane w UI (placeholder)", () => {
+  it("legacy Pollinations / proxy → asset katalogu po id (nie SVG od razu)", () => {
     expect(
       getRecipeImage({
         id: "x",
@@ -44,7 +44,7 @@ describe("getRecipeImage — trwałe grafiki katalogu", () => {
         imageUrl:
           "https://image.pollinations.ai/prompt/chicken%20salad?width=640&height=400",
       }),
-    ).toBe(RECIPE_IMAGE_FALLBACK);
+    ).toBe("/api/catalog-meal-image/x");
 
     expect(
       getRecipeImage({
@@ -53,7 +53,17 @@ describe("getRecipeImage — trwałe grafiki katalogu", () => {
         imagePromptEn: "chicken salad",
         imageUrl: "/api/recipe-image?p=chicken+salad&seed=1",
       }),
-    ).toBe(RECIPE_IMAGE_FALLBACK);
+    ).toBe("/api/catalog-meal-image/x");
+  });
+
+  it("bez imageUrl używa /api/catalog-meal-image/{id}", () => {
+    expect(
+      getRecipeImage({
+        id: "salatka-001",
+        title: "Sałatka",
+        imagePromptEn: "chicken salad",
+      }),
+    ).toBe("/api/catalog-meal-image/salatka-001");
   });
 
   it("enrich przy imporcie NIE ustawia proxy — tylko prompt", () => {
@@ -88,7 +98,11 @@ describe("getRecipeImage — trwałe grafiki katalogu", () => {
     expect(enriched.imageUrl).toBe(url);
   });
 
-  it("fallback nie jest Unsplash", () => {
+  it("fallback nie jest Unsplash i wyjaśnia brak AI", () => {
     expect(RECIPE_IMAGE_FALLBACK).not.toContain("unsplash.com");
+    expect(decodeURIComponent(RECIPE_IMAGE_FALLBACK)).toContain("Brak grafiki AI");
+    expect(decodeURIComponent(RECIPE_IMAGE_FALLBACK)).toContain(
+      "POLLINATIONS_API_KEY",
+    );
   });
 });

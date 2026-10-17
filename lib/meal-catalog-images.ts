@@ -77,19 +77,23 @@ export async function upsertCatalogMealImage(args: {
   const dataUrl = `data:${mime};base64,${b64}`;
   const updatedAt = new Date();
 
-  const { assertCanStoreBlob, DB_BLOB_FULL_MESSAGE } = await import(
-    "@/lib/db-storage-budget"
-  );
-  const budget = await assertCanStoreBlob(args.bytes.byteLength);
-  if (!budget.ok) {
-    throw new Error(budget.error || DB_BLOB_FULL_MESSAGE);
-  }
-
   const [prev] = await db
     .select({ mealId: mealCatalogImages.mealId })
     .from(mealCatalogImages)
     .where(eq(mealCatalogImages.mealId, args.mealId))
     .limit(1);
+
+  // Aktualizacja istniejącej grafiki katalogu zawsze dozwolona (nie zwiększa
+  // liczby blobów). Soft limit blokuje tylko nowe wpisy.
+  if (!prev) {
+    const { assertCanStoreBlob, DB_BLOB_FULL_MESSAGE } = await import(
+      "@/lib/db-storage-budget"
+    );
+    const budget = await assertCanStoreBlob(args.bytes.byteLength);
+    if (!budget.ok) {
+      throw new Error(budget.error || DB_BLOB_FULL_MESSAGE);
+    }
+  }
 
   if (prev) {
     await db
@@ -182,7 +186,12 @@ async function generateOneCatalogImage(
   }
 
   const key = getPollinationsApiKey();
-  if (!key) return "fail";
+  if (!key) {
+    console.error(
+      `[meal-catalog] Brak grafiki dla „${meal.title}" (${meal.id}): brak POLLINATIONS_API_KEY.`,
+    );
+    return "fail";
+  }
 
   const prompt = buildAiRecipeImageFullPrompt(meal);
   const seed = recipeImageSeed(
@@ -199,7 +208,12 @@ async function generateOneCatalogImage(
       model: POLLINATIONS_FOOD_MODEL,
       signal: timed.signal,
     });
-    if (!result.ok) return "fail";
+    if (!result.ok) {
+      console.error(
+        `[meal-catalog] Brak grafiki dla „${meal.title}" (${meal.id}): Pollinations nie zwrócił obrazu — ${result.detail} (HTTP ${result.status}).`,
+      );
+      return "fail";
+    }
     const saved = await upsertCatalogMealImage({
       mealId: meal.id,
       mimeType: result.contentType,
@@ -207,7 +221,11 @@ async function generateOneCatalogImage(
     });
     await patchMealImageUrl(meal.id, saved.publicUrl, actorUserId);
     return "ok";
-  } catch {
+  } catch (err) {
+    console.error(
+      `[meal-catalog] Brak grafiki dla „${meal.title}" (${meal.id}):`,
+      err,
+    );
     return "fail";
   } finally {
     timed.clear();
@@ -238,13 +256,31 @@ export type GenerateCatalogImagesResult = {
   skipped: number;
   failed: number;
   pending: number;
-  /** true = wciąż są przepisy bez trwałej grafiki */
+  /** true = są jeszcze przepisy do wygenerowania (kolejna paczka) */
   hasMore: boolean;
+  /** Brak POLLINATIONS_API_KEY — bez klucza grafiki AI nie powstaną. */
+  missingApiKey?: boolean;
+  error?: string;
 };
 
+function emptyImageResult(
+  pending: number,
+  extra?: Partial<GenerateCatalogImagesResult>,
+): GenerateCatalogImagesResult {
+  return {
+    generated: 0,
+    skipped: 0,
+    failed: 0,
+    pending,
+    hasMore: false,
+    ...extra,
+  };
+}
+
 /**
- * Generuje brakujące grafiki AI (raz) i zapisuje w DB.
+ * Generuje brakujące grafiki AI (raz, zewnętrzne Pollinations) i zapisuje w DB.
  * Wywoływane przy imporcie JSON oraz w pętli admina przy większych paczkach.
+ * Dieta / UI NIGDY nie generuje — tylko serwuje zapisany asset.
  */
 export async function generateMissingCatalogImages(args?: {
   mealIds?: string[];
@@ -284,6 +320,24 @@ export async function generateMissingCatalogImages(args?: {
   }
 
   const needing = candidates.filter(mealNeedsAiImage);
+  if (needing.length === 0) {
+    return emptyImageResult(0, { skipped: candidates.length });
+  }
+
+  const key = getPollinationsApiKey();
+  if (!key) {
+    const error =
+      "Brak POLLINATIONS_API_KEY — ustaw klucz z https://enter.pollinations.ai/keys i zrób Redeploy, potem „Dokończ grafiki AI”.";
+    console.error(
+      `[meal-catalog] Grafiki AI niepowstałe (${needing.length} przepisów): ${error}`,
+    );
+    return emptyImageResult(needing.length, {
+      failed: needing.length,
+      missingApiKey: true,
+      error,
+    });
+  }
+
   const batch = needing.slice(0, limit);
   const results = await mapPool(batch, concurrency, (meal) =>
     generateOneCatalogImage(meal, args?.actorUserId),
@@ -298,13 +352,13 @@ export async function generateMissingCatalogImages(args?: {
     else failed++;
   }
 
+  // hasMore tylko gdy zostały niepróbowane w tej sesji — nie kręć się w nieskończoność na failach.
   const notAttempted = Math.max(0, needing.length - batch.length);
-  const pending = notAttempted + failed;
   return {
     generated,
     skipped,
     failed,
-    pending,
-    hasMore: pending > 0,
+    pending: notAttempted + failed,
+    hasMore: notAttempted > 0,
   };
 }

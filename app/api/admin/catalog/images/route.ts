@@ -61,5 +61,12 @@ export async function POST(req: Request) {
     meta: images,
   });
 
+  if (images.missingApiKey) {
+    return NextResponse.json(
+      { ok: false, error: images.error, images },
+      { status: 503 },
+    );
+  }
+
   return NextResponse.json({ ok: true, images });
 }

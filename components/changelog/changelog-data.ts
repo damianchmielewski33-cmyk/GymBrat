@@ -12,6 +12,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Codzienne sprzątanie retencji (analytics, eventy, czat, notyfikacje) chroni darmowy limit Turso — bez kasowania treningów, posiłków ani zdjęć użytkowników.",
       "Soft/hard limit storage (MB): powyżej soft nowe zdjęcia są odrzucane; powyżej hard cleanup czyści tylko dane efemeryczne (nie zdjęcia).",
       "Zdjęcia na tablicy są mocniej kompresowane; cron Vercel odpala cleanup o 03:00 UTC.",
+      "Grafiki przepisów: zewnętrzne AI (Pollinations) generuje je raz przy imporcie JSON i zapisuje w bazie — Dieta tylko je serwuje.",
     ],
   },
   {

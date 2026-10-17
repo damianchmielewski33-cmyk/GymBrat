@@ -1,12 +1,13 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
-import { mealCatalog } from "@/db/schema";
+import { mealCatalog, mealCatalogImages } from "@/db/schema";
 import type { CatalogMeal } from "@/lib/meal-catalog";
 import { parseCatalogImportPayload, type CatalogImportMode } from "@/lib/meal-catalog-import";
 import {
+  catalogMealImagePublicUrl,
   clearAllCatalogMealImages,
   deleteCatalogMealImages,
   generateMissingCatalogImages,
@@ -72,7 +73,36 @@ export async function listDbCatalogMeals(): Promise<CatalogMeal[]> {
     const meal = parsePayload(row.payloadJson);
     if (meal) out.push({ ...meal, id: row.id });
   }
-  return out;
+
+  // Podłącz trwałe grafiki z meal_catalog_images, gdy payload nie ma imageUrl
+  // (albo ma legacy/pusty) — inaczej dieta pokazuje tylko placeholder „GymBrat”.
+  if (out.length === 0) return out;
+  const ids = out.map((m) => m.id);
+  const imageRows = await db
+    .select({
+      mealId: mealCatalogImages.mealId,
+      updatedAt: mealCatalogImages.updatedAt,
+    })
+    .from(mealCatalogImages)
+    .where(inArray(mealCatalogImages.mealId, ids));
+  if (imageRows.length === 0) return out;
+
+  const byId = new Map(
+    imageRows.map((r) => [
+      r.mealId,
+      catalogMealImagePublicUrl(r.mealId, r.updatedAt),
+    ]),
+  );
+  return out.map((meal) => {
+    const fromDb = byId.get(meal.id);
+    if (!fromDb) return meal;
+    const current = (meal.imageUrl ?? "").trim();
+    if (current.startsWith("/api/catalog-meal-image/")) {
+      return { ...meal, imageUrl: fromDb };
+    }
+    if (!current) return { ...meal, imageUrl: fromDb };
+    return meal;
+  });
 }
 
 /** Przepisy widoczne w Dietcie — wyłącznie z bazy panelu admina. */
@@ -130,13 +160,35 @@ export async function importCatalogMealsFromJson(
     }
   }
 
-  // Generacja AI raz przy imporcie → zapis w meal_catalog_images + trwały imageUrl.
-  const images = await generateMissingCatalogImages({
+  // Generacja AI raz przy imporcie (Pollinations) → meal_catalog_images + trwały imageUrl.
+  // Dieta tylko odczytuje zapisany asset — bez ponownej generacji przy otwieraniu.
+  let images = await generateMissingCatalogImages({
     mealIds: importedIds,
-    limit: Math.min(40, Math.max(8, importedIds.length)),
+    limit: Math.min(12, Math.max(4, importedIds.length)),
     concurrency: 2,
     actorUserId,
   });
+
+  // Kolejne paczki w tym samym requeście (małe katalogi kończą się od razu).
+  let rounds = 0;
+  while (images.hasMore && !images.missingApiKey && rounds < 8) {
+    rounds += 1;
+    const next = await generateMissingCatalogImages({
+      mealIds: importedIds,
+      limit: 8,
+      concurrency: 2,
+      actorUserId,
+    });
+    images = {
+      generated: images.generated + next.generated,
+      skipped: images.skipped + next.skipped,
+      failed: next.failed,
+      pending: next.pending,
+      hasMore: next.hasMore,
+      missingApiKey: next.missingApiKey,
+      error: next.error ?? images.error,
+    };
+  }
 
   const totalMerged = (await loadMergedMealCatalog()).length;
   return { upserted: meals.length, removed, mode, totalMerged, images };
