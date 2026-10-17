@@ -38,6 +38,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     bullets: [
       "Podpowiedzi w trakcie treningu to krótka decyzja po polsku (np. „Utrzymaj obciążenie” + kg × powtórzenia), bez angielskich Readiness/Confidence i bez długiego „Powód:”.",
       "Teksty silnika coacha bez angielskich wstawek; skrót API też zwraca max 1–2 linie.",
+      "„Start jak ostatnio” pokazuje te same kg × powtórzenia co linia „Ostatnio” (bez przycinania do zakresu planu).",
     ],
   },
   {

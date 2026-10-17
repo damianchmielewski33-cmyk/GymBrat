@@ -813,9 +813,8 @@ export function buildLiveCoachTipForOpenSet(
 
   if (histHard && lastSnap && lastSnap.weight > 0 && lastSnap.reps != null) {
     const nextW = applyDeload(lastSnap.weight);
-    const reps = range
-      ? Math.min(Math.max(lastSnap.reps, range.min), range.max)
-      : lastSnap.reps;
+    // Hold = prawdziwa baza z historii (bez clamp do zakresu planu).
+    const reps = lastSnap.reps;
     // Trend-over-event: rosnący e1RM → hold zamiast hist-deload
     if (
       signals.e1rm.trend4 === "up" &&
@@ -841,7 +840,8 @@ export function buildLiveCoachTipForOpenSet(
       );
     }
     if (nextW > 0 && nextW < lastSnap.weight) {
-      const hl = `${formatKgPl(nextW)} kg × ${range?.min ?? reps}`;
+      const deloadReps = range?.min ?? reps;
+      const hl = `${formatKgPl(nextW)} kg × ${deloadReps}`;
       const body = pickCoachVariant(`${seedBase}|hist-hard`, [
         `Ostatnio {ex} poszło bardzo ciężko — start lżej: {hl}.`,
         `Nie zaczynaj od ego. Pierwsza seria: {hl} (po twardej sesji).`,
@@ -851,7 +851,7 @@ export function buildLiveCoachTipForOpenSet(
         "hist-deload",
         "caution",
         fillTemplate(body, { hl, ex: exName }),
-        { weightKg: nextW, reps: range?.min ?? reps },
+        { weightKg: nextW, reps: deloadReps },
         hl,
         {
           ...S,
@@ -914,9 +914,8 @@ export function buildLiveCoachTipForOpenSet(
   }
 
   if (lastSnap && lastSnap.weight > 0 && lastSnap.reps != null && lastSnap.reps > 0) {
-    const reps = range
-      ? Math.min(Math.max(lastSnap.reps, range.min), range.max)
-      : lastSnap.reps;
+    // Musi zgadzać się z linią „Ostatnio …” — bez przycinania do zakresu planu.
+    const reps = lastSnap.reps;
     const hl = `${formatKgPl(lastSnap.weight)} kg × ${reps}`;
     const body = pickCoachVariant(`${seedBase}|hist-hold`, [
       `Start jak ostatnio: {hl}.`,
@@ -924,9 +923,7 @@ export function buildLiveCoachTipForOpenSet(
       isFirstSet
         ? `Pierwsza seria: {hl} (bazuj na poprzednim treningu).`
         : `Seria {set}: trzymaj bazę {hl}.`,
-      range
-        ? `Wróć do {hl} i celuj w zakres {rmin}–{rmax}.`
-        : `Powtórz bazę: {hl}.`,
+      `Powtórz bazę: {hl}.`,
     ]);
     return tipPlain(
       "hist-hold",
@@ -935,8 +932,6 @@ export function buildLiveCoachTipForOpenSet(
         hl,
         ex: exName,
         set: setLabel,
-        rmin: String(range?.min ?? ""),
-        rmax: String(range?.max ?? ""),
       }),
       { weightKg: lastSnap.weight, reps },
       hl,

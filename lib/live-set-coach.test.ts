@@ -57,6 +57,22 @@ describe("live-set-coach", () => {
     expect(tip!.apply?.weightKg).toBe(36);
   });
 
+  it("Start jak ostatnio nie przycina powtórzeń do zakresu planu", () => {
+    // Ostatnio 65×11, plan targetReps=8 → zakres 6–8; tip musi zostać 65×11
+    const tip = buildLiveCoachTipForOpenSet(
+      ex({
+        targetReps: 8,
+        sets: [{ reps: null, weight: 0, done: false }],
+        lastSessionSets: [{ reps: 11, weight: 65, done: true, rir: 2 }],
+      }),
+      0,
+    );
+    expect(tip).not.toBeNull();
+    expect(tip!.decision).toBe("Start jak ostatnio");
+    expect(tip!.apply).toEqual({ weightKg: 65, reps: 11 });
+    expect(tip!.body).toMatch(/65 kg × 11/);
+  });
+
   it("po twardej historii nie dokładaj — zejdź lub utrzymaj", () => {
     const tip = buildLiveCoachTipForOpenSet(
       ex({
