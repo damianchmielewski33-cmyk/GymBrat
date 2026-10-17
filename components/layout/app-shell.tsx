@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -20,9 +21,29 @@ import { useI18n } from "@/components/i18n/i18n-provider";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { AppMenuButton } from "@/components/layout/app-menu-button";
 import { NotificationBell } from "@/components/community/notification-bell";
-import { GroupWorkoutFloatingWidget } from "@/components/community/group-workout-floating-widget";
-import { WorkoutChatLauncher } from "@/components/community/workout-chat-launcher";
-import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
+
+/** Ciężkie widgety Community / trening — poza krytycznym bundlem shella (LCP). */
+const WorkoutCompletePopup = dynamic(
+  () =>
+    import("@/components/reports/workout-complete-popup").then((m) => ({
+      default: m.WorkoutCompletePopup,
+    })),
+  { ssr: false },
+);
+const GroupWorkoutFloatingWidget = dynamic(
+  () =>
+    import("@/components/community/group-workout-floating-widget").then(
+      (m) => ({ default: m.GroupWorkoutFloatingWidget }),
+    ),
+  { ssr: false },
+);
+const WorkoutChatLauncher = dynamic(
+  () =>
+    import("@/components/community/workout-chat-launcher").then((m) => ({
+      default: m.WorkoutChatLauncher,
+    })),
+  { ssr: false },
+);
 
 /** Phone → tablet → desktop: treść w kolumnie, bez „pustego” tabletu. */
 export const APP_SHELL_MAX =

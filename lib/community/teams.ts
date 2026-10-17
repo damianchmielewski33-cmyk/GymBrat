@@ -15,6 +15,11 @@ import {
   normalizeTeamInviteCode,
 } from "@/lib/community/team-codes";
 import {
+  cacheGet,
+  cacheInvalidate,
+  cacheSet,
+} from "@/lib/community/perf-cache";
+import {
   canChangeMemberRole,
   canInviteMembers,
   canManageTeamSettings,
@@ -235,29 +240,37 @@ export async function listMyTeams(userId: string): Promise<TeamListItem[]> {
   }));
 }
 
-export async function searchPublicTeams(
+type PublicTeamRow = {
+  id: string;
+  name: string;
+  description: string;
+  privacy: string;
+  avatarEmoji: string;
+  bannerColor: string;
+  memberCount: number;
+  maxMembers: number;
+};
+
+const PUBLIC_TEAMS_CACHE_TTL_MS = 30_000;
+const PUBLIC_TEAMS_CACHE_PREFIX = "teams:public:";
+
+function invalidatePublicTeamsCache() {
+  cacheInvalidate(PUBLIC_TEAMS_CACHE_PREFIX);
+}
+
+async function loadPublicTeamRows(
   query: string,
-  viewerId: string,
-  limit = 30,
-): Promise<TeamListItem[]> {
-  await ensureCriticalSchema();
-  const db = getDb();
+  limit: number,
+): Promise<PublicTeamRow[]> {
   const q = query.trim();
+  const cacheKey = q
+    ? `teams:public:q:${q.toLowerCase()}:${limit}`
+    : `teams:public:all:${limit}`;
+  const cached = cacheGet<PublicTeamRow[]>(cacheKey);
+  if (cached) return cached;
+
+  const db = getDb();
   const pattern = q ? `%${q.replace(/[%_]/g, "")}%` : null;
-
-  const membershipRows = await db
-    .select({ teamId: teamMembers.teamId, role: teamMembers.role })
-    .from(teamMembers)
-    .where(
-      and(eq(teamMembers.userId, viewerId), eq(teamMembers.status, "active")),
-    );
-  const roleByTeam = new Map(
-    membershipRows.map((r) => [
-      r.teamId,
-      isTeamRole(r.role) ? r.role : ("member" as TeamRole),
-    ]),
-  );
-
   const rows = await db
     .select({
       id: teams.id,
@@ -275,18 +288,69 @@ export async function searchPublicTeams(
         eq(teams.privacy, "public"),
         isNull(teams.archivedAt),
         pattern
-          ? or(
-              like(teams.name, pattern),
-              like(teams.description, pattern),
-            )
+          ? or(like(teams.name, pattern), like(teams.description, pattern))
           : undefined,
       ),
     )
     .orderBy(desc(teams.memberCount), desc(teams.createdAt))
     .limit(limit);
 
+  cacheSet(cacheKey, rows, PUBLIC_TEAMS_CACHE_TTL_MS);
+  return rows;
+}
+
+export async function searchPublicTeams(
+  query: string,
+  viewerId: string,
+  limit = 30,
+  opts?: {
+    /** Gdy masz już listMyTeams — bez drugiego SELECT membership. */
+    membershipByTeamId?: Map<string, TeamRole>;
+  },
+): Promise<TeamListItem[]> {
+  await ensureCriticalSchema();
+
+  let roleByTeam = opts?.membershipByTeamId;
+  if (!roleByTeam) {
+    const db = getDb();
+    const [membershipRows, rows] = await Promise.all([
+      db
+        .select({ teamId: teamMembers.teamId, role: teamMembers.role })
+        .from(teamMembers)
+        .where(
+          and(
+            eq(teamMembers.userId, viewerId),
+            eq(teamMembers.status, "active"),
+          ),
+        ),
+      loadPublicTeamRows(query, limit),
+    ]);
+    roleByTeam = new Map(
+      membershipRows.map((r) => [
+        r.teamId,
+        isTeamRole(r.role) ? r.role : ("member" as TeamRole),
+      ]),
+    );
+    return rows.map((row) => {
+      const myRole = roleByTeam!.get(row.id) ?? null;
+      return {
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        privacy: "public" as const,
+        avatarEmoji: row.avatarEmoji,
+        bannerColor: row.bannerColor,
+        memberCount: row.memberCount,
+        maxMembers: row.maxMembers,
+        myRole,
+        isMember: myRole != null,
+      };
+    });
+  }
+
+  const rows = await loadPublicTeamRows(query, limit);
   return rows.map((row) => {
-    const myRole = roleByTeam.get(row.id) ?? null;
+    const myRole = roleByTeam!.get(row.id) ?? null;
     return {
       id: row.id,
       name: row.name,
@@ -326,6 +390,7 @@ export async function listPendingInvitesForUser(userId: string, email: string) {
       and(
         eq(teamInvitations.status, "pending"),
         isNull(teams.archivedAt),
+        gte(teamInvitations.expiresAt, now),
         or(
           eq(teamInvitations.inviteeUserId, userId),
           eq(teamInvitations.inviteeEmail, normalizedEmail),
@@ -334,21 +399,19 @@ export async function listPendingInvitesForUser(userId: string, email: string) {
     )
     .orderBy(desc(teamInvitations.createdAt));
 
-  return rows
-    .filter((row) => row.expiresAt.getTime() > now.getTime())
-    .map((row) => ({
-      id: row.id,
-      token: row.token,
-      role: isAssignableTeamRole(row.role) ? row.role : ("member" as const),
-      expiresAt: row.expiresAt,
-      team: {
-        id: row.teamId,
-        name: row.teamName,
-        avatarEmoji: row.avatarEmoji,
-        privacy: asPrivacy(row.privacy),
-        memberCount: row.memberCount,
-      },
-    }));
+  return rows.map((row) => ({
+    id: row.id,
+    token: row.token,
+    role: isAssignableTeamRole(row.role) ? row.role : ("member" as const),
+    expiresAt: row.expiresAt,
+    team: {
+      id: row.teamId,
+      name: row.teamName,
+      avatarEmoji: row.avatarEmoji,
+      privacy: asPrivacy(row.privacy),
+      memberCount: row.memberCount,
+    },
+  }));
 }
 
 function weekStartDate(): string {
@@ -726,6 +789,8 @@ export async function createTeam(ownerUserId: string, input: CreateTeamInput) {
     joinedAt: now,
   });
 
+  invalidatePublicTeamsCache();
+
   const { track } = await import("@/lib/analytics/track");
   track.teamCreated(ownerUserId, {
     team_id: teamId,
@@ -800,6 +865,7 @@ export async function joinTeamByCode(
   }
 
   await refreshMemberCount(team.id);
+  invalidatePublicTeamsCache();
 
   const { track } = await import("@/lib/analytics/track");
   track.teamJoined(userId, {
@@ -850,6 +916,7 @@ export async function leaveTeam(userId: string, teamId: string) {
     .set({ status: "left", leftAt: new Date() })
     .where(eq(teamMembers.id, membership.id));
   await refreshMemberCount(teamId);
+  invalidatePublicTeamsCache();
   return { ok: true as const };
 }
 
@@ -892,6 +959,7 @@ export async function updateTeamSettings(
   if (input.rankingMetric) patch.rankingMetric = input.rankingMetric;
 
   await db.update(teams).set(patch).where(eq(teams.id, teamId));
+  invalidatePublicTeamsCache();
   return { ok: true as const };
 }
 
@@ -1240,5 +1308,6 @@ export async function archiveTeam(actorUserId: string, teamId: string) {
     .update(teams)
     .set({ archivedAt: new Date(), updatedAt: new Date() })
     .where(eq(teams.id, teamId));
+  invalidatePublicTeamsCache();
   return { ok: true as const };
 }

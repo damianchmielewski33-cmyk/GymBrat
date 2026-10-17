@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, Search, Ticket, Trophy, Users } from "lucide-react";
@@ -27,17 +28,11 @@ export default async function CommunityTeamsPage({
 
   const params = await searchParams;
   const q = (params.q ?? "").trim();
-
-  const [myTeams, publicTeams, pendingInvites] = await Promise.all([
-    listMyTeams(userId),
-    searchPublicTeams(q, userId),
-    listPendingInvitesForUser(userId, session.user?.email ?? ""),
-  ]);
-
-  const discover = publicTeams.filter((t) => !t.isMember);
+  const email = session.user?.email ?? "";
 
   return (
     <div className="space-y-6 pb-thumb-bar">
+      {/* Shell od razu — LCP nie czeka na zapytania Community. */}
       <AppPageHeader
         kicker="Community"
         title="Teams"
@@ -63,6 +58,108 @@ export default async function CommunityTeamsPage({
         </Link>
       </nav>
 
+      <Suspense fallback={<TeamsListSkeleton label="Moje grupy" />}>
+        <MyTeamsSection userId={userId} email={email} />
+      </Suspense>
+
+      <section className="space-y-3" aria-labelledby="discover-heading">
+        <h2 id="discover-heading" className="app-label text-[var(--gym-gold)]">
+          Szukaj publicznych
+        </h2>
+        <form className="relative" role="search">
+          <label htmlFor="team-search" className="sr-only">
+            Szukaj publicznych grup
+          </label>
+          <Search
+            className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-white/35"
+            aria-hidden
+          />
+          <input
+            id="team-search"
+            name="q"
+            defaultValue={q}
+            placeholder="Nazwa lub opis grupy"
+            enterKeyHint="search"
+            autoComplete="off"
+            className="min-h-12 w-full rounded-2xl border border-white/20 bg-black/50 py-2.5 pr-4 pl-10 text-base text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45 sm:text-sm"
+          />
+        </form>
+        <Suspense fallback={<TeamsListSkeleton cards={2} />}>
+          <DiscoverTeamsSection userId={userId} q={q} />
+        </Suspense>
+      </section>
+
+      <ThumbActionBar>
+        <Link
+          href="/community/teams/join"
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "min-h-12 flex-1 gap-2",
+          )}
+        >
+          <Ticket className="h-4 w-4" aria-hidden />
+          Kod
+        </Link>
+        <Link
+          href="/community/teams/new"
+          className={cn(
+            buttonVariants({ variant: "cta" }),
+            "min-h-12 flex-[1.4] gap-2",
+          )}
+        >
+          <Plus className="h-4 w-4" aria-hidden />
+          Nowa grupa
+        </Link>
+      </ThumbActionBar>
+    </div>
+  );
+}
+
+function TeamsListSkeleton({
+  label,
+  cards = 2,
+}: {
+  label?: string;
+  cards?: number;
+}) {
+  return (
+    <div className="space-y-3 animate-pulse" aria-busy="true">
+      {label ? (
+        <div className="h-3 w-24 rounded bg-white/[0.06]" aria-hidden />
+      ) : null}
+      <div className="grid gap-3 md:grid-cols-2">
+        {Array.from({ length: cards }).map((_, i) => (
+          <div
+            key={i}
+            className="app-card h-[148px] overflow-hidden p-0"
+            aria-hidden
+          >
+            <div className="h-16 bg-white/[0.04]" />
+            <div className="space-y-2 px-4 py-3">
+              <div className="h-4 w-[66%] rounded bg-white/[0.06]" />
+              <div className="h-3 w-full rounded bg-white/[0.04]" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function MyTeamsSection({
+  userId,
+  email,
+}: {
+  userId: string;
+  email: string;
+}) {
+  const [myTeams, pendingInvites] = await Promise.all([
+    listMyTeams(userId),
+    listPendingInvitesForUser(userId, email),
+  ]);
+
+  return (
+    <>
       {pendingInvites.length > 0 ? (
         <section className="space-y-3" aria-labelledby="invites-heading">
           <h2 id="invites-heading" className="app-label text-[var(--gym-gold)]">
@@ -123,71 +220,42 @@ export default async function CommunityTeamsPage({
           </div>
         )}
       </section>
+    </>
+  );
+}
 
-      <section className="space-y-3" aria-labelledby="discover-heading">
-        <h2 id="discover-heading" className="app-label text-[var(--gym-gold)]">
-          Szukaj publicznych
-        </h2>
-        <form className="relative" role="search">
-          <label htmlFor="team-search" className="sr-only">
-            Szukaj publicznych grup
-          </label>
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-white/35"
-            aria-hidden
-          />
-          <input
-            id="team-search"
-            name="q"
-            defaultValue={q}
-            placeholder="Nazwa lub opis grupy"
-            enterKeyHint="search"
-            autoComplete="off"
-            className="min-h-12 w-full rounded-2xl border border-white/20 bg-black/50 py-2.5 pr-4 pl-10 text-base text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45 sm:text-sm"
-          />
-        </form>
-        {discover.length === 0 ? (
-          <p className="px-1 text-[13px] text-white/45" role="status">
-            {q
-              ? "Brak publicznych grup dla tego zapytania."
-              : "Brak publicznych grup do odkrycia — utwórz pierwszą."}
-          </p>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2">
-            {discover.map((team) => (
-              <TeamCard
-                key={team.id}
-                team={team}
-                href={`/community/teams/${team.id}`}
-                action={<JoinPublicTeamButton teamId={team.id} />}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+async function DiscoverTeamsSection({
+  userId,
+  q,
+}: {
+  userId: string;
+  q: string;
+}) {
+  // membership z listMyTeams byłby optymalny, ale osobny Suspense = równoległy stream;
+  // searchPublicTeams i tak ładuje membership równolegle z listą publiczną.
+  const publicTeams = await searchPublicTeams(q, userId);
+  const discover = publicTeams.filter((t) => !t.isMember);
 
-      <ThumbActionBar>
-        <Link
-          href="/community/teams/join"
-          className={cn(
-            buttonVariants({ variant: "outline" }),
-            "min-h-12 flex-1 gap-2",
-          )}
-        >
-          <Ticket className="h-4 w-4" aria-hidden />
-          Kod
-        </Link>
-        <Link
-          href="/community/teams/new"
-          className={cn(
-            buttonVariants({ variant: "cta" }),
-            "min-h-12 flex-[1.4] gap-2",
-          )}
-        >
-          <Plus className="h-4 w-4" aria-hidden />
-          Nowa grupa
-        </Link>
-      </ThumbActionBar>
+  if (discover.length === 0) {
+    return (
+      <p className="px-1 text-[13px] text-white/45" role="status">
+        {q
+          ? "Brak publicznych grup dla tego zapytania."
+          : "Brak publicznych grup do odkrycia — utwórz pierwszą."}
+      </p>
+    );
+  }
+
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {discover.map((team) => (
+        <TeamCard
+          key={team.id}
+          team={team}
+          href={`/community/teams/${team.id}`}
+          action={<JoinPublicTeamButton teamId={team.id} />}
+        />
+      ))}
     </div>
   );
 }

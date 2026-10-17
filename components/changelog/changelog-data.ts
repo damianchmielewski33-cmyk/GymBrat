@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Performance Community Teams (LCP)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Teams: nagłówek i wyszukiwarka renderują się od razu (Suspense) — LCP nie czeka na listę grup z bazy.",
+      "Lżejsze zapytania: cache listy publicznych Teamów, równoległe membership + discover, filtr ważności zaproszeń w SQL.",
+      "App shell: ciężkie widgety treningu/czatu ładują się leniwie; powiadomienia SSE startują po idle zamiast blokować pierwszy paint.",
+    ],
+  },
+  {
     title: "Zapowiedź — iOS: stabilne logowanie Google (bez skaczącego ekranu)",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
@@ -14,6 +24,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Bezpieczniejsze odczytywanie ciasteczka sesji w proxy oraz twarda nawigacja po uzupełnieniu profilu.",
     ],
   },
+
   {
     title: "Zapowiedź — Community 11/10 (audyt UI · a11y · security)",
     planned: true,

@@ -24,11 +24,21 @@ export function useNotificationsRealtime(enabled: boolean) {
 
   useEffect(() => {
     if (!enabled) return;
-    void refreshCount();
-    const poll = setInterval(() => {
+    // Po LCP — nie konkuruj z pierwszym paintem Community.
+    let cancelled = false;
+    let poll: ReturnType<typeof setInterval> | null = null;
+    const start = window.setTimeout(() => {
+      if (cancelled) return;
       void refreshCount();
-    }, 30_000);
-    return () => clearInterval(poll);
+      poll = setInterval(() => {
+        void refreshCount();
+      }, 30_000);
+    }, 1_200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(start);
+      if (poll) clearInterval(poll);
+    };
   }, [enabled, refreshCount]);
 
   useEffect(() => {
@@ -81,9 +91,25 @@ export function useNotificationsRealtime(enabled: boolean) {
       };
     };
 
-    connect();
+    // SSE po idle — mniej równoległych requestów zaraz po nawigacji.
+    const startSse = () => {
+      if (cancelled) return;
+      connect();
+    };
+    let idleId: number | null = null;
+    let timeoutId: number | null = null;
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(startSse, { timeout: 2_500 });
+    } else {
+      timeoutId = window.setTimeout(startSse, 1_800);
+    }
+
     return () => {
       cancelled = true;
+      if (idleId != null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId != null) window.clearTimeout(timeoutId);
       if (retryTimer) clearTimeout(retryTimer);
       es?.close();
     };

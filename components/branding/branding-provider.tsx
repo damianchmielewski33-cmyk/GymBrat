@@ -36,7 +36,8 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   const load = useCallback(() => {
-    void fetch("/api/branding", { credentials: "same-origin", cache: "no-store" })
+    // API ma Cache-Control 60s — no-store psuło LCP (późny swap logo w headerze).
+    void fetch("/api/branding", { credentials: "same-origin" })
       .then(async (res) => {
         const data = (await res.json()) as { ok?: boolean; assets?: BrandingMap };
         if (data.ok && data.assets) setAssets(data.assets);
