@@ -9,14 +9,14 @@ const TONE_CLASS: Record<LiveCoachTip["tone"], string> = {
     "border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-100/90 hover:bg-emerald-400/[0.14]",
   caution:
     "border-amber-400/30 bg-amber-400/[0.09] text-amber-50/90 hover:bg-amber-400/[0.14]",
-  hold: "border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/[0.08] text-[var(--gym-gold-bright)]/90 hover:bg-[var(--gym-gold)]/[0.14]",
+  hold: "border-[#D6B36A]/30 bg-[rgba(214,179,106,0.08)] text-[#F0D58A]/90 hover:bg-[rgba(214,179,106,0.14)]",
   info: "border-white/12 bg-white/[0.04] text-white/80 hover:bg-white/[0.07]",
 };
 
 const HIGHLIGHT_CLASS: Record<LiveCoachTip["tone"], string> = {
   progress: "text-emerald-300",
   caution: "text-amber-200",
-  hold: "text-[var(--gym-gold)]",
+  hold: "text-[#D6B36A]",
   info: "text-white",
 };
 

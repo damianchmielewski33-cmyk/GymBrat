@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — ekran sesji premium",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Ekran wykonywania treningu ma ciemny layout premium (czarne tło, złote akcenty): duży timer, badge celu (serie/RIR/tempo), karty ciężaru i powtórzeń z dużymi liczbami oraz sticky „Zalicz serię”.",
+      "Szybkie akcje Technika / Nagraj, pasek postępu ze złotym glow, RIR 0–3+ i dolna nawigacja Wstecz · Pomiń serię · Wrócę później · Zakończ — bez zmiany logiki zaliczania serii.",
+    ],
+  },
+  {
     title: "Zapowiedź — Live Set Coach v3",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -15,14 +15,27 @@ export function SessionProgressBar({
   const pct = Math.round(Math.min(1, Math.max(0, progress)) * 100);
   return (
     <div
-      className={cn("h-1.5 w-full bg-white/10", className)}
+      className={cn(
+        "relative h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]",
+        className,
+      )}
       role="progressbar"
       aria-valuenow={pct}
       aria-valuemin={0}
       aria-valuemax={100}
     >
       <div
-        className="h-full bg-gradient-to-r from-[var(--gym-gold-deep)] via-[var(--gym-gold)] to-[var(--gym-gold-bright)] transition-[width] duration-500"
+        className="relative h-full rounded-full bg-gradient-to-r from-[#A8893F] via-[#D6B36A] to-[#F0D58A] transition-[width] duration-500"
+        style={{ width: `${pct}%` }}
+      >
+        <span
+          aria-hidden
+          className="absolute inset-y-0 right-0 w-8 bg-gradient-to-r from-transparent to-white/35 blur-[1px]"
+        />
+      </div>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_12px_rgba(214,179,106,0.35)]"
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -55,7 +68,7 @@ export function SessionChromeHeader({
       */}
       <div
         className={cn(
-          "relative flex items-center justify-between gap-2 px-3 pb-2",
+          "relative flex items-start justify-between gap-3 px-3 pb-3",
           className,
         )}
       >
@@ -65,19 +78,21 @@ export function SessionChromeHeader({
             hapticTap();
             onClose?.();
           }}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08]"
+          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/85 shadow-[0_0_20px_rgba(214,179,106,0.08)] transition hover:border-[#D6B36A]/35 hover:bg-white/[0.07]"
           aria-label="Zamknij sesję"
         >
           <X className="h-4 w-4" />
         </button>
-        <div className="min-w-0 flex-1 text-center">
-          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+        <div className="min-w-0 flex-1 pt-0.5 text-center">
+          <p className="truncate text-[15px] font-semibold tracking-tight text-white">
             {title}
           </p>
-          <p className="mt-0.5 text-xs tabular-nums text-white/65">{subtitle}</p>
+          <div className="mt-1 text-[12px] tabular-nums leading-snug text-white/55">
+            {subtitle}
+          </div>
         </div>
         {listDisabled || !onOpenList ? (
-          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 text-white/35">
+          <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 text-white/35">
             <List className="h-4 w-4" />
           </span>
         ) : (
@@ -87,8 +102,8 @@ export function SessionChromeHeader({
               hapticTap();
               onOpenList?.();
             }}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08]"
-            aria-label="Lista ćwiczeń"
+            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/85 shadow-[0_0_20px_rgba(214,179,106,0.08)] transition hover:border-[#D6B36A]/35 hover:bg-white/[0.07]"
+            aria-label="Menu ćwiczeń"
           >
             <List className="h-4 w-4" />
           </button>
