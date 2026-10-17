@@ -5,6 +5,24 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Team na dolnym pasku nawigacji",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Piąta pozycja dolnego menu to Team (/community/teams) zamiast Profilu lub panelu admina.",
+      "Profil i Admin zostają w menu bocznym; skrót Teams z nagłówka usunięty (jest na dole).",
+    ],
+  },
+  {
+    title: "Zapowiedź — Podgląd znajomego podczas aktywnego treningu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Chip „znajomy trenuje” i panel podglądu działają też na ekranie aktywnego treningu (wcześniej były ukrywane).",
+      "Na sesji widget jest przy górnej krawędzi (jak grupa na żywo), żeby nie zasłaniać przycisku Zalicz.",
+    ],
+  },
+  {
     title: "Zapowiedź — Społeczność / Grupy po polsku",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
@@ -28,7 +46,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
       "Sesja prowadzona mieści się w wysokości telefonu: nagłówek i przycisk Zalicz zawsze widoczne, bez scrollowania całej strony od góry.",
-      "Ciężar i powtórzenia obok siebie, gęstszy layout i kompaktowy tip coacha — mniej pustej przestrzeni, więcej treści w jednym viewport.",
+      "Ciężar i powtórzenia jeden pod drugim; metryki skalują się z wysokością ekranu (RWD), żeby sesja mieściła się bez scrolla.",
       "Scroll środka tylko awaryjnie (klawiatura / bardzo niski ekran), nie jako domyślny sposób nawigacji po treningu.",
     ],
   },

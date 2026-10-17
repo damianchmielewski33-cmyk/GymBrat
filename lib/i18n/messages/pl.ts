@@ -16,8 +16,8 @@ export const pl = {
     inbox: "Skrzynka",
     profile: "Profil",
     admin: "Admin",
-    community: "Community",
-    teams: "Teams",
+    community: "Społeczność",
+    teams: "Team",
   },
   diet: {
     tabPlan: "Plan",

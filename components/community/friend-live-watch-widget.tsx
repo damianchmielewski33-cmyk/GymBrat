@@ -31,8 +31,11 @@ export function FriendLiveWatchWidget() {
   const [liveList, setLiveList] = useState<FriendLiveView[]>([]);
 
   const onWatchPage = pathname.startsWith("/community/friends/");
-  const hideOnActive =
-    pathname.startsWith("/active-workout") && !watchingUserId;
+  /** Podczas aktywnego treningu — bez dolnego menu, wyżej / na górze jak widżet grupy. */
+  const onActiveWorkout = pathname.startsWith("/active-workout");
+  const dockClass = onActiveWorkout
+    ? "right-3 top-[max(0.75rem,calc(env(safe-area-inset-top)+0.35rem))]"
+    : "right-3 bottom-[calc(7.25rem+env(safe-area-inset-bottom))] md:right-5";
 
   const pullWatch = useCallback(async () => {
     if (!watchingUserId) {
@@ -73,7 +76,7 @@ export function FriendLiveWatchWidget() {
   }, [watchingUserId]);
 
   useEffect(() => {
-    if (hideOnActive) return;
+    if (onWatchPage) return;
     void pullWatch();
     void pullList();
     const t = window.setInterval(() => {
@@ -81,9 +84,9 @@ export function FriendLiveWatchWidget() {
       void pullList();
     }, 1000);
     return () => window.clearInterval(t);
-  }, [pullWatch, pullList, hideOnActive]);
+  }, [pullWatch, pullList, onWatchPage]);
 
-  if (hideOnActive || onWatchPage) return null;
+  if (onWatchPage) return null;
 
   if (watchingUserId) {
     const name =
@@ -92,8 +95,8 @@ export function FriendLiveWatchWidget() {
     return (
       <div
         className={cn(
-          "fixed z-[58] flex max-w-[min(100vw-1.5rem,20rem)] flex-col items-end gap-2",
-          "right-3 bottom-[calc(7.25rem+env(safe-area-inset-bottom))] md:right-5",
+          "pointer-events-auto fixed z-[58] flex max-w-[min(100vw-1.5rem,20rem)] flex-col items-end gap-2",
+          dockClass,
         )}
       >
         {!expanded ? (
@@ -164,12 +167,7 @@ export function FriendLiveWatchWidget() {
 
   const first = liveList[0]!;
   return (
-    <div
-      className={cn(
-        "fixed z-[58]",
-        "right-3 bottom-[calc(7.25rem+env(safe-area-inset-bottom))] md:right-5",
-      )}
-    >
+    <div className={cn("pointer-events-auto fixed z-[58]", dockClass)}>
       <button
         type="button"
         onClick={() => setWatching(first.userId, first.displayName)}

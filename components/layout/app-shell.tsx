@@ -9,8 +9,6 @@ import {
   Home,
   LineChart,
   Plus,
-  Shield,
-  User,
   Utensils,
   Dumbbell,
   Users,
@@ -58,10 +56,9 @@ export const APP_SHELL_MAX =
 
 export function AppShell({
   children,
-  showAdminNav = false,
 }: {
   children: React.ReactNode;
-  /** Zamiast Profilu — skrót do panelu admina. */
+  /** @deprecated Profil/Admin są w menu bocznym; dolny pasek ma Team. */
   showAdminNav?: boolean;
 }) {
   const { t } = useI18n();
@@ -71,11 +68,9 @@ export function AppShell({
       { href: "/workout-plan", label: t("nav.training"), icon: Dumbbell },
       { href: "/meal-suggestions", label: t("nav.diet"), icon: Utensils },
       { href: "/progress", label: t("nav.analysis"), icon: LineChart },
-      showAdminNav
-        ? { href: "/admin", label: t("nav.admin"), icon: Shield }
-        : { href: "/profile", label: t("nav.profile"), icon: User },
+      { href: "/community/teams", label: t("nav.teams"), icon: Users },
     ],
-    [t, showAdminNav],
+    [t],
   );
 
   const pathname = usePathname();
@@ -87,12 +82,12 @@ export function AppShell({
       "/workout-plan",
       "/meal-suggestions",
       "/progress",
-      showAdminNav ? "/admin" : "/profile",
+      "/community/teams",
     ];
     for (const href of routes) {
       router.prefetch(href);
     }
-  }, [router, showAdminNav]);
+  }, [router]);
 
   const sessionFullscreen =
     pathname.startsWith("/active-workout") ||
@@ -105,7 +100,6 @@ export function AppShell({
     pathname === "/" ||
     pathname.startsWith("/workout-plan") ||
     pathname.startsWith("/progress");
-  const onCommunity = pathname.startsWith("/community");
 
   return (
     <div
@@ -128,16 +122,6 @@ export function AppShell({
           >
             <BrandMark className="min-w-0" />
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-              {!onCommunity ? (
-                <Link
-                  href="/community/teams"
-                  onClick={() => hapticTap()}
-                  className="touch-target inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/70 transition hover:border-white/20 hover:text-white"
-                  aria-label="Społeczność — Grupy"
-                >
-                  <Users className="h-4 w-4" aria-hidden />
-                </Link>
-              ) : null}
               <NotificationBell />
               <AppMenuButton variant="icon" />
             </div>
@@ -237,11 +221,9 @@ function TabLink({
       : item.href === "/progress"
         ? pathname.startsWith("/progress") ||
           pathname.startsWith("/progress-analysis")
-        : item.href === "/profile"
-          ? pathname.startsWith("/profile")
-          : item.href === "/admin"
-            ? pathname.startsWith("/admin")
-            : pathname.startsWith(item.href);
+        : item.href === "/community/teams"
+          ? pathname.startsWith("/community")
+          : pathname.startsWith(item.href);
   const visuallyActive = active || optimisticHref === item.href;
 
   return (

@@ -17,7 +17,7 @@ export const en = {
     profile: "Profile",
     admin: "Admin",
     community: "Community",
-    teams: "Teams",
+    teams: "Team",
   },
   diet: {
     tabPlan: "Plan",
