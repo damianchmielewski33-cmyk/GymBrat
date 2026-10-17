@@ -12,12 +12,21 @@ import {
   User,
   Utensils,
   Dumbbell,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hapticTap } from "@/lib/haptics";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { BrandMark } from "@/components/layout/brand-mark";
+import { AppMenuButton } from "@/components/layout/app-menu-button";
+import { NotificationBell } from "@/components/community/notification-bell";
+import { GroupWorkoutFloatingWidget } from "@/components/community/group-workout-floating-widget";
+import { WorkoutChatLauncher } from "@/components/community/workout-chat-launcher";
 import { WorkoutCompletePopup } from "@/components/reports/workout-complete-popup";
+
+/** Phone → tablet → desktop: treść w kolumnie, bez „pustego” tabletu. */
+export const APP_SHELL_MAX =
+  "max-w-lg md:max-w-xl xl:max-w-2xl";
 
 export function AppShell({
   children,
@@ -68,6 +77,7 @@ export function AppShell({
     pathname === "/" ||
     pathname.startsWith("/workout-plan") ||
     pathname.startsWith("/progress");
+  const onCommunity = pathname.startsWith("/community");
 
   return (
     <div
@@ -82,20 +92,40 @@ export function AppShell({
         <div className="pt-[env(safe-area-inset-top)]" aria-hidden />
       ) : (
         <header className="sticky top-0 z-40 bg-black/55 pt-[env(safe-area-inset-top)] backdrop-blur-md">
-          <div className="mx-auto flex max-w-lg items-center px-4 py-3.5 sm:py-4">
-            <BrandMark />
+          <div
+            className={cn(
+              "mx-auto flex items-center justify-between gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3.5",
+              APP_SHELL_MAX,
+            )}
+          >
+            <BrandMark className="min-w-0" />
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              {!onCommunity ? (
+                <Link
+                  href="/community/teams"
+                  onClick={() => hapticTap()}
+                  className="touch-target inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/70 transition hover:border-white/20 hover:text-white"
+                  aria-label="Community — Teams"
+                >
+                  <Users className="h-4 w-4" aria-hidden />
+                </Link>
+              ) : null}
+              <NotificationBell />
+              <AppMenuButton variant="icon" />
+            </div>
           </div>
         </header>
       )}
 
       <main
         className={cn(
-          "mx-auto min-w-0 w-full max-w-lg flex-1 overflow-x-clip",
+          "mx-auto min-w-0 w-full flex-1 overflow-x-clip",
+          APP_SHELL_MAX,
           sessionFullscreen
             ? "h-[100dvh] max-h-[100dvh] overflow-hidden px-0 py-0"
             : hideBottomNav
-              ? "px-4 py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-5"
-              : "px-4 py-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-5",
+              ? "px-3 py-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-4"
+              : "px-3 py-3 pb-[calc(7.75rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-4",
         )}
       >
         {children}
@@ -103,13 +133,15 @@ export function AppShell({
 
       {/* Po zakończeniu treningu — rekordy / podsumowanie zaraz po nawigacji (nie dopiero na /progress). */}
       <WorkoutCompletePopup />
+      <GroupWorkoutFloatingWidget />
+      <WorkoutChatLauncher />
 
       {hideBottomNav ? null : (
         <nav
           className="fixed inset-x-0 bottom-0 z-50 border-t border-white/[0.06] bg-black/70 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
           aria-label="Nawigacja główna"
         >
-          <div className="relative mx-auto max-w-lg">
+          <div className={cn("relative mx-auto", APP_SHELL_MAX)}>
             {showReportFab ? (
               <Suspense fallback={null}>
                 <ReportFab />
@@ -117,8 +149,8 @@ export function AppShell({
             ) : null}
             <div
               className={cn(
-                "grid grid-cols-5 items-end px-1 pb-2",
-                showReportFab ? "pt-7" : "pt-2",
+                "grid grid-cols-5 items-stretch px-0.5 pb-1.5 sm:px-1 sm:pb-2",
+                showReportFab ? "pt-7" : "pt-1.5",
               )}
             >
               {tabs.map((item) => (
@@ -148,7 +180,7 @@ function ReportFab() {
     <Link
       href="/reports?new=1"
       onClick={() => hapticTap()}
-      className="gym-btn-primary absolute left-1/2 top-0 z-10 inline-flex h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 rounded-full px-5 text-sm shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)]"
+      className="gym-btn-primary absolute left-1/2 top-0 z-10 inline-flex h-12 min-h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 rounded-full px-5 text-sm shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)]"
       aria-label="Dodaj raport"
     >
       <Plus className="h-4 w-4" aria-hidden />
@@ -193,7 +225,7 @@ function TabLink({
       }}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-0.5 py-2 text-center text-[10px] font-medium transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80",
+        "relative flex min-h-[3.25rem] min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-0.5 py-1.5 text-center text-[9px] font-medium transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80 sm:gap-1 sm:text-[10px]",
         visuallyActive
           ? "bg-[var(--gym-gold)]/10 text-[var(--gym-gold)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.45),0_0_18px_rgba(var(--neon-rgb),0.55),0_0_36px_rgba(var(--neon-rgb),0.28)]"
           : "text-white/45 shadow-none",
@@ -206,8 +238,8 @@ function TabLink({
           className="pointer-events-none absolute inset-0 rounded-2xl bg-[var(--gym-gold)]/15 blur-md"
         />
       ) : null}
-      <item.icon className="relative h-5 w-5" />
-      <span className="relative leading-none uppercase tracking-[0.08em]">
+      <item.icon className="relative h-5 w-5 sm:h-[1.35rem] sm:w-[1.35rem]" />
+      <span className="relative max-w-full truncate leading-none uppercase tracking-[0.06em]">
         {item.label}
       </span>
     </Link>

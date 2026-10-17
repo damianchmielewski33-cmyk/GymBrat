@@ -64,6 +64,55 @@
       "when": 1783000000000,
       "tag": "0011_bug_report_workflow",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1784000000000,
+      "tag": "0012_community_teams",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1785000000000,
+      "tag": "0013_team_feed",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1786000000000,
+      "tag": "0014_group_workout",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1787000000000,
+      "tag": "0015_workout_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1788000000000,
+      "tag": "0016_team_challenges",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1789000000000,
+      "tag": "0019_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1790000000000,
+      "tag": "0020_community_perf",
+      "breakpoints": true
     }
   ]
 }

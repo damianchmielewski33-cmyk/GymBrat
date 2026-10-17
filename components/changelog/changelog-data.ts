@@ -5,6 +5,86 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Community 11/10 (audyt UI · a11y · security)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Presence live: dostęp tylko dla członka Team lub uczestnika sesji (zamknięty IDOR na GET presence).",
+      "Spójny polish Teams / Feed / Challenges / Powiadomienia: empty states, podium rankingu, progressbary z ARIA, cele ~44px, live regions.",
+      "Hub Teams ze skrótami do Global Challenges; dokumentacja audytu w docs/community-audit.md.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Analityka Community (PostHog)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Pełny event plan Community pod PostHog: utworzenie/dołączenie do grupy, posty, reakcje, komentarze, wyzwania, live trening, ranking i Hall of Fame.",
+      "Zdarzenia mutacji idą server-side (source of truth); wyświetlenie rankingu z klienta — wspólne properties i grupa team.",
+      "Konfiguracja: NEXT_PUBLIC_POSTHOG_KEY + opcjonalnie NEXT_PUBLIC_POSTHOG_HOST (domyślnie EU).",
+    ],
+  },
+  {
+    title: "Zapowiedź — UX mobile-first (thumb zones)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Menu aplikacji dostępne na wszystkich ekranach (nie tylko na Pulpicie); skrót Community w nagłówku oraz większe cele dotykowe w dolnej nawigacji.",
+      "Teams: główne CTA (Nowa / Kod) w dolnej strefie kciuka, sticky subnav Feed · Wyzwania · Ludzie, czat zwinięty domyślnie żeby feed nie wypadał poza ekran.",
+      "Szerszy layout na tablecie/desktopie, snap-scroll filtrów powiadomień oraz pełnoszerokościowe przyciski na małych ekranach.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Wydajność Community (skala)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Realtime SSE z adaptive poll (idle/active) oraz krótkim cache event-head — mniej zapytań przy wielu otwartych feedach, czatach i powiadomieniach.",
+      "Team Feed i powiadomienia: paginacja z infinite scroll, podgląd komentarzy z dokładowaniem, agregacja reakcji w SQL oraz dodatkowe indeksy pod listy i live.",
+      "Cache TTL presence i badge nieprzeczytanych; odświeżanie feedu bez pełnego przeładowania strony (incremental fetch zamiast router.refresh).",
+    ],
+  },
+  {
+    title: "Zapowiedź — Centrum powiadomień Community",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Inbox Community: komentarze, reakcje, zaproszenia, osiągnięcia, wyzwania, live trening, ranking, Hall of Fame i ogłoszenia Team.",
+      "Realtime SSE, filtry, oznaczanie jako przeczytane oraz grupowanie powiadomień (np. wiele reakcji na ten sam post).",
+      "Dzwonek w nagłówku aplikacji i pozycja w menu Community → Powiadomienia.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Team Challenges (XP, odznaki, celebracje)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Wyzwania Team: indywidualne, grupowe, sezonowe i globalne — szablony 50 treningów, 100 km biegu, 10 000 pompek i 500 serii nóg.",
+      "Postęp z treningów, leaderboard, nagrody XP i odznaki; po ukończeniu pełnoekranowa celebracja z animacją sukcesu.",
+      "Globalne wyzwania społeczności pod /community/challenges; w Team czat challenge startuje razem z wyzwaniem.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Workout Chat (grupa / trening / challenge)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Workout Chat w Team i podczas treningu grupowego: emoji, odpowiedzi (reply), reakcje, @oznaczenia, status przeczytania, wskaźnik pisania oraz wyszukiwarka wiadomości.",
+      "Realtime przez SSE (kanały team / workout / challenge) — odświeżanie zdarzeń bez przeładowania całego ekranu, jakość zbliżona do Discorda w kontekście GymBrat.",
+      "Czat treningowy powstaje automatycznie przy starcie sesji grupowej; challenge chat jest gotowy API-owo i podłączy się, gdy pojawią się wyzwania Team.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Community Teams + Team Feed + Live trening",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Community → Teams: grupy publiczne/prywatne, zaproszenia, role Owner / Admin / Moderator / Member oraz Team Feed (auto-posty z treningu, reakcje, komentarze, SSE).",
+      "Start treningu z planu: Solo albo Trening grupowy — ten sam workflow GymBrat; członkowie Team widzą pływający widżet (avatar, ćwiczenie, seria, powtórzenia, progres) z odświeżaniem poniżej 1 s.",
+      "Z widoku Team możesz dołączyć do aktywnej sesji grupowej i iść dalej istniejącym ekranem /active-workout.",
+    ],
+  },
+  {
     title: "Zapowiedź — ekran sesji premium",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

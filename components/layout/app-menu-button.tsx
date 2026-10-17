@@ -7,6 +7,7 @@ import { signOut, useSession } from "next-auth/react";
 import {
   ArrowLeft,
   BadgePercent,
+  Bell,
   Bug,
   CalendarCheck2,
   ChevronRight,
@@ -22,6 +23,7 @@ import {
   TestTube2,
   Trophy,
   User,
+  Users,
   Video,
   X,
 } from "lucide-react";
@@ -225,6 +227,33 @@ export function AppMenuButton({
     },
     {
       index: "03",
+      title: "Community",
+      rows: [
+        {
+          href: "/community/teams",
+          title: "Teams",
+          subtitle: "grupy, zaproszenia, ranking zespołu",
+          icon: Users,
+          iconTone: "gold",
+        },
+        {
+          href: "/community/challenges",
+          title: "Wyzwania",
+          subtitle: "globalne challenge, XP i odznaki",
+          icon: Trophy,
+          iconTone: "gold",
+        },
+        {
+          href: "/community/notifications",
+          title: "Powiadomienia",
+          subtitle: "komentarze, live, wyzwania, ogłoszenia",
+          icon: Bell,
+          iconTone: "gold",
+        },
+      ],
+    },
+    {
+      index: "04",
       title: "Trening",
       rows: [
         {
@@ -284,7 +313,7 @@ export function AppMenuButton({
           "outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]",
           variant === "initials"
             ? "inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-[var(--gym-gold)]/70 bg-[var(--gym-gold)]/10 text-sm font-semibold tracking-wide text-white transition-colors hover:border-[var(--gym-gold)] hover:bg-[var(--gym-gold)]/15"
-            : "inline-flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white",
+            : "touch-target inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white",
         )}
         aria-label={open ? "Zamknij menu" : "Otwórz menu"}
       >

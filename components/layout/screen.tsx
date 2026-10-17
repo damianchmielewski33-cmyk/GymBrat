@@ -17,7 +17,7 @@ export const screenLinkClass =
 export const screenCtaClass =
   "gym-btn-primary h-11 rounded-2xl px-5 text-base focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
 export const screenInputClass =
-  "min-h-11 border-white/20 bg-black/50 text-white placeholder:text-white/40";
+  "min-h-11 border-white/20 bg-black/50 text-base text-white placeholder:text-white/40 sm:text-sm";
 
 /** Left-aligned dashboard page header (gold kicker + title). */
 export const appPageKickerClass =
@@ -46,14 +46,18 @@ export function AppPageHeader({
   return (
     <header
       className={cn(
-        "flex flex-wrap items-start justify-between gap-3 px-0.5 pb-1 pt-2",
+        "flex flex-col gap-3 px-0.5 pb-1 pt-2 sm:flex-row sm:items-start sm:justify-between",
         className,
       )}
     >
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         {kicker ? <p className={appPageKickerClass}>{kicker}</p> : null}
         <TitleTag
-          className={cn(appPageTitleClass, kicker ? "mt-1.5" : undefined)}
+          className={cn(
+            appPageTitleClass,
+            "text-[24px] sm:text-[28px]",
+            kicker ? "mt-1.5" : undefined,
+          )}
         >
           {title}
         </TitleTag>
@@ -61,7 +65,11 @@ export function AppPageHeader({
           <div className={cn(appPageSubtitleClass, "mt-2")}>{description}</div>
         ) : null}
       </div>
-      {actions ? <div className="shrink-0">{actions}</div> : null}
+      {actions ? (
+        <div className="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto sm:justify-end">
+          {actions}
+        </div>
+      ) : null}
     </header>
   );
 }

@@ -38,6 +38,8 @@ import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
+import { useCommunityWorkoutStore } from "@/lib/stores/community-workout";
+import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 import {
@@ -491,6 +493,26 @@ export function ActiveWorkoutView({
   function confirmDiscardSession() {
     setSessionExitPending(true);
     setSuppressRouteGate(true);
+    const groupSessionId =
+      useCommunityWorkoutStore.getState().groupSessionId;
+    if (groupSessionId) {
+      void (async () => {
+        try {
+          await ensureCsrfCookie();
+          await fetch(
+            `/api/community/group-workout/${groupSessionId}/presence`,
+            {
+              method: "DELETE",
+              credentials: "same-origin",
+              headers: getXsrfHeaders(),
+            },
+          );
+        } catch {
+          /* ignore */
+        }
+      })();
+    }
+    useCommunityWorkoutStore.getState().clear();
     reset();
     setExercises([]);
     setSelectedExerciseId(null);
@@ -557,6 +579,10 @@ export function ActiveWorkoutView({
   restSoundOnRef.current = restSoundOn;
   const lastCompletedRef = useRef(lastCompleted);
   lastCompletedRef.current = lastCompleted;
+
+  useEffect(() => {
+    useCommunityWorkoutStore.getState().setRestRemaining(restRemaining);
+  }, [restRemaining]);
 
   useEffect(() => {
     if (restRemaining === null) return;
@@ -796,6 +822,24 @@ export function ActiveWorkoutView({
         throw new Error(result.message);
       }
       setSessionExitPending(true);
+      const groupSessionId =
+        useCommunityWorkoutStore.getState().groupSessionId;
+      if (groupSessionId) {
+        try {
+          await ensureCsrfCookie();
+          await fetch(
+            `/api/community/group-workout/${groupSessionId}/presence`,
+            {
+              method: "DELETE",
+              credentials: "same-origin",
+              headers: getXsrfHeaders(),
+            },
+          );
+        } catch {
+          /* ignore */
+        }
+      }
+      useCommunityWorkoutStore.getState().clear();
       reset();
       setExercises([]);
       setSelectedExerciseId(null);

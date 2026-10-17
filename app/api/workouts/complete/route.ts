@@ -319,7 +319,9 @@ export async function POST(req: Request) {
   }
 
   const dateKey = calendarDateKey(startedAt);
+  const workoutId = crypto.randomUUID();
   await db.insert(workouts).values({
+    id: workoutId,
     userId: session.user.id,
     workoutPlanId: rawPlanId,
     date: dateKey,
@@ -327,10 +329,24 @@ export async function POST(req: Request) {
     exercises: currentJson,
   });
 
+  const { publishTeamFeedAfterWorkout } = await import(
+    "@/lib/community/team-feed-auto"
+  );
+  void publishTeamFeedAfterWorkout({
+    userId: session.user.id,
+    workoutId,
+    title,
+    dateKey,
+    cardioMinutes: Math.max(0, Math.round(cardioMinutes)),
+    exercisesJson: currentJson,
+    planCompare,
+  });
+
   revalidatePath("/");
   revalidatePath("/reports");
   revalidatePath("/active-workout");
   revalidatePath("/workout-history");
+  revalidatePath("/community/teams");
 
   return NextResponse.json({ ok: true, strengthDeltaPercent, planCompare });
 }

@@ -12,6 +12,11 @@ export const SCREEN_LABELS: Record<string, string> = {
   cardio: "Cardio",
   workout_history: "Historia treningów",
   profile: "Profil",
+  community_teams: "Community Teams",
+  community_team_detail: "Community Team",
+  community_challenges: "Community Challenges",
+  community_notifications: "Community Powiadomienia",
+  community_hof: "Community Hall of Fame",
   login: "Logowanie",
   register: "Rejestracja",
   admin: "Panel administratora",
@@ -47,6 +52,25 @@ export function getScreenFromPathname(
     return { key: "workout_history", label: SCREEN_LABELS.workout_history };
   if (path.startsWith("/profile"))
     return { key: "profile", label: SCREEN_LABELS.profile };
+  if (path.startsWith("/community/notifications"))
+    return {
+      key: "community_notifications",
+      label: SCREEN_LABELS.community_notifications,
+    };
+  if (path.startsWith("/community/hall-of-fame"))
+    return { key: "community_hof", label: SCREEN_LABELS.community_hof };
+  if (path.startsWith("/community/challenges"))
+    return {
+      key: "community_challenges",
+      label: SCREEN_LABELS.community_challenges,
+    };
+  if (/^\/community\/teams\/[^/]+/.test(path))
+    return {
+      key: "community_team_detail",
+      label: SCREEN_LABELS.community_team_detail,
+    };
+  if (path.startsWith("/community/teams"))
+    return { key: "community_teams", label: SCREEN_LABELS.community_teams };
   if (path.startsWith("/login"))
     return { key: "login", label: SCREEN_LABELS.login };
   if (path.startsWith("/register"))

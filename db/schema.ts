@@ -674,3 +674,854 @@ export const bugReportPhotosRelations = relations(bugReportPhotos, ({ one }) => 
     references: [bugReports.id],
   }),
 }));
+
+/**
+ * Community Teams — grupy zawodników (publiczne / prywatne).
+ * role w team_members: owner | admin | moderator | member
+ * privacy: public | private
+ */
+export const teams = sqliteTable(
+  "teams",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    /** public = searchable + join; private = tylko kod / zaproszenie */
+    privacy: text("privacy").notNull().default("private"),
+    /** Kod dołączania (wielkość liter ignorowana przy join). */
+    inviteCode: text("invite_code").notNull(),
+    /** Emoji lub krótki znak jako avatar (bez osobnego storage w v1). */
+    avatarEmoji: text("avatar_emoji").notNull().default("🏋️"),
+    /** Hex koloru bannera, np. #1a1a1c */
+    bannerColor: text("banner_color").notNull().default("#1a1a1c"),
+    rankingMetric: text("ranking_metric").notNull().default("sessions"),
+    maxMembers: integer("max_members").notNull().default(50),
+    memberCount: integer("member_count").notNull().default(1),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    uniqueIndex("teams_invite_code_uidx").on(t.inviteCode),
+    index("teams_owner_created_idx").on(t.ownerUserId, t.createdAt),
+    index("teams_privacy_name_idx").on(t.privacy, t.name),
+    index("teams_archived_idx").on(t.archivedAt),
+  ],
+);
+
+export const teamMembers = sqliteTable(
+  "team_members",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").notNull().default("member"),
+    /** active | invited | left | banned */
+    status: text("status").notNull().default("active"),
+    mutedNotifications: integer("muted_notifications").notNull().default(0),
+    joinedAt: integer("joined_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    leftAt: integer("left_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    uniqueIndex("team_members_team_user_uidx").on(t.teamId, t.userId),
+    index("team_members_user_status_idx").on(t.userId, t.status),
+    index("team_members_team_status_idx").on(t.teamId, t.status),
+  ],
+);
+
+/**
+ * Zaproszenia do teamu — e-mail (dopasowanie do users) lub token linku.
+ * status: pending | accepted | declined | revoked | expired
+ */
+export const teamInvitations = sqliteTable(
+  "team_invitations",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    invitedByUserId: text("invited_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Docelowy user gdy znamy konto; null przy zaproszeniu tylko e-mailowym. */
+    inviteeUserId: text("invitee_user_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
+    inviteeEmail: text("invitee_email"),
+    /** Rola po akceptacji — nigdy owner. */
+    role: text("role").notNull().default("member"),
+    token: text("token").notNull(),
+    status: text("status").notNull().default("pending"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    respondedAt: integer("responded_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    uniqueIndex("team_invitations_token_uidx").on(t.token),
+    index("team_invitations_team_status_idx").on(t.teamId, t.status),
+    index("team_invitations_invitee_user_idx").on(t.inviteeUserId, t.status),
+    index("team_invitations_invitee_email_idx").on(t.inviteeEmail, t.status),
+  ],
+);
+
+export const teamsRelations = relations(teams, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [teams.ownerUserId],
+    references: [users.id],
+  }),
+  members: many(teamMembers),
+  invitations: many(teamInvitations),
+}));
+
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
+  team: one(teams, {
+    fields: [teamMembers.teamId],
+    references: [teams.id],
+  }),
+  user: one(users, {
+    fields: [teamMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const teamInvitationsRelations = relations(teamInvitations, ({ one }) => ({
+  team: one(teams, {
+    fields: [teamInvitations.teamId],
+    references: [teams.id],
+  }),
+  invitedBy: one(users, {
+    fields: [teamInvitations.invitedByUserId],
+    references: [users.id],
+  }),
+  invitee: one(users, {
+    fields: [teamInvitations.inviteeUserId],
+    references: [users.id],
+  }),
+}));
+
+/**
+ * Team Feed — posty auto (trening/PR/…) i ręczne (tekst/zdjęcia).
+ * type: workout_complete | personal_record | achievement | streak | challenge_complete | level_up | text | gallery
+ */
+export const teamPosts = sqliteTable(
+  "team_posts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    authorUserId: text("author_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    body: text("body").notNull().default(""),
+    /** Immutable snapshot metryk / tytułu auto-posta. */
+    snapshotJson: text("snapshot_json").notNull().default("{}"),
+    /** Dedup auto-postów w zespole, np. workout:{id}. */
+    sourceKey: text("source_key"),
+    reactionCount: integer("reaction_count").notNull().default(0),
+    commentCount: integer("comment_count").notNull().default(0),
+    moderationStatus: text("moderation_status").notNull().default("visible"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    editedAt: integer("edited_at", { mode: "timestamp_ms" }),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    index("team_posts_team_created_idx").on(t.teamId, t.createdAt),
+    index("team_posts_author_created_idx").on(t.authorUserId, t.createdAt),
+    /** Feed list: team + moderation + created (deleted filtrowane w WHERE). */
+    index("team_posts_team_mod_created_idx").on(
+      t.teamId,
+      t.moderationStatus,
+      t.createdAt,
+    ),
+    uniqueIndex("team_posts_team_source_uidx").on(t.teamId, t.sourceKey),
+  ],
+);
+
+export const teamPostMedia = sqliteTable(
+  "team_post_media",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    postId: text("post_id")
+      .notNull()
+      .references(() => teamPosts.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    mimeType: text("mime_type").notNull(),
+    /** JPEG/PNG data URL (skompresowany po stronie klienta). */
+    dataUrl: text("data_url").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("team_post_media_post_idx").on(t.postId, t.sortOrder)],
+);
+
+export const teamPostComments = sqliteTable(
+  "team_post_comments",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    postId: text("post_id")
+      .notNull()
+      .references(() => teamPosts.id, { onDelete: "cascade" }),
+    authorUserId: text("author_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    parentCommentId: text("parent_comment_id"),
+    body: text("body").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    index("team_post_comments_post_created_idx").on(t.postId, t.createdAt),
+    index("team_post_comments_parent_idx").on(t.parentCommentId),
+    index("team_post_comments_post_deleted_created_idx").on(
+      t.postId,
+      t.deletedAt,
+      t.createdAt,
+    ),
+  ],
+);
+
+export const teamPostReactions = sqliteTable(
+  "team_post_reactions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    postId: text("post_id")
+      .notNull()
+      .references(() => teamPosts.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** beast | strong | king | monster | progress | insane */
+    kind: text("kind").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("team_post_reactions_post_user_uidx").on(t.postId, t.userId),
+    index("team_post_reactions_post_kind_idx").on(t.postId, t.kind),
+  ],
+);
+
+export const teamPostMentions = sqliteTable(
+  "team_post_mentions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    postId: text("post_id")
+      .notNull()
+      .references(() => teamPosts.id, { onDelete: "cascade" }),
+    commentId: text("comment_id").references(() => teamPostComments.id, {
+      onDelete: "cascade",
+    }),
+    mentionedUserId: text("mentioned_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("team_post_mentions_post_idx").on(t.postId),
+    index("team_post_mentions_user_idx").on(t.mentionedUserId),
+  ],
+);
+
+/** Lekki log zdarzeń pod SSE realtime. */
+export const teamFeedEvents = sqliteTable(
+  "team_feed_events",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    /** post_created | post_deleted | comment_created | reaction_changed */
+    kind: text("kind").notNull(),
+    entityId: text("entity_id").notNull(),
+    actorUserId: text("actor_user_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("team_feed_events_team_created_idx").on(t.teamId, t.createdAt)],
+);
+
+/** Dedup milestone’ów użytkownika (achievement / streak / level / challenge). */
+export const communityMilestones = sqliteTable(
+  "community_milestones",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    milestoneKey: text("milestone_key").notNull(),
+    unlockedAt: integer("unlocked_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    metaJson: text("meta_json").notNull().default("{}"),
+  },
+  (t) => [
+    uniqueIndex("community_milestones_user_kind_key_uidx").on(
+      t.userId,
+      t.kind,
+      t.milestoneKey,
+    ),
+  ],
+);
+
+export const teamPostsRelations = relations(teamPosts, ({ one, many }) => ({
+  team: one(teams, {
+    fields: [teamPosts.teamId],
+    references: [teams.id],
+  }),
+  author: one(users, {
+    fields: [teamPosts.authorUserId],
+    references: [users.id],
+  }),
+  media: many(teamPostMedia),
+  comments: many(teamPostComments),
+  reactions: many(teamPostReactions),
+  mentions: many(teamPostMentions),
+}));
+
+export const teamPostMediaRelations = relations(teamPostMedia, ({ one }) => ({
+  post: one(teamPosts, {
+    fields: [teamPostMedia.postId],
+    references: [teamPosts.id],
+  }),
+}));
+
+export const teamPostCommentsRelations = relations(
+  teamPostComments,
+  ({ one }) => ({
+    post: one(teamPosts, {
+      fields: [teamPostComments.postId],
+      references: [teamPosts.id],
+    }),
+    author: one(users, {
+      fields: [teamPostComments.authorUserId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const teamPostReactionsRelations = relations(
+  teamPostReactions,
+  ({ one }) => ({
+    post: one(teamPosts, {
+      fields: [teamPostReactions.postId],
+      references: [teamPosts.id],
+    }),
+    user: one(users, {
+      fields: [teamPostReactions.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+/**
+ * Community Layer — wspólna sesja treningowa (presence), bez osobnego workflow ćwiczeń.
+ * Każdy uczestnik nadal ma własny active_workout; tu synchronizujemy status na żywo.
+ */
+export const groupWorkoutSessions = sqliteTable(
+  "group_workout_sessions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    hostUserId: text("host_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull().default("Trening grupowy"),
+    /** live | ended */
+    status: text("status").notNull().default("live"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    endedAt: integer("ended_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    index("group_workout_sessions_team_status_idx").on(t.teamId, t.status),
+    index("group_workout_sessions_host_idx").on(t.hostUserId, t.status),
+  ],
+);
+
+export const groupWorkoutParticipants = sqliteTable(
+  "group_workout_participants",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => groupWorkoutSessions.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** joined | left */
+    status: text("status").notNull().default("joined"),
+    /** JSON: exercise, set, reps, weight, elapsed, rest, progress, phase */
+    presenceJson: text("presence_json").notNull().default("{}"),
+    joinedAt: integer("joined_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    leftAt: integer("left_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    uniqueIndex("group_workout_participants_session_user_uidx").on(
+      t.sessionId,
+      t.userId,
+    ),
+    index("group_workout_participants_session_status_idx").on(
+      t.sessionId,
+      t.status,
+    ),
+  ],
+);
+
+/**
+ * Workout Chat — kanały Team / trening grupowy / challenge (Discord-level).
+ * kind: team | workout | challenge
+ */
+export const chatChannels = sqliteTable(
+  "chat_channels",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    /** team:{teamId} | workout:{sessionId} | challenge:{challengeId} */
+    scopeKey: text("scope_key").notNull(),
+    kind: text("kind").notNull(),
+    teamId: text("team_id").references(() => teams.id, { onDelete: "cascade" }),
+    groupSessionId: text("group_session_id").references(
+      () => groupWorkoutSessions.id,
+      { onDelete: "cascade" },
+    ),
+    /** Soft ref — Challenges mogą dojść później. */
+    challengeId: text("challenge_id"),
+    title: text("title").notNull().default(""),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("chat_channels_scope_uidx").on(t.scopeKey),
+    index("chat_channels_kind_team_idx").on(t.kind, t.teamId),
+    index("chat_channels_group_session_idx").on(t.groupSessionId),
+    index("chat_channels_challenge_idx").on(t.challengeId),
+  ],
+);
+
+export const chatMessages = sqliteTable(
+  "chat_messages",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    channelId: text("channel_id")
+      .notNull()
+      .references(() => chatChannels.id, { onDelete: "cascade" }),
+    authorUserId: text("author_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    parentMessageId: text("parent_message_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    editedAt: integer("edited_at", { mode: "timestamp_ms" }),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    index("chat_messages_channel_created_idx").on(t.channelId, t.createdAt),
+    index("chat_messages_channel_deleted_created_idx").on(
+      t.channelId,
+      t.deletedAt,
+      t.createdAt,
+    ),
+    index("chat_messages_parent_idx").on(t.parentMessageId),
+    index("chat_messages_author_idx").on(t.authorUserId),
+  ],
+);
+
+export const chatMessageReactions = sqliteTable(
+  "chat_message_reactions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    messageId: text("message_id")
+      .notNull()
+      .references(() => chatMessages.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emoji: text("emoji").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("chat_message_reactions_uidx").on(
+      t.messageId,
+      t.userId,
+      t.emoji,
+    ),
+    index("chat_message_reactions_message_idx").on(t.messageId),
+  ],
+);
+
+export const chatMentions = sqliteTable(
+  "chat_mentions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    messageId: text("message_id")
+      .notNull()
+      .references(() => chatMessages.id, { onDelete: "cascade" }),
+    mentionedUserId: text("mentioned_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("chat_mentions_message_idx").on(t.messageId),
+    index("chat_mentions_user_idx").on(t.mentionedUserId),
+  ],
+);
+
+export const chatReadStates = sqliteTable(
+  "chat_read_states",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    channelId: text("channel_id")
+      .notNull()
+      .references(() => chatChannels.id, { onDelete: "cascade" }),
+    lastReadMessageId: text("last_read_message_id"),
+    lastReadAt: integer("last_read_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("chat_read_states_uidx").on(t.userId, t.channelId),
+    index("chat_read_states_channel_idx").on(t.channelId),
+  ],
+);
+
+export const chatTyping = sqliteTable(
+  "chat_typing",
+  {
+    channelId: text("channel_id")
+      .notNull()
+      .references(() => chatChannels.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("chat_typing_uidx").on(t.channelId, t.userId),
+    index("chat_typing_updated_idx").on(t.channelId, t.updatedAt),
+  ],
+);
+
+export const chatEvents = sqliteTable(
+  "chat_events",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    channelId: text("channel_id")
+      .notNull()
+      .references(() => chatChannels.id, { onDelete: "cascade" }),
+    /** message | reaction | typing | read */
+    kind: text("kind").notNull(),
+    entityId: text("entity_id").notNull(),
+    actorUserId: text("actor_user_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("chat_events_channel_created_idx").on(t.channelId, t.createdAt)],
+);
+
+/**
+ * Team / Global Challenges
+ * scope: individual | group | seasonal | global
+ * metric: sessions | distance_km | reps | sets | tonnage_kg | cardio_minutes
+ */
+export const challenges = sqliteTable(
+  "challenges",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    scope: text("scope").notNull(),
+    teamId: text("team_id").references(() => teams.id, { onDelete: "cascade" }),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description").notNull().default(""),
+    emoji: text("emoji").notNull().default("🏆"),
+    metricKind: text("metric_kind").notNull(),
+    /** JSON: { exerciseKeywords?: string[] } */
+    metricFilterJson: text("metric_filter_json").notNull().default("{}"),
+    targetValue: integer("target_value").notNull(),
+    unitLabel: text("unit_label").notNull().default(""),
+    startsAt: integer("starts_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    endsAt: integer("ends_at", { mode: "timestamp_ms" }),
+    rewardXp: integer("reward_xp").notNull().default(100),
+    rewardBadgeKey: text("reward_badge_key"),
+    rewardTitle: text("reward_title"),
+    /** draft | active | completed | archived */
+    status: text("status").notNull().default("active"),
+    templateKey: text("template_key"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("challenges_team_status_idx").on(t.teamId, t.status),
+    index("challenges_scope_status_idx").on(t.scope, t.status),
+    index("challenges_ends_at_idx").on(t.endsAt),
+    index("challenges_template_idx").on(t.templateKey),
+  ],
+);
+
+export const challengeParticipants = sqliteTable(
+  "challenge_participants",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    challengeId: text("challenge_id")
+      .notNull()
+      .references(() => challenges.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** active | completed | left */
+    status: text("status").notNull().default("active"),
+    joinedAt: integer("joined_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    uniqueIndex("challenge_participants_uidx").on(t.challengeId, t.userId),
+    index("challenge_participants_user_idx").on(t.userId, t.status),
+  ],
+);
+
+export const challengeProgress = sqliteTable(
+  "challenge_progress",
+  {
+    challengeId: text("challenge_id")
+      .notNull()
+      .references(() => challenges.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    currentValue: integer("current_value").notNull().default(0),
+    lastWorkoutId: text("last_workout_id"),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("challenge_progress_uidx").on(t.challengeId, t.userId),
+    index("challenge_progress_challenge_idx").on(t.challengeId),
+  ],
+);
+
+export const challengeRewardClaims = sqliteTable(
+  "challenge_reward_claims",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    challengeId: text("challenge_id")
+      .notNull()
+      .references(() => challenges.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    xpAwarded: integer("xp_awarded").notNull().default(0),
+    badgeKey: text("badge_key"),
+    claimedAt: integer("claimed_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    celebrationSeenAt: integer("celebration_seen_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    uniqueIndex("challenge_reward_claims_uidx").on(t.challengeId, t.userId),
+    index("challenge_reward_claims_user_idx").on(t.userId),
+  ],
+);
+
+export const userCommunityXp = sqliteTable("user_community_xp", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  xpTotal: integer("xp_total").notNull().default(0),
+  level: integer("level").notNull().default(1),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const userBadges = sqliteTable(
+  "user_badges",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    badgeKey: text("badge_key").notNull(),
+    title: text("title").notNull(),
+    emoji: text("emoji").notNull().default("🏅"),
+    challengeId: text("challenge_id").references(() => challenges.id, {
+      onDelete: "set null",
+    }),
+    unlockedAt: integer("unlocked_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("user_badges_user_key_uidx").on(t.userId, t.badgeKey),
+    index("user_badges_user_idx").on(t.userId),
+  ],
+);
+
+/**
+ * Community notification inbox
+ * kind: comment | reaction | invite | achievement | challenge | live | ranking | hall_of_fame | team_announcement
+ */
+export const notifications = sqliteTable(
+  "notifications",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull().default(""),
+    href: text("href").notNull().default(""),
+    actorUserId: text("actor_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    teamId: text("team_id").references(() => teams.id, { onDelete: "cascade" }),
+    entityType: text("entity_type"),
+    entityId: text("entity_id"),
+    groupKey: text("group_key"),
+    payloadJson: text("payload_json").notNull().default("{}"),
+    collapsedCount: integer("collapsed_count").notNull().default(1),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    readAt: integer("read_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    index("notifications_user_created_idx").on(t.userId, t.createdAt),
+    index("notifications_user_read_created_idx").on(
+      t.userId,
+      t.readAt,
+      t.createdAt,
+    ),
+    index("notifications_user_kind_created_idx").on(
+      t.userId,
+      t.kind,
+      t.createdAt,
+    ),
+    index("notifications_user_group_idx").on(t.userId, t.groupKey),
+  ],
+);
+
+export const notificationEvents = sqliteTable(
+  "notification_events",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** created | updated | read */
+    kind: text("kind").notNull(),
+    notificationId: text("notification_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("notification_events_user_created_idx").on(t.userId, t.createdAt),
+  ],
+);
