@@ -5,6 +5,14 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Dokończ grafiki AI mimo pustego URL katalogu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "„Dokończ grafiki AI” i import JSON sprawdzają, czy w bazie jest faktyczny plik grafiki — nie wystarczy sam URL /api/catalog-meal-image/… w JSON (po reimporcie 404 znika po wygenerowaniu).",
+    ],
+  },
+  {
     title: "Zapowiedź — Dźwięki przerwy: końcówka + gong",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -132,12 +132,16 @@ export async function clearAllCatalogMealImages(): Promise<number> {
   return rows.length;
 }
 
-function mealNeedsAiImage(meal: CatalogMeal): boolean {
+/**
+ * Zewnętrzny HTTPS (nie Pollinations / nie ścieżka katalogu).
+ * Sam URL `/api/catalog-meal-image/…` NIE oznacza, że blob jest w DB —
+ * po eksporcie/reimporcie albo pustym replace często zostaje tylko ścieżka.
+ */
+function hasExternalDurableImage(meal: CatalogMeal): boolean {
   const url = (meal.imageUrl ?? "").trim();
-  if (!url) return true;
+  if (!url) return false;
   if (isCatalogMealImagePath(url)) return false;
-  if (isDurableRecipeImageUrl(url)) return false;
-  return true;
+  return isDurableRecipeImageUrl(url);
 }
 
 async function patchMealImageUrl(
@@ -173,10 +177,14 @@ async function patchMealImageUrl(
 async function generateOneCatalogImage(
   meal: CatalogMeal,
   actorUserId?: string,
+  opts?: { knownHasBlob?: boolean },
 ): Promise<"ok" | "skip" | "fail"> {
-  if (!mealNeedsAiImage(meal)) return "skip";
+  if (hasExternalDurableImage(meal)) return "skip";
 
-  const existing = await getCatalogMealImage(meal.id);
+  const existing =
+    opts?.knownHasBlob === false
+      ? null
+      : await getCatalogMealImage(meal.id);
   if (existing) {
     const url = catalogMealImagePublicUrl(meal.id, existing.updatedAt);
     if (meal.imageUrl !== url) {
@@ -319,7 +327,20 @@ export async function generateMissingCatalogImages(args?: {
     }
   }
 
-  const needing = candidates.filter(mealNeedsAiImage);
+  // Decyduje obecność bloba w meal_catalog_images — nie sam imageUrl w JSON.
+  const candidateIds = candidates.map((m) => m.id);
+  const blobIds = new Set<string>();
+  if (candidateIds.length > 0) {
+    const existingRows = await db
+      .select({ mealId: mealCatalogImages.mealId })
+      .from(mealCatalogImages)
+      .where(inArray(mealCatalogImages.mealId, candidateIds));
+    for (const r of existingRows) blobIds.add(r.mealId);
+  }
+
+  const needing = candidates.filter(
+    (m) => !blobIds.has(m.id) && !hasExternalDurableImage(m),
+  );
   if (needing.length === 0) {
     return emptyImageResult(0, { skipped: candidates.length });
   }
@@ -340,7 +361,7 @@ export async function generateMissingCatalogImages(args?: {
 
   const batch = needing.slice(0, limit);
   const results = await mapPool(batch, concurrency, (meal) =>
-    generateOneCatalogImage(meal, args?.actorUserId),
+    generateOneCatalogImage(meal, args?.actorUserId, { knownHasBlob: false }),
   );
 
   let generated = 0;
