@@ -36,7 +36,12 @@ import {
 import { WorkoutAllSetsDoneDialog } from "@/components/active-workout/workout-all-sets-done-dialog";
 import { WorkoutDiscardSessionDialog } from "@/components/active-workout/workout-discard-session-dialog";
 import { readRestTimerPrefs } from "@/lib/rest-timer-prefs";
-import { playRestTimerEndSignal, playRestTimerStartSignal, unlockRestTimerAudio } from "@/lib/rest-timer-signal";
+import {
+  playRestTimerEndingSignal,
+  playRestTimerEndSignal,
+  playRestTimerStartSignal,
+  unlockRestTimerAudio,
+} from "@/lib/rest-timer-signal";
 import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import { sessionVolume } from "@/lib/workout-session-calculations";
@@ -127,6 +132,8 @@ export function ActiveWorkoutView({
   const restStartedAtRef = useRef<number | null>(null);
   /** Absolutny koniec przerwy (wall-clock) — odporne na blokadę ekranu / throttling. */
   const restEndsAtRef = useRef<number | null>(null);
+  /** Sekundy 3/2/1 już zasygnalizowane w bieżącym cyklu (unikamy podwójnego ticka). */
+  const restEndingBeepsPlayedRef = useRef<Set<number>>(new Set());
   const [restSoundOn, setRestSoundOn] = useState(true);
   const restSoundOnRef = useRef(restSoundOn);
   restSoundOnRef.current = restSoundOn;
@@ -400,6 +407,7 @@ export function ActiveWorkoutView({
     setRestDurationTotal(sec);
     restStartedAtRef.current = nowMs;
     restEndsAtRef.current = nowMs + sec * 1000;
+    restEndingBeepsPlayedRef.current = new Set();
     setRestRemaining(sec);
   }
 
@@ -440,6 +448,7 @@ export function ActiveWorkoutView({
       persistRestSecondsFromTimer();
     }
     restEndsAtRef.current = null;
+    restEndingBeepsPlayedRef.current = new Set();
     setRestRemaining(null);
   }
 
@@ -447,6 +456,7 @@ export function ActiveWorkoutView({
   function finishRestFromTimer() {
     if (restEndsAtRef.current == null) return;
     restEndsAtRef.current = null;
+    restEndingBeepsPlayedRef.current = new Set();
     if (restSoundOnRef.current) {
       playRestTimerEndSignal();
     }
@@ -654,6 +664,18 @@ export function ActiveWorkoutView({
       if (left <= 0) {
         finishRestFromTimerRef.current();
         return;
+      }
+      // Po +30s wracamy powyżej 3 — pozwól zagrać końcówkę od nowa.
+      if (left > 3) {
+        restEndingBeepsPlayedRef.current.clear();
+      } else if (
+        left >= 1 &&
+        left <= 3 &&
+        restSoundOnRef.current &&
+        !restEndingBeepsPlayedRef.current.has(left)
+      ) {
+        restEndingBeepsPlayedRef.current.add(left);
+        playRestTimerEndingSignal(left);
       }
       setRestRemaining((prev) => (prev === left ? prev : left));
     };

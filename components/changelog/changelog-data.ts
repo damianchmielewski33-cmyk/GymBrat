@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Dźwięki przerwy: końcówka + gong",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Przy włączonym dźwięku przerwy: w ostatnich 3 sekundach gra sygnał kończącego się czasu (osobny tick na 3, 2 i 1).",
+      "Gdy czas dojdzie do zera, zamiast podwójnego beepa słychać gong i wibrację.",
+    ],
+  },
+  {
     title: "Zapowiedź — Ochrona limitu bazy Turso",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
@@ -60,6 +69,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     bullets: [
       "W sesji prowadzonej jest segmentowy pasek serii: zielony = zaliczona, pomarańczowy = pominięta, złoty = aktualna.",
       "Karty Ciężar i Powtórzenia mają ten sam układ (steppery ±, drobne ±0,5 przy ciężarze); przy zaliczonej serii CTA jest zielone „Popraw serię”.",
+      "Karty Ciężar i Powtórzenia rosną na wysokość dostępnego ekranu — bez pustego pasa między RIR a przyciskiem Zalicz/Pomiń.",
     ],
   },
   {

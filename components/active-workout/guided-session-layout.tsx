@@ -102,13 +102,13 @@ function exerciseTargetBadges(exercise: WorkoutExerciseState): string[] {
 
 /** Steppery / metryki skalują się z wysokością viewport (RWD bez scrolla). */
 const stepperBtnClass =
-  "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-white/12 bg-[#121212] text-white transition active:scale-[0.96] hover:border-[#D6B36A]/35 hover:bg-white/[0.07] min-[700px]:h-12 min-[700px]:w-12 min-[700px]:rounded-[16px] sm:h-14 sm:w-14";
+  "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-white/12 bg-[#121212] text-white transition active:scale-[0.96] hover:border-[#D6B36A]/35 hover:bg-white/[0.07] min-[700px]:h-12 min-[700px]:w-12 min-[700px]:rounded-[16px] sm:h-14 sm:w-14";
 
 const fineBtnClass =
-  "inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/10 bg-[#121212] text-[11px] font-semibold tabular-nums text-white/70 transition active:scale-[0.98] hover:border-[#D6B36A]/30 hover:text-white min-[700px]:h-9 min-[700px]:text-[12px]";
+  "inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/10 bg-[#121212] text-[11px] font-semibold tabular-nums text-white/70 transition active:scale-[0.98] hover:border-[#D6B36A]/30 hover:text-white min-[700px]:h-10 min-[700px]:text-[12px]";
 
 const metricInputBaseClass =
-  "h-10 min-w-0 w-full bg-transparent px-0.5 text-center font-metric text-[clamp(1.65rem,5.5dvh,2.75rem)] leading-none tabular-nums tracking-tight outline-none min-[700px]:h-12 sm:h-14";
+  "h-12 min-w-0 w-full bg-transparent px-0.5 text-center font-metric text-[clamp(1.85rem,6.5dvh,3rem)] leading-none tabular-nums tracking-tight outline-none min-[700px]:h-14 sm:h-16";
 
 const weightInputClass =
   `${metricInputBaseClass} text-[#D6B36A] placeholder:text-[#D6B36A]/35`;
@@ -117,7 +117,7 @@ const repsInputClass =
   `${metricInputBaseClass} text-white placeholder:text-white/30`;
 
 const premiumCardClass =
-  "rounded-[18px] border border-white/[0.08] border-t-[#D6B36A]/20 bg-[#121212] p-3 shadow-[0_0_28px_rgba(214,179,106,0.06),inset_0_1px_0_rgba(255,255,255,0.04)] min-[700px]:rounded-[20px] min-[700px]:p-3.5 sm:rounded-[24px] sm:p-4";
+  "flex min-h-0 flex-1 flex-col justify-center rounded-[18px] border border-white/[0.08] border-t-[#D6B36A]/20 bg-[#121212] px-3 py-3.5 shadow-[0_0_28px_rgba(214,179,106,0.06),inset_0_1px_0_rgba(255,255,255,0.04)] min-[700px]:rounded-[20px] min-[700px]:px-3.5 min-[700px]:py-4 sm:rounded-[24px] sm:px-4 sm:py-5";
 
 type GuidedSessionLayoutProps = {
   title: string;
@@ -487,9 +487,9 @@ export function GuidedSessionLayout({
         </div>
       </div>
 
-      {/* Środkowa treść: od góry pod sobą (bez pustej luki); scroll tylko awaryjnie. */}
+      {/* Środkowa treść: karty Ciężar/Powtórzenia rosną i wypełniają wolne miejsce; scroll tylko awaryjnie. */}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3.5 pb-2 pt-2.5 sm:px-4 sm:pt-3">
-        <div className="flex flex-col">
+        <div className="flex min-h-full flex-1 flex-col">
           <div className="shrink-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -677,9 +677,9 @@ export function GuidedSessionLayout({
             ) : null}
           </div>
 
-          {/* Ciężar → powtórzenia → RIR — zaraz pod akcjami, bez flex-1/justify-end */}
-          <div className="mt-2.5 flex flex-col gap-2 min-[700px]:mt-3 min-[700px]:gap-2.5">
-            <div className={cn(premiumCardClass, "shrink-0")}>
+          {/* Ciężar / Powtórzenia rosną i wypełniają wolne miejsce pod akcjami. */}
+          <div className="mt-2.5 flex min-h-0 flex-1 flex-col gap-2 min-[700px]:mt-3 min-[700px]:gap-2.5">
+            <div className={premiumCardClass}>
               <div className="flex items-center justify-between text-[11px] font-semibold tracking-wide text-white/55">
                 <label htmlFor="set-weight">Ciężar</label>
                 <span className="text-[10px] font-medium text-white/35">
@@ -697,7 +697,7 @@ export function GuidedSessionLayout({
                   Sugestia {suggestedWeight} kg
                 </button>
               ) : null}
-              <div className="mt-2 flex items-center justify-center gap-2 min-[700px]:mt-2.5 min-[700px]:gap-2.5">
+              <div className="mt-2.5 flex items-center justify-center gap-2 min-[700px]:mt-3 min-[700px]:gap-2.5">
                 <button
                   type="button"
                   aria-label="Zmniejsz ciężar"
@@ -754,7 +754,7 @@ export function GuidedSessionLayout({
                     }}
                     className={cn(weightInputClass, "flex-1")}
                   />
-                  <span className="mb-1.5 shrink-0 text-[13px] font-semibold lowercase tracking-wide text-[#D6B36A]/80 min-[700px]:mb-2.5 min-[700px]:text-[15px]">
+                  <span className="mb-2 shrink-0 text-[13px] font-semibold lowercase tracking-wide text-[#D6B36A]/80 min-[700px]:mb-3 min-[700px]:text-[15px]">
                     kg
                   </span>
                 </div>
@@ -774,7 +774,7 @@ export function GuidedSessionLayout({
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
-              <div className="mt-2 flex gap-2 min-[700px]:mt-2.5">
+              <div className="mt-2.5 flex gap-2 min-[700px]:mt-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -806,11 +806,11 @@ export function GuidedSessionLayout({
               </div>
             </div>
 
-            <div className={cn(premiumCardClass, "shrink-0")}>
+            <div className={premiumCardClass}>
               <div className="flex items-center justify-between text-[11px] font-semibold tracking-wide text-white/55">
                 <label htmlFor="set-reps">Powtórzenia</label>
               </div>
-              <div className="mt-2 flex items-center justify-center gap-2 min-[700px]:mt-2.5 min-[700px]:gap-2.5">
+              <div className="mt-2.5 flex flex-1 items-center justify-center gap-2 min-[700px]:mt-3 min-[700px]:gap-2.5">
                 <button
                   type="button"
                   aria-label="Mniej powtórzeń"
