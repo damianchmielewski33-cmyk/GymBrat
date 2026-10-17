@@ -103,7 +103,7 @@ export function PackagePageClient({
         </p>
         {paidHint ? (
           <p className="mt-3 rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10 px-3 py-2 text-sm text-[var(--gym-gold)]">
-            Dziękujemy — po potwierdzeniu płatności HotPay pakiet aktywuje się
+            Dziękujemy — po potwierdzeniu płatności pakiet aktywuje się
             automatycznie (zwykle w ciągu kilku sekund).
           </p>
         ) : null}
@@ -169,7 +169,7 @@ export function PackagePageClient({
                 disabled={busySku != null || !termsAccepted}
                 onClick={() => void checkout(p.sku)}
               >
-                {busySku === p.sku ? "Przekierowanie…" : "Kup przez HotPay"}
+                {busySku === p.sku ? "Przekierowanie…" : "Kup pakiet"}
               </Button>
             </article>
           );
@@ -181,7 +181,7 @@ export function PackagePageClient({
       ) : null}
 
       <p className="text-center text-[11px] leading-relaxed text-white/35">
-        Płatności e-przelewem obsługuje HotPay. Dokumenty:{" "}
+        Płatność przez zewnętrzną bramkę płatniczą. Dokumenty:{" "}
         <Link href={REGULAMIN_PATH} className="underline-offset-2 hover:underline">
           Regulamin
         </Link>

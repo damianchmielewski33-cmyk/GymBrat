@@ -31,8 +31,8 @@ export function LegalDocShell({
           Uzupełnij dane sprzedawcy w zmiennych środowiskowych (
           <code className="text-[12px]">LEGAL_SELLER_*</code>,{" "}
           <code className="text-[12px]">LEGAL_CONTACT_*</code>
-          ), żeby były zgodne z kontem HotPay — inaczej weryfikacja sklepu może
-          zostać odrzucona.
+          ), żeby Regulamin i Polityka prywatności zawierały kompletne dane
+          firmy.
         </p>
       ) : null}
 

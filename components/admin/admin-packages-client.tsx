@@ -107,7 +107,7 @@ export function AdminPackagesClient() {
         <h1 className="font-heading text-xl font-semibold text-white">Pakiety</h1>
         <p className="mt-1 text-sm text-white/55">
           Okresy są stałe (7 / 30 / 90 / 365 dni). Ceny i opisy zmieniasz tutaj —
-          użytkownik widzi je na ekranie „Twój pakiet” i płaci przez HotPay.
+          użytkownik widzi je na ekranie „Twój pakiet” i płaci przez bramkę płatniczą.
         </p>
       </div>
 

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Płatności HotPay nie są jeszcze skonfigurowane. Spróbuj później.",
+        error: "Płatności nie są jeszcze skonfigurowane. Spróbuj później.",
       },
       { status: 503 },
     );

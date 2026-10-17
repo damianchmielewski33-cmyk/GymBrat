@@ -44,7 +44,7 @@ export function mustCompleteProfile(
 ): boolean {
   if (profileComplete === true) return false;
   if (isCompleteProfilePath(pathname)) return false;
-  // Regulamin / polityka — publiczne (HotPay + użytkownicy bez pełnego profilu).
+  // Regulamin / polityka — publiczne (także bez pełnego profilu).
   if (isLegalPublicPath(pathname)) return false;
   return true;
 }

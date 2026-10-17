@@ -6,7 +6,7 @@ import { getLegalSeller, PRIVACY_PATH } from "@/lib/legal-seller";
 export const metadata: Metadata = {
   title: "Regulamin | GymBrat",
   description:
-    "Regulamin świadczenia usług drogą elektroniczną i sprzedaży pakietów dostępu do aplikacji GymBrat — wymagany m.in. przy weryfikacji sklepu HotPay.",
+    "Regulamin świadczenia usług drogą elektroniczną i sprzedaży pakietów dostępu do aplikacji GymBrat.",
   robots: { index: true, follow: true },
 };
 
@@ -80,14 +80,13 @@ export default function RegulaminPage() {
           ) : (
             <>
               <br />
-              telefon: zostanie podany w ustawieniach Serwisu (wymagany przez
-              HotPay)
+              telefon: zostanie podany w ustawieniach Serwisu
             </>
           )}
         </p>
         <p>
-          Dane Sprzedawcy podane w niniejszym Regulaminie odpowiadają danym
-          konta zarejestrowanego w systemie płatności HotPay.
+          Dane Sprzedawcy podane w niniejszym Regulaminie są danymi podmiotu
+          prowadzącego Serwis i rozliczającego sprzedaż Pakietów.
         </p>
       </LegalSection>
 
@@ -192,19 +191,19 @@ export default function RegulaminPage() {
             odstąpienia, o ile dotyczy).
           </li>
           <li>
-            Klient zostaje przekierowany do bramki płatniczej HotPay w celu
+            Klient zostaje przekierowany do zewnętrznej bramki płatniczej w celu
             uiszczenia ceny.
           </li>
           <li>
-            Po otrzymaniu potwierdzenia płatności (webhook / powiadomienie
-            HotPay) Pakiet jest aktywowany automatycznie na Koncie — zwykle w
-            ciągu kilku sekund, nie później niż w ciągu 24 godzin od
-            zaksięgowania płatności.
+            Po otrzymaniu potwierdzenia płatności od operatora płatności Pakiet
+            jest aktywowany automatycznie na Koncie — zwykle w ciągu kilku
+            sekund, nie później niż w ciągu 24 godzin od zaksięgowania
+            płatności.
           </li>
         </ol>
         <p>
           Termin realizacji Zamówienia: niezwłocznie po potwierdzeniu płatności
-          przez HotPay (dostawa cyfrowa na Konto).
+          przez operatora płatności (dostawa cyfrowa na Konto).
         </p>
         <p>
           Ograniczenia: Pakiet przypisany jest do Konta Kupującego; nie
@@ -216,17 +215,17 @@ export default function RegulaminPage() {
 
       <LegalSection id="platnosci" title="§6. Płatności">
         <p>
-          Dostępne formy płatności: metody udostępnione przez operatora HotPay
-          (m.in. BLIK, szybkie przelewy online / Pay-by-Link oraz inne metody
-          widoczne w oknie płatności HotPay w chwili zakupu).
+          Dostępne formy płatności: metody udostępnione przez zewnętrznego
+          operatora płatności (m.in. BLIK, szybkie przelewy online / Pay-by-Link
+          oraz inne metody widoczne w oknie płatności w chwili zakupu).
         </p>
         <p>
           <strong className="text-white/90">
-            Rozliczenia transakcji e-przelewem przeprowadzane są za
-            pośrednictwem HotPay
+            Rozliczenia transakcji elektronicznych przeprowadzane są za
+            pośrednictwem zewnętrznego operatora płatności
           </strong>{" "}
-          (operator usług płatniczych: podmioty z grupy HotPay / ePłatności —
-          zgodnie z komunikatami w procesie płatności).
+          — zgodnie z komunikatami i regulaminem tego operatora w procesie
+          płatności.
         </p>
         <p>
           Sprzedawca nie przechowuje pełnych danych kart płatniczych. Status
@@ -335,7 +334,7 @@ export default function RegulaminPage() {
       </LegalSection>
 
       <p className="border-t border-white/[0.08] pt-4 text-[13px] text-white/45">
-        Link do Regulaminu (do formularza HotPay „Regulamin serwisu”):{" "}
+        Adres Regulaminu:{" "}
         <a
           href={`${s.siteUrl}/regulamin`}
           className="break-all text-[#DDBB6D] underline-offset-2 hover:underline"

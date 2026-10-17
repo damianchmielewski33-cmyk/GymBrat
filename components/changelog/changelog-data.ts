@@ -26,14 +26,15 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     ],
   },
   {
-    title: "Zapowiedź — Regulamin pod weryfikację HotPay",
+    title: "Zapowiedź — Regulamin i polityka prywatności",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
-      "Publiczne strony /regulamin i /polityka-prywatnosci (sprzedawca, pakiety cyfrowe, płatności HotPay, odstąpienie, reklamacje, RODO).",
+      "Publiczne strony /regulamin i /polityka-prywatnosci (sprzedawca, pakiety cyfrowe, płatności, odstąpienie, reklamacje, RODO).",
       "Przed zakupem pakietu wymagana akceptacja Regulaminu; linki także w menu bocznym. Dane sprzedawcy z LEGAL_SELLER_* / LEGAL_CONTACT_*.",
     ],
   },
+
   {
     title: "Zapowiedź — Twój plan + Dziennik premium",
     planned: true,
@@ -251,16 +252,17 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     ],
   },
   {
-    title: "Zapowiedź — pakiety HotPay + AdMob",
+    title: "Zapowiedź — pakiety + AdMob",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
-      "Pakiety 7 / 30 / 90 / 365 dni: ceny i opisy ustawiasz w panelu admina (Pakiety); zakup przez HotPay, webhook przedłuża dostęp.",
+      "Pakiety 7 / 30 / 90 / 365 dni: ceny i opisy ustawiasz w panelu admina (Pakiety); zakup przez bramkę płatniczą, powiadomienie przedłuża dostęp.",
       "Bez aktywnego pakietu pełnoekranowe reklamy (AdMob w APK + bramka w web) przed startem treningu i dodaniem produktu — ekran „Twój pakiet” zamiast „wkrótce”.",
       "Admin → Użytkownicy → Szczegóły / Edytuj: profil, subskrypcja, ręczne nadanie dni, historia płatności, aktywność i notatka.",
-      "Menu boczne pokazuje dni pakietu; notification URL HotPay: /api/payments/hotpay/notify (sekrety w env).",
+      "Menu boczne pokazuje dni pakietu; webhook płatności w /api/payments (sekrety w env).",
     ],
   },
+
   {
     title: "Zapowiedź — Android 0.1.13: Google logowanie w APK",
     planned: true,

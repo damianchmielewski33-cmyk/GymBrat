@@ -300,7 +300,7 @@ export function AppMenuButton({
         {
           href: REGULAMIN_PATH,
           title: "Regulamin",
-          subtitle: "pakiety, HotPay, reklamacje",
+          subtitle: "pakiety, płatności, reklamacje",
           icon: FileText,
         },
         {

@@ -1,6 +1,5 @@
 /**
- * Dane sprzedawcy do regulaminu / HotPay.
- * Muszą być zgodne z kontem w HotPay (formularz przelewy_sklep_nowy).
+ * Dane sprzedawcy do regulaminu i polityki prywatności.
  *
  * Env (produkcja):
  * - LEGAL_SELLER_NAME — pełna nazwa firmy albo imię i nazwisko
@@ -8,8 +7,8 @@
  * - LEGAL_SELLER_NIP — opcjonalnie (firma)
  * - LEGAL_SELLER_REGON — opcjonalnie
  * - LEGAL_SELLER_KRS — opcjonalnie
- * - LEGAL_CONTACT_EMAIL — obsługę klienta (HotPay)
- * - LEGAL_CONTACT_PHONE — telefon obsługi (HotPay)
+ * - LEGAL_CONTACT_EMAIL — obsługa klienta
+ * - LEGAL_CONTACT_PHONE — telefon obsługi
  * - NEXT_PUBLIC_APP_URL — kanoniczny URL serwisu
  */
 
@@ -23,7 +22,7 @@ export type LegalSeller = {
   email: string;
   phone: string | null;
   siteUrl: string;
-  /** true = wszystkie pola wymagane przez HotPay są uzupełnione */
+  /** true = nazwa, adres i e-mail sprzedawcy są uzupełnione */
   complete: boolean;
 };
 

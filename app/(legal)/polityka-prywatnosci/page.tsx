@@ -76,8 +76,8 @@ export default function PolitykaPrywatnosciPage() {
             raporty, ustawienia,
           </li>
           <li>
-            dane płatności pakietu: identyfikatory zamówienia / transakcji
-            HotPay (bez pełnych danych kart),
+            dane płatności pakietu: identyfikatory zamówienia / transakcji u
+            operatora płatności (bez pełnych danych kart),
           </li>
           <li>
             dane techniczne: logi, identyfikatory urządzenia / sesji, w zakresie
@@ -107,8 +107,8 @@ export default function PolitykaPrywatnosciPage() {
         <ul className="list-disc space-y-1.5 pl-5">
           <li>hosting / infrastruktura (np. Vercel, baza danych),</li>
           <li>
-            operator płatności <strong className="text-white/85">HotPay</strong>{" "}
-            — w zakresie realizacji płatności za Pakiety,
+            zewnętrzny operator płatności — w zakresie realizacji płatności za
+            Pakiety,
           </li>
           <li>
             dostawcy logowania społecznościowego (Google / Facebook), jeśli
@@ -125,7 +125,7 @@ export default function PolitykaPrywatnosciPage() {
         <p>
           Dane Konta przechowujemy przez czas trwania umowy oraz przez okres
           przedawnienia roszczeń / obowiązków prawnych. Dane płatności — zgodnie
-          z wymogami rachunkowymi i polityką operatora HotPay.
+          z wymogami rachunkowymi i polityką operatora płatności.
         </p>
       </LegalSection>
 
