@@ -1,16 +1,24 @@
 import { eq } from "drizzle-orm";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { CompleteProfileForm } from "@/components/auth/complete-profile-form";
 import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
+import { AuthSessionHydrating } from "@/components/auth/auth-session-hydrating";
+import { CompleteProfileForm } from "@/components/auth/complete-profile-form";
+import { CompleteProfileSessionBridge } from "@/components/auth/complete-profile-session-bridge";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
+import { hasAuthSessionCookie } from "@/lib/auth-session-cookie";
 import { isUserBodyProfileComplete } from "@/lib/profile-complete";
 
 export default async function CompleteProfilePage() {
-  const session = await auth();
+  const session = await auth().catch(() => null);
   const userId = session?.user?.id;
   if (!userId) {
+    const jar = await cookies();
+    if (hasAuthSessionCookie((name) => jar.has(name))) {
+      return <AuthSessionHydrating />;
+    }
     redirect("/login?callbackUrl=/complete-profile");
   }
 
@@ -33,8 +41,12 @@ export default async function CompleteProfilePage() {
     redirect("/login");
   }
 
+  // JWT niepełny + DB pełna → soft redirect("/") pętli z proxy. Najpierw odśwież sesję.
   if (isUserBodyProfileComplete(row)) {
-    redirect("/");
+    if (session.user.profileComplete === true) {
+      redirect("/");
+    }
+    return <CompleteProfileSessionBridge />;
   }
 
   return (

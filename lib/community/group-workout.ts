@@ -400,7 +400,8 @@ export async function listGroupWorkoutPresence(
     cacheSet(cacheKey, base, SSE_POLL.presenceTtlMs);
   }
 
-  const cutoff = Date.now() - 30_000;
+  // 90s — partnerzy bez ticka nie znikają od razu (wcześniej 30s → zostawał tylko „Ty”).
+  const cutoff = Date.now() - 90_000;
   return base
     .filter((r) => r.updatedAt >= cutoff || r.userId === viewerId)
     .map((r) => ({

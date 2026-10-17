@@ -8,7 +8,9 @@ const easeOut = [0.22, 1, 0.36, 1] as const;
 
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative min-h-[100dvh] overflow-x-hidden">
+    // 100svh (nie dvh): na iOS Safari pasek URL zmienia dvh i z justify-center
+    // formularz „skacze” — zwłaszcza zaraz po powrocie z Google OAuth.
+    <div className="relative min-h-[100svh] overflow-x-hidden">
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <motion.div
           className="absolute inset-0"
@@ -33,7 +35,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.55)_100%)]" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col px-4 py-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))] sm:px-6 sm:py-14">
+      <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-6xl flex-col px-4 py-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))] sm:px-6 sm:py-14">
         {children}
 
         <motion.section

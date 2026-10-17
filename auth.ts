@@ -293,7 +293,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             ? isUserBodyProfileComplete(row)
             : false;
         } catch {
-          token.profileComplete = false;
+          // Nie degraduj znanego `true` — chwilowy błąd DB + proxy dawały pętlę
+          // `/` ↔ `/complete-profile` (na iOS wygląda jak skaczący ekran).
+          if (token.profileComplete !== true) {
+            token.profileComplete = false;
+          }
         }
       }
 

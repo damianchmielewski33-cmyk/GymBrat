@@ -21,11 +21,19 @@ function isSecureSessionCookie(req: NextRequest): boolean {
 async function readSessionToken(req: NextRequest) {
   const secret = getAuthSecret();
   if (!secret) return null;
+  const secure = isSecureSessionCookie(req);
   try {
+    const primary = await getToken({
+      req,
+      secret,
+      secureCookie: secure,
+    });
+    if (primary) return primary;
+    // Fallback: iOS / proxy czasem mylą http vs https → druga nazwa ciasteczka.
     return await getToken({
       req,
       secret,
-      secureCookie: isSecureSessionCookie(req),
+      secureCookie: !secure,
     });
   } catch {
     /** Uszkodzone ciasteczko nie może wywalić WebView jako 500 / popup błędu. */

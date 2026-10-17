@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useActionState, useEffect, useState } from "react";
 import { updateBodyParamsFormAction } from "@/actions/profile";
@@ -30,7 +29,6 @@ type Initial = {
 };
 
 export function CompleteProfileForm({ initial }: { initial: Initial }) {
-  const router = useRouter();
   const { update } = useSession();
   const [activityLevel, setActivityLevel] = useState<
     (typeof activityLevels)[number]
@@ -50,11 +48,15 @@ export function CompleteProfileForm({ initial }: { initial: Initial }) {
   useEffect(() => {
     if (state?.ok !== true) return;
     void (async () => {
-      await update();
-      router.replace("/");
-      router.refresh();
+      try {
+        await update();
+      } catch {
+        /* i tak hard-nav — JWT odświeży się przy następnym requestcie albo bridge */
+      }
+      // Jedna twarda nawigacja (jak po credentials) — unikamy pętli soft replace+refresh na iOS.
+      window.location.replace("/");
     })();
-  }, [state, update, router]);
+  }, [state, update]);
 
   return (
     <form action={formAction} className="space-y-6" noValidate>

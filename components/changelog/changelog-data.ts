@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — iOS: stabilne logowanie Google (bez skaczącego ekranu)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Po Google OAuth na iOS Safari ekran auth nie skacze już przez dynamiczny viewport (100svh zamiast 100dvh) ani centrowanie formularza przy zmianie paska URL.",
+      "Zerwana pętla przekierowań `/` ↔ `/complete-profile`, gdy JWT i baza chwilowo się rozjeżdżają — most odświeżenia sesji zamiast soft redirectu.",
+      "Bezpieczniejsze odczytywanie ciasteczka sesji w proxy oraz twarda nawigacja po uzupełnieniu profilu.",
+    ],
+  },
+  {
     title: "Zapowiedź — Community 11/10 (audyt UI · a11y · security)",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
@@ -14,6 +24,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Hub Teams ze skrótami do Global Challenges; dokumentacja audytu w docs/community-audit.md.",
     ],
   },
+
   {
     title: "Zapowiedź — Analityka Community (PostHog)",
     planned: true,

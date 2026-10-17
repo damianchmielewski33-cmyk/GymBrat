@@ -289,18 +289,28 @@ export function AppMenuButton({
     setOpen(false);
   }, [pathname]);
 
+  const wasOpenRef = useRef(false);
+
   useEffect(() => {
     if (typeof document === "undefined") return;
     const body = document.body;
     const root = document.documentElement;
     if (open) {
+      wasOpenRef.current = true;
       body.style.overflow = "hidden";
       root.style.overflow = "hidden";
-      return;
+      return () => {
+        body.style.overflow = "";
+        root.style.overflow = "";
+      };
     }
     body.style.overflow = "";
     root.style.overflow = "";
-    queueMicrotask(() => triggerRef.current?.focus());
+    // Fokus tylko po zamknięciu menu — nie przy mount (iOS scrollIntoView = skok viewportu).
+    if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      queueMicrotask(() => triggerRef.current?.focus());
+    }
   }, [open]);
 
   const close = () => setOpen(false);
