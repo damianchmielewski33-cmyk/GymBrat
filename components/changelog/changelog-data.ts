@@ -12,6 +12,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Powiadomienia, tablica i czat domyślnie odświeżają się krótkim HTTP poll zamiast długotrwałego SSE — mniej Active CPU na Vercel Hobby / Render Free.",
       "Presence treningu grupowego i live znajomych rzadziej (kilka sekund zamiast ułamka sekundy); przy ukrytej karcie requesty pauzują.",
       "Lista „kto trenuje” nie odpytuje już API co 1 s przy otwartej apce — co ~30 s (podgląd aktywny co ~8 s).",
+      "Własny status live jest wysyłany tylko przy zdarzeniach treningu (start, seria, ćwiczenie, przerwa, koniec) — bez ciągłego ticka.",
       "SSE zostaje opcją (NEXT_PUBLIC_COMMUNITY_REALTIME=sse), z limitem ~25 s na połączenie.",
     ],
   },

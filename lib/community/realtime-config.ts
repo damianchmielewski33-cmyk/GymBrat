@@ -24,8 +24,6 @@ export const CLIENT_POLL = {
   notificationsMs: 20_000,
   feedMs: 15_000,
   chatMs: 8_000,
-  /** Presence znajomych (push) — tylko podczas własnego treningu */
-  friendPresenceMs: 12_000,
   /** Trening grupowy push+pull */
   groupPresenceMs: 5_000,
   /** Podgląd wybranego znajomego (aktywnie oglądasz) */

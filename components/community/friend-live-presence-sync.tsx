@@ -1,26 +1,26 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
-import { buildGroupWorkoutPresence } from "@/lib/community/group-workout-presence";
-import { CLIENT_POLL } from "@/lib/community/realtime-config";
+import {
+  buildGroupWorkoutPresence,
+  computeSessionProgress,
+  findActiveSet,
+} from "@/lib/community/group-workout-presence";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { useCommunityWorkoutStore } from "@/lib/stores/community-workout";
 
 /**
- * Publikuje sanitized presence dla znajomych z mutual share.
- * notifyStart=true tylko przy pierwszym ticku nowej sesji.
+ * Live dla znajomych — tylko przy zdarzeniach treningu:
+ * start, zmiana ćwiczenia, zaliczenie/pominięcie serii, start/koniec przerwy, koniec.
+ * Bez okresowego ticka (oszczędność hostingu).
  */
 export function FriendLivePresenceSync() {
   const { data: session, status } = useSession();
   const exercises = useActiveWorkoutStore((s) => s.exercises);
-  const startedAt = useActiveWorkoutStore((s) => s.startedAt);
   const workoutStartedAtMs = useActiveWorkoutStore((s) => s.workoutStartedAtMs);
   const selectedExerciseId = useActiveWorkoutStore((s) => s.selectedExerciseId);
-  const pausedElapsedSeconds = useActiveWorkoutStore(
-    (s) => s.pausedElapsedSeconds,
-  );
   const restRemaining = useCommunityWorkoutStore((s) => s.restRemaining);
 
   const notifiedSessionRef = useRef<number | null>(null);
@@ -36,6 +36,37 @@ export function FriendLivePresenceSync() {
     status === "authenticated" &&
     exercises.length > 0 &&
     workoutStartedAtMs != null;
+
+  /** Tylko faza przerwy (tak/nie), nie każda sekunda countdownu. */
+  const onRest = restRemaining != null && restRemaining > 0;
+
+  const eventFingerprint = useMemo(() => {
+    if (!hasSession || workoutStartedAtMs == null) return null;
+    const { exercise, setIndex, set } = findActiveSet(
+      exercises,
+      selectedExerciseId,
+    );
+    const progress = computeSessionProgress(exercises);
+    return [
+      workoutStartedAtMs,
+      exercise?.id ?? "",
+      selectedExerciseId ?? "",
+      setIndex,
+      progress.done,
+      progress.total,
+      onRest ? "rest" : "work",
+      set?.reps ?? "",
+      set?.weight ?? "",
+      set?.done ? "1" : "0",
+      set?.skipped ? "1" : "0",
+    ].join("|");
+  }, [
+    hasSession,
+    workoutStartedAtMs,
+    exercises,
+    selectedExerciseId,
+    onRest,
+  ]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -59,7 +90,7 @@ export function FriendLivePresenceSync() {
       }
     };
 
-    if (!hasSession) {
+    if (!hasSession || !eventFingerprint) {
       if (wasActiveRef.current) {
         wasActiveRef.current = false;
         notifiedSessionRef.current = null;
@@ -71,8 +102,9 @@ export function FriendLivePresenceSync() {
     wasActiveRef.current = true;
 
     const push = async () => {
+      if (cancelled) return;
       const now = Date.now();
-      if (now - lastPushRef.current < 500) return;
+      if (now - lastPushRef.current < 400) return;
       lastPushRef.current = now;
 
       const state = useActiveWorkoutStore.getState();
@@ -106,37 +138,16 @@ export function FriendLivePresenceSync() {
           }),
         });
       } catch {
-        /* keep trying */
+        /* ignore */
       }
     };
 
-    const onTick = () => {
-      if (cancelled || document.visibilityState !== "visible") return;
-      void push();
-    };
-    void onTick();
-    const timer = window.setInterval(onTick, CLIENT_POLL.friendPresenceMs);
-    const onVis = () => {
-      if (document.visibilityState === "visible") onTick();
-    };
-    document.addEventListener("visibilitychange", onVis);
+    void push();
 
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVis);
     };
-  }, [
-    status,
-    hasSession,
-    displayName,
-    exercises,
-    startedAt,
-    workoutStartedAtMs,
-    selectedExerciseId,
-    pausedElapsedSeconds,
-    restRemaining,
-  ]);
+  }, [status, hasSession, eventFingerprint, displayName]);
 
   return null;
 }

@@ -14,8 +14,12 @@ export type FriendLiveView = {
   updatedAt: number;
 };
 
-/** Presence starsze niż to uznajemy za nieaktywne (ms). */
-export const FRIEND_LIVE_STALE_MS = 90_000;
+/**
+ * Presence starsze niż to uznajemy za nieaktywne (ms).
+ * Push jest event-driven (bez ticka co N s) — dłuższy TTL, żeby długa przerwa
+ * między seriami nie gasiła „live”.
+ */
+export const FRIEND_LIVE_STALE_MS = 45 * 60_000;
 
 export type FriendshipStatus = (typeof FRIENDSHIP_STATUSES)[number];
 
