@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Monitoring limitów Render i Turso w adminie",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Na górze Analityki w panelu admina widać na żywo paski zużycia: pamięć i CPU Rendera, bandwidth miesiąca oraz storage / rows read / rows written Turso (plus lokalny soft limit bazy).",
+      "Dane z oficjalnych API (RENDER_API_KEY + RENDER_SERVICE_ID, TURSO_API_TOKEN + TURSO_ORG_SLUG) odświeżają się co ok. 20 s; kolory ostrzegają przy ≥80% i ≥95%.",
+    ],
+  },
+  {
     title: "Zapowiedź — CSRF na Render: powrót z admina bez 403",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { AdminMonitoringPanel } from "@/components/admin/admin-monitoring-panel";
 
 const tooltipStyle = {
   backgroundColor: "rgba(7, 8, 13, 0.92)",
@@ -138,6 +139,8 @@ export function AdminOverviewClient() {
 
   return (
     <div className="space-y-8">
+      <AdminMonitoringPanel />
+
       <section className="app-card p-5 sm:p-6">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
           Zakres raportu
