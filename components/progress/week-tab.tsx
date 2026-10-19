@@ -5,6 +5,7 @@ import { Dumbbell, Flame, Medal, Scale, Trophy, Utensils } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
 import { WeekBarChart } from "@/components/progress/week-bar-chart";
+import { WeekOverWeekCard } from "@/components/progress/week-over-week-card";
 import { WeekProgressCalendarCard } from "@/components/progress/week-progress-calendar-card";
 import type { AchievementIcon } from "@/lib/achievements";
 import {
@@ -270,6 +271,16 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
         <SectionLabel
           className="items-center"
           index={2}
+          title="Progres / regres"
+          titleTone="white"
+        />
+        <WeekOverWeekCard compare={summary.weekCompare} />
+      </section>
+
+      <section className="space-y-2">
+        <SectionLabel
+          className="items-center"
+          index={3}
           title="Dieta vs trening"
           trailing="8 tyg."
           titleTone="white"
@@ -306,7 +317,7 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
       <section className="space-y-2">
         <SectionLabel
           className="items-center"
-          index={3}
+          index={4}
           title="Ostatnie 8 tygodni"
           titleTone="white"
         />
@@ -316,7 +327,7 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
       </section>
 
       <section className="space-y-2">
-        <SectionLabel index={4} title="Następne cele" titleTone="white" />
+        <SectionLabel index={5} title="Następne cele" titleTone="white" />
         <div className="space-y-3 app-panel px-3.5 py-3">
           {goals.map((g) => (
             <div key={g.id} className="space-y-1.5">
@@ -339,7 +350,7 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
 
       <section className="space-y-2.5">
         <SectionLabel
-          index={5}
+          index={6}
           title="Zdobyte"
           trailing={`${unlocked.length}`}
           titleTone="white"

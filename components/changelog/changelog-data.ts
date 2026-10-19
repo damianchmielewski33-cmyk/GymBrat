@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Analiza: tydzień vs tydzień (progres / regres)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W Analizie → Tydzień jest porównanie treningów do tych samych dni poprzedniego tygodnia: liczba treningów, tonaż, cardio, śr. RPE i RIR.",
+      "Na górze widać werdykt Progres / Regres / bez wyraźnej zmiany — żeby od razu ocenić, czy tydzień idzie w górę, czy w dół.",
+    ],
+  },
+  {
     title: "Zapowiedź — Realtime Community bez pożerania limitu hostingu",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -38,6 +38,10 @@ import {
   parseWorkoutSessionJson,
 } from "@/lib/workout-cardio-attribution";
 import { hasExternalWeight, hasPerformedReps } from "@/lib/workout-skipped-sets";
+import {
+  buildWeekTrainingCompare,
+  type WeekTrainingCompare,
+} from "@/lib/week-training-compare";
 
 export type VolumeTrendKind = "up" | "flat" | "down";
 
@@ -142,7 +146,7 @@ export type ProgressWeekSummary = {
   target: number;
   days: ProgressWeekDay[];
   tonnageKg: number;
-  /** Tonaż poprzedniego tygodnia kalendarzowego. */
+  /** Tonaż poprzedniego tygodnia kalendarzowego (pełny Pn–Nd). */
   prevWeekTonnageKg: number;
   cardioMinutes: number;
   cardioEntries: number;
@@ -153,6 +157,8 @@ export type ProgressWeekSummary = {
   today: string;
   /** Dni kalendarzowe do niedzieli włącznie (0 gdy po tygodniu). */
   daysLeft: number;
+  /** Tydzień vs tydzień (ten sam zakres dni: Pn→dziś). */
+  weekCompare: WeekTrainingCompare;
 };
 
 export type ProgressGoalBar = {
@@ -436,6 +442,27 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
   let cardioEntriesThisWeek = 0;
   let workoutsThisWeek = 0;
 
+  const prevMonday = addCalendarDays(monday, -7);
+  const daysIntoWeek = Math.max(
+    0,
+    Math.min(
+      6,
+      Math.round(
+        (new Date(`${today}T12:00:00`).getTime() -
+          new Date(`${monday}T12:00:00`).getTime()) /
+          (24 * 60 * 60 * 1000),
+      ),
+    ),
+  );
+  const prevSameEnd = addCalendarDays(prevMonday, daysIntoWeek);
+  let tonnagePrevSame = 0;
+  let workoutsPrevSame = 0;
+  let cardioPrevSame = 0;
+  const thisWeekRpe: number[] = [];
+  const thisWeekRir: number[] = [];
+  const prevSameRpe: number[] = [];
+  const prevSameRir: number[] = [];
+
   // Process oldest→newest for first dates / volume trends within exercise
   const chronological = [...workoutRows].reverse();
 
@@ -468,6 +495,9 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
         cardioEntriesThisWeek += 1;
       }
     }
+    if (row.date >= prevMonday && row.date <= prevSameEnd) {
+      cardioPrevSame += cardioMin;
+    }
 
     if (!strength) continue;
 
@@ -490,6 +520,10 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
       workoutsThisWeek += 1;
       tonnageThisWeek += vol;
     }
+    if (row.date >= prevMonday && row.date <= prevSameEnd) {
+      workoutsPrevSame += 1;
+      tonnagePrevSame += vol;
+    }
 
     const titleRaw = parsed?.title ?? session?.title;
     const title =
@@ -509,6 +543,14 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
     const weekIntensity = intensityByWeek.get(weekMon) ?? [];
     weekIntensity.push(sessionIntensity);
     intensityByWeek.set(weekMon, weekIntensity);
+    if (row.date >= monday && row.date <= sunday) {
+      if (sessionIntensity.avgRpe != null) thisWeekRpe.push(sessionIntensity.avgRpe);
+      if (sessionIntensity.avgRir != null) thisWeekRir.push(sessionIntensity.avgRir);
+    }
+    if (row.date >= prevMonday && row.date <= prevSameEnd) {
+      if (sessionIntensity.avgRpe != null) prevSameRpe.push(sessionIntensity.avgRpe);
+      if (sessionIntensity.avgRir != null) prevSameRir.push(sessionIntensity.avgRir);
+    }
 
     for (const e of ex) {
       const name = (e.name ?? "").trim().replace(/\s+/g, " ");
@@ -940,10 +982,47 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
     });
   }
 
-  const prevMonday = addCalendarDays(monday, -7);
   const prevWeekTonnageKg = safeRound1(
     weekBuckets.get(prevMonday)?.tonnageKg ?? 0,
   );
+
+  const avgOrNull = (nums: number[]): number | null =>
+    nums.length
+      ? safeRound1(nums.reduce((a, b) => a + b, 0) / nums.length)
+      : null;
+
+  const rangeLabel = (from: string, to: string) => {
+    const a = new Date(`${from}T12:00:00`);
+    const b = new Date(`${to}T12:00:00`);
+    const fmt = (d: Date) =>
+      d.toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
+    return `${fmt(a)}–${fmt(b)}`;
+  };
+
+  const weekCompare = buildWeekTrainingCompare({
+    thisRangeLabel: rangeLabel(monday, today),
+    prevRangeLabel: rangeLabel(prevMonday, prevSameEnd),
+    workouts: {
+      current: workoutsThisWeek,
+      previous: workoutsPrevSame,
+    },
+    tonnageKg: {
+      current: tonnageThisWeek,
+      previous: tonnagePrevSame,
+    },
+    cardioMinutes: {
+      current: Math.round(cardioThisWeek),
+      previous: Math.round(cardioPrevSame),
+    },
+    avgRpe: {
+      current: avgOrNull(thisWeekRpe),
+      previous: avgOrNull(prevSameRpe),
+    },
+    avgRir: {
+      current: avgOrNull(thisWeekRir),
+      previous: avgOrNull(prevSameRir),
+    },
+  });
 
   const daysLeftRaw = Math.round(
     (new Date(`${sunday}T12:00:00`).getTime() -
@@ -1104,6 +1183,7 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
         sunday,
         today,
         daysLeft,
+        weekCompare,
       },
       last8,
       dietTraining,
