@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Eye, X } from "lucide-react";
 import type { FriendLiveView } from "@/lib/community/friend-types";
+import { CLIENT_POLL } from "@/lib/community/realtime-config";
 import { useFriendLiveWatchStore } from "@/lib/stores/friend-live-watch";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ function formatElapsed(sec: number): string {
 
 /**
  * Podgląd treningu znajomego (read-only) — chip / rozwinięty panel + link do szczegółów.
+ * Lista „kto trenuje” polluje rzadko; aktywny podgląd nieco częściej; pauza w tle.
  */
 export function FriendLiveWatchWidget() {
   const pathname = usePathname();
@@ -77,14 +79,41 @@ export function FriendLiveWatchWidget() {
 
   useEffect(() => {
     if (onWatchPage) return;
-    void pullWatch();
-    void pullList();
-    const t = window.setInterval(() => {
-      void pullWatch();
-      void pullList();
-    }, 1000);
-    return () => window.clearInterval(t);
-  }, [pullWatch, pullList, onWatchPage]);
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const clear = () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+
+    const tick = () => {
+      if (cancelled || document.visibilityState !== "visible") return;
+      if (watchingUserId) void pullWatch();
+      else void pullList();
+    };
+
+    const arm = () => {
+      clear();
+      if (document.visibilityState !== "visible") return;
+      tick();
+      const ms = watchingUserId
+        ? CLIENT_POLL.friendLiveWatchMs
+        : CLIENT_POLL.friendLiveListMs;
+      timer = setInterval(tick, ms);
+    };
+
+    arm();
+    document.addEventListener("visibilitychange", arm);
+    return () => {
+      cancelled = true;
+      clear();
+      document.removeEventListener("visibilitychange", arm);
+    };
+  }, [pullWatch, pullList, onWatchPage, watchingUserId]);
 
   if (onWatchPage) return null;
 

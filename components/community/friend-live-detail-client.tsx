@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Eye } from "lucide-react";
 import type { FriendLiveView } from "@/lib/community/friend-types";
+import { CLIENT_POLL } from "@/lib/community/realtime-config";
 import { useFriendLiveWatchStore } from "@/lib/stores/friend-live-watch";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -58,8 +59,7 @@ export function FriendLiveDetailClient({
       if (document.visibilityState !== "visible") return;
       void pull();
     };
-    // 4s — wystarczy do podglądu; 900ms paliło hosting
-    const t = window.setInterval(onTick, 4_000);
+    const t = window.setInterval(onTick, CLIENT_POLL.friendLiveWatchMs);
     document.addEventListener("visibilitychange", onTick);
     return () => {
       window.clearInterval(t);

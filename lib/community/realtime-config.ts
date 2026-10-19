@@ -24,12 +24,17 @@ export const CLIENT_POLL = {
   notificationsMs: 20_000,
   feedMs: 15_000,
   chatMs: 8_000,
-  /** Presence znajomych (push) */
-  friendPresenceMs: 8_000,
+  /** Presence znajomych (push) — tylko podczas własnego treningu */
+  friendPresenceMs: 12_000,
   /** Trening grupowy push+pull */
-  groupPresenceMs: 4_000,
-  /** Podgląd live znajomego */
-  friendLiveWatchMs: 4_000,
+  groupPresenceMs: 5_000,
+  /** Podgląd wybranego znajomego (aktywnie oglądasz) */
+  friendLiveWatchMs: 8_000,
+  /**
+   * Lista „kto trenuje” (chip na dole) — wcześniej co 1 s przy każdej otwartej apce.
+   * Rzadki poll wystarczy do zauważenia live.
+   */
+  friendLiveListMs: 30_000,
 } as const;
 
 /** Limit życia jednego połączenia SSE (gdy mode=sse) — wymusza krótkie invocacje. */
