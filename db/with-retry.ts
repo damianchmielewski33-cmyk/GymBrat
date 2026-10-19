@@ -11,7 +11,7 @@ export function isTransientDbError(err: unknown): boolean {
       : "";
   const msg = err instanceof Error ? err.message : String(err);
   const blob = `${code} ${errno} ${msg}`;
-  return /ECONNRESET|ETIMEDOUT|ECONNREFUSED|ENETUNREACH|EAI_AGAIN|socket hang up|UND_ERR|fetch failed|network|temporarily unavailable|timeout/i.test(
+  return /ECONNRESET|ETIMEDOUT|ECONNREFUSED|ENETUNREACH|EAI_AGAIN|socket hang up|UND_ERR|fetch failed|network|temporarily unavailable|timeout|SERVER_BUSY|SQLITE_BUSY|SQLITE_LOCKED|429|too many requests|rate.?limit|upstream connect|connection reset/i.test(
     blob,
   );
 }

@@ -5,6 +5,55 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Community: Hall of Fame, Quests, Wars, XP i Ghost",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Galeria sławy: podium tygodnia, miesiąca, sezonu, roku i wszech czasów w siedmiu kategoriach, z historią zwycięzców, odznakami i archiwum sezonów.",
+      "Team Quests: wspólne misje grupy (np. 100 treningów tygodniowo) z paskiem postępu, wkładem członków i wspólnymi odznakami.",
+      "Team Wars: wojny 1v1 na 7 dni według Fair Competition Score, matchmaking, ligi Bronze→Diamond oraz ranking sezonu.",
+      "Pełna progresja XP: User / Team / Community / Season Level oraz Prestige I–V z odznakami i efektami wizualnymi.",
+      "Ghost Training w active-workout: rywalizacja z poprzednim ja, znajomym lub liderem FCS — tempo, serie i przewidywany wynik na żywo.",
+      "Relacje społeczne: follow, profile prywatne/publiczne, feed znajomych, Global GymBrat i Odkrywaj w hubie Community.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Reputation System (Bronze → Legend)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W Community zbierasz Reputation Points za pomoc, komentarze, odpowiedzi, posty, live, challenge i osiągnięcia — z poziomami Bronze, Silver, Gold, Platinum, Diamond, Legend.",
+      "Poziom widać na feedzie, liście członków i karcie Wyzwań: kolory, odznaki tieru oraz ekskluzywne oznaczenie ◆ od Gold w górę.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Fair Competition Score (FCS) w rankingu grupy",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Ranking tygodnia w Community liczy FCS 0–100: progres względem siebie, regularność, plan, streak, challenge, social, pomoc innym i live — nie same kilogramy.",
+      "Nowicjusz z solidnym tygodniem może wyprzedzić advanceda w stagnacji; tap wiersza pokazuje rozbicie komponentów. Nowe grupy domyślnie na FCS.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Szczegóły ćwiczenia: % tydzień / miesiąc / rok",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W Analizie → ćwiczenie (np. leg press) widać porównania procentowe: tydzień do tygodnia, miesiąc do miesiąca i rok do roku.",
+      "Wykres słupkowy + paski % pokazują, co średnio rośnie (e1RM, objętość, sesje, RPE), a co spada (np. RIR).",
+    ],
+  },
+  {
+    title: "Zapowiedź — Stabilniejsza Analiza postępów na Renderze",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Analiza nie ładuje już pełnych blobów zdjęć przy każdym wejściu — tylko meta (id), więc mniej timeoutów Turso i losowych „Coś poszło nie tak”.",
+      "Zapytania hubu mają ponowienia przy chwilowych błędach bazy; przy awarii widać miękki komunikat z odświeżeniem zamiast crasha całej strony.",
+    ],
+  },
+  {
     title: "Zapowiedź — Monitoring limitów Render i Turso w adminie",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -152,6 +152,15 @@ export async function createGroupWorkoutSession(input: {
     });
   }
 
+  void import("@/lib/community/reputation").then(({ awardReputation }) =>
+    awardReputation({
+      userId: input.hostUserId,
+      kind: "live_join",
+      sourceKey: `live_join:${sessionId}:${input.hostUserId}`,
+      teamId: input.teamId,
+    }),
+  );
+
   return { ok: true, sessionId };
 }
 
@@ -263,6 +272,15 @@ export async function joinGroupWorkoutSession(input: {
       team_id: session.teamId,
     });
   }
+
+  void import("@/lib/community/reputation").then(({ awardReputation }) =>
+    awardReputation({
+      userId: input.userId,
+      kind: "live_join",
+      sourceKey: `live_join:${session.id}:${input.userId}`,
+      teamId: session.teamId,
+    }),
+  );
 
   return {
     ok: true,

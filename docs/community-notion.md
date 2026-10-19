@@ -4,7 +4,7 @@
 >
 > **Repo:** `github.com/damianchmielewski33-cmyk/GymBrat`  
 > **Stack:** Next.js App Router · Auth.js (JWT) · Drizzle + Turso (SQLite/libSQL) · Server Actions + REST · SSE (bez WebSocket) · Zustand  
-> **Status:** Teams · Friends (mutual workout share) · Feed · Live · Chat · Challenges · Notifications · Analytics (PostHog) — **live w kodzie**. Fair Ranking FCS / Reputation / pełny Hall of Fame seasons — **zaplanowane / stuby powiadomień**.
+> **Status:** Teams · Friends · Follow · Profile · Feed (Team / Znajomi / Global) · Live · Chat · Challenges · Quests · Wars · HoF · Progression XP + Prestige · Ghost Training · Notifications · FCS · Reputation · Analytics — **live w kodzie** (Preview / planned changelog).
 
 ---
 
@@ -435,21 +435,58 @@ Znajomy: widget / /community/friends/[id]/live (read-only, bez join)
 
 | Metryka (`ranking_metric`) | Liczone |
 |----------------------------|---------|
-| `sessions` | liczba ukończonych treningów w tygodniu (pon–dziś, lokalny kalendarz) |
-| `tonnage` | suma `weight × reps` z zaliczonych serii (bez cardio_log) |
+| **`fcs` (domyślne)** | Fair Competition Score 0–100 — patrz §7.2 |
+| `sessions` | liczba ukończonych treningów w tygodniu |
+| `tonnage` | suma `weight × reps` (bez cardio_log) |
 | `cardio` | suma minut cardio |
 
-- Sort: score DESC, potem nazwa.
-- Rank 1…N.
+- Sort: score DESC, (FCS: potem regularity), potem nazwa.
+- Rank 1…N. UI FCS: tap wiersza → rozbicie komponentów.
 - Soft „osiągnięcia” na karcie Team: Skład 5+, Lider tygodnia, Live teraz, Aktywny tydzień.
+- Cache: tabela `team_fcs_scores` + TTL in-process ~45 s (`lib/community/fcs-compute.ts`).
 
-### 7.2 Czego jeszcze nie ma (roadmap)
+### 7.2 Fair Competition Score (FCS)
+
+```
+FCS = clamp(0, 100, 100 · Σ wᵢ·cᵢ + newcomerBoost)
+cᵢ ∈ [0,1],  Σ wᵢ = 1
+```
+
+| Komponent | w | Źródło (względem siebie) |
+|-----------|---|--------------------------|
+| progress | 0.20 | Δ objętości vs poprzedni tydzień (tanh soft-cap); 1. tydzień = 0.55 baseline |
+| regularity | 0.15 | sesje/cel + unikalne dni |
+| plan | 0.15 | sesje / `weeklySessionsTarget` (domyślnie 4) |
+| streak | 0.10 | tygodnie z ≥1 treningiem / 8 |
+| challenge | 0.10 | join + średni postęp challenge teamu |
+| social | 0.10 | posty + komentarze + reakcje (cap 20, log-scale) |
+| help | 0.10 | reakcje/komentarze na **cudze** posty |
+| live | 0.10 | join live group workout / 3 |
+
+**Newcomer boost:** +5 FCS gdy członkostwo/konto &lt; 21 dni i ≥2 sesje w tygodniu.
+
+**Edge cases**
+
+| Case | Zachowanie |
+|------|------------|
+| 0 sesji | FCS = 0 (social nie wystarczy) |
+| Brak poprzedniego tygodnia | progress = 0.55 przy volume &gt; 0 |
+| Farmienie reakcji | capEvents(20) |
+| Remis | wyższa regularity, potem nazwa |
+| Stary metric teamu | zostaje; nowe teamy = `fcs` |
+
+Kod: `lib/community/fcs.ts`, `fcs-compute.ts`.
+
+### 7.3 Czego jeszcze nie ma (roadmap)
 
 | Element | Status |
 |---------|--------|
-| Fair Ranking / FCS 0–100 | plan (algorytm osobny) |
-| Sezonowy Hall of Fame UI | stub powiadomień `notifyHallOfFameWin` |
-| Trwały leaderboard historyczny | brak tabeli seasons |
+| Hall of Fame (okresy + kategorie + archiwum) | live — `/community/hall-of-fame` |
+| Team Quests | live — `/community/teams/[id]/quests` |
+| Team Wars (ligi, matchmaking) | live — `/community/wars` |
+| Progression XP + Prestige | live — multi-track |
+| Ghost Training | live — active-workout HUD |
+| Social: follow / profile / Global / Odkrywaj | live — hub `/community` |
 
 ### 7.3 Analityka rankingu
 
@@ -468,6 +505,23 @@ Znajomy: widget / /community/friends/[id]/live (read-only, bez join)
 | `group` | Wspólny cel / auto-join członków |
 | `seasonal` | Krótki sezon (np. 30 dni) |
 | `global` | Cała społeczność (`/community/challenges`) — seed platformy |
+
+### 8.1a Reputation System (live)
+
+Osobno od Challenge XP. Tabele: `user_reputation`, `user_reputation_events`.
+
+| Tier | RP od | Kolor UI |
+|------|-------|----------|
+| Bronze | 0 | amber |
+| Silver | 100 | slate |
+| Gold | 300 | gym-gold + ◆ |
+| Platinum | 700 | cyan + ◆ |
+| Diamond | 1500 | sky + ◆ |
+| Legend | 3500 | neon + ◆ |
+
+Źródła RP: `help_reaction` 3 · `help_comment` 8 · `reply` 5 · `comment` 4 · `activity_post` 6 · `live_join` 12 · `challenge` 40 · `achievement` 25.  
+Idempotencja: `source_key` UNIQUE. Capy dzienne w `REPUTATION_DAILY_CAPS`.  
+UI: feed, members, `/community/challenges` (`ReputationCard`). Kod: `lib/community/reputation.ts`.
 
 ### 8.2 Szablony (v1)
 
@@ -641,7 +695,7 @@ Page-view keys (wewnętrzna analityka): `community_teams`, `community_team_detai
 | Notification Center | ✅ |
 | Performance + PostHog events | ✅ |
 | Mobile thumb UX | ✅ |
-| Fair Ranking (FCS) | 📋 plan |
+| Fair Ranking (FCS) | ✅ live (`ranking_metric=fcs`) |
 | Reputation tiers | 📋 plan |
 | Hall of Fame seasons UI | 📋 stub notyfikacji |
 | Ghost Training | 📋 plan |

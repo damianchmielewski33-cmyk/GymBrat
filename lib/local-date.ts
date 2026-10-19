@@ -16,6 +16,9 @@ export function getCalendarTimezone(): string {
  * żeby ten sam dzień co wpisy posiłków i oznaczenia dni w profilu (serwer UTC ≠ Polska).
  */
 export function calendarDateKey(d: Date = new Date()): string {
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) {
+    return localDateKey(new Date());
+  }
   const tz = getCalendarTimezone();
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: tz,

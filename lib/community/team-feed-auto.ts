@@ -195,6 +195,49 @@ export async function publishTeamFeedAfterWorkout(input: {
     } catch {
       /* ignore */
     }
+    try {
+      const {
+        applyQuestProgressAfterWorkout,
+        getMemberTeamIds,
+      } = await import("@/lib/community/team-quests");
+      const teamIds = await getMemberTeamIds(input.userId);
+      await applyQuestProgressAfterWorkout({
+        userId: input.userId,
+        teamIds,
+        workout: {
+          workoutId: input.workoutId,
+          exercisesJson: input.exercisesJson,
+          cardioMinutes: input.cardioMinutes,
+        },
+      });
+    } catch {
+      /* ignore */
+    }
+    try {
+      const { awardProgressionXp } = await import(
+        "@/lib/community/progression"
+      );
+      await awardProgressionXp({
+        userId: input.userId,
+        amount: 15,
+        source: "workout",
+        sourceKey: `workout:${input.workoutId}`,
+      });
+    } catch {
+      /* ignore */
+    }
+    try {
+      const { emitActivity } = await import("@/lib/community/activity-feed");
+      await emitActivity({
+        userId: input.userId,
+        kind: "workout",
+        title: `Trening: ${input.title || "Sesja"}`,
+        body: null,
+        meta: { workoutId: input.workoutId },
+      });
+    } catch {
+      /* ignore */
+    }
     const tonnage = sessionTonnageKg(exercises);
     const setCount = exercises.reduce(
       (n, ex) =>

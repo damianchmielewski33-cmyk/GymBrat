@@ -22,11 +22,25 @@ export const TEAM_INVITE_STATUSES = [
 export type TeamInviteStatus = (typeof TEAM_INVITE_STATUSES)[number];
 
 export const TEAM_RANKING_METRICS = [
+  "fcs",
   "sessions",
   "tonnage",
   "cardio",
 ] as const;
 export type TeamRankingMetric = (typeof TEAM_RANKING_METRICS)[number];
+
+export function teamRankingMetricLabel(metric: TeamRankingMetric): string {
+  switch (metric) {
+    case "fcs":
+      return "FCS (sprawiedliwy)";
+    case "tonnage":
+      return "tonaż";
+    case "cardio":
+      return "min cardio";
+    default:
+      return "sesje";
+  }
+}
 
 export const TEAM_ROLE_RANK: Record<TeamRole, number> = {
   owner: 4,

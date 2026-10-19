@@ -31,6 +31,8 @@ import {
   SessionChromeHeader,
   SessionProgressBar,
 } from "@/components/active-workout/session-chrome";
+import { GhostPickerSheet } from "@/components/active-workout/ghost-picker-sheet";
+import { GhostRaceHud } from "@/components/active-workout/ghost-race-hud";
 import {
   canCompleteWorkoutSet,
   findNextIncompleteExercise,
@@ -166,6 +168,7 @@ export function GuidedSessionLayout({
   focusSetRequest,
   onFocusSetHandled,
 }: GuidedSessionLayoutProps) {
+  const workoutPlanId = useActiveWorkoutStore((s) => s.workoutPlanId);
   const [listOpenLocal, setListOpenLocal] = useState(false);
   const listOpen = listOpenControlled ?? listOpenLocal;
   function setListOpen(open: boolean) {
@@ -482,8 +485,10 @@ export function GuidedSessionLayout({
           }}
           className="px-2 pb-0.5"
         />
-        <div className="px-5 pb-2">
+        <div className="space-y-2 px-5 pb-2">
           <SessionProgressBar progress={progress} />
+          <GhostPickerSheet planId={workoutPlanId} />
+          <GhostRaceHud />
         </div>
       </div>
 

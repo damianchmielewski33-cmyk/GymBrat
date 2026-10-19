@@ -6,22 +6,29 @@ import { ChallengeCard } from "@/components/community/challenge-card";
 import { ChallengeCelebrationOverlay } from "@/components/community/challenge-celebration";
 import { CommunityEmptyState } from "@/components/community/community-empty-state";
 import { CommunityProgress } from "@/components/community/community-progress";
+import { ProgressionCard } from "@/components/community/progression-card";
+import { ReputationCard } from "@/components/community/reputation-card";
 import {
   getUserXpSummary,
   listGlobalChallenges,
   listPendingCelebrations,
 } from "@/lib/community/challenges";
+import { getUserProgressionView } from "@/lib/community/progression";
+import { getUserReputation } from "@/lib/community/reputation";
 
 export default async function GlobalChallengesPage() {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) redirect("/login");
 
-  const [challenges, celebrations, xp] = await Promise.all([
-    listGlobalChallenges(userId),
-    listPendingCelebrations(userId),
-    getUserXpSummary(userId),
-  ]);
+  const [challenges, celebrations, xp, reputation, progression] =
+    await Promise.all([
+      listGlobalChallenges(userId),
+      listPendingCelebrations(userId),
+      getUserXpSummary(userId),
+      getUserReputation(userId),
+      getUserProgressionView(userId),
+    ]);
 
   return (
     <div className="space-y-5">
@@ -41,9 +48,12 @@ export default async function GlobalChallengesPage() {
           Wyzwania globalne
         </h1>
         <p className="mt-2 text-[13px] leading-relaxed text-white/45">
-          Cała społeczność GymBrat — wspólny postęp, XP i odznaki.
+          Cała społeczność GymBrat — wspólny postęp, XP, reputacja i odznaki.
         </p>
       </header>
+
+      <ReputationCard reputation={reputation} />
+      <ProgressionCard view={progression} />
 
       <section
         className="app-card relative overflow-hidden p-5"

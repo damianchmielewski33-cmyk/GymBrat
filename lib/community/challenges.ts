@@ -768,26 +768,25 @@ async function awardChallengeRewards(input: {
     celebrationSeenAt: null,
   });
 
+  try {
+    const { awardProgressionXp } = await import("@/lib/community/progression");
+    await awardProgressionXp({
+      userId: input.userId,
+      teamId: input.challenge.teamId ?? null,
+      amount: xpAwarded,
+      source: "challenge",
+      sourceKey: `challenge_claim:${input.challengeId}:${input.userId}`,
+    });
+  } catch {
+    /* progression optional */
+  }
   const [xpRow] = await db
     .select()
     .from(userCommunityXp)
     .where(eq(userCommunityXp.userId, input.userId))
     .limit(1);
-  const nextXp = (xpRow?.xpTotal ?? 0) + xpAwarded;
+  const nextXp = xpRow?.xpTotal ?? xpAwarded;
   const nextLevel = xpLevelFromTotal(nextXp);
-  if (xpRow) {
-    await db
-      .update(userCommunityXp)
-      .set({ xpTotal: nextXp, level: nextLevel, updatedAt: now })
-      .where(eq(userCommunityXp.userId, input.userId));
-  } else {
-    await db.insert(userCommunityXp).values({
-      userId: input.userId,
-      xpTotal: nextXp,
-      level: nextLevel,
-      updatedAt: now,
-    });
-  }
 
   const badgeKey = input.challenge.rewardBadgeKey;
   const badgeTitle =
@@ -812,6 +811,15 @@ async function awardChallengeRewards(input: {
       });
     }
   }
+
+  void import("@/lib/community/reputation").then(({ awardReputation }) =>
+    awardReputation({
+      userId: input.userId,
+      kind: "challenge",
+      sourceKey: `challenge:${input.challengeId}:${input.userId}`,
+      teamId: input.challenge.teamId,
+    }),
+  );
 
   await db
     .update(challengeParticipants)

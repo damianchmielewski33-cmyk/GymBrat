@@ -27,6 +27,10 @@ import type {
   TeamFeedComment,
   TeamFeedPost,
 } from "@/lib/community/team-feed";
+import {
+  ReputationBadge,
+  ReputationExclusiveMark,
+} from "@/components/community/reputation-badge";
 import { cn } from "@/lib/utils";
 
 function formatTime(d: Date): string {
@@ -218,12 +222,21 @@ export function TeamFeedPostCard({
     <article className="app-card space-y-3 p-4">
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-[15px] font-semibold text-white">
-            {post.author.displayName}
+          <p className="flex min-w-0 items-center gap-1.5 truncate text-[15px] font-semibold text-white">
+            <span className="truncate">{post.author.displayName}</span>
+            <ReputationExclusiveMark reputation={post.author.reputation} />
           </p>
-          <p className="mt-0.5 text-[11px] text-white/40">
-            {teamPostTypeLabel(post.type)} · {formatTime(post.createdAt)}
-          </p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+            {post.author.reputation ? (
+              <ReputationBadge
+                reputation={post.author.reputation}
+                size="xs"
+              />
+            ) : null}
+            <p className="text-[11px] text-white/40">
+              {teamPostTypeLabel(post.type)} · {formatTime(post.createdAt)}
+            </p>
+          </div>
         </div>
         {canDelete ? (
           <form action={deleteAction}>

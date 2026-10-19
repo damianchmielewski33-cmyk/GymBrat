@@ -71,6 +71,8 @@ export function WeekOverWeekCard({
 }: {
   compare: WeekTrainingCompare;
 }) {
+  if (!compare?.metrics?.length) return null;
+
   return (
     <div className="space-y-3 app-panel px-3.5 py-3">
       <div className="flex flex-wrap items-start justify-between gap-2">

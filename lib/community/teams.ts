@@ -64,6 +64,7 @@ export type TeamMemberView = {
   role: TeamRole;
   displayName: string;
   joinedAt: Date;
+  reputation?: import("@/lib/community/reputation").ReputationPublic;
 };
 
 export type TeamInviteView = {
@@ -84,6 +85,9 @@ export type TeamRankingRow = {
   score: number;
   rank: number;
   metric: TeamRankingMetric;
+  /** Tylko przy metric=fcs — rozbicie 0–1. */
+  components?: import("@/lib/community/fcs").FcsComponents;
+  newcomerBoost?: number;
 };
 
 export type TeamLiveMember = {
@@ -140,8 +144,15 @@ function asPrivacy(value: string): TeamPrivacy {
 }
 
 function asMetric(value: string): TeamRankingMetric {
-  if (value === "tonnage" || value === "cardio") return value;
-  return "sessions";
+  if (
+    value === "tonnage" ||
+    value === "cardio" ||
+    value === "fcs" ||
+    value === "sessions"
+  ) {
+    return value;
+  }
+  return "fcs";
 }
 
 async function uniqueInviteCode(): Promise<string> {
@@ -426,6 +437,20 @@ async function computeTeamRanking(
   teamId: string,
   metric: TeamRankingMetric,
 ): Promise<TeamRankingRow[]> {
+  if (metric === "fcs") {
+    const { computeTeamFcsRanking } = await import("@/lib/community/fcs-compute");
+    const rows = await computeTeamFcsRanking(teamId);
+    return rows.map((r) => ({
+      userId: r.userId,
+      displayName: r.displayName,
+      score: r.score,
+      rank: r.rank,
+      metric: "fcs" as const,
+      components: r.components,
+      newcomerBoost: r.newcomerBoost,
+    }));
+  }
+
   const db = getDb();
   const members = await db
     .select({
@@ -681,6 +706,9 @@ export async function getTeamDetail(
       listLiveGroupSessionsForTeam(teamId),
     ]);
 
+  const { getReputationMap } = await import("@/lib/community/reputation");
+  const repMap = await getReputationMap(memberRows.map((r) => r.userId));
+
   const members: TeamMemberView[] = memberRows
     .filter((row) => isTeamRole(row.role))
     .map((row) => ({
@@ -689,10 +717,12 @@ export async function getTeamDetail(
       role: row.role as TeamRole,
       displayName: displayNameFromUser(row),
       joinedAt: row.joinedAt,
+      reputation: repMap.get(row.userId),
     }))
     .sort(
       (a, b) =>
         (b.role === "owner" ? 1 : 0) - (a.role === "owner" ? 1 : 0) ||
+        (b.reputation?.points ?? 0) - (a.reputation?.points ?? 0) ||
         a.displayName.localeCompare(b.displayName),
     );
 
@@ -781,7 +811,7 @@ export async function createTeam(ownerUserId: string, input: CreateTeamInput) {
   }
   const description = (input.description ?? "").trim().slice(0, 500);
   const avatarEmoji = (input.avatarEmoji?.trim() || "🏋️").slice(0, 8);
-  const rankingMetric = input.rankingMetric ?? "sessions";
+  const rankingMetric = input.rankingMetric ?? "fcs";
   const inviteCode = await uniqueInviteCode();
   const bannerColor =
     BANNER_COLORS[Math.floor(Math.random() * BANNER_COLORS.length)]!;

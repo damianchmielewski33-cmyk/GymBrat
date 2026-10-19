@@ -274,7 +274,9 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
           title="Progres / regres"
           titleTone="white"
         />
-        <WeekOverWeekCard compare={summary.weekCompare} />
+        {summary.weekCompare?.metrics?.length ? (
+          <WeekOverWeekCard compare={summary.weekCompare} />
+        ) : null}
       </section>
 
       <section className="space-y-2">

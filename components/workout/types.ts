@@ -16,6 +16,8 @@ export type WorkoutSetState = {
   restSeconds?: number | null;
   /** Tętno przy serii (opcjonalnie). */
   heartRate?: number | null;
+  /** Sekundy od startu sesji w momencie ukończenia serii (Ghost Training). */
+  elapsedSecondsAtCompletion?: number | null;
 };
 
 export type WorkoutExerciseState = {

@@ -8,6 +8,10 @@ import {
   type TeamActionState,
 } from "@/actions/teams";
 import { AddFriendFromTeamButton } from "@/components/community/add-friend-from-team-button";
+import {
+  ReputationBadge,
+  ReputationExclusiveMark,
+} from "@/components/community/reputation-badge";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
 import {
@@ -115,13 +119,21 @@ function MemberRow({
     <div className="app-card space-y-3 p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-[15px] font-semibold text-white">
-            {member.displayName}
-            {member.userId === viewerUserId ? " (Ty)" : ""}
+          <p className="flex min-w-0 items-center gap-1.5 truncate text-[15px] font-semibold text-white">
+            <span className="truncate">
+              {member.displayName}
+              {member.userId === viewerUserId ? " (Ty)" : ""}
+            </span>
+            <ReputationExclusiveMark reputation={member.reputation} />
           </p>
-          <p className="mt-0.5 text-[12px] text-white/45">
-            {teamRoleLabel(member.role)}
-          </p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+            {member.reputation ? (
+              <ReputationBadge reputation={member.reputation} size="xs" />
+            ) : null}
+            <p className="text-[12px] text-white/45">
+              {teamRoleLabel(member.role)}
+            </p>
+          </div>
         </div>
       </div>
 

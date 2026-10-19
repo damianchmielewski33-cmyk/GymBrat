@@ -179,37 +179,7 @@ export function challengeScopeLabel(scope: ChallengeScope): string {
   }
 }
 
-export function xpLevelFromTotal(xp: number): number {
-  // Poziom 1 przy 0 XP; każdy kolejny wymaga więcej (~100 * level^1.5).
-  let level = 1;
-  let remaining = Math.max(0, xp);
-  while (level < 99) {
-    const need = Math.round(100 * Math.pow(level, 1.35));
-    if (remaining < need) break;
-    remaining -= need;
-    level += 1;
-  }
-  return level;
-}
-
-export function xpProgressInLevel(xp: number): {
-  level: number;
-  intoLevel: number;
-  needForNext: number;
-  pct: number;
-} {
-  let level = 1;
-  let remaining = Math.max(0, xp);
-  let need = Math.round(100 * Math.pow(level, 1.35));
-  while (level < 99 && remaining >= need) {
-    remaining -= need;
-    level += 1;
-    need = Math.round(100 * Math.pow(level, 1.35));
-  }
-  return {
-    level,
-    intoLevel: remaining,
-    needForNext: need,
-    pct: need > 0 ? Math.min(100, Math.round((remaining / need) * 100)) : 100,
-  };
-}
+export {
+  xpLevelFromTotal,
+  xpProgressInLevel,
+} from "@/lib/community/progression-curve";

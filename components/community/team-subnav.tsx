@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageCircle, Trophy, Users } from "lucide-react";
+import { MessageCircle, Target, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hapticTap } from "@/lib/haptics";
 
@@ -19,6 +19,12 @@ export function TeamSubnav({ teamId }: { teamId: string }) {
       match: (p: string) =>
         p === `/community/teams/${teamId}` ||
         p === `/community/teams/${teamId}/`,
+    },
+    {
+      href: `/community/teams/${teamId}/quests`,
+      label: "Misje",
+      icon: Target,
+      match: (p: string) => p.includes("/quests"),
     },
     {
       href: `/community/teams/${teamId}/challenges`,
@@ -42,7 +48,7 @@ export function TeamSubnav({ teamId }: { teamId: string }) {
       )}
       aria-label="Nawigacja grupy"
     >
-      <div className="grid grid-cols-3 gap-0.5">
+      <div className="grid grid-cols-4 gap-0.5">
         {items.map((item) => {
           const active = item.match(pathname);
           const Icon = item.icon;

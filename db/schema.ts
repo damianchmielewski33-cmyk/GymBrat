@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   index,
   integer,
+  primaryKey,
   real,
   sqliteTable,
   text,
@@ -699,7 +700,7 @@ export const teams = sqliteTable(
     avatarEmoji: text("avatar_emoji").notNull().default("🏋️"),
     /** Hex koloru bannera, np. #1a1a1c */
     bannerColor: text("banner_color").notNull().default("#1a1a1c"),
-    rankingMetric: text("ranking_metric").notNull().default("sessions"),
+    rankingMetric: text("ranking_metric").notNull().default("fcs"),
     maxMembers: integer("max_members").notNull().default(50),
     memberCount: integer("member_count").notNull().default(1),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
@@ -715,6 +716,42 @@ export const teams = sqliteTable(
     index("teams_owner_created_idx").on(t.ownerUserId, t.createdAt),
     index("teams_privacy_name_idx").on(t.privacy, t.name),
     index("teams_archived_idx").on(t.archivedAt),
+  ],
+);
+
+/**
+ * Cache tygodniowego Fair Competition Score (FCS) per członek teamu.
+ * Recompute przy odczycie rankingu (TTL in-process + upsert).
+ */
+export const teamFcsScores = sqliteTable(
+  "team_fcs_scores",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Poniedziałek tygodnia YYYY-MM-DD (kalendarz app). */
+    weekStart: text("week_start").notNull(),
+    /** 0–100 */
+    fcs: real("fcs").notNull().default(0),
+    /** JSON: komponenty 0–1 + newcomerBoost */
+    componentsJson: text("components_json").notNull().default("{}"),
+    computedAt: integer("computed_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("team_fcs_scores_team_user_week_uidx").on(
+      t.teamId,
+      t.userId,
+      t.weekStart,
+    ),
+    index("team_fcs_scores_team_week_fcs_idx").on(t.teamId, t.weekStart, t.fcs),
   ],
 );
 
@@ -1428,10 +1465,445 @@ export const userCommunityXp = sqliteTable("user_community_xp", {
     .references(() => users.id, { onDelete: "cascade" }),
   xpTotal: integer("xp_total").notNull().default(0),
   level: integer("level").notNull().default(1),
+  /** 0 = brak, 1–5 = Prestige I–V */
+  prestige: integer("prestige").notNull().default(0),
+  prestigeXpLifetime: integer("prestige_xp_lifetime").notNull().default(0),
+  titleKey: text("title_key"),
+  frameKey: text("frame_key"),
+  auraKey: text("aura_key"),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+/** Hall of Fame — okresy (tydzień / miesiąc / sezon / rok / all). */
+export const hofSeasons = sqliteTable("hof_seasons", {
+  key: text("key").primaryKey(),
+  kind: text("kind").notNull(),
+  title: text("title").notNull(),
+  startsAt: integer("starts_at", { mode: "timestamp_ms" }).notNull(),
+  endsAt: integer("ends_at", { mode: "timestamp_ms" }).notNull(),
+  status: text("status").notNull().default("open"),
+  archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
+});
+
+export const hofAwards = sqliteTable(
+  "hof_awards",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    seasonKey: text("season_key")
+      .notNull()
+      .references(() => hofSeasons.key, { onDelete: "cascade" }),
+    category: text("category").notNull(),
+    rank: integer("rank").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    score: real("score").notNull().default(0),
+    scoreLabel: text("score_label").notNull().default(""),
+    metaJson: text("meta_json").notNull().default("{}"),
+    awardedAt: integer("awarded_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("hof_awards_season_cat_rank_uidx").on(
+      t.seasonKey,
+      t.category,
+      t.rank,
+    ),
+    uniqueIndex("hof_awards_season_cat_user_uidx").on(
+      t.seasonKey,
+      t.category,
+      t.userId,
+    ),
+    index("hof_awards_user_idx").on(t.userId),
+  ],
+);
+
+/** Team Quests — wspólne misje zespołu. */
+export const teamQuests = sqliteTable(
+  "team_quests",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    templateKey: text("template_key").notNull(),
+    title: text("title").notNull(),
+    emoji: text("emoji").notNull().default("🎯"),
+    metricKind: text("metric_kind").notNull(),
+    metricFilterJson: text("metric_filter_json").notNull().default("{}"),
+    targetValue: real("target_value").notNull(),
+    unitLabel: text("unit_label").notNull(),
+    startsAt: integer("starts_at", { mode: "timestamp_ms" }).notNull(),
+    endsAt: integer("ends_at", { mode: "timestamp_ms" }).notNull(),
+    status: text("status").notNull().default("active"),
+    completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+    rewardXpEach: integer("reward_xp_each").notNull().default(100),
+    rewardBadgeKey: text("reward_badge_key").notNull(),
+    rewardTitle: text("reward_title").notNull(),
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [index("team_quests_team_status_idx").on(t.teamId, t.status)],
+);
+
+export const teamQuestContributions = sqliteTable(
+  "team_quest_contributions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    questId: text("quest_id")
+      .notNull()
+      .references(() => teamQuests.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    amount: real("amount").notNull().default(0),
+    lastWorkoutId: text("last_workout_id"),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("team_quest_contrib_quest_user_uidx").on(t.questId, t.userId),
+  ],
+);
+
+export const teamQuestCompletions = sqliteTable(
+  "team_quest_completions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    questId: text("quest_id")
+      .notNull()
+      .references(() => teamQuests.id, { onDelete: "cascade" }),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    completedAt: integer("completed_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    totalValue: real("total_value").notNull().default(0),
+    participantsCount: integer("participants_count").notNull().default(0),
+    metaJson: text("meta_json").notNull().default("{}"),
+  },
+  (t) => [
+    uniqueIndex("team_quest_completions_quest_uidx").on(t.questId),
+    index("team_quest_completions_team_idx").on(t.teamId, t.completedAt),
+  ],
+);
+
+/** Team Wars — rywalizacja 1v1 na FCS. */
+export const warSeasons = sqliteTable("war_seasons", {
+  key: text("key").primaryKey(),
+  title: text("title").notNull(),
+  startsAt: integer("starts_at", { mode: "timestamp_ms" }).notNull(),
+  endsAt: integer("ends_at", { mode: "timestamp_ms" }).notNull(),
+  status: text("status").notNull().default("open"),
+});
+
+export const teamWarStats = sqliteTable("team_war_stats", {
+  teamId: text("team_id")
+    .primaryKey()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  league: text("league").notNull().default("bronze"),
+  lp: integer("lp").notNull().default(0),
+  wins: integer("wins").notNull().default(0),
+  losses: integer("losses").notNull().default(0),
+  draws: integer("draws").notNull().default(0),
+  seasonKey: text("season_key").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const teamWarQueue = sqliteTable(
+  "team_war_queue",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    league: text("league").notNull(),
+    lp: integer("lp").notNull().default(0),
+    queuedAt: integer("queued_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    status: text("status").notNull().default("queued"),
+  },
+  (t) => [
+    uniqueIndex("team_war_queue_team_uidx").on(t.teamId),
+    index("team_war_queue_league_status_idx").on(t.league, t.status, t.lp),
+  ],
+);
+
+export const wars = sqliteTable(
+  "wars",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    seasonKey: text("season_key").notNull(),
+    teamAId: text("team_a_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    teamBId: text("team_b_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    startsAt: integer("starts_at", { mode: "timestamp_ms" }).notNull(),
+    endsAt: integer("ends_at", { mode: "timestamp_ms" }).notNull(),
+    status: text("status").notNull().default("live"),
+    scoreA: real("score_a").notNull().default(0),
+    scoreB: real("score_b").notNull().default(0),
+    winnerTeamId: text("winner_team_id").references(() => teams.id, {
+      onDelete: "set null",
+    }),
+    summaryJson: text("summary_json").notNull().default("{}"),
+    completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    index("wars_status_ends_idx").on(t.status, t.endsAt),
+    index("wars_team_a_idx").on(t.teamAId, t.status),
+    index("wars_team_b_idx").on(t.teamBId, t.status),
+  ],
+);
+
+export const warScoreSnapshots = sqliteTable(
+  "war_score_snapshots",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    warId: text("war_id")
+      .notNull()
+      .references(() => wars.id, { onDelete: "cascade" }),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    capturedAt: integer("captured_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    score: real("score").notNull().default(0),
+    componentsJson: text("components_json").notNull().default("{}"),
+  },
+  (t) => [
+    index("war_score_snapshots_war_team_idx").on(
+      t.warId,
+      t.teamId,
+      t.capturedAt,
+    ),
+  ],
+);
+
+/** Progression multi-track XP. */
+export const progressionXpLedger = sqliteTable(
+  "progression_xp_ledger",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    teamId: text("team_id").references(() => teams.id, { onDelete: "set null" }),
+    track: text("track").notNull(),
+    amount: integer("amount").notNull(),
+    source: text("source").notNull(),
+    sourceKey: text("source_key").notNull(),
+    seasonKey: text("season_key"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("progression_xp_ledger_source_uidx").on(t.sourceKey),
+    index("progression_xp_ledger_user_created_idx").on(t.userId, t.createdAt),
+  ],
+);
+
+export const teamXp = sqliteTable("team_xp", {
+  teamId: text("team_id")
+    .primaryKey()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  xpTotal: integer("xp_total").notNull().default(0),
+  level: integer("level").notNull().default(1),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const communityXp = sqliteTable("community_xp", {
+  id: text("id").primaryKey(),
+  xpTotal: integer("xp_total").notNull().default(0),
+  level: integer("level").notNull().default(1),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const userSeasonXp = sqliteTable(
+  "user_season_xp",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    seasonKey: text("season_key").notNull(),
+    xpTotal: integer("xp_total").notNull().default(0),
+    level: integer("level").notNull().default(1),
+    finalized: integer("finalized").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.seasonKey] })],
+);
+
+export const userCosmetics = sqliteTable(
+  "user_cosmetics",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    cosmeticKey: text("cosmetic_key").notNull(),
+    unlockedAt: integer("unlocked_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("user_cosmetics_user_key_uidx").on(t.userId, t.cosmeticKey),
+  ],
+);
+
+export const userCosmeticLoadout = sqliteTable("user_cosmetic_loadout", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  frameKey: text("frame_key"),
+  auraKey: text("aura_key"),
+  titleKey: text("title_key"),
+});
+
+/** Social graph — profile, follows, activity feed. */
+export const userSocialProfiles = sqliteTable("user_social_profiles", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  visibility: text("visibility").notNull().default("friends"),
+  bio: text("bio"),
+  showStats: integer("show_stats").notNull().default(1),
+  showOnGlobal: integer("show_on_global").notNull().default(1),
+  discoverable: integer("discoverable").notNull().default(1),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const userFollows = sqliteTable(
+  "user_follows",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    followerId: text("follower_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    followingId: text("following_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("user_follows_pair_uidx").on(t.followerId, t.followingId),
+    index("user_follows_following_idx").on(t.followingId),
+  ],
+);
+
+export const userActivityPosts = sqliteTable(
+  "user_activity_posts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    metaJson: text("meta_json").notNull().default("{}"),
+    visibilitySnapshot: text("visibility_snapshot").notNull().default("friends"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("user_activity_posts_user_created_idx").on(t.userId, t.createdAt),
+    index("user_activity_posts_created_idx").on(t.createdAt),
+    index("user_activity_posts_vis_created_idx").on(
+      t.visibilitySnapshot,
+      t.createdAt,
+    ),
+  ],
+);
+
+/**
+ * Reputation Points (RP) — status społeczny Community (osobno od Challenge XP).
+ * tier: bronze | silver | gold | platinum | diamond | legend
+ */
+export const userReputation = sqliteTable("user_reputation", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  points: integer("points").notNull().default(0),
+  tier: text("tier").notNull().default("bronze"),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+/** Ledger RP — idempotencja po source_key + anty-farm (cap dzienny w kodzie). */
+export const userReputationEvents = sqliteTable(
+  "user_reputation_events",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** help_reaction | help_comment | reply | comment | activity_post | live_join | challenge | achievement */
+    kind: text("kind").notNull(),
+    points: integer("points").notNull(),
+    sourceKey: text("source_key").notNull(),
+    teamId: text("team_id").references(() => teams.id, {
+      onDelete: "set null",
+    }),
+    metaJson: text("meta_json").notNull().default("{}"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("user_reputation_events_source_uidx").on(t.sourceKey),
+    index("user_reputation_events_user_created_idx").on(t.userId, t.createdAt),
+    index("user_reputation_events_user_kind_created_idx").on(
+      t.userId,
+      t.kind,
+      t.createdAt,
+    ),
+  ],
+);
 
 export const userBadges = sqliteTable(
   "user_badges",

@@ -395,7 +395,7 @@ CREATE TABLE IF NOT EXISTS "teams" (
   "invite_code" text NOT NULL,
   "avatar_emoji" text DEFAULT '🏋️' NOT NULL,
   "banner_color" text DEFAULT '#1a1a1c' NOT NULL,
-  "ranking_metric" text DEFAULT 'sessions' NOT NULL,
+  "ranking_metric" text DEFAULT 'fcs' NOT NULL,
   "max_members" integer DEFAULT 50 NOT NULL,
   "member_count" integer DEFAULT 1 NOT NULL,
   "created_at" integer NOT NULL,
@@ -1074,6 +1074,371 @@ CREATE TABLE IF NOT EXISTS "friend_live_presence" (
 `);
   await client.execute(
     `CREATE INDEX IF NOT EXISTS "friend_live_presence_active_updated_idx" ON "friend_live_presence" ("active","updated_at")`,
+  );
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "team_fcs_scores" (
+  "id" text PRIMARY KEY NOT NULL,
+  "team_id" text NOT NULL,
+  "user_id" text NOT NULL,
+  "week_start" text NOT NULL,
+  "fcs" real DEFAULT 0 NOT NULL,
+  "components_json" text DEFAULT '{}' NOT NULL,
+  "computed_at" integer NOT NULL,
+  FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "team_fcs_scores_team_user_week_uidx" ON "team_fcs_scores" ("team_id","user_id","week_start")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "team_fcs_scores_team_week_fcs_idx" ON "team_fcs_scores" ("team_id","week_start","fcs")`,
+  );
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "user_reputation" (
+  "user_id" text PRIMARY KEY NOT NULL,
+  "points" integer DEFAULT 0 NOT NULL,
+  "tier" text DEFAULT 'bronze' NOT NULL,
+  "updated_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "user_reputation_events" (
+  "id" text PRIMARY KEY NOT NULL,
+  "user_id" text NOT NULL,
+  "kind" text NOT NULL,
+  "points" integer NOT NULL,
+  "source_key" text NOT NULL,
+  "team_id" text,
+  "meta_json" text DEFAULT '{}' NOT NULL,
+  "created_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE SET NULL
+);
+`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "user_reputation_events_source_uidx" ON "user_reputation_events" ("source_key")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "user_reputation_events_user_created_idx" ON "user_reputation_events" ("user_id","created_at")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "user_reputation_events_user_kind_created_idx" ON "user_reputation_events" ("user_id","kind","created_at")`,
+  );
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "hof_seasons" (
+  "key" text PRIMARY KEY NOT NULL,
+  "kind" text NOT NULL,
+  "title" text NOT NULL,
+  "starts_at" integer NOT NULL,
+  "ends_at" integer NOT NULL,
+  "status" text DEFAULT 'open' NOT NULL,
+  "archived_at" integer
+);
+`);
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "hof_awards" (
+  "id" text PRIMARY KEY NOT NULL,
+  "season_key" text NOT NULL,
+  "category" text NOT NULL,
+  "rank" integer NOT NULL,
+  "user_id" text NOT NULL,
+  "score" real DEFAULT 0 NOT NULL,
+  "score_label" text DEFAULT '' NOT NULL,
+  "meta_json" text DEFAULT '{}' NOT NULL,
+  "awarded_at" integer NOT NULL,
+  FOREIGN KEY ("season_key") REFERENCES "hof_seasons"("key") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "hof_awards_season_cat_rank_uidx" ON "hof_awards" ("season_key","category","rank")`,
+  );
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "hof_awards_season_cat_user_uidx" ON "hof_awards" ("season_key","category","user_id")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "hof_awards_user_idx" ON "hof_awards" ("user_id")`,
+  );
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "team_quests" (
+  "id" text PRIMARY KEY NOT NULL,
+  "team_id" text NOT NULL,
+  "template_key" text NOT NULL,
+  "title" text NOT NULL,
+  "emoji" text DEFAULT '🎯' NOT NULL,
+  "metric_kind" text NOT NULL,
+  "metric_filter_json" text DEFAULT '{}' NOT NULL,
+  "target_value" real NOT NULL,
+  "unit_label" text NOT NULL,
+  "starts_at" integer NOT NULL,
+  "ends_at" integer NOT NULL,
+  "status" text DEFAULT 'active' NOT NULL,
+  "completed_at" integer,
+  "reward_xp_each" integer DEFAULT 100 NOT NULL,
+  "reward_badge_key" text NOT NULL,
+  "reward_title" text NOT NULL,
+  "created_by" text,
+  FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("created_by") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE SET NULL
+);
+`);
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "team_quests_team_status_idx" ON "team_quests" ("team_id","status")`,
+  );
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "team_quest_contributions" (
+  "id" text PRIMARY KEY NOT NULL,
+  "quest_id" text NOT NULL,
+  "user_id" text NOT NULL,
+  "amount" real DEFAULT 0 NOT NULL,
+  "last_workout_id" text,
+  "updated_at" integer NOT NULL,
+  FOREIGN KEY ("quest_id") REFERENCES "team_quests"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "team_quest_contrib_quest_user_uidx" ON "team_quest_contributions" ("quest_id","user_id")`,
+  );
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "team_quest_completions" (
+  "id" text PRIMARY KEY NOT NULL,
+  "quest_id" text NOT NULL,
+  "team_id" text NOT NULL,
+  "completed_at" integer NOT NULL,
+  "total_value" real DEFAULT 0 NOT NULL,
+  "participants_count" integer DEFAULT 0 NOT NULL,
+  "meta_json" text DEFAULT '{}' NOT NULL,
+  FOREIGN KEY ("quest_id") REFERENCES "team_quests"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "team_quest_completions_quest_uidx" ON "team_quest_completions" ("quest_id")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "team_quest_completions_team_idx" ON "team_quest_completions" ("team_id","completed_at")`,
+  );
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "war_seasons" (
+  "key" text PRIMARY KEY NOT NULL,
+  "title" text NOT NULL,
+  "starts_at" integer NOT NULL,
+  "ends_at" integer NOT NULL,
+  "status" text DEFAULT 'open' NOT NULL
+);
+`);
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "team_war_stats" (
+  "team_id" text PRIMARY KEY NOT NULL,
+  "league" text DEFAULT 'bronze' NOT NULL,
+  "lp" integer DEFAULT 0 NOT NULL,
+  "wins" integer DEFAULT 0 NOT NULL,
+  "losses" integer DEFAULT 0 NOT NULL,
+  "draws" integer DEFAULT 0 NOT NULL,
+  "season_key" text NOT NULL,
+  "updated_at" integer NOT NULL,
+  FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "team_war_queue" (
+  "id" text PRIMARY KEY NOT NULL,
+  "team_id" text NOT NULL,
+  "league" text NOT NULL,
+  "lp" integer DEFAULT 0 NOT NULL,
+  "queued_at" integer NOT NULL,
+  "status" text DEFAULT 'queued' NOT NULL,
+  FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "team_war_queue_team_uidx" ON "team_war_queue" ("team_id")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "team_war_queue_league_status_idx" ON "team_war_queue" ("league","status","lp")`,
+  );
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "wars" (
+  "id" text PRIMARY KEY NOT NULL,
+  "season_key" text NOT NULL,
+  "team_a_id" text NOT NULL,
+  "team_b_id" text NOT NULL,
+  "starts_at" integer NOT NULL,
+  "ends_at" integer NOT NULL,
+  "status" text DEFAULT 'live' NOT NULL,
+  "score_a" real DEFAULT 0 NOT NULL,
+  "score_b" real DEFAULT 0 NOT NULL,
+  "winner_team_id" text,
+  "summary_json" text DEFAULT '{}' NOT NULL,
+  "completed_at" integer,
+  FOREIGN KEY ("team_a_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("team_b_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("winner_team_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE SET NULL
+);
+`);
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "wars_status_ends_idx" ON "wars" ("status","ends_at")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "wars_team_a_idx" ON "wars" ("team_a_id","status")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "wars_team_b_idx" ON "wars" ("team_b_id","status")`,
+  );
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "war_score_snapshots" (
+  "id" text PRIMARY KEY NOT NULL,
+  "war_id" text NOT NULL,
+  "team_id" text NOT NULL,
+  "captured_at" integer NOT NULL,
+  "score" real DEFAULT 0 NOT NULL,
+  "components_json" text DEFAULT '{}' NOT NULL,
+  FOREIGN KEY ("war_id") REFERENCES "wars"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "war_score_snapshots_war_team_idx" ON "war_score_snapshots" ("war_id","team_id","captured_at")`,
+  );
+
+  await tryAddColumn(
+    `ALTER TABLE "user_community_xp" ADD COLUMN "prestige" integer NOT NULL DEFAULT 0`,
+  );
+  await tryAddColumn(
+    `ALTER TABLE "user_community_xp" ADD COLUMN "prestige_xp_lifetime" integer NOT NULL DEFAULT 0`,
+  );
+  await tryAddColumn(`ALTER TABLE "user_community_xp" ADD COLUMN "title_key" text`);
+  await tryAddColumn(`ALTER TABLE "user_community_xp" ADD COLUMN "frame_key" text`);
+  await tryAddColumn(`ALTER TABLE "user_community_xp" ADD COLUMN "aura_key" text`);
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "progression_xp_ledger" (
+  "id" text PRIMARY KEY NOT NULL,
+  "user_id" text,
+  "team_id" text,
+  "track" text NOT NULL,
+  "amount" integer NOT NULL,
+  "source" text NOT NULL,
+  "source_key" text NOT NULL,
+  "season_key" text,
+  "created_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE SET NULL
+);
+`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "progression_xp_ledger_source_uidx" ON "progression_xp_ledger" ("source_key")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "progression_xp_ledger_user_created_idx" ON "progression_xp_ledger" ("user_id","created_at")`,
+  );
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "team_xp" (
+  "team_id" text PRIMARY KEY NOT NULL,
+  "xp_total" integer DEFAULT 0 NOT NULL,
+  "level" integer DEFAULT 1 NOT NULL,
+  "updated_at" integer NOT NULL,
+  FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "community_xp" (
+  "id" text PRIMARY KEY NOT NULL,
+  "xp_total" integer DEFAULT 0 NOT NULL,
+  "level" integer DEFAULT 1 NOT NULL,
+  "updated_at" integer NOT NULL
+);
+`);
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "user_season_xp" (
+  "user_id" text NOT NULL,
+  "season_key" text NOT NULL,
+  "xp_total" integer DEFAULT 0 NOT NULL,
+  "level" integer DEFAULT 1 NOT NULL,
+  "finalized" integer DEFAULT 0 NOT NULL,
+  PRIMARY KEY ("user_id", "season_key"),
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "user_cosmetics" (
+  "id" text PRIMARY KEY NOT NULL,
+  "user_id" text NOT NULL,
+  "cosmetic_key" text NOT NULL,
+  "unlocked_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "user_cosmetics_user_key_uidx" ON "user_cosmetics" ("user_id","cosmetic_key")`,
+  );
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "user_cosmetic_loadout" (
+  "user_id" text PRIMARY KEY NOT NULL,
+  "frame_key" text,
+  "aura_key" text,
+  "title_key" text,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "user_social_profiles" (
+  "user_id" text PRIMARY KEY NOT NULL,
+  "visibility" text DEFAULT 'friends' NOT NULL,
+  "bio" text,
+  "show_stats" integer DEFAULT 1 NOT NULL,
+  "show_on_global" integer DEFAULT 1 NOT NULL,
+  "discoverable" integer DEFAULT 1 NOT NULL,
+  "updated_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "user_follows" (
+  "id" text PRIMARY KEY NOT NULL,
+  "follower_id" text NOT NULL,
+  "following_id" text NOT NULL,
+  "created_at" integer NOT NULL,
+  FOREIGN KEY ("follower_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("following_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "user_follows_pair_uidx" ON "user_follows" ("follower_id","following_id")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "user_follows_following_idx" ON "user_follows" ("following_id")`,
+  );
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "user_activity_posts" (
+  "id" text PRIMARY KEY NOT NULL,
+  "user_id" text NOT NULL,
+  "kind" text NOT NULL,
+  "title" text NOT NULL,
+  "body" text,
+  "meta_json" text DEFAULT '{}' NOT NULL,
+  "visibility_snapshot" text DEFAULT 'friends' NOT NULL,
+  "created_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "user_activity_posts_user_created_idx" ON "user_activity_posts" ("user_id","created_at")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "user_activity_posts_created_idx" ON "user_activity_posts" ("created_at")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "user_activity_posts_vis_created_idx" ON "user_activity_posts" ("visibility_snapshot","created_at")`,
   );
 }
 

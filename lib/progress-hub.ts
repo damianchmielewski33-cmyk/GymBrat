@@ -1,8 +1,8 @@
-import { and, asc, desc, eq, gte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
+import { withDbRetry } from "@/db/with-retry";
 import { userSettings, weightLogs, workoutPlans, workouts } from "@/db/schema";
 import { computeAchievements, type AchievementDef } from "@/lib/achievements";
-import { maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
 import { getBodyReports } from "@/lib/body-reports";
 import {
   emptyProgressDietTrainingBlock,
@@ -286,6 +286,13 @@ function weekShortLabel(monday: string): string {
 const DAY_LABELS = ["Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd"] as const;
 
 export async function getProgressHubData(userId: string): Promise<ProgressHubData> {
+  return withDbRetry(
+    () => loadProgressHubData(userId),
+    { attempts: 3, baseDelayMs: 280, label: "progress-hub" },
+  );
+}
+
+async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
   const db = getDb();
   const today = calendarDateKey();
   const monday = mondayOfWeek(today);
@@ -297,7 +304,7 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
       .select({
         weeklyCardioGoalMinutes: userSettings.weeklyCardioGoalMinutes,
         fitnessGoalsJson: userSettings.fitnessGoalsJson,
-        startPhotoDataUrl: userSettings.startPhotoDataUrl,
+        hasStartPhoto: sql<number>`CASE WHEN ${userSettings.startPhotoDataUrl} IS NOT NULL AND length(trim(${userSettings.startPhotoDataUrl})) > 0 THEN 1 ELSE 0 END`,
         trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
         restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
         nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
@@ -327,7 +334,8 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
       .where(and(eq(workouts.userId, userId), gte(workouts.date, from180)))
       .orderBy(desc(workouts.date), desc(workouts.id))
       .limit(400),
-    getBodyReports(userId),
+    // Bez blobów — tylko meta (id), media serwowane osobno po /api/media/…
+    getBodyReports(userId, { photos: "meta" }),
   ]);
 
   const goals = parseFitnessGoalsJson(settingsRow?.fitnessGoalsJson ?? null);
@@ -784,8 +792,12 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
   // --- Body / tempo ---
   const weightByDay = new Map<string, number>();
   for (const r of [...bodyReports].reverse()) {
-    if (r.weightKg != null && r.weightKg > 0) {
-      weightByDay.set(calendarDateKey(r.createdAt), safeRound1(r.weightKg));
+    if (r.weightKg != null && r.weightKg > 0 && r.createdAt) {
+      const created =
+        r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt);
+      if (!Number.isNaN(created.getTime())) {
+        weightByDay.set(calendarDateKey(created), safeRound1(r.weightKg));
+      }
     }
   }
 
@@ -800,7 +812,9 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
     .limit(300);
 
   for (const w of logRows) {
-    const key = calendarDateKey(new Date(w.recordedAt));
+    const recorded = new Date(w.recordedAt);
+    if (Number.isNaN(recorded.getTime())) continue;
+    const key = calendarDateKey(recorded);
     if (!weightByDay.has(key) && Number(w.weightKg) > 0) {
       weightByDay.set(key, safeRound1(Number(w.weightKg)));
     }
@@ -915,9 +929,13 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
   // --- Photos ---
   const photoItems: ProgressPhotoItem[] = [];
   for (const r of [...bodyReports].reverse()) {
-    const date = calendarDateKey(r.createdAt);
+    if (!r.createdAt) continue;
+    const created =
+      r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt);
+    if (Number.isNaN(created.getTime())) continue;
+    const date = calendarDateKey(created);
     const front = frontBodyReportPhoto(r.photos);
-    if (!front?.dataUrl) continue;
+    if (!front?.id) continue;
     photoItems.push({
       id: front.id,
       reportId: r.id,
@@ -927,9 +945,7 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
       waistCm: r.waistCm,
     });
   }
-  const hasCustomStartPhoto = Boolean(
-    settingsRow?.startPhotoDataUrl?.trim(),
-  );
+  const hasCustomStartPhoto = Number(settingsRow?.hasStartPhoto ?? 0) === 1;
   const firstReportPhoto = photoItems[0] ?? null;
   const startPhoto: ProgressPhotoItem | null = hasCustomStartPhoto
     ? {
@@ -1081,10 +1097,17 @@ export async function getProgressHubData(userId: string): Promise<ProgressHubDat
     },
   ];
 
-  const firstReportDate =
-    bodyReports.length > 0
-      ? calendarDateKey(bodyReports[bodyReports.length - 1]!.createdAt)
-      : null;
+  const oldestReport = bodyReports[bodyReports.length - 1];
+  let firstReportDate: string | null = null;
+  if (oldestReport?.createdAt) {
+    const created =
+      oldestReport.createdAt instanceof Date
+        ? oldestReport.createdAt
+        : new Date(oldestReport.createdAt);
+    if (!Number.isNaN(created.getTime())) {
+      firstReportDate = calendarDateKey(created);
+    }
+  }
 
   const achievements = computeAchievements({
     totalTonnageKg,

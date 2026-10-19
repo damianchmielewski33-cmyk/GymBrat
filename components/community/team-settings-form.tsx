@@ -112,6 +112,7 @@ export function TeamSettingsForm({ team }: { team: TeamDetailView }) {
               "flex w-full rounded-2xl border px-3 text-sm",
             )}
           >
+            <option value="fcs">FCS — sprawiedliwy (zalecane)</option>
             <option value="sessions">Sesje / tydzień</option>
             <option value="tonnage">Tonaż / tydzień</option>
             <option value="cardio">Cardio min / tydzień</option>

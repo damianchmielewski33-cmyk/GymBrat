@@ -233,9 +233,9 @@ export function AppMenuButton({
       title: "Społeczność",
       rows: [
         {
-          href: "/community/teams",
-          title: "Grupy",
-          subtitle: "grupy, zaproszenia, ranking zespołu",
+          href: "/community",
+          title: "Community",
+          subtitle: "Mój Team, Znajomi, Global, Odkrywaj",
           icon: Users,
           iconTone: "gold",
         },
@@ -250,6 +250,20 @@ export function AppMenuButton({
           href: "/community/challenges",
           title: "Wyzwania",
           subtitle: "globalne wyzwania, XP i odznaki",
+          icon: Trophy,
+          iconTone: "gold",
+        },
+        {
+          href: "/community/wars",
+          title: "Wojny drużyn",
+          subtitle: "Team Wars · FCS · ligi Bronze→Diamond",
+          icon: Trophy,
+          iconTone: "gold",
+        },
+        {
+          href: "/community/hall-of-fame",
+          title: "Galeria sławy",
+          subtitle: "Hall of Fame · sezony i kategorie",
           icon: Trophy,
           iconTone: "gold",
         },

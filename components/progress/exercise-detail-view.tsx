@@ -19,6 +19,8 @@ import type {
   ExerciseProgressPoint,
   ExercisePrs,
 } from "@/lib/exercise-progress";
+import type { ExercisePeriodCompares } from "@/lib/exercise-period-compare";
+import { ExercisePeriodComparePanel } from "@/components/progress/exercise-period-compare-panel";
 
 const GOLD = "#ebc44a";
 const RIR_COLOR = "#34d399";
@@ -60,6 +62,7 @@ export function ExerciseDetailView({
   intensity,
   metric,
   matchedNames,
+  periodCompares,
 }: {
   name: string;
   points: ExerciseProgressPoint[];
@@ -67,6 +70,7 @@ export function ExerciseDetailView({
   intensity: ExerciseIntensitySummary;
   metric: ExerciseMetricKind;
   matchedNames: string[];
+  periodCompares: ExercisePeriodCompares;
 }) {
   const latest = points.length ? points[points.length - 1]! : null;
   const isReps = metric === "reps";
@@ -337,6 +341,8 @@ export function ExerciseDetailView({
           </p>
         ) : null}
       </section>
+
+      <ExercisePeriodComparePanel compares={periodCompares} />
 
       <section className="space-y-3">
         <SectionLabel index="01" title="Rekordy" />

@@ -70,12 +70,13 @@ export function CreateTeamForm() {
           <select
             id="rankingMetric"
             name="rankingMetric"
-            defaultValue="sessions"
+            defaultValue="fcs"
             className={cn(
               screenInputClass,
               "flex min-h-12 w-full rounded-2xl border px-3",
             )}
           >
+            <option value="fcs">FCS — sprawiedliwy (zalecane)</option>
             <option value="sessions">Sesje / tydzień</option>
             <option value="tonnage">Tonaż / tydzień</option>
             <option value="cardio">Cardio min / tydzień</option>

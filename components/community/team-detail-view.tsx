@@ -11,6 +11,8 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { TeamFcsLeaderboard } from "@/components/community/team-fcs-leaderboard";
+import { ReputationBadge } from "@/components/community/reputation-badge";
 import { leaveTeamAction, type TeamActionState } from "@/actions/teams";
 import {
   InviteByEmailForm,
@@ -64,13 +66,6 @@ export function TeamDetailClient({
       router.push("/community/teams");
     }
   }, [leaveState, notifyError, notifySaved, router]);
-
-  const metricLabel =
-    team.rankingMetric === "tonnage"
-      ? "tonaż"
-      : team.rankingMetric === "cardio"
-        ? "min cardio"
-        : "sesje";
 
   useTrackRankingViewed({
     teamId: team.id,
@@ -317,63 +312,10 @@ export function TeamDetailClient({
         </section>
       ) : null}
 
-      <section
-        className="app-card space-y-3 p-5"
-        aria-labelledby="team-ranking-heading"
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />
-            <h2
-              id="team-ranking-heading"
-              className="text-[15px] font-semibold text-white"
-            >
-              Ranking tygodnia
-            </h2>
-          </div>
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/50">
-            {metricLabel}
-          </span>
-        </div>
-        {team.ranking.every((r) => r.score === 0) ? (
-          <p className="text-[13px] leading-relaxed text-white/45">
-            Brak wyników w tym tygodniu — zalicz trening, by wejść na tablicę.
-          </p>
-        ) : (
-          <ol className="space-y-1">
-            {team.ranking.slice(0, 10).map((row) => (
-              <li
-                key={row.userId}
-                className={cn(
-                  "flex items-center gap-3 rounded-2xl px-2.5 py-2.5",
-                  row.rank === 1 &&
-                    "border border-[var(--gym-gold)]/25 bg-[var(--gym-gold)]/[0.08]",
-                  row.rank === 2 && "bg-white/[0.03]",
-                  row.rank === 3 && "bg-white/[0.02]",
-                )}
-              >
-                <span
-                  className={cn(
-                    "font-metric flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[14px]",
-                    row.rank <= 3
-                      ? "bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]"
-                      : "text-white/35",
-                  )}
-                  aria-label={`Miejsce ${row.rank}`}
-                >
-                  {row.rank}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-white">
-                  {row.displayName}
-                </span>
-                <span className="font-metric text-[15px] tabular-nums text-white/75">
-                  {row.score}
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
+      <TeamFcsLeaderboard
+        ranking={team.ranking}
+        metric={team.rankingMetric}
+      />
 
       <section className="app-card space-y-3 p-5">
         <div className="flex items-center gap-2">
@@ -422,8 +364,15 @@ export function TeamDetailClient({
               key={member.userId}
               className="flex items-center justify-between gap-2 rounded-xl px-2 py-2"
             >
-              <span className="truncate text-sm text-white">
-                {member.displayName}
+              <span className="flex min-w-0 items-center gap-1.5 truncate text-sm text-white">
+                <span className="truncate">{member.displayName}</span>
+                {member.reputation ? (
+                  <ReputationBadge
+                    reputation={member.reputation}
+                    size="xs"
+                    className="shrink-0"
+                  />
+                ) : null}
               </span>
               <span className="shrink-0 text-[11px] uppercase tracking-wide text-white/40">
                 {teamRoleLabel(member.role)}

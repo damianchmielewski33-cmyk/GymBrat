@@ -72,9 +72,24 @@ export const BODY_REPORTS_ANALYSIS_LIMIT = 500;
 export type GetBodyReportsOptions = {
   /** Domyślnie 500 (wcześniej 50 ucinało analizę). */
   limit?: number;
-  /** Gdy false — bez blobów zdjęć (szybsze KPI). Domyślnie true. */
+  /**
+   * full — bloby + decrypt (ciężkie);
+   * meta — tylko id/kolejność (media URL bez ładownia blobów);
+   * none — pusta lista zdjęć.
+   * `includePhotos: false` ≡ none (kompatybilność).
+   */
+  photos?: "full" | "meta" | "none";
+  /** @deprecated Preferuj `photos`. false → none, true/undefined → full. */
   includePhotos?: boolean;
 };
+
+function resolvePhotoMode(
+  options?: GetBodyReportsOptions,
+): "full" | "meta" | "none" {
+  if (options?.photos) return options.photos;
+  if (options?.includePhotos === false) return "none";
+  return "full";
+}
 
 export async function getBodyReports(
   userId: string,
@@ -88,7 +103,7 @@ export async function getBodyReports(
       Math.round(options?.limit ?? BODY_REPORTS_ANALYSIS_LIMIT),
     ),
   );
-  const includePhotos = options?.includePhotos !== false;
+  const photoMode = resolvePhotoMode(options);
 
   const reports = await db
     .select()
@@ -104,21 +119,41 @@ export async function getBodyReports(
     string,
     { id: string; dataUrl: string; createdAt: Date }[]
   >();
-  if (includePhotos) {
-    const photos = await db
-      .select()
-      .from(bodyReportPhotos)
-      .where(
-        reportIds.length === 1
-          ? eq(bodyReportPhotos.reportId, reportIds[0]!)
-          : inArray(bodyReportPhotos.reportId, reportIds),
-      );
+  if (photoMode !== "none") {
+    const photos =
+      photoMode === "meta"
+        ? await db
+            .select({
+              id: bodyReportPhotos.id,
+              reportId: bodyReportPhotos.reportId,
+              createdAt: bodyReportPhotos.createdAt,
+            })
+            .from(bodyReportPhotos)
+            .where(
+              reportIds.length === 1
+                ? eq(bodyReportPhotos.reportId, reportIds[0]!)
+                : inArray(bodyReportPhotos.reportId, reportIds),
+            )
+        : await db
+            .select()
+            .from(bodyReportPhotos)
+            .where(
+              reportIds.length === 1
+                ? eq(bodyReportPhotos.reportId, reportIds[0]!)
+                : inArray(bodyReportPhotos.reportId, reportIds),
+            );
 
     for (const p of photos) {
       const arr = photosByReport.get(p.reportId) ?? [];
+      const dataUrl =
+        photoMode === "meta"
+          ? "meta"
+          : maybeDecryptSensitiveField(
+              "dataUrl" in p ? String(p.dataUrl ?? "") : "",
+            ) ?? "";
       arr.push({
         id: p.id,
-        dataUrl: maybeDecryptSensitiveField(p.dataUrl) ?? "",
+        dataUrl,
         createdAt: p.createdAt,
       });
       photosByReport.set(p.reportId, arr);

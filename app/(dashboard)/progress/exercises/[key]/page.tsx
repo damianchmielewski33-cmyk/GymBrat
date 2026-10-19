@@ -1,8 +1,10 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { ExerciseDetailView } from "@/components/progress/exercise-detail-view";
+import { buildExercisePeriodCompares } from "@/lib/exercise-period-compare";
 import { getExerciseProgressSeries } from "@/lib/exercise-progress";
 import { decodeExerciseProgressKey } from "@/lib/progress-tabs";
+import { withDbRetry } from "@/db/with-retry";
 
 export default async function ProgressExercisePage({
   params,
@@ -17,13 +19,19 @@ export default async function ProgressExercisePage({
   const name = decodeExerciseProgressKey(key);
   if (!name) notFound();
 
-  const data = await getExerciseProgressSeries({
-    userId,
-    exerciseQuery: name,
-    days: 365,
-  });
+  // 730 dni — rok vs rok wymaga historii z poprzedniego roku
+  const data = await withDbRetry(
+    () =>
+      getExerciseProgressSeries({
+        userId,
+        exerciseQuery: name,
+        days: 730,
+      }),
+    { attempts: 3, label: "exercise-progress" },
+  );
 
   const displayName = data.matchedExerciseNames[0] ?? name;
+  const periodCompares = buildExercisePeriodCompares(data.points, data.metric);
 
   return (
     <ExerciseDetailView
@@ -33,6 +41,7 @@ export default async function ProgressExercisePage({
       intensity={data.intensity}
       metric={data.metric}
       matchedNames={data.matchedExerciseNames}
+      periodCompares={periodCompares}
     />
   );
 }

@@ -39,6 +39,8 @@ const COMMENTS_PREVIEW = 5;
 export type TeamFeedAuthor = {
   userId: string;
   displayName: string;
+  /** Reputation tier — opcjonalnie przy listach wzbogaconych. */
+  reputation?: import("@/lib/community/reputation").ReputationPublic;
 };
 
 export type TeamFeedMedia = {
@@ -259,6 +261,7 @@ export async function createTeamPost(input: {
       "challenge_complete",
       "level_up",
     ]);
+    const isAuto = !!input.sourceKey || AUTO_TYPES.has(type);
     track.postPublished(input.authorUserId, {
       team_id: input.teamId,
       post_id: postId,
@@ -266,9 +269,30 @@ export async function createTeamPost(input: {
       has_media: images.length > 0,
       media_count: images.length,
       body_length: body.length,
-      is_auto: !!input.sourceKey || AUTO_TYPES.has(type),
+      is_auto: isAuto,
       mention_count: mentionIds.length,
     });
+
+    if (!isAuto && (type === "text" || type === "gallery")) {
+      void import("@/lib/community/reputation").then(({ awardReputation }) =>
+        awardReputation({
+          userId: input.authorUserId,
+          kind: "activity_post",
+          sourceKey: `activity_post:${postId}`,
+          teamId: input.teamId,
+        }),
+      );
+    }
+    if (type === "achievement") {
+      void import("@/lib/community/reputation").then(({ awardReputation }) =>
+        awardReputation({
+          userId: input.authorUserId,
+          kind: "achievement",
+          sourceKey: `achievement:${input.sourceKey ?? postId}`,
+          teamId: input.teamId,
+        }),
+      );
+    }
   }
 
   const isAnnouncement =
@@ -541,6 +565,22 @@ export async function listTeamFeed(
     }
   }
 
+  const authorIds = [
+    ...new Set([
+      ...rows.map((r) => r.authorUserId),
+      ...[...commentsByPost.values()].flatMap((list) =>
+        list.map((c) => c.author.userId),
+      ),
+    ]),
+  ];
+  const { getReputationMap } = await import("@/lib/community/reputation");
+  const repMap = await getReputationMap(authorIds);
+  for (const list of commentsByPost.values()) {
+    for (const c of list) {
+      c.author.reputation = repMap.get(c.author.userId);
+    }
+  }
+
   return rows
     .filter((row) => isTeamPostType(row.type))
     .map((row) => {
@@ -559,6 +599,7 @@ export async function listTeamFeed(
         author: {
           userId: row.authorUserId,
           displayName: displayName(row),
+          reputation: repMap.get(row.authorUserId),
         },
         createdAt: row.createdAt,
         reactionCount: row.reactionCount,
@@ -710,6 +751,31 @@ export async function addTeamPostComment(input: {
     })();
   }
 
+  void import("@/lib/community/reputation").then(({ awardReputation }) => {
+    void awardReputation({
+      userId: input.authorUserId,
+      kind: "comment",
+      sourceKey: `comment:${commentId}`,
+      teamId: input.teamId,
+    });
+    if (input.parentCommentId) {
+      void awardReputation({
+        userId: input.authorUserId,
+        kind: "reply",
+        sourceKey: `reply:${commentId}`,
+        teamId: input.teamId,
+      });
+    }
+    if (post.authorUserId !== input.authorUserId) {
+      void awardReputation({
+        userId: input.authorUserId,
+        kind: "help_comment",
+        sourceKey: `help_comment:${commentId}`,
+        teamId: input.teamId,
+      });
+    }
+  });
+
   return { ok: true as const, commentId };
 }
 
@@ -800,6 +866,21 @@ export async function setTeamPostReaction(input: {
       reaction_kind: reactionKind,
       action: reactionAction,
     });
+  }
+
+  if (
+    reactionAction === "add" &&
+    input.kind != null &&
+    post.authorUserId !== input.userId
+  ) {
+    void import("@/lib/community/reputation").then(({ awardReputation }) =>
+      awardReputation({
+        userId: input.userId,
+        kind: "help_reaction",
+        sourceKey: `help_reaction:${input.postId}:${input.userId}`,
+        teamId: input.teamId,
+      }),
+    );
   }
 
   if (

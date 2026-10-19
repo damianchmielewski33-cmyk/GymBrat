@@ -91,6 +91,16 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
               nextSet.weight > 0;
           }
 
+          // Ghost Training — znacznik czasu ukończenia serii (elapsed sesji).
+          if (nextSet.done && !current.done && nextSet.elapsedSecondsAtCompletion == null) {
+            const started = s.startedAt;
+            const paused = s.pausedElapsedSeconds ?? 0;
+            const elapsed = started
+              ? paused + Math.max(0, Math.floor((Date.now() - started) / 1000))
+              : paused;
+            nextSet.elapsedSecondsAtCompletion = elapsed;
+          }
+
           return {
             exercises: s.exercises.map((e) =>
               e.id !== exerciseId
