@@ -5,11 +5,13 @@ import { useSession } from "next-auth/react";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { buildGroupWorkoutPresence } from "@/lib/community/group-workout-presence";
 import type { GroupWorkoutParticipantView } from "@/lib/community/group-workout-types";
+import { CLIENT_POLL } from "@/lib/community/realtime-config";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { useCommunityWorkoutStore } from "@/lib/stores/community-workout";
 
 /**
- * Push własnego presence + poll innych <1s podczas treningu grupowego.
+ * Push własnego presence + poll innych podczas treningu grupowego.
+ * Interwał celowo wolniejszy (hosting) — nadal wystarczy do podglądu live.
  */
 export function GroupWorkoutPresenceSync({
   onParticipants,
@@ -91,17 +93,21 @@ export function GroupWorkoutPresenceSync({
     void push();
     void pull();
 
-    const pushTimer = setInterval(() => {
+    const onTick = () => {
+      if (cancelled || document.visibilityState !== "visible") return;
       void push();
-    }, 700);
-    const pullTimer = setInterval(() => {
       void pull();
-    }, 700);
+    };
+    const timer = setInterval(onTick, CLIENT_POLL.groupPresenceMs);
+    const onVis = () => {
+      if (document.visibilityState === "visible") onTick();
+    };
+    document.addEventListener("visibilitychange", onVis);
 
     return () => {
       cancelled = true;
-      clearInterval(pushTimer);
-      clearInterval(pullTimer);
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, [
     mode,

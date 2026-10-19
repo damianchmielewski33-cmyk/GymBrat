@@ -1,13 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  CLIENT_POLL,
+  getCommunityRealtimeMode,
+} from "@/lib/community/realtime-config";
+import { useVisibilityInterval } from "@/hooks/use-visibility-interval";
 
 /**
- * SSE + badge unread count dla centrum powiadomień.
+ * Badge unread + odświeżenie listy.
+ * Domyślnie HTTP poll (krótkie requesty) — bez długotrwałego SSE.
  */
 export function useNotificationsRealtime(enabled: boolean) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [bump, setBump] = useState(0);
+  const mode = getCommunityRealtimeMode();
 
   const refreshCount = useCallback(async () => {
     try {
@@ -16,33 +23,28 @@ export function useNotificationsRealtime(enabled: boolean) {
       });
       if (!res.ok) return;
       const data = (await res.json()) as { count?: number };
-      setUnreadCount(Number(data.count ?? 0));
+      const next = Number(data.count ?? 0);
+      setUnreadCount((prev) => {
+        if (prev !== next) {
+          queueMicrotask(() => setBump((n) => n + 1));
+        }
+        return next;
+      });
     } catch {
       /* ignore */
     }
   }, []);
 
-  useEffect(() => {
-    if (!enabled) return;
-    // Po LCP — nie konkuruj z pierwszym paintem Community.
-    let cancelled = false;
-    let poll: ReturnType<typeof setInterval> | null = null;
-    const start = window.setTimeout(() => {
-      if (cancelled) return;
+  useVisibilityInterval(
+    () => {
       void refreshCount();
-      poll = setInterval(() => {
-        void refreshCount();
-      }, 30_000);
-    }, 1_200);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(start);
-      if (poll) clearInterval(poll);
-    };
-  }, [enabled, refreshCount]);
+    },
+    CLIENT_POLL.notificationsMs,
+    enabled,
+  );
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || mode !== "sse") return;
     let es: EventSource | null = null;
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -50,6 +52,10 @@ export function useNotificationsRealtime(enabled: boolean) {
 
     const connect = () => {
       if (cancelled) return;
+      if (document.visibilityState !== "visible") {
+        retryTimer = setTimeout(connect, 5_000);
+        return;
+      }
       es = new EventSource(
         `/api/community/notifications/stream?since=${since}`,
       );
@@ -87,11 +93,10 @@ export function useNotificationsRealtime(enabled: boolean) {
         es?.close();
         es = null;
         if (cancelled) return;
-        retryTimer = setTimeout(connect, 4000);
+        retryTimer = setTimeout(connect, 8_000);
       };
     };
 
-    // SSE po idle — mniej równoległych requestów zaraz po nawigacji.
     const startSse = () => {
       if (cancelled) return;
       connect();
@@ -104,8 +109,19 @@ export function useNotificationsRealtime(enabled: boolean) {
       timeoutId = window.setTimeout(startSse, 1_800);
     }
 
+    const onVis = () => {
+      if (document.visibilityState === "hidden") {
+        es?.close();
+        es = null;
+      } else if (!es && !cancelled) {
+        connect();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", onVis);
       if (idleId != null && typeof window.cancelIdleCallback === "function") {
         window.cancelIdleCallback(idleId);
       }
@@ -113,7 +129,7 @@ export function useNotificationsRealtime(enabled: boolean) {
       if (retryTimer) clearTimeout(retryTimer);
       es?.close();
     };
-  }, [enabled]);
+  }, [enabled, mode]);
 
   return { unreadCount, bump, refreshCount };
 }

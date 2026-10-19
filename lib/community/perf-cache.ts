@@ -42,19 +42,22 @@ export function cacheInvalidate(prefixOrKey: string): void {
   }
 }
 
-/** Interwały SSE Community — adaptive (idle vs aktywność). */
+/**
+ * Interwały SSE Community (tylko gdy NEXT_PUBLIC_COMMUNITY_REALTIME=sse).
+ * Celowo wolniejsze niż dawniej — długie SSE + częste ticki wyczerpały Vercel Hobby.
+ */
 export const SSE_POLL = {
   /** Feed / notyfikacje przy braku eventów */
-  idleMs: 5_000,
+  idleMs: 12_000,
   /** Po evencie — szybszy tick przez chwilę */
-  activeMs: 1_500,
+  activeMs: 5_000,
   /** Chat: nieco szybciej (typing) */
-  chatIdleMs: 3_500,
-  chatActiveMs: 1_200,
+  chatIdleMs: 8_000,
+  chatActiveMs: 4_000,
   /** Presence list cache (GET) */
-  presenceTtlMs: 450,
+  presenceTtlMs: 2_000,
   /** Unread badge cache */
-  unreadTtlMs: 2_000,
+  unreadTtlMs: 5_000,
   /** SSE event-head (feed/chat) — współdzielone ticki w jednym procesie */
-  eventsHeadTtlMs: 400,
+  eventsHeadTtlMs: 1_500,
 } as const;

@@ -54,8 +54,17 @@ export function FriendLiveDetailClient({
 
   useEffect(() => {
     void pull();
-    const t = window.setInterval(() => void pull(), 900);
-    return () => window.clearInterval(t);
+    const onTick = () => {
+      if (document.visibilityState !== "visible") return;
+      void pull();
+    };
+    // 4s — wystarczy do podglądu; 900ms paliło hosting
+    const t = window.setInterval(onTick, 4_000);
+    document.addEventListener("visibilitychange", onTick);
+    return () => {
+      window.clearInterval(t);
+      document.removeEventListener("visibilitychange", onTick);
+    };
   }, [pull]);
 
   useEffect(() => {

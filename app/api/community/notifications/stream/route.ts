@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { SSE_POLL } from "@/lib/community/perf-cache";
+import { SSE_MAX_CONNECTION_MS } from "@/lib/community/realtime-config";
 import {
   countUnreadNotifications,
   listNotificationEventsSince,
@@ -7,9 +8,11 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 /**
  * SSE notification inbox — adaptive poll + cached unread count.
+ * Połączenie zamykane po SSE_MAX_CONNECTION_MS (krótkie invocacje na Hobby).
  */
 export async function GET(req: Request) {
   const session = await auth();
@@ -101,6 +104,7 @@ export async function GET(req: Request) {
         }
       };
       req.signal.addEventListener("abort", onAbort);
+      setTimeout(onAbort, SSE_MAX_CONNECTION_MS);
     },
     cancel() {
       closed = true;

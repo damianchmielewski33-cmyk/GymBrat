@@ -9,6 +9,11 @@ import type {
   ChatMessageView,
   ChatTypingUser,
 } from "@/lib/community/chat-types";
+import {
+  CLIENT_POLL,
+  getCommunityRealtimeMode,
+} from "@/lib/community/realtime-config";
+import { useVisibilityInterval } from "@/hooks/use-visibility-interval";
 
 type OpenPayload =
   | { kind: "team"; teamId: string; title?: string }
@@ -242,10 +247,46 @@ export function useWorkoutChat(enabled: boolean) {
     return true;
   }, []);
 
-  // SSE
+  const realtimeMode = getCommunityRealtimeMode();
+  const channelId = channel?.id ?? null;
+
+  const pollChatSync = useCallback(async () => {
+    if (!channelId) return;
+    const since = Math.max(0, sinceRef.current - 5_000);
+    const qs = new URLSearchParams({ since: String(since) });
+    try {
+      const res = await fetch(
+        `/api/community/chat/${channelId}/sync?${qs.toString()}`,
+        { credentials: "include" },
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        messages?: ChatMessageView[];
+        typing?: ChatTypingUser[];
+      };
+      if (data.messages?.length) {
+        mergeMessages(data.messages);
+        for (const m of data.messages) {
+          sinceRef.current = Math.max(sinceRef.current, m.createdAt);
+        }
+      }
+      if (data.typing) setTyping(data.typing);
+    } catch {
+      /* ignore */
+    }
+  }, [channelId, mergeMessages]);
+
+  useVisibilityInterval(
+    () => {
+      void pollChatSync();
+    },
+    CLIENT_POLL.chatMs,
+    enabled && Boolean(channelId) && realtimeMode === "poll",
+  );
+
+  // SSE tylko gdy świadomie włączone (np. Pro) — i tak zamykane przy ukrytej karcie
   useEffect(() => {
-    if (!enabled || !channel?.id) return;
-    const channelId = channel.id;
+    if (!enabled || !channelId || realtimeMode !== "sse") return;
     let es: EventSource | null = null;
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -277,6 +318,10 @@ export function useWorkoutChat(enabled: boolean) {
 
     const connect = () => {
       if (cancelled) return;
+      if (document.visibilityState !== "visible") {
+        retryTimer = setTimeout(connect, 5_000);
+        return;
+      }
       es = new EventSource(
         `/api/community/chat/${channelId}/stream?since=${sinceRef.current}`,
       );
@@ -315,17 +360,29 @@ export function useWorkoutChat(enabled: boolean) {
         es?.close();
         es = null;
         if (cancelled) return;
-        retryTimer = setTimeout(connect, 3000);
+        retryTimer = setTimeout(connect, 8_000);
       };
     };
 
     connect();
+
+    const onVis = () => {
+      if (document.visibilityState === "hidden") {
+        es?.close();
+        es = null;
+      } else if (!es && !cancelled) {
+        connect();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", onVis);
       if (retryTimer) clearTimeout(retryTimer);
       es?.close();
     };
-  }, [enabled, channel?.id, mergeMessages]);
+  }, [enabled, channelId, mergeMessages, realtimeMode]);
 
   return {
     channel,

@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { SSE_POLL } from "@/lib/community/perf-cache";
+import { SSE_MAX_CONNECTION_MS } from "@/lib/community/realtime-config";
 import {
   assertActiveTeamMember,
   listTeamFeedEventsSince,
@@ -7,9 +8,10 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 /**
- * SSE Team Feed — adaptive poll (idle 5s / active 1.5s) by zmniejszyć QPS przy skali.
+ * SSE Team Feed — adaptive poll; połączenie max ~25s (hosting Hobby/Free).
  */
 export async function GET(
   req: Request,
@@ -99,6 +101,7 @@ export async function GET(
       };
 
       req.signal.addEventListener("abort", onAbort);
+      setTimeout(onAbort, SSE_MAX_CONNECTION_MS);
     },
     cancel() {
       closed = true;

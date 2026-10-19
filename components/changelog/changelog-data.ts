@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Realtime Community bez pożerania limitu hostingu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Powiadomienia, tablica i czat domyślnie odświeżają się krótkim HTTP poll zamiast długotrwałego SSE — mniej Active CPU na Vercel Hobby / Render Free.",
+      "Presence treningu grupowego i live znajomych rzadziej (kilka sekund zamiast ułamka sekundy); przy ukrytej karcie requesty pauzują.",
+      "SSE zostaje opcją (NEXT_PUBLIC_COMMUNITY_REALTIME=sse), z limitem ~25 s na połączenie.",
+    ],
+  },
+  {
     title: "Zapowiedź — Dokończ grafiki AI mimo pustego URL katalogu",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

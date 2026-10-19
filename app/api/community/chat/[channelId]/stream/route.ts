@@ -5,12 +5,14 @@ import {
   listTypingUsers,
 } from "@/lib/community/chat";
 import { SSE_POLL } from "@/lib/community/perf-cache";
+import { SSE_MAX_CONNECTION_MS } from "@/lib/community/realtime-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 /**
- * SSE Workout Chat — adaptive poll; typing tylko przy evencie lub co 3. tick.
+ * SSE Workout Chat — adaptive poll; połączenie max ~25s (hosting Hobby/Free).
  */
 export async function GET(
   req: Request,
@@ -115,6 +117,7 @@ export async function GET(
       };
 
       req.signal.addEventListener("abort", onAbort);
+      setTimeout(onAbort, SSE_MAX_CONNECTION_MS);
     },
     cancel() {
       closed = true;

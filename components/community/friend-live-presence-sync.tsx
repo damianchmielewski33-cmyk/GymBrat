@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { buildGroupWorkoutPresence } from "@/lib/community/group-workout-presence";
+import { CLIENT_POLL } from "@/lib/community/realtime-config";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { useCommunityWorkoutStore } from "@/lib/stores/community-workout";
 
@@ -109,14 +110,21 @@ export function FriendLivePresenceSync() {
       }
     };
 
-    void push();
-    const timer = window.setInterval(() => {
-      if (!cancelled) void push();
-    }, 2000);
+    const onTick = () => {
+      if (cancelled || document.visibilityState !== "visible") return;
+      void push();
+    };
+    void onTick();
+    const timer = window.setInterval(onTick, CLIENT_POLL.friendPresenceMs);
+    const onVis = () => {
+      if (document.visibilityState === "visible") onTick();
+    };
+    document.addEventListener("visibilitychange", onVis);
 
     return () => {
       cancelled = true;
       window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, [
     status,

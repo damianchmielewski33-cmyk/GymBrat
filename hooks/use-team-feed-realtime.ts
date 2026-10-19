@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import {
+  CLIENT_POLL,
+  getCommunityRealtimeMode,
+} from "@/lib/community/realtime-config";
+import { useVisibilityInterval } from "@/hooks/use-visibility-interval";
 
 /**
- * SSE → wywołuje onEvent (incremental fetch), bez pełnego router.refresh().
+ * Odświeżenie tablicy: domyślnie poll; SSE tylko przy REALTIME=sse.
  */
 export function useTeamFeedRealtime(
   teamId: string,
@@ -13,9 +18,18 @@ export function useTeamFeedRealtime(
   const sinceRef = useRef(Date.now());
   const onEventRef = useRef(onEvent);
   onEventRef.current = onEvent;
+  const mode = getCommunityRealtimeMode();
+
+  useVisibilityInterval(
+    () => {
+      onEventRef.current?.();
+    },
+    CLIENT_POLL.feedMs,
+    enabled && Boolean(teamId) && mode === "poll",
+  );
 
   useEffect(() => {
-    if (!enabled || !teamId) return;
+    if (!enabled || !teamId || mode !== "sse") return;
 
     let es: EventSource | null = null;
     let cancelled = false;
@@ -23,6 +37,10 @@ export function useTeamFeedRealtime(
 
     const connect = () => {
       if (cancelled) return;
+      if (document.visibilityState !== "visible") {
+        retryTimer = setTimeout(connect, 5_000);
+        return;
+      }
       es = new EventSource(
         `/api/community/teams/${teamId}/feed/stream?since=${sinceRef.current}`,
       );
@@ -46,16 +64,27 @@ export function useTeamFeedRealtime(
         es?.close();
         es = null;
         if (cancelled) return;
-        retryTimer = setTimeout(connect, 4000);
+        retryTimer = setTimeout(connect, 8_000);
       };
     };
 
     connect();
 
+    const onVis = () => {
+      if (document.visibilityState === "hidden") {
+        es?.close();
+        es = null;
+      } else if (!es && !cancelled) {
+        connect();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", onVis);
       if (retryTimer) clearTimeout(retryTimer);
       es?.close();
     };
-  }, [teamId, enabled]);
+  }, [teamId, enabled, mode]);
 }
