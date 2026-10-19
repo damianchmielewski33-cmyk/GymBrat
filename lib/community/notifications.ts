@@ -29,7 +29,7 @@ function displayName(row: {
 
 async function emitEvent(input: {
   userId: string;
-  kind: "created" | "updated" | "read";
+  kind: "created" | "updated" | "read" | "deleted";
   notificationId: string;
 }) {
   const db = getDb();
@@ -389,6 +389,66 @@ export async function markNotificationsRead(input: {
   }
   cacheInvalidate(`unread:${input.userId}`);
   return { ok: true, marked: ids.length };
+}
+
+export async function deleteNotifications(input: {
+  userId: string;
+  ids?: string[] | null;
+  all?: boolean;
+}): Promise<{ ok: true; deleted: number } | { ok: false; error: string }> {
+  await ensureCriticalSchema();
+  const db = getDb();
+
+  if (input.all) {
+    const rows = await db
+      .select({ id: notifications.id })
+      .from(notifications)
+      .where(eq(notifications.userId, input.userId))
+      .limit(500);
+    if (rows.length === 0) return { ok: true, deleted: 0 };
+    const ids = rows.map((r) => r.id);
+    await db
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.userId, input.userId),
+          inArray(notifications.id, ids),
+        ),
+      );
+    for (const id of ids.slice(0, 40)) {
+      await emitEvent({
+        userId: input.userId,
+        kind: "deleted",
+        notificationId: id,
+      });
+    }
+    cacheInvalidate(`unread:${input.userId}`);
+    return { ok: true, deleted: ids.length };
+  }
+
+  const ids = (input.ids ?? []).filter(Boolean).slice(0, 50);
+  if (ids.length === 0) {
+    return { ok: false, error: "Brak powiadomień do usunięcia." };
+  }
+
+  await db
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.userId, input.userId),
+        inArray(notifications.id, ids),
+      ),
+    );
+
+  for (const id of ids) {
+    await emitEvent({
+      userId: input.userId,
+      kind: "deleted",
+      notificationId: id,
+    });
+  }
+  cacheInvalidate(`unread:${input.userId}`);
+  return { ok: true, deleted: ids.length };
 }
 
 export async function listNotificationEventsSince(

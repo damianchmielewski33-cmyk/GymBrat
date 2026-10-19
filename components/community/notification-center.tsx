@@ -7,6 +7,7 @@ import {
   Flame,
   MessageCircle,
   Sparkles,
+  Trash2,
   Trophy,
   Users,
   Zap,
@@ -61,10 +62,14 @@ function NotificationRow({
   n,
   onOpen,
   onSeen,
+  onDelete,
+  deleting,
 }: {
   n: NotificationView;
   onOpen: (n: NotificationView) => void;
   onSeen: (id: string) => void;
+  onDelete: (id: string) => void;
+  deleting: boolean;
 }) {
   const rowRef = useRef<HTMLLIElement>(null);
   const Icon = kindIcon(n.kind);
@@ -88,12 +93,12 @@ function NotificationRow({
   }, [n.id, n.unread, onSeen]);
 
   return (
-    <li ref={rowRef}>
+    <li ref={rowRef} className="relative">
       <button
         type="button"
         onClick={() => onOpen(n)}
         className={cn(
-          "flex min-h-[4.25rem] w-full items-start gap-3 rounded-2xl border px-3.5 py-3.5 text-left transition active:scale-[0.99]",
+          "flex min-h-[4.25rem] w-full items-start gap-3 rounded-2xl border py-3.5 pl-3.5 pr-12 text-left transition active:scale-[0.99]",
           n.unread
             ? "border-[var(--gym-gold)]/25 bg-[var(--gym-gold)]/[0.07]"
             : "border-white/8 bg-white/[0.03] hover:bg-white/[0.05]",
@@ -133,6 +138,18 @@ function NotificationRow({
           </span>
         </span>
       </button>
+      <button
+        type="button"
+        aria-label="Usuń powiadomienie"
+        disabled={deleting}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(n.id);
+        }}
+        className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl border border-white/10 bg-black/40 text-white/45 transition hover:border-rose-400/40 hover:bg-rose-500/15 hover:text-rose-200 disabled:opacity-40"
+      >
+        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+      </button>
     </li>
   );
 }
@@ -148,6 +165,7 @@ export function NotificationCenterClient() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [marking, setMarking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const pendingSeen = useRef(new Set<string>());
   const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -217,6 +235,55 @@ export function NotificationCenterClient() {
     },
     [refreshCount],
   );
+
+  const postDelete = useCallback(
+    async (body: { ids?: string[]; all?: boolean }) => {
+      await ensureCsrfCookie();
+      const res = await fetch("/api/community/notifications/delete", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...getXsrfHeaders(),
+        },
+        body: JSON.stringify(body),
+      });
+      await refreshCount();
+      return res.ok;
+    },
+    [refreshCount],
+  );
+
+  const deleteOne = useCallback(
+    async (id: string) => {
+      setDeleting(true);
+      try {
+        setItems((prev) => prev.filter((n) => n.id !== id));
+        pendingSeen.current.delete(id);
+        await postDelete({ ids: [id] });
+      } finally {
+        setDeleting(false);
+      }
+    },
+    [postDelete],
+  );
+
+  const deleteAll = useCallback(async () => {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("Usunąć wszystkie powiadomienia? Tej operacji nie cofniesz.")
+    ) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      setItems([]);
+      pendingSeen.current.clear();
+      await postDelete({ all: true });
+    } finally {
+      setDeleting(false);
+    }
+  }, [postDelete]);
 
   const flushSeen = useCallback(async () => {
     const ids = [...pendingSeen.current];
@@ -332,16 +399,28 @@ export function NotificationCenterClient() {
             Widoczne powiadomienia oznaczają się same jako przeczytane.
           </p>
         </div>
-        {hasUnread ? (
-          <button
-            type="button"
-            disabled={marking}
-            onClick={() => void markAllRead()}
-            className="min-h-11 shrink-0 rounded-2xl border border-white/10 px-3.5 text-[12px] font-semibold text-white/70 transition hover:text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45"
-          >
-            {marking ? "Oznaczanie…" : "Oznacz wszystkie"}
-          </button>
-        ) : null}
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {hasUnread ? (
+            <button
+              type="button"
+              disabled={marking || deleting}
+              onClick={() => void markAllRead()}
+              className="min-h-11 rounded-2xl border border-white/10 px-3.5 text-[12px] font-semibold text-white/70 transition hover:text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45"
+            >
+              {marking ? "Oznaczanie…" : "Oznacz wszystkie"}
+            </button>
+          ) : null}
+          {items.length > 0 ? (
+            <button
+              type="button"
+              disabled={deleting || marking}
+              onClick={() => void deleteAll()}
+              className="min-h-11 rounded-2xl border border-rose-400/25 px-3.5 text-[12px] font-semibold text-rose-200/80 transition hover:border-rose-400/45 hover:text-rose-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40"
+            >
+              {deleting ? "Usuwanie…" : "Usuń wszystkie"}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="chip-scroll -mx-0.5 px-0.5">
@@ -378,6 +457,8 @@ export function NotificationCenterClient() {
               n={n}
               onOpen={onOpen}
               onSeen={queueSeen}
+              onDelete={(id) => void deleteOne(id)}
+              deleting={deleting}
             />
           ))}
           <div ref={sentinelRef} className="h-3" aria-hidden />

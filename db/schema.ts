@@ -1986,7 +1986,7 @@ export const notificationEvents = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    /** created | updated | read */
+    /** created | updated | read | deleted */
     kind: text("kind").notNull(),
     notificationId: text("notification_id").notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
