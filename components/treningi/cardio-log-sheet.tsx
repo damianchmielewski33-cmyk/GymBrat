@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Footprints, Minus, Plus, X } from "lucide-react";
 import { logCardioDetailedAction } from "@/actions/workout";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { resolveCardioType } from "@/lib/cardio-utils";
 import { cn } from "@/lib/utils";
 
 const MACHINES = [
@@ -60,8 +61,10 @@ export function CardioLogSheet({
   const [minutesText, setMinutesText] = useState("30");
   const [distanceKm, setDistanceKm] = useState("");
   const [avgHr, setAvgHr] = useState("");
+  const [maxHr, setMaxHr] = useState("");
   const [calories, setCalories] = useState("");
   const [steps, setSteps] = useState("");
+  const [effortScore, setEffortScore] = useState("");
   const [note, setNote] = useState("");
 
   const [state, formAction, pending] = useActionState(logCardioDetailedAction, {} as {
@@ -81,8 +84,10 @@ export function CardioLogSheet({
     setMinutesText("30");
     setDistanceKm("");
     setAvgHr("");
+    setMaxHr("");
     setCalories("");
     setSteps("");
+    setEffortScore("");
     setNote(match ? "" : String(defaultTitle));
   }, [open, defaultTitle]);
 
@@ -155,11 +160,14 @@ export function CardioLogSheet({
 
         <form action={formAction} className="relative flex min-h-0 flex-1 flex-col">
           <input type="hidden" name="title" value={machine} />
+          <input type="hidden" name="cardioType" value={resolveCardioType(machine)} />
           <input type="hidden" name="minutes" value={minutes} />
           <input type="hidden" name="distanceKm" value={distanceKm} />
           <input type="hidden" name="avgHr" value={avgHr} />
+          <input type="hidden" name="maxHr" value={maxHr} />
           <input type="hidden" name="calories" value={calories} />
           <input type="hidden" name="steps" value={steps} />
+          <input type="hidden" name="effortScore" value={effortScore} />
           <input type="hidden" name="notes" value={note} />
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-3">
@@ -236,6 +244,26 @@ export function CardioLogSheet({
                   onChange={(e) => setAvgHr(e.target.value)}
                   inputMode="numeric"
                   placeholder="np. 125"
+                  className={fieldClass}
+                />
+              </label>
+              <label className="block">
+                <span className="app-label">Max tętno</span>
+                <input
+                  value={maxHr}
+                  onChange={(e) => setMaxHr(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="np. 165"
+                  className={fieldClass}
+                />
+              </label>
+              <label className="block">
+                <span className="app-label">Wysiłek (1–10)</span>
+                <input
+                  value={effortScore}
+                  onChange={(e) => setEffortScore(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="np. 6"
                   className={fieldClass}
                 />
               </label>

@@ -4,11 +4,16 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
-import { workouts } from "@/db/schema";
+import { users, workouts } from "@/db/schema";
 import {
   computePaceMinPerKm,
+  heartRateZoneFromHr,
+  isCardioTypeSlug,
   parseCardioLog,
+  resolveCardioType,
   type CardioLogPayload,
+  type CardioTypeSlug,
+  type HeartRateZone,
 } from "@/lib/cardio";
 import { calendarDateKey } from "@/lib/local-date";
 import { encryptCardioDevicePhoto } from "@/lib/cardio-device-photo";
@@ -28,11 +33,14 @@ export async function createCardioLog(input: {
   title: string;
   cardioMinutes: number;
   notes?: string;
+  cardioType?: CardioTypeSlug | null;
   distanceKm?: number | null;
   avgHr?: number | null;
+  maxHr?: number | null;
   calories?: number | null;
   steps?: number | null;
   paceMinPerKm?: number | null;
+  effortScore?: number | null;
 }) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -49,15 +57,50 @@ export async function createCardioLog(input: {
     input.paceMinPerKm > 0
       ? input.paceMinPerKm
       : computePaceMinPerKm(input.distanceKm, minutes);
+  const cardioType =
+    (isCardioTypeSlug(input.cardioType) ? input.cardioType : null) ??
+    resolveCardioType(input.title);
+
+  let ageYears: number | null = null;
+  try {
+    const dbAge = getDb();
+    const [u] = await dbAge
+      .select({ age: users.age })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+    ageYears = u?.age ?? null;
+  } catch {
+    /* ignore */
+  }
+  const hrMax =
+    ageYears != null && Number.isFinite(ageYears) ? 220 - ageYears : null;
+  const zone: HeartRateZone | null = heartRateZoneFromHr(
+    input.avgHr ?? null,
+    hrMax ?? input.maxHr ?? null,
+  );
+  const effort =
+    input.effortScore != null &&
+    Number.isFinite(input.effortScore) &&
+    input.effortScore >= 1 &&
+    input.effortScore <= 10
+      ? Math.round(input.effortScore)
+      : null;
+
   const payload: CardioLogPayload = {
     kind: "cardio_log",
     title: input.title,
     notes: input.notes ?? null,
+    cardioType,
     distanceKm: input.distanceKm ?? null,
     avgHr: input.avgHr ?? null,
+    maxHr: input.maxHr ?? null,
     calories: input.calories ?? null,
+    caloriesBurned: input.calories ?? null,
     steps: input.steps ?? null,
     paceMinPerKm: pace,
+    effortScore: effort,
+    heartRateZone: zone,
     devicePhotoDataUrl: null,
   };
 
@@ -94,12 +137,17 @@ export async function updateCardioLogAction(
     .trim()
     .replace(",", ".");
   const avgHrRaw = String(formData.get("avgHr") ?? "").trim();
+  const maxHrRaw = String(formData.get("maxHr") ?? "").trim();
   const caloriesRaw = String(formData.get("calories") ?? "").trim();
   const stepsRaw = String(formData.get("steps") ?? "").trim();
+  const effortRaw = String(formData.get("effortScore") ?? "").trim();
+  const typeRaw = String(formData.get("cardioType") ?? "").trim();
   const distanceKm = distanceRaw ? Number(distanceRaw) : null;
   const avgHr = avgHrRaw ? Number(avgHrRaw) : null;
+  const maxHr = maxHrRaw ? Number(maxHrRaw) : null;
   const calories = caloriesRaw ? Number(caloriesRaw) : null;
   const steps = stepsRaw ? Number(stepsRaw) : null;
+  const effortScore = effortRaw ? Number(effortRaw) : null;
 
   const db = getDb();
   const [row] = await db
@@ -125,6 +173,10 @@ export async function updateCardioLogAction(
     avgHr != null && Number.isFinite(avgHr) && avgHr > 0
       ? Math.round(avgHr)
       : null;
+  const maxHrN =
+    maxHr != null && Number.isFinite(maxHr) && maxHr > 0
+      ? Math.round(maxHr)
+      : null;
   const kcal =
     calories != null && Number.isFinite(calories) && calories > 0
       ? Math.round(calories)
@@ -133,16 +185,45 @@ export async function updateCardioLogAction(
     steps != null && Number.isFinite(steps) && steps > 0
       ? Math.round(steps)
       : null;
+  const effort =
+    effortScore != null &&
+    Number.isFinite(effortScore) &&
+    effortScore >= 1 &&
+    effortScore <= 10
+      ? Math.round(effortScore)
+      : null;
+  const cardioType =
+    (isCardioTypeSlug(typeRaw) ? typeRaw : null) ?? resolveCardioType(title);
+
+  let ageYears: number | null = null;
+  try {
+    const [u] = await db
+      .select({ age: users.age })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+    ageYears = u?.age ?? null;
+  } catch {
+    /* ignore */
+  }
+  const hrMaxEst =
+    ageYears != null && Number.isFinite(ageYears) ? 220 - ageYears : null;
+  const zone = heartRateZoneFromHr(hr, hrMaxEst ?? maxHrN);
 
   const payload: CardioLogPayload = {
     kind: "cardio_log",
     title,
     notes: notesRaw || null,
+    cardioType,
     distanceKm: dist,
     avgHr: hr,
+    maxHr: maxHrN,
     calories: kcal,
+    caloriesBurned: kcal,
     steps: stepN,
     paceMinPerKm: computePaceMinPerKm(dist, minutes),
+    effortScore: effort,
+    heartRateZone: zone,
     devicePhotoDataUrl: encryptCardioDevicePhoto(existingPhoto),
   };
 

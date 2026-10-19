@@ -8,6 +8,7 @@ import {
   type ActiveWorkoutCloudPayload,
   type ActiveWorkoutCloudRecord,
 } from "@/lib/active-workout-cloud";
+import { EMPTY_CARDIO_EXTRAS } from "@/lib/cardio-utils";
 import {
   persistActiveWorkoutLocalNow,
   snapshotActiveWorkoutPayload,
@@ -77,11 +78,7 @@ function applyCloudPayload(payload: ActiveWorkoutCloudPayload) {
     workoutPlanId: payload.workoutPlanId,
     cardioMinutes: payload.cardioMinutes,
     cardioExtras: payload.cardioExtras ?? {
-      distanceKm: null,
-      avgHr: null,
-      calories: null,
-      steps: null,
-      paceMinPerKm: null,
+      ...EMPTY_CARDIO_EXTRAS,
     },
     exercises: payload.exercises,
     selectedExerciseId: payload.selectedExerciseId,

@@ -3,6 +3,7 @@ import { StrengthTab } from "@/components/progress/strength-tab";
 import { BodyTab } from "@/components/progress/body-tab";
 import { PhotosTab } from "@/components/progress/photos-tab";
 import { WeekTab } from "@/components/progress/week-tab";
+import { IntelligenceStrip } from "@/components/progress/intelligence-strip";
 import { getProgressHubData } from "@/lib/progress-hub";
 import type { ProgressTabId } from "@/lib/progress-tabs";
 
@@ -79,10 +80,16 @@ export async function ProgressPageContent({
         {formatSinceKicker(data.strength.sinceDate, data.strength.workoutCount)}
       </p>
 
-      {tab === "sila" ? <StrengthTab data={data.strength} /> : null}
+      <IntelligenceStrip data={data.intelligence} />
+
+      {tab === "sila" ? (
+        <StrengthTab data={data.strength} intelligence={data.intelligence} />
+      ) : null}
       {tab === "sylwetka" ? <BodyTab data={data.body} /> : null}
       {tab === "zdjecia" ? <PhotosTab data={data.photos} /> : null}
-      {tab === "tydzien" ? <WeekTab data={data.week} /> : null}
+      {tab === "tydzien" ? (
+        <WeekTab data={data.week} intelligence={data.intelligence} />
+      ) : null}
     </div>
   );
 }

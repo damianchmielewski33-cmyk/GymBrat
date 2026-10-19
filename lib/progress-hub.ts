@@ -1,9 +1,31 @@
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { withDbRetry } from "@/db/with-retry";
-import { userSettings, weightLogs, workoutPlans, workouts } from "@/db/schema";
+import {
+  dailyCheckins,
+  userSettings,
+  users,
+  weightLogs,
+  workoutPlans,
+  workouts,
+} from "@/db/schema";
+import {
+  buildProgressIntelligence,
+  emptyProgressIntelligence,
+  contributionFromExercise,
+  type AnalyticsCardioSample,
+  type AnalyticsStrengthSession,
+  type ExerciseSessionPoint,
+  type MuscleSetContribution,
+  type ProgressIntelligence,
+  type SexKind,
+} from "@/lib/analytics";
 import { computeAchievements, type AchievementDef } from "@/lib/achievements";
 import { getBodyReports } from "@/lib/body-reports";
+import {
+  extractCardioExtrasFromSessionJson,
+  parseCardioLog,
+} from "@/lib/cardio-utils";
 import {
   emptyProgressDietTrainingBlock,
   loadProgressDietTrainingBlock,
@@ -27,6 +49,8 @@ import {
 import { resolveExerciseIdentity } from "@/lib/exercise-identity";
 import {
   buildProgressIntensitySummary,
+  isHardSet,
+  isIntensityEligibleSet,
   summarizeSessionIntensity,
   type ProgressIntensitySummary,
   type SessionIntensity,
@@ -42,6 +66,8 @@ import {
   buildWeekTrainingCompare,
   type WeekTrainingCompare,
 } from "@/lib/week-training-compare";
+import { resolveExerciseMuscles } from "@/lib/resolve-exercise-muscles";
+import type { MuscleRegionId } from "@/lib/resolve-exercise-muscles";
 
 export type VolumeTrendKind = "up" | "flat" | "down";
 
@@ -215,6 +241,8 @@ export type ProgressHubData = {
     goals: ProgressGoalBar[];
     achievements: AchievementDef[];
   };
+  /** Silniki Analityki 11/10 — fatigue, recovery, muscle, stagnation, … */
+  intelligence: ProgressIntelligence;
 };
 
 function clampNonNegative(n: number): number {
@@ -299,7 +327,8 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
   const sunday = addCalendarDays(monday, 6);
   const from180 = addCalendarDays(today, -180);
 
-  const [settingsRow, planRows, workoutRows, bodyReports] = await Promise.all([
+  const [settingsRow, planRows, workoutRows, bodyReports, userRow, checkinRows] =
+    await Promise.all([
     db
       .select({
         weeklyCardioGoalMinutes: userSettings.weeklyCardioGoalMinutes,
@@ -336,6 +365,33 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       .limit(400),
     // Bez blobów — tylko meta (id), media serwowane osobno po /api/media/…
     getBodyReports(userId, { photos: "meta" }),
+    db
+      .select({
+        age: users.age,
+        weightKg: users.weightKg,
+        sex: users.sex,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+      .then((r) => r[0] ?? null),
+    db
+      .select({
+        date: dailyCheckins.date,
+        sleepQuality: dailyCheckins.sleepQuality,
+        dayEnergy: dailyCheckins.dayEnergy,
+        stress: dailyCheckins.stress,
+        weightKg: dailyCheckins.weightKg,
+      })
+      .from(dailyCheckins)
+      .where(
+        and(
+          eq(dailyCheckins.userId, userId),
+          gte(dailyCheckins.date, addCalendarDays(today, -21)),
+        ),
+      )
+      .orderBy(desc(dailyCheckins.date))
+      .limit(21),
   ]);
 
   const goals = parseFitnessGoalsJson(settingsRow?.fitnessGoalsJson ?? null);
@@ -356,7 +412,16 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
     lastVolume: number;
     hasWeighted: boolean;
     metric: ProgressMetricKind;
+    /** Historia sesji dla stagnation / prediction / velocity. */
+    points: ExerciseSessionPoint[];
+    primaryRegion: MuscleRegionId | null;
   };
+
+  const analyticsStrengthSessions: AnalyticsStrengthSession[] = [];
+  const analyticsStrengthDates: string[] = [];
+  const analyticsCardioSamples: AnalyticsCardioSample[] = [];
+  const muscleContributions: MuscleSetContribution[] = [];
+  const strengthDaySet = new Set<string>();
 
   function toExerciseRow(input: {
     name: string;
@@ -507,6 +572,43 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       cardioPrevSame += cardioMin;
     }
 
+    // Cardio samples dla Analityki 2.0 (standalone + addon przy sile)
+    if (
+      cardioMin > 0 ||
+      isStandaloneCardioLog(session, row.cardioMinutes ?? 0)
+    ) {
+      let rawJson: unknown = null;
+      try {
+        rawJson = JSON.parse(row.exercises);
+      } catch {
+        rawJson = null;
+      }
+      const extras = extractCardioExtrasFromSessionJson(
+        rawJson,
+        cardioMin,
+        userRow?.age ?? null,
+      );
+      const log = parseCardioLog(rawJson);
+      const title =
+        log?.title ??
+        (typeof (rawJson as { title?: unknown } | null)?.title === "string"
+          ? (rawJson as { title: string }).title
+          : null);
+      analyticsCardioSamples.push({
+        id: row.id,
+        date: row.date,
+        minutes: cardioMin,
+        avgHr: extras.avgHr,
+        maxHr: extras.maxHr,
+        calories: extras.calories,
+        distanceKm: extras.distanceKm,
+        cardioType: extras.cardioType,
+        effortScore: extras.effortScore,
+        heartRateZone: extras.heartRateZone,
+        title,
+      });
+    }
+
     if (!strength) continue;
 
     const ex = safeNormalizeExercises(
@@ -548,6 +650,22 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
     });
     const sessionIntensity = summarizeSessionIntensity(ex);
     intensitySessions.push(sessionIntensity);
+    analyticsStrengthSessions.push({
+      id: row.id,
+      date: row.date,
+      tonnageKg: vol,
+      hardSetPct:
+        sessionIntensity.scoredSets > 0
+          ? safeRound1(
+              (sessionIntensity.hardSets / sessionIntensity.scoredSets) * 100,
+            )
+          : null,
+      avgRpe: sessionIntensity.avgRpe,
+      avgRir: sessionIntensity.avgRir,
+      setCount: sessionIntensity.scoredSets,
+    });
+    analyticsStrengthDates.push(row.date);
+    strengthDaySet.add(row.date);
     const weekIntensity = intensityByWeek.get(weekMon) ?? [];
     weekIntensity.push(sessionIntensity);
     intensityByWeek.set(weekMon, weekIntensity);
@@ -570,6 +688,13 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       let dayBestRepsAtWeight = 0;
       let dayBestSetReps = 0;
       let dayHasWeighted = false;
+      let dayHardSets = 0;
+      let dayScoredSets = 0;
+      let dayRpeSum = 0;
+      let dayRpeN = 0;
+      let dayRirSum = 0;
+      let dayRirN = 0;
+      let daySetsCount = 0;
       for (const s of e.sets ?? []) {
         const reps =
           typeof s.reps === "number" && Number.isFinite(s.reps)
@@ -582,6 +707,7 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
         const w = clampNonNegative(weight);
         if (!Boolean(s.done) || Boolean(s.skipped) || !hasPerformedReps(reps))
           continue;
+        daySetsCount += 1;
         dayTotalReps += reps!;
         if (reps! > dayBestSetReps) dayBestSetReps = reps!;
         if (hasExternalWeight(w)) {
@@ -594,12 +720,58 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
             dayBestRepsAtWeight = reps!;
           }
         }
+        const rir =
+          typeof s.rir === "number" && Number.isFinite(s.rir) ? s.rir : null;
+        const rpe =
+          typeof s.rpe === "number" && Number.isFinite(s.rpe) ? s.rpe : null;
+        if (isIntensityEligibleSet({ done: true, skipped: false, rir, rpe })) {
+          dayScoredSets += 1;
+          if (isHardSet({ rir, rpe })) dayHardSets += 1;
+          if (rpe != null) {
+            dayRpeSum += rpe;
+            dayRpeN += 1;
+          }
+          if (rir != null) {
+            dayRirSum += rir;
+            dayRirN += 1;
+          }
+        }
       }
       if (dayVolKg <= 0 && dayTotalReps <= 0) continue;
       const identity = resolveExerciseIdentity(name);
       if (!identity.key) continue;
       const key = identity.key;
       const displayName = identity.displayName || name;
+      const muscles = resolveExerciseMuscles({ name });
+      const primaryRegion =
+        muscles.primary && muscles.primary !== "cardio"
+          ? muscles.primary
+          : null;
+      muscleContributions.push(
+        contributionFromExercise({
+          date: row.date,
+          primaryRegion,
+          secondaryRegions: muscles.secondary,
+          sets: Math.max(1, daySetsCount),
+          reps: dayTotalReps,
+          tonnageKg: dayVolKg,
+        }),
+      );
+      const point: ExerciseSessionPoint = {
+        date: row.date,
+        volumeKg: safeRound1(dayVolKg),
+        totalReps: dayTotalReps,
+        bestE1rm: safeRound1(dayBestE1rm),
+        bestWeight: safeRound1(dayBestWeight),
+        bestReps: hasExternalWeight(dayBestWeight)
+          ? dayBestRepsAtWeight
+          : dayBestSetReps,
+        hardSets: dayHardSets,
+        scoredSets: dayScoredSets,
+        avgRpe: dayRpeN > 0 ? safeRound1(dayRpeSum / dayRpeN) : null,
+        avgRir: dayRirN > 0 ? safeRound1(dayRirSum / dayRirN) : null,
+        setsCount: daySetsCount,
+      };
       const prev = byExercise.get(key);
       const hasWeighted = Boolean(prev?.hasWeighted || dayHasWeighted);
       const metric: ProgressMetricKind = hasWeighted ? "kg" : "reps";
@@ -616,6 +788,8 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
           hasWeighted: true,
           metric: "kg",
           bestReps: Math.max(prev.bestReps, dayBestSetReps),
+          points: [...prev.points, point].slice(-60),
+          primaryRegion: prev.primaryRegion ?? primaryRegion,
         });
         continue;
       }
@@ -633,6 +807,8 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
           lastVolume: metricValue,
           hasWeighted,
           metric,
+          points: [point],
+          primaryRegion,
         });
       } else {
         const isNewE1rm = dayBestE1rm > prev.bestE1rm;
@@ -663,6 +839,8 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
           lastVolume: metricValue,
           hasWeighted,
           metric,
+          points: [...prev.points, point].slice(-60),
+          primaryRegion: prev.primaryRegion ?? primaryRegion,
         });
       }
     }
@@ -1154,6 +1332,108 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
     dietTraining = emptyProgressDietTrainingBlock();
   }
 
+  // --- Intelligence (Analityka 11/10) ---
+  let consecutiveTrainingDays = 0;
+  {
+    let cursor = today;
+    for (let i = 0; i < 21; i++) {
+      if (strengthDaySet.has(cursor)) {
+        consecutiveTrainingDays += 1;
+        cursor = addCalendarDays(cursor, -1);
+      } else {
+        break;
+      }
+    }
+  }
+
+  const latestCheckin = checkinRows[0] ?? null;
+  const checkinWeekAgo = checkinRows.find((c) => {
+    const gap =
+      (new Date(`${today}T12:00:00`).getTime() -
+        new Date(`${c.date}T12:00:00`).getTime()) /
+      (24 * 60 * 60 * 1000);
+    return gap >= 5 && gap <= 10;
+  });
+  const weightDeltaKg7d =
+    latestCheckin?.weightKg != null && checkinWeekAgo?.weightKg != null
+      ? safeRound1(latestCheckin.weightKg - checkinWeekAgo.weightKg)
+      : deltaVsPrevKg != null &&
+          lastReportDate != null &&
+          (() => {
+            const gap =
+              (new Date(`${today}T12:00:00`).getTime() -
+                new Date(`${lastReportDate}T12:00:00`).getTime()) /
+              (24 * 60 * 60 * 1000);
+            return gap <= 10;
+          })()
+        ? deltaVsPrevKg
+        : null;
+
+  const dietAdherencePct =
+    dietTraining.current?.calorieAdherencePct ??
+    (dietTraining.weeks.length
+      ? (() => {
+          const vals = dietTraining.weeks
+            .map((w) => w.calorieAdherencePct)
+            .filter((x): x is number => x != null);
+          if (!vals.length) return null;
+          return (
+            Math.round(
+              (vals.reduce((a, b) => a + b, 0) / vals.length) * 10,
+            ) / 10
+          );
+        })()
+      : null);
+
+  const sexRaw = (userRow?.sex ?? "").trim().toLowerCase();
+  const sex: SexKind | null =
+    sexRaw === "male" || sexRaw === "female" ? sexRaw : null;
+
+  let intelligence: ProgressIntelligence = emptyProgressIntelligence();
+  try {
+    intelligence = buildProgressIntelligence({
+      today,
+      weeklySessionsTarget: weeklyTarget,
+      weeklyCardioGoalMinutes: cardioGoal,
+      ageYears: userRow?.age ?? null,
+      weightKg: userRow?.weightKg ?? currentKg,
+      sex,
+      strengthSessions: analyticsStrengthSessions,
+      strengthDates: analyticsStrengthDates,
+      consecutiveTrainingDays,
+      exercises: [...byExercise.values()].map((e) => ({
+        exerciseKey: e.key,
+        name: e.name,
+        points: e.points,
+        primaryRegion: e.primaryRegion,
+      })),
+      muscleContributions,
+      cardioSamples: analyticsCardioSamples,
+      subjective: latestCheckin
+        ? {
+            sleepQuality: latestCheckin.sleepQuality,
+            dayEnergy: latestCheckin.dayEnergy,
+            stress: latestCheckin.stress,
+            weightDeltaKg7d,
+          }
+        : bodyReports[0]
+          ? {
+              sleepQuality: bodyReports[0].sleepQuality ?? null,
+              dayEnergy: bodyReports[0].dayEnergy ?? null,
+              stress: null,
+              weightDeltaKg7d,
+            }
+          : null,
+      dietAdherencePct,
+    });
+  } catch (e) {
+    console.error(
+      "[progress-hub] intelligence",
+      e instanceof Error ? e.message : e,
+    );
+    intelligence = emptyProgressIntelligence();
+  }
+
   return {
     strength: {
       maxes,
@@ -1213,5 +1493,6 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       goals: goalBars,
       achievements,
     },
+    intelligence,
   };
 }

@@ -14,6 +14,7 @@ export function BodyParamsFormFields({
     weightKg: number | null;
     heightCm: number | null;
     age: number | null;
+    sex?: string | null;
     activityLevel: string | null;
   };
 }) {
@@ -73,6 +74,27 @@ export function BodyParamsFormFields({
             defaultValue={initial.age ?? 25}
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="sex">Płeć (kcal cardio)</Label>
+        <select
+          id="sex"
+          name="sex"
+          defaultValue={
+            initial.sex === "male" || initial.sex === "female"
+              ? initial.sex
+              : ""
+          }
+          className="h-11 min-h-11 w-full rounded-lg border border-white/20 bg-black/50 px-3 text-sm text-white outline-none focus-visible:border-[var(--neon)]/55 focus-visible:ring-[3px] focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+        >
+          <option value="">Nie podano</option>
+          <option value="male">Mężczyzna</option>
+          <option value="female">Kobieta</option>
+        </select>
+        <p className="text-xs text-white/45">
+          Używane do szacowania kcal z tętna (Keytel). Bez wyboru — wzór uniwersalny.
+        </p>
       </div>
 
       <div className="space-y-2">

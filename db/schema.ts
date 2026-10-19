@@ -44,6 +44,8 @@ export const users = sqliteTable("users", {
   weightKg: real("weight_kg"),
   heightCm: integer("height_cm"),
   age: integer("age"),
+  /** `male` | `female` — opcjonalne; Keytel kcal cardio. */
+  sex: text("sex"),
   activityLevel: text("activity_level"),
   /** `zawodnik` | `trener` | `admin` — admin ustawiany przez ADMIN_EMAILS, bootstrap lub panel. */
   appRole: text("app_role").notNull().default("zawodnik"),

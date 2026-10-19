@@ -1,0 +1,147 @@
+{
+  "title": "GymBrat — Analityka Intelligence (11/10)",
+  "version": "1.0",
+  "date": "2026-10-19",
+  "algorithmVersion": "analytics_v1",
+  "purpose": "Kontrakt silników derive-on-read pod ProgressHubData.intelligence: fatigue, recovery, muscle balance, stagnation, consistency, adherence, prediction, strength velocity, cardio 2.0 (HR zones, load, kcal, performance) oraz coach insights.",
+  "architecture": {
+    "mode": "derive_on_read",
+    "hub": "lib/progress-hub.ts → intelligence",
+    "engines": "lib/analytics/*",
+    "ui": [
+      "components/progress/intelligence-strip.tsx",
+      "components/progress/muscle-balance-panel.tsx",
+      "components/progress/week-intelligence-panel.tsx",
+      "components/progress/exercise-detail-view.tsx (prediction + stagnation)"
+    ],
+    "noPieTables": "Brak materializacji pie_* w tej dostawie — fakty z workouts / body_reports / daily_checkins / users."
+  },
+  "sourceOfTruth": [
+    "lib/analytics/build-intelligence.ts",
+    "lib/analytics/fatigue-score.ts",
+    "lib/analytics/recovery-score.ts",
+    "lib/analytics/muscle-volume.ts",
+    "lib/analytics/stagnation.ts",
+    "lib/analytics/consistency-score.ts",
+    "lib/analytics/adherence-score.ts",
+    "lib/analytics/prediction.ts",
+    "lib/analytics/strength-velocity.ts",
+    "lib/analytics/cardio-hr-zones.ts",
+    "lib/analytics/cardio-load.ts",
+    "lib/analytics/cardio-calories.ts",
+    "lib/analytics/cardio-performance.ts",
+    "lib/analytics/coach-insights.ts",
+    "lib/cardio-utils.ts",
+    "lib/progress-hub.ts"
+  ],
+  "tests": ["lib/analytics/analytics-engines.test.ts"],
+  "engines": {
+    "fatigue": {
+      "range": [0, 100],
+      "bands": {
+        "0-30": "fresh",
+        "31-60": "normal",
+        "61-80": "fatigued",
+        "81-100": "overreached"
+      },
+      "inputs": [
+        "weeklyTonnage vs 4-week average",
+        "intra-week tonnage trend",
+        "hardSetPct",
+        "avgRpe",
+        "sessionsThisWeek",
+        "cardioLoad",
+        "consecutiveTrainingDays"
+      ],
+      "outputs": ["score", "band", "delta7d", "delta30d", "recommendation"]
+    },
+    "recovery": {
+      "range": [0, 100],
+      "bands": ["poor", "average", "good", "excellent"],
+      "primary": "sleepQuality / dayEnergy / stress (+ weightDelta, cardioLoad)",
+      "fallback": "100 - fatigue"
+    },
+    "muscle": {
+      "groups": [
+        "klatka",
+        "plecy",
+        "barki",
+        "biceps",
+        "triceps",
+        "nogi",
+        "posladki",
+        "lydki",
+        "brzuch"
+      ],
+      "windowsDays": [7, 30, 90],
+      "allocation": "primary 1.0 sets · secondary 0.5 sets",
+      "imbalanceAlert": "≥40% mniej serii niż partner przy min. 8 seriach u wyższej grupy"
+    },
+    "stagnation": {
+      "windowsDays": [14, 30, 60],
+      "statuses": ["progressing", "stable", "stagnating", "regressing"],
+      "flatThresholdPct": 3
+    },
+    "consistency": {
+      "formula": "done / (weeklySessionsTarget × weeksInWindow)",
+      "windows": ["week", "month≈30d", "days90"]
+    },
+    "adherence": {
+      "training": "consistency.week.scorePct",
+      "diet": "avg calorieAdherencePct from diet-training weeks",
+      "cardio": "minutesThisWeek / weeklyCardioGoal × 100",
+      "overall": "mean of available components"
+    },
+    "prediction": {
+      "minSamples": 8,
+      "model": "OLS linear regression on days-since-first",
+      "horizonsDays": [30, 90],
+      "metrics": ["e1RM", "session tonnage"],
+      "confidence": {
+        "high": "n≥16 && R²≥0.55",
+        "medium": "n≥10 && R²≥0.35",
+        "low": "otherwise"
+      }
+    },
+    "strengthVelocity": {
+      "windowsDays": [7, 30, 90],
+      "unit": "%Δ first-half vs second-half of window"
+    },
+    "cardio": {
+      "hrMax": "220 − age",
+      "zones": {
+        "Z1": "50–60%",
+        "Z2": "60–70%",
+        "Z3": "70–80%",
+        "Z4": "80–90%",
+        "Z5": "90–100%"
+      },
+      "load": "Σ minutes × intensity(zone|effort|%HRmax)",
+      "loadBands": { "low": "<120", "medium": "120–279", "high": "≥280" },
+      "kcal": "stored calories OR Keytel (sex-aware when users.sex set)",
+      "performance": "same activity + similar duration, HR then vs now (14–60d gap)"
+    }
+  },
+  "cardioPayloadV2": {
+    "fields": [
+      "cardioType",
+      "avgHr",
+      "maxHr",
+      "distanceKm",
+      "calories / caloriesBurned",
+      "effortScore",
+      "heartRateZone"
+    ],
+    "setTelemetryPersisted": [
+      "restSeconds",
+      "heartRate",
+      "elapsedSecondsAtCompletion"
+    ],
+    "usersSex": "optional male|female for Keytel"
+  },
+  "relatedDocs": [
+    "docs/progress-screens.json",
+    "docs/progress-training-analysis.json",
+    "docs/performance-intelligence-engine-v2.md"
+  ]
+}

@@ -7,7 +7,9 @@ import { SectionLabel } from "@/components/ui/section-label";
 import { WeekBarChart } from "@/components/progress/week-bar-chart";
 import { WeekOverWeekCard } from "@/components/progress/week-over-week-card";
 import { WeekProgressCalendarCard } from "@/components/progress/week-progress-calendar-card";
+import { WeekIntelligencePanel } from "@/components/progress/week-intelligence-panel";
 import type { AchievementIcon } from "@/lib/achievements";
+import type { ProgressIntelligence } from "@/lib/analytics";
 import {
   dietWeekStatusLabel,
   type DietWeekStatus,
@@ -191,7 +193,13 @@ function DietTrainingWeekRow({ week }: { week: ProgressDietTrainingWeek }) {
   );
 }
 
-export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
+export function WeekTab({
+  data,
+  intelligence,
+}: {
+  data: ProgressHubData["week"];
+  intelligence: ProgressIntelligence;
+}) {
   const { summary, last8, dietTraining, goals, achievements } = data;
   const [showAll, setShowAll] = useState(false);
   const unlocked = achievements.filter((a) => a.unlockedAt);
@@ -278,6 +286,8 @@ export function WeekTab({ data }: { data: ProgressHubData["week"] }) {
           <WeekOverWeekCard compare={summary.weekCompare} />
         ) : null}
       </section>
+
+      <WeekIntelligencePanel data={intelligence} />
 
       <section className="space-y-2">
         <SectionLabel

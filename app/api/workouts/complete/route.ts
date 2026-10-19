@@ -71,6 +71,17 @@ const setSchema = z.object({
   skipped: z.boolean().optional(),
   rpe: z.union([z.number().finite().min(1).max(10), z.null()]).optional(),
   rir: z.union([z.number().finite().min(0).max(5), z.null()]).optional(),
+  /** Odpoczynek przed / po serii (s) — telemetria analityczna. */
+  restSeconds: z
+    .union([z.number().finite().min(0).max(3600), z.null()])
+    .optional(),
+  heartRate: z
+    .union([z.number().finite().min(30).max(250), z.null()])
+    .optional(),
+  /** Czas od startu sesji w momencie zaliczenia serii. */
+  elapsedSecondsAtCompletion: z
+    .union([z.number().finite().min(0).max(24 * 3600), z.null()])
+    .optional(),
 });
 
 const exerciseSchema = z.object({
@@ -93,9 +104,44 @@ const bodySchema = z.object({
     .object({
       distanceKm: z.number().finite().min(0).max(500).nullable().optional(),
       avgHr: z.number().finite().min(0).max(250).nullable().optional(),
+      maxHr: z.number().finite().min(0).max(250).nullable().optional(),
       calories: z.number().finite().min(0).max(20000).nullable().optional(),
+      caloriesBurned: z
+        .number()
+        .finite()
+        .min(0)
+        .max(20000)
+        .nullable()
+        .optional(),
       steps: z.number().finite().min(0).max(500000).nullable().optional(),
       paceMinPerKm: z.number().finite().min(0).max(120).nullable().optional(),
+      cardioType: z
+        .enum([
+          "walk",
+          "treadmill",
+          "bike",
+          "elliptical",
+          "stairs",
+          "run",
+          "swim",
+          "other",
+        ])
+        .nullable()
+        .optional(),
+      effortScore: z
+        .number()
+        .finite()
+        .min(1)
+        .max(10)
+        .nullable()
+        .optional(),
+      heartRateZone: z
+        .number()
+        .int()
+        .min(1)
+        .max(5)
+        .nullable()
+        .optional(),
     })
     .nullable()
     .optional(),

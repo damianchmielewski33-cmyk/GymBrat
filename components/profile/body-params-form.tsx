@@ -14,6 +14,7 @@ export function BodyParamsForm({
     weightKg: number | null;
     heightCm: number | null;
     age: number | null;
+    sex?: string | null;
     activityLevel: string | null;
   };
 }) {

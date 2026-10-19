@@ -159,9 +159,14 @@ export function completedSessionJsonForCompare(input: {
   cardio?: {
     distanceKm?: number | null;
     avgHr?: number | null;
+    maxHr?: number | null;
     calories?: number | null;
+    caloriesBurned?: number | null;
     steps?: number | null;
     paceMinPerKm?: number | null;
+    cardioType?: string | null;
+    effortScore?: number | null;
+    heartRateZone?: number | null;
   } | null;
 }): string {
   const cardioMinutes = Math.max(0, Math.round(Number(input.cardioMinutes ?? 0)));
@@ -179,16 +184,31 @@ export function completedSessionJsonForCompare(input: {
       : dist != null && cardioMinutes > 0
         ? cardioMinutes / dist
         : null;
+  const kcal =
+    input.cardio?.calories != null && Number.isFinite(input.cardio.calories)
+      ? input.cardio.calories
+      : input.cardio?.caloriesBurned != null &&
+          Number.isFinite(input.cardio.caloriesBurned)
+        ? input.cardio.caloriesBurned
+        : null;
   const cardio =
     cardioMinutes > 0 && input.cardio
       ? {
           ...(dist != null ? { distanceKm: dist } : {}),
           ...(input.cardio.avgHr != null ? { avgHr: input.cardio.avgHr } : {}),
-          ...(input.cardio.calories != null
-            ? { calories: input.cardio.calories }
-            : {}),
+          ...(input.cardio.maxHr != null ? { maxHr: input.cardio.maxHr } : {}),
+          ...(kcal != null ? { calories: kcal } : {}),
           ...(input.cardio.steps != null ? { steps: input.cardio.steps } : {}),
           ...(pace != null ? { paceMinPerKm: pace } : {}),
+          ...(input.cardio.cardioType
+            ? { cardioType: input.cardio.cardioType }
+            : {}),
+          ...(input.cardio.effortScore != null
+            ? { effortScore: input.cardio.effortScore }
+            : {}),
+          ...(input.cardio.heartRateZone != null
+            ? { heartRateZone: input.cardio.heartRateZone }
+            : {}),
         }
       : null;
   return JSON.stringify({

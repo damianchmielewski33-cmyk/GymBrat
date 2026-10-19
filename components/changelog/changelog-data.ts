@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Analityka 11/10: Fatigue, Recovery, mięśnie, cardio 2.0",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Nad zakładkami Analizy widać Fatigue Score i Recovery Score z trendem oraz krótkimi wnioskami trenera (tonaż, stagnacja, balance mięśniowy, adherence).",
+      "W Siła: objętość per partia (30 dni), alerty dysproporcji i lista stagnujących ćwiczeń; w detalu ćwiczenia — predykcja e1RM/tonażu na 30/90 dni.",
+      "W Tydzień: Cardio Load, strefy HR, Consistency (plan vs wykonanie) oraz Adherence trening/dieta/cardio.",
+      "Cardio zbiera typ aktywności, max tętno i wysiłek 1–10; serie siłowe zapisują restSeconds, heartRate i czas zaliczenia do analityki.",
+    ],
+  },
+  {
     title: "Zapowiedź — Community: Hall of Fame, Quests, Wars, XP i Ghost",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

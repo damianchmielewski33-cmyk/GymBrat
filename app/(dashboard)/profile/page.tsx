@@ -66,6 +66,7 @@ export default async function ProfilePage() {
         weightKg: users.weightKg,
         heightCm: users.heightCm,
         age: users.age,
+        sex: users.sex,
         activityLevel: users.activityLevel,
       })
       .from(users)
@@ -197,6 +198,7 @@ export default async function ProfilePage() {
             weightKg: u?.weightKg ?? null,
             heightCm: u?.heightCm ?? null,
             age: u?.age ?? null,
+            sex: u?.sex ?? null,
             activityLevel: u?.activityLevel ?? "medium",
           }}
         />

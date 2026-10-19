@@ -1,0 +1,490 @@
+{
+  "title": "GymBrat — ekrany Analiza postępów (co jest wyświetlane)",
+  "version": "1.1",
+  "date": "2026-10-19",
+  "purpose": "Inwentarz UI sekcji Analiza: layout, zakładki, bloki, etykiety i wartości widoczne użytkownikowi. Formuły i eligibility → docs/progress-training-analysis.json. Silniki Intelligence → docs/analytics-intelligence.json.",
+  "intelligenceStrip": {
+    "component": "components/progress/intelligence-strip.tsx",
+    "placement": "nad zakładkami (wszystkie taby)",
+    "shows": [
+      "Fatigue 0–100 + band + Δ7d",
+      "Recovery % + readinessLine",
+      "do 3 coach insights",
+      "rekomendacja fatigue"
+    ]
+  },
+  "route": "/progress",
+  "legacyRedirect": {
+    "from": "/progress-analysis",
+    "to": "/progress (lub /progress?tab=… / /progress/exercises/…)"
+  },
+  "pageShell": {
+    "file": "app/(dashboard)/progress/page.tsx",
+    "title": "Analiza postępów",
+    "tabsNav": {
+      "component": "components/progress/progress-tabs.tsx",
+      "queryParam": "tab",
+      "default": "sila",
+      "tabs": [
+        { "id": "sila", "label": "Siła" },
+        { "id": "sylwetka", "label": "Sylwetka" },
+        { "id": "zdjecia", "label": "Zdjęcia" },
+        { "id": "tydzien", "label": "Tydzień" }
+      ]
+    },
+    "kickerAboveTab": {
+      "component": "ProgressPageContent",
+      "format": "OD {dzień} {MIESIĄC_PL} · {N} TRENING / TRENINGI / TRENINGÓW",
+      "fallbackWithoutDate": "{N} TRENINGÓW…",
+      "source": "strength.sinceDate + strength.workoutCount"
+    },
+    "errorState": {
+      "title": "Nie udało się wczytać analizy",
+      "body": "Chwilowy problem z bazą lub hostingu…",
+      "cta": "Odśwież analizę → /progress?tab={active}"
+    },
+    "dataLoader": "lib/progress-hub.ts → getProgressHubData"
+  },
+  "screens": [
+    {
+      "id": "sila",
+      "label": "Siła",
+      "component": "components/progress/strength-tab.tsx",
+      "dataKey": "ProgressHubData.strength",
+      "blocks": [
+        {
+          "id": "maxes",
+          "title": "Moje maxy",
+          "subtitle": "e1RM i max powtórzeń (masa ciała)",
+          "collapsedByDefault": true,
+          "headerAction": {
+            "label": "+ Nowy max",
+            "linkWhenHasMax": "/progress/exercises/{name}",
+            "disabledWhenEmpty": true
+          },
+          "expandedEmpty": "Zaliczone serie (także bez ciężaru) pojawią się tu jako maxy.",
+          "rowDisplays": [
+            "nazwa ćwiczenia",
+            "badge „nowy” gdy isNew (okno ~21 dni)",
+            "weighted: „{bestWeight} kg × {bestReps} · {dd.mm}” + wartość e1RM",
+            "bodyweight: „masa ciała · {dd.mm}” + wartość powt."
+          ],
+          "rowLink": "/progress/exercises/{encodedName}"
+        },
+        {
+          "id": "volumeSummary",
+          "eyebrow": "Objętość z ostatnich 6 treningów",
+          "headlineVariants": [
+            "Za mało danych do porównania",
+            "Spadek w {down} z {compared} ćwiczeń",
+            "Wzrost w {up} z {compared} ćwiczeń",
+            "Stabilnie w {n} ćwiczeniu/ćwiczeń",
+            "Mieszany trend w {compared} ćwiczeń"
+          ],
+          "counters": [
+            { "key": "up", "label": "rośnie", "tone": "emerald" },
+            { "key": "flat", "label": "stoi", "tone": "neutral" },
+            { "key": "down", "label": "spada", "tone": "rose" }
+          ],
+          "footnote": "Objętość = powtórzenia × kg × serie w treningu."
+        },
+        {
+          "id": "intensity",
+          "eyebrow": "Intensywność · RIR / RPE / tempo",
+          "headlineFromData": [
+            "Zapisuj RIR (W zapasie) przy seriach — tu zobaczysz trend",
+            "Ostatnie serie są twardsze (mniej zapasu RIR)",
+            "Ostatnie serie są lżejsze (więcej zapasu RIR)",
+            "RIR zgodny z planem w {targetHitPct}% porównań",
+            "Średni RIR / RPE z ostatnich treningów",
+            "Za mało wpisów RIR/RPE do trendu"
+          ],
+          "optionalSpark": "rirSpark (≥2 punktów)",
+          "kpiGrid": [
+            { "label": "Śr. RIR", "field": "avgRir" },
+            { "label": "Śr. RPE", "field": "avgRpe" },
+            { "label": "Twarde", "field": "hardSetPct", "suffix": "%" }
+          ],
+          "vsPlanLine": "vs plan: {targetHitPct}% w celu · {n}× ciężej · {n}× luźniej",
+          "hardSetsHint": "Twarde serie = RIR ≤ 1 lub RPE ≥ 8 (ostatnie 6 treningów).",
+          "tempoLine": "Tempo z planu: {tempos} · w {tempoExercisePct}% ćw."
+        },
+        {
+          "id": "planGroups",
+          "empty": "Ustaw plan treningowy albo zalicz pierwsze serie.",
+          "perGroup": {
+            "sectionLabel": "{planName}",
+            "trailing": "{n} ćw."
+          },
+          "exerciseRow": {
+            "left": "nazwa",
+            "subStatuses": {
+              "pending": "jeszcze nie robione",
+              "first": "pierwszy trening {dd.mm}",
+              "compare": "±{delta} kg|powt. (±{pct}%) — kolor emerald/rose"
+            },
+            "spark": "MiniSparkline ostatnich punktów (sm+)",
+            "right": "ostatnia objętość (kg) lub suma powt. albo —",
+            "trendIcon": ["ArrowUpRight", "ArrowDownRight", "ArrowRight"],
+            "link": "/progress/exercises/{name}"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sylwetka",
+      "label": "Sylwetka",
+      "component": "components/progress/body-tab.tsx",
+      "dataKey": "ProgressHubData.body",
+      "blocks": [
+        {
+          "id": "lastReportHero",
+          "eyebrow": "Ostatni raport · {dd.mm}",
+          "primary": "{currentKg} kg (AnimatedMetric)",
+          "subline": "{dzień_tyg} {dd.mm} · {kg} kg · średnia {lastAvgKg}",
+          "emptySubline": "Brak raportów wagi — dodaj pierwszy w Raportach.",
+          "rightColumn": [
+            "{deltaFromStartKg} kg · od startu",
+            "{kgPerWeekLast6} kg/tydz."
+          ],
+          "chart": {
+            "component": "WeightAverageChart",
+            "caption": "Kropki to raporty, linia to średnia z ostatnich raportów."
+          }
+        },
+        {
+          "id": "tempo",
+          "section": "1 · Tempo",
+          "trailing": "{n} raport / raporty / raportów",
+          "rows": [
+            "Ostatnie 6 tygodni → ±±} kg/tydz.",
+            "Od startu → ± kg/tydz.",
+            "Od poprzedniego raportu → ± kg",
+            "Start · {dd.mm} → {startKg} kg"
+          ]
+        },
+        {
+          "id": "goal",
+          "section": "2 · Cel",
+          "display": "Cel: {targetWeightKg} kg",
+          "eta": [
+            "Około {dni} dni ({data})",
+            "Za ok. {tyg} tyg. · {data}",
+            "Cel osiągnięty",
+            "Przy obecnym tempie cel się oddala",
+            "Ustaw tempo z raportów… (brak ETA)"
+          ],
+          "edit": {
+            "cta": "Ustaw",
+            "input": "waga docelowa 30–400 kg",
+            "actions": ["Zapisz", "Anuluj"],
+            "action": "saveFitnessGoalsAction"
+          },
+          "noGoalCopy": "Wpisz wagę docelową, a policzę, kiedy ją osiągniesz przy obecnym tempie."
+        },
+        {
+          "id": "measures",
+          "section": "3 · Obwody",
+          "trailing": "od startu",
+          "empty": "Dodaj obwody w raporcie, żeby zobaczyć trendy.",
+          "rows": [
+            { "key": "waist", "label": "Pas", "lowerIsBetter": true },
+            { "key": "thigh", "label": "Udo", "lowerIsBetter": true },
+            { "key": "chest", "label": "Klatka", "lowerIsBetter": false },
+            { "key": "arm", "label": "Ramię", "lowerIsBetter": false }
+          ],
+          "rowDisplays": [
+            "nazwa",
+            "MiniSparkline",
+            "{currentCm} cm",
+            "±{deltaFromStartCm} cm (emerald gdy poprawa)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zdjecia",
+      "label": "Zdjęcia",
+      "component": "components/progress/photos-tab.tsx",
+      "dataKey": "ProgressHubData.photos",
+      "blocks": [
+        {
+          "id": "sliderCompare",
+          "requires": "start ≠ now (min. 2 zdjęcia)",
+          "empty": {
+            "copy": "Dodaj co najmniej dwa zdjęcia w raportach, żeby porównać Start i Teraz.",
+            "cta": "Przejdź do raportów → /reports?new=1"
+          },
+          "widget": "suwak Start↔Teraz (clip-path + range input), ratio 4/5",
+          "actions": [
+            "ChangeStartPhotoButton (własne z galerii)",
+            "Albo wybierz z raportów (grid 3 kolumny, localStorage baseline)"
+          ],
+          "baselinePriority": [
+            "custom start z galerii (CUSTOM_START_PHOTO_ID)",
+            "wybór z localStorage gymbrat:photo-baseline-id:v1",
+            "data.start (pierwszy raport)"
+          ]
+        },
+        {
+          "id": "startNowMetrics",
+          "section": "2 · Start i Teraz",
+          "trailing": "{spanDays} dni",
+          "cards": [
+            {
+              "kind": "start",
+              "badge": "Start",
+              "shows": ["miniatura", "waga kg", "pas cm · dd.mm"]
+            },
+            {
+              "kind": "now",
+              "badge": "Teraz · {dd.mm}",
+              "shows": ["miniatura", "waga kg", "pas cm · dd.mm"]
+            }
+          ],
+          "deltaRows": [
+            { "label": "Waga", "format": "{from} → {to} kg · ± delta" },
+            { "label": "Pas", "format": "{from} → {to} cm · ± delta (emerald gdy spadek)" }
+          ],
+          "footnote": "Start to zdjęcie z galerii | pierwszy raport | wybrany raport ({dd.mm}), teraz to raport z {dd.mm}."
+        }
+      ]
+    },
+    {
+      "id": "tydzien",
+      "label": "Tydzień",
+      "component": "components/progress/week-tab.tsx",
+      "dataKey": "ProgressHubData.week",
+      "blocks": [
+        {
+          "id": "calendar",
+          "component": "WeekProgressCalendarCard",
+          "shows": [
+            "zakres tygodnia (Pn–Nd)",
+            "„zostało N dni” / „tydzień się kończy”",
+            "{done} z {target} treningów",
+            "7 kółek dni: złote ✓ = siła, obramowanie złote = dziś, kropka sky = cardio"
+          ]
+        },
+        {
+          "id": "thisWeek",
+          "section": "1 · W tym tygodniu",
+          "metrics": [
+            {
+              "label": "Tonaż",
+              "primary": "{tonnageTonnes} t",
+              "sub": "cały poprzedni tydzień {prevWeekTonnageKg} t"
+            },
+            {
+              "label": "Cardio",
+              "primary": "{cardioMinutes} min",
+              "sub": "{n} wejść · Zalecenie: {cardioGoalMinutes}"
+            }
+          ],
+          "streakLine": "N tygodni z rzędu z treningiem / Brak serii…"
+        },
+        {
+          "id": "weekOverWeek",
+          "section": "2 · Progres / regres",
+          "component": "WeekOverWeekCard",
+          "title": "Tydzień vs tydzień",
+          "range": "{thisRangeLabel} vs {prevRangeLabel}",
+          "verdictBadge": [
+            "Progres względem poprzedniego tygodnia",
+            "Regres względem poprzedniego tygodnia",
+            "Tydzień do tygodnia bez wyraźnej zmiany",
+            "Za mało danych do porównania tygodni"
+          ],
+          "metricKeys": [
+            "workouts",
+            "tonnageKg (t)",
+            "cardioMinutes",
+            "avgRpe",
+            "avgRir"
+          ]
+        },
+        {
+          "id": "dietTraining",
+          "section": "3 · Dieta vs trening",
+          "trailing": "8 tyg.",
+          "noGoalsHint": "Ustaw cele kcal/makro w Profilu — wtedy zobaczysz status „W diecie”…",
+          "currentWeekCard": {
+            "title": "Ten tydzień",
+            "statusBadge": [
+              "W diecie",
+              "Poniżej celu",
+              "Powyżej celu",
+              "Brak celów",
+              "Mało danych"
+            ],
+            "kpi": [
+              "Kcal vs cel % + consumed/goal kcal",
+              "Białko vs cel % + g · {daysLogged}/{daysInWindow} dni"
+            ],
+            "bottomRow": ["Tonaż (t)", "Śr. RPE", "Śr. RIR"]
+          },
+          "historyRow": "{label} · badge status · kcal% · B% · {n} tr. · RPE · tonaż",
+          "footnote": "„W diecie” = kcal 85–110% celu przy ≥3 dniach z dziennika (bieżący tydzień proporcjonalnie)."
+        },
+        {
+          "id": "last8",
+          "section": "4 · Ostatnie 8 tygodni",
+          "component": "WeekBarChart",
+          "data": "last8[] → workouts, tonnageKg, cardioMinutes, complete"
+        },
+        {
+          "id": "nextGoals",
+          "section": "5 · Następne cele",
+          "row": "{label} · {remainingLabel} · pasek progressPct 0–100"
+        },
+        {
+          "id": "achievements",
+          "section": "6 · Zdobyte",
+          "trailing": "liczba odblokowanych",
+          "empty": "Trenuj dalej — osiągnięcia odblokują się automatycznie.",
+          "row": "ikona · title · description · unlockedAt dd.mm",
+          "showMore": "domyślnie 6; przycisk Pokaż więcej / Pokaż mniej"
+        }
+      ]
+    },
+    {
+      "id": "exerciseDetail",
+      "label": "Detal ćwiczenia",
+      "route": "/progress/exercises/[key]",
+      "component": "components/progress/exercise-detail-view.tsx",
+      "backLink": "/progress?tab=sila",
+      "header": {
+        "eyebrow": "Ćwiczenie",
+        "title": "{name}",
+        "matchedNamesHint": "Dopasowano: {aliases} (gdy >1 wariant nazwy)"
+      },
+      "blocks": [
+        {
+          "id": "volumeHero",
+          "eyebrow": "Objętość | Powtórzenia",
+          "primary": "ostatnia tonnageKg lub totalReps",
+          "sub": "Ostatni trening: {data} · masa ciała (gdy reps)",
+          "chart": "LineChart Recharts (≥2 punkty) — tonnageKg | totalReps"
+        },
+        {
+          "id": "kpi3",
+          "weighted": ["Treningi", "Rekord e1RM", "Najcięższa seria kg"],
+          "bodyweight": ["Treningi", "Rekord sesji powt.", "Najlepsza seria powt."]
+        },
+        {
+          "id": "intensity",
+          "eyebrow": "Intensywność",
+          "hint": "ostatnio twardziej/luźniej / RIR·RPE / brak danych",
+          "tempoBadge": "tempo {lastTempo}",
+          "miniStats": ["Śr. RIR", "Śr. RPE", "Twarde %"],
+          "planHit": "Zgodność z RIR z planu: {pct}% ({n} porównań)",
+          "chart": "LineChart RIR (emerald) + RPE (rose), domain 0–10"
+        },
+        {
+          "id": "periodCompare",
+          "component": "ExercisePeriodComparePanel",
+          "periodTabs": ["Tydzień", "Miesiąc", "Rok"],
+          "shows": "verdict + delty metryk + bar chart okresów"
+        },
+        {
+          "id": "records",
+          "section": "01 · Rekordy",
+          "weightedRows": [
+            "Najwyższe e1RM",
+            "Największy ciężar",
+            "Największa objętość"
+          ],
+          "repsRows": ["Najwięcej powtórzeń w sesji", "Najlepsza seria"]
+        },
+        {
+          "id": "sessionsList",
+          "section": "02 · Treningi",
+          "trailing": "{points.length}",
+          "row": "{data} · {kg×reps|max powt.} · RIR · RPE · tempo · vs plan · badge PR · wartość objętości/powt."
+        }
+      ]
+    }
+  ],
+  "emptyAndGateStates": [
+    {
+      "where": "Siła / maxy",
+      "when": "brak zaliczonych serii",
+      "copy": "Zaliczone serie… pojawią się tu jako maxy."
+    },
+    {
+      "where": "Siła / plan",
+      "when": "planGroups.length === 0",
+      "copy": "Ustaw plan treningowy albo zalicz pierwsze serie."
+    },
+    {
+      "where": "Sylwetka / waga",
+      "when": "brak raportów",
+      "copy": "Brak raportów wagi — dodaj pierwszy w Raportach."
+    },
+    {
+      "where": "Sylwetka / obwody",
+      "when": "wszystkie currentCm null",
+      "copy": "Dodaj obwody w raporcie…"
+    },
+    {
+      "where": "Zdjęcia",
+      "when": "!canCompare",
+      "copy": "Dodaj co najmniej dwa zdjęcia…"
+    },
+    {
+      "where": "Tydzień / dieta",
+      "when": "!dietTraining.hasGoals",
+      "copy": "Ustaw cele kcal/makro w Profilu…"
+    },
+    {
+      "where": "Tydzień / osiągnięcia",
+      "when": "unlocked.length === 0",
+      "copy": "Trenuj dalej — osiągnięcia odblokują się automatycznie."
+    },
+    {
+      "where": "Detal ćwiczenia / wykres",
+      "when": "< 2 punkty",
+      "copy": "Potrzeba co najmniej dwóch treningów do wykresu."
+    }
+  ],
+  "navigationMap": [
+    {
+      "from": "Siła · max / wiersz ćwiczenia",
+      "to": "/progress/exercises/{name}"
+    },
+    {
+      "from": "Detal ćwiczenia · wstecz",
+      "to": "/progress?tab=sila"
+    },
+    {
+      "from": "Zdjęcia · brak porównania",
+      "to": "/reports?new=1"
+    },
+    {
+      "from": "zakładki",
+      "to": "/progress?tab=sila|sylwetka|zdjecia|tydzien"
+    }
+  ],
+  "sourceOfTruthUi": [
+    "app/(dashboard)/progress/page.tsx",
+    "components/progress/progress-page-content.tsx",
+    "components/progress/progress-tabs.tsx",
+    "components/progress/strength-tab.tsx",
+    "components/progress/body-tab.tsx",
+    "components/progress/photos-tab.tsx",
+    "components/progress/week-tab.tsx",
+    "components/progress/week-progress-calendar-card.tsx",
+    "components/progress/week-over-week-card.tsx",
+    "components/progress/week-bar-chart.tsx",
+    "components/progress/weight-average-chart.tsx",
+    "components/progress/exercise-detail-view.tsx",
+    "components/progress/exercise-period-compare-panel.tsx",
+    "lib/progress-tabs.ts",
+    "lib/progress-hub.ts"
+  ],
+  "relatedDocs": [
+    "docs/progress-training-analysis.json — formuły, eligibility, okna danych",
+    "docs/analytics-intelligence.json — silniki Fatigue/Recovery/Muscle/Cardio 2.0",
+    "docs/extra-cardio-from-macros.json — cardio przy nadwyżce (wpływ na minuty)"
+  ]
+}

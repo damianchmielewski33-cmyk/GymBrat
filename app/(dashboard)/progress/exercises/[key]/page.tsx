@@ -1,8 +1,14 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { ExerciseDetailView } from "@/components/progress/exercise-detail-view";
+import {
+  classifyExerciseStagnation,
+  predictExercise,
+  type ExerciseSessionPoint,
+} from "@/lib/analytics";
 import { buildExercisePeriodCompares } from "@/lib/exercise-period-compare";
 import { getExerciseProgressSeries } from "@/lib/exercise-progress";
+import { calendarDateKey } from "@/lib/local-date";
 import { decodeExerciseProgressKey } from "@/lib/progress-tabs";
 import { withDbRetry } from "@/db/with-retry";
 
@@ -33,6 +39,32 @@ export default async function ProgressExercisePage({
   const displayName = data.matchedExerciseNames[0] ?? name;
   const periodCompares = buildExercisePeriodCompares(data.points, data.metric);
 
+  const sessionPoints: ExerciseSessionPoint[] = data.points.map((p) => ({
+    date: p.date,
+    volumeKg: p.tonnageKg,
+    totalReps: p.totalReps,
+    bestE1rm: p.bestE1rm,
+    bestWeight: p.bestWeight,
+    bestReps: p.bestReps,
+    hardSets: 0,
+    scoredSets: 0,
+    avgRpe: p.avgRpe,
+    avgRir: p.avgRir,
+    setsCount: 0,
+  }));
+  const today = calendarDateKey();
+  const prediction = predictExercise({
+    exerciseKey: key,
+    name: displayName,
+    points: sessionPoints,
+  });
+  const stagnation = classifyExerciseStagnation({
+    exerciseKey: key,
+    name: displayName,
+    points: sessionPoints,
+    today,
+  });
+
   return (
     <ExerciseDetailView
       name={displayName}
@@ -42,6 +74,8 @@ export default async function ProgressExercisePage({
       metric={data.metric}
       matchedNames={data.matchedExerciseNames}
       periodCompares={periodCompares}
+      prediction={prediction}
+      stagnation={stagnation}
     />
   );
 }

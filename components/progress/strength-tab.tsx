@@ -12,6 +12,8 @@ import {
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
 import { MiniSparkline } from "@/components/home/mini-sparkline";
+import { MuscleBalancePanel } from "@/components/progress/muscle-balance-panel";
+import type { ProgressIntelligence } from "@/lib/analytics";
 import type {
   ProgressExerciseRow,
   ProgressHubData,
@@ -184,7 +186,13 @@ function intensityHeadline(data: ProgressHubData["strength"]["intensity"]): stri
   return "Za mało wpisów RIR/RPE do trendu";
 }
 
-export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
+export function StrengthTab({
+  data,
+  intelligence,
+}: {
+  data: ProgressHubData["strength"];
+  intelligence: ProgressIntelligence;
+}) {
   const { maxes, volumeCounts, volumeComparedCount, planGroups, intensity } = data;
   const [maxesOpen, setMaxesOpen] = useState(false);
 
@@ -435,6 +443,11 @@ export function StrengthTab({ data }: { data: ProgressHubData["strength"] }) {
           )}
         </div>
       </section>
+
+      <MuscleBalancePanel
+        muscle={intelligence.muscle}
+        stagnation={intelligence.stagnation}
+      />
 
       <section className="space-y-3.5">
         {planGroups.length === 0 ? (

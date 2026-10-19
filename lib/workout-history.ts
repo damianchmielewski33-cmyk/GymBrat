@@ -10,6 +10,11 @@ export type CompletedSessionSet = {
   rir?: number | null;
   rpe?: number | null;
   skipped?: boolean;
+  /** Odpoczynek (s) — telemetria dla fatigue / rest awareness. */
+  restSeconds?: number | null;
+  heartRate?: number | null;
+  /** Sekundy od startu sesji przy zaliczeniu serii. */
+  elapsedSecondsAtCompletion?: number | null;
 };
 
 export type CompletedSessionExercise = {

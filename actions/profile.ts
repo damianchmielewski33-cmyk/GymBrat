@@ -17,6 +17,7 @@ const bodyParamsSchema = z.object({
   weightKg: z.coerce.number().min(30).max(400),
   heightCm: z.coerce.number().int().min(100).max(250),
   age: z.coerce.number().int().min(13).max(120),
+  sex: z.enum(["male", "female", ""]).optional(),
   activityLevel: z.enum(activityLevels),
   weeklySessionsTarget: z.coerce.number().int().min(1).max(7).optional(),
 });
@@ -31,6 +32,7 @@ export async function updateBodyParamsFormAction(
     weightKg: formData.get("weightKg"),
     heightCm: formData.get("heightCm"),
     age: formData.get("age"),
+    sex: formData.get("sex") || "",
     activityLevel: formData.get("activityLevel"),
     weeklySessionsTarget: formData.get("weeklySessionsTarget") || undefined,
   };
@@ -68,6 +70,7 @@ export async function updateBodyParams(input: unknown) {
       weightKg: Math.round(data.weightKg * 10) / 10,
       heightCm: data.heightCm,
       age: data.age,
+      sex: data.sex === "male" || data.sex === "female" ? data.sex : null,
       activityLevel: data.activityLevel,
     })
     .where(eq(users.id, session.user.id));

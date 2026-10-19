@@ -1,0 +1,373 @@
+{
+  "title": "GymBrat — baza wyszukiwania posiłków / produktów",
+  "version": "1.0",
+  "date": "2026-10-19",
+  "purpose": "Dokumentacja analityczna lokalnej i zdalnej bazy produktów używanej przy dodawaniu posiłku (wyszukiwanie po nazwie, skan EAN, ostatnie wpisy). Opisuje warstwy danych, kontrakt FoodProduct, scoring jak Fitatu, merge lokalne+OFF+USDA oraz skalowanie porcji.",
+  "uiSurfaces": [
+    {
+      "route": "/meal-suggestions",
+      "components": [
+        "components/meal-suggestions/add-meal-screen.tsx",
+        "components/meal-suggestions/food-search-scan.tsx",
+        "components/meal-suggestions/food-portion-sheet.tsx",
+        "components/meal-suggestions/food-nutrition-details-panel.tsx"
+      ],
+      "focus": "wyszukiwarka, skaner, porcja, szczegóły odżywcze"
+    },
+    {
+      "route": "home",
+      "components": ["components/home/home-scan-button.tsx"],
+      "focus": "szybki skan kodu z pulpitu"
+    }
+  ],
+  "serverActions": {
+    "module": "actions/food-lookup.ts",
+    "endpoints": [
+      {
+        "name": "searchFoodProductsAction",
+        "input": "query: string",
+        "behavior": [
+          "puste query → ostatnie z dziennika (max 24), inaczej pierwsze 24 z lokalnej bazy",
+          "sam ciąg 8–14 cyfr → lookupFoodByBarcodeAction",
+          "query znormalizowany < 3 znaki → tylko searchLocalProducts (bez OFF/USDA)",
+          "query ≥ 3 znaki → lokalne (28) + remote (48), dedup, score, top 40"
+        ]
+      },
+      {
+        "name": "lookupFoodByBarcodeAction",
+        "input": "barcode: string (EAN 8–13)",
+        "order": ["findLocalProductByBarcode", "lookupBarcodeRemote (OFF PL → OFF world → USDA)"]
+      },
+      {
+        "name": "listRecentFoodProductsAction",
+        "input": "limit (domyślnie 24)",
+        "source": "lib/meal-logs.ts → listRecentFoodProductsFromLogs"
+      }
+    ]
+  },
+  "sourceOfTruth": [
+    "lib/food-products-types.ts",
+    "lib/food-products-data.ts",
+    "lib/food-products-staples-pl.ts",
+    "lib/food-products-retail-pl.ts",
+    "lib/food-products.ts",
+    "lib/food-products-remote.ts",
+    "lib/food-products-usda.ts",
+    "lib/food-query-i18n.ts",
+    "lib/food-portion.ts",
+    "lib/food-nutrition.ts",
+    "lib/food-macro-source.ts",
+    "lib/food-favorites.ts",
+    "actions/food-lookup.ts"
+  ],
+  "tests": [
+    "lib/food-products.test.ts",
+    "lib/food-products-remote.test.ts",
+    "lib/food-macro-source.test.ts"
+  ],
+  "productContract": {
+    "type": "FoodProduct",
+    "file": "lib/food-products-types.ts",
+    "required": {
+      "id": "string (prefiksy: local-, retail-, off-, usda-, recent-…)",
+      "barcode": "string | null (EAN-8/13 / UPC)",
+      "name": "string",
+      "servingLabel": "opis porcji bazowej, np. „100 g”, „1 szt. (58 g)”",
+      "calories": "number",
+      "proteinG": "number",
+      "fatG": "number",
+      "carbsG": "number",
+      "source": ["local", "openfoodfacts", "usda"]
+    },
+    "optional": {
+      "brand": "string",
+      "basisAmount": "ilość, do której odnoszą się makro (domyślnie 100)",
+      "basisUnit": ["g", "ml", "pcs"],
+      "gramsPerPiece": "g na 1 sztukę (skalowanie pcs → g)",
+      "packageAmount": "gramatura/objętość opakowania z etykiety (podpowiedź porcji)",
+      "packageUnit": ["g", "ml", "pcs"],
+      "details": "FoodNutritionDetails — mikro/tłuszcze/cukry/sól/witaminy + ingredientsText (na 100 g)"
+    },
+    "macroBasisRule": "Makro zawsze względem basisAmount/basisUnit; po skanie OFF preferowane 100 g (jak Fitatu), nie serving."
+  },
+  "localDatabase": {
+    "export": "FOOD_PRODUCTS_LOCAL",
+    "assembly": "FOOD_PRODUCTS_CORE ∪ FOOD_PRODUCTS_STAPLES_PL ∪ FOOD_PRODUCTS_RETAIL_PL",
+    "countsSnapshot": {
+      "asOf": "2026-10-19",
+      "total": 177,
+      "core": 49,
+      "staples": 103,
+      "retail": 25,
+      "withBarcode": 35,
+      "withNutritionDetails": 4,
+      "allSourceField": "local"
+    },
+    "layers": [
+      {
+        "id": "core",
+        "file": "lib/food-products-data.ts → FOOD_PRODUCTS_CORE",
+        "role": "często skanowane / markowe PL z EAN; część z pełnymi details",
+        "idPrefix": "local-",
+        "macroStyle": "porcja z servingLabel albo 100 g / 100 ml",
+        "examples": [
+          "Jogurt grecki 0% (Bakoma)",
+          "Piątnica Twaróg chudy",
+          "Pierś z kurczaka",
+          "Woda niegazowana"
+        ]
+      },
+      {
+        "id": "staples",
+        "file": "lib/food-products-staples-pl.ts",
+        "role": "generyczne produkty PL — makro na 100 g/ml jak tabele IŻŻ / Fitatu",
+        "idPrefix": "local-",
+        "helper": "per100()",
+        "barcode": null,
+        "categories": [
+          "Owoce",
+          "Warzywa",
+          "Mięso / ryby / nabiał",
+          "Węglowodany / zboża",
+          "Roślinne / tłuszcze / inne"
+        ],
+        "notes": [
+          "basisAmount=100, basisUnit g|ml",
+          "wybrane owoce mają gramsPerPiece (np. brzoskwinia 150 g)",
+          "przy merge z remote: coveredByLocalStaple pomija USDA/OFF gdy istnieje lokalny odpowiednik PL"
+        ]
+      },
+      {
+        "id": "retail",
+        "file": "lib/food-products-retail-pl.ts",
+        "role": "sieci PL / QSR — uzupełnienie gdy OFF nie ma wpisu",
+        "idPrefix": "retail-",
+        "macroSourceKind": "retail_estimate",
+        "uiLabel": "Szacunek · sprawdź etykietę",
+        "brands": {
+          "KFC": 4,
+          "Lidl": 5,
+          "Biedronka": 4,
+          "Gosto / Biedronka": 1,
+          "Żabka": 1,
+          "McDonald's": 2,
+          "Subway": 1,
+          "Auchan": 1,
+          "Carrefour": 1,
+          "Pasibus": 1,
+          "North Fish": 1,
+          "Starbucks": 1,
+          "Żywiec Zdrój": 1,
+          "Tymbark": 1
+        },
+        "basis": "często pcs (1 szt.) z gramsPerPiece albo 100 g"
+      }
+    ]
+  },
+  "remoteSources": {
+    "orchestrator": "lib/food-products-remote.ts → searchRemoteFoodProducts",
+    "minQueryLength": 3,
+    "parallel": ["Open Food Facts", "USDA FoodData Central"],
+    "openFoodFacts": {
+      "module": "lib/food-products.ts",
+      "search": "searchOpenFoodFacts",
+      "barcode": "lookupBarcodeRemote",
+      "hosts": [
+        "https://pl.openfoodfacts.org",
+        "https://world.openfoodfacts.org"
+      ],
+      "cacheRevalidateSec": 3600,
+      "userAgent": "GymBrat/1.0",
+      "searchParams": {
+        "variants": "buildFoodSearchVariants + englishFoodQueryVariants (max ~4 + PL filter)",
+        "polandTag": "tag countries=poland na części zapytań",
+        "brandTag": "gdy wykryto dokładnie 1 znaną markę"
+      },
+      "mapping": {
+        "fn": "mapOpenFoodFactsProduct",
+        "prefer100g": true,
+        "fallbackServing": "gdy brak *_100g — serving + packageQuantity",
+        "kcalFallback": "4P + 4C + 9F gdy energy-kcal brak",
+        "id": "off-{barcode|code|name}",
+        "details": "mapOffDetails (sól, sód g→mg, omega, witaminy, ingredients_text_pl)"
+      }
+    },
+    "usda": {
+      "module": "lib/food-products-usda.ts",
+      "api": "https://api.nal.usda.gov/fdc/v1/foods/search",
+      "apiKeyEnv": ["USDA_FDC_API_KEY", "FDC_API_KEY", "DEMO_KEY"],
+      "dataTypes": ["Foundation", "SR Legacy", "Branded"],
+      "cacheRevalidateSec": 86400,
+      "queryVariants": "oryginał + englishFoodQueryVariants (max 3)",
+      "mapping": {
+        "fn": "mapUsdaFoodToProduct",
+        "basis": "zawsze 100 g",
+        "id": "usda-{fdcId}",
+        "nutrientIds": {
+          "calories": [1008, 2047, 2048],
+          "protein": [1003],
+          "fat": [1004],
+          "carbs": [1005]
+        }
+      },
+      "barcodeFallback": "lookupUsdaByBarcode gdy OFF nie zna EAN"
+    }
+  },
+  "searchPipeline": {
+    "normalize": {
+      "fn": "normalizeFoodQuery",
+      "steps": [
+        "trim + toLowerCase",
+        "NFD + strip combining marks",
+        "ł → l",
+        "non [a-z0-9\\s] → spacja",
+        "collapse whitespace"
+      ]
+    },
+    "stemming": {
+      "fn": "foodTokenStem",
+      "purpose": "odmiana / liczba mnoga PL (truskawki ↔ truskawka, jajka ↔ jajko)",
+      "minLength": 4,
+      "endings": ["ami", "ach", "owi", "owie", "ow", "om", "y", "i", "e", "a"]
+    },
+    "brandDetection": {
+      "fn": "detectFoodBrandTokens",
+      "known": [
+        "kfc",
+        "lidl (tastino, pano, favorina)",
+        "biedronka (gosto, go active)",
+        "zabka",
+        "mcdonalds",
+        "subway",
+        "auchan",
+        "carrefour",
+        "pasibus",
+        "starbucks"
+      ]
+    },
+    "queryVariants": {
+      "fn": "buildFoodSearchVariants",
+      "max": 6,
+      "includes": [
+        "pełne query",
+        "znormalizowane",
+        "bez tokenów marki",
+        "produkt+marka / marka+produkt",
+        "skróty QSR (KFC Longer)"
+      ]
+    },
+    "i18n": {
+      "file": "lib/food-query-i18n.ts",
+      "plToEn": "PL_EN_EXACT (~80 częstych produktów)",
+      "englishFoodQueryVariants": "dla USDA / OFF world",
+      "polishStapleQueriesFromEnglishName": "EN→PL do wykrycia duplikatu stapla"
+    },
+    "scoring": {
+      "fn": "scoreProductAgainstQuery",
+      "philosophy": "jak Fitatu: prefix nazwy/tokenu, bez mid-word (ki ≠ grecki), lokalna baza preferowana",
+      "points": [
+        { "rule": "nameOnly === q", "score": 100 },
+        { "rule": "hay === q", "score": 90 },
+        { "rule": "nameOnly.startsWith(q)", "score": 70 },
+        { "rule": "token name startsWith(q)", "score": 55 },
+        { "rule": "token brand startsWith(q)", "score": 35 },
+        { "rule": "stem match (qStem ≥ 4)", "score": 65 },
+        { "rule": "token prefix match (part ≥ 4)", "score": 10 },
+        { "rule": "token prefix match (part < 4)", "score": 6 },
+        { "rule": "loose stem match", "score": 8 },
+        { "rule": "hay.includes(part) ≥ 4", "score": 2 },
+        { "rule": "wszystkie części multi-token", "score": 15 },
+        { "rule": "znana marka w brand/hay", "score": 8 },
+        { "rule": "jednowyrazowy staple startsWith", "score": 12 },
+        { "rule": "source === local", "score": 30 }
+      ],
+      "reject": [
+        "multi-token: matched < ceil(parts*0.5) → score 0",
+        "single short query bez prefixu i score < 35 → 0",
+        "tokeny < 3 znaków nie matchują przez includes w środku słowa"
+      ]
+    },
+    "sort": {
+      "fn": "compareFoodSearchHits",
+      "order": ["score ↓", "local przed remote", "krótsza nazwa ↑"]
+    },
+    "mergeDedupKey": "{barcode}|{name}|{brand} (action) / +source (remote)",
+    "stapleOverride": {
+      "fn": "coveredByLocalStaple",
+      "effect": "remote pomijany, gdy findLocalProductByName(remote.name) lub PL alias ze english name"
+    },
+    "limits": {
+      "localSearch": 28,
+      "remoteSearch": 48,
+      "mergedResult": 40,
+      "emptyQueryLocalFallback": 24,
+      "recentFromLogs": 24,
+      "findLocalByNameMinScore": 40
+    }
+  },
+  "barcodeFlow": {
+    "minDigits": 8,
+    "normalize": "tylko cyfry",
+    "order": [
+      "FOOD_PRODUCTS_LOCAL po barcode",
+      "OFF pl.openfoodfacts.org /api/v2/product/{code}",
+      "OFF world.openfoodfacts.org",
+      "USDA search po GTIN/UPC"
+    ],
+    "uiDigitOnlyQuery": "w searchFoodProductsAction ciąg 8–14 cyfr = skan"
+  },
+  "portionScaling": {
+    "module": "lib/food-portion.ts",
+    "resolveBasis": "basisAmount/Unit → parseServingHint(servingLabel) → default 100 g",
+    "scaleFoodMacros": {
+      "prefer": "skalowanie przez gramy (targetG / basisG)",
+      "pcs": "amount × gramsPerPiece",
+      "fallback": "ta sama jednostka: amount / basis.amount"
+    },
+    "parseServingHint": ["150 g", "250 ml", "1 szt. (58 g)"]
+  },
+  "macroSourceLabels": {
+    "module": "lib/food-macro-source.ts",
+    "kinds": {
+      "local": "Baza · jak Fitatu · 100 g",
+      "retail_estimate": "Szacunek · sprawdź etykietę (hint: porównaj z etykietą)",
+      "openfoodfacts": "Open Food Facts · na 100 g",
+      "usda": "USDA · na 100 g"
+    },
+    "retailDetection": "id.startsWith('retail-')"
+  },
+  "nutritionExtras": {
+    "module": "lib/food-nutrition.ts",
+    "ww": "carbsG / 10",
+    "wbt": "(proteinG×4 + fatG×9) / 100",
+    "ingredientTags": ["healthy", "safe", "harmful"],
+    "junkNameSignals": ["chips", "frytki", "batonik", "cola", "energetyk", "…"]
+  },
+  "recents": {
+    "source": "meal_logs (ostatnie 200 wierszy → dedup → max limit)",
+    "dedupKey": "ean:{code} | name:{normalizeFoodQuery(baseName)}",
+    "preferCatalog": "jeśli EAN/nazwa w lokalnej bazie → pełny FoodProduct katalogu",
+    "fallback": "odtworzenie z makro logu + porcja z nazwy „(150 g)”"
+  },
+  "favorites": {
+    "module": "lib/food-favorites.ts",
+    "storage": "local (snapshot makro + source)",
+    "toProduct": "favoriteToFoodProduct"
+  },
+  "invariants": [
+    "Lokalna baza ma pierwszeństwo w scoringu (+30) i przy pokryciu stapli z remote",
+    "Zapytania < 3 znaków NFD → tylko lokalne podpowiedzi (bez OFF/USDA)",
+    "OFF / USDA: makro na 100 g gdy dostępne — nie mieszać z serving",
+    "retail-* to szacunek sieciowy — UI ostrzega o weryfikacji etykiety",
+    "Brak seedu zdalnego w kodzie — lokalna baza jest offline-first",
+    "FOOD_PRODUCTS_LOCAL.id muszą być unikalne (test)"
+  ],
+  "notInScope": [
+    "Katalog przepisów meal_catalog (propozycje dań / sloty) — osobny system w lib/meal-catalog*",
+    "Generowanie przepisów AI / Pollinations"
+  ],
+  "relatedDocs": [
+    "docs/extra-cardio-from-macros.json (nadwyżka z dziennika diety)",
+    "docs/progress-training-analysis.json (dieta×trening w Analizie)"
+  ]
+}

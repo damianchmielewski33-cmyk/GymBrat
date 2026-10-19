@@ -21,6 +21,7 @@ import type {
 } from "@/lib/exercise-progress";
 import type { ExercisePeriodCompares } from "@/lib/exercise-period-compare";
 import { ExercisePeriodComparePanel } from "@/components/progress/exercise-period-compare-panel";
+import type { PredictionItem, StagnationItem } from "@/lib/analytics";
 
 const GOLD = "#ebc44a";
 const RIR_COLOR = "#34d399";
@@ -63,6 +64,8 @@ export function ExerciseDetailView({
   metric,
   matchedNames,
   periodCompares,
+  prediction = null,
+  stagnation = null,
 }: {
   name: string;
   points: ExerciseProgressPoint[];
@@ -71,6 +74,8 @@ export function ExerciseDetailView({
   metric: ExerciseMetricKind;
   matchedNames: string[];
   periodCompares: ExercisePeriodCompares;
+  prediction?: PredictionItem | null;
+  stagnation?: StagnationItem | null;
 }) {
   const latest = points.length ? points[points.length - 1]! : null;
   const isReps = metric === "reps";
@@ -343,6 +348,71 @@ export function ExerciseDetailView({
       </section>
 
       <ExercisePeriodComparePanel compares={periodCompares} />
+
+      {(prediction || stagnation) && (
+        <section className="app-card space-y-3 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+            Predykcja · stagnacja
+          </p>
+          {stagnation ? (
+            <p className="text-sm text-white/80">
+              {stagnation.statusLabel}
+              {stagnation.daysWithoutProgress > 0
+                ? ` · brak postępu od ${stagnation.daysWithoutProgress} dni`
+                : ""}
+              {stagnation.e1rmDeltaPct30 != null
+                ? ` · e1RM 30d ${stagnation.e1rmDeltaPct30 > 0 ? "+" : ""}${stagnation.e1rmDeltaPct30}%`
+                : ""}
+            </p>
+          ) : null}
+          {prediction ? (
+            <div className="grid grid-cols-2 gap-2 text-[12px]">
+              <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-white/40">
+                  e1RM 30d
+                </p>
+                <p className="mt-1 font-metric text-[18px] text-white">
+                  {prediction.e1rm30d.toLocaleString("pl-PL")} kg
+                </p>
+                <p className="mt-0.5 text-[10px] text-white/35">
+                  teraz {prediction.e1rmNow} · pewność {prediction.confidence}
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-white/40">
+                  e1RM 90d
+                </p>
+                <p className="mt-1 font-metric text-[18px] text-white">
+                  {prediction.e1rm90d.toLocaleString("pl-PL")} kg
+                </p>
+                <p className="mt-0.5 text-[10px] text-white/35">
+                  n={prediction.sampleCount} sesji
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-white/40">
+                  Tonaż 30d
+                </p>
+                <p className="mt-1 font-metric text-[16px] text-white">
+                  {prediction.tonnage30d.toLocaleString("pl-PL")} kg
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-white/40">
+                  Tonaż 90d
+                </p>
+                <p className="mt-1 font-metric text-[16px] text-white">
+                  {prediction.tonnage90d.toLocaleString("pl-PL")} kg
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[12px] text-white/40">
+              Predykcja wymaga min. 8 treningów z historią e1RM / objętości.
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="space-y-3">
         <SectionLabel index="01" title="Rekordy" />

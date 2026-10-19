@@ -1,8 +1,8 @@
 {
   "title": "GymBrat — Analiza treningu (sekcja Analiza / Postępy)",
-  "version": "1.0",
-  "date": "2026-10-14",
-  "purpose": "Dokumentacja analityczna: co widać w Analizie, skąd biorą się liczby, jakie serie/sesje są brane pod uwagę i jak liczone są trendy, tonaż, e1RM, intensywność (RPE/RIR) oraz spięcie z dietą.",
+  "version": "1.1",
+  "date": "2026-10-19",
+  "purpose": "Dokumentacja analityczna: co widać w Analizie, skąd biorą się liczby, jakie serie/sesje są brane pod uwagę i jak liczone są trendy, tonaż, e1RM, intensywność (RPE/RIR) oraz spięcie z dietą. Od v1.1 hub eksponeuje też ProgressHubData.intelligence (fatigue/recovery/muscle/…) — kontrakt w docs/analytics-intelligence.json.",
   "uiRoute": "/progress",
   "tabs": [
     { "id": "sila", "label": "Siła", "focus": "tonaż, e1RM, trendy objętości, RPE/RIR, ćwiczenia per plan" },
@@ -12,6 +12,7 @@
   ],
   "sourceOfTruth": [
     "lib/progress-hub.ts",
+    "lib/analytics/* (intelligence engines)",
     "lib/intensity-analysis.ts",
     "lib/diet-training-weeks.ts",
     "lib/workout-history.ts (estimated1RM)",
@@ -20,9 +21,11 @@
     "lib/workout-skipped-sets.ts",
     "lib/exercise-identity.ts",
     "lib/achievements.ts",
-    "lib/progress-tabs.ts"
+    "lib/progress-tabs.ts",
+    "lib/cardio-utils.ts"
   ],
   "tests": [
+    "lib/analytics/analytics-engines.test.ts",
     "lib/intensity-analysis (via progress / diet-training)",
     "lib/diet-training-weeks (classifyDietWeekStatus)",
     "lib/workout-session-calculations",
