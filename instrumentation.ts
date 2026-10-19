@@ -26,6 +26,10 @@ export async function register() {
       console.warn(
         "[instrumentation] Migracje Drizzle pominięte (brak journal w paczce) — schema z ensureCriticalSchema.",
       );
+    } else if (/already exists|duplicate column|SQL_INPUT_ERROR/i.test(msg)) {
+      console.warn(
+        "[instrumentation] Migracje: schemat już w bazie — kontynuuję (ensureCriticalSchema).",
+      );
     } else {
       console.error("[instrumentation] Migracje Drizzle nie powiodły się:", err);
     }

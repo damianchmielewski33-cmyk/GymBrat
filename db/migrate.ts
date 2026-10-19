@@ -12,9 +12,16 @@ async function migrationsFolderReady(folder: string): Promise<boolean> {
   }
 }
 
+function isAlreadyAppliedSchemaError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /already exists|duplicate column|SQL_INPUT_ERROR/i.test(msg);
+}
+
 /**
  * Uruchamia migracje SQL z `db/migrations` na aktualnym `TURSO_DATABASE_URL`.
  * Na Vercel folder bywa poza tracingiem — wtedy pomijamy (schema i tak dopełnia `ensureCriticalSchema`).
+ * Gdy baza była wcześniej zbudowana przez `ensureCriticalSchema` / inny host (ten sam Turso),
+ * pierwszy CREATE TABLE pada na „already exists” — traktujemy to jako OK, nie blokujemy startu.
  */
 export async function runMigrations(): Promise<void> {
   const migrationsFolder = path.join(process.cwd(), "db", "migrations");
@@ -25,5 +32,15 @@ export async function runMigrations(): Promise<void> {
     return;
   }
   const db = getDb();
-  await migrate(db, { migrationsFolder });
+  try {
+    await migrate(db, { migrationsFolder });
+  } catch (err) {
+    if (isAlreadyAppliedSchemaError(err)) {
+      console.warn(
+        "[migrate] Schemat już istnieje w Turso (np. po Vercel / ensureCriticalSchema) — pomijam konflikt migracji.",
+      );
+      return;
+    }
+    throw err;
+  }
 }
