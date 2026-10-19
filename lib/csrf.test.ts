@@ -37,6 +37,22 @@ describe("assertCsrf", () => {
     });
     expect(assertCsrf(r)).toBeNull();
   });
+
+  it("allows POST when Origin matches X-Forwarded-Host (Render internal URL)", () => {
+    const tok = "b".repeat(64);
+    const r = new Request("http://localhost:10000/api/admin/unlock", {
+      method: "POST",
+      headers: {
+        origin: "https://gymbrat.onrender.com",
+        host: "gymbrat.onrender.com",
+        "x-forwarded-host": "gymbrat.onrender.com",
+        "x-forwarded-proto": "https",
+        cookie: `${CSRF_COOKIE_NAME}=${tok}`,
+        "x-xsrf-token": tok,
+      },
+    });
+    expect(assertCsrf(r)).toBeNull();
+  });
 });
 
 describe("assertAnalyticsOrigin", () => {

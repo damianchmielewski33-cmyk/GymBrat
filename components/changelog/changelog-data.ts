@@ -5,6 +5,14 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — CSRF na Render: powrót z admina bez 403",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Po wyjściu z panelu admina żądania POST nie dostają już 403 „niedozwolona witryna” na Renderze — CSRF uznaje Origin z X-Forwarded-Host (wcześniej porównywało z wewnętrznym localhost).",
+    ],
+  },
+  {
     title: "Zapowiedź — Analiza: tydzień vs tydzień (progres / regres)",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

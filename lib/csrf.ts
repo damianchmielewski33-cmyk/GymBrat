@@ -30,9 +30,12 @@ function allowedOrigins(): Set<string> {
     }
   };
   add(process.env.NEXTAUTH_URL);
+  add(process.env.AUTH_URL);
   add(process.env.NEXT_PUBLIC_APP_URL);
   const vercel = process.env.VERCEL_URL?.trim();
   if (vercel) add(`https://${vercel}`);
+  /** Render ustawia publiczny URL usługi. */
+  add(process.env.RENDER_EXTERNAL_URL);
   const extra = process.env.CSRF_ALLOWED_ORIGINS?.split(",") ?? [];
   for (const x of extra) add(x.trim());
   if (out.size === 0 && process.env.NODE_ENV !== "production") {
@@ -74,30 +77,16 @@ export function assertCsrf(req: Request): NextResponse | null {
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) return null;
 
   const origin = req.headers.get("origin");
-  if (origin) {
-    try {
-      // Always allow same-origin requests, even if env allowlist is stale/misconfigured.
-      const reqOrigin = new URL(req.url).origin;
-      const gotOrigin = new URL(origin).origin;
-      if (gotOrigin !== reqOrigin && !isAllowedRequestOrigin(origin)) {
-        return NextResponse.json(
-          {
-            error:
-              "Żądanie pochodzi z niedozwolonej witryny. Otwórz aplikację z adresu ustawionego w konfiguracji (np. produkcja lub localhost) i spróbuj ponownie.",
-          },
-          { status: 403 },
-        );
-      }
-    } catch {
-      if (!isAllowedRequestOrigin(origin)) {
-        return NextResponse.json(
-          {
-            error:
-              "Żądanie pochodzi z niedozwolonej witryny. Otwórz aplikację z adresu ustawionego w konfiguracji (np. produkcja lub localhost) i spróbuj ponownie.",
-          },
-          { status: 403 },
-        );
-      }
+  if (origin && origin !== "null") {
+    // Same-origin po Host / X-Forwarded-* (Render/Vercel: req.url bywa localhost).
+    if (!isSameRequestOrigin(req, origin) && !isAllowedRequestOrigin(origin)) {
+      return NextResponse.json(
+        {
+          error:
+            "Żądanie pochodzi z niedozwolonej witryny. Otwórz aplikację z adresu ustawionego w konfiguracji (np. produkcja lub localhost) i spróbuj ponownie.",
+        },
+        { status: 403 },
+      );
     }
   }
 
