@@ -7,17 +7,29 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
+
 version_code = int(os.environ["VERSION_CODE"])
 version_name = os.environ["VERSION_NAME"]
 git_sha = os.environ.get("GIT_SHA") or None
 
+# Prefer URL used for this APK build (Render / Vercel), not hardcode Vercel.
+raw_site = (
+    os.environ.get("API_BASE_URL")
+    or os.environ.get("ANDROID_API_BASE_URL")
+    or "https://gymbrat.onrender.com/"
+).strip()
+if not raw_site.endswith("/"):
+    raw_site += "/"
+site_origin = raw_site.rstrip("/")
+apk_url = f"{site_origin}/gymbrat.apk"
+
 info = {
     "versionCode": version_code,
     "versionName": version_name,
-    "apkUrl": "https://gym-brat.vercel.app/gymbrat.apk",
+    "apkUrl": apk_url,
     "releasedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     "commit": git_sha,
-    "notes": f"GymBrat Android {version_name} — pobieranie z gym-brat.vercel.app/gymbrat.apk.",
+    "notes": f"GymBrat Android {version_name} — pobieranie z {apk_url}.",
 }
 
 Path("dist").mkdir(parents=True, exist_ok=True)

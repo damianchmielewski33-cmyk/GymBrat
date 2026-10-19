@@ -134,6 +134,7 @@ jobs:
           VERSION_NAME=$(grep -E '^\s*versionName\s*=' android/app/build.gradle.kts | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
           export VERSION_CODE VERSION_NAME
           export GIT_SHA="${{ github.sha }}"
+          export API_BASE_URL="${{ steps.api.outputs.url }}"
           python3 scripts/write-android-version.py
           ls -lh dist/gymbrat.apk public/gymbrat.apk public/android-version.json
 
