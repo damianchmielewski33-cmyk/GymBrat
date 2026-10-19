@@ -15,8 +15,17 @@ export type MealLogFormState = {
   ok?: boolean;
 };
 
+/** Formularz PL: przecinek jako separator dziesiętny („12,5”). */
+function parseFormNumber(val: unknown): number {
+  if (val === "" || val == null) return 0;
+  if (typeof val === "number") return val;
+  const t = String(val).trim().replace(/\s/g, "").replace(",", ".");
+  if (t === "") return 0;
+  return Number(t);
+}
+
 const nonneg = z.preprocess(
-  (val) => (val === "" || val == null ? 0 : Number(val)),
+  (val) => parseFormNumber(val),
   z.number().finite().min(0),
 );
 
