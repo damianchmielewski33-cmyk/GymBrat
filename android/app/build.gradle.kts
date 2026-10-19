@@ -42,8 +42,8 @@ android {
         applicationId = "pl.gymbrat.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 14
-        versionName = "0.1.13"
+        versionCode = 15
+        versionName = "0.1.14"
 
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a")
@@ -51,7 +51,7 @@ android {
 
         val apiBase = readLocalProperty("api.base.url")
             ?: (project.findProperty("API_BASE_URL") as String?)
-            ?: "https://gym-brat.vercel.app/"
+            ?: "https://gymbrat.onrender.com/"
         buildConfigField("String", "API_BASE_URL", "\"$apiBase\"")
         manifestPlaceholders["appLinkHost"] = hostFromUrl(apiBase)
 

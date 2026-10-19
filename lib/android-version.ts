@@ -13,11 +13,13 @@ export type AndroidVersionInfo = {
 const DEFAULT_GYMBRAT_VERSION_JSON = `https://github.com/${GYMBRAT_GITHUB_SLUG}/releases/download/android-latest/android-version.json`;
 const DEFAULT_GYMBRAT_APK = `https://github.com/${GYMBRAT_GITHUB_SLUG}/releases/download/android-latest/gymbrat.apk`;
 /** Same-origin na produkcji — stabilniejsze pobieranie w Chrome Android. */
-const DEFAULT_SITE_ORIGIN = "https://gym-brat.vercel.app";
+/** Tymczasowo Render; po powrocie na Vercel: https://gym-brat.vercel.app */
+const DEFAULT_SITE_ORIGIN = "https://gymbrat.onrender.com";
 
 function siteOrigin(): string | null {
   const fromEnv =
     asHttpUrl(process.env.NEXT_PUBLIC_APP_URL) ||
+    asHttpUrl(process.env.AUTH_URL) ||
     asHttpUrl(
       process.env.VERCEL_PROJECT_PRODUCTION_URL
         ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
@@ -99,6 +101,7 @@ export function isGymBratAndroidSourceUrl(url: string | null | undefined): boole
   return (
     lower.includes("github.com/damianchmielewski33-cmyk/gymbrat") ||
     lower.includes("gym-brat.vercel.app") ||
+    lower.includes("gymbrat.onrender.com") ||
     lower.includes("/gymbrat.apk")
   );
 }

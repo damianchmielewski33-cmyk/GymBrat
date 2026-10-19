@@ -205,6 +205,10 @@ public final class MainActivity extends AppCompatActivity {
         if (h.endsWith(".vercel.app") && h.contains("gym")) {
             return true;
         }
+        // Render (tymczasowy host przy pauzie Vercel Hobby)
+        if (h.endsWith(".onrender.com") && h.contains("gymbrat")) {
+            return true;
+        }
 
         // Google OAuth + assety konta
         if (h.equals("accounts.google.com")
