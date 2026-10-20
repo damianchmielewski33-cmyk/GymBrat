@@ -420,7 +420,7 @@ export function StrengthTab({
         <div className="space-y-1 text-[11px] leading-snug text-white/45">
           {intensity.targetComparedCount > 0 ? (
             <p>
-              vs plan: {intensity.targetHitPct ?? 0}% w celu
+              Względem planu: {intensity.targetHitPct ?? 0}% w celu
               {intensity.harderThanPlanCount > 0
                 ? ` · ${intensity.harderThanPlanCount}× ciężej`
                 : ""}

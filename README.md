@@ -188,6 +188,8 @@ GymBrat tracks weekly cardio as a **rolling 7-day sum**:
 
 GymBrat is designed to run well on Vercel with Turso/libSQL.
 
+**Plan produkcji VPS + Docker** (fazy: najpierw cutover z Render Free, pełna warstwa komercyjna później): [`docs/vps-docker-production.md`](docs/vps-docker-production.md). Agent: `.cursor/agents/vps-docker-production.md`. Implementacja odłożona — na razie tylko dokumentacja.
+
 #### Preview → zatwierdzenie → produkcja
 
 Zmiany **nie** powinny od razu iść na `gym-brat.vercel.app`. Flow:

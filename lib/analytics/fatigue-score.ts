@@ -33,10 +33,10 @@ function recommendationFor(band: FatigueBand, score: number): string {
       return "Trzymaj plan; unikaj dokładania objętości bez powodu.";
     case "fatigued":
       return score >= 70
-        ? "Obniż objętość o ~20% albo dodaj dzień deloadu w tym tygodniu."
+        ? "Obniż objętość o ~20% albo dodaj dzień odciążenia w tym tygodniu."
         : "Skróć sesję lub obniż RPE o 1 — zmęczenie rośnie.";
     case "overreached":
-      return "Priorytet: sen, mniej hard sets, cardio tylko Z1–Z2. Rozważ deload 3–5 dni.";
+      return "Priorytet: sen, mniej ciężkich serii, cardio tylko Z1–Z2. Rozważ 3–5 dni lżejszego treningu.";
   }
 }
 

@@ -78,11 +78,11 @@ export function WeekOverWeekCard({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[13px] font-semibold text-white/90">
-            Tydzień vs tydzień
+            Porównanie tygodni
           </p>
           <p className="mt-0.5 text-[11px] leading-snug text-white/40">
             {compare.thisRangeLabel}
-            <span className="mx-1 text-white/25">vs</span>
+            <span className="mx-1 text-white/25">·</span>
             {compare.prevRangeLabel}
           </p>
         </div>

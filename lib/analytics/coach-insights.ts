@@ -41,13 +41,13 @@ export function buildCoachInsights(args: {
     insights.push({
       id: "fatigue-high",
       severity: "warn",
-      text: `Fatigue osiągnęło ${args.fatigue.score} — ${args.fatigue.bandLabel.toLowerCase()}.`,
+      text: `Zmęczenie osiągnęło ${args.fatigue.score} — ${args.fatigue.bandLabel.toLowerCase()}.`,
     });
   } else if (args.fatigue.score <= 28) {
     insights.push({
       id: "fatigue-low",
       severity: "good",
-      text: `Fatigue ${args.fatigue.score}/100 — dobre okno na cięższy trening.`,
+      text: `Zmęczenie ${args.fatigue.score}/100 — dobre okno na cięższy trening.`,
     });
   }
 
@@ -55,13 +55,13 @@ export function buildCoachInsights(args: {
     insights.push({
       id: "recovery-ok",
       severity: "info",
-      text: `Recovery ${args.recovery.score}% — ${args.recovery.readinessLine}.`,
+      text: `Regeneracja ${args.recovery.score}% — ${args.recovery.readinessLine}.`,
     });
   } else if (args.recovery.band === "poor") {
     insights.push({
       id: "recovery-poor",
       severity: "warn",
-      text: `Recovery ${args.recovery.score}% — ${args.recovery.readinessLine}.`,
+      text: `Regeneracja ${args.recovery.score}% — ${args.recovery.readinessLine}.`,
     });
   }
 
@@ -84,7 +84,7 @@ export function buildCoachInsights(args: {
     insights.push({
       id: "cardio-load",
       severity: "warn",
-      text: `Cardio Load ${args.cardio.load} (${args.cardio.loadLabel}) — wliczone w Fatigue.`,
+      text: `Obciążenie cardio ${args.cardio.load} (${args.cardio.loadLabel}) — wliczone w zmęczenie.`,
     });
   }
 
@@ -123,27 +123,28 @@ export function buildCoachInsights(args: {
     insights.push({
       id: "consistency-low",
       severity: "warn",
-      text: `Consistency ${args.consistency.week.scorePct}% — wykonano ${args.consistency.week.done} z ${args.consistency.week.planned} zaplanowanych treningów.`,
+      text: `Regularność ${args.consistency.week.scorePct}% — wykonano ${args.consistency.week.done} z ${args.consistency.week.planned} zaplanowanych treningów.`,
     });
   } else if (args.consistency.week.scorePct >= 90) {
     insights.push({
       id: "consistency-high",
       severity: "good",
-      text: `Consistency ${args.consistency.week.scorePct}% — solidna zgodność z planem.`,
+      text: `Regularność ${args.consistency.week.scorePct}% — solidna zgodność z planem.`,
     });
   }
 
   if (args.adherence.overallPct > 0) {
+    const parts = [`trening ${args.adherence.trainingPct}%`];
+    if (args.adherence.dietPct != null) {
+      parts.push(`dieta ${args.adherence.dietPct}%`);
+    }
+    if (args.adherence.cardioPct != null) {
+      parts.push(`cardio ${args.adherence.cardioPct}%`);
+    }
     insights.push({
       id: "adherence",
       severity: args.adherence.overallPct >= 80 ? "good" : "info",
-      text: `Adherence overall ${args.adherence.overallPct}% (T ${args.adherence.trainingPct}%${
-        args.adherence.dietPct != null ? ` · D ${args.adherence.dietPct}%` : ""
-      }${
-        args.adherence.cardioPct != null
-          ? ` · C ${args.adherence.cardioPct}%`
-          : ""
-      }).`,
+      text: `Realizacja planu ${args.adherence.overallPct}% (${parts.join(" · ")}).`,
     });
   }
 

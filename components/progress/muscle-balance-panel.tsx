@@ -24,13 +24,13 @@ export function MuscleBalancePanel({
       <div className="space-y-2">
         <SectionLabel
           index={1}
-          title="Balance mięśniowy"
+          title="Balans mięśniowy"
           trailing="30 dni"
           titleTone="white"
         />
         {topGroups.length === 0 ? (
           <div className="app-panel px-3.5 py-4 text-center text-[13px] text-white/45">
-            Zaliczone serie pojawią się tu jako objętość per partia.
+            Zaliczone serie pojawią się tu jako objętość na partię.
           </div>
         ) : (
           <ul className="overflow-hidden app-panel divide-y divide-white/[0.06]">

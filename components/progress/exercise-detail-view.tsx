@@ -21,9 +21,24 @@ import type {
 } from "@/lib/exercise-progress";
 import type { ExercisePeriodCompares } from "@/lib/exercise-period-compare";
 import { ExercisePeriodComparePanel } from "@/components/progress/exercise-period-compare-panel";
-import type { PredictionItem, StagnationItem } from "@/lib/analytics";
+import type {
+  PredictionConfidence,
+  PredictionItem,
+  StagnationItem,
+} from "@/lib/analytics";
 
 const GOLD = "#ebc44a";
+
+function confidenceLabelPl(c: PredictionConfidence): string {
+  switch (c) {
+    case "high":
+      return "wysoka";
+    case "medium":
+      return "średnia";
+    case "low":
+      return "niska";
+  }
+}
 const RIR_COLOR = "#34d399";
 const RPE_COLOR = "#fb7185";
 
@@ -361,7 +376,7 @@ export function ExerciseDetailView({
                 ? ` · brak postępu od ${stagnation.daysWithoutProgress} dni`
                 : ""}
               {stagnation.e1rmDeltaPct30 != null
-                ? ` · e1RM 30d ${stagnation.e1rmDeltaPct30 > 0 ? "+" : ""}${stagnation.e1rmDeltaPct30}%`
+                ? ` · e1RM 30 dni ${stagnation.e1rmDeltaPct30 > 0 ? "+" : ""}${stagnation.e1rmDeltaPct30}%`
                 : ""}
             </p>
           ) : null}
@@ -369,29 +384,30 @@ export function ExerciseDetailView({
             <div className="grid grid-cols-2 gap-2 text-[12px]">
               <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
                 <p className="text-[10px] uppercase tracking-wider text-white/40">
-                  e1RM 30d
+                  e1RM 30 dni
                 </p>
                 <p className="mt-1 font-metric text-[18px] text-white">
                   {prediction.e1rm30d.toLocaleString("pl-PL")} kg
                 </p>
                 <p className="mt-0.5 text-[10px] text-white/35">
-                  teraz {prediction.e1rmNow} · pewność {prediction.confidence}
+                  teraz {prediction.e1rmNow} · pewność{" "}
+                  {confidenceLabelPl(prediction.confidence)}
                 </p>
               </div>
               <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
                 <p className="text-[10px] uppercase tracking-wider text-white/40">
-                  e1RM 90d
+                  e1RM 90 dni
                 </p>
                 <p className="mt-1 font-metric text-[18px] text-white">
                   {prediction.e1rm90d.toLocaleString("pl-PL")} kg
                 </p>
                 <p className="mt-0.5 text-[10px] text-white/35">
-                  n={prediction.sampleCount} sesji
+                  {prediction.sampleCount} sesji
                 </p>
               </div>
               <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
                 <p className="text-[10px] uppercase tracking-wider text-white/40">
-                  Tonaż 30d
+                  Tonaż 30 dni
                 </p>
                 <p className="mt-1 font-metric text-[16px] text-white">
                   {prediction.tonnage30d.toLocaleString("pl-PL")} kg
@@ -399,7 +415,7 @@ export function ExerciseDetailView({
               </div>
               <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
                 <p className="text-[10px] uppercase tracking-wider text-white/40">
-                  Tonaż 90d
+                  Tonaż 90 dni
                 </p>
                 <p className="mt-1 font-metric text-[16px] text-white">
                   {prediction.tonnage90d.toLocaleString("pl-PL")} kg
@@ -485,7 +501,7 @@ export function ExerciseDetailView({
                       {p.bestWeight > 0
                         ? `${p.bestWeight} kg × ${p.bestReps}`
                         : p.bestReps > 0
-                          ? `max ${p.bestReps} powt.`
+                          ? `maks. ${p.bestReps} powt.`
                           : "masa ciała"}
                       {p.avgRir != null ? ` · RIR ${p.avgRir}` : ""}
                       {p.avgRpe != null ? ` · RPE ${p.avgRpe}` : ""}

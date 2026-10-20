@@ -23,7 +23,7 @@ export function IntelligenceStrip({
       <div className="grid grid-cols-2 gap-2.5">
         <div className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/30 bg-gradient-to-b from-[rgba(var(--neon-rgb),0.14)] via-[var(--gym-surface-sunken)] to-[var(--gym-surface-sunken)] px-3 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-            Fatigue
+            Zmęczenie
           </p>
           <p className="mt-1 flex items-baseline gap-1">
             <AnimatedMetric
@@ -45,13 +45,13 @@ export function IntelligenceStrip({
                   : "text-white/40",
             )}
           >
-            {fmtDelta(fatigue.delta7d)} vs poprz. tydz.
+            {fmtDelta(fatigue.delta7d)} względem poprz. tyg.
           </p>
         </div>
 
         <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[var(--gym-surface-sunken)] px-3 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-            Recovery
+            Regeneracja
           </p>
           <p className="mt-1 flex items-baseline gap-1">
             <AnimatedMetric

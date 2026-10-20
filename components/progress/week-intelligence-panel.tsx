@@ -18,14 +18,14 @@ export function WeekIntelligencePanel({
         <SectionLabel
           className="items-center"
           index="C"
-          title="Cardio Load · strefy HR"
+          title="Obciążenie cardio · strefy HR"
           titleTone="white"
         />
         <div className="space-y-2.5 app-panel px-3.5 py-3">
           <div className="flex items-end justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                Load
+                Obciążenie
               </p>
               <p className="mt-1 font-metric text-[1.5rem] leading-none text-white">
                 <AnimatedMetric value={cardio.load} decimals={0} />
@@ -84,14 +84,14 @@ export function WeekIntelligencePanel({
         <SectionLabel
           className="items-center"
           index="A"
-          title="Adherence · Consistency"
+          title="Realizacja · regularność"
           titleTone="white"
         />
         <div className="space-y-2.5 app-panel px-3.5 py-3">
           <div className="grid grid-cols-4 gap-2">
             {(
               [
-                { label: "Overall", value: adherence.overallPct },
+                { label: "Łącznie", value: adherence.overallPct },
                 { label: "Trening", value: adherence.trainingPct },
                 { label: "Dieta", value: adherence.dietPct },
                 { label: "Cardio", value: adherence.cardioPct },
@@ -121,7 +121,7 @@ export function WeekIntelligencePanel({
                 {consistency.week.done}
               </span>
               <span className="mx-1 text-white/25">·</span>
-              Consistency{" "}
+              Regularność{" "}
               <span className="font-metric text-[var(--gym-gold)]">
                 {consistency.week.scorePct}%
               </span>

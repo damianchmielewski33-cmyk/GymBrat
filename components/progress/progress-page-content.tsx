@@ -1,44 +1,7 @@
 import Link from "next/link";
-import { StrengthTab } from "@/components/progress/strength-tab";
-import { BodyTab } from "@/components/progress/body-tab";
-import { PhotosTab } from "@/components/progress/photos-tab";
-import { WeekTab } from "@/components/progress/week-tab";
-import { IntelligenceStrip } from "@/components/progress/intelligence-strip";
+import { ProgressHubView } from "@/components/progress/progress-hub-view";
 import { getProgressHubData } from "@/lib/progress-hub";
 import type { ProgressTabId } from "@/lib/progress-tabs";
-
-const PL_MONTH = [
-  "STYCZNIA",
-  "LUTEGO",
-  "MARCA",
-  "KWIETNIA",
-  "MAJA",
-  "CZERWCA",
-  "LIPCA",
-  "SIERPNIA",
-  "WRZEŚNIA",
-  "PAŹDZIERNIKA",
-  "LISTOPADA",
-  "GRUDNIA",
-] as const;
-
-function formatSinceKicker(iso: string | null, workouts: number): string {
-  const tren =
-    workouts === 1
-      ? "1 TRENING"
-      : workouts >= 2 && workouts <= 4
-        ? `${workouts} TRENINGI`
-        : `${workouts} TRENINGÓW`;
-  if (!iso) return tren;
-  try {
-    const d = new Date(`${iso}T12:00:00`);
-    if (Number.isNaN(d.getTime())) return tren;
-    const month = PL_MONTH[d.getMonth()] ?? "";
-    return `OD ${d.getDate()} ${month} · ${tren}`;
-  } catch {
-    return tren;
-  }
-}
 
 export async function ProgressPageContent({
   userId,
@@ -74,22 +37,5 @@ export async function ProgressPageContent({
     );
   }
 
-  return (
-    <div className="space-y-3.5">
-      <p className="px-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
-        {formatSinceKicker(data.strength.sinceDate, data.strength.workoutCount)}
-      </p>
-
-      <IntelligenceStrip data={data.intelligence} />
-
-      {tab === "sila" ? (
-        <StrengthTab data={data.strength} intelligence={data.intelligence} />
-      ) : null}
-      {tab === "sylwetka" ? <BodyTab data={data.body} /> : null}
-      {tab === "zdjecia" ? <PhotosTab data={data.photos} /> : null}
-      {tab === "tydzien" ? (
-        <WeekTab data={data.week} intelligence={data.intelligence} />
-      ) : null}
-    </div>
-  );
+  return <ProgressHubView data={data} initialTab={tab} />;
 }

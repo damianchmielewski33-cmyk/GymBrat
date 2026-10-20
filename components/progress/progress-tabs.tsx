@@ -1,10 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { PROGRESS_TABS, type ProgressTabId } from "@/lib/progress-tabs";
 
-export function ProgressTabs({ active }: { active: ProgressTabId }) {
+export function ProgressTabs({
+  active,
+  onTabChange,
+}: {
+  active: ProgressTabId;
+  onTabChange: (tab: ProgressTabId) => void;
+}) {
   return (
     <nav
       className="-mx-1 flex gap-1.5 overflow-x-auto px-1"
@@ -13,12 +18,12 @@ export function ProgressTabs({ active }: { active: ProgressTabId }) {
       {PROGRESS_TABS.map((tab) => {
         const isActive = tab.id === active;
         return (
-          <Link
+          <button
             key={tab.id}
-            href={`/progress?tab=${tab.id}`}
-            scroll={false}
+            type="button"
+            onClick={() => onTabChange(tab.id)}
             className={cn(
-              "shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold leading-none transition",
+              "shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold leading-none transition active:scale-[0.97]",
               isActive
                 ? "border border-[var(--gym-gold)]/70 bg-[rgba(var(--neon-rgb),0.08)] text-[var(--gym-gold)]"
                 : "border border-transparent bg-[var(--gym-surface-sunken)] text-white/65",
@@ -26,7 +31,7 @@ export function ProgressTabs({ active }: { active: ProgressTabId }) {
             aria-current={isActive ? "page" : undefined}
           >
             {tab.label}
-          </Link>
+          </button>
         );
       })}
     </nav>

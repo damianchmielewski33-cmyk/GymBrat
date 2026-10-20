@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { ProgressTabs } from "@/components/progress/progress-tabs";
 import { ProgressPageContent } from "@/components/progress/progress-page-content";
 import { DashboardRouteSkeleton } from "@/components/layout/dashboard-route-skeleton";
 import { parseProgressTab } from "@/lib/progress-tabs";
@@ -25,8 +24,6 @@ export default async function ProgressPage({
           Analiza postępów
         </h1>
       </header>
-
-      <ProgressTabs active={tab} />
 
       <Suspense fallback={<DashboardRouteSkeleton />}>
         <ProgressPageContent userId={userId} tab={tab} />

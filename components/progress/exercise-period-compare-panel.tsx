@@ -245,7 +245,7 @@ export function ExercisePeriodComparePanel({
 
       <p className="text-[11px] text-white/40">
         {compare.currentLabel}
-        <span className="mx-1.5 text-white/25">vs</span>
+        <span className="mx-1.5 text-white/25">·</span>
         {compare.previousLabel}
       </p>
 
@@ -318,7 +318,8 @@ export function ExercisePeriodComparePanel({
           : kind === "month"
             ? "śr. e1RM / objętość w miesiącu"
             : "śr. e1RM / objętość w roku"}
-        . Kolor: zielony = wzrost vs poprzedni okres, różowy = spadek.
+        . Kolor: zielony = wzrost względem poprzedniego okresu, różowy =
+        spadek.
       </p>
 
       {scoredMetrics.length ? (

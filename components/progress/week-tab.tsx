@@ -97,7 +97,7 @@ function DietTrainingCurrent({ week }: { week: ProgressDietTrainingWeek }) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-            Kcal vs cel
+            Kcal względem celu
           </p>
           <p className="mt-1 font-metric text-[1.5rem] leading-none text-white">
             {fmtPct(week.calorieAdherencePct)}
@@ -112,7 +112,7 @@ function DietTrainingCurrent({ week }: { week: ProgressDietTrainingWeek }) {
         </div>
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-            Białko vs cel
+            Białko względem celu
           </p>
           <p className="mt-1 font-metric text-[1.5rem] leading-none text-white">
             {fmtPct(week.proteinAdherencePct)}
@@ -293,7 +293,7 @@ export function WeekTab({
         <SectionLabel
           className="items-center"
           index={3}
-          title="Dieta vs trening"
+          title="Dieta a trening"
           trailing="8 tyg."
           titleTone="white"
         />
