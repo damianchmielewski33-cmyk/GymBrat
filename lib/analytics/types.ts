@@ -136,6 +136,11 @@ export type StrengthVelocityExercise = {
 };
 
 export type StrengthVelocitySnapshot = {
+  /** Średnia zmiana e1RM po ćwiczeniach + łączna objętość (wszystkie punkty). */
+  overall: {
+    e1rmPct: VelocityWindow;
+    volumePct: VelocityWindow;
+  };
   exercises: StrengthVelocityExercise[];
   byMuscle: Array<{
     id: AnalyticsMuscleGroupId;

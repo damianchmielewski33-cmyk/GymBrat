@@ -13,6 +13,8 @@ import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
 import { MiniSparkline } from "@/components/home/mini-sparkline";
 import { MuscleBalancePanel } from "@/components/progress/muscle-balance-panel";
+import { StrengthMoversCard } from "@/components/progress/strength-movers-card";
+import { StrengthVelocityPanel } from "@/components/progress/strength-velocity-panel";
 import type { ProgressIntelligence } from "@/lib/analytics";
 import type {
   ProgressExerciseRow,
@@ -443,6 +445,13 @@ export function StrengthTab({
           )}
         </div>
       </section>
+
+      <StrengthVelocityPanel velocity={intelligence.velocity} />
+
+      <StrengthMoversCard
+        velocity={intelligence.velocity}
+        predictions={intelligence.predictions}
+      />
 
       <MuscleBalancePanel
         muscle={intelligence.muscle}

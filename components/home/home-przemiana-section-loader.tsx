@@ -9,7 +9,16 @@ export async function HomePrzemianaSectionLoader({
   userId: string;
   weightFromStartKg: number | null;
 }) {
-  const transformation = await getTransformationPhotos(userId);
+  let transformation: Awaited<ReturnType<typeof getTransformationPhotos>>;
+  try {
+    transformation = await getTransformationPhotos(userId);
+  } catch (e) {
+    console.error(
+      "[home-przemiana]",
+      e instanceof Error ? e.message : e,
+    );
+    return null;
+  }
 
   return (
     <HomePrzemianaSection

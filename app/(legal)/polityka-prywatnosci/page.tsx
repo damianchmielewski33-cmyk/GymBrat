@@ -136,17 +136,26 @@ export default function PolitykaPrywatnosciPage() {
           Skargi można składać do Prezesa UODO.
         </p>
         <p>
-          Wnioski: {s.email}. Eksport danych Konta może być dostępny także w
-          ustawieniach profilu Serwisu.
+          Wnioski: {s.email}. W Profilu → „Prywatność i zgody” możesz pobrać
+          eksport JSON/CSV oraz trwale usunąć Konto.
         </p>
       </LegalSection>
 
       <LegalSection id="cookies" title="7. Pliki cookies / lokalne dane">
         <p>
           Serwis używa niezbędnych plików cookies / magazynu lokalnego do sesji
-          logowania i działania aplikacji. Opcjonalne narzędzia reklamowe /
-          analityczne mogą używać identyfikatorów zgodnie z ustawieniami
-          urządzenia i zgodą, jeśli jest wymagana.
+          logowania, CSRF i bezpieczeństwa — bez nich aplikacja nie działa.
+        </p>
+        <p>
+          Opcjonalnie, tylko po Twojej zgodzie w bannerze cookies (lub w Profilu):
+          analityka wejść (page-view) oraz marketing / reklamy pełnoekranowe
+          AdMob (gdy nie masz aktywnego Pakietu). W aplikacji Android zgody
+          reklamowe AdMob są dodatkowo zbierane przez Google UMP.
+        </p>
+        <p>
+          Zgodę możesz zmienić lub wycofać w każdej chwili w Profilu → Prywatność
+          i zgody. Wycofanie zgody marketingowej zatrzymuje pokazywanie reklam;
+          niezbędne cookies pozostają aktywne.
         </p>
       </LegalSection>
 

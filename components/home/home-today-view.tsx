@@ -9,6 +9,7 @@ import { HomeZalozeniaSection } from "@/components/home/home-zalozenia-section";
 import { HomeOdDamiana } from "@/components/home/home-od-damiana";
 import { HomeObwodySection } from "@/components/home/home-obwody-section";
 import { HomeRecentWorkouts } from "@/components/home/home-recent-workouts";
+import { AppIntroTour } from "@/components/home/app-intro-tour";
 import { OnboardingBanner } from "@/components/home/onboarding-banner";
 import type {
   HomeStartDashboard,
@@ -35,6 +36,8 @@ export type HomeTodayViewProps = {
   reportCount: number;
   daysSinceLastReport: number | null;
   showOnboarding: boolean;
+  /** Instrukcja startowa (popupy Dalej) po założeniu konta. */
+  showIntroTour: boolean;
   recommendedPlanId: string | null;
   planName: string | null;
   exerciseCount: number;
@@ -80,6 +83,7 @@ export function HomeTodayView(props: HomeTodayViewProps) {
 
   return (
     <div className="space-y-5">
+      <AppIntroTour open={props.showIntroTour} />
       {props.showOnboarding ? <OnboardingBanner /> : null}
 
       <HomeTrainingCard

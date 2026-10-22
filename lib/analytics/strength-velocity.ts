@@ -11,6 +11,8 @@ import type {
 } from "@/lib/analytics/types";
 import type { MuscleRegionId } from "@/lib/resolve-exercise-muscles";
 
+export type VelocityPeriodKey = keyof VelocityWindow;
+
 function velocityWindow(
   points: ExerciseSessionPoint[],
   today: string,
@@ -35,6 +37,28 @@ function velocityWindow(
   };
 }
 
+function meanVelocityWindow(windows: VelocityWindow[]): VelocityWindow {
+  const meanKey = (key: VelocityPeriodKey): number | null => {
+    const vals = windows
+      .map((w) => w[key])
+      .filter((n): n is number => n != null && Number.isFinite(n));
+    if (!vals.length) return null;
+    return round1(vals.reduce((a, b) => a + b, 0) / vals.length);
+  };
+  return {
+    days7: meanKey("days7"),
+    days30: meanKey("days30"),
+    days90: meanKey("days90"),
+  };
+}
+
+export function pickVelocity(
+  window: VelocityWindow,
+  key: VelocityPeriodKey,
+): number | null {
+  return window[key];
+}
+
 export function computeStrengthVelocity(args: {
   exercises: Array<{
     exerciseKey: string;
@@ -53,6 +77,12 @@ export function computeStrengthVelocity(args: {
       volumePct: velocityWindow(e.points, args.today, (p) => p.volumeKg),
     }))
     .slice(0, 24);
+
+  const allPoints = args.exercises.flatMap((e) => e.points);
+  const overall = {
+    e1rmPct: meanVelocityWindow(exercises.map((e) => e.e1rmPct)),
+    volumePct: velocityWindow(allPoints, args.today, (p) => p.volumeKg),
+  };
 
   const byMuscleMap = new Map<
     AnalyticsMuscleGroupId,
@@ -75,13 +105,27 @@ export function computeStrengthVelocity(args: {
       label: g.label,
       volumePct: velocityWindow(bucket.points, args.today, (p) => p.volumeKg),
     };
-  }).filter((r) => r.volumePct.days30 != null || r.volumePct.days90 != null);
+  }).filter(
+    (r) =>
+      r.volumePct.days7 != null ||
+      r.volumePct.days30 != null ||
+      r.volumePct.days90 != null,
+  );
 
-  return { exercises, byMuscle };
+  return { overall, exercises, byMuscle };
 }
 
 export function formatVelocityPct(n: number | null): string {
   if (n == null) return "—";
   const sign = n > 0 ? "+" : n < 0 ? "" : "";
   return `${sign}${round1(n)}%`;
+}
+
+export function velocityTone(
+  n: number | null,
+): "up" | "down" | "flat" | "none" {
+  if (n == null) return "none";
+  if (n >= 3) return "up";
+  if (n <= -3) return "down";
+  return "flat";
 }

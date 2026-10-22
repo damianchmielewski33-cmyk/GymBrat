@@ -58,6 +58,16 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     ],
   },
   {
+    title: "Zapowiedź — Stabilniejszy Pulpit na Renderze (bez blobów zdjęć)",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Sekcja Przemiana na Pulpicie nie pobiera już pełnych blobów zdjęć z Turso — tylko meta (id), a obrazki idą przez /api/media.",
+      "Sprawdzenie zdjęcia startowego nie ładuje całego pliku z bazy; zapytania pulpitu mają ponowienia przy chwilowych błędach sieci.",
+      "Przy awarii bazy Pulpit pokazuje miękki komunikat z odświeżeniem zamiast crasha „Coś poszło nie tak”.",
+    ],
+  },
+  {
     title: "Zapowiedź — Stabilniejsza Analiza postępów na Renderze",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
@@ -81,6 +91,63 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
       "Po wyjściu z panelu admina żądania POST nie dostają już 403 „niedozwolona witryna” na Renderze — CSRF uznaje Origin z X-Forwarded-Host (wcześniej porównywało z wewnętrznym localhost).",
+    ],
+  },
+  {
+    title: "Zapowiedź — Instrukcja startowa po założeniu konta",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Po utworzeniu konta na Pulpicie pojawia się seria popupów z przyciskiem Dalej: Pulpit, Dieta, Treningi, Analiza, Raport i Profil.",
+      "Możesz pominąć instrukcję albo dokończyć — po „Zaczynam” nie pokazuje się ponownie.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Android: bezpieczniejszy most JS i deep linki",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Most GymBratAndroid jest dostępny tylko na domenie aplikacji — na OAuth Google/Facebook jest zdejmowany.",
+      "App Link / Intent ładuje wyłącznie zaufany host GymBrat; obce schemy (intent:, file:) nie otwierają się z WebView.",
+      "Wyłączony dostęp file:// i mixed content w WebView; metody mostu dodatkowo sprawdzają origin strony.",
+    ],
+  },
+  {
+    title: "Zapowiedź — RODO: zgody cookies, AdMob UMP, eksport i usunięcie konta",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Przy pierwszym wejściu jest banner cookies: niezbędne zawsze, analityka i marketing/reklamy tylko za zgodą (można dostosować).",
+      "W Profilu → Prywatność i zgody zmieniasz zgody, pobierasz eksport JSON/CSV oraz usuwasz konto (potwierdzenie „USUŃ”).",
+      "Reklamy AdMob i bramka web nie pokazują się bez zgody marketingowej; w APK dodatkowo Google UMP przed inicjalizacją SDK.",
+      "Polityka prywatności opisuje cookies, UMP i prawa w Profilu.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Siła: najszybciej rośnie / spada + predykcje 30/90",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W Analizie → Siła jest karta top ćwiczeń rosnących i spadających (tempo objętości/e1RM z 30 dni) z linkiem do detalu.",
+      "Obok widać zbiorcze predykcje e1RM i tonażu na 30 oraz 90 dni (średnie % + lista ćwiczeń) — bez wchodzenia w każde ćwiczenie osobno.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Siła: tempo zmian 7 / 30 / 90 dni",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W Analizie → Siła widać tempo zmian e1RM i tonażu dla okien 7, 30 i 90 dni — bez wchodzenia w szczegóły ćwiczenia.",
+      "Pod spodem są partie mięśniowe (zmiana objętości) dla wybranego okna.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Analiza: wybór dowolnych dwóch tygodni",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W Analizie → Tydzień możesz wybrać dowolną parę z ostatnich 12 tygodni (nie tylko bieżący vs poprzedni).",
+      "Gdy jednym z wyborów jest bieżący tydzień, oba zakresy są wyrównane do Pn→dziś — żeby środek tygodnia nie wyglądał jak regres względem pełnego Pn–Nd.",
     ],
   },
   {

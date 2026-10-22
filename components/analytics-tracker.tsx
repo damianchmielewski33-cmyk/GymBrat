@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import {
+  CONSENT_CHANGED_EVENT,
+  canUseAnalytics,
+  hasConsentDecision,
+} from "@/lib/consent-preferences";
 import { VISITOR_ID_STORAGE_KEY } from "@/lib/constants";
 
 const LAST_PAGE_VIEW_KEY = "gymbrat_analytics_last_pv";
@@ -24,9 +29,19 @@ function getVisitorId(): string {
 export function AnalyticsTracker() {
   const pathname = usePathname();
   const lastRef = useRef<{ path: string; t: number } | null>(null);
+  const [analyticsAllowed, setAnalyticsAllowed] = useState(false);
 
   useEffect(() => {
-    if (!pathname) return;
+    const sync = () => {
+      setAnalyticsAllowed(hasConsentDecision() && canUseAnalytics());
+    };
+    sync();
+    window.addEventListener(CONSENT_CHANGED_EVENT, sync);
+    return () => window.removeEventListener(CONSENT_CHANGED_EVENT, sync);
+  }, []);
+
+  useEffect(() => {
+    if (!pathname || !analyticsAllowed) return;
     const now = Date.now();
     const last = lastRef.current;
     if (last && last.path === pathname && now - last.t < 1500) return;
@@ -54,7 +69,7 @@ export function AnalyticsTracker() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pathname, visitorId }),
     }).catch(() => {});
-  }, [pathname]);
+  }, [pathname, analyticsAllowed]);
 
   return null;
 }

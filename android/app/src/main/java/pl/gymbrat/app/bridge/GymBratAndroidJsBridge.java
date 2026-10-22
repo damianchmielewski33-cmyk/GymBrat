@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat;
 import pl.gymbrat.app.BuildConfig;
 import pl.gymbrat.app.MainActivity;
 import pl.gymbrat.app.ads.InterstitialAdHelper;
+import pl.gymbrat.app.security.TrustedOrigins;
 import pl.gymbrat.app.update.UpdateInstaller;
 
 /**
@@ -55,6 +56,22 @@ public final class GymBratAndroidJsBridge {
         this.interstitialAds = helper;
     }
 
+    /**
+     * Defense-in-depth: metody mostu tylko gdy WebView jest na originie GymBrat
+     * (most i tak jest zdejmowany poza app, ale sprawdzamy URL).
+     */
+    private boolean isCallFromAppOrigin() {
+        MainActivity act = activity;
+        if (act == null || act.getWebView() == null) return false;
+        String url = act.getWebView().getUrl();
+        if (url == null || url.isEmpty()) return false;
+        try {
+            return TrustedOrigins.isAppOrigin(Uri.parse(url));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @JavascriptInterface
     public String getVersionName() {
         return BuildConfig.VERSION_NAME;
@@ -68,6 +85,7 @@ public final class GymBratAndroidJsBridge {
     /** true = runtime CAMERA już przyznane (przed getUserMedia). */
     @JavascriptInterface
     public boolean hasCameraPermission() {
+        if (!isCallFromAppOrigin()) return false;
         MainActivity act = activity;
         if (act == null) return false;
         return act.hasCameraPermission();
@@ -81,6 +99,10 @@ public final class GymBratAndroidJsBridge {
      */
     @JavascriptInterface
     public void requestCameraPermission() {
+        if (!isCallFromAppOrigin()) {
+            notifyCameraPermissionResult(false);
+            return;
+        }
         MainActivity act = activity;
         if (act == null) {
             notifyCameraPermissionResult(false);
@@ -92,6 +114,7 @@ public final class GymBratAndroidJsBridge {
     /** Czy urządzenie ma latarkę (tył z FLASH_INFO_AVAILABLE). */
     @JavascriptInterface
     public boolean hasTorch() {
+        if (!isCallFromAppOrigin()) return false;
         return resolveTorchCameraId() != null;
     }
 
@@ -104,6 +127,7 @@ public final class GymBratAndroidJsBridge {
      */
     @JavascriptInterface
     public boolean setTorch(boolean enabled) {
+        if (!isCallFromAppOrigin()) return false;
         if (ContextCompat.checkSelfPermission(appContext, android.Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             return false;
@@ -211,6 +235,7 @@ public final class GymBratAndroidJsBridge {
     /** Otwiera ustawienia aplikacji (gdy użytkownik wcześniej trwale odmówił kamery). */
     @JavascriptInterface
     public void openAppSettings() {
+        if (!isCallFromAppOrigin()) return;
         MainActivity act = activity;
         Handler main = new Handler(Looper.getMainLooper());
         main.post(() -> {
@@ -241,17 +266,20 @@ public final class GymBratAndroidJsBridge {
 
     @JavascriptInterface
     public void checkUpdate() {
+        if (!isCallFromAppOrigin()) return;
         updateInstaller.requestInstall();
     }
 
     @JavascriptInterface
     public void notifyContentReady() {
+        if (!isCallFromAppOrigin()) return;
         Handler main = new Handler(Looper.getMainLooper());
         main.post(onContentReady);
     }
 
     @JavascriptInterface
     public void openExternalUrl(String url) {
+        if (!isCallFromAppOrigin()) return;
         if (url == null) return;
         String raw = url.trim();
         if (raw.isEmpty()) return;
@@ -261,8 +289,7 @@ public final class GymBratAndroidJsBridge {
         } catch (Exception e) {
             return;
         }
-        String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase();
-        if (!"http".equals(scheme) && !"https".equals(scheme)) return;
+        if (!TrustedOrigins.isSafeExternalBrowserUrl(uri)) return;
         Handler main = new Handler(Looper.getMainLooper());
         main.post(() -> {
             Intent intent = new Intent(Intent.ACTION_VIEW, uri);
@@ -273,8 +300,25 @@ public final class GymBratAndroidJsBridge {
 
     @JavascriptInterface
     public boolean hasInterstitialAds() {
+        if (!isCallFromAppOrigin()) return false;
         InterstitialAdHelper helper = interstitialAds;
-        return helper != null && helper.isConfigured();
+        return helper != null && helper.canShowAds();
+    }
+
+    @JavascriptInterface
+    public void setMarketingConsent(boolean allowed) {
+        if (!isCallFromAppOrigin()) return;
+        InterstitialAdHelper helper = interstitialAds;
+        if (helper == null) return;
+        Handler main = new Handler(Looper.getMainLooper());
+        main.post(() -> helper.setMarketingConsent(allowed));
+    }
+
+    @JavascriptInterface
+    public boolean hasMarketingConsent() {
+        if (!isCallFromAppOrigin()) return false;
+        InterstitialAdHelper helper = interstitialAds;
+        return helper != null && helper.hasMarketingConsent();
     }
 
     /**
@@ -283,8 +327,20 @@ public final class GymBratAndroidJsBridge {
      */
     @JavascriptInterface
     public void showInterstitialAd(String placement) {
+        if (!isCallFromAppOrigin()) {
+            Handler main = new Handler(Looper.getMainLooper());
+            main.post(() -> {
+                MainActivity act = activity;
+                if (act == null || act.getWebView() == null) return;
+                act.getWebView().evaluateJavascript(
+                        "try{if(typeof window.__gymbratOnInterstitial==='function'){window.__gymbratOnInterstitial(false);}}catch(e){}",
+                        null
+                );
+            });
+            return;
+        }
         InterstitialAdHelper helper = interstitialAds;
-        if (helper == null || !helper.isConfigured()) {
+        if (helper == null || !helper.canShowAds()) {
             Handler main = new Handler(Looper.getMainLooper());
             main.post(() -> {
                 MainActivity act = activity;
@@ -301,6 +357,7 @@ public final class GymBratAndroidJsBridge {
 
     @JavascriptInterface
     public void vibrate(String patternCsv) {
+        if (!isCallFromAppOrigin()) return;
         if (patternCsv == null || patternCsv.trim().isEmpty()) return;
         String[] parts = patternCsv.split(",");
         long[] webPattern = new long[parts.length];

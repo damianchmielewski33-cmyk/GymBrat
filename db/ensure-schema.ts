@@ -137,6 +137,9 @@ CREATE TABLE IF NOT EXISTS "daily_checkins" (
     `ALTER TABLE "user_settings" ADD COLUMN "onboarding_completed_at" integer`,
   );
   await tryAddColumn(
+    `ALTER TABLE "user_settings" ADD COLUMN "intro_tour_completed_at" integer`,
+  );
+  await tryAddColumn(
     `ALTER TABLE "user_settings" ADD COLUMN "ai_features_disabled" integer NOT NULL DEFAULT 0`,
   );
   await tryAddColumn(

@@ -139,7 +139,7 @@ export function buildProgressIntelligence(
 
   const predictions = computePredictions({
     exercises: input.exercises,
-    limit: 8,
+    limit: 12,
   });
 
   const velocity = computeStrengthVelocity({

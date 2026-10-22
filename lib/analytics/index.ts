@@ -19,7 +19,15 @@ export { computePredictions, predictExercise } from "@/lib/analytics/prediction"
 export {
   computeStrengthVelocity,
   formatVelocityPct,
+  pickVelocity,
+  velocityTone,
+  type VelocityPeriodKey,
 } from "@/lib/analytics/strength-velocity";
+export {
+  buildPredictionAggregate,
+  buildStrengthMovers,
+  confidenceLabelPl,
+} from "@/lib/analytics/strength-movers";
 export {
   computeZoneMinutes,
   estimateHrMax,

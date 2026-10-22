@@ -282,8 +282,12 @@ export function WeekTab({
           title="Progres / regres"
           titleTone="white"
         />
-        {summary.weekCompare?.metrics?.length ? (
-          <WeekOverWeekCard compare={summary.weekCompare} />
+        {summary.compareWeeks?.length >= 2 ||
+        summary.weekCompare?.metrics?.length ? (
+          <WeekOverWeekCard
+            weeks={summary.compareWeeks ?? []}
+            initialCompare={summary.weekCompare}
+          />
         ) : null}
       </section>
 

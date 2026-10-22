@@ -5,6 +5,8 @@ import { userSettings, users } from "@/db/schema";
 import { ProfileGoalForm } from "@/components/profile/profile-goal-form";
 import { BodyParamsForm } from "@/components/profile/body-params-form";
 import { ChangePasswordForm } from "@/components/profile/change-password-form";
+import { ConsentSettingsCard } from "@/components/consent/consent-settings-card";
+import { PersonalDataCard } from "@/components/profile/personal-data-card";
 import { LogoutButton } from "@/components/profile/logout-button";
 import { CalendarRange, Dumbbell, Shield, User as UserIcon } from "lucide-react";
 import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
@@ -214,6 +216,30 @@ export default async function ProfilePage() {
         }
       >
         <ChangePasswordForm />
+      </ProfileSection>
+
+      <ProfileSection
+        kicker="RODO"
+        title="Prywatność i zgody"
+        description="Cookies opcjonalne (analityka, reklamy AdMob) oraz eksport / usunięcie danych konta."
+        action={
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10">
+            <Shield className="h-5 w-5 text-[var(--gym-gold)]" />
+          </div>
+        }
+      >
+        <div className="space-y-8">
+          <ConsentSettingsCard />
+          <div className="border-t border-white/[0.08] pt-6">
+            <p className="app-label text-[var(--gym-gold)]">Dane osobowe</p>
+            <h3 className="mt-1.5 text-base font-semibold text-white">
+              Eksport i usunięcie konta
+            </h3>
+            <div className="mt-4">
+              <PersonalDataCard />
+            </div>
+          </div>
+        </div>
       </ProfileSection>
     </div>
   );

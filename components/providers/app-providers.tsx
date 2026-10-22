@@ -14,6 +14,7 @@ import { BrandingProvider } from "@/components/branding/branding-provider";
 import { AndroidAppUpdatePrompt } from "@/components/android-app-update-prompt";
 import { PwaUpdate } from "@/components/pwa-update";
 import { ClientHardening } from "@/components/security/client-hardening";
+import { CookieConsentBanner } from "@/components/consent/cookie-consent-banner";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
@@ -31,6 +32,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         <SaveFeedbackProvider>
           <AnalyticsTracker />
           <AndroidAppUpdatePrompt />
+          <CookieConsentBanner />
           {children}
         </SaveFeedbackProvider>
       </I18nProvider>

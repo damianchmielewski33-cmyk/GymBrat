@@ -35,8 +35,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Locale;
-
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -45,6 +43,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import pl.gymbrat.app.bridge.GymBratAndroidJsBridge;
+import pl.gymbrat.app.security.TrustedOrigins;
 import pl.gymbrat.app.update.AppUpdater;
 import pl.gymbrat.app.update.UpdateInstaller;
 
@@ -60,6 +59,8 @@ public final class MainActivity extends AppCompatActivity {
     private UpdateInstaller updateInstaller;
     private GymBratAndroidJsBridge jsBridge;
     private boolean contentReady;
+    /** Most JS tylko na originie aplikacji (nie na OAuth Google/Facebook). */
+    private boolean bridgeAttached;
 
     /** Callback WebView dla input type=file — bez tego wybór zdjęć w APK milczy. */
     private ValueCallback<Uri[]> filePathCallback;
@@ -144,15 +145,18 @@ public final class MainActivity extends AppCompatActivity {
         });
 
         String startUrl = resolveStartUrl();
-        if (getIntent() != null && getIntent().getData() != null) {
-            startUrl = getIntent().getData().toString();
+        Uri deepLink = getIntent() != null ? getIntent().getData() : null;
+        if (TrustedOrigins.isTrustedDeepLink(deepLink)) {
+            startUrl = deepLink.toString();
         }
         webView.loadUrl(startUrl);
+        syncBridgeForUrl(startUrl);
     }
 
     /**
      * App Link / powrót z OAuth przy {@code launchMode=singleTask} — bez tego
      * callback Google otwiera się „obok” WebView i ekran skacze / nic nie działa.
+     * Ładujemy wyłącznie zaufany origin aplikacji (nie dowolny Intent URL).
      */
     @Override
     protected void onNewIntent(Intent intent) {
@@ -160,7 +164,7 @@ public final class MainActivity extends AppCompatActivity {
         setIntent(intent);
         if (intent == null || webView == null) return;
         Uri data = intent.getData();
-        if (data == null) return;
+        if (!TrustedOrigins.isTrustedDeepLink(data)) return;
         String url = data.toString();
         if (url.isEmpty()) return;
         webView.loadUrl(url);
@@ -183,64 +187,28 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Nawigacja, która musi zostać w WebView (nie Chrome).
-     * OAuth Google/Facebook poza APK zabija sesję i „skacze” ekranem.
+     * Most JS wyłącznie na originie aplikacji.
+     * Na OAuth Google/Facebook most jest zdejmowany — inaczej obce strony
+     * mogłyby wołać kamerę / reklamy / update.
      */
-    private boolean shouldKeepNavigationInWebView(Uri uri) {
-        if (uri == null) return false;
-        String scheme = uri.getScheme();
-        if (scheme == null) return false;
-        if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
-            return false;
+    private void syncBridgeForUrl(@Nullable String url) {
+        if (webView == null || jsBridge == null) return;
+        Uri uri = null;
+        if (url != null && !url.isEmpty()) {
+            try {
+                uri = Uri.parse(url);
+            } catch (Exception ignored) {
+                uri = null;
+            }
         }
-        String host = uri.getHost();
-        if (host == null || host.isEmpty()) return false;
-        String h = host.toLowerCase(Locale.US);
-
-        String siteHost = Uri.parse(AppUpdater.siteBase()).getHost();
-        if (siteHost != null && h.equals(siteHost.toLowerCase(Locale.US))) {
-            return true;
+        boolean allow = TrustedOrigins.isAppOrigin(uri);
+        if (allow && !bridgeAttached) {
+            webView.addJavascriptInterface(jsBridge, "GymBratAndroid");
+            bridgeAttached = true;
+        } else if (!allow && bridgeAttached) {
+            webView.removeJavascriptInterface("GymBratAndroid");
+            bridgeAttached = false;
         }
-        // Preview Vercel tego samego projektu
-        if (h.endsWith(".vercel.app") && h.contains("gym")) {
-            return true;
-        }
-        // Render (tymczasowy host przy pauzie Vercel Hobby)
-        if (h.endsWith(".onrender.com") && h.contains("gymbrat")) {
-            return true;
-        }
-
-        // Google OAuth + assety konta
-        if (h.equals("accounts.google.com")
-                || h.equals("accounts.youtube.com")
-                || h.equals("oauthaccountmanager.googleapis.com")
-                || h.equals("www.googleapis.com")
-                || h.equals("googleapis.com")
-                || h.equals("apis.google.com")
-                || h.equals("ssl.gstatic.com")
-                || h.equals("www.gstatic.com")
-                || h.equals("gstatic.com")
-                || h.equals("fonts.gstatic.com")
-                || h.equals("www.google.com")
-                || h.equals("google.com")
-                || h.endsWith(".googleusercontent.com")
-                || h.endsWith(".google.com")) {
-            return true;
-        }
-
-        // Facebook OAuth
-        if (h.equals("facebook.com")
-                || h.equals("www.facebook.com")
-                || h.equals("m.facebook.com")
-                || h.equals("mbasic.facebook.com")
-                || h.equals("staticxx.facebook.com")
-                || h.equals("fb.com")
-                || h.equals("www.fb.com")
-                || h.endsWith(".facebook.com")) {
-            return true;
-        }
-
-        return false;
     }
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
@@ -261,9 +229,10 @@ public final class MainActivity extends AppCompatActivity {
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
         settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setAllowFileAccess(true);
+        // Pliki przez onShowFileChooser (content://), nie file:// w WebView.
+        settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
 
         // Usuń znacznik WebView (; wv) — Google OAuth często blokuje „disallowed_useragent”.
         String baseUa = settings.getUserAgentString();
@@ -276,9 +245,13 @@ public final class MainActivity extends AppCompatActivity {
 
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         jsBridge = new GymBratAndroidJsBridge(this, updateInstaller, this::markContentReady);
-        webView.addJavascriptInterface(jsBridge, "GymBratAndroid");
-        jsBridge.setInterstitialAdHelper(
-                new pl.gymbrat.app.ads.InterstitialAdHelper(this, webView)
+        bridgeAttached = false;
+        // Most doklejamy dopiero na originie app (syncBridgeForUrl).
+        pl.gymbrat.app.ads.InterstitialAdHelper interstitialHelper =
+                new pl.gymbrat.app.ads.InterstitialAdHelper(this, webView);
+        jsBridge.setInterstitialAdHelper(interstitialHelper);
+        pl.gymbrat.app.ads.AdsConsentHelper.gather(this, canRequestAds ->
+                interstitialHelper.onUmpReady(canRequestAds)
         );
 
         webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
@@ -300,10 +273,18 @@ public final class MainActivity extends AppCompatActivity {
                     enqueueApkDownload(uri);
                     return true;
                 }
-                // Google / Facebook OAuth + nasza domena — ZOSTAJĄ w WebView.
-                // Wyjście do Chrome psuje sesję i powoduje „skaczący” ekran.
-                if (shouldKeepNavigationInWebView(uri)) {
+                // App + OAuth Google/Facebook — zostają w WebView (most JS tylko na app).
+                if (TrustedOrigins.shouldKeepInWebView(uri)) {
                     return false;
+                }
+                // Zewnętrznie tylko http(s) — blokuj intent:/file:/javascript: itd.
+                if (!TrustedOrigins.isSafeExternalBrowserUrl(uri)) {
+                    Toast.makeText(
+                            MainActivity.this,
+                            "Nieobsługiwany link",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                    return true;
                 }
                 try {
                     Intent intent = new Intent(Intent.ACTION_VIEW, uri);
@@ -321,11 +302,13 @@ public final class MainActivity extends AppCompatActivity {
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 progressBar.setVisibility(View.VISIBLE);
+                syncBridgeForUrl(url);
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 progressBar.setVisibility(View.GONE);
+                syncBridgeForUrl(url);
                 CookieManager.getInstance().flush();
                 view.postDelayed(() -> {
                     if (!contentReady) markContentReady();

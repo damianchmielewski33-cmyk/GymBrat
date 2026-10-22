@@ -1,6 +1,13 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
-import type { WeekTrainingCompare } from "@/lib/week-training-compare";
-import { formatWeekCompareDelta } from "@/lib/week-training-compare";
+import {
+  compareProgressWeekPicks,
+  formatWeekCompareDelta,
+  type ProgressWeekPick,
+  type WeekTrainingCompare,
+} from "@/lib/week-training-compare";
 import { cn } from "@/lib/utils";
 
 function VerdictBadge({
@@ -66,12 +73,107 @@ function formatValue(
   });
 }
 
-export function WeekOverWeekCard({
-  compare,
+function weekOptionLabel(w: ProgressWeekPick): string {
+  if (w.isCurrent) return `Ten tydzień · ${w.label}`;
+  return w.label;
+}
+
+function WeekSelect({
+  id,
+  label,
+  value,
+  weeks,
+  excludeMonday,
+  onChange,
 }: {
-  compare: WeekTrainingCompare;
+  id: string;
+  label: string;
+  value: string;
+  weeks: ProgressWeekPick[];
+  excludeMonday?: string;
+  onChange: (monday: string) => void;
 }) {
+  return (
+    <label className="block min-w-0 flex-1 space-y-1">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+        {label}
+      </span>
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-10 w-full appearance-none rounded-xl border border-white/[0.1] bg-black/40 px-3 text-[13px] font-medium text-white outline-none transition focus:border-[rgba(var(--neon-rgb),0.45)] focus:ring-1 focus:ring-[rgba(var(--neon-rgb),0.35)]"
+      >
+        {weeks.map((w) => (
+          <option
+            key={w.monday}
+            value={w.monday}
+            disabled={excludeMonday === w.monday}
+            className="bg-[#121212] text-white"
+          >
+            {weekOptionLabel(w)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+export function WeekOverWeekCard({
+  weeks,
+  initialCompare,
+}: {
+  weeks: ProgressWeekPick[];
+  /** Fallback SSR / gdy brak picków — stary payload. */
+  initialCompare?: WeekTrainingCompare | null;
+}) {
+  const sorted = useMemo(
+    () => [...weeks].sort((a, b) => b.monday.localeCompare(a.monday)),
+    [weeks],
+  );
+
+  const defaultPrimary = sorted.find((w) => w.isCurrent)?.monday ?? sorted[0]?.monday;
+  const defaultBaseline =
+    sorted.find((w) => !w.isCurrent && w.monday !== defaultPrimary)?.monday ??
+    sorted[1]?.monday ??
+    sorted[0]?.monday;
+
+  const [primaryMonday, setPrimaryMonday] = useState(defaultPrimary ?? "");
+  const [baselineMonday, setBaselineMonday] = useState(defaultBaseline ?? "");
+
+  const primary =
+    sorted.find((w) => w.monday === primaryMonday) ?? sorted[0] ?? null;
+  const baseline =
+    sorted.find((w) => w.monday === baselineMonday) ??
+    sorted.find((w) => w.monday !== primary?.monday) ??
+    null;
+
+  const compare = useMemo(() => {
+    if (primary && baseline && primary.monday !== baseline.monday) {
+      return compareProgressWeekPicks(primary, baseline);
+    }
+    return initialCompare ?? null;
+  }, [primary, baseline, initialCompare]);
+
   if (!compare?.metrics?.length) return null;
+
+  const alignedPartial = Boolean(primary?.isCurrent || baseline?.isCurrent);
+
+  const setPrimary = (monday: string) => {
+    setPrimaryMonday(monday);
+    if (monday === baselineMonday) {
+      const other = sorted.find((w) => w.monday !== monday);
+      if (other) setBaselineMonday(other.monday);
+    }
+  };
+
+  const setBaseline = (monday: string) => {
+    setBaselineMonday(monday);
+    if (monday === primaryMonday) {
+      const other = sorted.find((w) => w.monday !== monday);
+      if (other) setPrimaryMonday(other.monday);
+    }
+  };
 
   return (
     <div className="space-y-3 app-panel px-3.5 py-3">
@@ -89,6 +191,27 @@ export function WeekOverWeekCard({
         <VerdictBadge verdict={compare.verdict} label={compare.verdictLabel} />
       </div>
 
+      {sorted.length >= 2 ? (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <WeekSelect
+            id="week-compare-primary"
+            label="Tydzień A"
+            value={primary?.monday ?? ""}
+            weeks={sorted}
+            excludeMonday={baseline?.monday}
+            onChange={setPrimary}
+          />
+          <WeekSelect
+            id="week-compare-baseline"
+            label="Tydzień B (odniesienie)"
+            value={baseline?.monday ?? ""}
+            weeks={sorted}
+            excludeMonday={primary?.monday}
+            onChange={setBaseline}
+          />
+        </div>
+      ) : null}
+
       <ul className="divide-y divide-white/[0.06] overflow-hidden rounded-xl border border-white/[0.06]">
         {compare.metrics.map((m) => {
           const deltaTone =
@@ -105,9 +228,9 @@ export function WeekOverWeekCard({
               <div className="min-w-0">
                 <p className="text-[12px] font-medium text-white/80">{m.label}</p>
                 <p className="mt-0.5 text-[11px] text-white/35">
-                  teraz {formatValue(m.current, m.unit, m.key)}
+                  A {formatValue(m.current, m.unit, m.key)}
                   <span className="mx-1 text-white/20">·</span>
-                  poprz. {formatValue(m.previous, m.unit, m.key)}
+                  B {formatValue(m.previous, m.unit, m.key)}
                 </p>
               </div>
               <p
@@ -125,8 +248,9 @@ export function WeekOverWeekCard({
       </ul>
 
       <p className="text-[11px] leading-snug text-white/35">
-        Porównanie do tych samych dni poprzedniego tygodnia (Pn→dziś), żeby
-        środek tygodnia nie wyglądał jak regres względem pełnego Pn–Nd.
+        {alignedPartial
+          ? "Gdy jeden tydzień to bieżący, oba zakresy są wyrównane do Pn→dziś — środek tygodnia nie wygląda jak regres względem pełnego Pn–Nd."
+          : "Oba tygodnie liczone w pełnym zakresie Pn–Nd."}
       </p>
     </div>
   );

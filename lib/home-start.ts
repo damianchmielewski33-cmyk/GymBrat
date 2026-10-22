@@ -10,6 +10,7 @@ import {
   workoutPlans,
   workouts,
 } from "@/db/schema";
+import { withDbRetry } from "@/db/with-retry";
 import { frontBodyReportPhoto } from "@/lib/body-report-photo-slots";
 import { hasStartPhoto } from "@/lib/start-photo";
 import {
@@ -692,6 +693,18 @@ export async function getTransformationPhotos(userId: string): Promise<{
   latestPhotoUrl: string | null;
   latestPhotoDate: string | null;
 }> {
+  return withDbRetry(() => loadTransformationPhotos(userId), {
+    attempts: 3,
+    baseDelayMs: 250,
+    label: "home-transformation",
+  });
+}
+
+async function loadTransformationPhotos(userId: string): Promise<{
+  firstPhotoUrl: string | null;
+  latestPhotoUrl: string | null;
+  latestPhotoDate: string | null;
+}> {
   const db = getDb();
   const [customStart, reports] = await Promise.all([
     hasStartPhoto(userId),
@@ -713,18 +726,21 @@ export async function getTransformationPhotos(userId: string): Promise<{
   }
 
   const reportIds = reports.map((r) => r.id);
+  // Meta only — pełne bloby idą przez /api/media (timeouty Turso na Renderze).
   const photos = await db
     .select({
       id: bodyReportPhotos.id,
       reportId: bodyReportPhotos.reportId,
-      dataUrl: bodyReportPhotos.dataUrl,
       createdAt: bodyReportPhotos.createdAt,
     })
     .from(bodyReportPhotos)
     .where(
-      reportIds.length === 1
-        ? eq(bodyReportPhotos.reportId, reportIds[0]!)
-        : inArray(bodyReportPhotos.reportId, reportIds),
+      and(
+        reportIds.length === 1
+          ? eq(bodyReportPhotos.reportId, reportIds[0]!)
+          : inArray(bodyReportPhotos.reportId, reportIds),
+        sql`${bodyReportPhotos.dataUrl} IS NOT NULL AND length(trim(${bodyReportPhotos.dataUrl})) > 0`,
+      ),
     )
     .orderBy(asc(bodyReportPhotos.createdAt), asc(bodyReportPhotos.id));
 
@@ -741,11 +757,10 @@ export async function getTransformationPhotos(userId: string): Promise<{
     { id: string; dataUrl: string; createdAt: Date }[]
   >();
   for (const p of photos) {
-    if (!p.dataUrl?.trim()) continue;
     const arr = photosByReport.get(p.reportId) ?? [];
     arr.push({
       id: p.id,
-      dataUrl: "1",
+      dataUrl: "meta",
       createdAt: p.createdAt,
     });
     photosByReport.set(p.reportId, arr);
@@ -757,7 +772,7 @@ export async function getTransformationPhotos(userId: string): Promise<{
   for (const r of reports) {
     const reportPhotos = photosByReport.get(r.id) ?? [];
     const front = frontBodyReportPhoto(reportPhotos);
-    if (!front?.dataUrl) continue;
+    if (!front) continue;
     const mediaSrc = bodyReportPhotoMediaPath(front.id);
     if (!firstPhotoUrl) firstPhotoUrl = mediaSrc;
     latestPhotoUrl = mediaSrc;
@@ -916,6 +931,16 @@ async function getReportInsights(userId: string) {
 }
 
 export async function getHomeStartDashboard(
+  userId: string,
+): Promise<HomeStartDashboard> {
+  return withDbRetry(() => loadHomeStartDashboard(userId), {
+    attempts: 3,
+    baseDelayMs: 280,
+    label: "home-start",
+  });
+}
+
+async function loadHomeStartDashboard(
   userId: string,
 ): Promise<HomeStartDashboard> {
   const db = getDb();

@@ -1,12 +1,14 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { getWorkoutPlansWithLastWorkout } from "@/actions/workout-plan";
 import { HomePrzemianaSectionLoader } from "@/components/home/home-przemiana-section-loader";
 import { HomePrzemianaSkeleton } from "@/components/home/home-przemiana-skeleton";
 import { HomeTodayView } from "@/components/home/home-today-view";
 import { getDb } from "@/db";
-import { userSettings } from "@/db/schema";
+import { userSettings, users } from "@/db/schema";
 import { parseFirstDietSupplements } from "@/lib/diet-supplements";
 import { getHomeStartDashboard } from "@/lib/home-start";
+import { shouldShowIntroTour } from "@/lib/intro-tour-steps";
 import { addCalendarDays } from "@/lib/local-date";
 import { getTreningiHubStats } from "@/lib/treningi-hub-stats";
 import { eq } from "drizzle-orm";
@@ -28,21 +30,64 @@ function weightKgPerWeek(
 }
 
 export async function HomeTodayPageContent({ userId }: { userId: string }) {
-  const db = getDb();
-  const [[settingsRow], dash, plans, hub] = await Promise.all([
-    db
-      .select({
-        onboardingCompletedAt: userSettings.onboardingCompletedAt,
-        fitnessGoalsJson: userSettings.fitnessGoalsJson,
-        mealTemplatesJson: userSettings.mealTemplatesJson,
-      })
-      .from(userSettings)
-      .where(eq(userSettings.userId, userId))
-      .limit(1),
-    getHomeStartDashboard(userId),
-    getWorkoutPlansWithLastWorkout(),
-    getTreningiHubStats(userId),
-  ]);
+  let settingsRow: {
+    onboardingCompletedAt: Date | null;
+    introTourCompletedAt: Date | null;
+    fitnessGoalsJson: string | null;
+    mealTemplatesJson: string | null;
+  } | undefined;
+  let accountCreatedAt: Date | null = null;
+  let dash: Awaited<ReturnType<typeof getHomeStartDashboard>>;
+  let plans: Awaited<ReturnType<typeof getWorkoutPlansWithLastWorkout>>;
+  let hub: Awaited<ReturnType<typeof getTreningiHubStats>>;
+
+  try {
+    const db = getDb();
+    let userCreated: { createdAt: Date } | undefined;
+    [[settingsRow], [userCreated], dash, plans, hub] = await Promise.all([
+      db
+        .select({
+          onboardingCompletedAt: userSettings.onboardingCompletedAt,
+          introTourCompletedAt: userSettings.introTourCompletedAt,
+          fitnessGoalsJson: userSettings.fitnessGoalsJson,
+          mealTemplatesJson: userSettings.mealTemplatesJson,
+        })
+        .from(userSettings)
+        .where(eq(userSettings.userId, userId))
+        .limit(1),
+      db
+        .select({ createdAt: users.createdAt })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1),
+      getHomeStartDashboard(userId),
+      getWorkoutPlansWithLastWorkout(),
+      getTreningiHubStats(userId),
+    ]);
+    accountCreatedAt = userCreated?.createdAt ?? null;
+  } catch (e) {
+    console.error(
+      "[home-today]",
+      e instanceof Error ? e.message : e,
+    );
+    return (
+      <div className="app-panel space-y-4 px-4 py-5 text-center">
+        <p className="text-[15px] font-semibold text-white">
+          Nie udało się wczytać pulpitu
+        </p>
+        <p className="text-[13px] leading-snug text-white/55">
+          Chwilowy problem z bazą lub hostingu. Odśwież stronę za chwilę —
+          dane treningów i raportów są bezpieczne.
+        </p>
+        <Link
+          href="/"
+          className="gym-btn-primary inline-flex h-11 w-full items-center justify-center rounded-xl text-sm font-semibold"
+        >
+          Odśwież pulpit
+        </Link>
+      </div>
+    );
+  }
 
   const dayOptions = plans.map((row) => ({
     id: row.id,
@@ -65,6 +110,10 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
       reportCount={dash.reportCount}
       daysSinceLastReport={dash.daysSinceLastReport}
       showOnboarding={!settingsRow?.onboardingCompletedAt}
+      showIntroTour={shouldShowIntroTour({
+        introTourCompletedAt: settingsRow?.introTourCompletedAt,
+        accountCreatedAt,
+      })}
       recommendedPlanId={recommendedId}
       planName={dash.nextWorkout?.planName ?? null}
       exerciseCount={dash.nextWorkout?.exerciseCount ?? 0}

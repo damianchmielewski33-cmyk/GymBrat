@@ -498,6 +498,8 @@ export const userSettings = sqliteTable("user_settings", {
   fitnessGoalsJson: text("fitness_goals_json"),
   /** Ukończony onboarding / kliknięto „Później” */
   onboardingCompletedAt: integer("onboarding_completed_at", { mode: "timestamp_ms" }),
+  /** Przejrzana instrukcja startowa (popup z Dalej) po założeniu konta */
+  introTourCompletedAt: integer("intro_tour_completed_at", { mode: "timestamp_ms" }),
   /** 1 = admin nadał dostęp do funkcji AI; 0 = użytkownik nie widzi opcji AI i API blokuje wywołania */
   aiEntitled: integer("ai_entitled").notNull().default(1),
   /** 1 = użytkownik wyłączył wszystkie funkcje korzystające z modelu AI */

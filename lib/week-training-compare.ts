@@ -16,14 +16,39 @@ export type WeekMetricCompare = {
 };
 
 export type WeekTrainingCompare = {
-  /** Pn–dziś (bieżący tydzień). */
+  /** Zakres tygodnia „teraz” (pierwszy wybór). */
   thisRangeLabel: string;
-  /** Ten sam zakres w poprzednim tygodniu. */
+  /** Zakres tygodnia odniesienia (drugi wybór). */
   prevRangeLabel: string;
   metrics: WeekMetricCompare[];
   /** Podsumowanie: większość metryk w górę / w dół. */
   verdict: "progress" | "regress" | "flat" | "insufficient";
   verdictLabel: string;
+};
+
+/** Metryki jednego tygodnia (pełny Pn–Nd albo wyrównany Pn→dzień). */
+export type WeekCompareMetrics = {
+  rangeEnd: string;
+  rangeLabel: string;
+  workouts: number;
+  tonnageKg: number;
+  cardioMinutes: number;
+  avgRpe: number | null;
+  avgRir: number | null;
+};
+
+/**
+ * Snapshot tygodnia do pickera w Analizie → Tydzień.
+ * `partial` = Pn → (Pn + daysIntoWeek), żeby bieżący tydzień nie przegrywał z pełnym Pn–Nd.
+ */
+export type ProgressWeekPick = {
+  monday: string;
+  sunday: string;
+  /** Krótka etykieta listy, np. „6–12 paź”. */
+  label: string;
+  isCurrent: boolean;
+  full: WeekCompareMetrics;
+  partial: WeekCompareMetrics;
 };
 
 function round1(n: number): number {
@@ -165,13 +190,13 @@ export function buildWeekTrainingCompare(input: {
   const progress = scored.filter((m) => m.outcome === "progress").length;
   const regress = scored.filter((m) => m.outcome === "regress").length;
   let verdict: WeekTrainingCompare["verdict"] = "flat";
-  let verdictLabel = "Tydzień do tygodnia bez wyraźnej zmiany";
+  let verdictLabel = "Bez wyraźnej zmiany między tygodniami";
   if (progress > regress) {
     verdict = "progress";
-    verdictLabel = "Progres względem poprzedniego tygodnia";
+    verdictLabel = "Progres względem wybranego tygodnia";
   } else if (regress > progress) {
     verdict = "regress";
-    verdictLabel = "Regres względem poprzedniego tygodnia";
+    verdictLabel = "Regres względem wybranego tygodnia";
   }
 
   return {
@@ -181,6 +206,32 @@ export function buildWeekTrainingCompare(input: {
     verdict,
     verdictLabel,
   };
+}
+
+/**
+ * Porównanie dwóch wybranych tygodni.
+ * Gdy któryś to bieżący — oba używają zakresu Pn→dziś (wyrównanie dni).
+ * Gdy oba historyczne — pełne Pn–Nd.
+ */
+export function compareProgressWeekPicks(
+  primary: ProgressWeekPick,
+  baseline: ProgressWeekPick,
+): WeekTrainingCompare {
+  const usePartial = primary.isCurrent || baseline.isCurrent;
+  const a = usePartial ? primary.partial : primary.full;
+  const b = usePartial ? baseline.partial : baseline.full;
+  return buildWeekTrainingCompare({
+    thisRangeLabel: a.rangeLabel,
+    prevRangeLabel: b.rangeLabel,
+    workouts: { current: a.workouts, previous: b.workouts },
+    tonnageKg: { current: a.tonnageKg, previous: b.tonnageKg },
+    cardioMinutes: {
+      current: a.cardioMinutes,
+      previous: b.cardioMinutes,
+    },
+    avgRpe: { current: a.avgRpe, previous: b.avgRpe },
+    avgRir: { current: a.avgRir, previous: b.avgRir },
+  });
 }
 
 export function formatWeekCompareDelta(m: WeekMetricCompare): string {

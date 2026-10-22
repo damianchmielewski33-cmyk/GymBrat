@@ -34,6 +34,9 @@ declare global {
       /** Pełnoekranowa reklama AdMob (bez pakietu). Callback: __gymbratOnInterstitial(ok). */
       showInterstitialAd?: (placement: string) => void;
       hasInterstitialAds?: () => boolean;
+      /** Zgoda marketingowa z CMP web → natywny AdMob. */
+      setMarketingConsent?: (allowed: boolean) => void;
+      hasMarketingConsent?: () => boolean;
     };
     /** Callback ustawiany przez ensureAndroidCameraPermission przed mostem. */
     __gymbratOnCameraPermission?: (granted: boolean) => void;

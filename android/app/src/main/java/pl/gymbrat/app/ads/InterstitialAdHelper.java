@@ -19,27 +19,20 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 import pl.gymbrat.app.BuildConfig;
 
 /**
- * Natywny interstitial AdMob — wołany z WebView gdy użytkownik nie ma pakietu.
+ * Natywny interstitial AdMob — po UMP + zgodzie marketingowej z WebView (CMP).
  */
 public final class InterstitialAdHelper {
     private final Activity activity;
     private final WebView webView;
     private boolean sdkReady;
+    private boolean umpAllowsAds;
+    private boolean marketingConsent;
     @Nullable
     private InterstitialAd loaded;
 
     public InterstitialAdHelper(Activity activity, WebView webView) {
         this.activity = activity;
         this.webView = webView;
-        String unit = BuildConfig.ADMOB_INTERSTITIAL_UNIT_ID;
-        if (unit == null || unit.trim().isEmpty()) {
-            sdkReady = false;
-            return;
-        }
-        MobileAds.initialize(activity, status -> {
-            sdkReady = true;
-            preload();
-        });
     }
 
     public boolean isConfigured() {
@@ -47,12 +40,39 @@ public final class InterstitialAdHelper {
         return unit != null && !unit.trim().isEmpty();
     }
 
+    /** Wynik Google UMP — czy wolno prosić o reklamy. */
+    public void onUmpReady(boolean canRequestAds) {
+        umpAllowsAds = canRequestAds;
+        if (canRequestAds) {
+            ensureSdkInitialized();
+        }
+    }
+
+    /** Zgoda z banneru cookies (kategoria marketing). */
+    public void setMarketingConsent(boolean allowed) {
+        marketingConsent = allowed;
+        if (allowed && umpAllowsAds) {
+            ensureSdkInitialized();
+            preload();
+        } else {
+            loaded = null;
+        }
+    }
+
+    public boolean hasMarketingConsent() {
+        return marketingConsent;
+    }
+
+    public boolean canShowAds() {
+        return isConfigured() && umpAllowsAds && marketingConsent && sdkReady;
+    }
+
     public void show(@Nullable String placement) {
         Handler main = new Handler(Looper.getMainLooper());
         main.post(() -> {
-            if (!isConfigured() || loaded == null) {
+            if (!canShowAds() || loaded == null) {
                 notifyJs(false);
-                preload();
+                if (canShowAds()) preload();
                 return;
             }
             InterstitialAd ad = loaded;
@@ -74,8 +94,16 @@ public final class InterstitialAdHelper {
         });
     }
 
+    private void ensureSdkInitialized() {
+        if (!isConfigured() || sdkReady || !umpAllowsAds) return;
+        MobileAds.initialize(activity, status -> {
+            sdkReady = true;
+            if (marketingConsent) preload();
+        });
+    }
+
     private void preload() {
-        if (!isConfigured() || !sdkReady) return;
+        if (!canShowAds()) return;
         String unit = BuildConfig.ADMOB_INTERSTITIAL_UNIT_ID.trim();
         AdRequest request = new AdRequest.Builder().build();
         InterstitialAd.load(activity, unit, request, new InterstitialAdLoadCallback() {

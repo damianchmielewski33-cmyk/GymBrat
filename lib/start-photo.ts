@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import {
@@ -8,12 +8,15 @@ import {
 
 export async function hasStartPhoto(userId: string): Promise<boolean> {
   const db = getDb();
+  // Bez pobierania bloba — tylko flaga (timeouty Turso na Renderze).
   const [row] = await db
-    .select({ startPhotoDataUrl: userSettings.startPhotoDataUrl })
+    .select({
+      has: sql<number>`CASE WHEN ${userSettings.startPhotoDataUrl} IS NOT NULL AND length(trim(${userSettings.startPhotoDataUrl})) > 0 THEN 1 ELSE 0 END`,
+    })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
     .limit(1);
-  return Boolean(row?.startPhotoDataUrl?.trim());
+  return Number(row?.has) === 1;
 }
 
 export async function loadStartPhotoDataUrl(
