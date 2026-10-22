@@ -1,0 +1,441 @@
+﻿{
+  "title": "GymBrat — Tworzenie planu treningowego",
+  "version": "1.0",
+  "date": "2026-10-22",
+  "purpose": "Dokumentacja procesu tworzenia planu treningowego: punkty wejścia UI, trzy ścieżki (ręczna, generator heurystyczny „AI”, import pliku), model danych, zapis do DB oraz powiązanie z sesją i progresją.",
+  "uiRoute": "/profile/workout-plan",
+  "relatedRoutes": [
+    {
+      "path": "/profile/workout-plan",
+      "role": "Edytor tworzenia i edycji planów (główny punkt wejścia)"
+    },
+    {
+      "path": "/workout-plan",
+      "role": "Hub Treningi — wybór dnia/planu i start sesji; nie tworzy planu"
+    },
+    {
+      "path": "/profile",
+      "role": "CTA „Ustaw plan” → /profile/workout-plan"
+    },
+    {
+      "path": "/start-workout",
+      "role": "Przekierowanie do /workout-plan"
+    }
+  ],
+  "sourceOfTruth": [
+    "components/workout-plan/workout-plan-editor.tsx",
+    "components/workout-plan/workout-plan-word-import.tsx",
+    "actions/workout-plan.ts",
+    "actions/ai-workout-plan.ts",
+    "actions/backend.ts (aiGeneratePlan)",
+    "ai/coach.ts (generateTrainingPlan / makeHeuristicPlan)",
+    "lib/ai-training-plan-to-payload.ts",
+    "lib/workout-plan-types.ts",
+    "lib/workout-plan-utils.ts",
+    "lib/workout-exercise-catalog.ts",
+    "app/api/workout-plans/import/route.ts",
+    "lib/pdf/workout-plan-import.ts",
+    "lib/docx/workout-plan-import.ts",
+    "lib/excel/workout-plan-import.ts",
+    "db/schema.ts (workout_plans)"
+  ],
+  "coreModel": {
+    "storage": {
+      "table": "workout_plans",
+      "columns": {
+        "id": "UUID (text PK)",
+        "user_id": "FK → users.id (cascade delete)",
+        "plan_json": "serializowany WorkoutPlanPayload",
+        "created_at": "timestamp_ms",
+        "updated_at": "timestamp_ms"
+      },
+      "note": "Brak osobnych tabel dni/ćwiczeń/serii — cała struktura dnia siedzi w plan_json."
+    },
+    "payloadV2": {
+      "type": "WorkoutPlanPayload",
+      "file": "lib/workout-plan-types.ts",
+      "shape": {
+        "version": 2,
+        "path": "custom",
+        "planName": "string — nazwa dnia/sesji (np. Push A, Full Body Strength)",
+        "exercises": "WorkoutPlanExercise[]",
+        "userCustomExerciseNames": "string[] — własne nazwy z pickera"
+      },
+      "exerciseFields": {
+        "id": "UUID",
+        "name": "string",
+        "categoryId": "kategoria mięśniowa z katalogu / heurystyki",
+        "sets": "number (1–20 przy normalizacji)",
+        "reps": "number (docelowe powtórzenia)",
+        "rir": "0–5 | null (opcjonalnie)",
+        "tempo": "np. \"3010\" | null",
+        "note": "cue / notatka | null",
+        "techniqueYoutubeUrl": "URL YouTube | null",
+        "supersetGroupId": "to samo id = superseria | null"
+      }
+    },
+    "dayRepresentation": {
+      "rule": "Jeden rekord workout_plans = jeden dzień/sesja treningowa",
+      "weekEntity": false,
+      "note": "Generator i import tworzą wiele niezależnych rekordów (np. Push, Pull, Nogi). Nie ma encji „tydzień planu” z relacją plan→dni."
+    },
+    "legacyV1": {
+      "file": "lib/workout-plan-utils.ts",
+      "behavior": "normalizeWorkoutPlan() migruje v1 (tablica week) do v2: spłaszcza ćwiczenia ze wszystkich dni do jednego payloadu; nazwą staje się pierwszy tytuł dnia."
+    }
+  },
+  "creationPaths": [
+    {
+      "id": "manual",
+      "label": "Plan ręczny",
+      "entryUi": "Profil → Plan treningowy → „Dodaj swój plan” / „Nowy plan”",
+      "persistence": "Server Action saveWorkoutPlan()",
+      "steps": [
+        {
+          "step": 1,
+          "name": "startNewPlan",
+          "detail": "createEmptyPlan() → { version: 2, path: \"custom\", planName: \"\", exercises: [], userCustomExerciseNames: [] }"
+        },
+        {
+          "step": 2,
+          "name": "nazwa",
+          "detail": "Użytkownik wpisuje planName (walidacja niepustej nazwy po stronie klienta)."
+        },
+        {
+          "step": 3,
+          "name": "ćwiczenia",
+          "detail": "Dodanie z katalogu, wyszukiwania PL/EN albo własnej nazwy; opcjonalnie kolejność, superserie, tempo, RIR, notatka, YouTube."
+        },
+        {
+          "step": 4,
+          "name": "defaultsNowegoCwiczenia",
+          "detail": "3 serie, 10 powtórzeń, RIR 1; brak tempa/notatki/filmu/superserii."
+        },
+        {
+          "step": 5,
+          "name": "zapis",
+          "detail": "onSave → saveWorkoutPlan(plan) bez planId = INSERT; z planId = UPDATE (tylko własny rekord userId)."
+        }
+      ],
+      "serverValidation": {
+        "required": [
+          "plan.version === 2",
+          "plan.path === \"custom\"",
+          "zalogowana sesja"
+        ],
+        "onRename": "Zmiana nazwy ćwiczenia (to samo id) propaguje się do historii workouts i aktywnej sesji."
+      }
+    },
+    {
+      "id": "heuristic_ai",
+      "label": "Generator „AI” (heurystyka, bez LLM)",
+      "entryUi": "Profil → Plan treningowy → „Stwórz plan treningowy z AI”",
+      "important": "generateTrainingPlan() zawsze zwraca makeHeuristicPlan() — nie ma wywołania modelu LLM.",
+      "callChain": [
+        "WorkoutPlanEditor",
+        "generateAndSaveAiWorkoutPlans(overrides)",
+        "aiGeneratePlan(overrides)",
+        "generateTrainingPlan(input)",
+        "makeHeuristicPlan(input)",
+        "trainingPlanToWorkoutPayloads(plan)",
+        "saveWorkoutPlan(payload) × N dni strength/hybrid"
+      ],
+      "uiInputs": {
+        "daysPerWeek": "3–6 (UI)",
+        "experienceLevel": "beginner | intermediate | advanced",
+        "goals": "stałe [\"Siła i sylwetka\"] z UI"
+      },
+      "serverEnrichment": {
+        "fromProfile": [
+          "wiek",
+          "waga",
+          "wzrost",
+          "aktywność",
+          "dane żywieniowe"
+        ],
+        "optionalOverrides": [
+          "equipment",
+          "ograniczenia",
+          "cardioPerformance"
+        ],
+        "usedByHeuristicToday": [
+          "daysPerWeek (podział siła/cardio)",
+          "weightKg + goals (białko w guidance)",
+          "nutrition caloriesGoal (hint kalorii)",
+          "cardioPerformance.recent5kTimeSec (długość cardio)"
+        ],
+        "notUsedByHeuristicToday": [
+          "experienceLevel",
+          "equipment",
+          "urazy/ograniczenia",
+          "wiek",
+          "wzrost",
+          "poziom aktywności"
+        ]
+      },
+      "algorithm": {
+        "file": "ai/coach.ts → makeHeuristicPlan",
+        "strengthDays": "clamp(round(daysPerWeek × 0.6), 2, 5)",
+        "cardioDays": "clamp(daysPerWeek - strengthDays, 1, 4)",
+        "strengthSlots": [1, 3, 5, 6, 7],
+        "cardioSlots": [2, 4, 6, 7],
+        "split": "Brak PPL / upper-lower — każdy dzień siłowy to identyczny „Full Body Strength”",
+        "strengthExercises": [
+          {
+            "name": "Squat pattern",
+            "sets": 3,
+            "reps": "6-10",
+            "restSec": 120
+          },
+          {
+            "name": "Hinge pattern",
+            "sets": 3,
+            "reps": "6-10",
+            "restSec": 120
+          },
+          {
+            "name": "Horizontal press",
+            "sets": 3,
+            "reps": "8-12",
+            "restSec": 90
+          },
+          {
+            "name": "Row / pull",
+            "sets": 3,
+            "reps": "8-12",
+            "restSec": 90
+          },
+          {
+            "name": "Core",
+            "sets": 2,
+            "reps": "30-60s",
+            "restSec": 60
+          }
+        ],
+        "persistenceFilter": {
+          "saved": "tylko dni type === strength | hybrid",
+          "discarded": "cardio i rest nie trafiają do workout_plans"
+        },
+        "payloadMapping": {
+          "file": "lib/ai-training-plan-to-payload.ts",
+          "repsRange": "\"6-10\" → pierwsza liczba (6)",
+          "setsClamp": "1–20",
+          "repsClamp": "max 99",
+          "rir": 1,
+          "categoryId": "resolveExerciseCategoryIdForPlan(name)"
+        }
+      },
+      "steps": [
+        {
+          "step": 1,
+          "name": "wybór parametrów UI",
+          "detail": "Liczba dni 3–6 i poziom doświadczenia."
+        },
+        {
+          "step": 2,
+          "name": "walidacja profilu",
+          "detail": "aiGeneratePlan wymaga kompletnej wagi, wzrostu, wieku i aktywności."
+        },
+        {
+          "step": 3,
+          "name": "heurystyka tygodnia",
+          "detail": "makeHeuristicPlan buduje 7 slotów: siła / cardio / rest."
+        },
+        {
+          "step": 4,
+          "name": "konwersja",
+          "detail": "trainingPlanToWorkoutPayloads zostawia tylko dni siłowe jako osobne WorkoutPlanPayload."
+        },
+        {
+          "step": 5,
+          "name": "zapis",
+          "detail": "Każdy dzień → saveWorkoutPlan(); zwracane ids[] i count."
+        }
+      ]
+    },
+    {
+      "id": "file_import",
+      "label": "Import PDF / Word / Excel",
+      "entryUi": "Profil → Plan treningowy → komponent WorkoutPlanWordImport",
+      "endpoint": "POST /api/workout-plans/import",
+      "formats": ["pdf", "doc", "docx", "xls", "xlsx", "xlsm"],
+      "limits": {
+        "maxBytes": 8388608,
+        "csrf": true,
+        "session": true,
+        "rateLimit": "RATE.bodyReportImport"
+      },
+      "detection": {
+        "file": "lib/workout-plan-file-kind.ts",
+        "signals": ["nazwa pliku", "MIME", "magiczne bajty / ZIP / OLE"]
+      },
+      "parsers": {
+        "pdf": "lib/pdf/workout-plan-import.ts — najpierw parser tabel trenerskich (Push/Pull/Nogi, 2s 8-10p), potem ogólny tekst; skany bez OCR = brak wsparcia",
+        "docx_doc": "lib/docx/workout-plan-import.ts — nagłówki dni, 4x8 / 2s 8-10p; brak danych → 3×10",
+        "excel": "lib/excel/workout-plan-import.ts — kolumny dzień/ćwiczenie/serie/powtórzenia lub arkusz = dzień"
+      },
+      "dayHeadersRecognized": [
+        "Dzień A",
+        "Trening 1",
+        "Push / Pull / Nogi",
+        "Upper / Lower",
+        "Full Body / FBW",
+        "dni tygodnia"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "name": "upload klienta",
+          "detail": "Sprawdzenie rozszerzenia/MIME i niepustego pliku; cookie CSRF; FormData."
+        },
+        {
+          "step": 2,
+          "name": "ochrona endpointu",
+          "detail": "CSRF + sesja + rate limit + max 8 MB."
+        },
+        {
+          "step": 3,
+          "name": "rozpoznanie formatu",
+          "detail": "detectWorkoutPlanFileKind()."
+        },
+        {
+          "step": 4,
+          "name": "parsowanie",
+          "detail": "Parser → WorkoutPlanPayload[] (jeden payload na wykryty dzień)."
+        },
+        {
+          "step": 5,
+          "name": "zapis",
+          "detail": "Bezpośredni db.insert(workoutPlans) — nie przez saveWorkoutPlan(); UI otwiera pierwszy plan ?edit=<id>."
+        }
+      ],
+      "categorization": {
+        "order": [
+          "dopasowanie katalogowe (findBestCatalogMatch)",
+          "heurystyka tokenów PL/EN (infer-muscle-category)",
+          "przekazane categoryId",
+          "fallback core"
+        ],
+        "files": [
+          "lib/resolve-exercise-muscles.ts",
+          "lib/infer-muscle-category.ts"
+        ]
+      }
+    }
+  ],
+  "processOverview": {
+    "description": "Wspólny obraz procesu od intencji użytkownika do utrwalonego planu.",
+    "flow": [
+      {
+        "id": "intent",
+        "label": "Intencja",
+        "sources": [
+          "Profil → Plan treningowy",
+          "Home / hub Treningi (CTA przy braku planu)",
+          "empty-app-guide / intro tour (kieruje do edytora)"
+        ]
+      },
+      {
+        "id": "choose_path",
+        "label": "Wybór ścieżki",
+        "options": ["manual", "heuristic_ai", "file_import"]
+      },
+      {
+        "id": "build_payload",
+        "label": "Budowa WorkoutPlanPayload v2",
+        "outputs": "Jeden lub wiele payloadów (dzień = rekord)"
+      },
+      {
+        "id": "persist",
+        "label": "Zapis",
+        "manual_and_ai": "actions/workout-plan.ts → saveWorkoutPlan",
+        "import": "app/api/workout-plans/import/route.ts → db.insert"
+      },
+      {
+        "id": "consume",
+        "label": "Użycie",
+        "next": [
+          "Lista planów w hubie /workout-plan",
+          "Start sesji (active_workout_sessions)",
+          "Historia workouts.workout_plan_id",
+          "Podpowiedzi progresji z historii (nie z reguł w planie)"
+        ]
+      }
+    ]
+  },
+  "exerciseCatalog": {
+    "file": "lib/workout-exercise-catalog.ts",
+    "features": [
+      "kategorie mięśniowe",
+      "polskie nazwy + aliasy EN",
+      "wyszukiwanie tokenowe (bez polskich znaków, stopwords, wszystkie tokeny muszą pasować)",
+      "priorytet wyników z bieżącej kategorii"
+    ],
+    "keyFunctions": [
+      "searchCatalogForPicker",
+      "findBestCatalogMatch",
+      "exerciseMatchesQuery",
+      "categoryLabel"
+    ]
+  },
+  "serverActionsAndApis": {
+    "actions/workout-plan.ts": {
+      "getWorkoutPlans": "Lista planów użytkownika + normalizeWorkoutPlan",
+      "getWorkoutPlansWithLastWorkout": "Lista z datą ostatniego treningu (kolejka „najdawniej”)",
+      "saveWorkoutPlan": "INSERT lub UPDATE; sync rename do historii/sesji",
+      "deleteWorkoutPlan": "Usunięcie własnego planu",
+      "fetchLastWorkoutHintsForPlan": "Hinty do progresji w sesji"
+    },
+    "actions/ai-workout-plan.ts": {
+      "generateAndSaveAiWorkoutPlans": "Generacja + zapis dni siłowych"
+    },
+    "actions/backend.ts": {
+      "aiGeneratePlan": "Zod + profil → generateTrainingPlan"
+    },
+    "POST /api/workout-plans/import": "Jedyny REST endpoint tworzący plany z pliku"
+  },
+  "whatIsNotPartOfCreation": {
+    "onboarding": "actions/onboarding.ts zapisuje tylko cel liczby sesji/tydzień — nie generuje planu",
+    "templateLibrary": "Brak biblioteki gotowych szablonów PPL/upper-lower jako osobnej ścieżki",
+    "llmGenerator": "Brak prawdziwego generatora LLM; etykieta „AI” = heurystyka",
+    "weeklyPlanEntity": "Brak wspólnej encji tygodnia z uporządkowanymi dniami",
+    "progressionRulesInPayload": "Plan trzyma cele sets/reps/RIR; double progression liczy się później z historii sesji"
+  },
+  "progressionAfterCreation": {
+    "note": "Progresja nie jest częścią tworzenia planu — dokumentacja powiązana dla kontekstu.",
+    "files": [
+      "lib/set-progression-suggestion.ts",
+      "lib/last-workout-hints.ts",
+      "lib/exercise-movement-kind.ts"
+    ],
+    "rulesSummary": [
+      "double progression: najpierw reps do góry zakresu, potem +ciężar",
+      "standardowy skok 2,5 kg",
+      "compound: 2 łatwe serie z rzędu; isolation: 3",
+      "konflikt RIR/RPE blokuje progresję",
+      "przerwa ≥14 dni może dać deload (−2,5 kg lub −5%)",
+      "stagnacja: ≥3 sesje bez poprawy kg/reps/e1RM przy średnim RIR ≤1"
+    ]
+  },
+  "ctaEntryPoints": [
+    "app/(dashboard)/profile/page.tsx — „Ustaw plan”",
+    "components/home/next-workout-tile.tsx — „Utwórz plan”",
+    "components/home/home-training-card.tsx",
+    "components/home/empty-app-guide.tsx",
+    "components/treningi/treningi-hub.tsx — „Dodaj plan treningowy”",
+    "components/layout/app-menu-button.tsx"
+  ],
+  "tests": [
+    "lib/docx/workout-plan-import.test.ts",
+    "lib/excel/workout-plan-import.test.ts",
+    "lib/pdf/workout-plan-import.test.ts",
+    "lib/workout-plan-upload.test.ts",
+    "lib/pdf/workout-plan-export.test.ts",
+    "lib/workout-plan-compare.test.ts"
+  ],
+  "summary": {
+    "oneSentence": "Plan treningowy w GymBrat to rekord workout_plans z JSON dnia (v2 custom); powstaje ręcznie w edytorze, z heurystycznego generatora „AI” (full-body) albo z importu PDF/Word/Excel — każdy dzień to osobny rekord.",
+    "threePaths": ["manual", "heuristic_ai", "file_import"],
+    "primaryUi": "/profile/workout-plan"
+  }
+}
