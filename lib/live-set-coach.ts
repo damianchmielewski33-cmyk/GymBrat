@@ -481,7 +481,7 @@ export function buildLiveCoachTipForOpenSet(
       const hl = `${formatKgPl(prevDone.weight)} kg × ${range?.min ?? prevDone.reps}`;
       const body = pickCoachVariant(`${seedBase}|trend-hold`, [
         `Jedna twardsza seria, ale trend siły trzyma — seria {set}: {hl}, bez paniki.`,
-        `{ex}: nie karzemy za jeden słabszy set. Powtórz {hl}.`,
+        `Jeden słabszy set to jeszcze nie problem. Powtórz {hl}.`,
         `Trend ważniejszy niż jedna seria: utrzymaj {hl} na serię {set}.`,
       ]);
       return tipPlain(

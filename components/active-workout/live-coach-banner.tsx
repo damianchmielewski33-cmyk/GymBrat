@@ -54,7 +54,9 @@ export function LiveCoachBanner({
       <span
         className={cn(
           "min-w-0",
-          compact ? "text-[12px] leading-snug" : "text-[13px] leading-snug",
+          compact
+            ? "line-clamp-2 text-[12px] leading-snug"
+            : "text-[13px] leading-snug",
         )}
       >
         {tip.highlight ? (

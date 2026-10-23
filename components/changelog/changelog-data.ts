@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Ekran serii: Ciężar i Powtórzenia w jednej karcie",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Ciężar i powtórzenia są teraz w jednej karcie obok siebie, więc RIR i przycisk „Zalicz serię” mieszczą się wygodniej bez pustych przestrzeni.",
+      "Przyciski zmiany ciężaru, kroku 0,5 kg i powtórzeń są ułożone pod liczbami, a pod powtórzeniami widać docelowy zakres z planu.",
+      "Podpowiedź trenera na żywo zajmuje maksymalnie dwie linie, a w komunikacie o słabszej serii poprawiono sformułowanie.",
+      "Akcje „Usuń”, „Notatka” i „Zgłoś” są dyskretniejsze, a pasek postępu serii jest cieńszy.",
+    ],
+  },
+  {
     title: "Zapowiedź — Trener na żywo: trafniejsze podpowiedzi ciężaru",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
