@@ -14,6 +14,7 @@ import {
 } from "@/lib/live-coach/fatigue";
 import {
   resolveEffectiveTargetRir,
+  resolveEffortContext,
   resolveMovementProfile,
 } from "@/lib/live-coach/movement-profiles";
 import { detectPersonalRecords } from "@/lib/live-coach/personal-records";
@@ -23,45 +24,13 @@ import {
   lastCompletedRir,
 } from "@/lib/live-coach/readiness";
 import { fatigueDropSensitivityFromRest } from "@/lib/live-coach/rest-awareness";
+import { countHardStreak, countWarnStreak } from "@/lib/live-coach/streaks";
 import { detectSuspiciousSet } from "@/lib/live-coach/suspicious-data";
 import type { CoachSignals, SessionSnapForTrends } from "@/lib/live-coach/types";
-import {
-  inferMovementKind,
-} from "@/lib/exercise-movement-kind";
+import { inferMovementKind } from "@/lib/exercise-movement-kind";
+import { resolveWeightStep } from "@/lib/weight-step";
 import { hasEffortConflict } from "@/lib/set-effort";
 import { isCompletedWorkoutSet } from "@/lib/workout-skipped-sets";
-
-function countHardStreak(sets: WorkoutSetState[], beforeIndex: number): number {
-  let n = 0;
-  for (let i = beforeIndex - 1; i >= 0; i--) {
-    const s = sets[i]!;
-    if (!isCompletedWorkoutSet(s)) break;
-    const rir = s.rir;
-    const rpe = s.rpe;
-    const hard =
-      (rir != null && rir <= 0) ||
-      (rir == null && rpe != null && rpe >= 9);
-    if (!hard) break;
-    n += 1;
-  }
-  return n;
-}
-
-function countWarnStreak(sets: WorkoutSetState[], beforeIndex: number): number {
-  let n = 0;
-  for (let i = beforeIndex - 1; i >= 0; i--) {
-    const s = sets[i]!;
-    if (!isCompletedWorkoutSet(s)) break;
-    const rir = s.rir;
-    const rpe = s.rpe;
-    const warn =
-      (rir != null && rir <= 1) ||
-      (rir == null && rpe != null && rpe >= 8);
-    if (!warn) break;
-    n += 1;
-  }
-  return n;
-}
 
 export type BuildCoachSignalsArgs = {
   exercise: WorkoutExerciseState;
@@ -162,8 +131,13 @@ export function buildCoachSignals(args: BuildCoachSignalsArgs): CoachSignals {
     isRepPr: prs.isRepPr,
   });
 
-  const hardStreak = countHardStreak(exercise.sets, setIndex);
-  const warnStreak = countWarnStreak(exercise.sets, setIndex);
+  const effortCtx = resolveEffortContext(
+    exercise.name || "",
+    exercise.categoryId,
+    exercise.targetRir,
+  );
+  const hardStreak = countHardStreak(exercise.sets, setIndex, effortCtx);
+  const warnStreak = countWarnStreak(exercise.sets, setIndex, effortCtx);
   const lastRir = lastCompletedRir(exercise.sets, setIndex);
 
   const readiness = computeReadiness({
@@ -214,11 +188,16 @@ export function buildCoachSignals(args: BuildCoachSignalsArgs): CoachSignals {
     exercise.name || "",
     exercise.categoryId,
   );
+  const weightStep = resolveWeightStep({
+    name: exercise.name,
+    explicitStepKg: exercise.weightStepKg,
+  });
   const bump = resolveProgressionBump({
     readiness: readiness.score,
     confidence: confidence.score,
     movementKind,
     allowWeightBump: Boolean(args.allowWeightBump),
+    weightStep,
   });
 
   const restForNext =
@@ -237,5 +216,6 @@ export function buildCoachSignals(args: BuildCoachSignalsArgs): CoachSignals {
     bump,
     fatigueDropSensitivity: fatigueDropSensitivityFromRest(restForNext),
     effectiveTargetRir,
+    weightStep,
   };
 }

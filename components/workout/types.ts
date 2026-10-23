@@ -40,6 +40,11 @@ export type WorkoutExerciseState = {
   coachContext?: ExerciseCoachContext | null;
   /** Kategoria katalogu (izolacja vs compound). */
   categoryId?: string | null;
+  /**
+   * Krok ciężaru tego ćwiczenia w kg (np. 2 dla hantli, 5 dla stosu maszyny).
+   * Gdy brak — krok wynika ze sprzętu w nazwie, a domyślnie 2,5 kg.
+   */
+  weightStepKg?: number | null;
   /** Link YouTube techniki (z panelu admina, po dopasowaniu katalogu). */
   techniqueYoutubeUrl?: string | null;
 };
@@ -51,6 +56,12 @@ export type ExerciseRecentSessionSnap = {
   bestE1rm: number;
   avgRir: number | null;
   volumeKg: number;
+  /** Najmniej powtórzeń w seriach roboczych na ciężarze top (≥98% topu). */
+  minRepsAtTop?: number;
+  /** Liczba serii roboczych na ciężarze top. */
+  setsAtTop?: number;
+  /** Czy w tej sesji wpisano RIR/RPE do serii roboczych. */
+  effortLogged?: boolean;
 };
 
 export type ExerciseE1rmContext = {

@@ -2,6 +2,8 @@
  * Wspólne typy silników Live Set Coach v3.
  */
 
+import type { WeightStep } from "@/lib/weight-step";
+
 export type Score01 = number; // 0–100
 
 export type E1rmTrendDirection = "down" | "flat" | "up";
@@ -101,4 +103,6 @@ export type CoachSignals = {
   /** Skala 0–1: jak mocno liczyć fatigue drop (rest-aware). */
   fatigueDropSensitivity: number;
   effectiveTargetRir: number;
+  /** Krok ciężaru ćwiczenia (dokładka / deload). */
+  weightStep: WeightStep;
 };

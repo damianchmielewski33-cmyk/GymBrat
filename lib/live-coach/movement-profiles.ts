@@ -3,6 +3,7 @@
  */
 
 import type { MovementProfile } from "@/lib/live-coach/types";
+import type { EffortContext } from "@/lib/set-effort";
 
 function norm(raw: string): string {
   return raw
@@ -152,6 +153,30 @@ export function resolveMovementProfile(
     return toProfile(f.id, f.min, f.max, f.label);
   }
   return DEFAULT_PROFILE;
+}
+
+/**
+ * Kontekst klasyfikacji wysiłku: najmniejszy zapas zgodny z celem ruchu.
+ * Bazą jest profil ruchu (biceps/łydki = 0, bench = 1, martwy ciąg = 2);
+ * cel z planu może ją tylko obniżyć (plan „RIR 0” = trening do upadku).
+ * Plan bez własnego RIR dostaje w sesji domyślne 1, więc nie może
+ * podnosić progu ponad profil.
+ */
+export function resolveEffortContext(
+  name: string,
+  categoryId?: string | null,
+  planTargetRir?: number | null,
+): EffortContext {
+  const profileMin = resolveMovementProfile(name, categoryId).targetRirMin;
+  if (
+    planTargetRir != null &&
+    Number.isFinite(planTargetRir) &&
+    planTargetRir >= 0
+  ) {
+    const plan = Math.max(0, Math.min(5, Math.round(planTargetRir)));
+    return { targetRirMin: Math.min(plan, profileMin) };
+  }
+  return { targetRirMin: profileMin };
 }
 
 /** targetRir z planu ma pierwszeństwo; inaczej profil ruchu. */
