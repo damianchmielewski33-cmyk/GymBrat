@@ -3,51 +3,87 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import {
-  Bug,
-  ImageIcon,
-  Dumbbell,
-  LayoutDashboard,
-  Package,
-  UtensilsCrossed,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import {
+  ADMIN_NAV_GROUPS,
+  isAdminNavActive,
+  type AdminNavBadge,
+  type AdminNavItem,
+} from "@/components/admin/admin-nav";
 import { BUG_REPORTS_CHANGED_EVENT } from "@/lib/bug-reports";
-import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
-import { Button } from "@/components/ui/button";
+import { adminRequest } from "@/lib/admin-client";
 import { cn } from "@/lib/utils";
 
-const links = [
-  { href: "/admin/overview", label: "Analityka", icon: LayoutDashboard },
-  { href: "/admin/users", label: "Użytkownicy", icon: Users },
-  { href: "/admin/packages", label: "Pakiety", icon: Package },
-  { href: "/admin/bugs", label: "Błędy", icon: Bug, badge: "bugs" as const },
-  { href: "/admin/catalog", label: "Przepisy", icon: UtensilsCrossed },
-  { href: "/admin/exercises", label: "Ćwiczenia", icon: Dumbbell },
-  { href: "/admin/branding", label: "Branding", icon: ImageIcon },
-];
+type Badges = Partial<Record<AdminNavBadge, { count: number; tone: "danger" | "warn" }>>;
+
+function NavBadge({ count, tone }: { count: number; tone: "danger" | "warn" }) {
+  return (
+    <span
+      className={cn(
+        "ml-auto inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-bold leading-none text-white",
+        tone === "danger" ? "bg-red-500" : "bg-amber-500 text-black",
+      )}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+function NavLink({
+  item,
+  active,
+  badge,
+  compact = false,
+}: {
+  item: AdminNavItem;
+  active: boolean;
+  badge?: { count: number; tone: "danger" | "warn" };
+  compact?: boolean;
+}) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-2.5 rounded-xl text-sm font-medium transition-colors",
+        compact ? "shrink-0 px-3.5 py-2" : "px-3 py-2.5",
+        active
+          ? "bg-[var(--neon)]/15 text-white ring-1 ring-[var(--neon)]/40"
+          : "text-white/60 hover:bg-white/[0.06] hover:text-white",
+      )}
+    >
+      <Icon className={cn("h-4 w-4 shrink-0", active && "text-[var(--gym-gold)]")} aria-hidden />
+      <span className="whitespace-nowrap">{item.label}</span>
+      {badge && badge.count > 0 ? <NavBadge {...badge} /> : null}
+    </Link>
+  );
+}
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { notifyError } = useSaveFeedback();
   const [openBugs, setOpenBugs] = useState(0);
+  const [configIssues, setConfigIssues] = useState(0);
+  const [leaving, setLeaving] = useState(false);
 
   const refreshOpenCount = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/bug-reports?summary=1", {
-        credentials: "include",
-      });
-      const data = (await res.json().catch(() => null)) as {
-        ok?: boolean;
-        openCount?: number;
-      } | null;
-      if (res.ok && data?.ok && typeof data.openCount === "number") {
-        setOpenBugs(data.openCount);
-      }
-    } catch {
-      /* ignore */
+    const res = await adminRequest<{ openCount?: number }>(
+      "/api/admin/bug-reports?summary=1",
+    );
+    if (res.ok && typeof res.data.openCount === "number") {
+      setOpenBugs(res.data.openCount);
+    }
+  }, []);
+
+  const refreshConfigIssues = useCallback(async () => {
+    const res = await adminRequest<{ summary?: { requiredIssues: number } }>(
+      "/api/admin/config-status",
+    );
+    if (res.ok && res.data.summary) {
+      setConfigIssues(res.data.summary.requiredIssues);
     }
   }, []);
 
@@ -56,78 +92,107 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, [refreshOpenCount, pathname]);
 
   useEffect(() => {
-    const onChanged = () => {
-      void refreshOpenCount();
-    };
+    void refreshConfigIssues();
+  }, [refreshConfigIssues]);
+
+  useEffect(() => {
+    const onChanged = () => void refreshOpenCount();
     window.addEventListener(BUG_REPORTS_CHANGED_EVENT, onChanged);
     return () => window.removeEventListener(BUG_REPORTS_CHANGED_EVENT, onChanged);
   }, [refreshOpenCount]);
 
+  const badges: Badges = {
+    bugs: { count: openBugs, tone: "danger" },
+    config: { count: configIssues, tone: "warn" },
+  };
+
+  async function leavePanel() {
+    setLeaving(true);
+    const res = await adminRequest("/api/admin/lock", {
+      method: "POST",
+      fallbackError: "Nie udało się wyjść z panelu.",
+    });
+    if (!res.ok) {
+      notifyError(res.error);
+      setLeaving(false);
+      return;
+    }
+    router.push("/");
+    router.refresh();
+  }
+
+  const backButton = (
+    <button
+      type="button"
+      disabled={leaving}
+      onClick={() => void leavePanel()}
+      className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/[0.08] hover:text-white disabled:opacity-50"
+    >
+      <ArrowLeft className="h-4 w-4" aria-hidden />
+      Wróć do aplikacji
+    </button>
+  );
+
+  const brand = (
+    <div className="flex items-center gap-3">
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)]">
+        <ShieldCheck className="h-5 w-5" aria-hidden />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">GymBrat</p>
+        <p className="font-heading text-lg font-semibold leading-tight text-white">Administrator</p>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="space-y-8">
-      <header className="app-card flex flex-col gap-6 p-8 text-center sm:text-left">
-        <div className="flex flex-col items-center gap-3 sm:flex-row">
-          <div className="text-center sm:text-left">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
-              GymBrat
-            </p>
-            <h1 className="font-heading mt-2 text-2xl font-semibold text-white">
-              Administrator
-            </h1>
-          </div>
+    <div className="grid gap-5 lg:grid-cols-[236px_minmax(0,1fr)] lg:items-start lg:gap-8">
+      {/* Mobile / tablet: nagłówek + przewijany pasek zakładek */}
+      <div className="space-y-3 lg:hidden">
+        <div className="flex items-center justify-between gap-3">
+          {brand}
+          <div className="w-44 shrink-0">{backButton}</div>
         </div>
-        <nav className="flex flex-wrap gap-2">
-          {links.map(({ href, label, icon: Icon, badge }) => {
-            const active = pathname === href || pathname.startsWith(`${href}/`);
-            const showBadge = badge === "bugs" && openBugs > 0;
-            return (
-              <Link key={href} href={href}>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-                    active
-                      ? "bg-[var(--neon)]/20 text-white ring-1 ring-[var(--neon)]/40"
-                      : "text-white/65 hover:bg-white/[0.06] hover:text-white",
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                  {showBadge ? (
-                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white">
-                      {openBugs > 99 ? "99+" : openBugs}
-                    </span>
-                  ) : null}
-                </span>
-              </Link>
-            );
-          })}
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="border-white/15 bg-white/[0.06]"
-            onClick={() => {
-              void (async () => {
-                await ensureCsrfCookie();
-                const res = await fetch("/api/admin/lock", {
-                  method: "POST",
-                  credentials: "include",
-                  headers: { ...getXsrfHeaders() },
-                });
-                if (!res.ok) {
-                  notifyError("Nie udało się wyjść z panelu.");
-                  return;
-                }
-                router.push("/");
-                router.refresh();
-              })();
-            }}
-          >
-            Wróć do aplikacji
-          </Button>
+        <nav
+          aria-label="Sekcje panelu admina"
+          className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {ADMIN_NAV_GROUPS.flatMap((g) => g.items).map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              compact
+              active={isAdminNavActive(pathname, item.href)}
+              badge={item.badge ? badges[item.badge] : undefined}
+            />
+          ))}
         </nav>
-      </header>
-      {children}
+      </div>
+
+      {/* Desktop: panel boczny z grupami */}
+      <aside className="app-card-raised hidden space-y-5 border border-white/10 p-4 lg:sticky! lg:top-6 lg:block">
+        {brand}
+        <nav aria-label="Sekcje panelu admina" className="space-y-4">
+          {ADMIN_NAV_GROUPS.map((group) => (
+            <div key={group.label} className="space-y-1">
+              <p className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/30">
+                {group.label}
+              </p>
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isAdminNavActive(pathname, item.href)}
+                  badge={item.badge ? badges[item.badge] : undefined}
+                />
+              ))}
+            </div>
+          ))}
+        </nav>
+        <div className="border-t border-white/10 pt-4">{backButton}</div>
+      </aside>
+
+      <main className="min-w-0 space-y-6">{children}</main>
     </div>
   );
 }

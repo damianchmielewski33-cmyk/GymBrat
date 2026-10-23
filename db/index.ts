@@ -1,5 +1,6 @@
 import { createClient, type Client } from "@libsql/client";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
+import { withResilientRetry } from "./resilient-client";
 import * as schema from "./schema";
 
 export type Database = LibSQLDatabase<typeof schema>;
@@ -17,10 +18,12 @@ function createLibsqlClient(): Client {
     );
   }
   const token = process.env.TURSO_AUTH_TOKEN;
-  return createClient({
-    url,
-    ...(token ? { authToken: token } : {}),
-  });
+  return withResilientRetry(
+    createClient({
+      url,
+      ...(token ? { authToken: token } : {}),
+    }),
+  );
 }
 
 export function getDb(): Database {
