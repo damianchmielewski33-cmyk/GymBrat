@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Trener na żywo: trafniejsze podpowiedzi ciężaru",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Podpowiedź „Dziś spróbuj” proponuje większy ciężar już po dwóch seriach z zapasem 2 powtórzeń (RIR 2) na górze zakresu, zamiast czekać na zapas 3.",
+      "Seria do upadku na ćwiczeniach izolowanych (np. uginanie, łydki) nie jest już traktowana jak „twarda” i nie wymusza zdejmowania ciężaru — liczy się docelowy zapas danego ruchu.",
+      "Jeśli nie zapisujesz RIR ani RPE, trener podpowie dokładkę po dwóch kolejnych treningach, w których wszystkie serie robocze były na górze zakresu powtórzeń.",
+      "Dokładki i zdejmowanie ciężaru uwzględniają krok sprzętu: hantle co 2 kg, kettlebell co 4 kg, sztanga i maszyny co 2,5 kg — zdjęty ciężar da się faktycznie załadować.",
+      "Seria z RIR 2 przy RPE 10 jest oznaczana jako sprzeczne dane i nie odblokowuje dokładki.",
+    ],
+  },
+  {
     title: "Zapowiedź — Analityka 11/10: zmęczenie, regeneracja, mięśnie, cardio 2.0",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
