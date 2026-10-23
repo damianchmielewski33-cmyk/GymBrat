@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Activity, AlertTriangle, RefreshCw } from "lucide-react";
+import { AdminCard, AdminLoading, AdminNotice } from "@/components/admin/admin-ui";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { MeterStatus, MonitoringSnapshot, UsageMeter } from "@/lib/monitoring/types";
@@ -130,60 +132,77 @@ export function AdminMonitoringPanel() {
   const meters: UsageMeter[] = data?.meters ?? [];
   const critical = meters.some((m) => m.status === "critical");
 
+  const unconfigured = meters.filter((m) => m.status === "unconfigured").length;
+
   return (
-    <section className="app-card space-y-5 p-5 sm:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-            Monitoring na żywo
-          </p>
-          <h2 className="font-heading mt-1 flex items-center gap-2 text-lg font-semibold text-white">
-            <Activity className="h-5 w-5 text-[var(--neon)]" aria-hidden />
-            Limity hostingu i bazy
-          </h2>
-          <p className="mt-1 text-xs text-white/50">
-            Render (CPU, RAM, bandwidth) + Turso (storage, rows) — odświeżanie co {POLL_MS / 1000} s.
-            {data?.updatedAt ? (
-              <>
-                {" "}
-                Ostatni pomiar:{" "}
-                <span className="tabular-nums text-white/70">
-                  {new Date(data.updatedAt).toLocaleTimeString("pl-PL")}
-                </span>
-              </>
-            ) : null}
-          </p>
-        </div>
+    <AdminCard
+      title={
+        <span className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-[var(--neon)]" aria-hidden />
+          Limity hostingu i bazy
+        </span>
+      }
+      description={
+        <>
+          Render (CPU, RAM, bandwidth) + Turso (storage, rows) — odświeżanie co {POLL_MS / 1000} s.
+          {data?.updatedAt ? (
+            <>
+              {" "}
+              Ostatni pomiar:{" "}
+              <span className="tabular-nums text-white/70">
+                {new Date(data.updatedAt).toLocaleTimeString("pl-PL")}
+              </span>
+            </>
+          ) : null}
+        </>
+      }
+      actions={
         <Button
           type="button"
           variant="outline"
-          className="h-10 shrink-0 rounded-2xl border-white/15"
+          size="sm"
           disabled={loading}
           onClick={() => {
             setLoading(true);
             void load(true);
           }}
         >
-          <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
+          <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} aria-hidden />
           Odśwież
         </Button>
-      </div>
-
+      }
+      bodyClassName="space-y-4"
+    >
       {critical ? (
-        <p className="flex items-start gap-2 rounded-lg border border-rose-500/35 bg-rose-500/10 px-3.5 py-2.5 text-sm text-rose-100">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-          Co najmniej jeden limit jest blisko wyczerpania (≥ 95%). Sprawdź cleanup / plan Render lub Turso.
-        </p>
+        <AdminNotice tone="danger">
+          <span className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            Co najmniej jeden limit jest blisko wyczerpania (≥ 95%). Sprawdź cleanup / plan Render
+            lub Turso.
+          </span>
+        </AdminNotice>
       ) : null}
 
-      {error ? (
-        <p className="rounded-lg border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-          {error}
-        </p>
+      {unconfigured > 0 ? (
+        <AdminNotice
+          tone="info"
+          action={
+            <Link
+              href="/admin/settings"
+              className="text-sm font-semibold text-[var(--gym-gold)] hover:underline"
+            >
+              Skonfiguruj
+            </Link>
+          }
+        >
+          {unconfigured} z {meters.length} mierników nie ma skonfigurowanego źródła danych.
+        </AdminNotice>
       ) : null}
+
+      {error ? <AdminNotice tone="danger">{error}</AdminNotice> : null}
 
       {loading && !data ? (
-        <p className="text-sm text-white/55">Ładowanie limitów…</p>
+        <AdminLoading label="Ładowanie limitów…" />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {meters.map((m) => (
@@ -199,6 +218,6 @@ export function AdminMonitoringPanel() {
           ))}
         </ul>
       ) : null}
-    </section>
+    </AdminCard>
   );
 }

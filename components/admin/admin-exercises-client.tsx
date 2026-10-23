@@ -1,13 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Dumbbell } from "lucide-react";
+import { Dumbbell, ExternalLink, RefreshCw, Search } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import {
+  AdminCard,
+  AdminEmpty,
+  AdminLoading,
+  AdminNotice,
+  AdminPageHeader,
+  AdminPill,
+  AdminSelect,
+  AdminStat,
+} from "@/components/admin/admin-ui";
 import { Button } from "@/components/ui/button";
-import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
+import { Input } from "@/components/ui/input";
+import { adminRequest } from "@/lib/admin-client";
 import { MUSCLE_CATEGORIES, categoryLabel } from "@/lib/workout-exercise-catalog";
 import { normalizeYoutubeUrl } from "@/lib/youtube-url";
-import { cn } from "@/lib/utils";
 
 type Row = {
   catalogId: string;
@@ -15,6 +25,8 @@ type Row = {
   categoryId: string;
   youtubeUrl: string | null;
 };
+
+const PAGE_SIZE = 40;
 
 export function AdminExercisesClient() {
   const { notifySaved, notifyError } = useSaveFeedback();
@@ -26,29 +38,23 @@ export function AdminExercisesClient() {
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState<string>("all");
   const [onlyMissing, setOnlyMissing] = useState(false);
+  const [visible, setVisible] = useState(PAGE_SIZE);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch("/api/admin/exercises/technique", {
-        credentials: "include",
-      });
-      if (!res.ok) {
-        setError("Nie udało się wczytać listy ćwiczeń.");
-        return;
-      }
-      const data = (await res.json()) as { rows?: Row[] };
-      const list = Array.isArray(data.rows) ? data.rows : [];
-      setRows(list);
-      const next: Record<string, string> = {};
-      for (const r of list) next[r.catalogId] = r.youtubeUrl ?? "";
-      setDrafts(next);
-    } catch {
-      setError("Błąd sieci przy wczytywaniu.");
-    } finally {
+    const res = await adminRequest<{ rows?: Row[] }>("/api/admin/exercises/technique", {
+      fallbackError: "Nie udało się wczytać listy ćwiczeń.",
+    });
+    if (!res.ok) {
+      setError(res.error);
       setLoading(false);
+      return;
     }
+    const list = Array.isArray(res.data.rows) ? res.data.rows : [];
+    setRows(list);
+    setDrafts(Object.fromEntries(list.map((r) => [r.catalogId, r.youtubeUrl ?? ""])));
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -70,6 +76,7 @@ export function AdminExercisesClient() {
   }, [rows, query, categoryId, onlyMissing]);
 
   const withUrl = rows.filter((r) => r.youtubeUrl).length;
+  const pct = rows.length ? Math.round((withUrl / rows.length) * 100) : 0;
 
   async function saveRow(catalogId: string) {
     const youtubeUrl = drafts[catalogId] ?? "";
@@ -78,74 +85,81 @@ export function AdminExercisesClient() {
       return;
     }
     setBusyId(catalogId);
-    try {
-      await ensureCsrfCookie();
-      const res = await fetch("/api/admin/exercises/technique", {
+    const res = await adminRequest<{ youtubeUrl?: string | null }>(
+      "/api/admin/exercises/technique",
+      {
         method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...getXsrfHeaders(),
-        },
-        body: JSON.stringify({ catalogId, youtubeUrl }),
-      });
-      const data = (await res.json().catch(() => ({}))) as {
-        error?: string;
-        youtubeUrl?: string | null;
-      };
-      if (!res.ok) {
-        notifyError(data.error ?? "Zapis nie powiódł się.");
-        return;
-      }
-      setRows((prev) =>
-        prev.map((r) =>
-          r.catalogId === catalogId
-            ? { ...r, youtubeUrl: data.youtubeUrl ?? null }
-            : r,
-        ),
-      );
-      setDrafts((prev) => ({
-        ...prev,
-        [catalogId]: data.youtubeUrl ?? "",
-      }));
-      notifySaved(
-        data.youtubeUrl ? "Zapisano link techniki." : "Usunięto link techniki.",
-      );
-    } catch {
-      notifyError("Błąd sieci przy zapisie.");
-    } finally {
-      setBusyId(null);
+        body: { catalogId, youtubeUrl },
+        fallbackError: "Zapis nie powiódł się.",
+      },
+    );
+    setBusyId(null);
+    if (!res.ok) {
+      notifyError(res.error);
+      return;
     }
+    const saved = res.data.youtubeUrl ?? null;
+    setRows((prev) =>
+      prev.map((r) => (r.catalogId === catalogId ? { ...r, youtubeUrl: saved } : r)),
+    );
+    setDrafts((prev) => ({ ...prev, [catalogId]: saved ?? "" }));
+    notifySaved(saved ? "Zapisano link techniki." : "Usunięto link techniki.");
   }
+
+  const shown = filtered.slice(0, visible);
 
   return (
     <div className="space-y-6">
-      <div className="app-card space-y-3 p-6">
-        <div className="flex items-start gap-3">
-          <Dumbbell className="mt-1 h-5 w-5 text-[var(--gym-gold)]" />
-          <div>
-            <h2 className="font-heading text-xl font-semibold text-white">
-              Technika ćwiczeń (YouTube)
-            </h2>
-            <p className="mt-1 text-sm text-white/55">
-              Opcjonalny fallback katalogu. Główne linki „technika ↗” ustawiasz przy
-              układaniu planu (Profil → Plan treningowy). Ustawione tu: {withUrl}/
-              {rows.length}.
-            </p>
-          </div>
-        </div>
+      <AdminPageHeader
+        icon={<Dumbbell />}
+        title="Technika ćwiczeń"
+        description="Opcjonalny link YouTube dla ćwiczeń z katalogu. Główne linki „technika ↗” ustawiasz przy układaniu planu (Profil → Plan treningowy)."
+        actions={
+          <Button type="button" variant="outline" disabled={loading} onClick={() => void load()}>
+            <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
+            Odśwież
+          </Button>
+        }
+      />
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Szukaj nazwy…"
-            className="h-11 min-w-0 flex-1 rounded-xl border border-white/12 bg-black/40 px-3 text-sm text-white outline-none focus:border-[var(--gym-gold)]/50"
-          />
-          <select
+      <div className="grid gap-3 sm:grid-cols-3">
+        <AdminStat label="Ćwiczeń w katalogu" value={rows.length} />
+        <AdminStat label="Z linkiem" value={withUrl} tone="ok" hint={`${pct}% pokrycia`} />
+        <AdminStat
+          label="Bez linku"
+          value={rows.length - withUrl}
+          tone={rows.length - withUrl > 0 ? "warn" : "ok"}
+        />
+      </div>
+
+      {error ? <AdminNotice tone="danger">{error}</AdminNotice> : null}
+
+      <AdminCard flush>
+        <div className="flex flex-col gap-2 border-b border-white/10 p-4 lg:flex-row">
+          <div className="relative min-w-0 flex-1">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35"
+              aria-hidden
+            />
+            <Input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setVisible(PAGE_SIZE);
+              }}
+              placeholder="Szukaj nazwy, partii lub id…"
+              aria-label="Szukaj ćwiczeń"
+              className="pl-9"
+            />
+          </div>
+          <AdminSelect
             value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="h-11 rounded-xl border border-white/12 bg-black/40 px-3 text-sm text-white"
+            onChange={(e) => {
+              setCategoryId(e.target.value);
+              setVisible(PAGE_SIZE);
+            }}
+            aria-label="Partia mięśniowa"
+            className="lg:w-56"
           >
             <option value="all">Wszystkie partie</option>
             {MUSCLE_CATEGORIES.map((c) => (
@@ -153,72 +167,99 @@ export function AdminExercisesClient() {
                 {c.label}
               </option>
             ))}
-          </select>
-          <label className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/12 bg-black/40 px-3 text-sm text-white/70">
+          </AdminSelect>
+          <label className="flex h-11 cursor-pointer items-center gap-2.5 rounded-lg border border-white/20 bg-black/50 px-3 text-sm text-white/75">
             <input
               type="checkbox"
               checked={onlyMissing}
-              onChange={(e) => setOnlyMissing(e.target.checked)}
+              onChange={(e) => {
+                setOnlyMissing(e.target.checked);
+                setVisible(PAGE_SIZE);
+              }}
+              className="h-4 w-4 accent-[var(--gym-gold)]"
             />
             Tylko bez linku
           </label>
-          <Button type="button" variant="secondary" onClick={() => void load()}>
-            Odśwież
-          </Button>
         </div>
-        {error ? <p className="text-sm text-red-300">{error}</p> : null}
-      </div>
 
-      {loading ? (
-        <p className="text-sm text-white/50">Wczytywanie…</p>
-      ) : (
-        <ul className="space-y-3">
-          {filtered.map((row) => {
-            const draft = drafts[row.catalogId] ?? "";
-            const dirty = draft.trim() !== (row.youtubeUrl ?? "").trim();
-            return (
-              <li
-                key={row.catalogId}
-                className="rounded-2xl border border-white/[0.08] bg-[#141414] p-4"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-sm font-semibold text-white">{row.name}</p>
-                  <p className="text-[11px] uppercase tracking-wide text-white/40">
-                    {categoryLabel(row.categoryId)}
-                  </p>
-                </div>
-                <p className="mt-0.5 font-mono text-[11px] text-white/35">
-                  {row.catalogId}
-                </p>
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  <input
-                    value={draft}
-                    onChange={(e) =>
-                      setDrafts((prev) => ({
-                        ...prev,
-                        [row.catalogId]: e.target.value,
-                      }))
-                    }
-                    placeholder="https://youtu.be/… lub youtube.com/watch?v=…"
-                    className="h-11 min-w-0 flex-1 rounded-xl border border-white/12 bg-black/40 px-3 text-sm text-white outline-none focus:border-[var(--gym-gold)]/50"
-                  />
-                  <Button
-                    type="button"
-                    disabled={busyId === row.catalogId || !dirty}
-                    onClick={() => void saveRow(row.catalogId)}
-                    className={cn(!dirty && "opacity-50")}
+        {loading ? (
+          <AdminLoading label="Wczytywanie ćwiczeń…" />
+        ) : filtered.length === 0 ? (
+          <AdminEmpty
+            icon={<Dumbbell />}
+            title="Brak wyników"
+            description="Zmień frazę wyszukiwania lub filtry."
+          />
+        ) : (
+          <ul className="divide-y divide-white/10">
+            {shown.map((row) => {
+              const draft = drafts[row.catalogId] ?? "";
+              const dirty = draft.trim() !== (row.youtubeUrl ?? "").trim();
+              const busy = busyId === row.catalogId;
+              return (
+                <li key={row.catalogId} className="space-y-3 px-4 py-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-white">{row.name}</p>
+                    <AdminPill>{categoryLabel(row.categoryId)}</AdminPill>
+                    {row.youtubeUrl ? (
+                      <a
+                        href={row.youtubeUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-[var(--gym-gold)] hover:underline"
+                      >
+                        Podgląd
+                        <ExternalLink className="h-3 w-3" aria-hidden />
+                      </a>
+                    ) : (
+                      <AdminPill tone="warn">brak linku</AdminPill>
+                    )}
+                    <span className="ml-auto font-mono text-[11px] text-white/30">
+                      {row.catalogId}
+                    </span>
+                  </div>
+                  <form
+                    className="flex flex-col gap-2 sm:flex-row"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (dirty && !busy) void saveRow(row.catalogId);
+                    }}
                   >
-                    {busyId === row.catalogId ? "Zapis…" : "Zapisz"}
-                  </Button>
-                </div>
-              </li>
-            );
-          })}
-          {filtered.length === 0 ? (
-            <p className="text-sm text-white/45">Brak wyników filtrów.</p>
-          ) : null}
-        </ul>
-      )}
+                    <Input
+                      value={draft}
+                      onChange={(e) =>
+                        setDrafts((prev) => ({ ...prev, [row.catalogId]: e.target.value }))
+                      }
+                      placeholder="https://youtu.be/… lub youtube.com/watch?v=…"
+                      aria-label={`Link YouTube: ${row.name}`}
+                      className="flex-1"
+                    />
+                    <Button type="submit" disabled={busy || !dirty} className="sm:w-28">
+                      {busy ? "Zapis…" : "Zapisz"}
+                    </Button>
+                  </form>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {!loading && filtered.length > shown.length ? (
+          <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
+            <p className="text-xs text-white/45">
+              Pokazano {shown.length} z {filtered.length}
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setVisible((v) => v + PAGE_SIZE)}
+            >
+              Pokaż więcej
+            </Button>
+          </div>
+        ) : null}
+      </AdminCard>
     </div>
   );
 }

@@ -10,6 +10,12 @@ export function isTransientDbError(err: unknown): boolean {
       ? String((err as { errno?: unknown }).errno ?? "")
       : "";
   const msg = err instanceof Error ? err.message : String(err);
+  // Drizzle owija błąd sieciowy w "Failed query" — prawdziwa przyczyna siedzi w `cause`.
+  const cause =
+    typeof err === "object" && err !== null && "cause" in err
+      ? (err as { cause?: unknown }).cause
+      : undefined;
+  if (cause && cause !== err && isTransientDbError(cause)) return true;
   const blob = `${code} ${errno} ${msg}`;
   return /ECONNRESET|ETIMEDOUT|ECONNREFUSED|ENETUNREACH|EAI_AGAIN|socket hang up|UND_ERR|fetch failed|network|temporarily unavailable|timeout|SERVER_BUSY|SQLITE_BUSY|SQLITE_LOCKED|429|too many requests|rate.?limit|upstream connect|connection reset/i.test(
     blob,

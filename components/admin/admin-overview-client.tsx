@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import {
   Bar,
   BarChart,
@@ -11,10 +11,20 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { BarChart3, ChevronRight, RefreshCw } from "lucide-react";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { AdminMonitoringPanel } from "@/components/admin/admin-monitoring-panel";
+import {
+  AdminCard,
+  AdminLoading,
+  AdminNotice,
+  AdminPageHeader,
+  AdminStat,
+} from "@/components/admin/admin-ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { adminRequest } from "@/lib/admin-client";
+import { cn } from "@/lib/utils";
 
 const tooltipStyle = {
   backgroundColor: "rgba(7, 8, 13, 0.92)",
@@ -59,47 +69,59 @@ type HourlyJson = {
   by_day?: { ymd: string; label: string; hours: number[]; total: number }[];
 };
 
-function defaultRange(): { from: string; to: string } {
+const PRESETS = [
+  { days: 7, label: "7 dni" },
+  { days: 14, label: "14 dni" },
+  { days: 30, label: "30 dni" },
+] as const;
+
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+function rangeForDays(days: number): { from: string; to: string } {
   const to = new Date();
   const from = new Date(to);
-  from.setDate(from.getDate() - 13);
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  from.setDate(from.getDate() - (days - 1));
   return { from: iso(from), to: iso(to) };
+}
+
+function presetOf(from: string, to: string): number | null {
+  for (const p of PRESETS) {
+    const r = rangeForDays(p.days);
+    if (r.from === from && r.to === to) return p.days;
+  }
+  return null;
 }
 
 export function AdminOverviewClient() {
   const { notifySaved, notifyError } = useSaveFeedback();
-  const [{ from, to }, setRange] = useState(defaultRange);
+  const [{ from, to }, setRange] = useState(() => rangeForDays(14));
   const [analytics, setAnalytics] = useState<AnalyticsJson | null>(null);
   const [hourly, setHourly] = useState<HourlyJson | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activityLogOpen, setActivityLogOpen] = useState(false);
+  const [configIssues, setConfigIssues] = useState(0);
 
   const load = useCallback(
-    async (showSuccessToast = false) => {
+    async (showToast = false) => {
       setLoading(true);
       setError(null);
-      try {
-        const [aRes, hRes] = await Promise.all([
-          fetch(
-            `/api/admin/analytics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-          ),
-          fetch(`/api/admin/analytics/hourly`),
-        ]);
-        if (!aRes.ok) throw new Error("analytics");
-        if (!hRes.ok) throw new Error("hourly");
-        setAnalytics((await aRes.json()) as AnalyticsJson);
-        setHourly((await hRes.json()) as HourlyJson);
-        if (showSuccessToast) notifySaved("Zaktualizowano dane analityki.");
-      } catch {
-        const msg =
-          "Nie udało się wczytać analityki (upewnij się, że jesteś zalogowany do panelu).";
+      const [a, h] = await Promise.all([
+        adminRequest<AnalyticsJson>(
+          `/api/admin/analytics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+        ),
+        adminRequest<HourlyJson>("/api/admin/analytics/hourly"),
+      ]);
+      if (!a.ok || !h.ok) {
+        const msg = "Nie udało się wczytać analityki (upewnij się, że jesteś zalogowany do panelu).";
         setError(msg);
-        if (showSuccessToast) notifyError(msg);
-      } finally {
-        setLoading(false);
+        if (showToast) notifyError(msg);
+      } else {
+        setAnalytics(a.data);
+        setHourly(h.data);
+        if (showToast) notifySaved("Zaktualizowano dane analityki.");
       }
+      setLoading(false);
     },
     [from, to, notifySaved, notifyError],
   );
@@ -107,6 +129,15 @@ export function AdminOverviewClient() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void (async () => {
+      const res = await adminRequest<{ summary?: { requiredIssues: number } }>(
+        "/api/admin/config-status",
+      );
+      if (res.ok && res.data.summary) setConfigIssues(res.data.summary.requiredIssues);
+    })();
+  }, []);
 
   const chartData = useMemo(
     () =>
@@ -118,251 +149,271 @@ export function AdminOverviewClient() {
     [analytics],
   );
 
-  const hourData = hourly?.by_hour ?? [];
-  const heatmapDays = hourly?.by_day ?? [];
+  const hourData = useMemo(() => hourly?.by_hour ?? [], [hourly]);
+  const heatmapDays = useMemo(() => hourly?.by_day ?? [], [hourly]);
 
   const heatMax = useMemo(() => {
     let m = 0;
-    for (const d of heatmapDays) {
-      for (const v of d.hours) m = Math.max(m, v);
-    }
+    for (const d of heatmapDays) for (const v of d.hours) m = Math.max(m, v);
     return m;
   }, [heatmapDays]);
 
-  const heatColor = useCallback((v: number) => {
-    if (v <= 0 || heatMax <= 0) return "rgba(255,255,255,0.04)";
-    const t = Math.min(1, v / heatMax);
-    // neon-ish scale: dark -> rose
-    const alpha = 0.12 + 0.62 * t;
-    return `rgba(255,45,85,${alpha.toFixed(3)})`;
-  }, [heatMax]);
+  const heatColor = useCallback(
+    (v: number) => {
+      if (v <= 0 || heatMax <= 0) return "rgba(255,255,255,0.04)";
+      const alpha = 0.12 + 0.62 * Math.min(1, v / heatMax);
+      return `rgba(255,45,85,${alpha.toFixed(3)})`;
+    },
+    [heatMax],
+  );
+
+  const activePreset = presetOf(from, to);
 
   return (
-    <div className="space-y-8">
-      <AdminMonitoringPanel />
+    <div className="space-y-6">
+      <AdminPageHeader
+        icon={<BarChart3 />}
+        title="Analityka"
+        description="Ruch w aplikacji, aktywność kont oraz limity hostingu i bazy w jednym miejscu."
+        actions={
+          <Button type="button" variant="outline" disabled={loading} onClick={() => void load(true)}>
+            <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} aria-hidden />
+            Odśwież
+          </Button>
+        }
+      />
 
-      <section className="app-card p-5 sm:p-6">
-        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
-          Zakres raportu
-        </p>
-        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
-          <div className="flex flex-wrap gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="from">Od</Label>
+      {configIssues > 0 ? (
+        <AdminNotice
+          tone="warn"
+          action={
+            <Link
+              href="/admin/settings"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-amber-100 hover:underline"
+            >
+              Otwórz konfigurację
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </Link>
+          }
+        >
+          Brakuje {configIssues} wymaganych ustawień aplikacji — niektóre funkcje mogą nie działać.
+        </AdminNotice>
+      ) : null}
+
+      <AdminCard title="Zakres raportu">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Szybki wybór zakresu">
+            {PRESETS.map((p) => (
+              <button
+                key={p.days}
+                type="button"
+                aria-pressed={activePreset === p.days}
+                onClick={() => setRange(rangeForDays(p.days))}
+                className={cn(
+                  "h-11 rounded-xl border px-4 text-sm font-medium transition-colors",
+                  activePreset === p.days
+                    ? "border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]"
+                    : "border-white/12 text-white/65 hover:bg-white/[0.06] hover:text-white",
+                )}
+              >
+                Ostatnie {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1.5">
+              <label htmlFor="range-from" className="block text-xs font-medium text-white/65">
+                Od
+              </label>
               <Input
-                id="from"
+                id="range-from"
                 type="date"
                 value={from}
+                max={to}
                 onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
-                className="border-white/15 bg-black/40"
+                className="w-44"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="to">Do</Label>
+            <div className="space-y-1.5">
+              <label htmlFor="range-to" className="block text-xs font-medium text-white/65">
+                Do
+              </label>
               <Input
-                id="to"
+                id="range-to"
                 type="date"
                 value={to}
+                min={from}
                 onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
-                className="border-white/15 bg-black/40"
+                className="w-44"
               />
             </div>
           </div>
-          <Button
-            type="button"
-            onClick={() => void load(true)}
-            disabled={loading}
-          >
-            Odśwież dane
-          </Button>
         </div>
-      </section>
+      </AdminCard>
 
-      {error ? (
-        <p className="rounded-lg border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-          {error}
-        </p>
-      ) : null}
+      {error ? <AdminNotice tone="danger">{error}</AdminNotice> : null}
 
-      {!loading && analytics ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: "Wejścia (odsłony)", value: analytics.totals.total_views },
-            { label: "Unikalni odwiedzający", value: analytics.totals.unique_visitors },
-            {
-              label: "Konta zarejestrowane (cała baza)",
-              value: analytics.accounts.registered_total,
-            },
-            {
-              label: "Aktywni zalogowani (zakres)",
-              value: analytics.accounts.distinct_logged_in_visitors_in_range,
-            },
-          ].map((c) => (
-            <div key={c.label} className="glass-panel rounded-xl border border-white/10 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-white/45">{c.label}</p>
-              <p className="font-heading mt-2 text-2xl font-semibold text-white">{c.value}</p>
-            </div>
-          ))}
+      {loading && !analytics ? <AdminLoading label="Ładowanie analityki…" /> : null}
+
+      {analytics ? (
+        <div
+          className={cn(
+            "grid gap-3 transition-opacity sm:grid-cols-2 xl:grid-cols-4",
+            loading && "opacity-60",
+          )}
+        >
+          <AdminStat
+            label="Odsłony"
+            value={analytics.totals.total_views}
+            hint={`${analytics.totals.authenticated_views} zalogowanych · ${analytics.totals.anonymous_views} anonimowych`}
+          />
+          <AdminStat label="Unikalni odwiedzający" value={analytics.totals.unique_visitors} />
+          <AdminStat label="Konta w bazie" value={analytics.accounts.registered_total} tone="gold" />
+          <AdminStat
+            label="Aktywni zalogowani"
+            value={analytics.accounts.distinct_logged_in_visitors_in_range}
+            hint="w wybranym zakresie"
+          />
         </div>
       ) : null}
 
-      {!loading && analytics ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="app-card p-5 sm:p-6">
-            <h2 className="font-heading text-lg font-semibold text-white">
-              Najczęstsze ekrany
-            </h2>
-            <p className="mt-1 text-xs text-white/50">
-              Rozkład wizyt według zmapowanych ścieżek aplikacji.
-            </p>
-            <div className="mt-4 h-[280px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis type="number" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} />
-                  <YAxis
-                    type="category"
-                    dataKey="label"
-                    width={120}
-                    tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
-                  />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="views" fill="#d4af37" radius={[0, 6, 6, 0]} name="Wejścia" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+      <AdminMonitoringPanel />
 
-          <div className="app-card p-5 sm:p-6">
-            <h2 className="font-heading text-lg font-semibold text-white">
-              Ruch wg godzin (ostatnie 7 dni)
-            </h2>
-            <p className="mt-1 text-xs text-white/50">
-              Suma wejść w przedziałach godzinowych {hourly?.peak ? `(szczyt ${hourly.peak.label})` : ""}.
-            </p>
-            <div className="mt-4 h-[280px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={hourData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }}
-                  />
-                  <YAxis tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} width={36} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="views" fill="#d4af37" radius={[6, 6, 0, 0]} name="Wejścia" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {!loading && hourly?.by_day?.length ? (
-        <div className="app-card p-5 sm:p-6">
-          <h2 className="font-heading text-lg font-semibold text-white">
-            Mapa ciepła wejść (godzina × dzień)
-          </h2>
-          <p className="mt-1 text-xs text-white/50">
-            Ostatnie 7 dni w strefie {hourly.timezone ?? "Europe/Warsaw"}. Jaśniej = więcej wejść.
-          </p>
-
-          <div className="mt-4 overflow-auto">
-            <div className="min-w-[880px]">
-              <div className="grid grid-cols-[140px_repeat(24,minmax(0,1fr))] gap-1 text-[10px] text-white/45">
-                <div />
-                {Array.from({ length: 24 }, (_, h) => (
-                  <div key={h} className="text-center font-mono">
-                    {String(h).padStart(2, "0")}
-                  </div>
-                ))}
+      {analytics ? (
+        <div className={cn("space-y-6 transition-opacity", loading && "opacity-60")}>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <AdminCard
+              title="Najczęstsze ekrany"
+              description="Rozkład wizyt według zmapowanych ścieżek aplikacji."
+            >
+              <div className="h-[280px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis type="number" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} />
+                    <YAxis
+                      type="category"
+                      dataKey="label"
+                      width={120}
+                      tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
+                    />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Bar dataKey="views" fill="#d4af37" radius={[0, 6, 6, 0]} name="Wejścia" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
+            </AdminCard>
 
-              <div className="mt-2 space-y-1">
-                {heatmapDays.map((d) => (
-                  <div
-                    key={d.ymd}
-                    className="grid grid-cols-[140px_repeat(24,minmax(0,1fr))] gap-1"
-                  >
-                    <div className="truncate pr-2 text-[11px] text-white/70">
-                      {d.label}
-                    </div>
-                    {d.hours.map((v, h) => (
-                      <div
-                        key={`${d.ymd}_${h}`}
-                        title={`${d.ymd} ${String(h).padStart(2, "0")}:00 — ${v} wejść`}
-                        className="h-6 rounded-md border border-white/10"
-                        style={{ backgroundColor: heatColor(v) }}
-                      />
+            <AdminCard
+              title="Ruch wg godzin (ostatnie 7 dni)"
+              description={`Suma wejść w przedziałach godzinowych${hourly?.peak ? ` (szczyt ${hourly.peak.label})` : ""}.`}
+            >
+              <div className="h-[280px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={hourData}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(255,255,255,0.06)"
+                      vertical={false}
+                    />
+                    <XAxis dataKey="label" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
+                    <YAxis tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} width={36} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Bar dataKey="views" fill="#d4af37" radius={[6, 6, 0, 0]} name="Wejścia" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </AdminCard>
+          </div>
+
+          {heatmapDays.length ? (
+            <AdminCard
+              title="Mapa ciepła wejść (godzina × dzień)"
+              description={`Ostatnie 7 dni w strefie ${hourly?.timezone ?? "Europe/Warsaw"}. Jaśniej = więcej wejść.`}
+            >
+              <div className="overflow-auto">
+                <div className="min-w-[880px]">
+                  <div className="grid grid-cols-[140px_repeat(24,minmax(0,1fr))] gap-1 text-[10px] text-white/45">
+                    <div />
+                    {Array.from({ length: 24 }, (_, h) => (
+                      <div key={h} className="text-center font-mono">
+                        {String(h).padStart(2, "0")}
+                      </div>
                     ))}
                   </div>
-                ))}
+                  <div className="mt-2 space-y-1">
+                    {heatmapDays.map((d) => (
+                      <div
+                        key={d.ymd}
+                        className="grid grid-cols-[140px_repeat(24,minmax(0,1fr))] gap-1"
+                      >
+                        <div className="truncate pr-2 text-[11px] text-white/70">{d.label}</div>
+                        {d.hours.map((v, h) => (
+                          <div
+                            key={`${d.ymd}_${h}`}
+                            title={`${d.ymd} ${String(h).padStart(2, "0")}:00 — ${v} wejść`}
+                            className="h-6 rounded-md border border-white/10"
+                            style={{ backgroundColor: heatColor(v) }}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between gap-3 text-xs text-white/45">
+                    <span>Skala: 0 → {heatMax}</span>
+                    <span className="font-mono">
+                      {hourly?.range?.from && hourly?.range?.to
+                        ? `${hourly.range.from} → ${hourly.range.to}`
+                        : ""}
+                    </span>
+                  </div>
+                </div>
               </div>
-
-              <div className="mt-3 flex items-center justify-between gap-3 text-xs text-white/45">
-                <span>
-                  Skala: 0 → {heatMax}
-                </span>
-                <span className="font-mono">
-                  {hourly.range?.from && hourly.range?.to ? `${hourly.range.from} → ${hourly.range.to}` : ""}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {!loading && analytics ? (
-        <div className="app-card overflow-hidden">
-          <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <h2 className="font-heading text-lg font-semibold text-white">
-                Dziennik zachowań
-              </h2>
-              <p className="mt-0.5 text-xs text-white/50">
-                {analytics.activity_events.length} zdarzeń · logowania i rejestracje
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 shrink-0 rounded-2xl border-white/15"
-              aria-expanded={activityLogOpen}
-              onClick={() => setActivityLogOpen((v) => !v)}
-            >
-              {activityLogOpen ? "Ukryj dziennik" : "Pokaż dziennik"}
-            </Button>
-          </div>
-
-          {activityLogOpen ? (
-            <div className="max-h-[420px] overflow-auto border-t border-white/10">
-              <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-zinc-950/95 text-[11px] uppercase tracking-wide text-white/45">
-                  <tr>
-                    <th className="px-5 py-3 font-medium">Czas</th>
-                    <th className="px-5 py-3 font-medium">Zdarzenie</th>
-                    <th className="px-5 py-3 font-medium">Kto</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/10 text-white/85">
-                  {analytics.activity_events.map((ev) => (
-                    <tr key={ev.id} className="hover:bg-white/[0.03]">
-                      <td className="whitespace-nowrap px-5 py-2.5 text-white/65">
-                        {ev.time_display}
-                      </td>
-                      <td className="px-5 py-2.5">{ev.action}</td>
-                      <td className="px-5 py-2.5 text-white/75">{ev.actor_label}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            </AdminCard>
           ) : null}
-        </div>
-      ) : null}
 
-      {loading ? (
-        <p className="text-center text-sm text-white/55">Ładowanie analityki…</p>
+          <AdminCard
+            title="Dziennik zachowań"
+            description={`${analytics.activity_events.length} zdarzeń · logowania i rejestracje`}
+            flush
+            actions={
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-expanded={activityLogOpen}
+                onClick={() => setActivityLogOpen((v) => !v)}
+              >
+                {activityLogOpen ? "Ukryj dziennik" : "Pokaż dziennik"}
+              </Button>
+            }
+          >
+            {activityLogOpen ? (
+              <div className="max-h-[420px] overflow-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="sticky top-0 bg-zinc-950/95 text-[11px] uppercase tracking-wide text-white/45">
+                    <tr>
+                      <th className="px-5 py-3 font-medium">Czas</th>
+                      <th className="px-5 py-3 font-medium">Zdarzenie</th>
+                      <th className="px-5 py-3 font-medium">Kto</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10 text-white/85">
+                    {analytics.activity_events.map((ev) => (
+                      <tr key={ev.id} className="hover:bg-white/[0.03]">
+                        <td className="whitespace-nowrap px-5 py-2.5 text-white/65">
+                          {ev.time_display}
+                        </td>
+                        <td className="px-5 py-2.5">{ev.action}</td>
+                        <td className="px-5 py-2.5 text-white/75">{ev.actor_label}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+          </AdminCard>
+        </div>
       ) : null}
     </div>
   );

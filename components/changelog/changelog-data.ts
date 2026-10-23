@@ -5,6 +5,19 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Panel admina: nowy układ i ekran Konfiguracja",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Panel admina ma boczne menu z sekcjami Przegląd, Użytkownicy, Treści i System, a na telefonie przewijany pasek zakładek; plakietki pokazują liczbę otwartych błędów i brakujących ustawień.",
+      "Nowy ekran Konfiguracja pokazuje, które integracje są podłączone (baza, logowanie, e-mail, płatności, grafiki AI, monitoring, Android), co się stanie bez każdej z nich i które zmienne środowiskowe trzeba ustawić — bez wyświetlania ich wartości.",
+      "Na ekranie Konfiguracja można skopiować szablon brakujących zmiennych .env i uruchomić sprzątanie starych danych z podglądem zajętości bazy.",
+      "Lista kont ma wyszukiwarkę i filtr roli, a usuwanie konta, czyszczenie katalogu przepisów i przywracanie domyślnej grafiki pytają o potwierdzenie w oknie w stylu GymBrat zamiast w okienku przeglądarki.",
+      "Pakiety pokazują znacznik niezapisanych zmian i sprawdzają format ceny przed zapisem, ekran Ćwiczenia podsumowuje, ile ćwiczeń ma link do techniki, a edycja konta ma gotowe wybory pakietu do nadania.",
+      "Analityka ma szybki wybór zakresu (7, 14 i 30 dni), a import przepisów jest podzielony na trzy kroki: prompt, import i podgląd bazy.",
+    ],
+  },
+  {
     title: "Zapowiedź — Cardio: potwierdzenie usunięcia wpisu w oknie aplikacji",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

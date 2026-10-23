@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ImageIcon, Trash2, Upload } from "lucide-react";
-import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import {
+  AdminCard,
+  AdminLoading,
+  AdminNotice,
+  AdminPageHeader,
+  AdminPill,
+} from "@/components/admin/admin-ui";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { adminRequest } from "@/lib/admin-client";
 import { prepareBrandingUploadDataUrl } from "@/lib/branding-upload-client";
 import {
   BRANDING_SLOT_LABELS,
@@ -18,43 +26,55 @@ type SlotState = {
   asset: { url: string; updatedAt: number; mimeType: string } | null;
 };
 
+const GROUPS: { title: string; description: string; slots: BrandingSlot[] }[] = [
+  {
+    title: "Logo",
+    description: "Działa od razu po zapisaniu.",
+    slots: ["logo_app", "logo_login"],
+  },
+  {
+    title: "Ikony strony i PWA",
+    description: "Favicon, ikona „Dodaj do ekranu” oraz ikona iOS — działają od razu.",
+    slots: ["icon_web", "icon_pwa", "icon_ios"],
+  },
+  {
+    title: "Aplikacja Android",
+    description: "Zmiana uruchamia przebudowę APK (kilka minut) — potem Profil → pobierz APK.",
+    slots: ["icon_android"],
+  },
+];
+
+const initialSlots = (): SlotState[] =>
+  BRANDING_SLOTS.map((slot) => ({
+    slot,
+    label: BRANDING_SLOT_LABELS[slot],
+    asset: null,
+  }));
+
+function formatUpdated(ts: number): string {
+  const d = new Date(ts);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("pl-PL", { dateStyle: "medium" });
+}
+
 export function AdminBrandingClient() {
   const { notifySaved, notifyError } = useSaveFeedback();
-  const [slots, setSlots] = useState<SlotState[]>(
-    BRANDING_SLOTS.map((slot) => ({
-      slot,
-      label: BRANDING_SLOT_LABELS[slot],
-      asset: null,
-    })),
-  );
+  const [slots, setSlots] = useState<SlotState[]>(initialSlots);
   const [loading, setLoading] = useState(true);
   const [busySlot, setBusySlot] = useState<BrandingSlot | null>(null);
+  const [removeSlot, setRemoveSlot] = useState<SlotState | null>(null);
 
-  async function reload() {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/branding", { credentials: "include" });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        slots?: SlotState[];
-        error?: string;
-      };
-      if (!res.ok || !data.ok || !data.slots) {
-        notifyError(data.error ?? "Nie udało się wczytać brandingu.");
-        return;
-      }
-      setSlots(data.slots);
-    } catch {
-      notifyError("Nie udało się wczytać brandingu.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const reload = useCallback(async () => {
+    const res = await adminRequest<{ slots?: SlotState[] }>("/api/admin/branding", {
+      fallbackError: "Nie udało się wczytać brandingu.",
+    });
+    if (res.ok && res.data.slots) setSlots(res.data.slots);
+    else notifyError(res.ok ? "Nie udało się wczytać brandingu." : res.error);
+    setLoading(false);
+  }, [notifyError]);
 
   useEffect(() => {
     void reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
-  }, []);
+  }, [reload]);
 
   async function upload(slot: BrandingSlot, file: File) {
     setBusySlot(slot);
@@ -63,167 +83,160 @@ export function AdminBrandingClient() {
       try {
         dataUrl = await prepareBrandingUploadDataUrl(file);
       } catch (e) {
-        notifyError(
-          e instanceof Error ? e.message : "Nie udało się przygotować pliku.",
-        );
+        notifyError(e instanceof Error ? e.message : "Nie udało się przygotować pliku.");
         return;
       }
-
-      await ensureCsrfCookie();
-      const res = await fetch("/api/admin/branding", {
+      const res = await adminRequest("/api/admin/branding", {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "content-type": "application/json",
-          ...getXsrfHeaders(),
-        },
-        body: JSON.stringify({ slot, dataUrl }),
+        body: { slot, dataUrl },
+        fallbackError: "Upload nieudany — spróbuj mniejszego pliku PNG/WebP.",
       });
-      let data: { ok?: boolean; error?: string } = {};
-      try {
-        data = (await res.json()) as { ok?: boolean; error?: string };
-      } catch {
-        /* empty */
-      }
-      if (!res.ok || !data.ok) {
-        const hint =
-          res.status === 413
-            ? "Plik za duży dla serwera — użyj mniejszego PNG/WebP."
-            : res.status === 403
-              ? "Brak uprawnień admina lub CSRF — odśwież stronę i spróbuj ponownie."
-              : null;
-        notifyError(data.error ?? hint ?? `Upload nieudany (HTTP ${res.status}).`);
+      if (!res.ok) {
+        notifyError(res.error);
         return;
       }
       notifySaved(
         slot === "icon_android"
-          ? "Zapisano ikonę Android — startuje przebudowa APK (~kilka minut). Potem Profil → pobierz APK."
-          : "Zapisano ikonę / logo.",
+          ? "Zapisano ikonę Android — startuje przebudowa APK (~kilka minut)."
+          : "Zapisano grafikę.",
       );
       await reload();
-    } catch {
-      notifyError("Upload nieudany — sprawdź połączenie i spróbuj ponownie.");
     } finally {
       setBusySlot(null);
     }
   }
 
   async function remove(slot: BrandingSlot) {
-    if (!window.confirm("Usunąć ten asset i wrócić do domyślnego wyglądu?")) return;
     setBusySlot(slot);
-    try {
-      await ensureCsrfCookie();
-      const res = await fetch("/api/admin/branding", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "content-type": "application/json",
-          ...getXsrfHeaders(),
-        },
-        body: JSON.stringify({ slot, action: "delete" }),
-      });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok || !data.ok) {
-        notifyError(data.error ?? "Nie udało się usunąć.");
-        return;
-      }
-      notifySaved(
-        slot === "icon_android"
-          ? "Usunięto ikonę Android — startuje przebudowa APK z domyślną ikoną."
-          : "Usunięto. Wrócono do domyślnego.",
-      );
-      await reload();
-    } catch {
-      notifyError("Nie udało się usunąć.");
-    } finally {
-      setBusySlot(null);
+    const res = await adminRequest("/api/admin/branding", {
+      method: "POST",
+      body: { slot, action: "delete" },
+      fallbackError: "Nie udało się usunąć.",
+    });
+    setBusySlot(null);
+    if (!res.ok) {
+      notifyError(res.error);
+      return;
     }
+    notifySaved(
+      slot === "icon_android"
+        ? "Usunięto ikonę Android — startuje przebudowa APK z domyślną ikoną."
+        : "Usunięto. Wrócono do domyślnej grafiki.",
+    );
+    await reload();
   }
+
+  const bySlot = new Map(slots.map((s) => [s.slot, s]));
 
   return (
     <div className="space-y-6">
-      <div className="app-card space-y-3 p-5">
-        <h2 className="font-heading text-lg font-semibold text-white">Branding</h2>
-        <p className="text-sm leading-relaxed text-white/55">
-          Zmieniaj logo i ikony bez edycji kodu. Web, PWA i logo w aplikacji
-          działają od razu. Ikona Androida na launcherze wchodzi przy kolejnym
-          pushu na master (Actions buduje APK równolegle z deployem strony) —
-          użytkownicy aktualizują aplikację z Profilu / Release.
-        </p>
-        <p className="text-xs text-white/40">
-          Formaty: PNG, JPEG, WebP, SVG · zalecane kwadrat · duże pliki są
-          automatycznie kompresowane (max bok 1024&nbsp;px).
-        </p>
-      </div>
+      <AdminPageHeader
+        icon={<ImageIcon />}
+        title="Branding"
+        description="Zmieniaj logo i ikony bez edycji kodu. Formaty: PNG, JPEG, WebP, SVG · zalecany kwadrat · duże pliki są automatycznie zmniejszane (maks. 1024 px)."
+      />
 
       {loading ? (
-        <p className="text-sm text-white/45">Wczytywanie…</p>
+        <AdminLoading label="Wczytywanie brandingu…" />
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2">
-          {slots.map((s) => (
-            <li key={s.slot} className="app-card flex flex-col gap-3 p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/40">
-                  {s.asset ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={s.asset.url}
-                      alt=""
-                      className="h-full w-full object-contain"
-                    />
-                  ) : (
-                    <ImageIcon className="h-6 w-6 text-white/25" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-white">{s.label}</p>
-                  <p className="mt-0.5 font-mono text-[11px] text-white/35">{s.slot}</p>
-                  {s.slot === "icon_android" ? (
-                    <p className="mt-1 text-[11px] text-amber-200/70">
-                      Wgraj kwadrat bez białej ramki — build sam obcina
-                      przezroczyste/białe marginesy i wypełnia cały kafelek
-                      launchera. Po wgraniu: przebudowa APK (~kilka minut),
-                      potem Profil → pobierz APK.
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <label className="inline-flex cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml,.png,.jpg,.jpeg,.webp,.svg"
-                    className="sr-only"
-                    disabled={busySlot === s.slot}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      e.target.value = "";
-                      if (file) void upload(s.slot, file);
-                    }}
-                  />
-                  <span className="gym-btn-primary inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium">
-                    <Upload className="h-4 w-4" />
-                    {busySlot === s.slot ? "Wgrywanie…" : "Wgraj"}
-                  </span>
-                </label>
-                {s.asset ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-10 border-white/15"
-                    disabled={busySlot === s.slot}
-                    onClick={() => void remove(s.slot)}
+        GROUPS.map((group) => (
+          <AdminCard key={group.title} title={group.title} description={group.description}>
+            {group.slots.includes("icon_android") ? (
+              <AdminNotice tone="warn" className="mb-4">
+                Wgraj kwadrat bez białej ramki — build sam obcina przezroczyste i białe marginesy
+                oraz wypełnia cały kafelek launchera.
+              </AdminNotice>
+            ) : null}
+            <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {group.slots.map((slotId) => {
+                const s = bySlot.get(slotId);
+                if (!s) return null;
+                const busy = busySlot === s.slot;
+                return (
+                  <li
+                    key={s.slot}
+                    className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-4"
                   >
-                    <Trash2 className="mr-1.5 h-4 w-4" />
-                    Usuń
-                  </Button>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ul>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[repeating-conic-gradient(rgba(255,255,255,0.06)_0%_25%,transparent_0%_50%)] bg-[length:12px_12px]">
+                        {s.asset ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={s.asset.url} alt="" className="h-full w-full object-contain" />
+                        ) : (
+                          <ImageIcon className="h-6 w-6 text-white/25" aria-hidden />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold leading-snug text-white">{s.label}</p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <AdminPill tone={s.asset ? "ok" : "neutral"}>
+                            {s.asset ? "Własna" : "Domyślna"}
+                          </AdminPill>
+                          {s.asset ? (
+                            <span className="text-[11px] text-white/40">
+                              {formatUpdated(s.asset.updatedAt)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <label
+                        className={`inline-flex ${busy ? "cursor-wait opacity-60" : "cursor-pointer"}`}
+                      >
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml,.png,.jpg,.jpeg,.webp,.svg"
+                          className="sr-only"
+                          disabled={busy}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = "";
+                            if (file) void upload(s.slot, file);
+                          }}
+                        />
+                        <span className="gym-btn-primary inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold">
+                          <Upload className="h-4 w-4" aria-hidden />
+                          {busy ? "Wgrywanie…" : s.asset ? "Zmień" : "Wgraj"}
+                        </span>
+                      </label>
+                      {s.asset ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => setRemoveSlot(s)}
+                        >
+                          <Trash2 className="mr-1.5 h-4 w-4" aria-hidden />
+                          Przywróć domyślną
+                        </Button>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </AdminCard>
+        ))
       )}
+
+      <ConfirmDialog
+        open={removeSlot !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoveSlot(null);
+        }}
+        onConfirm={() => {
+          if (removeSlot) void remove(removeSlot.slot);
+        }}
+        title="Przywrócić domyślną grafikę?"
+        description={
+          removeSlot
+            ? `Własna grafika „${removeSlot.label}” zostanie usunięta.`
+            : undefined
+        }
+        confirmLabel="Przywróć domyślną"
+      />
     </div>
   );
 }
