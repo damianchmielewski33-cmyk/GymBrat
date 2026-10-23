@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
@@ -7,7 +8,7 @@ import {
 import { listNotifications } from "@/lib/community/notifications";
 import { UserMessages } from "@/lib/user-facing-errors";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: UserMessages.sessionExpired }, { status: 401 });
@@ -44,3 +45,5 @@ export async function GET(req: Request) {
       page.length > 0 ? page[page.length - 1]!.createdAt : null,
   });
 }
+
+export const GET = withApiErrors(handleGET);

@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { requireAdminApi } from "@/lib/admin-api";
@@ -33,7 +34,7 @@ function parseRange(searchParams: URLSearchParams):
   };
 }
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
@@ -145,3 +146,5 @@ export async function GET(req: Request) {
     activity_events,
   });
 }
+
+export const GET = withApiErrors(handleGET);

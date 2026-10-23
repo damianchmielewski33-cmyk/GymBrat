@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -29,7 +30,7 @@ function parsePayloadJson(raw: string): ActiveWorkoutCloudPayload | null {
   }
 }
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Brak sesji." }, { status: 401 });
@@ -92,7 +93,7 @@ const putSchema = z.object({
   deviceId: z.string().min(8).max(80),
 });
 
-export async function PUT(req: Request) {
+async function handlePUT(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -194,7 +195,7 @@ export async function PUT(req: Request) {
   });
 }
 
-export async function DELETE(req: Request) {
+async function handleDELETE(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -222,3 +223,7 @@ export async function DELETE(req: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+export const GET = withApiErrors(handleGET);
+export const PUT = withApiErrors(handlePUT);
+export const DELETE = withApiErrors(handleDELETE);

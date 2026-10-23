@@ -20,6 +20,7 @@ function pt(
     bestReps: 5,
     hardSets: 0,
     scoredSets: 2,
+    setsCount: 2,
     avgRpe: null,
     avgRir: null,
   };

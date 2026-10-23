@@ -1,10 +1,11 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { listTeamFeedComments } from "@/lib/community/team-feed";
 import { UserMessages } from "@/lib/user-facing-errors";
 
 /** Lazy comments — infinite / „pokaż więcej” pod postem. */
-export async function GET(
+async function handleGET(
   req: Request,
   ctx: { params: Promise<{ teamId: string; postId: string }> },
 ) {
@@ -42,3 +43,5 @@ export async function GET(
         : null,
   });
 }
+
+export const GET = withApiErrors(handleGET);

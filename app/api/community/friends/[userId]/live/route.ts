@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getFriendLivePresence } from "@/lib/community/friend-live";
@@ -5,7 +6,7 @@ import { canWatchFriendLive } from "@/lib/community/friendships";
 
 export const runtime = "nodejs";
 
-export async function GET(
+async function handleGET(
   _req: Request,
   ctx: { params: Promise<{ userId: string }> },
 ) {
@@ -31,3 +32,5 @@ export async function GET(
   const live = await getFriendLivePresence(viewerId, subjectId);
   return NextResponse.json({ ok: true, live });
 }
+
+export const GET = withApiErrors(handleGET);

@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { defaultApkUrl, resolveAndroidVersion } from "@/lib/android-version";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
@@ -34,7 +35,7 @@ function sameOriginApkPath(versionName: string, versionCode: number): string {
  * ani przy powtórnym gymbrat.apk).
  * `?source=github-fallback` → GitHub Release.
  */
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const rl = await checkRateLimitAsync(
     rateLimitKey("android-download", req),
     RATE.androidDownload.limit,
@@ -68,6 +69,9 @@ export async function GET(req: Request) {
   return withPublicHeaders(NextResponse.redirect(target, 302));
 }
 
-export async function OPTIONS() {
+async function handleOPTIONS() {
   return new NextResponse(null, { status: 204, headers: PUBLIC_HEADERS });
 }
+
+export const GET = withApiErrors(handleGET);
+export const OPTIONS = withApiErrors(handleOPTIONS);

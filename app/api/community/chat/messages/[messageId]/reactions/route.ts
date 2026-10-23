@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -10,7 +11,7 @@ const schema = z.object({
   emoji: z.string().min(1).max(16),
 });
 
-export async function POST(
+async function handlePOST(
   req: Request,
   ctx: { params: Promise<{ messageId: string }> },
 ) {
@@ -53,3 +54,5 @@ export async function POST(
   }
   return NextResponse.json({ ok: true, added: result.added });
 }
+
+export const POST = withApiErrors(handlePOST);

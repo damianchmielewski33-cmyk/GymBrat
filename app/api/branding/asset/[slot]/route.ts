@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import {
   dataUrlToBuffer,
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ slot: string }> };
 
-export async function GET(_req: Request, ctx: Ctx) {
+async function handleGET(_req: Request, ctx: Ctx) {
   const { slot: raw } = await ctx.params;
   if (!isBrandingSlot(raw)) {
     return NextResponse.json({ ok: false, error: "Unknown slot" }, { status: 404 });
@@ -32,3 +33,5 @@ export async function GET(_req: Request, ctx: Ctx) {
     },
   });
 }
+
+export const GET = withApiErrors(handleGET);

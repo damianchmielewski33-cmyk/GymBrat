@@ -1,9 +1,11 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth, signIn } from "@/auth";
+import { LOGIN_RATE_LIMITED_CODE } from "@/lib/auth-error-codes";
 import {
   analyzeBodyPhoto,
   generateTrainingPlan,
@@ -26,16 +28,25 @@ export async function loginUser(
   password: string,
   options?: { callbackUrl?: string },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await guardAction("backend.loginUser", { limit: 20, windowMs: 600000 });
   const e = email.trim().toLowerCase();
   if (!e || !password) {
     return { ok: false, error: "Email and password are required." };
   }
-  const result = await signIn("credentials", {
-    email: e,
-    password,
-    redirect: false,
-    callbackUrl: options?.callbackUrl ?? "/",
-  });
+  let result: { error?: string } | undefined;
+  try {
+    result = await signIn("credentials", {
+      email: e,
+      password,
+      redirect: false,
+      callbackUrl: options?.callbackUrl ?? "/",
+    });
+  } catch (err) {
+    if ((err as { code?: unknown })?.code === LOGIN_RATE_LIMITED_CODE) {
+      return { ok: false, error: "Too many login attempts. Try again later." };
+    }
+    return { ok: false, error: "Invalid email or password." };
+  }
   if (result?.error) {
     return { ok: false, error: "Invalid email or password." };
   }
@@ -115,6 +126,7 @@ function resolveWorkoutDateKey(raw: unknown): string {
 }
 
 export async function saveWorkoutSession(input: unknown) {
+  await guardAction("backend.saveWorkoutSession");
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: UserMessages.sessionExpired };
@@ -157,6 +169,7 @@ const updateProfileSchema = z.object({
 });
 
 export async function updateProfile(input: unknown) {
+  await guardAction("backend.updateProfile");
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: UserMessages.sessionExpired };
@@ -250,6 +263,7 @@ const aiPlanSchema = z.object({
 });
 
 export async function aiGeneratePlan(overrides?: unknown) {
+  await guardAction("backend.aiGeneratePlan", { limit: 12, windowMs: 60000 });
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: UserMessages.sessionExpired };
@@ -338,6 +352,7 @@ const aiPhotoSchema = z.object({
 });
 
 export async function aiAnalyzePhoto(input: unknown) {
+  await guardAction("backend.aiAnalyzePhoto", { limit: 12, windowMs: 60000 });
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: UserMessages.sessionExpired };

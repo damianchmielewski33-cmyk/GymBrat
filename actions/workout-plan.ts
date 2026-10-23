@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { randomUUID } from "node:crypto";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -180,6 +181,7 @@ async function migrateExerciseRenamesInHistory(
  * Przy zmianie nazwy ćwiczenia (to samo id) przepisuje historię sesji, żeby nie zgubić progresu.
  */
 export async function saveWorkoutPlan(plan: WorkoutPlanPayload, planId?: string) {
+  await guardAction("workout-plan.saveWorkoutPlan");
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: UserMessages.sessionExpired };
@@ -270,6 +272,7 @@ export async function fetchLastWorkoutHintsForPlan(planId: string) {
 }
 
 export async function deleteWorkoutPlan(planId: string) {
+  await guardAction("workout-plan.deleteWorkoutPlan");
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: UserMessages.sessionExpired };

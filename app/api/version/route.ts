@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { CHANGELOG_ENTRIES } from "@/components/changelog/changelog-data";
 import { isPlannedChangelogEntry } from "@/lib/deploy-changelog";
@@ -9,7 +10,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Publiczny JSON: co jest wdrożone i że pochodzi z repozytorium GymBrat. */
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const limited = await checkRateLimitAsync(
     rateLimitKey("version", req),
     RATE.version.limit,
@@ -69,3 +70,5 @@ export async function GET(req: Request) {
   res.headers.set("Cache-Control", "public, no-store");
   return res;
 }
+
+export const GET = withApiErrors(handleGET);

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { getAuthSecret } from "@/lib/auth-secret";
+import { errorResponse } from "@/lib/errors/api";
+import { AppError } from "@/lib/errors/app-error";
+import { logServerError, requestIdFrom } from "@/lib/errors/server-log";
 import {
   isAnonymousPublicPath,
   isCompleteProfilePath,
@@ -80,14 +83,6 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  /**
-   * Grafiki przepisów / NOWY MAX — klucz Pollinations jest tylko na serwerze.
-   * Bez sesji img/proxy nie może iść na /login (307 psuje <img>).
-   */
-  if (pathname === "/api/recipe-image") {
-    return NextResponse.next();
-  }
-
   /** Trwałe grafiki katalogu (wygenerowane przy imporcie) — publiczne dla <img>. */
   if (pathname.startsWith("/api/catalog-meal-image/")) {
     return NextResponse.next();
@@ -100,6 +95,11 @@ export async function proxy(req: NextRequest) {
 
   /** CSP raporty (Report-Only) — publiczny POST z przeglądarki. */
   if (pathname === "/api/security/csp-report") {
+    return NextResponse.next();
+  }
+
+  /** Błędy z przeglądarki → logi serwera; błąd może wystąpić też na /login (bez sesji). */
+  if (pathname === "/api/client-errors") {
     return NextResponse.next();
   }
 
@@ -129,6 +129,16 @@ export async function proxy(req: NextRequest) {
       return NextResponse.redirect(new URL(postAuthDestination(false), req.url));
     }
     return NextResponse.next();
+  }
+
+  if (!token && pathname.startsWith("/api/")) {
+    /** API nie przekierowuje na HTML logowania — klient dostaje czytelne 401 JSON. */
+    const requestId = requestIdFrom(req.headers);
+    logServerError(
+      new AppError("UNAUTHORIZED"),
+      { requestId, method: req.method, path: pathname, routeType: "proxy" },
+    );
+    return errorResponse("UNAUTHORIZED", { requestId });
   }
 
   if (!token) {

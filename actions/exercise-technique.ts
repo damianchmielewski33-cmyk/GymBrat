@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { auth } from "@/auth";
 import { loadExerciseTechniqueUrlMap } from "@/lib/exercise-technique-store";
 import { resolveTechniqueUrlForName } from "@/lib/attach-technique-urls";
@@ -15,6 +16,7 @@ export async function getExerciseTechniqueUrlMap(): Promise<Record<string, strin
 export async function resolveTechniqueUrlsForNames(
   names: string[],
 ): Promise<Record<string, string>> {
+  await guardAction("exercise-technique.resolveTechniqueUrlsForNames", { limit: 60, windowMs: 60000 });
   const session = await auth();
   if (!session?.user?.id) return {};
   const map = await loadExerciseTechniqueUrlMap();

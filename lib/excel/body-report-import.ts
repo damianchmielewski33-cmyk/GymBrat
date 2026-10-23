@@ -1,5 +1,9 @@
-import * as XLSX from "xlsx";
-
+import {
+  readXlsx,
+  XlsxReadError,
+  type CellValue,
+  type XlsxSheet,
+} from "@/lib/excel/read-xlsx";
 import type { ImportBodyReportRow } from "@/lib/body-reports";
 
 function normKey(s: string): string {
@@ -48,10 +52,10 @@ function parseNumber(v: unknown): number | null {
 function parseDate(v: unknown): Date | null {
   if (v instanceof Date && !Number.isNaN(v.getTime())) return v;
   if (typeof v === "number") {
-    // Excel date serial
-    const d = XLSX.SSF.parse_date_code(v);
-    if (!d) return null;
-    return new Date(Date.UTC(d.y, d.m - 1, d.d, d.H ?? 0, d.M ?? 0, d.S ?? 0));
+    // Excel date serial (system 1900; 25569 = 1970-01-01)
+    if (!Number.isFinite(v) || v < 1 || v > 2_958_465) return null;
+    const d = new Date(Math.round((v - 25_569) * 86_400_000));
+    return Number.isNaN(d.getTime()) ? null : d;
   }
   let s = String(v ?? "").trim();
   if (!s) return null;
@@ -99,18 +103,23 @@ export function parseBodyReportsFromXlsx(buffer: ArrayBuffer): {
   rows: ImportBodyReportRow[];
   warnings: string[];
 } {
-  const wb = XLSX.read(buffer, { type: "array", cellDates: true });
-  const sheetName =
-    wb.SheetNames.find((n) => normKey(n) === "raport") ?? wb.SheetNames[0];
-  if (!sheetName) return { rows: [], warnings: ["Brak arkuszy w pliku Excel."] };
+  let sheets: XlsxSheet[];
+  try {
+    sheets = readXlsx(buffer);
+  } catch (err) {
+    return {
+      rows: [],
+      warnings: [
+        err instanceof XlsxReadError ? err.message : "Nie udało się otworzyć pliku Excel.",
+      ],
+    };
+  }
+  const sheet = sheets.find((s) => normKey(s.name) === "raport") ?? sheets[0];
+  if (!sheet) return { rows: [], warnings: ["Brak arkuszy w pliku Excel."] };
 
-  const ws = wb.Sheets[sheetName];
-  const matrix = XLSX.utils.sheet_to_json<unknown[]>(ws, {
-    header: 1,
-    defval: null,
-    blankrows: false,
-    raw: true,
-  });
+  const matrix: CellValue[][] = sheet.rows.filter((r) =>
+    r.some((c) => c != null && c !== ""),
+  );
   if (!matrix.length) return { rows: [], warnings: ["Arkusz jest pusty."] };
 
   // Find header row (exports often have 1+ description rows above the real header)
@@ -133,25 +142,20 @@ export function parseBodyReportsFromXlsx(buffer: ArrayBuffer): {
   }
 
   const headerRow = (matrix[headerRowIdx] ?? []).map((c) => String(c ?? "").trim());
-  const headers = headerRow.map((h, idx) => (h ? h : `__EMPTY_${idx}`));
+  const headers: string[] = [];
+  headerRow.forEach((h, idx) => {
+    let name = h ? h : `__EMPTY_${idx}`;
+    for (let n = 1; headers.includes(name); n++) name = `${h || `__EMPTY_${idx}`}_${n}`;
+    headers.push(name);
+  });
 
-  const ref = ws["!ref"];
-  if (!ref) {
-    return {
-      rows: [],
-      warnings: ["Arkusz nie ma zakresu `!ref` (nietypowy plik Excel)."],
-    };
-  }
-  const range = XLSX.utils.decode_range(ref);
-  range.s.r = headerRowIdx + 1; // first data row (0-based)
-  range.s.c = 0;
-
-  const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, {
-    header: headers,
-    range,
-    defval: null,
-    raw: true,
-    blankrows: false,
+  const json: Record<string, unknown>[] = matrix.slice(headerRowIdx + 1).map((cells) => {
+    // Bez prototypu: nagłówki pochodzą z pliku użytkownika (np. „__proto__”).
+    const rec = Object.create(null) as Record<string, unknown>;
+    headers.forEach((h, idx) => {
+      rec[h] = cells[idx] ?? null;
+    });
+    return rec;
   });
   if (!json.length) return { rows: [], warnings: ["Arkusz nie zawiera danych pod nagłówkami."] };
 

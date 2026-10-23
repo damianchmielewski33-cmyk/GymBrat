@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -32,7 +33,7 @@ const openSchema = z.discriminatedUnion("kind", [
 ]);
 
 /** Otwórz / utwórz kanał czatu + pierwsze wiadomości. */
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -115,3 +116,5 @@ export async function POST(req: Request) {
     mentions,
   });
 }
+
+export const POST = withApiErrors(handlePOST);

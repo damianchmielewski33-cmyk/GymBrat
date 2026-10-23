@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { auth } from "@/auth";
 import {
   assertChannelAccess,
@@ -14,7 +15,7 @@ export const maxDuration = 30;
 /**
  * SSE Workout Chat — adaptive poll; połączenie max ~25s (hosting Hobby/Free).
  */
-export async function GET(
+async function handleGET(
   req: Request,
   ctx: { params: Promise<{ channelId: string }> },
 ) {
@@ -134,3 +135,5 @@ export async function GET(
     },
   });
 }
+
+export const GET = withApiErrors(handleGET);

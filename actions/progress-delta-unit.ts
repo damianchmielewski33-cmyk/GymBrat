@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
@@ -15,6 +16,7 @@ export async function updateProgressDeltaUnitAction(raw: unknown): Promise<{
   error?: string;
   unit?: ProgressDeltaUnit;
 }> {
+  await guardAction("progress-delta-unit.updateProgressDeltaUnitAction");
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false, error: "Sesja wygasła. Zaloguj się ponownie." };

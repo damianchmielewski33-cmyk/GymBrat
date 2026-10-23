@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -6,7 +7,7 @@ import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -54,3 +55,4 @@ export async function GET(req: Request) {
   return res;
 }
 
+export const GET = withApiErrors(handleGET);

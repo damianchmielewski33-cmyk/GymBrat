@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { randomUUID } from "node:crypto";
 import { desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -16,6 +17,7 @@ import {
 } from "@/lib/meal-templates";
 
 export async function repeatLastMealAction(date: string) {
+  await guardAction("meal-quick.repeatLastMealAction");
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -51,6 +53,7 @@ export async function repeatLastMealAction(date: string) {
 }
 
 export async function addMealFromTemplateAction(date: string, templateId: string) {
+  await guardAction("meal-quick.addMealFromTemplateAction");
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -87,6 +90,7 @@ export async function addMealFromTemplateAction(date: string, templateId: string
 export async function saveMealTemplateAction(
   template: Omit<MealTemplate, "id"> & { id?: string },
 ) {
+  await guardAction("meal-quick.saveMealTemplateAction");
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
 
@@ -127,6 +131,7 @@ export async function saveMealTemplateAction(
 
 /** Zastępuje listę 5 stałych posiłków — tylko makro; nazwy Posiłek 1…5. */
 export async function saveMealTemplatesAction(templates: MealTemplate[]) {
+  await guardAction("meal-quick.saveMealTemplatesAction");
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
 

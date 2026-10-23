@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -75,6 +76,7 @@ export async function addMealLogAction(
   _prev: MealLogFormState,
   formData: FormData,
 ): Promise<MealLogFormState> {
+  await guardAction("meal-log.addMealLogAction");
   const session = await auth();
   if (!session?.user?.id) return { error: "Brak sesji." };
 
@@ -137,6 +139,7 @@ export async function addMealProductAction(input: {
   carbsG: number;
   calories?: number;
 }): Promise<MealLogFormState> {
+  await guardAction("meal-log.addMealProductAction");
   const session = await auth();
   if (!session?.user?.id) return { error: "Brak sesji." };
 
@@ -199,6 +202,7 @@ export async function updateMealLogAction(
   _prev: MealLogFormState,
   formData: FormData,
 ): Promise<MealLogFormState> {
+  await guardAction("meal-log.updateMealLogAction");
   const session = await auth();
   if (!session?.user?.id) return { error: "Brak sesji." };
 
@@ -261,6 +265,7 @@ export async function deleteMealLogFormAction(
   _prevState: unknown,
   formData: FormData,
 ): Promise<MealLogFormState> {
+  await guardAction("meal-log.deleteMealLogFormAction");
   return deleteMealLogCore(formData);
 }
 

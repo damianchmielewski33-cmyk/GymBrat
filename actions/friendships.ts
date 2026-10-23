@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -39,6 +40,7 @@ export async function requestFriendshipByEmailAction(
   _prev: FriendshipActionState,
   formData: FormData,
 ): Promise<FriendshipActionState> {
+  await guardAction("friendships.requestFriendshipByEmailAction", { limit: 20, windowMs: 3600000 });
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 
@@ -57,6 +59,7 @@ export async function requestFriendshipFromTeamAction(
   _prev: FriendshipActionState,
   formData: FormData,
 ): Promise<FriendshipActionState> {
+  await guardAction("friendships.requestFriendshipFromTeamAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 
@@ -76,6 +79,7 @@ export async function acceptFriendshipAction(
   _prev: FriendshipActionState,
   formData: FormData,
 ): Promise<FriendshipActionState> {
+  await guardAction("friendships.acceptFriendshipAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 
@@ -92,6 +96,7 @@ export async function declineFriendshipAction(
   _prev: FriendshipActionState,
   formData: FormData,
 ): Promise<FriendshipActionState> {
+  await guardAction("friendships.declineFriendshipAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 
@@ -108,6 +113,7 @@ export async function removeFriendshipAction(
   _prev: FriendshipActionState,
   formData: FormData,
 ): Promise<FriendshipActionState> {
+  await guardAction("friendships.removeFriendshipAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 
@@ -129,6 +135,7 @@ export async function setShareWorkoutAction(
   _prev: FriendshipActionState,
   formData: FormData,
 ): Promise<FriendshipActionState> {
+  await guardAction("friendships.setShareWorkoutAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 

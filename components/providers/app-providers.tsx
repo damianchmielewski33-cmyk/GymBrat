@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
 import { CsrfBootstrap } from "@/components/csrf-bootstrap";
 import { SaveFeedbackProvider } from "@/components/feedback/save-feedback";
+import { GlobalErrorHandlers } from "@/components/errors/global-error-handlers";
 import { SentryClientInit } from "@/components/sentry-client";
 import { WorkoutOutboxFlush } from "@/components/workout/workout-outbox-flush";
 import { WorkoutDataRouterRefresh } from "@/components/workout/workout-data-router-refresh";
@@ -30,6 +31,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         <ActiveWorkoutCloudSync />
         <FriendLivePresenceSync />
         <SaveFeedbackProvider>
+          <GlobalErrorHandlers />
           <AnalyticsTracker />
           <AndroidAppUpdatePrompt />
           <CookieConsentBanner />

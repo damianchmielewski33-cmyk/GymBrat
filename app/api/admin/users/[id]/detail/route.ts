@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { count, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
@@ -14,7 +15,7 @@ import { computePackageStatus } from "@/lib/user-package";
 
 export const runtime = "nodejs";
 
-export async function GET(
+async function handleGET(
   _req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
@@ -101,3 +102,5 @@ export async function GET(
     orders,
   });
 }
+
+export const GET = withApiErrors(handleGET);

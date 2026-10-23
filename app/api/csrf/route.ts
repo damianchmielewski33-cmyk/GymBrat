@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { CSRF_COOKIE_NAME } from "@/lib/csrf-constants";
 import { newCsrfToken } from "@/lib/csrf";
@@ -5,7 +6,7 @@ import { newCsrfToken } from "@/lib/csrf";
 export const runtime = "nodejs";
 
 /** Ustawia cookie double-submit; wywołaj z przeglądarki przed pierwszym POST/PATCH/DELETE. */
-export async function GET() {
+async function handleGET() {
   const token = newCsrfToken();
   const secure = process.env.NODE_ENV === "production";
   const res = NextResponse.json({ ok: true });
@@ -18,3 +19,5 @@ export async function GET() {
   });
   return res;
 }
+
+export const GET = withApiErrors(handleGET);

@@ -72,7 +72,7 @@ describe("getRecipeImage — trwałe grafiki katalogu", () => {
       title: "Owsianka",
       imagePromptEn: "protein oatmeal bowl",
     });
-    expect(enriched.imageUrl).toBeUndefined();
+    expect((enriched as { imageUrl?: string }).imageUrl).toBeUndefined();
     expect(enriched.imagePromptEn).toBe("protein oatmeal bowl");
   });
 

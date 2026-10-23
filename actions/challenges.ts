@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import {
@@ -43,6 +44,7 @@ export async function createChallengeAction(
   _prev: ChallengeActionState,
   formData: FormData,
 ): Promise<ChallengeActionState> {
+  await guardAction("challenges.createChallengeAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 
@@ -66,6 +68,7 @@ export async function joinChallengeAction(
   _prev: ChallengeActionState,
   formData: FormData,
 ): Promise<ChallengeActionState> {
+  await guardAction("challenges.joinChallengeAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 
@@ -83,6 +86,7 @@ export async function joinChallengeAction(
 export async function markCelebrationSeenAction(
   claimId: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  await guardAction("challenges.markCelebrationSeenAction");
   const user = await requireUser();
   if (!user.ok) return { ok: false, error: user.error };
   const result = await markCelebrationSeen({

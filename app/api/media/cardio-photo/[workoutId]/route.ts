@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ workoutId: string }> };
 
-export async function GET(_req: Request, ctx: Ctx) {
+async function handleGET(_req: Request, ctx: Ctx) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
@@ -49,3 +50,5 @@ export async function GET(_req: Request, ctx: Ctx) {
   }
   return res;
 }
+
+export const GET = withApiErrors(handleGET);

@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
@@ -10,6 +11,7 @@ export async function logCardioFormAction(
   _prevState: unknown,
   formData: FormData,
 ) {
+  await guardAction("workout.logCardioFormAction");
   const title = String(formData.get("title") ?? "Cardio").trim() || "Cardio";
   const minutes = Number(formData.get("minutes") ?? 0);
   return logTrainingSession({ title, cardioMinutes: minutes });
@@ -19,6 +21,7 @@ export async function logCardioDetailedAction(
   _prevState: unknown,
   formData: FormData,
 ) {
+  await guardAction("workout.logCardioDetailedAction");
   const title = String(formData.get("title") ?? "Cardio").trim() || "Cardio";
   const minutes = Number(formData.get("minutes") ?? 0);
   const notesRaw = String(formData.get("notes") ?? "").trim();
@@ -87,6 +90,7 @@ export async function logTrainingSession(input: {
   distanceKm?: number | null;
   avgHr?: number | null;
 }) {
+  await guardAction("workout.logTrainingSession");
   const { createCardioLog } = await import("@/actions/cardio");
   return createCardioLog(input);
 }
@@ -95,11 +99,13 @@ export async function updateWeeklyCardioGoalForm(
   _prevState: unknown,
   formData: FormData,
 ) {
+  await guardAction("workout.updateWeeklyCardioGoalForm");
   const raw = Number(formData.get("weeklyGoal") ?? 150);
   return updateWeeklyCardioGoal(raw);
 }
 
 export async function updateWeeklyCardioGoal(minutes: number) {
+  await guardAction("workout.updateWeeklyCardioGoal");
   const session = await auth();
   if (!session?.user?.id) {
     return {

@@ -1,10 +1,18 @@
+import { auth } from "@/auth";
+import { AppError } from "@/lib/errors/app-error";
+import { withApiErrors } from "@/lib/errors/api";
+import { checkRateLimitAsync, clientIpFromHeaders, RATE } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 import {
   composeFoodImagePrompt,
   createFetchTimeoutSignal,
   fetchPollinationsImage,
   getPollinationsApiKey,
+  POLLINATIONS_ALLOWED_MODELS,
   POLLINATIONS_FOOD_MODEL,
+  POLLINATIONS_MAX_PROMPT_CHARS,
+  POLLINATIONS_MAX_TITLE_CHARS,
+  POLLINATIONS_RAW_PROMPT_PREFIX,
   sanitizePollinationsErrorDetail,
 } from "@/lib/pollinations-image";
 import { RECIPE_IMAGE_FALLBACK } from "@/lib/recipe-image";
@@ -22,7 +30,48 @@ function wantsJson(req: Request, url: URL): boolean {
   return accept.includes("application/json") && !accept.includes("image/");
 }
 
-function fallbackSvgResponse(reason: string): NextResponse {
+function clampDimension(raw: string | null, fallback: number): number {
+  const n = Math.round(Number(raw));
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(1024, Math.max(256, n));
+}
+
+function dailyLimit(): number {
+  const fromEnv = Number(process.env.POLLINATIONS_DAILY_LIMIT);
+  return Number.isFinite(fromEnv) && fromEnv > 0 ? Math.floor(fromEnv) : RATE.recipeImageDaily.limit;
+}
+
+/** Zwraca opis przekroczonego limitu albo `null`, gdy wolno wywołać Pollinations. */
+async function checkImageBudget(
+  req: Request,
+  userId: string,
+): Promise<{ scope: "user" | "ip" | "daily"; retryAfterSec: number } | null> {
+  const ip = clientIpFromHeaders(req.headers);
+  const byUser = await checkRateLimitAsync(
+    `recipe-image-user:${userId}`,
+    RATE.recipeImageUser.limit,
+    RATE.recipeImageUser.windowMs,
+  );
+  if (!byUser.ok) return { scope: "user", retryAfterSec: byUser.retryAfterSec };
+  const byIp = await checkRateLimitAsync(
+    `recipe-image-ip:${ip}`,
+    RATE.recipeImageIp.limit,
+    RATE.recipeImageIp.windowMs,
+  );
+  if (!byIp.ok) return { scope: "ip", retryAfterSec: byIp.retryAfterSec };
+  const daily = await checkRateLimitAsync(
+    "recipe-image-daily",
+    dailyLimit(),
+    RATE.recipeImageDaily.windowMs,
+  );
+  if (!daily.ok) return { scope: "daily", retryAfterSec: daily.retryAfterSec };
+  return null;
+}
+
+function fallbackSvgResponse(
+  reason: string,
+  opts: { noStore?: boolean } = {},
+): NextResponse {
   const raw = RECIPE_IMAGE_FALLBACK.startsWith("data:image/svg+xml,")
     ? decodeURIComponent(RECIPE_IMAGE_FALLBACK.slice("data:image/svg+xml,".length))
     : `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400"><rect fill="#121214" width="640" height="400"/></svg>`;
@@ -30,7 +79,7 @@ function fallbackSvgResponse(reason: string): NextResponse {
     status: 200,
     headers: {
       "Content-Type": "image/svg+xml; charset=utf-8",
-      "Cache-Control": "public, max-age=60, s-maxage=60",
+      "Cache-Control": opts.noStore ? "no-store" : "private, max-age=60",
       "X-GymBrat-Image": "fallback",
       "X-GymBrat-Image-Error": reason.slice(0, 120),
     },
@@ -56,7 +105,7 @@ function jsonError(
  * GET /image najpierw (szybciej), potem POST /v1/images/generations.
  * Przy błędzie AI: SVG fallback (żeby <img> nie dostawało JSON 502), albo JSON przy format=json.
  */
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const url = new URL(req.url);
   const asJson = wantsJson(req, url);
   const promptRaw = (url.searchParams.get("p") ?? url.searchParams.get("prompt") ?? "").trim();
@@ -66,6 +115,11 @@ export async function GET(req: Request) {
       : fallbackSvgResponse("missing_prompt");
   }
 
+  // Endpoint zużywa płatny klucz — tylko zalogowani (proxy.ts też wymaga sesji; to druga warstwa).
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) throw new AppError("UNAUTHORIZED");
+
   const key = getPollinationsApiKey();
   if (!key) {
     const msg =
@@ -73,33 +127,64 @@ export async function GET(req: Request) {
     return asJson ? jsonError(503, msg) : fallbackSvgResponse("missing_api_key");
   }
 
-  const title = (url.searchParams.get("title") ?? "").trim();
-  const mode = (url.searchParams.get("mode") ?? "food").trim().toLowerCase();
-  const seed = Number(url.searchParams.get("seed") ?? "1");
-  const width = Number(url.searchParams.get("w") ?? url.searchParams.get("width") ?? "640");
-  const height = Number(url.searchParams.get("h") ?? url.searchParams.get("height") ?? "400");
-  const modelRaw =
-    (url.searchParams.get("model") ?? POLLINATIONS_FOOD_MODEL).trim() ||
-    POLLINATIONS_FOOD_MODEL;
-  // Stare URL-e katalogu mają model=flux — na Vercel często timeout; food → zimage.
+  const modeParam = (url.searchParams.get("mode") ?? "food").trim().toLowerCase();
+  if (modeParam !== "food" && modeParam !== "raw") {
+    return asJson ? jsonError(400, "Nieznany tryb grafiki.") : fallbackSvgResponse("bad_mode");
+  }
+  const mode: "food" | "raw" = modeParam;
+
+  // Tryb raw służy wyłącznie grafice „NOWY MAX” — prompt musi mieć jej stały prefiks,
+  // więc endpoint nie wygeneruje dowolnego obrazu na koszt właściciela klucza.
+  if (
+    mode === "raw" &&
+    !promptRaw.toLowerCase().startsWith(POLLINATIONS_RAW_PROMPT_PREFIX.toLowerCase())
+  ) {
+    return asJson ? jsonError(400, "Niedozwolony prompt.") : fallbackSvgResponse("bad_prompt");
+  }
+
+  const title = (url.searchParams.get("title") ?? "")
+    .trim()
+    .slice(0, POLLINATIONS_MAX_TITLE_CHARS);
+  const seedNum = Number(url.searchParams.get("seed") ?? "1");
+  const seed = Number.isFinite(seedNum) ? seedNum : 1;
+  const width = clampDimension(url.searchParams.get("w") ?? url.searchParams.get("width"), 640);
+  const height = clampDimension(url.searchParams.get("h") ?? url.searchParams.get("height"), 400);
+  const modelRaw = (url.searchParams.get("model") ?? "").trim();
+  // Tylko modele z allowlisty; stare URL-e (flux / flux.1-schnell) → szybki model domyślny.
   const model =
-    mode !== "raw" && (modelRaw === "flux" || modelRaw === "flux.1-schnell")
-      ? POLLINATIONS_FOOD_MODEL
-      : modelRaw;
+    mode === "raw" && POLLINATIONS_ALLOWED_MODELS.has(modelRaw)
+      ? modelRaw
+      : POLLINATIONS_FOOD_MODEL;
 
   const fullPrompt =
     mode === "raw"
-      ? promptRaw.slice(0, 1200)
-      : composeFoodImagePrompt({ title, prompt: promptRaw });
+      ? promptRaw.slice(0, POLLINATIONS_MAX_PROMPT_CHARS.raw)
+      : composeFoodImagePrompt({
+          title,
+          prompt: promptRaw.slice(0, POLLINATIONS_MAX_PROMPT_CHARS.food),
+        });
+
+  // Limity dopiero tuż przed wywołaniem płatnego API (powtórki z cache przeglądarki ich nie liczą).
+  const blocked = await checkImageBudget(req, userId);
+  if (blocked) {
+    console.warn(`[recipe-image] limit: ${blocked.scope} (user=${userId})`);
+    if (asJson) {
+      throw new AppError("RATE_LIMITED", {
+        message: `Limit generowania grafik AI (${blocked.scope})`,
+        retryAfterSec: blocked.retryAfterSec,
+      });
+    }
+    return fallbackSvgResponse("rate_limited", { noStore: true });
+  }
 
   const timed = createFetchTimeoutSignal(FETCH_TIMEOUT_MS);
   try {
     const result = await fetchPollinationsImage({
       apiKey: key,
       prompt: fullPrompt,
-      seed: Number.isFinite(seed) ? seed : 1,
-      width: Number.isFinite(width) ? width : 640,
-      height: Number.isFinite(height) ? height : 400,
+      seed,
+      width,
+      height,
       model,
       signal: timed.signal,
     });
@@ -135,8 +220,8 @@ export async function GET(req: Request) {
         "Content-Type": result.contentType.startsWith("image/")
           ? result.contentType
           : "image/jpeg",
-        "Cache-Control":
-          "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
+        // Odpowiedź tylko dla zalogowanych — bez współdzielonego cache CDN.
+        "Cache-Control": "private, max-age=86400, stale-while-revalidate=604800",
         "X-GymBrat-Image": "pollinations",
       },
     });
@@ -150,3 +235,5 @@ export async function GET(req: Request) {
     timed.clear();
   }
 }
+
+export const GET = withApiErrors(handleGET);

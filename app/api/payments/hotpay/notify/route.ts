@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
@@ -12,7 +13,7 @@ export const runtime = "nodejs";
  * Webhook HotPay (form-data POST).
  * W panelu HotPay ustaw: https://TWOJA-DOMENA/api/payments/hotpay/notify
  */
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   await ensureCriticalSchema();
 
   let fields: Record<string, string> = {};
@@ -106,3 +107,5 @@ export async function POST(req: Request) {
   // PENDING — nic nie zmieniamy
   return new NextResponse("OK", { status: 200 });
 }
+
+export const POST = withApiErrors(handlePOST);

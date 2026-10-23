@@ -53,13 +53,17 @@ function silenceConsole(): void {
       }
     }
     // Pełny Error object w konsoli często zdradza ścieżki i stan — skróć.
-    // eslint-disable-next-line no-console
+    // Linie systemu błędów GymBrat (`[GymBrat][…][STATUS][KOD] …`) przepuszczamy w całości,
+    // bo to one mapują błąd na kod i komunikat dla użytkownika.
+    // Uwaga: wołamy ORYGINALNY console.error — wcześniej wywołanie `console.error.call`
+    // trafiało w nadpisaną funkcję (rekurencja → w produkcji nic nie było logowane).
+    const originalError = console.error.bind(console);
     console.error = (...args: unknown[]) => {
       try {
         const first = args[0];
         if (typeof first === "string") {
-          // eslint-disable-next-line no-console
-          console.error.call(console, first.slice(0, 180));
+          const limit = first.startsWith("[GymBrat]") ? 1500 : 180;
+          originalError(first.slice(0, limit));
         }
       } catch {
         /* ignore */

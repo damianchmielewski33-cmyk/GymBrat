@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { listTeamFeed } from "@/lib/community/team-feed";
@@ -7,7 +8,7 @@ import { UserMessages } from "@/lib/user-facing-errors";
  * Paginated Team Feed — infinite scroll / incremental SSE refresh.
  * ?before=ms&limit=12
  */
-export async function GET(
+async function handleGET(
   req: Request,
   ctx: { params: Promise<{ teamId: string }> },
 ) {
@@ -41,3 +42,5 @@ export async function GET(
       page.length > 0 ? page[page.length - 1]!.createdAt.getTime() : null,
   });
 }
+
+export const GET = withApiErrors(handleGET);

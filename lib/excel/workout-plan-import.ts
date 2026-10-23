@@ -1,5 +1,11 @@
-import * as XLSX from "xlsx";
 import { randomUUID } from "node:crypto";
+import {
+  cellToText,
+  readXlsx,
+  XlsxReadError,
+  type CellValue,
+  type XlsxSheet,
+} from "@/lib/excel/read-xlsx";
 import {
   parseWorkoutPlansFromText,
   type ParsedWorkoutPlanImport,
@@ -69,14 +75,11 @@ function toExercise(name: string, sets: number, reps: number): WorkoutPlanExerci
 
 function cellText(v: unknown): string {
   if (v == null) return "";
-  return String(v).replace(/\u00a0/g, " ").trim();
+  const text = typeof v === "object" && !(v instanceof Date) ? "" : cellToText(v as CellValue);
+  return text.replace(/\u00a0/g, " ").trim();
 }
 
-function sheetToTextLines(sheet: XLSX.WorkSheet, sheetName: string): string {
-  const aoa = XLSX.utils.sheet_to_json<(string | number | null | undefined)[]>(
-    sheet,
-    { header: 1, defval: "", raw: false },
-  );
+function sheetToTextLines(aoa: CellValue[][], sheetName: string): string {
   const lines: string[] = [];
   // Nazwa arkusza jako nagłówek dnia tylko gdy wygląda jak dzień (nie „Sheet1”/„Plan”)
   const sheetTitle = sheetName.trim();
@@ -220,14 +223,14 @@ function plansFromRows(
 }
 
 /**
- * Gdy pierwsza „nagłówkowa” linia to tytuł planu, sheet_to_json bierze złe klucze.
- * Przeszukaj pierwsze wiersze AOA i zbuduj rekordy od właściwego nagłówka.
+ * Gdy pierwsza „nagłówkowa” linia to tytuł planu, pierwszy wiersz daje złe klucze.
+ * Przeszukaj pierwsze wiersze AOA i zbuduj rekordy od właściwego nagłówka
+ * (`forceFirstRow` — klasyczny wariant: nagłówek zawsze w 1. wierszu).
  */
-function rowsFromBestHeader(sheet: XLSX.WorkSheet): Record<string, unknown>[] {
-  const aoa = XLSX.utils.sheet_to_json<(string | number | null | undefined)[]>(
-    sheet,
-    { header: 1, defval: "", raw: false },
-  );
+function rowsFromBestHeader(
+  aoa: CellValue[][],
+  forceFirstRow = false,
+): Record<string, unknown>[] {
   if (!aoa.length) return [];
 
   const headerHints = [
@@ -245,7 +248,7 @@ function rowsFromBestHeader(sheet: XLSX.WorkSheet): Record<string, unknown>[] {
   ];
 
   let headerIdx = 0;
-  for (let i = 0; i < Math.min(aoa.length, 12); i++) {
+  for (let i = 0; i < (forceFirstRow ? 0 : Math.min(aoa.length, 12)); i++) {
     const row = aoa[i] ?? [];
     const joined = row.map(cellText).map(normKey).join(" ");
     if (headerHints.some((h) => joined.includes(normKey(h)))) {
@@ -262,9 +265,10 @@ function rowsFromBestHeader(sheet: XLSX.WorkSheet): Record<string, unknown>[] {
   for (let i = headerIdx + 1; i < aoa.length; i++) {
     const raw = aoa[i] ?? [];
     if (raw.every((c) => !cellText(c))) continue;
-    const rec: Record<string, unknown> = {};
+    // Bez prototypu: nagłówki pochodzą z pliku użytkownika (np. „__proto__”).
+    const rec: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
     headerRow.forEach((h, idx) => {
-      rec[h] = raw[idx] ?? "";
+      if (!(h in rec)) rec[h] = cellText(raw[idx]);
     });
     rows.push(rec);
   }
@@ -279,46 +283,39 @@ function rowsFromBestHeader(sheet: XLSX.WorkSheet): Record<string, unknown>[] {
  */
 export function parseWorkoutPlansFromXlsx(buffer: Buffer): ParsedWorkoutPlanImport {
   const warnings: string[] = [];
-  let wb: XLSX.WorkBook;
+  let sheets: XlsxSheet[];
   try {
-    wb = XLSX.read(buffer, { type: "buffer", cellDates: false });
+    sheets = readXlsx(buffer);
   } catch (err) {
     return {
       plans: [],
       warnings: [
-        err instanceof Error
-          ? `Nie udało się otworzyć Excela: ${err.message}`
+        err instanceof XlsxReadError
+          ? err.message
           : "Nie udało się otworzyć pliku Excel.",
       ],
     };
   }
 
-  if (!wb.SheetNames.length) {
+  if (!sheets.length) {
     return { plans: [], warnings: ["Plik Excel nie ma arkuszy."] };
   }
 
   const plans: WorkoutPlanPayload[] = [];
 
-  for (const sheetName of wb.SheetNames) {
-    const sheet = wb.Sheets[sheetName];
-    if (!sheet) continue;
-
+  for (const { name: sheetName, rows: aoa } of sheets) {
     // 1) Inteligentne nagłówki (tytuł w 1. wierszu nie psuje kolumn)
-    const smartRows = rowsFromBestHeader(sheet);
+    const smartRows = rowsFromBestHeader(aoa);
     let sheetPlans = plansFromRows(smartRows, sheetName);
 
-    // 2) Klasyczny sheet_to_json
+    // 2) Klasyczny wariant: nagłówek zawsze w pierwszym wierszu
     if (sheetPlans.length === 0) {
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-        defval: "",
-        raw: false,
-      });
-      sheetPlans = plansFromRows(rows, sheetName);
+      sheetPlans = plansFromRows(rowsFromBestHeader(aoa, true), sheetName);
     }
 
     // 3) Tekst: scal komórki → linie jak z Worda („Przysiady 4x8”)
     if (sheetPlans.length === 0) {
-      const text = sheetToTextLines(sheet, sheetName);
+      const text = sheetToTextLines(aoa, sheetName);
       const parsed = parseWorkoutPlansFromText(text);
       sheetPlans = parsed.plans;
       warnings.push(...parsed.warnings);

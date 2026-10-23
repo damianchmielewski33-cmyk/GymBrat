@@ -1,5 +1,7 @@
 /** Uruchamiane raz przy starcie procesu Node — stosuje migracje Drizzle na Turso zanim przyjmowane są zapytania. */
 
+import type { Instrumentation } from "next";
+
 export async function register() {
   if (process.env.NEXT_RUNTIME === "edge") return;
 
@@ -52,3 +54,35 @@ export async function register() {
     console.error("[instrumentation] migrate-sensitive-encryption:", err);
   }
 }
+
+/**
+ * Każdy nieobsłużony błąd serwera (render Server Components, Server Actions, proxy, trasy poza
+ * `withApiErrors`) trafia do logów w jednolitym formacie. `digest` to ten sam kod referencyjny,
+ * który użytkownik widzi w komunikacie błędu (error boundary / popup).
+ */
+export const onRequestError: Instrumentation.onRequestError = async (
+  err,
+  request,
+  context,
+) => {
+  try {
+    const { isNextControlFlowError, toAppError } = await import("./lib/errors/app-error");
+    if (isNextControlFlowError(err)) return;
+    const { logServerError, newRequestId, safePath } = await import("./lib/errors/server-log");
+    const digest = (err as { digest?: string }).digest;
+    logServerError(
+      toAppError(err),
+      {
+        requestId: digest || newRequestId(),
+        method: request.method,
+        path: safePath(request.path),
+        routeType: context.routeType,
+        digest,
+        origin: "onRequestError",
+      },
+      err,
+    );
+  } catch (loggingError) {
+    console.error("[instrumentation] onRequestError:", loggingError);
+  }
+};

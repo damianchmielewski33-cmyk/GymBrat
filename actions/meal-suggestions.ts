@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
@@ -38,6 +39,7 @@ export type GenerateMealSuggestionsResult =
 
 /** Propozycje dnia wyłącznie z lokalnej bazy posiłków GymBrat. */
 export async function generateMealSuggestionsAction(): Promise<GenerateMealSuggestionsResult> {
+  await guardAction("meal-suggestions.generateMealSuggestionsAction", { limit: 20, windowMs: 60000 });
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: UserMessages.mealSuggestionsNoSession };
 

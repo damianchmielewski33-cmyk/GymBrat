@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { assertCsrf } from "@/lib/csrf";
@@ -5,7 +6,7 @@ import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import { joinGroupWorkoutSession } from "@/lib/community/group-workout";
 import { UserMessages } from "@/lib/user-facing-errors";
 
-export async function POST(
+async function handlePOST(
   req: Request,
   ctx: { params: Promise<{ sessionId: string }> },
 ) {
@@ -41,3 +42,5 @@ export async function POST(
     teamName: result.teamName,
   });
 }
+
+export const POST = withApiErrors(handlePOST);

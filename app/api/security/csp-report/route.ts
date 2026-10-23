@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import { isAllowedRequestOrigin } from "@/lib/csrf";
@@ -21,7 +22,7 @@ async function maybeCaptureToSentry(payload: unknown): Promise<void> {
   }
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const origin = req.headers.get("origin");
   if (origin && !isAllowedRequestOrigin(origin)) {
     return NextResponse.json({ error: UserMessages.originBlocked }, { status: 403 });
@@ -64,3 +65,4 @@ export async function POST(req: Request) {
   return new NextResponse(null, { status: 204 });
 }
 
+export const POST = withApiErrors(handlePOST);

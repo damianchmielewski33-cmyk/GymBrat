@@ -8,6 +8,21 @@ export const POLLINATIONS_GEN_BASE = "https://gen.pollinations.ai";
 /** Szybki model na przepisy (Vercel cold start + limity czasu). */
 export const POLLINATIONS_FOOD_MODEL = "zimage";
 
+/** Modele dozwolone przez `/api/recipe-image` (reszta → model domyślny; chroni płatny klucz). */
+export const POLLINATIONS_ALLOWED_MODELS: ReadonlySet<string> = new Set([
+  POLLINATIONS_FOOD_MODEL,
+  "flux",
+]);
+
+/**
+ * Prompty w trybie `raw` muszą zaczynać się od tego prefiksu (używa go grafika „NOWY MAX”).
+ * Dzięki temu publiczny proxy nie służy do generowania dowolnych obrazów.
+ */
+export const POLLINATIONS_RAW_PROMPT_PREFIX = "cinematic dark gym photography";
+
+export const POLLINATIONS_MAX_PROMPT_CHARS = { food: 500, raw: 900 } as const;
+export const POLLINATIONS_MAX_TITLE_CHARS = 160;
+
 export function getPollinationsApiKey(): string | null {
   const key =
     process.env.POLLINATIONS_API_KEY?.trim() ||

@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { getCatalogMealImage } from "@/lib/meal-catalog-images";
 
@@ -20,7 +21,7 @@ function decodeDataUrl(dataUrl: string): { mimeType: string; body: Buffer } | nu
 }
 
 /** Publiczny asset grafiki przepisu (wygenerowany raz przy imporcie). */
-export async function GET(_req: Request, ctx: Ctx) {
+async function handleGET(_req: Request, ctx: Ctx) {
   const { id: raw } = await ctx.params;
   const id = decodeURIComponent(raw ?? "").trim();
   if (!id || id.length > 80) {
@@ -57,3 +58,5 @@ export async function GET(_req: Request, ctx: Ctx) {
     },
   });
 }
+
+export const GET = withApiErrors(handleGET);

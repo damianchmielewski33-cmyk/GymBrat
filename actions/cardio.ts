@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
@@ -74,6 +75,7 @@ export async function createCardioLog(input: {
   /** YYYY-MM-DD; puste = dziś. Do 60 dni wstecz. */
   date?: string | null;
 }) {
+  await guardAction("cardio.createCardioLog");
   const session = await auth();
   if (!session?.user?.id) {
     return {
@@ -171,6 +173,7 @@ export async function updateCardioLogAction(
   _prev: unknown,
   formData: FormData,
 ) {
+  await guardAction("cardio.updateCardioLogAction");
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: "Sesja wygasła." };
@@ -297,6 +300,7 @@ export async function updateCardioLogAction(
 }
 
 export async function deleteCardioLogAction(id: string) {
+  await guardAction("cardio.deleteCardioLogAction");
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: "Sesja wygasła." };
@@ -320,6 +324,7 @@ export async function setCardioDevicePhotoAction(
   id: string,
   dataUrl: string | null,
 ) {
+  await guardAction("cardio.setCardioDevicePhotoAction");
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: "Sesja wygasła." };

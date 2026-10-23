@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -9,7 +10,7 @@ import {
 } from "@/lib/community/group-workout";
 import { UserMessages } from "@/lib/user-facing-errors";
 
-export async function GET() {
+async function handleGET() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: UserMessages.sessionExpired }, { status: 401 });
@@ -23,7 +24,7 @@ const createSchema = z.object({
   title: z.string().trim().max(120).optional(),
 });
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -62,3 +63,6 @@ export async function POST(req: Request) {
   }
   return NextResponse.json({ ok: true, sessionId: result.sessionId });
 }
+
+export const GET = withApiErrors(handleGET);
+export const POST = withApiErrors(handlePOST);

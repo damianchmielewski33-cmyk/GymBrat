@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin-api";
 import { getDbCleanupPreview, runDbCleanup } from "@/lib/db-retention";
@@ -7,7 +8,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Podgląd limitu storage + polityki retencji (bez kasowania). */
-export async function GET() {
+async function handleGET() {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
@@ -17,7 +18,7 @@ export async function GET() {
   return res;
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -29,3 +30,6 @@ export async function POST(req: Request) {
   res.headers.set("Cache-Control", "private, no-store");
   return res;
 }
+
+export const GET = withApiErrors(handleGET);
+export const POST = withApiErrors(handlePOST);

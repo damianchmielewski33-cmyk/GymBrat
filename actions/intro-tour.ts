@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
@@ -7,6 +8,7 @@ import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 
 export async function completeIntroTourAction() {
+  await guardAction("intro-tour.completeIntroTourAction");
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
 

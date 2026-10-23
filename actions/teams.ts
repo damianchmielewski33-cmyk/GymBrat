@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -67,6 +68,7 @@ export async function createTeamAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.createTeamAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 
@@ -95,6 +97,7 @@ export async function joinTeamByCodeAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.joinTeamByCodeAction", { limit: 20, windowMs: 600000 });
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const code = String(formData.get("code") ?? "");
@@ -108,6 +111,7 @@ export async function joinPublicTeamAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.joinPublicTeamAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const teamId = String(formData.get("teamId") ?? "");
@@ -122,6 +126,7 @@ export async function leaveTeamAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.leaveTeamAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const teamId = String(formData.get("teamId") ?? "");
@@ -135,6 +140,7 @@ export async function updateTeamSettingsAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.updateTeamSettingsAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const teamId = String(formData.get("teamId") ?? "");
@@ -165,6 +171,7 @@ export async function regenerateInviteCodeAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.regenerateInviteCodeAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const teamId = String(formData.get("teamId") ?? "");
@@ -178,6 +185,7 @@ export async function inviteByEmailAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.inviteByEmailAction", { limit: 10, windowMs: 3600000 });
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const teamId = String(formData.get("teamId") ?? "");
@@ -196,6 +204,7 @@ export async function acceptInviteAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.acceptInviteAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const token = String(formData.get("token") ?? "");
@@ -209,6 +218,7 @@ export async function declineInviteAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.declineInviteAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const token = String(formData.get("token") ?? "");
@@ -222,6 +232,7 @@ export async function revokeInviteAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.revokeInviteAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const teamId = String(formData.get("teamId") ?? "");
@@ -236,6 +247,7 @@ export async function changeMemberRoleAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.changeMemberRoleAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const teamId = String(formData.get("teamId") ?? "");
@@ -259,6 +271,7 @@ export async function removeMemberAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.removeMemberAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const teamId = String(formData.get("teamId") ?? "");
@@ -273,6 +286,7 @@ export async function transferOwnershipAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.transferOwnershipAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const teamId = String(formData.get("teamId") ?? "");
@@ -287,6 +301,7 @@ export async function archiveTeamAction(
   _prev: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
+  await guardAction("teams.archiveTeamAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
   const teamId = String(formData.get("teamId") ?? "");

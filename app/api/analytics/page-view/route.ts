@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -16,7 +17,7 @@ const bodySchema = z.object({
   visitorId: z.string().min(8).max(80),
 });
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const originGate = assertAnalyticsOrigin(req);
   if (originGate) return originGate;
 
@@ -73,3 +74,5 @@ export async function POST(req: Request) {
 
   return new NextResponse(null, { status: 204 });
 }
+
+export const POST = withApiErrors(handlePOST);

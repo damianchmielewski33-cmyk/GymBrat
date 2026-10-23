@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { assertCsrf } from "@/lib/csrf";
@@ -27,7 +28,7 @@ const deleteSchema = z.object({
   action: z.literal("delete"),
 });
 
-export async function GET() {
+async function handleGET() {
   const admin = await requireAdminApi();
   if (!admin.ok) return admin.response;
   const assets = await getBrandingPublicMap();
@@ -41,7 +42,7 @@ export async function GET() {
   });
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -138,3 +139,6 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const GET = withApiErrors(handleGET);
+export const POST = withApiErrors(handlePOST);

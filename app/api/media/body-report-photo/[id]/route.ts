@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { auth } from "@/auth";
 import { getBodyReportPhotoDataUrlForUser } from "@/lib/body-report-photo-access";
 import { imageResponseFromDataUrl } from "@/lib/user-photo-response";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function GET(_req: Request, ctx: Ctx) {
+async function handleGET(_req: Request, ctx: Ctx) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
@@ -27,3 +28,5 @@ export async function GET(_req: Request, ctx: Ctx) {
   }
   return res;
 }
+
+export const GET = withApiErrors(handleGET);

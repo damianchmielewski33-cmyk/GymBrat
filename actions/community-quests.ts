@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { teamMembers } from "@/db/schema";
@@ -10,6 +11,7 @@ export async function startTeamQuestAction(
   teamId: string,
   templateKey: string,
 ) {
+  await guardAction("community-quests.startTeamQuestAction");
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { ok: false as const, error: "Zaloguj się." };

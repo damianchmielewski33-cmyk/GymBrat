@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin-api";
 import { logAdminAction } from "@/lib/admin-audit";
@@ -9,7 +10,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /** Dokończ generację grafik AI po dużym imporcie JSON (paczki). */
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -70,3 +71,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true, images });
 }
+
+export const POST = withApiErrors(handlePOST);

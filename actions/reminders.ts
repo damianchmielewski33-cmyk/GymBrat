@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
@@ -8,6 +9,7 @@ import { userSettings } from "@/db/schema";
 import { remindersPrefsSchema, remindersToJson, type RemindersPrefs } from "@/lib/reminders-types";
 
 export async function saveRemindersPrefsAction(input: unknown) {
+  await guardAction("reminders.saveRemindersPrefsAction");
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
 

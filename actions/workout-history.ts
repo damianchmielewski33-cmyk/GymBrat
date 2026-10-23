@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -98,6 +99,7 @@ export async function updateCompletedWorkout(input: {
     }>;
   }>;
 }) {
+  await guardAction("workout-history.updateCompletedWorkout");
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
@@ -218,6 +220,7 @@ const deleteSchema = z.object({
 
 /** Usuwa zakończony trening z historii (właściciel konta). */
 export async function deleteCompletedWorkout(input: { workoutId: string }) {
+  await guardAction("workout-history.deleteCompletedWorkout");
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {

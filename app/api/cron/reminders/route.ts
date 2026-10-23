@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { eq, isNotNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
@@ -17,7 +18,7 @@ function authorized(req: Request): boolean {
   return token === secret;
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
@@ -47,3 +48,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true, checked: rows.length, sent });
 }
+
+export const POST = withApiErrors(handlePOST);

@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -10,7 +11,7 @@ const editSchema = z.object({
   body: z.string().min(1).max(2000),
 });
 
-export async function PATCH(
+async function handlePATCH(
   req: Request,
   ctx: { params: Promise<{ messageId: string }> },
 ) {
@@ -54,7 +55,7 @@ export async function PATCH(
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(
+async function handleDELETE(
   req: Request,
   ctx: { params: Promise<{ messageId: string }> },
 ) {
@@ -85,3 +86,6 @@ export async function DELETE(
   }
   return NextResponse.json({ ok: true });
 }
+
+export const PATCH = withApiErrors(handlePATCH);
+export const DELETE = withApiErrors(handleDELETE);

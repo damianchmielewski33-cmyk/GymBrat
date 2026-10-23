@@ -1,7 +1,8 @@
 "use server";
 
+import { currentClientIp, guardAction } from "@/lib/action-guard";
 import { hash } from "bcryptjs";
-import { eq, sql, and, desc, isNull } from "drizzle-orm";
+import { eq, sql, and, desc, isNull, lt } from "drizzle-orm";
 import { getDb } from "@/db";
 import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import {
@@ -16,7 +17,8 @@ import {
 } from "@/lib/validations/register";
 import { fitnessGoalsToJson } from "@/lib/fitness-goals";
 import { sendRegisterVerificationCodeEmail } from "@/lib/email";
-import { createHash, randomInt } from "node:crypto";
+import { createHash, randomInt, timingSafeEqual } from "node:crypto";
+import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
 import { z } from "zod";
 
 function newUserSettingsRow(
@@ -79,13 +81,65 @@ function isRegisterEmailMockMode(): boolean {
 
 const MOCK_REGISTER_CODE = "1234";
 
+/** Maksymalna liczba prób wpisania kodu na jeden wysłany kod (potem trzeba zamówić nowy). */
+const MAX_REGISTER_CODE_ATTEMPTS = 5;
+
+const RATE_LIMIT_MESSAGE = "Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.";
+
+/** Porównanie skrótów w stałym czasie (bez wycieku przez czas odpowiedzi). */
+function safeEqualHex(a: string, b: string): boolean {
+  const ba = Buffer.from(a, "utf8");
+  const bb = Buffer.from(b, "utf8");
+  return ba.length === bb.length && timingSafeEqual(ba, bb);
+}
+
+/**
+ * Atomowo zużywa jedną próbę wpisania kodu. Zwraca `false`, gdy limit jest już wyczerpany —
+ * warunek `attempt_count < MAX` jest w samym `UPDATE`, więc równoległe żądania nie obejdą limitu.
+ */
+async function consumeCodeAttempt(
+  db: ReturnType<typeof getDb>,
+  codeId: string,
+): Promise<boolean> {
+  const rows = await db
+    .update(emailVerificationCodes)
+    .set({ attemptCount: sql`${emailVerificationCodes.attemptCount} + 1` })
+    .where(
+      and(
+        eq(emailVerificationCodes.id, codeId),
+        lt(emailVerificationCodes.attemptCount, MAX_REGISTER_CODE_ATTEMPTS),
+        isNull(emailVerificationCodes.consumedAt),
+      ),
+    )
+    .returning({ id: emailVerificationCodes.id });
+  return rows.length > 0;
+}
+
+async function hitRegisterLimits(
+  kind: "send" | "submit",
+  email: string,
+): Promise<boolean> {
+  const ip = await currentClientIp();
+  const ipLimit = kind === "send" ? RATE.registerSendCodeIp : RATE.registerSubmitIp;
+  const emailLimit = kind === "send" ? RATE.registerSendCodeEmail : RATE.registerSubmitEmail;
+  const [byIp, byEmail] = await Promise.all([
+    checkRateLimitAsync(`register-${kind}-ip:${ip}`, ipLimit.limit, ipLimit.windowMs),
+    checkRateLimitAsync(`register-${kind}-email:${email}`, emailLimit.limit, emailLimit.windowMs),
+  ]);
+  return byIp.ok && byEmail.ok;
+}
+
 export async function sendRegisterCode(input: unknown): Promise<SendRegisterCodeState> {
+  await guardAction("auth.sendRegisterCode", { limit: 10, windowMs: 3600000 });
   const parsed = sendRegisterCodeSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: "Wpisz poprawny adres e-mail." };
   }
 
   const email = parsed.data.email.toLowerCase();
+  if (!(await hitRegisterLimits("send", email))) {
+    return { ok: false, error: RATE_LIMIT_MESSAGE };
+  }
   const db = getDb();
 
   const [existingUser] = await db
@@ -159,6 +213,7 @@ export async function sendRegisterCode(input: unknown): Promise<SendRegisterCode
 export async function registerUser(
   input: unknown,
 ): Promise<RegisterState> {
+  await guardAction("auth.registerUser", { limit: 20, windowMs: 3600000 });
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) {
     const fieldErrors = parsed.error.flatten().fieldErrors as Partial<
@@ -173,6 +228,10 @@ export async function registerUser(
 
   const data = parsed.data;
   const email = data.email.toLowerCase();
+
+  if (!(await hitRegisterLimits("submit", email))) {
+    return { ok: false, error: RATE_LIMIT_MESSAGE };
+  }
 
   if (isRegisterEmailMockMode()) {
     if (data.emailCode !== MOCK_REGISTER_CODE) {
@@ -250,18 +309,28 @@ export async function registerUser(
   if (codeRow.expiresAt.getTime() < now.getTime()) {
     return { ok: false, error: "Kod wygasł. Wyślij nowy kod i spróbuj ponownie." };
   }
-  const expected = codeRow.codeHash;
-  const providedHash = hashEmailCode(data.emailCode);
-  if (providedHash !== expected) {
-    try {
-      await db
-        .update(emailVerificationCodes)
-        .set({ attemptCount: sql`${emailVerificationCodes.attemptCount} + 1` })
-        .where(eq(emailVerificationCodes.id, codeRow.id));
-    } catch {
-      // best-effort
-    }
-    return { ok: false, error: "Nieprawidłowy kod weryfikacyjny." };
+  if (codeRow.attemptCount >= MAX_REGISTER_CODE_ATTEMPTS) {
+    return {
+      ok: false,
+      error: "Wyczerpano limit prób wpisania kodu. Wyślij nowy kod i spróbuj ponownie.",
+    };
+  }
+  // Próba jest zużywana atomowo PRZED porównaniem — równoległe zgadywanie nie obejdzie limitu.
+  if (!(await consumeCodeAttempt(db, codeRow.id))) {
+    return {
+      ok: false,
+      error: "Wyczerpano limit prób wpisania kodu. Wyślij nowy kod i spróbuj ponownie.",
+    };
+  }
+  if (!safeEqualHex(hashEmailCode(data.emailCode), codeRow.codeHash)) {
+    const left = MAX_REGISTER_CODE_ATTEMPTS - (codeRow.attemptCount + 1);
+    return {
+      ok: false,
+      error:
+        left > 0
+          ? `Nieprawidłowy kod weryfikacyjny. Pozostałe próby: ${left}.`
+          : "Nieprawidłowy kod weryfikacyjny. Wyczerpano limit prób — wyślij nowy kod.",
+    };
   }
 
   const [existing] = await db
