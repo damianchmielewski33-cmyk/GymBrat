@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Android: aktualizacja APK bez odinstalowywania",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Kompilacje APK z GitHub Actions są podpisywane stałym kluczem release, więc nowa wersja nadpisuje zainstalowaną aplikację zamiast kończyć się konfliktem pakietu.",
+      "Po pierwszym APK z tym podpisem telefony ze starym (debug) buildem wymagają jednorazowego odinstalowania i ponownej instalacji — kolejne aktualizacje już bez tego kroku.",
+    ],
+  },
+  {
     title: "Zapowiedź — Admin: braki konfiguracji widać od razu na hostingu",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

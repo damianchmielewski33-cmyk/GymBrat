@@ -54,16 +54,29 @@ powiadomienie albo folder i stuknij `gymbrat.apk`.
 ### Błąd: „nie została zainstalowana / konflikt z istniejącym pakietem”
 albo instalator **wisi po zapełnieniu paska**
 
-Android blokuje aktualizację, gdy nowy APK ma **inny podpis** niż zainstalowana aplikacja
-(np. stary build z Android Studio + nowy z GitHub Actions, albo inny keystore).
-Na części telefonów zamiast komunikatu instalator tylko „wisi” po 100%.
+Android blokuje aktualizację, gdy nowy APK ma **inny podpis** niż zainstalowana aplikacja.
+Wcześniej CI podpisywało **debug keystoreem** (inny na każdym runnerze) — stąd
+konflikt przy **każdej** aktualizacji.
 
-**Rozwiązanie:** odinstaluj obecną GymBrat → zainstaluj nowy `gymbrat.apk`.
-Konto i dane na serwerze zostają; lokalny cache WebView na telefonie może zniknąć
-(trzeba się zalogować ponownie).
+**Stały podpis (wymagany):** sekrety GitHub Actions
+`ANDROID_RELEASE_KEYSTORE_BASE64`, `ANDROID_RELEASE_KEYSTORE_PASSWORD`,
+`ANDROID_RELEASE_KEY_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS`.
 
-Dodatkowo: wyczyść cache „Package Installer” / „Instalator pakietów” w Ustawieniach
-i upewnij się, że plik APK pobrał się w całości (kilka MB, nie kilka KB).
+Jednorazowe założenie klucza:
 
-Żeby kolejne aktualizacje działały bez odinstalowywania, wszystkie APK muszą iść
-z tego samego `android/keystore.properties` (release keystore) — także w CI.
+1. Actions → **Bootstrap Android signing** → Run workflow  
+2. Pobierz artifact `gymbrat-android-release-keystore`  
+3. `node scripts/set-android-signing-secrets.mjs ./gymbrat-android-release-keystore`  
+4. Actions → **Build Android APK** → Run workflow  
+
+Po pierwszym APK ze stałym podpisem: na telefonach, które miały stary (debug) build,
+**jednorazowo** odinstaluj GymBrat i zainstaluj nowy `gymbrat.apk`. Od tej pory
+aktualizacje nadpisują aplikację bez odinstalowywania.
+
+Konto i dane na serwerze zostają; lokalny cache WebView może zniknąć (logowanie ponownie).
+
+Lokalnie: skopiuj `keystore.properties` + `gymbrat-release.jks` z artifactu do `android/`
+(oba w `.gitignore`) — ten sam podpis co CI.
+
+Dodatkowo przy uszkodzonym pliku: wyczyść cache „Instalator pakietów” i upewnij się,
+że APK ma kilka MB, nie kilka KB.

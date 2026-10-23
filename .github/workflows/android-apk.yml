@@ -75,6 +75,37 @@ jobs:
           echo "api.base.url=${{ steps.api.outputs.url }}" >> android/local.properties
           cat android/local.properties
 
+      # Stały release keystore — bez tego każdy runner GHA ma inny debug.keystore
+      # i Android wymusza odinstalowanie przy każdej „aktualizacji”.
+      - name: Restore release keystore
+        shell: bash
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_RELEASE_KEYSTORE_BASE64:-}" ] || \
+             [ -z "${ANDROID_RELEASE_KEYSTORE_PASSWORD:-}" ] || \
+             [ -z "${ANDROID_RELEASE_KEY_PASSWORD:-}" ]; then
+            echo "::error::Brak sekretów podpisu APK (ANDROID_RELEASE_KEYSTORE_*)."
+            echo "Uruchom workflow „Bootstrap Android signing”, potem:"
+            echo "  node scripts/set-android-signing-secrets.mjs <katalog-artifactu>"
+            exit 1
+          fi
+          ALIAS="${ANDROID_RELEASE_KEY_ALIAS:-gymbrat}"
+          echo "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 -d > android/gymbrat-release.jks
+          {
+            echo "storeFile=gymbrat-release.jks"
+            echo "storePassword=${ANDROID_RELEASE_KEYSTORE_PASSWORD}"
+            echo "keyAlias=${ALIAS}"
+            echo "keyPassword=${ANDROID_RELEASE_KEY_PASSWORD}"
+            echo "storeType=PKCS12"
+          } > android/keystore.properties
+          ls -lh android/gymbrat-release.jks
+          echo "Release keystore gotowy (alias=$ALIAS)"
+
       - name: Install image tools (branding icon)
         run: |
           sudo apt-get update
