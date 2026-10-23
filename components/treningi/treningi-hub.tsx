@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
+  Check,
   ChevronRight,
   Download,
+  Dumbbell,
   Footprints,
   History,
   NotebookPen,
@@ -22,7 +24,7 @@ import {
   formatPlanLastDoneShort,
 } from "@/lib/workout-plan-queue";
 import { printWorkoutPlans } from "@/lib/pdf/workout-plan-export";
-import { calendarDateKey } from "@/lib/local-date";
+import { calendarDateKey, weekDateKeysMondayFirst } from "@/lib/local-date";
 import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,20 @@ import { cn } from "@/lib/utils";
 function cwLabel(n: number): string {
   if (n === 1) return "1 ćw.";
   return `${n} ćw.`;
+}
+
+function exercisesLabel(n: number): string {
+  if (n === 1) return "1 ćwiczenie";
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) {
+    return `${n} ćwiczenia`;
+  }
+  return `${n} ćwiczeń`;
+}
+
+function capitalizeFirst(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function exercisePreview(names: string[], max = 4): string {
@@ -66,6 +82,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
   }, []);
 
   const today = calendarDateKey();
+  const weekKeys = useMemo(() => new Set(weekDateKeysMondayFirst(today)), [today]);
   const unfinished =
     hydrated && activeExercises.length > 0 && workoutStartedAtMs != null;
 
@@ -186,12 +203,24 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
             <h2 className="text-[26px] font-semibold leading-tight text-white">
               {nextPlan.plan.planName.trim() || "Trening"}
             </h2>
-            <p className="text-[13px] text-white/55">
-              {cwLabel(nextPlan.plan.exercises.length)}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/[0.06] px-3 py-1.5 text-[12px] font-medium text-white/85">
+                <Dumbbell
+                  className="h-3.5 w-3.5 text-[var(--gym-gold)]"
+                  aria-hidden
+                />
+                {exercisesLabel(nextPlan.plan.exercises.length)}
+              </span>
+            </div>
+            <p
+              className="truncate text-[12px] text-white/45"
+              title={nextPreview || undefined}
+            >
               {nextPlan.lastWorkoutDate
-                ? ` · ${formatPlanLastDoneRelative(nextPlan.lastWorkoutDate, today)}`
-                : " · pierwszy raz"}
-              {nextPreview ? ` · ${nextPreview}` : ""}
+                ? capitalizeFirst(
+                    formatPlanLastDoneRelative(nextPlan.lastWorkoutDate, today),
+                  )
+                : "Pierwszy raz"}
             </p>
             <button
               type="button"
@@ -283,7 +312,7 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
           </div>
         ) : (
           <>
-            <ul className="overflow-hidden app-panel divide-y divide-white/[0.06]">
+            <ul className="space-y-2.5">
               {plans.map((row, idx) => {
                 const name = row.plan.planName.trim() || `Dzień ${idx + 1}`;
                 const count = row.plan.exercises.length;
@@ -293,8 +322,26 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
                   today,
                 );
                 const lastDate = formatPlanLastDoneShort(row.lastWorkoutDate);
+                const isToday = nextPlan?.id === row.id;
+                const doneThisWeek =
+                  row.lastWorkoutDate != null &&
+                  weekKeys.has(row.lastWorkoutDate);
                 return (
-                  <li key={row.id}>
+                  <li
+                    key={row.id}
+                    className={cn(
+                      "relative overflow-hidden rounded-[20px] border bg-[#0E0E0E]/90",
+                      isToday
+                        ? "border-[var(--gym-gold)]/55 shadow-[0_0_28px_rgba(235,196,74,0.16)]"
+                        : "border-white/[0.08]",
+                    )}
+                  >
+                    {isToday ? (
+                      <span
+                        aria-hidden
+                        className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-[var(--gym-gold)]"
+                      />
+                    ) : null}
                     <div className="flex items-stretch">
                       <button
                         type="button"
@@ -308,30 +355,51 @@ export function TreningiHub({ plans, stats, onBegin }: TreningiHubProps) {
                           "hover:bg-white/[0.03] disabled:opacity-50",
                         )}
                       >
-                        <span className="w-8 shrink-0 text-[13px] font-semibold text-white/40">
+                        <span
+                          className={cn(
+                            "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-[12px] font-semibold",
+                            isToday
+                              ? "border-[var(--gym-gold)] text-[var(--gym-gold)]"
+                              : "border-[var(--gym-gold)]/40 text-[var(--gym-gold)]/85",
+                          )}
+                        >
                           D{idx + 1}
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[15px] font-semibold text-white">
                             {name}
                           </span>
-                          <span className="mt-0.5 block text-[12px] text-white/45">
+                          <span className="mt-0.5 block truncate text-[12px] text-white/45">
                             {cwLabel(count)} · {last}
                           </span>
                         </span>
-                        <span
-                          className={cn(
-                            "shrink-0 text-[12px] tabular-nums",
-                            lastDate ? "text-white/55" : "text-white/30",
-                          )}
-                          title={
-                            row.lastWorkoutDate
-                              ? `Ostatnio: ${row.lastWorkoutDate}`
-                              : "Jeszcze nie robiony"
-                          }
-                        >
-                          {lastDate ?? "—"}
-                        </span>
+                        {isToday ? (
+                          <span className="shrink-0 rounded-full bg-[var(--gym-gold)] px-3 py-1 text-[11px] font-semibold text-[#1A1408]">
+                            Dziś
+                          </span>
+                        ) : doneThisWeek ? (
+                          <span
+                            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300"
+                            title={`Ostatnio: ${row.lastWorkoutDate}`}
+                          >
+                            <Check className="h-3 w-3" aria-hidden />
+                            Wykonano
+                          </span>
+                        ) : (
+                          <span
+                            className={cn(
+                              "shrink-0 text-[12px] tabular-nums",
+                              lastDate ? "text-white/55" : "text-white/30",
+                            )}
+                            title={
+                              row.lastWorkoutDate
+                                ? `Ostatnio: ${row.lastWorkoutDate}`
+                                : "Jeszcze nie robiony"
+                            }
+                          >
+                            {lastDate ?? "—"}
+                          </span>
+                        )}
                         <span className="sr-only">
                           {busy ? "Startuję…" : "Rozpocznij trening"}
                         </span>

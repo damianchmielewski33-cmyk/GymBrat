@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Treningi: nowy wygląd karty „Trening na dziś” i dni planu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Karta „Trening na dziś” pokazuje liczbę ćwiczeń w małym chipie i krótką informację, kiedy ostatnio robiłeś ten dzień, zamiast długiej listy ćwiczeń.",
+      "Dni planu są osobnymi kartami ze złotą okrągłą odznaką D1–D5, a dzisiejszy trening ma złotą ramkę, pasek po lewej i etykietę „Dziś”.",
+      "Dni zrobione w bieżącym tygodniu mają zieloną etykietę „Wykonano”, a pozostałe nadal pokazują datę ostatniego treningu.",
+    ],
+  },
+  {
     title: "Zapowiedź — Dziennik: karta „Zjedzone” z pierścieniem kalorii",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
