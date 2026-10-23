@@ -1444,6 +1444,38 @@ CREATE TABLE IF NOT EXISTS "user_activity_posts" (
   await client.execute(
     `CREATE INDEX IF NOT EXISTS "user_activity_posts_vis_created_idx" ON "user_activity_posts" ("visibility_snapshot","created_at")`,
   );
+
+  // Web Push + dedupe przypomnień (0030_push_reminders).
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "push_subscriptions" (
+  "id" text PRIMARY KEY NOT NULL,
+  "user_id" text NOT NULL,
+  "endpoint" text NOT NULL,
+  "p256dh" text NOT NULL,
+  "auth" text NOT NULL,
+  "user_agent" text,
+  "created_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "push_subscriptions_endpoint_uidx" ON "push_subscriptions" ("endpoint")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "push_subscriptions_user_idx" ON "push_subscriptions" ("user_id")`,
+  );
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "reminder_dispatches" (
+  "user_id" text NOT NULL,
+  "date_key" text NOT NULL,
+  "kind" text NOT NULL,
+  "sent_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "reminder_dispatches_uidx" ON "reminder_dispatches" ("user_id","date_key","kind")`,
+  );
 }
 
 let mealLogsEnsured = false;

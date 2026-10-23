@@ -2059,3 +2059,46 @@ export const friendLivePresence = sqliteTable(
     index("friend_live_presence_active_updated_idx").on(t.active, t.updatedAt),
   ],
 );
+
+
+/** Web Push (przegladarka / PWA) - subskrypcje do przypomnien, gdy aplikacja jest zamknieta. */
+export const pushSubscriptions = sqliteTable(
+  "push_subscriptions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("push_subscriptions_endpoint_uidx").on(t.endpoint),
+    index("push_subscriptions_user_idx").on(t.userId),
+  ],
+);
+
+/** Dedupe przypomnien: jeden wpis na uzytkownika / dzien kalendarza / rodzaj (workout, meal, checkin, email). */
+export const reminderDispatches = sqliteTable(
+  "reminder_dispatches",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    dateKey: text("date_key").notNull(),
+    kind: text("kind").notNull(),
+    sentAt: integer("sent_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("reminder_dispatches_uidx").on(t.userId, t.dateKey, t.kind),
+  ],
+);

@@ -7,7 +7,7 @@ import type { NutritionGoalsPayload } from "@/lib/nutrition-goals";
 import { kcalFromMacros } from "@/lib/kcal-from-macros";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ProfileField } from "@/components/profile/profile-ui";
 import {
   calendarDateKey,
   formatPlCalendarRange,
@@ -187,10 +187,10 @@ export function NutritionPlanSection({
   const weekLabel = formatPlCalendarRange(weekKeys[0]!, weekKeys[6]!);
 
   return (
-    <form className="space-y-8" onSubmit={onSubmit}>
-      <div className="grid gap-6 lg:grid-cols-2">
-        <fieldset className="space-y-4 rounded-2xl border border-white/10 bg-black/15 p-5">
-          <legend className="px-1 text-sm font-semibold text-white/90">
+    <form className="space-y-6" onSubmit={onSubmit}>
+      <div className="space-y-4">
+        <fieldset className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
+          <legend className="px-1 text-[13px] font-semibold text-[var(--gym-gold)]">
             Dzień treningowy
           </legend>
           <GoalFields
@@ -199,21 +199,21 @@ export function NutritionPlanSection({
             onChange={setTrainingFields}
           />
         </fieldset>
-        <fieldset className="space-y-4 rounded-2xl border border-white/10 bg-black/15 p-5">
-          <legend className="px-1 text-sm font-semibold text-white/90">
+        <fieldset className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
+          <legend className="px-1 text-[13px] font-semibold text-white/80">
             Dzień nietreningowy
           </legend>
           <GoalFields prefix="rest" values={restFields} onChange={setRestFields} />
         </fieldset>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-white/60">
-            Kliknij dzień, aby przełączyć tryb trening / odpoczynek. Dni bez
-            oznaczenia domyślnie traktujemy jak nietreningowe.
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-[13px] leading-relaxed text-white/50">
+            Kliknij dzień, aby przełączyć trening / odpoczynek. Dni bez
+            oznaczenia liczą się jako nietreningowe.
           </p>
-          <span className="shrink-0 text-sm font-medium text-white/80">
+          <span className="shrink-0 text-[13px] font-medium text-white/75">
             {weekLabel}
           </span>
         </div>
@@ -238,6 +238,8 @@ export function NutritionPlanSection({
                 key={dateKey}
                 type="button"
                 onClick={() => toggleDay(dateKey)}
+                aria-pressed={isTraining}
+                aria-label={`${dateKey}: ${isTraining ? "trening" : "odpoczynek"}`}
                 className={`aspect-square rounded-xl border text-sm font-medium transition hover:border-white/25 ${
                   isTraining
                     ? "border-[var(--neon)]/55 bg-[var(--neon)]/18 text-white"
@@ -269,11 +271,7 @@ export function NutritionPlanSection({
         <p className="text-sm text-rose-300">{state.error}</p>
       ) : null}
 
-      <Button
-        type="submit"
-        disabled={isPending}
-       
-      >
+      <Button type="submit" variant="cta" disabled={isPending} className="w-full">
         {isPending ? "Zapisywanie…" : "Zapisz cele i kalendarz"}
       </Button>
     </form>
@@ -311,51 +309,48 @@ function GoalFields({
   );
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <div className="sm:col-span-2 rounded-xl border border-white/10 bg-black/25 px-4 py-3">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-white/45">
-          Kalorie (wyliczone z makroskładników)
-        </p>
-        <p className="mt-1 font-heading text-2xl font-semibold tabular-nums text-white">
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-2.5">
+        <ProfileField label="Białko (g)" htmlFor={`${prefix}-p`}>
+          <Input
+            id={`${prefix}-p`}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            value={values.proteinG}
+            onChange={(e) => patchMacro("proteinG", e.target.value)}
+          />
+        </ProfileField>
+        <ProfileField label="Węgle (g)" htmlFor={`${prefix}-c`}>
+          <Input
+            id={`${prefix}-c`}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            value={values.carbsG}
+            onChange={(e) => patchMacro("carbsG", e.target.value)}
+          />
+        </ProfileField>
+        <ProfileField label="Tłuszcz (g)" htmlFor={`${prefix}-f`}>
+          <Input
+            id={`${prefix}-f`}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            value={values.fatG}
+            onChange={(e) => patchMacro("fatG", e.target.value)}
+          />
+        </ProfileField>
+      </div>
+      <p className="flex items-baseline justify-between gap-3 rounded-lg bg-white/[0.04] px-3 py-2 text-[13px] text-white/50">
+        <span>Kalorie z makroskładników</span>
+        <span className="font-heading text-lg font-semibold tabular-nums text-white">
           {displayKcal ? `${displayKcal} kcal` : "—"}
-        </p>
-      </div>
-      <div>
-        <Label htmlFor={`${prefix}-p`}>Białko (g)</Label>
-        <Input
-          id={`${prefix}-p`}
-          type="number"
-          min={0}
-          step={1}
-          value={values.proteinG}
-          onChange={(e) => patchMacro("proteinG", e.target.value)}
-          className="mt-1 border-white/15 bg-black/30"
-        />
-      </div>
-      <div>
-        <Label htmlFor={`${prefix}-c`}>Węglowodany (g)</Label>
-        <Input
-          id={`${prefix}-c`}
-          type="number"
-          min={0}
-          step={1}
-          value={values.carbsG}
-          onChange={(e) => patchMacro("carbsG", e.target.value)}
-          className="mt-1 border-white/15 bg-black/30"
-        />
-      </div>
-      <div>
-        <Label htmlFor={`${prefix}-f`}>Tłuszcz (g)</Label>
-        <Input
-          id={`${prefix}-f`}
-          type="number"
-          min={0}
-          step={1}
-          value={values.fatG}
-          onChange={(e) => patchMacro("fatG", e.target.value)}
-          className="mt-1 border-white/15 bg-black/30"
-        />
-      </div>
+        </span>
+      </p>
     </div>
   );
 }

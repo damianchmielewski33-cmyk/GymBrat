@@ -19,6 +19,7 @@ import { useI18n } from "@/components/i18n/i18n-provider";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { AppMenuButton } from "@/components/layout/app-menu-button";
 import { NotificationBell } from "@/components/community/notification-bell";
+import { ReminderRunnerBoot } from "@/components/reminders/reminder-runner-boot";
 
 /** Ciężkie widgety Community / trening — poza krytycznym bundlem shella (LCP). */
 const WorkoutCompletePopup = dynamic(
@@ -145,6 +146,7 @@ export function AppShell({
 
       {/* Po zakończeniu treningu — rekordy / podsumowanie zaraz po nawigacji (nie dopiero na /progress). */}
       <WorkoutCompletePopup />
+      {sessionFullscreen ? null : <ReminderRunnerBoot />}
       <GroupWorkoutFloatingWidget />
       <FriendLiveWatchWidget />
       <WorkoutChatLauncher />

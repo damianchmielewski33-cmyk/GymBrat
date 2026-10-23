@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat;
 import pl.gymbrat.app.BuildConfig;
 import pl.gymbrat.app.MainActivity;
 import pl.gymbrat.app.ads.InterstitialAdHelper;
+import pl.gymbrat.app.reminders.ReminderScheduler;
 import pl.gymbrat.app.security.TrustedOrigins;
 import pl.gymbrat.app.update.UpdateInstaller;
 
@@ -256,6 +257,51 @@ public final class GymBratAndroidJsBridge {
         MainActivity act = activity;
         if (act == null) return;
         String js = "window.__gymbratOnCameraPermission && window.__gymbratOnCameraPermission("
+                + (granted ? "true" : "false") + ");";
+        act.runOnUiThread(() -> {
+            if (act.getWebView() != null) {
+                act.getWebView().evaluateJavascript(js, null);
+            }
+        });
+    }
+
+    /**
+     * Zapisuje ustawienia przypomnień (JSON jak w {@code lib/reminders-types.ts}) i planuje
+     * alarmy w AlarmManager — działają przy zamkniętej aplikacji. Pusty obiekt je kasuje.
+     */
+    @JavascriptInterface
+    public boolean scheduleReminders(String json) {
+        if (!isCallFromAppOrigin()) return false;
+        return ReminderScheduler.save(appContext, json);
+    }
+
+    /** true = aplikacja może pokazywać powiadomienia (POST_NOTIFICATIONS + nie wyciszone). */
+    @JavascriptInterface
+    public boolean hasNotificationPermission() {
+        if (!isCallFromAppOrigin()) return false;
+        MainActivity act = activity;
+        return act != null && act.hasNotificationPermission();
+    }
+
+    /** Systemowy dialog zgody (Android 13+); wynik: {@code window.__gymbratOnNotificationPermission(bool)}. */
+    @JavascriptInterface
+    public void requestNotificationPermission() {
+        if (!isCallFromAppOrigin()) {
+            notifyNotificationPermissionResult(false);
+            return;
+        }
+        MainActivity act = activity;
+        if (act == null) {
+            notifyNotificationPermissionResult(false);
+            return;
+        }
+        act.requestNotificationPermissionForWeb();
+    }
+
+    public void notifyNotificationPermissionResult(boolean granted) {
+        MainActivity act = activity;
+        if (act == null) return;
+        String js = "window.__gymbratOnNotificationPermission && window.__gymbratOnNotificationPermission("
                 + (granted ? "true" : "false") + ");";
         act.runOnUiThread(() -> {
             if (act.getWebView() != null) {

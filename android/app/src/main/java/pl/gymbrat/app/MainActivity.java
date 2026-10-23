@@ -13,6 +13,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.animation.ObjectAnimator;
 import android.animation.AnimatorSet;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.OpenableColumns;
@@ -40,6 +41,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 import pl.gymbrat.app.bridge.GymBratAndroidJsBridge;
@@ -89,6 +91,19 @@ public final class MainActivity extends AppCompatActivity {
                         }
                         if (jsWaiting && jsBridge != null) {
                             jsBridge.notifyCameraPermissionResult(granted);
+                        }
+                    }
+            );
+
+    /** Zgoda na powiadomienia (Android 13+) — dla przypomnień ustawianych z WebView. */
+    private final ActivityResultLauncher<String> notificationPermissionLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(),
+                    granted -> {
+                        if (jsBridge != null) {
+                            jsBridge.notifyNotificationPermissionResult(
+                                    granted && hasNotificationPermission()
+                            );
                         }
                     }
             );
@@ -415,6 +430,32 @@ public final class MainActivity extends AppCompatActivity {
             }
             pendingJsCameraRequest = true;
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+        });
+    }
+
+    /** POST_NOTIFICATIONS (13+) przyznane i powiadomienia aplikacji nie są wyciszone. */
+    public boolean hasNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            return false;
+        }
+        return NotificationManagerCompat.from(this).areNotificationsEnabled();
+    }
+
+    /** Prośba o zgodę z JS; wynik przez {@link GymBratAndroidJsBridge#notifyNotificationPermissionResult}. */
+    public void requestNotificationPermissionForWeb() {
+        runOnUiThread(() -> {
+            if (hasNotificationPermission()) {
+                if (jsBridge != null) jsBridge.notifyNotificationPermissionResult(true);
+                return;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            } else if (jsBridge != null) {
+                // Przed Androidem 13 zgoda jest domyślna — brak = użytkownik wyciszył aplikację w ustawieniach.
+                jsBridge.notifyNotificationPermissionResult(false);
+            }
         });
     }
 

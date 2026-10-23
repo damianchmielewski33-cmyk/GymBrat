@@ -9,8 +9,10 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
-import { cn } from "@/lib/utils";
+
+const DELETE_PHRASE = "USUŃ";
 
 async function downloadExport(format: "json" | "csv") {
   const res = await fetch(`/api/user/export?format=${format}`, {
@@ -24,8 +26,7 @@ async function downloadExport(format: "json" | "csv") {
   const cd = res.headers.get("Content-Disposition") ?? "";
   const match = /filename="([^"]+)"/i.exec(cd);
   const filename =
-    match?.[1] ??
-    (format === "csv" ? "gymbrat-export.csv" : "gymbrat-export.json");
+    match?.[1] ?? (format === "csv" ? "gymbrat-export.csv" : "gymbrat-export.json");
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -34,11 +35,10 @@ async function downloadExport(format: "json" | "csv") {
   URL.revokeObjectURL(url);
 }
 
-export function PersonalDataCard() {
-  const [busy, setBusy] = useState<"json" | "csv" | "delete" | null>(null);
+/** Eksport danych (RODO) — dwa przyciski JSON / CSV. */
+export function DataExportActions() {
+  const [busy, setBusy] = useState<"json" | "csv" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
 
   async function onExport(format: "json" | "csv") {
     setError(null);
@@ -52,121 +52,119 @@ export function PersonalDataCard() {
     }
   }
 
-  async function onDelete() {
-    if (confirmText.trim().toUpperCase() !== "USUŃ") return;
-    setError(null);
-    setBusy("delete");
-    try {
-      await ensureCsrfCookie();
-      const res = await fetch("/api/user/account", {
-        method: "DELETE",
-        credentials: "include",
-        headers: {
-          ...getXsrfHeaders(),
-        },
-      });
-      const data = (await res.json().catch(() => null)) as {
-        ok?: boolean;
-        error?: string;
-      } | null;
-      if (!res.ok) {
-        throw new Error(data?.error || "Nie udało się usunąć konta.");
-      }
-      setDeleteOpen(false);
-      await signOut({ callbackUrl: "/login" });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Usuwanie nie powiodło się.");
-      setBusy(null);
-    }
-  }
-
   return (
-    <div className="space-y-4">
-      <p className="text-[13px] leading-snug text-white/50">
-        Masz prawo do przenoszenia i usunięcia danych (RODO). Eksport obejmuje
-        dane konta, treningi, dietę i raporty dostępne w aplikacji.
-      </p>
-
+    <div className="space-y-2">
       <div className="grid gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          disabled={busy != null}
-          onClick={() => void onExport("json")}
-          className="gym-btn-secondary inline-flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-semibold disabled:opacity-50"
-        >
-          <Download className="h-4 w-4" aria-hidden />
-          {busy === "json" ? "Pobieranie…" : "Eksport JSON"}
-        </button>
-        <button
-          type="button"
-          disabled={busy != null}
-          onClick={() => void onExport("csv")}
-          className="gym-btn-secondary inline-flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-semibold disabled:opacity-50"
-        >
-          <Download className="h-4 w-4" aria-hidden />
-          {busy === "csv" ? "Pobieranie…" : "Eksport CSV"}
-        </button>
+        {(["json", "csv"] as const).map((format) => (
+          <button
+            key={format}
+            type="button"
+            disabled={busy != null}
+            onClick={() => void onExport(format)}
+            className="gym-btn-secondary inline-flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-semibold disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" aria-hidden />
+            {busy === format ? "Pobieranie…" : `Eksport ${format.toUpperCase()}`}
+          </button>
+        ))}
       </div>
-
-      <div className="rounded-xl border border-rose-400/25 bg-rose-400/5 px-3.5 py-3">
-        <p className="text-[13px] font-semibold text-rose-200">Usuń konto</p>
-        <p className="mt-1 text-[12px] leading-snug text-white/45">
-          Trwale kasuje konto i powiązane dane w GymBrat. Operacja jest
-          nieodwracalna.
-        </p>
-        <button
-          type="button"
-          disabled={busy != null}
-          onClick={() => {
-            setConfirmText("");
-            setDeleteOpen(true);
-          }}
-          className={cn(
-            "mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-rose-400/35 bg-rose-400/10 px-3 text-[13px] font-semibold text-rose-200 hover:bg-rose-400/20 disabled:opacity-50",
-          )}
-        >
-          <Trash2 className="h-4 w-4" aria-hidden />
-          Usuń konto…
-        </button>
-      </div>
-
       {error ? (
         <p className="text-[13px] text-rose-300" role="alert">
           {error}
         </p>
       ) : null}
+    </div>
+  );
+}
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+/** Usunięcie konta z potwierdzeniem wpisaniem frazy. */
+export function DeleteAccountControl() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const confirmed = confirmText.trim().toUpperCase() === DELETE_PHRASE;
+
+  async function onDelete() {
+    if (!confirmed) return;
+    setError(null);
+    setBusy(true);
+    try {
+      await ensureCsrfCookie();
+      const res = await fetch("/api/user/account", {
+        method: "DELETE",
+        credentials: "include",
+        headers: { ...getXsrfHeaders() },
+      });
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+      } | null;
+      if (!res.ok) throw new Error(data?.error || "Nie udało się usunąć konta.");
+      setOpen(false);
+      await signOut({ callbackUrl: "/login" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Usuwanie nie powiodło się.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => {
+          setConfirmText("");
+          setError(null);
+          setOpen(true);
+        }}
+        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-rose-400/35 bg-rose-400/10 px-4 text-sm font-semibold text-rose-200 transition-colors hover:bg-rose-400/20 disabled:opacity-50 sm:w-auto"
+      >
+        <Trash2 className="h-4 w-4" aria-hidden />
+        Usuń konto
+      </button>
+      {error && !open ? (
+        <p className="text-[13px] text-rose-300" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent className="border border-white/10 bg-[#0c0c0c] p-6">
           <AlertDialogTitle className="text-lg font-semibold text-white">
             Na pewno usunąć konto?
           </AlertDialogTitle>
           <AlertDialogDescription className="mt-2 text-[13px] leading-snug text-white/60">
-            Wpisz <span className="font-semibold text-white">USUŃ</span>, żeby
+            Wpisz <span className="font-semibold text-white">{DELETE_PHRASE}</span>, żeby
             potwierdzić. Tej operacji nie da się cofnąć.
           </AlertDialogDescription>
-          <input
+          <Input
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
-            placeholder="USUŃ"
+            placeholder={DELETE_PHRASE}
             autoComplete="off"
-            className="mt-4 h-11 w-full rounded-xl border border-white/15 bg-black/40 px-3 text-sm text-white outline-none focus:border-rose-400/50"
+            aria-label={`Wpisz ${DELETE_PHRASE}, aby potwierdzić`}
+            className="mt-4 focus-visible:border-rose-400/50"
           />
+          {error ? (
+            <p className="mt-2 text-[13px] text-rose-300" role="alert">
+              {error}
+            </p>
+          ) : null}
           <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
             <button
               type="button"
-              disabled={
-                busy === "delete" || confirmText.trim().toUpperCase() !== "USUŃ"
-              }
+              disabled={busy || !confirmed}
               onClick={() => void onDelete()}
               className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-rose-400/40 bg-rose-400/15 text-sm font-semibold text-rose-100 disabled:opacity-40"
             >
-              {busy === "delete" ? "Usuwanie…" : "Usuń na zawsze"}
+              {busy ? "Usuwanie…" : "Usuń na zawsze"}
             </button>
             <button
               type="button"
-              disabled={busy === "delete"}
-              onClick={() => setDeleteOpen(false)}
+              disabled={busy}
+              onClick={() => setOpen(false)}
               className="gym-btn-secondary h-11 flex-1 rounded-xl text-sm font-semibold"
             >
               Anuluj

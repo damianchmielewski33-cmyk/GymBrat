@@ -474,7 +474,7 @@ export function AppMenuButton({
                       Profil
                     </span>
                     <span className="mt-0.5 block text-[12px] text-white/45">
-                      cele, cykl raportów, hasło
+                      ciało, cele, dieta, przypomnienia, konto
                     </span>
                   </span>
                   <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
