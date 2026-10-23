@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ImageIcon, Trash2, Upload } from "lucide-react";
+import { useBranding } from "@/components/branding/branding-provider";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import {
   AdminCard,
@@ -26,10 +27,20 @@ type SlotState = {
   asset: { url: string; updatedAt: number; mimeType: string } | null;
 };
 
+type ApkBuildResult =
+  | { ok: true; skipped?: false }
+  | { ok: true; skipped: true; reason: string }
+  | { ok: false; error: string };
+
+type BrandingMutationResponse = {
+  slots?: SlotState[];
+  apkBuild?: ApkBuildResult;
+};
+
 const GROUPS: { title: string; description: string; slots: BrandingSlot[] }[] = [
   {
     title: "Logo",
-    description: "Działa od razu po zapisaniu.",
+    description: "Nagłówek i ekran logowania w przeglądarce / WebView — działa od razu po odświeżeniu.",
     slots: ["logo_app", "logo_login"],
   },
   {
@@ -39,10 +50,38 @@ const GROUPS: { title: string; description: string; slots: BrandingSlot[] }[] = 
   },
   {
     title: "Aplikacja Android",
-    description: "Zmiana uruchamia przebudowę APK (kilka minut) — potem Profil → pobierz APK.",
+    description:
+      "Ikona launchera w APK. Wymaga GITHUB_APK_DISPATCH_TOKEN na hostingu; po udanym buildzie pobierz nowe APK z Profilu.",
     slots: ["icon_android"],
   },
 ];
+
+function feedbackForApkBuild(
+  apkBuild: ApkBuildResult | undefined,
+  kind: "saved" | "deleted",
+): { ok: boolean; message: string } {
+  const saved =
+    kind === "saved" ? "Zapisano ikonę Android." : "Usunięto ikonę Android.";
+  if (!apkBuild) {
+    return { ok: true, message: saved };
+  }
+  if (apkBuild.ok && apkBuild.skipped && apkBuild.reason === "missing_token") {
+    return {
+      ok: false,
+      message: `${saved} Przebudowa APK nie wystartowała — brak GITHUB_APK_DISPATCH_TOKEN na hostingu.`,
+    };
+  }
+  if (!apkBuild.ok) {
+    return {
+      ok: false,
+      message: `${saved} Przebudowa APK nie wystartowała: ${apkBuild.error}`,
+    };
+  }
+  return {
+    ok: true,
+    message: `${saved} Startuje przebudowa APK (~kilka minut) — potem Profil → pobierz APK.`,
+  };
+}
 
 const initialSlots = (): SlotState[] =>
   BRANDING_SLOTS.map((slot) => ({
@@ -58,6 +97,7 @@ function formatUpdated(ts: number): string {
 
 export function AdminBrandingClient() {
   const { notifySaved, notifyError } = useSaveFeedback();
+  const { refresh: refreshAppBranding } = useBranding();
   const [slots, setSlots] = useState<SlotState[]>(initialSlots);
   const [loading, setLoading] = useState(true);
   const [busySlot, setBusySlot] = useState<BrandingSlot | null>(null);
@@ -86,7 +126,7 @@ export function AdminBrandingClient() {
         notifyError(e instanceof Error ? e.message : "Nie udało się przygotować pliku.");
         return;
       }
-      const res = await adminRequest("/api/admin/branding", {
+      const res = await adminRequest<BrandingMutationResponse>("/api/admin/branding", {
         method: "POST",
         body: { slot, dataUrl },
         fallbackError: "Upload nieudany — spróbuj mniejszego pliku PNG/WebP.",
@@ -95,11 +135,14 @@ export function AdminBrandingClient() {
         notifyError(res.error);
         return;
       }
-      notifySaved(
-        slot === "icon_android"
-          ? "Zapisano ikonę Android — startuje przebudowa APK (~kilka minut)."
-          : "Zapisano grafikę.",
-      );
+      if (slot === "icon_android") {
+        const fb = feedbackForApkBuild(res.data.apkBuild, "saved");
+        if (fb.ok) notifySaved(fb.message);
+        else notifyError(fb.message);
+      } else {
+        notifySaved("Zapisano grafikę — odśwież stronę, jeśli nadal widać starą.");
+      }
+      refreshAppBranding();
       await reload();
     } finally {
       setBusySlot(null);
@@ -108,7 +151,7 @@ export function AdminBrandingClient() {
 
   async function remove(slot: BrandingSlot) {
     setBusySlot(slot);
-    const res = await adminRequest("/api/admin/branding", {
+    const res = await adminRequest<BrandingMutationResponse>("/api/admin/branding", {
       method: "POST",
       body: { slot, action: "delete" },
       fallbackError: "Nie udało się usunąć.",
@@ -118,11 +161,14 @@ export function AdminBrandingClient() {
       notifyError(res.error);
       return;
     }
-    notifySaved(
-      slot === "icon_android"
-        ? "Usunięto ikonę Android — startuje przebudowa APK z domyślną ikoną."
-        : "Usunięto. Wrócono do domyślnej grafiki.",
-    );
+    if (slot === "icon_android") {
+      const fb = feedbackForApkBuild(res.data.apkBuild, "deleted");
+      if (fb.ok) notifySaved(fb.message);
+      else notifyError(fb.message);
+    } else {
+      notifySaved("Usunięto. Wrócono do domyślnej grafiki.");
+    }
+    refreshAppBranding();
     await reload();
   }
 

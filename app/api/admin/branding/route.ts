@@ -13,7 +13,22 @@ import {
   isBrandingSlot,
   upsertBrandingAsset,
 } from "@/lib/app-branding";
-import { triggerAndroidApkBuildInBackground } from "@/lib/trigger-android-apk-build";
+import {
+  resolveAndroidApiBaseUrl,
+  triggerAndroidApkBuild,
+  type TriggerAndroidApkBuildResult,
+} from "@/lib/trigger-android-apk-build";
+
+async function maybeTriggerAndroidApk(
+  req: Request,
+  slot: string,
+): Promise<TriggerAndroidApkBuildResult | null> {
+  if (slot !== "icon_android") return null;
+  return triggerAndroidApkBuild({
+    req,
+    apiBaseUrl: resolveAndroidApiBaseUrl(req),
+  });
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -79,10 +94,12 @@ async function handlePOST(req: Request) {
       action: "branding.delete",
       meta: { slot: del.data.slot },
     });
-    if (del.data.slot === "icon_android") {
-      triggerAndroidApkBuildInBackground();
-    }
-    return NextResponse.json({ ok: true, deleted: del.data.slot });
+    const apkBuild = await maybeTriggerAndroidApk(req, del.data.slot);
+    return NextResponse.json({
+      ok: true,
+      deleted: del.data.slot,
+      ...(apkBuild ? { apkBuild } : {}),
+    });
   }
 
   const parsed = upsertSchema.safeParse(json);
@@ -100,15 +117,14 @@ async function handlePOST(req: Request) {
       action: "branding.upsert",
       meta: { slot: row.slot, mimeType: row.mimeType },
     });
-    if (row.slot === "icon_android") {
-      triggerAndroidApkBuildInBackground();
-    }
+    const apkBuild = await maybeTriggerAndroidApk(req, row.slot);
     return NextResponse.json({
       ok: true,
       slot: row.slot,
       mimeType: row.mimeType,
       updatedAt: row.updatedAt,
       url: `/api/branding/asset/${row.slot}?v=${row.updatedAt}`,
+      ...(apkBuild ? { apkBuild } : {}),
     });
   } catch (e) {
     if (e instanceof Error && e.message === "INVALID_DATA_URL") {

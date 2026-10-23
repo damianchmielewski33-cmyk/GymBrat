@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Branding: prawdziwy status przebudowy APK",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Po wgraniu ikony Android panel nie obiecuje już przebudowy APK, gdy na hostingu brakuje GITHUB_APK_DISPATCH_TOKEN — dostajesz jasny komunikat, że zapisano grafikę, ale build nie wystartował.",
+      "Automatyczny dispatch buildu APK bierze adres produkcji z Rendera (albo NEXT_PUBLIC_APP_URL), a nie z wyłączonego Vercela, żeby nowa ikona trafiała do kompilacji.",
+    ],
+  },
+  {
     title: "Zapowiedź — Android: aktualizacja APK bez odinstalowywania",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
