@@ -1,10 +1,11 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getUserPackageStatus } from "@/lib/user-package";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+async function handleGET() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Brak autoryzacji" }, { status: 401 });
@@ -20,3 +21,5 @@ export async function GET() {
     showAds: !pkg.active,
   });
 }
+
+export const GET = withApiErrors(handleGET);

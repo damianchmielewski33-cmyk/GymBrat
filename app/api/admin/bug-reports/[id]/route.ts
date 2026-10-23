@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -15,7 +16,7 @@ const patchSchema = z.object({
   status: z.enum(BUG_STATUSES),
 });
 
-export async function PATCH(
+async function handlePATCH(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
@@ -75,3 +76,5 @@ export async function PATCH(
 
   return NextResponse.json({ ok: true, bug: updated });
 }
+
+export const PATCH = withApiErrors(handlePATCH);

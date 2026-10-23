@@ -1,9 +1,10 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ADMIN_UNLOCK_COOKIE } from "@/lib/admin-session";
 import { assertCsrf } from "@/lib/csrf";
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -21,3 +22,5 @@ export async function POST(req: Request) {
   });
   return res;
 }
+
+export const POST = withApiErrors(handlePOST);

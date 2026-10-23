@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -6,7 +7,7 @@ import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import { listChatMessages, sendChatMessage } from "@/lib/community/chat";
 import { UserMessages } from "@/lib/user-facing-errors";
 
-export async function GET(
+async function handleGET(
   req: Request,
   ctx: { params: Promise<{ channelId: string }> },
 ) {
@@ -39,7 +40,7 @@ const sendSchema = z.object({
   parentMessageId: z.string().min(8).max(64).nullable().optional(),
 });
 
-export async function POST(
+async function handlePOST(
   req: Request,
   ctx: { params: Promise<{ channelId: string }> },
 ) {
@@ -87,3 +88,6 @@ export async function POST(
     message: result.message,
   });
 }
+
+export const GET = withApiErrors(handleGET);
+export const POST = withApiErrors(handlePOST);

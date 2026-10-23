@@ -66,18 +66,40 @@ export function checkRateLimit(
   return { ok: true };
 }
 
+/** Adres klienta z nagłówków proxy (Vercel / Render / Cloudflare ustawiają je po swojej stronie). */
+export function clientIpFromHeaders(headers: Pick<Headers, "get">): string {
+  return (
+    headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    headers.get("x-real-ip") ||
+    "local"
+  );
+}
+
 export function rateLimitKey(label: string, req: Request): string {
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "local";
-  return `${label}:${ip}`;
+  return `${label}:${clientIpFromHeaders(req.headers)}`;
 }
 
 export const RATE = {
   version: { limit: 60, windowMs: 60_000 },
   pageView: { limit: 120, windowMs: 60_000 },
   cspReport: { limit: 60, windowMs: 60_000 },
+  clientErrors: { limit: 30, windowMs: 60_000 },
+  /** Logowanie hasłem: osobno na adres IP i na konto (e-mail). */
+  loginIp: { limit: 30, windowMs: 10 * 60_000 },
+  loginEmail: { limit: 20, windowMs: 15 * 60_000 },
+  /** Rejestracja: wysyłka kodu e-mail i weryfikacja kodu. */
+  registerSendCodeIp: { limit: 10, windowMs: 60 * 60_000 },
+  registerSendCodeEmail: { limit: 5, windowMs: 60 * 60_000 },
+  registerSubmitIp: { limit: 20, windowMs: 60 * 60_000 },
+  registerSubmitEmail: { limit: 15, windowMs: 60 * 60_000 },
+  /** Wszystkie akcje serwerowe (ogólny budżet): na adres IP i na sesję. */
+  actionIp: { limit: 600, windowMs: 60_000 },
+  actionSession: { limit: 180, windowMs: 60_000 },
+  /** Proxy grafik AI (płatny klucz Pollinations) — liczone tylko przy realnym wywołaniu AI. */
+  recipeImageIp: { limit: 90, windowMs: 60_000 },
+  recipeImageUser: { limit: 40, windowMs: 60_000 },
+  /** Twardy dzienny sufit generacji w całej aplikacji (nadpisz env `POLLINATIONS_DAILY_LIMIT`). */
+  recipeImageDaily: { limit: 1500, windowMs: 24 * 60 * 60_000 },
   workoutComplete: { limit: 30, windowMs: 60_000 },
   adminUnlock: { limit: 8, windowMs: 10 * 60_000 },
   adminMutation: { limit: 120, windowMs: 60_000 },

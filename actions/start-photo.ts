@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { saveStartPhotoDataUrl } from "@/lib/start-photo";
@@ -12,6 +13,7 @@ function revalidateStartPhotoPaths() {
 
 /** Zapis zdjęcia startowego (data URL JPEG) z galerii. */
 export async function saveStartPhotoAction(dataUrl: string) {
+  await guardAction("start-photo.saveStartPhotoAction");
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: "Sesja wygasła." };
@@ -31,6 +33,7 @@ export async function saveStartPhotoAction(dataUrl: string) {
 }
 
 export async function clearStartPhotoAction() {
+  await guardAction("start-photo.clearStartPhotoAction");
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: "Sesja wygasła." };

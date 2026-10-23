@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { auth } from "@/auth";
 import { createBodyReport, getBodyReports, type CreateBodyReportInput } from "@/lib/body-reports";
 import { revalidatePath } from "next/cache";
@@ -7,7 +8,7 @@ import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
 import { fetchJavaApi, isJavaApiEnabled, passThroughJavaResponse } from "@/lib/java-api";
 import { z } from "zod";
 
-export async function GET() {
+async function handleGET() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Brak autoryzacji" }, { status: 401 });
@@ -62,7 +63,7 @@ function formatBodyReportZodError(error: z.ZodError): string {
   return parts.join(" ") || "Nieprawidłowe dane raportu.";
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -124,3 +125,5 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, id });
 }
 
+export const GET = withApiErrors(handleGET);
+export const POST = withApiErrors(handlePOST);

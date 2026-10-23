@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { aiGeneratePlan } from "@/actions/backend";
 import { saveWorkoutPlan } from "@/actions/workout-plan";
 import { trainingPlanToWorkoutPayloads } from "@/lib/ai-training-plan-to-payload";
@@ -12,6 +13,7 @@ export async function generateAndSaveAiWorkoutPlans(overrides?: {
   goals?: string[];
   equipment?: string[];
 }) {
+  await guardAction("ai-workout-plan.generateAndSaveAiWorkoutPlans", { limit: 12, windowMs: 60000 });
   const generated = await aiGeneratePlan(overrides ?? {});
   if (!generated.ok) {
     return { ok: false as const, error: generated.error };

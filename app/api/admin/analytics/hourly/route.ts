@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { and, gte, lte } from "drizzle-orm";
 import { requireAdminApi } from "@/lib/admin-api";
@@ -16,7 +17,7 @@ export const runtime = "nodejs";
 
 const TZ = () => process.env.ANALYTICS_TIMEZONE?.trim() || "Europe/Warsaw";
 
-export async function GET(_req: Request) {
+async function handleGET(_req: Request) {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
@@ -141,3 +142,5 @@ export async function GET(_req: Request) {
     },
   });
 }
+
+export const GET = withApiErrors(handleGET);

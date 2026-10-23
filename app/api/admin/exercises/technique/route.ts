@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin-api";
 import { logAdminAction } from "@/lib/admin-audit";
@@ -10,7 +11,7 @@ import {
 
 export const runtime = "nodejs";
 
-export async function GET() {
+async function handleGET() {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
@@ -19,7 +20,7 @@ export async function GET() {
   return NextResponse.json({ rows, withUrl, total: rows.length });
 }
 
-export async function PUT(req: Request) {
+async function handlePUT(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -77,3 +78,6 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 }
+
+export const GET = withApiErrors(handleGET);
+export const PUT = withApiErrors(handlePUT);

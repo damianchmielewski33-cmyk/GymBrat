@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { buildUserDataExport } from "@/lib/user-data-export";
@@ -6,7 +7,7 @@ import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Brak autoryzacji" }, { status: 401 });
@@ -51,3 +52,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Eksport nie powiódł się." }, { status: 500 });
   }
 }
+
+export const GET = withApiErrors(handleGET);

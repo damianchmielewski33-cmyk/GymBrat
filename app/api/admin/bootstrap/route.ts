@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { timingSafeEqual } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -28,7 +29,7 @@ function safeEqToken(a: string, b: string): boolean {
  * Jednorazowy bootstrap: pierwsze konto z `app_role = admin`, gdy w bazie nie ma jeszcze admina.
  * Wymaga `ADMIN_BOOTSTRAP_TOKEN` w środowisku.
  */
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -78,3 +79,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+export const POST = withApiErrors(handlePOST);

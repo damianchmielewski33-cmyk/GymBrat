@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -13,7 +14,7 @@ import {
 
 export const runtime = "nodejs";
 
-export async function GET() {
+async function handleGET() {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
   const plans = await listSubscriptionPlans();
@@ -29,7 +30,7 @@ const patchSchema = z.object({
   sortOrder: z.number().int().min(0).max(999).optional(),
 });
 
-export async function PATCH(req: Request) {
+async function handlePATCH(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
   const gate = await requireAdminApi();
@@ -69,3 +70,6 @@ export async function PATCH(req: Request) {
   const plans = await listSubscriptionPlans();
   return NextResponse.json({ ok: true, plans });
 }
+
+export const GET = withApiErrors(handleGET);
+export const PATCH = withApiErrors(handlePATCH);

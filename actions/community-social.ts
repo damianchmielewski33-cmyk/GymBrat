@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { auth } from "@/auth";
 import { searchDiscoverableUsers } from "@/lib/community/discover";
 import { followUser, unfollowUser } from "@/lib/community/follows";
@@ -9,6 +10,7 @@ import {
 } from "@/lib/community/social-profile";
 
 export async function searchUsersAction(query: string) {
+  await guardAction("community-social.searchUsersAction", { limit: 120, windowMs: 60000 });
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return [];
@@ -16,6 +18,7 @@ export async function searchUsersAction(query: string) {
 }
 
 export async function followAction(targetUserId: string) {
+  await guardAction("community-social.followAction");
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { ok: false as const, error: "Zaloguj się." };
@@ -23,6 +26,7 @@ export async function followAction(targetUserId: string) {
 }
 
 export async function unfollowAction(targetUserId: string) {
+  await guardAction("community-social.unfollowAction");
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return;
@@ -36,6 +40,7 @@ export async function updatePrivacyAction(input: {
   showOnGlobal?: boolean;
   discoverable?: boolean;
 }) {
+  await guardAction("community-social.updatePrivacyAction");
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { ok: false as const, error: "Zaloguj się." };

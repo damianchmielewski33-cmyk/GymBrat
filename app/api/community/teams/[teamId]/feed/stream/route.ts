@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { auth } from "@/auth";
 import { SSE_POLL } from "@/lib/community/perf-cache";
 import { SSE_MAX_CONNECTION_MS } from "@/lib/community/realtime-config";
@@ -13,7 +14,7 @@ export const maxDuration = 30;
 /**
  * SSE Team Feed — adaptive poll; połączenie max ~25s (hosting Hobby/Free).
  */
-export async function GET(
+async function handleGET(
   req: Request,
   ctx: { params: Promise<{ teamId: string }> },
 ) {
@@ -118,3 +119,5 @@ export async function GET(
     },
   });
 }
+
+export const GET = withApiErrors(handleGET);

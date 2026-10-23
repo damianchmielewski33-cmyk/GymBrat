@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { auth } from "@/auth";
 import { SSE_POLL } from "@/lib/community/perf-cache";
 import { SSE_MAX_CONNECTION_MS } from "@/lib/community/realtime-config";
@@ -14,7 +15,7 @@ export const maxDuration = 30;
  * SSE notification inbox — adaptive poll + cached unread count.
  * Połączenie zamykane po SSE_MAX_CONNECTION_MS (krótkie invocacje na Hobby).
  */
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
@@ -121,3 +122,5 @@ export async function GET(req: Request) {
     },
   });
 }
+
+export const GET = withApiErrors(handleGET);

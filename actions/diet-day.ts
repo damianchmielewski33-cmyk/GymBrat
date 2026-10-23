@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -78,6 +79,7 @@ export async function setDietDayKindAction(
   dateKey: string,
   kind: NutritionDayType,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await guardAction("diet-day.setDietDayKindAction");
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Musisz być zalogowany." };
 
@@ -121,6 +123,7 @@ export async function setDietDayKindAction(
 export async function clearDietDayKindAction(
   dateKey: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await guardAction("diet-day.clearDietDayKindAction");
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Musisz być zalogowany." };
 

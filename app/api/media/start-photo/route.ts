@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { auth } from "@/auth";
 import { loadStartPhotoDataUrl } from "@/lib/start-photo";
 import { imageResponseFromDataUrl } from "@/lib/user-photo-response";
@@ -6,7 +7,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+async function handleGET() {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
@@ -24,3 +25,5 @@ export async function GET() {
   }
   return res;
 }
+
+export const GET = withApiErrors(handleGET);

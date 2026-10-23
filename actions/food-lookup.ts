@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { auth } from "@/auth";
 import {
   compareFoodSearchHits,
@@ -33,6 +34,7 @@ export type FoodSearchResult =
   | { ok: false; error: string };
 
 export async function lookupFoodByBarcodeAction(barcode: string): Promise<FoodLookupResult> {
+  await guardAction("food-lookup.lookupFoodByBarcodeAction", { limit: 60, windowMs: 60000 });
   const code = barcode.replace(/\D/g, "").trim();
   if (code.length < 8) {
     return { ok: false, error: "Kod kreskowy jest za krótki — wpisz pełny EAN (8–13 cyfr)." };
@@ -71,6 +73,7 @@ export async function listRecentFoodProductsAction(
 }
 
 export async function searchFoodProductsAction(query: string): Promise<FoodSearchResult> {
+  await guardAction("food-lookup.searchFoodProductsAction", { limit: 120, windowMs: 60000 });
   const q = query.trim();
   if (!q) {
     const recent = await listRecentFoodProductsAction(24);

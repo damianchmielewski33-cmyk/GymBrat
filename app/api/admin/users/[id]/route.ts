@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -35,7 +36,7 @@ const patchSchema = z.object({
   grantSku: z.string().trim().max(32).optional(),
 });
 
-export async function PATCH(
+async function handlePATCH(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
@@ -186,7 +187,7 @@ export async function PATCH(
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(
+async function handleDELETE(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
@@ -251,3 +252,6 @@ export async function DELETE(
 
   return NextResponse.json({ ok: true });
 }
+
+export const PATCH = withApiErrors(handlePATCH);
+export const DELETE = withApiErrors(handleDELETE);

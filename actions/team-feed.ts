@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import {
@@ -35,6 +36,7 @@ export async function createTeamFeedPostAction(
   _prev: TeamFeedActionState,
   formData: FormData,
 ): Promise<TeamFeedActionState> {
+  await guardAction("team-feed.createTeamFeedPostAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 
@@ -78,6 +80,7 @@ export async function addTeamFeedCommentAction(
   _prev: TeamFeedActionState,
   formData: FormData,
 ): Promise<TeamFeedActionState> {
+  await guardAction("team-feed.addTeamFeedCommentAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 
@@ -102,6 +105,7 @@ export async function setTeamFeedReactionAction(
   _prev: TeamFeedActionState,
   formData: FormData,
 ): Promise<TeamFeedActionState> {
+  await guardAction("team-feed.setTeamFeedReactionAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 
@@ -125,6 +129,7 @@ export async function deleteTeamFeedPostAction(
   _prev: TeamFeedActionState,
   formData: FormData,
 ): Promise<TeamFeedActionState> {
+  await guardAction("team-feed.deleteTeamFeedPostAction");
   const user = await requireUser();
   if (!user.ok) return { error: user.error };
 

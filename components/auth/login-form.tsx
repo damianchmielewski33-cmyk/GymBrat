@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useEffect, useState, useTransition } from "react";
+import { LOGIN_RATE_LIMITED_CODE } from "@/lib/auth-error-codes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -135,6 +136,12 @@ export function LoginForm({
               return;
             }
             if (res.error) {
+              if (res.code === LOGIN_RATE_LIMITED_CODE) {
+                setError(
+                  "Zbyt wiele prób logowania. Odczekaj kilka minut i spróbuj ponownie.",
+                );
+                return;
+              }
               setError(
                 "Nieprawidłowy e-mail lub hasło, albo typ konta (zawodnik / trener) nie zgadza się z profilem.",
               );

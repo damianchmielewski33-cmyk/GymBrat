@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { resolveAndroidVersion } from "@/lib/android-version";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
@@ -17,7 +18,7 @@ const PUBLIC_HEADERS = {
  * Publiczny JSON dla aplikacji Android — bez sesji.
  * Przy JAVA_API_BASE_URL proxy do Spring Boot.
  */
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const rl = await checkRateLimitAsync(
     rateLimitKey("android-version", req),
     RATE.androidVersion.limit,
@@ -47,6 +48,9 @@ export async function GET(req: Request) {
   );
 }
 
-export async function OPTIONS() {
+async function handleOPTIONS() {
   return new NextResponse(null, { status: 204, headers: PUBLIC_HEADERS });
 }
+
+export const GET = withApiErrors(handleGET);
+export const OPTIONS = withApiErrors(handleOPTIONS);

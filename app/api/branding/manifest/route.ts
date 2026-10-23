@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { getBrandingPublicMap } from "@/lib/app-branding";
 
@@ -5,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Dynamiczny manifest PWA — ikony z panelu admina, gdy ustawione. */
-export async function GET() {
+async function handleGET() {
   const assets = await getBrandingPublicMap();
   const icons: Array<{
     src: string;
@@ -58,3 +59,5 @@ export async function GET() {
     },
   });
 }
+
+export const GET = withApiErrors(handleGET);

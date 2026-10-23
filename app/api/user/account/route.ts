@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
@@ -8,7 +9,7 @@ import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-export async function DELETE(req: Request) {
+async function handleDELETE(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -55,3 +56,5 @@ export async function DELETE(req: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+export const DELETE = withApiErrors(handleDELETE);

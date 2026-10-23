@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
@@ -12,6 +13,7 @@ import {
 } from "@/lib/fitness-goals";
 
 export async function saveFitnessGoalsAction(input: unknown) {
+  await guardAction("fitness-goals.saveFitnessGoalsAction");
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
 
@@ -71,6 +73,7 @@ export async function saveFitnessGoalsAction(input: unknown) {
 export async function saveSupplementsAction(
   supplements: Array<{ name: string; amount?: string }>,
 ) {
+  await guardAction("fitness-goals.saveSupplementsAction");
   const cleaned = supplements
     .map((s) => ({
       name: s.name.trim(),

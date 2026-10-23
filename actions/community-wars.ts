@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { teamMembers } from "@/db/schema";
@@ -17,6 +18,7 @@ async function assertMember(userId: string, teamId: string) {
 }
 
 export async function queueWarAction(teamId: string) {
+  await guardAction("community-wars.queueWarAction");
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { ok: false as const, error: "Zaloguj się." };
@@ -27,6 +29,7 @@ export async function queueWarAction(teamId: string) {
 }
 
 export async function cancelWarQueueAction(teamId: string) {
+  await guardAction("community-wars.cancelWarQueueAction");
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return;

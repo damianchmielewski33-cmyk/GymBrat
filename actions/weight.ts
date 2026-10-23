@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
@@ -7,12 +8,14 @@ import { getDb } from "@/db";
 import { weightLogs } from "@/db/schema";
 
 export async function logWeighInFormAction(formData: FormData) {
+  await guardAction("weight.logWeighInFormAction");
   const kg = Number(formData.get("weightKg") ?? 0);
   const notes = String(formData.get("notes") ?? "").trim();
   return logWeighIn({ weightKg: kg, notes: notes || undefined });
 }
 
 export async function logWeighIn(input: { weightKg: number; notes?: string }) {
+  await guardAction("weight.logWeighIn");
   const session = await auth();
   if (!session?.user?.id) {
     return {

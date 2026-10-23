@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
@@ -18,6 +18,17 @@ import {
   type OAuthProviderId,
 } from "@/lib/google-auth";
 import { isUserBodyProfileComplete } from "@/lib/profile-complete";
+import { LOGIN_RATE_LIMITED_CODE } from "@/lib/auth-error-codes";
+import {
+  checkRateLimitAsync,
+  clientIpFromHeaders,
+  RATE,
+} from "@/lib/rate-limit";
+
+/** Zbyt wiele prób logowania — `code` trafia do klienta w wyniku `signIn()`. */
+export class LoginRateLimited extends CredentialsSignin {
+  code = LOGIN_RATE_LIMITED_CODE;
+}
 
 function isOAuthProvider(id: string | undefined): id is OAuthProviderId {
   return id === "google" || id === "facebook";
@@ -71,13 +82,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
         role: { label: "Role", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
         const rawRole = credentials?.role as string | undefined;
         const role: "zawodnik" | "trener" =
           rawRole === "trener" ? "trener" : "zawodnik";
         if (!email || !password) return null;
+
+        // Limit prób logowania (przed zapytaniem do bazy i bcrypt): osobno na IP i na konto.
+        const [byIp, byEmail] = await Promise.all([
+          checkRateLimitAsync(
+            `login-ip:${clientIpFromHeaders(request.headers)}`,
+            RATE.loginIp.limit,
+            RATE.loginIp.windowMs,
+          ),
+          checkRateLimitAsync(
+            `login-email:${email.trim().toLowerCase()}`,
+            RATE.loginEmail.limit,
+            RATE.loginEmail.windowMs,
+          ),
+        ]);
+        if (!byIp.ok || !byEmail.ok) throw new LoginRateLimited();
 
         const db = getDb();
         const [user] = await db

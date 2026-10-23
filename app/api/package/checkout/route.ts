@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -21,7 +22,7 @@ const bodySchema = z.object({
   sku: z.string().trim().min(1).max(32),
 });
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -119,3 +120,5 @@ export async function POST(req: Request) {
     },
   });
 }
+
+export const POST = withApiErrors(handlePOST);

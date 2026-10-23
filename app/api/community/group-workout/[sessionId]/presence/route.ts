@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -10,7 +11,7 @@ import {
 } from "@/lib/community/group-workout";
 import { UserMessages } from "@/lib/user-facing-errors";
 
-export async function GET(
+async function handleGET(
   _req: Request,
   ctx: { params: Promise<{ sessionId: string }> },
 ) {
@@ -40,7 +41,7 @@ const presenceSchema = z.object({
   phase: z.enum(["working", "rest", "done"]),
 });
 
-export async function PUT(
+async function handlePUT(
   req: Request,
   ctx: { params: Promise<{ sessionId: string }> },
 ) {
@@ -85,7 +86,7 @@ export async function PUT(
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(
+async function handleDELETE(
   req: Request,
   ctx: { params: Promise<{ sessionId: string }> },
 ) {
@@ -113,3 +114,7 @@ export async function DELETE(
   });
   return NextResponse.json({ ok: true });
 }
+
+export const GET = withApiErrors(handleGET);
+export const PUT = withApiErrors(handlePUT);
+export const DELETE = withApiErrors(handleDELETE);

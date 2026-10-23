@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -33,6 +34,7 @@ export async function upsertDailyCheckinAction(
   _prev: DailyCheckinFormState,
   formData: FormData,
 ): Promise<DailyCheckinFormState> {
+  await guardAction("daily-checkin.upsertDailyCheckinAction");
   const session = await auth();
   if (!session?.user?.id) return { error: "Brak sesji." };
 
@@ -62,6 +64,7 @@ export async function closeDayAction(
   _prev: DailyCheckinFormState,
   formData: FormData,
 ): Promise<DailyCheckinFormState> {
+  await guardAction("daily-checkin.closeDayAction");
   const session = await auth();
   if (!session?.user?.id) return { error: "Brak sesji." };
 

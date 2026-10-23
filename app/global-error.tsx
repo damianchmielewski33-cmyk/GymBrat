@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -8,6 +7,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useBoundaryReport } from "@/components/errors/use-boundary-report";
 
 export default function GlobalError({
   error,
@@ -16,11 +16,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    if (process.env.NODE_ENV !== "production") {
-      console.error("[app/global-error.tsx]", error);
-    }
-  }, [error]);
+  const info = useBoundaryReport(error, "app/global-error.tsx");
 
   return (
     <html lang="pl" className="dark">
@@ -29,7 +25,8 @@ export default function GlobalError({
           <AlertDialogContent>
             <AlertDialogTitle>Coś poszło nie tak</AlertDialogTitle>
             <AlertDialogDescription>
-              Spróbuj ponownie. Jeśli problem się powtarza, odśwież stronę.
+              {info.message}
+              {info.ref ? ` Kod referencyjny: ${info.ref}.` : ""}
             </AlertDialogDescription>
             <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
               <Button variant="outline" onClick={() => reset()}>

@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { and, asc, count, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
@@ -9,7 +10,7 @@ import { isBugStatus } from "@/lib/bug-reports";
 
 export const runtime = "nodejs";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
@@ -94,3 +95,5 @@ export async function GET(req: Request) {
     })),
   });
 }
+
+export const GET = withApiErrors(handleGET);

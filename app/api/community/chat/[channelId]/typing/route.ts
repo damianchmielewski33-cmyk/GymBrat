@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -6,7 +7,7 @@ import { checkRateLimitAsync, rateLimitKey } from "@/lib/rate-limit";
 import { listTypingUsers, setTyping } from "@/lib/community/chat";
 import { UserMessages } from "@/lib/user-facing-errors";
 
-export async function GET(
+async function handleGET(
   _req: Request,
   ctx: { params: Promise<{ channelId: string }> },
 ) {
@@ -24,7 +25,7 @@ const schema = z.object({
   typing: z.boolean(),
 });
 
-export async function POST(
+async function handlePOST(
   req: Request,
   ctx: { params: Promise<{ channelId: string }> },
 ) {
@@ -67,3 +68,6 @@ export async function POST(
   }
   return NextResponse.json({ ok: true });
 }
+
+export const GET = withApiErrors(handleGET);
+export const POST = withApiErrors(handlePOST);

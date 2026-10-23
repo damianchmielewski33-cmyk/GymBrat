@@ -1,9 +1,10 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { searchChatMessages } from "@/lib/community/chat";
 import { UserMessages } from "@/lib/user-facing-errors";
 
-export async function GET(
+async function handleGET(
   req: Request,
   ctx: { params: Promise<{ channelId: string }> },
 ) {
@@ -26,3 +27,5 @@ export async function GET(
   }
   return NextResponse.json({ messages: result.messages });
 }
+
+export const GET = withApiErrors(handleGET);

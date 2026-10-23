@@ -5,6 +5,31 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Bezpieczeństwo: limity prób, aktualizacje bibliotek i ochrona grafik AI",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Kod weryfikacyjny przy rejestracji można wpisać najwyżej pięć razy; po wyczerpaniu prób trzeba zamówić nowy kod, a licznik prób jest zliczany bezpiecznie także przy równoległych żądaniach.",
+      "Logowanie, wysyłka kodu rejestracyjnego i rejestracja mają limity prób na adres IP i na konto, a po przekroczeniu widać komunikat o zbyt wielu próbach zamiast ogólnego błędu.",
+      "Wszystkie akcje serwerowe mają limity żądań, a wrażliwe (zmiana hasła, zaproszenia, wyszukiwanie osób i produktów, funkcje AI) dodatkowo ostrzejsze; po przekroczeniu aplikacja pokazuje komunikat 429.",
+      "Zaktualizowano Next.js, logowanie, Sentry i inne biblioteki produkcyjne, więc wszystkie znane podatności w zależnościach produkcyjnych zostały usunięte.",
+      "Import planów treningowych i raportów składu ciała z Excela działa na własnym, zabezpieczonym czytniku zamiast na bibliotece ze znanymi lukami; starsze pliki .xls trzeba zapisać jako .xlsx.",
+      "Generowanie grafik AI przepisów i osiągnięć wymaga zalogowania, ma limity na użytkownika, adres IP i na dobę oraz akceptuje tylko dozwolone modele i prompty, więc nie da się zużyć płatnego klucza dowolnymi zapytaniami.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Jednolita obsługa błędów: kody, komunikaty i logi",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Każdy błąd aplikacji ma teraz kod i zrozumiały komunikat po polsku — od 400, 401, 403, 404 i 429 po 500 i 503 — zamiast technicznych treści czy angielskich haseł typu „Unauthorized”.",
+      "Odpowiedzi API z błędem zawierają kod, status i krótki kod referencyjny; ten sam kod widać w logach serwera i w komunikacie, więc zgłoszenie problemu da się szybko znaleźć.",
+      "Błędy w przeglądarce (nieudane żądania, błędy po kliknięciu, utrata połączenia, awarie ekranu) trafiają do konsoli w jednym formacie, razem z informacją, który przycisk został kliknięty, oraz do logów serwera.",
+      "Nieobsłużony błąd pokazuje okno z komunikatem dopasowanym do przyczyny; ekrany awarii podają kod referencyjny, a nieistniejące adresy mają własną stronę 404.",
+      "Wywołania API bez logowania zwracają czytelne 401 zamiast przekierowania na stronę logowania, a konsola w wersji produkcyjnej znowu pokazuje komunikaty błędów.",
+    ],
+  },
+  {
     title: "Zapowiedź — Postępy: uporządkowany układ ekranów analizy",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

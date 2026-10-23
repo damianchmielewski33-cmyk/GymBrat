@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -43,6 +44,7 @@ export async function saveNutritionPlanAction(
   _prev: NutritionPlanFormState,
   formData: FormData,
 ): Promise<NutritionPlanFormState> {
+  await guardAction("nutrition-settings.saveNutritionPlanAction");
   try {
     const session = await auth();
     if (!session?.user?.id) return { ok: false, error: "Brak sesji." };

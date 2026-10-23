@@ -1,8 +1,9 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { listGhostTargets } from "@/lib/ghost-training/targets";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
@@ -13,3 +14,5 @@ export async function GET(req: Request) {
   const targets = await listGhostTargets(userId, planId);
   return NextResponse.json({ targets });
 }
+
+export const GET = withApiErrors(handleGET);

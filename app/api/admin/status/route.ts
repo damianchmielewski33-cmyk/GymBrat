@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isAdminEligible } from "@/lib/admin-session";
@@ -5,7 +6,7 @@ import { isAdminEligible } from "@/lib/admin-session";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+async function handleGET() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ eligible: false, unlocked: false });
@@ -15,3 +16,5 @@ export async function GET() {
   res.headers.set("Cache-Control", "private, no-store");
   return res;
 }
+
+export const GET = withApiErrors(handleGET);

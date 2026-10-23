@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
@@ -8,6 +9,7 @@ import { userSettings } from "@/db/schema";
 import { fitnessGoalsToJson } from "@/lib/fitness-goals";
 
 export async function completeOnboardingAction(input: unknown) {
+  await guardAction("onboarding.completeOnboardingAction");
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
 
@@ -38,6 +40,7 @@ export async function completeOnboardingAction(input: unknown) {
 }
 
 export async function dismissOnboardingAction() {
+  await guardAction("onboarding.dismissOnboardingAction");
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
 

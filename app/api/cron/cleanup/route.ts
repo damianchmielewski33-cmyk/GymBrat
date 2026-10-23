@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { runDbCleanup } from "@/lib/db-retention";
 
@@ -26,10 +27,13 @@ async function handle(req: Request) {
 }
 
 /** Vercel Cron woła GET (z Authorization: Bearer CRON_SECRET). */
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   return handle(req);
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   return handle(req);
 }
+
+export const GET = withApiErrors(handleGET);
+export const POST = withApiErrors(handlePOST);

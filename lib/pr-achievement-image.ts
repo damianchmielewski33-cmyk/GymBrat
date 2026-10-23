@@ -3,7 +3,10 @@
  * (`/api/recipe-image` + POLLINATIONS_API_KEY). Tekst nakładamy w UI.
  */
 
-import { buildAppRecipeImageProxyUrl } from "@/lib/pollinations-image";
+import {
+  buildAppRecipeImageProxyUrl,
+  POLLINATIONS_RAW_PROMPT_PREFIX,
+} from "@/lib/pollinations-image";
 
 function hashSeed(input: string): number {
   let h = 2166136261;
@@ -24,7 +27,7 @@ export type PrAchievementImageInput = {
 export function buildPrAchievementImagePrompt(input: PrAchievementImageInput): string {
   const exercise = input.exerciseName.trim() || "barbell lift";
   return [
-    "cinematic dark gym photography",
+    POLLINATIONS_RAW_PROMPT_PREFIX,
     "dramatic overhead spotlight",
     "black weightlifting bench in foreground",
     "gleaming gold trophy cup and gold medal with barbell emblem on black ribbon",

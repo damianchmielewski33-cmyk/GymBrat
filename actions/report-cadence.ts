@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
@@ -11,10 +12,12 @@ export async function updateReportCadenceForm(
   _prev: { ok?: boolean; error?: string },
   formData: FormData,
 ) {
+  await guardAction("report-cadence.updateReportCadenceForm");
   return updateReportCadenceDays(formData.get("reportCadenceDays"));
 }
 
 export async function updateReportCadenceDays(raw: unknown) {
+  await guardAction("report-cadence.updateReportCadenceDays");
   const session = await auth();
   if (!session?.user?.id) {
     return {

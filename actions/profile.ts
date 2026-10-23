@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { compare, hash } from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -26,6 +27,7 @@ export async function updateBodyParamsFormAction(
   _prevState: unknown,
   formData: FormData,
 ) {
+  await guardAction("profile.updateBodyParamsFormAction");
   const input = {
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
@@ -40,10 +42,12 @@ export async function updateBodyParamsFormAction(
 }
 
 export async function updateBodyParamsFormActionVoid(formData: FormData): Promise<void> {
+  await guardAction("profile.updateBodyParamsFormActionVoid");
   await updateBodyParamsFormAction(null, formData);
 }
 
 export async function updateBodyParams(input: unknown) {
+  await guardAction("profile.updateBodyParams");
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: UserMessages.sessionExpired };
@@ -120,6 +124,7 @@ export async function changePasswordFormAction(
   _prevState: unknown,
   formData: FormData,
 ) {
+  await guardAction("profile.changePasswordFormAction", { limit: 8, windowMs: 900000 });
   const input = {
     currentPassword: formData.get("currentPassword"),
     newPassword: formData.get("newPassword"),
@@ -128,10 +133,12 @@ export async function changePasswordFormAction(
 }
 
 export async function changePasswordFormActionVoid(formData: FormData): Promise<void> {
+  await guardAction("profile.changePasswordFormActionVoid", { limit: 8, windowMs: 900000 });
   await changePasswordFormAction(null, formData);
 }
 
 export async function changePassword(input: unknown) {
+  await guardAction("profile.changePassword", { limit: 8, windowMs: 900000 });
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: UserMessages.sessionExpired };

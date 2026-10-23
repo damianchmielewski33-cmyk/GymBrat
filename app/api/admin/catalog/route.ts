@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin-api";
 import { logAdminAction } from "@/lib/admin-audit";
@@ -14,7 +15,7 @@ export const runtime = "nodejs";
 /** Import + pierwsza paczka grafik AI (Pollinations). */
 export const maxDuration = 60;
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
@@ -30,7 +31,7 @@ export async function GET(req: Request) {
   });
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
   }
 }
 
-export async function DELETE(req: Request) {
+async function handleDELETE(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -105,3 +106,7 @@ export async function DELETE(req: Request) {
   });
   return NextResponse.json({ ok: true, removed });
 }
+
+export const GET = withApiErrors(handleGET);
+export const POST = withApiErrors(handlePOST);
+export const DELETE = withApiErrors(handleDELETE);

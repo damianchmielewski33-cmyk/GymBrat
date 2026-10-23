@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { auth } from "@/auth";
 import { importBodyReports } from "@/lib/body-reports";
 import { parseBodyReportsFromXlsx } from "@/lib/excel/body-report-import";
@@ -94,7 +95,7 @@ async function readBufferFromUrl(url: URL): Promise<ArrayBuffer> {
   }
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -182,3 +183,4 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, imported, skipped, warnings: parsed.warnings });
 }
 
+export const POST = withApiErrors(handlePOST);

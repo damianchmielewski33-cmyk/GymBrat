@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { desc } from "drizzle-orm";
 import { requireAdminApi } from "@/lib/admin-api";
@@ -11,7 +12,7 @@ import { users } from "@/db/schema";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+async function handleGET() {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
@@ -42,3 +43,5 @@ export async function GET() {
     canGrantAdmin,
   });
 }
+
+export const GET = withApiErrors(handleGET);

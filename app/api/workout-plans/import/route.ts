@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { workoutPlans } from "@/db/schema";
@@ -25,7 +26,7 @@ async function parseByKind(kind: WorkoutPlanFileKind, buffer: Buffer) {
   return parseWorkoutPlansFromXlsx(buffer);
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -203,3 +204,5 @@ export async function POST(req: Request) {
     kind,
   });
 }
+
+export const POST = withApiErrors(handlePOST);

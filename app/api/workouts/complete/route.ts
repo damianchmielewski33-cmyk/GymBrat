@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { and, desc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
@@ -189,7 +190,7 @@ function dateKeyFromStartedAt(startedAtMs: number | null | undefined, fallback: 
   return calendarDateKey(fallback);
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -397,3 +398,4 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, strengthDeltaPercent, planCompare });
 }
 
+export const POST = withApiErrors(handlePOST);

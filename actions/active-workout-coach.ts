@@ -1,5 +1,6 @@
 "use server";
 
+import { guardAction } from "@/lib/action-guard";
 import { z } from "zod";
 import { auth } from "@/auth";
 import {
@@ -228,6 +229,7 @@ function liveLineFromPayload(data: z.infer<typeof InputSchema>): string | null {
 }
 
 export async function activeWorkoutCoachAction(input: unknown): Promise<ActiveWorkoutCoachResult> {
+  await guardAction("active-workout-coach.activeWorkoutCoachAction", { limit: 40, windowMs: 60000 });
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: UserMessages.sessionExpired };
 

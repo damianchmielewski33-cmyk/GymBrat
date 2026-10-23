@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin-api";
 import { collectMonitoringSnapshot } from "@/lib/monitoring/collect";
@@ -6,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Live limity Render + Turso (+ lokalny soft storage). */
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
@@ -18,3 +19,5 @@ export async function GET(req: Request) {
   res.headers.set("Cache-Control", "private, no-store");
   return res;
 }
+
+export const GET = withApiErrors(handleGET);

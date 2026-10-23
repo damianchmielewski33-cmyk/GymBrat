@@ -1,3 +1,4 @@
+import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -11,7 +12,7 @@ const schema = z.object({
   all: z.boolean().optional(),
 });
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const csrf = assertCsrf(req);
   if (csrf) return csrf;
 
@@ -56,3 +57,5 @@ export async function POST(req: Request) {
   }
   return NextResponse.json({ ok: true, deleted: result.deleted });
 }
+
+export const POST = withApiErrors(handlePOST);
