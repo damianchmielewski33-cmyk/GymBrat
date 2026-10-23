@@ -90,9 +90,19 @@ android {
         release {
             isMinifyEnabled = false
             val releaseSigning = signingConfigs.getByName("release")
-            // Bez keystore.properties podpisuj debugiem — APK da się zainstalować z GitHub Actions.
+            val requireReleaseSigning =
+                System.getenv("CI") == "true" ||
+                    (project.findProperty("REQUIRE_RELEASE_SIGNING") as String?) == "true"
+            // CI / publikacja: zawsze ten sam release keystore (sekrety GitHub).
+            // Lokalnie bez keystore.properties — debug (tylko do testów; nie publikuj).
             signingConfig = if (releaseSigning.storeFile != null) {
                 releaseSigning
+            } else if (requireReleaseSigning) {
+                throw GradleException(
+                    "Brak android/keystore.properties — release APK musi mieć stały podpis. " +
+                        "W CI ustaw sekrety ANDROID_RELEASE_KEYSTORE_* " +
+                        "(workflow „Bootstrap Android signing”)."
+                )
             } else {
                 signingConfigs.getByName("debug")
             }

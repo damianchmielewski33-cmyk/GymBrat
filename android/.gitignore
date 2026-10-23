@@ -2,6 +2,7 @@
 /build/
 /app/build/
 /local.properties
+/keystore.properties
 /.idea/
 *.iml
 /captures/
@@ -10,3 +11,6 @@
 /.jdk/
 *.apk
 *.aab
+*.jks
+*.keystore
+!keystore.properties.example
