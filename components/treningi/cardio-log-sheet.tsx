@@ -40,6 +40,29 @@ function todayLabelPl(): string {
   }
 }
 
+/** YYYY-MM-DD w strefie przeglądarki (do atrybutów min/max pola daty). */
+function localDateInputValue(offsetDays = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function dateLabelPl(dateKey: string): string {
+  try {
+    const [y, m, d] = dateKey.split("-").map(Number);
+    return new Intl.DateTimeFormat("pl-PL", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    }).format(new Date(y!, m! - 1, d!, 12));
+  } catch {
+    return dateKey;
+  }
+}
+
 function clampMinutes(n: number): number {
   if (!Number.isFinite(n)) return 30;
   return Math.min(300, Math.max(1, Math.round(n)));
@@ -66,6 +89,8 @@ export function CardioLogSheet({
   const [steps, setSteps] = useState("");
   const [effortScore, setEffortScore] = useState("");
   const [note, setNote] = useState("");
+  /** Pusta = dziś (serwer ustawia datę w strefie kalendarza aplikacji). */
+  const [dateKey, setDateKey] = useState("");
 
   const [state, formAction, pending] = useActionState(logCardioDetailedAction, {} as {
     ok?: boolean;
@@ -88,6 +113,7 @@ export function CardioLogSheet({
     setCalories("");
     setSteps("");
     setEffortScore("");
+    setDateKey("");
     setNote(match ? "" : String(defaultTitle));
   }, [open, defaultTitle]);
 
@@ -104,7 +130,15 @@ export function CardioLogSheet({
     }
   }, [state, notifySaved, notifyError, onClose, router]);
 
-  const dateLine = useMemo(() => `zapisuję na dziś, ${todayLabelPl()}`, []);
+  const dateLine = useMemo(
+    () =>
+      dateKey
+        ? `zapisuję na ${dateLabelPl(dateKey)}`
+        : `zapisuję na dziś, ${todayLabelPl()}`,
+    [dateKey],
+  );
+  const maxDate = useMemo(() => localDateInputValue(0), []);
+  const minDate = useMemo(() => localDateInputValue(-60), []);
   const minutes = clampMinutes(Number(String(minutesText).replace(",", ".")));
 
   if (!open || !mounted) return null;
@@ -169,6 +203,7 @@ export function CardioLogSheet({
           <input type="hidden" name="steps" value={steps} />
           <input type="hidden" name="effortScore" value={effortScore} />
           <input type="hidden" name="notes" value={note} />
+          <input type="hidden" name="date" value={dateKey} />
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-3">
             <div className="flex flex-wrap gap-2">
@@ -227,6 +262,17 @@ export function CardioLogSheet({
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
+              <label className="col-span-2 block">
+                <span className="app-label">Data (do 60 dni wstecz)</span>
+                <input
+                  type="date"
+                  value={dateKey}
+                  min={minDate}
+                  max={maxDate}
+                  onChange={(e) => setDateKey(e.target.value)}
+                  className={fieldClass}
+                />
+              </label>
               <label className="block">
                 <span className="app-label">Dystans (km)</span>
                 <input

@@ -31,6 +31,7 @@ export async function logCardioDetailedAction(
   const stepsRaw = String(formData.get("steps") ?? "").trim();
   const effortRaw = String(formData.get("effortScore") ?? "").trim();
   const typeRaw = String(formData.get("cardioType") ?? "").trim();
+  const dateRaw = String(formData.get("date") ?? "").trim();
   const distanceKm = distanceRaw ? Number(distanceRaw) : null;
   const avgHr = avgHrRaw ? Number(avgHrRaw) : null;
   const maxHr = maxHrRaw ? Number(maxHrRaw) : null;
@@ -75,6 +76,7 @@ export async function logCardioDetailedAction(
       effortScore <= 10
         ? Math.round(effortScore)
         : null,
+    date: dateRaw || null,
   });
 }
 

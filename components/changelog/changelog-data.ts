@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Dodatkowe cardio: dokładniejsze liczenie i zapis wpisów",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Po wykonaniu zalecanych minut dodatkowego cardio rekomendacja znika, zamiast zostawiać resztę długu; cardio ponad tygodniowy cel może w pełni pokryć nadwyżkę.",
+      "Niedokończony dzisiejszy dzień nie zmniejsza już nadwyżki, więc zalecane minuty nie skaczą w górę po kolacji; przekroczenie samych węgli lub tłuszczu przy kcal w normie nie liczy się jako nadwyżka.",
+      "Spalanie jest liczone netto (bez metabolizmu spoczynkowego), z uwzględnieniem płci w modelu tętna oraz prędkości osobno dla marszu i biegu; tempo z roweru czy orbitreka nie zaburza szacunku.",
+      "Zapis cardio sprawdza zakresy (minuty 1–1440, tętno 30–250, realne kalorie) i pozwala wskazać datę do 60 dni wstecz; własne tempo wpisu zostaje przy edycji, a wpis siłowy nie zostanie nadpisany jako cardio.",
+      "Pasek cardio na Pulpicie pokazuje niebieski segment także po przekroczeniu celu tygodnia, a podpis mówi „ten tydzień”, bo liczy tydzień pon–nd.",
+    ],
+  },
+  {
     title: "Zapowiedź — Dieta: nowa karta „Makro na dzień” z pierścieniem",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
