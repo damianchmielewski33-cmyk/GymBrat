@@ -1,5 +1,9 @@
 import { round1 } from "@/lib/analytics/math";
-import { pickVelocity, velocityTone } from "@/lib/analytics/strength-velocity";
+import {
+  pickVelocity,
+  velocityTone,
+  type VelocityPeriodKey,
+} from "@/lib/analytics/strength-velocity";
 import type {
   PredictionItem,
   StrengthVelocityExercise,
@@ -46,9 +50,12 @@ function meanPct(vals: Array<number | null>): number | null {
   return round1(xs.reduce((a, b) => a + b, 0) / xs.length);
 }
 
-function moverScore(ex: StrengthVelocityExercise): number | null {
-  const volume = pickVelocity(ex.volumePct, "days30");
-  const e1rm = pickVelocity(ex.e1rmPct, "days30");
+function moverScore(
+  ex: StrengthVelocityExercise,
+  period: VelocityPeriodKey,
+): number | null {
+  const volume = pickVelocity(ex.volumePct, period);
+  const e1rm = pickVelocity(ex.e1rmPct, period);
   if (volume != null) return volume;
   if (e1rm != null) return e1rm;
   return null;
@@ -57,17 +64,18 @@ function moverScore(ex: StrengthVelocityExercise): number | null {
 export function buildStrengthMovers(
   velocity: StrengthVelocitySnapshot,
   limit = 5,
+  period: VelocityPeriodKey = "days30",
 ): StrengthMoversLists {
   const ranked: StrengthMover[] = velocity.exercises
     .map((ex) => {
-      const scorePct = moverScore(ex);
+      const scorePct = moverScore(ex, period);
       if (scorePct == null) return null;
       return {
         exerciseKey: ex.exerciseKey,
         name: ex.name,
         scorePct,
-        volumePct: pickVelocity(ex.volumePct, "days30"),
-        e1rmPct: pickVelocity(ex.e1rmPct, "days30"),
+        volumePct: pickVelocity(ex.volumePct, period),
+        e1rmPct: pickVelocity(ex.e1rmPct, period),
       };
     })
     .filter((m): m is StrengthMover => m != null)

@@ -9,9 +9,10 @@
     "hub": "lib/progress-hub.ts → intelligence",
     "engines": "lib/analytics/*",
     "ui": [
-      "components/progress/intelligence-strip.tsx",
+      "components/progress/readiness-card.tsx",
+      "components/progress/strength-trend-card.tsx",
       "components/progress/muscle-balance-panel.tsx",
-      "components/progress/week-intelligence-panel.tsx",
+      "components/progress/week-tab.tsx (cardio, realizacja i regularność)",
       "components/progress/exercise-detail-view.tsx (prediction + stagnation)"
     ],
     "noPieTables": "Brak materializacji pie_* w tej dostawie — fakty z workouts / body_reports / daily_checkins / users."

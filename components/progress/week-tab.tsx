@@ -1,49 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { Dumbbell, Flame, Medal, Scale, Trophy, Utensils } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
-import { SectionLabel } from "@/components/ui/section-label";
 import { WeekBarChart } from "@/components/progress/week-bar-chart";
 import { WeekOverWeekCard } from "@/components/progress/week-over-week-card";
-import { WeekProgressCalendarCard } from "@/components/progress/week-progress-calendar-card";
-import { WeekIntelligencePanel } from "@/components/progress/week-intelligence-panel";
-import type { AchievementIcon } from "@/lib/achievements";
+import {
+  Eyebrow,
+  Explainer,
+  ProgressSection,
+  StatTile,
+  Surface,
+} from "@/components/progress/progress-ui";
 import type { ProgressIntelligence } from "@/lib/analytics";
 import {
   dietWeekStatusLabel,
   type DietWeekStatus,
   type ProgressDietTrainingWeek,
 } from "@/lib/diet-training-weeks";
+import { fmtNum } from "@/lib/progress-format";
 import type { ProgressHubData } from "@/lib/progress-hub";
 import { formatTonnes } from "@/lib/workout-history-overview";
 import { cn } from "@/lib/utils";
 
-function wejscLabel(n: number): string {
-  if (n === 1) return "1 wejście";
-  if (n >= 2 && n <= 4) return `${n} wejścia`;
-  return `${n} wejść`;
-}
-
-function formatDayMonth(iso: string) {
-  try {
-    return new Intl.DateTimeFormat("pl-PL", {
-      day: "2-digit",
-      month: "2-digit",
-    }).format(new Date(`${iso}T12:00:00`));
-  } catch {
-    return iso;
-  }
-}
-
-function AchievementGlyph({ icon }: { icon: AchievementIcon }) {
-  const cls = "h-4 w-4 text-[var(--gym-gold)]";
-  if (icon === "flame") return <Flame className={cls} aria-hidden />;
-  if (icon === "dumbbell") return <Dumbbell className={cls} aria-hidden />;
-  if (icon === "scale") return <Scale className={cls} aria-hidden />;
-  if (icon === "ribbon") return <Medal className={cls} aria-hidden />;
-  return <Trophy className={cls} aria-hidden />;
-}
+const WEEKS_PREVIEW = 4;
 
 function statusTone(status: DietWeekStatus): string {
   switch (status) {
@@ -61,99 +40,54 @@ function statusTone(status: DietWeekStatus): string {
   }
 }
 
-function fmtPct(n: number | null): string {
-  if (n == null) return "—";
-  return `${n}%`;
+function fmtPctPlain(n: number | null): string {
+  return n == null ? "—" : `${n}%`;
 }
 
-function fmtIntensity(n: number | null, digits = 1): string {
-  if (n == null) return "—";
-  return n.toLocaleString("pl-PL", {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
+function fmtIntensity(n: number | null): string {
+  return n == null ? "—" : fmtNum(n, 1);
 }
 
+function StatusPill({ status }: { status: DietWeekStatus }) {
+  return (
+    <span
+      className={cn(
+        "rounded-full px-2.5 py-0.5 text-[10px] font-semibold",
+        statusTone(status),
+      )}
+    >
+      {dietWeekStatusLabel(status)}
+    </span>
+  );
+}
+
+/** Bieżący tydzień diety — tylko zgodność z celami (tonaż/RPE są w porównaniu tygodni i wykresie). */
 function DietTrainingCurrent({ week }: { week: ProgressDietTrainingWeek }) {
   return (
-    <div className="space-y-2.5 app-panel px-3.5 py-3">
+    <Surface className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Utensils className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />
-          <p className="text-[13px] font-semibold leading-snug text-white/85">
-            Ten tydzień
-          </p>
-        </div>
-        <span
-          className={cn(
-            "rounded-full px-2.5 py-1 text-[11px] font-semibold",
-            statusTone(week.status),
-          )}
-        >
-          {dietWeekStatusLabel(week.status)}
-        </span>
+        <p className="text-[13px] font-semibold leading-snug text-white/90">
+          Ten tydzień
+        </p>
+        <StatusPill status={week.status} />
       </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-            Kcal względem celu
-          </p>
-          <p className="mt-1 font-metric text-[1.5rem] leading-none text-white">
-            {fmtPct(week.calorieAdherencePct)}
-          </p>
-          <p className="mt-1 text-[11px] leading-snug text-white/40">
-            {week.caloriesConsumed.toLocaleString("pl-PL")} /{" "}
-            {week.caloriesGoal > 0
-              ? week.caloriesGoal.toLocaleString("pl-PL")
-              : "—"}{" "}
-            kcal
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-            Białko względem celu
-          </p>
-          <p className="mt-1 font-metric text-[1.5rem] leading-none text-white">
-            {fmtPct(week.proteinAdherencePct)}
-          </p>
-          <p className="mt-1 text-[11px] leading-snug text-white/40">
-            {week.proteinConsumed.toLocaleString("pl-PL")} /{" "}
-            {week.proteinGoal > 0
-              ? week.proteinGoal.toLocaleString("pl-PL")
-              : "—"}{" "}
-            g · {week.daysLogged}/{week.daysInWindow} dni
-          </p>
-        </div>
+      <div className="grid grid-cols-2 gap-2">
+        <StatTile
+          label="Kcal vs cel"
+          value={fmtPctPlain(week.calorieAdherencePct)}
+          hint={`${week.caloriesConsumed.toLocaleString("pl-PL")} / ${
+            week.caloriesGoal > 0 ? week.caloriesGoal.toLocaleString("pl-PL") : "—"
+          } kcal`}
+        />
+        <StatTile
+          label="Białko vs cel"
+          value={fmtPctPlain(week.proteinAdherencePct)}
+          hint={`${week.proteinConsumed.toLocaleString("pl-PL")} / ${
+            week.proteinGoal > 0 ? week.proteinGoal.toLocaleString("pl-PL") : "—"
+          } g · ${week.daysLogged}/${week.daysInWindow} dni`}
+        />
       </div>
-
-      <div className="grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-2.5">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-            Tonaż
-          </p>
-          <p className="mt-1 font-metric text-[15px] leading-none text-white">
-            {formatTonnes(week.tonnageKg)}
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-            Śr. RPE
-          </p>
-          <p className="mt-1 font-metric text-[15px] leading-none text-white">
-            {fmtIntensity(week.avgRpe)}
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-            Śr. RIR
-          </p>
-          <p className="mt-1 font-metric text-[15px] leading-none text-white">
-            {fmtIntensity(week.avgRir)}
-          </p>
-        </div>
-      </div>
-    </div>
+    </Surface>
   );
 }
 
@@ -163,19 +97,12 @@ function DietTrainingWeekRow({ week }: { week: ProgressDietTrainingWeek }) {
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-[13px] font-medium text-white/85">{week.label}</p>
-          <span
-            className={cn(
-              "rounded-full px-2 py-0.5 text-[10px] font-semibold",
-              statusTone(week.status),
-            )}
-          >
-            {dietWeekStatusLabel(week.status)}
-          </span>
+          <StatusPill status={week.status} />
         </div>
         <p className="mt-1 text-[11px] text-white/40">
-          kcal {fmtPct(week.calorieAdherencePct)}
+          kcal {fmtPctPlain(week.calorieAdherencePct)}
           <span className="mx-1 text-white/25">·</span>
-          B {fmtPct(week.proteinAdherencePct)}
+          B {fmtPctPlain(week.proteinAdherencePct)}
           <span className="mx-1 text-white/25">·</span>
           {week.workouts} tr.
           {week.avgRpe != null ? (
@@ -193,6 +120,171 @@ function DietTrainingWeekRow({ week }: { week: ProgressDietTrainingWeek }) {
   );
 }
 
+function DietTrainingSection({
+  block,
+}: {
+  block: ProgressHubData["week"]["dietTraining"];
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const rows = showAll ? block.weeks : block.weeks.slice(0, WEEKS_PREVIEW);
+
+  return (
+    <ProgressSection title="Dieta a trening" trailing="8 tyg.">
+      <div className="space-y-2">
+        {!block.hasGoals ? (
+          <Surface className="text-center text-[13px] text-white/45">
+            Ustaw cele kcal/makro w Profilu — wtedy zobaczysz status „W diecie”
+            obok tonażu i RPE.
+          </Surface>
+        ) : null}
+
+        {block.current ? <DietTrainingCurrent week={block.current} /> : null}
+
+        {block.weeks.length ? (
+          <>
+            <ul className="app-panel divide-y divide-white/[0.06]">
+              {rows.map((w) => (
+                <DietTrainingWeekRow key={w.monday} week={w} />
+              ))}
+            </ul>
+            {block.weeks.length > WEEKS_PREVIEW ? (
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                className="w-full text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45 hover:text-white/70"
+              >
+                {showAll ? "Pokaż mniej" : `Pokaż wszystkie (${block.weeks.length})`}
+              </button>
+            ) : null}
+          </>
+        ) : (
+          <Surface className="py-4 text-center text-[13px] text-white/45">
+            Brak danych tygodniowych do porównania.
+          </Surface>
+        )}
+
+        <Explainer>
+          <p>
+            „W diecie” = kcal 85–110% celu przy ≥3 dniach z dziennika (w bieżącym
+            tygodniu — proporcjonalnie do minionych dni). To nie jest tak/nie z
+            raportu sylwetki.
+          </p>
+        </Explainer>
+      </div>
+    </ProgressSection>
+  );
+}
+
+function CardioSection({ cardio }: { cardio: ProgressIntelligence["cardio"] }) {
+  const verdictTone =
+    cardio.performance.verdict === "improved"
+      ? "text-emerald-300"
+      : cardio.performance.verdict === "declined"
+        ? "text-rose-300"
+        : cardio.performance.verdict === "stable"
+          ? "text-white/55"
+          : "text-white/40";
+
+  return (
+    <ProgressSection title="Cardio" trailing="strefy tętna">
+      <Surface className="space-y-3">
+        <div className="grid grid-cols-2 gap-2">
+          <StatTile
+            label="Obciążenie"
+            value={<AnimatedMetric value={cardio.load} decimals={0} />}
+            hint={cardio.loadLabel}
+          />
+          <StatTile
+            label="Kcal (tydzień)"
+            value={cardio.caloriesEstimatedWeek.toLocaleString("pl-PL")}
+            hint={cardio.hrMax != null ? `HRmax ≈ ${cardio.hrMax}` : undefined}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Eyebrow>Minuty w strefach</Eyebrow>
+          <div className="grid grid-cols-5 gap-1.5">
+            {cardio.zones.map((z) => (
+              <div key={z.zone} className="text-center">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
+                  Z{z.zone}
+                </p>
+                <p className="mt-0.5 font-metric text-[13px] tabular-nums text-white">
+                  {Math.round(z.minutes)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className={cn("text-[12px] leading-snug", verdictTone)}>
+          {cardio.performance.verdictLabel}
+          {cardio.performance.hrThen != null && cardio.performance.hrNow != null
+            ? ` · HR ${cardio.performance.hrThen} → ${cardio.performance.hrNow}`
+            : ""}
+        </p>
+      </Surface>
+    </ProgressSection>
+  );
+}
+
+function AdherenceSection({
+  adherence,
+  consistency,
+}: Pick<ProgressIntelligence, "adherence" | "consistency">) {
+  return (
+    <ProgressSection title="Realizacja i regularność">
+      <Surface className="space-y-3">
+        <div className="grid grid-cols-4 gap-2">
+          {(
+            [
+              { label: "Łącznie", value: adherence.overallPct },
+              { label: "Trening", value: adherence.trainingPct },
+              { label: "Dieta", value: adherence.dietPct },
+              { label: "Cardio", value: adherence.cardioPct },
+            ] as const
+          ).map((cell) => (
+            <div key={cell.label} className="text-center">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
+                {cell.label}
+              </p>
+              <p className="mt-1 font-metric text-[1.15rem] tabular-nums text-white">
+                {cell.value != null ? `${cell.value}%` : "—"}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-2.5">
+          {(
+            [
+              { label: "Tydzień", w: consistency.week },
+              { label: "30 dni", w: consistency.month },
+              { label: "90 dni", w: consistency.days90 },
+            ] as const
+          ).map(({ label, w }) => (
+            <div key={label} className="text-center">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
+                {label}
+              </p>
+              <p className="mt-1 font-metric text-[1.15rem] tabular-nums text-[var(--gym-gold)]">
+                {w.scorePct}%
+              </p>
+              <p className="text-[10px] tabular-nums text-white/35">
+                {w.done}/{w.planned}
+              </p>
+            </div>
+          ))}
+        </div>
+      </Surface>
+    </ProgressSection>
+  );
+}
+
+/**
+ * Tygodnie = historia i porównania. Bieżący tydzień (kalendarz, tonaż, seria)
+ * jest w Przeglądzie, a osiągnięcia i cele — również tam.
+ */
 export function WeekTab({
   data,
   intelligence,
@@ -200,216 +292,33 @@ export function WeekTab({
   data: ProgressHubData["week"];
   intelligence: ProgressIntelligence;
 }) {
-  const { summary, last8, dietTraining, goals, achievements } = data;
-  const [showAll, setShowAll] = useState(false);
-  const unlocked = achievements.filter((a) => a.unlockedAt);
-  const visible = showAll ? unlocked : unlocked.slice(0, 6);
-
-  const tonnageTonnes = Math.max(0, summary.tonnageKg) / 1000;
+  const { summary, last8, dietTraining } = data;
+  const canCompare =
+    summary.compareWeeks?.length >= 2 || summary.weekCompare?.metrics?.length;
 
   return (
     <div className="space-y-3.5">
-      <WeekProgressCalendarCard
-        monday={summary.monday}
-        daysLeft={summary.daysLeft}
-        done={summary.done}
-        target={summary.target}
-        days={summary.days}
-        today={summary.today}
-      />
-
-      <section className="space-y-2">
-        <SectionLabel
-          className="items-center"
-          index={1}
-          title="W tym tygodniu"
-          titleTone="white"
+      {canCompare ? (
+        <WeekOverWeekCard
+          weeks={summary.compareWeeks ?? []}
+          initialCompare={summary.weekCompare}
         />
-        <div className="space-y-2.5 app-panel px-3.5 py-3">
-          <div className="grid grid-cols-2 gap-x-3 gap-y-3">
-            <div className="flex min-w-0 items-start justify-between gap-2">
-              <p className="pt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                Tonaż
-              </p>
-              <div className="min-w-0 text-right">
-                <p className="font-metric text-[1.5rem] leading-none text-white">
-                  <AnimatedMetric value={tonnageTonnes} decimals={1} />
-                  <span className="ml-1 text-[13px] text-white/40">t</span>
-                </p>
-                <p className="mt-1 text-[11px] leading-snug text-white/40">
-                  cały poprzedni tydzień{" "}
-                  {formatTonnes(summary.prevWeekTonnageKg).replace(" t", "")} t
-                </p>
-              </div>
-            </div>
-            <div className="flex min-w-0 items-start justify-between gap-2">
-              <p className="pt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                Cardio
-              </p>
-              <div className="min-w-0 text-right">
-                <p className="font-metric text-[1.5rem] leading-none text-white">
-                  <AnimatedMetric value={summary.cardioMinutes} />
-                  <span className="ml-1 text-[13px] text-white/40">min</span>
-                </p>
-                <p className="mt-1 text-[11px] leading-snug text-white/40">
-                  {wejscLabel(summary.cardioEntries)}
-                  <span className="mx-1 text-white/25">·</span>
-                  Zalecenie: {summary.cardioGoalMinutes}
-                </p>
-              </div>
-            </div>
-          </div>
+      ) : null}
 
-          <div className="flex items-center gap-2 border-t border-white/[0.06] pt-2.5">
-            <Flame className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
-            <p className="text-[13px] leading-snug text-white/80">
-              {summary.streakWeeks === 0
-                ? "Brak serii tygodni z treningiem"
-                : summary.streakWeeks === 1
-                  ? "1 tydzień z rzędu z treningiem"
-                  : summary.streakWeeks >= 2 && summary.streakWeeks <= 4
-                    ? `${summary.streakWeeks} tygodnie z rzędu z treningiem`
-                    : `${summary.streakWeeks} tygodni z rzędu z treningiem`}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-2">
-        <SectionLabel
-          className="items-center"
-          index={2}
-          title="Progres / regres"
-          titleTone="white"
-        />
-        {summary.compareWeeks?.length >= 2 ||
-        summary.weekCompare?.metrics?.length ? (
-          <WeekOverWeekCard
-            weeks={summary.compareWeeks ?? []}
-            initialCompare={summary.weekCompare}
-          />
-        ) : null}
-      </section>
-
-      <WeekIntelligencePanel data={intelligence} />
-
-      <section className="space-y-2">
-        <SectionLabel
-          className="items-center"
-          index={3}
-          title="Dieta a trening"
-          trailing="8 tyg."
-          titleTone="white"
-        />
-        <div className="space-y-2.5">
-          {!dietTraining.hasGoals ? (
-            <div className="app-panel px-3.5 py-3 text-center text-[13px] text-white/45">
-              Ustaw cele kcal/makro w Profilu — wtedy zobaczysz status „W diecie”
-              obok tonażu i RPE.
-            </div>
-          ) : null}
-          {dietTraining.current ? (
-            <DietTrainingCurrent week={dietTraining.current} />
-          ) : null}
-          {dietTraining.weeks.length ? (
-            <ul className="overflow-hidden app-panel divide-y divide-white/[0.06]">
-              {dietTraining.weeks.map((w) => (
-                <DietTrainingWeekRow key={w.monday} week={w} />
-              ))}
-            </ul>
-          ) : (
-            <div className="app-panel px-3.5 py-4 text-center text-[13px] text-white/45">
-              Brak danych tygodniowych do porównania.
-            </div>
-          )}
-          <p className="px-0.5 text-[11px] leading-snug text-white/35">
-            „W diecie” = kcal 85–110% celu przy ≥3 dniach z dziennika (w bieżącym
-            tygodniu — proporcjonalnie do minionych dni). To nie jest tak/nie z
-            raportu sylwetki.
-          </p>
-        </div>
-      </section>
-
-      <section className="space-y-2">
-        <SectionLabel
-          className="items-center"
-          index={4}
-          title="Ostatnie 8 tygodni"
-          titleTone="white"
-        />
-        <div className="app-panel p-3">
+      <ProgressSection title="Ostatnie 8 tygodni">
+        <Surface className="p-3">
           <WeekBarChart weeks={last8} />
-        </div>
-      </section>
+        </Surface>
+      </ProgressSection>
 
-      <section className="space-y-2">
-        <SectionLabel index={5} title="Następne cele" titleTone="white" />
-        <div className="space-y-3 app-panel px-3.5 py-3">
-          {goals.map((g) => (
-            <div key={g.id} className="space-y-1.5">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="text-[13px] font-medium text-white/85">{g.label}</p>
-                <p className="shrink-0 text-[12px] text-white/40">
-                  {g.remainingLabel}
-                </p>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/[0.08]">
-                <div
-                  className="h-full rounded-full bg-[var(--gym-gold)] transition-[width] duration-500"
-                  style={{ width: `${g.progressPct}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <DietTrainingSection block={dietTraining} />
 
-      <section className="space-y-2.5">
-        <SectionLabel
-          index={6}
-          title="Zdobyte"
-          trailing={`${unlocked.length}`}
-          titleTone="white"
-        />
-        {unlocked.length === 0 ? (
-          <div className="app-panel px-4 py-8 text-center text-sm text-white/45">
-            Trenuj dalej — osiągnięcia odblokują się automatycznie.
-          </div>
-        ) : (
-          <ul className="overflow-hidden app-panel divide-y divide-white/[0.06]">
-            {visible.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-center gap-3 px-3.5 py-3.5"
-              >
-                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--neon-rgb),0.12)]">
-                  <AchievementGlyph icon={a.icon} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-semibold text-white">{a.title}</p>
-                  <p className="mt-0.5 text-[11px] text-white/40">
-                    {a.description}
-                  </p>
-                </div>
-                {a.unlockedAt ? (
-                  <p className="shrink-0 text-[12px] tabular-nums text-white/40">
-                    {formatDayMonth(a.unlockedAt)}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-        {unlocked.length > 6 ? (
-          <button
-            type="button"
-            onClick={() => setShowAll((v) => !v)}
-            className="w-full text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45 hover:text-white/70"
-          >
-            {showAll ? "Pokaż mniej" : "Pokaż więcej"}
-          </button>
-        ) : null}
-      </section>
+      <CardioSection cardio={intelligence.cardio} />
+
+      <AdherenceSection
+        adherence={intelligence.adherence}
+        consistency={intelligence.consistency}
+      />
     </div>
   );
 }

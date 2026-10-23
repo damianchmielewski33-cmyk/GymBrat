@@ -1,20 +1,24 @@
 export const PROGRESS_TABS = [
+  { id: "przeglad", label: "Przegląd" },
   { id: "sila", label: "Siła" },
   { id: "sylwetka", label: "Sylwetka" },
-  { id: "zdjecia", label: "Zdjęcia" },
-  { id: "tydzien", label: "Tydzień" },
+  { id: "tydzien", label: "Tygodnie" },
 ] as const;
 
 export type ProgressTabId = (typeof PROGRESS_TABS)[number]["id"];
+
+export const DEFAULT_PROGRESS_TAB: ProgressTabId = "przeglad";
 
 export function parseProgressTab(
   raw: string | string[] | undefined | null,
 ): ProgressTabId {
   const v = Array.isArray(raw) ? raw[0] : raw;
-  if (v === "sylwetka" || v === "zdjecia" || v === "tydzien" || v === "sila") {
+  if (v === "przeglad" || v === "sila" || v === "sylwetka" || v === "tydzien") {
     return v;
   }
-  return "sila";
+  // Zdjęcia zostały włączone do zakładki Sylwetka — stare linki nadal działają.
+  if (v === "zdjecia") return "sylwetka";
+  return DEFAULT_PROGRESS_TAB;
 }
 
 export function exerciseProgressKey(name: string): string {

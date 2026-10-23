@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { parseProgressTab } from "@/lib/progress-tabs";
 
 /** Legacy route — hub Postępy lives at `/progress`. */
 export default async function ProgressAnalysisRedirect({
@@ -16,8 +17,9 @@ export default async function ProgressAnalysisRedirect({
 
   const tabRaw = sp?.tab;
   const tab = Array.isArray(tabRaw) ? tabRaw[0] : tabRaw;
-  if (tab === "sylwetka" || tab === "zdjecia" || tab === "tydzien" || tab === "sila") {
-    redirect(`/progress?tab=${tab}`);
+  if (tab) {
+    // Stare nazwy zakładek (np. „zdjecia”) są mapowane przez parseProgressTab.
+    redirect(`/progress?tab=${parseProgressTab(tab)}`);
   }
 
   redirect("/progress");

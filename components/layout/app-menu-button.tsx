@@ -205,7 +205,7 @@ export function AppMenuButton({
         {
           href: "/progress",
           title: "Postępy",
-          subtitle: "siła, sylwetka, zdjęcia, tydzień",
+          subtitle: "przegląd, siła, sylwetka, tygodnie",
           icon: LineChart,
         },
         {
