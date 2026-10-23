@@ -49,7 +49,8 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
-      "Panel admina ma boczne menu z sekcjami Przegląd, Użytkownicy, Treści i System, a na telefonie przewijany pasek zakładek; plakietki pokazują liczbę otwartych błędów i brakujących ustawień.",
+      "Panel admina ma boczne menu z sekcjami Przegląd, Użytkownicy, Treści i System, a na telefonie siatkę 4×2 z krótkimi etykietami (Branding, Konfig. itd.), żeby wszystkie sekcje były widoczne i klikalne bez poziomego przewijania; plakietki pokazują liczbę otwartych błędów i brakujących ustawień.",
+      "Na wąskim ekranie panel admina nie ucina pól ani nazw zmiennych: nagłówek i przycisk powrotu są jeden pod drugim, karty mają mniejszy padding, a długie nazwy env zawijają się w kartach Konfiguracji.",
       "Nowy ekran Konfiguracja pokazuje, które integracje są podłączone (baza, logowanie, e-mail, płatności, grafiki AI, monitoring, Android), co się stanie bez każdej z nich i które zmienne środowiskowe trzeba ustawić — bez wyświetlania ich wartości.",
       "Na ekranie Konfiguracja można skopiować szablon brakujących zmiennych .env i uruchomić sprzątanie starych danych z podglądem zajętości bazy.",
       "Lista kont ma wyszukiwarkę i filtr roli, a usuwanie konta, czyszczenie katalogu przepisów i przywracanie domyślnej grafiki pytają o potwierdzenie w oknie w stylu GymBrat zamiast w okienku przeglądarki.",

@@ -136,7 +136,7 @@ function IntegrationCard({
                     : v.hint
                 }
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-md border px-2 py-1 font-mono text-[11px]",
+                  "inline-flex max-w-full min-w-0 items-center gap-1 rounded-md border px-2 py-1 font-mono text-[11px]",
                   v.present
                     ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-100"
                     : v.optional
@@ -145,11 +145,11 @@ function IntegrationCard({
                 )}
               >
                 {v.present ? (
-                  <CheckCircle2 className="h-3 w-3" aria-hidden />
+                  <CheckCircle2 className="h-3 w-3 shrink-0" aria-hidden />
                 ) : (
-                  <XCircle className="h-3 w-3" aria-hidden />
+                  <XCircle className="h-3 w-3 shrink-0" aria-hidden />
                 )}
-                {v.name}
+                <span className="min-w-0 break-all">{v.name}</span>
                 {v.optional ? <span className="font-sans text-[10px] opacity-70">(opc.)</span> : null}
               </li>
             ))}

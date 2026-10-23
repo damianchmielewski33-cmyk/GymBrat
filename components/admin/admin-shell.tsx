@@ -44,21 +44,48 @@ function NavLink({
   compact?: boolean;
 }) {
   const Icon = item.icon;
+  const label = compact ? (item.shortLabel ?? item.label) : item.label;
   return (
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
+      aria-label={item.label}
       className={cn(
         "flex items-center gap-2.5 rounded-xl text-sm font-medium transition-colors",
-        compact ? "shrink-0 px-3.5 py-2" : "px-3 py-2.5",
+        compact
+          ? "min-w-0 flex-col gap-1 px-1.5 py-2.5 text-center"
+          : "px-3 py-2.5",
         active
           ? "bg-[var(--neon)]/15 text-white ring-1 ring-[var(--neon)]/40"
           : "text-white/60 hover:bg-white/[0.06] hover:text-white",
       )}
     >
-      <Icon className={cn("h-4 w-4 shrink-0", active && "text-[var(--gym-gold)]")} aria-hidden />
-      <span className="whitespace-nowrap">{item.label}</span>
-      {badge && badge.count > 0 ? <NavBadge {...badge} /> : null}
+      <span className="relative inline-flex">
+        <Icon
+          className={cn("h-4 w-4 shrink-0", active && "text-[var(--gym-gold)]")}
+          aria-hidden
+        />
+        {compact && badge && badge.count > 0 ? (
+          <span
+            className={cn(
+              "absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-0.5 text-[9px] font-bold leading-none text-white",
+              badge.tone === "danger" ? "bg-red-500" : "bg-amber-500 text-black",
+            )}
+          >
+            {badge.count > 9 ? "9+" : badge.count}
+          </span>
+        ) : null}
+      </span>
+      <span
+        className={cn(
+          compact
+            ? "w-full truncate text-[10px] font-semibold leading-tight"
+            : "whitespace-nowrap",
+        )}
+      >
+        {label}
+      </span>
+      {!compact && badge && badge.count > 0 ? <NavBadge {...badge} /> : null}
     </Link>
   );
 }
@@ -154,16 +181,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[236px_minmax(0,1fr)] lg:items-start lg:gap-8">
-      {/* Mobile / tablet: nagłówek + przewijany pasek zakładek */}
-      <div className="space-y-3 lg:hidden">
-        <div className="flex items-center justify-between gap-3">
+    <div className="grid min-w-0 gap-5 lg:grid-cols-[236px_minmax(0,1fr)] lg:items-start lg:gap-8">
+      {/* Mobile / tablet: nagłówek + siatka zakładek (bez poziomego scrolla — nic nie ucina) */}
+      <div className="min-w-0 space-y-3 lg:hidden">
+        <div className="flex min-w-0 flex-col gap-3">
           {brand}
-          <div className="w-44 shrink-0">{backButton}</div>
+          {backButton}
         </div>
         <nav
           aria-label="Sekcje panelu admina"
-          className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="grid grid-cols-4 gap-1 rounded-2xl border border-white/10 bg-black/25 p-1.5"
         >
           {ADMIN_NAV_GROUPS.flatMap((g) => g.items).map((item) => (
             <NavLink
@@ -200,7 +227,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <div className="border-t border-white/10 pt-4">{backButton}</div>
       </aside>
 
-      <main className="min-w-0 space-y-6">
+      <main className="min-w-0 max-w-full space-y-6">
         {configIssues > 0 && pathname !== "/admin/settings" ? (
           <AdminNotice
             tone={configRequired > 0 ? "danger" : "warn"}

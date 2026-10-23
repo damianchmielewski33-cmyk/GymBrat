@@ -339,7 +339,7 @@ export function AdminOverviewClient() {
               title="Mapa ciepła wejść (godzina × dzień)"
               description={`Ostatnie 7 dni w strefie ${hourly?.timezone ?? "Europe/Warsaw"}. Jaśniej = więcej wejść.`}
             >
-              <div className="overflow-auto">
+              <div className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                 <div className="min-w-[880px]">
                   <div className="grid grid-cols-[140px_repeat(24,minmax(0,1fr))] gap-1 text-[10px] text-white/45">
                     <div />
