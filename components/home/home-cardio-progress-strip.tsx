@@ -39,17 +39,26 @@ export function HomeCardioProgressStrip({
       ? extraCardio.extraMinutes
       : 0;
 
-  // Skala = cel tygodnia + dodatkowe minuty (nadwyżka makro).
-  // Nie ucinamy złotego do 100% kosztem niebieskiego — oba segmenty muszą być widoczne.
-  const totalUnits = Math.max(weeklyGoal + extraMinutes, mins, 1);
+  // Skala = max(cel, wykonane) + dodatkowe minuty (nadwyżka makro).
+  // Dodatkowe minuty doliczamy ZAWSZE na wierzch, także gdy cel już przekroczono —
+  // inaczej niebieski segment znikał (mins > cel + extra zajmował całą skalę).
+  const totalUnits = Math.max(Math.max(weeklyGoal, mins) + extraMinutes, 1);
   const goldPct = Math.min(100, (Math.min(mins, weeklyGoal) / totalUnits) * 100);
   const overGoalPct =
     mins > weeklyGoal
       ? Math.min(100 - goldPct, ((mins - weeklyGoal) / totalUnits) * 100)
       : 0;
+  // Brakujące minuty do celu — przerwa, żeby niebieski segment leżał ZA celem tygodnia.
+  const gapPct =
+    extraMinutes > 0 && mins < weeklyGoal
+      ? ((weeklyGoal - mins) / totalUnits) * 100
+      : 0;
   const bluePct =
     extraMinutes > 0
-      ? Math.min(100 - goldPct - overGoalPct, (extraMinutes / totalUnits) * 100)
+      ? Math.min(
+          100 - goldPct - overGoalPct - gapPct,
+          (extraMinutes / totalUnits) * 100,
+        )
       : 0;
 
   return (
@@ -87,7 +96,7 @@ export function HomeCardioProgressStrip({
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-2">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                Cardio · 7 dni
+                Cardio · ten tydzień
               </p>
               <p className="shrink-0 font-metric text-[13px] tabular-nums text-white">
                 <span className="text-[var(--gym-gold)]">{mins}</span>
@@ -113,6 +122,13 @@ export function HomeCardioProgressStrip({
                   initial={false}
                   animate={{ width: `${overGoalPct}%` }}
                   transition={{ duration: 0.75, ease: "easeOut", delay: 0.03 }}
+                />
+              ) : null}
+              {gapPct > 0 ? (
+                <div
+                  className="h-full shrink-0"
+                  style={{ width: `${gapPct}%` }}
+                  aria-hidden
                 />
               ) : null}
               {bluePct > 0 ? (

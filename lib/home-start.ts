@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, gte, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   bodyReportPhotos,
@@ -217,10 +217,12 @@ async function getRecentCardioSamples(
         eq(workouts.userId, userId),
         gte(workouts.date, fromKey),
         lte(workouts.date, todayKey),
+        // Tylko wiersze z cardio — treningi siłowe bez cardio nie zjadają limitu.
+        gt(workouts.cardioMinutes, 0),
       ),
     )
     .orderBy(desc(workouts.date))
-    .limit(120);
+    .limit(limit * 2);
 
   const out: RecentCardioSample[] = [];
   for (const row of rows) {
@@ -256,9 +258,38 @@ async function getRecentCardioSamples(
       paceMinPerKm: extras.paceMinPerKm,
       avgHeartRate: extras.avgHr,
       maxHeartRate,
+      cardioType: extras.cardioType,
       dateKey: row.date,
     });
     if (out.length >= limit) break;
+  }
+
+  // Legacy `training_sessions` — te minuty liczą się do tygodniowego celu,
+  // więc muszą też liczyć się do offsetu cardio (bez kcal / tempa).
+  const legacyRows = await db
+    .select({
+      startedAt: trainingSessions.startedAt,
+      cardioMinutes: trainingSessions.cardioMinutes,
+    })
+    .from(trainingSessions)
+    .where(
+      and(
+        eq(trainingSessions.userId, userId),
+        gte(trainingSessions.startedAt, new Date(`${fromKey}T00:00:00`)),
+        lte(trainingSessions.startedAt, new Date(`${todayKey}T23:59:59`)),
+        gt(trainingSessions.cardioMinutes, 0),
+      ),
+    );
+  for (const r of legacyRows) {
+    const minutes = Math.max(0, Math.round(Number(r.cardioMinutes) || 0));
+    if (minutes <= 0 || !r.startedAt) continue;
+    out.push({
+      minutes,
+      calories: null,
+      paceMinPerKm: null,
+      cardioType: null,
+      dateKey: calendarDateKey(new Date(r.startedAt)),
+    });
   }
   return out;
 }
@@ -973,6 +1004,7 @@ async function loadHomeStartDashboard(
         name: users.name,
         weightKg: users.weightKg,
         age: users.age,
+        sex: users.sex,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -1053,6 +1085,10 @@ async function loadHomeStartDashboard(
     weekKeys,
     weightKg: currentWeightKg,
     ageYears,
+    sex:
+      userRow?.sex === "male" || userRow?.sex === "female"
+        ? userRow.sex
+        : null,
     recentCardio: recentCardioSamples,
     weeklyCardioGoalMinutes: cardioRolling.weeklyGoal,
   });

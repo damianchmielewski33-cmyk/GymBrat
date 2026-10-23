@@ -324,6 +324,112 @@ export function parseCardioLog(raw: unknown): CardioLogPayload | null {
   };
 }
 
+/** Limity wpisu cardio (serwer i klient). */
+export const CARDIO_INPUT_LIMITS = {
+  minutesMax: 24 * 60,
+  caloriesMax: 20_000,
+  /** Powyżej tego kcal/min wpis to prawie na pewno literówka. */
+  caloriesPerMinMax: 25,
+  hrMin: 30,
+  hrMax: 250,
+  distanceKmMax: 500,
+  stepsMax: 500_000,
+} as const;
+
+export type CardioMetricsInput = {
+  minutes: unknown;
+  distanceKm?: unknown;
+  avgHr?: unknown;
+  maxHr?: unknown;
+  calories?: unknown;
+  steps?: unknown;
+};
+
+export type ValidatedCardioMetrics = {
+  minutes: number;
+  distanceKm: number | null;
+  avgHr: number | null;
+  maxHr: number | null;
+  calories: number | null;
+  steps: number | null;
+};
+
+function optionalPositive(n: unknown): number | null {
+  if (n == null || n === "") return null;
+  const v = typeof n === "number" ? n : Number(n);
+  if (!Number.isFinite(v) || v <= 0) return null;
+  return v;
+}
+
+/**
+ * Walidacja metryk cardio po stronie serwera.
+ * Minuty: 1–1440. Pola opcjonalne ≤ 0 / puste → null; poza zakresem → błąd.
+ */
+export function validateCardioMetrics(
+  input: CardioMetricsInput,
+):
+  | ({ ok: true } & ValidatedCardioMetrics)
+  | { ok: false; error: string } {
+  const L = CARDIO_INPUT_LIMITS;
+
+  const minutesRaw = Number(input.minutes);
+  if (!Number.isFinite(minutesRaw)) {
+    return { ok: false, error: "Podaj liczbę minut cardio." };
+  }
+  const minutes = Math.round(minutesRaw);
+  if (minutes < 1) {
+    return { ok: false, error: "Czas cardio musi wynosić co najmniej 1 minutę." };
+  }
+  if (minutes > L.minutesMax) {
+    return { ok: false, error: "Czas cardio nie może przekraczać 24 godzin." };
+  }
+
+  const distance = optionalPositive(input.distanceKm);
+  if (distance != null && distance > L.distanceKmMax) {
+    return { ok: false, error: "Dystans wygląda na pomyłkę (max 500 km)." };
+  }
+
+  const avgHrRaw = optionalPositive(input.avgHr);
+  const maxHrRaw = optionalPositive(input.maxHr);
+  for (const hr of [avgHrRaw, maxHrRaw]) {
+    if (hr != null && (hr < L.hrMin || hr > L.hrMax)) {
+      return {
+        ok: false,
+        error: `Tętno musi mieścić się w zakresie ${L.hrMin}–${L.hrMax} bpm.`,
+      };
+    }
+  }
+
+  const caloriesRaw = optionalPositive(input.calories);
+  if (caloriesRaw != null) {
+    if (caloriesRaw > L.caloriesMax) {
+      return { ok: false, error: "Kalorie wyglądają na pomyłkę (max 20 000)." };
+    }
+    if (caloriesRaw / minutes > L.caloriesPerMinMax) {
+      return {
+        ok: false,
+        error:
+          "Kalorie są nierealnie wysokie jak na podany czas — sprawdź wpis.",
+      };
+    }
+  }
+
+  const stepsRaw = optionalPositive(input.steps);
+  if (stepsRaw != null && stepsRaw > L.stepsMax) {
+    return { ok: false, error: "Liczba kroków wygląda na pomyłkę." };
+  }
+
+  return {
+    ok: true,
+    minutes,
+    distanceKm: distance,
+    avgHr: avgHrRaw != null ? Math.round(avgHrRaw) : null,
+    maxHr: maxHrRaw != null ? Math.round(maxHrRaw) : null,
+    calories: caloriesRaw != null ? Math.round(caloriesRaw) : null,
+    steps: stepsRaw != null ? Math.round(stepsRaw) : null,
+  };
+}
+
 export function computePaceMinPerKm(
   distanceKm: number | null | undefined,
   minutes: number,

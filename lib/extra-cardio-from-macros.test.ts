@@ -9,8 +9,12 @@ import {
   daysLeftInWeekIncludingToday,
   estimateBurnKcalPerMin,
   estimateHeartRateBurnKcalPerMin,
+  grossToNetKcal,
+  grossToNetKcalPerMin,
+  isPlausibleEnteredCalories,
   isReliableHeartRate,
   macroSurplusKcal,
+  metFromSpeedKmh,
   softCreditKcal,
   type MacroDaySnapshot,
   type RecentCardioSample,
@@ -217,7 +221,6 @@ describe("extra-cardio-from-macros", () => {
     });
 
     expect(debt.pastDebtKcal).toBe(400);
-    expect(debt.todaySoftCreditKcal).toBe(0);
     expect(debt.openDebtKcal).toBe(400);
 
     const advice = computeExtraCardioAdvice({
@@ -264,7 +267,7 @@ describe("extra-cardio-from-macros", () => {
     expect(advice.effectiveSurplusKcal).toBeLessThanOrEqual(advice.surplusKcal);
   });
 
-  it("cardioOffset limit 80% długu", () => {
+  it("cardioOffset nie przekracza długu przed cardio i może go domknąć do 0", () => {
     const debt = computeOpenMacroDebt({
       todayKey: "2026-10-07",
       weekKeys,
@@ -284,8 +287,9 @@ describe("extra-cardio-from-macros", () => {
     });
     expect(debt.pastDebtKcal).toBe(500);
     expect(debt.debtBeforeCardioKcal).toBe(500);
-    expect(debt.cardioOffsetKcal).toBe(Math.round(500 * 0.8));
-    expect(debt.openDebtKcal).toBe(100);
+    // 150/200 min ponad cel → 25% z 2000 kcal = 500 = cały dług
+    expect(debt.cardioOffsetKcal).toBe(500);
+    expect(debt.openDebtKcal).toBe(0);
   });
 
   it("cardio w ramach celu tygodnia NIE kasuje długu makro", () => {
@@ -341,9 +345,7 @@ describe("extra-cardio-from-macros", () => {
         { minutes: 200, calories: 1600, paceMinPerKm: 8, dateKey: "2026-10-07" },
       ],
     });
-    expect(debt.cardioOffsetKcal).toBe(
-      Math.min(offsetKcal, Math.round(500 * 0.8)),
-    );
+    expect(debt.cardioOffsetKcal).toBe(Math.min(offsetKcal, 500));
     expect(debt.openDebtKcal).toBe(
       Math.max(0, 500 - debt.cardioOffsetKcal),
     );
@@ -360,7 +362,7 @@ describe("extra-cardio-from-macros", () => {
       },
     ];
     const ok = day({ caloriesConsumed: 2000 });
-    const surplusFri = day({ caloriesConsumed: 2400 });
+    const surplusFri = day({ caloriesConsumed: 2300 });
     const surplusSat = day({ caloriesConsumed: 2200 });
     const empty = day({ caloriesConsumed: 0 });
 
@@ -463,7 +465,9 @@ describe("extra-cardio-from-macros", () => {
       ],
     });
     expect(burnSource).toBe("heart_rate_model");
-    expect(burnKcalPerMin).toBe(hrBurn);
+    // Keytel to wartość brutto — do planowania używamy netto (bez spoczynku).
+    expect(burnKcalPerMin).toBe(grossToNetKcalPerMin(hrBurn!, 80));
+    expect(burnKcalPerMin).toBeLessThan(hrBurn!);
   });
 
   it("brak tętna → MET / default", () => {
@@ -510,7 +514,7 @@ describe("extra-cardio-from-macros", () => {
     expect(burnKcalPerMin).toBeLessThanOrEqual(18);
   });
 
-  it("clamp spalania 3–18 kcal/min", () => {
+  it("clamp spalania 2–18 kcal/min", () => {
     const { burnKcalPerMin } = estimateBurnKcalPerMin({
       weightKg: 200,
       recentCardio: [
@@ -527,7 +531,7 @@ describe("extra-cardio-from-macros", () => {
       ],
     });
     expect(burnKcalPerMin).toBeLessThanOrEqual(18);
-    expect(burnKcalPerMin).toBeGreaterThanOrEqual(3);
+    expect(burnKcalPerMin).toBeGreaterThanOrEqual(2);
   });
 
   it("bardzo duży dług tygodniowy — minuty clamp ≤ 90, effective ≤ openDebt", () => {
@@ -678,5 +682,175 @@ describe("extra-cardio-from-macros", () => {
     expect(advice.show).toBe(true);
     expect(advice.extraMinutes).toBeGreaterThanOrEqual(5);
     expect(advice.effectiveSurplusKcal).toBeLessThanOrEqual(advice.surplusKcal);
+  });
+
+  describe("poprawki: dług, kredyt dnia, spalanie netto", () => {
+    it("przekroczenie węgli/tłuszczu przy kcal ≤ cel nie jest nadwyżką energetyczną", () => {
+      const d = day({
+        caloriesConsumed: 1900,
+        carbsConsumed: 260, // +60 g ponad cel 200
+        fatConsumed: 30,
+        proteinConsumed: 120,
+      });
+      const { surplusKcal, exceeded } = macroSurplusKcal(d);
+      expect(surplusKcal).toBe(0);
+      expect(exceeded).toEqual([]);
+      expect(dayCalorieBalance(d)).toBe(-softCreditKcal(d));
+    });
+
+    it("bez celu kcal liczą się przekroczenia makro", () => {
+      const { surplusKcal } = macroSurplusKcal(
+        day({ caloriesGoal: null, carbsConsumed: 250 }),
+      );
+      expect(surplusKcal).toBe(200);
+    });
+
+    it("niedokończony dzisiejszy dzień nie daje soft creditu", () => {
+      const debt = computeOpenMacroDebt({
+        todayKey: "2026-10-07",
+        weekKeys,
+        burnKcalPerMin: 8,
+        elapsedDays: [
+          { dateKey: "2026-10-06", day: day({ caloriesConsumed: 2400 }) },
+          // 1500/2000 → soft credit ~222 kcal, ale dzień trwa dalej
+          { dateKey: "2026-10-07", day: day({ caloriesConsumed: 1500 }) },
+        ],
+        recentCardio: [],
+      });
+      expect(softCreditKcal(day({ caloriesConsumed: 1500 }))).toBeGreaterThan(0);
+      expect(debt.pastDebtKcal).toBe(400);
+      expect(debt.openDebtKcal).toBe(400);
+    });
+
+    it("rekomendacja dodatkowego cardio zanika po wykonaniu zalecanych minut", () => {
+      const history = [
+        { minutes: 150, calories: 1500, paceMinPerKm: null, dateKey: "2026-10-05" },
+      ];
+      const base = {
+        todayKey: "2026-10-07",
+        weekKeys,
+        weightKg: 80,
+        weeklyCardioGoalMinutes: 150,
+        today: day({ caloriesConsumed: 0 }),
+        elapsedDays: [
+          { dateKey: "2026-10-05", day: day({ caloriesConsumed: 2500 }) },
+          { dateKey: "2026-10-06", day: day({ caloriesConsumed: 2000 }) },
+          { dateKey: "2026-10-07", day: day({ caloriesConsumed: 0 }) },
+        ],
+      };
+      const before = computeExtraCardioAdvice({ ...base, recentCardio: history });
+      expect(before.show).toBe(true);
+      expect(before.extraMinutes).toBeGreaterThanOrEqual(5);
+
+      const after = computeExtraCardioAdvice({
+        ...base,
+        recentCardio: [
+          ...history,
+          {
+            minutes: before.extraMinutes,
+            calories: null,
+            paceMinPerKm: null,
+            dateKey: "2026-10-07",
+          },
+        ],
+      });
+      expect(after.show).toBe(false);
+      expect(after.extraMinutes).toBe(0);
+    });
+
+    it("model tętna uwzględnia płeć (kobiety spalają mniej niż wzór męski)", () => {
+      const args = { avgHeartRate: 145, weightKg: 65, ageYears: 30 };
+      const male = estimateHeartRateBurnKcalPerMin({ ...args, sex: "male" })!;
+      const female = estimateHeartRateBurnKcalPerMin({ ...args, sex: "female" })!;
+      const unknown = estimateHeartRateBurnKcalPerMin(args)!;
+      expect(female).toBeLessThan(male);
+      expect(unknown).toBeGreaterThanOrEqual(female);
+      expect(unknown).toBeLessThanOrEqual(male);
+    });
+
+    it("MET zależy od prędkości: marsz ≪ bieg", () => {
+      const walk = metFromSpeedKmh(5)!;
+      const run = metFromSpeedKmh(10)!;
+      expect(walk).toBeGreaterThan(3.4);
+      expect(walk).toBeLessThan(4.3);
+      expect(run).toBeGreaterThan(9.5);
+      expect(metFromSpeedKmh(0)).toBeNull();
+
+      const walkBurn = estimateBurnKcalPerMin({
+        weightKg: 80,
+        recentCardio: [{ minutes: 40, calories: null, paceMinPerKm: 12, cardioType: "walk" }],
+      });
+      const runBurn = estimateBurnKcalPerMin({
+        weightKg: 80,
+        recentCardio: [{ minutes: 40, calories: null, paceMinPerKm: 6, cardioType: "run" }],
+      });
+      expect(walkBurn.burnSource).toBe("met_model");
+      expect(walkBurn.burnKcalPerMin).toBeLessThan(5);
+      expect(runBurn.burnKcalPerMin).toBeGreaterThan(walkBurn.burnKcalPerMin * 2);
+    });
+
+    it("tempo z roweru/orbitreku nie wchodzi do modelu MET marszu/biegu", () => {
+      const burn = estimateBurnKcalPerMin({
+        weightKg: 80,
+        recentCardio: [{ minutes: 40, calories: null, paceMinPerKm: 3, cardioType: "bike" }],
+      });
+      expect(burn.recentPaceMinPerKm).toBeNull();
+      expect(burn.burnSource).toBe("default");
+    });
+
+    it("mieszane marsz + bieg: MET liczony per próbka, nie z uśrednionego tempa", () => {
+      const burn = estimateBurnKcalPerMin({
+        weightKg: 80,
+        recentCardio: [
+          { minutes: 30, calories: null, paceMinPerKm: 12, cardioType: "walk" },
+          { minutes: 30, calories: null, paceMinPerKm: 6, cardioType: "run" },
+        ],
+      });
+      const expectedMet = (metFromSpeedKmh(5)! + metFromSpeedKmh(10)!) / 2;
+      expect(burn.burnKcalPerMin).toBeCloseTo(((expectedMet - 1) * 80) / 60, 0);
+    });
+
+    it("kcal brutto → netto (bez metabolizmu spoczynkowego), z dolnym progiem", () => {
+      // 80 kg → 1,33 kcal/min spoczynku
+      expect(grossToNetKcal(300, 30, 80)).toBeCloseTo(260, 0);
+      // niska intensywność: nie spadamy poniżej 60% brutto
+      expect(grossToNetKcal(60, 30, 80)).toBeCloseTo(36, 5);
+      expect(grossToNetKcal(0, 30, 80)).toBe(0);
+    });
+
+    it("niewiarygodne kcal (>25 kcal/min) są ignorowane — szacunek z minut", () => {
+      expect(isPlausibleEnteredCalories(30, 5000)).toBe(false);
+      expect(isPlausibleEnteredCalories(30, 300)).toBe(true);
+      expect(
+        cardioKcalInWeek(
+          [{ minutes: 30, calories: 5000, paceMinPerKm: null, dateKey: "2026-10-07" }],
+          weekKeys,
+          8,
+        ),
+      ).toBe(240);
+      expect(
+        computePersonalBurnRate(
+          Array.from({ length: 12 }, () => ({
+            minutes: 20,
+            calories: 5000,
+            paceMinPerKm: null,
+          })),
+        ),
+      ).toBeNull();
+    });
+
+    it("offset cardio liczy kcal netto, gdy znana waga", () => {
+      const common = {
+        samples: [
+          { minutes: 200, calories: 1600, paceMinPerKm: null, dateKey: "2026-10-07" },
+        ] as RecentCardioSample[],
+        weekKeys,
+        weeklyCardioGoalMinutes: 150,
+        burnKcalPerMin: 8,
+      };
+      const gross = cardioKcalAboveWeeklyGoal(common).offsetKcal;
+      const net = cardioKcalAboveWeeklyGoal({ ...common, netWeightKg: 80 }).offsetKcal;
+      expect(net).toBeLessThan(gross);
+    });
   });
 });
