@@ -5,21 +5,64 @@ import {
 
 const WORKFLOW_FILE = "android-apk.yml";
 const DEFAULT_REF = "master";
-const DEFAULT_API_BASE = "https://gym-brat.vercel.app/";
+/** Produkcja tymczasowo na Renderze (Vercel Hobby w pauzie). */
+const FALLBACK_API_BASE = "https://gymbrat.onrender.com/";
 
 export type TriggerAndroidApkBuildResult =
   | { ok: true; skipped?: false }
-  | { ok: true; skipped: true; reason: string }
+  | { ok: true; skipped: true; reason: "missing_token" }
   | { ok: false; error: string };
 
+function asBaseUrl(raw: string | null | undefined): string | null {
+  const t = raw?.trim();
+  if (!t) return null;
+  try {
+    const u = new URL(t.includes("://") ? t : `https://${t}`);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    return `${u.origin}/`;
+  } catch {
+    return null;
+  }
+}
+
+/** Publiczny origin strony, z którego build APK pobierze branding. */
+export function resolveAndroidApiBaseUrl(req?: Request): string {
+  const fromEnv =
+    asBaseUrl(process.env.NEXT_PUBLIC_APP_URL) ||
+    asBaseUrl(process.env.AUTH_URL) ||
+    asBaseUrl(process.env.NEXTAUTH_URL) ||
+    asBaseUrl(process.env.RENDER_EXTERNAL_URL) ||
+    asBaseUrl(
+      process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : null,
+    );
+  if (fromEnv) return fromEnv;
+
+  if (req) {
+    const host =
+      req.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
+      req.headers.get("host")?.trim();
+    const proto =
+      req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "https";
+    if (host && !host.startsWith("localhost") && !host.startsWith("127.")) {
+      const fromReq = asBaseUrl(`${proto}://${host}`);
+      if (fromReq) return fromReq;
+    }
+  }
+
+  return FALLBACK_API_BASE;
+}
+
 /**
- * Odpalá GitHub Actions „Build Android APK” (workflow_dispatch).
+ * Odpala GitHub Actions „Build Android APK” (workflow_dispatch).
  * Wymaga `GITHUB_APK_DISPATCH_TOKEN` (PAT z actions:write).
- * Bez tokena — no-op (upload brandingu i tak się uda).
+ * Bez tokena — skipped (upload brandingu i tak się uda).
  */
 export async function triggerAndroidApkBuild(opts?: {
   apiBaseUrl?: string;
   ref?: string;
+  req?: Request;
 }): Promise<TriggerAndroidApkBuildResult> {
   const token = process.env.GITHUB_APK_DISPATCH_TOKEN?.trim();
   if (!token) {
@@ -29,8 +72,8 @@ export async function triggerAndroidApkBuild(opts?: {
     return { ok: true, skipped: true, reason: "missing_token" };
   }
 
-  let apiBase = (opts?.apiBaseUrl ?? DEFAULT_API_BASE).trim();
-  if (!apiBase.endsWith("/")) apiBase = `${apiBase}/`;
+  const apiBase =
+    asBaseUrl(opts?.apiBaseUrl) ?? resolveAndroidApiBaseUrl(opts?.req);
   const ref = (opts?.ref ?? DEFAULT_REF).trim() || DEFAULT_REF;
 
   const url = `https://api.github.com/repos/${GYMBRAT_GITHUB_OWNER}/${GYMBRAT_GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`;
@@ -63,14 +106,4 @@ export async function triggerAndroidApkBuild(opts?: {
     console.error("[trigger-android-apk-build]", error);
     return { ok: false, error };
   }
-}
-
-/** Fire-and-forget — nie blokuje odpowiedzi HTTP na cały build APK. */
-export function triggerAndroidApkBuildInBackground(opts?: {
-  apiBaseUrl?: string;
-  ref?: string;
-}): void {
-  void triggerAndroidApkBuild(opts).catch((err) => {
-    console.error("[trigger-android-apk-build] background failed:", err);
-  });
 }
