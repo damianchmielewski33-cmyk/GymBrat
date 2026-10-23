@@ -2,44 +2,29 @@ import { randomBytes } from "node:crypto";
 import { hash } from "bcryptjs";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
+import { isUniqueViolation } from "@/db/errors";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
-import {
-  normalizeAdminEmail,
-  parseAdminEmails,
-} from "@/lib/admin-config";
+import { normalizeAdminEmail } from "@/lib/admin-config";
 import {
   oauthAccounts,
   siteActivityLog,
   userSettings,
   users,
 } from "@/db/schema";
+import { decideOAuthSignIn, type OAuthDecision } from "@/lib/oauth-link-policy";
+import { logSecurityEvent, securityEventInsert } from "@/lib/security-events";
 
 export type OAuthProviderId = "google" | "facebook";
 
-export type GoogleResolvedUser = {
-  id: string;
-  email: string;
-  name: string | null;
-  role: "zawodnik" | "trener" | "admin";
-  /** true = nowe konto; false = istniejące (w tym powiązanie OAuth ↔ e-mail/hasło). */
-  isNew: boolean;
-};
-
 /** AUTH_GOOGLE_ID + AUTH_GOOGLE_SECRET (Auth.js v5). */
-export function isGoogleAuthConfigured(): boolean {
-  return Boolean(
-    process.env.AUTH_GOOGLE_ID?.trim() &&
-      process.env.AUTH_GOOGLE_SECRET?.trim(),
-  );
+export function isGoogleAuthConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
+  return Boolean(env.AUTH_GOOGLE_ID?.trim() && env.AUTH_GOOGLE_SECRET?.trim());
 }
 
 /** AUTH_FACEBOOK_ID + AUTH_FACEBOOK_SECRET (Auth.js v5). */
-export function isFacebookAuthConfigured(): boolean {
-  return Boolean(
-    process.env.AUTH_FACEBOOK_ID?.trim() &&
-      process.env.AUTH_FACEBOOK_SECRET?.trim(),
-  );
+export function isFacebookAuthConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
+  return Boolean(env.AUTH_FACEBOOK_ID?.trim() && env.AUTH_FACEBOOK_SECRET?.trim());
 }
 
 /** Rozbija „Jan Kowalski” na imię / nazwisko (best-effort). */
@@ -77,144 +62,26 @@ export function resolveGooglePersonName(input: {
   return { ...split, displayName };
 }
 
-function resolveAppRole(email: string, stored?: string | null): GoogleResolvedUser["role"] {
-  if (parseAdminEmails().has(normalizeAdminEmail(email))) return "admin";
-  if (stored === "admin" || stored === "trener") return stored;
-  return "zawodnik";
-}
-
-async function ensureOauthLink(input: {
-  userId: string;
-  provider: string;
-  providerAccountId: string;
-}): Promise<void> {
-  const db = getDb();
-  const [already] = await db
-    .select({
-      id: oauthAccounts.id,
-      userId: oauthAccounts.userId,
-    })
-    .from(oauthAccounts)
-    .where(
-      and(
-        eq(oauthAccounts.provider, input.provider),
-        eq(oauthAccounts.providerAccountId, input.providerAccountId),
-      ),
-    )
-    .limit(1);
-
-  if (already) {
-    // To samo Google już powiązane z tym kontem — OK.
-    if (already.userId === input.userId) return;
-    // Konflikt: Google było na innym userId — przenieś na konto z tym e-mailem.
-    await db
-      .update(oauthAccounts)
-      .set({ userId: input.userId })
-      .where(eq(oauthAccounts.id, already.id));
-    return;
-  }
-
-  try {
-    await db.insert(oauthAccounts).values({
-      id: crypto.randomUUID(),
-      userId: input.userId,
-      provider: input.provider,
-      providerAccountId: input.providerAccountId,
-      createdAt: new Date(),
-    });
-  } catch {
-    // Wyścig / ponowne logowanie — sprawdź, czy link już istnieje.
-    const [again] = await db
-      .select({ userId: oauthAccounts.userId })
-      .from(oauthAccounts)
-      .where(
-        and(
-          eq(oauthAccounts.provider, input.provider),
-          eq(oauthAccounts.providerAccountId, input.providerAccountId),
-        ),
-      )
-      .limit(1);
-    if (again?.userId === input.userId) return;
-    if (again) {
-      await db
-        .update(oauthAccounts)
-        .set({ userId: input.userId })
-        .where(
-          and(
-            eq(oauthAccounts.provider, input.provider),
-            eq(oauthAccounts.providerAccountId, input.providerAccountId),
-          ),
-        );
-      return;
-    }
-    throw new Error("Nie udało się powiązać konta Google.");
-  }
-}
-
-/**
- * Tworzy albo łączy konto GymBrat z logowaniem OAuth (JWT bez pełnego adaptera Auth.js).
- * Istniejące konto e-mail/hasło z tym samym adresem jest powiązywane (bez duplikatu).
- */
-export async function resolveGoogleSignInUser(input: {
+export type OAuthLinkedUser = {
+  id: string;
   email: string;
-  name?: string | null;
-  givenName?: string | null;
-  familyName?: string | null;
-  providerAccountId: string;
-  provider?: OAuthProviderId;
-}): Promise<GoogleResolvedUser | null> {
-  const email = input.email.trim().toLowerCase();
-  if (!email || !input.providerAccountId.trim()) return null;
+  appRole: string;
+  emailVerified: boolean;
+  sessionVersion: number;
+};
 
-  await ensureCriticalSchema();
-  const db = getDb();
-  const provider: OAuthProviderId = input.provider ?? "google";
-  const providerAccountId = input.providerAccountId.trim();
-  const person = resolveGooglePersonName({
-    givenName: input.givenName,
-    familyName: input.familyName,
-    name: input.name,
-  });
-
-  async function fillMissingNames(userId: string, row: {
-    name: string | null;
-    firstName: string | null;
-    lastName: string | null;
-  }) {
-    if (!person.firstName && !person.lastName && !person.displayName) return row.name;
-    const nextFirst = row.firstName?.trim() || person.firstName;
-    const nextLast = row.lastName?.trim() || person.lastName;
-    const nextName =
-      row.name?.trim() ||
-      person.displayName ||
-      [nextFirst, nextLast].filter(Boolean).join(" ") ||
-      null;
-    if (
-      nextFirst === row.firstName &&
-      nextLast === row.lastName &&
-      nextName === row.name
-    ) {
-      return row.name;
-    }
-    await db
-      .update(users)
-      .set({
-        name: nextName,
-        firstName: nextFirst,
-        lastName: nextLast,
-      })
-      .where(eq(users.id, userId));
-    return nextName;
-  }
-
-  const [linked] = await db
+/** Konto powiązane z (provider, providerAccountId) — jedyne źródło `jwt` po logowaniu OAuth. */
+export async function findUserByOAuthLink(
+  provider: OAuthProviderId,
+  providerAccountId: string,
+): Promise<OAuthLinkedUser | null> {
+  const [row] = await getDb()
     .select({
-      userId: oauthAccounts.userId,
+      id: users.id,
       email: users.email,
-      name: users.name,
-      firstName: users.firstName,
-      lastName: users.lastName,
       appRole: users.appRole,
+      emailVerifiedAt: users.emailVerifiedAt,
+      sessionVersion: users.sessionVersion,
     })
     .from(oauthAccounts)
     .innerJoin(users, eq(users.id, oauthAccounts.userId))
@@ -225,141 +92,226 @@ export async function resolveGoogleSignInUser(input: {
       ),
     )
     .limit(1);
+  if (!row) return null;
+  return {
+    id: row.id,
+    email: row.email,
+    appRole: row.appRole,
+    emailVerified: row.emailVerifiedAt != null,
+    sessionVersion: row.sessionVersion,
+  };
+}
 
-  if (linked) {
-    // Google już powiązane — jeśli e-mail wskazuje inne konto hasłowe, scal do niego.
-    const linkedEmail = linked.email.trim().toLowerCase();
-    if (linkedEmail !== email) {
-      const [byEmail] = await db
-        .select()
+/** Powiązanie istnieje u innego konta — nigdy go nie przenosimy (BR-8). */
+class OAuthLinkConflictError extends Error {
+  constructor() {
+    super("OAuth link belongs to another account");
+    this.name = "OAuthLinkConflictError";
+  }
+}
+
+/** `INSERT ... ON CONFLICT DO NOTHING`, potem kontrola właściciela powiązania. */
+async function ensureOauthLink(input: {
+  userId: string;
+  provider: OAuthProviderId;
+  providerAccountId: string;
+}): Promise<void> {
+  const db = getDb();
+  await db
+    .insert(oauthAccounts)
+    .values({
+      id: crypto.randomUUID(),
+      userId: input.userId,
+      provider: input.provider,
+      providerAccountId: input.providerAccountId,
+      createdAt: new Date(),
+    })
+    .onConflictDoNothing();
+  const [owner] = await db
+    .select({ userId: oauthAccounts.userId })
+    .from(oauthAccounts)
+    .where(
+      and(
+        eq(oauthAccounts.provider, input.provider),
+        eq(oauthAccounts.providerAccountId, input.providerAccountId),
+      ),
+    )
+    .limit(1);
+  if (owner?.userId !== input.userId) throw new OAuthLinkConflictError();
+}
+
+type PersonName = ReturnType<typeof resolveGooglePersonName>;
+
+/** Uzupełnia puste imię/nazwisko danymi dostawcy (nigdy nie nadpisuje wpisanych). */
+async function fillMissingNames(userId: string, person: PersonName): Promise<void> {
+  if (!person.firstName && !person.lastName && !person.displayName) return;
+  const db = getDb();
+  const [row] = await db
+    .select({ name: users.name, firstName: users.firstName, lastName: users.lastName })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!row) return;
+  const nextFirst = row.firstName?.trim() || person.firstName;
+  const nextLast = row.lastName?.trim() || person.lastName;
+  const nextName =
+    row.name?.trim() ||
+    person.displayName ||
+    [nextFirst, nextLast].filter(Boolean).join(" ") ||
+    null;
+  if (nextFirst === row.firstName && nextLast === row.lastName && nextName === row.name) return;
+  await db
+    .update(users)
+    .set({ name: nextName, firstName: nextFirst, lastName: nextLast })
+    .where(eq(users.id, userId));
+}
+
+async function createOAuthUser(input: {
+  email: string;
+  provider: OAuthProviderId;
+  providerAccountId: string;
+  emailVerified: boolean;
+  person: PersonName;
+}): Promise<void> {
+  const db = getDb();
+  const userId = crypto.randomUUID();
+  const now = new Date();
+  // Konto OAuth nie ma hasła znanego komukolwiek.
+  const passwordHash = await hash(randomBytes(32).toString("hex"), 12);
+  await db.batch([
+    db.insert(users).values({
+      id: userId,
+      email: input.email,
+      passwordHash,
+      name: input.person.displayName,
+      firstName: input.person.firstName,
+      lastName: input.person.lastName,
+      appRole: "zawodnik",
+      emailVerifiedAt: input.emailVerified ? now : null,
+      createdAt: now,
+    }),
+    db.insert(userSettings).values({ userId, weeklyCardioGoalMinutes: 150 }),
+    db.insert(oauthAccounts).values({
+      id: crypto.randomUUID(),
+      userId,
+      provider: input.provider,
+      providerAccountId: input.providerAccountId,
+      createdAt: now,
+    }),
+    securityEventInsert(db, { type: "oauth_register", userId, provider: input.provider }),
+    db.insert(siteActivityLog).values({
+      userId,
+      action: "Rejestracja konta",
+      metaJson: JSON.stringify({ provider: input.provider, role: "zawodnik" }),
+      deploymentEnv: getAnalyticsDeployment(),
+    }),
+  ]);
+}
+
+export type OAuthSignInInput = {
+  provider: OAuthProviderId;
+  providerAccountId: string;
+  email: string;
+  /** Google: `email_verified === true` w profilu; dla Facebooka ignorowane. */
+  providerEmailVerified: boolean;
+  name?: string | null;
+  givenName?: string | null;
+  familyName?: string | null;
+};
+
+async function readDecision(
+  input: OAuthSignInInput,
+  email: string,
+): Promise<{ decision: OAuthDecision; accountId: string | null }> {
+  const db = getDb();
+  const [linked] = await db
+    .select({ userId: oauthAccounts.userId })
+    .from(oauthAccounts)
+    .where(
+      and(
+        eq(oauthAccounts.provider, input.provider),
+        eq(oauthAccounts.providerAccountId, input.providerAccountId),
+      ),
+    )
+    .limit(1);
+  const [byEmail] = email
+    ? await db
+        .select({ id: users.id, appRole: users.appRole, emailVerifiedAt: users.emailVerifiedAt })
         .from(users)
         .where(eq(users.email, email))
-        .limit(1);
-      if (byEmail && byEmail.id !== linked.userId) {
-        await ensureOauthLink({
-          userId: byEmail.id,
-          provider,
-          providerAccountId,
-        });
-        const role = resolveAppRole(byEmail.email, byEmail.appRole);
-        if (role === "admin" && byEmail.appRole !== "admin") {
-          await db
-            .update(users)
-            .set({ appRole: "admin" })
-            .where(eq(users.id, byEmail.id));
-        }
-        const name = await fillMissingNames(byEmail.id, {
-          name: byEmail.name,
-          firstName: byEmail.firstName,
-          lastName: byEmail.lastName,
-        });
-        return {
+        .limit(1)
+    : [];
+  const decision = decideOAuthSignIn({
+    provider: input.provider,
+    email,
+    providerEmailVerified: input.provider === "google" && input.providerEmailVerified,
+    linkedUserId: linked?.userId ?? null,
+    accountByEmail: byEmail
+      ? {
           id: byEmail.id,
-          email: byEmail.email,
-          name,
-          role,
-          isNew: false,
-        };
-      }
-    }
+          emailVerified: byEmail.emailVerifiedAt != null,
+          isAdmin: byEmail.appRole === "admin",
+        }
+      : null,
+  });
+  return { decision, accountId: byEmail?.id ?? null };
+}
 
-    const role = resolveAppRole(linked.email, linked.appRole);
-    if (role === "admin" && linked.appRole !== "admin") {
-      await db
-        .update(users)
-        .set({ appRole: "admin" })
-        .where(eq(users.id, linked.userId));
-    }
-    const name = await fillMissingNames(linked.userId, linked);
-    return {
-      id: linked.userId,
-      email: linked.email,
-      name,
-      role,
-      isNew: false,
-    };
-  }
+/**
+ * Logowanie OAuth (ADR 0001 D3): odczyt danych → `decideOAuthSignIn` → wykonanie `create`
+ * albo `link_existing`. Zwraca decyzję; `takeover_confirm` i `reject` obsługuje `auth.ts`.
+ * Wyjątek oznacza błąd techniczny (`OAuthSignInFailed`).
+ */
+export async function resolveOAuthSignIn(input: OAuthSignInInput): Promise<OAuthDecision> {
+  const providerAccountId = input.providerAccountId.trim();
+  if (!providerAccountId) return { kind: "reject", code: "OAuthSignInFailed" };
+  await ensureCriticalSchema();
+  const email = normalizeAdminEmail(input.email);
+  const person = resolveGooglePersonName(input);
+  const normalized = { ...input, providerAccountId };
 
-  // To samo e-mail co konto e-mail/hasło → jedno konto (powiąż Google).
-  const [existing] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
-
-  if (existing) {
-    await ensureOauthLink({
-      userId: existing.id,
-      provider,
-      providerAccountId,
-    });
-    const role = resolveAppRole(existing.email, existing.appRole);
-    if (role === "admin" && existing.appRole !== "admin") {
-      await db
-        .update(users)
-        .set({ appRole: "admin" })
-        .where(eq(users.id, existing.id));
-    }
-    const name = await fillMissingNames(existing.id, {
-      name: existing.name,
-      firstName: existing.firstName,
-      lastName: existing.lastName,
-    });
+  let { decision, accountId } = await readDecision(normalized, email);
+  if (decision.kind === "create") {
     try {
-      await db.insert(siteActivityLog).values({
-        userId: existing.id,
-        action: "Powiązanie konta OAuth",
-        metaJson: JSON.stringify({ provider, email }),
-        deploymentEnv: getAnalyticsDeployment(),
+      await createOAuthUser({
+        email,
+        provider: input.provider,
+        providerAccountId,
+        emailVerified: decision.emailVerified,
+        person,
       });
-    } catch {
-      /* nie blokuj logowania */
+      return decision;
+    } catch (err) {
+      // Dwa urządzenia naraz: decyzja liczona jeszcze raz, jeden raz (US-4).
+      if (!isUniqueViolation(err)) throw err;
+      ({ decision, accountId } = await readDecision(normalized, email));
+      if (decision.kind === "create") throw err;
     }
-    return {
-      id: existing.id,
-      email: existing.email,
-      name,
-      role,
-      isNew: false,
-    };
   }
 
-  const userId = crypto.randomUUID();
-  const passwordHash = await hash(randomBytes(32).toString("hex"), 12);
-  const role = resolveAppRole(email, "zawodnik");
-  const now = new Date();
-
-  await db.insert(users).values({
-    id: userId,
-    email,
-    passwordHash,
-    name: person.displayName,
-    firstName: person.firstName,
-    lastName: person.lastName,
-    appRole: role,
-    createdAt: now,
-  });
-  await db.insert(userSettings).values({
-    userId,
-    weeklyCardioGoalMinutes: 150,
-  });
-  await ensureOauthLink({
-    userId,
-    provider,
-    providerAccountId,
-  });
-  await db.insert(siteActivityLog).values({
-    userId,
-    action: "Rejestracja konta",
-    metaJson: JSON.stringify({ provider, role }),
-    deploymentEnv: getAnalyticsDeployment(),
-  });
-
-  return {
-    id: userId,
-    email,
-    name: person.displayName,
-    role,
-    isNew: true,
-  };
+  if (decision.kind === "login_linked") {
+    await fillMissingNames(decision.userId, person);
+  } else if (decision.kind === "link_existing") {
+    await ensureOauthLink({ userId: decision.userId, provider: input.provider, providerAccountId });
+    await fillMissingNames(decision.userId, person);
+    await logSecurityEvent({ type: "oauth_link", userId: decision.userId, provider: input.provider });
+    await getDb()
+      .insert(siteActivityLog)
+      .values({
+        userId: decision.userId,
+        action: "Powiązanie konta OAuth",
+        metaJson: JSON.stringify({ provider: input.provider }),
+        deploymentEnv: getAnalyticsDeployment(),
+      })
+      .catch(() => undefined);
+  } else if (decision.kind === "reject" && accountId) {
+    // Odmowa bez konta nie trafia do dziennika (nie zapisujemy e-maila, LR-26).
+    await logSecurityEvent({
+      type: "oauth_link_rejected",
+      userId: accountId,
+      reason: decision.code,
+      provider: input.provider,
+    });
+  }
+  return decision;
 }

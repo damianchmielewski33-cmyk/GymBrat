@@ -17,9 +17,7 @@ export const registerSchema = z.object({
   emailCode: z
     .string()
     .trim()
-    // Tymczasowo dopuszczamy 4 cyfry dla trybu mock (np. "1234"),
-    // ale backend i tak egzekwuje poprawność kodu.
-    .regex(/^(?:\d{4}|\d{6})$/, "Wpisz kod z e-maila (4 lub 6 cyfr)"),
+    .regex(/^\d{6}$/, "Wpisz 6-cyfrowy kod z e-maila"),
   password: z
     .string()
     .min(8, "Użyj minimum 8 znaków")

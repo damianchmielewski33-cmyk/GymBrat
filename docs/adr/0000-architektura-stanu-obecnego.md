@@ -76,6 +76,7 @@ Schemat: `db/schema.ts` (ok. 85 tabel `sqliteTable`). Klucze to `text` z `crypto
 Grupy tabel (skrót):
 - Konto i konfiguracja: `users` (w tym `appRole`, waga/wzrost/wiek/płeć, pakiet, `fitatuAccessToken` oznaczony `@deprecated`), `oauth_accounts`, `email_verification_codes`, `user_settings`, `app_settings`, `app_branding_assets`, `subscription_plans`, `subscription_orders`, `push_subscriptions`, `reminder_dispatches`.
 - Trening: `workouts`, `workout_plans`, `active_workout_sessions`, `training_sessions`, `exercise_technique_links`.
+  - Zaplanowana zmiana (ADR `0002-ekran-trening-dane-huba.md`, zadanie 003, bez zmian schematu): stały `dayNumber` planu (created_at asc) w `WorkoutPlanWithLastWorkoutDTO`, wspólny loader `lib/workout-plans-with-last-workout.ts` (React.cache) dla Treningu, Home i akcji, wspólna kolejka `pickNextWorkoutPlan` (remis = najniższy numer dnia), dane huba `lib/treningi-hub-data.ts` (tydzień z jednego `todayKey`, partie mięśni, obciążenia ostatniej sesji planu). Po wdrożeniu opis do przepisania.
 - Ciało i zdrowie (dane wrażliwe): `body_reports`, `body_report_photos`, `weight_logs`, `daily_checkins`.
 - Żywienie: `meal_logs`, `meal_catalog`, `meal_catalog_images`.
 - Operacje: `page_views`, `site_activity_log`, `admin_audit_log`, `bug_reports`, `bug_report_photos`.
@@ -101,6 +102,7 @@ Procedura dla nowej zmiany schematu (obecna praktyka): zmiana w `db/schema.ts` �
 - PIN admina: istnieją `ADMIN_PIN`, `/api/admin/unlock`, `/api/admin/lock`, ciasteczko `gymbrat_admin_unlock` i `readAdminUnlockVerified()`, ale nic nie wymaga odblokowania: `/api/admin/status` zwraca `unlocked: eligible`, a `readAdminUnlockVerified` nie ma wywołań (sekcja 9).
 - CSRF: double-submit (`lib/csrf.ts`, `assertCsrf`, `/api/csrf`, `components/csrf-bootstrap.tsx`) w 31 z 37 tras mutujących; bez CSRF świadomie: analytics, client-errors, cron, webhook HotPay, csp-report.
 - Server actions: `guardAction("plik.nazwa")` (`lib/action-guard.ts`) jako pierwsza instrukcja = limity na IP i sesję.
+- Zaplanowana zmiana (ADR `0001-rejestracja-weryfikacja-i-laczenie-kont.md`, zadanie 001): `users.email_verified_at` i `users.session_version`, decyzja OAuth w `signIn` (`lib/oauth-link-policy.ts`), rola admin tylko dla zweryfikowanego e-maila (`resolveEffectiveRole`), usunięcie `PRIMARY_ADMIN_EMAIL`, unieważnianie JWT przez `session_version` w `jwt` i `proxy.ts`, dziennik `security.*` w `admin_audit_log`. Po wdrożeniu opis w tej sekcji do przepisania.
 - Java: `UserContextFilter` ufa nagłówkowi `X-GymBrat-User-Id`; `X-GymBrat-Proxy-Token` sprawdzany tylko, gdy ustawiono `GYMBRAT_PROXY_TOKEN` (domyślnie pusty).
 
 ## 5. Kontrakty API
@@ -174,6 +176,8 @@ Rozjazdy wykryte w kodzie:
 | R10 | Rozjazd konfiguracji: zmienne bez wpisu w `env.example` / `admin-config-status.ts` (sekcja 6). `deploy:check` porównuje z `origin/master`, a dokumentacja zespołu mówi o `main`; reguła changelogu działa tylko w CI. | `scripts/check-gymbrat-deploy.mjs:46` | niski |
 | R11 | Zdjęcia w Turso (data URL) przy limicie 5 GB planu Free; plan R2 dopiero w Fazie 2. | `body_report_photos`, `bug_report_photos`, `team_post_media`, `docs/vps-docker-production.md` §5 | średni (koszt) |
 | R12 | Brak warstwy kontraktu dla Androida (`/api/android/*` to tylko wersja i pobranie, bez wersjonowania API); zmiany stron i akcji wpływają na WebView bez osobnego kontraktu. | `app/api/android/` | niski |
+| R14 | Usuwanie konta polega na `ON DELETE CASCADE`, a w repo nie ma `PRAGMA foreign_keys = ON` (SQLite/Turso domyślnie nie wymuszają FK): możliwe osierocone dane po usunięciu konta. | `app/api/user/account/route.ts`, `app/api/admin/users/[id]/route.ts` | wysoki (RODO art. 17); rozwiązanie: `lib/account-purge.ts` z ADR 0001 |
+| R15 | Cron `/api/cron/cleanup` zaplanowany tylko w `vercel.json`; na Render (produkcja) nic go nie wywołuje, więc retencja nie działa. | `vercel.json`, `.github/workflows/` | średni (włączać po zabezpieczeniu dowodów, ADR 0001 D8) |
 | R13 | `requireAdminApi` zwraca `{ error: "Unauthorized" }` po angielsku; normalizuje to dopiero `withApiErrors`. Rozjazd między kształtami błędów w akcjach (`{ ok:false, error }`) a API (`ApiErrorBody`). | `lib/admin-api.ts` | niski |
 
 Świadomie poza zakresem tego dokumentu: pełny audyt importów `db/` w komponentach, analiza cykli zależności (`madge`/`knip` nie są zainstalowane), uruchomienie `npm run lint` i `npm test`. `npx tsc --noEmit` przechodzi bez błędów (2026-10-23).

@@ -3,11 +3,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdminApi } from "@/lib/admin-api";
-import {
-  getProtectedAdminUserId,
-  isPrimaryAdminActor,
-} from "@/lib/admin-session";
-import { isPrimaryAdminEmail } from "@/lib/admin-config";
+import { getProtectedAdminUserIds, isOwnerAdminActor } from "@/lib/admin-session";
 import { logAdminAction } from "@/lib/admin-audit";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
@@ -87,10 +83,7 @@ async function handlePATCH(
     return NextResponse.json({ error: "Nie znaleziono." }, { status: 404 });
   }
 
-  const protectedId = await getProtectedAdminUserId();
-  const isProtected =
-    (protectedId !== null && id === protectedId) ||
-    isPrimaryAdminEmail(beforeUser.email);
+  const isProtected = (await getProtectedAdminUserIds()).includes(id);
 
   if (parsed.data.appRole != null) {
     if (isProtected) {
@@ -101,7 +94,7 @@ async function handlePATCH(
     }
     if (
       parsed.data.appRole === "admin" &&
-      !(await isPrimaryAdminActor(gate.session))
+      !(await isOwnerAdminActor(gate.session))
     ) {
       return NextResponse.json(
         { error: "Tylko główny administrator może nadawać uprawnienia admina." },
@@ -219,8 +212,7 @@ async function handleDELETE(
     );
   }
 
-  const protectedId = await getProtectedAdminUserId();
-  if (protectedId !== null && id === protectedId) {
+  if ((await getProtectedAdminUserIds()).includes(id)) {
     return NextResponse.json(
       { error: "Nie można usunąć głównego administratora." },
       { status: 400 },
@@ -233,13 +225,6 @@ async function handleDELETE(
     .from(users)
     .where(eq(users.id, id))
     .limit(1);
-
-  if (target && isPrimaryAdminEmail(target.email)) {
-    return NextResponse.json(
-      { error: "Nie można usunąć głównego administratora." },
-      { status: 400 },
-    );
-  }
 
   await db.delete(users).where(eq(users.id, id));
 

@@ -1,22 +1,23 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Session } from "next-auth";
 import { cookies } from "next/headers";
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { getAuthSecret } from "@/lib/auth-secret";
 import {
-  isPrimaryAdminEmail,
   normalizeAdminEmail,
   parseAdminEmails,
-  PRIMARY_ADMIN_EMAIL,
+  resolveEffectiveRole,
+  type AppRole,
 } from "@/lib/admin-config";
+import { logSecurityEvent } from "@/lib/security-events";
 
 export const ADMIN_UNLOCK_COOKIE = "gymbrat_admin_unlock";
 
 const SEP = "|";
 
-/** Pierwsze konto z `app_role = admin` w bazie (chronione gdy brak konta primary). */
+/** Pierwsze konto z `app_role = admin` w bazie (rezerwa, gdy `ADMIN_EMAILS` jest puste). */
 export async function getFounderUserId(): Promise<string | null> {
   const db = getDb();
   const [row] = await db
@@ -28,45 +29,57 @@ export async function getFounderUserId(): Promise<string | null> {
   return row?.id ?? null;
 }
 
-/** Id konta głównego admina (stały e-mail) — jeśli konto istnieje w bazie. */
-export async function getPrimaryAdminUserId(): Promise<string | null> {
-  const db = getDb();
-  const [row] = await db
+/** Główni admini: zweryfikowane konta z e-mailem w `ADMIN_EMAILS` (ADR 0001 D6). */
+export async function getOwnerAdminUserIds(): Promise<string[]> {
+  const emails = [...parseAdminEmails()];
+  if (emails.length === 0) return [];
+  const rows = await getDb()
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, PRIMARY_ADMIN_EMAIL))
-    .limit(1);
-  return row?.id ?? null;
+    .where(and(inArray(users.email, emails), isNotNull(users.emailVerifiedAt)));
+  return rows.map((r) => r.id);
 }
 
-export function isPrimaryAdminSession(session: Session | null): boolean {
-  return isPrimaryAdminEmail(session?.user?.email);
+/** Konta chronione przed zmianą roli i usunięciem: główni admini albo (gdy brak) pierwszy admin. */
+export async function getProtectedAdminUserIds(): Promise<string[]> {
+  const owners = await getOwnerAdminUserIds();
+  if (owners.length > 0) return owners;
+  const founder = await getFounderUserId();
+  return founder ? [founder] : [];
 }
 
-/** Async: e-mail z sesji albo porównanie id z kontem PRIMARY w bazie. */
-export async function isPrimaryAdminActor(session: Session | null): Promise<boolean> {
-  if (!session?.user?.id) return false;
-  if (isPrimaryAdminEmail(session.user.email)) return true;
-  const primaryId = await getPrimaryAdminUserId();
-  return primaryId !== null && primaryId === session.user.id;
+/** Tylko główny admin nadaje rolę admin innym. */
+export async function isOwnerAdminActor(session: Session | null): Promise<boolean> {
+  const id = session?.user?.id;
+  if (!id || session.user.role !== "admin") return false;
+  return (await getProtectedAdminUserIds()).includes(id);
 }
 
-/** Konto chronione: główny admin albo (gdy brak konta primary) pierwszy admin w bazie. */
-export async function getProtectedAdminUserId(): Promise<string | null> {
-  const primaryId = await getPrimaryAdminUserId();
-  if (primaryId) return primaryId;
-  return getFounderUserId();
-}
-
-/** Konto ma prawo wejść do ścieżki /admin (bez PIN jeszcze bez cookie). */
+/** Konto ma prawo wejść do ścieżki /admin (bez PIN jeszcze bez cookie); rola liczona w `jwt` z weryfikacją. */
 export async function isAdminEligible(session: Session | null): Promise<boolean> {
-  if (!session?.user?.id) return false;
-  if (session.user.role === "admin") return true;
-  if (isPrimaryAdminEmail(session.user.email)) return true;
-  const email = normalizeAdminEmail(session.user.email);
-  if (email && parseAdminEmails().has(email)) return true;
-  // Stara sesja bez e-maila w JWT — sprawdź DB.
-  return isPrimaryAdminActor(session);
+  return Boolean(session?.user?.id) && session?.user?.role === "admin";
+}
+
+/**
+ * Rola przy logowaniu (Credentials i OAuth): zapis `app_role = admin` z `ADMIN_EMAILS`
+ * wyłącznie dla zweryfikowanego e-maila; zdarzenia nadania/odmowy tylko tutaj (LR-26, LR-28).
+ */
+export async function syncAdminRoleOnLogin(account: {
+  id: string;
+  email: string;
+  appRole: string | null;
+  emailVerified: boolean;
+}): Promise<AppRole> {
+  const role = resolveEffectiveRole(account);
+  const listed = parseAdminEmails().has(normalizeAdminEmail(account.email));
+  if (!listed || account.appRole === "admin") return role;
+  if (role === "admin") {
+    await getDb().update(users).set({ appRole: "admin" }).where(eq(users.id, account.id));
+    await logSecurityEvent({ type: "admin_role_granted", userId: account.id, reason: "admin_emails" });
+  } else {
+    await logSecurityEvent({ type: "admin_role_denied", userId: account.id, reason: "email_unverified" });
+  }
+  return role;
 }
 
 export function signAdminUnlockToken(userId: string): string {

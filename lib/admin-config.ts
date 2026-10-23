@@ -9,25 +9,36 @@ export function getAdminPin(): string {
   return "1998";
 }
 
-/** Główny administrator — zawsze admin; tylko on nadaje rolę admin innym. */
-export const PRIMARY_ADMIN_EMAIL = "damianchmielewski33@gmail.com";
+export type AppRole = "zawodnik" | "trener" | "admin";
 
 export function normalizeAdminEmail(email: string | null | undefined): string {
   return (email ?? "").trim().toLowerCase();
 }
 
-export function isPrimaryAdminEmail(email: string | null | undefined): boolean {
-  return normalizeAdminEmail(email) === PRIMARY_ADMIN_EMAIL;
-}
-
-/** E-maile z automatyczną rolą admin (PRIMARY + ADMIN_EMAILS). */
+/** E-maile z `ADMIN_EMAILS` (bez adresów zapisanych w kodzie, LR-28). */
 export function parseAdminEmails(): Set<string> {
-  const out = new Set<string>([PRIMARY_ADMIN_EMAIL]);
+  const out = new Set<string>();
   const raw = process.env.ADMIN_EMAILS;
   if (!raw) return out;
   for (const s of raw.split(",")) {
-    const t = s.trim().toLowerCase();
+    const t = normalizeAdminEmail(s);
     if (t) out.add(t);
   }
   return out;
+}
+
+/**
+ * Jedyne miejsce reguły roli (ADR 0001 D6): admin, gdy rola zapisana w bazie to admin,
+ * albo gdy e-mail jest na liście `ADMIN_EMAILS` **i** jest zweryfikowany.
+ */
+export function resolveEffectiveRole(input: {
+  appRole: string | null | undefined;
+  email: string | null | undefined;
+  emailVerified: boolean;
+}): AppRole {
+  if (input.appRole === "admin") return "admin";
+  if (input.emailVerified && parseAdminEmails().has(normalizeAdminEmail(input.email))) {
+    return "admin";
+  }
+  return input.appRole === "trener" ? "trener" : "zawodnik";
 }

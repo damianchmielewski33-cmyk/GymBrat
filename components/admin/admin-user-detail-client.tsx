@@ -20,12 +20,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { adminRequest } from "@/lib/admin-client";
-import { isPrimaryAdminEmail } from "@/lib/admin-config";
 import { formatPlnFromGrosze } from "@/lib/subscription-plans-format";
 
 type AppRole = "zawodnik" | "trener" | "admin";
 
 type DetailPayload = {
+  /** Konto chronione (główny administrator) — liczone na serwerze. */
+  isProtected?: boolean;
   user: {
     id: string;
     email: string;
@@ -152,7 +153,7 @@ export function AdminUserDetailClient({
         lastName: lastName || null,
         name: name || null,
         adminNote: adminNote || null,
-        appRole: isPrimaryAdminEmail(data?.user.email ?? "") ? undefined : appRole,
+        appRole: data?.isProtected ? undefined : appRole,
         packageEndsAt: packageEndsAt || null,
         packagePlanSku: data?.user.packagePlanSku ?? null,
       },
@@ -218,7 +219,7 @@ export function AdminUserDetailClient({
   }
 
   const u = data.user;
-  const primary = isPrimaryAdminEmail(u.email);
+  const primary = Boolean(data.isProtected);
   const displayName = u.name?.trim() || [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email;
 
   return (

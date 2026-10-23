@@ -6,21 +6,26 @@ import { adminAuditLog } from "@/db/schema";
 import type { AdminAuditEntry } from "@/lib/admin-audit-types";
 import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 
-export async function logAdminAction(input: {
+export type AdminAuditInput = {
   actorUserId: string;
   action: string;
   targetUserId?: string | null;
   meta?: Record<string, unknown> | null;
-}): Promise<void> {
-  const db = getDb();
-  const env = getAnalyticsDeployment();
-  await db.insert(adminAuditLog).values({
+};
+
+/** Wiersz `admin_audit_log` — wspólny dla zapisu pojedynczego i instrukcji w `db.batch`. */
+export function adminAuditValues(input: AdminAuditInput): typeof adminAuditLog.$inferInsert {
+  return {
     actorUserId: input.actorUserId,
     action: input.action,
     targetUserId: input.targetUserId ?? null,
     metaJson: input.meta && Object.keys(input.meta).length ? JSON.stringify(input.meta) : null,
-    deploymentEnv: env,
-  });
+    deploymentEnv: getAnalyticsDeployment(),
+  };
+}
+
+export async function logAdminAction(input: AdminAuditInput): Promise<void> {
+  await getDb().insert(adminAuditLog).values(adminAuditValues(input));
 }
 
 export async function listAdminAuditLogs(limit = 200): Promise<AdminAuditEntry[]> {

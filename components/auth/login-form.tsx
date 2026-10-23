@@ -1,9 +1,12 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useEffect, useState, useTransition } from "react";
-import { LOGIN_RATE_LIMITED_CODE } from "@/lib/auth-error-codes";
+import {
+  LOGIN_RATE_LIMITED_CODE,
+  SESSION_EXPIRED_PARAM,
+} from "@/lib/auth-error-codes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +17,11 @@ import {
   FacebookSignInButton,
   GoogleSignInButton,
 } from "@/components/auth/google-sign-in-button";
+import {
+  oauthErrorMessage,
+  SESSION_EXPIRED_MESSAGE,
+} from "@/components/auth/auth-copy";
+import { OAuthPrivacyNote } from "@/components/auth/oauth-privacy-note";
 import { RoleAuthCards } from "@/components/auth/role-auth-cards";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import {
@@ -25,20 +33,6 @@ import {
 /** @deprecated użyj AppRole z @/lib/auth-role */
 export type LoginRole = AppRole;
 
-function oauthErrorMessage(code: string | null): string | null {
-  if (!code) return null;
-  if (code === "OAuthAccountNotLinked") {
-    return "Ten e-mail ma już konto w GymBrat. Zaloguj się hasłem, a potem Google/Facebook z tym samym adresem — konta się połączą. Albo od razu użyj hasła.";
-  }
-  if (code === "AccessDenied" || code === "OAuthCallback" || code === "OAuthSignin") {
-    return "Logowanie społecznościowe zostało anulowane lub nie powiodło się. Spróbuj ponownie.";
-  }
-  if (code === "Configuration") {
-    return "Logowanie społecznościowe nie jest jeszcze skonfigurowane na serwerze.";
-  }
-  return "Nie udało się zalogować przez konto zewnętrzne. Spróbuj ponownie.";
-}
-
 export function LoginForm({
   googleEnabled = false,
   facebookEnabled = false,
@@ -47,15 +41,22 @@ export function LoginForm({
   facebookEnabled?: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") ?? "/";
   const registered = params.get("registered");
   const oauthExisting = params.get("oauth") === "existing";
-  const oauthError = oauthErrorMessage(params.get("error"));
   const trainerEnabled = isTrainerFlowEnabled();
   const roleFromUrl = roleFromSearchParam(params.get("role"));
   const role: AppRole = trainerEnabled ? roleFromUrl : "zawodnik";
-  const [error, setError] = useState<string | null>(oauthError);
+  // Odczyt jednorazowy: parametry `error` / `session` czyścimy z adresu niżej.
+  const [oauthError, setOauthError] = useState(() =>
+    oauthErrorMessage(params.get("error")),
+  );
+  const [sessionExpired, setSessionExpired] = useState(
+    () => params.get("session") === SESSION_EXPIRED_PARAM,
+  );
+  const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -68,6 +69,15 @@ export function LoginForm({
     }
   }, [trainerEnabled, params, router]);
 
+  useEffect(() => {
+    if (!params.has("error") && !params.has("session")) return;
+    const next = new URLSearchParams(params.toString());
+    next.delete("error");
+    next.delete("session");
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, [params, pathname, router]);
+
   function onSelectRole(next: AppRole) {
     if (!trainerEnabled && next === "trener") return;
     const nextParams = new URLSearchParams(params.toString());
@@ -76,10 +86,7 @@ export function LoginForm({
   }
 
   const registerHref = "/register?role=zawodnik";
-  const hasBanner =
-    Boolean(registered && !error) ||
-    Boolean(error) ||
-    Boolean(oauthExisting && !error);
+  const hasBanner = Boolean(registered && !error) || Boolean(error);
 
   if (oauthExisting) {
     return (
@@ -122,6 +129,8 @@ export function LoginForm({
         const email = String(fd.get("email") ?? "");
         const password = String(fd.get("password") ?? "");
         setError(null);
+        setOauthError(null);
+        setSessionExpired(false);
         start(async () => {
           try {
             const res = await signIn("credentials", {
@@ -167,6 +176,16 @@ export function LoginForm({
         });
       }}
     >
+      {oauthError ? (
+        <InlineBanner role="alert" variant="error">
+          {oauthError}
+        </InlineBanner>
+      ) : sessionExpired ? (
+        <InlineBanner role="status" variant="info">
+          {SESSION_EXPIRED_MESSAGE}
+        </InlineBanner>
+      ) : null}
+
       {trainerEnabled ? (
         <RoleAuthCards
           role={role}
@@ -191,6 +210,7 @@ export function LoginForm({
             />
           ) : null}
           <AuthProviderDivider label="lub e-mailem" />
+          <OAuthPrivacyNote />
         </div>
       ) : null}
 

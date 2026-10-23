@@ -44,3 +44,4 @@ Odpowiedzi właściciela na pytania otwarte zespołu (2026-10-23). Decyzje są w
 | DW-1 | Czy konta admin (w tym `damianchmielewski33@gmail.com`) należą do właściciela | Tak, jedyne konto admin należy do właściciela. |
 | DW-3 | `ADMIN_EMAILS` na Render przed wdrożeniem | Tak, właściciel ustawi przed Promote. |
 | DW-4 | Google OAuth na produkcji | Skonfigurowany i działa. |
+| DW-5 | Reguła R-B z ADR 0001 (unieważnienie hasła i sesji kont, do których Google dołączono po rejestracji hasłem) | Odrzucona. Takie konta dostają tylko `email_verified_at`; hasło i sesje bez zmian. Właściciel akceptuje ryzyko resztkowe: założyciel konta kodem `1234` może nadal znać hasło (ADR 0001, ryzyko A2/S2). |

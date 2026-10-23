@@ -30,6 +30,8 @@ import {
 const BATCH = 250;
 const MAX_BATCHES_PER_TABLE = 40;
 const EMERGENCY_MAX_ROWS = 2_000;
+const MIN_ADMIN_AUDIT_DAYS = 180;
+const MAX_EMAIL_CODES_HOURS = 24;
 
 function envInt(name: string, fallback: number): number {
   const raw = process.env[name];
@@ -71,7 +73,7 @@ export type CleanupResult = {
     pageViewsDays: number;
     activityLogDays: number;
     adminAuditDays: number;
-    emailCodesDays: number;
+    emailCodesHours: number;
     teamFeedEventsDays: number;
     notificationEventsDays: number;
     notificationsReadDays: number;
@@ -92,8 +94,10 @@ export function getRetentionPolicy(): CleanupResult["policy"] {
   return {
     pageViewsDays: envInt("RETENTION_PAGE_VIEWS_DAYS", 21),
     activityLogDays: envInt("RETENTION_ACTIVITY_LOG_DAYS", 45),
-    adminAuditDays: envInt("RETENTION_ADMIN_AUDIT_DAYS", 180),
-    emailCodesDays: envInt("RETENTION_EMAIL_CODES_DAYS", 14),
+    /** LR-26: dziennik zdarzeń bezpieczeństwa min. 180 dni — zmienna nie skróci okresu. */
+    adminAuditDays: Math.max(MIN_ADMIN_AUDIT_DAYS, envInt("RETENTION_ADMIN_AUDIT_DAYS", 180)),
+    /** LR-20: kody weryfikacyjne najwyżej 24 h — zmienna nie wydłuży okresu. */
+    emailCodesHours: Math.min(MAX_EMAIL_CODES_HOURS, envInt("RETENTION_EMAIL_CODES_HOURS", 24)),
     teamFeedEventsDays: envInt("RETENTION_TEAM_FEED_EVENTS_DAYS", 7),
     notificationEventsDays: envInt("RETENTION_NOTIFICATION_EVENTS_DAYS", 7),
     notificationsReadDays: envInt("RETENTION_NOTIFICATIONS_READ_DAYS", 60),
@@ -200,7 +204,7 @@ export async function runDbCleanup(): Promise<CleanupResult> {
     },
   );
 
-  const emailCutoff = new Date(daysAgoMs(policy.emailCodesDays));
+  const emailCutoff = new Date(Date.now() - policy.emailCodesHours * 60 * 60 * 1000);
   deleted.emailVerificationCodes = await purgeBatched(
     async () => {
       const rows = await db
@@ -208,11 +212,8 @@ export async function runDbCleanup(): Promise<CleanupResult> {
         .from(emailVerificationCodes)
         .where(
           or(
-            lt(emailVerificationCodes.expiresAt, new Date()),
-            and(
-              isNotNull(emailVerificationCodes.consumedAt),
-              lt(emailVerificationCodes.createdAt, emailCutoff),
-            ),
+            lt(emailVerificationCodes.createdAt, emailCutoff),
+            isNotNull(emailVerificationCodes.consumedAt),
           ),
         )
         .limit(BATCH);

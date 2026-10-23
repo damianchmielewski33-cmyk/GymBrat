@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Rejestracja: potwierdzony e-mail i bezpieczne logowanie Google",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Konto e-mailem założysz tylko po wpisaniu kodu z prawdziwej wiadomości; bez skonfigurowanej poczty rejestracja e-mailem jest wyłączona, a Google działa dalej.",
+      "Logowanie Google łączy się z istniejącym kontem tylko wtedy, gdy oba potwierdzają ten sam adres; Facebook nie łączy kont automatycznie.",
+      "Konto założone bez potwierdzenia adresu może zabezpieczyć właściciel adresu przez Google, po wyraźnym potwierdzeniu, że dotychczasowe dane zostaną usunięte.",
+      "Rola administratora wymaga potwierdzonego e-maila, a panel pokazuje, gdy nikt nie może założyć konta.",
+    ],
+  },
+  {
     title: "Zapowiedź — Branding: prawdziwy status przebudowy APK",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
@@ -177,6 +188,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Spalanie jest liczone netto (bez metabolizmu spoczynkowego), z uwzględnieniem płci w modelu tętna oraz prędkości osobno dla marszu i biegu; tempo z roweru czy orbitreka nie zaburza szacunku.",
       "Zapis cardio sprawdza zakresy (minuty 1–1440, tętno 30–250, realne kalorie) i pozwala wskazać datę do 60 dni wstecz; własne tempo wpisu zostaje przy edycji, a wpis siłowy nie zostanie nadpisany jako cardio.",
       "Pasek cardio na Pulpicie pokazuje niebieski segment także po przekroczeniu celu tygodnia, a podpis mówi „ten tydzień”, bo liczy tydzień pon–nd.",
+      "Dodatkowe cardio ponad cel tygodnia zmniejsza zalecenie także wtedy, gdy nadwyżka wymagałaby ponad 90 minut — limit 90 min nie ukrywa już wykonanych minut.",
     ],
   },
   {

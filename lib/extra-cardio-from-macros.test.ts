@@ -552,9 +552,62 @@ describe("extra-cardio-from-macros", () => {
       recentCardio: [{ minutes: 40, calories: 320, paceMinPerKm: 8 }],
     });
     expect(advice.show).toBe(true);
-    expect(advice.extraMinutes).toBeLessThanOrEqual(90);
+    expect(advice.extraMinutes).toBe(90);
     expect(advice.effectiveSurplusKcal).toBeLessThanOrEqual(advice.surplusKcal);
+    // Tooltip „Do odrobienia cardio” odpowiada uciętemu celowi, nie pełnemu długowi.
+    expect(advice.effectiveSurplusKcal).toBe(
+      Math.round(90 * advice.burnKcalPerMin),
+    );
     expect(advice.surplusKcal).toBeGreaterThan(1000);
+  });
+
+  it("cardio ponad cel tygodnia zmniejsza zalecenie ucięte do 90 min", () => {
+    const weeklyGoal = 170;
+    const history: RecentCardioSample[] = [
+      { minutes: weeklyGoal, calories: null, paceMinPerKm: null, dateKey: "2026-10-05" },
+    ];
+    const base = {
+      todayKey: "2026-10-07",
+      weekKeys,
+      weightKg: 80,
+      weeklyCardioGoalMinutes: weeklyGoal,
+      today: day({ caloriesConsumed: 0 }),
+      elapsedDays: [
+        { dateKey: "2026-10-05", day: day({ caloriesConsumed: 3500 }) },
+        { dateKey: "2026-10-06", day: day({ caloriesConsumed: 3500 }) },
+        { dateKey: "2026-10-07", day: day({ caloriesConsumed: 0 }) },
+      ],
+    };
+    const extra = (minutes: number): RecentCardioSample => ({
+      minutes,
+      calories: null,
+      paceMinPerKm: null,
+      dateKey: "2026-10-07",
+    });
+
+    const before = computeExtraCardioAdvice({ ...base, recentCardio: history });
+    expect(before.show).toBe(true);
+    // Dług wymagałby znacznie ponad 90 min — zalecenie ucięte do limitu.
+    expect(before.surplusKcal / before.burnKcalPerMin).toBeGreaterThan(90);
+    expect(before.extraMinutes).toBe(90);
+
+    const after20 = computeExtraCardioAdvice({
+      ...base,
+      recentCardio: [...history, extra(20)],
+    });
+    expect(after20.burnKcalPerMin).toBe(before.burnKcalPerMin);
+    expect(after20.show).toBe(true);
+    expect(after20.extraMinutes).toBe(70);
+    expect(after20.effectiveSurplusKcal).toBe(
+      before.effectiveSurplusKcal - after20.cardioOffsetKcal,
+    );
+
+    const after90 = computeExtraCardioAdvice({
+      ...base,
+      recentCardio: [...history, extra(90)],
+    });
+    expect(after90.show).toBe(false);
+    expect(after90.extraMinutes).toBe(0);
   });
 
   it("bez żadnej nadwyżki nie pokazuje dodatkowego cardio", () => {
@@ -616,7 +669,7 @@ describe("extra-cardio-from-macros", () => {
     expect(advice.show).toBe(true);
     expect(advice.burnSource).toBe("calories_entered");
     expect(advice.extraMinutes).toBe(
-      Math.min(90, Math.ceil(advice.effectiveSurplusKcal / advice.burnKcalPerMin)),
+      Math.ceil(advice.effectiveSurplusKcal / advice.burnKcalPerMin),
     );
     expect(typeof advice.cardioOffsetKcal).toBe("number");
     expect(

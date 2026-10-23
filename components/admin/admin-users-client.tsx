@@ -22,7 +22,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { isPrimaryAdminEmail } from "@/lib/admin-config";
 import { adminRequest } from "@/lib/admin-client";
 
 type AppRole = "zawodnik" | "trener" | "admin";
@@ -37,7 +36,8 @@ type UserRow = {
 
 type UsersPayload = {
   users: UserRow[];
-  founderUserId: string | null;
+  /** Konta chronione (właściciel z ADMIN_EMAILS albo founder) — liczone na serwerze. */
+  protectedUserIds?: string[];
   canGrantAdmin?: boolean;
 };
 
@@ -71,7 +71,9 @@ function initials(u: UserRow): string {
 export function AdminUsersClient() {
   const { notifySaved, notifyError } = useSaveFeedback();
   const [users, setUsers] = useState<UserRow[]>([]);
-  const [protectedUserId, setProtectedUserId] = useState<string | null>(null);
+  const [protectedUserIds, setProtectedUserIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const [canGrantAdmin, setCanGrantAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,7 +90,7 @@ export function AdminUsersClient() {
     });
     if (res.ok) {
       setUsers(res.data.users ?? []);
-      setProtectedUserId(res.data.founderUserId ?? null);
+      setProtectedUserIds(new Set(res.data.protectedUserIds ?? []));
       setCanGrantAdmin(Boolean(res.data.canGrantAdmin));
     } else {
       setError(res.error);
@@ -211,9 +213,7 @@ export function AdminUsersClient() {
               </thead>
               <tbody className="divide-y divide-white/10 text-white/85">
                 {filtered.map((u) => {
-                  const isPrimary = isPrimaryAdminEmail(u.email);
-                  const isProtected =
-                    isPrimary || (protectedUserId !== null && u.id === protectedUserId);
+                  const isProtected = protectedUserIds.has(u.id);
                   const role: AppRole = isAppRole(u.appRole) ? u.appRole : "zawodnik";
                   return (
                     <tr key={u.id} className="transition-colors hover:bg-white/[0.03]">
@@ -238,7 +238,7 @@ export function AdminUsersClient() {
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <AdminPill tone={ROLE_TONE[role]}>{ROLE_LABEL[role]}</AdminPill>
-                          {isPrimary ? <AdminPill tone="gold">główny</AdminPill> : null}
+                          {isProtected ? <AdminPill tone="gold">główny</AdminPill> : null}
                         </div>
                       </td>
                       <td className="hidden whitespace-nowrap px-4 py-3 text-white/55 sm:table-cell">

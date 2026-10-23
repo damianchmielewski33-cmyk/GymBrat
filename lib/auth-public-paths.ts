@@ -4,10 +4,14 @@ import {
   isCompleteProfilePath,
 } from "@/lib/profile-complete";
 
+export const TAKEOVER_CONFIRM_PATH = "/login/zabezpiecz-konto";
+
 /** Ścieżki dostępne bez sesji NextAuth (proxy nie robi 307 na /login). */
 export const ANONYMOUS_PUBLIC_PATHS = new Set([
   "/",
   "/login",
+  /** Potwierdzenie przejęcia konta niezweryfikowanego (ADR 0001 D4) — bez sesji. */
+  TAKEOVER_CONFIRM_PATH,
   "/register",
   "/regulamin",
   "/polityka-prywatnosci",

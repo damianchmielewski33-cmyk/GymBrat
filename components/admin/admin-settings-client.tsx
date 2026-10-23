@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import {
+  AdminRegistrationNotice,
+  registrationNoticeState,
+} from "@/components/admin/admin-registration-notice";
+import {
   AdminCard,
   AdminLoading,
   AdminNotice,
@@ -88,8 +92,9 @@ function IntegrationCard({
 
   return (
     <li
+      id={`config-${item.id}`}
       className={cn(
-        "rounded-2xl border bg-black/25 p-4",
+        "scroll-mt-6 rounded-2xl border bg-black/25 p-4",
         attention ? "border-amber-400/25" : "border-white/10",
       )}
     >
@@ -300,6 +305,9 @@ export function AdminSettingsClient() {
   }, [data, filter]);
 
   const summary = data?.summary;
+  const registrationNotice = data
+    ? registrationNoticeState(data.summary, data.integrations)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -322,6 +330,22 @@ export function AdminSettingsClient() {
 
       {error ? <AdminNotice tone="danger">{error}</AdminNotice> : null}
       {loading && !data ? <AdminLoading label="Sprawdzanie konfiguracji…" /> : null}
+
+      {registrationNotice && summary ? (
+        <AdminRegistrationNotice
+          state={registrationNotice}
+          hostingIssues={summary.hostingIssues}
+          action={
+            <a
+              href="#config-email"
+              onClick={() => setFilter("all")}
+              className="inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+            >
+              Przejdź do SMTP
+            </a>
+          }
+        />
+      ) : null}
 
       {summary ? (
         <AdminCard>

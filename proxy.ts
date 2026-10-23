@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getToken, type JWT } from "next-auth/jwt";
+import { getAccountAuthState, isTokenRevoked } from "@/lib/account-auth-state";
+import { SESSION_EXPIRED_PARAM } from "@/lib/auth-error-codes";
 import { getAuthSecret } from "@/lib/auth-secret";
+import { isAuthSessionCookieName } from "@/lib/auth-session-cookie";
 import { errorResponse } from "@/lib/errors/api";
 import { AppError } from "@/lib/errors/app-error";
 import { logServerError, requestIdFrom } from "@/lib/errors/server-log";
@@ -42,6 +45,40 @@ async function readSessionToken(req: NextRequest) {
     /** Uszkodzone ciasteczko nie może wywalić WebView jako 500 / popup błędu. */
     return null;
   }
+}
+
+/** Sesja unieważniona (ADR 0001 D5): konto usunięte/przejęte albo inna wersja sesji. */
+async function isSessionRevoked(token: JWT): Promise<boolean> {
+  const uid =
+    typeof token.id === "string" ? token.id : typeof token.sub === "string" ? token.sub : "";
+  try {
+    return isTokenRevoked({ id: uid, sv: token.sv }, await getAccountAuthState(uid));
+  } catch {
+    /** Chwilowy błąd bazy nie wylogowuje — `jwt` i kolejne żądania sprawdzą ponownie. */
+    return false;
+  }
+}
+
+/**
+ * Czyści ciasteczka sesji i kieruje na `/login?session=expired`; bez tego strona (brak sesji)
+ * i proxy (ciasteczko jest) odbijałyby się nawzajem.
+ */
+function revokedSessionResponse(req: NextRequest, pathname: string): NextResponse {
+  const onExpiredLogin =
+    pathname === "/login" && req.nextUrl.searchParams.get("session") === SESSION_EXPIRED_PARAM;
+  let res: NextResponse;
+  if (pathname.startsWith("/api/")) {
+    const api = errorResponse("UNAUTHORIZED", { requestId: requestIdFrom(req.headers) });
+    res = new NextResponse(api.body, { status: api.status, headers: api.headers });
+  } else if (onExpiredLogin) {
+    res = NextResponse.next();
+  } else {
+    res = NextResponse.redirect(new URL(`/login?session=${SESSION_EXPIRED_PARAM}`, req.url));
+  }
+  for (const cookie of req.cookies.getAll()) {
+    if (isAuthSessionCookieName(cookie.name)) res.cookies.delete(cookie.name);
+  }
+  return res;
 }
 
 /** Ochrona tras (Next.js 16 — eksport musi nazywać się `proxy`). */
@@ -112,15 +149,19 @@ export async function proxy(req: NextRequest) {
   }
 
   const token = await readSessionToken(req);
+  if (token && (await isSessionRevoked(token))) {
+    return revokedSessionResponse(req, pathname);
+  }
   const profileComplete = token?.profileComplete === true;
   const oauthExisting = req.nextUrl.searchParams.get("oauth") === "existing";
+  const sessionExpired = req.nextUrl.searchParams.get("session") === SESSION_EXPIRED_PARAM;
   const oauthRegisterContinue =
     pathname === "/register" &&
     req.nextUrl.searchParams.get("oauth") === "1";
 
   if (isAnonymousPublicPath(pathname)) {
-    // /login?oauth=existing — komunikat „konto już jest”, bez odbicia na Pulpit.
-    if (token && pathname === "/login" && oauthExisting) {
+    // /login?oauth=existing i ?session=expired — komunikat na ekranie logowania, bez odbicia na Pulpit.
+    if (token && pathname === "/login" && (oauthExisting || sessionExpired)) {
       return NextResponse.next();
     }
     if (token && shouldBounceAuthenticatedFromAuthPage(pathname, profileComplete)) {

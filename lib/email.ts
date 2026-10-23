@@ -10,6 +10,11 @@ function requireEnv(name: string): string {
   return v.trim();
 }
 
+/** Jedno miejsce sprawdzania, czy wysyłka SMTP jest skonfigurowana (bez wartości zmiennych). */
+export function isSmtpConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
+  return Boolean(env.SMTP_HOST?.trim() && env.SMTP_USER?.trim() && env.SMTP_PASS?.trim());
+}
+
 /** Tworzy transporter SMTP (Gmail / Outlook / dowolny host — patrz env.example). */
 function createSmtpTransport() {
   const host = requireEnv("SMTP_HOST");

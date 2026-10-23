@@ -13,6 +13,8 @@ declare module "next-auth" {
   interface User {
     id: string;
     role?: "zawodnik" | "trener" | "admin";
+    /** `users.session_version` w chwili logowania hasłem (ADR 0001 D5). */
+    sv?: number;
   }
 }
 
@@ -21,5 +23,7 @@ declare module "next-auth/jwt" {
     id?: string;
     role?: "zawodnik" | "trener" | "admin";
     profileComplete?: boolean;
+    /** Wersja sesji; różna od `users.session_version` = token unieważniony. Brak = 0. */
+    sv?: number;
   }
 }

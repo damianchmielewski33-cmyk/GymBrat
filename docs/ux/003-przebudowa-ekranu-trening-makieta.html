@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Makieta 003 - ekran Trening (statyczna, tylko do odwzorowania)</title>
+<!-- Makieta referencyjna dla `frontend`. Wartości 1:1 z tokenów `app/globals.css`.
+     Specyfikacja: docs/ux/003-przebudowa-ekranu-trening.md -->
+<style>
+  :root {
+    --gym-app-bg:#050505; --gym-surface:#161616; --gym-surface-raised:#1c1c1f; --gym-surface-sunken:#141416;
+    --gym-gold:#ebc44a; --gym-gold-bright:#f7e28f; --gym-gold-deep:#c49a1f;
+    --gym-glyph-base:#262626; --gym-glyph-stroke:#4a4a4a; --on-gold:#1a1408;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--gym-app-bg); color:#fff; font:14px/1.4 system-ui, "Segoe UI", sans-serif; }
+  .wrap { display:flex; gap:24px; padding:24px; align-items:flex-start; flex-wrap:wrap; }
+  .phone { width:380px; background:var(--gym-app-bg); border:1px solid #222; border-radius:24px; padding:12px; }
+  .phone.w320 { width:320px; } .phone.w430 { width:430px; }
+  .tab { font-variant-numeric:tabular-nums; }
+  .card { background:var(--gym-surface); border:1px solid rgba(255,255,255,.07); border-top-color:rgba(255,236,180,.14); border-radius:22px; padding:16px; }
+  .panel { background:var(--gym-surface-sunken); border:1px solid rgba(255,255,255,.07); border-top-color:rgba(255,236,180,.14); border-radius:16px; }
+  .stack > * + * { margin-top:20px; }
+  h1 { font:600 24px/1.15 "Space Grotesk", system-ui; margin:0; letter-spacing:-.01em; }
+  .sub { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; margin-top:8px; color:rgba(255,255,255,.65); font-size:13px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 12px; border-radius:999px; border:1px solid rgba(235,196,74,.35); background:rgba(235,196,74,.08); color:var(--gym-gold); font-weight:600; font-size:12px; }
+  .lbl { font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.6); }
+  .kick { font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--gym-gold); }
+  .big { font:600 26px/1 Georgia, serif; } .of { font-size:17px; color:rgba(255,255,255,.6); }
+  .metrics { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .metrics .m + .m { border-left:1px solid rgba(255,255,255,.06); padding-left:12px; }
+  .meta { color:rgba(255,255,255,.6); font-size:13px; margin-top:6px; }
+  .seg { display:flex; gap:6px; margin-top:16px; list-style:none; padding:0; margin-bottom:0; }
+  .seg li { flex:1; min-width:6px; height:8px; border-radius:999px; background:rgba(255,255,255,.10); }
+  .seg li.done { background:var(--gym-gold); }
+  .seg li.next { background:transparent; box-shadow:inset 0 0 0 1.5px var(--gym-gold); }
+  .seg li.done.next { background:var(--gym-gold); box-shadow:0 0 0 2px var(--gym-surface), 0 0 0 3.5px rgba(235,196,74,.6); }
+  .next-top { display:flex; gap:12px; align-items:flex-start; }
+  .next-top .txt { flex:1; min-width:0; }
+  h2 { font:600 22px/1.15 "Space Grotesk", system-ui; margin:6px 0 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+  .ex { list-style:none; padding:0; margin:12px 0 0; border-top:1px solid rgba(255,255,255,.06); }
+  .ex li { display:flex; justify-content:space-between; gap:12px; align-items:center; min-height:32px; border-bottom:1px solid rgba(255,255,255,.06); }
+  .ex .n { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:rgba(255,255,255,.85); }
+  .ex .v { flex-shrink:0; font-weight:600; font-variant-numeric:tabular-nums; }
+  .ex .v.plan { font-weight:400; color:rgba(255,255,255,.6); }
+  .more { color:rgba(255,255,255,.6); font-size:12px; margin-top:8px; }
+  .cta { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; margin-top:16px; border:0; border-radius:16px; font-weight:600; font-size:16px; color:var(--on-gold); background:linear-gradient(180deg,var(--gym-gold-bright) 0%,var(--gym-gold) 55%,var(--gym-gold-deep) 100%); }
+  .sec { display:flex; align-items:center; gap:8px; }
+  .sec .t { font-size:12px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.85); }
+  .sec .line { flex:1; height:1px; background:rgba(235,196,74,.35); }
+  .sec .act { display:inline-flex; align-items:center; height:44px; padding:0 8px; font-size:12px; font-weight:600; color:var(--gym-gold); }
+  .rows { list-style:none; margin:10px 0 0; padding:0; }
+  .rows li { display:flex; align-items:center; }
+  .rows li + li { border-top:1px solid rgba(255,255,255,.06); }
+  .row { display:flex; align-items:center; gap:12px; flex:1; min-width:0; min-height:64px; padding:10px 4px 10px 12px; }
+  .ico { position:relative; width:42px; height:42px; flex-shrink:0; border-radius:12px; background:var(--gym-surface-raised); border:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; }
+  .ico.next { border:1.5px solid var(--gym-gold); }
+  .ico .tick { position:absolute; top:-5px; right:-5px; width:16px; height:16px; border-radius:999px; background:var(--gym-gold); box-shadow:0 0 0 2px var(--gym-surface-sunken); display:flex; align-items:center; justify-content:center; }
+  .rt { min-width:0; flex:1; }
+  .rt .nm { display:block; font-weight:600; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rt .sb { display:block; font-size:12px; color:rgba(255,255,255,.6); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .nx { flex-shrink:0; font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--gym-gold); }
+  .dots { width:44px; height:44px; margin-right:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.7); border-radius:12px; }
+  .tools { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px; }
+  .tool { min-height:88px; padding:12px; display:flex; flex-direction:column; justify-content:space-between; }
+  .tool b { font-size:13px; font-weight:600; } .tool span { display:block; font-size:12px; color:rgba(255,255,255,.6); }
+  .glyph-demo { display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; }
+  .glyph-demo figure { margin:0; text-align:center; font-size:11px; color:rgba(255,255,255,.6); }
+  .g-base { fill:var(--gym-glyph-base); stroke:var(--gym-glyph-stroke); }
+  .g-on { fill:var(--gym-gold); stroke:var(--gym-gold-deep); }
+  .g-spine { stroke:var(--gym-glyph-stroke); }
+  .g-on-spine { stroke:var(--gym-gold-deep); }
+</style>
+</head>
+<body>
+<!-- Definicje sylwetek: ten sam kod co spec sekcja 6. Klasa g-on = zaznaczona bryła. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- PRZÓD: zaznaczone klatka, barki, ramiona (przykład push) -->
+    <symbol id="front-push" viewBox="0 0 24 24">
+      <g stroke-width="1" vector-effect="non-scaling-stroke">
+        <circle class="g-base" cx="12" cy="3" r="2.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="6" y="6" width="2.6" height="2.6" rx="1.3" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="15.4" y="6" width="2.6" height="2.6" rx="1.3" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="9.3" y="6" width="5.4" height="3.8" rx="1.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="9.6" y="10.5" width="4.8" height="4.3" rx="1" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="5.6" y="9.3" width="2.6" height="5.6" rx="1.3" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="15.8" y="9.3" width="2.6" height="5.6" rx="1.3" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="9.3" y="15.5" width="2.4" height="4.9" rx="1.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="12.3" y="15.5" width="2.4" height="4.9" rx="1.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="9.5" y="21" width="2" height="2.6" rx="1" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="12.5" y="21" width="2" height="2.6" rx="1" vector-effect="non-scaling-stroke"/>
+      </g>
+    </symbol>
+    <!-- PRZÓD: nogi, łydki, brzuch -->
+    <symbol id="front-legs" viewBox="0 0 24 24">
+      <g stroke-width="1">
+        <circle class="g-base" cx="12" cy="3" r="2.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="6" y="6" width="2.6" height="2.6" rx="1.3" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="15.4" y="6" width="2.6" height="2.6" rx="1.3" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="9.3" y="6" width="5.4" height="3.8" rx="1.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="9.6" y="10.5" width="4.8" height="4.3" rx="1" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="5.6" y="9.3" width="2.6" height="5.6" rx="1.3" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="15.8" y="9.3" width="2.6" height="5.6" rx="1.3" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="9.3" y="15.5" width="2.4" height="4.9" rx="1.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="12.3" y="15.5" width="2.4" height="4.9" rx="1.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="9.5" y="21" width="2" height="2.6" rx="1" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="12.5" y="21" width="2" height="2.6" rx="1" vector-effect="non-scaling-stroke"/>
+      </g>
+    </symbol>
+    <!-- TYŁ: plecy, ramiona (biceps -> "Ramiona"), pośladki -->
+    <symbol id="back-pull" viewBox="0 0 24 24">
+      <g stroke-width="1">
+        <circle class="g-base" cx="12" cy="3" r="2.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="6" y="6" width="2.6" height="2.6" rx="1.3" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="15.4" y="6" width="2.6" height="2.6" rx="1.3" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="9.3" y="6" width="5.4" height="6.3" rx="1.4" vector-effect="non-scaling-stroke"/>
+        <line class="g-on-spine" x1="12" y1="6.8" x2="12" y2="11.5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="5.6" y="9.3" width="2.6" height="5.6" rx="1.3" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="15.8" y="9.3" width="2.6" height="5.6" rx="1.3" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="9.3" y="13" width="2.4" height="2.5" rx="1.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-on" x="12.3" y="13" width="2.4" height="2.5" rx="1.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="9.3" y="16.2" width="2.4" height="4.3" rx="1.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="12.3" y="16.2" width="2.4" height="4.3" rx="1.2" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="9.5" y="21" width="2" height="2.6" rx="1" vector-effect="non-scaling-stroke"/>
+        <rect class="g-base" x="12.5" y="21" width="2" height="2.6" rx="1" vector-effect="non-scaling-stroke"/>
+      </g>
+    </symbol>
+    <!-- lucide Dumbbell (ISC) - fallback "brak rozpoznanych mięśni" -->
+    <symbol id="dumbbell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z"/><path d="m2.5 21.5 1.4-1.4"/><path d="m20.1 3.9 1.4-1.4"/><path d="M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z"/><path d="m9.6 14.4 4.8-4.8"/></g></symbol>
+    <symbol id="tick" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" fill="none" stroke="#1a1408" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="vdots" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></g></symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <!-- 380 px, stan podstawowy -->
+  <div class="phone" id="p380">
+    <div class="stack">
+      <header>
+        <h1>Trening</h1>
+        <div class="sub"><span class="tab">Tydzień 20–26.10</span><span class="chip">4 tyg. z rzędu</span></div>
+      </header>
+
+      <section class="card">
+        <div class="metrics">
+          <div class="m"><div class="lbl">Siłownia</div><div style="margin-top:8px"><span class="big tab">2</span> <span class="of tab">/ 5</span></div></div>
+          <div class="m"><div class="lbl">Cardio</div><div style="margin-top:8px"><span class="big tab">48</span> <span class="of">min</span></div><div class="meta tab" style="margin-top:4px">2 sesje</div></div>
+        </div>
+        <ol class="seg"><li class="done"></li><li class="done"></li><li class="next"></li><li></li><li></li></ol>
+      </section>
+
+      <section class="card">
+        <div class="next-top">
+          <div class="txt">
+            <div class="kick">Następny · Dzień 3</div>
+            <h2>Push - klatka i barki</h2>
+            <div class="meta tab">6 ćwiczeń · ostatnio 14.10 (9 dni temu)</div>
+          </div>
+          <svg width="64" height="64"><use href="#front-push"/></svg>
+        </div>
+        <ul class="ex">
+          <li><span class="n">Wyciskanie sztangi leżąc</span><span class="v">80 kg × 8</span></li>
+          <li><span class="n">Wyciskanie hantli skos</span><span class="v">27,5 kg × 10</span></li>
+          <li><span class="n">Pompki na poręczach</span><span class="v">× 12 powt.</span></li>
+        </ul>
+        <div class="more">+ 3 kolejne ćwiczenia</div>
+        <button class="cta">▶ Rozpocznij trening</button>
+      </section>
+
+      <section>
+        <div class="sec"><span class="t">Dni planu</span><span class="line"></span><span class="act">PDF</span><span class="act">Edytuj</span></div>
+        <div class="panel"><ul class="rows" style="margin:0">
+          <li><div class="row"><span class="ico"><svg width="32" height="32"><use href="#back-pull"/></svg><span class="tick"><svg width="10" height="10"><use href="#tick"/></svg></span></span><span class="rt"><span class="nm">Pull - plecy</span><span class="sb tab">Dzień 1 · 6 ćw. · 20.10</span></span></div><span class="dots"><svg width="20" height="20"><use href="#vdots"/></svg></span></li>
+          <li><div class="row"><span class="ico"><svg width="32" height="32"><use href="#front-legs"/></svg><span class="tick"><svg width="10" height="10"><use href="#tick"/></svg></span></span><span class="rt"><span class="nm">Nogi</span><span class="sb tab">Dzień 2 · 5 ćw. · 22.10</span></span></div><span class="dots"><svg width="20" height="20"><use href="#vdots"/></svg></span></li>
+          <li><div class="row"><span class="ico next"><svg width="32" height="32"><use href="#front-push"/></svg></span><span class="rt"><span class="nm">Push - klatka i barki</span><span class="sb tab">Dzień 3 · 6 ćw. · 14.10</span></span><span class="nx">Następny</span></div><span class="dots"><svg width="20" height="20"><use href="#vdots"/></svg></span></li>
+          <li><div class="row"><span class="ico" style="color:rgba(255,255,255,.6)"><svg width="20" height="20"><use href="#dumbbell"/></svg></span><span class="rt"><span class="nm">Mobilność i rozciąganie</span><span class="sb">Dzień 4 · 3 ćw. · jeszcze nie robiony</span></span></div><span class="dots"><svg width="20" height="20"><use href="#vdots"/></svg></span></li>
+          <li><div class="row"><span class="ico" style="color:rgba(255,255,255,.6)"><svg width="20" height="20"><use href="#dumbbell"/></svg></span><span class="rt"><span class="nm">Dzień5bardzodlugaNazwaBezSpacjiKtoraMusiSiePrzyciac</span><span class="sb">Dzień 5 · 0 ćw. · uzupełnij plan</span></span></div><span class="dots"><svg width="20" height="20"><use href="#vdots"/></svg></span></li>
+        </ul></div>
+      </section>
+
+      <section>
+        <div class="sec"><span class="t">Narzędzia</span><span class="line"></span></div>
+        <div class="tools">
+          <div class="panel tool"><span style="color:var(--gym-gold)">◎</span><div><b>Dodaj cardio</b><span>marsz, bieg</span></div></div>
+          <div class="panel tool"><span style="color:var(--gym-gold)">◷</span><div><b>Dziennik</b><span>historia</span></div></div>
+          <div class="panel tool"><span style="color:var(--gym-gold)">▶</span><div><b>Technika</b><span>filmy</span></div></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- 320 px: długie nazwy, 7 dni, wszystko wykonane -->
+  <div class="phone w320" id="p320">
+    <div class="stack">
+      <header><h1>Trening</h1><div class="sub"><span class="tab">Tydzień 27.10–02.11</span><span class="chip">12 tyg. z rzędu</span></div></header>
+      <section class="card">
+        <div class="metrics">
+          <div class="m"><div class="lbl">Siłownia</div><div style="margin-top:8px"><span class="big tab">7</span> <span class="of tab">/ 7</span></div></div>
+          <div class="m"><div class="lbl">Cardio</div><div style="margin-top:8px"><span class="big tab">0</span> <span class="of">min</span></div><div class="meta" style="margin-top:4px">brak sesji</div></div>
+        </div>
+        <ol class="seg"><li class="done next"></li><li class="done"></li><li class="done"></li><li class="done"></li><li class="done"></li><li class="done"></li><li class="done"></li></ol>
+      </section>
+      <section class="card">
+        <div class="next-top"><div class="txt">
+          <div class="kick">Następny · Dzień 1</div>
+          <h2>Górna partia ciała - siła i hipertrofia, wersja zimowa 2026</h2>
+          <div class="meta tab">1 ćwiczenie · pierwszy raz</div>
+        </div><span class="ico" style="width:64px;height:64px;border-radius:16px;color:rgba(255,255,255,.6)"><svg width="32" height="32"><use href="#dumbbell"/></svg></span></div>
+        <ul class="ex"><li><span class="n">Ćwiczenie własne bez kategorii</span><span class="v plan">plan 3 × 10</span></li></ul>
+        <button class="cta">▶ Rozpocznij trening</button>
+      </section>
+    </div>
+  </div>
+
+  <!-- Arkusz sylwetek 24/32/64 -->
+  <div class="phone w430" id="glyphs">
+    <div class="glyph-demo">
+      <figure><svg width="64" height="64"><use href="#front-push"/></svg><figcaption>przód 64</figcaption></figure>
+      <figure><svg width="64" height="64"><use href="#back-pull"/></svg><figcaption>tył 64</figcaption></figure>
+      <figure><svg width="64" height="64"><use href="#front-legs"/></svg><figcaption>nogi 64</figcaption></figure>
+      <figure><svg width="32" height="32"><use href="#front-push"/></svg><figcaption>32</figcaption></figure>
+      <figure><svg width="32" height="32"><use href="#back-pull"/></svg><figcaption>32</figcaption></figure>
+      <figure><svg width="24" height="24"><use href="#front-legs"/></svg><figcaption>24</figcaption></figure>
+    </div>
+  </div>
+</div>
+</body>
+</html>

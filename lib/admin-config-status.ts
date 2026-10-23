@@ -3,6 +3,8 @@
  * Nigdy nie zwracamy WARTOŚCI zmiennych — tylko informację, czy są ustawione.
  */
 
+import type { RegisterEmailMode } from "@/lib/register-email-mode";
+
 export type ConfigLevel = "required" | "recommended" | "optional";
 export type ConfigStatus = "ok" | "partial" | "missing";
 
@@ -72,7 +74,19 @@ export type ConfigSummary = {
   hostingIssues: number;
   /** 0–100: odsetek wymaganych + zalecanych integracji, które działają. */
   readiness: number;
+  /**
+   * Nikt nie założy konta: rejestracja e-mailem wyłączona (brak SMTP) i brak Google/Facebooka.
+   * Liczone na serwerze (`getRegistrationAvailability` w `lib/register-email-mode.ts`).
+   */
+  registrationBlocked: boolean;
+  /**
+   * Tryb rejestracji e-mailem: `smtp` (kody wysyłane), `test` (tylko lokalnie, kod testowy),
+   * `disabled` (brak SMTP na hostingu). Liczone na serwerze (`getRegisterEmailMode`).
+   */
+  emailRegistrationMode: RegisterEmailMode;
 };
+
+export type ConfigSummaryFlags = Pick<ConfigSummary, "registrationBlocked" | "emailRegistrationMode">;
 
 /** Domyślna instrukcja, gdy integracja nie ma własnego opisu hostingu. */
 export const DEFAULT_HOSTING_HINT =
@@ -140,12 +154,16 @@ const INTEGRATIONS: IntegrationDef[] = [
     id: "admin-access",
     group: "core",
     label: "Dostęp do panelu admina",
-    description: "PIN odblokowania i dodatkowe konta z rolą administratora.",
+    description: "PIN odblokowania i konta właściciela z rolą administratora.",
     level: "required",
-    effectWhenMissing: "W produkcji brak PIN-u blokuje odblokowanie panelu.",
+    effectWhenMissing:
+      "W produkcji brak PIN-u blokuje odblokowanie panelu. Bez ADMIN_EMAILS rola admina zostaje tylko kontom, które już ją mają w bazie, a ochrona głównego administratora opiera się na pierwszym koncie admina.",
     vars: [
       { names: ["ADMIN_PIN"] },
-      { names: ["ADMIN_EMAILS"], optional: true, hint: "Adresy e-mail adminów po przecinku." },
+      {
+        names: ["ADMIN_EMAILS"],
+        hint: "Adresy e-mail adminów po przecinku. Jedyna droga do roli admina z konfiguracji; działa tylko dla kont z potwierdzonym e-mailem.",
+      },
     ],
   },
   {
@@ -183,10 +201,12 @@ const INTEGRATIONS: IntegrationDef[] = [
     id: "email",
     group: "users",
     label: "Wysyłka e-mail (SMTP)",
-    description: "Kody weryfikacyjne przy rejestracji i powiadomienia.",
+    description: "Kody weryfikacyjne przy rejestracji e-mailem i dzienny skrót.",
     level: "recommended",
     effectWhenMissing:
-      "Kody rejestracyjne i dzienny skrót e-mail z przypomnień nie są wysyłane.",
+      "Rejestracja e-mailem jest wyłączona; konta można zakładać tylko przez Google lub Facebook (jeśli skonfigurowane). Lokalnie działa tryb testowy kodu.",
+    hostingHint:
+      "Użyj dedykowanej skrzynki u dostawcy z umową powierzenia (DPA), bez prywatnego Gmaila; skonfiguruj SPF, DKIM i DMARC dla domeny nadawcy. Ustaw SMTP_HOST, SMTP_USER i SMTP_PASS w zmiennych środowiska hostingu i zrób redeploy.",
     vars: [
       { names: ["SMTP_HOST"] },
       { names: ["SMTP_USER"] },
@@ -425,7 +445,10 @@ export function getConfigStatus(env: Env = process.env): ConfigIntegration[] {
   return INTEGRATIONS.map((def) => evaluate(def, env));
 }
 
-export function summarizeConfig(items: ConfigIntegration[]): ConfigSummary {
+export function summarizeConfig(
+  items: ConfigIntegration[],
+  flags: ConfigSummaryFlags,
+): ConfigSummary {
   const ok = items.filter((i) => i.status === "ok").length;
   const requiredIssues = items.filter(
     (i) => i.level === "required" && i.status !== "ok",
@@ -442,5 +465,7 @@ export function summarizeConfig(items: ConfigIntegration[]): ConfigSummary {
     recommendedIssues,
     hostingIssues: requiredIssues + recommendedIssues,
     readiness: scored.length ? Math.round((scoredOk / scored.length) * 100) : 100,
+    registrationBlocked: flags.registrationBlocked,
+    emailRegistrationMode: flags.emailRegistrationMode,
   };
 }

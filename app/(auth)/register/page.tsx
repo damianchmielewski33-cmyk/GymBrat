@@ -4,13 +4,20 @@ import { auth } from "@/auth";
 import { RegisterForm } from "@/components/auth/register-form";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
-import {
-  isFacebookAuthConfigured,
-  isGoogleAuthConfigured,
-} from "@/lib/google-auth";
 import { isUserBodyProfileComplete } from "@/lib/profile-complete";
+import {
+  getRegistrationAvailability,
+  TEST_REGISTER_CODE,
+} from "@/lib/register-email-mode";
 
-type Search = Promise<{ oauth?: string | string[] }>;
+type Search = Promise<{
+  oauth?: string | string[];
+  notice?: string | string[];
+}>;
+
+function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
 
 export default async function RegisterPage({
   searchParams,
@@ -18,9 +25,9 @@ export default async function RegisterPage({
   searchParams?: Search;
 }) {
   const sp = searchParams ? await searchParams : {};
-  const oauthRaw = sp.oauth;
-  const oauthFlag = Array.isArray(oauthRaw) ? oauthRaw[0] : oauthRaw;
-  const wantsOauthContinue = oauthFlag === "1";
+  const wantsOauthContinue = firstParam(sp.oauth) === "1";
+  const accountResetNotice = firstParam(sp.notice) === "account_reset";
+  const availability = getRegistrationAvailability();
 
   const session = await auth().catch(() => null);
   let oauthPrefill: {
@@ -63,10 +70,13 @@ export default async function RegisterPage({
       }
     >
       <RegisterForm
-        googleEnabled={isGoogleAuthConfigured()}
-        facebookEnabled={isFacebookAuthConfigured()}
+        availability={availability}
+        emailTestCode={
+          availability.emailMode === "test" ? TEST_REGISTER_CODE : null
+        }
         oauthContinue={oauthContinue}
         oauthPrefill={oauthPrefill}
+        accountResetNotice={oauthContinue && accountResetNotice}
       />
     </Suspense>
   );

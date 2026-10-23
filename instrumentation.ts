@@ -43,6 +43,18 @@ export async function register() {
     console.error("[instrumentation] ensureCriticalSchema:", err);
   }
   try {
+    const { migrateEmailVerification } = await import("./lib/migrate-email-verification");
+    await withDbRetry(() => migrateEmailVerification(), {
+      attempts: 3,
+      label: "migrateEmailVerification",
+    });
+  } catch (err) {
+    console.error(
+      "[instrumentation] migrate-email-verification:",
+      err instanceof Error ? err.name : "error",
+    );
+  }
+  try {
     const { migrateSensitiveFieldsAtStartup } = await import(
       "./lib/migrate-sensitive-encryption"
     );

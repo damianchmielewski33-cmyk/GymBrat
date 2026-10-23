@@ -11,6 +11,7 @@ import {
   users,
 } from "@/db/schema";
 import { requireAdminApi } from "@/lib/admin-api";
+import { getProtectedAdminUserIds } from "@/lib/admin-session";
 import { computePackageStatus } from "@/lib/user-package";
 
 export const runtime = "nodejs";
@@ -51,7 +52,7 @@ async function handleGET(
     return NextResponse.json({ error: "Nie znaleziono użytkownika." }, { status: 404 });
   }
 
-  const [meals, sessions, views, orders] = await Promise.all([
+  const [meals, sessions, views, orders, protectedUserIds] = await Promise.all([
     db
       .select({ c: count() })
       .from(mealLogs)
@@ -83,6 +84,7 @@ async function handleGET(
       .where(eq(subscriptionOrders.userId, id))
       .orderBy(desc(subscriptionOrders.createdAt))
       .limit(40),
+    getProtectedAdminUserIds(),
   ]);
 
   const pkg = computePackageStatus({
@@ -93,6 +95,8 @@ async function handleGET(
   return NextResponse.json({
     ok: true,
     user,
+    /** Główny administrator: bez zmiany roli i usunięcia (liczone na serwerze, ADR 0001 D6). */
+    isProtected: protectedUserIds.includes(id),
     package: pkg,
     activity: {
       mealLogs: meals,
