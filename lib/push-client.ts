@@ -18,10 +18,25 @@ function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+function isPushWorkerUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const path = new URL(url).pathname;
+    return path === "/sw.js" || path === "/push-sw.js";
+  } catch {
+    return url.endsWith("/sw.js") || url.endsWith("/push-sw.js");
+  }
+}
+
 async function getRegistration(): Promise<ServiceWorkerRegistration> {
   const existing = await navigator.serviceWorker.getRegistration("/");
-  if (existing?.active?.scriptURL.endsWith("/push-sw.js")) return existing;
-  await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
+  const script =
+    existing?.active?.scriptURL ??
+    existing?.waiting?.scriptURL ??
+    existing?.installing?.scriptURL;
+  if (existing && isPushWorkerUrl(script)) return existing;
+  // /sw.js jest kanoniczny (stare PWA już go mają) — /push-sw.js to alias.
+  await navigator.serviceWorker.register("/sw.js", { scope: "/" });
   return navigator.serviceWorker.ready;
 }
 

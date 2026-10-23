@@ -1,15 +1,23 @@
-/* GymBrat — service worker wyłącznie do powiadomień push (przypomnienia).
+/* GymBrat — alias service workera powiadomień (ten sam kod co /sw.js).
  *
- * Celowo bez cache i bez obsługi `fetch`: nie wraca problem ze starym UI po wdrożeniu
- * (por. kill-switch w /sw.js). Ten plik tylko odbiera push i pokazuje powiadomienie.
+ * Starsze subskrypcje mogły zarejestrować /push-sw.js. Oba pliki muszą
+ * zostawać zarejestrowane: PwaUpdate nie może ich kasować.
  */
+const SW_VERSION = "gymbrat-push-2026-10-23";
 
-self.addEventListener("install", () => {
+self.addEventListener("install", (event) => {
   self.skipWaiting();
+  event.waitUntil(Promise.resolve(SW_VERSION));
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+      await self.clients.claim();
+    })(),
+  );
 });
 
 self.addEventListener("push", (event) => {

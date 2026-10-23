@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getWebPushPublicKeyAction } from "@/actions/push";
 import { getRemindersPrefsAction } from "@/actions/reminders-prefs";
 import { ReminderRunner } from "@/components/reminders/reminder-runner";
 import { hasAndroidNativeReminders, syncAndroidReminders } from "@/lib/app-webview";
-import { hasActivePushSubscription } from "@/lib/push-client";
+import { enableWebPush, isWebPushSupported } from "@/lib/push-client";
 import { REMINDERS_CHANGED_EVENT, type RemindersPrefs } from "@/lib/reminders-types";
+
+function hasReminderTimes(prefs: RemindersPrefs): boolean {
+  return Boolean(prefs.workoutTime || prefs.mealTime || prefs.checkinTime);
+}
 
 /**
  * Ładuje preferencje przypomnień po hydracji — nie blokuje RSC layoutu przy każdej nawigacji.
@@ -15,6 +20,7 @@ import { REMINDERS_CHANGED_EVENT, type RemindersPrefs } from "@/lib/reminders-ty
  * 1. APK Android — natywne alarmy (AlarmManager), działają przy zamkniętej aplikacji;
  *    przy każdym starcie synchronizujemy je z zapisanymi ustawieniami.
  * 2. Web Push — wysyła serwer (cron), działa przy zamkniętej karcie.
+ *    Gdy zgoda już jest, odnawiamy subskrypcję (np. po aktualizacji workera).
  * 3. Lokalny runner (Notification API) — tylko przy otwartej karcie; wyłączany, gdy
  *    działa któryś z kanałów powyżej, żeby nie dublować powiadomień.
  */
@@ -28,11 +34,28 @@ export function ReminderRunnerBoot() {
       void getRemindersPrefsAction()
         .then(async (next) => {
           if (cancelled) return;
-          const native = hasAndroidNativeReminders();
-          if (native) syncAndroidReminders(next);
-          const push = native ? false : await hasActivePushSubscription();
+          if (hasAndroidNativeReminders()) {
+            syncAndroidReminders(next);
+            setBackgroundDelivery(true);
+            setPrefs(next);
+            return;
+          }
+          let pushReady = false;
+          if (
+            isWebPushSupported() &&
+            hasReminderTimes(next) &&
+            typeof Notification !== "undefined" &&
+            Notification.permission === "granted"
+          ) {
+            const key = await getWebPushPublicKeyAction();
+            if (cancelled) return;
+            if (key) {
+              const res = await enableWebPush(key);
+              pushReady = res.ok;
+            }
+          }
           if (cancelled) return;
-          setBackgroundDelivery(native || push);
+          setBackgroundDelivery(pushReady);
           setPrefs(next);
         })
         .catch(() => {

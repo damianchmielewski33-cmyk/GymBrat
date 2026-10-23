@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
-  ArrowLeft,
   BadgePercent,
   Bell,
   Bug,
@@ -21,6 +20,7 @@ import {
   LogOut,
   Menu,
   Shield,
+  Swords,
   TestTube2,
   Trophy,
   User,
@@ -37,19 +37,145 @@ import { cn } from "@/lib/utils";
 type MenuIcon = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 
 type MenuRow = {
-  href: string;
+  href?: string;
   title: string;
   subtitle: string;
   icon: MenuIcon;
-  iconTone?: "gold" | "muted";
+  iconTone?: "gold" | "muted" | "danger";
+  /** Nieużywana / jeszcze niegotowa funkcja — widać w menu, ale nie da się kliknąć. */
+  disabled?: boolean;
+  onSelect?: () => void;
 };
 
 type MenuSection = {
-  index: string;
+  id: string;
   title: string;
-  trailing?: string | null;
   rows: MenuRow[];
 };
+
+/** Ścieżki, przy których podstrony (np. /cardio/123) też liczą się jako aktywne. */
+const NESTED_ACTIVE = [
+  "/progress",
+  "/workout-history",
+  "/cardio",
+  "/admin",
+  "/community/friends",
+  "/community/challenges",
+  "/community/wars",
+  "/community/hall-of-fame",
+];
+
+function isActivePath(pathname: string, href: string): boolean {
+  const path = href.split("?")[0] ?? href;
+  if (path === "/") return pathname === "/";
+  if (pathname === path) return true;
+  return NESTED_ACTIVE.includes(path) && pathname.startsWith(`${path}/`);
+}
+
+function MenuRowView({
+  row,
+  pathname,
+  onNavigate,
+}: {
+  row: MenuRow;
+  pathname: string;
+  onNavigate: () => void;
+}) {
+  const Icon = row.icon;
+  const active = Boolean(row.href) && !row.disabled && isActivePath(pathname, row.href!);
+  const gold = row.iconTone === "gold";
+  const danger = row.iconTone === "danger";
+
+  const inner = (
+    <>
+      <span
+        className={cn(
+          "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border",
+          row.disabled
+            ? "border-white/[0.06] bg-white/[0.03] text-white/30"
+            : danger
+              ? "border-rose-400/25 bg-rose-500/10 text-rose-300"
+              : gold
+                ? "border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)]"
+                : "border-white/10 bg-white/[0.04] text-white/70",
+        )}
+      >
+        <Icon className="h-4 w-4" aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "block text-[15px] font-semibold leading-snug",
+            row.disabled
+              ? "text-white/40"
+              : danger
+                ? "text-rose-200"
+                : active
+                  ? "text-[var(--gym-gold)]"
+                  : "text-white",
+          )}
+        >
+          {row.title}
+        </span>
+        <span className="mt-0.5 block text-[12px] leading-snug text-white/40">{row.subtitle}</span>
+      </span>
+      {row.disabled ? (
+        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/35">
+          Wkrótce
+        </span>
+      ) : danger ? null : (
+        <ChevronRight className="h-4 w-4 shrink-0 text-white/25" aria-hidden />
+      )}
+    </>
+  );
+
+  const rowClass = cn(
+    "flex w-full items-center gap-3 px-3 py-3 text-left transition-colors",
+    row.disabled
+      ? "cursor-not-allowed opacity-70"
+      : active
+        ? "bg-[var(--gym-gold)]/[0.08]"
+        : danger
+          ? "hover:bg-rose-500/10"
+          : "hover:bg-white/[0.04]",
+  );
+
+  if (row.disabled) {
+    return (
+      <div className={rowClass} aria-disabled="true">
+        {inner}
+      </div>
+    );
+  }
+
+  if (row.onSelect) {
+    return (
+      <button
+        type="button"
+        className={rowClass}
+        onClick={() => {
+          onNavigate();
+          row.onSelect?.();
+        }}
+      >
+        {inner}
+      </button>
+    );
+  }
+
+  if (!row.href) return null;
+
+  return (
+    <Link
+      href={row.href}
+      onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
+      className={rowClass}
+    >
+      {inner}
+    </Link>
+  );
+}
 
 function MenuSectionBlock({
   section,
@@ -60,72 +186,19 @@ function MenuSectionBlock({
   pathname: string;
   onNavigate: () => void;
 }) {
+  if (section.rows.length === 0) return null;
   return (
-    <section className="space-y-2">
-      <div className="flex items-center gap-2 px-0.5">
-        <div className="flex min-w-0 items-baseline gap-2">
-          <span className="font-metric text-[15px] leading-none text-[var(--gym-gold)]">
-            {section.index}
-          </span>
-          <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-            {section.title}
-          </span>
-        </div>
-        <div className="h-px min-w-[1rem] flex-1 bg-[var(--gym-gold)]/35" />
-        {section.trailing ? (
-          <p className="shrink-0 text-[11px] text-white/40">{section.trailing}</p>
-        ) : null}
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#121214] divide-y divide-white/[0.06]">
-        {section.rows.map((row) => {
-          const active =
-            row.href === "/"
-              ? pathname === "/"
-              : pathname === row.href ||
-                pathname.startsWith(`${row.href.split("?")[0]}`);
-          const Icon = row.icon;
-          const gold = row.iconTone === "gold";
-          return (
-            <Link
-              key={`${row.href}-${row.title}`}
-              href={row.href}
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-3 px-3.5 py-3.5 transition-colors",
-                active ? "bg-[var(--gym-gold)]/[0.06]" : "hover:bg-white/[0.03]",
-              )}
-            >
-              <span
-                className={cn(
-                  "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border",
-                  gold
-                    ? "border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)]"
-                    : "border-white/10 bg-white/[0.04] text-white/70",
-                )}
-              >
-                <Icon className="h-4 w-4" aria-hidden />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span
-                  className={cn(
-                    "block text-[15px] font-semibold leading-snug",
-                    active ? "text-[var(--gym-gold)]" : "text-white",
-                  )}
-                >
-                  {row.title}
-                </span>
-                <span className="mt-0.5 block text-[12px] leading-snug text-white/45">
-                  {row.subtitle}
-                </span>
-              </span>
-              <ChevronRight
-                className="h-4 w-4 shrink-0 text-white/30"
-                aria-hidden
-              />
-            </Link>
-          );
-        })}
+    <section>
+      <p className="app-label mb-2 px-0.5 text-[var(--gym-gold)]">{section.title}</p>
+      <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] divide-y divide-white/[0.06]">
+        {section.rows.map((row) => (
+          <MenuRowView
+            key={`${row.href ?? row.title}-${row.title}`}
+            row={row}
+            pathname={pathname}
+            onNavigate={onNavigate}
+          />
+        ))}
       </div>
     </section>
   );
@@ -157,9 +230,7 @@ export function AppMenuButton({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const displayName =
-    firstName?.trim() ||
-    data?.user?.name?.trim()?.split(/\s+/)[0] ||
-    "Profil";
+    firstName?.trim() || data?.user?.name?.trim()?.split(/\s+/)[0] || "Profil";
   const avatar = initials?.trim() || displayName.slice(0, 1).toUpperCase() || "?";
   const planLabel = packageName?.trim() || null;
   const daysLeft =
@@ -169,15 +240,14 @@ export function AppMenuButton({
 
   const sections: MenuSection[] = [
     {
-      index: "01",
+      id: "package",
       title: "Pakiet",
-      trailing: packageEndsLabel?.trim() || null,
       rows: [
         {
           href: "/package",
           title: "Twój pakiet",
           subtitle: packageEndsLabel
-            ? `aktywny do ${packageEndsLabel}`
+            ? `aktywny ${packageEndsLabel}`
             : "kup pakiet albo oglądaj reklamy",
           icon: CalendarCheck2,
           iconTone: "gold",
@@ -185,14 +255,14 @@ export function AppMenuButton({
         {
           href: "/promo-codes",
           title: "Kody rabatowe",
-          subtitle: "Ostrovit, Bolero, Farma Białka, Pro-Body",
+          subtitle: "zniżki partnerskie — w przygotowaniu",
           icon: BadgePercent,
-          iconTone: "gold",
+          disabled: true,
         },
       ],
     },
     {
-      index: "02",
+      id: "progress",
       title: "Postępy",
       rows: [
         {
@@ -223,19 +293,20 @@ export function AppMenuButton({
         {
           href: "/labs",
           title: "Badania",
-          subtitle: "wyniki krwi, hormony",
+          subtitle: "wyniki krwi i hormony — w przygotowaniu",
           icon: TestTube2,
+          disabled: true,
         },
       ],
     },
     {
-      index: "03",
+      id: "community",
       title: "Społeczność",
       rows: [
         {
           href: "/community",
           title: "Community",
-          subtitle: "Mój Team, Znajomi, Global, Odkrywaj",
+          subtitle: "grupy, znajomi, odkrywaj",
           icon: Users,
           iconTone: "gold",
         },
@@ -244,40 +315,35 @@ export function AppMenuButton({
           title: "Znajomi",
           subtitle: "udostępnianie treningu i podgląd na żywo",
           icon: UserPlus,
-          iconTone: "gold",
         },
         {
           href: "/community/challenges",
           title: "Wyzwania",
           subtitle: "globalne wyzwania, XP i odznaki",
           icon: Trophy,
-          iconTone: "gold",
         },
         {
           href: "/community/wars",
           title: "Wojny drużyn",
-          subtitle: "Team Wars · FCS · ligi Bronze→Diamond",
-          icon: Trophy,
-          iconTone: "gold",
+          subtitle: "Team Wars · ligi Bronze→Diamond",
+          icon: Swords,
         },
         {
           href: "/community/hall-of-fame",
           title: "Galeria sławy",
-          subtitle: "Hall of Fame · sezony i kategorie",
+          subtitle: "sezony i kategorie",
           icon: Trophy,
-          iconTone: "gold",
         },
         {
           href: "/community/notifications",
           title: "Powiadomienia",
-          subtitle: "komentarze, trening na żywo, wyzwania, ogłoszenia",
+          subtitle: "komentarze, trening na żywo, ogłoszenia",
           icon: Bell,
-          iconTone: "gold",
         },
       ],
     },
     {
-      index: "04",
+      id: "training",
       title: "Trening",
       rows: [
         {
@@ -308,20 +374,41 @@ export function AppMenuButton({
       ],
     },
     {
-      index: "05",
-      title: "Prawne",
+      id: "account",
+      title: "Konto",
       rows: [
         {
-          href: REGULAMIN_PATH,
-          title: "Regulamin",
-          subtitle: "pakiety, płatności, reklamacje",
-          icon: FileText,
+          href: "/profile",
+          title: "Profil",
+          subtitle: "ciało, cele, dieta, przypomnienia, konto",
+          icon: User,
+          iconTone: "gold",
         },
         {
-          href: PRIVACY_PATH,
-          title: "Polityka prywatności",
-          subtitle: "RODO i dane konta",
-          icon: Shield,
+          href: "/bug-report",
+          title: "Zgłoś błąd",
+          subtitle: "opis i zdjęcia z ekranu",
+          icon: Bug,
+        },
+        ...(showAdminLink
+          ? [
+              {
+                href: "/admin",
+                title: "Panel admina",
+                subtitle: "użytkownicy, konfiguracja, błędy",
+                icon: Shield,
+                iconTone: "gold" as const,
+              },
+            ]
+          : []),
+        {
+          title: "Wyloguj się",
+          subtitle: "zakończ sesję na tym urządzeniu",
+          icon: LogOut,
+          iconTone: "danger",
+          onSelect: () => {
+            void signOut({ callbackUrl: "/login" });
+          },
         },
       ],
     },
@@ -348,7 +435,6 @@ export function AppMenuButton({
         root.style.overflow = prevRoot;
       };
     }
-    // Fokus tylko po zamknięciu menu — nie przy mount (iOS scrollIntoView = skok viewportu).
     if (wasOpenRef.current) {
       wasOpenRef.current = false;
       queueMicrotask(() => triggerRef.current?.focus());
@@ -386,162 +472,93 @@ export function AppMenuButton({
         showCloseButton={false}
         className={cn(
           "w-full max-w-none gap-0 border-l border-white/[0.08] p-0 text-white sm:max-w-md",
-          "bg-[#050505]",
-          "pt-[max(0.65rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+          "bg-[#070708]",
+          "pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]",
         )}
       >
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <button
-            type="button"
-            onClick={close}
-            className="inline-flex w-fit items-center gap-1.5 px-4 py-1 text-[14px] text-white/80"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-            Wróć
-          </button>
-
-          <div className="flex items-center gap-3 px-4 pb-4 pt-2">
-            <div
-              className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-[var(--gym-gold)]/70 bg-[var(--gym-gold)]/10 text-[15px] font-semibold tracking-wide text-[var(--gym-gold)]"
-              aria-hidden
-            >
-              {avatar}
+        <div className="flex min-h-0 flex-1 flex-col">
+          <header className="shrink-0 border-b border-white/[0.06] px-4 pb-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="app-label text-[var(--gym-gold)]">Menu</p>
+              <button
+                type="button"
+                onClick={close}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/70 transition-colors hover:bg-white/[0.07] hover:text-white"
+                aria-label="Zamknij menu"
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </button>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-                Profil
-              </p>
-              <p className="mt-0.5 truncate text-[22px] font-semibold leading-tight text-[var(--gym-gold)]">
-                {displayName}
-              </p>
-              {planLabel ? (
-                <p className="mt-0.5 truncate text-[13px] text-white/55">
-                  {planLabel}
+
+            <div className="mt-3 flex items-center gap-3">
+              <div
+                className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/10 font-heading text-[15px] font-semibold text-[var(--gym-gold)]"
+                aria-hidden
+              >
+                {avatar}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[17px] font-semibold leading-tight text-white">
+                  {displayName}
                 </p>
-              ) : (
-                <Link
-                  href="/profile"
-                  onClick={close}
-                  className="mt-0.5 inline-block text-[13px] text-white/45 underline-offset-2 hover:text-white/70 hover:underline"
-                >
-                  Ustawienia konta
-                </Link>
-              )}
+                {planLabel ? (
+                  <p className="mt-0.5 truncate text-[12px] text-white/50">{planLabel}</p>
+                ) : (
+                  <Link
+                    href="/profile"
+                    onClick={close}
+                    className="mt-0.5 inline-block text-[12px] text-white/45 underline-offset-2 hover:text-white/75 hover:underline"
+                  >
+                    Ustawienia konta
+                  </Link>
+                )}
+              </div>
+              <Link
+                href="/package"
+                onClick={close}
+                className="shrink-0 rounded-xl border border-white/[0.08] bg-black/30 px-3 py-2 text-right"
+              >
+                <p className="font-metric text-[22px] leading-none tabular-nums text-white">
+                  {daysLeft != null ? daysLeft : "—"}
+                </p>
+                <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-white/40">
+                  dni pakietu
+                </p>
+              </Link>
             </div>
-            <div className="shrink-0 text-right">
-              <p className="font-metric text-[28px] leading-none tabular-nums text-white">
-                {daysLeft != null ? daysLeft : "—"}
-              </p>
-              <p className="mt-1 text-[11px] leading-none text-white/45">
-                dni pakietu
-              </p>
-            </div>
-          </div>
+          </header>
 
-          <div className="space-y-5 px-3.5 pb-4">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3.5 py-4">
             {sections.map((section) => (
               <MenuSectionBlock
-                key={section.index}
+                key={section.id}
                 section={section}
                 pathname={pathname}
                 onNavigate={close}
               />
             ))}
 
-            <section className="space-y-2">
-              <div className="flex items-center gap-2 px-0.5">
-                <div className="flex min-w-0 items-baseline gap-2">
-                  <span className="font-metric text-[15px] leading-none text-[var(--gym-gold)]">
-                    04
-                  </span>
-                  <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-                    Konto
-                  </span>
-                </div>
-                <div className="h-px min-w-[1rem] flex-1 bg-[var(--gym-gold)]/35" />
-              </div>
-              <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#121214] divide-y divide-white/[0.06]">
-                <Link
-                  href="/profile"
-                  onClick={close}
-                  className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.03]"
-                >
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/70">
-                    <User className="h-4 w-4" aria-hidden />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold text-white">
-                      Profil
-                    </span>
-                    <span className="mt-0.5 block text-[12px] text-white/45">
-                      ciało, cele, dieta, przypomnienia, konto
-                    </span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
-                </Link>
-                <Link
-                  href="/bug-report"
-                  onClick={close}
-                  className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.03]"
-                >
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/70">
-                    <Bug className="h-4 w-4" aria-hidden />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold text-white">
-                      Zgłoś błąd
-                    </span>
-                    <span className="mt-0.5 block text-[12px] text-white/45">
-                      opis i zdjęcia z ekranu
-                    </span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
-                </Link>
-                {showAdminLink ? (
-                  <Link
-                    href="/admin"
-                    onClick={close}
-                    className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.03]"
-                  >
-                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)]">
-                      <Shield className="h-4 w-4" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-semibold text-white">
-                        Panel admina
-                      </span>
-                      <span className="mt-0.5 block text-[12px] text-white/45">
-                        użytkownicy, branding, błędy
-                      </span>
-                    </span>
-                    <ChevronRight
-                      className="h-4 w-4 text-white/30"
-                      aria-hidden
-                    />
-                  </Link>
-                ) : null}
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-3 px-3.5 py-3.5 text-left transition-colors hover:bg-rose-500/10"
-                  onClick={() => {
-                    close();
-                    void signOut({ callbackUrl: "/login" });
-                  }}
-                >
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-rose-400/25 bg-rose-500/10 text-rose-300">
-                    <LogOut className="h-4 w-4" aria-hidden />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold text-rose-200">
-                      Wyloguj się
-                    </span>
-                    <span className="mt-0.5 block text-[12px] text-white/40">
-                      zakończ sesję na tym urządzeniu
-                    </span>
-                  </span>
-                </button>
-              </div>
-            </section>
+            <nav
+              aria-label="Dokumenty prawne"
+              className="flex flex-wrap gap-x-4 gap-y-2 px-0.5 pb-2 text-[12px] text-white/40"
+            >
+              <Link
+                href={REGULAMIN_PATH}
+                onClick={close}
+                className="inline-flex items-center gap-1 hover:text-white/70"
+              >
+                <FileText className="h-3 w-3" aria-hidden />
+                Regulamin
+              </Link>
+              <Link
+                href={PRIVACY_PATH}
+                onClick={close}
+                className="inline-flex items-center gap-1 hover:text-white/70"
+              >
+                <Shield className="h-3 w-3" aria-hidden />
+                Polityka prywatności
+              </Link>
+            </nav>
           </div>
         </div>
       </SheetContent>

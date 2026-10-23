@@ -1,7 +1,11 @@
 <!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
 <!-- END:nextjs-agent-rules -->
 
 # GymBrat — wdrożenia
@@ -11,3 +15,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Changelog (`components/changelog/changelog-data.ts`): na PR `planned: true`; po Promote data + bez `planned`. `sourceRepo` tylko tego repo. Nie kopiuj opisów ani wersji z AWP.
 - Przed merge / deploy: agent `.cursor/agents/deploy-guardian.md` albo `npm run deploy:check`.
 - Publiczny kontrakt: `GET /api/version` (produkcja = tylko wdrożone; Preview może mieć `plannedChangelog`).
+- Funkcja zależna od zmiennych środowiska: wpis w `lib/admin-config-status.ts`. Bez konfiguracji na hostingu ma być widoczna w panelu (baner + Konfiguracja).

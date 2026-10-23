@@ -1,5 +1,6 @@
 package pl.gymbrat.app.bridge;
 
+import android.app.AlarmManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -273,6 +274,39 @@ public final class GymBratAndroidJsBridge {
     public boolean scheduleReminders(String json) {
         if (!isCallFromAppOrigin()) return false;
         return ReminderScheduler.save(appContext, json);
+    }
+
+    /** true = Android pozwala na dokładne alarmy (wymagane, żeby przypomnienie przyszło o godzinie). */
+    @JavascriptInterface
+    public boolean canScheduleExactAlarms() {
+        if (!isCallFromAppOrigin()) return false;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true;
+        AlarmManager alarms = appContext.getSystemService(AlarmManager.class);
+        return alarms != null && alarms.canScheduleExactAlarms();
+    }
+
+    /** Ekran systemowy „Alarms & reminders” / dokładne alarmy dla GymBrat. */
+    @JavascriptInterface
+    public void openExactAlarmSettings() {
+        if (!isCallFromAppOrigin()) return;
+        MainActivity act = activity;
+        Handler main = new Handler(Looper.getMainLooper());
+        main.post(() -> {
+            Intent intent;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                intent = new Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                intent.setData(Uri.parse("package:" + appContext.getPackageName()));
+            } else {
+                intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                intent.setData(Uri.parse("package:" + appContext.getPackageName()));
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (act != null) {
+                act.startActivity(intent);
+            } else {
+                appContext.startActivity(intent);
+            }
+        });
     }
 
     /** true = aplikacja może pokazywać powiadomienia (POST_NOTIFICATIONS + nie wyciszone). */

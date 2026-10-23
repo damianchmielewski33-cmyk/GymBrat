@@ -1,0 +1,13 @@
+---
+description: Nowe funkcje z env muszą trafić do panelu Konfiguracja
+alwaysApply: true
+---
+
+# Konfiguracja na hostingu
+
+Każda funkcja, która bez zmiennych środowiska (kluczy API, SMTP, VAPID, cron, płatności itd.) nie działa, **musi być widoczna w panelu admina**, gdy na hostingu nie jest ustawiona.
+
+- Zarejestruj ją w `lib/admin-config-status.ts` (`INTEGRATIONS`): `label`, `effectWhenMissing`, `hostingHint` (gdzie ustawić na Vercel/Render/GitHub), lista zmiennych **bez wartości**.
+- Poziom: `required` (aplikacja pada), `recommended` (funkcja użytkownika nie działa — widać w bannerze i plakietce Konfiguracja), `optional` (dodatek, nie podnosi alarmu).
+- Nie dodawaj funkcji zależnej od env bez tego wpisu. Test `listTrackedEnvNames` musi znać nowe nazwy zmiennych.
+- Baner „trzeba skonfigurować na hostingu” i plakietka Konfiguracja liczą `hostingIssues` (wymagane + zalecane).

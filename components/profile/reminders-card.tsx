@@ -6,10 +6,12 @@ import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { ProfileBlock, ProfileSwitch } from "@/components/profile/profile-ui";
 import { Button } from "@/components/ui/button";
 import {
+  androidCanScheduleExactAlarms,
   ensureAndroidNotificationPermission,
   hasAndroidNativeReminders,
   isInstalledAndroidAppClient,
   openAndroidAppSettings,
+  openAndroidExactAlarmSettings,
   syncAndroidReminders,
 } from "@/lib/app-webview";
 import {
@@ -104,11 +106,14 @@ export function RemindersCard({
   const [channel, setChannel] = useState<Channel>("checking");
   const [deviceReady, setDeviceReady] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const [exactOk, setExactOk] = useState(true);
 
   useEffect(() => {
     const ch = detectChannel(vapidPublicKey);
     setChannel(ch);
-    if (ch === "push") {
+    if (ch === "android") {
+      setExactOk(androidCanScheduleExactAlarms());
+    } else if (ch === "push") {
       void hasActivePushSubscription().then(setDeviceReady);
       setBlocked(typeof Notification !== "undefined" && Notification.permission === "denied");
     }
@@ -150,6 +155,13 @@ export function RemindersCard({
         }
         syncAndroidReminders(prefs);
         setDeviceReady(anyTime);
+        const exact = androidCanScheduleExactAlarms();
+        setExactOk(exact);
+        if (anyTime && !exact) {
+          warning =
+            warning ??
+            "Zapisano, ale Android blokuje dokładne alarmy — bez tej zgody przypomnienie może przyjść z opóźnieniem przy zamkniętej aplikacji.";
+        }
       } else if (channel === "push" && vapidPublicKey) {
         if (anyTime) {
           const res = await enableWebPush(vapidPublicKey);
@@ -259,6 +271,7 @@ export function RemindersCard({
           anyTime={anyTime}
           deviceReady={deviceReady}
           blocked={blocked}
+          exactOk={exactOk}
         />
       </ProfileBlock>
 
@@ -298,11 +311,13 @@ function ChannelStatus({
   anyTime,
   deviceReady,
   blocked,
+  exactOk,
 }: {
   channel: Channel;
   anyTime: boolean;
   deviceReady: boolean;
   blocked: boolean;
+  exactOk: boolean;
 }) {
   if (channel === "checking" || !anyTime) return null;
 
@@ -314,14 +329,17 @@ function ChannelStatus({
       text = (
         <>
           Android blokuje powiadomienia GymBrat. Włącz je w ustawieniach aplikacji, żeby
-          przypomnienia mogły się pojawiać.
+          przypomnienia mogły się pojawiać przy zamkniętej aplikacji.
         </>
       );
+    } else if (!exactOk) {
+      text =
+        "Włącz dokładne alarmy dla GymBrat (Alarms & reminders). Bez tego system może opóźnić powiadomienie, gdy aplikacja jest zamknięta.";
     } else if (deviceReady) {
       tone = "ok";
-      text = "Alarmy są ustawione w telefonie — przypomnienia działają przy zamkniętej aplikacji.";
+      text = "Alarmy są ustawione w telefonie — przypomnienia przychodzą też przy zamkniętej aplikacji.";
     } else {
-      text = "Po zapisaniu aplikacja poprosi o zgodę na powiadomienia i ustawi alarmy.";
+      text = "Po zapisaniu aplikacja poprosi o zgodę na powiadomienia i ustawi alarmy w telefonie.";
     }
   } else if (channel === "android-outdated") {
     text =
@@ -361,12 +379,14 @@ function ChannelStatus({
       >
         {text}
       </p>
-      {channel === "android" && blocked ? (
+      {channel === "android" && (blocked || !exactOk) ? (
         <Button
           type="button"
           variant="secondary"
           className="shrink-0"
-          onClick={() => openAndroidAppSettings()}
+          onClick={() =>
+            blocked ? openAndroidAppSettings() : openAndroidExactAlarmSettings()
+          }
         >
           Otwórz ustawienia
         </Button>

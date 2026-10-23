@@ -5,12 +5,31 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Admin: braki konfiguracji widać od razu na hostingu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Gdy funkcja wymaga ustawień na hostingu i ich nie ma, panel admina pokazuje baner oraz plakietkę przy Konfiguracja — dotyczy to też zaleceń (e-mail, push, cron, płatności), a nie tylko braków, bez których aplikacja w ogóle nie wstanie.",
+      "Każda taka integracja na ekranie Konfiguracja ma skutek braku i instrukcję, gdzie ustawić zmienne (Vercel, Render albo sekrety GitHub) — wartości sekretów nadal nie są wyświetlane.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Menu boczne: nowy układ i nieaktywne funkcje w przygotowaniu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Menu boczne ma stały nagłówek z inicjałami, pakietem i liczbą dni oraz krótsze, jednolite wiersze z ikonami w kwadratach zamiast kółek.",
+      "Kody rabatowe i Badania zostają w menu jako nieaktywne pozycje z plakietką „Wkrótce”, bo te funkcje nie są jeszcze dostępne.",
+      "Regulamin i polityka prywatności są na dole jako zwykłe linki, a wylogowanie jest w sekcji Konto razem z profilem i zgłoszeniem błędu.",
+    ],
+  },
+  {
     title: "Zapowiedź — Profil: nowy układ, przypomnienia i spójny wygląd",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
       "Profil jest podzielony na sześć sekcji — Ciało, Trening, Dieta, Przypomnienia, Aplikacja i Konto — z paskiem skrótów na górze oraz nagłówkiem z inicjałami, adresem e-mail i podsumowaniem wagi, wzrostu i wieku.",
-      "Nowa sekcja Przypomnienia pozwala ustawić godziny powiadomień o treningu, posiłku i check-inie, wybrać dni tygodnia, zezwolić na powiadomienia w przeglądarce i włączyć dzienny skrót e-mail.",
+      "Nowa sekcja Przypomnienia pozwala ustawić godziny powiadomień o treningu, posiłku i check-inie oraz wybrać dni tygodnia; powiadomienia przychodzą też przy zamkniętej aplikacji Android (alarmy w telefonie) i przy zamkniętej karcie w przeglądarce (Web Push).",
       "Cel cardio, cykl raportów i jednostka porównań są w jednej sekcji Trening i postępy, a cele dzienne i makro posiłków w sekcji Dieta, z gotowymi skrótami wartości.",
       "Poziom aktywności ma czytelne opisy zamiast angielskich wartości, formularz hasła czyści pola po zapisie i znika u kont logujących się przez Google, a zgody na cookies mają przełączniki.",
       "Wszystkie formularze w profilu mają te same pola, przyciski i odstępy; usunięto zdublowaną kartę z danymi logowania, a eksport i usunięcie konta są oddzielnymi blokami na końcu strony.",

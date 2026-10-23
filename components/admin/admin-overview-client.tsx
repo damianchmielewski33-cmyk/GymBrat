@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adminRequest } from "@/lib/admin-client";
+import { formatHostingFunctionCount } from "@/lib/admin-config-status";
 import { cn } from "@/lib/utils";
 
 const tooltipStyle = {
@@ -132,10 +133,16 @@ export function AdminOverviewClient() {
 
   useEffect(() => {
     void (async () => {
-      const res = await adminRequest<{ summary?: { requiredIssues: number } }>(
-        "/api/admin/config-status",
-      );
-      if (res.ok && res.data.summary) setConfigIssues(res.data.summary.requiredIssues);
+      const res = await adminRequest<{
+        summary?: { requiredIssues: number; hostingIssues?: number; recommendedIssues?: number };
+      }>("/api/admin/config-status");
+      if (res.ok && res.data.summary) {
+        setConfigIssues(
+          typeof res.data.summary.hostingIssues === "number"
+            ? res.data.summary.hostingIssues
+            : res.data.summary.requiredIssues + (res.data.summary.recommendedIssues ?? 0),
+        );
+      }
     })();
   }, []);
 
@@ -196,7 +203,8 @@ export function AdminOverviewClient() {
             </Link>
           }
         >
-          Brakuje {configIssues} wymaganych ustawień aplikacji — niektóre funkcje mogą nie działać.
+          Trzeba skonfigurować na hostingu {formatHostingFunctionCount(configIssues)}
+          — bez tego część aplikacji nie działa.
         </AdminNotice>
       ) : null}
 
