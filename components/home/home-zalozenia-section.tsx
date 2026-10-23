@@ -21,7 +21,7 @@ function ComplianceRing({
   const dash = (Math.min(100, Math.max(0, value)) / 100) * c;
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-1.5 rounded-[18px] border border-white/[0.08] bg-white/[0.025] px-1 py-3">
       <div className="relative flex h-[68px] w-[68px] items-center justify-center">
         <svg viewBox="0 0 68 68" className="absolute inset-0 h-full w-full" aria-hidden>
           <circle
@@ -56,7 +56,34 @@ function ComplianceRing({
           )}
         </div>
       </div>
-      <p className="text-[11px] font-medium text-white/55">{label}</p>
+      <p className="flex items-center gap-1.5 text-[11px] font-medium text-white/65">
+        <span
+          aria-hidden
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: tone }}
+        />
+        {label}
+      </p>
+      <p
+        className={cn(
+          "rounded-full border px-2 py-0.5 text-[10px] font-medium",
+          pct == null
+            ? "border-white/[0.08] text-white/35"
+            : pct >= 80
+              ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
+              : pct >= 50
+                ? "border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)]"
+                : "border-rose-400/30 bg-rose-500/10 text-rose-300",
+        )}
+      >
+        {pct == null
+          ? "brak danych"
+          : pct >= 80
+            ? "świetnie"
+            : pct >= 50
+              ? "w normie"
+              : "do poprawy"}
+      </p>
     </div>
   );
 }
@@ -103,8 +130,8 @@ function DotRow({
 
 function FormTile({ label, value }: { label: string; value: number | null }) {
   return (
-    <div className="rounded-xl bg-white/[0.03] px-1.5 py-2.5 text-center">
-      <p className="text-[11px] font-medium text-white/45">{label}</p>
+    <div className="rounded-[16px] border border-white/[0.08] bg-white/[0.03] px-1.5 py-2.5 text-center">
+      <p className="truncate text-[11px] font-medium text-white/45">{label}</p>
       {value != null ? (
         <AnimatedMetric
           value={value}
@@ -113,6 +140,21 @@ function FormTile({ label, value }: { label: string; value: number | null }) {
       ) : (
         <p className="mt-1 font-metric text-[22px] leading-none text-white/35">—</p>
       )}
+      <div className="mx-auto mt-2 h-1 w-[70%] overflow-hidden rounded-full bg-white/[0.08]">
+        <div
+          className={cn(
+            "h-full rounded-full",
+            value == null
+              ? "bg-transparent"
+              : value >= 8
+                ? "bg-emerald-400"
+                : value >= 5
+                  ? "bg-[var(--gym-gold)]"
+                  : "bg-rose-400",
+          )}
+          style={{ width: `${value == null ? 0 : Math.min(100, Math.max(0, value * 10))}%` }}
+        />
+      </div>
     </div>
   );
 }
@@ -160,7 +202,7 @@ export function HomeZalozeniaSection({
       />
 
       <div className="app-card space-y-3.5 p-4">
-        <div className="grid grid-cols-3 gap-1">
+        <div className="grid grid-cols-3 gap-2">
           <ComplianceRing label="Dieta" pct={dietPct} tone="#e8c547" />
           <ComplianceRing label="Treningi" pct={trainingPct} tone="#7ddea0" />
           <ComplianceRing label="Cardio" pct={cardioPct} tone="#6eb5ff" />
@@ -173,7 +215,7 @@ export function HomeZalozeniaSection({
         </div>
 
         <div className="border-t border-white/[0.06] pt-3">
-          <p className="mb-2 text-[11px] font-medium text-white/45">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
             Forma z ostatniego raportu
           </p>
           <div className="grid grid-cols-4 gap-1.5">

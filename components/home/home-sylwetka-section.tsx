@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { TrendingUp } from "lucide-react";
+import { ArrowDown, ArrowUp, Minus, TrendingUp } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
 import { HomeSylwetkaChart } from "@/components/home/home-sylwetka-chart";
@@ -18,6 +18,48 @@ function fmtSignedValue(n: number | null, unit: string): string {
 function deltaTone(n: number | null): string {
   if (n == null || !Number.isFinite(n) || n === 0) return "text-white/45";
   return n < 0 ? "text-emerald-400" : "text-rose-400";
+}
+
+function DeltaChip({
+  label,
+  value,
+  unit,
+}: {
+  label: string;
+  value: number | null;
+  unit: string;
+}) {
+  const valid = value != null && Number.isFinite(value);
+  const rounded = valid ? Math.round(value * 10) / 10 : 0;
+  const Icon = !valid || rounded === 0 ? Minus : rounded > 0 ? ArrowUp : ArrowDown;
+  const tone = deltaTone(valid ? value : null);
+  const toneBorder =
+    !valid || rounded === 0
+      ? "border-white/[0.08] bg-white/[0.03]"
+      : rounded < 0
+        ? "border-emerald-400/25 bg-emerald-500/[0.07]"
+        : "border-rose-400/25 bg-rose-500/[0.07]";
+  return (
+    <div
+      className={cn(
+        "min-w-0 rounded-2xl border px-2.5 py-2 tabular-nums",
+        toneBorder,
+      )}
+    >
+      <p
+        className={cn(
+          "flex items-center gap-1 truncate text-[13px] font-semibold leading-none",
+          tone,
+        )}
+      >
+        <Icon className="h-3 w-3 shrink-0" aria-hidden />
+        <span className="truncate">{fmtSignedValue(value, unit)}</span>
+      </p>
+      <p className="mt-1.5 truncate text-[10px] font-medium uppercase tracking-[0.1em] text-white/40">
+        {label}
+      </p>
+    </div>
+  );
 }
 
 export function HomeSylwetkaSection({
@@ -48,44 +90,36 @@ export function HomeSylwetkaSection({
       />
 
       <div className="app-card space-y-4 p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-medium text-white/55">Waga</p>
-            <div className="mt-1 flex items-baseline gap-2">
-              {weightKg != null && Number.isFinite(weightKg) ? (
-                <>
-                  <AnimatedMetric
-                    value={weightKg}
-                    decimals={1}
-                    className="text-[48px] leading-none text-white"
-                  />
-                  <span className="text-[15px] font-medium text-white/50">kg</span>
-                </>
-              ) : (
-                <span className="font-metric text-[48px] leading-none text-white/35">
-                  —
-                </span>
-              )}
-            </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+            Waga
+          </p>
+          <div className="mt-1.5 flex items-baseline gap-2">
+            {weightKg != null && Number.isFinite(weightKg) ? (
+              <>
+                <AnimatedMetric
+                  value={weightKg}
+                  decimals={1}
+                  className="text-[48px] leading-none text-white"
+                />
+                <span className="text-[15px] font-medium text-white/50">kg</span>
+              </>
+            ) : (
+              <span className="font-metric text-[48px] leading-none text-white/35">
+                —
+              </span>
+            )}
           </div>
+        </div>
 
-          <div
-            className="grid shrink-0 grid-cols-[auto_auto] items-baseline gap-x-1.5 gap-y-1 text-[12px] tabular-nums"
-            aria-label="Zmiany wagi"
-          >
-            <span className={cn("text-right", deltaTone(weightDeltaFromPreviousKg))}>
-              {fmtSignedValue(weightDeltaFromPreviousKg, "kg")}
-            </span>
-            <span className="text-white/35">od raportu</span>
-            <span className={cn("text-right", deltaTone(weightFromStartKg))}>
-              {fmtSignedValue(weightFromStartKg, "kg")}
-            </span>
-            <span className="text-white/35">od startu</span>
-            <span className={cn("text-right", deltaTone(weightKgPerWeek))}>
-              {fmtSignedValue(weightKgPerWeek, "kg/tydz")}
-            </span>
-            <span className="text-white/35">tempo</span>
-          </div>
+        <div className="grid grid-cols-3 gap-2" aria-label="Zmiany wagi">
+          <DeltaChip
+            label="od raportu"
+            value={weightDeltaFromPreviousKg}
+            unit="kg"
+          />
+          <DeltaChip label="od startu" value={weightFromStartKg} unit="kg" />
+          <DeltaChip label="tempo" value={weightKgPerWeek} unit="kg/tydz" />
         </div>
 
         <HomeSylwetkaChart data={weightSeries} waist={waistSeries} />
