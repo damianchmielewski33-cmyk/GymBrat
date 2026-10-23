@@ -1,22 +1,12 @@
-"use client";
-
-import Link from "next/link";
-import { useId, useState } from "react";
-import { motion } from "framer-motion";
-import { ChevronRight, CircleHelp, Footprints } from "lucide-react";
-import {
-  BURN_SOURCE_LABEL_PL,
-  EXTRA_CARDIO_LABEL_PL,
-  type ExtraCardioAdvice,
-} from "@/lib/extra-cardio-from-macros";
-import { cn } from "@/lib/utils";
+import { Footprints, Info, Plus } from "lucide-react";
+import type { ExtraCardioAdvice } from "@/lib/extra-cardio-from-macros";
 
 type Props = {
   minutesCompleted: number;
   weeklyGoal: number;
-  /** Wewnątrz karty „Trening na dziś” — bez osobnego app-card. */
-  embedded?: boolean;
   extraCardio?: ExtraCardioAdvice | null;
+  /** Szybki zapis cardio — przycisk w nagłówku karty. */
+  onAddCardio?: () => void;
 };
 
 function weeklyCardioPercent(minutesCompleted: number, weeklyGoal: number): number {
@@ -24,222 +14,87 @@ function weeklyCardioPercent(minutesCompleted: number, weeklyGoal: number): numb
   return Math.min(100, Math.round((minutesCompleted / weeklyGoal) * 1000) / 10);
 }
 
+/**
+ * Osobna karta cardio na Pulpicie: złoty pasek do celu tygodnia,
+ * a bonus z nadwyżki makro jako niebieska kropka pod paskiem.
+ * Całość jest statyczna — nic się nie rozwija i nie nawiguje.
+ */
 export function HomeCardioProgressStrip({
   minutesCompleted,
   weeklyGoal,
-  embedded = false,
   extraCardio = null,
+  onAddCardio,
 }: Props) {
-  const tipId = useId();
-  const [tipOpen, setTipOpen] = useState(false);
-  const safe = weeklyCardioPercent(minutesCompleted, weeklyGoal);
+  const pct = weeklyCardioPercent(minutesCompleted, weeklyGoal);
   const mins = Math.round(minutesCompleted);
   const extraMinutes =
     extraCardio?.show && extraCardio.extraMinutes > 0
       ? extraCardio.extraMinutes
       : 0;
 
-  // Skala = max(cel, wykonane) + dodatkowe minuty (nadwyżka makro).
-  // Dodatkowe minuty doliczamy ZAWSZE na wierzch, także gdy cel już przekroczono —
-  // inaczej niebieski segment znikał (mins > cel + extra zajmował całą skalę).
-  const totalUnits = Math.max(Math.max(weeklyGoal, mins) + extraMinutes, 1);
-  const goldPct = Math.min(100, (Math.min(mins, weeklyGoal) / totalUnits) * 100);
-  const overGoalPct =
-    mins > weeklyGoal
-      ? Math.min(100 - goldPct, ((mins - weeklyGoal) / totalUnits) * 100)
-      : 0;
-  // Brakujące minuty do celu — przerwa, żeby niebieski segment leżał ZA celem tygodnia.
-  const gapPct =
-    extraMinutes > 0 && mins < weeklyGoal
-      ? ((weeklyGoal - mins) / totalUnits) * 100
-      : 0;
-  const bluePct =
-    extraMinutes > 0
-      ? Math.min(
-          100 - goldPct - overGoalPct - gapPct,
-          (extraMinutes / totalUnits) * 100,
-        )
-      : 0;
-
   return (
-    <div
-      className={cn(
-        embedded
-          ? "rounded-2xl border border-white/[0.08] bg-black/25 px-3 py-2.5"
-          : "app-card-raised px-3.5 py-3",
-      )}
+    <section
+      className="app-card p-4"
+      aria-label={`Cardio w tym tygodniu: ${mins} z ${weeklyGoal} minut${
+        extraMinutes > 0
+          ? `, plus ${extraMinutes} minut z nadwyżki makro`
+          : ""
+      }`}
     >
-      <Link
-        href="/cardio"
-        className="block transition-colors hover:opacity-95"
-        aria-label={
-          extraMinutes > 0
-            ? `Cardio w tygodniu: ${mins} z ${weeklyGoal} minut, plus ${extraMinutes} min dodatkowego cardio przy nadwyżce makro`
-            : `Cardio w tygodniu: ${mins} z ${weeklyGoal} minut, ${safe.toFixed(safe >= 100 ? 0 : 1)} procent celu`
-        }
-      >
-        <div className="flex items-center gap-2.5">
-          <span
-            className={cn(
-              "flex shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/25 bg-[var(--gym-gold)]/10",
-              embedded ? "h-8 w-8" : "h-9 w-9",
-            )}
-          >
-            <Footprints
-              className={cn(
-                "text-[var(--gym-gold)]",
-                embedded ? "h-3.5 w-3.5" : "h-4 w-4",
-              )}
-              aria-hidden
-            />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                Cardio · ten tydzień
-              </p>
-              <p className="shrink-0 font-metric text-[13px] tabular-nums text-white">
-                <span className="text-[var(--gym-gold)]">{mins}</span>
-                <span className="text-white/35"> / {weeklyGoal} min</span>
-                {extraMinutes > 0 ? (
-                  <span className="ml-1.5 text-[11px] font-semibold text-sky-300">
-                    +{extraMinutes} min
-                  </span>
-                ) : null}
-              </p>
-            </div>
-            <div className="relative mt-2 flex h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-              <motion.div
-                className="h-full rounded-l-full bg-gradient-to-r from-[var(--gym-gold-deep)] via-[var(--gym-gold)] to-[var(--gym-gold-bright)]"
-                initial={false}
-                animate={{ width: `${goldPct}%` }}
-                transition={{ duration: 0.75, ease: "easeOut" }}
-              />
-              {overGoalPct > 0 ? (
-                <motion.div
-                  className="h-full bg-gradient-to-r from-[var(--gym-gold)]/70 to-[var(--gym-gold-bright)]/80"
-                  title="Cardio powyżej celu tygodnia"
-                  initial={false}
-                  animate={{ width: `${overGoalPct}%` }}
-                  transition={{ duration: 0.75, ease: "easeOut", delay: 0.03 }}
-                />
-              ) : null}
-              {gapPct > 0 ? (
-                <div
-                  className="h-full shrink-0"
-                  style={{ width: `${gapPct}%` }}
-                  aria-hidden
-                />
-              ) : null}
-              {bluePct > 0 ? (
-                <motion.div
-                  className="h-full rounded-r-full bg-gradient-to-r from-sky-500/90 to-sky-300"
-                  title="Dodatkowe cardio przy nadwyżce makro"
-                  initial={false}
-                  animate={{ width: `${bluePct}%` }}
-                  transition={{ duration: 0.75, ease: "easeOut", delay: 0.05 }}
-                />
-              ) : null}
-            </div>
-            {!embedded ? (
-              <p className="mt-1.5 text-[11px] text-white/40">
-                {widthLabel(safe, extraMinutes)}
-              </p>
-            ) : extraMinutes > 0 ? (
-              <p className="mt-1.5 text-[10px] leading-snug text-sky-200/80">
-                Niebieskie pole: dodatkowe minuty przy nadwyżce makro
-              </p>
-            ) : null}
-          </div>
-          <ChevronRight className="h-4 w-4 shrink-0 text-white/25" aria-hidden />
+      <div className="flex items-center gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/25 bg-[var(--gym-gold)]/10">
+          <Footprints
+            className="h-4 w-4 text-[var(--gym-gold)]"
+            aria-hidden
+          />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+            Cardio · ten tydzień
+          </p>
+          <p className="mt-0.5 font-metric text-[15px] leading-none tabular-nums text-white">
+            <span className="text-[var(--gym-gold)]">{mins}</span>
+            <span className="text-white/35"> / {weeklyGoal} min</span>
+          </p>
         </div>
-      </Link>
-
-      {extraMinutes > 0 && extraCardio ? (
-        <div className="mt-2 border-t border-white/[0.06] pt-2">
+        {onAddCardio ? (
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-200/90 transition hover:text-sky-100"
-            aria-expanded={tipOpen}
-            aria-controls={tipId}
-            onClick={(e) => {
-              e.preventDefault();
-              setTipOpen((v) => !v);
-            }}
+            onClick={onAddCardio}
+            aria-label="Dodaj cardio"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--gym-gold)]/45 bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)] transition hover:bg-[rgba(var(--neon-rgb),0.2)]"
           >
-            <CircleHelp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {tipOpen ? "Ukryj wyjaśnienie" : "Jak liczone jest dodatkowe cardio?"}
+            <Plus className="h-4 w-4" aria-hidden />
           </button>
-          {tipOpen ? (
-            <div
-              id={tipId}
-              className="mt-2 space-y-2 rounded-xl border border-sky-400/20 bg-sky-500/10 px-3 py-2.5 text-[11px] leading-snug text-sky-50/90"
-            >
-              <p className="font-semibold text-sky-100">{extraCardio.summary}</p>
-              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                <dt className="text-sky-200/70">
-                  {EXTRA_CARDIO_LABEL_PL.openDebt}
-                </dt>
-                <dd className="font-medium text-sky-50">
-                  {extraCardio.surplusKcal} kcal
-                </dd>
-                <dt className="text-sky-200/70">
-                  {EXTRA_CARDIO_LABEL_PL.effectiveDebt}
-                </dt>
-                <dd className="font-medium text-sky-50">
-                  {extraCardio.effectiveSurplusKcal} kcal
-                </dd>
-                <dt className="text-sky-200/70">
-                  {EXTRA_CARDIO_LABEL_PL.cardioOffset}
-                </dt>
-                <dd className="font-medium text-sky-50">
-                  {extraCardio.cardioOffsetKcal} kcal
-                </dd>
-                <dt className="text-sky-200/70">
-                  {EXTRA_CARDIO_LABEL_PL.burnRate}
-                </dt>
-                <dd className="font-medium text-sky-50">
-                  {extraCardio.burnKcalPerMin} kcal/min
-                </dd>
-                <dt className="text-sky-200/70">
-                  {EXTRA_CARDIO_LABEL_PL.burnSource}
-                </dt>
-                <dd className="font-medium text-sky-50">
-                  {BURN_SOURCE_LABEL_PL[extraCardio.burnSource]}
-                </dd>
-              </dl>
-              <ul className="list-disc space-y-1 border-t border-sky-400/15 pt-2 pl-4 text-sky-50/80">
-                {extraCardio.explanation
-                  .filter(
-                    (line) =>
-                      !line.startsWith(`${EXTRA_CARDIO_LABEL_PL.openDebt}:`) &&
-                      !line.startsWith(
-                        `${EXTRA_CARDIO_LABEL_PL.effectiveDebt}:`,
-                      ) &&
-                      !line.startsWith(
-                        `${EXTRA_CARDIO_LABEL_PL.cardioOffset}:`,
-                      ) &&
-                      !line.startsWith(`${EXTRA_CARDIO_LABEL_PL.burnRate}:`) &&
-                      !line.startsWith(
-                        `${EXTRA_CARDIO_LABEL_PL.burnSource}:`,
-                      ),
-                  )
-                  .map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-              </ul>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
-}
+        ) : null}
+      </div>
 
-function widthLabel(safe: number, extraMinutes: number): string {
-  if (extraMinutes > 0) {
-    return `Cel tygodnia + ${extraMinutes} min dodatkowych (nadwyżka makro)`;
-  }
-  if (safe >= 100) return "Cel tygodniowy zaliczony";
-  return `${safe.toFixed(safe >= 100 ? 0 : 1)}% zalecenia · statystyki i porównania`;
+      <div
+        className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={weeklyGoal}
+        aria-valuenow={Math.min(mins, weeklyGoal)}
+      >
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-[var(--gym-gold-deep)] via-[var(--gym-gold)] to-[var(--gym-gold-bright)]"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {extraMinutes > 0 ? (
+        <p className="mt-2.5 flex items-center gap-2 text-[12px] leading-none text-sky-200/90">
+          <span
+            className="h-2 w-2 shrink-0 rounded-full bg-sky-400"
+            aria-hidden
+          />
+          <span>+{extraMinutes} min z nadwyżki makro</span>
+          <Info
+            className="h-3.5 w-3.5 shrink-0 text-sky-200/60"
+            aria-hidden
+          />
+        </p>
+      ) : null}
+    </section>
+  );
 }

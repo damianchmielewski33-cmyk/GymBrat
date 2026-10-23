@@ -115,6 +115,7 @@ export function HomeTodayView(props: HomeTodayViewProps) {
         weightFromStartKg={props.weightFromStartKg}
         weightKgPerWeek={props.weightKgPerWeek}
         lastReportLabel={lastReportLabel}
+        daysSinceLastReport={props.daysSinceLastReport}
         weightSeries={props.weightSeries}
         waistSeries={props.waistSeries}
       />

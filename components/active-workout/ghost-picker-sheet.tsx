@@ -38,27 +38,32 @@ export function GhostPickerSheet({ planId }: { planId: string | null }) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="relative">
       <div className="flex gap-2">
+        {/* Pole dotyku 44 px, widoczna plakietka niższa. */}
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10 px-3 py-2 text-[12px] font-medium text-[var(--neon)]"
+          aria-expanded={open}
+          className="-my-2 inline-flex h-11 items-center"
         >
-          {enabled ? "Zmień Ghost" : "Ghost Training"}
+          <span className="inline-flex h-8 items-center gap-2 rounded-full border border-[var(--neon)]/35 bg-[var(--neon)]/10 px-3 text-[12px] font-semibold text-[var(--neon)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--neon)]" aria-hidden />
+            {enabled ? "Zmień Ghost" : "Ghost Training · bez zapisu"}
+          </span>
         </button>
         {enabled ? (
           <button
             type="button"
             onClick={() => clear()}
-            className="rounded-xl border border-white/15 px-3 py-2 text-[12px] text-white/50"
+            className="-my-2 inline-flex h-11 items-center px-1 text-[12px] text-white/50"
           >
             Wyłącz
           </button>
         ) : null}
       </div>
       {open ? (
-        <div className="max-h-64 space-y-2 overflow-y-auto rounded-2xl border border-white/10 bg-black/70 p-3 backdrop-blur-md">
+        <div className="absolute left-0 top-full z-30 mt-3 max-h-64 w-[min(22rem,calc(100vw-2rem))] space-y-2 overflow-y-auto rounded-2xl border border-white/10 bg-black/90 p-3 backdrop-blur-md">
           <p className="text-[11px] uppercase tracking-wide text-white/40">
             Wybierz ducha
           </p>

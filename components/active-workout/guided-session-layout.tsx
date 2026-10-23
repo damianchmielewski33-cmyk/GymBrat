@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
-  Flag,
   Minus,
   Plus,
   Play,
@@ -27,10 +26,7 @@ import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
 import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  SessionChromeHeader,
-  SessionProgressBar,
-} from "@/components/active-workout/session-chrome";
+import { SessionChromeHeader } from "@/components/active-workout/session-chrome";
 import { GhostPickerSheet } from "@/components/active-workout/ghost-picker-sheet";
 import { GhostRaceHud } from "@/components/active-workout/ghost-race-hud";
 import {
@@ -89,28 +85,39 @@ function daysAgoLabel(days: number | null | undefined): string | null {
 function exerciseTargetBadges(exercise: WorkoutExerciseState): string[] {
   const badges: string[] = [];
   const sets = exercise.targetSets ?? exercise.sets.length;
+  const setsLabel = `${sets} ${plSeries(sets)}`;
   const repRange = resolveRepRange(exercise.targetReps);
   if (repRange) {
-    badges.push(`${sets}s ${formatRepRangeLabel(repRange)}`);
+    badges.push(`${setsLabel} × ${formatRepRangeLabel(repRange)}`);
   } else if (exercise.targetReps != null && exercise.targetReps > 0) {
-    badges.push(`${sets}s ${exercise.targetReps}`);
+    badges.push(`${setsLabel} × ${exercise.targetReps}`);
   } else {
-    badges.push(`${sets}s`);
+    badges.push(setsLabel);
   }
   if (exercise.targetRir != null) badges.push(`RIR ${exercise.targetRir}`);
   if (exercise.tempo?.trim()) badges.push(`tempo ${exercise.tempo.trim()}`);
   return badges;
 }
 
-/** Steppery / metryki skalują się z wysokością viewport (RWD bez scrolla). */
-const stepperBtnClass =
-  "inline-flex h-11 min-w-0 flex-1 items-center justify-center rounded-[14px] border border-white/12 bg-[#0A0A0A] text-white transition active:scale-[0.96] hover:border-[#D6B36A]/35 hover:bg-white/[0.07] min-[700px]:h-12 min-[700px]:rounded-[16px] sm:h-14";
+/** Kroki zmiany ciężaru przyciskami +/− (plakietka „krok” przełącza po kolei). */
+const WEIGHT_STEPS = [WEIGHT_FINE, 2.5, WEIGHT_STEP] as const;
 
-const fineBtnClass =
-  "inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/10 bg-[#121212] text-[11px] font-semibold tabular-nums text-white/70 transition active:scale-[0.98] hover:border-[#D6B36A]/30 hover:text-white min-[700px]:h-10 min-[700px]:text-[12px]";
+function formatStep(step: number): string {
+  return String(step).replace(".", ",");
+}
+
+function plSeries(n: number): string {
+  if (n === 1) return "seria";
+  if (n >= 2 && n <= 4) return "serie";
+  return "serii";
+}
+
+/** Stałe, niskie wymiary: +/− 52 px, liczby 50 px, wszystkie pola dotyku ≥ 44 px. */
+const stepperBtnClass =
+  "inline-flex h-[52px] w-[72px] shrink-0 items-center justify-center rounded-[16px] border border-white/12 bg-[#0A0A0A] text-white transition active:scale-[0.96] hover:border-[#D6B36A]/35 hover:bg-white/[0.07]";
 
 const metricInputBaseClass =
-  "h-12 min-w-0 w-full bg-transparent px-0.5 text-center font-metric text-[clamp(1.85rem,6.5dvh,3rem)] leading-none tabular-nums tracking-tight outline-none min-[700px]:h-14 sm:h-16";
+  "h-[56px] min-w-0 bg-transparent px-0 text-left font-metric text-[50px] leading-none tabular-nums tracking-tight outline-none";
 
 const weightInputClass =
   `${metricInputBaseClass} text-[#D6B36A] placeholder:text-[#D6B36A]/35`;
@@ -118,9 +125,44 @@ const weightInputClass =
 const repsInputClass =
   `${metricInputBaseClass} text-white placeholder:text-white/30`;
 
-/** Jedna karta: Ciężar | Powtórzenia obok siebie (dwie kolumny). */
-const metricsCardClass =
-  "grid shrink-0 grid-cols-2 overflow-hidden rounded-[18px] border border-white/[0.08] border-t-[#D6B36A]/20 bg-[#121212] shadow-[0_0_28px_rgba(214,179,106,0.06),inset_0_1px_0_rgba(255,255,255,0.04)] min-[700px]:rounded-[20px] sm:rounded-[24px]";
+/** Karty Ciężar i Powtórzenia: jedna pod drugą, liczba po lewej, +/− po prawej. */
+const metricCardClass =
+  "overflow-hidden rounded-[18px] border border-white/[0.08] border-t-[#D6B36A]/20 bg-[#121212] px-4 py-3 shadow-[0_0_28px_rgba(214,179,106,0.06),inset_0_1px_0_rgba(255,255,255,0.04)]";
+
+const actionBtnClass =
+  "inline-flex h-11 min-w-0 flex-1 items-center justify-center rounded-2xl border border-white/10 bg-[#121212] px-2 text-[13px] font-semibold transition hover:border-[#D6B36A]/30";
+
+/** Segmenty = serie całej sesji; złote = zaliczone. */
+function SegmentedSessionProgress({
+  done,
+  total,
+}: {
+  done: number;
+  total: number;
+}) {
+  const n = Math.max(1, total);
+  return (
+    <div
+      className="flex h-1.5 gap-[3px]"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={total}
+      aria-valuenow={done}
+    >
+      {Array.from({ length: n }, (_, i) => (
+        <span
+          key={i}
+          className={cn(
+            "h-full min-w-0 flex-1 rounded-full transition-colors duration-300",
+            i < done
+              ? "bg-gradient-to-r from-[#D6B36A] to-[#F0D58A] shadow-[0_0_8px_rgba(214,179,106,0.4)]"
+              : "bg-white/[0.1]",
+          )}
+        />
+      ))}
+    </div>
+  );
+}
 
 type GuidedSessionLayoutProps = {
   title: string;
@@ -162,7 +204,6 @@ export function GuidedSessionLayout({
   onRemoveLastSet,
   onExerciseNoteChange,
   onCancelSession,
-  onDiscardSession,
   onFinishSession,
   finishPending,
   onDeferExercise,
@@ -177,6 +218,8 @@ export function GuidedSessionLayout({
     if (listOpenControlled === undefined) setListOpenLocal(open);
   }
   const [noteOpen, setNoteOpen] = useState(false);
+  const [weightStepIdx, setWeightStepIdx] = useState(0);
+  const weightStep = WEIGHT_STEPS[weightStepIdx] ?? WEIGHT_FINE;
   /** Ręczny wybór serii (null = pierwsza niedokończona). */
   const [manualSetIndex, setManualSetIndex] = useState<number | null>(null);
   const [weightText, setWeightText] = useState("");
@@ -447,7 +490,6 @@ export function GuidedSessionLayout({
   }
 
   const rirValue = set.rir ?? exercise.targetRir ?? 1;
-  const progress = totals.total > 0 ? Math.min(1, totals.done / totals.total) : 0;
   const techniqueUrl = exercise.techniqueYoutubeUrl?.trim() || null;
   const repRangeForHint = resolveRepRange(exercise.targetReps);
   const repTargetHint = repRangeForHint
@@ -462,11 +504,38 @@ export function GuidedSessionLayout({
     patchReps(clampReps(apply.reps));
   }
 
+  /** „Powtórz bazę”: ciężar i powtórzenia tej samej serii z poprzedniego treningu. */
+  function repeatBase() {
+    if (!exercise || !set || !lastSessionSet) return;
+    const w = clampWeight(Number(lastSessionSet.weight) || 0);
+    const r =
+      lastSessionSet.reps != null && lastSessionSet.reps > 0
+        ? clampReps(lastSessionSet.reps)
+        : null;
+    hapticTap();
+    setWeightText(w > 0 ? String(w) : "");
+    setRepsText(r != null && r > 0 ? String(r) : "");
+    onPatchSet(exercise.id, activeSetIndex, {
+      weight: w,
+      reps: r ?? set.reps,
+      done: set.done,
+      skipped: set.done ? set.skipped : false,
+    });
+    requestActiveWorkoutCloudPush(false);
+  }
+
+  const repsNow = parseRepsInput(repsText) ?? set.reps ?? null;
+  const repsInTarget =
+    repRangeForHint != null &&
+    repsNow != null &&
+    repsNow >= repRangeForHint.min &&
+    repsNow <= repRangeForHint.max;
+
   const setCompleted = set.done && !isSkippedWorkoutSet(set);
   const primaryLabel = setCompleted
-    ? "Popraw serię"
+    ? `Popraw serię ${activeSetIndex + 1}`
     : canZaliczyc
-      ? "Zalicz serię"
+      ? `Zapisz serię ${activeSetIndex + 1}`
       : "Pomiń serię";
 
   return (
@@ -475,38 +544,42 @@ export function GuidedSessionLayout({
         <SessionChromeHeader
           title={title}
           subtitle={
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="font-metric text-[16px] tabular-nums tracking-wide text-[#D6B36A] sm:text-[18px]">
-                {formatElapsed(elapsedSeconds)}
-              </span>
-              <span className="text-[10px] text-white/45 sm:text-[11px]">
-                {totals.done}/{totals.total} serii · {totals.exercisesDone}/
-                {totals.exercisesTotal} ćw.
-              </span>
-            </div>
+            <span className="font-metric text-[20px] leading-none tabular-nums tracking-wide text-[#D6B36A]">
+              {formatElapsed(elapsedSeconds)}
+            </span>
           }
           onClose={onCancelSession}
           onOpenList={() => {
             flushDraft();
             setListOpen(true);
           }}
-          className="px-2 pb-0.5"
+          className="px-3 pb-1"
         />
-        <div className="space-y-2 px-5 pb-2">
-          <SessionProgressBar progress={progress} />
-          <GhostPickerSheet planId={workoutPlanId} />
+        <div className="px-4 pb-2.5">
+          <SegmentedSessionProgress done={totals.done} total={totals.total} />
+          <div className="mt-2.5 flex items-center justify-between gap-2">
+            <GhostPickerSheet planId={workoutPlanId} />
+            <p className="shrink-0 text-[12px] tabular-nums text-white/55">
+              {totals.done}/{totals.total} serii · {totals.exercisesDone}/
+              {totals.exercisesTotal} ćw.
+            </p>
+          </div>
           <GhostRaceHud />
         </div>
       </div>
 
-      {/* Środkowa treść: karty Ciężar/Powtórzenia rosną i wypełniają wolne miejsce; scroll tylko awaryjnie. */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3.5 pb-2 pt-2.5 sm:px-4 sm:pt-3">
-        <div className="flex min-h-full flex-1 flex-col">
-          <div className="shrink-0">
+      {/*
+        Środek: bloki rozkładają się równomiernie na dostępnej wysokości (justify-between),
+        więc na wyższych ekranach nie ma pustej dziury. Na bardzo niskim ekranie treść
+        można jeszcze lekko przewinąć gestem — pasek przewijania jest ukryty.
+      */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-2 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-h-full flex-1 flex-col justify-between gap-2.5">
+          <div>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
-                  Ćw. {selectedIndex + 1}/{exercises.length}
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                  Ćwiczenie {selectedIndex + 1} z {exercises.length}
                   {supersetLabels[exercise.id] ? (
                     <>
                       <span className="text-white/25"> · </span>
@@ -516,7 +589,7 @@ export function GuidedSessionLayout({
                     </>
                   ) : null}
                 </p>
-                <h2 className="mt-0.5 truncate text-[1.35rem] font-semibold leading-tight tracking-tight text-white sm:text-[1.65rem]">
+                <h2 className="mt-1 line-clamp-2 text-[24px] font-semibold leading-[1.1] tracking-tight text-white">
                   {exercise.name}
                 </h2>
               </div>
@@ -526,39 +599,39 @@ export function GuidedSessionLayout({
                     href={techniqueUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-[#D6B36A]"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.04] text-[#D6B36A]"
                     aria-label="Technika"
                   >
-                    <Play className="h-3.5 w-3.5" />
+                    <Play className="h-4 w-4" />
                   </a>
                 ) : null}
                 <Link
                   href="/technique"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-[#D6B36A]"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.04] text-[#D6B36A]"
                   aria-label="Nagraj technikę"
                 >
-                  <Video className="h-3.5 w-3.5" />
+                  <Video className="h-4 w-4" />
                 </Link>
               </div>
             </div>
 
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-              {targetBadges.map((badge) => (
-                <span
-                  key={badge}
-                  className="inline-flex h-6 items-center rounded-full border border-[#D6B36A]/25 bg-[#D6B36A]/10 px-2 text-[11px] font-semibold tabular-nums text-[#E8C97A]"
-                >
-                  {badge}
-                </span>
-              ))}
-            </div>
+            <div className="mt-2.5 flex items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                {targetBadges.map((badge) => (
+                  <span
+                    key={badge}
+                    className="inline-flex h-8 items-center rounded-full border border-white/12 bg-[#121212] px-3 text-[13px] font-semibold tabular-nums text-white"
+                  >
+                    {badge}
+                  </span>
+                ))}
+              </div>
 
-            {/* Pasek wykonanych serii — zielony = zaliczona */}
-            <div className="mt-2.5">
+              {/* Numerowane serie: kółko 34 px w polu dotyku 44 px. */}
               <div
-                className="flex gap-1"
+                className="flex shrink-0 items-center"
                 role="tablist"
-                aria-label="Postęp serii"
+                aria-label="Serie ćwiczenia"
               >
                 {exercise.sets.map((s, i) => {
                   const completed = isCompletedWorkoutSet(s);
@@ -581,35 +654,26 @@ export function GuidedSessionLayout({
                       aria-selected={active}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => selectSetIndex(i)}
-                      className={cn(
-                        "h-2 min-w-0 flex-1 rounded-full transition",
-                        completed
-                          ? "bg-[#76D686] shadow-[0_0_12px_rgba(118,214,134,0.45)]"
-                          : skipped
-                            ? "bg-orange-400"
-                            : active
-                              ? "bg-[#D6B36A]/75 shadow-[0_0_10px_rgba(214,179,106,0.35)]"
-                              : "bg-white/15 hover:bg-white/25",
-                      )}
-                    />
+                      className="inline-flex h-11 w-10 items-center justify-center"
+                    >
+                      <span
+                        className={cn(
+                          "inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border text-[14px] font-bold tabular-nums transition",
+                          completed
+                            ? "border-[#76D686]/55 bg-[#76D686]/15 text-[#76D686]"
+                            : skipped
+                              ? "border-orange-400/55 bg-orange-400/10 text-orange-300"
+                              : active
+                                ? "border-[#D6B36A]/60 bg-[#D6B36A]/20 text-[#F0D58A]"
+                                : "border-white/12 bg-[#121212] text-white/70",
+                          active && "ring-2 ring-[#D6B36A]/50",
+                        )}
+                      >
+                        {i + 1}
+                      </span>
+                    </button>
                   );
                 })}
-              </div>
-              <div className="mt-1.5 flex items-baseline justify-between gap-2">
-                <p className="shrink-0 text-[12px] font-semibold tabular-nums text-white/75">
-                  Seria {activeSetIndex + 1} z {exercise.sets.length}
-                  {setCompleted
-                    ? " · edycja"
-                    : isSkippedWorkoutSet(set)
-                      ? " · pominięta"
-                      : ""}
-                </p>
-                {lastSetLine ? (
-                  <p className="min-w-0 truncate text-right text-[11px] font-medium tabular-nums text-white/45">
-                    {lastSetLine}
-                    {lastWhen ? ` · ${lastWhen}` : ""}
-                  </p>
-                ) : null}
               </div>
             </div>
 
@@ -619,8 +683,284 @@ export function GuidedSessionLayout({
               className="mt-2 rounded-[16px] py-2"
               compact
             />
+          </div>
 
-            <div className="mt-1.5 flex flex-wrap items-center gap-1">
+          {lastSetLine || suggestedWeight != null ? (
+            <div className="rounded-[18px] border border-white/[0.08] bg-[#121212] px-3.5 py-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-[12px] text-white/50">
+                  Ostatnio{lastWhen ? ` · ${lastWhen}` : ""}
+                </p>
+                <p className="text-[16px] font-semibold tabular-nums text-white">
+                  {lastSetLine ? lastSetLine.replace(/^Ostatnio\s+/, "") : "—"}
+                </p>
+              </div>
+              <div className="mt-2.5 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={!lastSessionSet || !lastSetLine}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={repeatBase}
+                  className="h-11 rounded-full border border-[#D6B36A]/35 bg-[#D6B36A]/10 px-3 text-[14px] font-semibold text-[#E8C97A] transition hover:bg-[#D6B36A]/15 disabled:opacity-40"
+                >
+                  Powtórz bazę
+                </button>
+                <button
+                  type="button"
+                  disabled={suggestedWeight == null}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    if (suggestedWeight == null) return;
+                    hapticTap();
+                    patchWeight(clampWeight(suggestedWeight));
+                  }}
+                  className="h-11 rounded-full border border-white/15 bg-transparent px-3 text-[14px] font-semibold text-white transition hover:bg-white/[0.05] disabled:opacity-40"
+                >
+                  {suggestedWeight != null
+                    ? `Sugestia: ${String(suggestedWeight).replace(".", ",")} kg`
+                    : "Brak sugestii"}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="space-y-2.5">
+            <div className={metricCardClass}>
+              <div className="flex items-center justify-between gap-2">
+                <label
+                  htmlFor="set-weight"
+                  className="text-[13px] font-semibold text-white/70"
+                >
+                  Ciężar
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setWeightStepIdx((i) => (i + 1) % WEIGHT_STEPS.length)
+                  }
+                  aria-label={`Krok zmiany ciężaru ${formatStep(weightStep)} kg — dotknij, aby zmienić`}
+                  className="-my-2 inline-flex h-11 items-center px-0.5"
+                >
+                  <span className="inline-flex h-7 items-center rounded-full border border-[#D6B36A]/30 bg-[#D6B36A]/10 px-2.5 text-[12px] font-semibold text-[#E8C97A]">
+                    krok {formatStep(weightStep)}
+                  </span>
+                </button>
+              </div>
+              <div className="mt-1 flex items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-1 items-end gap-1.5">
+                  <input
+                    id="set-weight"
+                    type="number"
+                    inputMode="decimal"
+                    step="0.5"
+                    min={0}
+                    max={999}
+                    value={weightText}
+                    placeholder={
+                      suggestedWeight != null ? String(suggestedWeight) : "0"
+                    }
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setWeightText(raw);
+                      const parsed = parseWeightInput(raw);
+                      if (parsed != null) {
+                        onPatchSet(exercise.id, activeSetIndex, {
+                          weight: parsed,
+                          done: set.done,
+                          skipped: set.done ? set.skipped : false,
+                        });
+                        requestActiveWorkoutCloudPush(false);
+                      } else if (raw.trim() === "") {
+                        onPatchSet(exercise.id, activeSetIndex, {
+                          weight: 0,
+                          done: set.done,
+                          skipped: set.done ? set.skipped : false,
+                        });
+                        requestActiveWorkoutCloudPush(false);
+                      }
+                    }}
+                    onBlur={() => {
+                      flushDraft();
+                      const parsed = parseWeightInput(weightTextRef.current);
+                      setWeightText(
+                        parsed != null && parsed > 0 ? String(parsed) : "",
+                      );
+                    }}
+                    className={cn(weightInputClass, "min-w-0 flex-1")}
+                  />
+                  <span className="mb-2.5 shrink-0 text-[14px] font-semibold lowercase tracking-wide text-[#D6B36A]/80">
+                    kg
+                  </span>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    aria-label="Zmniejsz ciężar"
+                    onClick={() => {
+                      patchWeight(
+                        clampWeight(
+                          (parseWeightInput(weightText) ?? set.weight) -
+                            weightStep,
+                        ),
+                      );
+                    }}
+                    className={stepperBtnClass}
+                  >
+                    <Minus className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Zwiększ ciężar"
+                    onClick={() => {
+                      patchWeight(
+                        clampWeight(
+                          (parseWeightInput(weightText) ?? set.weight) +
+                            weightStep,
+                        ),
+                      );
+                    }}
+                    className={stepperBtnClass}
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className={metricCardClass}>
+              <div className="flex items-center justify-between gap-2">
+                <label
+                  htmlFor="set-reps"
+                  className="text-[13px] font-semibold text-white/70"
+                >
+                  Powtórzenia
+                </label>
+                {repTargetHint ? (
+                  <span
+                    className={cn(
+                      "text-[12px] font-semibold tabular-nums",
+                      repsInTarget ? "text-[#E8C97A]" : "text-white/40",
+                    )}
+                  >
+                    {repsInTarget && repRangeForHint
+                      ? `✓ w celu ${formatRepRangeLabel(repRangeForHint)}`
+                      : repTargetHint}
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-1 flex items-center justify-between gap-3">
+                <input
+                  id="set-reps"
+                  type="number"
+                  inputMode="numeric"
+                  step={1}
+                  min={0}
+                  max={99}
+                  value={repsText}
+                  placeholder="0"
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setRepsText(raw);
+                    const parsed = parseRepsInput(raw);
+                    if (parsed != null) {
+                      onPatchSet(exercise.id, activeSetIndex, {
+                        reps: parsed > 0 ? parsed : null,
+                        done: set.done,
+                        skipped: set.done ? set.skipped : false,
+                      });
+                      requestActiveWorkoutCloudPush(false);
+                    } else if (raw.trim() === "") {
+                      onPatchSet(exercise.id, activeSetIndex, {
+                        reps: null,
+                        done: set.done,
+                        skipped: set.done ? set.skipped : false,
+                      });
+                      requestActiveWorkoutCloudPush(false);
+                    }
+                  }}
+                  onBlur={() => {
+                    flushDraft();
+                    const parsed = parseRepsInput(repsTextRef.current);
+                    setRepsText(
+                      parsed != null && parsed > 0 ? String(parsed) : "",
+                    );
+                  }}
+                  className={cn(repsInputClass, "min-w-0 flex-1")}
+                />
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    aria-label="Mniej powtórzeń"
+                    onClick={() => {
+                      const cur =
+                        parseRepsInput(repsText) ??
+                        clampReps(set.reps ?? exercise.targetReps ?? 0);
+                      const next = Math.max(0, cur - 1);
+                      patchReps(next > 0 ? next : null);
+                    }}
+                    className={stepperBtnClass}
+                  >
+                    <Minus className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Więcej powtórzeń"
+                    onClick={() => {
+                      const cur =
+                        parseRepsInput(repsText) ??
+                        clampReps(set.reps ?? exercise.targetReps ?? 0);
+                      patchReps(Math.min(99, cur + 1));
+                    }}
+                    className={stepperBtnClass}
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[13px] font-semibold text-white/75">
+                RIR · powtórzenia w zapasie
+              </p>
+              {exercise.targetRir != null ? (
+                <p className="text-[12px] font-medium tabular-nums text-white/45">
+                  cel: {exercise.targetRir}
+                </p>
+              ) : null}
+            </div>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {[0, 1, 2, 3].map((v) => {
+                const active = rirValue === v || (v === 3 && rirValue >= 3);
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() =>
+                      onPatchSet(exercise.id, activeSetIndex, {
+                        rir: v,
+                        done: set.done,
+                        skipped: set.done ? set.skipped : false,
+                      })
+                    }
+                    className={cn(
+                      "h-12 rounded-[14px] text-[16px] font-bold tabular-nums transition active:scale-[0.97]",
+                      active
+                        ? "border border-[#F0D58A]/70 bg-gradient-to-b from-[#F0D58A] via-[#D6B36A] to-[#A8893F] text-black shadow-[0_0_24px_rgba(214,179,106,0.45)]"
+                        : "border border-white/12 bg-[#0A0A0A] text-white/75 hover:border-[#D6B36A]/40",
+                    )}
+                  >
+                    {v === 3 ? "3+" : v}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex gap-2">
               {onAddSet ? (
                 <button
                   type="button"
@@ -631,7 +971,7 @@ export function GuidedSessionLayout({
                     onAddSet(exercise.id);
                     setManualSetIndex(stayAt);
                   }}
-                  className="rounded-lg border border-[#D6B36A]/30 bg-[#D6B36A]/[0.08] px-2.5 py-1 text-[11px] font-semibold text-[#D6B36A]"
+                  className={cn(actionBtnClass, "border-[#D6B36A]/30 text-[#E8C97A]")}
                 >
                   + Seria
                 </button>
@@ -647,7 +987,7 @@ export function GuidedSessionLayout({
                       typeof nextIndex === "number" ? nextIndex : null,
                     );
                   }}
-                  className="rounded-lg px-2 py-1 text-[11px] font-medium text-white/45 hover:text-white"
+                  className={cn(actionBtnClass, "text-white")}
                 >
                   Usuń
                 </button>
@@ -655,7 +995,8 @@ export function GuidedSessionLayout({
               <button
                 type="button"
                 onClick={() => setNoteOpen((v) => !v)}
-                className="rounded-lg px-2 py-1 text-[11px] font-medium text-white/45 hover:text-white"
+                aria-expanded={noteOpen}
+                className={cn(actionBtnClass, "text-white")}
               >
                 Notatka
               </button>
@@ -670,9 +1011,8 @@ export function GuidedSessionLayout({
                   );
                   window.location.href = `mailto:support@gymbrat.app?subject=${subject}&body=${body}`;
                 }}
-                className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/30 hover:text-white/60"
+                className={cn(actionBtnClass, "text-white/45")}
               >
-                <Flag className="h-2.5 w-2.5" />
                 Zgłoś
               </button>
             </div>
@@ -688,254 +1028,10 @@ export function GuidedSessionLayout({
               />
             ) : null}
           </div>
-
-          {/* Ciężar / Powtórzenia rosną i wypełniają wolne miejsce pod akcjami. */}
-          <div className="mt-2.5 flex min-h-0 flex-1 flex-col justify-center gap-3 min-[700px]:mt-3">
-            <div className={metricsCardClass}>
-              <div className="flex min-h-0 min-w-0 flex-col px-3 py-3 sm:px-4 sm:py-4">
-                <div className="flex items-center justify-between gap-2 text-[11px] font-semibold tracking-wide text-white/55">
-                  <label htmlFor="set-weight">Ciężar</label>
-                  <span className="text-[10px] font-medium text-white/35">
-                    krok {WEIGHT_STEP}
-                  </span>
-                </div>
-                {suggestedWeight != null &&
-                set.weight <= 0 &&
-                !(liveTip?.apply && liveTip.apply.weightKg > 0) ? (
-                  <button
-                    type="button"
-                    onClick={() => patchWeight(clampWeight(suggestedWeight))}
-                    className="mt-1.5 inline-flex h-7 w-fit items-center rounded-full border border-[#D6B36A]/40 bg-[#D6B36A]/15 px-2 text-[10px] font-semibold text-[#D6B36A]"
-                  >
-                    Sugestia {suggestedWeight} kg
-                  </button>
-                ) : null}
-                <div className="flex min-h-0 flex-1 items-center justify-center py-4">
-                  <div className="flex min-w-0 max-w-full items-end justify-center gap-1">
-                    <input
-                      id="set-weight"
-                      type="number"
-                      inputMode="decimal"
-                      step="0.5"
-                      min={0}
-                      max={999}
-                      value={weightText}
-                      placeholder={
-                        suggestedWeight != null ? String(suggestedWeight) : "0"
-                      }
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        setWeightText(raw);
-                        const parsed = parseWeightInput(raw);
-                        if (parsed != null) {
-                          onPatchSet(exercise.id, activeSetIndex, {
-                            weight: parsed,
-                            done: set.done,
-                            skipped: set.done ? set.skipped : false,
-                          });
-                          requestActiveWorkoutCloudPush(false);
-                        } else if (raw.trim() === "") {
-                          onPatchSet(exercise.id, activeSetIndex, {
-                            weight: 0,
-                            done: set.done,
-                            skipped: set.done ? set.skipped : false,
-                          });
-                          requestActiveWorkoutCloudPush(false);
-                        }
-                      }}
-                      onBlur={() => {
-                        flushDraft();
-                        const parsed = parseWeightInput(weightTextRef.current);
-                        setWeightText(
-                          parsed != null && parsed > 0 ? String(parsed) : "",
-                        );
-                      }}
-                      className={cn(weightInputClass, "min-w-0 flex-1")}
-                    />
-                    <span className="mb-2 shrink-0 text-[13px] font-semibold lowercase tracking-wide text-[#D6B36A]/80 min-[700px]:mb-3 min-[700px]:text-[15px]">
-                      kg
-                    </span>
-                  </div>
-                </div>
-                <div className="flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      patchWeight(
-                        clampWeight(
-                          (parseWeightInput(weightText) ?? set.weight) -
-                            WEIGHT_FINE,
-                        ),
-                      );
-                    }}
-                    className={fineBtnClass}
-                  >
-                    − 0,5
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      patchWeight(
-                        clampWeight(
-                          (parseWeightInput(weightText) ?? set.weight) +
-                            WEIGHT_FINE,
-                        ),
-                      );
-                    }}
-                    className={fineBtnClass}
-                  >
-                    + 0,5
-                  </button>
-                </div>
-                <div className="mt-2 flex gap-1.5">
-                  <button
-                    type="button"
-                    aria-label="Zmniejsz ciężar"
-                    onClick={() => {
-                      patchWeight(
-                        clampWeight(
-                          (parseWeightInput(weightText) ?? set.weight) -
-                            WEIGHT_STEP,
-                        ),
-                      );
-                    }}
-                    className={stepperBtnClass}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Zwiększ ciężar"
-                    onClick={() => {
-                      patchWeight(
-                        clampWeight(
-                          (parseWeightInput(weightText) ?? set.weight) +
-                            WEIGHT_STEP,
-                        ),
-                      );
-                    }}
-                    className={stepperBtnClass}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex min-h-0 min-w-0 flex-col border-l border-white/[0.07] px-3 py-3 sm:px-4 sm:py-4">
-                <div className="flex items-center justify-between gap-2 text-[11px] font-semibold tracking-wide text-white/55">
-                  <label htmlFor="set-reps">Powtórzenia</label>
-                </div>
-                <div className="flex min-h-0 flex-1 items-center justify-center py-4">
-                  <input
-                    id="set-reps"
-                    type="number"
-                    inputMode="numeric"
-                    step={1}
-                    min={0}
-                    max={99}
-                    value={repsText}
-                    placeholder="0"
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      setRepsText(raw);
-                      const parsed = parseRepsInput(raw);
-                      if (parsed != null) {
-                        onPatchSet(exercise.id, activeSetIndex, {
-                          reps: parsed > 0 ? parsed : null,
-                          done: set.done,
-                          skipped: set.done ? set.skipped : false,
-                        });
-                        requestActiveWorkoutCloudPush(false);
-                      } else if (raw.trim() === "") {
-                        onPatchSet(exercise.id, activeSetIndex, {
-                          reps: null,
-                          done: set.done,
-                          skipped: set.done ? set.skipped : false,
-                        });
-                        requestActiveWorkoutCloudPush(false);
-                      }
-                    }}
-                    onBlur={() => {
-                      flushDraft();
-                      const parsed = parseRepsInput(repsTextRef.current);
-                      setRepsText(
-                        parsed != null && parsed > 0 ? String(parsed) : "",
-                      );
-                    }}
-                    className={repsInputClass}
-                  />
-                </div>
-                <div className="flex h-9 items-center justify-center text-[11px] font-medium tabular-nums text-white/40 min-[700px]:h-10">
-                  {repTargetHint}
-                </div>
-                <div className="mt-2 flex gap-1.5">
-                  <button
-                    type="button"
-                    aria-label="Mniej powtórzeń"
-                    onClick={() => {
-                      const cur =
-                        parseRepsInput(repsText) ??
-                        clampReps(set.reps ?? exercise.targetReps ?? 0);
-                      const next = Math.max(0, cur - 1);
-                      patchReps(next > 0 ? next : null);
-                    }}
-                    className={stepperBtnClass}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Więcej powtórzeń"
-                    onClick={() => {
-                      const cur =
-                        parseRepsInput(repsText) ??
-                        clampReps(set.reps ?? exercise.targetReps ?? 0);
-                      patchReps(Math.min(99, cur + 1));
-                    }}
-                    className={stepperBtnClass}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="shrink-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
-                RIR
-              </p>
-              <div className="mt-1 grid grid-cols-4 gap-1.5 min-[700px]:mt-1.5">
-                {[0, 1, 2, 3].map((v) => {
-                  const active = rirValue === v || (v === 3 && rirValue >= 3);
-                  return (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() =>
-                        onPatchSet(exercise.id, activeSetIndex, {
-                          rir: v,
-                          done: set.done,
-                          skipped: set.done ? set.skipped : false,
-                        })
-                      }
-                      className={cn(
-                        "h-9 rounded-[12px] text-[15px] font-bold tabular-nums transition active:scale-[0.97] min-[700px]:h-11 min-[700px]:rounded-[14px] min-[700px]:text-base sm:h-12",
-                        active
-                          ? "border border-[#F0D58A]/70 bg-gradient-to-b from-[#F0D58A] via-[#D6B36A] to-[#A8893F] text-black shadow-[0_0_24px_rgba(214,179,106,0.45)]"
-                          : "border border-white/12 bg-[#0A0A0A] text-white/70 hover:border-[#D6B36A]/40",
-                      )}
-                    >
-                      {v === 3 ? "3+" : v}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-white/[0.06] bg-black px-3.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:pt-2.5">
+      <div className="shrink-0 border-t border-white/[0.06] bg-black px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2.5">
         <button
           type="button"
           // Blur inputu przed clickiem potrafił ustawić done:false zaraz po zaliczeniu
@@ -953,10 +1049,10 @@ export function GuidedSessionLayout({
             skipSet();
           }}
           className={cn(
-            "inline-flex h-14 w-full items-center justify-center gap-2 rounded-[22px] text-[15px] font-bold uppercase tracking-[0.06em] sm:h-[64px] sm:rounded-[24px] sm:text-[16px]",
+            "inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-full text-[17px] font-bold",
             setCompleted
-              ? "border border-[#76D686]/55 bg-[#76D686] text-[#0A1A0E] shadow-[0_0_36px_rgba(118,214,134,0.42)]"
-              : "gym-btn-primary shadow-[0_0_36px_rgba(214,179,106,0.42)]",
+              ? "border border-[#76D686]/55 bg-[#76D686] text-[#0A1A0E] shadow-[0_0_30px_rgba(118,214,134,0.38)]"
+              : "gym-btn-primary shadow-[0_0_30px_rgba(214,179,106,0.38)]",
           )}
         >
           {setCompleted || canZaliczyc ? (
@@ -972,12 +1068,12 @@ export function GuidedSessionLayout({
           )}
         </button>
 
-        <div className="mt-1.5 grid grid-cols-4 gap-0.5 text-center text-[9px] font-semibold uppercase tracking-[0.06em] text-white/50 sm:mt-2 sm:text-[10px]">
+        <div className="mt-1 grid grid-cols-4 gap-0.5 text-center text-[13px] font-semibold text-white/80">
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={goPrev}
-            className="min-h-10 rounded-lg px-0.5 py-1.5 transition hover:bg-white/[0.04] hover:text-white"
+            className="min-h-11 rounded-lg px-0.5 transition hover:bg-white/[0.04] hover:text-white"
           >
             Wstecz
           </button>
@@ -986,9 +1082,9 @@ export function GuidedSessionLayout({
             onMouseDown={(e) => e.preventDefault()}
             onClick={skipSet}
             disabled={!canZaliczyc && !(set.done && !isSkippedWorkoutSet(set))}
-            className="min-h-10 rounded-lg px-0.5 py-1.5 transition hover:bg-white/[0.04] hover:text-white disabled:pointer-events-none disabled:opacity-25"
+            className="min-h-11 rounded-lg px-0.5 transition hover:bg-white/[0.04] hover:text-white disabled:pointer-events-none disabled:opacity-30"
           >
-            Pomiń
+            Pomiń serię
           </button>
           <button
             type="button"
@@ -1000,7 +1096,7 @@ export function GuidedSessionLayout({
               const next = findNextIncompleteExercise(exercises, exercise.id);
               if (next) onSelectExercise(next.id);
             }}
-            className="min-h-10 rounded-lg px-0.5 py-1.5 transition hover:bg-white/[0.04] hover:text-white"
+            className="min-h-11 rounded-lg px-0.5 transition hover:bg-white/[0.04] hover:text-white"
           >
             Później
           </button>
@@ -1013,25 +1109,11 @@ export function GuidedSessionLayout({
               flushDraft();
               onFinishSession?.();
             }}
-            className="min-h-10 rounded-lg px-0.5 py-1.5 font-bold text-[#D6B36A] transition hover:bg-[#D6B36A]/10 hover:text-[#F0D58A] disabled:opacity-50"
+            className="min-h-11 rounded-lg px-0.5 font-bold text-[#D6B36A] transition hover:bg-[#D6B36A]/10 hover:text-[#F0D58A] disabled:opacity-50"
           >
             {finishPending ? "…" : "Zakończ"}
           </button>
         </div>
-
-        {onDiscardSession ? (
-          <button
-            type="button"
-            disabled={finishPending}
-            onClick={() => {
-              hapticTap();
-              onDiscardSession();
-            }}
-            className="mt-0.5 inline-flex h-7 w-full items-center justify-center text-[10px] font-medium text-white/30 hover:text-white/55 disabled:opacity-50"
-          >
-            Bez zapisu
-          </button>
-        ) : null}
       </div>
 
       {listOpen ? (

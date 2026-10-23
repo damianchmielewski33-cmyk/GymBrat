@@ -76,19 +76,17 @@ export async function HomeTodayHeader({ userId }: { userId: string }) {
         </p>
       </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-2">
-        <div className="flex items-center gap-1.5">
-          <NotificationBell />
-          <AppMenuButton
-            variant="initials"
-            initials={initials(data.firstName, data.lastName)}
-            firstName={data.firstName}
-            packageName={data.packageName}
-            packageDaysLeft={data.packageDaysLeft}
-            packageEndsLabel={data.packageEndsLabel}
-          />
-        </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <NotificationBell />
         <HomeScanButton />
+        <AppMenuButton
+          variant="initials"
+          initials={initials(data.firstName, data.lastName)}
+          firstName={data.firstName}
+          packageName={data.packageName}
+          packageDaysLeft={data.packageDaysLeft}
+          packageEndsLabel={data.packageEndsLabel}
+        />
       </div>
     </header>
   );

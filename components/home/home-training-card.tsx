@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Footprints, Play } from "lucide-react";
+import { ChevronDown, Play } from "lucide-react";
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
 import { HomeCardioProgressStrip } from "@/components/home/home-cardio-progress-strip";
@@ -33,17 +33,13 @@ function MiniStat({
   label,
   value,
   unit,
-  hint,
-  href,
 }: {
   label: string;
   value: string;
   unit?: string;
-  hint?: string;
-  href?: string;
 }) {
-  const body = (
-    <>
+  return (
+    <div className="app-card-raised flex min-h-[84px] min-w-0 flex-col items-center justify-center px-2 py-3 text-center">
       <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/45">
         {label}
       </p>
@@ -55,31 +51,13 @@ function MiniStat({
           </span>
         ) : null}
       </p>
-      {hint ? (
-        <p className="mt-1.5 text-[10px] leading-tight text-white/40">{hint}</p>
-      ) : null}
-    </>
+    </div>
   );
-
-  if (href) {
-    return (
-      <Link
-        href={href}
-        className="app-card-raised block px-2 py-3 text-center transition hover:bg-white/[0.02]"
-        aria-label={`${label} — otwórz statystyki`}
-      >
-        {body}
-      </Link>
-    );
-  }
-
-  return <div className="app-card-raised px-2 py-3 text-center">{body}</div>;
 }
 
 export function HomeTrainingCard({
   recommendedPlanId,
   planName,
-  exerciseCount,
   days,
   workoutsThisWeek,
   cardioThisWeekMinutes,
@@ -109,7 +87,6 @@ export function HomeTrainingCard({
   const today = calendarDateKey();
 
   const activeTitle = useActiveWorkoutStore((s) => s.title);
-  const activePlanId = useActiveWorkoutStore((s) => s.workoutPlanId);
   const activeExercises = useActiveWorkoutStore((s) => s.exercises);
   const workoutStartedAtMs = useActiveWorkoutStore((s) => s.workoutStartedAtMs);
 
@@ -130,13 +107,6 @@ export function HomeTrainingCard({
   const displayName = unfinished
     ? activeTitle || planName
     : selected?.name ?? planName;
-  const displayCount = unfinished
-    ? activeExercises.length
-    : selected?.exerciseCount ?? exerciseCount;
-
-  const planLabel =
-    days.find((d) => d.id === (unfinished ? activePlanId : selected?.id))
-      ?.name ?? null;
 
   function begin(row: WorkoutPlanWithLastWorkoutDTO) {
     void workoutAd.runWithAd(() => {
@@ -146,32 +116,31 @@ export function HomeTrainingCard({
     });
   }
 
-  const addCardioButton = (
-    <div className="flex justify-center">
-      <button
-        type="button"
-        onClick={() => setCardioOpen(true)}
-        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[var(--gym-gold)]/45 bg-[rgba(var(--neon-rgb),0.12)] px-3.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-gold)] shadow-[0_4px_14px_rgba(235,196,74,0.22)] transition hover:bg-[rgba(var(--neon-rgb),0.2)]"
-      >
-        <Footprints className="h-3.5 w-3.5" aria-hidden />
-        Dodaj cardio
-      </button>
-    </div>
+  const cardioCard = (
+    <HomeCardioProgressStrip
+      minutesCompleted={cardioThisWeekMinutes}
+      weeklyGoal={cardioGoalMinutes}
+      extraCardio={extraCardio}
+      onAddCardio={() => setCardioOpen(true)}
+    />
   );
 
+  const cardioSheet = (
+    <CardioLogSheet
+      open={cardioOpen}
+      onClose={() => setCardioOpen(false)}
+      cardioGoalMinutes={cardioGoalMinutes}
+    />
+  );
+
+  // Trzy równe kafelki; żaden nie nawiguje (cele nawigacji jeszcze nieustalone).
   const weekStats = (
     <div className="grid grid-cols-3 gap-2" aria-label="Podsumowanie tygodnia">
-      <MiniStat
-        label="Treningi tyg."
-        value={String(workoutsThisWeek)}
-        hint="tryb prowadzony"
-      />
+      <MiniStat label="Treningi tyg." value={String(workoutsThisWeek)} />
       <MiniStat
         label="Cardio tyg."
         value={String(Math.round(cardioThisWeekMinutes))}
         unit="min"
-        hint="statystyki →"
-        href="/cardio"
       />
       <MiniStat label="Tyg. z rzędu" value={String(workoutStreakWeeks)} />
     </div>
@@ -199,12 +168,6 @@ export function HomeTrainingCard({
             <p className="mt-2 text-sm text-white/50">
               Ustaw dni planu, żeby szybko startować sesję.
             </p>
-            <HomeCardioProgressStrip
-              minutesCompleted={cardioThisWeekMinutes}
-              weeklyGoal={cardioGoalMinutes}
-              extraCardio={extraCardio}
-              embedded
-            />
             <Link
               href="/profile/workout-plan"
               className="gold-btn mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm"
@@ -212,15 +175,11 @@ export function HomeTrainingCard({
               <Play className="h-4 w-4 fill-current" aria-hidden />
               Utwórz plan
             </Link>
-            {addCardioButton}
           </div>
-          <CardioLogSheet
-            open={cardioOpen}
-            onClose={() => setCardioOpen(false)}
-            cardioGoalMinutes={cardioGoalMinutes}
-          />
         </section>
+        {cardioCard}
         {weekStats}
+        {cardioSheet}
       </div>
     );
   }
@@ -245,29 +204,7 @@ export function HomeTrainingCard({
             <h2 className="mt-2 text-[28px] font-semibold leading-tight text-white">
               {displayName}
             </h2>
-            <p className="mt-1.5 text-sm text-white/55">
-              {displayCount}{" "}
-              {displayCount === 1
-                ? "ćwiczenie"
-                : displayCount >= 2 && displayCount <= 4
-                  ? "ćwiczenia"
-                  : "ćwiczeń"}
-              {unfinished
-                ? planLabel
-                  ? ` · ${planLabel}`
-                  : ""
-                : selected?.lastWorkoutDate
-                  ? ` · ${formatPlanLastDoneRelative(selected.lastWorkoutDate, today)}`
-                  : " · pierwszy raz"}
-            </p>
           </div>
-
-          <HomeCardioProgressStrip
-            minutesCompleted={cardioThisWeekMinutes}
-            weeklyGoal={cardioGoalMinutes}
-            extraCardio={extraCardio}
-            embedded
-          />
 
           <div className="space-y-3">
             {unfinished ? (
@@ -292,7 +229,6 @@ export function HomeTrainingCard({
                 {pending ? "Startuję…" : "Zacznij trening"}
               </button>
             )}
-            {addCardioButton}
           </div>
 
           {!unfinished && days.length > 1 ? (
@@ -387,13 +323,10 @@ export function HomeTrainingCard({
             </div>
           ) : null}
         </div>
-        <CardioLogSheet
-          open={cardioOpen}
-          onClose={() => setCardioOpen(false)}
-          cardioGoalMinutes={cardioGoalMinutes}
-        />
       </section>
+      {cardioCard}
       {weekStats}
+      {cardioSheet}
       <FullscreenAdOverlay
         open={workoutAd.open}
         onContinue={workoutAd.continueAfterAd}

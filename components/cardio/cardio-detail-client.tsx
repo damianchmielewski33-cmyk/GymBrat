@@ -17,6 +17,7 @@ import {
 } from "@/actions/cardio";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   formatCardioDateLabel,
   formatDurationMmSs,
@@ -48,6 +49,7 @@ export function CardioDetailClient({
   const { notifySaved, notifyError } = useSaveFeedback();
   const [pending, start] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [photoVersion, setPhotoVersion] = useState(0);
   const [hasDevicePhoto, setHasDevicePhoto] = useState(hasDevicePhotoInitial);
   const photoSrc = hasDevicePhoto
@@ -95,7 +97,6 @@ export function CardioDetailClient({
   }
 
   function remove() {
-    if (!confirm("Usunąć ten wpis cardio?")) return;
     start(async () => {
       const res = await deleteCardioLogAction(id);
       if (res.ok) {
@@ -270,7 +271,7 @@ export function CardioDetailClient({
         </button>
         <button
           type="button"
-          onClick={remove}
+          onClick={() => setDeleteOpen(true)}
           disabled={pending}
           className="inline-flex items-center gap-2 text-white/70"
         >
@@ -296,6 +297,16 @@ export function CardioDetailClient({
           }}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={remove}
+        pending={pending}
+        title="Usunąć ten wpis cardio?"
+        description="Wpis zniknie z historii i nie wróci do tygodniowego podsumowania cardio."
+        confirmLabel="Usuń wpis"
+      />
     </div>
   );
 }

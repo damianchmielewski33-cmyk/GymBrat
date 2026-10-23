@@ -16,7 +16,8 @@ import { eq } from "drizzle-orm";
 function weightKgPerWeek(
   series: Array<{ date: string; kg: number }>,
 ): number | null {
-  if (series.length < 2) return null;
+  // Tempo wymaga min. 3 pomiarów (tak mówi podpis kafelka w Sylwetce).
+  if (series.length < 3) return null;
   const last = series[series.length - 1]!;
   const from = addCalendarDays(last.date, -41);
   const window = series.filter((p) => p.date >= from);
