@@ -3,6 +3,7 @@
  */
 
 import type { MovementKind } from "@/lib/exercise-movement-kind";
+import { DEFAULT_WEIGHT_STEP, type WeightStep } from "@/lib/weight-step";
 import type {
   ProgressionBump,
   ProgressionBumpKind,
@@ -23,7 +24,10 @@ export function resolveProgressionBump(args: {
   movementKind?: MovementKind;
   /** Czy reguła double progression w ogóle pozwala na +kg. */
   allowWeightBump: boolean;
+  /** Krok ćwiczenia / sprzętu (domyślnie 2,5 kg, mikro 1,25 kg). */
+  weightStep?: WeightStep;
 }): ProgressionBump {
+  const step = args.weightStep ?? DEFAULT_WEIGHT_STEP;
   if (!args.allowWeightBump) {
     return { kind: "hold", stepKg: 0 };
   }
@@ -38,7 +42,7 @@ export function resolveProgressionBump(args: {
   if (band === "conservative" || args.confidence < 55) {
     return {
       kind: "minimum",
-      stepKg: iso ? 1.25 : 2.5,
+      stepKg: iso ? step.minStepKg : step.stepKg,
     };
   }
 
@@ -49,13 +53,13 @@ export function resolveProgressionBump(args: {
   ) {
     return {
       kind: "aggressive",
-      stepKg: iso ? 2.5 : 5,
+      stepKg: iso ? step.stepKg : step.stepKg * 2,
     };
   }
 
   return {
     kind: "normal",
-    stepKg: 2.5,
+    stepKg: step.stepKg,
   };
 }
 

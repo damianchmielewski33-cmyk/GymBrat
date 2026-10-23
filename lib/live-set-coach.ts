@@ -7,7 +7,11 @@
 
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
 import { buildCoachSignals } from "@/lib/live-coach/build-coach-signals";
-import { resolveEffectiveTargetRir } from "@/lib/live-coach/movement-profiles";
+import {
+  resolveEffectiveTargetRir,
+  resolveEffortContext,
+} from "@/lib/live-coach/movement-profiles";
+import { countHardStreak, countWarnStreak } from "@/lib/live-coach/streaks";
 import { shouldIgnoreFatigueDrop } from "@/lib/live-coach/rest-awareness";
 import type {
   CoachSignals,
@@ -21,7 +25,6 @@ import {
   classifyEffort,
   isEasyEffort,
   isHardEffort,
-  isWarnEffort,
 } from "@/lib/set-effort";
 import {
   analyzeSessionTrend,
@@ -30,10 +33,13 @@ import {
   bumpWeightByPlate,
   countTrailingEasySets,
   formatKgPl,
+  isHighSessionVolume,
+  qualifiesRepsOnlyBump,
   resolveRepRange,
   type LastSetSnapshot,
   type SetProgressionSuggestion,
 } from "@/lib/set-progression-suggestion";
+import { resolveWeightStep } from "@/lib/weight-step";
 import { isCompletedWorkoutSet } from "@/lib/workout-skipped-sets";
 
 export type LiveCoachTone = "progress" | "caution" | "hold" | "info";
@@ -243,30 +249,6 @@ function shouldSoftPedalDeload(signals: CoachSignals, hardStreak: number, warnSt
   return false;
 }
 
-/** Kolejne twarde (RIR≤0 / RPE≥9) wstecz. */
-function countHardStreak(sets: WorkoutSetState[], beforeIndex: number): number {
-  let n = 0;
-  for (let i = beforeIndex - 1; i >= 0; i--) {
-    const s = sets[i]!;
-    if (!isCompletedWorkoutSet(s)) break;
-    if (!isHardEffort(s)) break;
-    n += 1;
-  }
-  return n;
-}
-
-/** Kolejne „na styk” (RIR=1 / warn) wstecz — ostrzeżenie przed forsowaniem. */
-function countWarnStreak(sets: WorkoutSetState[], beforeIndex: number): number {
-  let n = 0;
-  for (let i = beforeIndex - 1; i >= 0; i--) {
-    const s = sets[i]!;
-    if (!isCompletedWorkoutSet(s)) break;
-    if (!isWarnEffort(s)) break;
-    n += 1;
-  }
-  return n;
-}
-
 function sessionVolumeKg(sets: WorkoutSetState[], upToExclusive: number): number {
   let v = 0;
   for (let i = 0; i < upToExclusive; i++) {
@@ -320,9 +302,18 @@ export function buildLiveCoachTipForOpenSet(
   );
   const easyNeeded = easySetsRequiredForWeightBump(movementKind);
   const ctx = exercise.coachContext ?? null;
+  const effortCtx = resolveEffortContext(
+    exercise.name || "",
+    exercise.categoryId,
+    exercise.targetRir,
+  );
+  const weightStep = resolveWeightStep({
+    name: exercise.name,
+    explicitStepKg: exercise.weightStepKg,
+  });
 
   const priorSnapsEarly = completedSnapsBefore(sets, setIndex);
-  const trailingEasyEarly = countTrailingEasySets(priorSnapsEarly);
+  const trailingEasyEarly = countTrailingEasySets(priorSnapsEarly, effortCtx);
   const rangeEarly = resolveRepRange(exercise.targetReps);
   const lastPriorEarly =
     priorSnapsEarly.length > 0
@@ -337,7 +328,7 @@ export function buildLiveCoachTipForOpenSet(
     trailingEasyEarly >= easyNeeded &&
     atMaxEarly &&
     lastPriorEarly != null &&
-    isEasyEffort(lastPriorEarly);
+    isEasyEffort(lastPriorEarly, effortCtx);
 
   const histSnapsEarly = (exercise.lastSessionSets ?? [])
     .map((s) => snap(s))
@@ -345,7 +336,7 @@ export function buildLiveCoachTipForOpenSet(
       (s): s is LastSetSnapshot =>
         s != null && s.weight > 0 && s.reps != null,
     );
-  const histTrailing = countTrailingEasySets(histSnapsEarly);
+  const histTrailing = countTrailingEasySets(histSnapsEarly, effortCtx);
   const histLastEarly =
     histSnapsEarly.length > 0
       ? histSnapsEarly[histSnapsEarly.length - 1]!
@@ -355,12 +346,21 @@ export function buildLiveCoachTipForOpenSet(
     rangeEarly != null &&
     histLastEarly.reps != null &&
     histLastEarly.reps >= rangeEarly.max;
+  // +kg z samych powtórzeń: 2 treningi ze wszystkimi seriami na górze zakresu,
+  // gdy użytkownik nie loguje realnie RIR/RPE.
+  const histEffortClass =
+    histLastEarly != null ? classifyEffort(histLastEarly, effortCtx) : null;
+  const repsOnlyBumpOk =
+    histLastEarly != null &&
+    histEffortClass !== "hard" &&
+    histEffortClass !== "conflict" &&
+    qualifiesRepsOnlyBump(ctx?.recentSessions, rangeEarly);
   const historyAllowsBump =
     setIndex === 0 &&
-    histTrailing >= easyNeeded &&
     histAtMax &&
     histLastEarly != null &&
-    isEasyEffort(histLastEarly);
+    ((histTrailing >= easyNeeded && isEasyEffort(histLastEarly, effortCtx)) ||
+      repsOnlyBumpOk);
 
   const allowWeightBump = sessionAllowsBump || historyAllowsBump;
 
@@ -408,19 +408,19 @@ export function buildLiveCoachTipForOpenSet(
   );
   const priorSnaps = priorSnapsEarly;
   const prevDone = priorSnaps.length > 0 ? priorSnaps[priorSnaps.length - 1]! : null;
-  const hardStreak = countHardStreak(sets, setIndex);
-  const warnStreak = countWarnStreak(sets, setIndex);
+  const hardStreak = countHardStreak(sets, setIndex, effortCtx);
+  const warnStreak = countWarnStreak(sets, setIndex, effortCtx);
   const doneVolume = sessionVolumeKg(sets, setIndex);
   const trend = analyzeSessionTrend(priorSnaps);
   const plateStep =
-    signals.bump.stepKg > 0 ? signals.bump.stepKg : 2.5;
+    signals.bump.stepKg > 0 ? signals.bump.stepKg : weightStep.stepKg;
 
   // —— Analiza vs poprzednie serie w tym treningu ——
   if (prevDone && prevDone.weight > 0 && prevDone.reps != null) {
-    const effort = classifyEffort(prevDone);
+    const effort = classifyEffort(prevDone, effortCtx);
     const hard = effort === "hard" || hardStreak >= 1;
     const conflict = effort === "conflict";
-    const easy = isEasyEffort(prevDone);
+    const easy = isEasyEffort(prevDone, effortCtx);
     const belowMin = range != null && prevDone.reps < range.min;
     const atMax = range != null && prevDone.reps >= range.max;
     const midRange =
@@ -437,15 +437,13 @@ export function buildLiveCoachTipForOpenSet(
         restSeconds: restSec,
         setIndex,
       });
-    const highVol =
-      setIndex >= 3 ||
-      (doneVolume > 0 &&
-        prevDone.weight > 0 &&
-        doneVolume >=
-          prevDone.weight *
-            (exercise.targetReps != null ? exercise.targetReps : 8) *
-            2.5);
-    const trailingEasy = countTrailingEasySets(priorSnaps);
+    const highVol = isHighSessionVolume(
+      doneVolume,
+      prevDone.weight,
+      exercise.targetReps,
+      setIndex,
+    );
+    const trailingEasy = countTrailingEasySets(priorSnaps, effortCtx);
 
     // Konflikt RIR/RPE → bezpieczny hold
     if (conflict) {
@@ -505,7 +503,7 @@ export function buildLiveCoachTipForOpenSet(
     }
 
     if (wantsDeload) {
-      const nextW = applyDeload(prevDone.weight);
+      const nextW = applyDeload(prevDone.weight, weightStep.stepKg);
       const nextR = range ? range.min : prevDone.reps;
       if (nextW > 0 && nextW < prevDone.weight) {
         const hl = `${formatKgPl(nextW)} kg × ${nextR}`;
@@ -753,7 +751,7 @@ export function buildLiveCoachTipForOpenSet(
       ctx.avgTopSetWeightKg != null && ctx.avgTopSetWeightKg > 0
         ? ctx.avgTopSetWeightKg
         : lastSnap.weight;
-    const nextW = applyDeload(base);
+    const nextW = applyDeload(base, weightStep.stepKg);
     const reps = range?.min ?? lastSnap.reps ?? 8;
     if (nextW > 0 && nextW < base) {
       const hl = `${formatKgPl(nextW)} kg × ${reps}`;
@@ -783,7 +781,7 @@ export function buildLiveCoachTipForOpenSet(
   }
 
   if (isFirstSet && ctx?.stagnant && lastSnap && lastSnap.weight > 0) {
-    const nextW = applyDeload(lastSnap.weight);
+    const nextW = applyDeload(lastSnap.weight, weightStep.stepKg);
     const reps = range?.min ?? lastSnap.reps ?? 8;
     if (nextW > 0 && nextW < lastSnap.weight) {
       const hl = `${formatKgPl(nextW)} kg × ${reps}`;
@@ -809,10 +807,10 @@ export function buildLiveCoachTipForOpenSet(
   }
 
   const histHard =
-    lastSnap != null && isHardEffort(lastSnap);
+    lastSnap != null && isHardEffort(lastSnap, effortCtx);
 
   if (histHard && lastSnap && lastSnap.weight > 0 && lastSnap.reps != null) {
-    const nextW = applyDeload(lastSnap.weight);
+    const nextW = applyDeload(lastSnap.weight, weightStep.stepKg);
     // Hold = prawdziwa baza z historii (bez clamp do zakresu planu).
     const reps = lastSnap.reps;
     // Trend-over-event: rosnący e1RM → hold zamiast hist-deload
@@ -897,6 +895,10 @@ export function buildLiveCoachTipForOpenSet(
     movementKind,
     exerciseName: exercise.name,
     categoryId: exercise.categoryId,
+    targetRir: exercise.targetRir,
+    effortContext: effortCtx,
+    weightStep,
+    repsOnlyBumpOk,
     setIndex,
     sessionVolumeKg: doneVolume,
     daysSinceLastSession: ctx?.daysSinceLastSession,

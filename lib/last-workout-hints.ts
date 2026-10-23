@@ -12,14 +12,23 @@ import {
   buildE1rmTrendReport,
 } from "@/lib/live-coach/e1rm-trend";
 import { volumeFromSets } from "@/lib/live-coach/personal-records";
-import { suggestedWeightFromProgression } from "@/lib/set-progression-suggestion";
+import {
+  qualifiesRepsOnlyBump,
+  resolveRepRange,
+  suggestedWeightFromProgression,
+} from "@/lib/set-progression-suggestion";
+import { roundHoldKg } from "@/lib/weight-step";
 import { isCompletedWorkoutSet } from "@/lib/workout-skipped-sets";
+
+// Jedno źródło kroku talerza — re-export dla zgodności wstecznej importów.
+export { roundToPlateStep } from "@/lib/set-progression-suggestion";
 
 type CompletedPayload = {
   kind?: string;
   exercises?: Array<{
     id?: string;
     name?: string;
+    targetRir?: unknown;
     sets?: Array<{
       reps?: unknown;
       weight?: unknown;
@@ -87,12 +96,6 @@ export type LastPlanHintsMap = Record<
 const HISTORY_LIMIT = 4;
 const STAGNATION_SESSIONS = 3;
 
-/** Zaokrąglenie do kroku 2.5 kg. */
-export function roundToPlateStep(kg: number, step = 2.5): number {
-  if (!Number.isFinite(kg) || kg <= 0) return 0;
-  return Math.round(kg / step) * step;
-}
-
 function topSetWeight(sets: WorkoutSetState[]): number {
   let max = 0;
   for (const s of sets) {
@@ -111,6 +114,48 @@ function bestRepsAtTop(sets: WorkoutSetState[]): number {
     if (s.reps != null && s.reps > best) best = s.reps;
   }
   return best;
+}
+
+/** Domyślny RIR serii, gdy plan nie podaje celu (jak `planExercisesToSession`). */
+const DEFAULT_SESSION_TARGET_RIR = 1;
+
+/**
+ * Serie robocze na ciężarze top (≥98%): najmniej powtórzeń i liczba serii.
+ * Podstawa do „wszystkie serie na górze zakresu”.
+ */
+function repsAtTopStats(sets: WorkoutSetState[]): {
+  minRepsAtTop: number;
+  setsAtTop: number;
+} {
+  const top = topSetWeight(sets);
+  if (top <= 0) return { minRepsAtTop: 0, setsAtTop: 0 };
+  let min = Infinity;
+  let count = 0;
+  for (const s of sets) {
+    if (!isCompletedWorkoutSet(s) || s.weight < top * 0.98) continue;
+    if (s.reps == null || s.reps <= 0) continue;
+    count += 1;
+    if (s.reps < min) min = s.reps;
+  }
+  return { minRepsAtTop: Number.isFinite(min) ? min : 0, setsAtTop: count };
+}
+
+/**
+ * Czy użytkownik realnie logował wysiłek: jakiekolwiek RPE albo RIR różny od
+ * domyślnego celu z planu (sesja domyślnie wpisuje RIR = cel każdej serii).
+ */
+function effortReallyLogged(
+  sets: WorkoutSetState[],
+  defaultRir: number,
+): boolean {
+  for (const s of sets) {
+    if (!isCompletedWorkoutSet(s)) continue;
+    if (s.rpe != null && Number.isFinite(s.rpe)) return true;
+    if (s.rir != null && Number.isFinite(s.rir) && s.rir !== defaultRir) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function parseWorkoutDateMs(dateStr: string): number | null {
@@ -204,6 +249,12 @@ export function suggestWeightFromLastSet(
     }>;
     exerciseName?: string;
     categoryId?: string | null;
+    /** Cel RIR z planu (kontekst klasyfikacji wysiłku). */
+    targetRir?: number | null;
+    /** Jawny krok ciężaru ćwiczenia (kg). */
+    weightStepKg?: number | null;
+    /** Historia pozwala na +kg z samych powtórzeń. */
+    repsOnlyBumpOk?: boolean;
     setIndex?: number;
   },
 ): number {
@@ -222,19 +273,25 @@ export function suggestWeightFromLastSet(
       rir: s.rir,
     })),
     exerciseName: opts?.exerciseName,
+    categoryId: opts?.categoryId,
+    targetRir: opts?.targetRir,
+    weightStepKg: opts?.weightStepKg,
+    repsOnlyBumpOk: opts?.repsOnlyBumpOk,
     movementKind: undefined,
     setIndex: opts?.setIndex,
   });
   if (fromProgression != null && fromProgression > 0) return fromProgression;
   const base = Math.max(0, Number(last.weight) || 0);
   if (base <= 0) return 0;
-  return Math.round(base * 2) / 2;
+  return roundHoldKg(base);
 }
 
 type SessionEx = {
   dateMs: number;
   sets: WorkoutSetState[];
   note?: string;
+  /** Domyślny RIR serii w tej sesji (cel z planu albo 1). */
+  defaultRir: number;
 };
 
 /**
@@ -268,10 +325,14 @@ export async function getLastWorkoutHintsForPlan(
       const sets = mapSets(setsRaw);
       if (!sets.some((s) => isCompletedWorkoutSet(s) && s.weight > 0)) continue;
       const arr = byExercise.get(id) ?? [];
+      const planRir = Number(ex.targetRir);
       arr.push({
         dateMs,
         sets,
         note: typeof ex.note === "string" ? ex.note : undefined,
+        defaultRir: Number.isFinite(planRir)
+          ? Math.round(planRir)
+          : DEFAULT_SESSION_TARGET_RIR,
       });
       byExercise.set(id, arr);
     }
@@ -290,6 +351,8 @@ export async function getLastWorkoutHintsForPlan(
       bestE1rm: bestE1rmFromSets(s.sets),
       avgRir: avgRirFromSets(s.sets),
       volumeKg: volumeFromSets(s.sets),
+      ...repsAtTopStats(s.sets),
+      effortLogged: effortReallyLogged(s.sets, s.defaultRir),
     }));
     const topWeights = snaps.map((t) => t.topKg).filter((w) => w > 0);
     const avgTop =
@@ -351,6 +414,10 @@ export function mergeHintsIntoExercises(
     const workingHist = h.sets.filter(
       (s) => s.weight > 0 && s.reps != null && s.reps > 0,
     );
+    const repsOnlyBumpOk = qualifiesRepsOnlyBump(
+      h.coachContext?.recentSessions,
+      resolveRepRange(ex.targetReps),
+    );
     const suggestedWeights = ex.sets.map((_, i) => {
       // Chip pierwszej serii: decyzja z całego bloku ostatniej sesji (trailing easy).
       // Kolejne chipy: odpowiadająca seria + prior w tej sesji.
@@ -376,6 +443,9 @@ export function mergeHintsIntoExercises(
           priorSets,
           exerciseName: ex.name,
           categoryId: ex.categoryId,
+          targetRir: ex.targetRir,
+          weightStepKg: ex.weightStepKg,
+          repsOnlyBumpOk,
           setIndex: i,
         },
       );

@@ -2,6 +2,7 @@
  * Fatigue score 0–100 — obniża confidence, nie wymusza deloadu.
  */
 
+import { resolveEffortContext } from "@/lib/live-coach/movement-profiles";
 import { classifyEffort } from "@/lib/set-effort";
 import { isCompletedWorkoutSet } from "@/lib/workout-skipped-sets";
 import type { FatigueReport } from "@/lib/live-coach/types";
@@ -29,6 +30,11 @@ export function computeSessionFatigue(args: {
   const limitEx = Math.min(args.exercises.length, args.exerciseIndex + 1);
   for (let ei = 0; ei < limitEx; ei++) {
     const ex = args.exercises[ei]!;
+    const effortCtx = resolveEffortContext(
+      ex.name || "",
+      ex.categoryId,
+      ex.targetRir,
+    );
     const setLimit =
       ei === args.exerciseIndex && args.upToSetIndex != null
         ? args.upToSetIndex
@@ -40,7 +46,7 @@ export function computeSessionFatigue(args: {
       if (s.reps != null && s.reps > 0 && s.weight > 0) {
         volume += s.weight * s.reps;
       }
-      const effort = classifyEffort(s);
+      const effort = classifyEffort(s, effortCtx);
       if (effort === "hard") hardSets += 1;
       if (effort === "warn" || effort === "hard") warnSets += 1;
       if (
