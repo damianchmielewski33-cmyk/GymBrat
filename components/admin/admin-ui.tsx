@@ -55,11 +55,11 @@ export function AdminPageHeader({
             </span>
           ) : null}
           <div className="min-w-0">
-            <h1 className="font-heading text-2xl font-semibold leading-tight text-white">
+            <h1 className="font-heading text-xl font-semibold leading-tight text-white sm:text-2xl">
               {title}
             </h1>
             {description ? (
-              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/55">
+              <p className="mt-1 max-w-2xl break-words text-sm leading-relaxed text-white/55">
                 {description}
               </p>
             ) : null}
@@ -92,11 +92,13 @@ export function AdminCard({
   flush?: boolean;
 }) {
   return (
-    <section className={cn("app-card-raised border border-white/10", className)}>
+    <section
+      className={cn("app-card-raised min-w-0 max-w-full border border-white/10", className)}
+    >
       {title || actions ? (
         <header
           className={cn(
-            "flex flex-col gap-2 px-5 pt-5 sm:flex-row sm:items-start sm:justify-between",
+            "flex min-w-0 flex-col gap-2 px-3.5 pt-4 sm:flex-row sm:items-start sm:justify-between sm:px-5 sm:pt-5",
             flush && "border-b border-white/10 pb-4",
           )}
         >
@@ -105,13 +107,24 @@ export function AdminCard({
               <h2 className="font-heading text-base font-semibold text-white">{title}</h2>
             ) : null}
             {description ? (
-              <p className="mt-1 text-xs leading-relaxed text-white/50">{description}</p>
+              <p className="mt-1 break-words text-xs leading-relaxed text-white/50">
+                {description}
+              </p>
             ) : null}
           </div>
-          {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
+          {actions ? (
+            <div className="flex min-w-0 flex-wrap gap-2">{actions}</div>
+          ) : null}
         </header>
       ) : null}
-      <div className={cn(flush ? "" : "p-5", title && !flush && "pt-4", bodyClassName)}>
+      <div
+        className={cn(
+          flush ? "" : "p-3.5 sm:p-5",
+          title && !flush && "pt-3 sm:pt-4",
+          "min-w-0",
+          bodyClassName,
+        )}
+      >
         {children}
       </div>
     </section>
