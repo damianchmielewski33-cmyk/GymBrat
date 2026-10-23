@@ -5,6 +5,69 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Cardio: potwierdzenie usunięcia wpisu w oknie aplikacji",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Usunięcie wpisu cardio pyta o potwierdzenie w oknie w stylu GymBrat, a nie w systemowym okienku przeglądarki z adresem strony.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Aktywna seria: ekran bez przewijania na telefonie",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Cały ekran aktywnej serii mieści się na telefonie bez przewijania: karty, przyciski i dolny pasek są niższe, liczby mają 50 px, a przyciski plus i minus 52 px, przy czym każdy przycisk ma nadal co najmniej 44 px.",
+      "Karta „Ostatnio” ma jeden wiersz z wynikiem poprzedniej serii oraz dwa przyciski obok siebie: „Powtórz bazę” i „Sugestia”.",
+      "Ciężar i powtórzenia są w osobnych kartach z liczbą po lewej i przyciskami po prawej, a plakietka „krok” przełącza skok ciężaru między 0,5, 2,5 i 5 kg.",
+      "Bloki rozkładają się równomiernie na wysokości ekranu, więc na wyższych telefonach nie zostaje pusta dziura, a na bardzo niskich treść da się lekko przewinąć gestem, bez widocznego paska przewijania.",
+      "Pasek postępu ma segment na każdą serię sesji, serie ćwiczenia są numerowanymi kółkami obok celu, a główny przycisk pokazuje numer serii, np. „Zapisz serię 1”.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Pakiety: nowy układ strony wyboru pakietu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Pakiety 7, 30 i 90 dni są w jednym rzędzie z dużą liczbą dni, opisem, ceną i przyciskiem „Kup pakiet”, a pakiet 30 dni ma złotą ramkę i odznakę „Polecany”.",
+      "Pakiet roczny jest szerokim wyróżnionym blokiem z odznaką „Najlepsza cena”, ceną i przyciskiem po prawej stronie.",
+      "Pod opisem widać dwa chipy z korzyściami: brak reklam przed treningiem i przy dodawaniu produktu; pole zgody na Regulamin i Politykę prywatności jest większe i czytelniejsze.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Pulpit: nowy wykres i kafelki w sekcji Sylwetka",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Waga i pas mają osobne wykresy ze wspólną osią dat, własnymi osiami o równych krokach i poziomą siatką, więc skale się nie mieszają i nic nie nachodzi na etykiety dat.",
+      "Punkty pomiarów mają wartości przy sobie, a przerywana linia z pustym punktem „dziś” pokazuje, że od ostatniego pomiaru minęło trochę czasu.",
+      "Nad kafelkami widać obok wagi aktualny pas, a kafelki „waga od raportu” i „pas od raportu” mają neutralne kolory zamiast czerwonych i zielonych tła.",
+      "Kafelek Tempo pokazuje „Za mało danych · min. 3 pomiary”, dopóki nie ma co najmniej trzech ważeń; legenda ma nazwy z jednostkami, a nagłówek plakietkę w rodzaju „18 dni temu”.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Pulpit: czytelniejsze kafelki Waga, Tempo i Makro",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Karty Makro dziś i Makro tydzień mają pełne nazwy Białko, Węglowodany i Tłuszcze zamiast B, W i T, a nagłówki Zjedzone, % i Zostało stoją dokładnie nad swoimi liczbami.",
+      "Liczba pozostałych kcal jest duża i wyraźna, a etykiety i podpisy są większe i jaśniejsze, więc łatwiej je odczytać.",
+      "Przekroczone makro jest czerwone z podpisem w rodzaju „+51 ponad” zamiast samego znaku plus.",
+      "Zmiana wagi jest czerwoną (przy wzroście) lub zieloną (przy spadku) plakietką z podpisem „od ostatniego raportu”, a podpis „Ostatnia sesja” przy Tempie jest plakietką w tym samym stylu.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Pulpit: nowy układ nagłówka, karty treningu i cardio",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Nagłówek Pulpitu ma jeden rząd ikon: powiadomienia, skaner i menu konta.",
+      "Karta treningu na dziś ma tylko jeden główny przycisk i nie pokazuje już liczby ćwiczeń ani informacji, kiedy ostatnio robiłeś ten dzień.",
+      "Cardio jest w osobnej karcie ze złotym paskiem postępu do celu tygodnia, a bonus z nadwyżki makro widać jako niebieską kropkę z podpisem pod paskiem.",
+      "Pasek cardio i ikona informacji są tylko podglądem — nic się już nie rozwija; trzy kafelki statystyk tygodnia są tej samej wielkości, a kafelek Cardio nie otwiera na razie żadnego ekranu.",
+    ],
+  },
+  {
     title: "Zapowiedź — Bezpieczeństwo: limity prób, aktualizacje bibliotek i ochrona grafik AI",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
