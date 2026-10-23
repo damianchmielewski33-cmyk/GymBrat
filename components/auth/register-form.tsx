@@ -5,20 +5,41 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { ChevronLeft, Mail } from "lucide-react";
-import { registerUser, sendRegisterCode, type RegisterState } from "@/actions/auth";
+import {
+  ChevronLeft,
+  FlaskConical,
+  Mail,
+  MailX,
+  ShieldCheck,
+  UserX,
+  X,
+} from "lucide-react";
+import {
+  registerUser,
+  sendRegisterCode,
+  type RegisterErrorCode,
+  type RegisterState,
+} from "@/actions/auth";
 import { updateBodyParams } from "@/actions/profile";
+import {
+  OFFLINE_REGISTER_MESSAGE,
+  registerWelcomeCopy,
+} from "@/components/auth/auth-copy";
+import { AuthCard } from "@/components/auth/auth-card";
 import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
 import {
   FacebookSignInButton,
   GoogleSignInButton,
 } from "@/components/auth/google-sign-in-button";
-import { Button } from "@/components/ui/button";
+import { OAuthPrivacyNote } from "@/components/auth/oauth-privacy-note";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InlineBanner } from "@/components/ui/inline-banner";
+import { plural } from "@/lib/progress-format";
+import type { RegistrationAvailability } from "@/lib/register-email-mode";
 import { cn } from "@/lib/utils";
 import {
   activityLevels,
@@ -57,6 +78,20 @@ const STEPS: StepId[] = [
   "goal",
 ];
 
+/** Błędy kodu pokazujemy przy polu kodu na kroku „email”. */
+const CODE_ERROR_CODES: ReadonlySet<RegisterErrorCode> = new Set([
+  "code_missing",
+  "code_expired",
+  "code_invalid",
+  "code_attempts_exhausted",
+]);
+
+const RESEND_COOLDOWN_SECONDS = 60;
+
+function isOffline(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
 /** Kroki po Google/Facebook — bez welcome / e-mail / hasła. */
 const OAUTH_STEPS: StepId[] = ["name", "body", "activity", "goal"];
 
@@ -67,7 +102,8 @@ const STEP_COPY: Record<
   welcome: {
     kicker: "Krok 1",
     title: "Dołącz do GymBrat",
-    support: "Wybierz sposób rejestracji — Google, e-mail albo Facebook.",
+    // Zależy od dostępnych metod — patrz `registerWelcomeCopy`.
+    support: "",
   },
   name: {
     kicker: "Krok 2",
@@ -102,13 +138,16 @@ const STEP_COPY: Record<
 };
 
 export function RegisterForm({
-  googleEnabled = false,
-  facebookEnabled = false,
+  availability,
+  emailTestCode = null,
   oauthContinue = false,
   oauthPrefill = null,
+  accountResetNotice = false,
 }: {
-  googleEnabled?: boolean;
-  facebookEnabled?: boolean;
+  /** Dostępne metody rejestracji — liczone na serwerze. */
+  availability: RegistrationAvailability;
+  /** Kod trybu testowego (tylko dev/test bez SMTP); na produkcji zawsze `null`. */
+  emailTestCode?: string | null;
   /** Po Google/Facebook — kontynuacja wizarda rejestracji (nie Pulpit). */
   oauthContinue?: boolean;
   oauthPrefill?: {
@@ -116,6 +155,8 @@ export function RegisterForm({
     lastName: string;
     email: string;
   } | null;
+  /** Jednorazowy komunikat po zabezpieczeniu konta (UX 4B, `notice=account_reset`). */
+  accountResetNotice?: boolean;
 }) {
   const router = useRouter();
   const { update: updateSession, status: sessionStatus } = useSession();
@@ -125,6 +166,35 @@ export function RegisterForm({
   const [rootError, setRootError] = useState<string | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
   const passwordRef = useRef<HTMLInputElement | null>(null);
+  const focusProviderOnWelcome = useRef(false);
+  /** Odmowa serwera `registration_disabled` w trakcie rejestracji (UX 1F). */
+  const [emailBlockedMessage, setEmailBlockedMessage] = useState<string | null>(null);
+  const emailBlocked = emailBlockedMessage !== null;
+  const [showResetNotice, setShowResetNotice] = useState(accountResetNotice);
+  const googleEnabled = availability.google;
+  const facebookEnabled = availability.facebook;
+  const emailEnabled = availability.emailMode !== "disabled" && !emailBlocked;
+  const emailTestMode = availability.emailMode === "test" && Boolean(emailTestCode);
+  const welcome = registerWelcomeCopy({
+    email: emailEnabled,
+    google: googleEnabled,
+    facebook: facebookEnabled,
+  });
+  const registrationClosed = step === "welcome" && welcome.kind === "closed";
+
+  // Komunikat 4B jest jednorazowy: usuwamy `notice` z adresu (odświeżenie go nie powtórzy).
+  useEffect(() => {
+    if (!accountResetNotice) return;
+    router.replace("/register?oauth=1");
+  }, [accountResetNotice, router]);
+
+  // Po „Wróć do wyboru metody” (UX 1F) fokus trafia na pierwszy aktywny przycisk dostawcy.
+  // Callback ref, bo krok „welcome” montuje się dopiero po animacji wyjścia poprzedniego.
+  const focusFirstProvider = useCallback((el: HTMLDivElement | null) => {
+    if (!el || !focusProviderOnWelcome.current) return;
+    focusProviderOnWelcome.current = false;
+    el.querySelector<HTMLButtonElement>("button:not([disabled])")?.focus();
+  }, []);
 
   // Po powrocie z Google cookie bywa gotowe później niż pierwszy SSR — odśwież RSC.
   useEffect(() => {
@@ -168,22 +238,13 @@ export function RegisterForm({
   const weeklySessionsTarget = Number(watch("weeklySessionsTarget") || 4);
   const [codeInfo, setCodeInfo] = useState<string | null>(null);
   const [sendingCode, setSendingCode] = useState(false);
-  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
-
-  const cooldownSeconds = useMemo(() => {
-    if (!cooldownUntil) return 0;
-    const diffMs = cooldownUntil - Date.now();
-    return diffMs > 0 ? Math.ceil(diffMs / 1000) : 0;
-  }, [cooldownUntil]);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
 
   useEffect(() => {
-    if (!cooldownUntil) return;
     if (cooldownSeconds <= 0) return;
-    const t = window.setInterval(() => {
-      setCooldownUntil((v) => (v && v > Date.now() ? v : null));
-    }, 250);
-    return () => window.clearInterval(t);
-  }, [cooldownUntil, cooldownSeconds]);
+    const t = window.setTimeout(() => setCooldownSeconds((v) => v - 1), 1000);
+    return () => window.clearTimeout(t);
+  }, [cooldownSeconds]);
 
   useEffect(() => {
     const raw = (emailCodeValue ?? "").toString();
@@ -208,7 +269,13 @@ export function RegisterForm({
             ? "Potwierdź imię i nazwisko z Google, potem parametry ciała — jak przy rejestracji e-mailem."
             : STEP_COPY[step].support,
       }
-    : STEP_COPY[step];
+    : step === "welcome"
+      ? {
+          ...STEP_COPY.welcome,
+          title: welcome.kind === "closed" ? welcome.headline : STEP_COPY.welcome.title,
+          support: welcome.support,
+        }
+      : STEP_COPY[step];
   const progress = ((stepIndex + 1) / steps.length) * 100;
 
   async function goNext() {
@@ -227,6 +294,7 @@ export function RegisterForm({
       await handleSubmit(onSubmit)();
       return;
     }
+    setShowResetNotice(false);
     setDirection(1);
     setStepIndex((i) => Math.min(steps.length - 1, i + 1));
   }
@@ -236,6 +304,60 @@ export function RegisterForm({
     if (stepIndex <= 0) return;
     setDirection(-1);
     setStepIndex((i) => Math.max(0, i - 1));
+  }
+
+  function jumpBackTo(target: StepId) {
+    const index = steps.indexOf(target);
+    if (index < 0) return;
+    setDirection(-1);
+    setStepIndex(index);
+  }
+
+  function backToMethodChoice() {
+    setRootError(null);
+    focusProviderOnWelcome.current = true;
+    jumpBackTo("welcome");
+  }
+
+  async function onSendCode() {
+    setRootError(null);
+    setCodeInfo(null);
+    const email = (emailValue ?? "").trim().toLowerCase();
+    if (!email) {
+      setRootError("Wpisz e-mail, aby wysłać kod.");
+      return;
+    }
+    if (isOffline()) {
+      setRootError(OFFLINE_REGISTER_MESSAGE);
+      return;
+    }
+    setSendingCode(true);
+    try {
+      const res = await sendRegisterCode({ email });
+      if (!res.ok) {
+        if (res.code === "registration_disabled") {
+          setEmailBlockedMessage(res.error);
+          return;
+        }
+        setRootError(res.error);
+        return;
+      }
+      // LR-19 / LR-29: „wysłany” tylko po faktycznym nadaniu wiadomości.
+      setCodeInfo(
+        res.mode === "test"
+          ? `Tryb testowy: wiadomość nie została wysłana. Użyj kodu ${emailTestCode ?? ""}.`
+          : `Kod wysłany na ${email}. Sprawdź skrzynkę i folder SPAM. Kod jest ważny 10 minut.`,
+      );
+      setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
+    } catch {
+      setRootError(
+        isOffline()
+          ? OFFLINE_REGISTER_MESSAGE
+          : "Nie udało się wysłać kodu. Spróbuj ponownie za chwilę.",
+      );
+    } finally {
+      setSendingCode(false);
+    }
   }
 
   async function onSubmitOauth(values: RegisterFormValues) {
@@ -269,8 +391,32 @@ export function RegisterForm({
 
     setRootError(null);
     setCodeInfo(null);
-    const result: RegisterState = await registerUser(values);
+    if (isOffline()) {
+      setRootError(OFFLINE_REGISTER_MESSAGE);
+      return;
+    }
+    let result: RegisterState;
+    try {
+      result = await registerUser(values);
+    } catch {
+      setRootError(
+        isOffline()
+          ? OFFLINE_REGISTER_MESSAGE
+          : "Nie udało się utworzyć konta. Spróbuj ponownie za chwilę.",
+      );
+      return;
+    }
     if (!result.ok) {
+      if (result.code === "registration_disabled") {
+        setEmailBlockedMessage(result.error);
+        jumpBackTo("email");
+        return;
+      }
+      if (CODE_ERROR_CODES.has(result.code)) {
+        setError("emailCode", { message: result.error });
+        jumpBackTo("email");
+        return;
+      }
       if (result.fieldErrors) {
         for (const [key, messages] of Object.entries(result.fieldErrors)) {
           if (messages?.[0]) {
@@ -359,17 +505,8 @@ export function RegisterForm({
         compact={step !== "welcome"}
       />
 
-      <div className="glass-panel gold-panel relative overflow-hidden p-6 sm:p-8">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[var(--neon)]/12 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-24 -right-16 h-48 w-48 rounded-full bg-[var(--neon)]/8 blur-3xl"
-        />
-
-        <div className="relative space-y-5">
+      <AuthCard bodyClassName="space-y-5">
+        {registrationClosed ? null : (
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
@@ -395,375 +532,462 @@ export function RegisterForm({
               />
             </div>
           </div>
+        )}
 
-          {rootError ? (
+        {step === "email" && emailBlocked ? (
+          <div className="space-y-3">
             <InlineBanner role="alert" variant="error">
-              {rootError}
+              {emailBlockedMessage}
             </InlineBanner>
-          ) : null}
-
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={step}
-              custom={direction}
-              initial={{ opacity: 0, x: direction * 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: direction * -18 }}
-              transition={{ duration: 0.28, ease: easeOut }}
-              className="space-y-5"
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={backToMethodChoice}
             >
-              {step === "welcome" ? (
-                <div className="space-y-3">
+              Wróć do wyboru metody
+            </Button>
+          </div>
+        ) : rootError ? (
+          <InlineBanner role="alert" variant="error">
+            {rootError}
+          </InlineBanner>
+        ) : null}
+
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={step}
+            custom={direction}
+            initial={{ opacity: 0, x: direction * 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: direction * -18 }}
+            transition={{ duration: 0.28, ease: easeOut }}
+            className="space-y-5"
+          >
+            {step === "welcome" && welcome.kind === "closed" ? (
+              <div className="space-y-3">
+                <InlineBanner role="status" variant="warning">
+                  <span className="flex items-start gap-2">
+                    <UserX className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                    <span>
+                      Nie można teraz założyć nowego konta. Logowanie na
+                      istniejące konto działa bez zmian.
+                    </span>
+                  </span>
+                </InlineBanner>
+                <Link
+                  href="/login"
+                  className={cn(buttonVariants({ variant: "cta" }), "w-full")}
+                >
+                  Przejdź do logowania
+                </Link>
+              </div>
+            ) : null}
+
+            {step === "welcome" && welcome.kind === "open" ? (
+              <div className="space-y-3" ref={focusFirstProvider}>
+                {googleEnabled ? (
                   <GoogleSignInButton
                     redirectTo="/register?oauth=1"
                     label="Zarejestruj się przez Google"
-                    disabled={!googleEnabled}
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-12 w-full gap-2.5 border-white/18 bg-white/[0.04] text-[15px] font-semibold text-white hover:border-white/28 hover:bg-white/[0.07]"
-                    onClick={() => void goNext()}
-                  >
-                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10">
-                      <Mail className="h-3.5 w-3.5 text-white/80" aria-hidden />
-                    </span>
-                    Zarejestruj się przez e-mail
-                  </Button>
+                ) : null}
+                {facebookEnabled && !googleEnabled && !emailEnabled ? (
                   <FacebookSignInButton
                     redirectTo="/register?oauth=1"
                     label="Zarejestruj się przez Facebook"
-                    disabled={!facebookEnabled}
                   />
-                  {!googleEnabled || !facebookEnabled ? (
-                    <p className="text-center text-[11px] leading-relaxed text-white/40">
-                      {!googleEnabled && !facebookEnabled
-                        ? "Google i Facebook będą dostępne po konfiguracji na serwerze — e-mail działa od razu."
-                        : !googleEnabled
-                          ? "Google będzie dostępne po konfiguracji na serwerze."
-                          : "Facebook będzie dostępny po konfiguracji na serwerze."}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {step === "name" ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">Imię</Label>
-                    <Input
-                      id="firstName"
-                      autoComplete="given-name"
-                      autoFocus
-                      aria-invalid={errors.firstName ? true : undefined}
-                      className={cn(errors.firstName && "border-destructive")}
-                      {...register("firstName")}
-                    />
-                    {errors.firstName ? (
-                      <p className="text-xs text-red-100">
-                        {errors.firstName.message}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Nazwisko</Label>
-                    <Input
-                      id="lastName"
-                      autoComplete="family-name"
-                      aria-invalid={errors.lastName ? true : undefined}
-                      className={cn(errors.lastName && "border-destructive")}
-                      {...register("lastName")}
-                    />
-                    {errors.lastName ? (
-                      <p className="text-xs text-red-100">
-                        {errors.lastName.message}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-
-              {step === "email" ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-mail</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      autoComplete="email"
-                      autoFocus
-                      aria-invalid={errors.email ? true : undefined}
-                      className={cn(errors.email && "border-destructive")}
-                      {...register("email")}
-                    />
-                    {errors.email ? (
-                      <p className="text-xs text-red-100">
-                        {errors.email.message}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="flex items-end gap-3">
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <Label htmlFor="emailCode">Kod z e-maila</Label>
-                      <Input
-                        id="emailCode"
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        placeholder="6 cyfr"
-                        aria-invalid={errors.emailCode ? true : undefined}
-                        className={cn(errors.emailCode && "border-destructive")}
-                        {...register("emailCode")}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      disabled={
-                        sendingCode || !emailValue?.trim() || cooldownSeconds > 0
-                      }
-                      className="h-11 shrink-0 bg-white/10 text-white hover:bg-white/15"
-                      onClick={async () => {
-                        setRootError(null);
-                        setCodeInfo(null);
-                        const email = (emailValue ?? "").trim().toLowerCase();
-                        if (!email) {
-                          setRootError("Wpisz e-mail, aby wysłać kod.");
-                          return;
-                        }
-                        setSendingCode(true);
-                        try {
-                          const res = await sendRegisterCode({ email });
-                          if (!res.ok) {
-                            setRootError(res.error);
-                            return;
-                          }
-                          setCodeInfo(
-                            "Kod wysłany. Sprawdź skrzynkę (także SPAM).",
-                          );
-                          setCooldownUntil(Date.now() + 60_000);
-                        } catch {
-                          setRootError(
-                            "Nie udało się wysłać kodu. Spróbuj ponownie za chwilę.",
-                          );
-                        } finally {
-                          setSendingCode(false);
-                        }
-                      }}
-                    >
-                      {sendingCode
-                        ? "Wysyłanie…"
-                        : cooldownSeconds > 0
-                          ? `${cooldownSeconds}s`
-                          : "Wyślij kod"}
-                    </Button>
-                  </div>
-                  {codeInfo ? (
-                    <p className="text-xs text-white/65">{codeInfo}</p>
-                  ) : null}
-                  {errors.emailCode ? (
-                    <p className="text-xs text-red-100">
-                      {errors.emailCode.message}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {step === "password" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="password">Hasło</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="new-password"
-                    autoFocus
-                    aria-invalid={errors.password ? true : undefined}
-                    ref={(el) => {
-                      passwordRef.current = el;
-                      passwordRhfRef(el);
-                    }}
-                    className={cn(errors.password && "border-destructive")}
-                    {...passwordRegister}
+                ) : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!emailEnabled}
+                  aria-describedby={
+                    emailEnabled ? undefined : "register-email-unavailable"
+                  }
+                  className="h-12 w-full gap-2.5 border-white/18 bg-white/[0.04] text-[15px] font-semibold text-white hover:border-white/28 hover:bg-white/[0.07]"
+                  onClick={() => void goNext()}
+                >
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10">
+                    <Mail className="h-3.5 w-3.5 text-white/80" aria-hidden />
+                  </span>
+                  Zarejestruj się przez e-mail
+                </Button>
+                {facebookEnabled && (googleEnabled || emailEnabled) ? (
+                  <FacebookSignInButton
+                    redirectTo="/register?oauth=1"
+                    label="Zarejestruj się przez Facebook"
                   />
-                  {errors.password ? (
-                    <p className="text-xs text-red-100">
-                      {errors.password.message}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {step === "body" ? (
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="weightKg">Waga (kg)</Label>
-                    <Input
-                      id="weightKg"
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      min={30}
-                      max={400}
-                      autoFocus
-                      aria-invalid={errors.weightKg ? true : undefined}
-                      className={cn(errors.weightKg && "border-destructive")}
-                      {...register("weightKg")}
-                    />
-                    {errors.weightKg ? (
-                      <p className="text-xs text-red-100">
-                        {errors.weightKg.message}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="heightCm">Wzrost (cm)</Label>
-                    <Input
-                      id="heightCm"
-                      type="number"
-                      inputMode="numeric"
-                      min={100}
-                      max={250}
-                      aria-invalid={errors.heightCm ? true : undefined}
-                      className={cn(errors.heightCm && "border-destructive")}
-                      {...register("heightCm")}
-                    />
-                    {errors.heightCm ? (
-                      <p className="text-xs text-red-100">
-                        {errors.heightCm.message}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="age">Wiek</Label>
-                    <Input
-                      id="age"
-                      type="number"
-                      inputMode="numeric"
-                      min={13}
-                      max={120}
-                      aria-invalid={errors.age ? true : undefined}
-                      className={cn(errors.age && "border-destructive")}
-                      {...register("age")}
-                    />
-                    {errors.age ? (
-                      <p className="text-xs text-red-100">
-                        {errors.age.message}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-
-              {step === "activity" ? (
-                <div className="space-y-3">
-                  <div
-                    className="grid gap-2"
-                    role="radiogroup"
-                    aria-label="Poziom aktywności"
+                ) : null}
+                {welcome.emailUnavailableProvider ? (
+                  <InlineBanner
+                    id="register-email-unavailable"
+                    role="status"
+                    variant="info"
                   >
-                    {activityLevels.map((level) => {
-                      const active = activityLevel === level;
-                      const { label, hint } = activityCopy[level];
-                      return (
-                        <button
-                          key={level}
-                          type="button"
-                          role="radio"
-                          aria-checked={active}
-                          onClick={() =>
-                            setValue("activityLevel", level, {
-                              shouldValidate: true,
-                            })
-                          }
-                          className={cn(
-                            "rounded-2xl border px-4 py-3.5 text-left transition",
-                            active
-                              ? "border-[var(--gym-gold)]/70 bg-[rgba(var(--neon-rgb),0.12)]"
-                              : "border-white/12 bg-black/30 hover:border-white/20",
-                          )}
+                    <span className="flex items-start gap-2">
+                      <MailX className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                      <span>
+                        Rejestracja e-mailem jest chwilowo niedostępna. Załóż
+                        konto przez {welcome.emailUnavailableProvider}. Jeśli
+                        masz już konto z hasłem,{" "}
+                        <Link
+                          href="/login"
+                          className="rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                         >
-                          <span className="block text-[15px] font-semibold text-white">
-                            {label}
-                          </span>
-                          <span className="mt-0.5 block text-[12px] text-white/50">
-                            {hint}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <input type="hidden" {...register("activityLevel")} />
-                  {errors.activityLevel ? (
-                    <p className="text-xs text-red-100">
-                      {errors.activityLevel.message}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
+                          zaloguj się
+                        </Link>{" "}
+                        normalnie.
+                      </span>
+                    </span>
+                  </InlineBanner>
+                ) : null}
+              </div>
+            ) : null}
 
-              {step === "goal" ? (
-                <div className="space-y-4">
-                  <p className="text-center font-metric text-5xl tabular-nums text-[var(--gym-gold)]">
-                    {weeklySessionsTarget}
-                  </p>
-                  <p className="text-center text-sm text-white/50">
-                    {weeklySessionsTarget === 1
-                      ? "dzień treningowy / tydzień"
-                      : weeklySessionsTarget >= 2 && weeklySessionsTarget <= 4
-                        ? "dni treningowe / tydzień"
-                        : "dni treningowych / tydzień"}
-                  </p>
-                  <input
-                    type="range"
-                    min={1}
-                    max={7}
-                    step={1}
-                    value={weeklySessionsTarget}
-                    onChange={(e) =>
-                      setValue("weeklySessionsTarget", Number(e.target.value), {
-                        shouldValidate: true,
-                      })
-                    }
-                    className="w-full accent-[var(--gym-gold)]"
-                    aria-label="Dni treningowe w tygodniu"
+            {step === "name" && showResetNotice ? (
+              <InlineBanner role="status" variant="info">
+                <span className="flex items-start gap-2">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <strong className="block font-semibold">
+                      Zabezpieczyliśmy Twój adres
+                    </strong>
+                    Ten adres był wcześniej użyty bez potwierdzenia.
+                    Zabezpieczyliśmy konto: dotychczasowe hasło i dane konta
+                    zostały usunięte. Zaczynasz od nowa.
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="touch-target -my-2 -mr-2 shrink-0"
+                    aria-label="Zamknij komunikat"
+                    onClick={() => setShowResetNotice(false)}
+                  >
+                    <X className="h-4 w-4" aria-hidden />
+                  </Button>
+                </span>
+              </InlineBanner>
+            ) : null}
+
+            {step === "name" ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">Imię</Label>
+                  <Input
+                    id="firstName"
+                    autoComplete="given-name"
+                    autoFocus
+                    aria-invalid={errors.firstName ? true : undefined}
+                    className={cn(errors.firstName && "border-destructive")}
+                    {...register("firstName")}
                   />
-                  <div className="flex justify-between text-[11px] text-white/35">
-                    <span>1</span>
-                    <span>7</span>
-                  </div>
-                  <input type="hidden" {...register("weeklySessionsTarget")} />
-                  {errors.weeklySessionsTarget ? (
+                  {errors.firstName ? (
                     <p className="text-xs text-red-100">
-                      {errors.weeklySessionsTarget.message}
+                      {errors.firstName.message}
                     </p>
                   ) : null}
                 </div>
-              ) : null}
-            </motion.div>
-          </AnimatePresence>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Nazwisko</Label>
+                  <Input
+                    id="lastName"
+                    autoComplete="family-name"
+                    aria-invalid={errors.lastName ? true : undefined}
+                    className={cn(errors.lastName && "border-destructive")}
+                    {...register("lastName")}
+                  />
+                  {errors.lastName ? (
+                    <p className="text-xs text-red-100">
+                      {errors.lastName.message}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
-          <input type="hidden" {...register("role")} />
+            {step === "email" ? (
+              <div className="space-y-4">
+                {emailTestMode ? (
+                  <InlineBanner role="status" variant="warning">
+                    <span className="flex items-start gap-2">
+                      <FlaskConical className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                      <span>
+                        <strong className="block font-semibold">Tryb testowy</strong>
+                        E-maile nie są wysyłane. Wpisz kod {emailTestCode}.
+                      </span>
+                    </span>
+                  </InlineBanner>
+                ) : null}
+                <div className="space-y-2">
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    autoFocus
+                    aria-invalid={errors.email ? true : undefined}
+                    className={cn(errors.email && "border-destructive")}
+                    {...register("email")}
+                  />
+                  {errors.email ? (
+                    <p className="text-xs text-red-100">
+                      {errors.email.message}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex items-end gap-3">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Label htmlFor="emailCode">Kod z e-maila</Label>
+                    <Input
+                      id="emailCode"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder={emailTestMode ? (emailTestCode ?? undefined) : "6 cyfr"}
+                      aria-invalid={errors.emailCode ? true : undefined}
+                      aria-describedby={
+                        errors.emailCode ? "emailCode-error" : undefined
+                      }
+                      className={cn(errors.emailCode && "border-destructive")}
+                      {...register("emailCode")}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    disabled={
+                      emailBlocked ||
+                      sendingCode ||
+                      !emailValue?.trim() ||
+                      cooldownSeconds > 0
+                    }
+                    aria-busy={sendingCode}
+                    aria-label={
+                      cooldownSeconds > 0
+                        ? `Wyślij kod ponownie za ${cooldownSeconds} ${plural(cooldownSeconds, "sekundę", "sekundy", "sekund")}`
+                        : undefined
+                    }
+                    className="h-11 shrink-0 bg-white/10 text-white hover:bg-white/15"
+                    onClick={() => void onSendCode()}
+                  >
+                    {sendingCode
+                      ? "Wysyłanie…"
+                      : cooldownSeconds > 0
+                        ? `Wyślij ponownie (${cooldownSeconds} s)`
+                        : "Wyślij kod"}
+                  </Button>
+                </div>
+                {codeInfo ? (
+                  <p role="status" className="text-[13px] leading-relaxed text-white/65">
+                    {codeInfo}
+                  </p>
+                ) : null}
+                {errors.emailCode ? (
+                  <p id="emailCode-error" className="text-xs text-red-100">
+                    {errors.emailCode.message}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
-          {step !== "welcome" ? (
-            <Button
-              type="button"
-              variant="cta"
-              className="w-full"
-              disabled={isSubmitting}
-              aria-busy={isSubmitting}
-              onClick={() => void goNext()}
-            >
-              {primaryLabel}
-            </Button>
-          ) : null}
+            {step === "password" ? (
+              <div className="space-y-2">
+                <Label htmlFor="password">Hasło</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  autoFocus
+                  aria-invalid={errors.password ? true : undefined}
+                  ref={(el) => {
+                    passwordRef.current = el;
+                    passwordRhfRef(el);
+                  }}
+                  className={cn(errors.password && "border-destructive")}
+                  {...passwordRegister}
+                />
+                {errors.password ? (
+                  <p className="text-xs text-red-100">
+                    {errors.password.message}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
-          {oauthContinue && oauthPrefill?.email ? (
-            <p className="text-center text-xs text-white/45">
-              Rejestracja:{" "}
-              <span className="font-medium text-white/75">
-                {oauthPrefill.email}
-              </span>
-            </p>
-          ) : null}
+            {step === "body" ? (
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="weightKg">Waga (kg)</Label>
+                  <Input
+                    id="weightKg"
+                    type="number"
+                    inputMode="decimal"
+                    step="0.1"
+                    min={30}
+                    max={400}
+                    autoFocus
+                    aria-invalid={errors.weightKg ? true : undefined}
+                    className={cn(errors.weightKg && "border-destructive")}
+                    {...register("weightKg")}
+                  />
+                  {errors.weightKg ? (
+                    <p className="text-xs text-red-100">
+                      {errors.weightKg.message}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="heightCm">Wzrost (cm)</Label>
+                  <Input
+                    id="heightCm"
+                    type="number"
+                    inputMode="numeric"
+                    min={100}
+                    max={250}
+                    aria-invalid={errors.heightCm ? true : undefined}
+                    className={cn(errors.heightCm && "border-destructive")}
+                    {...register("heightCm")}
+                  />
+                  {errors.heightCm ? (
+                    <p className="text-xs text-red-100">
+                      {errors.heightCm.message}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="age">Wiek</Label>
+                  <Input
+                    id="age"
+                    type="number"
+                    inputMode="numeric"
+                    min={13}
+                    max={120}
+                    aria-invalid={errors.age ? true : undefined}
+                    className={cn(errors.age && "border-destructive")}
+                    {...register("age")}
+                  />
+                  {errors.age ? (
+                    <p className="text-xs text-red-100">
+                      {errors.age.message}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
+            {step === "activity" ? (
+              <div className="space-y-3">
+                <div
+                  className="grid gap-2"
+                  role="radiogroup"
+                  aria-label="Poziom aktywności"
+                >
+                  {activityLevels.map((level) => {
+                    const active = activityLevel === level;
+                    const { label, hint } = activityCopy[level];
+                    return (
+                      <button
+                        key={level}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        onClick={() =>
+                          setValue("activityLevel", level, {
+                            shouldValidate: true,
+                          })
+                        }
+                        className={cn(
+                          "rounded-2xl border px-4 py-3.5 text-left transition",
+                          active
+                            ? "border-[var(--gym-gold)]/70 bg-[rgba(var(--neon-rgb),0.12)]"
+                            : "border-white/12 bg-black/30 hover:border-white/20",
+                        )}
+                      >
+                        <span className="block text-[15px] font-semibold text-white">
+                          {label}
+                        </span>
+                        <span className="mt-0.5 block text-[12px] text-white/50">
+                          {hint}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <input type="hidden" {...register("activityLevel")} />
+                {errors.activityLevel ? (
+                  <p className="text-xs text-red-100">
+                    {errors.activityLevel.message}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {step === "goal" ? (
+              <div className="space-y-4">
+                <p className="text-center font-metric text-5xl tabular-nums text-[var(--gym-gold)]">
+                  {weeklySessionsTarget}
+                </p>
+                <p className="text-center text-sm text-white/50">
+                  {weeklySessionsTarget === 1
+                    ? "dzień treningowy / tydzień"
+                    : weeklySessionsTarget >= 2 && weeklySessionsTarget <= 4
+                      ? "dni treningowe / tydzień"
+                      : "dni treningowych / tydzień"}
+                </p>
+                <input
+                  type="range"
+                  min={1}
+                  max={7}
+                  step={1}
+                  value={weeklySessionsTarget}
+                  onChange={(e) =>
+                    setValue("weeklySessionsTarget", Number(e.target.value), {
+                      shouldValidate: true,
+                    })
+                  }
+                  className="w-full accent-[var(--gym-gold)]"
+                  aria-label="Dni treningowe w tygodniu"
+                />
+                <div className="flex justify-between text-[11px] text-white/35">
+                  <span>1</span>
+                  <span>7</span>
+                </div>
+                <input type="hidden" {...register("weeklySessionsTarget")} />
+                {errors.weeklySessionsTarget ? (
+                  <p className="text-xs text-red-100">
+                    {errors.weeklySessionsTarget.message}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </motion.div>
+        </AnimatePresence>
+
+        <input type="hidden" {...register("role")} />
+
+        {step !== "welcome" ? (
+          <Button
+            type="button"
+            variant="cta"
+            className="w-full"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+            onClick={() => void goNext()}
+          >
+            {primaryLabel}
+          </Button>
+        ) : null}
+
+        {oauthContinue && oauthPrefill?.email ? (
+          <p className="text-center text-xs text-white/45">
+            Rejestracja:{" "}
+            <span className="font-medium text-white/75">
+              {oauthPrefill.email}
+            </span>
+          </p>
+        ) : null}
+
+        {registrationClosed ? null : (
           <p className="text-center text-sm text-white/55">
             Masz już konto?{" "}
             <Link
@@ -773,22 +997,25 @@ export function RegisterForm({
               Zaloguj się
             </Link>
           </p>
-          <p className="text-center text-[11px] text-white/35">
-            Rejestrując się, akceptujesz{" "}
-            <Link href="/regulamin" className="underline-offset-2 hover:underline">
-              Regulamin
-            </Link>{" "}
-            i{" "}
-            <Link
-              href="/polityka-prywatnosci"
-              className="underline-offset-2 hover:underline"
-            >
-              Politykę prywatności
-            </Link>
-            .
-          </p>
-        </div>
-      </div>
+        )}
+        {step === "welcome" && (googleEnabled || facebookEnabled) ? (
+          <OAuthPrivacyNote />
+        ) : null}
+        <p className="text-center text-[11px] text-white/35">
+          Rejestrując się, akceptujesz{" "}
+          <Link href="/regulamin" className="underline-offset-2 hover:underline">
+            Regulamin
+          </Link>{" "}
+          i{" "}
+          <Link
+            href="/polityka-prywatnosci"
+            className="underline-offset-2 hover:underline"
+          >
+            Politykę prywatności
+          </Link>
+          .
+        </p>
+      </AuthCard>
     </div>
   );
 }

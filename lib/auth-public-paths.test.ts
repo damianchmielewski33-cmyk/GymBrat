@@ -13,6 +13,7 @@ describe("auth-public-paths", () => {
     expect(isAnonymousPublicPath("/register")).toBe(true);
     expect(isAnonymousPublicPath("/regulamin")).toBe(true);
     expect(isAnonymousPublicPath("/polityka-prywatnosci")).toBe(true);
+    expect(isAnonymousPublicPath("/login/zabezpiecz-konto")).toBe(true);
     expect(isAnonymousPublicPath("/reports")).toBe(false);
     expect(isAnonymousPublicPath("/profile")).toBe(false);
   });

@@ -6,6 +6,8 @@ import {
   summarizeConfig,
 } from "@/lib/admin-config-status";
 
+const NOT_BLOCKED = { registrationBlocked: false, emailRegistrationMode: "smtp" } as const;
+
 describe("admin-config-status", () => {
   it("oznacza brak wszystkich zmiennych jako missing i wymienia brakujące nazwy", () => {
     const items = getConfigStatus({});
@@ -44,7 +46,7 @@ describe("admin-config-status", () => {
   });
 
   it("liczy podsumowanie gotowości", () => {
-    const empty = summarizeConfig(getConfigStatus({}));
+    const empty = summarizeConfig(getConfigStatus({}), NOT_BLOCKED);
     expect(empty.requiredIssues).toBeGreaterThan(0);
     expect(empty.readiness).toBe(0);
 
@@ -52,7 +54,7 @@ describe("admin-config-status", () => {
     for (const item of getConfigStatus({})) {
       for (const v of item.vars) allEnv[v.name] = "1";
     }
-    const full = summarizeConfig(getConfigStatus(allEnv));
+    const full = summarizeConfig(getConfigStatus(allEnv), NOT_BLOCKED);
     expect(full.requiredIssues).toBe(0);
     expect(full.recommendedIssues).toBe(0);
     expect(full.hostingIssues).toBe(0);
@@ -61,7 +63,7 @@ describe("admin-config-status", () => {
 
   it("liczy hostingIssues jako wymagane + zalecane (nie opcjonalne)", () => {
     const items = getConfigStatus({});
-    const summary = summarizeConfig(items);
+    const summary = summarizeConfig(items, NOT_BLOCKED);
     expect(summary.hostingIssues).toBe(summary.requiredIssues + summary.recommendedIssues);
     expect(summary.hostingIssues).toBeGreaterThan(0);
     const optionalMissing = items.filter((i) => i.level === "optional" && i.status !== "ok");
@@ -95,5 +97,30 @@ describe("admin-config-status", () => {
     for (const item of items.filter((i) => i.level !== "optional")) {
       expect(item.hostingHint.length).toBeGreaterThan(20);
     }
+  });
+
+  it("przekazuje registrationBlocked i emailRegistrationMode do podsumowania", () => {
+    const items = getConfigStatus({});
+    const blocked = summarizeConfig(items, {
+      registrationBlocked: true,
+      emailRegistrationMode: "disabled",
+    });
+    expect(blocked.registrationBlocked).toBe(true);
+    expect(blocked.emailRegistrationMode).toBe("disabled");
+    expect(summarizeConfig(items, NOT_BLOCKED).registrationBlocked).toBe(false);
+    expect(
+      summarizeConfig(items, { registrationBlocked: false, emailRegistrationMode: "test" })
+        .emailRegistrationMode,
+    ).toBe("test");
+  });
+
+  it("ADMIN_EMAILS nie jest opcjonalne: brak daje stan partial dostępu do panelu", () => {
+    const access = getConfigStatus({ ADMIN_PIN: "1234" }).find((i) => i.id === "admin-access");
+    expect(access?.status).toBe("partial");
+    expect(access?.missing).toEqual(["ADMIN_EMAILS"]);
+    const ok = getConfigStatus({ ADMIN_PIN: "1234", ADMIN_EMAILS: "a@b.pl" }).find(
+      (i) => i.id === "admin-access",
+    );
+    expect(ok?.status).toBe("ok");
   });
 });

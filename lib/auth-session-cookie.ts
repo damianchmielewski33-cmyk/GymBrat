@@ -11,3 +11,8 @@ export function hasAuthSessionCookie(
 ): boolean {
   return SESSION_COOKIE_NAMES.some((name) => has(name));
 }
+
+/** Ciasteczko sesji, także porcje `.0`, `.1` dużego JWT — do wyczyszczenia po unieważnieniu sesji. */
+export function isAuthSessionCookieName(name: string): boolean {
+  return SESSION_COOKIE_NAMES.some((base) => name === base || name.startsWith(`${base}.`));
+}

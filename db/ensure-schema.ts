@@ -347,6 +347,10 @@ CREATE TABLE IF NOT EXISTS "schema_flags" (
   await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "package_plan_sku" text`);
   await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "admin_note" text`);
   await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "sex" text`);
+  await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "email_verified_at" integer`);
+  await tryAddColumn(
+    `ALTER TABLE "users" ADD COLUMN "session_version" integer DEFAULT 0 NOT NULL`,
+  );
 
   await client.execute(`
 CREATE TABLE IF NOT EXISTS "subscription_plans" (

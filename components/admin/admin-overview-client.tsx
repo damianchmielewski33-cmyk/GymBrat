@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bar,
@@ -11,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { BarChart3, ChevronRight, RefreshCw } from "lucide-react";
+import { BarChart3, RefreshCw } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { AdminMonitoringPanel } from "@/components/admin/admin-monitoring-panel";
 import {
@@ -24,7 +23,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adminRequest } from "@/lib/admin-client";
-import { formatHostingFunctionCount } from "@/lib/admin-config-status";
 import { cn } from "@/lib/utils";
 
 const tooltipStyle = {
@@ -101,7 +99,6 @@ export function AdminOverviewClient() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activityLogOpen, setActivityLogOpen] = useState(false);
-  const [configIssues, setConfigIssues] = useState(0);
 
   const load = useCallback(
     async (showToast = false) => {
@@ -130,21 +127,6 @@ export function AdminOverviewClient() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  useEffect(() => {
-    void (async () => {
-      const res = await adminRequest<{
-        summary?: { requiredIssues: number; hostingIssues?: number; recommendedIssues?: number };
-      }>("/api/admin/config-status");
-      if (res.ok && res.data.summary) {
-        setConfigIssues(
-          typeof res.data.summary.hostingIssues === "number"
-            ? res.data.summary.hostingIssues
-            : res.data.summary.requiredIssues + (res.data.summary.recommendedIssues ?? 0),
-        );
-      }
-    })();
-  }, []);
 
   const chartData = useMemo(
     () =>
@@ -189,24 +171,6 @@ export function AdminOverviewClient() {
           </Button>
         }
       />
-
-      {configIssues > 0 ? (
-        <AdminNotice
-          tone="warn"
-          action={
-            <Link
-              href="/admin/settings"
-              className="inline-flex items-center gap-1 text-sm font-semibold text-amber-100 hover:underline"
-            >
-              Otwórz konfigurację
-              <ChevronRight className="h-4 w-4" aria-hidden />
-            </Link>
-          }
-        >
-          Trzeba skonfigurować na hostingu {formatHostingFunctionCount(configIssues)}
-          — bez tego część aplikacji nie działa.
-        </AdminNotice>
-      ) : null}
 
       <AdminCard title="Zakres raportu">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end">

@@ -96,6 +96,8 @@ export type ExtraCardioAdvice = {
 const KCAL_PER_G = { protein: 4, carbs: 4, fat: 9 } as const;
 /** Poniżej progu nie męczymy UI drobnymi wahaniami. */
 const MIN_DEBT_KCAL = 60;
+/** Maks. zalecenie dodatkowego cardio na tydzień (przed odjęciem wykonanego cardio ponad cel). */
+const MAX_EXTRA_MINUTES = 90;
 /**
  * Dzień bez sensownego spożycia nie jest „deficytem −cel”.
  * Inaczej pusty wtorek (−2000) kasowałby wczorajszą nadwyżkę.
@@ -763,18 +765,26 @@ export function computeExtraCardioAdvice(
   // minut sprowadza rekomendację do zera zamiast zostawiać geometryczną resztę.
   const deferShare = balanceChance * 0.35;
   const targetKcal = Math.round(debtBefore * (1 - deferShare));
+  // Limit minut dotyczy zalecenia PRZED wykonanym cardio ponad cel: najpierw
+  // ucinamy cel, potem odejmujemy offset — inaczej przy długu > limitu wykonane
+  // minuty znikałyby w ucięciu, a tooltip nie zgadzałby się z minutami.
+  const cappedTargetKcal = Math.min(
+    targetKcal,
+    Math.round(MAX_EXTRA_MINUTES * burnKcalPerMin),
+  );
 
   // effectiveSurplus nigdy nie przekracza openDebt.
   const effectiveSurplusKcal = Math.min(
     openDebt,
-    Math.max(0, targetKcal - debt.cardioOffsetKcal),
+    Math.max(0, cappedTargetKcal - debt.cardioOffsetKcal),
   );
 
   let extraMinutes =
     effectiveSurplusKcal >= MIN_DEBT_KCAL && burnKcalPerMin > 0
       ? Math.ceil(effectiveSurplusKcal / burnKcalPerMin)
       : 0;
-  extraMinutes = Math.min(90, Math.max(0, extraMinutes));
+  // Zaokrąglenie kcal może dać limit + 1 min — limit minut obowiązuje zawsze.
+  extraMinutes = Math.min(MAX_EXTRA_MINUTES, extraMinutes);
   if (extraMinutes > 0 && extraMinutes < 5) extraMinutes = 5;
 
   // Spalanie oszacowano przy ostatnim tempie — to samo tempo zalecamy

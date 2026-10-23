@@ -11,8 +11,16 @@ import {
   type AdminNavBadge,
   type AdminNavItem,
 } from "@/components/admin/admin-nav";
+import {
+  AdminRegistrationNotice,
+  registrationNoticeState,
+} from "@/components/admin/admin-registration-notice";
 import { AdminNotice } from "@/components/admin/admin-ui";
-import { formatHostingFunctionCount } from "@/lib/admin-config-status";
+import {
+  formatHostingFunctionCount,
+  type ConfigIntegration,
+  type ConfigSummary,
+} from "@/lib/admin-config-status";
 import { BUG_REPORTS_CHANGED_EVENT } from "@/lib/bug-reports";
 import { adminRequest } from "@/lib/admin-client";
 import { cn } from "@/lib/utils";
@@ -97,6 +105,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [openBugs, setOpenBugs] = useState(0);
   const [configIssues, setConfigIssues] = useState(0);
   const [configRequired, setConfigRequired] = useState(0);
+  const [registrationNotice, setRegistrationNotice] =
+    useState<ReturnType<typeof registrationNoticeState>>(null);
   const [leaving, setLeaving] = useState(false);
 
   const refreshOpenCount = useCallback(async () => {
@@ -110,7 +120,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   const refreshConfigIssues = useCallback(async () => {
     const res = await adminRequest<{
-      summary?: { requiredIssues: number; hostingIssues?: number; recommendedIssues?: number };
+      summary?: ConfigSummary;
+      integrations?: ConfigIntegration[];
     }>("/api/admin/config-status");
     if (res.ok && res.data.summary) {
       const hosting =
@@ -119,6 +130,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           : res.data.summary.requiredIssues + (res.data.summary.recommendedIssues ?? 0);
       setConfigIssues(hosting);
       setConfigRequired(res.data.summary.requiredIssues);
+      setRegistrationNotice(
+        registrationNoticeState(res.data.summary, res.data.integrations ?? []),
+      );
     }
   }, []);
 
@@ -155,6 +169,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     router.push("/");
     router.refresh();
   }
+
+  const openSettingsLink = (
+    <Link
+      href="/admin/settings"
+      className="inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+    >
+      Otwórz Konfigurację
+    </Link>
+  );
 
   const backButton = (
     <button
@@ -228,17 +251,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="min-w-0 max-w-full space-y-6">
-        {configIssues > 0 && pathname !== "/admin/settings" ? (
+        {pathname === "/admin/settings" ? null : registrationNotice ? (
+          <AdminRegistrationNotice
+            state={registrationNotice}
+            hostingIssues={configIssues}
+            action={openSettingsLink}
+          />
+        ) : configIssues > 0 ? (
           <AdminNotice
             tone={configRequired > 0 ? "danger" : "warn"}
-            action={
-              <Link
-                href="/admin/settings"
-                className="inline-flex items-center gap-1 text-sm font-semibold hover:underline"
-              >
-                Otwórz Konfigurację
-              </Link>
-            }
+            action={openSettingsLink}
           >
             Trzeba skonfigurować na hostingu {formatHostingFunctionCount(configIssues)}.
             Ustaw zmienne środowiska i zrób redeploy.

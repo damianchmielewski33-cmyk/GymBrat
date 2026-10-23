@@ -6,6 +6,7 @@ import {
   getConfigStatus,
   summarizeConfig,
 } from "@/lib/admin-config-status";
+import { getRegistrationAvailability } from "@/lib/register-email-mode";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,11 +17,15 @@ async function handleGET() {
   if (!gate.ok) return gate.response;
 
   const integrations = getConfigStatus();
+  const availability = getRegistrationAvailability();
   const res = NextResponse.json({
     ok: true,
     groups: CONFIG_GROUP_LABELS,
     integrations,
-    summary: summarizeConfig(integrations),
+    summary: summarizeConfig(integrations, {
+      registrationBlocked: availability.blocked,
+      emailRegistrationMode: availability.emailMode,
+    }),
   });
   res.headers.set("Cache-Control", "private, no-store");
   return res;

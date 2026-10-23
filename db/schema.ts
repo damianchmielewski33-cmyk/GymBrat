@@ -57,6 +57,10 @@ export const users = sqliteTable("users", {
   packagePlanSku: text("package_plan_sku"),
   /** Notatka administratora na karcie konta. */
   adminNote: text("admin_note"),
+  /** Potwierdzenie kontroli adresu (kod z e-maila, Google z `email_verified`); NULL = niezweryfikowany. */
+  emailVerifiedAt: integer("email_verified_at", { mode: "timestamp_ms" }),
+  /** Wersja sesji: podbicie unieważnia wszystkie wydane JWT (`lib/account-auth-state.ts`). */
+  sessionVersion: integer("session_version").notNull().default(0),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),

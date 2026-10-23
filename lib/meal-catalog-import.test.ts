@@ -2,11 +2,6 @@ import { describe, expect, it } from "vitest";
 import { parseCatalogImportPayload } from "@/lib/meal-catalog-import";
 import { mergeMealCatalogs } from "@/lib/meal-catalog";
 import type { CatalogMeal } from "@/lib/meal-catalog-types";
-import {
-  isPrimaryAdminEmail,
-  PRIMARY_ADMIN_EMAIL,
-  parseAdminEmails,
-} from "@/lib/admin-config";
 
 describe("meal-catalog-import", () => {
   it("normalizuje uproszczony JSON z mealType", () => {
@@ -141,13 +136,5 @@ describe("meal-catalog-import", () => {
     const merged = mergeMealCatalogs(base, overlay);
     expect(merged).toHaveLength(2);
     expect(merged.find((m) => m.id === "a")?.title).toBe("Z panelu");
-  });
-});
-
-describe("primary admin", () => {
-  it("zawsze zawiera PRIMARY_ADMIN_EMAIL", () => {
-    expect(isPrimaryAdminEmail(PRIMARY_ADMIN_EMAIL)).toBe(true);
-    expect(isPrimaryAdminEmail("DAMIANCHMIELEWSKI33@GMAIL.COM")).toBe(true);
-    expect(parseAdminEmails().has(PRIMARY_ADMIN_EMAIL)).toBe(true);
   });
 });

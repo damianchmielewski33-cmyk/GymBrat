@@ -169,6 +169,13 @@
       "when": 1798000000000,
       "tag": "0028_social",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1799000000000,
+      "tag": "0031_users_email_verification",
+      "breakpoints": true
     }
   ]
 }

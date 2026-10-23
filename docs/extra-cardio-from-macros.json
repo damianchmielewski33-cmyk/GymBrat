@@ -11,12 +11,14 @@
     "po wykonaniu zalecanych minut rekomendacja znika (offset odejmowany od celu odroczenia, nie od długu po cardio)",
     "burnKcalPerMin ∈ [2, 18] (netto)",
     "extraMinutes ∈ {0} ∪ [5, 90]",
+    "limit 90 min dotyczy zalecenia przed wykonanym cardio ponad cel: każda minuta ponad cel zmniejsza zalecenie, także przy długu > 90 min",
     "avgHeartRate poza [70, 210] jest odrzucane w modelu spalania",
     "wpis z > 25 kcal/min jest ignorowany (szacunek z minut)"
   ],
   "constants": {
     "KCAL_PER_G": { "protein": 4, "carbs": 4, "fat": 9 },
     "MIN_DEBT_KCAL": 60,
+    "MAX_EXTRA_MINUTES": 90,
     "MEANINGFUL_INTAKE_PCT": 0.1,
     "SOFT_CREDIT_START_PCT": 0.55,
     "PERSONAL_MIN_WORKOUTS": 10,
@@ -69,9 +71,12 @@
     "formula": [
       "balanceChance liczona od debtBeforeCardio (stabilna niezależnie od cardio)",
       "target = debtBeforeCardio × (1 − balanceChance × 0.35)",
-      "effectiveSurplus = min(openDebt, max(0, target − cardioOffset))"
+      "cappedTarget = min(target, round(MAX_EXTRA_MINUTES × burnKcalPerMin))",
+      "effectiveSurplus = min(openDebt, max(0, cappedTarget − cardioOffset))",
+      "extraMinutes = min(MAX_EXTRA_MINUTES, ceil(effectiveSurplus / burnKcalPerMin)); 1–4 min → 5"
     ],
-    "note": "Nigdy nie spalamy większego długu niż openDebt. Wykonanie zalecanych minut zeruje rekomendację. Heurystyki 12% luzu na przyszły dzień i max 35% odroczenia to ustawienia produktowe, nie dane."
+    "example": "cel 170 min/tydz., dług na ~500 min → zalecenie 90; po 20 min ponad cel → 70; po 90 min ponad cel → brak rekomendacji",
+    "note": "Nigdy nie spalamy większego długu niż openDebt. Wykonanie zalecanych minut zeruje rekomendację. Limit minut ucina cel przed odjęciem offsetu, więc „Do odrobienia cardio” w tooltipie zgadza się z minutami. Heurystyki 12% luzu na przyszły dzień i max 35% odroczenia to ustawienia produktowe, nie dane."
   },
   "burnHierarchy": [
     {

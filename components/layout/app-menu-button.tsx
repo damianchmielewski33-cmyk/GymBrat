@@ -30,7 +30,6 @@ import {
   X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { isPrimaryAdminEmail } from "@/lib/admin-config";
 import { PRIVACY_PATH, REGULAMIN_PATH } from "@/lib/legal-seller";
 import { cn } from "@/lib/utils";
 
@@ -224,8 +223,7 @@ export function AppMenuButton({
 }) {
   const pathname = usePathname();
   const { data } = useSession();
-  const showAdminLink =
-    data?.user?.role === "admin" || isPrimaryAdminEmail(data?.user?.email);
+  const showAdminLink = data?.user?.role === "admin";
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 

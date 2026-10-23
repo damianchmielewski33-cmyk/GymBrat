@@ -7,16 +7,18 @@ import { getDb } from "@/db";
 import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import { siteActivityLog, users } from "@/db/schema";
 import { getAuthSecret } from "@/lib/auth-secret";
+import { resolveEffectiveRole } from "@/lib/admin-config";
+import { syncAdminRoleOnLogin } from "@/lib/admin-session";
 import {
-  normalizeAdminEmail,
-  parseAdminEmails,
-} from "@/lib/admin-config";
-import {
+  findUserByOAuthLink,
   isFacebookAuthConfigured,
   isGoogleAuthConfigured,
-  resolveGoogleSignInUser,
+  resolveOAuthSignIn,
   type OAuthProviderId,
 } from "@/lib/google-auth";
+import { getAccountAuthState, isTokenRevoked } from "@/lib/account-auth-state";
+import { signTakeoverToken } from "@/lib/account-takeover";
+import { logAuthFailure } from "@/lib/security-events";
 import { isUserBodyProfileComplete } from "@/lib/profile-complete";
 import { LOGIN_RATE_LIMITED_CODE } from "@/lib/auth-error-codes";
 import {
@@ -117,42 +119,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await compare(password, user.passwordHash);
         if (!valid) return null;
 
-        const adminEmails = parseAdminEmails();
-        const emailLower = user.email.toLowerCase();
-        const isEnvAdmin = adminEmails.has(emailLower);
-
-        if (user.appRole === "admin" || isEnvAdmin) {
-          if (isEnvAdmin && user.appRole !== "admin") {
-            await db
-              .update(users)
-              .set({ appRole: "admin" })
-              .where(eq(users.id, user.id));
-          }
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name ?? undefined,
-            role: "admin",
-          };
-        }
-
-        const storedRaw = user.appRole ?? "zawodnik";
-        const storedRole = storedRaw === "trener" ? "trener" : "zawodnik";
-
-        if (storedRole !== role) return null;
+        const effectiveRole = await syncAdminRoleOnLogin({
+          id: user.id,
+          email: user.email,
+          appRole: user.appRole,
+          emailVerified: user.emailVerifiedAt != null,
+        });
+        // Admin loguje się niezależnie od wybranej zakładki; pozostali tylko w swojej roli.
+        if (effectiveRole !== "admin" && effectiveRole !== role) return null;
 
         return {
           id: user.id,
           email: user.email,
           name: user.name ?? undefined,
-          role: storedRole,
+          role: effectiveRole,
+          sv: user.sessionVersion,
         };
       },
     }),
     ...(isGoogleAuthConfigured()
       ? [
           Google({
-            allowDangerousEmailAccountLinking: true,
             authorization: {
               params: {
                 scope: "openid email profile",
@@ -161,13 +148,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }),
         ]
       : []),
-    ...(isFacebookAuthConfigured()
-      ? [
-          Facebook({
-            allowDangerousEmailAccountLinking: true,
-          }),
-        ]
-      : []),
+    ...(isFacebookAuthConfigured() ? [Facebook({})] : []),
   ],
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30 },
   pages: {
@@ -175,117 +156,70 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: "/login",
   },
   callbacks: {
-    async signIn({ account, profile }) {
+    async signIn({ account, profile, user }) {
       if (!isOAuthProvider(account?.provider)) return true;
-      const { email, emailVerified } = oauthProfileFields(profile);
-      if (!email.trim()) return false;
-      // Google / Facebook — bez zweryfikowanego e-maila nie łączymy kont.
-      if (emailVerified === false) return false;
+      const { email, name, givenName, familyName, emailVerified } = oauthProfileFields(
+        profile,
+        user,
+      );
       const providerAccountId =
-        typeof account.providerAccountId === "string"
-          ? account.providerAccountId
-          : "";
-      // Tworzenie / łączenie konta wyłącznie w jwt — tu tylko walidacja,
-      // żeby isNew nie padało przez podwójne wywołanie resolve.
-      return Boolean(providerAccountId);
-    },
-    async jwt({ token, user, account, profile, trigger }) {
-      if (isOAuthProvider(account?.provider)) {
-        const { email, name, givenName, familyName } = oauthProfileFields(
-          profile,
-          user,
-        );
-        const providerAccountId =
-          typeof account.providerAccountId === "string"
-            ? account.providerAccountId
-            : "";
-
-        const resolved = await resolveGoogleSignInUser({
+        typeof account.providerAccountId === "string" ? account.providerAccountId : "";
+      try {
+        // Decyzja i mutacja tylko tutaj (ADR 0001 D3); odmowa = przekierowanie bez sesji.
+        const decision = await resolveOAuthSignIn({
+          provider: account.provider,
+          providerAccountId,
           email,
+          providerEmailVerified: emailVerified === true,
           name,
           givenName,
           familyName,
-          providerAccountId,
-          provider: account.provider,
         });
-        if (!resolved) {
-          throw new Error("Nie udało się utworzyć lub połączyć konta OAuth.");
+        if (decision.kind === "reject") return `/login?error=${decision.code}`;
+        if (decision.kind === "takeover_confirm") {
+          const token = signTakeoverToken({ uid: decision.userId, pid: providerAccountId });
+          return `/login/zabezpiecz-konto?t=${encodeURIComponent(token)}`;
         }
-        token.id = resolved.id;
-        token.sub = resolved.id;
-        token.email = resolved.email;
-        token.role = resolved.role;
-        if (resolved.name) token.name = resolved.name;
-        // Nowe konto OAuth — zawsze dokończenie rejestracji (nie Pulpit).
-        if (resolved.isNew) {
-          token.profileComplete = false;
+        return true;
+      } catch (err) {
+        logAuthFailure("auth.signIn.oauth", err);
+        return "/login?error=OAuthSignInFailed";
+      }
+    },
+    async jwt({ token, user, account, trigger }) {
+      if (account && isOAuthProvider(account.provider)) {
+        // Konto ustalone w `signIn` — tu tylko odczyt po powiązaniu.
+        const linked = await findUserByOAuthLink(account.provider, account.providerAccountId);
+        if (!linked) throw new Error("OAuth link missing after signIn");
+        token.id = linked.id;
+        token.sub = linked.id;
+        token.email = linked.email;
+        token.role = await syncAdminRoleOnLogin(linked);
+        token.sv = linked.sessionVersion;
+      } else if (user) {
+        if (typeof user.id === "string") {
+          token.id = user.id;
+          token.sub = user.id;
         }
+        if (user.role) token.role = user.role;
+        if (typeof user.email === "string" && user.email) token.email = user.email;
+        token.sv = user.sv ?? 0;
       } else {
         const uid =
-          typeof user?.id === "string"
-            ? user.id
-            : typeof token.id === "string"
-              ? token.id
-              : typeof token.sub === "string"
-                ? token.sub
-                : undefined;
-        if (uid) {
-          token.id = uid;
-          token.sub = uid;
-        }
-        if (user && "role" in user && user.role) {
-          token.role = user.role as "zawodnik" | "trener" | "admin";
-        }
-        if (user && typeof user.email === "string" && user.email) {
-          token.email = user.email;
-        }
-      }
-
-      let email =
-        typeof token.email === "string" ? normalizeAdminEmail(token.email) : "";
-      const userId =
-        typeof token.id === "string"
-          ? token.id
-          : typeof token.sub === "string"
-            ? token.sub
-            : "";
-
-      if (userId && !email) {
+          typeof token.id === "string" ? token.id : typeof token.sub === "string" ? token.sub : "";
+        token.id = uid;
         try {
-          const db = getDb();
-          const [row] = await db
-            .select({ email: users.email, appRole: users.appRole })
-            .from(users)
-            .where(eq(users.id, userId))
-            .limit(1);
-          if (row?.email) {
-            email = normalizeAdminEmail(row.email);
-            token.email = row.email;
-            if (row.appRole === "admin") {
-              token.role = "admin";
-            }
-          }
+          // Unieważnienie sesji (ADR 0001 D5): brak konta albo inna wersja sesji = wylogowanie.
+          const state = await getAccountAuthState(uid);
+          if (isTokenRevoked(token, state)) return null;
+          token.email = state.email;
+          token.role = resolveEffectiveRole(state);
         } catch {
-          /* nie blokuj sesji */
+          /* chwilowy błąd bazy nie wylogowuje (cache 60 s, kolejne odświeżenie sprawdzi ponownie) */
         }
       }
 
-      const adminEmails = parseAdminEmails();
-      if (email && adminEmails.has(email)) {
-        const wasAdmin = token.role === "admin";
-        token.role = "admin";
-        if (!wasAdmin && userId) {
-          try {
-            const db = getDb();
-            await db
-              .update(users)
-              .set({ appRole: "admin" })
-              .where(eq(users.id, userId));
-          } catch {
-            /* ignore */
-          }
-        }
-      }
+      const userId = typeof token.id === "string" ? token.id : "";
 
       if (
         userId &&
@@ -334,12 +268,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (typeof token.email === "string" && token.email) {
           session.user.email = token.email;
         }
-        if (
-          typeof token.email === "string" &&
-          parseAdminEmails().has(normalizeAdminEmail(token.email))
-        ) {
-          session.user.role = "admin";
-        }
       }
       return session;
     },
@@ -347,24 +275,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async signIn({ user, account }) {
       try {
-        const db = getDb();
-        let userId: string | null =
-          typeof user?.id === "string" ? user.id : null;
-
-        if (
-          isOAuthProvider(account?.provider) &&
-          typeof user?.email === "string"
-        ) {
-          const [row] = await db
-            .select({ id: users.id })
-            .from(users)
-            .where(eq(users.email, user.email.toLowerCase()))
-            .limit(1);
-          userId = row?.id ?? null;
-        }
+        const userId =
+          isOAuthProvider(account?.provider) && account
+            ? ((await findUserByOAuthLink(account.provider, account.providerAccountId))?.id ?? null)
+            : typeof user?.id === "string"
+              ? user.id
+              : null;
 
         if (!userId) return;
-        await db.insert(siteActivityLog).values({
+        await getDb().insert(siteActivityLog).values({
           userId,
           action: "Logowanie",
           deploymentEnv: getAnalyticsDeployment(),
