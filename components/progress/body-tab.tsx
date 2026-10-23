@@ -3,12 +3,25 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
-import { SectionLabel } from "@/components/ui/section-label";
 import { WeightAverageChart } from "@/components/progress/weight-average-chart";
+import { PhotoCompareSection } from "@/components/progress/photos-tab";
+import {
+  Explainer,
+  Eyebrow,
+  ProgressSection,
+  StatTile,
+  Surface,
+} from "@/components/progress/progress-ui";
 import { MiniSparkline } from "@/components/home/mini-sparkline";
 import { saveFitnessGoalsAction } from "@/actions/fitness-goals";
 import type { ProgressHubData } from "@/lib/progress-hub";
 import { calendarWeekdaySun0 } from "@/lib/local-date";
+import {
+  fmtNum,
+  fmtSigned,
+  formatDayMonth,
+  plural,
+} from "@/lib/progress-format";
 import { cn } from "@/lib/utils";
 
 const WEEKDAY = ["nd", "pon", "wt", "śr", "czw", "pt", "sob"] as const;
@@ -19,42 +32,6 @@ const MEASURE_COLORS: Record<string, string> = {
   chest: "rgba(255,255,255,0.75)",
   arm: "rgba(255,255,255,0.75)",
 };
-
-function fmtKg(n: number | null, digits = 1): string {
-  if (n == null) return "—";
-  return n.toLocaleString("pl-PL", {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
-}
-
-function fmtSigned(n: number | null, suffix: string, digits = 1): string {
-  if (n == null) return "—";
-  const sign = n > 0 ? "+" : n < 0 ? "−" : "";
-  const abs = Math.abs(n).toLocaleString("pl-PL", {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
-  return `${sign}${abs}${suffix}`;
-}
-
-function formatDayMonth(iso: string | null): string {
-  if (!iso) return "—";
-  try {
-    return new Intl.DateTimeFormat("pl-PL", {
-      day: "2-digit",
-      month: "2-digit",
-    }).format(new Date(`${iso}T12:00:00`));
-  } catch {
-    return iso;
-  }
-}
-
-function raportowLabel(n: number): string {
-  if (n === 1) return "1 raport";
-  if (n >= 2 && n <= 4) return `${n} raporty`;
-  return `${n} raportów`;
-}
 
 function etaLabel(input: {
   currentKg: number | null;
@@ -86,8 +63,19 @@ function etaLabel(input: {
   return `Za ok. ${w} tyg. · ${dateStr}`;
 }
 
-export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
-  const { weights, tempo, measures, targetWeightKg } = data;
+/**
+ * Sylwetka = waga (z celem) → tempo → obwody → zdjęcia.
+ * Zakładka Zdjęcia została tu włączona: wcześniej waga i pas „od startu”
+ * były pokazane w trzech miejscach (hero, tempo, zdjęcia).
+ */
+export function BodyTab({
+  body,
+  photos,
+}: {
+  body: ProgressHubData["body"];
+  photos: ProgressHubData["photos"];
+}) {
+  const { weights, tempo, measures, targetWeightKg } = body;
   const router = useRouter();
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalDraft, setGoalDraft] = useState(
@@ -113,10 +101,8 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
     if (!tempo.lastReportDate || tempo.currentKg == null) return null;
     const dow = WEEKDAY[calendarWeekdaySun0(tempo.lastReportDate)] ?? "";
     const avg =
-      tempo.lastAvgKg != null
-        ? ` · średnia ${fmtKg(tempo.lastAvgKg)}`
-        : "";
-    return `${dow} ${formatDayMonth(tempo.lastReportDate)} · ${fmtKg(tempo.currentKg, 1)} kg${avg}`;
+      tempo.lastAvgKg != null ? ` · średnia ${fmtNum(tempo.lastAvgKg, 1)}` : "";
+    return `${dow} ${formatDayMonth(tempo.lastReportDate)}${avg}`;
   }, [tempo]);
 
   function saveGoal() {
@@ -140,20 +126,24 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
     });
   }
 
+  function openGoalEditor() {
+    setGoalDraft(
+      targetWeightKg != null ? String(targetWeightKg).replace(".", ",") : "",
+    );
+    setEditingGoal(true);
+  }
+
   return (
     <div className="space-y-3.5">
-      <section className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/30 bg-gradient-to-b from-[rgba(var(--neon-rgb),0.16)] via-[var(--gym-surface-sunken)] to-[var(--gym-surface-sunken)] px-3.5 py-3.5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-          Ostatni raport
-          {tempo.lastReportDate
-            ? ` · ${formatDayMonth(tempo.lastReportDate)}`
-            : ""}
-        </p>
-
-        <div className="mt-2 flex items-end justify-between gap-3">
+      <Surface variant="hero" className="space-y-3">
+        <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
+            <Eyebrow gold>
+              Ostatni raport
+              {tempo.lastReportDate ? ` · ${formatDayMonth(tempo.lastReportDate)}` : ""}
+            </Eyebrow>
             {tempo.currentKg != null ? (
-              <p className="flex items-baseline gap-1.5">
+              <p className="mt-2 flex items-baseline gap-1.5">
                 <AnimatedMetric
                   value={tempo.currentKg}
                   decimals={1}
@@ -162,19 +152,13 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
                 <span className="font-metric text-[15px] text-white/50">kg</span>
               </p>
             ) : (
-              <p className="font-metric text-[2rem] leading-none text-white/35">
+              <p className="mt-2 font-metric text-[2rem] leading-none text-white/35">
                 —
               </p>
             )}
-            {lastLine ? (
-              <p className="mt-1.5 text-[11px] leading-snug text-white/45">
-                {lastLine}
-              </p>
-            ) : (
-              <p className="mt-1.5 text-[11px] leading-snug text-white/40">
-                Brak raportów wagi — dodaj pierwszy w Raportach.
-              </p>
-            )}
+            <p className="mt-1.5 text-[11px] leading-snug text-white/45">
+              {lastLine ?? "Brak raportów wagi — dodaj pierwszy w Raportach."}
+            </p>
           </div>
           <div className="shrink-0 text-right">
             <p className="font-metric text-[18px] leading-none tabular-nums text-white">
@@ -183,84 +167,20 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
             <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-white/40">
               od startu
             </p>
-            <p className="mt-1.5 font-metric text-[12px] tabular-nums text-[var(--gym-gold)]/90">
-              {fmtSigned(tempo.kgPerWeekLast6, " kg/tydz.", 2)}
-            </p>
+            {tempo.startKg != null ? (
+              <p className="mt-1 text-[11px] tabular-nums text-white/40">
+                {fmtNum(tempo.startKg, 1)} kg · {formatDayMonth(tempo.startDate)}
+              </p>
+            ) : null}
           </div>
         </div>
 
-        <div className="mt-2.5">
-          <WeightAverageChart weights={weights} />
-        </div>
+        <WeightAverageChart weights={weights} />
 
-        <p className="mt-1.5 text-[11px] leading-snug text-white/40">
-          Kropki to raporty, linia to średnia z ostatnich raportów.
-        </p>
-      </section>
-
-      <section className="space-y-2">
-        <SectionLabel
-          index={1}
-          title="Tempo"
-          trailing={raportowLabel(tempo.reportCount)}
-          titleTone="white"
-        />
-        <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
-          {(
-            [
-              {
-                label: "Ostatnie 6 tygodni",
-                value: fmtSigned(tempo.kgPerWeekLast6, " kg/tydz.", 2),
-              },
-              {
-                label: "Od startu",
-                value: fmtSigned(tempo.kgPerWeekFromStart, " kg/tydz.", 2),
-              },
-              {
-                label: "Od poprzedniego raportu",
-                value: fmtSigned(tempo.deltaVsPrevKg, " kg", 1),
-              },
-              {
-                label: `Start${
-                  tempo.startDate ? ` · ${formatDayMonth(tempo.startDate)}` : ""
-                }`,
-                value:
-                  tempo.startKg != null ? `${fmtKg(tempo.startKg, 1)} kg` : "—",
-              },
-            ] as const
-          ).map((row) => (
-            <div
-              key={row.label}
-              className="grid grid-cols-[1fr_auto] items-center gap-3 px-3.5 py-2.5"
-            >
-              <p className="text-[13px] leading-snug text-white/80">{row.label}</p>
-              <p className="text-right font-metric text-[14px] tabular-nums text-[var(--gym-gold)]">
-                {row.value}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-2">
-        <SectionLabel index={2} title="Cel" titleTone="white" />
-        <div className="app-card flex items-start gap-3 px-3.5 py-3">
-          <div className="min-w-0 flex-1">
-            {targetWeightKg != null && !editingGoal ? (
-              <>
-                <p className="text-[14px] font-semibold leading-snug text-white">
-                  Cel:{" "}
-                  <span className="font-metric text-[var(--gym-gold)]">
-                    {fmtKg(targetWeightKg, 1)} kg
-                  </span>
-                </p>
-                <p className="mt-1 text-[11px] leading-snug text-white/45">
-                  {eta ??
-                    "Ustaw tempo z raportów, żebym policzył termin osiągnięcia celu."}
-                </p>
-              </>
-            ) : editingGoal ? (
-              <div className="space-y-2">
+        <div className="border-t border-white/10 pt-2.5">
+          {editingGoal ? (
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1 space-y-1.5">
                 <p className="text-[11px] text-white/45">
                   Wpisz wagę docelową (kg).
                 </p>
@@ -276,61 +196,91 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
                   <p className="text-[11px] text-rose-300">{goalError}</p>
                 ) : null}
               </div>
-            ) : (
-              <p className="text-[13px] leading-snug text-white/70">
-                Wpisz wagę docelową, a policzę, kiedy ją osiągniesz przy
-                obecnym tempie.
-              </p>
-            )}
-          </div>
-          {editingGoal ? (
-            <div className="flex shrink-0 flex-col items-end gap-1.5">
-              <button
-                type="button"
-                onClick={saveGoal}
-                disabled={pending}
-                className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-gold)] disabled:opacity-50"
-              >
-                Zapisz
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingGoal(false);
-                  setGoalError(null);
-                }}
-                className="text-[11px] text-white/40"
-              >
-                Anuluj
-              </button>
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={saveGoal}
+                  disabled={pending}
+                  className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-gold)] disabled:opacity-50"
+                >
+                  Zapisz
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingGoal(false);
+                    setGoalError(null);
+                  }}
+                  className="text-[11px] text-white/40"
+                >
+                  Anuluj
+                </button>
+              </div>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setGoalDraft(
-                  targetWeightKg != null
-                    ? String(targetWeightKg).replace(".", ",")
-                    : "",
-                );
-                setEditingGoal(true);
-              }}
-              className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-gold)]"
-            >
-              Ustaw
-            </button>
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                {targetWeightKg != null ? (
+                  <>
+                    <p className="text-[13px] font-semibold leading-snug text-white">
+                      Cel:{" "}
+                      <span className="font-metric text-[var(--gym-gold)]">
+                        {fmtNum(targetWeightKg, 1)} kg
+                      </span>
+                    </p>
+                    <p className="mt-0.5 text-[11px] leading-snug text-white/45">
+                      {eta ??
+                        "Dodaj kolejne raporty, żeby policzyć termin osiągnięcia celu."}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[12px] leading-snug text-white/60">
+                    Wpisz wagę docelową, a policzę, kiedy ją osiągniesz przy
+                    obecnym tempie.
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={openGoalEditor}
+                className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-gold)]"
+              >
+                {targetWeightKg != null ? "Zmień" : "Ustaw"}
+              </button>
+            </div>
           )}
         </div>
-      </section>
 
-      <section className="space-y-2">
-        <SectionLabel
-          index={3}
-          title="Obwody"
-          trailing="od startu"
-          titleTone="white"
-        />
-        <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
+        <Explainer>
+          <p>Kropki to raporty, linia to średnia z ostatnich raportów.</p>
+        </Explainer>
+      </Surface>
+
+      <ProgressSection
+        title="Tempo"
+        trailing={`${tempo.reportCount} ${plural(tempo.reportCount, "raport", "raporty", "raportów")}`}
+      >
+        <div className="grid grid-cols-3 gap-2">
+          <StatTile
+            label="6 tygodni"
+            value={fmtSigned(tempo.kgPerWeekLast6, "", 2)}
+            hint="kg / tydzień"
+          />
+          <StatTile
+            label="Od startu"
+            value={fmtSigned(tempo.kgPerWeekFromStart, "", 2)}
+            hint="kg / tydzień"
+          />
+          <StatTile
+            label="Ostatni raport"
+            value={fmtSigned(tempo.deltaVsPrevKg, "", 1)}
+            hint="kg vs poprzedni"
+          />
+        </div>
+      </ProgressSection>
+
+      <ProgressSection title="Obwody" trailing="od startu">
+        <Surface variant="list">
           {measures.every((m) => m.currentCm == null) ? (
             <p className="px-3.5 py-5 text-center text-[13px] text-white/45">
               Dodaj obwody w raporcie, żeby zobaczyć trendy.
@@ -350,9 +300,7 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
                   ? "text-white/35"
                   : improved
                     ? "text-emerald-400"
-                    : row.key === "thigh"
-                      ? "text-[var(--gym-gold)]"
-                      : "text-white/70";
+                    : "text-white/70";
 
               return (
                 <div
@@ -375,7 +323,7 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
                     {row.currentCm != null ? (
                       <>
                         <p className="font-metric text-[15px] leading-none tabular-nums text-white">
-                          {fmtKg(row.currentCm, row.currentCm % 1 ? 1 : 0)}
+                          {fmtNum(row.currentCm, row.currentCm % 1 ? 1 : 0)}
                           <span className="ml-0.5 text-[10px] text-white/40">
                             cm
                           </span>
@@ -397,8 +345,10 @@ export function BodyTab({ data }: { data: ProgressHubData["body"] }) {
               );
             })
           )}
-        </div>
-      </section>
+        </Surface>
+      </ProgressSection>
+
+      <PhotoCompareSection data={photos} />
     </div>
   );
 }

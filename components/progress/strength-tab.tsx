@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowDownRight,
@@ -10,68 +10,31 @@ import {
   Trophy,
 } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
-import { SectionLabel } from "@/components/ui/section-label";
 import { MiniSparkline } from "@/components/home/mini-sparkline";
 import { MuscleBalancePanel } from "@/components/progress/muscle-balance-panel";
-import { StrengthMoversCard } from "@/components/progress/strength-movers-card";
-import { StrengthVelocityPanel } from "@/components/progress/strength-velocity-panel";
+import {
+  StrengthForecastCard,
+  StrengthTrendCard,
+} from "@/components/progress/strength-trend-card";
+import {
+  CollapsibleCard,
+  EmptyNote,
+  Explainer,
+  ProgressSection,
+  StatTile,
+  Surface,
+} from "@/components/progress/progress-ui";
 import type { ProgressIntelligence } from "@/lib/analytics";
-import type {
-  ProgressExerciseRow,
-  ProgressHubData,
-} from "@/lib/progress-hub";
+import { formatDayMonth } from "@/lib/progress-format";
+import type { ProgressExerciseRow, ProgressHubData } from "@/lib/progress-hub";
 import { exerciseProgressKey } from "@/lib/progress-tabs";
 import { cn } from "@/lib/utils";
 
-function formatDayMonth(iso: string) {
-  try {
-    return new Intl.DateTimeFormat("pl-PL", {
-      day: "2-digit",
-      month: "2-digit",
-    }).format(new Date(`${iso}T12:00:00`));
-  } catch {
-    return iso;
-  }
-}
-
-function formatKg(n: number) {
-  return `${new Intl.NumberFormat("pl-PL", {
-    maximumFractionDigits: 0,
-  }).format(Math.round(n))} kg`;
-}
-
-function formatReps(n: number) {
-  return `${new Intl.NumberFormat("pl-PL", {
-    maximumFractionDigits: 0,
-  }).format(Math.round(n))} powt.`;
-}
-
 function formatMetric(n: number, metric: ProgressExerciseRow["metric"]) {
-  return metric === "reps" ? formatReps(n) : formatKg(n);
-}
-
-function cwiczeniaGenitive(n: number): string {
-  if (n === 1) return "ćwiczenia";
-  return "ćwiczeń";
-}
-
-function volumeHeadline(
-  counts: { up: number; flat: number; down: number },
-  compared: number,
-): string {
-  if (compared <= 0) return "Za mało danych do porównania";
-  if (counts.down > 0 && counts.down >= counts.up) {
-    return `Spadek w ${counts.down} z ${compared} ${cwiczeniaGenitive(compared)}`;
-  }
-  if (counts.up > 0 && counts.up > counts.down) {
-    return `Wzrost w ${counts.up} z ${compared} ${cwiczeniaGenitive(compared)}`;
-  }
-  if (counts.flat === compared) {
-    return compared === 1
-      ? "Stabilnie w 1 ćwiczeniu"
-      : `Stabilnie w ${compared} ${cwiczeniaGenitive(compared)}`;
-  }
-  return `Mieszany trend w ${compared} ${cwiczeniaGenitive(compared)}`;
+  const v = new Intl.NumberFormat("pl-PL", { maximumFractionDigits: 0 }).format(
+    Math.round(n),
+  );
+  return metric === "reps" ? `${v} powt.` : `${v} kg`;
 }
 
 function ExerciseRow({ ex }: { ex: ProgressExerciseRow }) {
@@ -111,15 +74,6 @@ function ExerciseRow({ ex }: { ex: ProgressExerciseRow }) {
     );
   }
 
-  const rightValue =
-    ex.status === "pending" ? (
-      <span className="font-metric text-[15px] text-white/30">—</span>
-    ) : (
-      <span className="font-metric text-[14px] tabular-nums text-white">
-        {formatMetric(ex.lastVolumeKg, ex.metric)}
-      </span>
-    );
-
   return (
     <Link
       href={href}
@@ -151,7 +105,13 @@ function ExerciseRow({ ex }: { ex: ProgressExerciseRow }) {
       )}
 
       <div className="flex shrink-0 items-center justify-end gap-1">
-        {rightValue}
+        {ex.status === "pending" ? (
+          <span className="font-metric text-[15px] text-white/30">—</span>
+        ) : (
+          <span className="font-metric text-[14px] tabular-nums text-white">
+            {formatMetric(ex.lastVolumeKg, ex.metric)}
+          </span>
+        )}
         {ex.status === "compare" ? (
           ex.trend === "down" ? (
             <ArrowDownRight className="h-3.5 w-3.5 text-rose-400" aria-hidden />
@@ -188,6 +148,196 @@ function intensityHeadline(data: ProgressHubData["strength"]["intensity"]): stri
   return "Za mało wpisów RIR/RPE do trendu";
 }
 
+function IntensityCard({
+  intensity,
+}: {
+  intensity: ProgressHubData["strength"]["intensity"];
+}) {
+  const title = useMemo(() => intensityHeadline(intensity), [intensity]);
+  const sparkColor =
+    intensity.rirTrend === "down"
+      ? "#fb7185"
+      : intensity.rirTrend === "up"
+        ? "#34d399"
+        : "#a3a3a3";
+
+  return (
+    <ProgressSection title="Intensywność" trailing="ostatnie 6 treningów">
+      <Surface className="space-y-3">
+        <div className="flex items-start gap-2.5">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]">
+            <Gauge className="h-3.5 w-3.5" aria-hidden />
+          </span>
+          <p className="min-w-0 flex-1 pt-1 text-[13px] font-semibold leading-snug text-white">
+            {title}
+          </p>
+          {intensity.rirSpark.length >= 2 ? (
+            <div className="w-12 shrink-0 pt-0.5">
+              <MiniSparkline
+                values={intensity.rirSpark}
+                color={sparkColor}
+                className="h-7 w-full"
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <StatTile
+            label="Śr. RIR"
+            value={
+              intensity.avgRir != null ? (
+                <AnimatedMetric value={intensity.avgRir} decimals={1} />
+              ) : (
+                "—"
+              )
+            }
+          />
+          <StatTile
+            label="Śr. RPE"
+            value={
+              intensity.avgRpe != null ? (
+                <AnimatedMetric value={intensity.avgRpe} decimals={1} />
+              ) : (
+                "—"
+              )
+            }
+          />
+          <StatTile
+            label="Twarde serie"
+            value={
+              intensity.hardSetPct != null ? (
+                <>
+                  <AnimatedMetric value={intensity.hardSetPct} decimals={0} />
+                  <span className="text-[12px] text-white/35">%</span>
+                </>
+              ) : (
+                "—"
+              )
+            }
+          />
+        </div>
+
+        {intensity.targetComparedCount > 0 ? (
+          <p className="text-[12px] leading-snug text-white/55">
+            Względem planu: {intensity.targetHitPct ?? 0}% w celu
+            {intensity.harderThanPlanCount > 0
+              ? ` · ${intensity.harderThanPlanCount}× ciężej`
+              : ""}
+            {intensity.easierThanPlanCount > 0
+              ? ` · ${intensity.easierThanPlanCount}× luźniej`
+              : ""}
+          </p>
+        ) : null}
+
+        <Explainer label="Szczegóły i definicje">
+          <p>Twarde serie = RIR ≤ 1 lub RPE ≥ 8.</p>
+          {intensity.temposUsed.length > 0 ? (
+            <p>
+              Tempo z planu: {intensity.temposUsed.join(" · ")}
+              {intensity.tempoExercisePct != null
+                ? ` · w ${intensity.tempoExercisePct}% ćwiczeń`
+                : ""}
+            </p>
+          ) : (
+            <p>Tempo z planu pojawi się tu, gdy ustawisz je przy ćwiczeniach.</p>
+          )}
+        </Explainer>
+      </Surface>
+    </ProgressSection>
+  );
+}
+
+function RecordsCard({ maxes }: { maxes: ProgressHubData["strength"]["maxes"] }) {
+  const newest = maxes.find((m) => m.isNew) ?? maxes[0] ?? null;
+
+  if (maxes.length === 0) {
+    return (
+      <EmptyNote>
+        Zaliczone serie (także bez ciężaru) pojawią się tu jako rekordy.
+      </EmptyNote>
+    );
+  }
+
+  return (
+    <CollapsibleCard
+      title="Rekordy"
+      icon={<Trophy className="h-3.5 w-3.5" aria-hidden />}
+      summary={
+        newest
+          ? `${maxes.length} · ostatni: ${newest.name}`
+          : `${maxes.length}`
+      }
+    >
+      <ul className="divide-y divide-white/[0.06]">
+        {maxes.map((m) => (
+          <li key={`${m.kind}-${m.name}`}>
+            <Link
+              href={`/progress/exercises/${exerciseProgressKey(m.name)}`}
+              className="grid grid-cols-[1fr_auto] items-center gap-2.5 px-3.5 py-2.5"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-[13px] font-semibold leading-snug text-white">
+                    {m.name}
+                  </p>
+                  {m.isNew ? (
+                    <span className="shrink-0 rounded-md bg-[var(--gym-gold)]/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--gym-gold)]">
+                      nowy
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-0.5 text-[11px] leading-snug text-white/40">
+                  {m.kind === "bodyweight"
+                    ? `masa ciała · ${formatDayMonth(m.date)}`
+                    : `${m.bestWeight} kg × ${m.bestReps} · ${formatDayMonth(m.date)}`}
+                </p>
+              </div>
+              <div className="min-w-[3.5rem] text-right">
+                <AnimatedMetric
+                  value={m.kind === "bodyweight" ? m.bestReps : m.bestE1rm}
+                  decimals={m.kind === "bodyweight" ? 0 : 1}
+                  className="text-[16px] leading-none text-white"
+                />
+                <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-white/35">
+                  {m.kind === "bodyweight" ? "powt." : "e1RM"}
+                </p>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </CollapsibleCard>
+  );
+}
+
+function CountChips({
+  counts,
+}: {
+  counts: { up: number; flat: number; down: number };
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 tabular-nums">
+      <span className="inline-flex items-center gap-0.5 text-emerald-400">
+        <ArrowUpRight className="h-3 w-3" aria-hidden />
+        {counts.up}
+      </span>
+      <span className="inline-flex items-center gap-0.5 text-white/50">
+        <ArrowRight className="h-3 w-3" aria-hidden />
+        {counts.flat}
+      </span>
+      <span className="inline-flex items-center gap-0.5 text-rose-400">
+        <ArrowDownRight className="h-3 w-3" aria-hidden />
+        {counts.down}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * Siła: trend → ćwiczenia wg planu → rekordy → intensywność → balans → prognoza.
+ * Liczniki rośnie/stoi/spada (dawny osobny hero) są teraz w nagłówku listy ćwiczeń.
+ */
 export function StrengthTab({
   data,
   intelligence,
@@ -196,291 +346,55 @@ export function StrengthTab({
   intelligence: ProgressIntelligence;
 }) {
   const { maxes, volumeCounts, volumeComparedCount, planGroups, intensity } = data;
-  const [maxesOpen, setMaxesOpen] = useState(false);
-
-  const headline = useMemo(
-    () => volumeHeadline(volumeCounts, volumeComparedCount),
-    [volumeCounts, volumeComparedCount],
-  );
-  const intensityTitle = useMemo(
-    () => intensityHeadline(intensity),
-    [intensity],
-  );
-
-  const newestMax = maxes.find((m) => m.isNew) ?? maxes[0] ?? null;
 
   return (
     <div className="space-y-3.5">
-      <section className="space-y-2">
-        <div className="app-card flex items-center gap-2.5 px-3.5 py-3">
-          <button
-            type="button"
-            onClick={() => setMaxesOpen((v) => !v)}
-            className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
-          >
-            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]">
-              <Trophy className="h-3.5 w-3.5" aria-hidden />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[14px] font-semibold leading-snug text-white">
-                Moje maxy
-              </span>
-              <span className="mt-0.5 block text-[11px] leading-snug text-white/40">
-                e1RM i max powtórzeń (masa ciała)
-              </span>
-            </span>
-          </button>
-          {newestMax ? (
-            <Link
-              href={`/progress/exercises/${exerciseProgressKey(newestMax.name)}`}
-              className="inline-flex h-8 shrink-0 items-center rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[11px] font-semibold text-white/85"
-            >
-              + Nowy max
-            </Link>
-          ) : (
-            <span className="inline-flex h-8 shrink-0 items-center rounded-lg border border-white/12 px-2.5 text-[11px] font-semibold text-white/35">
-              + Nowy max
-            </span>
-          )}
-        </div>
+      <StrengthTrendCard velocity={intelligence.velocity} />
 
-        {maxesOpen ? (
-          maxes.length === 0 ? (
-            <div className="app-card px-3.5 py-4 text-center text-[13px] text-white/45">
-              Zaliczone serie (także bez ciężaru) pojawią się tu jako maxy.
-            </div>
-          ) : (
-            <ul className="overflow-hidden app-panel divide-y divide-white/[0.06]">
-              {maxes.map((m) => (
-                <li key={`${m.kind}-${m.name}`}>
-                  <Link
-                    href={`/progress/exercises/${exerciseProgressKey(m.name)}`}
-                    className="grid grid-cols-[1fr_auto] items-center gap-2.5 px-3.5 py-2.5"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-[13px] font-semibold leading-snug text-white">
-                          {m.name}
-                        </p>
-                        {m.isNew ? (
-                          <span className="shrink-0 rounded-md bg-[var(--gym-gold)]/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--gym-gold)]">
-                            nowy
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-0.5 text-[11px] leading-snug text-white/40">
-                        {m.kind === "bodyweight"
-                          ? `masa ciała · ${formatDayMonth(m.date)}`
-                          : `${m.bestWeight} kg × ${m.bestReps} · ${formatDayMonth(m.date)}`}
-                      </p>
-                    </div>
-                    <div className="min-w-[3.5rem] text-right">
-                      <AnimatedMetric
-                        value={m.kind === "bodyweight" ? m.bestReps : m.bestE1rm}
-                        decimals={m.kind === "bodyweight" ? 0 : 1}
-                        className="text-[16px] leading-none text-white"
-                      />
-                      <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-white/35">
-                        {m.kind === "bodyweight" ? "powt." : "e1RM"}
-                      </p>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )
-        ) : null}
-      </section>
-
-      <section className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/35 bg-gradient-to-b from-[rgba(var(--neon-rgb),0.14)] via-[var(--gym-surface-sunken)] to-[var(--gym-surface-sunken)] px-3.5 py-3.5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-          Objętość z ostatnich 6 treningów
-        </p>
-        <p className="mt-1.5 text-[17px] font-semibold leading-snug tracking-tight text-white">
-          {headline}
-        </p>
-
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          {(
-            [
-              {
-                n: volumeCounts.up,
-                label: "rośnie",
-                Icon: ArrowUpRight,
-                tone: "text-emerald-400",
-                border: "border-emerald-400/25",
-              },
-              {
-                n: volumeCounts.flat,
-                label: "stoi",
-                Icon: ArrowRight,
-                tone: "text-white/50",
-                border: "border-white/10",
-              },
-              {
-                n: volumeCounts.down,
-                label: "spada",
-                Icon: ArrowDownRight,
-                tone: "text-rose-400",
-                border: "border-rose-400/25",
-              },
-            ] as const
-          ).map(({ n, label, Icon, tone, border }) => (
-            <div
-              key={label}
-              className={cn(
-                "rounded-xl border bg-black/35 px-2 py-2 text-center",
-                border,
-              )}
-            >
-              <div className={cn("flex items-center justify-center gap-1", tone)}>
-                <AnimatedMetric value={n} className={cn("text-[1.35rem] leading-none", tone)} />
-                <Icon className="h-3.5 w-3.5" aria-hidden />
-              </div>
-              <p className={cn("mt-1 text-[11px] leading-none", tone)}>{label}</p>
-            </div>
-          ))}
-        </div>
-
-        <p className="mt-2.5 text-[11px] leading-snug text-white/40">
-          Objętość = powtórzenia × kg × serie w treningu.
-        </p>
-      </section>
-
-      <section className="app-card space-y-2.5 px-3.5 py-3.5">
-        <div className="flex items-start gap-2.5">
-          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]">
-            <Gauge className="h-3.5 w-3.5" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
-              Intensywność · RIR / RPE / tempo
-            </p>
-            <p className="mt-1 text-[14px] font-semibold leading-snug tracking-tight text-white">
-              {intensityTitle}
-            </p>
+      <ProgressSection
+        title="Ćwiczenia wg planu"
+        trailing={
+          volumeComparedCount > 0 ? <CountChips counts={volumeCounts} /> : undefined
+        }
+      >
+        {planGroups.length === 0 ? (
+          <EmptyNote>Ustaw plan treningowy albo zalicz pierwsze serie.</EmptyNote>
+        ) : (
+          <div className="space-y-2">
+            {planGroups.map((group, idx) => (
+              <CollapsibleCard
+                key={group.planId}
+                title={group.planName}
+                summary={`${group.exercises.length} ćw.`}
+                defaultOpen={idx === 0}
+              >
+                <div className="divide-y divide-white/[0.06]">
+                  {group.exercises.map((ex) => (
+                    <ExerciseRow key={`${group.planId}-${ex.name}`} ex={ex} />
+                  ))}
+                </div>
+              </CollapsibleCard>
+            ))}
+            <Explainer>
+              <p>
+                Strzałka porównuje objętość ostatniego treningu z poprzednim.
+                Objętość = powtórzenia × kg × serie.
+              </p>
+            </Explainer>
           </div>
-          {intensity.rirSpark.length >= 2 ? (
-            <div className="w-12 shrink-0 pt-0.5">
-              <MiniSparkline
-                values={intensity.rirSpark}
-                color={
-                  intensity.rirTrend === "down"
-                    ? "#fb7185"
-                    : intensity.rirTrend === "up"
-                      ? "#34d399"
-                      : "#a3a3a3"
-                }
-                className="h-7 w-full"
-              />
-            </div>
-          ) : null}
-        </div>
+        )}
+      </ProgressSection>
 
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2 text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-              Śr. RIR
-            </p>
-            <p className="mt-1 font-metric text-[1.35rem] leading-none tabular-nums text-white">
-              {intensity.avgRir != null ? (
-                <AnimatedMetric value={intensity.avgRir} decimals={1} />
-              ) : (
-                "—"
-              )}
-            </p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2 text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-              Śr. RPE
-            </p>
-            <p className="mt-1 font-metric text-[1.35rem] leading-none tabular-nums text-white">
-              {intensity.avgRpe != null ? (
-                <AnimatedMetric value={intensity.avgRpe} decimals={1} />
-              ) : (
-                "—"
-              )}
-            </p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2 text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-              Twarde
-            </p>
-            <p className="mt-1 font-metric text-[1.35rem] leading-none tabular-nums text-white">
-              {intensity.hardSetPct != null ? (
-                <>
-                  <AnimatedMetric value={intensity.hardSetPct} decimals={0} />
-                  <span className="text-[12px] text-white/35">%</span>
-                </>
-              ) : (
-                "—"
-              )}
-            </p>
-          </div>
-        </div>
+      <RecordsCard maxes={maxes} />
 
-        <div className="space-y-1 text-[11px] leading-snug text-white/45">
-          {intensity.targetComparedCount > 0 ? (
-            <p>
-              Względem planu: {intensity.targetHitPct ?? 0}% w celu
-              {intensity.harderThanPlanCount > 0
-                ? ` · ${intensity.harderThanPlanCount}× ciężej`
-                : ""}
-              {intensity.easierThanPlanCount > 0
-                ? ` · ${intensity.easierThanPlanCount}× luźniej`
-                : ""}
-            </p>
-          ) : (
-            <p>Twarde serie = RIR ≤ 1 lub RPE ≥ 8 (ostatnie 6 treningów).</p>
-          )}
-          {intensity.temposUsed.length > 0 ? (
-            <p>
-              Tempo z planu: {intensity.temposUsed.join(" · ")}
-              {intensity.tempoExercisePct != null
-                ? ` · w ${intensity.tempoExercisePct}% ćw.`
-                : ""}
-            </p>
-          ) : (
-            <p>Tempo z planu pojawi się tu, gdy ustawisz je przy ćwiczeniach.</p>
-          )}
-        </div>
-      </section>
-
-      <StrengthVelocityPanel velocity={intelligence.velocity} />
-
-      <StrengthMoversCard
-        velocity={intelligence.velocity}
-        predictions={intelligence.predictions}
-      />
+      <IntensityCard intensity={intensity} />
 
       <MuscleBalancePanel
         muscle={intelligence.muscle}
         stagnation={intelligence.stagnation}
       />
 
-      <section className="space-y-3.5">
-        {planGroups.length === 0 ? (
-          <div className="app-card px-3.5 py-5 text-center text-[13px] text-white/45">
-            Ustaw plan treningowy albo zalicz pierwsze serie.
-          </div>
-        ) : (
-          planGroups.map((group, idx) => (
-            <div key={group.planId} className="space-y-2">
-              <SectionLabel
-                index={idx + 1}
-                title={group.planName}
-                trailing={`${group.exercises.length} ćw.`}
-                titleTone="white"
-              />
-              <div className="overflow-hidden app-panel divide-y divide-white/[0.06]">
-                {group.exercises.map((ex) => (
-                  <ExerciseRow key={`${group.planId}-${ex.name}`} ex={ex} />
-                ))}
-              </div>
-            </div>
-          ))
-        )}
-      </section>
+      <StrengthForecastCard predictions={intelligence.predictions} />
     </div>
   );
 }

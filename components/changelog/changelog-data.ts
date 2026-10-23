@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Postępy: uporządkowany układ ekranów analizy",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Analiza postępów ma cztery zakładki: Przegląd, Siła, Sylwetka i Tygodnie; zdjęcia są teraz w Sylwetce, a stare linki do zakładki Zdjęcia nadal działają.",
+      "Nowy Przegląd zbiera w jednym miejscu gotowość do treningu (zmęczenie i regenerację), bieżący tydzień z tonażem, cardio i serią, skrót trendów z ostatnich 30 dni, cele oraz zdobyte osiągnięcia.",
+      "W Sile trzy karty z tym samym trendem zostały połączone w jedną z jednym przełącznikiem 7, 30 lub 90 dni; ćwiczenia wg planu, rekordy i prognoza e1RM są zwijane, a licznik rośnie, stoi i spada trafił do nagłówka listy ćwiczeń.",
+      "W Sylwetce waga, cel z szacowanym terminem i wykres są w jednej karcie, a porównanie zdjęć Start i Teraz to jeden suwak zamiast powtarzania tych samych zdjęć i wag w trzech miejscach.",
+      "Objaśnienia typu „jak to liczymy” są schowane pod ikoną informacji, a sekcje nie mają już mieszanej numeracji 01, A i C.",
+    ],
+  },
+  {
     title: "Zapowiedź — Dodatkowe cardio: dokładniejsze liczenie i zapis wpisów",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

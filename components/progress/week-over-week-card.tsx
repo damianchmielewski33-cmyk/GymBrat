@@ -8,6 +8,7 @@ import {
   type ProgressWeekPick,
   type WeekTrainingCompare,
 } from "@/lib/week-training-compare";
+import { Explainer } from "@/components/progress/progress-ui";
 import { cn } from "@/lib/utils";
 
 function VerdictBadge({
@@ -247,11 +248,13 @@ export function WeekOverWeekCard({
         })}
       </ul>
 
-      <p className="text-[11px] leading-snug text-white/35">
-        {alignedPartial
-          ? "Gdy jeden tydzień to bieżący, oba zakresy są wyrównane do Pn→dziś — środek tygodnia nie wygląda jak regres względem pełnego Pn–Nd."
-          : "Oba tygodnie liczone w pełnym zakresie Pn–Nd."}
-      </p>
+      <Explainer>
+        <p>
+          {alignedPartial
+            ? "Gdy jeden tydzień to bieżący, oba zakresy są wyrównane do Pn→dziś — środek tygodnia nie wygląda jak regres względem pełnego Pn–Nd."
+            : "Oba tygodnie liczone w pełnym zakresie Pn–Nd."}
+        </p>
+      </Explainer>
     </div>
   );
 }

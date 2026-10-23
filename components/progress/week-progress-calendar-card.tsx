@@ -2,8 +2,10 @@
 
 import { Check } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
-import type { ProgressWeekDay } from "@/lib/progress-hub";
-import { formatHistoryWeekRange } from "@/lib/workout-history-overview";
+import { StatTile } from "@/components/progress/progress-ui";
+import type { ProgressWeekDay, ProgressWeekSummary } from "@/lib/progress-hub";
+import { fmtNum, plural } from "@/lib/progress-format";
+import { formatHistoryWeekRange, formatTonnes } from "@/lib/workout-history-overview";
 import { cn } from "@/lib/utils";
 
 function daysLeftLabel(n: number): string {
@@ -58,21 +60,29 @@ function WeekDayCell({
   );
 }
 
+/**
+ * Jedna karta „ten tydzień”: kalendarz treningów + tonaż, cardio i seria.
+ * Zastępuje dawne dwie osobne sekcje (kalendarz oraz „W tym tygodniu”).
+ */
 export function WeekProgressCalendarCard({
-  monday,
-  daysLeft,
-  done,
-  target,
-  days,
-  today,
+  summary,
 }: {
-  monday: string;
-  daysLeft: number;
-  done: number;
-  target: number;
-  days: ProgressWeekDay[];
-  today: string;
+  summary: ProgressWeekSummary;
 }) {
+  const {
+    monday,
+    daysLeft,
+    done,
+    target,
+    days,
+    today,
+    tonnageKg,
+    prevWeekTonnageKg,
+    cardioMinutes,
+    cardioGoalMinutes,
+    streakWeeks,
+  } = summary;
+
   return (
     <section className="app-card relative overflow-hidden px-3.5 py-3.5">
       <div
@@ -95,23 +105,59 @@ export function WeekProgressCalendarCard({
             className="text-[2.25rem] leading-none text-white"
           />
           <p className="pb-0.5 text-[13px] leading-tight text-white/55">
-            z {target} treningów
+            z {target} {plural(target, "treningu", "treningów", "treningów")}
           </p>
         </div>
 
         <div className="mt-3.5 grid grid-cols-7 gap-0.5 sm:gap-1">
           {days.map((d) => (
-            <WeekDayCell
-              key={d.date}
-              day={d}
-              isToday={d.date === today}
-            />
+            <WeekDayCell key={d.date} day={d} isToday={d.date === today} />
           ))}
         </div>
 
-        <p className="mt-2.5 text-[11px] leading-snug text-white/40">
-          Złote kółko — trening, niebieska kropka — cardio.
+        <p className="mt-2 flex items-center justify-center gap-3 text-[10px] text-white/40">
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-[var(--gym-gold)]" aria-hidden />
+            trening
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-400" aria-hidden />
+            cardio
+          </span>
         </p>
+
+        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/10 pt-3">
+          <StatTile
+            label="Tonaż"
+            value={
+              <>
+                {fmtNum(Math.max(0, tonnageKg) / 1000, 1)}
+                <span className="ml-0.5 text-[11px] text-white/40">t</span>
+              </>
+            }
+            hint={`poprz. ${formatTonnes(prevWeekTonnageKg)}`}
+          />
+          <StatTile
+            label="Cardio"
+            value={
+              <>
+                {fmtNum(cardioMinutes)}
+                <span className="ml-0.5 text-[11px] text-white/40">min</span>
+              </>
+            }
+            hint={`cel ${cardioGoalMinutes} min`}
+          />
+          <StatTile
+            label="Seria"
+            value={
+              <>
+                {streakWeeks}
+                <span className="ml-0.5 text-[11px] text-white/40">tyg.</span>
+              </>
+            }
+            hint="z treningiem"
+          />
+        </div>
       </div>
     </section>
   );
