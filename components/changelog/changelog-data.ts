@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Profil: nowy układ, przypomnienia i spójny wygląd",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Profil jest podzielony na sześć sekcji — Ciało, Trening, Dieta, Przypomnienia, Aplikacja i Konto — z paskiem skrótów na górze oraz nagłówkiem z inicjałami, adresem e-mail i podsumowaniem wagi, wzrostu i wieku.",
+      "Nowa sekcja Przypomnienia pozwala ustawić godziny powiadomień o treningu, posiłku i check-inie, wybrać dni tygodnia, zezwolić na powiadomienia w przeglądarce i włączyć dzienny skrót e-mail.",
+      "Cel cardio, cykl raportów i jednostka porównań są w jednej sekcji Trening i postępy, a cele dzienne i makro posiłków w sekcji Dieta, z gotowymi skrótami wartości.",
+      "Poziom aktywności ma czytelne opisy zamiast angielskich wartości, formularz hasła czyści pola po zapisie i znika u kont logujących się przez Google, a zgody na cookies mają przełączniki.",
+      "Wszystkie formularze w profilu mają te same pola, przyciski i odstępy; usunięto zdublowaną kartę z danymi logowania, a eksport i usunięcie konta są oddzielnymi blokami na końcu strony.",
+    ],
+  },
+  {
     title: "Zapowiedź — Panel admina: nowy układ i ekran Konfiguracja",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

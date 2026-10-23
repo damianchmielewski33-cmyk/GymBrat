@@ -128,6 +128,13 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/push-sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, max-age=0" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
         source: "/login",
         headers: [{ key: "Cache-Control", value: "private, no-store, no-cache, must-revalidate" }],
       },

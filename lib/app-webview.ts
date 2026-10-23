@@ -37,7 +37,13 @@ declare global {
       /** Zgoda marketingowa z CMP web → natywny AdMob. */
       setMarketingConsent?: (allowed: boolean) => void;
       hasMarketingConsent?: () => boolean;
+      /** Lokalne alarmy przypomnień (APK ≥ 0.1.16) — działają przy zamkniętej aplikacji. */
+      scheduleReminders?: (json: string) => boolean;
+      hasNotificationPermission?: () => boolean;
+      requestNotificationPermission?: () => void;
     };
+    /** Callback po systemowym dialogu POST_NOTIFICATIONS (Android 13+). */
+    __gymbratOnNotificationPermission?: (granted: boolean) => void;
     /** Callback ustawiany przez ensureAndroidCameraPermission przed mostem. */
     __gymbratOnCameraPermission?: (granted: boolean) => void;
     /** Callback po interstitial AdMob (lub natychmiast gdy brak reklamy). */
@@ -287,4 +293,58 @@ export function setAndroidNativeTorch(on: boolean): boolean | null {
   } catch {
     return false;
   }
+}
+
+
+/** Czy APK potrafi planować lokalne przypomnienia (nowszy most; stary APK tego nie ma). */
+export function hasAndroidNativeReminders(): boolean {
+  if (typeof window === "undefined") return false;
+  return typeof window.GymBratAndroid?.scheduleReminders === "function";
+}
+
+/**
+ * Przekazuje ustawienia przypomnień do natywnego harmonogramu (AlarmManager).
+ * Pusty obiekt `{}` kasuje wszystkie alarmy. null = brak mostu / stary APK.
+ */
+export function syncAndroidReminders(prefs: unknown): boolean | null {
+  if (typeof window === "undefined") return null;
+  const bridge = window.GymBratAndroid;
+  if (typeof bridge?.scheduleReminders !== "function") return null;
+  try {
+    return Boolean(bridge.scheduleReminders(JSON.stringify(prefs ?? {})));
+  } catch {
+    return false;
+  }
+}
+
+/** Natywny dialog zgody na powiadomienia (Android 13+). Bez mostu zwraca false. */
+export function ensureAndroidNotificationPermission(): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(false);
+  const bridge = window.GymBratAndroid;
+  if (typeof bridge?.requestNotificationPermission !== "function") {
+    return Promise.resolve(false);
+  }
+  try {
+    if (bridge.hasNotificationPermission?.()) return Promise.resolve(true);
+  } catch {
+    /* most niedostępny */
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (granted: boolean) => {
+      if (settled) return;
+      settled = true;
+      window.__gymbratOnNotificationPermission = undefined;
+      resolve(granted);
+    };
+    window.__gymbratOnNotificationPermission = finish;
+    try {
+      bridge.requestNotificationPermission?.();
+    } catch {
+      finish(false);
+      return;
+    }
+    window.setTimeout(() => finish(false), 60_000);
+  });
 }

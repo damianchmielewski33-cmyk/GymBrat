@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, RefreshCw, Smartphone } from "lucide-react";
+import { ExternalLink, RefreshCw } from "lucide-react";
+import { ProfileBlock } from "@/components/profile/profile-ui";
 import { Button } from "@/components/ui/button";
 import { ApkDownloadButton } from "@/components/apk-download-button";
 import { useInstalledAndroidAppIdentity } from "@/hooks/use-android-app-identity";
@@ -105,24 +106,11 @@ export function AndroidAppVersionCard() {
     if (!androidPhoneRwd) return null;
 
     return (
-      <section className="app-card p-5 sm:p-6 md:hidden">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <p className="app-label text-[var(--gym-gold)]">Telefon</p>
-            <h2 className="mt-1.5 text-lg font-semibold text-white">
-              Aplikacja Android
-            </h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-white/45">
-              Pobieranie omija menedżer Chrome (ten często „wisi” na 100%). Po
-              pobraniu wybierz „Zapisz w plikach” albo instalator.
-            </p>
-          </div>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10">
-            <Smartphone className="h-5 w-5 text-[var(--gym-gold)]" aria-hidden />
-          </div>
-        </div>
-
-        <div className="mt-5 space-y-3">
+      <ProfileBlock
+        title="Aplikacja Android"
+        description="Pobieranie omija menedżer Chrome (ten często „wisi” na 100%). Po pobraniu wybierz „Zapisz w plikach” albo instalator."
+      >
+        <div className="space-y-3">
           {latest ? (
             <ApkDownloadButton
               versionName={latest.versionName}
@@ -148,7 +136,7 @@ export function AndroidAppVersionCard() {
             GymBrat z innym podpisem — najpierw ją odinstaluj.
           </p>
         </div>
-      </section>
+      </ProfileBlock>
     );
   }
 
@@ -168,25 +156,12 @@ export function AndroidAppVersionCard() {
   }
 
   return (
-    <section className="app-card p-5 sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="app-label text-[var(--gym-gold)]">Telefon</p>
-          <h2 className="mt-1.5 text-lg font-semibold text-white">
-            Aplikacja Android
-          </h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-white/45">
-            Wersja zainstalowana na tym telefonie i informacja, czy jest nowsza
-            aktualizacja.
-          </p>
-        </div>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10">
-          <Smartphone className="h-5 w-5 text-[var(--gym-gold)]" aria-hidden />
-        </div>
-      </div>
-
-      <dl className="mt-5 grid gap-3 sm:grid-cols-2">
-        <div className="app-card-raised p-4">
+    <ProfileBlock
+      title="Aplikacja Android"
+      description="Wersja zainstalowana na tym telefonie i informacja, czy jest nowsza aktualizacja."
+    >
+      <dl className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-white/[0.08] bg-black/25 p-4">
           <dt className="app-label">Zainstalowana</dt>
           <dd className="mt-1 text-xl font-semibold tabular-nums text-white">
             {installed.versionName}
@@ -197,7 +172,7 @@ export function AndroidAppVersionCard() {
             </dd>
           ) : null}
         </div>
-        <div className="app-card-raised p-4">
+        <div className="rounded-xl border border-white/[0.08] bg-black/25 p-4">
           <dt className="app-label">Aktualizacja</dt>
           <dd
             className={cn(
@@ -282,6 +257,6 @@ export function AndroidAppVersionCard() {
           <ExternalLink className="h-3 w-3" aria-hidden />
         </a>
       </p>
-    </section>
+    </ProfileBlock>
   );
 }

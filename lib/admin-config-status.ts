@@ -181,6 +181,23 @@ const INTEGRATIONS: IntegrationDef[] = [
     ],
   },
   {
+    id: "web-push",
+    group: "users",
+    label: "Powiadomienia push (Web Push)",
+    description: "Przypomnienia o treningu, posiłku i check-inie przy zamkniętej karcie lub aplikacji w przeglądarce.",
+    level: "recommended",
+    effectWhenMissing:
+      "Przypomnienia w przeglądarce działają tylko przy otwartej karcie (aplikacja Android ustawia własne alarmy niezależnie od tego).",
+    vars: [
+      {
+        names: ["VAPID_PUBLIC_KEY", "NEXT_PUBLIC_VAPID_PUBLIC_KEY"],
+        hint: "Wygeneruj parę kluczy: npx web-push generate-vapid-keys.",
+      },
+      { names: ["VAPID_PRIVATE_KEY"] },
+      { names: ["VAPID_SUBJECT"], optional: true, hint: "mailto: lub https:// właściciela serwisu." },
+    ],
+  },
+  {
     id: "google",
     group: "users",
     label: "Logowanie przez Google",

@@ -18,13 +18,25 @@ export async function saveRemindersPrefsAction(input: unknown) {
 
   const json = remindersToJson(parsed.data);
   const db = getDb();
-  await db
-    .update(userSettings)
-    .set({
+  const [existing] = await db
+    .select({ userId: userSettings.userId })
+    .from(userSettings)
+    .where(eq(userSettings.userId, session.user.id))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(userSettings)
+      .set({ remindersJson: json, updatedAt: new Date() })
+      .where(eq(userSettings.userId, session.user.id));
+  } else {
+    await db.insert(userSettings).values({
+      userId: session.user.id,
+      weeklyCardioGoalMinutes: 150,
       remindersJson: json,
       updatedAt: new Date(),
-    })
-    .where(eq(userSettings.userId, session.user.id));
+    });
+  }
 
   revalidatePath("/profile");
   return { ok: true as const };

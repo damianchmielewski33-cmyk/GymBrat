@@ -65,6 +65,14 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  /**
+   * Crony (Vercel Cron, GitHub Actions, systemd) nie mają sesji NextAuth — każda trasa
+   * w /api/cron/ sama sprawdza `CRON_SECRET`. Bez tego wywołania kończyły się 401.
+   */
+  if (pathname.startsWith("/api/cron/")) {
+    return NextResponse.next();
+  }
+
   /** Branding / PWA ikony — publiczne (login, favicon, WebView bez sesji). */
   if (pathname.startsWith("/api/branding")) {
     return NextResponse.next();
@@ -163,6 +171,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth|api/android|_next/static|_next/image|favicon.ico|manifest.webmanifest|android-version.json|sw.js|workbox.*|\\.well-known/.*|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|apk)$).*)",
+    "/((?!api/auth|api/android|_next/static|_next/image|favicon.ico|manifest.webmanifest|android-version.json|sw.js|push-sw.js|workbox.*|\\.well-known/.*|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|apk)$).*)",
   ],
 };
