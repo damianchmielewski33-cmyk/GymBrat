@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Dziennik: karta „Zjedzone” z pierścieniem kalorii",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Karta „Zjedzone” w Dzienniku ma teraz złoty pierścień postępu kalorii z liczbą zjedzonych kcal w środku, w stylu karty „Makro na dzień”.",
+      "Obok pierścienia widać białko, węgle i tłuszcze z kolorowymi kropkami, wartością względem celu oraz cienkim paskiem postępu.",
+      "Na dole karty widać procentowy udział makroskładników w kaloriach dnia.",
+    ],
+  },
+  {
     title: "Zapowiedź — Ekran serii: Ciężar i Powtórzenia w jednej karcie",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

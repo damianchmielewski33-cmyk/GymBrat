@@ -312,54 +312,44 @@ export function DietDiaryPanel({
 
   const [expandedSlot, setExpandedSlot] = useState<DietDiarySlot | null>(null);
 
-  const dayMacroCells = [
-    {
-      key: "kcal",
-      value: kcalEaten,
-      sub:
-        kcalGoal != null
-          ? `/ ${Math.round(kcalGoal)}`
-          : null,
-      label: "Kalorie",
-      over: overGoal,
-    },
+  const macroRows = [
     {
       key: "B",
-      value: Math.round(dayMacros.proteinConsumed),
-      sub:
-        dayMacros.proteinGoal != null
-          ? `/ ${Math.round(dayMacros.proteinGoal)}`
-          : null,
       label: "Białko",
-      over:
-        dayMacros.proteinGoal != null &&
-        dayMacros.proteinConsumed > dayMacros.proteinGoal,
+      consumed: Math.round(dayMacros.proteinConsumed),
+      goal: dayMacros.proteinGoal,
+      color: "#F2DC95",
+      kcalPerG: 4,
     },
     {
       key: "W",
-      value: Math.round(dayMacros.carbsConsumed),
-      sub:
-        dayMacros.carbsGoal != null
-          ? `/ ${Math.round(dayMacros.carbsGoal)}`
-          : null,
       label: "Węgle",
-      over:
-        dayMacros.carbsGoal != null &&
-        dayMacros.carbsConsumed > dayMacros.carbsGoal,
+      consumed: Math.round(dayMacros.carbsConsumed),
+      goal: dayMacros.carbsGoal,
+      color: "#D1A84A",
+      kcalPerG: 4,
     },
     {
       key: "T",
-      value: Math.round(dayMacros.fatConsumed),
-      sub:
-        dayMacros.fatGoal != null
-          ? `/ ${Math.round(dayMacros.fatGoal)}`
-          : null,
       label: "Tłuszcze",
-      over:
-        dayMacros.fatGoal != null &&
-        dayMacros.fatConsumed > dayMacros.fatGoal,
+      consumed: Math.round(dayMacros.fatConsumed),
+      goal: dayMacros.fatGoal,
+      color: "#8A6A2C",
+      kcalPerG: 9,
     },
   ] as const;
+
+  // Udział makro w kcal: z zjedzonych, a gdy nic nie zjedzono — z celów dnia.
+  const eatenKcalByMacro = macroRows.map((r) => r.consumed * r.kcalPerG);
+  const goalKcalByMacro = macroRows.map((r) => (r.goal ?? 0) * r.kcalPerG);
+  const shareBase =
+    eatenKcalByMacro.reduce((a, b) => a + b, 0) > 0
+      ? eatenKcalByMacro
+      : goalKcalByMacro;
+  const shareTotal = shareBase.reduce((a, b) => a + b, 0);
+  const macroShare = shareBase.map((v) =>
+    shareTotal > 0 ? Math.round((v / shareTotal) * 100) : null,
+  );
 
   return (
     <div className="space-y-3.5">
@@ -417,127 +407,139 @@ export function DietDiaryPanel({
           )}
         </div>
 
-        {/* Hero kcal trio — zjedzone / zostało / cel */}
-        {kcalGoal != null ? (
-          <div className="relative mt-4 flex items-end justify-between gap-3 font-metric tabular-nums">
-            <div className="min-w-0">
+        {/* Pierścień kcal + makro (B / W / T) */}
+        <div className="relative mt-4 flex items-center gap-4 sm:gap-6">
+          <div className="relative h-[116px] w-[116px] shrink-0 sm:h-[132px] sm:w-[132px]">
+            <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+              <defs>
+                <linearGradient id="diary-ring-gold" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#F5E4A3" />
+                  <stop offset="55%" stopColor="#DDBB6D" />
+                  <stop offset="100%" stopColor="#B88A32" />
+                </linearGradient>
+              </defs>
+              <circle
+                cx="60"
+                cy="60"
+                r="52"
+                fill="none"
+                stroke="rgba(255,255,255,0.07)"
+                strokeWidth="9"
+              />
+              <motion.circle
+                cx="60"
+                cy="60"
+                r="52"
+                fill="none"
+                stroke={overGoal ? "#FB7185" : "url(#diary-ring-gold)"}
+                strokeWidth="9"
+                strokeLinecap="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: kcalPct / 100 }}
+                transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
+                style={{
+                  filter: `drop-shadow(0 0 6px rgba(${DIARY_GOLD_RGB}, 0.35))`,
+                }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center font-metric tabular-nums">
               <p
                 className={cn(
-                  "text-[clamp(2rem,7vw,2.75rem)] font-semibold leading-none tracking-tight",
-                  overGoal ? "text-rose-300" : "text-white",
+                  "text-[clamp(1.6rem,6.5vw,2.1rem)] font-semibold leading-none tracking-tight",
+                  overGoal ? "text-rose-300" : "text-[#F4EEDD]",
                 )}
               >
                 <AnimatedMetric
                   value={kcalEaten}
                   durationMs={700}
-                  className="text-[clamp(2rem,7vw,2.75rem)] leading-none"
+                  className="text-[clamp(1.6rem,6.5vw,2.1rem)] leading-none"
                 />
-                <span className="ml-1.5 text-[15px] font-medium text-white/45">
-                  kcal
-                </span>
               </p>
-              <p className="mt-1.5 text-[11px] font-medium uppercase tracking-[0.12em] text-white/40">
-                Zjedzone
-              </p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p
-                className={cn(
-                  "text-[18px] font-semibold leading-none sm:text-[20px]",
-                  overGoal ? "text-rose-300/90" : "text-white/75",
-                )}
-              >
-                <AnimatedMetric
-                  value={
-                    overGoal
-                      ? Math.abs(kcalDelta ?? 0)
-                      : Math.max(0, kcalRemaining ?? 0)
-                  }
-                  durationMs={700}
-                  className="text-[18px] leading-none sm:text-[20px]"
-                />
-                <span className="ml-1 text-[12px] font-medium text-white/40">
-                  kcal
-                </span>
-              </p>
-              <p className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-white/35">
-                {overGoal ? "Nadwyżka" : "Zostało"}
-              </p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className="text-[15px] font-semibold leading-none text-white/50 sm:text-[16px]">
-                {Math.round(kcalGoal)}
-                <span className="ml-1 text-[11px] font-medium text-white/30">
-                  kcal
-                </span>
-              </p>
-              <p className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-white/30">
-                Cel
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="relative mt-4 font-metric tabular-nums">
-            <p className="text-[clamp(2rem,7vw,2.75rem)] font-semibold leading-none text-white">
-              <AnimatedMetric
-                value={kcalEaten}
-                durationMs={700}
-                className="text-[clamp(2rem,7vw,2.75rem)] leading-none"
-              />
-              <span className="ml-1.5 text-[15px] font-medium text-white/45">
+              <p className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-white/45">
                 kcal
-              </span>
-            </p>
-          </div>
-        )}
-
-        {/* B · W · T — gęsta siatka jak dotychczas */}
-        <div className="relative mt-5 grid w-full grid-cols-3 gap-x-0 border-t border-white/[0.07] pt-3.5 font-metric tabular-nums">
-          {dayMacroCells.slice(1).map((cell, i) => (
-            <div
-              key={cell.key}
-              className={cn(
-                "min-w-0 px-2 first:pl-0 last:pr-0",
-                i > 0 && "border-l border-white/[0.08]",
-              )}
-            >
-              <p
-                className={cn(
-                  "truncate text-[20px] font-semibold leading-none sm:text-[22px]",
-                  cell.over ? "text-rose-300" : "text-white",
-                )}
-              >
-                <AnimatedMetric
-                  value={cell.value}
-                  durationMs={700}
-                  className="text-[20px] leading-none sm:text-[22px]"
-                />
-                {cell.sub ? (
-                  <span className="text-[12px] font-medium text-white/35">
-                    {cell.sub}
-                  </span>
-                ) : null}
-              </p>
-              <p
-                className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.1em]"
-                style={{ color: DIARY_GOLD }}
-              >
-                {cell.label}
               </p>
             </div>
-          ))}
+          </div>
+
+          <div className="min-w-0 flex-1 space-y-3 font-metric tabular-nums">
+            {macroRows.map((row) => {
+              const pct =
+                row.goal != null && row.goal > 0
+                  ? Math.min(100, (row.consumed / row.goal) * 100)
+                  : 0;
+              const over = row.goal != null && row.consumed > row.goal;
+              return (
+                <div key={row.key}>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p
+                      className="flex min-w-0 items-center gap-2 truncate text-[10px] font-semibold uppercase tracking-[0.14em]"
+                      style={{ color: DIARY_GOLD }}
+                    >
+                      <span
+                        aria-hidden
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: row.color }}
+                      />
+                      {row.label}
+                    </p>
+                    <p
+                      className={cn(
+                        "shrink-0 text-[17px] font-semibold leading-none sm:text-[19px]",
+                        over ? "text-rose-300" : "text-white",
+                      )}
+                    >
+                      <AnimatedMetric
+                        value={row.consumed}
+                        durationMs={700}
+                        className="text-[17px] leading-none sm:text-[19px]"
+                      />
+                      {row.goal != null ? (
+                        <span className="text-[11px] font-medium text-white/35">
+                          {" "}
+                          / {Math.round(row.goal)}
+                        </span>
+                      ) : null}
+                      <span className="ml-1 text-[11px] font-medium text-white/40">
+                        g
+                      </span>
+                    </p>
+                  </div>
+                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.08]">
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ backgroundColor: over ? "#FB7185" : row.color }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{
+                        duration: 0.7,
+                        ease: [0.22, 1, 0.36, 1],
+                        delay: 0.45,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="relative mt-3.5 h-1 overflow-hidden rounded-full bg-white/[0.07]">
-          <motion.div
-            className={cn(
-              "h-full rounded-full",
-              overGoal ? "bg-rose-400" : "bg-[#DDBB6D]",
-            )}
-            initial={{ width: 0 }}
-            animate={{ width: `${kcalPct}%` }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
-          />
+        {/* Udział makro w kaloriach */}
+        <div className="relative mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.07] pt-3 text-[11px] tabular-nums text-white/45">
+          {macroRows.map((row, i) => (
+            <p
+              key={row.key}
+              className={cn(
+                "truncate",
+                i === 1 && "text-center",
+                i === 2 && "text-right",
+              )}
+            >
+              {row.label}{" "}
+              <span className="font-semibold text-white/85">
+                {macroShare[i] != null ? `${macroShare[i]}%` : "—"}
+              </span>
+            </p>
+          ))}
         </div>
       </motion.section>
 
