@@ -5,6 +5,26 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Dieta: nowa karta „Makro na dzień” z pierścieniem",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Karta „Makro na dzień” w widoku Plan pokazuje pierścień kalorii podzielony na trzy złote segmenty: białko, węgle i tłuszcze, proporcjonalnie do ich udziału w kaloriach.",
+      "Obok pierścienia widać gramy każdego makroskładnika z kolorową kropką i paskiem udziału, a na dole karty procentowy podział makro.",
+      "Na wąskich telefonach pierścień jest wyśrodkowany nad listą makroskładników.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Pulpit: czytelniejsze sekcje Sylwetka i Założenia",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W Sylwetce zmiany wagi (od raportu, od startu, tempo) są kafelkami pod wagą ze strzałką i kolorem: zielone przy spadku, czerwone przy wzroście.",
+      "W Założeniach każdy pierścień (Dieta, Treningi, Cardio) jest w osobnej karcie ze statusem: świetnie od 80%, w normie od 50%, do poprawy poniżej.",
+      "Kafelki formy (Energia, Sen, Trawienie, Trening) mają cienki kolorowy pasek oceny od 1 do 10.",
+    ],
+  },
+  {
     title: "Zapowiedź — Treningi: nowy wygląd karty „Trening na dziś” i dni planu",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

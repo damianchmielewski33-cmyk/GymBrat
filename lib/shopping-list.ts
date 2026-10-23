@@ -19,10 +19,43 @@ function itemId(recipeId: string, name: string): string {
   return `${recipeId}::${normalizeName(name).toLowerCase()}`;
 }
 
-function readRaw(): ShoppingListItem[] {
-  if (typeof window === "undefined") return [];
+const SHOPPING_LIST_CHANGE_EVENT = "gymbrat:shopping-list:change";
+
+/** Surowy zapis z localStorage (stabilny string — nadaje się do useSyncExternalStore). */
+export function getShoppingListSnapshot(): string {
+  if (typeof window === "undefined") return "";
   try {
-    const raw = window.localStorage.getItem(SHOPPING_LIST_STORAGE_KEY);
+    return window.localStorage.getItem(SHOPPING_LIST_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** Subskrypcja zmian listy (ta karta i inne karty przeglądarki). */
+export function subscribeShoppingList(onChange: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === null || e.key === SHOPPING_LIST_STORAGE_KEY) onChange();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(SHOPPING_LIST_CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(SHOPPING_LIST_CHANGE_EVENT, onChange);
+  };
+}
+
+/** Parsuje surowy zapis listy zakupów; najnowsze pozycje na górze. */
+export function parseShoppingList(raw: string): ShoppingListItem[] {
+  return parseRaw(raw).sort((a, b) => b.addedAtMs - a.addedAtMs);
+}
+
+function readRaw(): ShoppingListItem[] {
+  return parseRaw(getShoppingListSnapshot());
+}
+
+function parseRaw(raw: string): ShoppingListItem[] {
+  try {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
@@ -65,6 +98,7 @@ function writeRaw(list: ShoppingListItem[]) {
   } catch {
     /* ignore quota */
   }
+  window.dispatchEvent(new Event(SHOPPING_LIST_CHANGE_EVENT));
 }
 
 export function listShoppingItems(): ShoppingListItem[] {
