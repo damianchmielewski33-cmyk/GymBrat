@@ -41,6 +41,8 @@ declare global {
       scheduleReminders?: (json: string) => boolean;
       hasNotificationPermission?: () => boolean;
       requestNotificationPermission?: () => void;
+      canScheduleExactAlarms?: () => boolean;
+      openExactAlarmSettings?: () => void;
     };
     /** Callback po systemowym dialogu POST_NOTIFICATIONS (Android 13+). */
     __gymbratOnNotificationPermission?: (granted: boolean) => void;
@@ -260,6 +262,32 @@ export function openAndroidAppSettings(): boolean {
   try {
     if (window.GymBratAndroid?.openAppSettings) {
       window.GymBratAndroid.openAppSettings();
+      return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+/** Czy APK może stawiać dokładne alarmy (Android 12+). Bez mostu: true (nie blokuj UI). */
+export function androidCanScheduleExactAlarms(): boolean {
+  if (typeof window === "undefined") return true;
+  const fn = window.GymBratAndroid?.canScheduleExactAlarms;
+  if (typeof fn !== "function") return true;
+  try {
+    return Boolean(fn.call(window.GymBratAndroid));
+  } catch {
+    return true;
+  }
+}
+
+/** Ekran systemowy zgody na dokładne alarmy. */
+export function openAndroidExactAlarmSettings(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    if (window.GymBratAndroid?.openExactAlarmSettings) {
+      window.GymBratAndroid.openExactAlarmSettings();
       return true;
     }
   } catch {

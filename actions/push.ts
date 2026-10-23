@@ -7,7 +7,13 @@ import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { pushSubscriptions } from "@/db/schema";
 import { guardAction } from "@/lib/action-guard";
+import { getVapidPublicKey } from "@/lib/web-push";
 import { headers } from "next/headers";
+
+/** Klucz publiczny VAPID — nie jest sekretem; potrzebny, żeby przeglądarka zasubskrybowała push. */
+export async function getWebPushPublicKeyAction(): Promise<string | null> {
+  return getVapidPublicKey();
+}
 
 const subscriptionSchema = z.object({
   endpoint: z.string().url().max(2048).startsWith("https://"),

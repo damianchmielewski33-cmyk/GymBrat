@@ -30,14 +30,19 @@ public final class ReminderReceiver extends BroadcastReceiver {
         if (intent == null || !ReminderScheduler.ACTION_REMINDER.equals(intent.getAction())) {
             return;
         }
-        String kind = intent.getStringExtra(ReminderScheduler.EXTRA_KIND);
-        long at = intent.getLongExtra(ReminderScheduler.EXTRA_AT, 0L);
-        boolean stale = at > 0L && System.currentTimeMillis() - at > MAX_LATE_MS;
-        if (kind != null && !stale) {
-            show(context, kind);
+        PendingResult pending = goAsync();
+        try {
+            String kind = intent.getStringExtra(ReminderScheduler.EXTRA_KIND);
+            long at = intent.getLongExtra(ReminderScheduler.EXTRA_AT, 0L);
+            boolean stale = at > 0L && System.currentTimeMillis() - at > MAX_LATE_MS;
+            if (kind != null && !stale) {
+                show(context, kind);
+            }
+            // Następny termin (jutro lub kolejny dozwolony dzień).
+            ReminderScheduler.scheduleAll(context);
+        } finally {
+            pending.finish();
         }
-        // Następny termin (jutro lub kolejny dozwolony dzień).
-        ReminderScheduler.scheduleAll(context);
     }
 
     private static void show(Context context, String kind) {
@@ -91,7 +96,8 @@ public final class ReminderReceiver extends BroadcastReceiver {
                 .setContentTitle(title)
                 .setContentText(body)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)
                 .setContentIntent(content);
@@ -109,9 +115,10 @@ public final class ReminderReceiver extends BroadcastReceiver {
         NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
                 "Przypomnienia GymBrat",
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
         );
         channel.setDescription("Trening, posiłki i check-in o wybranych porach");
+        channel.enableVibration(true);
         manager.createNotificationChannel(channel);
     }
 }

@@ -29,6 +29,8 @@ type IntegrationDef = {
   level: ConfigLevel;
   /** Co się dzieje, gdy integracja nie jest skonfigurowana. */
   effectWhenMissing: string;
+  /** Gdzie i jak ustawić to na hostingu (Vercel / Render / GitHub). */
+  hostingHint?: string;
   vars: VarSpec[];
   link?: { href: string; label: string };
 };
@@ -49,6 +51,7 @@ export type ConfigIntegration = {
   level: ConfigLevel;
   status: ConfigStatus;
   effectWhenMissing: string;
+  hostingHint: string;
   vars: ConfigVarState[];
   /** Główne nazwy brakujących zmiennych wymaganych przez integrację. */
   missing: string[];
@@ -62,9 +65,18 @@ export type ConfigSummary = {
   requiredIssues: number;
   /** Zalecane integracje, które nie działają w pełni. */
   recommendedIssues: number;
+  /**
+   * Wymagane + zalecane, które nie działają — to widać w panelu jako
+   * „trzeba skonfigurować na hostingu”. Opcjonalne (Google, Sentry…) nie wchodzą.
+   */
+  hostingIssues: number;
   /** 0–100: odsetek wymaganych + zalecanych integracji, które działają. */
   readiness: number;
 };
+
+/** Domyślna instrukcja, gdy integracja nie ma własnego opisu hostingu. */
+export const DEFAULT_HOSTING_HINT =
+  "Ustaw zmienne w środowisku hostingu (Vercel → Settings → Environment Variables albo Render → Environment) i zrób redeploy. Wartości nie są tu pokazywane.";
 
 export const CONFIG_GROUP_LABELS: Record<ConfigGroupId, { label: string; description: string }> = {
   core: {
@@ -152,7 +164,9 @@ const INTEGRATIONS: IntegrationDef[] = [
     description: "Autoryzacja endpointów sprzątania danych i przypomnień.",
     level: "recommended",
     effectWhenMissing:
-      "Cron sprzątania bazy i przypomnień odrzuca żądania — dane nie są czyszczone automatycznie.",
+      "Endpointy /api/cron/cleanup i /api/cron/reminders odrzucają żądania — baza nie jest sprzątana, a przypomnienia push i skrót e-mail nie wychodzą.",
+    hostingHint:
+      "Ustaw CRON_SECRET w zmiennych środowiska aplikacji. Przypomnienia przy zamkniętej karcie wymagają też wywołania POST /api/cron/reminders co 5 min: sekrety GitHub REMINDERS_APP_URL + CRON_SECRET (workflow Reminders cron) albo cron na VPS.",
     vars: [{ names: ["CRON_SECRET"] }],
   },
   {
@@ -171,13 +185,15 @@ const INTEGRATIONS: IntegrationDef[] = [
     label: "Wysyłka e-mail (SMTP)",
     description: "Kody weryfikacyjne przy rejestracji i powiadomienia.",
     level: "recommended",
-    effectWhenMissing: "Kody rejestracyjne nie są wysyłane e-mailem (tryb bez SMTP).",
+    effectWhenMissing:
+      "Kody rejestracyjne i dzienny skrót e-mail z przypomnień nie są wysyłane.",
     vars: [
       { names: ["SMTP_HOST"] },
       { names: ["SMTP_USER"] },
       { names: ["SMTP_PASS"] },
       { names: ["SMTP_PORT"], optional: true, hint: "Domyślnie 587." },
       { names: ["EMAIL_FROM"], optional: true, hint: "Domyślnie SMTP_USER." },
+      { names: ["EMAIL_CODE_SECRET"], optional: true, hint: "Bez tego używany jest AUTH_SECRET." },
     ],
   },
   {
@@ -187,7 +203,9 @@ const INTEGRATIONS: IntegrationDef[] = [
     description: "Przypomnienia o treningu, posiłku i check-inie przy zamkniętej karcie lub aplikacji w przeglądarce.",
     level: "recommended",
     effectWhenMissing:
-      "Przypomnienia w przeglądarce działają tylko przy otwartej karcie (aplikacja Android ustawia własne alarmy niezależnie od tego).",
+      "Przypomnienia w przeglądarce nie przychodzą przy zamkniętej karcie. Aplikacja Android ustawia własne alarmy niezależnie od tego.",
+    hostingHint:
+      "Wygeneruj klucze (`npx web-push generate-vapid-keys`) i ustaw VAPID_PUBLIC_KEY oraz VAPID_PRIVATE_KEY w zmiennych środowiska hostingu. Cron przypomnień (CRON_SECRET + wywołanie co 5 min) też musi działać.",
     vars: [
       {
         names: ["VAPID_PUBLIC_KEY", "NEXT_PUBLIC_VAPID_PUBLIC_KEY"],
@@ -314,8 +332,25 @@ const INTEGRATIONS: IntegrationDef[] = [
     vars: [
       { names: ["GITHUB_APK_DISPATCH_TOKEN"] },
       { names: ["ANDROID_APK_URL", "NEXT_PUBLIC_ANDROID_APK_URL"], optional: true },
+      {
+        names: ["ANDROID_VERSION_JSON_URL"],
+        optional: true,
+        hint: "JSON z versionCode / versionName najnowszego APK.",
+      },
     ],
     link: { href: "/admin/branding", label: "Branding" },
+  },
+  {
+    id: "java-api",
+    group: "core",
+    label: "Backend Java (BFF)",
+    description: "Proxy wybranych /api/* do Spring Boot (java-backend).",
+    level: "optional",
+    effectWhenMissing: "Next obsługuje API samodzielnie — bez osobnego serwera Java.",
+    vars: [
+      { names: ["JAVA_API_BASE_URL"], hint: "np. http://localhost:8080" },
+      { names: ["GYMBRAT_PROXY_TOKEN"], optional: true, hint: "Wymagany, gdy Java API jest włączone." },
+    ],
   },
   {
     id: "ads",
@@ -360,10 +395,30 @@ function evaluate(def: IntegrationDef, env: Env): ConfigIntegration {
     level: def.level,
     status,
     effectWhenMissing: def.effectWhenMissing,
+    hostingHint: def.hostingHint ?? DEFAULT_HOSTING_HINT,
     vars,
     missing: needed.filter((v) => !v.present).map((v) => v.name),
     link: def.link,
   };
+}
+
+/** Wszystkie nazwy (i aliasy) śledzone w panelu Konfiguracja. */
+export function listTrackedEnvNames(): string[] {
+  const names = new Set<string>();
+  for (const def of INTEGRATIONS) {
+    for (const v of def.vars) for (const n of v.names) names.add(n);
+  }
+  return [...names].sort();
+}
+
+/** Odmiana: 1 funkcję / 2 funkcje / 5 funkcji. */
+export function formatHostingFunctionCount(count: number): string {
+  if (count === 1) return "1 funkcję";
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  const noun =
+    mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? "funkcje" : "funkcji";
+  return `${count} ${noun}`;
 }
 
 export function getConfigStatus(env: Env = process.env): ConfigIntegration[] {
@@ -385,6 +440,7 @@ export function summarizeConfig(items: ConfigIntegration[]): ConfigSummary {
     ok,
     requiredIssues,
     recommendedIssues,
+    hostingIssues: requiredIssues + recommendedIssues,
     readiness: scored.length ? Math.round((scoredOk / scored.length) * 100) : 100,
   };
 }

@@ -25,12 +25,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { adminRequest } from "@/lib/admin-client";
-import type {
-  ConfigGroupId,
-  ConfigIntegration,
-  ConfigLevel,
-  ConfigStatus,
-  ConfigSummary,
+import {
+  formatHostingFunctionCount,
+  type ConfigGroupId,
+  type ConfigIntegration,
+  type ConfigLevel,
+  type ConfigStatus,
+  type ConfigSummary,
 } from "@/lib/admin-config-status";
 import { cn } from "@/lib/utils";
 
@@ -113,10 +114,16 @@ function IntegrationCard({
           <p className="text-xs text-white/50">{item.description}</p>
 
           {item.status !== "ok" ? (
-            <p className="text-xs leading-relaxed text-amber-100/80">
-              <span className="font-semibold">Skutek: </span>
-              {item.effectWhenMissing}
-            </p>
+            <div className="space-y-1.5">
+              <p className="text-xs leading-relaxed text-amber-100/80">
+                <span className="font-semibold">Skutek: </span>
+                {item.effectWhenMissing}
+              </p>
+              <p className="text-xs leading-relaxed text-white/55">
+                <span className="font-semibold text-white/70">Na hostingu: </span>
+                {item.hostingHint}
+              </p>
+            </div>
           ) : null}
 
           <ul className="flex flex-wrap gap-1.5 pt-0.5">
@@ -342,11 +349,13 @@ export function AdminSettingsClient() {
                 />
               </div>
               <p className="text-sm text-white/65">
-                {summary.requiredIssues > 0
-                  ? `${summary.requiredIssues} wymaganych integracji wymaga uwagi — aplikacja może działać niepoprawnie.`
-                  : summary.recommendedIssues > 0
-                    ? `Wszystko, co wymagane, działa. Do skonfigurowania zostało ${summary.recommendedIssues} zalecanych integracji.`
-                    : "Wszystkie wymagane i zalecane integracje są skonfigurowane."}
+                {summary.hostingIssues > 0
+                  ? `Trzeba skonfigurować na hostingu ${formatHostingFunctionCount(summary.hostingIssues)}${
+                      summary.requiredIssues > 0
+                        ? ` (w tym ${summary.requiredIssues} wymaganych).`
+                        : "."
+                    }`
+                  : "Wszystkie wymagane i zalecane integracje są skonfigurowane na hostingu."}
               </p>
             </div>
             {todo.length > 0 ? (

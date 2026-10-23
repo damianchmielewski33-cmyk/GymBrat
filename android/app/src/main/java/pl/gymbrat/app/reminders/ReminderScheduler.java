@@ -63,21 +63,39 @@ public final class ReminderScheduler {
                 alarms.cancel(pi);
                 continue;
             }
-            setAlarm(alarms, triggerAt, pi);
+            setAlarm(app, alarms, i, triggerAt, pi);
         }
     }
 
-    private static void setAlarm(AlarmManager alarms, long triggerAt, PendingIntent pi) {
+    /**
+     * {@link AlarmManager#setAlarmClock} jest jedynym API, które na Androidzie 12+
+     * regularnie budzi telefon przy zamkniętej aplikacji (Doze / oszczędzanie baterii).
+     */
+    private static void setAlarm(
+            Context app,
+            AlarmManager alarms,
+            int requestCode,
+            long triggerAt,
+            PendingIntent pi
+    ) {
         try {
             boolean exactAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.S
                     || alarms.canScheduleExactAlarms();
             if (exactAllowed) {
-                alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi);
+                Intent show = app.getPackageManager().getLaunchIntentForPackage(app.getPackageName());
+                if (show == null) show = new Intent();
+                show.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                PendingIntent showPi = PendingIntent.getActivity(
+                        app,
+                        requestCode + 200,
+                        show,
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                );
+                alarms.setAlarmClock(new AlarmManager.AlarmClockInfo(triggerAt, showPi), pi);
             } else {
                 alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi);
             }
         } catch (SecurityException e) {
-            // Brak zgody na dokładne alarmy — nieprecyzyjny, ale nadal budzi w Doze.
             alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi);
         }
     }

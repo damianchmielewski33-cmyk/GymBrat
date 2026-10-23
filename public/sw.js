@@ -1,14 +1,11 @@
-/* GymBrat service worker — kill-switch.
+/* GymBrat service worker — powiadomienia push, bez cache UI.
  *
- * The old committed Workbox/next-pwa worker precached hashed `/_next/static/*`
- * files from a previous build. Because this file was not regenerated on deploy,
- * returning visitors (and the AWP iframe on gym-brat.vercel.app) kept running
- * that worker and seeing stale production UI.
- *
- * This worker takes over, deletes those caches, unregisters itself, and reloads
- * open clients so the next navigation hits the network.
+ * Stary next-pwa / Workbox precachował hashed `/_next/static/*` i pokazywał
+ * nieaktualny interfejs. Ten worker przejmuje scope `/`, kasuje te cache
+ * i NIE un-rejestruje się — musi zostać, żeby push działał przy zamkniętej karcie.
+ * Nie obsługuje `fetch`: każda nawigacja idzie w sieć.
  */
-const SW_VERSION = "gymbrat-kill-stale-2026-09-18";
+const SW_VERSION = "gymbrat-push-2026-10-23";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -20,16 +17,44 @@ self.addEventListener("activate", (event) => {
     (async () => {
       const keys = await caches.keys();
       await Promise.all(keys.map((key) => caches.delete(key)));
-      await self.registration.unregister();
-      const windowClients = await self.clients.matchAll({
-        type: "window",
-        includeUncontrolled: true,
-      });
-      await Promise.all(
-        windowClients.map((client) =>
-          "navigate" in client ? client.navigate(client.url) : Promise.resolve(),
-        ),
-      );
+      await self.clients.claim();
+    })(),
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : "" };
+  }
+  const title = typeof data.title === "string" && data.title ? data.title : "GymBrat";
+  const options = {
+    body: typeof data.body === "string" ? data.body : "",
+    tag: typeof data.tag === "string" ? data.tag : "gymbrat-reminder",
+    data: { url: typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(
+    (event.notification.data && event.notification.data.url) || "/",
+    self.location.origin,
+  ).href;
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of windows) {
+        if (new URL(client.url).origin === self.location.origin && "focus" in client) {
+          await client.focus();
+          if ("navigate" in client) await client.navigate(target);
+          return;
+        }
+      }
+      await self.clients.openWindow(target);
     })(),
   );
 });

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getConfigStatus, summarizeConfig } from "@/lib/admin-config-status";
+import {
+  formatHostingFunctionCount,
+  getConfigStatus,
+  listTrackedEnvNames,
+  summarizeConfig,
+} from "@/lib/admin-config-status";
 
 describe("admin-config-status", () => {
   it("oznacza brak wszystkich zmiennych jako missing i wymienia brakujące nazwy", () => {
@@ -50,6 +55,45 @@ describe("admin-config-status", () => {
     const full = summarizeConfig(getConfigStatus(allEnv));
     expect(full.requiredIssues).toBe(0);
     expect(full.recommendedIssues).toBe(0);
+    expect(full.hostingIssues).toBe(0);
     expect(full.readiness).toBe(100);
+  });
+
+  it("liczy hostingIssues jako wymagane + zalecane (nie opcjonalne)", () => {
+    const items = getConfigStatus({});
+    const summary = summarizeConfig(items);
+    expect(summary.hostingIssues).toBe(summary.requiredIssues + summary.recommendedIssues);
+    expect(summary.hostingIssues).toBeGreaterThan(0);
+    const optionalMissing = items.filter((i) => i.level === "optional" && i.status !== "ok");
+    expect(optionalMissing.length).toBeGreaterThan(0);
+    expect(summary.hostingIssues).toBeLessThan(items.filter((i) => i.status !== "ok").length);
+  });
+
+  it("śledzi zmienne funkcji, które bez hostingu nie działają", () => {
+    const names = listTrackedEnvNames();
+    for (const required of [
+      "CRON_SECRET",
+      "VAPID_PUBLIC_KEY",
+      "VAPID_PRIVATE_KEY",
+      "SMTP_HOST",
+      "HOTPAY_SEKRET",
+      "POLLINATIONS_API_KEY",
+      "JAVA_API_BASE_URL",
+    ]) {
+      expect(names).toContain(required);
+    }
+  });
+
+  it("odmienia liczbę funkcji do konfiguracji", () => {
+    expect(formatHostingFunctionCount(1)).toBe("1 funkcję");
+    expect(formatHostingFunctionCount(2)).toBe("2 funkcje");
+    expect(formatHostingFunctionCount(5)).toBe("5 funkcji");
+  });
+
+  it("każda brakująca zalecana integracja ma instrukcję hostingu", () => {
+    const items = getConfigStatus({});
+    for (const item of items.filter((i) => i.level !== "optional")) {
+      expect(item.hostingHint.length).toBeGreaterThan(20);
+    }
   });
 });

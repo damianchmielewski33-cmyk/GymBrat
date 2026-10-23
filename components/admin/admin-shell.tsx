@@ -11,6 +11,8 @@ import {
   type AdminNavBadge,
   type AdminNavItem,
 } from "@/components/admin/admin-nav";
+import { AdminNotice } from "@/components/admin/admin-ui";
+import { formatHostingFunctionCount } from "@/lib/admin-config-status";
 import { BUG_REPORTS_CHANGED_EVENT } from "@/lib/bug-reports";
 import { adminRequest } from "@/lib/admin-client";
 import { cn } from "@/lib/utils";
@@ -67,6 +69,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const { notifyError } = useSaveFeedback();
   const [openBugs, setOpenBugs] = useState(0);
   const [configIssues, setConfigIssues] = useState(0);
+  const [configRequired, setConfigRequired] = useState(0);
   const [leaving, setLeaving] = useState(false);
 
   const refreshOpenCount = useCallback(async () => {
@@ -79,11 +82,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshConfigIssues = useCallback(async () => {
-    const res = await adminRequest<{ summary?: { requiredIssues: number } }>(
-      "/api/admin/config-status",
-    );
+    const res = await adminRequest<{
+      summary?: { requiredIssues: number; hostingIssues?: number; recommendedIssues?: number };
+    }>("/api/admin/config-status");
     if (res.ok && res.data.summary) {
-      setConfigIssues(res.data.summary.requiredIssues);
+      const hosting =
+        typeof res.data.summary.hostingIssues === "number"
+          ? res.data.summary.hostingIssues
+          : res.data.summary.requiredIssues + (res.data.summary.recommendedIssues ?? 0);
+      setConfigIssues(hosting);
+      setConfigRequired(res.data.summary.requiredIssues);
     }
   }, []);
 
@@ -192,7 +200,25 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <div className="border-t border-white/10 pt-4">{backButton}</div>
       </aside>
 
-      <main className="min-w-0 space-y-6">{children}</main>
+      <main className="min-w-0 space-y-6">
+        {configIssues > 0 && pathname !== "/admin/settings" ? (
+          <AdminNotice
+            tone={configRequired > 0 ? "danger" : "warn"}
+            action={
+              <Link
+                href="/admin/settings"
+                className="inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+              >
+                Otwórz Konfigurację
+              </Link>
+            }
+          >
+            Trzeba skonfigurować na hostingu {formatHostingFunctionCount(configIssues)}.
+            Ustaw zmienne środowiska i zrób redeploy.
+          </AdminNotice>
+        ) : null}
+        {children}
+      </main>
     </div>
   );
 }

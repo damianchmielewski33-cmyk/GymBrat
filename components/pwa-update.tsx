@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import {
   SW_CLEARED_SESSION_KEY,
   clearStaleServiceWorkers,
+  isGymBratPushScriptUrl,
   shouldReloadAfterServiceWorkerClear,
 } from "@/lib/pwa-update";
 
@@ -13,7 +14,8 @@ export function PwaUpdate() {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
 
     void (async () => {
-      const hadController = Boolean(navigator.serviceWorker.controller);
+      const controller = navigator.serviceWorker.controller;
+      const hadController = Boolean(controller);
       const result = await clearStaleServiceWorkers({
         getRegistrations: () => navigator.serviceWorker.getRegistrations(),
         caches: "caches" in globalThis ? caches : undefined,
@@ -26,6 +28,7 @@ export function PwaUpdate() {
           registrationCount: result.registrationCount,
           cacheCount: result.cacheCount,
           alreadyReloaded,
+          controllerIsPush: isGymBratPushScriptUrl(controller?.scriptURL),
         })
       ) {
         return;
