@@ -1,4 +1,5 @@
-import { daysBetween, inWindow } from "@/lib/analytics/math";
+import { inWindow } from "@/lib/analytics/math";
+import { daysBetweenDateKeys } from "@/lib/local-date";
 import type {
   AnalyticsCardioSample,
   CardioPerformanceVerdict,
@@ -56,7 +57,7 @@ export function computeCardioPerformance(args: {
       (newest.title && s.title === newest.title);
     if (!sameType) return false;
     if (!similarDuration(s.minutes, newest.minutes)) return false;
-    const gap = daysBetween(s.date, newest.date);
+    const gap = daysBetweenDateKeys(s.date, newest.date);
     return gap >= 14 && gap <= 60;
   });
 

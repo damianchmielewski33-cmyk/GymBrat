@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import { confirmAccountTakeover } from "@/actions/account-takeover";
 import { AuthCard } from "@/components/auth/auth-card";
+import { TAKEOVER_ERROR_MESSAGES } from "@/components/auth/auth-copy";
 import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { InlineBanner } from "@/components/ui/inline-banner";
@@ -13,11 +14,6 @@ import { cn } from "@/lib/utils";
 
 /** Po przejęciu wracamy przez Google; `notice` pokazuje jednorazowy komunikat UX 4B. */
 const AFTER_TAKEOVER_REDIRECT = "/register?oauth=1&notice=account_reset";
-
-const TAKEOVER_FAILED_MESSAGE =
-  "Nie udało się zabezpieczyć konta. Niczego nie zmieniliśmy. Spróbuj ponownie.";
-const TAKEOVER_OFFLINE_MESSAGE =
-  "Brak połączenia z internetem. Niczego nie zmieniliśmy. Spróbuj ponownie, gdy wrócisz do sieci.";
 
 /**
  * Ekran „Ten adres ma już konto” (UX 001, 4A): potwierdzenie przejęcia konta
@@ -32,7 +28,7 @@ export function AccountTakeoverScreen({ token }: { token: string | null }) {
     if (!token || pending) return;
     setError(null);
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      setError(TAKEOVER_OFFLINE_MESSAGE);
+      setError(TAKEOVER_ERROR_MESSAGES.offline);
       return;
     }
     setPending(true);
@@ -40,7 +36,7 @@ export function AccountTakeoverScreen({ token }: { token: string | null }) {
       const res = await confirmAccountTakeover({ token });
       if (!res.ok) {
         if (res.code === "expired") setExpired(true);
-        else setError(TAKEOVER_FAILED_MESSAGE);
+        else setError(TAKEOVER_ERROR_MESSAGES[res.code]);
         setPending(false);
         return;
       }
@@ -49,8 +45,8 @@ export function AccountTakeoverScreen({ token }: { token: string | null }) {
     } catch {
       setError(
         typeof navigator !== "undefined" && navigator.onLine === false
-          ? TAKEOVER_OFFLINE_MESSAGE
-          : TAKEOVER_FAILED_MESSAGE,
+          ? TAKEOVER_ERROR_MESSAGES.offline
+          : TAKEOVER_ERROR_MESSAGES.failed,
       );
       setPending(false);
     }
@@ -67,7 +63,7 @@ export function AccountTakeoverScreen({ token }: { token: string | null }) {
         {expired ? (
           <>
             <InlineBanner role="alert" variant="error">
-              Ten link wygasł. Zaloguj się ponownie przez Google.
+              {TAKEOVER_ERROR_MESSAGES.expired}
             </InlineBanner>
             <Link href="/login" className={cn(buttonVariants({ variant: "cta" }), "w-full")}>
               Przejdź do logowania

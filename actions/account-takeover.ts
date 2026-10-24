@@ -15,21 +15,14 @@ import { logAuthFailure } from "@/lib/security-events";
  */
 export type ConfirmTakeoverState =
   | { ok: true }
-  | { ok: false; code: "expired" | "failed"; error: string };
+  | { ok: false; code: "expired" | "failed" };
 
 const tokenSchema = z.object({ token: z.string().min(1).max(2048) });
 
-const EXPIRED: ConfirmTakeoverState = {
-  ok: false,
-  code: "expired",
-  error: "Ten link wygasł. Zaloguj się ponownie przez Google.",
-};
+/** Tylko kody; teksty mapuje `TAKEOVER_ERROR_MESSAGES` w `components/auth/auth-copy.ts`. */
+const EXPIRED: ConfirmTakeoverState = { ok: false, code: "expired" };
 
-const FAILED: ConfirmTakeoverState = {
-  ok: false,
-  code: "failed",
-  error: "Nie udało się zabezpieczyć konta. Niczego nie zmieniliśmy. Spróbuj ponownie.",
-};
+const FAILED: ConfirmTakeoverState = { ok: false, code: "failed" };
 
 /** Dla RSC strony: czy token jest ważny i konto nadal czeka na przejęcie (bez danych konta). */
 export async function readTakeoverToken(token: string): Promise<{ valid: boolean }> {

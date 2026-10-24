@@ -44,9 +44,9 @@ Ekran B - przerwa po zapisaniu serii:
 | # | Etap | Agent | Werdykt | Data | Raport |
 |---|---|---|---|---|---|
 | 1 | Wymagania | analityk | ZATWIERDZONE Z UWAGAMI | 2026-10-23 | `docs/analiza/004-ekran-aktywnego-treningu.md` — US-1..US-14, BR-1..BR-13, R-1..R-8; pytania P-1..P-5 |
-| 2 | Bramka wejściowa | prawnik | | | `docs/prawo/` |
-| 3 | Projekt techniczny | architekt | | | `docs/adr/` |
-| 4 | Projekt ekranów | ux | | | `docs/ux/` |
+| 2 | Bramka wejściowa | prawnik | ZATWIERDZONE Z UWAGAMI | 2026-10-24 | `docs/prawo/004-ekran-aktywnego-treningu-wejscie.md` — LR-1..LR-10 (brak danych w logach/Sentry, brak zmian API/schematu, wartość początkowa tylko z własnych danych bez pushu, neutralna mikrokopia obniżenia, kolor nie jedynym nośnikiem, pominięta pomarańczowa z „–”, wibracja przez `hapticRestEnd`, plakietka Ghost bez „bez zapisu”). Projekt roboczy — mikrokopię zatwierdza prawnik-człowiek |
+| 3 | Projekt techniczny | architekt | ZATWIERDZONE Z UWAGAMI | 2026-10-24 | `docs/adr/0003-ekran-aktywnego-treningu.md` — czyste funkcje `lib/set-suggestion-view.ts`, `lib/workout-session-progress.ts`, `lib/workout-set-draft.ts`, `lib/rest-next-step.ts`; wartość początkowa tylko w polu (bez pushu); tokeny `--gym-*`; brak zmian schematu/API/Androida |
+| 4 | Projekt ekranów | ux | ZATWIERDZONE Z UWAGAMI | 2026-10-24 | `docs/ux/004-ekran-aktywnego-treningu.md` + `-makieta.html` — złoto = istniejący `--gym-gold`, tekst na złocie `--neon-fg`; nowe tokeny `--gym-success`, `--gym-trend-up/down`, `--gym-skipped`, `--gym-track`, `--gym-surface-gold`, `--gym-border-gold`, `--gym-text-secondary`; stany serii także kształtem; akcje pomocnicze do menu ☰. Koordynator: nazwy tokenów wg ux (zastępują propozycję `--gym-set-*`/`--gym-suggest-*` z ADR) |
 | 5 | Implementacja | backend, frontend | | | |
 | 6 | Przegląd kodu | architekt | | | |
 | 7 | Testy funkcjonalne i spójność | tester, ux | | | `docs/testy/` |
@@ -65,4 +65,8 @@ Ekran B - przerwa po zapisaniu serii:
 | Uwaga | Źródło (agent) | Właściciel | Priorytet |
 |---|---|---|---|
 | Ćwiczenia z masą ciała: zapis 0 kg bez traktowania jako pominięta (`isSkippedWorkoutSet`), wpływ na historię i raporty | analityk (P-2) | właściciel produktu | średni |
+| U-1 (poza zakresem): Ghost — rywal „lider FCS” dostępny przy samym wspólnym zespole, bez sprawdzenia flagi udostępniania treningów (`lib/ghost-training/targets.ts`) | prawnik | backend | średni |
+| Podsumowanie po treningu liczy pominięte serie jako wykonane | architekt (ADR 0003 §10) | frontend | niski |
+| 4 dodatkowe kopie `formatElapsed` poza `active-workout` | architekt (ADR 0003 §10) | frontend | niski |
+| Przerwa zapisuje czas do niewłaściwej serii przy zmienionej kolejności serii | architekt (ADR 0003 §10) | frontend | średni |
 | R-2: nietknięty RIR zapisany jako cel planu; przy celu RIR ≥ 2 Live Coach traktuje serie jako łatwe | analityk (P-3) | właściciel produktu | średni |

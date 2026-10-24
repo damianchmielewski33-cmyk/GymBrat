@@ -7,7 +7,6 @@ import {
   userSettings,
   users,
   weightLogs,
-  workoutPlans,
   workouts,
 } from "@/db/schema";
 import { withDbRetry } from "@/db/with-retry";
@@ -31,8 +30,9 @@ import {
 } from "@/lib/nutrition-goals";
 import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { countDistinctWorkoutDaysInRange } from "@/lib/weekly-sessions";
-import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
-import { comparePlansByWorkoutRecencyAsc } from "@/lib/workout-plan-queue";
+import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
+import { pickNextWorkoutPlan } from "@/lib/workout-plan-queue";
+import { loadWorkoutPlansWithLastWorkout } from "@/lib/workout-plans-with-last-workout";
 import {
   countableCardioMinutes,
   parseWorkoutSessionJson,
@@ -294,78 +294,27 @@ async function getRecentCardioSamples(
   return out;
 }
 
-async function getNextWorkoutPlan(userId: string) {
-  const db = getDb();
+type HomeNextWorkout = NonNullable<HomeStartDashboard["nextWorkout"]>;
 
-  const lastByPlan = await db
-    .select({
-      planId: workouts.workoutPlanId,
-      lastDate: sql<string>`max(${workouts.date})`.as("last_date"),
-    })
-    .from(workouts)
-    .where(and(eq(workouts.userId, userId), sql`${workouts.workoutPlanId} is not null`))
-    .groupBy(workouts.workoutPlanId);
-
-  const lastMap = new Map<string, string>();
-  for (const row of lastByPlan) {
-    if (row.planId) lastMap.set(row.planId, row.lastDate);
-  }
-
-  const rows = await db
-    .select({
-      id: workoutPlans.id,
-      planJson: workoutPlans.planJson,
-      updatedAt: workoutPlans.updatedAt,
-    })
-    .from(workoutPlans)
-    .where(eq(workoutPlans.userId, userId))
-    .orderBy(desc(workoutPlans.updatedAt));
-
-  type Candidate = {
-    planId: string;
-    planName: string;
-    exerciseCount: number;
-    lastWorkoutDate: string | null;
-    exerciseNames: string[];
-    updatedAt: string;
-  };
-
-  const candidates: Candidate[] = [];
-  for (const row of rows) {
-    try {
-      const parsed = JSON.parse(row.planJson) as unknown;
-      const plan = normalizeWorkoutPlan(parsed);
-      if (!plan) continue;
-      candidates.push({
-        planId: row.id,
-        planName: plan.planName?.trim() || "Plan treningowy",
-        exerciseCount: plan.exercises.length,
-        lastWorkoutDate: lastMap.get(row.id) ?? null,
-        exerciseNames: plan.exercises
-          .map((ex) => String(ex.name ?? "").trim())
-          .filter(Boolean)
-          .slice(0, 8),
-        updatedAt: row.updatedAt.toISOString(),
-      });
-    } catch {
-      // pomijamy uszkodzone plany
-    }
-  }
-
-  if (candidates.length === 0) return null;
-
-  // Następny = najdawniej trenowany / nigdy nie trenowany; ostatni w kolejce = robiony najpóźniej.
-  candidates.sort(comparePlansByWorkoutRecencyAsc);
-
-  const next = candidates[0]!;
+/** Mapuje plan z kolejki na kafel „Następny trening” na Home. */
+function toHomeNextWorkout(row: WorkoutPlanWithLastWorkoutDTO): HomeNextWorkout {
   return {
-    planId: next.planId,
-    planName: next.planName,
-    exerciseCount: next.exerciseCount,
-    lastWorkoutDate: next.lastWorkoutDate,
-    exerciseNames: next.exerciseNames,
-    firstTime: !next.lastWorkoutDate,
+    planId: row.id,
+    planName: row.plan.planName?.trim() || "Plan treningowy",
+    exerciseCount: row.plan.exercises.length,
+    lastWorkoutDate: row.lastWorkoutDate,
+    exerciseNames: row.plan.exercises
+      .map((ex) => String(ex.name ?? "").trim())
+      .filter(Boolean)
+      .slice(0, 8),
+    firstTime: !row.lastWorkoutDate,
   };
+}
+
+/** Ten sam „następny” co na ekranie Trening (wspólna kolejka i loader w żądaniu). */
+export async function getNextWorkoutPlan(userId: string): Promise<HomeNextWorkout | null> {
+  const next = pickNextWorkoutPlan(await loadWorkoutPlansWithLastWorkout(userId));
+  return next ? toHomeNextWorkout(next) : null;
 }
 
 /** Scala wagi z ważenia i raportów ciała (ten sam dzień — wygrywa późniejszy wpis). */

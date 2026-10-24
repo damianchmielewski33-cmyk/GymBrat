@@ -1,4 +1,5 @@
-import { daysBetween, inWindow, pctDelta, round0 } from "@/lib/analytics/math";
+import { inWindow, pctDelta, round0 } from "@/lib/analytics/math";
+import { daysBetweenDateKeys } from "@/lib/local-date";
 import type {
   ExerciseSessionPoint,
   StagnationItem,
@@ -51,7 +52,7 @@ function daysSinceBest(
       bestDate = p.date;
     }
   }
-  return Math.max(0, daysBetween(bestDate, today));
+  return Math.max(0, daysBetweenDateKeys(bestDate, today));
 }
 
 export function classifyExerciseStagnation(args: {

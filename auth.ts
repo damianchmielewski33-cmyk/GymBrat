@@ -214,8 +214,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (isTokenRevoked(token, state)) return null;
           token.email = state.email;
           token.role = resolveEffectiveRole(state);
-        } catch {
-          /* chwilowy błąd bazy nie wylogowuje (cache 60 s, kolejne odświeżenie sprawdzi ponownie) */
+        } catch (err) {
+          /* chwilowy błąd bazy nie wylogowuje (ADR 0001 D5, fail-open); kolejne odświeżenie sprawdzi ponownie */
+          logAuthFailure("auth.jwt.sessionState", err, { throttle: true });
         }
       }
 

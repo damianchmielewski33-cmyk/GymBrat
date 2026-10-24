@@ -2,17 +2,22 @@
 
 import { useEffect } from "react";
 import { computeGhostDelta } from "@/lib/ghost-training/deltas";
+import type { GhostDelta } from "@/lib/ghost-training/types";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { useGhostTrainingStore } from "@/lib/stores/ghost-training";
+import { cn } from "@/lib/utils";
 
 function sessionElapsed(startedAt: number | null, paused: number): number {
   if (!startedAt) return paused;
   return paused + Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
 }
 
-export function GhostRaceHud() {
+/**
+ * Liczy wynik wyścigu Ghost co sekundę (gdy wybrano rywala). Wołany raz na ekranie
+ * sesji, niezależnie od tego, czy panel z HUD jest otwarty (plakietka pokazuje wynik).
+ */
+export function useGhostRaceTicker() {
   const timeline = useGhostTrainingStore((s) => s.timeline);
-  const delta = useGhostTrainingStore((s) => s.delta);
   const setDelta = useGhostTrainingStore((s) => s.setDelta);
   const exercises = useActiveWorkoutStore((s) => s.exercises);
   const startedAt = useActiveWorkoutStore((s) => s.startedAt);
@@ -52,65 +57,68 @@ export function GhostRaceHud() {
     const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
   }, [timeline, exercises, startedAt, paused, setDelta]);
+}
+
+const PREDICTED_CLASS: Record<GhostDelta["predicted"], string> = {
+  winning: "text-[var(--gym-trend-up)]",
+  trailing: "text-[var(--gym-trend-down)]",
+  neck: "text-[var(--gym-gold)]",
+};
+
+function signed(n: number, suffix = ""): string {
+  if (n > 0) return `+${n}${suffix}`;
+  if (n < 0) return `−${Math.abs(n)}${suffix}`;
+  return `0${suffix}`;
+}
+
+/** Szczegóły wyścigu Ghost (w panelu plakietki). Wynik zawsze z tekstem. */
+export function GhostRaceHud() {
+  const timeline = useGhostTrainingStore((s) => s.timeline);
+  const delta = useGhostTrainingStore((s) => s.delta);
 
   if (!timeline || !delta) return null;
 
-  const timeLabel =
-    delta.timeDeltaSeconds <= 0
-      ? `${Math.abs(delta.timeDeltaSeconds)}s szybciej`
-      : `+${delta.timeDeltaSeconds}s`;
-
-  const predictedClass =
-    delta.predicted === "winning"
-      ? "text-emerald-300"
-      : delta.predicted === "trailing"
-        ? "text-rose-300"
-        : "text-[var(--gym-gold)]";
-
   return (
-    <div className="rounded-2xl border border-[var(--neon)]/30 bg-black/55 p-3 backdrop-blur-md">
+    <div className="rounded-2xl border border-[var(--gym-border-gold)] bg-[var(--gym-black)] p-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] uppercase tracking-wide text-[var(--neon)]/80">
+        <p className="text-[11px] uppercase tracking-wide text-[var(--gym-gold)]">
           Ghost · {timeline.sourceLabel}
           {timeline.synthetic ? " · szacunek" : ""}
         </p>
-        <p className={`text-[12px] font-medium ${predictedClass}`}>
+        <p className={cn("text-[12px] font-semibold", PREDICTED_CLASS[delta.predicted])}>
           {delta.predictedLabel}
         </p>
       </div>
       <div className="mt-2 grid grid-cols-3 gap-2 text-center">
         <div>
-          <p className="text-[10px] text-white/40">Czas</p>
-          <p className="font-metric text-[15px] text-white">{timeLabel}</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-white/40">Serie</p>
-          <p className="font-metric text-[15px] text-white">
-            {delta.setsDelta >= 0 ? "+" : ""}
-            {delta.setsDelta}
+          <p className="text-[11px] text-[var(--gym-text-secondary)]">Czas</p>
+          <p className="font-metric text-[15px] tabular-nums text-white">
+            {signed(delta.timeDeltaSeconds, " s")}
           </p>
         </div>
         <div>
-          <p className="text-[10px] text-white/40">Progres</p>
-          <p className="font-metric text-[15px] text-white">
-            {delta.progressDeltaPct >= 0 ? "+" : ""}
-            {delta.progressDeltaPct}%
+          <p className="text-[11px] text-[var(--gym-text-secondary)]">Serie</p>
+          <p className="font-metric text-[15px] tabular-nums text-white">
+            {signed(delta.setsDelta)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] text-[var(--gym-text-secondary)]">Progres</p>
+          <p className="font-metric text-[15px] tabular-nums text-white">
+            {signed(delta.progressDeltaPct, "%")}
           </p>
         </div>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-        <div className="flex h-full">
-          <div
-            className="h-full bg-[var(--neon)]/80 transition-all"
-            style={{
-              width: `${Math.min(100, Math.max(5, 50 + delta.progressDeltaPct / 2))}%`,
-            }}
-          />
-          <div className="h-full flex-1 bg-white/20" />
-        </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--gym-track)]" aria-hidden>
+        <div
+          className="h-full bg-[var(--gym-gold)] transition-[width] motion-reduce:transition-none"
+          style={{
+            width: `${Math.min(100, Math.max(5, 50 + delta.progressDeltaPct / 2))}%`,
+          }}
+        />
       </div>
       {delta.ghostExerciseName ? (
-        <p className="mt-2 text-[11px] text-white/40">
+        <p className="mt-2 text-[11px] text-[var(--gym-text-secondary)]">
           Ghost był na: {delta.ghostExerciseName}
         </p>
       ) : null}

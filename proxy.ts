@@ -8,6 +8,7 @@ import { isAuthSessionCookieName } from "@/lib/auth-session-cookie";
 import { errorResponse } from "@/lib/errors/api";
 import { AppError } from "@/lib/errors/app-error";
 import { logServerError, requestIdFrom } from "@/lib/errors/server-log";
+import { logAuthFailure } from "@/lib/security-events";
 import {
   isAnonymousPublicPath,
   isCompleteProfilePath,
@@ -53,8 +54,9 @@ async function isSessionRevoked(token: JWT): Promise<boolean> {
     typeof token.id === "string" ? token.id : typeof token.sub === "string" ? token.sub : "";
   try {
     return isTokenRevoked({ id: uid, sv: token.sv }, await getAccountAuthState(uid));
-  } catch {
-    /** Chwilowy błąd bazy nie wylogowuje — `jwt` i kolejne żądania sprawdzą ponownie. */
+  } catch (err) {
+    /** Chwilowy błąd bazy nie wylogowuje (ADR 0001 D5, fail-open) — kolejne żądania sprawdzą ponownie. */
+    logAuthFailure("proxy.sessionState", err, { throttle: true });
     return false;
   }
 }

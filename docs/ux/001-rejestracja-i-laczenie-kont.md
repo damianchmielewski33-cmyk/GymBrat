@@ -24,7 +24,7 @@ Stan zależy od trzech flag przekazanych z `app/(auth)/register/page.tsx`: `emai
 
 ### 1A. Wszystko dostępne (stan docelowy z SMTP)
 Bez zmian w układzie: Google, e-mail, Facebook. Usuwamy tylko notkę "e-mail działa od razu".
-- Support pod nagłówkiem: "Wybierz sposób rejestracji: Google, e-mail albo Facebook."
+- Support pod nagłówkiem: "Wybierz sposób rejestracji: Google, e-mail albo Facebook." Tekst wymienia tylko skonfigurowane metody (np. "Wybierz sposób rejestracji: Google albo e-mail."; sam e-mail: "Załóż konto przez e-mail.") - odchylenie zaakceptowane 2026-10-24.
 
 ### 1B. E-mail niedostępny (produkcja bez SMTP), Google dostępny - główny przypadek D3
 Układ (od góry, jedna kolumna, `space-y-3`):
@@ -53,7 +53,7 @@ Dziś Google/Facebook bez konfiguracji są wyszarzone z notką "będą dostępne
 
 ### 1F. Odmowa z serwera w trakcie (wyścig: SMTP zniknęło między renderem a kliknięciem)
 Jeśli `sendRegisterCode` zwróci odmowę "rejestracja niedostępna" (kod do ustalenia w ADR) na kroku "email":
-- `InlineBanner variant="error" role="alert"`: **"Rejestracja e-mailem jest teraz niedostępna. Wróć i wybierz Google."**
+- `InlineBanner variant="error" role="alert"`: **"Rejestracja e-mailem jest teraz niedostępna. Wróć i wybierz inną metodę."** (poprawka 2026-10-24: stała nazwa "Google" jest nieprawdziwa, gdy skonfigurowany jest tylko Facebook)
 - pod banerem `Button variant="outline"` "Wróć do wyboru metody" (przejście na krok "welcome", fokus na pierwszy przycisk dostawcy).
 
 ## 2. Rejestracja: krok "email" - kod, tryb testowy, stany wysyłki
@@ -62,10 +62,10 @@ Jeśli `sendRegisterCode` zwróci odmowę "rejestracja niedostępna" (kod do ust
 Flaga `emailCodeTestMode` liczona po stronie serwera; na produkcji nie może przyjść `true` (test regresji u `tester`).
 - Nad polem "E-mail", jako pierwszy element kroku: `InlineBanner variant="warning" role="status"` z ikoną `FlaskConical`:
   - pierwsza linia pogrubiona: **"Tryb testowy"**
-  - druga: **"E-maile nie są wysyłane. Wpisz kod 1234."**
-- Placeholder pola kodu: "1234" (zamiast "6 cyfr").
-- Po kliknięciu "Wyślij kod": komunikat pod polem **"Tryb testowy: wiadomość nie została wysłana. Użyj kodu 1234."** Nigdy "Kod wysłany" (LR-19, LR-29).
-- Uwaga dla `frontend`: dziś fokus przeskakuje do hasła po 6 cyfrach; w trybie testowym po 4.
+  - druga: **"E-maile nie są wysyłane. Wpisz kod 123456."**
+- Placeholder pola kodu: "123456" (zamiast "6 cyfr").
+- Po kliknięciu "Wyślij kod": komunikat pod polem **"Tryb testowy: wiadomość nie została wysłana. Użyj kodu 123456."** Nigdy "Kod wysłany" (LR-19, LR-29).
+- Kod testowy ma 6 cyfr jak prawdziwy (ADR 0001; odchylenie od "1234" zaakceptowane 2026-10-24), więc fokus przeskakuje do hasła po 6 cyfrach w obu trybach. Wartość pochodzi z `TEST_REGISTER_CODE` (`lib/register-email-mode.ts`), kopia nie wpisuje jej na sztywno.
 - Wariant warning (amber), bo to stan, który nie powinien wyglądać jak normalna aplikacja; zrzut ekranu z tym banerem od razu pokazuje, że to nie produkcja.
 
 ### 2B. Wysyłka prawdziwego kodu (US-1)
@@ -85,7 +85,7 @@ NextAuth kieruje błędy na `/login` (`auth.ts`, `pages.error`), także gdy uży
 
 ### Układ
 - Baner błędu OAuth przenosimy na **samą górę formularza**, przed przyciskami dostawców (dziś stoi między przyciskami a polami). Użytkownik wraca z Google i pierwsze, co widzi i co czyta czytnik, to powód odmowy.
-- `InlineBanner variant="error" role="alert" id="login-banner"`.
+- `InlineBanner variant="error" role="alert"` bez `id` (odchylenie zaakceptowane 2026-10-24: `id="login-banner"` zostaje tylko dla banerów logowania hasłem, które opisują pola przez `aria-describedby`; baner OAuth nie opisuje pól).
 - Błąd OAuth **nie ustawia** `aria-invalid` na polach e-mail i hasło (dziś każdy `error` je oznacza - pola nie są winne).
 - Po odczytaniu `?error` frontend czyści parametr (`router.replace` bez `error`), żeby odświeżenie nie powtarzało komunikatu.
 
@@ -93,7 +93,7 @@ NextAuth kieruje błędy na `/login` (`auth.ts`, `pages.error`), także gdy uży
 | Przypadek | Kod roboczy | Kopia | Ujawnia stan konta? |
 |---|---|---|---|
 | Google bez `email_verified === true` (bez względu na to, czy konto istnieje) | `OAuthEmailUnverified` | "Google nie potwierdził Twojego adresu e-mail, więc nie możemy Cię tak zalogować. Potwierdź adres w ustawieniach konta Google albo zaloguj się e-mailem i hasłem." | Nie. Warunek: serwer odrzuca identycznie także przy braku konta (do potwierdzenia w ADR) |
-| Facebook z adresem, który ma już konto | `OAuthLinkRefused` | "Nie możemy połączyć logowania przez Facebook z tym adresem e-mail. Zaloguj się e-mailem i hasłem albo przez Google." | Nie wprost. Sam fakt odmowy jest świadomym wyjątkiem z US-4 / LR-29; kopia nie używa słów "konto istnieje" |
+| Facebook z adresem, który ma już konto; Google na konto administratora bez weryfikacji | `OAuthLinkRefused` | "Nie możemy połączyć tego logowania z tym adresem e-mail. Zaloguj się e-mailem i hasłem." (zaakceptowane 2026-10-24: URL niesie tylko kod, więc kopia nie nazywa dostawcy i nie podsuwa Google, które dla konta admina też odmawia) | Nie wprost. Sam fakt odmowy jest świadomym wyjątkiem z US-4 / LR-29; kopia nie używa słów "konto istnieje" |
 | Facebook bez adresu e-mail | `OAuthNoEmail` | "Facebook nie przekazał nam adresu e-mail. Zezwól na udostępnienie adresu w ustawieniach Facebooka albo wybierz inną metodę." | Nie |
 | Przejęcie nie powiodło się (wycofana transakcja) | `OAuthTakeoverFailed` | "Nie udało się dokończyć logowania. Niczego nie zmieniliśmy. Spróbuj ponownie za chwilę." | Nie |
 | Dzisiejszy `OAuthAccountNotLinked` | zastąpiony przez `OAuthLinkRefused` | Usuwamy obecną kopię "Ten e-mail ma już konto... konta się połączą" - ujawnia konto i obiecuje łączenie, które po zmianie nie zachodzi dla kont niezweryfikowanych | - |
@@ -121,7 +121,7 @@ Układ (mobile-first, jedna kolumna, karta auth jak w `login-screen.tsx`):
 4. Akcje (`space-y-3`, pełna szerokość, każda min. 48 px):
    - `Button variant="outline"` **"Zaloguj się hasłem"** - na `/login`; to akcja domyślnie fokusowana (bezpieczniejsza).
    - `Button variant="destructive"` (istniejący wariant, bez nowych kolorów) **"Usuń dane i kontynuuj"**; w trakcie: `disabled`, `aria-busy`, etykieta **"Zabezpieczanie konta…"**.
-   - `Button variant="link"` **"Anuluj"** - wylogowanie z sesji OAuth i powrót na `/login` bez zmian w koncie.
+   - `Button variant="link"` **"Anuluj"** - powrót na `/login` bez zmian w koncie. Zaakceptowane 2026-10-24: przy tokenie przejęcia (ADR 0001 D4) sesja OAuth nie powstaje, więc nie ma czego wylogowywać; "Anuluj" zostaje jako wyraźne wyjście dla osoby, która nie chce ani hasła, ani przejęcia.
 5. Kolejność akcji: bezpieczna przed destrukcyjną. Nie stosujemy dodatkowego `ConfirmDialog` - ekran sam jest potwierdzeniem, a etykieta przycisku mówi wprost, co się stanie.
 
 Kopia nie wymienia rodzajów danych (zdjęcia, waga itd.) - LR-23: nie ujawniamy, co konto zawierało; "wszystkie dane tego konta" wystarcza.
@@ -130,7 +130,7 @@ Stany ekranu:
 | Stan | Zachowanie |
 |---|---|
 | Ładowanie (weryfikacja stanu oczekującego) | `ScreenLoading` jak `app/(auth)/loading.tsx` |
-| Stan oczekujący wygasł / już użyty | `InlineBanner error`: "Ten link wygasł. Zaloguj się ponownie przez Google." + `Button cta` "Przejdź do logowania" |
+| Stan oczekujący wygasł / już użyty | Nagłówek `AuthHeroBrand compact` **"Ten link wygasł"**, support **"Ze względów bezpieczeństwa link działa tylko kilka minut."** (uzupełnienie 2026-10-24: nagłówek "Ten adres ma już konto" nie pasuje do wejścia bez ważnego linku), `InlineBanner error role=alert`: "Ten link wygasł. Zaloguj się ponownie przez Google." + `Button cta` "Przejdź do logowania" |
 | Błąd przejęcia | powrót na ekran z `InlineBanner error role=alert`: "Nie udało się zabezpieczyć konta. Niczego nie zmieniliśmy. Spróbuj ponownie." |
 | Offline przy kliknięciu | `InlineBanner error`: "Brak połączenia z internetem. Niczego nie zmieniliśmy. Spróbuj ponownie, gdy wrócisz do sieci." |
 | Drugie urządzenie przejęło już konto | brak ekranu; użytkownik trafia na czyste konto (US-5) |
@@ -165,7 +165,7 @@ Jeden baner na raz, priorytet od góry:
    - dopisek o pozostałych brakach jak wyżej.
 3. Pozostałe braki: dzisiejszy baner bez zmian ("Trzeba skonfigurować na hostingu N funkcji...").
 
-Baner zastępuje, a nie dokłada się do dzisiejszego - jeden komunikat na górze panelu. Poza produkcją (dev) bez SMTP banerów 1-2 nie pokazujemy (działa tryb testowy); pozycja SMTP w Konfiguracji ma wtedy opis "Lokalnie działa tryb testowy kodu (1234)."
+Baner zastępuje, a nie dokłada się do dzisiejszego - jeden komunikat na górze panelu. Poza produkcją (dev) bez SMTP banerów 1-2 nie pokazujemy (działa tryb testowy); pozycja SMTP w Konfiguracji ma wtedy opis "Lokalnie działa tryb testowy kodu."
 
 ### 5B. Strona Konfiguracja (`components/admin/admin-settings-client.tsx`)
 Rama ukrywa baner na `/admin/settings`, więc tu:
@@ -201,6 +201,33 @@ Zrzuty 390 px i 1280 px: `/register` 1A, 1B, 1D; krok "email" w trybie testowym 
 4. Jednorazowość komunikatu 4B.
 5. Poziom SMTP ("wymagane" na produkcji) - wpływa na ton banera 5A-2.
 6. Teksty LR-25 (sekcja 3) i komunikat przejęcia: do zatwierdzenia przez prawnika-człowieka.
+
+## 9. Odchylenia zaakceptowane po implementacji (2026-10-24, etap 8)
+| # | Odchylenie | Decyzja ux |
+|---|---|---|
+| O1 | Kod testowy `123456` zamiast `1234` | Zaakceptowane (sekcja 2A poprawiona). Spójny format z prawdziwym kodem, ten sam placeholder i auto-przejście. |
+| O2 | Jedna neutralna kopia `OAuthLinkRefused` bez nazwy dostawcy | Zaakceptowane (sekcja 3). Krótsza i prawdziwa dla obu dostawców; LR-29 spełnione. |
+| O3 | Baner błędu OAuth bez `id="login-banner"` | Zaakceptowane (sekcja 3). Baner nie opisuje pól, a `aria-invalid` nie jest ustawiane - zgodnie z intencją. |
+| O4 | "Anuluj" na 4A prowadzi na `/login` | Zaakceptowane (sekcja 4A). |
+| O5 | Stan 1A wymienia tylko skonfigurowane metody | Zaakceptowane (sekcja 1A) - lepsze niż stały tekst. |
+| O6 | Nowy komponent `AuthCard` | Zaakceptowane: to wydzielenie istniejącego kontenera, nie nowy wygląd. Opis w `docs/ux/00-system-projektowy-stan.md` sekcja 4; kopie inline (U7) do backlogu. |
+
+## 10. Przegląd wizualny implementacji (etap 8, 2026-10-24)
+Przegląd statyczny kodu oraz uruchomienie `next dev` z lokalną bazą `file:` (tryb testowy, bez OAuth i SMTP), zrzuty 390 px i 1280 px: `/register` (1A tylko e-mail), krok "email" 2A przed i po wysłaniu kodu, błąd pola, `/login?error=OAuthLinkRefused`, 4A w stanie "link wygasł". Stany 1B-1D, 4A domyślny, 4B i panel admina - tylko przegląd statyczny (wymagają konfiguracji OAuth/produkcji albo sesji admina). Tokeny: bez nowych odcieni złota i bez nowych kolorów; wszystkie banery z `InlineBanner`/`AdminNotice`, akcje z `Button`/`buttonVariants`, ikony lucide `aria-hidden` obok tekstu.
+
+| # | Priorytet | Rodzaj | Miejsce | Poprawka |
+|---|---|---|---|---|
+| P1 | średni | błąd implementacji (a11y 2.4.3) | `components/auth/register-form.tsx:752-774`, `onSendCode` | Po wysłaniu kodu przycisk staje się nieaktywny (licznik) i fokus spada na `body` (sprawdzone w przeglądarce). Po sukcesie przenieść fokus na pole `#emailCode`. |
+| P2 | średni | luka w projekcie | `components/auth/account-takeover-screen.tsx:218-222` | Stan "link wygasł": nagłówek wg uzupełnionej sekcji 4A ("Ten link wygasł"). |
+| P3 | średni | luka w projekcie | `actions/auth.ts:56` | Kopia 1F: "Wróć i wybierz inną metodę." |
+| P4 | niski | mikrokopia (LR-29) | `actions/auth.ts:61` | `code_resend_too_soon` mówi "Kod został wysłany", także w trybie testowym, gdzie nic nie wysłano. Kopia: "Nowy kod możesz zamówić za chwilę." Klient może przy tej odmowie uruchomić licznik 60 s. |
+| P5 | niski | błąd implementacji | `components/auth/account-takeover-screen.tsx:256` | `autoFocus` na `Link`: React ustawia fokus po stronie klienta tylko dla `button`/`input`/`select`/`textarea`; działa jedynie przy pełnym wczytaniu (atrybut z SSR). Pewniej: `ref` + `focus()` w `useEffect`. |
+| P6 | niski | wcześniejszy dług (backlog) | `components/auth/register-form.tsx:1000`, `components/auth/login-form.tsx:305` | Tekst akceptacji Regulaminu i linki prawne `text-[11px] text-white/35` (ok. 2,9:1) - poniżej AA, a treść ma znaczenie prawne. Min. `text-[13px] text-white/65`. |
+| P7 | niski | wcześniejszy dług (backlog) | `components/auth/register-form.tsx:512-519` | "Wstecz" ma cel ok. 24-28 px; użyć `Button variant="ghost" size="sm"` + `touch-target`. |
+| P8 | niski | duplikat (dopisać do U7) | `components/auth/register-form.tsx:483` | Stan "Kończymy logowanie Google" kopiuje `glass-panel gold-panel` inline - użyć `AuthCard`. |
+| P9 | niski | wcześniejszy dług | `components/auth/register-form.tsx:261` | Kicker "Rejestracja Google" także po Facebooku; neutralnie "Dokończ rejestrację" albo nazwa dostawcy z sesji. |
+
+Baseline (sekcja 7): zrzuty dla stanów zależnych od OAuth, SMTP i panelu admina zatwierdzę po wykonaniu ich przez `tester` w Preview; zrzuty lokalne z tego przeglądu nie są baseline.
 
 ## Werdykt
 ZATWIERDZONE Z UWAGAMI - projekt kompletny dla wszystkich stanów; uwagi to zależności od ADR 0001 (sekcja 8), bez których frontend nie zbuduje rozróżnień z sekcji 3 i 4.

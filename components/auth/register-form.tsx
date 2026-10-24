@@ -175,11 +175,7 @@ export function RegisterForm({
   const facebookEnabled = availability.facebook;
   const emailEnabled = availability.emailMode !== "disabled" && !emailBlocked;
   const emailTestMode = availability.emailMode === "test" && Boolean(emailTestCode);
-  const welcome = registerWelcomeCopy({
-    email: emailEnabled,
-    google: googleEnabled,
-    facebook: facebookEnabled,
-  });
+  const welcome = registerWelcomeCopy(availability, emailBlocked);
   const registrationClosed = step === "welcome" && welcome.kind === "closed";
 
   // Komunikat 4B jest jednorazowy: usuwamy `notice` z adresu (odświeżenie go nie powtórzy).

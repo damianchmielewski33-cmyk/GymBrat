@@ -2,14 +2,14 @@
 
 import { guardAction } from "@/lib/action-guard";
 import { randomUUID } from "node:crypto";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { activeWorkoutSessions, workoutPlans, workouts } from "@/db/schema";
 import type { WorkoutPlanPayload } from "@/lib/workout-plan-types";
 import { getLastWorkoutHintsForPlan } from "@/lib/last-workout-hints";
-import { comparePlansByWorkoutRecencyAsc } from "@/lib/workout-plan-queue";
+import { loadWorkoutPlansWithLastWorkout } from "@/lib/workout-plans-with-last-workout";
 import {
   applyRenamesToCustomNames,
   collectExerciseRenames,
@@ -31,61 +31,16 @@ export type WorkoutPlanListItemDTO = {
 /** Plan na ekranie treningu: data ostatniego zapisu treningu z tego planu (YYYY-MM-DD lub null). */
 export type WorkoutPlanWithLastWorkoutDTO = WorkoutPlanListItemDTO & {
   lastWorkoutDate: string | null;
+  /** 1..N wg created_at ASC, id ASC; stały, niezależny od kolejki. */
+  dayNumber: number;
 };
 
+/** Plany w kolejności kolejki (nigdy/najdawniej robione na górze). */
 export async function getWorkoutPlansWithLastWorkout(): Promise<WorkoutPlanWithLastWorkoutDTO[]> {
   const session = await auth();
   if (!session?.user?.id) return [];
-
-  const db = getDb();
-  const userId = session.user.id;
-
-  const lastByPlan = await db
-    .select({
-      planId: workouts.workoutPlanId,
-      lastDate: sql<string>`max(${workouts.date})`.as("last_date"),
-    })
-    .from(workouts)
-    .where(and(eq(workouts.userId, userId), sql`${workouts.workoutPlanId} is not null`))
-    .groupBy(workouts.workoutPlanId);
-
-  const lastMap = new Map<string, string>();
-  for (const row of lastByPlan) {
-    if (row.planId) lastMap.set(row.planId, row.lastDate);
-  }
-
-  // Najpierw po dacie utworzenia (stabilny tie-break), potem kolejka aktywności.
-  const rows = await db
-    .select({
-      id: workoutPlans.id,
-      planJson: workoutPlans.planJson,
-      updatedAt: workoutPlans.updatedAt,
-    })
-    .from(workoutPlans)
-    .where(eq(workoutPlans.userId, userId))
-    .orderBy(asc(workoutPlans.createdAt), asc(workoutPlans.id));
-
-  const out: WorkoutPlanWithLastWorkoutDTO[] = [];
-  for (const row of rows) {
-    try {
-      const parsed = JSON.parse(row.planJson) as unknown;
-      const plan = normalizeWorkoutPlan(parsed);
-      if (plan) {
-        out.push({
-          id: row.id,
-          plan,
-          updatedAt: row.updatedAt.toISOString(),
-          lastWorkoutDate: lastMap.get(row.id) ?? null,
-        });
-      }
-    } catch {
-      // pomijamy uszkodzone wpisy
-    }
-  }
-
-  // Lista: nigdy/najdawniej robione na górze → ostatnio robione na dole.
-  out.sort(comparePlansByWorkoutRecencyAsc);
-  return out;
+  // Kopia — wynik loadera jest współdzielony w żądaniu (React.cache).
+  return [...(await loadWorkoutPlansWithLastWorkout(session.user.id))];
 }
 
 export async function getWorkoutPlans(): Promise<WorkoutPlanListItemDTO[]> {
