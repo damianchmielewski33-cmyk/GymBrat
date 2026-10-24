@@ -1,12 +1,11 @@
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { getDb } from "@/db";
 import { userSettings, workouts } from "@/db/schema";
-import { addCalendarDays, calendarDateKey, calendarWeekdaySun0 } from "@/lib/local-date";
+import { addCalendarDays, calendarDateKey, calendarWeekMondayKey } from "@/lib/local-date";
 import {
   countableCardioMinutes,
   isCompletedStrengthSession,
   isStandaloneCardioLog,
-  parseWorkoutSessionJson,
 } from "@/lib/workout-cardio-attribution";
 
 export type RecentWorkoutItem = {
@@ -56,12 +55,6 @@ type SessionJson = {
   notes?: string | null;
   exercises?: ParsedExercise[];
 };
-
-function mondayOfWeek(dateKey: string): string {
-  const dow = calendarWeekdaySun0(dateKey);
-  const offset = dow === 0 ? -6 : 1 - dow;
-  return addCalendarDays(dateKey, offset);
-}
 
 function parseSession(json: string): SessionJson | null {
   try {
@@ -114,11 +107,16 @@ function isGuidedStrength(parsed: SessionJson | null): boolean {
   return isCompletedStrengthSession(parsed);
 }
 
-/** Statystyki i listy pod hub Treningi (tydzień kalendarzowy + ostatnie wpisy). */
-export async function getTreningiHubStats(userId: string): Promise<TreningiHubStats> {
+/**
+ * Statystyki i listy pod hub Treningi (tydzień kalendarzowy + ostatnie wpisy).
+ * `todayKey` pozwala wyliczyć tydzień z tego samego „dziś” co reszta ekranu.
+ */
+export async function getTreningiHubStats(
+  userId: string,
+  todayKey: string = calendarDateKey(),
+): Promise<TreningiHubStats> {
   const db = getDb();
-  const today = calendarDateKey();
-  const monday = mondayOfWeek(today);
+  const monday = calendarWeekMondayKey(todayKey);
   const sunday = addCalendarDays(monday, 6);
   const streakLookbackMonday = addCalendarDays(monday, -7 * 11);
 
@@ -167,7 +165,7 @@ export async function getTreningiHubStats(userId: string): Promise<TreningiHubSt
       }
     }
     if (isGuidedStrength(parsed)) {
-      weeksWithGuided.add(mondayOfWeek(row.date));
+      weeksWithGuided.add(calendarWeekMondayKey(row.date));
       if (recentWorkouts.length < 8) {
         recentWorkouts.push({
           id: row.id,

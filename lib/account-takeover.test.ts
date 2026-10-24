@@ -71,6 +71,7 @@ describe("buildTakeoverStatements (integracja)", () => {
     await client.execute(`DELETE FROM weight_logs`);
     await client.execute(`DELETE FROM oauth_accounts`);
     await client.execute(`DELETE FROM admin_audit_log`);
+    await client.execute(`DELETE FROM subscription_orders`);
     await db.insert(schema.users).values({
       id: uid,
       email: "victim@example.com",
@@ -118,6 +119,39 @@ describe("buildTakeoverStatements (integracja)", () => {
     expect(String(audit.rows[0]!.meta_json)).not.toContain("@");
   });
 
+  it("anuluje oczekujące zamówienia przejmowanego konta, opłaconych i cudzych nie rusza", async () => {
+    const order = { planSku: "m1", days: 30, amountGrosze: 1999 };
+    await db.insert(schema.subscriptionOrders).values([
+      { ...order, id: "o-pending", userId: uid, status: "pending" },
+      { ...order, id: "o-paid", userId: uid, status: "paid" },
+      { ...order, id: "o-other", userId: "someone-else", status: "pending" },
+    ]);
+    const [first, ...rest] = statements(new Date(1_800_000_000_000));
+    await db.batch([first, ...rest]);
+
+    const rs = await client.execute(`SELECT id, status FROM subscription_orders ORDER BY id`);
+    expect(Object.fromEntries(rs.rows.map((r) => [r.id, r.status]))).toEqual({
+      "o-other": "pending",
+      "o-paid": "paid",
+      "o-pending": "cancelled",
+    });
+  });
+
+  it("zapisuje znaczniki czasu w ms z kolumn Drizzle", async () => {
+    const [first, ...rest] = statements(new Date(1_800_000_000_000));
+    await db.batch([first, ...rest]);
+    const oauth = await client.execute(`SELECT created_at FROM oauth_accounts`);
+    expect(oauth.rows[0]!.created_at).toBe(1_800_000_000_000);
+    const audit = await client.execute(
+      `SELECT actor_user_id, target_user_id, created_at FROM admin_audit_log`,
+    );
+    expect(audit.rows[0]).toMatchObject({
+      actor_user_id: uid,
+      target_user_id: uid,
+      created_at: 1_800_000_000_000,
+    });
+  });
+
   it("drugie wywołanie nic nie zmienia", async () => {
     const [a, ...ra] = statements(new Date(1_800_000_000_000));
     await db.batch([a, ...ra]);
@@ -130,6 +164,22 @@ describe("buildTakeoverStatements (integracja)", () => {
     expect(await count("admin_audit_log")).toBe(1);
     const rs = await client.execute(`SELECT session_version FROM users WHERE id = '${uid}'`);
     expect(rs.rows[0]!.session_version).toBe(1);
+  });
+
+  it("drugie wywołanie nie anuluje nowego zamówienia nowego właściciela", async () => {
+    const [a, ...ra] = statements(new Date(1_800_000_000_000));
+    await db.batch([a, ...ra]);
+    await db.insert(schema.subscriptionOrders).values({
+      id: "o-new",
+      userId: uid,
+      planSku: "m1",
+      days: 30,
+      amountGrosze: 1999,
+      status: "pending",
+    });
+    const [b, ...rb] = statements(new Date(1_800_000_000_500));
+    await db.batch([b, ...rb]);
+    expect(await count("subscription_orders", "status = 'pending'")).toBe(1);
   });
 
   it("admin bez weryfikacji nie jest przejmowany", async () => {

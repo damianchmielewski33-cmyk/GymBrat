@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { OAUTH_ERROR_CODES } from "@/lib/auth-error-codes";
+import type { RegistrationAvailability } from "@/lib/register-email-mode";
 import { oauthErrorMessage, registerWelcomeCopy } from "./auth-copy";
+
+function availability(
+  methods: { email: boolean; google: boolean; facebook: boolean },
+  blocked = !methods.email && !methods.google && !methods.facebook,
+): RegistrationAvailability {
+  return {
+    emailMode: methods.email ? "smtp" : "disabled",
+    google: methods.google,
+    facebook: methods.facebook,
+    blocked,
+  };
+}
 
 describe("oauthErrorMessage", () => {
   it("zwraca null bez kodu", () => {
@@ -25,6 +38,10 @@ describe("oauthErrorMessage", () => {
     expect(oauthErrorMessage("OAuthAccountNotLinked")).not.toMatch(/połączą/);
   });
 
+  it("OAuthLinkRefused nie nazywa dostawcy (Facebook i Google admina)", () => {
+    expect(oauthErrorMessage("OAuthLinkRefused")).not.toMatch(/Facebook|Google/);
+  });
+
   it("anulowanie u dostawcy ma wspólny komunikat", () => {
     const text = oauthErrorMessage("AccessDenied");
     expect(oauthErrorMessage("OAuthCallback")).toBe(text);
@@ -34,7 +51,7 @@ describe("oauthErrorMessage", () => {
 
 describe("registerWelcomeCopy", () => {
   it("1A: wszystkie metody", () => {
-    expect(registerWelcomeCopy({ email: true, google: true, facebook: true })).toEqual({
+    expect(registerWelcomeCopy(availability({ email: true, google: true, facebook: true }))).toEqual({
       kind: "open",
       support: "Wybierz sposób rejestracji: Google, e-mail albo Facebook.",
       emailUnavailableProvider: null,
@@ -43,15 +60,15 @@ describe("registerWelcomeCopy", () => {
 
   it("1A: wymienia tylko skonfigurowane metody", () => {
     expect(
-      registerWelcomeCopy({ email: true, google: true, facebook: false }).support,
+      registerWelcomeCopy(availability({ email: true, google: true, facebook: false })).support,
     ).toBe("Wybierz sposób rejestracji: Google albo e-mail.");
     expect(
-      registerWelcomeCopy({ email: true, google: false, facebook: false }).support,
+      registerWelcomeCopy(availability({ email: true, google: false, facebook: false })).support,
     ).toBe("Załóż konto przez e-mail.");
   });
 
   it("1B: e-mail niedostępny, Google działa", () => {
-    expect(registerWelcomeCopy({ email: false, google: true, facebook: true })).toEqual({
+    expect(registerWelcomeCopy(availability({ email: false, google: true, facebook: true }))).toEqual({
       kind: "open",
       support: "Najszybciej założysz konto przez Google.",
       emailUnavailableProvider: "Google",
@@ -59,7 +76,7 @@ describe("registerWelcomeCopy", () => {
   });
 
   it("1C: e-mail niedostępny, tylko Facebook", () => {
-    expect(registerWelcomeCopy({ email: false, google: false, facebook: true })).toEqual({
+    expect(registerWelcomeCopy(availability({ email: false, google: false, facebook: true }))).toEqual({
       kind: "open",
       support: "Załóż konto przez Facebook.",
       emailUnavailableProvider: "Facebook",
@@ -67,10 +84,24 @@ describe("registerWelcomeCopy", () => {
   });
 
   it("1D: żadna metoda niedostępna", () => {
-    expect(registerWelcomeCopy({ email: false, google: false, facebook: false })).toEqual({
+    expect(registerWelcomeCopy(availability({ email: false, google: false, facebook: false }))).toEqual({
       kind: "closed",
       headline: "Rejestracja jest chwilowo niedostępna",
       support: "Pracujemy nad tym. Spróbuj ponownie później.",
     });
+  });
+
+  it("1D: stan zamknięty bierze z serwera (availability.blocked)", () => {
+    expect(
+      registerWelcomeCopy(availability({ email: true, google: true, facebook: true }, true)).kind,
+    ).toBe("closed");
+  });
+
+  it("1F: odmowa e-maila w trakcie bez OAuth zamyka rejestrację", () => {
+    const open = availability({ email: true, google: false, facebook: false });
+    expect(registerWelcomeCopy(open, true).kind).toBe("closed");
+    expect(
+      registerWelcomeCopy(availability({ email: true, google: true, facebook: false }), true),
+    ).toMatchObject({ kind: "open", emailUnavailableProvider: "Google" });
   });
 });

@@ -4,13 +4,18 @@
  */
 
 import { OAUTH_ERROR_CODES, type OAuthErrorCode } from "@/lib/auth-error-codes";
+import type { RegistrationAvailability } from "@/lib/register-email-mode";
 
-/** Odmowy z callbacku `signIn` (ADR 0001 D3); komunikaty nie ujawniają stanu konta (LR-29). */
+/**
+ * Odmowy z callbacku `signIn` (ADR 0001 D3); komunikaty nie ujawniają stanu konta (LR-29).
+ * `OAuthLinkRefused` dotyczy Facebooka i Google (konto admina), a URL niesie tylko kod,
+ * więc kopia nie nazywa dostawcy.
+ */
 const OAUTH_REFUSAL_MESSAGES: Record<OAuthErrorCode, string> = {
   OAuthEmailUnverified:
     "Google nie potwierdził Twojego adresu e-mail, więc nie możemy Cię tak zalogować. Potwierdź adres w ustawieniach konta Google albo zaloguj się e-mailem i hasłem.",
   OAuthLinkRefused:
-    "Nie możemy połączyć logowania przez Facebook z tym adresem e-mail. Zaloguj się e-mailem i hasłem albo przez Google.",
+    "Nie możemy połączyć tego logowania z tym adresem e-mail. Zaloguj się e-mailem i hasłem.",
   OAuthNoEmail:
     "Facebook nie przekazał nam adresu e-mail. Zezwól na udostępnienie adresu w ustawieniach Facebooka albo wybierz inną metodę.",
   OAuthSignInFailed:
@@ -42,13 +47,6 @@ export const SESSION_EXPIRED_MESSAGE = "Sesja wygasła. Zaloguj się ponownie.";
 export const OFFLINE_REGISTER_MESSAGE =
   "Brak połączenia z internetem. Sprawdź sieć i spróbuj ponownie. Wpisane dane zostają.";
 
-export type RegisterMethods = {
-  /** Rejestracja e-mailem działa (SMTP albo tryb testowy poza produkcją). */
-  email: boolean;
-  google: boolean;
-  facebook: boolean;
-};
-
 export type RegisterWelcomeCopy =
   | { kind: "closed"; headline: string; support: string }
   | {
@@ -63,16 +61,37 @@ function joinAlternatives(items: string[]): string {
   return `${items.slice(0, -1).join(", ")} albo ${items[items.length - 1]}`;
 }
 
-/** Wybór wariantu kroku „welcome” rejestracji (UX 1A-1D). */
-export function registerWelcomeCopy(methods: RegisterMethods): RegisterWelcomeCopy {
-  if (!methods.email && !methods.google && !methods.facebook) {
-    return {
-      kind: "closed",
-      headline: "Rejestracja jest chwilowo niedostępna",
-      support: "Pracujemy nad tym. Spróbuj ponownie później.",
-    };
-  }
+/** Jedyne źródło tekstów błędów ekranu przejęcia konta; akcja zwraca tylko kody (UX 001, 4A). */
+export const TAKEOVER_ERROR_MESSAGES = {
+  expired: "Ten link wygasł. Zaloguj się ponownie przez Google.",
+  failed: "Nie udało się zabezpieczyć konta. Niczego nie zmieniliśmy. Spróbuj ponownie.",
+  offline:
+    "Brak połączenia z internetem. Niczego nie zmieniliśmy. Spróbuj ponownie, gdy wrócisz do sieci.",
+} as const;
+
+const REGISTRATION_CLOSED: RegisterWelcomeCopy = {
+  kind: "closed",
+  headline: "Rejestracja jest chwilowo niedostępna",
+  support: "Pracujemy nad tym. Spróbuj ponownie później.",
+};
+
+/**
+ * Wybór wariantu kroku „welcome” rejestracji (UX 1A-1D). Stan „zamknięte” daje serwer
+ * (`availability.blocked`); `emailRefused` to odmowa `registration_disabled` w trakcie
+ * rejestracji (UX 1F) — bez dostawców OAuth zamyka rejestrację tak samo.
+ */
+export function registerWelcomeCopy(
+  availability: RegistrationAvailability,
+  emailRefused = false,
+): RegisterWelcomeCopy {
+  if (availability.blocked) return REGISTRATION_CLOSED;
+  const methods = {
+    email: availability.emailMode !== "disabled" && !emailRefused,
+    google: availability.google,
+    facebook: availability.facebook,
+  };
   if (!methods.email) {
+    if (!methods.google && !methods.facebook) return REGISTRATION_CLOSED;
     const provider = methods.google ? "Google" : "Facebook";
     return {
       kind: "open",

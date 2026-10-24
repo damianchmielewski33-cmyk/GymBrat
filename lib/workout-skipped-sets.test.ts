@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import {
-  areAllWorkoutSetsDone,
   canCompleteWorkoutSet,
   countSkippedWorkoutSets,
   findFirstSkippedWorkoutTarget,
@@ -10,6 +9,7 @@ import {
   isExerciseIncomplete,
   isSkippedWorkoutSet,
   resolveAdvanceAfterSet,
+  resolveSetSaveIssue,
 } from "@/lib/workout-skipped-sets";
 
 function set(done: boolean, skipped = false) {
@@ -187,7 +187,6 @@ describe("workout-skipped-sets", () => {
     ];
     // Ostatnia otwarta była seria 1; po patchu wszystko done — koniec treningu.
     expect(resolveAdvanceAfterSet(exercises, "a", 1)).toBeNull();
-    expect(areAllWorkoutSetsDone(exercises)).toBe(true);
   });
 
   it("resolveAdvanceAfterSet: pomija już zaliczone serie po bieżącej", () => {
@@ -206,5 +205,28 @@ describe("workout-skipped-sets", () => {
       exerciseId: "a",
       setIndex: 1,
     });
+  });
+
+  it("resolveSetSaveIssue: najpierw ciężar, potem powtórzenia", () => {
+    expect(resolveSetSaveIssue(0, 8)).toBe("weight");
+    expect(resolveSetSaveIssue(Number.NaN, 8)).toBe("weight");
+    expect(resolveSetSaveIssue(50, null)).toBe("reps");
+    expect(resolveSetSaveIssue(50, 0)).toBe("reps");
+    expect(resolveSetSaveIssue(0, null)).toBe("weight");
+    expect(resolveSetSaveIssue(61.25, 8)).toBeNull();
+  });
+
+  it("canCompleteWorkoutSet zgodne z resolveSetSaveIssue", () => {
+    const cases: Array<[number, number | null]> = [
+      [0, 8],
+      [50, null],
+      [0, null],
+      [50, 0],
+      [50, 8],
+      [-1, 8],
+    ];
+    for (const [w, r] of cases) {
+      expect(canCompleteWorkoutSet(w, r)).toBe(resolveSetSaveIssue(w, r) === null);
+    }
   });
 });

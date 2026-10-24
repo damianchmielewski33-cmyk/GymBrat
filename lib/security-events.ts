@@ -38,7 +38,8 @@ export function securityEventMeta(input: SecurityEventInput): Record<string, str
   return meta;
 }
 
-function securityEventRow(input: SecurityEventInput) {
+/** Wiersz `admin_audit_log` zdarzenia `security.*` — jedyne miejsce budowy (insert i `INSERT ... SELECT`). */
+export function securityEventRow(input: SecurityEventInput) {
   return adminAuditValues({
     actorUserId: input.userId,
     action: `security.${input.type}`,
@@ -52,11 +53,27 @@ export function securityEventInsert(db: Database, input: SecurityEventInput) {
   return db.insert(adminAuditLog).values(securityEventRow(input));
 }
 
+export const AUTH_FAILURE_THROTTLE_MS = 60_000;
+
+const lastThrottledLogAt = new Map<string, number>();
+
 /**
  * Błąd w ścieżce uwierzytelniania bez oryginalnego wyjątku: komunikaty Drizzle zawierają
  * parametry zapytań (e-mail), więc do logów i Sentry trafia tylko miejsce i typ błędu.
+ * `throttle: true` — najwyżej jeden wpis na `where` na 60 s w procesie (ścieżki wołane
+ * przy każdym żądaniu, np. `proxy`/`jwt`, żeby awaria bazy nie zalała Sentry).
  */
-export function logAuthFailure(where: string, err: unknown): void {
+export function logAuthFailure(
+  where: string,
+  err: unknown,
+  opts: { throttle?: boolean; now?: number } = {},
+): void {
+  if (opts.throttle) {
+    const now = opts.now ?? Date.now();
+    const last = lastThrottledLogAt.get(where);
+    if (last !== undefined && now - last < AUTH_FAILURE_THROTTLE_MS) return;
+    lastThrottledLogAt.set(where, now);
+  }
   const kind = err instanceof Error ? err.name : typeof err;
   logServerError(new AppError("INTERNAL", { message: `${where}: ${kind}` }), {
     requestId: newRequestId(),

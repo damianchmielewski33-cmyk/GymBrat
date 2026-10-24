@@ -18,10 +18,6 @@ import {
   detectSessionNewMaxes,
   detectSessionWeightRecords,
 } from "@/lib/session-new-max";
-import {
-  buildLiveCoachTipAfterCompletedSet,
-  type LiveCoachTip,
-} from "@/lib/live-set-coach";
 import { whenActiveWorkoutCloudHydrated } from "@/lib/active-workout-cloud-ready";
 import { ActiveSessionCard } from "@/components/active-workout/active-session-card";
 import { GuidedSessionLayout } from "@/components/active-workout/guided-session-layout";
@@ -29,10 +25,7 @@ import { WorkoutFinishedScreen } from "@/components/active-workout/workout-finis
 import { StartWorkoutScreen } from "@/components/active-workout/start-workout-screen";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  RestBreakScreen,
-  type RestNextSetInfo,
-} from "@/components/active-workout/rest-break-screen";
+import { RestBreakScreen } from "@/components/active-workout/rest-break-screen";
 import { WorkoutAllSetsDoneDialog } from "@/components/active-workout/workout-all-sets-done-dialog";
 import { WorkoutDiscardSessionDialog } from "@/components/active-workout/workout-discard-session-dialog";
 import { readRestTimerPrefs } from "@/lib/rest-timer-prefs";
@@ -51,30 +44,23 @@ import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 import {
-  areAllWorkoutSetsDone,
   canCompleteWorkoutSet,
   findFirstSkippedWorkoutTarget,
   isSkippedWorkoutSet,
   resolveAdvanceAfterSet,
 } from "@/lib/workout-skipped-sets";
-import { hapticExerciseDone, hapticNewMax, hapticWorkoutDone } from "@/lib/haptics";
 import {
-  formatKgPl,
-  formatRepRangeLabel,
-  resolveRepRange,
-} from "@/lib/set-progression-suggestion";
+  buildSessionProgress,
+  countSetsDone,
+} from "@/lib/workout-session-progress";
+import { buildRestCompletedSet, buildRestNextStep } from "@/lib/rest-next-step";
+import { hapticExerciseDone, hapticNewMax, hapticWorkoutDone } from "@/lib/haptics";
 import { RotateCcw } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18n-provider";
 
 type LastCompletedSnap = {
   exerciseId: string;
-  exerciseName: string;
   setIndex: number;
-  setCount: number;
-  weight: number;
-  reps: number;
-  nextLabel: string;
-  nextValue: string;
   /** Ostatnia seria tego ćwiczenia (można dodać kolejną). */
   exerciseFinished: boolean;
   /** Ostatnia seria całego treningu. */
@@ -164,77 +150,23 @@ export function ActiveWorkoutView({
     () => detectSessionWeightRecords(exercises, lastPlanHints),
     [exercises, lastPlanHints],
   );
-  const restCoachTip = useMemo((): LiveCoachTip | null => {
-    if (!lastCompleted) return null;
-    const ex = exercises.find((e) => e.id === lastCompleted.exerciseId);
-    if (!ex) return null;
-    return buildLiveCoachTipAfterCompletedSet(ex, lastCompleted.setIndex);
-  }, [lastCompleted, exercises]);
-
-  const restNextSet = useMemo((): RestNextSetInfo | null => {
-    if (!lastCompleted || lastCompleted.workoutFinished) return null;
-    const advance = resolveAdvanceAfterSet(
-      exercises,
-      lastCompleted.exerciseId,
-      lastCompleted.setIndex,
-    );
-    if (!advance) return null;
-    const nextEx = exercises.find((e) => e.id === advance.exerciseId);
-    if (!nextEx) return null;
-
-    const setLine =
-      advance.exerciseId === lastCompleted.exerciseId
-        ? `Seria ${advance.setIndex + 1} z ${nextEx.sets.length}`
-        : `${nextEx.name} · seria ${advance.setIndex + 1}/${nextEx.sets.length}`;
-
-    const setsCount = nextEx.targetSets ?? nextEx.sets.length;
-    const repRange = resolveRepRange(nextEx.targetReps);
-    const schemeLine = repRange
-      ? `${setsCount}s ${formatRepRangeLabel(repRange)}`
-      : nextEx.targetReps != null && nextEx.targetReps > 0
-        ? `${setsCount}s ${nextEx.targetReps}`
-        : `${setsCount}s`;
-    const rirLine =
-      nextEx.targetRir != null ? `RIR ${nextEx.targetRir}` : null;
-
-    let targetLine: string | null = null;
-    if (restCoachTip?.apply) {
-      targetLine = `${formatKgPl(restCoachTip.apply.weightKg)} kg × ${restCoachTip.apply.reps}`;
-    } else {
-      const suggested = nextEx.suggestedWeights?.[advance.setIndex];
-      const nextSet = nextEx.sets[advance.setIndex];
-      const kg =
-        nextSet && nextSet.weight > 0
-          ? nextSet.weight
-          : suggested != null && suggested > 0
-            ? suggested
-            : advance.exerciseId === lastCompleted.exerciseId &&
-                lastCompleted.weight > 0
-              ? lastCompleted.weight
-              : null;
-      const reps =
-        nextSet?.reps && nextSet.reps > 0
-          ? nextSet.reps
-          : nextEx.targetReps != null && nextEx.targetReps > 0
-            ? Math.round(nextEx.targetReps)
-            : null;
-      if (kg != null && reps != null) {
-        targetLine = `${formatKgPl(kg)} kg × ${reps}`;
-      } else if (kg != null) {
-        targetLine = `${formatKgPl(kg)} kg`;
-      }
-    }
-
-    return { setLine, schemeLine, rirLine, targetLine };
-  }, [lastCompleted, exercises, restCoachTip]);
-
-  const exercisesProgress = useMemo(() => {
-    const total = exercises.length;
-    const done = exercises.filter((ex) =>
-      ex.sets.every((s) => s.done),
-    ).length;
-    return { done, total };
-  }, [exercises]);
+  /** Ekran przerwy: zapisana seria, „Następnie” i pasek (cel z `resolveAdvanceAfterSet`). */
+  const restCompleted = useMemo(
+    () => (lastCompleted ? buildRestCompletedSet(exercises, lastCompleted) : null),
+    [lastCompleted, exercises],
+  );
+  const restNext = useMemo(
+    () => (lastCompleted ? buildRestNextStep(exercises, lastCompleted) : null),
+    [lastCompleted, exercises],
+  );
+  const restProgress = useMemo(
+    () =>
+      buildSessionProgress(
+        exercises,
+        restNext ? { exerciseId: restNext.exerciseId, setIndex: restNext.setIndex } : null,
+      ),
+    [exercises, restNext],
+  );
 
   const hasLoadedPlan = workoutPlanId != null && exercises.length > 0;
 
@@ -468,84 +400,50 @@ export function ActiveWorkoutView({
     }
   }
 
+  /** −15 s / +30 s: przesuwa koniec przerwy; wynik <= 0 kończy przerwę jak odliczanie. */
+  function adjustRestSeconds(deltaSec: number) {
+    const delta = Math.round(deltaSec);
+    const nowMs = Date.now();
+    const endsAt = (restEndsAtRef.current ?? nowMs) + delta * 1000;
+    restEndsAtRef.current = endsAt;
+    const left = Math.max(0, Math.ceil((endsAt - nowMs) / 1000));
+    if (left <= 0) {
+      finishRestFromTimer();
+      return;
+    }
+    setRestDurationTotal((t) => Math.max(left, t + delta));
+    setRestRemaining(left);
+  }
+
   function buildCompletedSnap(
     list: WorkoutExerciseState[],
     exerciseId: string,
     setIndex: number,
-    weight: number,
-    reps: number,
   ): LastCompletedSnap | null {
-    const ex = list.find((e) => e.id === exerciseId);
-    if (!ex) return null;
-
+    if (!list.some((e) => e.id === exerciseId)) return null;
+    // Brak celu = brak otwartej serii / ćwiczenia — pauza z „Koniec treningu”.
     const advance = resolveAdvanceAfterSet(list, exerciseId, setIndex);
-    let nextLabel = "Następna seria";
-    let nextValue = `Seria ${setIndex + 2} z ${ex.sets.length}`;
-    let exerciseFinished = false;
-    let workoutFinished = false;
-
-    if (!advance) {
-      // Brak otwartej serii / ćwiczenia — pauza z „Koniec treningu”.
-      exerciseFinished = true;
-      workoutFinished = true;
-      nextLabel = "Następne ćwiczenie";
-      nextValue = "Koniec treningu";
-    } else if (advance.exerciseId === exerciseId) {
-      nextLabel = "Następna seria";
-      nextValue = `Seria ${advance.setIndex + 1} z ${ex.sets.length}`;
-    } else {
-      exerciseFinished = true;
-      const nextEx = list.find((e) => e.id === advance.exerciseId);
-      nextLabel = "Następne ćwiczenie";
-      nextValue = nextEx?.name ?? "—";
-    }
-
     return {
       exerciseId,
-      exerciseName: ex.name,
       setIndex,
-      setCount: ex.sets.length,
-      weight,
-      reps,
-      nextLabel,
-      nextValue,
-      exerciseFinished,
-      workoutFinished,
+      exerciseFinished: !advance || advance.exerciseId !== exerciseId,
+      workoutFinished: !advance,
     };
   }
 
   /** Dalej / koniec odliczania → podsumowanie, gdy snap albo stan sesji mówi „wszystko zaliczone”. */
   function shouldOpenFinishAfterRest(): boolean {
     if (lastCompletedRef.current?.workoutFinished) return true;
-    return areAllWorkoutSetsDone(useActiveWorkoutStore.getState().exercises);
-  }
-
-  function countSetsDone(list: WorkoutExerciseState[]) {
-    let done = 0;
-    let total = 0;
-    for (const ex of list) {
-      for (const s of ex.sets) {
-        total += 1;
-        if (s.done) done += 1;
-      }
-    }
-    return { done, total };
+    const { done, total } = countSetsDone(useActiveWorkoutStore.getState().exercises);
+    return total > 0 && done >= total;
   }
 
   function addSetToExercise(exerciseId: string): number | null {
     const newIndex = addSetInStore(exerciseId);
     if (newIndex == null) return null;
-    const setCount = newIndex + 1;
     setLastCompleted((prev) =>
       prev && prev.exerciseId === exerciseId
-        ? {
-            ...prev,
-            setCount,
-            exerciseFinished: false,
-            workoutFinished: false,
-            nextLabel: "Następna seria",
-            nextValue: `Seria ${setCount} z ${setCount}`,
-          }
+        ? { ...prev, exerciseFinished: false, workoutFinished: false }
         : prev,
     );
     setAllSetsDoneOpen(false);
@@ -705,17 +603,7 @@ export function ActiveWorkoutView({
     return pausedElapsedSeconds + running;
   }, [now, startedAt, pausedElapsedSeconds]);
 
-  const completedSets = useMemo(() => {
-    let done = 0;
-    let total = 0;
-    for (const ex of exercises) {
-      for (const s of ex.sets) {
-        total += 1;
-        if (s.done) done += 1;
-      }
-    }
-    return { done, total };
-  }, [exercises]);
+  const completedSets = useMemo(() => countSetsDone(exercises), [exercises]);
 
   const skippedTarget = allSetsDoneSkipped.target;
   const skippedCount = allSetsDoneSkipped.count;
@@ -789,13 +677,7 @@ export function ActiveWorkoutView({
     );
     if (isDoneNext && !wasDone) {
       const exercisesNow = useActiveWorkoutStore.getState().exercises;
-      const snap = buildCompletedSnap(
-        exercisesNow,
-        exerciseId,
-        setIndex,
-        Number(nextWeight) || 0,
-        Number(nextReps) || 0,
-      );
+      const snap = buildCompletedSnap(exercisesNow, exerciseId, setIndex);
       const { done, total } = countSetsDone(exercisesNow);
       const workoutComplete = total > 0 && done >= total;
 
@@ -804,13 +686,7 @@ export function ActiveWorkoutView({
         // dialog pominięć i „Trening zrobiony” dopiero po Dalej / końcu odliczania.
         hapticWorkoutDone();
         const endSnap = snap
-          ? {
-              ...snap,
-              exerciseFinished: true,
-              workoutFinished: true,
-              nextLabel: "Następne ćwiczenie",
-              nextValue: "Koniec treningu",
-            }
+          ? { ...snap, exerciseFinished: true, workoutFinished: true }
           : null;
         if (endSnap) setLastCompleted(endSnap);
         setAllSetsDoneOpen(false);
@@ -985,8 +861,8 @@ export function ActiveWorkoutView({
       elapsedSeconds={elapsed}
       exercises={exercises}
       selectedExerciseId={selectedExerciseId}
-      listOpen={listOpen}
-      onListOpenChange={setListOpen}
+      menuOpen={listOpen}
+      onMenuOpenChange={setListOpen}
       onSelectExercise={(id) => setSelectedExerciseId(id)}
       onPatchSet={patchSet}
       onAddSet={(exerciseId) => {
@@ -999,14 +875,10 @@ export function ActiveWorkoutView({
         patchExercise(exerciseId, { note })
       }
       onCancelSession={requestDiscardSession}
-      onDiscardSession={requestDiscardSession}
       onFinishSession={() => {
         setFinishOpen(true);
       }}
       finishPending={saving}
-      onDeferExercise={() => {
-        /* lista / kolejność — „Wrócę później” przechodzi do następnego w GuidedSessionLayout */
-      }}
       focusSetRequest={focusSetRequest}
       onFocusSetHandled={() => setFocusSetRequest(null)}
     />
@@ -1039,16 +911,11 @@ export function ActiveWorkoutView({
           remaining={restRemaining}
           durationTotal={restDurationTotal}
           title={title || "Trening"}
-          exerciseLabel={lastCompleted?.exerciseName?.trim() || ""}
           elapsedSeconds={elapsed}
-          setsDone={completedSets.done}
-          setsTotal={completedSets.total}
-          exercisesDone={exercisesProgress.done}
-          exercisesTotal={exercisesProgress.total}
-          completedWeightKg={lastCompleted?.weight ?? null}
-          completedReps={lastCompleted?.reps ?? null}
-          nextSet={restNextSet}
-          coachTip={restCoachTip}
+          planId={workoutPlanId}
+          progress={restProgress}
+          completed={restCompleted}
+          next={restNext}
           soundOn={restSoundOn}
           onToggleSound={() => {
             void unlockRestTimerAudio();
@@ -1058,21 +925,7 @@ export function ActiveWorkoutView({
               return next;
             });
           }}
-          onAddSeconds={(sec) => {
-            const add = Math.max(1, Math.round(sec));
-            const nowMs = Date.now();
-            setRestDurationTotal((t) => t + add);
-            if (restEndsAtRef.current != null) {
-              restEndsAtRef.current += add * 1000;
-            } else {
-              restEndsAtRef.current = nowMs + add * 1000;
-            }
-            const left = Math.max(
-              0,
-              Math.ceil((restEndsAtRef.current - nowMs) / 1000),
-            );
-            setRestRemaining(left > 0 ? left : add);
-          }}
+          onAdjustSeconds={adjustRestSeconds}
           onSetSeconds={(sec) => {
             const next = Math.max(1, Math.round(sec));
             const nowMs = Date.now();
@@ -1082,7 +935,7 @@ export function ActiveWorkoutView({
           }}
           onContinue={continueAfterRest}
           onCloseSession={requestDiscardSession}
-          onOpenList={() => {
+          onOpenMenu={() => {
             stopRest();
             setListOpen(true);
           }}

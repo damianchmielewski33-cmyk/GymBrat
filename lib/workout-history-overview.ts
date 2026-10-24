@@ -5,6 +5,7 @@ import {
   addCalendarDays,
   calendarDateKey,
   calendarWeekdaySun0,
+  PL_MONTH_GENITIVE,
 } from "@/lib/local-date";
 import {
   computeWorkoutDetails,
@@ -217,21 +218,6 @@ export function formatHistoryShortDate(ymd: string): string {
     return ymd;
   }
 }
-
-const PL_MONTH_GENITIVE = [
-  "stycznia",
-  "lutego",
-  "marca",
-  "kwietnia",
-  "maja",
-  "czerwca",
-  "lipca",
-  "sierpnia",
-  "września",
-  "października",
-  "listopada",
-  "grudnia",
-] as const;
 
 const PL_WEEKDAY_SHORT = ["nd", "pon", "wt", "śr", "czw", "pt", "sob"] as const;
 

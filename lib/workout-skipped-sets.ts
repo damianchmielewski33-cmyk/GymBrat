@@ -41,12 +41,28 @@ export function isCompletedWorkoutSet(set: {
   return set.done && !isSkippedWorkoutSet(set);
 }
 
+export type SetSaveIssue = "weight" | "reps";
+
+/**
+ * BR-8 / P-2: zapis serii wymaga ciężaru > 0 i powtórzeń > 0.
+ * Kolejność: najpierw ciężar. null = dane kompletne.
+ */
+export function resolveSetSaveIssue(
+  weight: number,
+  reps: number | null,
+): SetSaveIssue | null {
+  if (!hasExternalWeight(weight)) return "weight";
+  if (!hasPerformedReps(reps)) return "reps";
+  return null;
+}
+
 /**
  * Czy dane wystarczą do zielonego zaliczenia (nie pominięcia).
- * Wymaga ciężaru > 0 i powtórzeń > 0 — inaczej UI pokazuje „Pomiń serię”.
+ * Ta sama reguła co `resolveSetSaveIssue` — przy niekompletnych danych UI pokazuje
+ * komunikat walidacji zamiast zapisu.
  */
 export function canCompleteWorkoutSet(weight: number, reps: number | null): boolean {
-  return hasExternalWeight(weight) && hasPerformedReps(reps);
+  return resolveSetSaveIssue(weight, reps) === null;
 }
 
 /**
@@ -153,16 +169,4 @@ export function resolveAdvanceAfterSet(
     exerciseId: nextEx.id,
     setIndex: open >= 0 ? open : 0,
   };
-}
-
-/** Wszystkie serie mają done=true (niezależnie od pominięć). */
-export function areAllWorkoutSetsDone(exercises: WorkoutExerciseState[]): boolean {
-  let total = 0;
-  for (const ex of exercises) {
-    for (const s of ex.sets) {
-      total += 1;
-      if (!s.done) return false;
-    }
-  }
-  return total > 0;
 }

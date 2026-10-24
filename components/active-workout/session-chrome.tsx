@@ -1,114 +1,98 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { List, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { SessionSegmentedProgress } from "@/components/active-workout/session-segmented-progress";
+import {
+  formatSessionClock,
+  formatSessionClockSpoken,
+} from "@/lib/active-workout-copy";
 import { hapticTap } from "@/lib/haptics";
-import { cn } from "@/lib/utils";
+import type { SessionProgress } from "@/lib/workout-session-progress";
 
-export function SessionProgressBar({
-  progress,
-  className,
-}: {
-  progress: number;
-  className?: string;
-}) {
-  const pct = Math.round(Math.min(1, Math.max(0, progress)) * 100);
-  return (
-    <div
-      className={cn(
-        "relative h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]",
-        className,
-      )}
-      role="progressbar"
-      aria-valuenow={pct}
-      aria-valuemin={0}
-      aria-valuemax={100}
-    >
-      <div
-        className="relative h-full rounded-full bg-gradient-to-r from-[#A8893F] via-[#D6B36A] to-[#F0D58A] transition-[width] duration-500"
-        style={{ width: `${pct}%` }}
-      >
-        <span
-          aria-hidden
-          className="absolute inset-y-0 right-0 w-8 bg-gradient-to-r from-transparent to-white/35 blur-[1px]"
-        />
-      </div>
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_12px_rgba(214,179,106,0.35)]"
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}
+const iconBtnClass =
+  "inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] text-white transition hover:border-[var(--gym-gold)]/40";
 
+/**
+ * Nagłówek sesji (ekran serii i przerwy): X, tytuł dnia, „trening m:ss · seria X/Y”,
+ * plakietka (Ghost), menu ☰ i pasek segmentów.
+ */
 export function SessionChromeHeader({
   title,
-  subtitle,
+  elapsedSeconds,
+  progress,
+  badge,
   onClose,
-  onOpenList,
-  listDisabled,
-  className,
+  onOpenMenu,
 }: {
   title: string;
-  subtitle: ReactNode;
+  elapsedSeconds: number;
+  progress: SessionProgress;
+  badge?: ReactNode;
   onClose?: () => void;
-  onOpenList?: () => void;
-  listDisabled?: boolean;
-  className?: string;
+  onOpenMenu?: () => void;
 }) {
+  const setOrdinal = progress.currentOrdinal ?? progress.totalSets;
   return (
     <header
-      className="pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.5rem))]"
+      className="shrink-0 bg-[var(--gym-black)] pt-[max(0.5rem,env(safe-area-inset-top,0px))]"
       data-session-chrome-header
     >
-      {/*
-        Safe-area jest na zewnętrznym wrapperze — className nie może
-        nadpisać pt-* (wcześniej pt-3 na iOS chował X / listę pod status barem).
-      */}
-      <div
-        className={cn(
-          "relative flex items-start justify-between gap-2.5 px-3 pb-2",
-          className,
-        )}
-      >
+      <div className="flex items-start gap-2 px-3 pb-1 pt-2 compact:pt-1.5">
         <button
           type="button"
           onClick={() => {
             hapticTap();
             onClose?.();
           }}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/85 shadow-[0_0_20px_rgba(214,179,106,0.08)] transition hover:border-[#D6B36A]/35 hover:bg-white/[0.07]"
+          className={iconBtnClass}
           aria-label="Zamknij sesję"
         >
-          <X className="h-4 w-4" />
+          <X className="size-4" />
         </button>
         <div className="min-w-0 flex-1 pt-0.5 text-center">
-          <p className="truncate text-[14px] font-semibold tracking-tight text-white sm:text-[15px]">
+          <p
+            className="truncate text-[15px] font-semibold leading-[18px] text-white compact:text-[14px] compact:leading-[17px]"
+            title={title}
+          >
             {title}
           </p>
-          <div className="mt-0.5 text-[11px] tabular-nums leading-snug text-white/55 sm:text-[12px]">
-            {subtitle}
-          </div>
+          <p className="mt-0.5 text-[12px] leading-4 tabular-nums text-[var(--gym-text-secondary)] compact:text-[11px] compact:leading-[14px]">
+            <span className="sr-only">
+              Trening trwa {formatSessionClockSpoken(elapsedSeconds)}, seria {setOrdinal} z{" "}
+              {progress.totalSets}
+            </span>
+            <span aria-hidden>
+            trening{" "}
+            <span className="font-semibold text-white">
+              {formatSessionClock(elapsedSeconds)}
+            </span>{" "}
+            · seria{" "}
+            <span className="font-semibold text-white">
+              {setOrdinal}/{progress.totalSets}
+            </span>
+            </span>
+          </p>
+          {badge ? <div className="mt-1.5 flex justify-center compact:mt-1">{badge}</div> : null}
         </div>
-        {listDisabled || !onOpenList ? (
-          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 text-white/35">
-            <List className="h-4 w-4" />
-          </span>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              hapticTap();
-              onOpenList?.();
-            }}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/85 shadow-[0_0_20px_rgba(214,179,106,0.08)] transition hover:border-[#D6B36A]/35 hover:bg-white/[0.07]"
-            aria-label="Menu ćwiczeń"
-          >
-            <List className="h-4 w-4" />
-          </button>
-        )}
+        <button
+          type="button"
+          disabled={!onOpenMenu}
+          onClick={() => {
+            hapticTap();
+            onOpenMenu?.();
+          }}
+          className={iconBtnClass}
+          aria-label="Menu treningu"
+          aria-haspopup="dialog"
+        >
+          <Menu className="size-4" />
+        </button>
       </div>
+      <SessionSegmentedProgress
+        progress={progress}
+        className="mx-4 mb-2.5 mt-1.5 compact:mb-2 compact:mt-1"
+      />
     </header>
   );
 }

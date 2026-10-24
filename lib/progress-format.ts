@@ -45,3 +45,13 @@ export function plural(n: number, one: string, few: string, many: string) {
   if (last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14)) return few;
   return many;
 }
+
+/** „m:ss” z sekund, ujemne -> 0. Zastępuje formatElapsed / formatMmSs na ekranach treningu. */
+export function formatClockMmSs(totalSeconds: number): string {
+  const s = Number.isFinite(totalSeconds)
+    ? Math.max(0, Math.floor(totalSeconds))
+    : 0;
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${String(sec).padStart(2, "0")}`;
+}

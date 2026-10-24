@@ -1,6 +1,6 @@
 # GymBrat - stan systemu projektowego (baza wiedzy UX)
 
-Stan na 2026-10-23. Analiza statyczna kodu (gałąź `feat/error-handling-system`). Dokument opisuje to, co jest, a nie stan docelowy. Liczby w nawiasach to liczba plików `.tsx` w `app/` i `components/`, w których występuje wzorzec.
+Stan na 2026-10-23 (uzupełnienie 2026-10-24: komponenty zadania 001). Analiza statyczna kodu (gałąź `feat/error-handling-system`). Dokument opisuje to, co jest, a nie stan docelowy. Liczby w nawiasach to liczba plików `.tsx` w `app/` i `components/`, w których występuje wzorzec.
 
 ## 1. Inwentarz ekranów
 
@@ -42,6 +42,7 @@ Grupy tras i ramy:
 | Ścieżka | Cel | Komponenty |
 |---|---|---|
 | `(auth)/login`, `(auth)/register` | Logowanie, rejestracja | `auth/login-screen`, `login-form`, `register-form`, `google-sign-in-button`, `role-auth-cards` |
+| `(auth)/login/zabezpiecz-konto` | Potwierdzenie przejęcia konta niezweryfikowanego (zadanie 001, UX 4A) | `auth/account-takeover-screen`, `AuthCard`, `AuthHeroBrand compact` |
 | `(dashboard)/complete-profile` | Uzupełnienie profilu po OAuth | `auth/complete-profile-form`, `auth-hero-brand`, `auth-session-hydrating` |
 | `(dashboard)/onboarding` | Konfiguracja startowa | `ScreenCard`, `ScreenHeading`, `ui/button`, `ui/input`, `ui/label` |
 | `(dashboard)/profile` | Profil, parametry ciała, hasło, zgody, język, APK | `profile/*`, `consent/consent-settings-card`, `android-app-version-card`, `AppPageHeader` |
@@ -106,6 +107,10 @@ Grupy tras i ramy:
 - `components/progress/progress-ui.tsx`: `ProgressSection`, `Surface`, `Eyebrow`, `StatTile`, `SegmentedControl`, `CollapsibleCard`, `Explainer`, `EmptyNote`, `Meter`, `PctValue`, `ToneIcon` - najbardziej dojrzały zestaw, opisany w `docs/progress-screens.json`.
 - `components/admin/admin-ui.tsx`: `AdminPageHeader`, `AdminCard`, `AdminStat`, `AdminPill` (tony neutral/ok/warn/danger/info/gold), `AdminNotice`, `AdminEmpty`, `AdminLoading`, `AdminField`, `AdminSelect`.
 - `community/community-empty-state.tsx`, `meal-suggestions/meal-catalog-empty-state.tsx`, `home/empty-app-guide.tsx`.
+- `components/auth/auth-card.tsx` (`AuthCard`, od 2026-10-24, zadanie 001): jedyny kontener karty ekranów auth - `glass-panel gold-panel`, `p-6 sm:p-8`, dwa dekoracyjne orby `--neon` (`aria-hidden`), prop `bodyClassName` na odstępy treści (np. `space-y-5`). Używany w `login-screen`, `register-form`, `account-takeover-screen`. Wyjątek od zalecenia "kontener = `app-card`": dotyczy wyłącznie grupy `(auth)` i dokończenia profilu. Nie kopiować klas `glass-panel gold-panel` inline - kopie do usunięcia: `app/(dashboard)/complete-profile/page.tsx:58`, `components/auth/complete-profile-session-bridge.tsx:35`, `components/auth/auth-session-hydrating.tsx:55,76`, `components/auth/register-form.tsx:483` (backlog U7).
+- `components/auth/oauth-privacy-note.tsx` (`OAuthPrivacyNote`): informacja LR-25 pod przyciskami dostawców, `text-[13px] text-white/65`, link `var(--neon)`; tylko gdy dostawca OAuth jest włączony.
+- `components/auth/auth-copy.ts`: jedno źródło mikrokopii logowania, rejestracji i przejęcia konta (`oauthErrorMessage`, `registerWelcomeCopy`, `TAKEOVER_ERROR_MESSAGES`).
+- `components/admin/admin-registration-notice.tsx` (`AdminRegistrationNotice`): baner stanu rejestracji składany z `AdminNotice` (ton `danger` "nikt nie założy konta", `warn` "rejestracja e-mailem wyłączona"), ikona `UserX`/`MailX` obok tekstu.
 
 ### Zalecenia dla nowych widoków (do czasu konsolidacji)
 Nagłówek: `AppPageHeader`; sekcja: `SectionLabel` lub `ProgressSection`; kontener: klasa `app-card` (nie `ui/card`, nie `glass-panel`); akcje: `Button` z wariantem (nie surowe `gym-btn-primary`/`gold-btn`); pola: `Input`/`Textarea`/`Label`; potwierdzenia: `ConfirmDialog`; komunikaty: `useSaveFeedback` + `InlineBanner`; ładowanie: szkielet na `app-card animate-pulse`; CTA w strefie kciuka: `ThumbActionBar`. Admin: wyłącznie `admin-ui.tsx`.

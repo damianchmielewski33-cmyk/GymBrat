@@ -1,4 +1,5 @@
-import { clamp, daysBetween, linearRegression, round1 } from "@/lib/analytics/math";
+import { clamp, linearRegression, round1 } from "@/lib/analytics/math";
+import { daysBetweenDateKeys } from "@/lib/local-date";
 import type {
   ExerciseSessionPoint,
   PredictionConfidence,
@@ -20,7 +21,7 @@ function projectSeries(
   const sorted = [...points].sort((a, b) => a.date.localeCompare(b.date));
   const t0 = sorted[0]!.date;
   const xs = sorted.map((p) => ({
-    x: daysBetween(t0, p.date),
+    x: daysBetweenDateKeys(t0, p.date),
     y: pick(p),
   }));
   const reg = linearRegression(xs);

@@ -55,13 +55,6 @@ export function linearRegression(
   return { a, b, r2 };
 }
 
-export function daysBetween(a: string, b: string): number {
-  const t0 = new Date(`${a}T12:00:00`).getTime();
-  const t1 = new Date(`${b}T12:00:00`).getTime();
-  if (!Number.isFinite(t0) || !Number.isFinite(t1)) return 0;
-  return Math.round((t1 - t0) / (24 * 60 * 60 * 1000));
-}
-
 export function addDays(iso: string, days: number): string {
   const d = new Date(`${iso}T12:00:00`);
   d.setDate(d.getDate() + days);

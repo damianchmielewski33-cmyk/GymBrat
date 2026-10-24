@@ -221,6 +221,8 @@ Punkty egzekwowania (ta sama funkcja, bez kopii logiki):
 
 Koszt: najwyżej jedno zapytanie po kluczu głównym na użytkownika na 60 s na instancję. Okno 60 s między przejęciem a wylogowaniem na innych instancjach jest akceptowane; na tej samej instancji `invalidateAccountAuthState` działa od razu.
 
+Błąd odczytu stanu konta (fail-open, decyzja z przeglądu kodu 2026-10-24): gdy `getAccountAuthState` rzuci wyjątek (np. chwilowa awaria Turso), `jwt` zostawia token bez zmian, a `proxy.ts` traktuje sesję jako nieunieważnioną. Nikt nie jest wylogowywany. Uzasadnienie: fail-closed przy awarii bazy wylogowałby wszystkich użytkowników (proxy czyści 30-dniowe ciasteczka), a w czasie awarii dostęp do danych i tak nie działa (Java korzysta z tej samej bazy), więc okno nadużycia unieważnionej sesji jest ograniczone do czasu awarii. Błędy nie są cache'owane, więc pierwsze udane odczytanie po awarii egzekwuje unieważnienie. Warunek: catch nie jest cichy. Oba miejsca wołają `logAuthFailure("auth.jwt.sessionState" | "proxy.sessionState", err, { throttle: true })` z `lib/security-events.ts`: tylko miejsce i typ błędu (bez komunikatu Drizzle z parametrami), najwyżej jeden wpis na miejsce na 60 s w procesie. Kompromis: przez czas awarii bazy unieważniona sesja (np. po przejęciu konta) nie jest odrzucana.
+
 Kto podbija `session_version`: przejęcie (D4) i backfill R-B. Zmiana hasła (`actions/profile.ts`) i odebranie roli w panelu to naturalne następne użycia (S2), wpisane do backlogu, poza zakresem.
 
 Java: brak wpływu. `X-GymBrat-User-Id` jest wysyłany dopiero po `auth()` w Next, więc unieważniona sesja nie dociera do Javy. Android: WebView korzysta z tych samych stron; po unieważnieniu widzi `/login?session=expired`. Kontrakty `/api/android/*` się nie zmieniają.
@@ -421,3 +423,10 @@ E2E (`tester`): Playwright działa na buildzie produkcyjnym, więc rejestracja e
 
 ## Werdykt etapu 3
 ZATWIERDZONE Z UWAGAMI. Projekt jest kompletny dla implementacji. Uwagi nie blokują implementacji, tylko Promote albo drobne teksty: DW-5, pytanie A9 do `prawnik`, korekty kopii po stronie `ux`.
+
+## Aktualizacja po implementacji (etap 6, 2026-10-24)
+Przyjęte odchylenia (szczegóły: `docs/adr/0001-rejestracja-weryfikacja-i-laczenie-kont-przeglad.md`):
+- D4: token przejęcia zawiera tylko `{ uid, pid, exp }` (bez imienia i nazwiska); dane uzupełnia `fillMissingNames` przy ponownym logowaniu Google. Kolejność batcha: reset konta, potem purge i wstawienia z warunkiem `email_verified_at = :now`; `buildUserDataPurgeStatements(db, uid, { guard?: SQL })` zamiast `onlyIfUnverified`.
+- D4/A9: `subscription_orders` w `PURGE_EXCLUDED_TABLES` (obowiązek przechowywania); zamówienia `pending` anulowane w batchu przejęcia (uwaga U1).
+- D5: przy błędzie odczytu stanu konta `jwt` i `proxy.ts` nie wylogowują (fail-open dla dostępności), z dławionym logiem błędu bez danych osobowych (uwaga U2).
+- D9: `summarizeConfig(items, { registrationBlocked, emailRegistrationMode })` - flagi przekazuje trasa z `getRegistrationAvailability()`.

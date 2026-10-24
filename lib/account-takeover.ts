@@ -2,15 +2,21 @@ import "server-only";
 
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { hash } from "bcryptjs";
-import { and, eq, isNull, ne, sql, type SQL } from "drizzle-orm";
+import { and, eq, getTableColumns, isNull, ne, sql, type SQL } from "drizzle-orm";
+import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
 import { getDb, type Database } from "@/db";
-import { users } from "@/db/schema";
+import {
+  adminAuditLog,
+  oauthAccounts,
+  subscriptionOrders,
+  userSettings,
+  users,
+} from "@/db/schema";
 import { buildUserDataPurgeStatements } from "@/lib/account-purge";
 import { invalidateAccountAuthState } from "@/lib/account-auth-state";
-import { adminAuditValues } from "@/lib/admin-audit";
 import { getAuthSecret } from "@/lib/auth-secret";
-import { securityEventMeta } from "@/lib/security-events";
+import { securityEventRow } from "@/lib/security-events";
 
 /**
  * Przejęcie konta z niezweryfikowanym e-mailem przez właściciela adresu w Google
@@ -85,30 +91,40 @@ export async function isTakeoverPending(payload: TakeoverTokenPayload): Promise<
   return Boolean(row);
 }
 
-function insertIf(
+/**
+ * `INSERT ... SELECT <wartości> WHERE <warunek>` dla tabeli Drizzle: nazwy kolumn i
+ * kodowanie wartości (np. `timestamp_ms`) pochodzą z definicji kolumn, więc zmiana
+ * schematu jest wykrywana przez `tsc`.
+ */
+function insertIf<T extends SQLiteTable>(
   db: Database,
-  table: string,
-  values: Record<string, string | number | null>,
+  table: T,
+  values: T["$inferInsert"],
   condition: SQL,
 ) {
+  const columns = getTableColumns(table);
+  const entries = Object.entries(values as Record<string, unknown>).filter(
+    ([, v]) => v !== undefined,
+  );
   const cols = sql.join(
-    Object.keys(values).map((c) => sql.identifier(c)),
+    entries.map(([key]) => sql.identifier(columns[key]!.name)),
     sql`, `,
   );
   const vals = sql.join(
-    Object.values(values).map((v) => sql`${v}`),
+    entries.map(([key, v]) => sql`${sql.param(v, columns[key])}`),
     sql`, `,
   );
   return db.run(
-    sql`INSERT INTO ${sql.identifier(table)} (${cols}) SELECT ${vals} WHERE ${condition} ON CONFLICT DO NOTHING`,
+    sql`INSERT INTO ${table} (${cols}) SELECT ${vals} WHERE ${condition} ON CONFLICT DO NOTHING`,
   );
 }
 
 /**
  * Instrukcje przejęcia w kolejności wykonania (jeden `db.batch`, jedna transakcja):
  * 1. reset konta (tylko gdy nadal kwalifikuje się do przejęcia) z `email_verified_at = now`,
- * 2. purge danych, 3. domyślne ustawienia, 4. powiązanie Google, 5. zdarzenie w dzienniku.
- * Kroki 2-5 mają warunek „konto przejęte w tym batchu” (`email_verified_at = now`),
+ * 2. anulowanie oczekujących zamówień (opłacenie po przejęciu nie przyznaje pakietu
+ * nowemu właścicielowi), 3. purge danych, 4. domyślne ustawienia, 5. powiązanie Google,
+ * 6. zdarzenie w dzienniku. Kroki 2-6 mają warunek „konto przejęte w tym batchu” (`email_verified_at = now`),
  * więc drugie (równoległe lub ponowne) wywołanie niczego nie zmienia.
  */
 export function buildTakeoverStatements(
@@ -117,18 +133,6 @@ export function buildTakeoverStatements(
 ) {
   const nowMs = input.now.getTime();
   const takenOverNow = sql`EXISTS (SELECT 1 FROM ${users} WHERE ${users.id} = ${input.userId} AND ${users.emailVerifiedAt} = ${nowMs})`;
-  const event = adminAuditValues({
-    actorUserId: input.userId,
-    action: "security.account_takeover",
-    targetUserId: input.userId,
-    meta: securityEventMeta({
-      type: "account_takeover",
-      userId: input.userId,
-      reason: "email_unverified",
-      provider: "google",
-    }),
-  });
-
   const reset = db
     .update(users)
     .set({
@@ -150,33 +154,46 @@ export function buildTakeoverStatements(
     })
     .where(eligibleForTakeover(input.userId));
 
+  const cancelPendingOrders = db
+    .update(subscriptionOrders)
+    .set({ status: "cancelled" })
+    .where(
+      and(
+        eq(subscriptionOrders.userId, input.userId),
+        eq(subscriptionOrders.status, "pending"),
+        takenOverNow,
+      ),
+    );
+
   return [
     reset,
+    cancelPendingOrders,
     ...buildUserDataPurgeStatements(db, input.userId, { guard: takenOverNow }),
-    insertIf(db, "user_settings", { user_id: input.userId, updated_at: nowMs }, takenOverNow),
+    insertIf(db, userSettings, { userId: input.userId, updatedAt: input.now }, takenOverNow),
     insertIf(
       db,
-      "oauth_accounts",
+      oauthAccounts,
       {
         id: randomUUID(),
-        user_id: input.userId,
+        userId: input.userId,
         provider: "google",
-        provider_account_id: input.providerAccountId,
-        created_at: nowMs,
+        providerAccountId: input.providerAccountId,
+        createdAt: input.now,
       },
       takenOverNow,
     ),
     insertIf(
       db,
-      "admin_audit_log",
+      adminAuditLog,
       {
+        ...securityEventRow({
+          type: "account_takeover",
+          userId: input.userId,
+          reason: "email_unverified",
+          provider: "google",
+        }),
         id: randomUUID(),
-        actor_user_id: event.actorUserId,
-        action: event.action,
-        target_user_id: event.targetUserId ?? null,
-        meta_json: event.metaJson ?? null,
-        deployment_env: event.deploymentEnv ?? null,
-        created_at: nowMs,
+        createdAt: input.now,
       },
       takenOverNow,
     ),

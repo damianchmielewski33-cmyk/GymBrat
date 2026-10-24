@@ -43,6 +43,49 @@ export function localDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/** Nazwy miesięcy w dopełniaczu („20 października”), indeks 0 = styczeń. */
+export const PL_MONTH_GENITIVE = [
+  "stycznia",
+  "lutego",
+  "marca",
+  "kwietnia",
+  "maja",
+  "czerwca",
+  "lipca",
+  "sierpnia",
+  "września",
+  "października",
+  "listopada",
+  "grudnia",
+] as const;
+
+/** Rok, miesiąc (1–12) i dzień klucza YYYY-MM-DD. */
+export type DateKeyParts = { y: number; m: number; d: number };
+
+/** Ścisłe parsowanie YYYY-MM-DD; `null` przy złym formacie lub zakresie miesiąca/dnia. */
+export function parseDateKey(key: string): DateKeyParts | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+  if (!match) return null;
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+  return { y, m, d };
+}
+
+/**
+ * Różnica dni kalendarzowych `toKey − fromKey` (YYYY-MM-DD), niezależna od strefy i DST.
+ * Przy niepoprawnym kluczu zwraca 0.
+ */
+export function daysBetweenDateKeys(fromKey: string, toKey: string): number {
+  const a = parseDateKey(fromKey);
+  const b = parseDateKey(toKey);
+  if (!a || !b) return 0;
+  const t0 = Date.UTC(a.y, a.m - 1, a.d);
+  const t1 = Date.UTC(b.y, b.m - 1, b.d);
+  return Math.round((t1 - t0) / 86_400_000);
+}
+
 /** Dodaje `deltaDays` do YYYY-MM-DD w sensie kalendarza obywatelskiego (niezależnie od strefy). */
 export function addCalendarDays(dateKey: string, deltaDays: number): string {
   const [y, m, d] = dateKey.split("-").map(Number);
@@ -99,14 +142,18 @@ function utcInstantNearNoonForCalendarDate(dateKey: string): Date {
   return new Date(Date.UTC(y0, m0 - 1, d0, 12, 0, 0));
 }
 
+/** Poniedziałek (YYYY-MM-DD) tygodnia kalendarzowego zawierającego `dateKey`. */
+export function calendarWeekMondayKey(dateKey: string): string {
+  const dow = calendarWeekdaySun0(dateKey);
+  return addCalendarDays(dateKey, dow === 0 ? -6 : 1 - dow);
+}
+
 /**
  * Poniedziałek–niedziela tygodnia zawierającego `anchorDateKey`,
  * w kalendarzu `getCalendarTimezone()` — spójnie z wpisami posiłków i `calendarDateKey`.
  */
 export function weekDateKeysMondayFirst(anchorDateKey: string): string[] {
-  const dow = calendarWeekdaySun0(anchorDateKey);
-  const mondayOffset = dow === 0 ? -6 : 1 - dow;
-  const mondayKey = addCalendarDays(anchorDateKey, mondayOffset);
+  const mondayKey = calendarWeekMondayKey(anchorDateKey);
   const keys: string[] = [];
   for (let i = 0; i < 7; i++) {
     keys.push(addCalendarDays(mondayKey, i));

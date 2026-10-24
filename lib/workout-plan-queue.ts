@@ -1,21 +1,35 @@
+export type PlanQueueItem = { lastWorkoutDate: string | null; dayNumber: number };
+
 /**
- * Kolejka propozycji treningów:
+ * Kolejka propozycji treningów (wspólna dla Home i ekranu Trening):
  * 1) nigdy nie robione,
  * 2) robione najdawniej,
  * 3) robione ostatnio — na końcu.
+ * Remis (obie daty puste albo równe) rozstrzyga niższy numer dnia.
  */
 export function comparePlansByWorkoutRecencyAsc(
-  a: { lastWorkoutDate: string | null; updatedAt?: string },
-  b: { lastWorkoutDate: string | null; updatedAt?: string },
+  a: PlanQueueItem,
+  b: PlanQueueItem,
 ): number {
-  if (a.lastWorkoutDate && b.lastWorkoutDate) {
-    return a.lastWorkoutDate.localeCompare(b.lastWorkoutDate);
-  }
-  if (!a.lastWorkoutDate && b.lastWorkoutDate) return -1;
-  if (a.lastWorkoutDate && !b.lastWorkoutDate) return 1;
-  const au = a.updatedAt ?? "";
-  const bu = b.updatedAt ?? "";
-  return bu.localeCompare(au);
+  const da = a.lastWorkoutDate;
+  const db = b.lastWorkoutDate;
+  if (!da && db) return -1;
+  if (da && !db) return 1;
+  if (da && db && da !== db) return da.localeCompare(db);
+  return a.dayNumber - b.dayNumber;
+}
+
+/**
+ * Następny dzień do zrobienia: pierwszy w kolejce dzień z ćwiczeniami;
+ * gdy wszystkie są puste — pierwszy w kolejce (UI: „Dzień N jest pusty”).
+ * `null` tylko przy braku planów. Nie mutuje wejścia.
+ */
+export function pickNextWorkoutPlan<
+  T extends PlanQueueItem & { plan: { exercises: readonly unknown[] } },
+>(plans: readonly T[]): T | null {
+  if (plans.length === 0) return null;
+  const queue = [...plans].sort(comparePlansByWorkoutRecencyAsc);
+  return queue.find((p) => p.plan.exercises.length > 0) ?? queue[0]!;
 }
 
 /** Krótka data ostatniego treningu planu (np. „28.09”) albo null gdy nigdy. */

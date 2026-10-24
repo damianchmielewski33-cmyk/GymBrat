@@ -3,6 +3,8 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+/* Niski ekran (np. 360×640): wariant kompaktowy ekranu aktywnego treningu (zadanie 004). */
+@custom-variant compact (@media (max-height: 719px));
 
 @theme inline {
   --color-background: var(--background);
@@ -57,6 +59,8 @@
   --gym-gold:        #ebc44a;
   --gym-gold-bright: #f7e28f;
   --gym-gold-deep:   #c49a1f;
+  /* Tekst i ikony na złotym tle (przycisk, ptaszek, aktywne tło). */
+  --gym-on-gold:     #1a1408;
   --gym-iron:    #1c1c1f;
   --gym-chrome:  #2e2e33;
   --gym-glass:   rgba(255, 255, 255, 0.07);
@@ -65,6 +69,18 @@
   --gym-surface-raised: #1c1c1f;
   --gym-surface-sunken: #141416;
   --gym-app-bg:         #050505;
+  /* Sylwetka mięśni (MuscleGlyph): bryły bazowe. */
+  --gym-glyph-base:     #262626;
+  --gym-glyph-stroke:   #4a4a4a;
+  /* Ekran aktywnego treningu (zadanie 004): stany serii, kierunek sugestii, powierzchnie złote. */
+  --gym-surface-gold:   #15120b;
+  --gym-border-gold:    #33291a;
+  --gym-track:          #2b2518;
+  --gym-success:        #3ecf72;
+  --gym-trend-up:       var(--gym-success);
+  --gym-trend-down:     #ff5a5a;
+  --gym-skipped:        #ff9f43;
+  --gym-text-secondary: #9a9182;
 
   --neon:    var(--gym-gold);
   --metal-1: var(--gym-gray);
@@ -139,6 +155,7 @@
 
 .dark {
   --gym-black:  #070708;
+  --gym-on-gold: #1a1408;
   --gym-gray:   #141416;
   --gym-red:    #e60023;
   --gym-iron:   #1c1c1f;
@@ -148,6 +165,18 @@
   --gym-surface-raised: #1c1c1f;
   --gym-surface-sunken: #141416;
   --gym-app-bg:         #050505;
+  /* Sylwetka mięśni (MuscleGlyph): bryły bazowe. */
+  --gym-glyph-base:     #262626;
+  --gym-glyph-stroke:   #4a4a4a;
+  /* Ekran aktywnego treningu (zadanie 004): stany serii, kierunek sugestii, powierzchnie złote. */
+  --gym-surface-gold:   #15120b;
+  --gym-border-gold:    #33291a;
+  --gym-track:          #2b2518;
+  --gym-success:        #3ecf72;
+  --gym-trend-up:       var(--gym-success);
+  --gym-trend-down:     #ff5a5a;
+  --gym-skipped:        #ff9f43;
+  --gym-text-secondary: #9a9182;
 }
 
 @layer base {

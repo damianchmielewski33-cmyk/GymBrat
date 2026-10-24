@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Trening: nowy układ ekranu i sylwetki partii mięśni",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Na górze widać zakres tygodnia, serię tygodni z treningiem oraz kartę tygodnia: ile dni planu zrobiono, minuty i sesje cardio oraz pasek z jednym segmentem na każdy dzień planu.",
+      "Karta „Następny” pokazuje numer dnia, kiedy był ostatnio, pierwsze trzy ćwiczenia z obciążeniem z ostatniej sesji (albo celem z planu) i sylwetkę z zaznaczonymi partiami mięśni.",
+      "Dni planu mają stały numer i sylwetkę partii zamiast „D1–D5”, ptaszek przy dniu zrobionym w tym tygodniu oraz menu ⋮ z podglądem ćwiczeń i dziennikiem obciążeń.",
+      "Porzucenie niedokończonego treningu i start innego dnia w jego trakcie wymagają potwierdzenia, żeby odhaczone serie nie zniknęły przypadkiem.",
+      "Sekcje techniki, postępów i cardio zastąpiły trzy kafelki Narzędzi: Dodaj cardio, Dziennik i Technika.",
+    ],
+  },
+  {
     title: "Zapowiedź — Rejestracja: potwierdzony e-mail i bezpieczne logowanie Google",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

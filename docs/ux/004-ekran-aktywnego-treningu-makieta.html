@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Makieta 004 - ekran aktywnego treningu (statyczna, tylko do odwzorowania)</title>
+<!-- Makieta referencyjna dla `frontend`. Specyfikacja: docs/ux/004-ekran-aktywnego-treningu.md
+     Tokeny: istniejące z app/globals.css (--gym-black, --gym-gold, --gym-gold-bright, --neon-fg, --destructive)
+     + nowe tokeny z sekcji 2 specyfikacji (--gym-success, --gym-trend-down, --gym-skipped, --gym-track,
+     --gym-surface-gold, --gym-border-gold, --gym-text-secondary).
+     Ramki: 390x844 (safe-area 47/34 jak iPhone PWA) i 360x640 (Android WebView, bez safe-area).
+     Klasa .compact = stan @media (max-height: 719px). -->
+<style>
+  :root {
+    --gym-black:#070708; --gym-gold:#ebc44a; --gym-gold-bright:#f7e28f; --gym-gold-deep:#c49a1f;
+    --neon-fg:#120f05; --destructive:#ff3347; --foreground:rgba(255,255,255,.92);
+    --gym-success:#3ecf72; --gym-trend-up:var(--gym-success); --gym-trend-down:#ff5a5a; --gym-skipped:#ff9f43;
+    --gym-track:#2b2518; --gym-surface-gold:#15120b; --gym-border-gold:#33291a; --gym-text-secondary:#9a9182;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#1d1d1d; color:var(--foreground); font:14px/1.35 "Segoe UI", system-ui, sans-serif; }
+  .tab { font-variant-numeric:tabular-nums; }
+  .wall { display:flex; flex-wrap:wrap; gap:28px; padding:24px; align-items:flex-start; }
+  figure { margin:0; }
+  figcaption { font-size:12px; color:#bbb; margin:0 0 8px; max-width:390px; }
+  .phone { position:relative; background:var(--gym-black); border-radius:28px; overflow:hidden; outline:1px solid #333; display:flex; flex-direction:column; }
+  .p390 { width:390px; height:844px; padding:47px 0 34px; }
+  .p360 { width:360px; height:640px; padding:0; border-radius:12px; }
+  .screen { flex:1; min-height:0; display:flex; flex-direction:column; }
+
+  /* --- nagłówek (SessionChromeHeader) --- */
+  .hdr { display:flex; align-items:flex-start; gap:8px; padding:8px 12px 4px; }
+  .iconbtn { width:44px; height:44px; flex:none; border-radius:999px; border:1px solid var(--gym-border-gold); background:var(--gym-surface-gold); display:grid; place-items:center; color:#fff; font-size:16px; }
+  .hc { flex:1; min-width:0; text-align:center; padding-top:2px; }
+  .ttl { font-weight:600; font-size:15px; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff; }
+  .meta { margin-top:2px; font-size:12px; line-height:16px; color:var(--gym-text-secondary); }
+  .meta b { color:#fff; font-weight:600; }
+  .ghost { display:inline-flex; align-items:center; gap:6px; height:28px; margin-top:6px; padding:0 10px; border-radius:999px; border:1px solid rgba(235,196,74,.38); background:rgba(235,196,74,.08); color:var(--gym-gold); font-size:12px; font-weight:600; }
+  .ghost.on { background:rgba(235,196,74,.16); border-color:var(--gym-gold); }
+  .gico { width:13px; height:13px; border-radius:7px 7px 3px 3px; border:1.6px solid currentColor; }
+
+  /* --- pasek segmentów (SessionSegmentedProgress) --- */
+  .bar { display:flex; gap:6px; align-items:center; height:10px; padding:0 16px; margin:6px 0 10px; }
+  .grp { display:flex; gap:2px; align-items:center; }
+  .grp.full { gap:0; }
+  .grp.full .s { border-radius:0; } .grp.full .s:first-child { border-radius:99px 0 0 99px; } .grp.full .s:last-child { border-radius:0 99px 99px 0; }
+  .s { flex:1; min-width:2px; height:6px; border-radius:99px; background:var(--gym-track); }
+  .s.ok { background:var(--gym-success); }
+  .s.cur { height:10px; background:var(--gym-gold); }
+  .s.skip { background:transparent; box-shadow:inset 0 0 0 1.5px var(--gym-skipped); }
+
+  /* --- treść --- */
+  .body { flex:1; min-height:0; overflow:auto; padding:12px 16px 12px; display:flex; flex-direction:column; gap:12px; }
+  .kick { font-size:11px; line-height:14px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--gym-gold); }
+  .exrow { display:flex; gap:8px; align-items:flex-start; }
+  .exname { margin:4px 0 0; font:600 22px/26px "Space Grotesk","Segoe UI",sans-serif; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .vid { width:44px; height:44px; flex:none; border-radius:16px; border:1px solid var(--gym-border-gold); background:var(--gym-surface-gold); display:grid; place-items:center; color:var(--gym-gold); font-size:14px; }
+  .schemerow { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px; }
+  .scheme { font-size:13px; color:var(--gym-text-secondary); white-space:nowrap; }
+  .scheme b { color:#fff; font-weight:600; }
+  .pills { display:flex; }
+  .pill { width:40px; height:44px; display:grid; place-items:center; }
+  .pill i { font-style:normal; width:34px; height:34px; border-radius:99px; display:grid; place-items:center; font-weight:700; font-size:14px; border:1px solid var(--gym-border-gold); background:var(--gym-surface-gold); color:rgba(255,255,255,.8); }
+  .pill.ok i { border-color:rgba(62,207,114,.6); background:rgba(62,207,114,.14); color:var(--gym-success); }
+  .pill.skip i { border-color:rgba(255,159,67,.6); background:rgba(255,159,67,.12); color:var(--gym-skipped); }
+  .pill.cur i { border-color:var(--gym-gold); background:rgba(235,196,74,.18); color:var(--gym-gold-bright); }
+  .pill.sel i { box-shadow:0 0 0 2px var(--gym-black), 0 0 0 4px var(--gym-gold); }
+
+  .sug { display:flex; align-items:center; gap:8px; min-height:56px; padding:6px 6px 6px 12px; border-radius:16px; border:1px solid var(--gym-border-gold); background:var(--gym-surface-gold); }
+  .sugL { flex:1; min-width:0; min-height:44px; display:flex; flex-direction:column; justify-content:center; }
+  .l1 { font-size:13px; line-height:17px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .l1 span { color:var(--gym-text-secondary); }
+  .l2 { font-size:12px; line-height:16px; color:var(--gym-text-secondary); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .up { color:var(--gym-trend-up); font-weight:600; } .down { color:var(--gym-trend-down); font-weight:600; }
+  .chip { flex:none; height:44px; display:inline-flex; align-items:center; gap:6px; padding:0 12px; border-radius:999px; font-size:14px; font-weight:600; color:#fff; border:1px solid; }
+  .chip.up { border-color:rgba(62,207,114,.5); background:rgba(62,207,114,.12); }
+  .chip.down { border-color:rgba(255,90,90,.65); background:rgba(255,90,90,.10); }
+  .chip.eq { border-color:rgba(235,196,74,.45); background:rgba(235,196,74,.10); }
+  .chip .w.up { color:var(--gym-trend-up); } .chip .w.down { color:var(--gym-trend-down); } .chip .w.eq { color:var(--gym-gold); }
+  .chip .ok { color:var(--gym-gold-bright); font-size:12px; }
+
+  .mc { border-radius:18px; border:1px solid var(--gym-border-gold); border-top-color:rgba(235,196,74,.22); background:var(--gym-surface-gold); padding:12px 16px; }
+  .mc.err { border-color:var(--destructive); }
+  .mh { display:flex; align-items:center; justify-content:space-between; height:24px; }
+  .ml { font-size:13px; font-weight:600; color:rgba(255,255,255,.75); }
+  .ml span { color:var(--gym-text-secondary); font-weight:400; }
+  .qk { display:flex; gap:8px; }
+  .q { height:32px; min-width:56px; padding:0 10px; border-radius:999px; border:1px solid rgba(235,196,74,.35); background:rgba(235,196,74,.08); color:var(--gym-gold); font-size:13px; font-weight:600; display:grid; place-items:center; }
+  .hint { font-size:12px; font-weight:600; color:var(--gym-text-secondary); }
+  .hint.in { color:var(--gym-gold-bright); }
+  .msg { font-size:13px; font-weight:600; color:#fff; display:flex; gap:6px; align-items:center; }
+  .msg::before { content:""; width:8px; height:8px; border-radius:99px; background:var(--destructive); }
+  .mv { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:4px; }
+  .num { font:500 50px/56px Georgia, "Playfair Display", serif; color:#fff; font-variant-numeric:tabular-nums; }
+  .num.w { color:var(--gym-gold); }
+  .num.empty { color:rgba(255,255,255,.3); }
+  .num small { font:600 14px "Segoe UI",sans-serif; color:rgba(235,196,74,.85); margin-left:4px; }
+  .steps { display:flex; gap:8px; }
+  .st { width:64px; height:52px; border-radius:16px; border:1px solid var(--gym-border-gold); background:var(--gym-black); display:grid; place-items:center; font-size:22px; color:#fff; }
+
+  .rirh { display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:rgba(255,255,255,.75); }
+  .rirh span { font-weight:400; color:var(--gym-text-secondary); }
+  .rir { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:8px; }
+  .rb { height:48px; border-radius:14px; border:1px solid var(--gym-border-gold); background:var(--gym-black); display:grid; place-items:center; font-weight:700; font-size:16px; color:rgba(255,255,255,.8); }
+  .rb.on { border-color:rgba(255,232,160,.72); background:linear-gradient(168deg,#fff1b8 0%,var(--gym-gold-bright) 22%,var(--gym-gold) 55%,var(--gym-gold-deep) 100%); color:var(--neon-fg); }
+
+  /* --- dół --- */
+  .bot { flex:none; border-top:1px solid rgba(255,255,255,.06); padding:10px 16px 8px; background:var(--gym-black); }
+  .cta { height:56px; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:8px; font-weight:700; font-size:17px; letter-spacing:.02em; color:var(--neon-fg);
+    border:1px solid rgba(255,232,160,.72); background:linear-gradient(168deg,#fff1b8 0%,var(--gym-gold-bright) 22%,var(--gym-gold) 55%,var(--gym-gold-deep) 100%);
+    box-shadow:0 1px 0 rgba(255,255,255,.55) inset, 0 -2px 0 rgba(90,60,0,.28) inset, 0 8px 28px rgba(235,196,74,.40); }
+  .links { display:grid; grid-template-columns:repeat(3,1fr); margin-top:4px; }
+  .lk { min-height:44px; display:grid; place-items:center; font-size:14px; font-weight:600; color:rgba(255,255,255,.82); }
+  .lk.dis { opacity:.38; }
+
+  /* --- przerwa (ekran B) --- */
+  .rbody { flex:1; min-height:0; overflow:auto; padding:12px 16px; display:flex; flex-direction:column; gap:12px; }
+  .saved { display:flex; align-items:center; gap:10px; min-height:52px; padding:8px 12px; border-radius:16px; border:1px solid rgba(62,207,114,.45); background:#0d1b13; }
+  .saved .ck { width:28px; height:28px; border-radius:99px; background:var(--gym-success); color:#06210f; display:grid; place-items:center; font-weight:800; flex:none; }
+  .saved .sv { flex:1; min-width:0; } .saved small { display:block; font-size:12px; line-height:16px; font-weight:600; color:var(--gym-success); } .saved p { margin:0; font-size:16px; line-height:20px; font-weight:600; color:#fff; }
+  .saved p span { color:var(--gym-success); }
+  .saved .exok { margin-left:auto; flex:none; font-size:12px; font-weight:700; color:var(--gym-success); border:1px solid rgba(62,207,114,.5); border-radius:99px; padding:3px 8px; }
+  .ringwrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .ring { position:relative; width:min(64vw,250px); aspect-ratio:1; }
+  .p390 .ring { width:208px; } .p360 .ring { width:208px; }
+  .ring svg { position:absolute; inset:0; transform:rotate(-90deg); }
+  .ring .t { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring .t b { font:400 76px/1 "Bebas Neue","Arial Narrow","Segoe UI",sans-serif; color:var(--gym-gold); font-variant-numeric:tabular-nums; letter-spacing:.01em; }
+  .ring .t span { font-size:11px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:var(--gym-text-secondary); margin-top:4px; }
+  .adj { display:flex; gap:8px; justify-content:center; }
+  .ab { height:44px; min-width:76px; border-radius:999px; border:1px solid var(--gym-border-gold); background:var(--gym-surface-gold); display:grid; place-items:center; font-size:14px; font-weight:700; color:#fff; }
+  .ab.snd { min-width:44px; width:44px; color:var(--gym-gold); }
+  .pre { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .pb { height:40px; border-radius:999px; border:1px solid rgba(235,196,74,.32); display:grid; place-items:center; font-size:13px; font-weight:700; color:rgba(255,255,255,.75); }
+  .pb.on { color:var(--neon-fg); background:var(--gym-gold); border-color:rgba(255,232,160,.72); }
+  .next { border-radius:18px; border:1px solid var(--gym-border-gold); background:var(--gym-surface-gold); padding:12px; }
+  .next .nt { margin-top:4px; font-size:17px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .next .ns { font-size:13px; color:var(--gym-text-secondary); margin-top:2px; }
+  .next .sug { margin-top:10px; background:var(--gym-black); }
+
+  /* --- wariant kompaktowy: @media (max-height: 719px) --- */
+  .compact .hdr { padding-top:6px; }
+  .compact .ttl { font-size:14px; line-height:17px; }
+  .compact .meta { font-size:11px; line-height:14px; }
+  .compact .ghost { height:24px; margin-top:4px; font-size:11px; }
+  .compact .bar { margin:4px 0 8px; }
+  .compact .body, .compact .rbody { gap:8px; padding-top:8px; padding-bottom:8px; }
+  .compact .exname { font-size:20px; line-height:24px; margin-top:2px; }
+  .compact .schemerow { margin-top:2px; }
+  .compact .sug { min-height:44px; padding-top:2px; padding-bottom:2px; }
+  .compact .l1 { font-size:12px; line-height:15px; } .compact .l2 { font-size:11px; line-height:14px; }
+  .compact .mc { padding:8px 14px; }
+  .compact .mh { height:20px; }
+  .compact .num { font-size:40px; line-height:44px; }
+  .compact .st { width:56px; height:44px; }
+  .compact .rir { margin-top:6px; } .compact .rb { height:44px; }
+  .compact .bot { padding-top:8px; padding-bottom:4px; }
+  .compact .cta { height:52px; }
+  .compact .saved { min-height:44px; padding:4px 12px; } .compact .saved p { font-size:15px; line-height:18px; } .compact .saved small { font-size:11px; line-height:14px; }
+  .compact .ring .t b { font-size:60px; }
+  .compact .ring { width:144px; } .compact .ringwrap { gap:6px; } .compact .ring .t span { margin-top:2px; }
+  .compact .next { padding:10px 12px; } .compact .next .nt { font-size:16px; }
+  .compact .next .sug { margin-top:6px; }
+
+  /* nakładka menu */
+  .menu { position:absolute; inset:0; background:var(--gym-black); display:flex; flex-direction:column; padding:47px 12px 34px; }
+  .menu h3 { margin:2px 0 0; font:600 24px/1.1 "Space Grotesk","Segoe UI",sans-serif; color:#fff; }
+  .mlist { flex:1; overflow:auto; margin-top:12px; border-radius:22px; border:1px solid var(--gym-border-gold); background:var(--gym-surface-gold); padding:6px; }
+  .mi { display:flex; align-items:center; gap:10px; min-height:56px; padding:8px 10px; border-radius:14px; }
+  .mi.act { background:rgba(235,196,74,.08); }
+  .mi .n { flex:1; min-width:0; } .mi .n b { display:block; font-size:15px; color:#fff; } .mi .n span { font-size:12px; color:var(--gym-text-secondary); }
+  .dots { display:flex; gap:4px; } .dots i { width:8px; height:8px; border-radius:99px; background:var(--gym-track); } .dots i.ok { background:var(--gym-success); } .dots i.skip { background:transparent; box-shadow:inset 0 0 0 1.5px var(--gym-skipped); }
+  .sec { font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--gym-text-secondary); margin:14px 4px 6px; }
+  .acts { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .acts div { min-height:44px; display:grid; place-items:center; border-radius:14px; border:1px solid var(--gym-border-gold); background:var(--gym-surface-gold); font-size:13px; font-weight:600; color:#fff; }
+  .fin { margin-top:12px; height:48px; border-radius:16px; border:1.5px solid rgba(235,196,74,.62); display:grid; place-items:center; color:var(--gym-gold-bright); font-weight:700; }
+</style>
+</head>
+<body>
+<div class="wall">
+
+<!-- A1: seria bieżąca, sugestia w górę, Ghost niewybrany, 390x844 -->
+<figure><figcaption>A1 · 390×844 · seria 2/3 bieżąca, seria 1 zapisana, sugestia ↑, Ghost niewybrany</figcaption>
+<div class="phone p390" data-frame="A1"><div class="screen">
+  <header class="hdr"><div class="iconbtn" aria-label="Zamknij sesję">✕</div>
+    <div class="hc"><div class="ttl">Push A · klatka i barki</div>
+      <div class="meta tab">trening <b>24:05</b> · seria <b>8/16</b></div>
+      <span class="ghost"><span class="gico"></span>Ghost: wybierz rywala</span></div>
+    <div class="iconbtn" aria-label="Menu treningu">☰</div></header>
+  <div class="bar" role="progressbar" aria-valuetext="Zapisano 6 z 16 serii, pominięto 1">
+    <div class="grp full" style="flex:3"><i class="s ok"></i><i class="s ok"></i><i class="s ok"></i></div>
+    <div class="grp" style="flex:3"><i class="s ok"></i><i class="s skip"></i><i class="s ok"></i></div>
+    <div class="grp" style="flex:3"><i class="s ok"></i><i class="s cur"></i><i class="s"></i></div>
+    <div class="grp" style="flex:2"><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:2"><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:2"><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:1"><i class="s"></i></div>
+  </div>
+  <main class="body">
+    <section>
+      <div class="exrow"><div style="flex:1;min-width:0"><div class="kick">Ćwiczenie 3 z 7</div><h2 class="exname">Wyciskanie hantli skos</h2></div><div class="vid" aria-label="Film techniki">▶</div></div>
+      <div class="schemerow"><div class="scheme tab"><b>3 serie × 6–8</b> · RIR 1</div>
+        <div class="pills"><span class="pill ok"><i>✓</i></span><span class="pill cur sel"><i>2</i></span><span class="pill"><i>3</i></span></div></div>
+    </section>
+    <div class="sug"><div class="sugL"><div class="l1 tab">Ostatnio 30 × 8 <span>· 5 dni temu</span></div><div class="l2 tab"><span class="up">+2 kg</span> · zakres zrobiony z zapasem</div></div>
+      <div class="chip up tab"><span class="w up">↑ 32</span>× 6<span class="ok">✓</span></div></div>
+    <div class="mc"><div class="mh"><label class="ml">Ciężar <span>· krok 2 kg</span></label><div class="qk"><span class="q tab">−4</span><span class="q tab">+4</span></div></div>
+      <div class="mv"><div class="num w tab">32<small>kg</small></div><div class="steps"><span class="st">−</span><span class="st">+</span></div></div></div>
+    <div class="mc"><div class="mh"><label class="ml">Powtórzenia</label><span class="hint tab">cel 6–8</span></div>
+      <div class="mv"><div class="num tab">6</div><div class="steps"><span class="st">−</span><span class="st">+</span></div></div></div>
+    <div><div class="rirh">RIR <span>· powtórzenia w zapasie · cel 1</span></div>
+      <div class="rir"><span class="rb">0</span><span class="rb on">1</span><span class="rb">2</span><span class="rb">3+</span></div></div>
+  </main>
+  <footer class="bot"><div class="cta">✓ Zapisz serię 2</div>
+    <div class="links"><span class="lk">Wstecz</span><span class="lk">Później</span><span class="lk">Pomiń</span></div></footer>
+</div></div></figure>
+
+<!-- A2: to samo, 360x640 kompakt -->
+<figure><figcaption>A2 · 360×640 · kompakt (max-height 719 px), ta sama treść co A1</figcaption>
+<div class="phone p360 compact" data-frame="A2"><div class="screen">
+  <header class="hdr"><div class="iconbtn">✕</div>
+    <div class="hc"><div class="ttl">Push A · klatka i barki</div>
+      <div class="meta tab">trening <b>24:05</b> · seria <b>8/16</b></div>
+      <span class="ghost"><span class="gico"></span>Ghost: wybierz rywala</span></div>
+    <div class="iconbtn">☰</div></header>
+  <div class="bar">
+    <div class="grp full" style="flex:3"><i class="s ok"></i><i class="s ok"></i><i class="s ok"></i></div>
+    <div class="grp" style="flex:3"><i class="s ok"></i><i class="s skip"></i><i class="s ok"></i></div>
+    <div class="grp" style="flex:3"><i class="s ok"></i><i class="s cur"></i><i class="s"></i></div>
+    <div class="grp" style="flex:2"><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:2"><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:2"><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:1"><i class="s"></i></div>
+  </div>
+  <main class="body">
+    <section>
+      <div class="exrow"><div style="flex:1;min-width:0"><div class="kick">Ćwiczenie 3 z 7</div><h2 class="exname">Wyciskanie hantli skos</h2></div><div class="vid">▶</div></div>
+      <div class="schemerow"><div class="scheme tab"><b>3 serie × 6–8</b> · RIR 1</div>
+        <div class="pills"><span class="pill ok"><i>✓</i></span><span class="pill cur sel"><i>2</i></span><span class="pill"><i>3</i></span></div></div>
+    </section>
+    <div class="sug"><div class="sugL"><div class="l1 tab">Ostatnio 30 × 8 <span>· 5 dni temu</span></div><div class="l2 tab"><span class="up">+2 kg</span> · zakres zrobiony z zapasem</div></div>
+      <div class="chip up tab"><span class="w up">↑ 32</span>× 6<span class="ok">✓</span></div></div>
+    <div class="mc"><div class="mh"><label class="ml">Ciężar <span>· krok 2 kg</span></label><div class="qk"><span class="q tab">−4</span><span class="q tab">+4</span></div></div>
+      <div class="mv"><div class="num w tab">32<small>kg</small></div><div class="steps"><span class="st">−</span><span class="st">+</span></div></div></div>
+    <div class="mc"><div class="mh"><label class="ml">Powtórzenia</label><span class="hint tab">cel 6–8</span></div>
+      <div class="mv"><div class="num tab">6</div><div class="steps"><span class="st">−</span><span class="st">+</span></div></div></div>
+    <div><div class="rirh">RIR <span>· w zapasie · cel 1</span></div>
+      <div class="rir"><span class="rb">0</span><span class="rb on">1</span><span class="rb">2</span><span class="rb">3+</span></div></div>
+  </main>
+  <footer class="bot"><div class="cta">✓ Zapisz serię 2</div>
+    <div class="links"><span class="lk">Wstecz</span><span class="lk">Później</span><span class="lk">Pomiń</span></div></footer>
+</div></div></figure>
+
+<!-- A3: pierwsze użycie, brak historii, brak celu RIR, walidacja -->
+<figure><figcaption>A3 · 390×844 · pierwszy raz (brak historii i sugestii), brak celu RIR, po dotknięciu „Zapisz serię”: walidacja obu pól</figcaption>
+<div class="phone p390" data-frame="A3"><div class="screen">
+  <header class="hdr"><div class="iconbtn">✕</div>
+    <div class="hc"><div class="ttl">Full body B</div>
+      <div class="meta tab">trening <b>0:42</b> · seria <b>1/12</b></div>
+      <span class="ghost"><span class="gico"></span>Ghost: wybierz rywala</span></div>
+    <div class="iconbtn">☰</div></header>
+  <div class="bar">
+    <div class="grp" style="flex:3"><i class="s cur"></i><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:3"><i class="s"></i><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:3"><i class="s"></i><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:3"><i class="s"></i><i class="s"></i><i class="s"></i></div>
+  </div>
+  <main class="body">
+    <section>
+      <div class="exrow"><div style="flex:1;min-width:0"><div class="kick">Ćwiczenie 1 z 4</div><h2 class="exname">Martwy ciąg rumuński</h2></div></div>
+      <div class="schemerow"><div class="scheme tab"><b>3 serie × 8–10</b></div>
+        <div class="pills"><span class="pill cur sel"><i>1</i></span><span class="pill"><i>2</i></span><span class="pill"><i>3</i></span></div></div>
+    </section>
+    <div class="sug"><div class="sugL"><div class="l1">Pierwsza seria tego ćwiczenia</div><div class="l2">Wpisz ciężar, z którym zaczynasz</div></div></div>
+    <div class="mc err" aria-invalid="true"><div class="mh"><label class="ml">Ciężar <span>· krok 2,5 kg</span></label><span class="msg" role="alert">Podaj ciężar</span></div>
+      <div class="mv"><div class="num empty tab">0<small style="color:rgba(235,196,74,.5)">kg</small></div><div class="steps"><span class="st">−</span><span class="st">+</span></div></div></div>
+    <div class="mc err"><div class="mh"><label class="ml">Powtórzenia</label><span class="msg">Podaj liczbę powtórzeń</span></div>
+      <div class="mv"><div class="num empty tab">0</div><div class="steps"><span class="st">−</span><span class="st">+</span></div></div></div>
+    <div><div class="rirh">RIR <span>· powtórzenia w zapasie · opcjonalnie</span></div>
+      <div class="rir"><span class="rb">0</span><span class="rb">1</span><span class="rb">2</span><span class="rb">3+</span></div></div>
+  </main>
+  <footer class="bot"><div class="cta">✓ Zapisz serię 1</div>
+    <div class="links"><span class="lk dis">Wstecz</span><span class="lk">Później</span><span class="lk">Pomiń</span></div></footer>
+</div></div></figure>
+
+<!-- A4: poprawiana seria, sugestia w dół, Ghost wybrany -->
+<figure><figcaption>A4 · 390×844 · seria 1 zapisana i otwarta do poprawy, sugestia ↓ (dla serii 1 sprzed zapisu), Ghost wybrany</figcaption>
+<div class="phone p390" data-frame="A4"><div class="screen">
+  <header class="hdr"><div class="iconbtn">✕</div>
+    <div class="hc"><div class="ttl">Pull A</div>
+      <div class="meta tab">trening <b>8:17</b> · seria <b>1/14</b></div>
+      <span class="ghost on"><span class="gico"></span>Ghost: łeb w łeb ▾</span></div>
+    <div class="iconbtn">☰</div></header>
+  <div class="bar">
+    <div class="grp" style="flex:4"><i class="s ok" style="height:10px;box-shadow:0 0 0 1.5px var(--gym-black),0 0 0 3px var(--gym-gold)"></i><i class="s"></i><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:3"><i class="s"></i><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:3"><i class="s"></i><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:4"><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i></div>
+  </div>
+  <main class="body">
+    <section>
+      <div class="exrow"><div style="flex:1;min-width:0"><div class="kick">Ćwiczenie 1 z 4</div><h2 class="exname">Podciąganie nachwytem</h2></div><div class="vid">▶</div></div>
+      <div class="schemerow"><div class="scheme tab"><b>4 serie × 5–7</b> · RIR 2</div>
+        <div class="pills"><span class="pill ok sel"><i>✓</i></span><span class="pill"><i>2</i></span><span class="pill"><i>3</i></span><span class="pill"><i>4</i></span></div></div>
+    </section>
+    <div class="sug"><div class="sugL"><div class="l1 tab">Ostatnio 20 × 5 <span>· 16 dni temu</span></div><div class="l2 tab"><span class="down">−5 kg</span> · lżej po dłuższej przerwie</div></div>
+      <div class="chip down tab"><span class="w down">↓ 15</span>× 5</div></div>
+    <div class="mc"><div class="mh"><label class="ml">Ciężar <span>· krok 2,5 kg</span></label><div class="qk"><span class="q tab">−5</span><span class="q tab">+5</span></div></div>
+      <div class="mv"><div class="num w tab">17,5<small>kg</small></div><div class="steps"><span class="st">−</span><span class="st">+</span></div></div></div>
+    <div class="mc"><div class="mh"><label class="ml">Powtórzenia</label><span class="hint in tab">✓ w celu 5–7</span></div>
+      <div class="mv"><div class="num tab">6</div><div class="steps"><span class="st">−</span><span class="st">+</span></div></div></div>
+    <div><div class="rirh">RIR <span>· powtórzenia w zapasie · cel 2</span></div>
+      <div class="rir"><span class="rb">0</span><span class="rb on">1</span><span class="rb">2</span><span class="rb">3+</span></div></div>
+  </main>
+  <footer class="bot"><div class="cta">✓ Popraw serię 1</div>
+    <div class="links"><span class="lk dis">Wstecz</span><span class="lk">Później</span><span class="lk dis">Pomiń</span></div></footer>
+</div></div></figure>
+
+<!-- B1: przerwa po serii, następna seria tego samego ćwiczenia, sugestia ↑ -->
+<figure><figcaption>B1 · 390×844 · przerwa po zapisaniu serii 2, NASTĘPNIE seria 3 z sugestią ↑</figcaption>
+<div class="phone p390" data-frame="B1"><div class="screen">
+  <header class="hdr"><div class="iconbtn">✕</div>
+    <div class="hc"><div class="ttl">Push A · klatka i barki</div>
+      <div class="meta tab">trening <b>25:40</b> · seria <b>9/16</b></div>
+      <span class="ghost"><span class="gico"></span>Ghost: wybierz rywala</span></div>
+    <div class="iconbtn">☰</div></header>
+  <div class="bar">
+    <div class="grp full" style="flex:3"><i class="s ok"></i><i class="s ok"></i><i class="s ok"></i></div>
+    <div class="grp" style="flex:3"><i class="s ok"></i><i class="s skip"></i><i class="s ok"></i></div>
+    <div class="grp" style="flex:3"><i class="s ok"></i><i class="s ok"></i><i class="s"></i></div>
+    <div class="grp" style="flex:2"><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:2"><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:2"><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:1"><i class="s"></i></div>
+  </div>
+  <main class="rbody">
+    <div class="saved" role="status"><span class="ck">✓</span><div class="sv"><small>Zapisano</small><p class="tab"><span>32 kg × 6</span> · RIR 1</p></div></div>
+    <div class="ringwrap">
+      <div class="ring" role="timer" aria-label="Przerwa, zostało 1 minuta 12 sekund">
+        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#2b2518" stroke-width="2.5"/><circle cx="50" cy="50" r="46" fill="none" stroke="#ebc44a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="116"/></svg>
+        <div class="t"><b>1:12</b><span>przerwa</span></div></div>
+      <div class="adj"><span class="ab tab">−15 s</span><span class="ab tab">+30 s</span><span class="ab snd" aria-label="Wycisz sygnał końca przerwy">🔊</span></div>
+    </div>
+    <div class="pre"><span class="pb">60 s</span><span class="pb on">90 s</span><span class="pb">2 min</span><span class="pb">3 min</span></div>
+    <section class="next"><div class="kick">Następnie</div><div class="nt">Seria 3 z 3 · Wyciskanie hantli skos</div><div class="ns tab">cel 6–8 · RIR 1</div>
+      <div class="sug"><div class="sugL"><div class="l1 tab">Ostatnio 30 × 7</div><div class="l2 tab"><span class="up">+2 kg</span> · zakres zrobiony z zapasem</div></div><div class="chip up tab"><span class="w up">↑ 32</span>× 6</div></div></section>
+  </main>
+  <footer class="bot"><div class="cta">▶ Zacznij serię 3</div></footer>
+</div></div></figure>
+
+<!-- B2: przerwa 360x640, ostatnia seria ćwiczenia, następne ćwiczenie ze sugestią ↓ -->
+<figure><figcaption>B2 · 360×640 · kompakt, ostatnia seria ćwiczenia (ćwiczenie ✓), NASTĘPNIE ćwiczenie 4 z sugestią ↓</figcaption>
+<div class="phone p360 compact" data-frame="B2"><div class="screen">
+  <header class="hdr"><div class="iconbtn">✕</div>
+    <div class="hc"><div class="ttl">Push A · klatka i barki</div>
+      <div class="meta tab">trening <b>28:10</b> · seria <b>10/16</b></div>
+      <span class="ghost"><span class="gico"></span>Ghost: wybierz rywala</span></div>
+    <div class="iconbtn">☰</div></header>
+  <div class="bar">
+    <div class="grp full" style="flex:3"><i class="s ok"></i><i class="s ok"></i><i class="s ok"></i></div>
+    <div class="grp" style="flex:3"><i class="s ok"></i><i class="s skip"></i><i class="s ok"></i></div>
+    <div class="grp full" style="flex:3"><i class="s ok"></i><i class="s ok"></i><i class="s ok"></i></div>
+    <div class="grp" style="flex:2"><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:2"><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:2"><i class="s"></i><i class="s"></i></div>
+    <div class="grp" style="flex:1"><i class="s"></i></div>
+  </div>
+  <main class="rbody">
+    <div class="saved"><span class="ck">✓</span><div class="sv"><small>Zapisano</small><p class="tab"><span>32 kg × 7</span> · RIR 1</p></div><span class="exok">ćwiczenie ✓</span></div>
+    <div class="ringwrap">
+      <div class="ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#2b2518" stroke-width="2.5"/><circle cx="50" cy="50" r="46" fill="none" stroke="#ebc44a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="40"/></svg>
+        <div class="t"><b>1:58</b><span>przerwa</span></div></div>
+      <div class="adj"><span class="ab tab">−15 s</span><span class="ab tab">+30 s</span><span class="ab snd">🔊</span></div>
+    </div>
+    <div class="pre"><span class="pb">60 s</span><span class="pb">90 s</span><span class="pb on">2 min</span><span class="pb">3 min</span></div>
+    <section class="next"><div class="kick">Następnie · ćwiczenie 4 z 7</div><div class="nt">Rozpiętki na bramie</div><div class="ns tab">2 serie × 12–15</div>
+      <div class="sug"><div class="sugL"><div class="l1 tab">Ostatnio 15 × 11</div><div class="l2 tab"><span class="down">−2,5 kg</span> · lżej, ostatnio bez zapasu</div></div><div class="chip down tab"><span class="w down">↓ 12,5</span>× 12</div></div></section>
+  </main>
+  <footer class="bot"><div class="cta">▶ Zacznij ćwiczenie 4</div></footer>
+</div></div></figure>
+
+<!-- B3: ostatnia seria treningu -->
+<figure><figcaption>B3 · 390×844 · ostatnia seria treningu (z pominięciami w sesji), przerwa trwa, CTA prowadzi do istniejącego zakończenia</figcaption>
+<div class="phone p390" data-frame="B3"><div class="screen">
+  <header class="hdr"><div class="iconbtn">✕</div>
+    <div class="hc"><div class="ttl">Push A · klatka i barki</div>
+      <div class="meta tab">trening <b>58:02</b> · seria <b>16/16</b></div>
+      <span class="ghost"><span class="gico"></span>Ghost: wybierz rywala</span></div>
+    <div class="iconbtn">☰</div></header>
+  <div class="bar">
+    <div class="grp full" style="flex:3"><i class="s ok"></i><i class="s ok"></i><i class="s ok"></i></div>
+    <div class="grp" style="flex:3"><i class="s ok"></i><i class="s skip"></i><i class="s ok"></i></div>
+    <div class="grp full" style="flex:3"><i class="s ok"></i><i class="s ok"></i><i class="s ok"></i></div>
+    <div class="grp full" style="flex:2"><i class="s ok"></i><i class="s ok"></i></div>
+    <div class="grp full" style="flex:2"><i class="s ok"></i><i class="s ok"></i></div>
+    <div class="grp full" style="flex:2"><i class="s ok"></i><i class="s ok"></i></div>
+    <div class="grp full" style="flex:1"><i class="s ok"></i></div>
+  </div>
+  <main class="rbody">
+    <div class="saved"><span class="ck">✓</span><div class="sv"><small>Zapisano</small><p class="tab"><span>40 kg × 12</span></p></div><span class="exok">ćwiczenie ✓</span></div>
+    <div class="ringwrap">
+      <div class="ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#2b2518" stroke-width="2.5"/><circle cx="50" cy="50" r="46" fill="none" stroke="#ebc44a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="20"/></svg>
+        <div class="t"><b>1:25</b><span>przerwa</span></div></div>
+      <div class="adj"><span class="ab tab">−15 s</span><span class="ab tab">+30 s</span><span class="ab snd">🔊</span></div>
+    </div>
+    <div class="pre"><span class="pb">60 s</span><span class="pb on">90 s</span><span class="pb">2 min</span><span class="pb">3 min</span></div>
+    <section class="next"><div class="kick">Koniec treningu</div><div class="nt">Wszystkie serie za tobą</div><div class="ns tab">Zapisano 15 z 16 serii · 1 pominięta</div></section>
+  </main>
+  <footer class="bot"><div class="cta">Zakończ trening</div></footer>
+</div></div></figure>
+
+<!-- M: menu ☰ -->
+<figure><figcaption>M · 390×844 · menu treningu (☰): lista ćwiczeń, akcje bieżącego ćwiczenia, „Zakończ trening”</figcaption>
+<div class="phone p390" data-frame="M" style="padding:0"><div class="menu">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="kick">Menu treningu</div><h3>Push A · klatka i barki</h3></div><div class="iconbtn">✕</div></div>
+  <div class="mlist">
+    <div class="mi"><div class="n"><b style="color:var(--gym-success)">✓ 1. Wyciskanie sztangi</b><span class="tab">3 serie × 5–7 · RIR 2</span></div><div class="dots"><i class="ok"></i><i class="ok"></i><i class="ok"></i></div></div>
+    <div class="mi"><div class="n"><b>2. Wyciskanie nad głowę</b><span class="tab">3 serie × 8–10</span></div><div class="dots"><i class="ok"></i><i class="skip"></i><i class="ok"></i></div></div>
+    <div class="mi act"><div class="n"><b style="color:var(--gym-gold)">3. Wyciskanie hantli skos</b><span class="tab">teraz · 3 serie × 6–8 · RIR 1</span></div><div class="dots"><i class="ok"></i><i></i><i></i></div></div>
+    <div class="mi"><div class="n"><b>4. Rozpiętki na bramie</b><span class="tab">2 serie × 12–15</span></div><div class="dots"><i></i><i></i></div></div>
+    <div class="sec">Bieżące ćwiczenie</div>
+    <div class="acts"><div>+ Dodaj serię</div><div>Usuń ostatnią serię</div><div>Notatka</div><div>Nagraj technikę</div><div style="grid-column:span 2">Zgłoś problem z ćwiczeniem</div></div>
+  </div>
+  <div class="fin">Zakończ trening</div>
+</div></div></figure>
+
+</div>
+</body>
+</html>
