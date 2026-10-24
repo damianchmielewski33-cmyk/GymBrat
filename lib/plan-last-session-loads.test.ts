@@ -126,14 +126,23 @@ describe("extractExerciseLastLoads", () => {
     }
   });
 
-  it("id ćwiczenia `__proto__` jest zwykłym kluczem, bez zmiany prototypu wyniku", () => {
+  it("wynik ma zwykły Object.prototype (serializowalny do Client Component)", () => {
+    const result = extractExerciseLastLoads(
+      JSON.stringify({ exercises: [{ id: "e1", name: "Wyciskanie sztangi na ławce poziomej", sets: [done(80, 5)] }] }),
+      plan,
+    );
+    expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+  });
+
+  it("id ćwiczenia `__proto__` jest zwykłym kluczem, bez zanieczyszczenia globalnego Object.prototype", () => {
     const json = JSON.stringify({
       exercises: [{ id: "__proto__", name: "Przysiad", sets: [done(80, 5)] }],
     });
     const result = extractExerciseLastLoads(json, [{ id: "__proto__", name: "Przysiad" }]);
-    expect(Object.getPrototypeOf(result)).toBeNull();
+    expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
     expect(Object.keys(result)).toEqual(["__proto__"]);
     expect(result["__proto__"]).toEqual({ weightKg: 80, reps: 5 });
+    expect(Object.prototype.hasOwnProperty.call(Object.prototype, "weightKg")).toBe(false);
     expect(({} as { weightKg?: number }).weightKg).toBeUndefined();
   });
 });

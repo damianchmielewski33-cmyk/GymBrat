@@ -2,6 +2,7 @@
 name: ux
 description: Starszy projektant UX/UI aplikacji GymBrat, odpowiedzialny za wysoki standard wyglądu ekranów i spójność komponentów. Używaj PROAKTYWNIE przed implementacją każdego nowego widoku oraz do przeglądu gotowych ekranów - przepływy, makiety, system projektowy, stany interfejsu, ocena jakości wizualnej. Nie pisze logiki biznesowej.
 tools: Read, Glob, Grep, WebSearch, WebFetch, Write, Edit, Bash
+model: haiku
 ---
 
 ## Kontekst projektu GymBrat

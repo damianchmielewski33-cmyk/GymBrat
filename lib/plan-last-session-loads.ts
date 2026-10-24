@@ -76,11 +76,18 @@ export function extractExerciseLastLoads(
   sessionJson: string,
   exercises: ReadonlyArray<Pick<WorkoutPlanExercise, "id" | "name">>,
 ): Record<string, ExerciseLastLoad> {
-  // Bez prototypu: id ćwiczenia pochodzi z danych użytkownika (np. "__proto__").
-  const out: Record<string, ExerciseLastLoad> = Object.create(null);
-  if (exercises.length === 0) return out;
+  // Wynik budowany w Map, nie w obiekcie bez prototypu: id ćwiczenia pochodzi z danych
+  // użytkownika (może być np. "__proto__"), a Server Component nie może przekazać do
+  // Client Component obiektu bez `Object.prototype`. `Object.fromEntries` zapisuje klucze
+  // przez `CreateDataProperty`, więc po stronie serwera "__proto__" staje się własną
+  // właściwością wynikowego obiektu, bez zanieczyszczenia jego prototypu. Uwaga: React Flight
+  // serializuje "__proto__" z ostrzeżeniem (tylko w dev), a klient przy deserializacji go pomija.
+  // Efekt w UI: brak wpisu obciążenia dla takiego id (nie crash, nie pollution prototypu).
+  // Odczyt po stronie klienta używa `Object.hasOwn`, więc klucze z prototypu nie są brane pod uwagę.
+  const resultMap = new Map<string, ExerciseLastLoad>();
+  if (exercises.length === 0) return Object.fromEntries(resultMap);
   const sessionExercises = parseSessionExercises(sessionJson);
-  if (sessionExercises.length === 0) return out;
+  if (sessionExercises.length === 0) return Object.fromEntries(resultMap);
 
   const byId = new Map<string, SessionExerciseLike>();
   const byIdentity = new Map<string, SessionExerciseLike>();
@@ -101,9 +108,9 @@ export function extractExerciseLastLoads(
       (s): s is SessionSetLike => !!s && typeof s === "object",
     );
     const load = pickHeaviestCompletedSet(sets);
-    if (load) out[planExercise.id] = load;
+    if (load) resultMap.set(planExercise.id, load);
   }
-  return out;
+  return Object.fromEntries(resultMap);
 }
 
 /**

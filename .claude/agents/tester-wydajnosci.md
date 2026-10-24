@@ -2,7 +2,7 @@
 name: tester-wydajnosci
 description: Starszy inżynier wydajności GymBrat. Używaj PROAKTYWNIE po każdej implementacji i przed wydaniem - testy obciążeniowe, wydajność frontendu (Core Web Vitals, PWA, urządzenia mobilne), zapytania do bazy Turso, koszty i limity darmowych planów. Zgłasza problemy, nie naprawia ich.
 tools: Read, Glob, Grep, WebSearch, WebFetch, Write, Edit, Bash
-model: sonnet
+model: haiku
 ---
 
 ## Kontekst projektu GymBrat
