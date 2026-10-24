@@ -62,6 +62,8 @@ export type LiveCoachTip = {
   confidence: number;
   suspicious?: boolean;
   bumpKind?: ProgressionBumpKind;
+  /** Kod reguły silnika progresji (tylko porady z progresji). */
+  rule?: string;
 };
 
 function snap(s: WorkoutSetState | null | undefined): LastSetSnapshot | null {
@@ -128,6 +130,7 @@ function tipPlain(
     decision?: string;
     reason?: string;
     bumpKind?: ProgressionBumpKind;
+    rule?: string;
   },
 ): LiveCoachTip {
   const signals = meta?.signals ?? null;
@@ -149,6 +152,7 @@ function tipPlain(
     confidence,
     suspicious: suspicious || undefined,
     bumpKind,
+    rule: meta?.rule,
   };
 
   if (highlight && body.includes(highlight)) {
@@ -229,6 +233,7 @@ function tipFromProgression(
       decision,
       reason: p.reason,
       bumpKind: p.kind === "weight" ? signals.bump.kind : "hold",
+      rule: p.rule,
     },
   );
 }

@@ -15,7 +15,9 @@ const RESULT_LABEL: Record<GhostDelta["predicted"], string> = {
 };
 
 type TargetsState =
-  | { status: "idle" | "loading" | "error" }
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "error" }
   | { status: "ready"; targets: GhostTargetOption[] };
 
 /**

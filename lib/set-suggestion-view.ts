@@ -33,6 +33,45 @@ export function resolveSuggestionDirection(
   return diff > 0 ? "up" : "down";
 }
 
+/** Neutralny powód, gdy reguła jest nieznana albo nie pasuje do kierunku. */
+export const DEFAULT_SUGGESTION_REASON = "na podstawie ostatnich serii";
+
+/**
+ * Powody na ekranie wg `rule` silnika progresji (UX 004 §5.3). Teksty silnika
+ * (rozkazujące / oceniające) nie trafiają do widoku. `directions` pilnuje, by
+ * powód nie przeczył kierunkowi (BR-5); dla „hold” komponent dopisuje
+ * „ten sam ciężar · ”, więc tekst nie powtarza tej etykiety.
+ */
+const REASON_BY_RULE: Record<
+  string,
+  { text: string; directions: readonly SuggestionDirection[] }
+> = {
+  top_of_range_easy: { text: "zakres zrobiony z zapasem", directions: ["up"] },
+  top_of_range_reps_only: {
+    text: "2 treningi na górze zakresu",
+    directions: ["up", "down", "hold"],
+  },
+  in_range_add_reps: { text: "+1 powt.", directions: ["hold"] },
+  layoff_reduce: { text: "lżej po dłuższej przerwie", directions: ["down"] },
+  stagnation_deload: { text: "lżej, nowy cykl zakresu", directions: ["down"] },
+  below_range_or_hard: {
+    text: "lżej, ostatnio bez zapasu",
+    directions: ["down"],
+  },
+};
+
+/** Czysta funkcja: kod reguły + kierunek -> krótki neutralny powód (nigdy tekst silnika). */
+export function suggestionReasonForRule(
+  rule: string | null | undefined,
+  direction: SuggestionDirection,
+): string {
+  const entry =
+    rule && Object.hasOwn(REASON_BY_RULE, rule) ? REASON_BY_RULE[rule] : undefined;
+  return entry && entry.directions.includes(direction)
+    ? entry.text
+    : DEFAULT_SUGGESTION_REASON;
+}
+
 export type SetSuggestionView = {
   /** > 0 */
   weightKg: number;
@@ -43,8 +82,10 @@ export type SetSuggestionView = {
   deltaKg: number;
   /** Ciężar odniesienia B (lastSessionSets[i].weight) albo null. */
   referenceKg: number | null;
-  /** Krótki powód z Live Coach; null przy źródle suggestedWeights. */
+  /** Bezpieczny, neutralny powód (suggestionReasonForRule); null przy źródle suggestedWeights. */
   reason: string | null;
+  /** Kod reguły silnika progresji; null, gdy brak (np. suggestedWeights, porada spoza progresji). */
+  rule: string | null;
   source: "liveCoach" | "progression";
 };
 
@@ -67,29 +108,30 @@ export function buildSetSuggestionView(
 
   let weightKg: number;
   let reps: number | null;
-  let reason: string | null;
+  let rule: string | null;
   let source: SetSuggestionView["source"];
 
   if (apply && isPositiveKg(apply.weightKg)) {
     weightKg = round2(apply.weightKg);
     reps = apply.reps > 0 ? apply.reps : null;
-    const r = tip?.reason?.trim();
-    reason = r ? r : null;
+    rule = tip?.rule?.trim() || null;
     source = "liveCoach";
   } else {
     const suggested = exercise.suggestedWeights?.[setIndex];
     if (!isPositiveKg(suggested)) return null;
     weightKg = round2(suggested);
     reps = null;
-    reason = null;
+    rule = null;
     source = "progression";
   }
 
   const direction = resolveSuggestionDirection(weightKg, referenceKg);
+  const reason =
+    source === "liveCoach" ? suggestionReasonForRule(rule, direction) : null;
   const deltaKg =
     direction === "hold" || referenceKg == null
       ? 0
       : round2(weightKg - referenceKg);
 
-  return { weightKg, reps, direction, deltaKg, referenceKg, reason, source };
+  return { weightKg, reps, direction, deltaKg, referenceKg, reason, rule, source };
 }

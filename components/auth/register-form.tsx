@@ -258,7 +258,7 @@ export function RegisterForm({
         ...STEP_COPY[step],
         kicker:
           step === "name"
-            ? "Rejestracja Google"
+            ? "Dokończ rejestrację"
             : STEP_COPY[step].kicker.replace(/^Krok \d+/, `Krok ${stepIndex + 1}`),
         support:
           step === "name"
@@ -335,6 +335,9 @@ export function RegisterForm({
           setEmailBlockedMessage(res.error);
           return;
         }
+        if (res.code === "code_resend_too_soon") {
+          setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
+        }
         setRootError(res.error);
         return;
       }
@@ -345,6 +348,7 @@ export function RegisterForm({
           : `Kod wysłany na ${email}. Sprawdź skrzynkę i folder SPAM. Kod jest ważny 10 minut.`,
       );
       setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
+      document.getElementById("emailCode")?.focus();
     } catch {
       setRootError(
         isOffline()
@@ -997,7 +1001,7 @@ export function RegisterForm({
         {step === "welcome" && (googleEnabled || facebookEnabled) ? (
           <OAuthPrivacyNote />
         ) : null}
-        <p className="text-center text-[11px] text-white/35">
+        <p className="text-center text-[13px] text-white/65">
           Rejestrując się, akceptujesz{" "}
           <Link href="/regulamin" className="underline-offset-2 hover:underline">
             Regulamin

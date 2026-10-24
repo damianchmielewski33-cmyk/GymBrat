@@ -16,7 +16,7 @@
 - Etykieta `D{idx+1}` liczona po sorcie kolejki: numer dnia zmienia się po każdym treningu.
 - `TreningiHub` liczy `today = calendarDateKey()` w renderze klienta, a `getTreningiHubStats` osobno na serwerze. `calendarDateKey` używa tej samej strefy (`getCalendarTimezone()`, domyślnie Europe/Warsaw) po obu stronach, ale render serwera i hydratacja mogą wypaść po różnych stronach północy (rozjazd tygodnia i ryzyko błędu hydratacji).
 - `lib/last-workout-hints.ts` (`getLastWorkoutHintsForPlan`) czyta 4 ostatnie sesje planu i liczy kontekst coacha; wynik per ćwiczenie pochodzi z najnowszej sesji, **w której to ćwiczenie wystąpiło**, a nie z ostatniej sesji planu. Ćwiczenia sesji mają `id` równe `id` ćwiczenia planu (`planExercisesToSession`).
-- `lib/resolve-exercise-muscles.ts` ciągnie `lib/workout-exercise-catalog.ts` (ok. 34 KB źródła); dziś katalog nie trafia do bundla ekranu Trening.
+- `lib/resolve-exercise-muscles.ts` ciągnie `lib/workout-exercise-catalog.ts` (ok. 34 KB źródła); wbrew pierwotnemu założeniu katalog **trafia** do bundla klienta ekranu Trening: przez `start-workout-session` -> `resolve-exercise-muscles` (ok. 23,7 KB min), i to od commitu sprzed zadania 003 (pomiar: `docs/wydajnosc/003-przebudowa-ekranu-trening.md`).
 - `isCompletedWorkoutSet` odrzuca serie z ciężarem 0, więc nie nadaje się do serii z masą ciała (AC-3.7).
 - W repo jest `WorkoutDiscardSessionDialog` (aktywny trening), `ConfirmDialog`, `components/ui/dropdown-menu.tsx`, `components/ui/sheet.tsx`, `hooks/use-mounted.ts`, `hooks/use-visibility-interval.ts`, `plural()` w `lib/progress-format.ts`, `formatKgPl()` w `lib/set-progression-suggestion.ts`. Brak komponentu sylwetki mięśni.
 - `workouts` nie ma kolumny czasu utworzenia ani indeksu `(user_id, ...)` (znany problem z `docs/wydajnosc/00-analiza-bazowa.md`).
@@ -156,9 +156,14 @@ Do usunięcia po przebudowie (martwy kod, sprawdzany w przeglądzie etapu 6):
 - z `actions/workout-plan.ts`: ciało zapytań w `getWorkoutPlansWithLastWorkout` (przenosi się do loadera). `getWorkoutPlans` zostaje (inny kontrakt, bez `lastWorkoutDate`).
 - `formatPlanLastDoneRelative`, `formatPlanLastDoneShort`, `formatPlanLastDoneLabel` zostają (Home). Pola `TreningiHubStats` zostają (inni konsumenci: Home, `workout-finish-context`, `workout-history-overview`).
 
-### D7. Brak zmian schematu, API Android i Javy
+### D7. Brak zmian API Android i Javy (schemat: tylko indeksy, D8)
 
 Potwierdzam: **bez zmian `db/schema.ts`, `db/migrations`, `db/ensure-schema.ts`**, bez nowych tras `app/api/**`, **bez zmian `app/api/android/*`** (Android to WebView, nowy UI widoczny bez nowego APK) i bez zmian `java-backend/` (ekran tylko czyta przez handlery TS/Drizzle w RSC; `workouts/complete` bez zmian). Brak nowych zmiennych środowiskowych, więc brak wpisu w `lib/admin-config-status.ts`. `streakWeeks` bez zmian (P-4). Nowe pole `dayNumber` jest addytywne w DTO używanym wyłącznie w webie.
+
+### D8. Indeksy `workouts` i usunięcie szkieletu karty głównej (po etapie 9)
+
+- Indeksy `idx_workouts_user_plan_date (user_id, workout_plan_id, date)` i `idx_workouts_user_date (user_id, date)`: migracja `0032_workouts_user_indexes.sql` (`CREATE INDEX IF NOT EXISTS`, idempotentna, bez zmiany danych) + ten sam DDL w `ensureCriticalSchema` (ścieżka bez folderu migracji) + definicja w `db/schema.ts`. Alternatywa (tylko ensure-schema) odrzucona: schemat Drizzle i migracje musiałyby się rozjechać. Koszt: niewielki narzut zapisu `workouts`.
+- Szkielet `MainCardSkeleton` usunięty: serwer renderuje „Następny” / „Brak planu”, a po hydratacji (`useMounted`) store może podmienić kartę na „Niedokończony” o tej samej minimalnej wysokości (`minHeightClass`). Alternatywa (szkielet do czasu hydratacji) odrzucona: migotanie i CLS dla większości użytkowników bez niedokończonego treningu. Kompromis: krótki błysk innej karty u osób z niedokończonym treningiem.
 
 ## 4. Kontrakty (typy TS, wspólne dla backend i frontend)
 
@@ -283,7 +288,7 @@ Testy komponentów i e2e (stany ekranu, 320 px, WebView) planuje `tester` w etap
 ## 7. Konsekwencje i kompromisy
 
 - (+) Jedno źródło: numer dnia, kolejka, tydzień, partie mięśni i obciążenia liczone raz, na serwerze; Home i Trening wskazują ten sam "następny".
-- (+) Mniej zapytań na Home (dedup przez `React.cache`), ekran Trening: 2 równoległe zapytania o plany + co najwyżej 1 `LIMIT 1` o ostatnią sesję (wymaganie z sekcji 9 analizy). Katalog ćwiczeń nie trafia do bundla klienta.
+- (+) Mniej zapytań na Home (dedup przez `React.cache`), ekran Trening: 2 równoległe zapytania o plany + co najwyżej 1 `LIMIT 1` o ostatnią sesję (wymaganie z sekcji 9 analizy). Nowy kod huba nie powiększa bundla o katalog (już obecny przez `start-workout-session`).
 - (-) Zmiana zachowania na Home: tie-break bez `updatedAt` i reguła BR-4. Uzasadnione decyzją P-2; pokryte testem regresji.
 - (-) Krótki wodospad w RSC: obciążenia czekają na listę planów (sekwencyjne po pierwszym `Promise.all`). Akceptowane (jedno małe zapytanie).
 - (-) Usunięcie dnia przenumerowuje dni (brak kolumny kolejności). Świadomie odłożone do ewentualnej edycji kolejności.
@@ -309,7 +314,7 @@ Testy komponentów i e2e (stany ekranu, 320 px, WebView) planuje `tester` w etap
 
 ## 10. Odłożone (backlog)
 
-- Indeks `workouts(user_id, workout_plan_id, date)` (zmiana schematu; właściciel: architekt + backend).
+- ~~Indeks `workouts(user_id, workout_plan_id, date)`~~ - zrobione (D8).
 - Ujednolicenie `mondayOfWeek` w `lib/cardio-hub.ts`, `lib/progress-hub.ts`, `lib/exercise-period-compare.ts` na `calendarWeekMondayKey` (backend).
 - Kolumna kolejności dni planu, jeśli powstanie edycja kolejności (architekt).
 - Fallback obciążenia z innego planu (Could z analizy).

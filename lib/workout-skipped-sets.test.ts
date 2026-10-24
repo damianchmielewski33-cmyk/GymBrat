@@ -9,6 +9,7 @@ import {
   isExerciseIncomplete,
   isSkippedWorkoutSet,
   resolveAdvanceAfterSet,
+  resolveSkippedAfterEdit,
   resolveSetSaveIssue,
 } from "@/lib/workout-skipped-sets";
 
@@ -228,5 +229,27 @@ describe("workout-skipped-sets", () => {
     for (const [w, r] of cases) {
       expect(canCompleteWorkoutSet(w, r)).toBe(resolveSetSaveIssue(w, r) === null);
     }
+  });
+});
+
+describe("resolveSkippedAfterEdit (edycja zapisanej serii)", () => {
+  const saved = { weight: 60, reps: 8, done: true };
+
+  it("zapisana → wyczyść ciężar → wpisz ciężar ⇒ zapisana, nie pominięta", () => {
+    const cleared = resolveSkippedAfterEdit(saved, { weight: 0 });
+    expect(cleared).toBe(true);
+    const afterClear = { weight: 0, reps: 8, done: true };
+    expect(resolveSkippedAfterEdit(afterClear, { weight: 62.5 })).toBe(false);
+  });
+
+  it("pominięta seria bez nowych danych pozostaje pominięta", () => {
+    const skipped = { weight: 0, reps: null, done: true };
+    expect(resolveSkippedAfterEdit(skipped, { weight: 0 })).toBe(true);
+    expect(resolveSkippedAfterEdit(skipped, { rir: 1 } as never)).toBeUndefined();
+  });
+
+  it("nie dotyka serii niezaliczonej ani jawnego skipped", () => {
+    expect(resolveSkippedAfterEdit({ weight: 0, reps: null, done: false }, { weight: 50 })).toBeUndefined();
+    expect(resolveSkippedAfterEdit(saved, { weight: 0, skipped: true })).toBeUndefined();
   });
 });

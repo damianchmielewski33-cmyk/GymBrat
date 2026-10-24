@@ -52,7 +52,7 @@ export function SetPills({
 
   return (
     <div
-      role="tablist"
+      role="group"
       aria-label="Serie ćwiczenia"
       className={cn("flex items-center", scroll ? "chip-scroll max-w-full" : "shrink-0")}
     >
@@ -62,13 +62,12 @@ export function SetPills({
           <button
             key={seg.setIndex}
             type="button"
-            role="tab"
-            aria-selected={selected}
+            aria-pressed={selected}
             aria-label={pillLabel(seg, sets[seg.setIndex], selected)}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => onSelect(seg.setIndex)}
             ref={selected ? selectedRef : undefined}
-            className="inline-flex h-11 w-10 shrink-0 items-center justify-center"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center"
           >
             <span
               aria-hidden

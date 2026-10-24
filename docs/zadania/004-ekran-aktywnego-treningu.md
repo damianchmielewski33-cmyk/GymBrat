@@ -47,10 +47,10 @@ Ekran B - przerwa po zapisaniu serii:
 | 2 | Bramka wejściowa | prawnik | ZATWIERDZONE Z UWAGAMI | 2026-10-24 | `docs/prawo/004-ekran-aktywnego-treningu-wejscie.md` — LR-1..LR-10 (brak danych w logach/Sentry, brak zmian API/schematu, wartość początkowa tylko z własnych danych bez pushu, neutralna mikrokopia obniżenia, kolor nie jedynym nośnikiem, pominięta pomarańczowa z „–”, wibracja przez `hapticRestEnd`, plakietka Ghost bez „bez zapisu”). Projekt roboczy — mikrokopię zatwierdza prawnik-człowiek |
 | 3 | Projekt techniczny | architekt | ZATWIERDZONE Z UWAGAMI | 2026-10-24 | `docs/adr/0003-ekran-aktywnego-treningu.md` — czyste funkcje `lib/set-suggestion-view.ts`, `lib/workout-session-progress.ts`, `lib/workout-set-draft.ts`, `lib/rest-next-step.ts`; wartość początkowa tylko w polu (bez pushu); tokeny `--gym-*`; brak zmian schematu/API/Androida |
 | 4 | Projekt ekranów | ux | ZATWIERDZONE Z UWAGAMI | 2026-10-24 | `docs/ux/004-ekran-aktywnego-treningu.md` + `-makieta.html` — złoto = istniejący `--gym-gold`, tekst na złocie `--neon-fg`; nowe tokeny `--gym-success`, `--gym-trend-up/down`, `--gym-skipped`, `--gym-track`, `--gym-surface-gold`, `--gym-border-gold`, `--gym-text-secondary`; stany serii także kształtem; akcje pomocnicze do menu ☰. Koordynator: nazwy tokenów wg ux (zastępują propozycję `--gym-set-*`/`--gym-suggest-*` z ADR) |
-| 5 | Implementacja | backend, frontend | | | |
-| 6 | Przegląd kodu | architekt | | | |
-| 7 | Testy funkcjonalne i spójność | tester, ux | | | `docs/testy/` |
-| 8 | Przegląd wizualny | ux | | | |
+| 5 | Implementacja | backend, frontend | WYKONANE (czeka na przegląd) | 2026-10-24 | backend: `lib/set-suggestion-view.ts`, `workout-session-progress.ts`, `workout-set-draft.ts`, `rest-next-step.ts` + testy; frontend: nowe komponenty w `components/active-workout/`, `lib/active-workout-copy.ts`, tokeny w `app/globals.css`, wpis changelog `planned: true`. tsc i eslint na zmienionych plikach czyste; `npm test` 917/919 (2 znane w `lib/android-version.test.ts`) |
+| 6 | Przegląd kodu | architekt | ZATWIERDZONE Z UWAGAMI (runda 2: M-1 i L-3 zamknięte; nowa N-1 niska w backlogu) | 2026-10-24 | `docs/adr/0003-ekran-aktywnego-treningu.md` §11 — M-1: wyczyszczenie ciężaru w zapisanej serii ustawia `skipped`, ponowne wpisanie tego nie cofa (`active-workout-view.tsx:654-664`, `guided-session-layout.tsx:416-436`); L-1..L-8 niskie |
+| 7 | Testy funkcjonalne i spójność | tester, ux | ZATWIERDZONE Z UWAGAMI | 2026-10-24 | `docs/testy/004-ekran-aktywnego-treningu.md` — 80 testów `lib/` zielonych, `npm test` 959/961 (2 znane `android-version`), e2e `e2e/active-workout.spec.ts` 12/12 (Edge, jednorazowa baza `file:`), M-1 zamknięty; defekty niskie D-1 (=L-2), D-2 (stare e2e szukają przycisku „Zaloguj się jako zawodnik” po zmianie z zad. 001), O-3 (403 presence przy braku znajomych, poza 004) |
+| 8 | Przegląd wizualny | ux | ZATWIERDZONE Z UWAGAMI (2 średnie do naprawy przed wydaniem) | 2026-10-24 | `docs/ux/004-ekran-aktywnego-treningu.md` sekcja „Przegląd wizualny (etap 8)” — zrzutów brak (wymaga logowania, bazy i sesji treningu); średni 1: powód sugestii bez mapowania `rule` → tekst, ryzyko LR-4/LR-5 (teksty silnika typu „nie ufamy danym”); średni 2: pigułki 44×44 mogą zawinąć wiersz na 360×640 i wypchnąć RIR pod linię zgięcia (do pomiaru) |
 | 9 | Bezpieczeństwo i wydajność | tester-bezpieczenstwa, tester-wydajnosci | | | `docs/bezpieczenstwo/`, `docs/wydajnosc/` |
 | 10 | Bramka wyjściowa | prawnik | | | `docs/prawo/` |
 
@@ -69,4 +69,15 @@ Ekran B - przerwa po zapisaniu serii:
 | Podsumowanie po treningu liczy pominięte serie jako wykonane | architekt (ADR 0003 §10) | frontend | niski |
 | 4 dodatkowe kopie `formatElapsed` poza `active-workout` | architekt (ADR 0003 §10) | frontend | niski |
 | Przerwa zapisuje czas do niewłaściwej serii przy zmienionej kolejności serii | architekt (ADR 0003 §10) | frontend | średni |
+| Osierocona `actions/active-workout-coach.ts` (używał jej tylko usunięty `ActiveWorkoutCoachPanel`) | frontend | architekt | niski |
+| Powód sugestii: brak mapowania `rule` → tekst z UX §5.3 (`SetSuggestionView` nie niesie `rule`) | frontend | backend | niski |
+| D-2: `e2e/smoke.spec.ts` i `e2e/diet-admin-session.spec.ts` szukają przycisku „Zaloguj się jako zawodnik”, którego nie ma po zmianie z zadania 001 | tester | właściciel zad. 001 | średni |
+| O-3: każdy zapis serii woła `POST /api/community/friends/live/presence` → 403 dla konta bez znajomych, błąd w konsoli (mechanizm sprzed 004) | tester | backend | niski |
+| Luki bez testu: reload po zapisanych seriach, brak celu RIR, karta „Koniec treningu”, wyłączone „Pomiń” po zapisie, stan „Kończenie…” | tester | tester | niski |
+| N-1: seria pominięta przez „Pomiń” z kompletnymi danymi w polach staje się zapisaną po późniejszej edycji wartości, bez „Zapisz serię”; brak testu tego przejścia | architekt (runda 2) | ux | niski |
+| L-1: `flushDraft` utrwala niepotwierdzoną sugestię przy nawigacji/menu/blurze | architekt (przegląd 004) | analityk | niski |
+| L-2: ochrona przed podwójnym tapnięciem tylko 700 ms (D3: późniejsze z 700 ms lub pierwszego renderu nowej serii), brak testu E2E (US-8) | architekt (przegląd 004) | frontend/tester | niski |
+| L-5: literały kolorów w stanie pustym `active-workout-view.tsx:905,998,999` (kod sprzed 004) | architekt (przegląd 004) | frontend | niski |
+| L-6: `formatSignedKg` w `lib/active-workout-copy.ts` i w `components/home/start-metric-tiles.tsx` (ta sama nazwa) | architekt (przegląd 004) | frontend | niski |
+| Commit `fd61b1e` miesza zmiany zadań 001, 003, 004 i HotPay — rozdzielić przed PR | koordynator | użytkownik | średni |
 | R-2: nietknięty RIR zapisany jako cel planu; przy celu RIR ≥ 2 Live Coach traktuje serie jako łatwe | analityk (P-3) | właściciel produktu | średni |

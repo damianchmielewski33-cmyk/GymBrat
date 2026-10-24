@@ -1480,6 +1480,12 @@ CREATE TABLE IF NOT EXISTS "reminder_dispatches" (
   await client.execute(
     `CREATE UNIQUE INDEX IF NOT EXISTS "reminder_dispatches_uidx" ON "reminder_dispatches" ("user_id","date_key","kind")`,
   );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "idx_workouts_user_plan_date" ON "workouts" ("user_id","workout_plan_id","date")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "idx_workouts_user_date" ON "workouts" ("user_id","date")`,
+  );
 }
 
 let mealLogsEnsured = false;

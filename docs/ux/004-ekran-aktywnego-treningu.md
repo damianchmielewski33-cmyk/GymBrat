@@ -407,3 +407,44 @@ Wzorce zrzutów (Playwright, 390×844 i 360×640, czas zamrożony): A1 seria bie
 ## Werdykt
 
 ZATWIERDZONE Z UWAGAMI. Specyfikacja i makieta są gotowe dla `frontend`; uwagi (sekcja 14) dotyczą kontraktów danych, które rozstrzyga ADR architekta, i nie zmieniają wyglądu. Mikrokopia wymaga zatwierdzenia przez prawnika-człowieka przed publikacją.
+
+## Przegląd wizualny (etap 8)
+
+Autor: ux. Data: 2026-10-24. Zakres: `components/active-workout/` (guided-session-layout, session-chrome, session-segmented-progress, set-pills, set-suggestion-row, set-metric-field, rir-picker, session-menu-sheet, rest-break-screen, ghost-picker-sheet, ghost-race-hud), tokeny w `app/globals.css`, `lib/active-workout-copy.ts`, `lib/set-suggestion-view.ts`.
+
+Metoda: przegląd statyczny kodu względem specyfikacji i makiety v2. Zrzutów z przeglądarki NIE ma (katalog `docs/ux/zrzuty-004/` nie powstał): w repozytorium nie ma `.env*`, a ekrany A i B wymagają zalogowanego konta, bazy libSQL/Turso i aktywnej sesji treningu (brak fixtury ani seeda, które uruchomiłyby ekran lokalnie; `e2e/` zawiera tylko `smoke` i `diet-admin-session`). Budżet wysokości poniżej jest wyliczony z klas w kodzie, nie zmierzony. Baseline zrzutów pozostaje niezatwierdzony do czasu uruchomienia na Preview lub lokalnie z danymi testowymi.
+
+### Zgodność ze specyfikacją (sprawdzone w kodzie)
+
+- Tokeny: w 11 plikach ekranu brak hexów, brak `emerald/orange/amber/rose`, brak starych #D6B36A i pochodnych. Wszystkie nowe tokeny (`--gym-surface-gold`, `--gym-border-gold`, `--gym-track`, `--gym-success`, `--gym-trend-up/down`, `--gym-skipped`, `--gym-text-secondary`) są w `:root` i `.dark`; `@custom-variant compact (max-height: 719px)` jest zdefiniowany raz.
+- Kolory (makieta v2): złoto z `--gym-gold` / `--gym-gold-bright` (kicker, ciężar, licznik, aktywny RIR, plakietka Ghost), CTA = `Button variant="cta"` (A i B), zapisane serie zielone (segment, pigułka, karta „Zapisano”, belka zaliczonego ćwiczenia), pominięte pomarańczowe, sugestia ↑ zielona / ↓ czerwona (`#ff5a5a`) / = złota. Odpowiada zatwierdzonej makiecie v2.
+- Kształty stanów segmentów: do zrobienia niski, bieżący wyższy (10 px), zapisany pełny, pominięty pusty z obrysem, bieżący+zapisany z pierścieniem, ćwiczenie zaliczone jako ciągła belka. Pigułki: numer / `Check` / `Minus` + pierścień edytowanej. Kolor nie jest jedynym nośnikiem (1.4.1).
+- Sugestia: `ArrowUp/ArrowDown/Equal` + znak „+/−” + słowo w `aria-label` („więcej / lżej / ten sam ciężar”), `aria-pressed` dla zastosowanej, brak ikon ostrzeżeń i emoji.
+- Mikrokopia: plakietka „Ghost: wybierz rywala” bez „bez zapisu” (jedyne „bez zapisu” w zakresie to osobny, istniejący dialog porzucenia sesji i komentarze kodu); walidacja „Podaj ciężar” / „Podaj liczbę powtórzeń”; w komponentach brak „Uwaga”, „Świetnie”, „Trzymaj”, „zejdź”, „stagnacja”, emoji. Schemat, „Następnie”, „Koniec treningu”, menu, Ghost (ładowanie szkielet, pusto, błąd + „Spróbuj ponownie”) zgodne z §10.
+- Cele dotyku: X/☰ 44, steppery 64×52 (kompakt 56×44), CTA 56/52, linki min-h 44, pigułki 44×44, RIR 48/44, plakietka 44 (pole), presety i −15 s/+30 s/dźwięk 44, wiersze menu ≥ 44. `aria-label` na przyciskach ikonowych, `role="alert"` walidacji, `role="status"` karty zapisu, `role="timer"` z `aria-live="off"`, `motion-reduce` na przejściach i pulsowaniu Ghost.
+
+### Defekty
+
+| # | Waga | Opis | Poprawka dla `frontend` / `architekt` |
+|---|---|---|---|
+| 1 | średni | Powód sugestii (linia 2 i „Następnie”) pochodzi wprost z `tip.reason` Live Coacha (`lib/set-suggestion-view.ts` l. 76), a nie z tabeli `rule` -> powód z §5.3. Na ekran mogą trafić teksty z `lib/live-set-coach.ts`: „sprzeczny RIR/RPE — nie ufamy danym”, „ostatnia sesja bardzo twarda”, „po twardej serii bez dokładki”, „brak wzrostu kg/powtórzeń przy niskim RIR”, „profil …, RIR ≈ n”, „przejdź dalej”. To ocenianie i żargon, niezgodne z LR-4/LR-5 i §10. Dla kierunku „=” powstaje też duplikat: „ten sam ciężar · stabilny blok — ten sam ciężar”. | Jedno mapowanie powodów (lista z §5.3, fallback „na podstawie ostatnich serii”) w `set-suggestion-view.ts`; test na brak słów z listy zakazanej. Kierunek „=”: samo „ten sam ciężar” + powód z mapy. |
+| 2 | średni | Pigułki serii mają pole 44×44, spec 40×44 (§5.2). Przy 4-5 seriach na 360 px schemat (`whitespace-nowrap`) + pigułki nie mieszczą się w jednej linii, wiersz zawija się i dodaje ok. 44 px. Z wyliczenia: kompakt 360×640 ma zapas ok. 4 px, więc przy 4+ seriach środek zacznie się przewijać i RIR może zejść pod linię zgięcia. Na 390×844 zapas wystarcza. | Zmienić pole pigułki na `w-10` (40×44); dla ≥ 5 serii w kompakcie schemat skracać (np. bez „tempo”) lub przenosić schemat nad kicker. Zweryfikować pomiarem po uruchomieniu (zrzuty A1-A4, 360×640). |
+| 3 | niski | Nagłówek w kompakcie jest ok. 4-15 px wyższy niż w budżecie §4.3 (92): plakietka z `-my-2` daje 28 px układu zamiast 24, plus `pt-[max(0.5rem,…)]` nad nagłówkiem. To zjada zapas z pkt 2. | Plakietka `-my-2.5` w kompakcie albo zmniejszyć górny padding nagłówka w `compact`. Zmierzyć. |
+| 4 | niski | Ogłoszenie dla czytnika na przerwie (`restAnnouncement`): przy 0:00 nadal „Zostało 10 sekund przerwy”; spec wymaga „Koniec przerwy”. | Dodać gałąź `remaining === 0` -> „Koniec przerwy”. |
+| 5 | niski | Pierścień wybranego segmentu (box-shadow 3 px) przy odstępie 2 px jest częściowo zasłaniany przez następny segment; efekt wizualny 1 px. Szybkie przyciski ciężaru (pole 44 przez `-my-2.5`) zachodzą ok. 6 px na górę steppera. | Opcjonalnie `z-10` na bieżącym segmencie; zachodzenie nieszkodliwe (stepper jest wyżej w DOM, cel ≥ 38 px, WCAG 2.5.8 spełnione). |
+| 6 | niski | `Preset` aktywny używa `--gym-on-gold` (#1a1408), CTA i aktywny RIR `--neon-fg` (#120f05): dwa tokeny o tej samej roli, wbrew decyzji z §2. Kontrast nadal > 11:1. | Ujednolicić do `--neon-fg` albo zdecydować z `architekt`, który token zostaje (dotyczy też 003). |
+| 7 | niski | Menu ☰: akcje „Bieżące ćwiczenie” leżą w tym samym przewijanym kontenerze co lista ćwiczeń; przy 7+ ćwiczeniach na 360×640 trzeba przewinąć, by do nich dotrzeć. Stan „Notatka” rozwinięty zostaje po zmianie ćwiczenia. | Akcje przypiąć nad „Zakończ trening” albo zwinąć notatkę przy zmianie ćwiczenia. |
+| 8 | niski | `GhostPickerSheet`: nieudany pobór osi czasu rywala (`select`, `!res.ok`) kończy się bez komunikatu; panel nie zamyka się po kliknięciu poza nim; fokus nie przechodzi do panelu po otwarciu. | Komunikat błędu jak przy liście rywali; zamknięcie po kliknięciu poza panelem. |
+
+Blokujących: 0.
+
+### Zgodność z makietą v2 (prośby użytkownika)
+
+- Bardziej złote kolory: TAK (tokeny `--gym-gold*`, CTA gradient, kicker, ciężar, licznik, plakietka).
+- Zapisane serie zielone na pasku: TAK (`--gym-success`, belka zaliczonego ćwiczenia).
+- Zielona/czerwona sugestia ciężaru: TAK (↑ zielona, ↓ `#ff5a5a`, = złota, ze strzałkami i `aria-label`).
+- Odstępstwa od makiety: tylko pkt 2 i 3 (wymiary), do potwierdzenia pomiarem.
+
+### Werdykt
+
+ZATWIERDZONE Z UWAGAMI. Wygląd i paleta odpowiadają zatwierdzonej makiecie v2, tokeny i kształty stanów są wdrożone zgodnie ze specyfikacją, dostępność i cele dotyku bez blokad. Wymagane przed wydaniem: defekt 1 (mikrokopia powodu sugestii, ryzyko LR-4/LR-5, wymaga zatwierdzenia przez prawnika-człowieka razem z resztą mikrokopii) i defekt 2 (szerokość pigułek). Pozostałe do backlogu z właścicielem `frontend`. Przegląd wizualny z pomiarami w 390×844 i 360×640 oraz zatwierdzenie baseline zrzutów do wykonania po uruchomieniu ekranu z danymi testowymi (Preview).

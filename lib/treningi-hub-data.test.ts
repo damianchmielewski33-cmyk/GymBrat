@@ -112,6 +112,14 @@ describe("getTreningiHubData (baza w pamięci)", () => {
     await client.execute("DELETE FROM workout_plans");
   });
 
+  it("kontrakt TreningiHubData: dokładnie 4 pola, bez danych użytkownika brak planu i obciążeń", async () => {
+    const hub = await getTreningiHubData("brak-takiego", "2026-10-21");
+    expect(Object.keys(hub).sort()).toEqual(["days", "nextLastLoads", "nextPlanId", "week"]);
+    expect(hub.days).toEqual([]);
+    expect(hub.nextPlanId).toBeNull();
+    expect(hub.nextLastLoads).toEqual({});
+  });
+
   it("nie pyta o obciążenia, gdy następny dzień nigdy nie był robiony", async () => {
     await db.insert(workoutPlans).values([
       { id: "p1", userId: "u1", planJson: planJson("A", ["a1"]), createdAt: at(1) },

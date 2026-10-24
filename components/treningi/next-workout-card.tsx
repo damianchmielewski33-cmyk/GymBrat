@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const TITLE_ID = "next-workout-title";
+const NEXT_CARD_COMPACT_PREVIEW = 1;
 
 /** Karta „Następny · Dzień N” (4A) i wariant „Dzień N jest pusty” (4C). */
 export function NextWorkoutCard({
@@ -101,8 +102,8 @@ export function NextWorkoutCard({
         <MuscleGlyph summary={muscles} size="hero" />
       </div>
 
-      <ul className="mt-3 border-t border-white/[0.06]">
-        {preview.map((ex) => {
+      <ul className="mt-3 border-t compact:mt-2 border-white/[0.06]">
+        {preview.map((ex, index) => {
           const exName = ex.name.trim();
           const load = lastLoads[ex.id];
           const aria = load
@@ -111,7 +112,11 @@ export function NextWorkoutCard({
           return (
             <li
               key={ex.id}
-              className="flex min-h-8 items-center justify-between gap-3 border-b border-white/[0.06]"
+              className={cn(
+                "flex min-h-8 items-center justify-between gap-3 border-b border-white/[0.06]",
+                // Niski ekran: 1 ćwiczenie (budżet wysokości, AC-6.4).
+                index >= NEXT_CARD_COMPACT_PREVIEW && "compact:hidden",
+              )}
             >
               <span aria-hidden className="truncate text-[14px] text-white/85" title={exName}>
                 {exName}
@@ -131,13 +136,15 @@ export function NextWorkoutCard({
         })}
       </ul>
       {moreCount > 0 ? (
-        <p className="mt-2 text-[12px] text-white/60">{formatMoreExercises(moreCount)}</p>
+        <p className="mt-2 text-[12px] text-white/60 compact:hidden">
+          {formatMoreExercises(moreCount)}
+        </p>
       ) : null}
 
       <Button
         type="button"
         variant="cta"
-        className="mt-4 w-full gap-2"
+        className="mt-4 w-full gap-2 compact:mt-3"
         disabled={starting || startDisabled}
         aria-busy={starting || undefined}
         onClick={onStart}

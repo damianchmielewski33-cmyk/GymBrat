@@ -7,7 +7,7 @@ export const mainCardKickerClass =
 
 /** Tytuł karty głównej (h2); na niskich ekranach 1 linia (budżet „above the fold”). */
 export const mainCardTitleClass =
-  "mt-1.5 line-clamp-2 font-heading text-[22px] font-semibold leading-tight text-white outline-none [overflow-wrap:anywhere] [@media(max-height:680px)]:line-clamp-1";
+  "mt-1.5 line-clamp-2 font-heading text-[22px] font-semibold leading-tight text-white outline-none [overflow-wrap:anywhere] compact:line-clamp-1";
 
 /**
  * Wspólna rama czterech wariantów karty głównej ekranu Trening (jeden slot, BR-11).
@@ -15,10 +15,13 @@ export const mainCardTitleClass =
  */
 export function MainCardShell({
   accent = false,
+  minHeightClass,
   titleId,
   children,
 }: {
   accent?: boolean;
+  /** Minimalna wysokość (np. by podmiana wariantu nie przesuwała układu). */
+  minHeightClass?: string;
   titleId: string;
   children: ReactNode;
 }) {
@@ -26,13 +29,14 @@ export function MainCardShell({
     <section
       aria-labelledby={titleId}
       className={cn(
-        "app-card relative overflow-hidden p-4",
+        "app-card relative overflow-hidden p-4 compact:p-3.5",
+        minHeightClass,
         accent &&
-          "border-[var(--gym-gold)]/35 shadow-[0_0_40px_rgba(235,196,74,0.12)]",
+          "border-[var(--gym-gold)]/35 shadow-[0_0_40px_color-mix(in_srgb,var(--gym-gold)_12%,transparent)]",
       )}
     >
       <div
-        className="pointer-events-none absolute inset-0 [background:linear-gradient(165deg,rgba(235,196,74,0.16)_0%,transparent_58%)]"
+        className="pointer-events-none absolute inset-0 [background:linear-gradient(165deg,color-mix(in_srgb,var(--gym-gold)_16%,transparent)_0%,transparent_58%)]"
         aria-hidden
       />
       <div className="relative">{children}</div>

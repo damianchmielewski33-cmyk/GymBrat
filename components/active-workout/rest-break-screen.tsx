@@ -333,7 +333,7 @@ export function RestBreakScreen({
                     className={cn(
                       "inline-flex h-10 w-full items-center justify-center rounded-full border text-[13px] font-bold tabular-nums transition",
                       active
-                        ? "border-[rgba(255,232,160,0.72)] bg-[var(--gym-gold)] text-[var(--neon-fg)]"
+                        ? "border-[var(--gym-gold-bright)]/70 bg-[var(--gym-gold)] text-[var(--gym-on-gold)]"
                         : "border-[var(--gym-gold)]/32 text-white/75 hover:text-white",
                     )}
                   >

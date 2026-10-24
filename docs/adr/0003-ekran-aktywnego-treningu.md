@@ -423,3 +423,57 @@ export function formatClockMmSs(totalSeconds: number): string;
 - Pozostałe kopie `formatElapsed` (`cardio/cardio-record-client.tsx`, `community/friend-live-detail-client.tsx`, `community/friend-live-watch-widget.tsx`, `community/group-workout-floating-widget.tsx`) -> `formatClockMmSs`; właściciel: frontend, niski.
 - `ActiveWorkoutCoachPanel` (`active-workout-coach-panel.tsx`, 0 importów) i martwe komponenty z `docs/ux/00-system-projektowy-stan.md` pkt 11 - do usunięcia osobnym zadaniem porządkowym; właściciel: frontend, niski.
 - `persistRestSecondsFromTimer` zapisuje przerwę do serii `setIndex + 1` / ćwiczenia `+1`, a nie do celu `resolveAdvanceAfterSet` (rozjazd przy „Później” i seriach poza kolejnością); właściciel: backend, niski. Nie zmieniać w 004 bez testu.
+
+## 11. Przegląd kodu (etap 6)
+
+- Data: 2026-10-24, autor: architekt.
+- Werdykt: **ZATWIERDZONE Z UWAGAMI** (brak uwag blokujących).
+- Zakres: `components/active-workout/` (nowe: session-segmented-progress, set-pills, set-suggestion-row, set-metric-field, rir-picker, session-menu-sheet; zmienione: guided-session-layout, session-chrome, rest-break-screen, ghost-picker-sheet, ghost-race-hud, active-workout-view; usunięte: live-coach-banner, plan-progress-header, active-workout-coach-panel), `lib/` (set-suggestion-view, workout-session-progress, workout-set-draft, rest-next-step, active-workout-copy, workout-skipped-sets, progress-format + testy), tokeny w `app/globals.css`, wpis changelog `planned: true`. Zmiany zadań 001 i 003 pominięte.
+- Uwaga o stanie repo: zmiany zadania 004 są już w commicie `fd61b1e` (poza `ghost-picker-sheet.tsx`, zmiana typu `TargetsState`, niezatwierdzona).
+
+### Wyniki narzędzi
+- `npx tsc --noEmit`: bez błędów.
+- `npx vitest run` (7 plików `lib/` zadania): 72 testy zielone.
+- `npx eslint` na katalogu i plikach `lib/` zadania: 8 błędów `react-hooks/set-state-in-effect` + 1 ostrzeżenie, wszystkie **sprzed zadania** (4 w `active-workout-view.tsx` w niezmienionych efektach, potwierdzone na wersji z HEAD~1; `workout-finished-screen.tsx`, `active-workout-global-bar.tsx` nietknięte). Nowe i przepisane pliki zadania: czyste.
+
+### Zgodność z ADR / LR
+- D1 (jedno źródło sugestii, kierunek z porównania ciężarów), D2 (`buildSessionProgress` czytany przez pasek, pigułki, menu, nagłówek, przerwę), D3 (wartość początkowa tylko w polach, render-phase reset po kluczu serii, brak `onPatchSet` przy wejściu), D4 (kroki z `resolveWeightAdjustSteps`), D5 (kolejność `hapticTap` -> `flushDraft` -> `closeMenu` -> `onFinishSession`, `finishPending` blokuje), D7 (rozbicie i usunięcie martwych plików): zgodne.
+- LR-1: brak `console.*`, Sentry i logowania wartości w nowych plikach. LR-3: wejście na serię nie woła `onPatchSet` ani pushu. LR-9: brak nowych `fetch`/storage w nowych plikach (`fetch` w `ghost-picker-sheet` istniał wcześniej). LR-4/LR-5: kierunek niesie ikona + słowo w `aria-label`, czerwień to `--gym-trend-down`, nie `--destructive`.
+- P-1 (pominięta pomarańczowa, pusty segment, ikona „–”), BR-3 (`isExerciseCompleted`), BR-8 (przycisk główny nigdy „Pomiń”, `resolveSetSaveIssue` + `role="alert"` + `aria-invalid` + fokus): zgodne.
+- Odstępstwo nazewnicze od D6: zaimplementowano `--gym-success`, `--gym-trend-up/-down`, `--gym-skipped`, `--gym-surface-gold`, `--gym-border-gold`, `--gym-track`, `--gym-text-secondary` zamiast `--gym-set-saved` / `--gym-set-skipped` / `--gym-suggest-*`. Rodzina `--gym-*` i miejsce definicji (`:root` + `.dark`) zachowane; przyjęte jako decyzja `ux` (nazwy semantyczne). Do ujednolicenia w dokumentacji, bez zmian w kodzie.
+- Duplikaty: `formatElapsed`/`formatMmSs`/`plSeries`/`clamp*`/`parse*`/`totals`/`exercisesProgress` w ekranach treningu usunięte, jedno źródło w `lib/`. Pozostałe 4 kopie `formatElapsed` poza zakresem (cardio, community) są już w backlogu (sekcja 10).
+
+### Defekty i uwagi
+Średni:
+- M-1 `components/active-workout/active-workout-view.tsx:664` + `guided-session-layout.tsx:416-420,431-436`: edycja zapisanej serii. Wyczyszczenie ciężaru patchem `done: true, skipped: false` przechodzi przez bezpiecznik `patchSet` (l. 654-662) i ustawia `skipped: true`; ponowne wpisanie ciężaru przekazuje `skipped: currentSet.skipped` (true), więc seria zostaje „pominięta” mimo kompletnych danych (pigułka „–”, pasek pomarańczowy), dopóki użytkownik nie dotknie „Zapisz serię N”. Poprawka logiki (nie wprowadzona): w `onWeightInput`/`onRepsInput`/`patchValues` dla `done` przekazywać `skipped: false`, gdy dane są kompletne (albo nie przekazywać `skipped`), albo w `patchSet` zdejmować `skipped`, gdy `canCompleteWorkoutSet`. Właściciel: frontend. Dodać test regresji.
+
+Niskie:
+- L-1 `guided-session-layout.tsx:241-252` (`flushDraft`) wywoływane z `onBlur`, nawigacji i otwarcia menu: niezatwierdzona wartość początkowa (sugestia) trafia do store i do chmury (debounce 700 ms) przy samym przejściu na inną serię albo otwarciu ☰. Zgodne z literą D3 („przejście na inną serię”), ale pasywna nawigacja utrwala wartość, której użytkownik nie potwierdził (LR-3, dokładność). Do decyzji analityka: czy zapisywać w `flushDraft` tylko pola zmienione względem wartości początkowej. Właściciel: analityk/frontend.
+- L-2 `guided-session-layout.tsx:48,335,343`: ochrona podwójnego tapnięcia (US-8) to tylko 700 ms; ADR D3 wymagał „później z: 700 ms albo pierwszy render z nowym kluczem serii”. Po zwiększeniu opóźnienia renderu (wolne urządzenie) okno bywa za krótkie. Dodać test E2E US-8.
+- L-3 `set-pills.tsx:98`: cel dotyku 40 × 44 px (`w-10`), wymóg 44 px; `role="tablist"/"tab"` bez `tabpanel` i bez nawigacji strzałkami. Zmienić na `w-11` albo zastąpić grupą przycisków z `aria-pressed`/`aria-current`. Właściciel: frontend/ux.
+- L-4 martwe pola modelu: `SessionProgressGroup.finished`, `SessionProgress.exercisesCompleted` (`lib/workout-session-progress.ts`), `SetSuggestionView.source` (`lib/set-suggestion-view.ts`) nie mają konsumentów w kodzie produkcyjnym (tylko testy). Zgodne z kontraktem ADR 4.1/4.2, ale do usunięcia przy najbliższej zmianie albo gdy `ux` potwierdzi brak użycia. `countSkippedWorkoutSets` (`lib/workout-skipped-sets.ts`) nie ma żadnego użycia (sprzed zadania).
+- L-5 `active-workout-view.tsx:905,998,999`: literały `#0f0f0f`, `#111`, `#FF9500` w stanie pustym (kod sprzed zadania, plik zmieniany w 004). Zastąpić tokenami przy okazji.
+- L-6 `lib/active-workout-copy.ts` eksportuje `formatSignedKg`, a `components/home/start-metric-tiles.tsx:11` ma lokalną funkcję o tej samej nazwie i innej sygnaturze. Nie kolizja, ale myląca; zmienić nazwę lokalnej przy okazji.
+- L-7 `session-chrome.tsx:63-77`: niespójne wcięcia JSX w `<span aria-hidden>` (kosmetyka).
+- L-8 `actions/active-workout-coach.ts` (+ `activeWorkoutCoachZodMessage` w `lib/user-facing-errors.ts`): osierocone (0 importów, 0 wywołań). Ocena: **nie usuwać w 004**. Plik jest server action z własnym `guardAction`, jego usunięcie to zmiana publicznej powierzchni akcji i wymaga osobnego zadania porządkowego razem z `activeWorkoutCoachZodMessage` i wpisem w `docs/analiza/00-mapa-produktu.md`; zgodnie z sekcją 10. Właściciel: frontend, niski.
+
+### Ryzyka regresji w `active-workout-view.tsx` (sprawdzone)
+- `adjustRestSeconds`: ujemna delta przesuwa `restEndsAtRef`, wynik <= 0 woła `finishRestFromTimer` (ten sam koniec, ta sama wibracja); `restDurationTotal` rośnie tylko w górę; brak regresji dla +30 s.
+- `LastCompletedSnap` i `buildCompletedSnap` bez zmian; `restCompleted`/`restNext`/`restProgress` liczone z tego samego snapa, więc po „+ Seria” (`addSetToExercise`) pasek i „Następnie” są spójne. `persistRestSecondsFromTimer` bez zmian (znany rozjazd w sekcji 10).
+- `patchSet`: wszystkie nowe wywołania podają `done` jawnie (brak niezamierzonej przerwy z patcha pola).
+
+### Poprawione w przeglądzie (bez zmiany logiki)
+- `rest-break-screen.tsx:336`: literał `rgba(255,232,160,0.72)` i token spoza rodziny (`--neon-fg`) zastąpione `border-[var(--gym-gold-bright)]/70` i `text-[var(--gym-on-gold)]` (D6).
+
+### Backlog
+M-1 przed Preview (frontend, test regresji); L-1 (analityk), L-2/L-3 (frontend, ux), L-4..L-7 (frontend), L-8 (osobne zadanie porządkowe).
+
+### Przegląd kodu - runda 2
+
+- Data: 2026-10-24, autor: architekt. Zakres: poprawki M-1 i L-3.
+- Werdykt: **ZATWIERDZONE Z UWAGAMI** (M-1 i L-3 zamknięte, brak uwag blokujących).
+- Narzędzia: `npx vitest run lib/workout-skipped-sets.test.ts lib/active-workout-copy.test.ts`: 26 testów zielonych (16 + 10, w tym 3 nowe dla `resolveSkippedAfterEdit`). `npx eslint` na 5 zmienionych plikach: jedynie błędy `react-hooks/set-state-in-effect` w niezmienionych efektach `active-workout-view.tsx` (znane z rundy 1, sprzed zadania); `workout-skipped-sets.*`, `guided-session-layout.tsx`, `set-pills.tsx` czyste.
+- M-1 zamknięte. `resolveSkippedAfterEdit` to czysta funkcja w `lib/` (jedno miejsce reguły, używa `canCompleteWorkoutSet`, bez duplikacji z `patchSet`). Przejścia sprawdzone: zapisana -> ciężar 0 => pominięta; pominięta -> ciężar > 0 przy kompletnych powtórzeniach => zapisana; jawne `skipped` w patchu (`skipSet`, `saveSet`, `goToSkippedTarget`) oraz seria niezaliczona (`done: false`) nie są ruszane (zwrot `undefined`). Patche edycji (`flushDraft`, `patchValues`, `onWeightInput`, `onRepsInput`, RIR) nie niosą już `skipped`; brak nieużywanych parametrów i martwego kodu. Bezpiecznik w `patchSet` (done:true bez kompletu => skipped) pozostaje spójny z funkcją.
+- Wpływ: `buildSessionProgress`, `countSetsDone`, podsumowanie i pasek czytają `isSkippedWorkoutSet` ze store, więc po edycji stan jest spójny w jednym miejscu. Sync do chmury: wejście na serię nie woła `onPatchSet` (`flushDraft` wraca wcześniej, gdy wartości bez zmian), push tylko przy realnej edycji (LR-3 bez regresji). Brak zmian schematu, API, Androida, Javy, env (D8, LR-2).
+- L-3 zamknięte: `role="group"` + `aria-pressed`, przycisk 44x44 (`h-11 w-11`) z wizualną pigułką 34 px, etykiety `aria-label`; zgodne z wymogiem dotyku 44 px.
+- Nowa uwaga niska (N-1, frontend, backlog): seria jawnie pominięta przez „Pomiń” przy kompletnych danych w polach (np. 60 x 8) po późniejszej edycji wartości zmienia się na zapisaną bez „Zapisz serię”. Dane są kompletne, więc stan jest poprawny wg BR-8, ale zmienia intencję użytkownika; dopuszczalne, do decyzji `ux`. Brak testu tego przejścia (3 testy pokrywają ścieżki główne).

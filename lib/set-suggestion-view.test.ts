@@ -7,14 +7,19 @@ const tipMock = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/live-set-coach", () => tipMock);
 
+import { SET_PROGRESSION_RULES } from "@/lib/set-progression-suggestion";
 import {
   buildSetSuggestionView,
+  DEFAULT_SUGGESTION_REASON,
   resolveSuggestionDirection,
+  suggestionReasonForRule,
+  type SuggestionDirection,
 } from "@/lib/set-suggestion-view";
 
 function tip(
   apply: LiveCoachTip["apply"],
   reason = "Ostatnio lekko",
+  rule?: string,
 ): LiveCoachTip {
   return {
     id: "t",
@@ -28,6 +33,7 @@ function tip(
     reason,
     readiness: 0,
     confidence: 0,
+    rule,
   };
 }
 
@@ -84,7 +90,8 @@ describe("buildSetSuggestionView", () => {
       direction: "up",
       deltaKg: 5,
       referenceKg: 65,
-      reason: "Ostatnio lekko",
+      reason: DEFAULT_SUGGESTION_REASON,
+      rule: null,
       source: "liveCoach",
     });
     expect(tipMock.buildLiveCoachTipForOpenSet).toHaveBeenCalledWith(ex, 0);
@@ -124,6 +131,7 @@ describe("buildSetSuggestionView", () => {
       deltaKg: 0,
       referenceKg: null,
       reason: null,
+      rule: null,
       source: "progression",
     });
   });
@@ -141,11 +149,44 @@ describe("buildSetSuggestionView", () => {
     ).toBe(50);
   });
 
-  it("pusty powód porady -> null", () => {
+  it("surowy tekst silnika nigdy nie trafia do widoku; reguła jest przekazana", () => {
     tipMock.buildLiveCoachTipForOpenSet.mockReturnValue(
-      tip({ weightKg: 50, reps: 8 }, "  "),
+      tip(
+        { weightKg: 60, reps: 8 },
+        "sprzeczny RIR/RPE — nie ufamy danym",
+        "layoff_reduce",
+      ),
     );
-    expect(buildSetSuggestionView(exercise(), 0)?.reason).toBeNull();
+    const view = buildSetSuggestionView(
+      exercise({ lastSessionSets: [{ reps: 8, weight: 65, done: true }] }),
+      0,
+    );
+    expect(view?.rule).toBe("layoff_reduce");
+    expect(view?.reason).toBe("lżej po dłuższej przerwie");
+  });
+
+  it("hold + in_range_add_reps: powód bez duplikatu „ten sam ciężar”", () => {
+    tipMock.buildLiveCoachTipForOpenSet.mockReturnValue(
+      tip({ weightKg: 65, reps: 9 }, "stabilny blok — ten sam ciężar", "in_range_add_reps"),
+    );
+    const view = buildSetSuggestionView(
+      exercise({ lastSessionSets: [{ reps: 8, weight: 65, done: true }] }),
+      0,
+    );
+    expect(view?.direction).toBe("hold");
+    expect(view?.reason).toBe("+1 powt.");
+    expect(view?.reason).not.toMatch(/ten sam/i);
+  });
+
+  it("pusta / nieznana reguła -> neutralny tekst domyślny", () => {
+    for (const rule of ["  ", "nieznana", "constructor", undefined]) {
+      tipMock.buildLiveCoachTipForOpenSet.mockReturnValue(
+        tip({ weightKg: 50, reps: 8 }, "ostatnia sesja bardzo twarda", rule),
+      );
+      expect(buildSetSuggestionView(exercise(), 0)?.reason).toBe(
+        DEFAULT_SUGGESTION_REASON,
+      );
+    }
   });
 
   it("brak sugestii -> null (suggestedWeights 0 / null / brak)", () => {
@@ -182,5 +223,79 @@ describe("buildSetSuggestionView", () => {
     expect(view?.weightKg).toBe(20);
     expect(view?.referenceKg).toBe(22);
     expect(view?.direction).toBe("down");
+  });
+});
+
+describe("resolveSuggestionDirection: właściwości i wartości brzegowe (zadanie 004, tester)", () => {
+  it("antysymetria: zamiana ciężarów odwraca kierunek (poza tolerancją)", () => {
+    const opposite = { up: "down", down: "up", hold: "hold" } as const;
+    for (let a = 0.5; a <= 300; a += 7.25) {
+      for (let b = 0.5; b <= 300; b += 11.5) {
+        expect(resolveSuggestionDirection(a, b)).toBe(
+          opposite[resolveSuggestionDirection(b, a)],
+        );
+      }
+    }
+  });
+
+  it("tolerancja 0,01 kg: różnica 0,01 to hold, 0,02 to zmiana", () => {
+    expect(resolveSuggestionDirection(65.01, 65)).toBe("hold");
+    expect(resolveSuggestionDirection(64.99, 65)).toBe("hold");
+    expect(resolveSuggestionDirection(65.02, 65)).toBe("up");
+    expect(resolveSuggestionDirection(64.98, 65)).toBe("down");
+  });
+
+  it("wartości skrajne i nieprawidłowe: NaN, Infinity, ujemne odniesienie, bardzo duże liczby", () => {
+    expect(resolveSuggestionDirection(Number.NaN, 65)).toBe("hold");
+    expect(resolveSuggestionDirection(Number.POSITIVE_INFINITY, 65)).toBe("hold");
+    expect(resolveSuggestionDirection(70, -5)).toBe("hold");
+    expect(resolveSuggestionDirection(70, 0)).toBe("hold");
+    expect(resolveSuggestionDirection(999, 998.5)).toBe("up");
+  });
+});
+
+describe("suggestionReasonForRule (zadanie 004, LR-4/LR-5)", () => {
+  const directions: SuggestionDirection[] = ["up", "down", "hold"];
+  const forbidden = /nie ufamy|twarda|twardy|uwaga|porażk|stagnacj|zejdź|ostrzeż|\p{Extended_Pictographic}|!/iu;
+
+  it("każda reguła silnika ma własny powód w co najmniej jednym kierunku", () => {
+    for (const rule of SET_PROGRESSION_RULES) {
+      const texts = directions.map((d) => suggestionReasonForRule(rule, d));
+      expect(
+        texts.some((t) => t !== DEFAULT_SUGGESTION_REASON),
+        rule,
+      ).toBe(true);
+    }
+  });
+
+  it("żaden tekst nie zawiera zakazanych słów, emoji ani nie jest pusty", () => {
+    const rules = [...SET_PROGRESSION_RULES, "nieznana", null, undefined, ""];
+    for (const rule of rules) {
+      for (const d of directions) {
+        const t = suggestionReasonForRule(rule, d);
+        expect(t.trim().length).toBeGreaterThan(0);
+        expect(t).not.toMatch(forbidden);
+      }
+    }
+  });
+
+  it("hold nie powtarza etykiety „ten sam ciężar”", () => {
+    for (const rule of [...SET_PROGRESSION_RULES, "nieznana", null]) {
+      expect(suggestionReasonForRule(rule, "hold")).not.toMatch(/ten sam/i);
+    }
+  });
+
+  it("powód nie przeczy kierunkowi: „lżej” tylko przy down", () => {
+    for (const rule of SET_PROGRESSION_RULES) {
+      for (const d of ["up", "hold"] as const) {
+        expect(suggestionReasonForRule(rule, d)).not.toMatch(/lżej/);
+      }
+    }
+  });
+
+  it("nieznana reguła i prototypowe klucze -> tekst domyślny", () => {
+    for (const rule of ["x", "toString", "__proto__", null, undefined]) {
+      expect(suggestionReasonForRule(rule, "up")).toBe(DEFAULT_SUGGESTION_REASON);
+    }
   });
 });

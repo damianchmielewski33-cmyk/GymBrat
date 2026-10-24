@@ -302,7 +302,7 @@ export function LoginForm({
           Utwórz konto
         </Link>
       </p>
-      <p className="text-center text-[11px] text-white/35">
+      <p className="text-center text-[13px] text-white/65">
         <Link href="/regulamin" className="underline-offset-2 hover:underline">
           Regulamin
         </Link>

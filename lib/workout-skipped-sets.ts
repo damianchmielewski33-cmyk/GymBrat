@@ -66,6 +66,22 @@ export function canCompleteWorkoutSet(weight: number, reps: number | null): bool
 }
 
 /**
+ * Edycja wartości serii już zaliczonej (done): flaga `skipped` wynika z danych.
+ * Komplet (ciężar > 0 i powtórzenia > 0) = zapisana, brak ciężaru lub powtórzeń = pominięta.
+ * undefined = patch nie dotyka wartości albo seria nie jest zaliczona (flaga bez zmian).
+ */
+export function resolveSkippedAfterEdit(
+  current: { weight: number; reps: number | null; done: boolean } | undefined,
+  patch: { weight?: number; reps?: number | null; done?: boolean; skipped?: boolean },
+): boolean | undefined {
+  if (!current?.done || patch.done === false || patch.skipped !== undefined) return undefined;
+  if (patch.weight === undefined && patch.reps === undefined) return undefined;
+  const weight = patch.weight !== undefined ? patch.weight : current.weight;
+  const reps = patch.reps !== undefined ? patch.reps : current.reps;
+  return !canCompleteWorkoutSet(weight, reps);
+}
+
+/**
  * Pierwsza pominięta seria albo pierwsze niedokończone ćwiczenie —
  * do powrotu z dialogu „wszystkie serie”.
  */
