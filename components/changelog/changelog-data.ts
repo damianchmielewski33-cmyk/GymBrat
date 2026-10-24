@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Aktywny trening: zapis serii jednym dotknięciem i czytelniejsza przerwa",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Przycisk główny zawsze zapisuje serię („Zapisz serię N”, po zapisie „Popraw serię N”); podpowiedź z poprzedniego treningu wypełnia ciężar, a przy braku danych pojawia się komunikat zamiast cichego pominięcia.",
+      "Pasek postępu pokazuje zapisane serie na zielono, pominięte jako pomarańczowe puste segmenty i bieżącą wyższą; ćwiczenie zaliczone łączy się w jedną belkę.",
+      "Wiersz „Ostatnio + sugestia” oznacza zwiększenie ciężaru strzałką w górę (zielony), obniżenie strzałką w dół (czerwony), a utrzymanie znakiem „=”.",
+      "Przerwa ma karty „Zapisano” i „Następnie”, przyciski −15 s / +30 s oraz przycisk Zacznij serię; „Zakończ trening”, dodawanie serii i notatka są w menu ☰.",
+      "Plakietka Ghost w nagłówku mówi, że wybierasz rywala do wyścigu, a nie że trening się nie zapisuje.",
+    ],
+  },
+  {
     title: "Zapowiedź — Trening: nowy układ ekranu i sylwetki partii mięśni",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

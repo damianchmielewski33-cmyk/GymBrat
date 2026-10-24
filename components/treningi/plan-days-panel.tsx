@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { Download, PencilLine } from "lucide-react";
 import type { TreningiHubDay } from "@/lib/treningi-hub-data";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { SectionLabel } from "@/components/ui/section-label";
 import { PlanDayPreviewSheet } from "@/components/treningi/plan-day-preview-sheet";
 import { PlanDayRow } from "@/components/treningi/plan-day-row";
@@ -58,7 +58,7 @@ export function PlanDaysPanel({
               href="/profile/workout-plan"
               aria-label="Edytuj plan"
               className={cn(
-                "inline-flex items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
+                buttonVariants({ variant: "ghost", size: "sm" }),
                 sectionActionClass,
               )}
             >

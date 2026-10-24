@@ -14,6 +14,8 @@ import { formatExerciseCount } from "@/lib/treningi-hub-format";
 import { cn } from "@/lib/utils";
 
 const TITLE_ID = "unfinished-workout-title";
+/** Wysokość typowej karty „Następny” (podmiana po hydratacji bez skoku układu). */
+const UNFINISHED_CARD_MIN_HEIGHT = "min-h-[296px] compact:min-h-0";
 const PREVIEW_NAMES = 3;
 
 function exercisePreview(names: readonly string[]): string {
@@ -43,7 +45,7 @@ export function UnfinishedWorkoutCard({
     : formatExerciseCount(exerciseNames.length);
 
   return (
-    <MainCardShell accent titleId={TITLE_ID}>
+    <MainCardShell accent minHeightClass={UNFINISHED_CARD_MIN_HEIGHT} titleId={TITLE_ID}>
       <p className={mainCardKickerClass}>Niedokończony trening</p>
       <h2 id={TITLE_ID} className={mainCardTitleClass} title={name}>
         {name}

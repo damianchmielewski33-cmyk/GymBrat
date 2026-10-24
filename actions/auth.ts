@@ -53,12 +53,12 @@ export type RegisterState =
     };
 
 const REGISTER_ERROR_MESSAGES: Record<RegisterErrorCode, string> = {
-  registration_disabled: "Rejestracja e-mailem jest teraz niedostępna. Wróć i wybierz Google.",
+  registration_disabled: "Rejestracja e-mailem jest teraz niedostępna. Wróć i wybierz inną metodę.",
   rate_limited: "Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.",
   invalid_email: "Wpisz poprawny adres e-mail.",
   invalid_form: "Sprawdź zaznaczone pola formularza.",
   account_exists: "Konto z tym e-mailem już istnieje. Zaloguj się.",
-  code_resend_too_soon: "Kod został wysłany przed chwilą. Spróbuj ponownie za moment.",
+  code_resend_too_soon: "Nowy kod możesz zamówić za chwilę.",
   code_missing: "Najpierw wyślij kod weryfikacyjny i wpisz go w formularzu.",
   code_expired: "Kod wygasł albo wykorzystano limit prób. Wyślij nowy kod.",
   code_invalid: "Nieprawidłowy kod.",

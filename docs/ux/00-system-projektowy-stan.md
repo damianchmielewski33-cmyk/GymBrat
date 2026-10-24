@@ -72,6 +72,7 @@ Grupy tras i ramy:
 Źródło: `app/globals.css` (Tailwind 4, `@theme inline`, bez `tailwind.config`), `components.json` (shadcn styl `base-nova`, baseColor neutral, ikony lucide), fonty w `app/layout.tsx`.
 
 - **Paleta "black iron & gold"**: `--gym-black #070708`, `--gym-app-bg #050505`, powierzchnie `--gym-surface #161616` / `-raised #1c1c1f` / `-sunken #141416`, akcent `--gym-gold #ebc44a` (`-bright #f7e28f`, `-deep #c49a1f`), `--gym-red #e60023`, `--destructive #ff3347`. Aliasy `--neon`, `--neon-rgb`, `--neon-fg`.
+- **Tokeny dodane w zadaniu 003 (2026-10-24)**: `--gym-on-gold #1a1408` (tekst/ikona na złotym tle, ok. 11:1; używać zamiast hexa `#1A1408` - pozostałe hexy w `diet-diary-panel.tsx:560` i `meal-suggestions-view.tsx:158` do wymiany, backlog), `--gym-glyph-base #262626` i `--gym-glyph-stroke #4a4a4a` (baza sylwetki `MuscleGlyph`; zaznaczenie = `--gym-gold` + `--gym-gold-deep`). Definiowane w `:root` i `.dark`.
 - **Semantyka shadcn** (`--background`, `--primary`=złoto, `--muted-foreground` = white 62%, `--border` = white 10%, `--ring`) i `--chart-1..5` (złoto + biele) - **`--chart-*` nie są nigdzie używane** w komponentach; wykresy Recharts mają kolory wpisane (`#d4af37`, `rgba(255,255,255,0.06)`).
 - **Motyw**: tylko ciemny. `:root` i `.dark` mają te same wartości, `<html class="dark">` na stałe, brak `next-themes` i `prefers-color-scheme`. `.theme-black-gold` to alias dla starych klas auth.
 - **Typografia**: `--font-sans` Geist (tekst), `--font-heading` Space Grotesk (tytuły, 74 pliki), `--font-display` Bebas Neue (duże liczby, 18), `.font-metric` Playfair Display (liczby/indeksy, 50), Geist Mono. Brak skali tokenów - rozmiary arbitralne: `text-[11px]` (349 użyć), `[10px]` (234), `[13px]` (217), `[12px]` (212), `[9px]` (28) itd. Stałe klasy tekstu w `components/layout/screen.tsx` (`appPageKickerClass`, `appPageTitleClass` 28 px, `screenTitleClass` 2xl) oraz `.app-label` (10 px uppercase, white 38%) i `.app-value` (tabular, złoto). `tabular-nums` w 97 plikach.
@@ -93,7 +94,7 @@ Grupy tras i ramy:
 | `sheet.tsx` | dolne/boczne arkusze | 13 |
 | `alert-dialog.tsx`, `confirm-dialog.tsx` | modale i potwierdzenia | 15 / 5 |
 | `inline-banner.tsx` | `info/success/warning/error` | 8 |
-| `section-label.tsx` | nagłówek sekcji z indeksem i linią (złoty/biały) | 16 |
+| `section-label.tsx` | nagłówek sekcji z indeksem i linią (złoty/biały); prop `titleAs: "span" \| "h2"` (od zadania 003, domyślnie `span`; sekcje ekranu jako `h2`) | 16 |
 | `animated-metric.tsx` | animowana liczba | 16 |
 | `file-picker-button.tsx`, `dropdown-menu.tsx`, `card.tsx` | | po 1 |
 | `tabs.tsx`, `progress.tsx`, `avatar.tsx`, `separator.tsx` | **nieużywane** | 0 |
@@ -111,6 +112,8 @@ Grupy tras i ramy:
 - `components/auth/oauth-privacy-note.tsx` (`OAuthPrivacyNote`): informacja LR-25 pod przyciskami dostawców, `text-[13px] text-white/65`, link `var(--neon)`; tylko gdy dostawca OAuth jest włączony.
 - `components/auth/auth-copy.ts`: jedno źródło mikrokopii logowania, rejestracji i przejęcia konta (`oauthErrorMessage`, `registerWelcomeCopy`, `TAKEOVER_ERROR_MESSAGES`).
 - `components/admin/admin-registration-notice.tsx` (`AdminRegistrationNotice`): baner stanu rejestracji składany z `AdminNotice` (ton `danger` "nikt nie założy konta", `warn` "rejestracja e-mailem wyłączona"), ikona `UserX`/`MailX` obok tekstu.
+
+- `components/treningi/muscle-glyph.tsx` (`MuscleGlyph`, zadanie 003): własny rysunek sylwetki (SVG, viewBox 24, obrys 1 px `non-scaling-stroke`) z zaznaczonymi partiami dnia planu; wejście `summary: PlanDayMuscleSummary | null` + `size: "row" (32) | "hero" (64)`; zawsze `aria-hidden` (tekstowy odpowiednik daje rodzic); `null` = ikona `Dumbbell` zamiast pustej sylwetki. Poniżej 24 px nie używać. Przy 32 px łydki i same barki to kropki - partie niesie tekst. Geometria: `docs/ux/003-przebudowa-ekranu-trening.md` sekcja 6. Pozostałe klocki ekranu Trening (`components/treningi/*`) składają się z `app-card`/`app-panel`, `Button variant="cta"`, `DropdownMenu`, `Sheet`, `ConfirmDialog`; wariant `compact` (`@media (max-height: 719px)`) jest wspólnym progiem niskiego ekranu (zadania 003 i 004).
 
 ### Zalecenia dla nowych widoków (do czasu konsolidacji)
 Nagłówek: `AppPageHeader`; sekcja: `SectionLabel` lub `ProgressSection`; kontener: klasa `app-card` (nie `ui/card`, nie `glass-panel`); akcje: `Button` z wariantem (nie surowe `gym-btn-primary`/`gold-btn`); pola: `Input`/`Textarea`/`Label`; potwierdzenia: `ConfirmDialog`; komunikaty: `useSaveFeedback` + `InlineBanner`; ładowanie: szkielet na `app-card animate-pulse`; CTA w strefie kciuka: `ThumbActionBar`. Admin: wyłącznie `admin-ui.tsx`.

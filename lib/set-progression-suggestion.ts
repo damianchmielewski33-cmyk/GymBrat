@@ -56,6 +56,16 @@ export type SetProgressionSuggestion = {
   rule?: string;
 };
 
+/** Kody reguł ustawiane w `rule` przez silnik progresji (do mapowania na ekranie). */
+export const SET_PROGRESSION_RULES = [
+  "layoff_reduce",
+  "stagnation_deload",
+  "below_range_or_hard",
+  "in_range_add_reps",
+  "top_of_range_easy",
+  "top_of_range_reps_only",
+] as const;
+
 const PLATE_STEP = DEFAULT_STEP_KG;
 const DELOAD_PCT = 0.05;
 

@@ -247,7 +247,6 @@ export function GuidedSessionLayout({
       weight,
       reps,
       done: set.done,
-      skipped: set.done ? set.skipped : false,
     });
   }
 
@@ -266,7 +265,6 @@ export function GuidedSessionLayout({
     onPatchSet(exercise.id, activeSetIndex, {
       ...values,
       done: set.done,
-      skipped: set.done ? set.skipped : false,
     });
   }
 
@@ -416,7 +414,6 @@ export function GuidedSessionLayout({
       onPatchSet(currentExercise.id, activeSetIndex, {
         weight: parsed ?? 0,
         done: currentSet.done,
-        skipped: currentSet.done ? currentSet.skipped : false,
       });
     }
   }
@@ -431,7 +428,6 @@ export function GuidedSessionLayout({
       onPatchSet(currentExercise.id, activeSetIndex, {
         reps: parsed != null && parsed > 0 ? parsed : null,
         done: currentSet.done,
-        skipped: currentSet.done ? currentSet.skipped : false,
       });
     }
   }
@@ -614,7 +610,6 @@ export function GuidedSessionLayout({
             onPatchSet(exercise.id, activeSetIndex, {
               rir,
               done: set.done,
-              skipped: set.done ? set.skipped : false,
             })
           }
         />

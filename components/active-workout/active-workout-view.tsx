@@ -48,6 +48,7 @@ import {
   findFirstSkippedWorkoutTarget,
   isSkippedWorkoutSet,
   resolveAdvanceAfterSet,
+  resolveSkippedAfterEdit,
 } from "@/lib/workout-skipped-sets";
 import {
   buildSessionProgress,
@@ -651,6 +652,8 @@ export function ActiveWorkoutView({
     const wasDone = current?.done ?? false;
 
     let nextPatch = { ...patch };
+    const editedSkipped = resolveSkippedAfterEdit(current, patch);
+    if (editedSkipped !== undefined) nextPatch.skipped = editedSkipped;
     if (nextPatch.done === true && nextPatch.skipped !== true) {
       const nextWeight =
         nextPatch.weight !== undefined ? nextPatch.weight : current?.weight ?? 0;

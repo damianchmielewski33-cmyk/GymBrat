@@ -149,3 +149,54 @@ describe("countSetsDone", () => {
     ).toEqual({ done: 2, total: 3 });
   });
 });
+
+describe("buildSessionProgress: właściwości i skala (zadanie 004, tester)", () => {
+  // Deterministyczny generator (bez Math.random): powtarzalne przypadki.
+  function lcg(seed: number) {
+    let s = seed >>> 0;
+    return () => {
+      s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+      return s / 2 ** 32;
+    };
+  }
+  const variants: WorkoutSetState[] = [saved, skippedFlag, skippedZeroKg, todo];
+
+  it("inwariant: zapisane + pominięte + niezakończone = wszystkie; bieżąca jest dokładnie jedna", () => {
+    const rnd = lcg(42);
+    for (let run = 0; run < 200; run++) {
+      const exercises = Array.from({ length: 1 + Math.floor(rnd() * 8) }, (_, i) =>
+        ex(
+          `e${i}`,
+          Array.from({ length: 1 + Math.floor(rnd() * 10) }, () =>
+            variants[Math.floor(rnd() * variants.length)]!,
+          ),
+        ),
+      );
+      const target = exercises[Math.floor(rnd() * exercises.length)]!;
+      const setIndex = Math.floor(rnd() * target.sets.length);
+      const p = buildSessionProgress(exercises, { exerciseId: target.id, setIndex });
+      const all = p.groups.flatMap((g) => g.segments);
+      const open = all.filter((s) => s.state === "todo" || s.state === "current").length;
+      expect(p.savedSets + p.skippedSets + open).toBe(p.totalSets);
+      expect(all).toHaveLength(p.totalSets);
+      expect(all.filter((s) => s.isCurrent)).toHaveLength(1);
+      expect(p.currentOrdinal).toBeGreaterThanOrEqual(1);
+      expect(p.currentOrdinal).toBeLessThanOrEqual(p.totalSets);
+      for (const g of p.groups) {
+        if (g.completed) expect(g.segments.every((s) => s.state === "saved")).toBe(true);
+      }
+    }
+  });
+
+  it("60 serii (NFR): liczniki i numer bieżącej serii", () => {
+    const exercises = Array.from({ length: 6 }, (_, i) =>
+      ex(`e${i}`, Array.from({ length: 10 }, (_, j) => (i < 3 ? saved : j === 0 ? skippedFlag : todo))),
+    );
+    const p = buildSessionProgress(exercises, { exerciseId: "e3", setIndex: 1 });
+    expect(p.totalSets).toBe(60);
+    expect(p.savedSets).toBe(30);
+    expect(p.skippedSets).toBe(3);
+    expect(p.currentOrdinal).toBe(32);
+    expect(p.exercisesCompleted).toBe(3);
+  });
+});

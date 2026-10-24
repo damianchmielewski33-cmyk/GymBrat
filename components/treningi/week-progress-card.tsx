@@ -39,7 +39,7 @@ export function WeekProgressCard({
   const hasPlan = total > 0;
 
   return (
-    <section className="app-card p-4" aria-labelledby="week-card-title">
+    <section className="app-card p-4 compact:p-3" aria-labelledby="week-card-title">
       <h2 id="week-card-title" className="sr-only">
         Ten tydzień
       </h2>
@@ -69,7 +69,7 @@ export function WeekProgressCard({
       {hasPlan ? (
         <ol
           className={cn(
-            "mt-4 flex",
+            "mt-4 flex compact:mt-3",
             total > WIDE_GAP_MAX_DAYS ? "gap-1" : "gap-1.5",
           )}
           aria-label="Dni planu w tym tygodniu"

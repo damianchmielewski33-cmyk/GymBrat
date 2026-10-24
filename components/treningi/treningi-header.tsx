@@ -20,6 +20,7 @@ export function TreningiHeader({
   return (
     <AppPageHeader
       title="Trening"
+      className="compact:pt-0"
       description={
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
           {/* aria-label na <span> bez roli czytniki pomijają; pełna forma w sr-only. */}

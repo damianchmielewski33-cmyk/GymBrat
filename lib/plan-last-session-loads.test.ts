@@ -125,6 +125,17 @@ describe("extractExerciseLastLoads", () => {
       spy.mockRestore();
     }
   });
+
+  it("id ćwiczenia `__proto__` jest zwykłym kluczem, bez zmiany prototypu wyniku", () => {
+    const json = JSON.stringify({
+      exercises: [{ id: "__proto__", name: "Przysiad", sets: [done(80, 5)] }],
+    });
+    const result = extractExerciseLastLoads(json, [{ id: "__proto__", name: "Przysiad" }]);
+    expect(Object.getPrototypeOf(result)).toBeNull();
+    expect(Object.keys(result)).toEqual(["__proto__"]);
+    expect(result["__proto__"]).toEqual({ weightKg: 80, reps: 5 });
+    expect(({} as { weightKg?: number }).weightKg).toBeUndefined();
+  });
 });
 
 describe("getLastSessionLoadsForPlan (baza w pamięci)", () => {

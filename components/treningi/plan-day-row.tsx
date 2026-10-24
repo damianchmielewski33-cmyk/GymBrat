@@ -23,6 +23,8 @@ const rowTargetClass =
 
 const menuItemClass = "min-h-11 gap-3 rounded-lg px-3 text-[14px]";
 const menuIconClass = "size-4 text-[var(--gym-gold)]";
+/** Przyciemnia tylko etykietę i ikonę wyłączonej pozycji menu. */
+const dimWhenDisabledClass = "group-data-disabled/dropdown-menu-item:opacity-50";
 
 export function PlanDayRow({
   day,
@@ -84,9 +86,10 @@ export function PlanDayRow({
         <span className="block truncate text-[15px] font-semibold text-white" title={name}>
           {name}
         </span>
+        {/* Region live stały w DOM, żeby zmiana na „Startuję…” została ogłoszona. */}
         <span
-          className="mt-0.5 block truncate text-[12px] tabular-nums text-white/60"
-          aria-live={starting ? "polite" : undefined}
+          className="mt-0.5 line-clamp-2 block text-[12px] tabular-nums text-white/60"
+          aria-live="polite"
         >
           {starting ? "Startuję…" : caption}
         </span>
@@ -143,18 +146,30 @@ export function PlanDayRow({
           className="w-auto min-w-[13rem] rounded-xl border border-white/10 bg-[var(--gym-surface-raised)] p-1.5 text-white motion-reduce:animate-none"
         >
           <DropdownMenuItem
-            className={cn(menuItemClass, count === 0 && "items-start py-2")}
+            className={cn(
+              menuItemClass,
+              "data-disabled:opacity-100",
+              count === 0 && "items-start py-2",
+            )}
             disabled={count === 0 || startDisabled}
             onClick={onStart}
           >
-            <Play className={cn(menuIconClass, count === 0 && "mt-0.5")} aria-hidden />
+            <Play
+              className={cn(
+                menuIconClass,
+                dimWhenDisabledClass,
+                count === 0 && "mt-0.5",
+              )}
+              aria-hidden
+            />
             {count === 0 ? (
               <span className="flex flex-col">
-                <span>Rozpocznij trening</span>
+                <span className={dimWhenDisabledClass}>Rozpocznij trening</span>
+                {/* Powód to treść informacyjna: pełny kontrast (LR-5), nie przyciemniamy. */}
                 <span className="text-[12px] text-white/60">Brak ćwiczeń w tym dniu</span>
               </span>
             ) : (
-              "Rozpocznij trening"
+              <span className={dimWhenDisabledClass}>Rozpocznij trening</span>
             )}
           </DropdownMenuItem>
           <DropdownMenuItem

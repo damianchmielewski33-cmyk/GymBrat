@@ -25,21 +25,6 @@ type TreningiHubProps = {
   onBegin: (row: WorkoutPlanWithLastWorkoutDTO) => void;
 };
 
-/** Szkielet karty głównej do hydratacji store (4E): wysokość typowej karty 4A. */
-function MainCardSkeleton() {
-  return (
-    <div
-      className="app-card flex min-h-[296px] animate-pulse flex-col p-4 motion-reduce:animate-none"
-      aria-busy="true"
-      aria-label="Ładowanie treningu"
-    >
-      <div className="h-3 w-[120px] rounded-lg bg-white/[0.05]" />
-      <div className="mt-3 h-6 w-[200px] rounded-lg bg-white/[0.05]" />
-      <div className="mt-auto h-12 w-full rounded-lg bg-white/[0.05]" />
-    </div>
-  );
-}
-
 /** Ekran Trening: kompozycja sekcji (ADR 0002, D6). Dane i daty liczy serwer. */
 export function TreningiHub({ hub, stats, startingPlanId, onBegin }: TreningiHubProps) {
   const mounted = useMounted();
@@ -87,9 +72,10 @@ export function TreningiHub({ hub, stats, startingPlanId, onBegin }: TreningiHub
   }, [reset]);
 
   let mainCard: ReactNode;
-  if (!mounted) {
-    mainCard = <MainCardSkeleton />;
-  } else if (unfinished) {
+  // Serwer nie zna store'a niedokończonego treningu: kartę „Następny” / „Brak planu”
+  // renderujemy od razu z danych serwera, a po zamontowaniu podmieniamy na
+  // „Niedokończony” (ta sama minimalna wysokość, więc bez skoku układu).
+  if (unfinished) {
     mainCard = (
       <UnfinishedWorkoutCard
         title={activeTitle}
@@ -115,7 +101,7 @@ export function TreningiHub({ hub, stats, startingPlanId, onBegin }: TreningiHub
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg space-y-5 pb-8">
+    <div className="mx-auto w-full max-w-lg space-y-5 pb-8 compact:space-y-3">
       <TreningiHeader
         weekStartKey={week.startKey}
         weekEndKey={week.endKey}

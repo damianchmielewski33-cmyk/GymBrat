@@ -76,7 +76,8 @@ export function extractExerciseLastLoads(
   sessionJson: string,
   exercises: ReadonlyArray<Pick<WorkoutPlanExercise, "id" | "name">>,
 ): Record<string, ExerciseLastLoad> {
-  const out: Record<string, ExerciseLastLoad> = {};
+  // Bez prototypu: id ćwiczenia pochodzi z danych użytkownika (np. "__proto__").
+  const out: Record<string, ExerciseLastLoad> = Object.create(null);
   if (exercises.length === 0) return out;
   const sessionExercises = parseSessionExercises(sessionJson);
   if (sessionExercises.length === 0) return out;

@@ -412,3 +412,90 @@ Uwagi:
 3. AC-1.2 (pełna odmiana serii) realizowana przez `aria-label`; widoczny tekst to zatwierdzony skrót „N tyg. z rzędu”.
 4. Kontrakt danych dla sylwetki (lista max 3 grup po scaleniu „Ramiona”, widok przód/tył) i dla wartości ćwiczenia (ciężar, powtórzenia, cel planu) musi wynikać z ADR 0002; komponent tylko rysuje.
 5. Backlog (niski): szkielet trasy o kształcie ekranu Trening; globalny wskaźnik offline.
+
+## Przegląd wizualny (etap 8)
+
+Autor: ux. Data: 2026-10-24. Razem z etapem 7 (spójność; `tester`: `docs/testy/003-przebudowa-ekranu-trening.md`).
+
+### Metoda i ograniczenia
+Aplikacji nie uruchamiałem (brak konta i bazy). Komponenty hubu wyrenderowałem w izolacji: esbuild (kod z repozytorium, `next/link` i eksport PDF zastąpione stubami), CSS z prawdziwego `app/globals.css` przez Tailwind 4, Edge/Playwright, 320 i 380 px (DPR 2) oraz 360x640. Stany: typowy, niedokończony, pending, dzień pusty, brak planu, skrajne (10 dni, nazwa 60 znaków bez spacji, data z innego roku), menu ⋮ (także pozycja wyłączona), arkusz podglądu, `ConfirmDialog`, fokus klawiatury, sylwetki w 32 i 64 px (DPR 1 i 2). Pliki robocze są w katalogu tymczasowym sesji, poza repozytorium.
+Nie zobaczyłem: ramy `AppShell` (nagłówek, belka dolna, FAB „Raport”), `loading.tsx`, Androida WebView, prawdziwych danych, szkieletu hydratacji (tylko z kodu), jasnego motywu (aplikacja jest tylko ciemna).
+
+### Zgodność ze specyfikacją (potwierdzone)
+- Układ, kolejność DOM, rytm `space-y-5` / `space-y-2.5`, typografia (kicker 11, nazwa 22, meta 13, wiersz 15/12), liczby `tabular-nums`: zgodne. Brak poziomego przewijania w 320 i 380 px; 10 segmentów mieści się w 320 px.
+- Tokeny: w `components/treningi/**` brak hexów, `emerald-*`, `gold-btn`, `framer-motion` i `white/45` lub niżej. Jedyny surowy kolor to `rgba(235,196,74,…)` w `main-card-shell.tsx` (gradient i poświata zatwierdzone w specyfikacji, ten sam odcień co `--gym-gold`). Zielony nie występuje na ekranie.
+- Mikrokopia PL i LR-6: zgodna z sekcją 9, bez presji, bez płomienia, bez „brawo”. Odmiany poprawne (1 tydzień / 2 tygodnie, „+ 1 kolejne ćwiczenie”, „+ 3 kolejne ćwiczenia”).
+- Stan nie tylko kolorem: wykonany = wypełnienie + ptaszek + tekst; następny = obrys + słowo „Następny”; „plan 3 × 10” vs wartość historyczna. Potwierdzone na zrzutach.
+- Cele dotyku (pomiar w DOM): wszystkie przyciski i linki >= 44x44, w tym ⋮, pozycje menu i `Zamknij` arkusza (44x44).
+- Fokus: pierścień wiersza `ring-inset` widoczny i nieucięty; po Esc w menu i po zamknięciu arkusza fokus wraca na ⋮ właściwego dnia (zmierzone).
+- `MuscleGlyph`: geometria 1:1 ze specyfikacją 6.2, tokeny `--gym-glyph-*`. Przy 64 px czytelny we wszystkich kombinacjach (przód, tył z kręgosłupem, uda, łydki, brzuch). Przy 32 px czytelny dla klatki, barków+ramion, pleców, ud i brzucha; łydki (ok. 2,7 px) i same barki to małe kropki, rozpoznawalne tylko jako „coś złotego”, co jest akceptowalne, bo partie niesie tekst (sr-only, podpis podglądu). Kręgosłup przy 32 px prawie niewidoczny (wyróżnik widoku z tyłu działa dopiero w 64 px). Bez zmian geometrii.
+
+### Decyzje w sprawie odstępstw frontendu
+1. `ConfirmDialog` z kopią ux zamiast `WorkoutDiscardSessionDialog`: ZATWIERDZONE. Jedyny czerwony akcent na ekranie, jak w 4B; kosz trafnie opisuje skutek (serie są usuwane); „Wróć do treningu” jest wyraźnie drugi w hierarchii. Brak własnej kopii dialogu = brak duplikatu.
+2. Teksty czytnika w `sr-only` zamiast `aria-label` na `<span>`: ZATWIERDZONE, lepsze niż zapis w specyfikacji (`aria-label` na elemencie bez roli bywa pomijany). Sekcje 2 i 5 czytać jako „treść `sr-only`”; `tester` sprawdza AC-1.2 w tekście `sr-only`.
+3. Grupa `nogi` rysowana jako uda: ZATWIERDZONE, zgodne z tabelą 6.1 (`nogi` = `uda`, łydki osobno).
+4. Wyłączona pozycja menu z `opacity-50`: ODRZUCONE w obecnej formie (F-2).
+
+### Odchylenia i poprawki dla `frontend`
+| ID | Priorytet | Plik, linia | Opis i oczekiwana poprawka |
+|---|---|---|---|
+| F-1 | Wysoki | `components/treningi/plan-day-row.tsx:83-101` | 320 px: etykieta „Następny” zabiera ok. 85 px; nazwa dnia zostaje „Push - klat…”, a podpis „Dzień 3 · 6 ćw. · …” traci datę; podobnie „jeszcze nie ro…” w dniu 4. To utrata informacji, nie tylko przycięcie nazwy (spec 10 dopuszczał przycięcie samej nazwy). Poprawka: podpis `line-clamp-2` zamiast `truncate`, a przy braku miejsca nazwa traci szerokość, nie podpis; słowo „Następny” zostaje tekstem (stan nie tylko ramką). Po poprawce zrzut 320 do akceptacji ux. |
+| F-2 | Wysoki (LR-5) | `components/treningi/plan-day-row.tsx:145-158` | Wyłączona pozycja „Rozpocznij trening” dla dnia pustego dziedziczy `data-disabled:opacity-50`; zmierzone: opacity 0,5 razy `white/60` daje ok. 30% bieli (ok. 2,3:1). Powód „Brak ćwiczeń w tym dniu” jest treścią informacyjną i wymaga >= 4,5:1. Poprawka: `data-disabled:opacity-100` na pozycji, przyciemnić tylko etykietę i ikonę (`opacity-50`), powód zostawić w `text-white/60`. |
+| F-3 | Średni | `next-workout-card.tsx`, `treningi-header.tsx`, `week-progress-card.tsx` | Budżet „above the fold” 360x640 (AC-6.4) prawdopodobnie niespełniony. Zmierzone w izolacji (bez ramy aplikacji): nagłówek 84 px (spec 58), karta tygodnia 136 px (spec 104), CTA kończy się na y = 583 px; z nagłówkiem `AppShell` (ok. 56 px) to ok. 640 px, a belka z FAB zaczyna się ok. 90 px od dołu. Przyczyna częściowo w specyfikacji (szacunki 58/104 były za niskie, luka projektowa po stronie ux). Poprawka: przy niskim ekranie pokaż 2 ćwiczenia zamiast 3, ukryj „+ N kolejne”, `mt-4` paska tygodnia zmniejsz do `mt-3`. `tester` weryfikuje zrzutem 360x640 w prawdziwej aplikacji; CTA ma być w całości nad belką. |
+| F-4 | Średni | `app/globals.css:6-7` vs `main-card-shell.tsx:10` | Dwa różne progi niskiego ekranu: wariant `compact` (max-height 719 px, zadanie 004) i `[@media(max-height:680px)]`. Ujednolicić na `compact`. Uwaga: w diffie `globals.css` są też tokeny zadania 004 (`--gym-success`, `--gym-trend-down`, `--gym-skipped`); nie należą do 003 i nie są użyte na ekranie Trening. |
+| F-5 | Niski | `plan-days-panel.tsx:57-63` | Link „Edytuj” nie ma hover jak sąsiedni `Button ghost` „PDF”. Użyj `buttonVariants({variant:"ghost",size:"sm"})` albo dodaj te same klasy hover. |
+| F-6 | Niski | `plan-day-row.tsx:111,123` | Pending: cały wiersz `opacity-60` obniża kontrast do ok. 3:1; stan przejściowy i nieaktywny (1.4.3 wyłącza), więc akceptuję, ale lepiej przyciemnić kafelek i nazwę, a „Startuję…” zostawić w pełnym `white/60`. |
+| F-7 | Niski | `treningi-hub.tsx:31-35` | Szkielet: `aria-label` na `div` bez roli nie jest ogłaszany. Dodać `role="status"` albo `sr-only` „Ładowanie treningu”. |
+| F-8 | Niski (system) | `.font-metric` w `app/globals.css` | Playfair Display ma domyślnie cyfry oldstyle: „0 min” wygląda jak „o min”, „125” ma cyfry różnej wysokości; `tabular-nums` tego nie zmienia. Wzorzec całej aplikacji (50 plików), nie blokuje. Rekomendacja: `font-variant-numeric: lining-nums tabular-nums` w `.font-metric` jako osobne zadanie (dotyka Home i Postępy); decyzja ux: TAK. |
+| F-9 | Niski | `main-card-shell.tsx:31,35` | Surowe `rgba(235,196,74,…)`; zastąpić `color-mix(in srgb, var(--gym-gold) 12%, transparent)`. Hex `#1A1408` w `components/meal-suggestions/diet-diary-panel.tsx:560` i `meal-suggestions-view.tsx:158` powinien używać `--gym-on-gold` (poza zakresem 003, backlog systemowy). |
+
+### Spójność z resztą aplikacji (etap 7, strona ux)
+- Użyte istniejące komponenty: `AppPageHeader`, `SectionLabel` (prop `titleAs`, bez nowego komponentu), `app-card`/`app-panel`, `Button variant="cta"`, `Sheet`, `DropdownMenu`, `ConfirmDialog`, `AnimatedMetric`. Nowy jest tylko `MuscleGlyph`, zgodnie ze specyfikacją. Brak zdublowanych wzorców.
+- Różnica względem Home i Dieta: tam `SectionLabel` ma numerację 01-05 i złoty tytuł; Trening ma biały tytuł bez indeksu (jak Postępy, zgodnie z sekcją 0). Świadome, nie błąd.
+- Po poprawkach F-1..F-3 dopiszę do `docs/ux/00-system-projektowy-stan.md`: `MuscleGlyph`, tokeny `--gym-glyph-base`, `--gym-glyph-stroke`, `--gym-on-gold`, `SectionLabel.titleAs`.
+- Zrzuty bazowe (320 i 380 px: typowy, brak planu, niedokończony, dzień pusty): jeszcze nie zatwierdzam; będą wzorcowe po F-1, F-2, F-3, bo zmieniają wygląd.
+- Luka projektowa (moja): budżet wysokości z sekcji 10 (58/104/270 px) był zaniżony; przyjmuję wartości zmierzone (84/136) i zastępuję go wymaganiem F-3.
+
+### Werdykty
+- Etap 7, spójność wyglądu i komponentów (ux): ZATWIERDZONE Z UWAGAMI (F-4, F-5, F-8, F-9; backlog frontend).
+- Etap 8, przegląd wizualny (pierwszy przebieg): ZATWIERDZONE Z UWAGAMI pod warunkiem poprawek F-1 i F-2 oraz weryfikacji F-3. Wynik ponownego przeglądu: sekcja poniżej.
+
+### Ponowny przegląd (etap 8, delta, 2026-10-24)
+Metoda jak wyżej (esbuild + prawdziwy `globals.css` + Edge/Playwright, DPR 2; 320, 380, 360x640; dodatkowo replika ramy: nagłówek 56 px, belka i FAB „Raport” z klas `app-shell.tsx`; na `/workout-plan` FAB jest widoczny). Nie widziałem prawdziwego `AppShell` (logo z brandingu daje nagłówek do 64 px) ani fontów produkcyjnych.
+
+| ID | Wynik | Pomiar |
+|---|---|---|
+| F-1 | OK | 320 px: podpis zawija się do 2 linii i zachowuje datę („Dzień 3 · 5 ćw. · 14.10”, „… jeszcze nie robiony”); nazwa przycinana, „Następny” jako tekst; brak poziomego przewijania (scrollWidth 320), także dla nazwy 49 znaków bez spacji. Nazwa dnia 3 skraca się do „Push - klat…” - akceptowane (spec 10). |
+| F-2 | OK | Powód „Brak ćwiczeń w tym dniu”: biel 60% na `rgb(28,28,31)`, opacity przodków = 1, kontrast ok. 6,8:1 (>= 4,5:1). Przyciemnione tylko etykieta i ikona (opacity 0,5), pozycja ma `aria-disabled`. |
+| F-4, F-5, F-7, F-9, T-3 | OK z kodu i zrzutów | jeden próg `compact`; gradient karty bez zmiany wyglądu; szkielet z `role="status"`; `aria-live` stały na podpisie. |
+| F-6 | pominięte, akceptuję | stan przejściowy (1.4.3 wyłącza). |
+| F-8 | zostaje | decyzja systemowa, osobne zadanie. |
+| F-3 | CZĘŚCIOWO | 360x640 z replika ramy: CTA y = 499-547 px; FAB „Raport” y od 517,6 (x 122-238), górna krawędź belki y = 541,6. CTA jest więc zasłonięte przez FAB o ok. 29 px (środek etykiety „Rozpocznij trening”) i przez belkę o ok. 5 px w pierwszym widoku. Poprawa względem pierwszego przebiegu: CTA o ok. 93 px wyżej względem zakładanych ok. 640 (karta tygodnia 130 zamiast 136 px, 2 ćwiczenia, bez „+ N kolejne”). Przy nagłówku 64 px (logo) zasłonięcie rośnie o 8 px. Po przewinięciu CTA jest w pełni dostępne (`pb` 124 px zostawia miejsce nad belką i FAB), więc to nie jest martwy cel, tylko niespełnione AC-6.4 dla ekranu o wysokości 640 px. |
+
+Margines bezpieczeństwa, którego brakuje: do czystego CTA nad FAB potrzeba jeszcze ok. 35-45 px. Rekomendacja (niski priorytet, backlog `frontend`, `compact`): `space-y-3` zamiast `space-y-5` (-16 px), karta tygodnia `p-3` i `mt-3` paska (-12 px), jedno ćwiczenie zamiast dwóch (-32 px). Ekrany >= 720 px wysokości nie są dotknięte.
+
+Zrzuty bazowe (ZATWIERDZAM): typowy 320 i 380 (pełna strona), menu ⋮ z wyłączoną pozycją 320 i 380, nazwa 49 znaków bez spacji 320, widok 360x640 z ramą jako wzorzec „stan znany, F-3 w backlogu”. Stany niedokończony, dzień pusty i brak planu: zatwierdzone z poprzedniego przebiegu (kod tych wariantów nie zmienił wyglądu; zmiana gradientu F-9 ma tę samą wartość koloru).
+
+Wpisano do `docs/ux/00-system-projektowy-stan.md`: `MuscleGlyph`, tokeny `--gym-glyph-base`, `--gym-glyph-stroke`, `--gym-on-gold`, `SectionLabel.titleAs`.
+
+Werdykt ponownego przeglądu: ZATWIERDZONE Z UWAGAMI (F-3: AC-6.4 spełnione tylko częściowo przy 360x640, ryzyko niskie, właściciel `frontend`).
+
+### Trzeci przebieg (etap 8, wariant `compact`, 2026-10-24)
+Metoda jak w drugim przebiegu (esbuild + prawdziwy `globals.css` + Edge/Playwright, DPR 2, replika ramy: nagłówek 56 i 64 px, belka i FAB „Raport” z klas `app-shell.tsx`; store niedokończonego treningu ustawiany przed renderem). Nie widziałem prawdziwego `AppShell`, logo ani fontów produkcyjnych (fallback szeryfowy; wysokości linii mogą się różnić o kilka px).
+
+| Pomiar (y w px od góry viewportu) | 360x640, nagłówek 56 / 64 | 320x568, nagłówek 56 / 64 | 380x720 (powyżej `compact`) |
+|---|---|---|---|
+| dolna krawędź CTA | 481 / 489 | 500,5 / 508,5 | 617 / 625 |
+| górna krawędź FAB / belki | 517,6 / 541,6 | 445,6 / 469,6 | 597,6 / 621,6 |
+| zapas CTA nad FAB / nad belką | +36,6 / +60,6 (64 px: +28,6 / +52,6) | -54,9 / -30,9 (64 px: -62,9 / -38,9) | -19,4 / +4,6 (64 px: -27,4 / -3,4) |
+
+- **F-3 / AC-6.4 przy 360x640: SPEŁNIONE.** CTA „Rozpocznij trening” (y 433-481, nagłówek 64 px: 441-489) kończy się powyżej FAB (517,6) i belki (541,6). Poprawa względem poprzedniego przebiegu o 66 px (CTA 499-547). Karta tygodnia 121,5 px, karta „Następny” 206,5 px (1 ćwiczenie, bez „+ N kolejne”), odstępy 12 px. Brak poziomego przewijania (scrollWidth = szerokość viewportu we wszystkich wariantach).
+- 320x568 (bardzo niski ekran): AC-6.4 nie dotyczy (wymaganie definiuje 360x640), ale CTA wchodzi pod FAB o ok. 55 px i pod belkę o ok. 31 px; po przewinięciu dostępne (`pb` zostawia miejsce). Backlog niski, bez wymogu.
+- Powyżej `compact`: wszystkie nowe klasy mają prefiks `compact:` (diff), więc układ >= 720 px się nie zmienił. 380x800 i 360x800: karta tygodnia 133,5, karta główna 308,5, CTA 569-617, FAB 677,6 (zapas 60 px); 3 ćwiczenia i „+ 2 kolejne ćwiczenia” widoczne. Uwaga (backlog niski, właściciel `ux`/`frontend`): próg 719 px tworzy klif; dla wysokości 720-739 px (nagłówek 56 px; do 747 px przy 64 px) CTA jest jeszcze do 27 px pod FAB (przy 720 px: 19 / 27 px; belka: zapas +4,6 / -3,4 px). Do rozważenia podniesienie progu `compact` do ok. 750 px (zmiana wspólna z zadaniem 004, wymaga sprawdzenia ekranu aktywnego treningu).
+- **Usunięcie szkieletu, stany:** brak planu (karta cardio 101,5 px + „Dodaj plan treningowy” + „Ustaw plan”, sekcja Dni planu ukryta, CTA 376-424 przy 360x640), dzień pusty („Dzień 4 jest pusty”, „Uzupełnij plan”, CTA 415,5-463,5) i typowy renderują się od razu z danych serwera, bez pustych miejsc, nakładania i przewijania poziomego; CTA wszystkich trzech nad FAB przy 360x640. Wygląd bez regresji.
+- **„Niedokończony” vs „Następny” (podmiana po zamontowaniu):** góra karty stabilna (y 233,5 bez ramy, 289,5 z ramą), ale wysokość się zmienia, więc treść poniżej przesuwa się. Poza `compact` (min-h 296): 308,5 -> 296, przesunięcie w górę o 12,5 px; CTA przeskakuje o 109,5 px w górę (569 -> 459,5), bo karta „Niedokończony” nie ma listy ćwiczeń. W `compact` (min-h 0): 206,5 -> 243 (360x640) i 226 -> 243 (320x568), przesunięcie w dół o 36,5 / 17 px, CTA o 11,5 px w górę. Wniosek: bez skoku górnej części karty i nagłówka, ale „bez skoku układu” spełnione tylko dla elementów nad kartą; przesunięcie poniżej to jednorazowe 12-37 px zaraz po hydratacji (CTA „Kontynuuj trening” 421,5-469,5 przy 360x640, nad FAB). Akceptuję (niskie ryzyko: dotyczy tylko użytkowników z niedokończoną sesją, dzieje się przed interakcją). Ewentualne dopracowanie (backlog): rezerwować wysokość karty „Następny” w `compact` (min-h ok. 243) tylko jeśli pomiar CLS w produkcji to potwierdzi.
+- Niedokończony 360x640: stopka „Dziennik obciążeń / Porzuć” kończy się y = 532,5 (FAB zaczyna się 517,6 w środku, x 122-238): tekst odsłonięty (y ok. 495-515), pole dotyku linku 7 px pod FAB w okolicy x 122-160; drobne, bez wpływu na kontrast i tekst.
+
+**Zrzuty bazowe (ZATWIERDZAM, tylko w katalogu tymczasowym sesji, poza repozytorium):** typowy 360x640 z ramą (nagłówek 56 i 64), 320x568, 380x720, 380x800 i 360x800; niedokończony 360x640, 320x568, 380x800; brak planu 360x640, 320x568, 380x800; dzień pusty 360x640, 320x568, 380x800. Zastępują zrzut „stan znany, F-3 w backlogu” z poprzedniego przebiegu.
+
+Werdykt trzeciego przebiegu: ZATWIERDZONE Z UWAGAMI. F-3 zamknięte (AC-6.4 spełnione przy 360x640). Uwagi niskiego ryzyka do backlogu: klif progu `compact` (720-755 px), CTA pod FAB przy 320x568, jednorazowe przesunięcie 12-37 px przy podmianie na „Niedokończony”.

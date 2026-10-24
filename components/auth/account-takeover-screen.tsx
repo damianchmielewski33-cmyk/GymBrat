@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import { confirmAccountTakeover } from "@/actions/account-takeover";
 import { AuthCard } from "@/components/auth/auth-card";
@@ -23,6 +23,11 @@ export function AccountTakeoverScreen({ token }: { token: string | null }) {
   const [expired, setExpired] = useState(token === null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const safeActionRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    if (!expired) safeActionRef.current?.focus();
+  }, [expired]);
 
   async function onConfirm() {
     if (!token || pending) return;
@@ -56,8 +61,12 @@ export function AccountTakeoverScreen({ token }: { token: string | null }) {
     <div>
       <AuthHeroBrand
         compact
-        headline="Ten adres ma już konto"
-        support="Zostało założone bez potwierdzenia adresu e-mail."
+        headline={expired ? "Ten link wygasł" : "Ten adres ma już konto"}
+        support={
+          expired
+            ? "Ze względów bezpieczeństwa link działa tylko kilka minut."
+            : "Zostało założone bez potwierdzenia adresu e-mail."
+        }
       />
       <AuthCard bodyClassName="space-y-5">
         {expired ? (
@@ -92,7 +101,7 @@ export function AccountTakeoverScreen({ token }: { token: string | null }) {
             <div className="space-y-3">
               <Link
                 href="/login"
-                autoFocus
+                ref={safeActionRef}
                 className={cn(buttonVariants({ variant: "outline" }), "h-12 w-full")}
               >
                 Zaloguj się hasłem

@@ -261,20 +261,27 @@ export const dailyCheckins = sqliteTable(
   (t) => [index("idx_daily_checkins_user_date").on(t.userId, t.date)],
 );
 
-export const workouts = sqliteTable("workouts", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  /** Ostatnio zapisany trening z planu — do sortowania i historii. */
-  workoutPlanId: text("workout_plan_id"),
-  /** Local calendar day as YYYY-MM-DD */
-  date: text("date").notNull(),
-  cardioMinutes: integer("cardio_minutes").notNull().default(0),
-  exercises: text("exercises").notNull(),
-});
+export const workouts = sqliteTable(
+  "workouts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Ostatnio zapisany trening z planu — do sortowania i historii. */
+    workoutPlanId: text("workout_plan_id"),
+    /** Local calendar day as YYYY-MM-DD */
+    date: text("date").notNull(),
+    cardioMinutes: integer("cardio_minutes").notNull().default(0),
+    exercises: text("exercises").notNull(),
+  },
+  (t) => [
+    index("idx_workouts_user_plan_date").on(t.userId, t.workoutPlanId, t.date),
+    index("idx_workouts_user_date").on(t.userId, t.date),
+  ],
+);
 
 /** Wejścia na ekrany — agregacja w panelu administratora (por. page_views). */
 export const pageViews = sqliteTable(

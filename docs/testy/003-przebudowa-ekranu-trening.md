@@ -100,3 +100,35 @@ Brak weryfikacji w przeglądarce (układ, kontrast, fokus, WebView); `deploy:che
 
 ## 8. Werdykt (tester): ZATWIERDZONE Z UWAGAMI
 Warunki: wykonać testy ręczne M-1..M-8 na Preview; zapisać decyzję w sprawie T-1; T-2, T-3 do backlogu (niski priorytet).
+
+---
+
+# Aktualizacja: regresja po zmianach kodu po etapie 6 (2026-10-24)
+
+Zakres zmian: poprawki ux F-1..F-5, F-7, F-9, T-3; usunięcie szkieletu karty głównej (render z danych serwera, „Niedokończony" po zamontowaniu); wariant `compact` (`@custom-variant compact` = `max-height: 719px`); indeksy `workouts` (schemat, migracja 0032, `ensureCriticalSchema`); `Object.create(null)` w `lib/plan-last-session-loads.ts`.
+
+## Wyniki komend
+| Komenda | Wynik |
+|---|---|
+| `npx tsc --noEmit` | 3 błędy, wszystkie w `docs/wydajnosc/skrypty/001-takeover-batch.bench.ts` (zadanie 001); w plikach 003 brak |
+| `npm test` | 959 przeszło, 2 nie (`lib/android-version.test.ts`, znane); 132 z 133 plików zielonych (wcześniej 917/2, 129/130) |
+| `npm run lint` | 105 błędów (było 111, nie przybyło). Błędy w katalogach 003/004: `cardio-log-sheet.tsx` (101, 108, istniejący dług), `active-workout-global-bar.tsx`, `active-workout-view.tsx`, `workout-finished-screen.tsx` (reguła setState w efekcie; zadanie 004 / dług, nie pliki 003) |
+
+## Wpływ zmian na AC i dowody
+| AC / obszar | Zmiana dowodu |
+|---|---|
+| 3.12 niedokończony + Porzuć | R: karta renderowana z danych serwera, stan „Niedokończony" ustawiany po zamontowaniu (`treningi-hub.tsx`: `unfinished`); A brak (brak jsdom); M-5 bez zmian |
+| 3.13 brak skoku po hydratacji | Zmiana mechanizmu: zamiast `MainCardSkeleton` (min-h 296 px) brak szkieletu, karta od razu z serwera. Ryzyko: przeskok treści karty „Następny" -> „Niedokończony" po zamontowaniu (źródło niedokończonego to lokalny store). Wymaga M-1 (porównać wysokość/CLS obu kart) |
+| 3.15, „Zacząć nowy trening?" i „Porzuć" | R: nadal wspólna ścieżka `requestBegin` + `ConfirmDialog`; M-3, M-5 |
+| 6.4 CTA above the fold 360x640 | Zmiana: `[@media(max-height:680px)]` zastąpione wariantem `compact:` (próg 719 px, `line-clamp-1`, ukryte części podglądu i podpisu). Pokrywa 640 px; brak automatu, M-1 |
+| 3.4/3.6 ostatnie obciążenia, mapa `__proto__` | A: `lib/plan-last-session-loads.test.ts:129` (id `__proto__` zwykłym kluczem, `Object.keys` = `["__proto__"]`, bez zmiany prototypu) - POTWIERDZONE |
+| Wydajność zapytania „ostatnia sesja planu" | A: `db/workouts-indexes.test.ts` (4 testy): schemat tworzy 2 indeksy; EXPLAIN = SEARCH po `idx_workouts_user_plan_date`, bez SCAN/TEMP B-TREE; migracja 0032 uruchomiona 2x na istniejących danych (idempotencja, dane nietknięte); `ensureCriticalSchema` dopisuje brakujące indeksy. Migracja to `IF NOT EXISTS` wg testu |
+| Kontrakt `TreningiHubData` | A dopisany (`lib/treningi-hub-data.test.ts`): dokładnie pola `days`, `nextLastLoads`, `nextPlanId`, `week`; użytkownik bez danych -> pusty plan, `nextPlanId` null, brak obciążeń. Pozostałe testy hubu bez zmian i zielone |
+| T-3 (aria-live w wierszu) | R: poprawka ux; ponowna weryfikacja z czytnikiem w M-4 |
+| ux F-1..F-5, F-7, F-9 | R/M: zmiany wizualne, bez automatu; objęte M-1, M-2, M-4 |
+
+## Defekty
+Bez nowych. Otwarte: T-1 (niska, decyzja produktowa), T-2 (niska), T-4 (informacja; nadal brak testów komponentów). T-3 do potwierdzenia ręcznie.
+
+## Werdykt (regresja): ZATWIERDZONE Z UWAGAMI
+Warunki jak wyżej: M-1..M-8 na Preview, ze szczególnym naciskiem na brak przeskoku karty głównej po hydratacji (3.13) i 6.4 na 360x640 z wariantem `compact`.
