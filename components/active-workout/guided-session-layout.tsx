@@ -456,7 +456,10 @@ export function GuidedSessionLayout({
       />
 
       {/* Środek: przy budżecie z UX 4.3 bez przewijania; przewijanie tylko awaryjnie (powiększenie tekstu). */}
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3 [scrollbar-width:none] compact:gap-2 compact:py-2 [&::-webkit-scrollbar]:hidden">
+      <div
+        data-active-workout-scroll
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3 [scrollbar-width:none] compact:gap-2 compact:py-2 [&::-webkit-scrollbar]:hidden"
+      >
         <section>
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">

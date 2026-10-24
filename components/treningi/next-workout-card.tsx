@@ -105,7 +105,8 @@ export function NextWorkoutCard({
       <ul className="mt-3 border-t compact:mt-2 border-white/[0.06]">
         {preview.map((ex, index) => {
           const exName = ex.name.trim();
-          const load = lastLoads[ex.id];
+          // Tylko własne klucze: id ćwiczenia pochodzi od użytkownika (np. "constructor" nie może trafić w prototyp).
+          const load = Object.hasOwn(lastLoads, ex.id) ? lastLoads[ex.id] : undefined;
           const aria = load
             ? formatLastLoadAria(exName, load)
             : formatPlanTargetAria(exName, ex.sets, ex.reps);

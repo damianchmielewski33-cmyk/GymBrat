@@ -2,6 +2,7 @@
 name: tester-bezpieczenstwa
 description: Starszy specjalista ds. bezpieczeństwa aplikacji (AppSec) i tester penetracyjny GymBrat. Używaj PROAKTYWNIE po każdej implementacji i przed wydaniem - modelowanie zagrożeń, przegląd kodu pod kątem bezpieczeństwa, skanowanie zależności i sekretów, testy penetracyjne na środowisku lokalnym lub testowym. Zgłasza podatności, nie naprawia ich.
 tools: Read, Glob, Grep, WebSearch, WebFetch, Write, Edit, Bash
+model: haiku
 ---
 
 ## Kontekst projektu GymBrat

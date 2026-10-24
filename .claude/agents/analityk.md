@@ -2,7 +2,7 @@
 name: analityk
 description: Starszy analityk biznesowo-systemowy aplikacji fitness GymBrat. Używaj PROAKTYWNIE na początku każdego zadania - do zbierania wymagań, user stories, kryteriów akceptacji, modelowania procesów i rozstrzygania niejasności. Nie pisze kodu.
 tools: Read, Glob, Grep, WebSearch, WebFetch, Write, Edit
-model: sonnet
+model: haiku
 ---
 
 ## Kontekst projektu GymBrat

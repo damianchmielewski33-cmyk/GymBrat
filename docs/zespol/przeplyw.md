@@ -16,7 +16,18 @@ Dla drobnych poprawek stosuj ścieżkę skróconą zamiast pełnego przepływu. 
 - nie dotyka przetwarzania danych o zdrowiu i ciele, zgód ani dokumentów prawnych,
 - obejmuje niewielką liczbę plików w jednym obszarze.
 
-Etapy ścieżki skróconej: `backend` lub `frontend` (poprawka z testem regresji), `architekt` (przegląd kodu), `tester` (weryfikacja poprawki i regresji). Jeśli zmiana dotyka wyglądu, `ux` wykonuje przegląd wizualny. Gdy którykolwiek agent stwierdzi, że warunki nie są spełnione, zadanie przechodzi do pełnego przepływu. Karta zadania, werdykty i wymóg przejścia `npm run lint`, `npx tsc --noEmit` i `npm test` obowiązują tak samo.
+Etapy ścieżki skróconej: `backend` lub `frontend` (poprawka z testem regresji), `tester` (szybka weryfikacja poprawki i najbliższego otoczenia, bez pełnego planu testów). `architekt` wchodzi tylko w wyjątku opisanym w etapach pełnego przepływu (niepewność projektowa, zmiana kontraktu/schematu). Jeśli zmiana dotyka wyglądu, `ux` wykonuje przegląd wizualny. Gdy którykolwiek agent stwierdzi, że warunki nie są spełnione, zadanie przechodzi do pełnego przepływu. Karta zadania, werdykty i wymóg przejścia `npm run lint`, `npx tsc --noEmit` i `npm test` obowiązują tak samo.
+
+## Dobór modeli (koszt tokenów)
+Agenci mają w `.claude/agents/<nazwa>.md` domyślny model dobrany do kosztu ich pracy: tani model (`haiku`) dla `analityk`, `prawnik`, `ux`, `tester`, `tester-bezpieczenstwa`, `tester-wydajnosci` (zbieranie wymagań, dokumenty, testy, przegląd bezpieczeństwa i wydajności - praca w dużej mierze odtwarzalna wg szablonu); średni model (`sonnet`) dla `backend`, `frontend`, `architekt` (tworzenie kodu produkcyjnego i decyzje architektoniczne). Nie uruchamiaj żadnego etapu na `opus` bez wyraźnej prośby użytkownika.
+
+Domyślny model z definicji agenta wystarcza w większości zadań. Koryguj go przy wywołaniu (`Agent` → parametr `model`) tylko w dwie strony:
+- **W dół, do `haiku`**, gdy etap jest mechaniczny mimo że agent jest "drogi": `backend`/`frontend` wprowadzają trywialną, dobrze opisaną poprawkę (literówka w logice, zmiana komunikatu, drobna korekta stylu) ze ścieżki skróconej.
+- **W górę, do `sonnet`**, gdy etap tani domyślnie trafia na coś wymagającego: `analityk` ma sprzeczne lub bardzo niejasne wymagania; `prawnik` ocenia nowe, nietrywialne przetwarzanie danych o zdrowiu/RODO albo nowy obszar prawny; `ux` projektuje nowy ekran/przepływ od zera (nie przegląd istniejącego); `tester`/`tester-bezpieczenstwa`/`tester-wydajnosci` trafiają na złożoną logikę domenową (okna czasowe, autoryzacja, wydajność zapytań) albo podatność/regresję trudną do jednoznacznej oceny - wtedy `tester` robi też pełny plan testów zamiast testów podstawowych.
+
+Domyślnie po implementacji `tester` robi tylko szybkie testy podstawowe (ścieżka główna + najważniejsze przypadki brzegowe) na `haiku`, a `architekt` nie wykonuje przeglądu kodu (patrz etapy 5-6 i wyjątek przy etapach) - to dwie największe oszczędności w przepływie. Nie traktuj tego jako obniżenia jakości na stałe: gdy `tester` albo `backend`/`frontend` zgłoszą wątpliwość, włącz pełny plan testów i/lub przegląd `architekt` dla tej konkretnej zmiany.
+
+Zasada ogólna: twórz i projektuj (kod, architektura) na `sonnet`, odtwarzaj i sprawdzaj (testy, przeglądy, dokumenty wg szablonu) na `haiku`; przełączaj model lub zakres tylko gdy złożoność konkretnego zadania wyraźnie odbiega od typowej dla danej roli - nie rozszerzaj zakresu "na wszelki wypadek".
 
 ## Start zadania
 Na początku krótko napisz użytkownikowi, że zadanie wchodzi w przepływ (pełny albo skrócony) i jakie bramki obejmie. Jeśli polecenie jest niejednoznaczne, `analityk` zbiera pytania; zadaj je użytkownikowi zbiorczo, zanim zaczną się kosztowne etapy.
@@ -28,19 +39,20 @@ W pełnym przepływie nie pomijaj etapów, nawet gdy zadanie wydaje się małe (
 2. `prawnik`: bramka wejściowa, reguły LR, zgody, dokumenty (`docs/prawo/`).
 3. `architekt`: projekt techniczny, ADR-y, kontrakty API, zmiany schematu Drizzle (`docs/adr/`).
 4. `ux`: specyfikacje i makiety ekranów, gdy zadanie dotyka interfejsu (`docs/ux/`).
-5. `backend` i `frontend`: implementacja z testami, równolegle po uzgodnieniu kontraktów.
-6. `architekt`: przegląd kodu (czystość, brak duplikatów, brak martwego i pustego kodu, zgodność z regułami repozytorium).
-7. `tester` razem z `ux`: testy funkcjonalne i spójność wyglądu aplikacji i komponentów (`docs/testy/`).
-8. `ux`: przegląd wizualny zaimplementowanych ekranów.
-9. `tester-bezpieczenstwa` i `tester-wydajnosci`, równolegle (`docs/bezpieczenstwo/`, `docs/wydajnosc/`).
-10. `prawnik`: bramka wyjściowa, zgodność wdrożenia z regułami LR.
-11. Zadanie jest gotowe, gdy wszystkie bramki mają werdykt ZATWIERDZONE lub ZATWIERDZONE Z UWAGAMI.
+5. `backend` i `frontend`: implementacja z testami, równolegle po uzgodnieniu kontraktów. Czystość kodu (brak duplikatów, martwego i pustego kodu, zgodność z regułami repozytorium) sprawdzają sami przed zgłoszeniem gotowości - po implementacji nie ma już domyślnie osobnego przeglądu kodu architekta (patrz "Dobór modeli" i wyjątek poniżej).
+6. `tester` razem z `ux`: szybkie testy podstawowe (ścieżka główna funkcji + najważniejsze przypadki brzegowe) i spójność wyglądu aplikacji i komponentów (`docs/testy/`). Pełny plan testów tylko dla obszarów wysokiego ryzyka (patrz "Dobór modeli").
+7. `ux`: przegląd wizualny zaimplementowanych ekranów.
+8. `tester-bezpieczenstwa` i `tester-wydajnosci`, równolegle (`docs/bezpieczenstwo/`, `docs/wydajnosc/`).
+9. `prawnik`: bramka wyjściowa, zgodność wdrożenia z regułami LR.
+10. Zadanie jest gotowe, gdy wszystkie bramki mają werdykt ZATWIERDZONE lub ZATWIERDZONE Z UWAGAMI.
+
+**Wyjątek - przegląd architekta po implementacji**: wezwij `architekt` ponownie po etapie 5 tylko gdy `backend`/`frontend` zgłosi niepewność co do projektu, zmiana dotyka kontraktu API/Android/Javy, schematu bazy lub wielu modułów naraz, albo `tester` znajdzie defekt wskazujący na problem strukturalny. W pozostałych przypadkach (typowa implementacja zgodna z ADR z etapu 3) pomiń ten przegląd - to największa oszczędność tokenów w przepływie.
 
 ## Zasady koordynacji
 - Dla każdego zadania zakładaj kartę `docs/zadania/<numer>-<nazwa>.md` na podstawie `docs/zadania/_szablon.md`: lista bramek, werdykty, daty, odnośniki do raportów. Aktualizuj ją po każdym etapie.
 - Przekazuj agentom pełny kontekst: wyniki poprzednich etapów, ścieżki dokumentów, uwagi do uwzględnienia. Agenci startują bez pamięci rozmowy; stan projektu opisuje baza wiedzy `docs/zespol/wiedza-o-projekcie.md`.
-- Werdykt ODRZUCONE cofa zadanie do właściwego etapu (kod do 5, projekt do 3 lub 4, wymagania do 1). Po poprawkach powtórz bramki, na które zmiana mogła wpłynąć. Każda zmiana kodu po etapie 6 wymaga ponownego przeglądu kodu i testów.
-- Blokują wydanie: podatności krytyczne i wysokie, przekroczone SLO wydajności w scenariuszu szczytowym, brak wymaganej zgody lub podstawy prawnej, niedziałające testy, odrzucenie przeglądu kodu.
+- Werdykt ODRZUCONE cofa zadanie do właściwego etapu (kod do 5, projekt do 3 lub 4, wymagania do 1). Po poprawkach powtórz bramki, na które zmiana mogła wpłynąć. Każda zmiana kodu po etapie 5 wymaga ponownych testów przez `tester`.
+- Blokują wydanie: podatności krytyczne i wysokie, przekroczone SLO wydajności w scenariuszu szczytowym, brak wymaganej zgody lub podstawy prawnej, niedziałające testy.
 - ZATWIERDZONE Z UWAGAMI dopuszczaj tylko dla uwag niskiego ryzyka; zapisuj je w backlogu z właścicielem.
 - Uruchamiaj niezależne etapy równolegle (backend i frontend; tester-bezpieczenstwa i tester-wydajnosci).
 - Dokumenty prawne tworzone przez `prawnik` są projektami roboczymi; przypominaj, że przed publikacją musi je zatwierdzić prawnik-człowiek.

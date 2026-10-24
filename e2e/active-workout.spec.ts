@@ -79,7 +79,7 @@ function persistedSession() {
   };
 }
 
-async function openSession(page: Page) {
+async function loginAndClearSession(page: Page) {
   // Zgody: tylko niezbędne (baner cookies zasłania dolny pasek akcji).
   await page.addInitScript(() => {
     window.localStorage.setItem(
@@ -106,12 +106,16 @@ async function openSession(page: Page) {
     headers: { "x-xsrf-token": decodeURIComponent(xsrf) },
   });
   expect(del.ok()).toBeTruthy();
+}
+
+/** Wstrzykuje stan sesji do localStorage i otwiera `/active-workout` (po `loginAndClearSession`). */
+async function injectSessionAndOpen(page: Page, session: ReturnType<typeof persistedSession>) {
   // Init script (jednorazowo na kartę): inaczej globalny sync nadpisałby stan przy opuszczeniu „/”.
   await page.addInitScript((s) => {
     if (window.sessionStorage.getItem("e2e-seeded")) return;
     window.sessionStorage.setItem("e2e-seeded", "1");
     window.localStorage.setItem("active-workout", JSON.stringify(s));
-  }, persistedSession());
+  }, session);
   await page.goto("/active-workout");
   // Wznowienie niedokończonej sesji (istniejący dialog) — zatwierdzamy, jak użytkownik.
   const resume = page.getByRole("button", { name: "Kontynuuj" });
@@ -119,6 +123,46 @@ async function openSession(page: Page) {
   await expect(page.getByRole("button", { name: "Zapisz serię 1" })).toBeVisible({
     timeout: 30_000,
   });
+}
+
+async function openSession(page: Page) {
+  await loginAndClearSession(page);
+  await injectSessionAndOpen(page, persistedSession());
+}
+
+/**
+ * Sesja z jednym ćwiczeniem o `setsCount` seriach (pomiar geometrii: O-2/defekt 2 `ux`,
+ * schemat + pigułki na wąskim ekranie). Bez historii/sugestii — nieistotne dla geometrii.
+ */
+function sessionWithSets(setsCount: number) {
+  return {
+    state: {
+      startedAt: Date.now() - 60_000,
+      pausedElapsedSeconds: 0,
+      workoutStartedAtMs: Date.now() - 60_000,
+      title: "Geometria E2E",
+      workoutPlanId: "e2e-geometry",
+      cardioMinutes: 0,
+      cardioExtras: {},
+      selectedExerciseId: "ex-geometry",
+      exercises: [
+        {
+          id: "ex-geometry",
+          name: "Wyciskanie hantli skos",
+          sets: Array.from({ length: setsCount }, () => set()),
+          targetSets: setsCount,
+          targetReps: 8,
+          targetRir: 1,
+        },
+      ],
+    },
+    version: 2,
+  };
+}
+
+async function openSessionWithSets(page: Page, setsCount: number) {
+  await loginAndClearSession(page);
+  await injectSessionAndOpen(page, sessionWithSets(setsCount));
 }
 
 const progressbar = (page: Page) => page.getByRole("progressbar", { name: "Postęp treningu" });
@@ -329,4 +373,47 @@ test.describe("Aktywny trening (004)", () => {
     expect(rb.y + rb.height).toBeLessThanOrEqual(sb.y);
     expect(rb.height).toBeGreaterThanOrEqual(43.9);
   });
+});
+
+/**
+ * Defekt 2 (`ux`, przegląd wizualny etap 8) / O-2 (`tester`): przy 4-5 seriach na 360×640
+ * schemat + pigułki nie mieściły się w jednej linii, wiersz zawijał się i zabierał budżet
+ * kompaktu. Mierzone bezpośrednio w przeglądarce (bounding box), nie liczone z klas.
+ */
+test.describe("Aktywny trening (004) — geometria ekranu A przy wielu seriach", () => {
+  for (const viewport of [
+    { width: 360, height: 640, label: "360x640" },
+    { width: 390, height: 844, label: "390x844" },
+  ] as const) {
+    for (const setsCount of [2, 4, 6]) {
+      test(`${viewport.label}, ${setsCount} serii: RIR i przycisk główny bez przewijania`, async ({
+        page,
+      }) => {
+        await page.setViewportSize(viewport);
+        await openSessionWithSets(page, setsCount);
+
+        const save = page.getByRole("button", { name: `Zapisz serię 1` });
+        const rir0 = page.getByRole("button", { name: /^RIR 0,/ });
+        const centerScroll = page.locator("[data-active-workout-scroll]");
+
+        const saveBox = (await save.boundingBox())!;
+        const rirBox = (await rir0.boundingBox())!;
+        const scrollHeight = await centerScroll.evaluate((el) => el.scrollHeight);
+        const clientHeight = await centerScroll.evaluate((el) => el.clientHeight);
+
+        expect(
+          saveBox.y + saveBox.height,
+          `CTA poza widokiem przy ${setsCount} seriach (${viewport.label})`,
+        ).toBeLessThanOrEqual(viewport.height);
+        expect(
+          rirBox.y + rirBox.height,
+          `RIR poza widokiem przy ${setsCount} seriach (${viewport.label})`,
+        ).toBeLessThanOrEqual(saveBox.y);
+        expect(
+          scrollHeight,
+          `środek ekranu przewija się przy ${setsCount} seriach (${viewport.label}): scrollHeight ${scrollHeight} > clientHeight ${clientHeight}`,
+        ).toBeLessThanOrEqual(clientHeight + 1);
+      });
+    }
+  }
 });
