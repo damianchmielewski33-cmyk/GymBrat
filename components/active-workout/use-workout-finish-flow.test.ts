@@ -60,6 +60,7 @@ vi.mock("@/lib/stores/community-workout", () => ({
 
 const { useActiveWorkoutStore } = await import("@/lib/stores/active-workout");
 const { useWorkoutFinishFlow } = await import("@/components/active-workout/use-workout-finish-flow");
+const { deriveWorkoutOperationId } = await import("@/lib/workout-operation-id");
 
 const SAVED: SubmitWorkoutResult = {
   status: "saved",
@@ -180,7 +181,10 @@ describe("useWorkoutFinishFlow: wejście zakończenia (P2, P3)", () => {
     useWorkoutFinishFlow().requestFinish();
     useWorkoutFinishFlow().retry();
 
-    expect(submitMock).toHaveBeenCalledTimes(1);
+    // `operationId` jest teraz wyliczany asynchronicznie (deriveWorkoutOperationId,
+    // ADR 0004 p.13) przed wywołaniem submitCompletedWorkout — stąd czekamy na
+    // mikrotaskach, nie zakładamy, że wywołanie jest już widoczne synchronicznie.
+    await vi.waitFor(() => expect(submitMock).toHaveBeenCalledTimes(1));
     resolveSave(SAVED);
     await vi.waitFor(() => expect(flowState().phase).toBe("done"));
     expect(submitMock).toHaveBeenCalledTimes(1);
@@ -248,7 +252,6 @@ describe("useWorkoutFinishFlow: błąd zapisu (AC-3.5, E-5, E-12)", () => {
 
   it("błąd zapisu nie pokazuje ekranu końcowego i nie resetuje sesji", () => {
     setSession([{ id: "a", name: "Wyciskanie", sets: [DONE_SET] }]);
-    const operationBefore = useActiveWorkoutStore.getState().ensureOperationId();
     submitMock.mockResolvedValueOnce({ status: "error", message: "Nie udało się zapisać." });
 
     useWorkoutFinishFlow().requestFinish();
@@ -258,7 +261,6 @@ describe("useWorkoutFinishFlow: błąd zapisu (AC-3.5, E-5, E-12)", () => {
       const store = useActiveWorkoutStore.getState();
       expect(store.exercises).toHaveLength(1);
       expect(store.exercises[0]!.sets).toEqual([DONE_SET]);
-      expect(store.operationId).toBe(operationBefore);
       expect(store.finishPending).toBe(false);
     });
   });
@@ -306,5 +308,40 @@ describe("useWorkoutFinishFlow: błąd zapisu (AC-3.5, E-5, E-12)", () => {
       expect(flowState().phase).toBe("idle");
       expect(useActiveWorkoutStore.getState().exercises).toHaveLength(1);
     });
+  });
+});
+
+describe("useWorkoutFinishFlow: operationId deterministyczny (ADR 0004 p.13, pivot)", () => {
+  beforeEach(() => {
+    submitMock.mockReset();
+    routerMock.push.mockReset();
+  });
+
+  it("wysyła operationId wyliczony z (workoutPlanId, workoutStartedAtMs), nie z pola store", async () => {
+    setSession([{ id: "a", name: "Wyciskanie", sets: [DONE_SET] }]);
+    useActiveWorkoutStore.setState({ workoutPlanId: "plan-xyz", workoutStartedAtMs: 1_700_000_000_000 });
+    submitMock.mockResolvedValueOnce(SAVED);
+
+    useWorkoutFinishFlow().requestFinish();
+    await vi.waitFor(() => expect(flowState().phase).toBe("done"));
+
+    const expected = await deriveWorkoutOperationId("plan-xyz", 1_700_000_000_000);
+    const sent = submitMock.mock.calls[0]![0] as { operationId: string };
+    expect(sent.operationId).toBe(expected);
+  });
+
+  it("dwa „urządzenia” (store/wywołania niezależne) liczą ten sam operationId bez żadnej komunikacji", async () => {
+    const planId = "plan-shared";
+    const startedAtMs = 1_700_000_000_000;
+
+    // "Urządzenie A": store lokalny z tym planem/czasem startu.
+    const deviceA = await deriveWorkoutOperationId(planId, startedAtMs);
+
+    // "Urządzenie B": osobne wywołanie, zero stanu współdzielonego poza argumentami
+    // (symuluje wznowienie tej samej logicznej sesji na innym urządzeniu — ten sam
+    // workoutStartedAtMs trafia tam przez applyCloudPayload, bez udziału tej funkcji).
+    const deviceB = await deriveWorkoutOperationId(planId, startedAtMs);
+
+    expect(deviceA).toBe(deviceB);
   });
 });

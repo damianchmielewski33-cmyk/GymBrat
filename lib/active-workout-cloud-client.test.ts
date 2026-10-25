@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
+import type { ActiveWorkoutCloudPayload } from "@/lib/active-workout-cloud";
 import {
   ACTIVE_SESSION_REVISION_KEY,
   applyCloudPayload,
   deleteCloud,
   putCloud,
   readRevision,
+  shouldApplyConflictPayload,
   writeRevision,
 } from "@/lib/active-workout-cloud-client";
 
@@ -47,12 +49,11 @@ describe("active-workout-cloud-client", () => {
   });
 
   describe("applyCloudPayload", () => {
-    it("ustawia stan sesji w store z payloadu chmury, zachowując operationId", () => {
+    it("ustawia stan sesji w store z payloadu chmury", () => {
       applyCloudPayload({
         startedAt: 1000,
         pausedElapsedSeconds: 5,
         workoutStartedAtMs: 1000,
-        operationId: "op-abc",
         title: "Trening A",
         workoutPlanId: "plan-1",
         cardioMinutes: 0,
@@ -62,19 +63,15 @@ describe("active-workout-cloud-client", () => {
 
       const s = useActiveWorkoutStore.getState();
       expect(s.title).toBe("Trening A");
-      expect(s.operationId).toBe("op-abc");
       expect(s.workoutPlanId).toBe("plan-1");
       expect(s.exercises).toHaveLength(1);
     });
 
-    it("payload wygaszony (operationId: null) czyści operationId w store", () => {
-      useActiveWorkoutStore.setState({ operationId: "stary-op" });
-
+    it("payload wygaszony zeruje stan sesji w store", () => {
       applyCloudPayload({
         startedAt: null,
         pausedElapsedSeconds: 0,
         workoutStartedAtMs: null,
-        operationId: null,
         title: "",
         workoutPlanId: null,
         cardioMinutes: 0,
@@ -82,7 +79,53 @@ describe("active-workout-cloud-client", () => {
         selectedExerciseId: null,
       });
 
-      expect(useActiveWorkoutStore.getState().operationId).toBeNull();
+      const s = useActiveWorkoutStore.getState();
+      expect(s.workoutPlanId).toBeNull();
+      expect(s.exercises).toHaveLength(0);
+    });
+  });
+
+  describe("shouldApplyConflictPayload (005, B-1d)", () => {
+    function payload(overrides: Partial<ActiveWorkoutCloudPayload>): ActiveWorkoutCloudPayload {
+      return {
+        startedAt: null,
+        pausedElapsedSeconds: 0,
+        workoutStartedAtMs: null,
+        title: "",
+        workoutPlanId: null,
+        cardioMinutes: 0,
+        exercises: [],
+        selectedExerciseId: null,
+        ...overrides,
+      };
+    }
+
+    const activeLocal = payload({
+      workoutPlanId: "plan-1",
+      workoutStartedAtMs: 1000,
+      exercises: [{ id: "a", name: "Przysiad", sets: [] }],
+    });
+    const emptyConflict = payload({});
+
+    it("false, gdy lokalna sesja jest aktywna, a payload konfliktu jest pusty/wygaszony", () => {
+      expect(shouldApplyConflictPayload(activeLocal, emptyConflict)).toBe(false);
+    });
+
+    it("true, gdy obie sesje są puste", () => {
+      expect(shouldApplyConflictPayload(emptyConflict, emptyConflict)).toBe(true);
+    });
+
+    it("true, gdy payload konfliktu jest również aktywny (prawdziwy konflikt do rozwiązania)", () => {
+      const otherActive = payload({
+        workoutPlanId: "plan-2",
+        workoutStartedAtMs: 2000,
+        exercises: [{ id: "b", name: "Wyciskanie", sets: [] }],
+      });
+      expect(shouldApplyConflictPayload(activeLocal, otherActive)).toBe(true);
+    });
+
+    it("true, gdy lokalna sesja jest pusta (nic do stracenia)", () => {
+      expect(shouldApplyConflictPayload(emptyConflict, activeLocal)).toBe(true);
     });
   });
 
@@ -131,7 +174,6 @@ describe("active-workout-cloud-client", () => {
       startedAt: 1000,
       pausedElapsedSeconds: 0,
       workoutStartedAtMs: 1000,
-      operationId: "op-1",
       title: "Trening",
       workoutPlanId: "plan-1",
       cardioMinutes: 0,

@@ -11,7 +11,6 @@ export function snapshotActiveWorkoutPayload(): ActiveWorkoutCloudPayload {
     startedAt: s.startedAt,
     pausedElapsedSeconds: s.pausedElapsedSeconds,
     workoutStartedAtMs: s.workoutStartedAtMs,
-    operationId: s.operationId,
     title: s.title,
     workoutPlanId: s.workoutPlanId,
     cardioMinutes: s.cardioMinutes,

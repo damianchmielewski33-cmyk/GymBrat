@@ -109,10 +109,10 @@ describe("DELETE/PUT /api/active-workout-session — monotoniczność rewizji (0
     });
     expect(putSession2Attempt1.status).toBe(409);
 
-    // A odczytuje aktualną rewizję przez GET (wygaszony payload, session: null). Ten odczyt
-    // sam w sobie uruchamia tę samą ścieżkę "wygaszenia" (ghost/przeterminowana sesja,
-    // ADR 0004 p.12 krok 3), więc serwer inkrementuje rewizję 6 -> 7, mimo że GET zwraca
-    // tylko `session: null` (bez pola revision w ciele) — poprawny kolejny PUT musi użyć 7.
+    // A odczytuje aktualną rewizję przez GET (wygaszony payload, session: null). Wiersz jest
+    // JUŻ wygaszony (przez DELETE powyżej) — to jest czysty odczyt, bez mutacji/bumpa rewizji
+    // (005, B-1d, ADR 0004 p.13.3 krok 7: odczyt nie jest operacją z efektem ubocznym gdy
+    // wiersz jest już wygaszony). Rewizja zostaje 6, nie 7.
     const getAfterConflict = await getReq();
     expect(getAfterConflict.status).toBe(200);
     const getBody = (await getAfterConflict.json()) as { ok: boolean; session: unknown };
@@ -120,12 +120,12 @@ describe("DELETE/PUT /api/active-workout-session — monotoniczność rewizji (0
 
     const putSession2Attempt2 = await putReq({
       payload: buildPayload({ operationId: "session-2", title: "Sesja 2" }),
-      revision: 7,
+      revision: 6,
       deviceId: deviceA,
     });
     expect(putSession2Attempt2.status).toBe(200);
     const putSession2Body = (await putSession2Attempt2.json()) as { revision: number };
-    expect(putSession2Body.revision).toBe(8);
+    expect(putSession2Body.revision).toBe(7);
 
     // Zaległy PUT B z clientRevision: 5 musi dostać 409 i NIE nadpisać sesji 2.
     const staleFromB = await putReq({
@@ -142,7 +142,43 @@ describe("DELETE/PUT /api/active-workout-session — monotoniczność rewizji (0
     expect(getAfterStaleBody.session).not.toBeNull();
     expect(getAfterStaleBody.session?.payload.title).toBe("Sesja 2");
     expect(getAfterStaleBody.session?.payload.operationId).toBe("session-2");
-    expect(getAfterStaleBody.session?.revision).toBe(8);
+    expect(getAfterStaleBody.session?.revision).toBe(7);
+  });
+
+  it("GET na już wygaszonym wierszu nie mutuje rewizji w bazie (005, B-1d, ADR 0004 p.13.3 krok 7)", async () => {
+    const put = await putReq({ payload: buildPayload(), revision: 0, deviceId: "device-a-00000000" });
+    expect(put.status).toBe(200);
+
+    const del = await deleteReq();
+    expect(del.status).toBe(200);
+    const delBody = (await del.json()) as { revision: number };
+    expect(delBody.revision).toBe(2);
+
+    const rowBefore = await client.execute({
+      sql: `SELECT revision, updated_at FROM active_workout_sessions WHERE user_id = ?`,
+      args: [userId],
+    });
+    const revisionBefore = Number(rowBefore.rows[0]!.revision);
+    const updatedAtBefore = rowBefore.rows[0]!.updated_at;
+    expect(revisionBefore).toBe(2);
+
+    // Kolejne GET na już wygaszonym (świeżym) wierszu — czysty odczyt, bez efektu ubocznego.
+    const get1 = await getReq();
+    expect(get1.status).toBe(200);
+    const get1Body = (await get1.json()) as { session: unknown };
+    expect(get1Body.session).toBeNull();
+
+    const get2 = await getReq();
+    expect(get2.status).toBe(200);
+    const get2Body = (await get2.json()) as { session: unknown };
+    expect(get2Body.session).toBeNull();
+
+    const rowAfter = await client.execute({
+      sql: `SELECT revision, updated_at FROM active_workout_sessions WHERE user_id = ?`,
+      args: [userId],
+    });
+    expect(Number(rowAfter.rows[0]!.revision)).toBe(revisionBefore);
+    expect(rowAfter.rows[0]!.updated_at).toBe(updatedAtBefore);
   });
 
   it("GET dla przeterminowanego wiersza wygasza payload i inkrementuje rewizję, bez fizycznego usunięcia", async () => {
