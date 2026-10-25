@@ -1037,3 +1037,732 @@ Mikro-uwaga UX (nie blokuje, do rozważenia przez `frontend`/`ux` przy implement
 **ZATWIERDZONE — gotowe do implementacji.** Zakres jest wąski (jedno pole w typie payloadu, jedna fabryka zamiast stałej, jeden dodatkowy parametr w `clearRow` i jego trzech wywołaniach, jeden warunek w `shouldApplyConflictPayload`), nie zmienia schematu bazy (kolumna `payload_json` jest już JSON-em, weryfikacja p.14.1/`db/schema.ts:560-570`), nie zmienia kontraktu HTTP (pole jest wewnątrz istniejącego, nieparzonego ściśle pola `payload`/`session.payload`, nie nowym polem odpowiedzi), nie dotyka Androida/Javy (ten mechanizm synchronizacji aktywnej sesji nie jest używany przez `/api/workouts/complete` ani proxowany do Javy — potwierdzone w p.9, p.12, p.13, bez zmian tutaj). Przegląd architekta po implementacji **nie jest wymagany automatycznie** — wywołać go tylko, jeśli `backend`/`frontend` zgłosi niepewność, albo `tester` znajdzie w teście regresji z p.14.4 wynik niezgodny z projektem wyżej (w szczególności: scenariusz 1 musi dać `true`, scenariusz 2 musi dać `false` — każdy inny wynik jest defektem implementacji, nie luką projektu).
 
 Warunek zamknięcia u `tester`: wszystkie testy z p.14.4 przechodzą (w szczególności oba scenariusze z polecenia koordynatora — 1 i 2); powtórzenie sondy P4 z sekcji 11.6 raportu testera musi dać inny wynik niż wcześniej — konkretnie w kroku „tik B" (B ma nadal otwartą kartę z lokalnie aktywną sesją S1 i dostaje 409 z tombstone `clearedSessionStartedAtMs = S1`): `shouldApplyConflictPayload` zwraca teraz `true` (zamiast dawniejszego `false`), więc B **przyjmuje wygaszenie i nie republikuje** — w chmurze sesja 1 **zostaje wygaszona** (nie wraca jako aktywna), więc przeładowanie A po zakończeniu sesji 1 nie wznawia jej (`decideCloudHydrateAction` nie trafia już na aktywny wiersz innego urządzenia). To zamyka ścieżkę utraty danych opisaną w N-P13-1 bez zmiany zachowania dla scenariusza 2 (inna sesja na B, lokalna wygrywa, publikuje ponownie — bez regresji do stanu sprzed B-1d); `npm test`, `npx tsc --noEmit`, `npm run lint` bez nowych regresji.
+
+---
+
+## 15. Naprawa N-P13-6 — zachowanie tożsamości tombstone przy idempotentnym wygaszeniu (etap 7e → 3)
+
+- **Wejście**: `docs/testy/005-koniec-treningu-przeplyw.md` sekcja 12.3 (defekt N-P13-6, sonda P4b, werdykt tester etapu 7e: ODRZUCONE), ten ADR p.14 (naprawa N-P13-1, mechanizm tombstone `clearedSessionStartedAtMs`, który zostaje — problem jest w JEDNYM miejscu, które go nadpisuje za szeroko, nie w samym mechanizmie).
+
+### 15.1 Problem (powtórzenie diagnozy testera, zweryfikowane czytaniem kodu)
+
+`handleDELETE` (`app/api/active-workout-session/route.ts:281-282`) liczy tożsamość do zapisania w nowym tombstonie tak:
+
+```ts
+const existingPayload = parsePayloadJson(existing.payloadJson);
+const clearedSessionStartedAtMs = existingPayload?.workoutStartedAtMs ?? null;
+```
+
+To jest poprawne, gdy `existingPayload` jest AKTYWNĄ sesją (`workoutStartedAtMs` niesie prawdziwą tożsamość tej sesji). Jest błędne, gdy `existingPayload` jest JUŻ tombstone'em: `buildActiveWorkoutClearedPayload` (p.14.3) zawsze ustawia `workoutStartedAtMs: null` na wygaszonym payloadzie (tożsamość tombstone'u żyje w POLU `clearedSessionStartedAtMs`, nie w `workoutStartedAtMs`). Odczytanie `workoutStartedAtMs` z już-wygaszonego payloadu więc zawsze daje `null`, i ten `null` zostaje zapisany jako tożsamość NOWEGO tombstone'u — nadpisując (gubiąc) tożsamość, która tam już była.
+
+Każdy kolejny `DELETE` na wierszu, który jest już tombstone'em — idempotentny `DELETE` tego samego urządzenia, `DELETE` innego urządzenia po przyjęciu wygaszenia (p.14, scenariusz z sekcji 12.1: „B tik: ... B wysyła DELETE"), albo zwykłe otwarcie świeżej karty (N-P13-2, wartownik `clearedPushedRef` startuje od `false`) — więc kasuje tożsamość tombstone'u do `null`. Trzecie, zaległe urządzenie z nadal otwartą starą sesją dostaje potem `409` z tombstone'em `clearedSessionStartedAtMs: null`; `shouldApplyConflictPayload` (p.14.3, plik 3) wymaga `clearedId != null && localId != null && clearedId === localId`, więc `null` nigdy nie „zgadza się" z żadną realną sesją — zaległe urządzenie **republikuje** zakończony trening jako aktywny. To jest dokładnie ta sama klasa utraty danych, którą naprawiało p.14 (N-P13-1), tylko wyzwolona jednym krokiem później w czasie.
+
+Ten sam błąd występuje też w `handleGET`-ghost (`route.ts:115`, `payload.workoutStartedAtMs ?? null`), ale tam jest NIEOSIĄGALNY w praktyce: linia 102 (`if (!hasActiveLocalSession(payload)) return ...` bez mutacji) gwarantuje, że do linii 115 dochodzi tylko payload z `hasActiveLocalSession(payload) === true`, czyli zawsze aktywna sesja z prawdziwym `workoutStartedAtMs`, nigdy tombstone. Naprawa poniżej jest więc formalnie wspólna (jedna funkcja, jedno miejsce prawdy), ale realny błąd dziś istnieje tylko w `handleDELETE`.
+
+### 15.2 Decyzja
+
+Wydzielić decyzję „jaką tożsamość zapisać przy wygaszaniu" do jednej, czystej funkcji w `lib/active-workout-cloud.ts` (obok `hasActiveLocalSession`, `buildActiveWorkoutClearedPayload`, z którymi współpracuje) i użyć jej we WSZYSTKICH trzech miejscach `route.ts`, które dziś liczą `clearedSessionStartedAtMs` przed wywołaniem `clearRow` (linie 98, 115, 281-282) — zamiast każde z nich liczyło to osobno (dwa już liczą poprawnie przez przypadek, bo ich wejście jest ograniczone; trzecie nie). Jedna funkcja w `lib/` (nie w `route.ts`) jest zgodna z dotychczasowym wzorcem tego pliku (`hasActiveLocalSession`, `isActiveWorkoutCloudFresh`, `decideCloudHydrateAction`, `resolveSessionRevisionConflict` już tam są) i daje testowalność bez handlera HTTP.
+
+**Tabela decyzyjna** (kompletna, cztery przypadki z polecenia):
+
+| Co jest w wierszu | `clearedSessionStartedAtMs` nowego tombstone'u |
+|---|---|
+| Wiersz nie istnieje | N/A — `clearRow` nie jest wołane; `handleDELETE` zwraca `{ ok: true, revision: 0 }` bez zapisu (bez zmian, `route.ts:272-274`) |
+| Payload nieparsowalny (`null`) | `null` — nie ma z czego odzyskać tożsamości |
+| Payload aktywnej sesji (`hasActiveLocalSession(payload) === true`) | `payload.workoutStartedAtMs ?? null` — to WŁAŚNIE wygaszana sesja |
+| Payload JUŻ jest tombstone'em (`hasActiveLocalSession(payload) === false`, payload sparsowany) | **`payload.clearedSessionStartedAtMs ?? null`** — zachowaj istniejącą tożsamość, nie ma nowej sesji do wygaszenia |
+
+### 15.3 Projekt — pliki do zmiany
+
+**1. `lib/active-workout-cloud.ts` — nowa funkcja `resolveClearedSessionIdentity`:**
+
+```ts
+/**
+ * Tożsamość do zapisania w NOWYM tombstonie przy wygaszaniu wiersza — zależnie od tego,
+ * co jest w wierszu AKTUALNIE (005, naprawa N-P13-6, ADR 0004 p.15). Jedno miejsce prawdy
+ * dla `handleDELETE` i `handleGET`-ghost w `app/api/active-workout-session/route.ts`, żeby
+ * nie liczyć tej decyzji w dwóch miejscach z dwoma różnymi (jedną błędną) interpretacjami.
+ *
+ * Kluczowe: gdy `payload` jest JUŻ tombstone'em (`hasActiveLocalSession` false), jego
+ * `workoutStartedAtMs` jest zawsze `null` (`buildActiveWorkoutClearedPayload`) — tożsamość
+ * żyje w `clearedSessionStartedAtMs`, nie w `workoutStartedAtMs`. Odczytanie `workoutStartedAtMs`
+ * z tombstone'u i zapisanie go jako tożsamość NOWEGO tombstone'u (poprzedni błąd) kasuje
+ * tożsamość przy każdym idempotentnym wygaszeniu tego samego, już-pustego wiersza — to
+ * otwierało okno na wskrzeszenie zakończonej sesji przez zaległe, trzecie urządzenie.
+ */
+export function resolveClearedSessionIdentity(
+  payload: ActiveWorkoutCloudPayload | null,
+): number | null {
+  if (!payload) return null;
+  if (hasActiveLocalSession(payload)) return payload.workoutStartedAtMs ?? null;
+  return payload.clearedSessionStartedAtMs ?? null;
+}
+```
+
+**2. `app/api/active-workout-session/route.ts` — trzy wywołania zamienione na wspólną funkcję:**
+
+- Linia 98 (`handleGET`, payload nieparsowalny): `await clearRow(db, session.user.id, row.revision, resolveClearedSessionIdentity(null));` (albo zostawić literalny `null` — funkcja i tak da `null`; zmiana kosmetyczna, do decyzji `backend`, nie wpływa na zachowanie).
+- Linia 115 (`handleGET`, ghost przeterminowany, payload zawsze aktywny — patrz 15.1): `await clearRow(db, session.user.id, row.revision, resolveClearedSessionIdentity(payload));` (dziś `payload.workoutStartedAtMs ?? null` — wynik identyczny, bo `hasActiveLocalSession(payload)` jest tu zawsze `true`).
+- Linie 281-282 (`handleDELETE`, TO JEST NAPRAWA): zamienić
+
+  ```ts
+  const existingPayload = parsePayloadJson(existing.payloadJson);
+  const clearedSessionStartedAtMs = existingPayload?.workoutStartedAtMs ?? null;
+  ```
+
+  na
+
+  ```ts
+  const existingPayload = parsePayloadJson(existing.payloadJson);
+  const clearedSessionStartedAtMs = resolveClearedSessionIdentity(existingPayload);
+  ```
+
+  Import `resolveClearedSessionIdentity` dodać do istniejącego importu z `@/lib/active-workout-cloud` (linia 9-15).
+
+**3. `clearRow` (funkcja współdzielona, `route.ts:44-60`) — bez zmian sygnatury.** Przyjmuje już `clearedSessionStartedAtMs: number | null` jako parametr; poprawka jest wyłącznie w tym, co wołający (teraz zgodnie `resolveClearedSessionIdentity`) do niej przekazuje. To odpowiada na pytanie koordynatora „napraw raz, w jednym miejscu, wołane i z `handleDELETE`, i z gałęzi ghost" — jedno miejsce to `resolveClearedSessionIdentity` w `lib/`, nie `clearRow` samo (które jest już poprawnie współdzielone od p.12/p.14 i nie ma w sobie błędnej logiki — błąd był w argumencie, który do niego docierał).
+
+### 15.4 Drugie pytanie — czy `clearedPushedRef` startujący od `true` (N-P13-2) jest nadal konieczny
+
+**Ocena: po naprawie 15.3 zmiana `clearedPushedRef` (domyślnie `true` zamiast `false`) PRZESTAJE być wymagana dla poprawności i staje się czystą optymalizacją ruchu sieciowego — niski priorytet, backlog.** Uzasadnienie (nie zgadywanie):
+
+1. **Przed naprawą 15.3** powtórny/zbędny `DELETE` (w tym ten, który N-P13-2 opisuje — świeża karta z pustym stanem, pierwszy tik) był szkodliwy, bo każdy taki `DELETE` na już-wygaszonym wierszu nadpisywał tożsamość tombstone'u na `null` (błąd 15.1). To był realny, zidentyfikowany wyzwalacz N-P13-6 w praktyce (sekcja 12.3 raportu testera: „nie tylko B po akceptacji... sam otwarcie aplikacji po zakończeniu treningu kasuje tożsamość").
+2. **Po naprawie 15.3** `clearRow` (przez `resolveClearedSessionIdentity`) na wierszu, który jest już tombstone'em, ZAWSZE zachowuje istniejącą `clearedSessionStartedAtMs` — niezależnie od tego, które urządzenie wywołało `DELETE`, ile razy, i czy wywołanie było „potrzebne" czy zbędne. Zapis jest idempotentny w sensie tożsamości: treść tombstone'u (poza rewizją, która rośnie — zamierzone, p.12) się nie zmienia. Dowód po przypadkach z tabeli 15.2: jedyna droga do zmiany tożsamości to przejście przez gałąź „payload aktywnej sesji" (bo tylko ta gałąź czyta `workoutStartedAtMs` jako NOWĄ tożsamość) — a wygaszony wiersz z definicji nie jest już w tej gałęzi.
+3. Pozostałe skutki zbędnego `DELETE` ze świeżej karty (pierwszy tik na pustym stanie) to: (a) jeden dodatkowy zapis do bazy i inkrementacja rewizji bez zmiany treści — koszt zapytania, nie koszt poprawności; (b) ewentualny, krótkotrwały tombstone z `409` do innego urządzenia z aktywną sesją (sonda P2, sekcja 11.4 raportu testera) — ale to urządzenie **samo-naprawia się** przez `shouldApplyConflictPayload` (p.14), bo jego lokalna sesja jest aktywna, a tombstone, który dostaje, ma (po tej naprawie) albo tożsamość innej/starej sesji (nie zgadza się → `false` → republikuje, bez utraty), albo `null` tylko wtedy, gdy NAPRAWDĘ nigdy nie było żadnej realnej sesji do wygaszenia (wiersz od początku pusty/nieparsowalny) — w tym przypadku nie ma czego chronić.
+4. Nie ma więc już scenariusza, w którym zbędny `DELETE` ze świeżej karty prowadzi do utraty tożsamości tombstone'u lub wskrzeszenia zakończonej sesji. Pozostaje tylko to, co tester już ocenił jako NISKI priorytet przy pierwszym zgłoszeniu N-P13-2 (sekcja 11.8: „Skutek: zbędna rewizja... Nie blokuje") — ocena się nie zmienia, zyskuje tylko dodatkowe, mocniejsze uzasadnienie (brak ryzyka tożsamości, nie tylko brak ryzyka pętli).
+
+**Rekomendacja**: NIE wiązać N-P13-2 z tą naprawą jako warunku zamknięcia. Zostaje w backlogu jako samodzielna, niska pozycja (ograniczenie zbędnego ruchu sieciowego przy starcie świeżej karty), do zaplanowania niezależnie, bez wpływu na werdykt tej naprawy.
+
+### 15.5 Testy regresji wymagane — macierz pokrywająca wszystkie scenariusze dotychczasowych rund naraz
+
+Cel: jeden kompletny przebieg `tester`, zamiast znajdowania kolejnego rogu przypadku rundami. Wszystkie poniższe na prawdziwym handlerze `app/api/active-workout-session/route.ts` (harness `createMemoryDb`, jak w dotychczasowych rundach) i/lub `lib/active-workout-cloud.test.ts` dla czystej funkcji.
+
+| # | Scenariusz | Krok | Oczekiwany wynik |
+|---|---|---|---|
+| (a) | Pojedynczy `DELETE` na aktywnej sesji | `PUT` S1 (`workoutStartedAtMs = 1000`) rev 0 → 200; `DELETE` → 200 | Wiersz po `DELETE`: `clearedSessionStartedAtMs === 1000` |
+| (b) | Podwójny/potrójny `DELETE` pod rząd na już pustym wierszu | Kontynuacja (a): `DELETE` ×2 kolejne razy (rev N+1, N+2) | Po każdym `DELETE`: `clearedSessionStartedAtMs === 1000` (NIE `null`) — **to jest bezpośredni test regresji N-P13-6/sonda P4b** |
+| (c) | `GET`-ghost po `DELETE` nie gubi tożsamości | Kontynuacja (a): `updatedAt` wiersza przesunięty > 24h w teście (symulacja ghost), `GET` × 1 | `session: null`; wiersz: `clearedSessionStartedAtMs === 1000` nienaruszone (gałąź ghost operuje tylko na aktywnych payloadach — patrz 15.1 — ten test potwierdza, że NIE wchodzi w gałąź nadpisującą tombstone na nowo, bo `hasActiveLocalSession` na tombstonie jest `false` i linia 102 zwraca wcześniej) |
+| (d) | Trzy urządzenia: A kończy S1 → B (miał S1) akceptuje i sam wysyła `DELETE` → C (nadal ma S1) dostaje konflikt | `PUT` A S1 rev 0→1; `PUT` B S1 rev 1→2 (B synchronizuje); `DELETE` A → rev 3, tombstone `1000`; (symulacja „B akceptuje i publikuje pusty stan") `DELETE` B → rev 4, tombstone musi zostać `1000`; `PUT` C z `revision: 2`, payload S1 → `409` | `409` z `conflict.session.payload.clearedSessionStartedAtMs === 1000`; w teście klienta (`active-workout-cloud-client.test.ts`) osobno: `shouldApplyConflictPayload(localPayloadS1, conflictPayload)` z tym tombstone'em → `true` (C przyjmuje wygaszenie, NIE republikuje — to jest warunek „musi zaakceptować, nie wskrzesić") |
+| (e) | B-1d bez regresji (inna sesja lokalna → republikacja, nic nie ginie) | Po (a)-(b): `PUT` z payloadem S2 (`workoutStartedAtMs = 2000`), `revision` z ostatniego `DELETE` → `409` z tombstone `clearedSessionStartedAtMs === 1000` | `shouldApplyConflictPayload(payloadS2, conflictTombstone1000)` → `false` (S2 ≠ 1000); klient zachowuje S2 i republikuje; kontynuacja w teście serwera: `PUT` S2 z `revision` z konfliktu → `200`, wiersz ma aktywną S2 |
+| (f) | Nowa, genuinie inna sesja wygaszana poprawnie nadpisuje tożsamość na swoją | Kontynuacja (e): S2 kończy się normalnie, `DELETE` | Wiersz: `clearedSessionStartedAtMs === 2000` (nie `1000` — nadpisanie jest poprawne, bo tym razem źródłem jest payload AKTYWNEJ sesji S2, gałąź 1 tabeli 15.2, nie gałąź 2) |
+
+Dodatkowo (jednostkowe, bez handlera, `lib/active-workout-cloud.test.ts`):
+- `resolveClearedSessionIdentity(null) === null`.
+- `resolveClearedSessionIdentity(aktywny payload z workoutStartedAtMs: 500) === 500`.
+- `resolveClearedSessionIdentity(tombstone z clearedSessionStartedAtMs: 777) === 777`.
+- `resolveClearedSessionIdentity(tombstone z clearedSessionStartedAtMs: null) === null` (wygaszenie wiersza, który od początku nie miał tożsamości — nie jest to regresja, to poprawne zachowanie dla łańcucha, który nigdy nie miał realnej sesji).
+
+Scenariusz (b) jest bezpośrednią, minimalną sondą P4b testera — musi przejść jako pierwszy, bo to on wykrył defekt. Scenariusz (d) jest tym, który poprzednie rundy (dwa urządzenia, sekcja 12.1) NIE wykryły, bo wymaga trzeciego, zaległego urządzenia — stąd rekomendacja, by `tester` uruchomił dokładnie tę sekwencję, a nie tylko wariant dwuurządzeniowy.
+
+### 15.6 Konsekwencje i kompromisy
+
+- Zmiana jest w pełni kompatybilna wstecz, bez migracji: `resolveClearedSessionIdentity` operuje na już istniejącym, opcjonalnym polu `clearedSessionStartedAtMs` (p.14) — wiersze zapisane między p.14 i tą naprawą, które już mają skasowaną tożsamość (`null` przez błąd 15.1), po tej naprawie po prostu przestają tracić ją DALEJ (zostają przy `null`, co jest bezpieczne — `null` nigdy błędnie nie „zgadza się" z realną sesją), ale nie odzyskują retroaktywnie tożsamości utraconej PRZED wdrożeniem tej poprawki. To jest znana, jednorazowa luka przejściowa (wiersze dotknięte błędem między wdrożeniem p.14 i p.15), nie wymaga backfillu — ryzyko dotyczy tylko okna, w którym p.14 było już na produkcji a p.15 jeszcze nie, i tylko kont z zaległym, trzecim urządzeniem w tym oknie. Brak akcji dla `backend` poza samą poprawką (odnotować w backlogu jako ryzyko akceptowane, nie do naprawy).
+- Brak zmiany kontraktu HTTP, brak zmiany schematu bazy, brak wpływu na Android/Javę (ten mechanizm nie jest proxowany do Javy — potwierdzone w p.9/p.12/p.13/p.14, bez zmian tutaj).
+- `resolveClearedSessionIdentity` jest czystą funkcją w `lib/`, więc koszt tej naprawy to w praktyce tylko przekierowanie istniejącego, dostępnego już `existingPayload` przez jedną dodatkową funkcję — zero nowych zapytań do bazy, zero nowych zależności.
+- Nie rozwiązuje N-P13-2 (decyzja 15.4: zostaje w backlogu jako optymalizacja, nie poprawka poprawności), N-P13-3, N-P13-4, N-P13-5 (bez zmian, poza zakresem tej naprawy, sekcja 11.8 raportu testera).
+
+### 15.7 Czy klasa błędów „wyścigi w synchronizacji aktywnej sesji między urządzeniami” jest teraz kompletna
+
+**Ocena architekta: TAK, po tej naprawie logika jest kompletna dla modelu „jeden aktywny wiersz na użytkownika + tombstone z tożsamością”, pod warunkiem przejścia macierzy 15.5 (w szczególności scenariusza (d), trzy urządzenia).** Uzasadnienie, nie tylko zapewnienie:
+
+1. **Wyczerpanie przestrzeni stanów wiersza.** Wiersz `activeWorkoutSessions` ma w tym modelu dokładnie cztery możliwe treści payloadu: (i) nie istnieje, (ii) nieparsowalny, (iii) aktywna sesja, (iv) tombstone. Tabela 15.2 pokrywa wszystkie cztery wyczerpująco dla operacji wygaszania — nie ma piątego przypadku do odkrycia w TEJ funkcji, bo `ActiveWorkoutCloudPayload`/`isActiveWorkoutCloudPayload` nie dopuszczają żadnego innego kształtu (zod/typ-guard na wejściu `PUT`, `parsePayloadJson` na odczycie).
+2. **Wyczerpanie przestrzeni decyzji klienta.** `shouldApplyConflictPayload` (p.14.3) ma dokładnie dwie gałęzie (`hasActiveLocalSession(local) && !hasActiveLocalSession(conflict)` → porównanie tożsamości; wpp. → `true`) i są one łącznie wyczerpujące dla czterech kombinacji (lokalna aktywna/pusta × konflikt aktywny/pusty) — potwierdzone już w teście (p.14.4, 11.5: „Cztery kombinacje... potwierdzone”). Ta naprawa nie zmienia liczby gałęzi, tylko poprawia DANE wejściowe do jednej z nich (tożsamość tombstone'u musi być prawdziwa, nie `null` przez pomyłkę).
+3. **Argument „dlaczego nie będzie N-P13-7”.** Poprzednie trzy rundy (N-P13-1, potem N-P13-6) powstały, bo każda naprawa testowała dokładnie DWA urządzenia i w tym zakresie przechodziła, a błąd ujawniał się przy TRZECIM, zaległym uczestniku albo przy powtórzeniu tej samej operacji (idempotencja). Macierz 15.5 jest pierwszą, która explicite testuje: (i) powtórzenie operacji wygaszania (b) — kryterium idempotencji, (ii) trzech niezależnych aktorów (d) — kryterium liczby uczestników, (iii) obie kolejności wygrywania (e, f) — kryterium symetrii „nowa sesja nadpisuje, stara nie nadpisuje”. To są trzy osie, które wcześniej ujawniały błędy pojedynczo; po przejściu macierzy nie zostaje czwarta znana, nieprzetestowana oś.
+4. **Co NIE jest objęte i jest świadomym ryzykiem resztkowym (nie nowym wariantem tej samej klasy):** (i) N-P13-3 — gorąca pętla ponowień przy błędach HTTP (5xx/429) jest problemem odporności/rate-limitu, nie tożsamości synchronizacji; (ii) rzeczywiste zachowanie `pagehide`/offline w przeglądarce (nigdy nie przetestowane end-to-end w tym zadaniu, tylko sondami na atrapie `fetch`) — ryzyko środowiskowe, nie logiczne; (iii) dwie karty na TYM SAMYM urządzeniu z tym samym `deviceId` i `localStorage` współdzielonym (odnotowane w sekcji 9.11 raportu testera jako nieprzetestowane) — to inny wektor (współdzielony stan klienta, nie wyścig serwerowy) i wymaga odrębnej analizy, jeśli ma się nim zajmować; nie jest to brakujący przypadek w TEJ tabeli decyzyjnej. Żadne z tych trzech nie jest „jeszcze jednym rogiem tabeli 15.2” — są to inne kategorie ryzyka, poza zakresem modelu „jeden wiersz + tombstone z tożsamością”.
+5. Zastrzeżenie uczciwe: „kompletność” jest tu względna wobec PRZYJĘTEGO modelu (jeden wiersz na użytkownika, jedna tożsamość w tombstonie, revision monotoniczna). Gdyby produkt rozszerzył się na wielosesyjność (więcej niż jedna aktywna sesja per użytkownik jednocześnie) albo offline-first z wieloma niezależnymi kolejkami, model wymagałby nowego ADR, nie łatki. W obrębie dzisiejszego modelu — kompletne.
+
+### 15.8 Werdykt p.15
+
+**ZATWIERDZONE — gotowe do implementacji.** Zakres jest węższy niż p.14: jedna nowa, czysta funkcja w `lib/active-workout-cloud.ts`, jedna linia zamieniona w `handleDELETE`, opcjonalnie (kosmetyka, bez zmiany zachowania) też w `handleGET`-ghost i w gałęzi nieparsowalnej dla jednorodności. Bez zmiany schematu, bez zmiany kontraktu HTTP, bez wpływu na Android/Javę. Przegląd architekta po implementacji nie jest wymagany automatycznie (reguła z `docs/zespol/przeplyw.md`) — wywołać go tylko, jeśli `tester` znajdzie w macierzy 15.5 wynik niezgodny z tabelą 15.2, w szczególności jeśli scenariusz (d) (trzy urządzenia) nie da `shouldApplyConflictPayload = true` dla C.
+
+Odpowiedź na drugie pytanie koordynatora (N-P13-2, `clearedPushedRef`): **zdegradowane do optymalizacji, backlog, niski priorytet, NIE jest warunkiem zamknięcia tej naprawy** (uzasadnienie: 15.4).
+
+Warunek zamknięcia u `tester`: cała macierz 15.5 przechodzi (w szczególności (b) i (d)), `npm test`, `npx tsc --noEmit`, `npm run lint` bez nowych regresji względem baseline. Jeśli macierz przechodzi w całości, zalecenie architekta: to jest ostatnia runda tej klasy defektu (15.7) — kolejne odrzucenie w tym samym obszarze powinno wrócić do analizy modelu (nowy ADR), nie do kolejnej łatki p.16.
+
+---
+
+## 16. Naprawa źródłowa N-P13-7 — rewizja na DELETE (etap 7f → 3, szósty defekt tej rodziny)
+
+- Status: zaproponowany
+- Data: 2026-10-25
+- Wejście: `docs/testy/005-koniec-treningu-przeplyw.md` sekcja 13 (defekt N-P13-7, sonda 13.4, werdykt tester etapu 7f: ODRZUCONE), ten ADR p.12-15 (cała historia mechanizmu wygaszania/tombstone/rewizji, która zostaje — ten dodatek NIE jest jej rewersem)
+- Werdykt skrócony: **ZATWIERDZONE.** Hipoteza koordynatora jest poprawna i zweryfikowana czytaniem kodu: `handleDELETE` jest jedyną mutującą operacją w `app/api/active-workout-session/route.ts` bez kontroli optymistycznej współbieżności. Naprawa: `DELETE` wymaga rewizji, którą klient uważa za aktualną, i odpowiada `409` (bez mutacji) przy niezgodności — identyczny mechanizm jak `handlePUT`. To zamyka N-P13-7 i, w ocenie architekta, całą rodzinę błędów B-1b/B-1c/B-1d/N-P13-1/N-P13-6/N-P13-7 jednym, fundamentalnym mechanizmem — patrz 16.6.
+
+### 16.1 Weryfikacja hipotezy — czytanie kodu, nie zakładanie
+
+**Serwer (`app/api/active-workout-session/route.ts`, HEAD tej sesji):**
+- `handlePUT` (linie 137-237): wymaga `revision: z.number().int().min(0)` w body (`putSchema`), porównuje `clientRevision < serverRevision` i **odrzuca `409` bez mutacji**, jeśli klient jest za starym. To jest kontrola optymistycznej współbieżności w pełnym sensie.
+- `handleDELETE` (linie 239-287): **nie przyjmuje żadnego ciała żądania, żadnej rewizji, żadnego pola tożsamości.** Czyta istniejący wiersz (`SELECT revision, payloadJson`), liczy `clearedSessionStartedAtMs` przez `resolveClearedSessionIdentity` (p.15 — poprawne, ale operuje na tym, co JEST w wierszu, nie na tym, co WYWOŁUJĄCY sądzi, że tam jest) i **zawsze** wygasza wiersz, niezależnie od tego, kto wywołuje i co wywołujący wie o aktualnym stanie. Potwierdzone czytaniem — nie ma żadnej gałęzi warunkowej odrzucającej żądanie na podstawie wiedzy klienta.
+- `handleGET`-ghost (linie 111-118): mutuje też bez wejścia od klienta, ale **to jest bezpieczne inaczej** — operuje na WŁASNYM, właśnie odczytanym wierszu tego samego żądania (nie na czyimś zewnętrznym twierdzeniu o rewizji), więc nie ma tu możliwości pomyłki tożsamości — serwer czyści to, co faktycznie zastał, nie to, co ktoś twierdzi, że zastał. Zgodnie z notatką z polecenia: `clearRow`/`resolveClearedSessionIdentity` **nie wymagają zmiany** — błąd był na WEJŚCIU do `handleDELETE` (brak warunku), nie w funkcjach, które są wołane po wejściu.
+
+**Klient (`lib/active-workout-cloud-client.ts`, `components/active-workout/active-workout-cloud-sync.tsx`):**
+- `deleteCloud()` (linie 131-149 `active-workout-cloud-client.ts`): dziś **nie przyjmuje żadnego argumentu** — samo wysyła `DELETE` bez ciała. Dowód, że serwer nigdy nie mógłby odrzucić tego żądania na podstawie rewizji, nawet jeśli by chciał — klient dziś nie ma jak jej przekazać.
+- **Dwa, i tylko dwa, wywołania `deleteCloud()` w całym repo** (zweryfikowane grep, `components/active-workout/active-workout-cloud-sync.tsx`):
+  1. Linia 119, w `hydrate()`, gałąź `action === "delete-cloud"` (`decideCloudHydrateAction` zwraca to dla: (a) wiersz w chmurze jest przeterminowany/duch, (b) lokal pusty i to samo urządzenie co wiersz w chmurze). W obu przypadkach `cloud` (zmienna z `fetchCloud()`, linia 105) jest **świeżo odczytanym** rekordem z TEGO SAMEGO wywołania — `cloud.revision` jest więc dokładnie aktualną rewizją serwera w tym momencie, dostępną bez dodatkowego zapytania.
+  2. Linia 163, w `push()`, gałąź `!hasActiveLocalSession(payload)` (lokalna sesja właśnie się skończyła na TYM urządzeniu). `readRevision()` (wołane kilka linii niżej dla `putCloud`, linia 184 — dostępne identycznie tutaj) jest ostatnią rewizją, którą TO urządzenie zsynchronizowało dla wiersza tego użytkownika — poprawna wartość do porównania, dokładnie ten sam wzorzec, co `putCloud` już używa.
+- **Wniosek**: w obu istniejących, legalnych miejscach wywołania `deleteCloud()` klient JUŻ ma dostęp do wartości, która powinna być przekazana jako rewizja — nie trzeba dodawać żadnego nowego stanu, tylko przekazać coś, co już istnieje w zmiennej lokalnej tej samej funkcji. To jest silny sygnał, że naprawa jest wąska i nie psuje żadnego istniejącego, poprawnego przypadku użycia.
+
+**Scenariusz bystandera C (N-P13-7) pod naprawą — przeliczone krok po kroku:**
+C nigdy nie zrobił `writeRevision()` (bo `hydrate()` nie woła `writeRevision` w gałęzi `cloudActive === false` → `decideCloudHydrateAction` zwraca `"noop"` natychmiast, linia 135 `lib/active-workout-cloud.ts`: `if (!input.cloudActive) return "noop";`) — `readRevision()` na C zwraca `0` (domyślna wartość przy braku wpisu w `localStorage`, `active-workout-cloud-client.ts:21-28`). Gdy C wysyła `DELETE` z `revision: 0`, a serwer ma aktualnie wiersz z S2 (rewizja ≥ 2, bo A już zrobił `PUT` S1→tombstone→`PUT` S2), porównanie `0 < 2` jest prawdziwe → serwer odpowiada `409`, **nie mutuje wiersza**. S2 przetrwa nietknięta. To jest dokładnie żądany efekt.
+
+### 16.2 Czy to zamyka problem, czy tylko przesuwa okno (ocena prawdopodobieństwa, nie tylko możliwości)
+
+Pytanie z polecenia: czy złośliwy/przypadkowy klient może "trafić" akurat we właściwą rewizję przez wyścig czasowy?
+
+- **Dziś** (bez naprawy): DELETE mutuje **zawsze**, niezależnie od rewizji — prawdopodobieństwo trafienia w utratę danych nie jest kwestią "trafienia w okno", bo **nie ma okna, które trzeba trafić** — każde wywołanie DELETE od kogokolwiek, w każdej chwili, mutuje. To jest deterministyczna podatność, nie wyścig.
+- **Po naprawie**: DELETE mutuje **tylko**, gdy `clientRevision >= serverRevision`. Dla bystandera C (nigdy nie synchronizował się z wierszem tego użytkownika) `readRevision()` jest `0` na starcie przeglądarki/urządzenia. Jedyny sposób, by C miał rewizję ≥ aktualnej rewizji serwera, to gdyby C **wcześniej faktycznie zsynchronizował się** z tym samym wierszem (czyli byłby prawdziwym uczestnikiem, nie bystanderem) — a to przestaje być "bystander" w sensie tego defektu, to staje się dokładnie przypadek "zaległe, ale wcześniej uczestniczące urządzenie", który macierz 15.5 (scenariusze (d)-(f)) już pokrywa przez mechanizm tombstone/identity. Innymi słowy: po naprawie, żeby DELETE komukolwiek coś skasował, trzeba było wcześniej **widzieć** ten wiersz (choćby raz, przez GET lub PUT) — co jest definicją "nie być bystanderem". Prawdopodobieństwo trafienia przez czysty bystander-przypadek wymagałoby, by `0 >= serverRevision`, czyli **serverRevision musiałby być `0` lub ujemne** — a serwer nigdy nie zwraca rewizji `0` dla wiersza, który faktycznie istnieje i jest aktywny (pierwszy `PUT` zapisuje `revision: 1`, p.1/handlePUT linia 208: `Math.max(serverRevision, clientRevision) + 1`). Jedyny przypadek `serverRevision === 0` to **wiersz nie istnieje** — a wtedy `handleDELETE` już dziś (i po naprawie, bez zmiany) zwraca `{ ok: true, revision: 0 }` bez żadnej mutacji do wygaszenia (nie ma czego kasować). Więc nie ma realnej ścieżki, w której nieinformowany bystander "trafia" we właściwą rewizję przez przypadek czasowy — to nie jest wyścig, to jest wymóg wcześniejszej, faktycznej wiedzy o wierszu, co z definicji wyklucza przypadkowego bystandera.
+- **Wniosek**: to zamyka problem, nie przesuwa okna. Różnica między "DELETE działa zawsze" i "DELETE działa tylko dla kogoś, kto wcześniej widział ten wiersz" jest różnicą kategorii, nie tylko stopnia.
+
+### 16.3 Decyzja
+
+`handleDELETE` przyjmuje ciało żądania `{ revision: number }` (dokładnie ten sam kształt pola, co `handlePUT`) i stosuje **identyczną** kontrolę optymistycznej współbieżności: `clientRevision < serverRevision` → `409` z konfliktowym payloadem, bez mutacji. `deleteCloud()` w kliencie przyjmuje `revision: number` jako parametr i przekazuje go dalej. Oba istniejące wywołania `deleteCloud()` przekazują wartość, którą już mają w zmiennej lokalnej (`cloud.revision` przy hydracji, `readRevision()` przy push).
+
+Odrzucona alternatywa: rewizja jako parametr zapytania (`?revision=`) zamiast ciała JSON. Odrzucona — `fetch` z metodą `DELETE` i ciałem JSON jest już używanym wzorcem w tym repo (dokładnie to, co `PUT` robi), a `Request#json()` w Next.js route handlerze czyta ciało niezależnie od metody HTTP (nie jest to niestandardowe użycie protokołu — RFC 7231/9110 nie zakazuje ciała w DELETE, tylko nie definiuje dla niego znaczenia; tutaj znaczenie definiujemy sami, konsekwentnie z PUT). Parametr zapytania wymagałby osobnej ścieżki walidacji (inny schemat niż body) bez żadnej korzyści.
+
+Odrzucona alternatywa: zamiast wymagać rewizji, przenieść warunek do wartownika klienckiego (np. `clearedPushedRef` startujący od `true`, odrzucone już w p.15.4 jako niewystarczające — nie chroni przed nowym, świeżym urządzeniem C, które nigdy nie miało żadnego wartownika klienckiego do ustawienia). Klient nie może samodzielnie decydować, czy jego DELETE jest bezpieczny — tylko serwer, posiadający aktualny stan wiersza, może to ocenić. To jest ten sam argument, który uzasadnia kontrolę rewizji na `PUT` od samego początku (p.1) — tu było po prostu przeoczone dla `DELETE`.
+
+### 16.4 Projekt — pliki do zmiany
+
+**1. `app/api/active-workout-session/route.ts` — wspólny helper konfliktu (DRY, PUT i DELETE budują identyczny kształt odpowiedzi 409):**
+
+```ts
+/**
+ * Odpowiedź 409 przy niezgodności rewizji (PUT i, od tej naprawy, DELETE) — jeden
+ * kształt, jedno miejsce budowy, żeby nie duplikować mapowania wiersza na payload
+ * odpowiedzi (005, N-P13-7, ADR p.16). `existing` to wiersz PRZED jakąkolwiek mutacją.
+ */
+function buildRevisionConflictResponse(existing: {
+  revision: number;
+  payloadJson: string;
+  deviceId: string;
+  updatedAt: Date | number;
+}) {
+  const payload = parsePayloadJson(existing.payloadJson);
+  return NextResponse.json(
+    {
+      ok: false,
+      conflict: true,
+      session: payload
+        ? {
+            payload,
+            revision: existing.revision,
+            deviceId: existing.deviceId,
+            updatedAt:
+              existing.updatedAt instanceof Date
+                ? existing.updatedAt.getTime()
+                : Number(existing.updatedAt),
+          }
+        : null,
+    },
+    { status: 409 },
+  );
+}
+```
+
+`handlePUT` (linie 186-206 dzisiejsze) zamienia swój inline blok na `if (existing && clientRevision < serverRevision) return buildRevisionConflictResponse(existing);` — czysty refaktor, zero zmiany zachowania (potwierdzić testem regresji PUT bez zmian wyniku).
+
+**2. `app/api/active-workout-session/route.ts` — `handleDELETE` z walidacją i kontrolą rewizji:**
+
+```ts
+const deleteSchema = z.object({ revision: z.number().int().min(0) });
+
+async function handleDELETE(req: Request) {
+  const csrf = assertCsrf(req);
+  if (csrf) return csrf;
+
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ ok: false, error: "Brak sesji." }, { status: 401 });
+  }
+  const rl = await checkRateLimitAsync(/* bez zmian */);
+  if (!rl.ok) { /* bez zmian */ }
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "Nieprawidłowy JSON." }, { status: 400 });
+  }
+  const parsed = deleteSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ ok: false, error: "Nieprawidłowy payload." }, { status: 400 });
+  }
+
+  await ready();
+  const db = getDb();
+  const userId = session.user.id;
+
+  const [existing] = await db
+    .select({
+      revision: activeWorkoutSessions.revision,
+      payloadJson: activeWorkoutSessions.payloadJson,
+      deviceId: activeWorkoutSessions.deviceId,
+      updatedAt: activeWorkoutSessions.updatedAt,
+    })
+    .from(activeWorkoutSessions)
+    .where(eq(activeWorkoutSessions.userId, userId))
+    .limit(1);
+
+  // Brak wiersza — nic do wygaszenia i nic do chronienia; rewizja klienta jest
+  // nieistotna (ten sam wyjątek jak dotąd, p.12 — zero historii = zero ryzyka).
+  if (!existing) {
+    return NextResponse.json({ ok: true, revision: 0 });
+  }
+
+  // NOWE (005, N-P13-7): DELETE wymaga TEJ SAMEJ kontroli optymistycznej
+  // współbieżności co PUT — klient, który nie widział aktualnej rewizji wiersza,
+  // nie ma prawa go wygasić. Bez tego warunku dowolne, nieinformowane urządzenie
+  // (świeża/pusta karta, zero wcześniejszego kontaktu z tym wierszem) mogło
+  // skasować AKTYWNY trening innego urządzenia — patrz ADR p.16.1-16.2.
+  if (parsed.data.revision < existing.revision) {
+    return buildRevisionConflictResponse(existing);
+  }
+
+  const existingPayload = parsePayloadJson(existing.payloadJson);
+  const clearedSessionStartedAtMs = resolveClearedSessionIdentity(existingPayload);
+  const nextRevision = await clearRow(db, userId, existing.revision, clearedSessionStartedAtMs);
+
+  return NextResponse.json({ ok: true, revision: nextRevision });
+}
+```
+
+Reszta `handleDELETE` (CSRF, auth, rate limit, `clearRow`, `resolveClearedSessionIdentity`) **bez zmian** — potwierdza notatkę z polecenia: naprawa jest na WEJŚCIU (walidacja + warunek), nie w funkcjach wołanych po przejściu warunku.
+
+**3. `lib/active-workout-cloud-client.ts` — `deleteCloud(revision)`:**
+
+```ts
+/**
+ * Serwer "wygasza" wiersz (nigdy go fizycznie nie usuwa) TYLKO, gdy `revision`
+ * przekazana przez klienta jest >= aktualnej rewizji serwera — ta sama kontrola
+ * optymistycznej współbieżności co `putCloud` (005, N-P13-7, ADR p.16). Wywołujący
+ * MUSI przekazać rewizję, którą faktycznie zna (świeżo odczytaną z chmury albo
+ * ostatnią zsynchronizowaną lokalnie) — nigdy stałą/zgadywaną wartość.
+ */
+export async function deleteCloud(
+  revision: number,
+): Promise<{ ok: boolean; revision?: number; conflict?: ActiveWorkoutCloudRecord | null }> {
+  await ensureCsrfCookie();
+  const res = await fetch("/api/active-workout-session", {
+    method: "DELETE",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...getXsrfHeaders(),
+    },
+    body: JSON.stringify({ revision }),
+  });
+  let json: {
+    ok?: boolean;
+    revision?: number;
+    conflict?: boolean;
+    session?: ActiveWorkoutCloudRecord | null;
+  } = {};
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    /* empty body na edge-case'ach keepalive — rewizja zostaje bez zmian, kolejny push/pull naprawi */
+  }
+  if (res.status === 409 && json.session !== undefined) {
+    return { ok: false, conflict: json.session };
+  }
+  if (!res.ok || !json.ok) return { ok: false };
+  return { ok: true, revision: json.revision };
+}
+```
+
+Kształt odpowiedzi **identyczny** z `putCloud` (ten sam wzorzec `{ ok, revision?, conflict? }`) — żeby wywołujący w `active-workout-cloud-sync.tsx` mógł obsłużyć konflikt DELETE tym samym wzorcem co konflikt PUT, nie wymyślając drugiego kształtu.
+
+**4. `components/active-workout/active-workout-cloud-sync.tsx` — dwa wywołania `deleteCloud()`:**
+
+a) **Hydracja (linia 119, `action === "delete-cloud"`)** — przekazać rewizję świeżo odczytaną w tym samym `hydrate()`:
+```ts
+if (action === "delete-cloud") {
+  const result = await deleteCloud(cloud?.revision ?? 0);
+  // Konflikt tutaj jest praktycznie nieosiągalny (rewizja jest odczytana
+  // mikrosekundy wcześniej, w tym samym wywołaniu) — jeśli mimo to wystąpi,
+  // nie robimy nic: lokal jest pusty z definicji tej gałęzi, kolejny
+  // hydrate/push cykl zreconciluje stan bez utraty danych.
+  if (!result.ok && result.conflict) {
+    // brak akcji — zaakceptowane, patrz komentarz wyżej
+  }
+}
+```
+
+b) **Push, lokal pusty (linia 163, gałąź `!hasActiveLocalSession(payload)`)** — przekazać `readRevision()`, obsłużyć konflikt analogicznie do konfliktu `putCloud`, ale **bez `applyCloudPayload`** (lokalny stan jest pusty z definicji tej gałęzi — nie ma nic do scalenia, a zastosowanie payloadu konfliktu wskrzesiłoby na tym urządzeniu sesję, której nigdy nie było lokalnie — to jest dokładnie błąd, którego ta naprawa unika, tylko w drugą stronę):
+```ts
+if (!hasActiveLocalSession(payload)) {
+  if (clearedPushedRef.current) return;
+  clearedPushedRef.current = true;
+  pushingRef.current = true;
+  try {
+    const result = await deleteCloud(readRevision());
+    if (!result.ok && !result.conflict) {
+      clearedPushedRef.current = false; // błąd sieci/serwera — spróbuj ponownie przy następnym ticku
+      pendingPushRef.current = true;
+    } else if (result.conflict) {
+      // 409 (005, N-P13-7): ktoś inny ma teraz nowszą, aktywną sesję w tym
+      // wierszu, o której to urządzenie nic nie wie — NIE stosuj jej lokalnie
+      // (lokal jest pusty, ma tak zostać), tylko zapamiętaj aktualną rewizję,
+      // żeby kolejne odczyty/zapisy nie zderzały się z tą samą, przestarzałą
+      // wartością. `clearedPushedRef` zostaje `true` — nie ma nic do
+      // "oczekującego" usunięcia, ponawianie identycznego DELETE dałoby
+      // identyczny konflikt (chyba że lokalna sesja znów stanie się aktywna,
+      // co i tak resetuje wartownik niżej).
+      if (result.conflict) writeRevision(result.conflict.revision);
+    } else if (result.ok && result.revision != null) {
+      writeRevision(result.revision);
+    }
+  } finally {
+    pushingRef.current = false;
+    if (pendingPushRef.current) {
+      pendingPushRef.current = false;
+      void push();
+    }
+  }
+  return;
+}
+clearedPushedRef.current = false;
+```
+
+Konsekwencja uboczna, pozytywna: ta sama zmiana **zamyka też N-P13-2** (backlog, p.15.4) jako efekt dodatkowy, nie tylko jako optymalizację — świeża karta z `readRevision() === 0` próbująca zbędnego DELETE na niepustym, cudzym wierszu teraz dostaje `409` i **nie mutuje** serwera wcale (dziś: mutuje zawsze, tylko bezpiecznie dla tożsamości po p.15). N-P13-2 przechodzi z "optymalizacja ruchu" do "zamknięte jako efekt tej naprawy" — zero dodatkowego kodu ponad to, co już jest w tym punkcie.
+
+**5. Bez zmian**: `handleGET`, `clearRow`, `resolveClearedSessionIdentity`, `shouldApplyConflictPayload`, cały mechanizm tombstone/identity z p.12-15. Potwierdzone w 16.1 — te funkcje są poprawne, operują na danych, które same odczytały, nie na twierdzeniach wywołującego.
+
+### 16.5 Testy regresji wymagane
+
+**`app/api/active-workout-session/route.test.ts`:**
+1. **Dokładny scenariusz testera (13.4), wymagany explicite**: `PUT` A, S1 (`workoutStartedAtMs: 1000`), `revision: 0` → `200, revision: 1`. `DELETE` A z `revision: 1` → `200, revision: 2` (tombstone 1000). `PUT` A, S2 (`workoutStartedAtMs: 2000`), `revision: 2` → `200, revision: 3`. **C wysyła `DELETE` z `revision: 0`** (fresh, nigdy nie synchronizował) → **`409`, `conflict: true`**; odczyt wiersza bezpośrednio z bazy PO tym wywołaniu: payload wciąż aktywny, `workoutStartedAtMs === 2000`, `revision === 3` (**niezmieniona** przez próbę C). Kontynuacja: `PUT` A z `revision: 3` (kolejna seria) → `200` bez żadnej interferencji od C.
+2. Istniejące testy `DELETE` w pliku (macierz 15.5 (a)-(f), sonda 9.2, testy B-1b) — zaktualizować wywołania `DELETE`, by wysyłały ciało `{ revision }` z poprawną, zsynchronizowaną wartością (ten sam `revision`, jaki test już śledzi z poprzednich odpowiedzi) — wszystkie muszą przejść **niezmienione w wyniku**, tylko z dodanym ciałem żądania.
+3. `DELETE` bez ciała / z nieprawidłowym JSON / z `revision` ujemną lub nie-liczbą → `400`, bez mutacji wiersza.
+4. `DELETE` z `revision` wyższą niż serwerowa (klient "z przyszłości" — nie powinno się zdarzyć w normalnym użyciu, ale `clientRevision >= serverRevision` akceptuje, tak jak `PUT`) → `200`, zachowanie niezmienione (symetria z `PUT`, gdzie klient z wyższą rewizją też jest akceptowany, nie tylko z równą).
+5. `DELETE` na wierszu, który nie istnieje, z jakąkolwiek `revision` w ciele → `200, revision: 0` bez zmian (potwierdza, że wyjątek "brak wiersza" z p.12 nie wymaga już żadnej konkretnej wartości rewizji od klienta).
+
+**`lib/active-workout-cloud-client.test.ts`:**
+- `deleteCloud(revision)` wysyła `revision` w ciele żądania (asercja na `fetch` mocku — `JSON.parse(callArgs[1].body).revision === revision`).
+- `deleteCloud` na odpowiedzi `409` z `session` → zwraca `{ ok: false, conflict: session }` (nowy kształt, analogiczny do `putCloud`).
+- `deleteCloud` na odpowiedzi `200` → `{ ok: true, revision }` (bez zmiany zachowania widzianego przez wywołującego, poza nowym argumentem wejściowym).
+
+**Sonda (poza repozytorium, jak w poprzednich rundach testera) — powtórka EXACT scenariusza 13.4 na prawdziwych handlerach + funkcjach klienckich (nie przez komponent React, zgodnie z ograniczeniem testowym tego repo, p.13.5):** C z pustą kartą i `readRevision() === 0` wywołuje `deleteCloud(0)` na prawdziwym `handleDELETE` (harness `createMemoryDb`) z wcześniej ustawionym stanem A→S1→tombstone→S2 — musi dać `{ ok: false, conflict: {...} }`, a bezpośredni odczyt bazy musi pokazać S2 nienaruszone.
+
+### 16.6 Czy to zamyka CAŁĄ rodzinę błędów (ocena explicite, nie tylko ten jeden przypadek)
+
+**Ocena architekta: TAK — ta naprawa zamyka ostatnią, fundamentalną asymetrię, która była wspólną przyczyną źródłową wszystkich sześciu rund tej rodziny, i robi to w sposób, który p.15.7 jeszcze nie rozważył.**
+
+Rekonstrukcja łańcucha przyczynowego sześciu rund, z tej perspektywy:
+- **B-1b** (p.12): `DELETE` zerował rewizję do 0, otwierając okno na nadpisanie przez zaległego klienta z `PUT`. Naprawa: rewizja monotoniczna. Ale `DELETE` samo wciąż nie miało kontroli wejścia.
+- **B-1c/B-1d** (p.13): efekty uboczne naprawy p.12 (wartownik klienta, GET-ghost) nadpisywały *cały payload* bez względu na tożsamość. Naprawa: zwężenie warunków wyzwalających. Ale `DELETE` samo wciąż mutowało bez kontroli wejścia — te naprawy dotyczyły efektów PO wygaszeniu (co robi GET, co robi klient z konfliktem), nie samego wejścia do `DELETE`.
+- **N-P13-1/N-P13-6** (p.14-15): tombstone nie niósł/gubił tożsamość, więc zaległe-ale-prawdziwe urządzenia błędnie rozstrzygały konflikt. Naprawa: `clearedSessionStartedAtMs` + `resolveClearedSessionIdentity`. To są poprawki DANYCH wyjściowych z `DELETE` (co jest zapisywane w tombstonie), nie WARUNKU WEJŚCIA (kto ma prawo wygasić wiersz).
+- **N-P13-7** (p.16, ta naprawa): pierwszy defekt, który dotyczy samego **wejścia** do `handleDELETE` — czy wywołujący ma jakiekolwiek prawo (w sensie wiedzy o aktualnym stanie) wygasić wiersz. Wszystkie pięć poprzednich rund **zakładały**, że to wejście jest bezpieczne (albo nie zauważyły, że nie jest) i naprawiały wyłącznie to, co się dzieje PO nim — coraz dokładniejsza księgowość (monotoniczna rewizja, tożsamość tombstone, zachowanie tożsamości przy idempotencji) na fundamencie, który sam był nieszczelny. To jest dokładnie wzorzec z pięciu rund "łatka na łatkę" — i dokładnie to, co uzasadnia, że tym razem właściwą odpowiedzią jest naprawić FUNDAMENT (symetria z `PUT`), nie dodać siódmą warstwę księgowości.
+
+**Argument wyczerpania (analogiczny do p.15.7, ale na poziomie wyżej):** `PUT` od p.1 miał kontrolę rewizji na WEJŚCIU — to jest powód, dla którego `PUT` nigdy nie było źródłem żadnej z sześciu rund tej rodziny (żaden z defektów B-1b..N-P13-7 nie był błędem w logice `handlePUT` samej; wszystkie znalezione defekty żyły w `DELETE`, `GET`-ghost, albo w interpretacji odpowiedzi klienta). Po tej naprawie `DELETE` ma tę samą właściwość. Oba mutujące endpointy tego zasobu (`PUT`, `DELETE`) teraz wymagają od wywołującego dowodu wiedzy o aktualnym stanie, zanim go zmienią — `GET` nigdy nie mutuje na podstawie zewnętrznego wejścia (tylko na podstawie własnego odczytu, co jest z definicji bezpieczne). Nie ma już żadnej mutującej operacji w tym zasobie, która przyjmuje żądanie bez weryfikacji względem aktualnego stanu serwera.
+
+**Czy to mogłoby ujawnić SIÓDMY wariant?** Jedyna kategoria pozostawiona poza tym mechanizmem to te już explicite nazwane w p.15.7 pkt 4 jako inne kategorie ryzyka (pętla ponowień/rate-limit — N-P13-3; `pagehide`/offline w realnym środowisku; dwie karty na TYM SAMYM urządzeniu/`localStorage`) — żadna z nich nie jest kwestią "DELETE bez kontroli rewizji", bo ta naprawa usuwa tę kategorię z istnienia (nie zwęża ją, usuwa ją — nie ma już ścieżki `DELETE`→mutacja bez porównania rewizji, pełny stop). Dwie karty na tym samym urządzeniu to odrębny wektor (współdzielony `localStorage`, nie wyścig serwerowy między urządzeniami) — nieobjęty tą naprawą, ale też nieobjęty ŻADNĄ z poprzednich pięciu, i jawnie odnotowany w p.15.7 jako wymagający odrębnej analizy, nie łatki. Nie jest to nowy, nieujawniony dotąd róg tej samej tabeli.
+
+**Uczciwe zastrzeżenie**: "kompletność" jest, jak w p.15.7, względna wobec PRZYJĘTEGO modelu (jeden wiersz na użytkownika, jedna rewizja, kontrola optymistycznej współbieżności na obu operacjach mutujących). To jest teraz model SYMETRYCZNY (PUT i DELETE identyczne co do kontroli wejścia) — a to jest silniejsza własność niż "kompletność w obrębie znanych scenariuszy testowych" z p.15.7, bo nie zależy od wyczerpania przestrzeni scenariuszy testerem, tylko od strukturalnej właściwości kodu (każda mutacja wymaga dowodu aktualności). Rekomendacja: to **jest** moment, żeby zakończyć szukanie kolejnych wariantów tej rodziny i przyjąć ten mechanizm jako zamknięcie całej klasy — kolejne odrzucenie w tym obszarze powinno wrócić do analizy modelu (siódmy ADR), tylko jeśli dotyczy kategorii SPOZA "mutacja bez dowodu aktualnej rewizji" (np. wielosesyjność, współdzielony `localStorage` między kartami) — nie jeśli jest kolejnym wariantem tej samej, teraz zamkniętej kategorii.
+
+### 16.7 Konsekwencje i kompromisy
+
+- Zmiana kontraktu `DELETE /api/active-workout-session`: wymaga teraz ciała `{ revision: number }` — **to jest zmiana łamiąca** dla jakiegokolwiek klienta, który wysyłał `DELETE` bez ciała. Zweryfikowane (grep całego repo): jedyny klient tego endpointu to `deleteCloud()` w `lib/active-workout-cloud-client.ts`, aktualizowany w tej samej naprawie. Android/Java nie używają tego mechanizmu synchronizacji aktywnej sesji (potwierdzone w p.9, p.12, p.13, p.14, p.15, bez zmian tutaj) — brak wpływu na wersjonowanie Androida, brak wpływu na Javę.
+- `withApiErrors` (wrapper na eksportowanych handlerach) nie zmienia się — walidacja 400 dla brakującego/niepoprawnego ciała jest analogiczna do istniejącej w `handlePUT`, ten sam wzorzec kodu błędu.
+- Rozjazd wdrożeniowy (stary klient / nowy serwer) w oknie Preview→Promote: stary `deleteCloud()` (bez ciała) trafiający na nowy serwer dostałby `400` (zod `safeParse` na `undefined`/`{}` nie przejdzie) — w modelu Vercel (atomowe wdrożenie jednego route handlera) to nie powinno się zdarzyć (ten sam argument jak w p.13.5), ale w razie rozjazdu efekt jest **bezpieczny** (żądanie odrzucone, nie ślepa mutacja) — różni się to pozytywnie od ryzyk odnotowanych w poprzednich punktach ADR, gdzie rozjazd był neutralny; tutaj rozjazd jest przy najgorszym razie "DELETE nie działa chwilowo", nigdy "DELETE kasuje coś błędnie".
+- Koszt: zero nowych zapytań do bazy (ten sam `SELECT`, który już istnieje w `handleDELETE`, teraz czytany też dla `deviceId`/`updatedAt` potrzebnych w `buildRevisionConflictResponse` — te dwie kolumny już są w tabeli, tylko nie były dotąd selekcjonowane przez `handleDELETE`; drobny narzut SELECT, nie nowe zapytanie).
+- Odrzucona alternatywa dla całości (polecenie, krok 2 implicite): "szukać siódmego wariantu tej samej łatkowej ścieżki". Odrzucona na rzecz naprawy fundamentu — uzasadnienie w 16.6.
+
+### 16.8 Werdykt p.16
+
+**ZATWIERDZONE — gotowe do implementacji.** Zakres: jeden nowy helper (`buildRevisionConflictResponse`, refaktor bez zmiany zachowania `PUT`), jeden nowy schemat Zod i jeden warunek w `handleDELETE`, zmiana sygnatury i kształtu odpowiedzi `deleteCloud()`, aktualizacja dwóch (jedynych) wywołań w `active-workout-cloud-sync.tsx`. Bez zmiany schematu bazy, bez wpływu na Android/Javę (potwierdzone, mechanizm nieużywany przez te ścieżki). **Jest to zmiana łamiąca kontrakt HTTP endpointu** (DELETE teraz wymaga ciała) — jedyny klient jest aktualizowany w tej samej naprawie, zero zewnętrznych konsumentów do skoordynowania.
+
+Ocena kompletności rodziny błędów (16.6): **TAK, ta naprawa zamyka całą rodzinę B-1b/B-1c/B-1d/N-P13-1/N-P13-6/N-P13-7** w obrębie przyjętego modelu (jeden wiersz, jedna rewizja, kontrola optymistycznej współbieżności symetryczna na `PUT` i `DELETE`) — nie tylko ten jeden przypadek. Pozostałe, nieobjęte kategorie (N-P13-2 zamknięte jako efekt dodatkowy — patrz 16.4 punkt 4; N-P13-3 rate-limit/backoff, offline/`pagehide` w realnym środowisku, dwie karty na tym samym urządzeniu) są odrębnymi kategoriami ryzyka, już wcześniej nazwanymi w p.15.7 jako wymagające osobnej analizy, nie wariantami tej rodziny.
+
+Przegląd architekta po implementacji **nie jest wymagany automatycznie** — wywołać go tylko, jeśli `backend`/`frontend` zgłosi niepewność (w szczególności: obsługa konfliktu `DELETE` w `push()`, krok 4b wyżej, jest nowym kodem, nie czystym refaktorem — jeśli `frontend` ma wątpliwość co do zachowania `clearedPushedRef` po konflikcie, to jest właściwy moment na konsultację), albo `tester` znajdzie w teście regresji z 16.5 wynik niezgodny z projektem (w szczególności: scenariusz 16.5.1, dokładna replika sondy testera, musi dać `409` i **zero mutacji** wiersza S2).
+
+Warunek zamknięcia u `tester`: scenariusz 16.5.1 (dokładna replika sondy 13.4) przechodzi z wynikiem `409`/brak mutacji; cała macierz 15.5 (a)-(f) powtórzona i wciąż zielona (regresja na mechanizm tombstone, teraz z wymaganą rewizją w ciele DELETE); `npm test`, `npx tsc --noEmit`, `npm run lint` bez nowych regresji względem baseline. Jeśli to przechodzi: zgodnie z 16.6, kolejne odrzucenie w tym obszarze powinno celować w analizę modelu dla kategorii SPOZA "mutacja bez dowodu rewizji" (wielosesyjność, współdzielony `localStorage` między kartami), nie w kolejną łatkę tej samej kategorii.
+
+**Werdykt p.16.6 unieważniony przez tester etapu 7g (`docs/testy/005-...` sekcja 14): obalony sondami P3/P4/P5 — sprawdzenie i zapis nie są atomowe. Patrz p.17.**
+
+---
+
+## 17. Naprawa źródłowa N-P13-8 — atomowy zapis przez CAS (etap 7g → 3, siódmy defekt, PRAWDZIWA przyczyna źródłowa)
+
+- Status: zaproponowany
+- Data: 2026-10-25
+- Wejście: `docs/testy/005-koniec-treningu-przeplyw.md` sekcja 14 (defekt N-P13-8, sondy P2-P5, werdykt tester etapu 7g: ODRZUCONE, argument kompletności p.16.6 **obalony**), ten ADR p.1 (mechanizm rewizji oryginalny — PUT), p.16 (naprawa DELETE, zostaje bez odwrócenia — błąd leżał gdzie indziej)
+
+### 17.0 Przyznanie błędu architekta w p.16.6
+
+p.16.6 twierdził: "nie ma już żadnej mutującej operacji w tym zasobie, która przyjmuje żądanie bez weryfikacji względem aktualnego stanu serwera". To jest **prawdziwe w sensie składniowym** (każda mutacja ma warunek `if (clientRevision < serverRevision) return 409`) i **fałszywe w sensie operacyjnym**: warunek jest sprawdzany na wyniku `SELECT`, a `UPDATE`, który następuje kilka linii (i jedną rundę do bazy) później, nie jest w żaden sposób związany z tym samym momentem w czasie. "Weryfikacja względem aktualnego stanu serwera" była cichym założeniem "aktualny stan w chwili SELECT = aktualny stan w chwili UPDATE" — założenie, które jest fałszywe pod współbieżnością z definicji (to jest właśnie definicja TOCTOU). p.16.1-16.2 poprawnie przeanalizowały **kto ma prawo wygasić wiersz** (dowód wiedzy o rewizji), ale nigdy nie zadały pytania **czy dowód jest jeszcze prawdziwy w chwili, gdy jest używany do zapisu**. To jest różnica między "kontrolą dostępu" (kogo wpuszczamy) i "atomowością" (czy to, co robimy po wpuszczeniu, jest niepodzielne) — p.16 naprawiło pierwsze, zakładając bez dowodu drugie.
+
+### 17.1 Decyzja
+
+Trzy mutujące operacje na `activeWorkoutSessions` (`handlePUT` ścieżka UPDATE, `handlePUT` ścieżka INSERT, `clearRow` używany przez `handleDELETE` i `handleGET`-ghost) przechodzą z wzorca **SELECT-then-UPDATE** (sprawdź, potem zapisz — dwa kroki, okno między nimi) na **CAS (compare-and-swap) w jednym zapytaniu**: `UPDATE ... WHERE user_id = ? AND revision = ?`, gdzie druga wartość to rewizja, którą ten sam handler WŁAŚNIE odczytał (nie deklaracja klienta — `clientRevision`/`parsed.data.revision` nigdy nie trafia do warunku `WHERE`, tylko do wcześniejszego porównania "czy klient ma prawo w ogóle próbować"). Jeśli `UPDATE` nie trafi w żaden wiersz (bo rewizja zmieniła się między SELECT a UPDATE — ktoś inny wygrał wyścig), handler **nie zgłasza błędu 500 i nie udaje sukcesu**: odczytuje wiersz PONOWNIE (świeży stan, autorytatywny w chwili odpowiedzi) i na jego podstawie odpowiada — `409` dla `PUT`/`DELETE` (zgodnie z istniejącym kontraktem konfliktu z p.1/p.16), bez 409 dla `GET` (które nigdy nie zwracało konfliktu — zamiast tego zwraca stan na podstawie świeżego wiersza, bez próby drugiego zapisu).
+
+Ścieżka `INSERT` w `handlePUT` (brak `existing` przy pierwszym SELECT) ma analogiczną, dotąd nienazwaną lukę: dwa równoczesne pierwsze zapisy tego samego użytkownika (teoretycznie niemożliwe dla jednego człowieka na dwóch urządzeniach bez wcześniejszej synchronizacji, ale realne jako klasa błędu, nie tylko w tym jednym przypadku) oba widzą `existing === undefined` i oba próbują `INSERT`. Ponieważ `userId` jest kluczem głównym (`db/schema.ts:562`), drugi `INSERT` nie "wygrywa cicho" — rzuca błąd unikalności. Dotąd ten błąd nie był przechwytywany (uciekłby jako 500 przez `withApiErrors`). Naprawa ujednolica to z resztą mechanizmu: przechwycić, odczytać świeży wiersz, odpowiedzieć `409` jak przy każdym innym przegranym wyścigu — nie jest to nowy mechanizm, tylko rozszerzenie tej samej zasady ("przegrana w wyścigu o zapis = świeży odczyt + konflikt, nigdy 500 i nigdy cicha fikcja sukcesu") na trzeci, dotąd przeoczony punkt wejścia.
+
+### 17.2 Wybór mechanizmu CAS: `RETURNING`, nie `rowsAffected`
+
+Dwa warianty sprawdzenia "czy mój `UPDATE` faktycznie trafił":
+1. `result.rowsAffected` (pole `ResultSet` z `@libsql/client`, potwierdzone w repo przez `lib/account-takeover.ts:213` — ale tylko w kontekście `db.batch(...)`, nie potwierdzone dla pojedynczego `await db.update(...).where(...)` poza `batch`).
+2. `.returning({ revision: activeWorkoutSessions.revision })` + sprawdzenie `.length > 0` — klauzula `RETURNING` (SQLite/libSQL wspiera ją naturalnie), już używana w tym repozytorium w analogicznej roli: `app/api/payments/hotpay/notify/route.ts:78-92` (`UPDATE ... WHERE status = 'pending' ... RETURNING id`, `changed.length > 0` jako dowód, że TO wywołanie wygrało przejście stanu `pending → paid`, nie inne, równoczesne).
+
+**Decyzja: wariant 2 (`.returning()`)** — nie dlatego, że wariant 1 jest błędny (prawdopodobnie też działa, drizzle-orm/libsql przekazuje `ResultSet` z `rowsAffected` również poza `batch`), ale dlatego, że wariant 2 ma **już sprawdzony w produkcji precedens w tym repo dla identycznej roli** (CAS na warunkowym `UPDATE`, dokładnie ten sam wzorzec: zapytanie, które zapisuje TYLKO jeśli stan jest wciąż taki, jak wywołujący sądzi, i rozpoznaje przegraną przez puste `RETURNING`), więc nie wprowadza nowej, nigdzie wcześniej nieprzetestowanej ścieżki przez sterownik libSQL/Turso. Zasada "preferuj sprawdzone, nudne technologie i obecny stos" (instrukcja architekta) wskazuje na powtórzenie wzorca `hotpay/notify`, nie na wprowadzenie `rowsAffected` jako drugiego, równoległego sposobu robienia tego samego w tym samym pliku co jutro ktoś pomyli.
+
+### 17.3 Projekt — `clearRow` (używany przez `handleDELETE` i `handleGET`-ghost)
+
+```ts
+/**
+ * Wygasza wiersz CAS-owo (005, N-P13-8, ADR p.17): `UPDATE` jest warunkowany
+ * `revision = currentRevision` — rewizją, którą WYWOŁUJĄCY WŁAŚNIE odczytał w tym
+ * samym żądaniu, nigdy deklaracją klienta. Jeśli między tamtym SELECT a tym UPDATE
+ * ktoś inny zapisał wiersz (rewizja już inna), `RETURNING` nie zwraca wiersza —
+ * funkcja zwraca `null` (PRZEGRANA wyścigu), zamiast fałszywie zwracać
+ * `nextRevision`, którego wiersz NIE przyjął (to był dokładnie błąd N-P13-8:
+ * dotąd ta funkcja zawsze "wygrywała", bo `WHERE` nie zawierał rewizji).
+ */
+async function clearRow(
+  db: ReturnType<typeof getDb>,
+  userId: string,
+  currentRevision: number,
+  clearedSessionStartedAtMs: number | null,
+): Promise<number | null> {
+  const nextRevision = currentRevision + 1;
+  const updated = await db
+    .update(activeWorkoutSessions)
+    .set({
+      payloadJson: JSON.stringify(buildActiveWorkoutClearedPayload(clearedSessionStartedAtMs)),
+      revision: nextRevision,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(activeWorkoutSessions.userId, userId),
+        eq(activeWorkoutSessions.revision, currentRevision),
+      ),
+    )
+    .returning({ revision: activeWorkoutSessions.revision });
+  return updated.length > 0 ? nextRevision : null;
+}
+```
+
+Sygnatura zwraca teraz `number | null` (dotąd: `number`, zawsze "sukces"). **Wszyscy dwaj wywołujący muszą obsłużyć `null`** — to jest zmiana kontraktu wewnętrznego, wymuszona przez TypeScript (`npx tsc --noEmit` nie przejdzie, jeśli ktoś to przeoczy — strażnik kompilatora, nie tylko przegląd).
+
+### 17.4 Projekt — `handleDELETE`
+
+```ts
+const existingPayload = parsePayloadJson(existing.payloadJson);
+const clearedSessionStartedAtMs = resolveClearedSessionIdentity(existingPayload);
+const nextRevision = await clearRow(db, userId, existing.revision, clearedSessionStartedAtMs);
+
+if (nextRevision === null) {
+  // PRZEGRANA wyścigu (005, N-P13-8): między naszym SELECT i tym UPDATE ktoś inny
+  // (inne urządzenie, PUT albo DELETE równoległy) zapisał ten wiersz. `existing`,
+  // które mieliśmy, jest NIEAKTUALNE — nie wolno budować odpowiedzi z niego (to był
+  // dokładnie ten błąd, który testerzy złapali sondą P3: 409 na podstawie
+  // przestarzałego stanu wyglądałby na poprawny, ale ukrywałby, że wiersz już
+  // wygląda inaczej). Odczyt PONOWNY, świeży, autorytatywny w chwili odpowiedzi.
+  const [fresh] = await db
+    .select({
+      revision: activeWorkoutSessions.revision,
+      payloadJson: activeWorkoutSessions.payloadJson,
+      deviceId: activeWorkoutSessions.deviceId,
+      updatedAt: activeWorkoutSessions.updatedAt,
+    })
+    .from(activeWorkoutSessions)
+    .where(eq(activeWorkoutSessions.userId, userId))
+    .limit(1);
+  // Wiersz nigdy nie jest fizycznie usuwany (p.12) — skoro właśnie przegraliśmy
+  // wyścig o UPDATE, wiersz musi istnieć (ktoś go właśnie zapisał). `!fresh` jest
+  // teoretycznie nieosiągalne; zachowujemy fallback zamiast zakładać to w typach,
+  // żeby nie rzucić 500 w nieprzewidzianym przypadku.
+  if (!fresh) return NextResponse.json({ ok: true, revision: 0 });
+  return buildRevisionConflictResponse(fresh);
+}
+
+return NextResponse.json({ ok: true, revision: nextRevision });
+```
+
+To jest **jedyna zmiana** w `handleDELETE` poza wywołaniem `clearRow` (CSRF, auth, rate limit, walidacja, warunek `clientRevision < existing.revision` z p.16 — bez zmian).
+
+### 17.5 Projekt — `handleGET`-ghost (dwie gałęzie, bez 409 — GET nigdy nie zwracał konfliktu)
+
+`GET` jest inny niż `PUT`/`DELETE`: nie ma "klienta, który deklaruje rewizję i zasługuje na 409". Ma tylko obowiązek zwrócić **prawdziwy, aktualny stan**. Gdy `clearRow` przegra wyścig w trakcie opportunistycznego czyszczenia ducha, właściwa odpowiedź nie jest błędem — jest odczytaniem tego, co faktycznie jest teraz w wierszu, i zbudowaniem z tego normalnej odpowiedzi `GET` (ewentualnie: sesja aktywna i świeża, jeśli to ona wygrała wyścig — scenariusz P4 dokładnie to testuje).
+
+Refaktor `handleGET` na wspólną funkcję oceny wiersza, wywoływaną raz na odczyt i (co najwyżej) raz na odczyt-po-przegranym-CAS (głębokość rekursji ograniczona do 1 — `allowClear: false` przy drugim wywołaniu, żeby nie można było zapętlić się w nieskończoność; druga przegrana w tym samym żądaniu w ciągu mikrosekund jest na tyle mało prawdopodobna i na tyle nieszkodliwa — brak mutacji przy odrzuceniu drugiej próby, tylko odczyt tego, co jest — że nie wymaga pętli `while`):
+
+```ts
+async function evaluateActiveRow(
+  db: ReturnType<typeof getDb>,
+  userId: string,
+  row: {
+    revision: number;
+    payloadJson: string;
+    deviceId: string;
+    updatedAt: Date | number;
+  },
+  allowClear: boolean,
+): Promise<Response> {
+  const payload = parsePayloadJson(row.payloadJson);
+  const updatedAt =
+    row.updatedAt instanceof Date ? row.updatedAt.getTime() : Number(row.updatedAt);
+
+  if (!payload) {
+    if (allowClear) {
+      const next = await clearRow(db, userId, row.revision, resolveClearedSessionIdentity(null));
+      if (next === null) return retryFreshRead(db, userId);
+    }
+    return NextResponse.json({ ok: true, session: null });
+  }
+
+  if (!hasActiveLocalSession(payload)) {
+    return NextResponse.json({ ok: true, session: null });
+  }
+
+  if (!isActiveWorkoutCloudFresh(updatedAt)) {
+    if (allowClear) {
+      // NOWE (005, N-P13-8): dotąd `clearRow` tutaj "wygrywał" zawsze, nawet gdy
+      // między SELECT w `handleGET` i tym UPDATE ktoś (np. A z sondy P4) zapisał
+      // FRESH, AKTYWNĄ sesję — ta świeża sesja była wygaszana po cichu (utrata
+      // danych). Teraz: przegrana CAS → odczyt świeży → ocena od nowa, bez
+      // kolejnej próby czyszczenia (`allowClear: false`).
+      const next = await clearRow(
+        db,
+        userId,
+        row.revision,
+        resolveClearedSessionIdentity(payload),
+      );
+      if (next === null) return retryFreshRead(db, userId);
+    }
+    return NextResponse.json({ ok: true, session: null });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    session: { payload, revision: row.revision, deviceId: row.deviceId, updatedAt },
+  });
+}
+
+async function retryFreshRead(db: ReturnType<typeof getDb>, userId: string): Promise<Response> {
+  const [fresh] = await db
+    .select()
+    .from(activeWorkoutSessions)
+    .where(eq(activeWorkoutSessions.userId, userId))
+    .limit(1);
+  if (!fresh) return NextResponse.json({ ok: true, session: null });
+  return evaluateActiveRow(db, userId, fresh, false);
+}
+```
+
+`handleGET` samo staje się cienkie: `SELECT` początkowy, `if (!row) return { session: null }`, inaczej `return evaluateActiveRow(db, session.user.id, row, true)`.
+
+Przebieg P4 pod tą naprawą: `GET` czyta wiersz przeterminowany (rev 1, aktywny payload S-old). `isActiveWorkoutCloudFresh` = false → próba `clearRow(rev 1)`. Współbieżnie A robi `PUT {revision:1}` z S-new → serwer zapisuje rev 2 (CAS A trafia, bo A był pierwszy do `UPDATE`... **UWAGA**: w P4 to GET traci wyścig, czyli `clearRow` GET-a wykonuje się PO `PUT` A — `clearRow`'s `WHERE revision = 1` nie trafia (serwer ma już rev 2) → `null` → `retryFreshRead` → świeży wiersz: rev 2, payload S-new, `updatedAt` = teraz (A właśnie zapisał) → `evaluateActiveRow(fresh, allowClear=false)`: payload aktywny, świeży → zwraca `session: S-new`. **S-new przetrwa**, zgodnie z oczekiwaniem testera.
+
+### 17.6 Projekt — `handlePUT` (ścieżka UPDATE i ścieżka INSERT)
+
+```ts
+if (existing) {
+  const updated = await db
+    .update(activeWorkoutSessions)
+    .set({ payloadJson, revision: nextRevision, deviceId: parsed.data.deviceId, updatedAt: now })
+    .where(
+      and(
+        eq(activeWorkoutSessions.userId, userId),
+        eq(activeWorkoutSessions.revision, serverRevision),
+      ),
+    )
+    .returning({ revision: activeWorkoutSessions.revision });
+
+  if (updated.length === 0) {
+    // PRZEGRANA wyścigu (005, N-P13-8, sonda P5): między naszym SELECT i tym UPDATE
+    // ktoś inny zapisał ten wiersz. Dotąd ten UPDATE nie miał `revision` w `WHERE`,
+    // więc zawsze trafiał — nadpisując cudzy, nowszy zapis, mimo że `clientRevision
+    // < serverRevision` już było false w chwili SELECT (fałszywe bezpieczeństwo).
+    const [fresh] = await db
+      .select()
+      .from(activeWorkoutSessions)
+      .where(eq(activeWorkoutSessions.userId, userId))
+      .limit(1);
+    if (!fresh) {
+      return NextResponse.json({ ok: false, error: "Nieprawidłowy payload." }, { status: 400 });
+    }
+    return buildRevisionConflictResponse(fresh);
+  }
+} else {
+  try {
+    await db.insert(activeWorkoutSessions).values({
+      userId,
+      payloadJson,
+      revision: nextRevision,
+      deviceId: parsed.data.deviceId,
+      updatedAt: now,
+    });
+  } catch (err) {
+    // NOWE (005, N-P13-8, dotąd nienazwana trzecia luka): dwa równoczesne PIERWSZE
+    // zapisy (oba widzą `existing === undefined`) — `userId` jest kluczem głównym
+    // (`db/schema.ts:562`), więc drugi `INSERT` rzuca naruszenie unikalności, nie
+    // "wygrywa cicho". Przechwytujemy i odpowiadamy jak przy każdej innej przegranej
+    // wyścigu — NIGDY 500 za czyjś wyścig, który przegraliśmy.
+    if (!isUniqueViolation(err)) throw err;
+    const [fresh] = await db
+      .select()
+      .from(activeWorkoutSessions)
+      .where(eq(activeWorkoutSessions.userId, userId))
+      .limit(1);
+    if (!fresh) throw err; // naruszenie unikalności implikuje istnienie wiersza — nieosiągalne
+    return buildRevisionConflictResponse(fresh);
+  }
+}
+
+return NextResponse.json({ ok: true, revision: nextRevision, updatedAt: now.getTime() });
+```
+
+`isUniqueViolation` importowany z **istniejącego** `db/errors.ts` (nie duplikat lokalnej `isUniqueConstraintError` z `app/api/workouts/complete/route.ts` — ten plik ma już własną, osobną definicję tej samej logiki; to jest preistniejący dług, nie wprowadzany tu, odnotowany w p.17.9 jako kandydat do scalenia, poza zakresem tej naprawy, bo dotyka pliku, którego ta naprawa w ogóle nie zmienia).
+
+### 17.7 Czy potrzebna jest pętla retry po stronie serwera?
+
+**Nie, dla `PUT`/`DELETE` — zwrócenie `409` jest wystarczające i spójne z resztą mechanizmu.** Uzasadnienie:
+- `PUT`/`DELETE` mają już ustalony, symetryczny kontrakt "przegrana w porównaniu rewizji = 409, klient decyduje, czy i jak ponowić" (p.1, p.16). CAS tylko przesuwa MOMENT tego porównania z "przed zapisem" na "w trakcie zapisu" (atomowo) — nie zmienia FILOZOFII odpowiedzi na przegraną. Serwer odpowiadający 409 od razu po przegranej CAS jest więc kontynuacją istniejącego wzorca, nie nowym zachowaniem do zaprojektowania od zera.
+- Klient (`active-workout-cloud-sync.tsx`) **już ma** logikę reagowania na 409 (`shouldApplyConflictPayload`, `writeRevision(result.conflict.revision)`, ponowny `push()` w niektórych gałęziach) — pętla retry na serwerze byłaby drugim mechanizmem obsługi tego samego zdarzenia, zbędnym kosztem (opóźnienie żądania o kolejne rundy do bazy) bez korzyści, bo klient i tak dostaje świeży stan w treści 409 i może zdecydować sam.
+- Retry server-side miałby sens, gdyby odpowiedzią na przegraną MIAŁO BYĆ ponowienie TEJ SAMEJ intencji zapisu z nowymi danymi obliczonymi na nowo (np. "dodaj 1 do licznika" — idempotentna operacja arytmetyczna, gdzie przegrana i ponowienie z nowym stanem bazowym ma sens). Tu intencja zapisu to "zapisz TEN KONKRETNY payload z urządzenia X" — po przegranej, "ponowienie" nie miałoby żadnego nowego stanu bazowego do uwzględnienia (payload klienta się nie zmienia), więc automatyczne ponowienie serwera dałoby identyczny wynik: albo wygrałoby (bo w międzyczasie nikt inny nie pisze) — co i tak się zdarzy przy następnym żądaniu klienta po 409 — albo przegrałoby znowu identycznie. Pętla nie zwiększa szansy sukcesu wobec **tej samej** przyczyny przegranej (trwająca kolizja dwóch aktywnych urządzeń), tylko opóźnia odpowiedź.
+
+**`GET`-ghost jest inny i NIE dostaje 409 (p.17.5) — to już jest wariant "jeden retry, bez pętli", nie "409 i koniec".** Uzasadnienie głębokości 1 (nie więcej, nie pętla `while(true)`): GET nie ma kontraktu błędu do zwrócenia klientowi (zawsze `{ ok: true, session: ... }`), więc jedyna alternatywa dla "jeden retry" byłaby "pętla retry aż się uda" — zbędna, bo po PIERWSZYM przegranym CAS i odczycie świeżego wiersza, odpowiedź JEST już poprawna niezależnie od tego, czy wiersz w międzyczasie (po tym odczycie, przed wysłaniem odpowiedzi) zmieni się znowu — to jest nieodłączna właściwość KAŻDEGO `GET` w systemie współbieżnym (odpowiedź jest zawsze stanem "w przeszłości względem momentu odebrania jej przez klienta"), nie defekt tej naprawy. Próba "domknięcia" tego przez pętlę retry w GET gonił(aby) cel nieosiągalny z definicji.
+
+### 17.8 Testy regresji wymagane (dokładna replika sond P2-P5 testera)
+
+**`app/api/active-workout-session/route.test.ts`** — nowy blok "CAS / wyścig między SELECT i UPDATE (005, N-P13-8, ADR p.17)", wstrzykujący współbieżny zapis między odczytem handlera a jego zapisem (ten sam mechanizm sondy testera z 14.1: opakowanie `client.execute`/`db.update` tak, by PRZED wykonaniem `UPDATE`/`INSERT` danego wywołania uruchomić drugie, "wygrywające" żądanie na tym samym wierszu):
+
+1. **Replika P3 (TOCTOU DELETE)**: `PUT` A S1 (rev 0→1); `DELETE` A `{revision:1}` wstrzyknięty tak, że TUŻ PRZED jego `UPDATE` w `clearRow` wykonuje się `PUT` B `{revision:1}` z S3 (→ rev 2). Oczekiwane: `DELETE` A dostaje `409` z `conflict.session` = S3 (rev 2, `deviceId` B); bezpośredni `SELECT` po teście potwierdza wiersz = S3 aktywne, rev 2, **nietknięte** przez `DELETE` A.
+2. **Replika P4 (TOCTOU GET-ghost)**: wiersz z aktywnym payloadem S-old, `updatedAt` 24h temu (przeterminowany), rev 1. `GET` wstrzyknięty tak, że TUŻ PRZED `UPDATE` w `clearRow` wykonuje się `PUT` A `{revision:1}` z S-new (→ rev 2). Oczekiwane: `GET` zwraca `session` aktywną z payloadem S-new, rev 2 (NIE `session: null`); `SELECT` po teście potwierdza rev 2, payload S-new, **brak tombstone'u**.
+3. **Replika P5 (TOCTOU PUT-vs-PUT)**: wiersz rev 1 (A-initial). `PUT` A `{revision:1}` z A-edit wstrzyknięty tak, że TUŻ PRZED jego `UPDATE` wykonuje się `PUT` B `{revision:1}` z B-edit (→ rev 2, pierwszy). Oczekiwane: `PUT` A dostaje `409` z `conflict.session.payload` = B-edit, rev 2; `SELECT` po teście potwierdza B-edit **nietknięty** (A nigdy nie napisał A-edit nad nim).
+4. **Replika P2 (kontrola — jednostronność `>=` ZOSTAJE, nie jest błędem)**: `DELETE {revision: 1000000}` na wierszu rev 2 (bez wstrzykniętego wyścigu, sekwencyjnie) → `200`, wiersz wygaszony. Explicite test komentarzem: **to jest zamierzone** — klient z rewizją ≥ serwerowej ma prawo zapisać/wygasić (p.1, p.16.2); naprawa CAS nie zmienia tej semantyki, zmienia tylko ATOMOWOŚĆ sprawdzenia-i-zapisu, nie SAM warunek porównania (`>=` zostaje `>=`, nie staje się `===`). Test istnieje, żeby ktoś w przyszłości nie "naprawił" tego przez przypadek przy kolejnej rundzie.
+5. **Przegrana `INSERT` (nowa, trzecia luka z p.17.1, bez odpowiednika w sondach testera — nienazwana dotąd)**: wiersz nie istnieje. Dwa równoczesne `PUT` (oba widzą `existing === undefined`) wstrzyknięte tak, że `INSERT` B wykonuje się PRZED `INSERT` A. Oczekiwane: `INSERT` B → `200, revision: 1`. `INSERT` A łapie naruszenie unikalności → `409` z `conflict.session` = payload B, rev 1; **brak 500**; `SELECT` po teście potwierdza jeden wiersz (payload B).
+6. Pełna macierz 15.5 (a)-(f) i scenariusz 16.5.1 (replika 13.4) — **sekwencyjne, bez wstrzykniętego wyścigu** — powtórzone, muszą przejść **niezmienione w wyniku** (to jest czysto wewnętrzna zmiana atomowości zapisu, zero zmiany zachowania dla żądań sekwencyjnych, bo CAS z rewizją właśnie odczytaną zawsze trafia, gdy nikt inny nie pisał w międzyczasie).
+
+**Mechanizm wstrzykiwania wyścigu**: dokładnie ten, który tester opisał w 14.1 — opakowanie metody wykonującej zapytania (np. `client.execute` z `@libsql/client` albo punkt wejścia sesji Drizzle) tak, by przy PIERWSZYM wywołaniu zapisu (UPDATE/INSERT) w ramach testowanego handlera, PRZED jego faktycznym wykonaniem, uruchomić i zaczekać na całe, osobne, konkurencyjne żądanie (inny handler, inna "sesja" bazy danych na tym samym kliencie `:memory:`). Ten plik testowy (albo pomocniczy moduł w `db/test-memory-db.ts`, jeśli backend uzna współdzielenie za warte wydzielenia) jest **nowym, trwałym** fragmentem `route.test.ts` — w przeciwieństwie do jednorazowych sond testera (usuwanych po przebiegu), te testy muszą zostać w repo jako regresja, bo to jest DOKŁADNIE ta klasa błędu, która przeszła niezauważona przez pięć wcześniejszych rund.
+
+### 17.9 Czy to NAPRAWDĘ jest ostatnia przyczyna źródłowa w tym mechanizmie?
+
+**Tak, w obrębie `app/api/active-workout-session/route.ts` — po tej naprawie nie ma już żadnej mutacji na tym zasobie, która nie jest atomowa z własnym sprawdzeniem.** Rekonstrukcja: p.1 dało `PUT` kontrolę rewizji NA WEJŚCIU (SELECT-then-UPDATE, z tą samą luką TOCTOU, tylko nigdy złowioną testem sekwencyjnym — p.14.1 testera: "wszystkie żądania są w nich sekwencyjne, więc nie mogą wykryć P3-P5" — **PUT miał tę lukę od p.1, siedem rund, nikt jej nie zauważył, bo żadna sonda nie testowała współbieżności aż do etapu 7g**). p.16 dało `DELETE` symetryczny warunek NA WEJŚCIU, z tą samą, odziedziczoną luką. Ta naprawa (p.17) jest pierwszą, która atakuje **atomowość samego zapisu**, nie **warunek przed zapisem** — to jest kategoria wyżej niż wszystkie sześć poprzednich rund, które operowały na "czego sprawdzić" i "jaką tożsamość zapisać", nigdy na "czy sprawdzenie i zapis są jednym krokiem". Po tej naprawie: `PUT` (UPDATE i INSERT), `DELETE`, `GET`-ghost — wszystkie trzy mutacje mają CAS. Nie ma czwartej mutacji na tym zasobie.
+
+**Nie, w obrębie całej aplikacji — to jest wzorzec, nie incydent, i inne miejsca w kodzie mają tę samą lukę klasy strukturalnej.** Przeszukanie (`Grep` `\.select\(\)...\.update\(` w zasięgu ~400 znaków, cały `lib/`/`app/`, bez testów) zwraca siedem plików z podobnym kształtem kodu: `lib/community/hof.ts`, `lib/community/team-quests.ts`, `lib/community/team-wars.ts`, `lib/community/progression.ts`, `lib/community/teams.ts`, `lib/meal-catalog-images.ts`, `lib/app-settings.ts`. **Nie każde dopasowanie jest automatycznie tym samym defektem** — SELECT-then-UPDATE jest bezpieczny, gdy: (a) operacja jest commutatywna/idempotentna niezależnie od kolejności (np. `UPSERT` czysto addytywny bez odczytu poprzedniej wartości do decyzji), (b) kolizja dwóch równoczesnych zapisów tego samego użytkownika jest z definicji niemożliwa (dane są per-request, nie per-zasób współdzielony), albo (c) skutek przegranej wyścigu jest nieszkodliwy (np. licznik odczytów w cache, gdzie przegrana to najwyżej jedno przeterminowane odświeżenie, nie utrata danych użytkownika). Żaden z tych siedmiu plików nie był w zakresie analizy tej naprawy (nie dotyczą `activeWorkoutSessions`, nie są częścią zadania 005) — **rekomendacja: osobne zadanie/ADR (dług techniczny, NIE blokujące tego zadania)**, które dla każdego z siedmiu plików ocenia: czy odczytany stan wpływa na WARTOŚĆ zapisu (nie tylko na to, CZY zapis się odbywa), i czy kolizja dwóch użytkowników/urządzeń na tym samym wierszu jest realna w domenie (zespoły, questy, wojny zespołów — **wielu użytkowników współdzieli te wiersze z definicji**, co czyni je a priori bardziej podobnymi do `activeWorkoutSessions` niż `app-settings.ts`/`meal-catalog-images.ts`, które brzmią jak dane per-singleton/per-cache). Priorytet rekomendowany: `lib/community/team-wars.ts` i `lib/community/team-quests.ts` najpierw (współdzielony stan zespołu, wiele urządzeń/użytkowników zapisujących ten sam wiersz — analogiczna topologia do defektu N-P13-8), pozostałe pięć — do oceny w tym samym zadaniu, niższy priorytet.
+
+### 17.10 Pliki do zmiany
+
+**Backend (jedyny zakres — zero zmian kontraktu HTTP, zero zmian frontendu):**
+- `app/api/active-workout-session/route.ts` — `clearRow` (sygnatura `Promise<number | null>`, `WHERE` z `revision`, `.returning()`), `handleDELETE` (obsługa `null` z `clearRow` → świeży odczyt → `buildRevisionConflictResponse`), `handleGET` (refaktor na `evaluateActiveRow`/`retryFreshRead`, obsługa `null` z `clearRow` w obu gałęziach), `handlePUT` (CAS na ścieżce UPDATE z `.returning()`, `try/catch isUniqueViolation` na ścieżce INSERT). Nowy import: `and` z `drizzle-orm` (już importowane gdzie indziej w repo, zero nowej zależności), `isUniqueViolation` z `@/db/errors` (istniejący plik, zero nowej zależności).
+- `app/api/active-workout-session/route.test.ts` — nowy blok testów p.17.8 (sześć scenariuszy, w tym mechanizm wstrzykiwania wyścigu).
+
+**Bez zmian**: `lib/active-workout-cloud.ts`, `lib/active-workout-cloud-client.ts`, `components/active-workout/active-workout-cloud-sync.tsx`, schemat bazy, kontrakt odpowiedzi `409`/`200` (kształt identyczny z p.1/p.16 — `buildRevisionConflictResponse` nie zmienia się, tylko dostaje świeższe dane wejściowe), Android, Java. To jest wyłącznie zmiana WEWNĘTRZNEJ atomowości zapisu na serwerze — żaden klient (istniejący czy przyszły) nie musi wiedzieć, że ta naprawa się wydarzyła, bo kontrakt obserwowalny z zewnątrz (kody statusu, kształt JSON) jest identyczny; zmienia się tylko to, KTO dostaje `200` a kto `409` w rzadkim, wcześniej źle obsłużonym przypadku współbieżności.
+
+### 17.11 Konsekwencje i kompromisy
+
+- Jedno dodatkowe zapytanie (`SELECT` świeżego wiersza) TYLKO na ścieżce przegranej CAS — czyli tylko wtedy, gdy rzeczywiście doszło do wyścigu (rzadkie, p.14.2: "okno = dziesiątki ms"). Ścieżka bez kolizji (zdecydowana większość żądań) ma identyczny koszt zapytań jak dotąd (jeden SELECT, jeden UPDATE/INSERT) — CAS nie dodaje kosztu w normalnym przypadku, `WHERE` ma po prostu dodatkowy warunek na już istniejącym indeksie klucza głównego.
+- `handleGET` rośnie o dwie nowe funkcje (`evaluateActiveRow`, `retryFreshRead`) — uzasadnione, bo bez tego refaktoru obsługa "przegrana CAS → odczyt świeży → ocena od nowa" musiałaby duplikować trzy gałęzie decyzyjne (`!payload`, `!hasActiveLocalSession`, `!isActiveWorkoutCloudFresh`) inline w miejscu wywołania — gorsze dla czytelności i ryzyka rozjazdu dwóch kopii tej samej logiki.
+- Odrzucona alternatywa: transakcja Drizzle (`db.transaction`) obejmująca SELECT+UPDATE jako jeden blok. Odrzucona — libSQL/Turso po HTTP (Hrana) nie daje `SELECT ... FOR UPDATE`/blokady wiersza w ramach transakcji w sposób, który eliminowałby TOCTOU między dwoma POŁĄCZENIAMI (dwa równoczesne żądania HTTP to dwa niezależne połączenia/transakcje, nie jedno — transakcja chroni atomowość WEWNĄTRZ jednego żądania, nie między dwoma), więc nie rozwiązuje problemu bez dodatkowo CAS-a i tak; CAS samodzielnie jest prostszy, nie wymaga zarządzania czasem życia transakcji przez sieć HTTP, i jest już sprawdzonym wzorcem w repo (p.17.2).
+- Odrzucona alternatywa: pętla retry server-side dla `PUT`/`DELETE`. Odrzucona — uzasadnienie w p.17.7 (zbędna wobec istniejącej, już zaimplementowanej obsługi 409 po stronie klienta; nie zwiększa szansy sukcesu wobec trwającej kolizji).
+- Dług techniczny odnotowany, NIE blokujący tego zadania: siedem plików z podobnym wzorcem SELECT-then-UPDATE poza zakresem `activeWorkoutSessions` (p.17.9) — rekomendacja osobnego zadania/ADR; preistniejąca duplikacja `isUniqueConstraintError`(`app/api/workouts/complete/route.ts`) / `isUniqueViolation` (`db/errors.ts`) — ten plik nie jest zmieniany w tej naprawie, scalenie poza zakresem.
+
+### 17.12 Werdykt p.17
+
+**ZATWIERDZONE — gotowe do implementacji.** Zakres: trzy mutujące funkcje w jednym pliku (`clearRow`, `handleDELETE`, `handleGET`, `handlePUT`), zero zmiany schematu bazy, zero zmiany kontraktu HTTP widocznego z zewnątrz, zero wpływu na frontend/Android/Javę (potwierdzone — mechanizm aktywnej sesji w chmurze nieużywany przez te ścieżki, p.9/p.12-16 bez zmian tej oceny). To JEST ostatnia przyczyna źródłowa w obrębie tego zasobu (p.17.9) — żadna mutacja `activeWorkoutSessions` nie zostaje bez CAS po tej naprawie. To NIE jest ostatnia przyczyna źródłowa w obrębie całej aplikacji — siedem innych plików ma podobny wzorzec i wymaga osobnej oceny jako dług techniczny (p.17.9), nie jako blokada tego zadania.
+
+Przegląd architekta po implementacji **nie jest wymagany automatycznie** — wywołać go tylko, jeśli `backend` zgłosi niepewność co do mechanizmu wstrzykiwania wyścigu w testach (p.17.8, jedyny naprawdę nowy rodzaj testu w tym zadaniu — pięć poprzednich rund testowały tylko sekwencyjnie) albo `tester` znajdzie w replikach P3-P5 wynik niezgodny z projektem.
+
+Warunek zamknięcia u `tester`: wszystkie sześć scenariuszy p.17.8 przechodzą z oczekiwanym wynikiem (P3/P4/P5 — zero utraty danych drugiej strony, zwycięzca ustalony przez faktyczną kolejność zapisu w bazie, nie przez to, kto pierwszy wykonał SELECT; P2 — jednostronność `>=` zostaje; INSERT-wyścig — 409, nie 500); cała macierz 15.5 (a)-(f) i scenariusz 16.5.1 bez zmiany wyniku; `npm test`, `npx tsc --noEmit`, `npm run lint` bez nowych regresji względem baseline (142/104/38 wg ostatniego pomiaru 14.6). Jeśli to przechodzi: rodzina B-1b/B-1c/B-1d/N-P13-1/N-P13-2/N-P13-6/N-P13-7/N-P13-8 jest zamknięta jako kategoria "mutacja na `activeWorkoutSessions` bez atomowego dowodu aktualności" — kolejne odrzucenie w TYM zasobie powinno celować w kategorię strukturalnie inną (wielosesyjność/współdzielony `localStorage` między kartami, już nazwane w p.15.7/p.16.6 jako odrębne), nie w siódmy-ósmy wariant tej samej, teraz naprawionej na poziomie atomowości, klasy.

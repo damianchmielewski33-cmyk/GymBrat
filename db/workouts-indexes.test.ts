@@ -80,4 +80,42 @@ describe("indeksy tabeli workouts", () => {
       bare.close();
     }
   });
+
+  it("ensureCriticalSchema dopisuje kolumnę operation_id i indeks uq_workouts_user_operation, gdy migracja 0033 nie została uruchomiona (P3)", async () => {
+    // Symuluje produkcję zainicjalizowaną wyłącznie przez ensure-schema (bez folderu
+    // db/migrations w paczce, patrz docs/wydajnosc/005-koniec-treningu-przeplyw.md P3):
+    // pełny schemat Drizzle jest obecny, ale bez kolumny/indeksu z migracji 0033.
+    const { client: bare, db } = await createMemoryDb();
+    try {
+      await bare.execute(`DROP INDEX "uq_workouts_user_operation"`);
+      await bare.execute(`ALTER TABLE "workouts" DROP COLUMN "operation_id"`);
+      const columnsBefore = await bare.execute("PRAGMA table_info(workouts)");
+      expect(columnsBefore.rows.some((r) => String(r.name) === "operation_id")).toBe(false);
+      await bare.execute(
+        "INSERT INTO workouts (id, user_id, date, cardio_minutes, exercises) VALUES ('w1','u1','2026-10-01',0,'{}')",
+      );
+
+      state.db = db;
+      // `ensureCriticalSchema` memoizuje sukces per proces (patrz docstring w db/ensure-schema.ts);
+      // testy wcześniejsze w tym pliku już go wywołały, więc wymuszamy świeży import modułu.
+      vi.resetModules();
+      const fresh = await import("@/db/ensure-schema");
+      await fresh.ensureCriticalSchema();
+
+      const columnsAfter = await bare.execute("PRAGMA table_info(workouts)");
+      expect(columnsAfter.rows.some((r) => String(r.name) === "operation_id")).toBe(true);
+      const indexNames = await bare.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'workouts' AND name = 'uq_workouts_user_operation'",
+      );
+      expect(indexNames.rows.length).toBe(1);
+
+      // Idempotencja: druga próba (kolumna i indeks już istnieją) nie rzuca.
+      await fresh.ensureCriticalSchema();
+
+      const count = await bare.execute("SELECT COUNT(*) AS c FROM workouts");
+      expect(Number(count.rows[0]?.c)).toBe(1);
+    } finally {
+      bare.close();
+    }
+  });
 });

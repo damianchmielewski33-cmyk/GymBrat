@@ -97,6 +97,56 @@ function fieldErrorsFromIssues(issues: ZodLikeIssue[]): Record<string, string[]>
 const UNAVAILABLE_HINT =
   /ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|EPIPE|socket hang up|fetch failed|SQLITE_BUSY|SQLITE_LOCKED|SERVER_ERROR|STREAM_EXPIRED|libsql|Turso|database is locked/i;
 
+const GENERIC_DB_QUERY_MESSAGE = "Błąd zapytania do bazy danych.";
+const GENERIC_INVALID_JSON_MESSAGE = "Nieprawidłowy JSON w danych.";
+
+/** Dopasowuje wyciek SQL/parametrów, gdyby mimo sanityzacji trafił do komunikatu sterownika. */
+const LEAKY_DB_MESSAGE_HINT = /params\s*:|failed query/i;
+
+type DrizzleQueryErrorLike = Error & { query: string; params?: unknown; cause?: unknown };
+
+/**
+ * `drizzle-orm` 0.45.2 owija każdy błąd zapytania SQLite/libSQL w `DrizzleQueryError`,
+ * którego `.message` i `.stack` mają postać `Failed query: <SQL>\nparams: <WARTOŚCI>` —
+ * pełne wartości wstawiane do bazy (ciężary, tętno, kalorie, kroki, cały JSON sesji).
+ * Klasa nie ma unikalnego `name` (dziedziczy z `Error`), więc rozpoznajemy ją po polach
+ * własnych `query`/`params` (`node_modules/drizzle-orm/errors.js`), nie po `instanceof`.
+ */
+export function isDrizzleQueryError(err: unknown): err is DrizzleQueryErrorLike {
+  return (
+    err instanceof Error &&
+    typeof (err as { query?: unknown }).query === "string" &&
+    "params" in err
+  );
+}
+
+/**
+ * Komunikat bezpieczny do logów/Sentry dla `DrizzleQueryError` — NIGDY `err.message` (SQL +
+ * wartości). Używa komunikatu sterownika bazy z `err.cause` (np. „SQLITE_CONSTRAINT: UNIQUE
+ * constraint failed: workouts.user_id, workouts.operation_id” — nazwy kolumn, bez wartości),
+ * a gdy ten komunikat sam wygląda podejrzanie (zawiera „params:”), spada do stałego tekstu.
+ */
+export function safeDbQueryMessage(err: DrizzleQueryErrorLike): string {
+  const cause = err.cause;
+  const driverMessage = cause instanceof Error ? cause.message.trim() : "";
+  if (driverMessage && !LEAKY_DB_MESSAGE_HINT.test(driverMessage)) {
+    return `${GENERIC_DB_QUERY_MESSAGE} ${driverMessage.slice(0, 300)}`;
+  }
+  return GENERIC_DB_QUERY_MESSAGE;
+}
+
+/**
+ * Błąd zastępczy bezpieczny do logów konsoli i Sentry (stack + message bez SQL/parametrów) —
+ * do użycia WSZĘDZIE, gdzie oryginalny `DrizzleQueryError` trafiałby do logu/Sentry 1:1
+ * (`lib/errors/server-log.ts`). Nowy `Error` ma własny, czysty stack — nie dziedziczy stacku
+ * oryginału (ten zawiera `Failed query:`/`params:` w pierwszej linii).
+ */
+export function sanitizeDrizzleQueryError(err: DrizzleQueryErrorLike): Error {
+  const safe = new Error(safeDbQueryMessage(err));
+  safe.name = "DatabaseQueryError";
+  return safe;
+}
+
 /** Zamienia dowolną wartość z `catch` na `AppError` z właściwym kodem i statusem. */
 export function toAppError(err: unknown): AppError {
   if (err instanceof AppError) return err;
@@ -108,9 +158,23 @@ export function toAppError(err: unknown): AppError {
     });
   }
 
+  if (isDrizzleQueryError(err)) {
+    const safeMessage = safeDbQueryMessage(err);
+    // Klasyfikacja (503 vs 500) po komunikacie STEROWNIKA (err.cause), nigdy po err.message
+    // (SQL + parametry) — patrz F-1, docs/bezpieczenstwo/005-koniec-treningu-przeplyw.md.
+    const classificationText =
+      err.cause instanceof Error ? `${err.cause.name} ${err.cause.message}` : "";
+    if (UNAVAILABLE_HINT.test(classificationText)) {
+      return new AppError("SERVICE_UNAVAILABLE", { cause: err, message: safeMessage });
+    }
+    return new AppError("INTERNAL", { cause: err, message: safeMessage });
+  }
+
   if (err instanceof Error) {
     if (err instanceof SyntaxError && /JSON/i.test(err.message)) {
-      return new AppError("INVALID_JSON", { cause: err, message: err.message });
+      // Komunikaty `JSON.parse` na danych z bazy mogą zawierać fragment nieudanego parsowania
+      // (np. treść `exercises`) — nigdy `err.message` (F-1).
+      return new AppError("INVALID_JSON", { cause: err, message: GENERIC_INVALID_JSON_MESSAGE });
     }
     if (err.name === "TimeoutError" || err.name === "AbortError") {
       return new AppError("GATEWAY_TIMEOUT", { cause: err, message: err.message });

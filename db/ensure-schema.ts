@@ -1486,6 +1486,10 @@ CREATE TABLE IF NOT EXISTS "reminder_dispatches" (
   await client.execute(
     `CREATE INDEX IF NOT EXISTS "idx_workouts_user_date" ON "workouts" ("user_id","date")`,
   );
+  await tryAddColumn(`ALTER TABLE "workouts" ADD COLUMN "operation_id" text`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "uq_workouts_user_operation" ON "workouts" ("user_id","operation_id")`,
+  );
 }
 
 let mealLogsEnsured = false;

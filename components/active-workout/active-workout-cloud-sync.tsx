@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import { decideCloudHydrateAction, hasActiveLocalSession } from "@/lib/active-workout-cloud";
 import {
   applyCloudPayload,
@@ -17,6 +18,11 @@ import {
   subscribeActiveWorkoutPushRequests,
 } from "@/lib/active-workout-persist";
 import { markActiveWorkoutCloudHydrated } from "@/lib/active-workout-cloud-ready";
+import {
+  computeSyncRetryDelayMs,
+  isAuthErrorStatus,
+  isLikelyOfflineError,
+} from "@/lib/active-workout-sync-backoff";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { useI18n } from "@/components/i18n/i18n-provider";
 
@@ -64,11 +70,14 @@ function getOrCreateDeviceId(): string {
  * wydzielona do `lib/active-workout-cloud-client.ts` — testowalna bez DOM (ADR 0004 p.12).
  */
 export function ActiveWorkoutCloudSync() {
+  const { status: sessionStatus } = useSession();
+  const authenticated = sessionStatus === "authenticated";
   const [banner, setBanner] = useState<string | null>(null);
   const { t } = useI18n();
   const deviceIdRef = useRef("");
   const pushingRef = useRef(false);
-  const pendingPushRef = useRef(false);
+  /** Zmiana zgłoszona, gdy push już trwał — do odebrania natychmiast po zakończeniu (nie błąd). */
+  const pendingChangeRef = useRef(false);
   const hydratedRef = useRef(false);
   const debounceRef = useRef<number | null>(null);
   /**
@@ -77,12 +86,34 @@ export function ActiveWorkoutCloudSync() {
    * `readRevision() > 0` byłoby prawdziwe na zawsze i wysyłałoby DELETE co każdy tick.
    */
   const clearedPushedRef = useRef(false);
+  /** Liczba kolejnych błędów od ostatniego sukcesu — do wykładniczego backoffu (005, P2). */
+  const retryAttemptRef = useRef(0);
+  const retryTimeoutRef = useRef<number | null>(null);
+  /**
+   * Flaguje oczekiwanie na zdarzenie `online` (005, P2/R-4): dedupe nasłuchiwacza
+   * (nie dodawaj drugiego, gdy pierwszy już czeka) i sygnał dla interwału, że nie
+   * ma sensu tykać push-em, póki urządzenie jest offline.
+   */
+  const waitingOnlineRef = useRef(false);
+  /**
+   * P1 (005, sekcja 10, R-1): zalogowany użytkownik z wygasłą sesją po stronie
+   * serwera (`useSession()` jeszcze nie wie o tym, `authenticated === true`)
+   * dostaje 401/403 na push/delete. `scheduleRetry` nie planuje ponowienia dla
+   * tych statusów (zamierzone — nie ma sensu ponawiać bez sesji), ale bez tej
+   * flagi tick co 8 s i tak próbuje bez końca. Wznowienie: zmiana `authenticated`
+   * z `false` na `true` (nowe zalogowanie/przeładowanie) resetuje flagę.
+   */
+  const pausedAuthRef = useRef(false);
 
   useEffect(() => {
     deviceIdRef.current = getOrCreateDeviceId();
   }, []);
 
   useEffect(() => {
+    // P1: bez potwierdzonej sesji NIE hydratuj z chmury — gość albo sesja w trakcie
+    // ustalania statusu (`loading`) nie mają czego synchronizować, a próba hydracji
+    // bez sesji to niepotrzebny GET zakończony 401.
+    if (!authenticated) return;
     let cancelled = false;
 
     async function hydrate() {
@@ -97,6 +128,8 @@ export function ActiveWorkoutCloudSync() {
           });
         }
         if (cancelled) return;
+        // P1 (sekcja 10): wstrzymane po 401/403 — nie odpytuj GET-em do zmiany `authenticated`.
+        if (pausedAuthRef.current) return;
 
         const localDeviceId = deviceIdRef.current || getOrCreateDeviceId();
         deviceIdRef.current = localDeviceId;
@@ -116,7 +149,15 @@ export function ActiveWorkoutCloudSync() {
         });
 
         if (action === "delete-cloud") {
-          await deleteCloud();
+          const result = await deleteCloud(cloud?.revision ?? 0);
+          // Konflikt tutaj jest praktycznie nieosiągalny (rewizja jest odczytana
+          // mikrosekundy wcześniej, w tym samym wywołaniu) — jeśli mimo to wystąpi,
+          // nie robimy nic: lokal jest pusty z definicji tej gałęzi, kolejny
+          // hydrate/push cykl zreconciluje stan bez utraty danych (005, N-P13-7,
+          // ADR 0004 p.16.4a).
+          if (!result.ok && result.conflict) {
+            // brak akcji — zaakceptowane, patrz komentarz wyżej
+          }
         } else if (
           (action === "apply" || action === "apply-other-device") &&
           cloud
@@ -142,13 +183,80 @@ export function ActiveWorkoutCloudSync() {
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [t, authenticated]);
 
   useEffect(() => {
+    if (!authenticated) {
+      // P1: bez sesji wstrzymujemy cały mechanizm (push/hydrate/interwał) — `hydratedRef`
+      // wraca do `false`, więc ewentualne wywołanie `push()` z nieposprzątanego
+      // listenera (np. w trakcie przejścia stanu) jest no-opem.
+      hydratedRef.current = false;
+      return;
+    }
+
+    // Sesja znów potwierdzona (zalogowanie/przeładowanie po wygaśnięciu) — odblokuj
+    // ewentualną pauzę 401/403 z poprzedniego montażu efektu (P1, R-1).
+    pausedAuthRef.current = false;
+
+    let unmounted = false;
+
+    const clearRetryTimeout = () => {
+      if (retryTimeoutRef.current != null) {
+        window.clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
+
+    /**
+     * Planuje kolejną próbę po błędzie (005, P1/P2) — zamiast dobijać natychmiast
+     * w `finally`. 401/403 (sesja nieważna) NIE planuje niczego: czekamy na
+     * naturalny tick/zmianę zmiennej `authenticated`, inaczej gość albo
+     * użytkownik z wygasłą sesją dostaje nieskończoną pętlę żądań (P1).
+     */
+    const scheduleRetry = (resultStatus?: number, retryAfterSec?: number | null) => {
+      if (unmounted) return;
+      if (isAuthErrorStatus(resultStatus)) {
+        retryAttemptRef.current = 0;
+        // P1 (sekcja 10, R-1): sesja nieważna — wstrzymaj tick i push() do zmiany
+        // `authenticated`, inaczej co 8 s wysyłamy żądanie skazane na 401/403.
+        pausedAuthRef.current = true;
+        return;
+      }
+      retryAttemptRef.current += 1;
+      const delay = computeSyncRetryDelayMs({
+        attempt: retryAttemptRef.current,
+        retryAfterSec,
+      });
+      clearRetryTimeout();
+      retryTimeoutRef.current = window.setTimeout(() => {
+        retryTimeoutRef.current = null;
+        void push();
+      }, delay);
+    };
+
+    /**
+     * Brak sieci (P2): czekaj na `online`, nie odpytuj w pętli. Dedupe (R-4/tester):
+     * jeśli nasłuchiwacz już czeka, nie dodawaj drugiego — kolejne wywołania z różnych
+     * gałęzi błędu (push/DELETE) dzielą jeden listener.
+     */
+    const waitForOnline = () => {
+      if (unmounted || typeof window === "undefined") return;
+      if (waitingOnlineRef.current) return;
+      waitingOnlineRef.current = true;
+      window.addEventListener(
+        "online",
+        () => {
+          waitingOnlineRef.current = false;
+          if (!unmounted) void push();
+        },
+        { once: true },
+      );
+    };
+
     const push = async (opts?: { keepalive?: boolean }) => {
-      if (!hydratedRef.current) return;
+      if (!hydratedRef.current || unmounted || pausedAuthRef.current) return;
       if (pushingRef.current) {
-        pendingPushRef.current = true;
+        pendingChangeRef.current = true;
         return;
       }
 
@@ -160,15 +268,37 @@ export function ActiveWorkoutCloudSync() {
         clearedPushedRef.current = true;
         pushingRef.current = true;
         try {
-          const ok = await deleteCloud();
-          if (!ok) {
-            clearedPushedRef.current = false; // spróbuj ponownie przy następnym ticku
-            pendingPushRef.current = true;
+          const result = await deleteCloud(readRevision());
+          if (!result.ok && !result.conflict) {
+            clearedPushedRef.current = false; // błąd sieci/serwera — spróbuj ponownie po backoffie
+            scheduleRetry(result.status, result.retryAfterSec);
+          } else if (result.conflict) {
+            // 409 (005, N-P13-7, ADR 0004 p.16.4b): ktoś inny ma teraz nowszą,
+            // aktywną sesję w tym wierszu, o której to urządzenie nic nie wie —
+            // NIE stosuj jej lokalnie (lokal jest pusty, ma tak zostać), tylko
+            // zapamiętaj aktualną rewizję, żeby kolejne odczyty/zapisy nie
+            // zderzały się z tą samą, przestarzałą wartością.
+            writeRevision(result.conflict.revision);
+            retryAttemptRef.current = 0;
+          } else if (result.ok && result.revision != null) {
+            writeRevision(result.revision);
+            retryAttemptRef.current = 0;
+          }
+        } catch {
+          // R-4 (005): DELETE rzucił (np. brak sieci) — wiersz zostaje w chmurze.
+          // Traktuj jak błąd sieciowy reszty pliku: zresetuj wartownik, żeby
+          // DELETE spróbował ponownie, i czekaj na `online`/backoff zamiast
+          // zostawić nieobsłużony wyjątek i porzucone DELETE.
+          clearedPushedRef.current = false;
+          if (isLikelyOfflineError()) {
+            waitForOnline();
+          } else {
+            scheduleRetry();
           }
         } finally {
           pushingRef.current = false;
-          if (pendingPushRef.current) {
-            pendingPushRef.current = false;
+          if (pendingChangeRef.current) {
+            pendingChangeRef.current = false;
             void push();
           }
         }
@@ -177,7 +307,7 @@ export function ActiveWorkoutCloudSync() {
       clearedPushedRef.current = false; // sesja znów aktywna — jedno DELETE przy następnym opróżnieniu
 
       pushingRef.current = true;
-      pendingPushRef.current = false;
+      pendingChangeRef.current = false;
       try {
         const result = await putCloud(
           payload,
@@ -186,11 +316,12 @@ export function ActiveWorkoutCloudSync() {
           opts,
         );
         if (result.conflict) {
+          retryAttemptRef.current = 0;
           if (!shouldApplyConflictPayload(payload, result.conflict.payload)) {
             // Pusty/wygaszony stan w chmurze nie wygrywa z aktywną sesją lokalną (005,
             // B-1d) — przejmij tylko rewizję i wypchnij ponownie lokalny stan.
             writeRevision(result.conflict.revision);
-            pendingPushRef.current = true;
+            pendingChangeRef.current = true;
           } else {
             applyCloudPayload(result.conflict.payload);
             writeRevision(result.conflict.revision);
@@ -199,16 +330,22 @@ export function ActiveWorkoutCloudSync() {
           }
         } else if (result.ok && result.revision != null) {
           writeRevision(result.revision);
+          retryAttemptRef.current = 0;
         } else if (!result.ok) {
-          // Nieudany push — spróbuj ponownie przy następnej zmianie / interval.
-          pendingPushRef.current = true;
+          // Nieudany push (429/5xx/401/403) — backoff albo stop, patrz scheduleRetry (P2).
+          scheduleRetry(result.status, result.retryAfterSec);
         }
       } catch {
-        pendingPushRef.current = true;
+        // Błąd sieci (fetch odrzucony) — offline: czekaj na `online`; inaczej backoff (P2).
+        if (isLikelyOfflineError()) {
+          waitForOnline();
+        } else {
+          scheduleRetry();
+        }
       } finally {
         pushingRef.current = false;
-        if (pendingPushRef.current) {
-          pendingPushRef.current = false;
+        if (pendingChangeRef.current) {
+          pendingChangeRef.current = false;
           void push();
         }
       }
@@ -231,7 +368,17 @@ export function ActiveWorkoutCloudSync() {
       }, PUSH_DEBOUNCE_MS);
     };
 
-    const id = window.setInterval(() => void push(), PUSH_INTERVAL_MS);
+    /**
+     * P2 (005): tick co 8 s musi pomijać push, gdy ponowienie jest już zaplanowane
+     * (`retryTimeoutRef`) albo czekamy na `online` — inaczej backoff tylko się
+     * dokłada do regularnego ticku, a realna częstotliwość żądań przy 429/5xx nie
+     * spada. P1/R-1 (sekcja 10): pomija też, gdy jesteśmy wstrzymani po 401/403
+     * (`pausedAuthRef`) — do zmiany `authenticated`.
+     */
+    const id = window.setInterval(() => {
+      if (retryTimeoutRef.current != null || waitingOnlineRef.current || pausedAuthRef.current) return;
+      void push();
+    }, PUSH_INTERVAL_MS);
 
     const flushOnLeave = () => {
       persistActiveWorkoutLocalNow();
@@ -255,6 +402,8 @@ export function ActiveWorkoutCloudSync() {
     });
 
     return () => {
+      unmounted = true;
+      clearRetryTimeout();
       window.clearInterval(id);
       if (debounceRef.current != null) window.clearTimeout(debounceRef.current);
       document.removeEventListener("visibilitychange", onVis);
@@ -263,7 +412,7 @@ export function ActiveWorkoutCloudSync() {
       unsubStore();
       unsubReq();
     };
-  }, [t]);
+  }, [t, authenticated]);
 
   if (!banner) return null;
   return (

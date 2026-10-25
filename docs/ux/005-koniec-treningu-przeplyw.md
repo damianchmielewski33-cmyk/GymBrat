@@ -765,3 +765,147 @@ Zakres: wyłącznie pkt 6, 7, 10, 11 z 19.3 oraz R-1 (licznik serii, 19.2). Spra
 ### 20.4 Werdykt ux (etap 7c, część spójność wyglądu i mikrokopii)
 
 **ZATWIERDZONE Z UWAGAMI.** Odrzucenie etapu 7 z 2026-10-25 (sekcja 19.6) zostaje zdjęte: pięć blokujących poprawek jest zrealizowanych zgodnie ze specyfikacją i zweryfikowanych w kodzie. Uwagi z 19.3, 19.4 oraz N-4 zostają w backlogu (właściciel `frontend`, uzgodnienia `ux`), bez blokowania wydania. Ten werdykt zamyka część ux etapu 7; etap 8 (przegląd wizualny) jest odrębną bramką.
+
+## 21. Etap 8 - pełny przegląd wizualny (ux, 2026-10-25)
+
+**Metoda i ograniczenie.** Przegląd wykonano z kodu (JSX, klasy Tailwind, `lib/`, wartości tokenów z `app/globals.css`), nie na żywo. W tej sesji ux nie miał dostępu do przeglądarki, więc **nie wykonano zrzutów w 360 x 640 i 390 x 844 ani oglądu w trybie ciemnym**. Ocena responsywności jest wnioskiem z klas i wymaga potwierdzenia wizualnego przed Promote. Tło: wszystkie powierzchnie są ciemne (`--gym-black`, `app-card`, `app-dialog`, `bg-zinc-950/80` na pasku); nie znaleziono jasnego tła w przepływie. Kontrasty policzono wg WCAG z wartości tokenów i kompozycji alfa. Porównania z makietą artefaktu pominięto (poza zakresem tej sesji; źródłem prawdy jest ten dokument).
+
+### 21.1 Co sprawdzono i jest zgodne
+
+- Trzy wejścia: ostatnia seria (`guided-session-layout.tsx:643`), pasek (`active-workout-global-bar.tsx:147`), menu (`session-menu-sheet.tsx:210`) - wszystkie `cta`, wszystkie wołają ten sam hook (`use-workout-finish-flow.ts`), zakaz `#FF1A4B` w przepływie pilnowany testem (`finish-flow-copy.test.ts`).
+- Brak zakazanych zwrotów (grep po `components/`): „Trening zrobiony”, „Koniec treningu”, „Gotowe”, „Zamknij (nie zapisuje)” itd. nie występują w przepływie.
+- Brak przerwy po ostatniej serii: `active-workout-view.tsx:666-674` woła `flow.requestFinish()` przed `startRest`. Etykieta „Zakończ trening” w `rest-break-screen.tsx:261` (gałąź `!next`) zostaje zgodnie z rozstrzygnięciem architekta (etap 6, backlog „zamknięte”).
+- Dialog pominiętych (`workout-all-sets-done-dialog.tsx`): tytuły/opisy wg sekcji 6.2, fokus na „Wróć do serii” (`initialFocus`), Esc = „Wróć” (`onOpenChange`), dopisek przy zerze zaliczonych, `cta` h-14.
+- Dialog „Zakończyć trening?” (`workout-finish-confirm-dialog.tsx`): sekcja 7 zgodna, fokus bezpieczny, stan „Zapisuję…”.
+- Ekran zapisu (`workout-saving-screen.tsx`): stany saving/slow/error i sesja wygasła zgodne z sekcją 5; `role` i `aria-live` poprawne; `prefers-reduced-motion` obsłużony; H1 dostaje fokus.
+- Ekran końcowy: kolejność sekcji (8.1), nagłówek i status zapisu, rząd Czas/Serie/Ćwiczenia z `aria-label`-owym tekstem (licznik `sr-only` poprawiony, R-1), odmiana „kolejne rekordy” (pkt 6), format cardio `3,2 km` / `4 500 kroków` (pkt 7), „Usuń cardio” jako `outline` + `--destructive` (B-6), etykiety 11 px w `--gym-text-secondary` (B-5), stopka „Zamknij” `cta` h-14 przypięta poza przewijaniem, brak pola „Gotowe”.
+- Kontrasty tokenów (wg WCAG): `--gym-text-secondary` ok. 6,1-6,5:1 na tle karty i czerni; `--gym-skipped` ok. 9,3:1 na karcie; `--gym-trend-down` ok. 6,6:1 na czerni; `--destructive` ok. 5,3:1 na czerni; `white/60` (jednostka kg) ok. 7,2:1 na karcie.
+- Cele dotykowe: przyciski paska i `Button` domyślny to h-11 (44 px); CTA h-12 i h-14; stepper cardio h-12 w-12; pola cardio h-12.
+- Zapis przed ekranem końcowym (BR-1) i brak `sessionStorage` w ścieżce zakończenia (poza kolejką `gymbrat:workoutQueued`, zgodnie z ADR p.7).
+
+### 21.2 Punkty BLOKUJĄCE (werdykt ODRZUCONE)
+
+| # | Plik i linia | Problem | Poprawka dla frontend |
+|---|---|---|---|
+| **BL-1** | `active-workout-global-bar.tsx:178` (Pauza/Wznów) i `:188` (Odrzuć) | Tekst `<span className="hidden sm:inline">` jest niewidoczny na telefonie, a przycisk nie ma `aria-label`. Czytnik nie dostaje nazwy (WCAG 4.1.2). Ta sama klasa defektu co B-4, która nie została objęta poprawką. | `aria-label` równy widocznej etykiecie, bez breakpointu: `Pauza` / `Wznów` / `Odrzuć`. |
+| **BL-2** | `workout-finished-screen.tsx:575-580` (kafelek „Zmiana objętości” w „Zobacz postęp”) i `:582-587` | Chip dostaje `compare.volumeDeltaPercent` bez bramki na tonaż. Gdy dzisiejszy tonaż wynosi 0 (serie na masę ciała, zaliczone wg p.7), a poprzedni > 0, serwer zwraca **−100%** (`lib/workout-plan-compare.ts:140-141`, `deltaPercent` w `lib/workout-history.ts:356`). Ten sam ekran w karcie tonażu pokazuje „—” (`:366-375`, `hasRealComparison` wymaga `volumeKg > 0`) i caption `wcześniej 4 820 kg` (`volumeCaption`, `:126-129`). Dwie sprzeczne informacje i nieuczciwa liczba dla treningu bez obciążenia (wymóg „dane uczciwie, bez presji”). | Gdy `volumeKg === 0` przy `setsDone > 0`: kafelek delty w panelu pokazuje „—” bez chipa; `volumeCaption` zwraca „Ten trening nie ma tonażu (serie na masę ciała) — brak porównania.” (nowy wariant, sekcja 8.3.1, poniżej). Bramka `progressSectionVisible` zostaje bez zmian. |
+| **BL-3** | `active-workout-global-bar.tsx:130` (`text-xs text-white/45`, licznik) i `:135` (`text-[11px] text-white/45`, „Kontynuuj trening — wróć do sesji”) | `white/45` na tle `bg-zinc-950/80` daje ok. **4,47:1** dla tekstu 11-12 px, czyli poniżej 4,5:1 (AA). Ta sama klasa problemu co B-5, którą zamknięto na ekranie końcowym, a nie na pasku, będącym wejściem do zakończenia. | `text-[var(--gym-text-secondary)]` (ok. 5,5-6,5:1), zgodnie z sekcją 2. |
+
+### 21.3 Punkty WAŻNE (do poprawy w tej samej rundzie frontend)
+
+| # | Plik i linia | Problem | Poprawka |
+|---|---|---|---|
+| W-1 | `active-workout-global-bar.tsx:159-161` | „Zakończ trening” na telefonie to sama ikona `Check` w złotym przycisku obok „Kontynuuj”. Najważniejsza, nieodwracalna akcja (zapis i zakończenie) nie ma widocznego tekstu poniżej 640 px. B-4 dało nazwę dostępną, nie widoczną etykietę, a decyzję o widocznej etykiecie zostawiono ux. | **Poprawka:** na telefonie widoczny tekst „Zakończ” (zawiera się w `aria-label` „Zakończ trening”, więc spełnia WCAG 2.5.3); przy 360 px sprawdzić, że cztery przyciski mieszczą się w jednym wierszu, a jeśli nie, zamienić układ paska na dwa wiersze. | 
+| W-2 | `active-workout-global-bar.tsx:181-189` (Odrzuć) | Wariant `outline` z białym tekstem. ADR 0004 p.8 wymaga, by „Odrzuć” zostało czerwone (`variant="destructive"`, semantyczna destrukcja). Brak sygnału koloru przy akcji kasującej sesję. | `variant="destructive"` (istnieje w `components/ui/button.tsx:18`). |
+| W-3 | `workout-finished-screen.tsx:435` i `:438`; `lib/workout-finish-format.ts:38` | Linia rekordu: nazwa 14 px `font-medium` (spec 8.4: 15 px `font-semibold`), wartość 14 px bez `tabular-nums`, a format `82,5 → 85 kg` (spec: `82,5 kg → 85 kg`). | Nazwa 15 px `font-semibold`; wartość 15 px `font-semibold tabular-nums`; `formatWeightRecordLine` z jednostką przy obu wartościach. |
+| W-4 | `workout-finished-screen.tsx:80` (przez `DeltaChip`) i `lib/progress-delta-unit.ts:49` | Delta w chipie: `+4.2%` i `-3.1%` z kropką i ASCII minusem. Spec 8.3 wymaga `+4,2%` i `−3,1%`. Współdzielony `formatProgressDelta` jest też używany w innych ekranach, więc **nie zmieniać go w tym zadaniu**. | Lokalny formatter na ekranie końcowym (`Intl` pl-PL, U+2212 dla spadku). Zmianę współdzielonej funkcji zgłosić do backlogu systemowego. | 
+| W-5 | `workout-finished-screen.tsx:624` i `:628` | Badge „bez porównania” i „nowe” w `text-[10px]`. Zasada minimum 11 px (D-12). | `text-[11px]`. |
+| W-6 | `guided-session-layout.tsx:384` i `lib/active-workout-copy.ts:97` | Etykieta „Zakończ ostatnią serię i zapisz” pokazuje się przy każdej ostatniej otwartej serii, także gdy walidacja blokuje zapis (brak powtórzeń). Obietnica „i zapisz” jest wtedy nieprawdziwa (LR-2). Spec 4 wymaga zaliczalności. | `isLastOpenSet` tylko gdy `canCompleteWorkoutSet(weight, reps)`; w przeciwnym razie „Zapisz serię N”. |
+| W-7 | `workout-finished-screen.tsx:733-774` (błąd 404 cardio) | Po `not-found` przycisk „Zapisz cardio” zostaje aktywny, choć ponowienie da ten sam 404. Spec 8.7: dla 404 brak akcji. | Po `not-found` przycisk zapisu `disabled`, komunikat `role="alert"` zostaje; „Anuluj” zamyka edytor. |
+
+### 21.4 Punkty ŚREDNIE (backlog z właścicielem frontend, domknąć w tej rundzie, jeśli koszt mały)
+
+| # | Plik i linia | Problem |
+|---|---|---|
+| S-1 | `workout-finished-screen.tsx:531` | `aria-controls` wskazuje na nieistniejący `id`, gdy postęp zwinięty (pkt 19). Renderować kontener z `hidden` albo pominąć atrybut. |
+| S-2 | `workout-finished-screen.tsx:778-787` | Wiersz cardio w stanie pustym i wypełnionym: brak `aria-expanded` (sekcja 8.7, 12), brak szewronu, brak etykiety „Cardio” i przycisku „Edytuj” w stanie `filled` (pkt 18). |
+| S-3 | `workout-finished-screen.tsx:655-681` | Edytor cardio: brak widocznej etykiety „Minuty cardio” przy stepperze (sekcja 8.7), brak Esc (sekcja 8.7, 12). |
+| S-4 | `workout-finished-screen.tsx:298` | Kontener ekranu to `div`. Sekcja 8 wymaga `<section aria-labelledby>` wskazującego na H1 (pkt 21). |
+| S-5 | `workout-finished-screen.tsx:404-406` | `sr-only` licznika serii renderowany także przy `setsTotal = 0` (N-4). |
+| S-6 | `workout-finished-screen.tsx:476-480` | Pusty stan „Najlepsze serie”: sekcja z pustą kartą i licznikiem `0` zamiast braku sekcji przy zerowej liczbie ćwiczeń (pkt 16). |
+| S-7 | `workout-saving-screen.tsx:96-104` i `:107` | Treść błędu 13 px w `--gym-text-secondary`; spec 5.3: 14 px, biały 85%. Przyciski błędu w kolumnie `max-w-lg`; spec: `max-w-sm`. |
+| S-8 | `workout-finished-screen.tsx:604` | Nazwa ćwiczenia w „Postęp” bez `displayExerciseName` (zostaje „(film w panelu)”), a `key={ex.name}` może się powtórzyć. |
+
+### 21.5 Punkty NISKIE (backlog)
+
+- `workout-finished-screen.tsx:326` - `bg-[#101010]` zamiast tokenu karty (pkt 8).
+- `workout-finished-screen.tsx:347` - poświata `rgba(235,196,74,0.12)` na sztywno (pkt 17).
+- `workout-finished-screen.tsx:358` - jednostka `kg` z `uppercase` (wyświetla „KG”, pkt 12).
+- `workout-finished-screen.tsx:300-325` - data z przecinkiem zamiast `·` (pkt 15).
+- `workout-finished-screen.tsx:400-402` - `/16` w tym samym kolorze co liczba; spec 8.3 wymaga `--gym-text-secondary`.
+- `workout-finished-screen.tsx:544` - brak animacji 200 ms przy rozwinięciu „Zobacz postęp” (sekcja 8.6, dopuszczalne przy braku ruchu).
+- `workout-finished-screen.tsx:744-746` i `:752-758` - przy `saving` pola cardio nie są `readOnly`, brak `aria-busy` na edytorze (pkt 20).
+- `workout-all-sets-done-dialog.tsx:96` - lista liczników w `rounded-2xl border` zamiast `app-card` (pkt 23).
+- `guided-session-layout.tsx:640` - etykieta CTA w `text-[17px]` (spec 4: 16 px, `leading-tight text-balance`).
+- `active-workout-global-bar.tsx:107` i `:168` - dwa przyciski „Kontynuuj” z różnymi nazwami (`aria-label` „Kontynuuj trening” i tekst „Kontynuuj”); ujednolicić nazwę.
+- Zaplanowane w sekcji 19.4 i 20.2 (N-1 jest w BL-3; N-2 i N-3 bez zmian w tej rundzie).
+
+### 21.6 Mikrokopia - nowy wariant (uzupełnienie sekcji 8.3.1 i 9)
+
+| Sytuacja | Tekst |
+|---|---|
+| Tonaż dzisiaj 0 przy zaliczonych seriach, poprzedni tonaż > 0 (BL-2) | `Ten trening nie ma tonażu (serie na masę ciała) — brak porównania.` |
+
+Chip „vs ostatnio” i kafelek „Zmiana objętości” w tym wariancie pokazują „—”, bez strzałki i bez procentu.
+
+### 21.7 Werdykt ux (etap 8)
+
+**ODRZUCONE** (cofnięcie do etapu 5, frontend). Powody: BL-1 (przyciski paska bez nazwy na telefonie), BL-2 (sprzeczna i nieuczciwa delta −100% przy tonażu 0), BL-3 (kontrast `white/45` na pasku poniżej 4,5:1). Pozostałe punkty z 21.3 (W-1..W-7) poprawiamy w tej samej rundzie, żeby nie było kolejnego przeglądu. Po poprawkach ux wykona ograniczoną weryfikację BL-1..BL-3 i W-1..W-7 z kodu; zrzuty 360/390 i tryb ciemny wymagają przebiegu z przeglądarką przed Promote (to ograniczenie tej sesji, nie werdykt). Dokument `docs/ux/00-system-projektowy-stan.md` (sekcja 16.3) zostaje do aktualizacji po zamknięciu blokerów. Luka w specyfikacji (BL-2, wariant 8.3.1) uzupełniona w 21.6 - ux wyjaśnia to jako lukę projektową, nie błąd implementacji.
+
+## 22. Etap 8 (powtórka) - weryfikacja BL-1..BL-3 i W-1..W-7 po poprawkach frontend (ux, 2026-10-25)
+
+**Metoda i ograniczenie.** Weryfikacja z kodu (stan bieżącego worktree gałęzi `feat/koniec-treningu-flow`, plik i linia). **Zrzutów 360 x 640 / 390 x 844 i trybu ciemnego nie wykonano.** Próba w przeglądarce (headless Chrome przez Playwright): `next dev` (Turbopack) zwrócił 500 na `/login` z błędem Tailwind `Invalid code point` w `app/globals.css` (środowisko Windows tej sesji; przyczyny nie badano). Próba restartu z `--webpack` została zablokowana przez uprawnienia, więc przegląd wizualny pozostaje ograniczony do kodu. Uwaga porządkowa: serwer `next dev` uruchomiony przez ux na porcie 3123 może nadal działać i wymaga zatrzymania przez właściciela. Układ paska w 360 px jest więc wnioskiem z klas i estymacji szerokości, nie obserwacji.
+
+### 22.1 Wynik dziesięciu punktów
+
+| # | Wynik | Dowód w kodzie | Uwagi |
+|---|---|---|---|
+| BL-1 | **ZROBIONE** | `active-workout-global-bar.tsx:175` (`aria-label` = „Pauza” / „Wznów”), `:188` (`aria-label="Odrzuć"`); widoczny tekst `hidden sm:inline` (`:179-181`, `:192-194`) jest `aria-hidden` | Nazwa dostępna równa widocznej etykiecie (WCAG 2.5.3 i 4.1.2 spełnione). |
+| BL-2 | **CZĘŚCIOWO - ODRZUCONE** | Kafelek i karta tonażu: `workout-finished-screen.tsx:125-127` (caption), `:229` (`noTonnageComparison`), `:586-596` (kafelek „—”), `:221-226` (`hasRealComparison`). **Pozostaje:** wiersze ćwiczeń `:606-656` | Ćwiczenie na masę ciała (`currentVolumeKg` 0, poprzednio > 0) dostaje status „down” i `deltaPercent` −100 (`lib/workout-plan-compare.ts:36-47`, `:74-75`), które ekran pokazuje jako „▼ −100%” (`:610-614`, `:633-637`) i liczy w „N w dół” (`:597-602`). To ta sama sprzeczność co przed poprawką, na poziomie wiersza. Patrz 22.2 (N-22-1). |
+| BL-3 | **ZROBIONE** | `active-workout-global-bar.tsx:130` (licznik) i `:135` (podpis) - `text-[var(--gym-text-secondary)]`, ok. 6:1 na `bg-zinc-950/80` | Czas (`:126`, `text-white/50`, ok. 5:1) nie był wskazany i nie wymaga zmiany. |
+| W-1 | **ZROBIONE z kodu - do potwierdzenia wizualnego** | Tekst „Zakończ” bez `hidden` (`:154-156`), nazwa dostępna „Zakończ trening” (`:147`) zawiera widoczną etykietę | Układ 360 px: rząd przycisków `flex-wrap` (`:141`). Szacunek: CTA ok. 116 px + „Kontynuuj” ok. 102 px + dwa przyciski ikonowe ok. 48 px + przerwy ok. 18 px = ok. 332 px przy ok. 312 px dostępnych. Najprawdopodobniej zawinie się do dwóch wierszy. To dopuszczalne, ale `justify-end` przy zawinięciu trzeba zobaczyć na zrzucie. |
+| W-2 | **ZROBIONE** | `:186` `variant="destructive"` | - |
+| W-3 | **ZROBIONE** | Nazwa `:446` (15 px, `font-semibold`), wartość `:449` (15 px, `font-semibold tabular-nums`), `formatWeightRecordLine` (`lib/workout-finish-format.ts:38-40`) → „82,5 kg → 85 kg” | - |
+| W-4 | **ZROBIONE** | `DeltaChip` `:82` i wiersze `:610` używają `formatProgressDeltaPl` (`lib/workout-finish-delta-format.ts:11`, `:25`, `:40-43`): przecinek i U+2212 | Współdzielony `lib/progress-delta-unit.ts` nietknięty, zgodnie z 21.3. |
+| W-5 | **ZROBIONE** | Badge „bez porównania” i „nowe”: `:639`, `:643` `text-[11px]`; grep: brak `text-[10px]` w `workout-finished-screen.tsx` | - |
+| W-6 | **ZROBIONE** | `guided-session-layout.tsx:388-391` (`isLastOpenSet` = ostatnia otwarta I `canCompleteWorkoutSet(draft.weight, draft.reps)`), `:650` → `primarySetActionLabel` (`lib/active-workout-copy.ts`, ok. `:97-104`) | Etykieta „Zapisz serię N” przy zablokowanej walidacji. |
+| W-7 | **ZROBIONE** | `:769` `disabled` przy `cardioStatus === "not-found"`; komunikat `role="alert"` `:748-752`; „Anuluj” `:757-761` zamyka edytor | - |
+
+**Wynik: 9 z 10 punktów zamkniętych z kodu. BL-2 zamknięte tylko na kafelku i karcie tonażu, nie na wierszach ćwiczeń.**
+
+### 22.2 Odstępstwo blokujące (nowe, luka w specyfikacji uzupełniona)
+
+| # | Plik i linia | Problem | Poprawka dla frontend |
+|---|---|---|---|
+| **N-22-1** (WYSOKI, blokujące) | `workout-finished-screen.tsx:597-602` (licznik), `:606-656` (wiersze) | Reguła z 21.6 (tonaż 0 przy zaliczonych seriach = „brak porównania”, nie −100%) obejmowała w 21.2 tylko kafelek „Zmiana objętości”. Ten sam błąd zostaje w wierszach ćwiczeń: „▼ −100%” przy ćwiczeniu na masę ciała i licznik „1 w dół”, obok „0 kg / wcześniej 4 820 kg” w karcie tonażu. Dane nieuczciwe wobec osoby bez obciążenia. **Uzupełnienie specyfikacji:** reguła obowiązuje także per wiersz. | Dla wiersza z `ex.currentVolumeKg === 0` i `ex.status !== "skipped"`: zamiast chipa i „−100%” pokazać „—” (`text-[var(--gym-text-secondary)]`, bez strzałki), opcjonalnie podpis „bez tonażu”. Licznik „w górę / w dół” liczyć tylko z wierszy z tonażem > 0 albo ukryć, gdy `noTonnageComparison`. Zmiana wyłącznie w prezentacji; `lib/workout-plan-compare.ts` bez zmian. |
+
+### 22.3 Pozostałe punkty (bez zmian w tej rundzie)
+
+- Backlog z 21.4 (S-1..S-8) i 21.5 (niskie) pozostaje otwarty. Dla przypomnienia: S-8 (`:619`, nazwa ćwiczenia w „Postęp” bez `displayExerciseName`) jest wciąż aktualne i można je domknąć przy okazji N-22-1.
+- N-22-2 (NISKI, backlog, frontend): `active-workout-global-bar.tsx:107` ma `aria-label` „Kontynuuj trening”, a widoczny tekst to „Kontynuuj” (`:168`). Ujednolicenie nazwy, zgodnie z 21.5.
+
+### 22.4 Werdykt ux (etap 8, powtórka)
+
+**ODRZUCONE** (cofnięcie do etapu 5, frontend), zakres wąski: **N-22-1** (BL-2 na poziomie wierszy ćwiczeń). Pozostałe dziewięć punktów zamknięte z kodu. Po poprawce N-22-1 wymagane: (a) ponowne sprawdzenie BL-2 przez `tester` albo `ux` z kodu; (b) przed Promote - zrzuty 360 px i 390 px oraz tryb ciemny z przeglądarki (przy W-1 kluczowy układ dwóch wierszy paska). Bez (b) przegląd wizualny nie jest zamknięty, niezależnie od wyniku z kodu.
+
+## 23. Etap 8 (ponowna weryfikacja N-22-1) - ocena z kodu (ux, 2026-10-25)
+
+**Zakres:** wyłącznie N-22-1 (wiersz ćwiczenia i liczniki „w górę / w dół”) oraz ocena całości etapu 8. Przeglądarki w tej sesji nie było (brak narzędzia do zrzutów), więc ocena z kodu.
+
+### 23.1 Weryfikacja N-22-1 z kodu
+| Element | Wynik | Dowód |
+|---|---|---|
+| Wiersz ćwiczenia bodyweight (zaliczone, tonaż 0) pokazuje „—”, bez strzałki i bez „−100%” | **ZAMKNIĘTE** | `components/active-workout/workout-finished-screen.tsx:628-632`: gałąź `ex.currentVolumeKg === 0 && ex.status !== "skipped"` → `—` w `--gym-text-secondary`, bez ikony |
+| Licznik „w górę / w dół” nie liczy ćwiczeń bodyweight | **ZAMKNIĘTE** | `lib/workout-history-overview.ts:190-193` (`curVol === 0` → `continue` przed porównaniem); źródło współdzielone: `workout-plan-compare.ts:136` (ekran końcowy) i `workout-history-overview.ts:451` (historia) |
+| Spójność licznika z wierszami | **ZGODNE** | Oba czytają ten sam `volumeKg` (`buildExerciseVolumeRows` → `currentVolumeKg: ex.volumeKg`); „—” w wierszu i pominięcie w liczniku dotyczą tych samych ćwiczeń |
+| Ćwiczenie bodyweight nie wpada do „bez porównania” | **ZGODNE** | `continue` przed `skipped`-logiką dla zaliczonych; „bez porównania” liczy tylko pominięte/nieobecne (`:182-185`, `:198-201`) |
+| Test regresji | **ZAMKNIĘTE** | `lib/workout-history-overview.test.ts:100` (N-22-1); uruchomione 2026-10-25: 3 pliki, 15 testów, zielone |
+
+### 23.2 Drobne uwagi do wiersza (nie blokują)
+- **N-23-1 (NISKI, frontend):** gałąź „—” jest sprawdzana przed gałęzią `status === "new"`. Ćwiczenie pierwszy raz wykonane bez obciążenia (`status: "new"`, tonaż 0) pokazuje „—” zamiast badge „nowe”. Propozycja: sprawdzać najpierw `status === "new"`, potem „—” dla `currentVolumeKg === 0` i `up/down/flat`, albo zawęzić warunek do `previousVolumeKg != null`.
+- **N-23-2 (NISKI, dostępność):** „—” nie ma tekstu dla czytnika ekranu (czytnik odczyta „myślnik” lub nic). Propozycja: `<span className="sr-only">bez tonażu do porównania</span>` obok „—” (zgodnie z opcjonalnym podpisem z 22.2, który nie został wdrożony).
+- **S-8 (wciąż otwarte, NISKI-ŚREDNI, frontend):** `workout-finished-screen.tsx:619` renderuje `{ex.name}` zamiast `displayExerciseName(...)`. Nie była to część N-22-1, ale była zalecana do domknięcia przy okazji; nie została domknięta.
+
+### 23.3 Stan całego etapu 8 (po rundzie 22)
+- **BL-1** (aria-label Pauza/Wznów/Odrzuć): zamknięte w rundzie 22 (sekcja 22, punkt z kodu).
+- **BL-2** (tonaż 0 jako „−100%”): kafelek, karta tonażu i wiersze ćwiczeń zamknięte (sekcja 22 + 23.1).
+- **BL-3** (kontrast `white/45`): zamknięte w rundzie 22.
+- **W-1..W-7**: zamknięte w rundzie 22.
+- **N-22-1**: **ZAMKNIĘTE z kodu** (23.1).
+- **N-22-2** (aria-label „Kontynuuj trening” vs widoczne „Kontynuuj”, NISKI): backlog, nie blokuje.
+
+### 23.4 Warunek przed Promote (nie zmienia werdyktu etapu 8)
+Przegląd wizualny z przeglądarki nie został wykonany w tej sesji. Zgodnie z sekcją 22 (b) przed Promote wymagane są: zrzuty 360 px i 390 px oraz tryb ciemny (kluczowy układ dwóch wierszy paska przy W-1). Wykonuje tester albo właściciel z uruchomioną aplikacją; po wykonaniu wpisać wynik do karty zadania. Nie jest to bramka etapu 8, lecz warunek wydania.
+
+### 23.5 Werdykt etapu 8 (ponowna runda)
+**ZATWIERDZONE Z UWAGAMI** (ux, 2026-10-25). Kod zamyka N-22-1 i wszystkie punkty blokujące etapu 8 z sekcji 21-22. Uwagi N-23-1, N-23-2, S-8, N-22-2 trafiają do backlogu (niski priorytet, frontend, bez blokady wydania). Warunek przed Promote: zrzuty 360/390 px i tryb ciemny (23.4).

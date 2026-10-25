@@ -107,7 +107,7 @@ describe("active-workout-cloud-client", () => {
     });
     const emptyConflict = payload({});
 
-    it("false, gdy lokalna sesja jest aktywna, a payload konfliktu jest pusty/wygaszony", () => {
+    it("false, gdy lokalna sesja jest aktywna, a payload konfliktu jest pusty/wygaszony bez tożsamości", () => {
       expect(shouldApplyConflictPayload(activeLocal, emptyConflict)).toBe(false);
     });
 
@@ -127,45 +127,161 @@ describe("active-workout-cloud-client", () => {
     it("true, gdy lokalna sesja jest pusta (nic do stracenia)", () => {
       expect(shouldApplyConflictPayload(emptyConflict, activeLocal)).toBe(true);
     });
+
+    it("N-P13-1 scenariusz 1: A kończy sesję S1, B ma lokalnie aktywną tę samą sesję S1 → true (przyjmij wygaszenie)", () => {
+      const localActiveS1 = payload({
+        workoutPlanId: "plan-1",
+        workoutStartedAtMs: 1000,
+        exercises: [{ id: "a", name: "Przysiad", sets: [] }],
+      });
+      const clearedS1 = payload({ clearedSessionStartedAtMs: 1000 });
+      expect(shouldApplyConflictPayload(localActiveS1, clearedS1)).toBe(true);
+    });
+
+    it("N-P13-1 scenariusz 2: B ma lokalnie aktywną inną sesję S2, tombstone niesie S1 → false (lokalna wygrywa, bez regresji do B-1d)", () => {
+      const localActiveS2 = payload({
+        workoutPlanId: "plan-2",
+        workoutStartedAtMs: 2000,
+        exercises: [{ id: "b", name: "Wyciskanie", sets: [] }],
+      });
+      const clearedS1 = payload({ clearedSessionStartedAtMs: 1000 });
+      expect(shouldApplyConflictPayload(localActiveS2, clearedS1)).toBe(false);
+    });
+
+    it("tombstone bez tożsamości (clearedSessionStartedAtMs: null, np. wygaszenie wiersza uszkodzonego) → false", () => {
+      const clearedWithoutIdentity = payload({ clearedSessionStartedAtMs: null });
+      expect(shouldApplyConflictPayload(activeLocal, clearedWithoutIdentity)).toBe(false);
+    });
+
+    it("005, N-P13-6, ADR 0004 p.15.5 scenariusz (d): C (zaległy, wciąż S1) przyjmuje tombstone S1 nawet po idempotentnym DELETE innego urządzenia (tożsamość zachowana, nie null)", () => {
+      const localS1 = payload({
+        workoutPlanId: "plan-1",
+        workoutStartedAtMs: 1000,
+        exercises: [{ id: "a", name: "Przysiad", sets: [] }],
+      });
+      const tombstoneAfterRepeatedDelete = payload({ clearedSessionStartedAtMs: 1000 });
+      expect(shouldApplyConflictPayload(localS1, tombstoneAfterRepeatedDelete)).toBe(true);
+    });
   });
 
-  describe("deleteCloud (005, B-1b)", () => {
-    it("zapisuje rewizję zwróconą przez serwer (nigdy sztywne 0)", async () => {
+  describe("deleteCloud (005, N-P13-7, ADR 0004 p.16)", () => {
+    it("wysyła revision w ciele żądania DELETE", async () => {
+      let capturedUrl = "";
+      let capturedInit: RequestInit | undefined;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) => {
+          capturedUrl = url;
+          capturedInit = init;
+          return {
+            ok: true,
+            status: 200,
+            headers: { get: () => null },
+            json: async () => ({ ok: true, revision: 6 }),
+          };
+        }),
+      );
+
+      const result = await deleteCloud(5);
+
+      expect(result).toEqual({ ok: true, revision: 6 });
+      expect(capturedUrl).toBe("/api/active-workout-session");
+      expect(capturedInit?.method).toBe("DELETE");
+      expect(JSON.parse(capturedInit?.body as string)).toEqual({ revision: 5 });
+    });
+
+    it("zwraca conflict z sesją serwera przy 409", async () => {
+      const serverSession = {
+        payload: {
+          startedAt: null,
+          pausedElapsedSeconds: 0,
+          workoutStartedAtMs: null,
+          title: "",
+          workoutPlanId: null,
+          cardioMinutes: 0,
+          exercises: [],
+          selectedExerciseId: null,
+        },
+        revision: 3,
+        deviceId: "dev-2",
+        updatedAt: Date.now(),
+      };
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({
+          ok: false,
+          status: 409,
+          json: async () => ({ ok: false, conflict: true, session: serverSession }),
+        })),
+      );
+
+      const result = await deleteCloud(0);
+
+      expect(result.ok).toBe(false);
+      expect(result.conflict).toEqual(serverSession);
+    });
+
+    it("zwraca ok + revision przy sukcesie (200)", async () => {
       vi.stubGlobal(
         "fetch",
         vi.fn(async () => ({
           ok: true,
-          json: async () => ({ ok: true, revision: 6 }),
+          status: 200,
+          json: async () => ({ ok: true, revision: 0 }),
         })),
       );
 
-      const ok = await deleteCloud();
+      const result = await deleteCloud(0);
 
-      expect(ok).toBe(true);
-      expect(readRevision()).toBe(6);
+      expect(result).toEqual({ ok: true, revision: 0 });
     });
 
-    it("gdy odpowiedź nie zawiera revision, nie nadpisuje lokalnej wartości", async () => {
-      writeRevision(3);
+    it("zwraca { ok: false, status }, gdy serwer odpowiada błędem innym niż 409", async () => {
       vi.stubGlobal(
         "fetch",
         vi.fn(async () => ({
-          ok: true,
-          json: async () => ({ ok: true }),
+          ok: false,
+          status: 400,
+          headers: { get: () => null },
+          json: async () => ({}),
         })),
       );
 
-      await deleteCloud();
+      const result = await deleteCloud(0);
 
-      expect(readRevision()).toBe(3);
+      expect(result).toEqual({ ok: false, status: 400 });
     });
 
-    it("zwraca false, gdy serwer odpowiada błędem", async () => {
-      vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, json: async () => ({}) })));
+    it("005 P1: niesie status 401, żeby wołający nie ponawiał automatycznie (brak sesji)", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({
+          ok: false,
+          status: 401,
+          headers: { get: () => null },
+          json: async () => ({ ok: false, error: "Brak sesji." }),
+        })),
+      );
 
-      const ok = await deleteCloud();
+      const result = await deleteCloud(0);
 
-      expect(ok).toBe(false);
+      expect(result).toEqual({ ok: false, status: 401 });
+    });
+
+    it("005 P2: niesie retryAfterSec z nagłówka Retry-After przy 429", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({
+          ok: false,
+          status: 429,
+          headers: { get: (name: string) => (name === "Retry-After" ? "20" : null) },
+          json: async () => ({ ok: false, error: "Za dużo żądań." }),
+        })),
+      );
+
+      const result = await deleteCloud(0);
+
+      expect(result).toEqual({ ok: false, status: 429, retryAfterSec: 20 });
     });
   });
 
@@ -216,6 +332,38 @@ describe("active-workout-cloud-client", () => {
 
       expect(result.ok).toBe(false);
       expect(result.conflict).toEqual(serverSession);
+    });
+
+    it("005 P2: niesie status i retryAfterSec przy 429, żeby wołający zastosował backoff z Retry-After", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({
+          ok: false,
+          status: 429,
+          headers: { get: (name: string) => (name === "Retry-After" ? "15" : null) },
+          json: async () => ({ ok: false, error: "Za dużo żądań." }),
+        })),
+      );
+
+      const result = await putCloud(payload, 1, "dev-1");
+
+      expect(result).toEqual({ ok: false, status: 429, retryAfterSec: 15 });
+    });
+
+    it("005 P1: niesie status 401, żeby wołający nie ponawiał automatycznie (brak sesji)", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({
+          ok: false,
+          status: 401,
+          headers: { get: () => null },
+          json: async () => ({ ok: false, error: "Brak sesji." }),
+        })),
+      );
+
+      const result = await putCloud(payload, 1, "dev-1");
+
+      expect(result).toEqual({ ok: false, status: 401 });
     });
   });
 });

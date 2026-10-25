@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Makieta 007 - Ekran Profil (przegląd, podstrony, stany), statyczna, tylko do odwzorowania</title>
+<!-- Makieta referencyjna dla `frontend`. Specyfikacja: docs/ux/007-redesign-profil.md (wygrywa specyfikacja, gdy się różnią).
+     Tokeny: wyłącznie istniejące z app/globals.css (--gym-black, --gym-gold, --gym-gold-deep, --gym-surface,
+     --gym-surface-gold, --gym-border-gold, --gym-text-secondary, --gym-success, --destructive, --neon-fg, --gym-track).
+     Ramki: 390 px (szerokość telefonu, jedna kolumna). Dane przykładowe (Marta Zielińska, 58 kg, suma 2812 kcal).
+     Teksty prawne (LR-4, LR-6, LR-7, LR-9, LR-10) są PROJEKTEM i wymagają zatwierdzenia przez prawnika-człowieka. -->
+<style>
+  :root {
+    --gym-black:#070708; --gym-gold:#ebc44a; --gym-gold-bright:#f7e28f; --gym-gold-deep:#c49a1f;
+    --neon-fg:#120f05; --destructive:#ff3347; --foreground:rgba(255,255,255,.92);
+    --gym-success:#3ecf72; --gym-text-secondary:#9a9182; --gym-border-gold:#33291a;
+    --gym-track:#2b2518; --gym-surface:#161616; --gym-surface-gold:#15120b;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#1d1d1d; color:var(--foreground); font:14px/1.35 "Segoe UI", system-ui, sans-serif; }
+  .wall { display:flex; flex-wrap:wrap; gap:28px; padding:24px; align-items:flex-start; }
+  figure { margin:0; }
+  figcaption { font-size:12px; color:#bbb; margin:0 0 8px; max-width:390px; }
+  .phone { width:390px; height:844px; background:var(--gym-black); border-radius:14px; overflow:hidden; outline:1px solid #333; display:flex; flex-direction:column; }
+  .scroll { flex:1; overflow-y:auto; padding:0 16px 96px; }
+  .states { width:390px; background:var(--gym-black); border-radius:14px; outline:1px solid #333; padding:16px; display:flex; flex-direction:column; gap:20px; }
+  .tn { font-variant-numeric:tabular-nums; }
+
+  /* wiersz konta (layout) */
+  .acct { display:flex; align-items:center; gap:12px; padding:12px 0 8px; }
+  .av { width:40px; height:40px; flex:none; border-radius:999px; border:1px solid var(--gym-border-gold); background:var(--gym-surface-gold); display:grid; place-items:center; color:var(--gym-gold); font-weight:600; font-size:14px; }
+  .acct .nm { font-size:15px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .acct .em { font-size:12px; color:var(--gym-text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .acct > div { min-width:0; flex:1; }
+  .btn-out { height:44px; padding:0 12px; border-radius:16px; border:1px solid var(--gym-border-gold); background:transparent; color:#fff; font-size:13px; font-weight:600; flex:none; display:inline-flex; align-items:center; gap:6px; }
+
+  /* zakładki (ProfileTabs) */
+  .tabs { display:flex; gap:8px; overflow-x:auto; padding:4px 0 8px; margin:0 -16px; padding-left:16px; padding-right:16px; scrollbar-width:none; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .ptab { flex:none; min-height:44px; display:inline-flex; align-items:center; padding:0 14px; border-radius:999px; border:1px solid var(--gym-border-gold); color:rgba(255,255,255,.8); font-size:13px; font-weight:500; text-decoration:none; white-space:nowrap; position:relative; }
+  .ptab.on { border-color:rgba(235,196,74,.6); color:#fff; background:rgba(235,196,74,.08); font-weight:600; }
+  .ptab .dot { position:absolute; top:8px; right:8px; width:6px; height:6px; border-radius:999px; background:var(--gym-gold); }
+
+  /* nagłówek ekranu (AppPageHeader) */
+  .hdr { padding:8px 0 4px; }
+  .kicker { font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:var(--gym-gold); }
+  .h1 { font-size:28px; line-height:32px; font-weight:600; color:#fff; margin:4px 0 0; font-family:"Space Grotesk", system-ui, sans-serif; }
+  .meta { font-size:12px; line-height:16px; color:var(--gym-text-secondary); }
+
+  /* sekcje i karty */
+  .sec { display:flex; align-items:center; gap:8px; margin:24px 0 10px; }
+  .sec .idx { font-size:11px; color:var(--gym-gold); font-weight:600; }
+  .sec h2 { font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:#fff; margin:0; }
+  .card { background:var(--gym-surface); border:1px solid var(--gym-border-gold); border-radius:22px; padding:16px; }
+  .block { border-top:1px solid rgba(255,255,255,.1); margin-top:16px; padding-top:16px; }
+  h3 { font-size:15px; font-weight:600; color:#fff; margin:0 0 8px; }
+
+  /* pola (ProfileField: edytowalne) */
+  .f { margin-top:12px; }
+  .f:first-child { margin-top:0; }
+  .f label { display:block; font-size:13px; font-weight:500; color:rgba(255,255,255,.85); margin-bottom:6px; }
+  .inp { width:100%; height:48px; border-radius:16px; border:1px solid rgba(235,196,74,.35); background:rgba(0,0,0,.5); color:#fff; padding:0 14px; font-size:16px; font-variant-numeric:tabular-nums; display:flex; align-items:center; justify-content:space-between; }
+  .inp .ph { color:var(--gym-text-secondary); }
+  .inp .unit { color:var(--gym-text-secondary); font-size:13px; }
+  .inp.err { border-color:var(--destructive); }
+  .hint { font-size:12px; color:var(--gym-text-secondary); margin-top:6px; }
+  .hint.err { color:#ff8593; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .row3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .row3 .inp { padding:0 10px; font-size:15px; }
+
+  /* wyliczone (ProfileComputedValue) */
+  .calc { background:var(--gym-surface-gold); border-radius:16px; padding:10px 12px; margin-top:12px; }
+  .calc .lb { display:flex; align-items:center; gap:6px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:var(--gym-text-secondary); }
+  .calc .v { font-size:20px; font-weight:600; color:#fff; font-variant-numeric:tabular-nums; margin-top:2px; }
+  .calc .v small { font-size:13px; color:var(--gym-text-secondary); font-weight:400; }
+  .calc .w { font-size:12px; color:var(--gym-text-secondary); margin-top:4px; }
+  .calc.compact { margin-top:0; padding:6px 10px; display:flex; align-items:center; gap:8px; }
+  .calc.compact .v { font-size:15px; margin-top:0; }
+
+  /* stan systemowy (ProfileSystemState) */
+  .sys { display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 10px; border-radius:999px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.05); color:var(--gym-text-secondary); font-size:12px; font-weight:600; white-space:nowrap; }
+  .sys.active { color:var(--gym-gold); border-color:rgba(235,196,74,.35); background:rgba(235,196,74,.08); }
+  .sys.warn { color:var(--gym-gold); border-color:rgba(235,196,74,.45); background:transparent; }
+  .sys.dash { border-style:dashed; }
+  .sys.ok { color:#fff; }
+
+  /* chipy (ProfileChipGroup: chips) */
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chp { min-height:44px; padding:0 14px; border-radius:999px; border:1px solid var(--gym-border-gold); background:transparent; color:rgba(255,255,255,.8); font-size:14px; font-weight:500; font-variant-numeric:tabular-nums; }
+  .chp[aria-pressed="true"] { border-color:rgba(235,196,74,.6); color:#fff; background:rgba(235,196,74,.10); font-weight:600; }
+  /* chipy (ProfileChipGroup: list = radiogroup) */
+  .lst { display:flex; flex-direction:column; gap:8px; }
+  .opt { min-height:56px; border-radius:16px; border:1px solid var(--gym-border-gold); padding:10px 14px; display:flex; gap:12px; align-items:center; }
+  .opt .rd { width:20px; height:20px; border-radius:999px; border:2px solid rgba(255,255,255,.4); flex:none; }
+  .opt.on { border-color:rgba(235,196,74,.6); background:rgba(235,196,74,.06); }
+  .opt.on .rd { border-color:var(--gym-gold); background:radial-gradient(circle, var(--gym-gold) 45%, transparent 50%); }
+  .opt b { display:block; font-size:14px; color:#fff; font-weight:600; }
+  .opt span { font-size:12px; color:var(--gym-text-secondary); }
+
+  /* przełącznik (ProfileSwitch) */
+  .swrow { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,.06); }
+  .swrow:last-child { border-bottom:none; }
+  .swrow b { display:block; font-size:14px; color:#fff; font-weight:600; }
+  .swrow span { display:block; font-size:12px; color:var(--gym-text-secondary); margin-top:2px; }
+  .sw { width:48px; height:28px; border-radius:999px; background:rgba(255,255,255,.12); position:relative; flex:none; margin-top:2px; }
+  .sw::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:999px; background:#fff; }
+  .sw.on { background:var(--gym-gold); }
+  .sw.on::after { left:23px; background:var(--neon-fg); }
+
+  /* kalendarz dni */
+  .cal { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+  .day { height:64px; border-radius:14px; border:1px solid var(--gym-border-gold); background:transparent; color:rgba(255,255,255,.8); display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:6px 0; font-size:11px; }
+  .day .wd { font-weight:600; letter-spacing:.06em; color:var(--gym-text-secondary); }
+  .day .dn { font-size:15px; font-weight:600; color:#fff; font-variant-numeric:tabular-nums; }
+  .day .ic { font-size:14px; line-height:1; }
+  .day[aria-pressed="true"] { border-color:rgba(235,196,74,.6); background:rgba(235,196,74,.10); }
+  .day[aria-pressed="true"] .ic { color:var(--gym-gold); }
+  .day[aria-pressed="false"] .ic { color:var(--gym-text-secondary); }
+  .legend { font-size:12px; color:var(--gym-text-secondary); margin-top:8px; }
+
+  /* posiłki */
+  .meal { background:rgba(0,0,0,.25); border:1px solid var(--gym-border-gold); border-radius:16px; padding:12px; margin-top:8px; }
+  .meal .mh { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .meal .mh b { font-size:15px; color:#fff; font-weight:600; }
+  .sumbox { margin-top:12px; }
+  .sumrow { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; }
+  .sumrow div { font-size:12px; color:var(--gym-text-secondary); font-variant-numeric:tabular-nums; }
+  .sumrow strong { display:block; font-size:15px; color:#fff; font-weight:600; }
+
+  /* banery (InlineBanner) */
+  .ban { display:flex; gap:10px; align-items:flex-start; border:1px solid rgba(235,196,74,.35); background:rgba(235,196,74,.08); border-radius:16px; padding:12px; font-size:13px; color:#fff; margin-top:12px; }
+  .ban.info { border-color:rgba(255,255,255,.18); background:rgba(255,255,255,.04); }
+  .ban.err { border-color:var(--destructive); background:rgba(255,51,71,.08); }
+  .ban .ico { flex:none; width:18px; text-align:center; }
+  .ban small { display:block; font-size:12px; color:var(--gym-text-secondary); margin-top:4px; }
+
+  /* zapis (ProfileSaveBlock) */
+  .save { margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.1); }
+  .st { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; min-height:24px; }
+  .st.dirty { color:var(--gym-gold); }
+  .st.ok { color:var(--gym-text-secondary); font-weight:500; }
+  .st .dot { width:8px; height:8px; border-radius:999px; background:var(--gym-gold); }
+  .cta { display:flex; align-items:center; justify-content:center; width:100%; height:48px; border-radius:16px; background:linear-gradient(to bottom,var(--gym-gold-bright),var(--gym-gold) 55%,var(--gym-gold-deep)); color:var(--neon-fg); font-weight:600; font-size:15px; border:0; margin-top:8px; }
+  .cta[aria-disabled="true"] { background:rgba(255,255,255,.08); color:var(--gym-text-secondary); }
+  .cta.busy { opacity:.75; }
+  .hint.center { text-align:center; margin-top:8px; }
+  .btn-o { height:48px; border-radius:16px; border:1px solid var(--gym-border-gold); background:transparent; color:#fff; font-weight:600; font-size:14px; width:100%; }
+  .btn-g { height:44px; border-radius:16px; border:0; background:transparent; color:#fff; font-weight:500; font-size:14px; width:100%; }
+  .btn-dz { height:48px; border-radius:16px; border:1px solid rgba(255,51,71,.6); background:transparent; color:#ff8593; font-weight:600; font-size:14px; width:100%; }
+  .btn-dz[aria-disabled="true"] { border-color:rgba(255,51,71,.25); color:rgba(255,133,147,.55); }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+  .link { color:var(--gym-gold); font-size:13px; font-weight:600; min-height:44px; display:inline-flex; align-items:center; text-decoration:none; }
+
+  /* strefa niebezpieczna (ProfileDangerZone) */
+  .danger { margin-top:32px; border:1px solid rgba(255,51,71,.45); background:rgba(255,51,71,.06); border-radius:22px; padding:16px; }
+  .danger h2 { display:flex; align-items:center; gap:8px; font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:#ff8593; margin:0; }
+  .danger p { font-size:13px; color:rgba(255,255,255,.85); margin:8px 0 0; }
+
+  /* dialog (ConfirmDialog) */
+  .dlg { background:#111; border:1px solid var(--gym-border-gold); border-radius:22px; padding:18px; }
+  .dlg h3 { font-size:18px; }
+  .dlg ul { margin:8px 0 0; padding-left:18px; font-size:13px; color:rgba(255,255,255,.85); }
+  .dlg ul li { margin-top:2px; }
+
+  .ico { font-size:14px; }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+  .sk { background:rgba(255,255,255,.06); border-radius:16px; height:72px; margin-top:12px; }
+</style>
+</head>
+<body>
+<div class="wall">
+
+  <!-- RAMKA 1: /profile, przegląd (stan wypełniony) -->
+  <figure>
+    <figcaption>1. /profile (przegląd), 390 px, stan wypełniony. Karty-skróty ze stanem; każda prowadzi do podstrony. Kolejność stała, nagłówek konta i zakładki w layoutcie. Pod listą: suma posiłków poza celem (ponad cel o 762 kcal).</figcaption>
+    <div class="phone"><div class="scroll">
+      <div class="acct">
+        <div class="av" aria-hidden="true">MZ</div>
+        <div><div class="nm">Marta Zielińska</div><div class="em">marta@przyklad.pl</div></div>
+        <button class="btn-out" type="button" aria-label="Wyloguj się"><span aria-hidden="true">&#8677;</span>Wyloguj</button>
+      </div>
+      <nav class="tabs" aria-label="Sekcje profilu">
+        <a class="ptab on" href="#" aria-current="page">Przegląd</a>
+        <a class="ptab" href="#">Ciało</a>
+        <a class="ptab" href="#">Trening</a>
+        <a class="ptab" href="#">Dieta</a>
+        <a class="ptab" href="#">Przypomnienia</a>
+        <a class="ptab" href="#">Aplikacja</a>
+        <a class="ptab" href="#">Konto</a>
+      </nav>
+
+      <header class="hdr"><div class="kicker">ZAWODNIK</div><h1 class="h1">Profil</h1></header>
+
+      <section aria-labelledby="p-ust">
+        <div class="sec"><span class="idx">01</span><h2 id="p-ust">Ustawienia</h2></div>
+
+        <a class="card" href="#" style="display:block;text-decoration:none;color:inherit;margin-top:0">
+          <div style="display:flex;gap:12px;align-items:center">
+            <span class="ico" aria-hidden="true" style="width:40px;height:40px;border-radius:12px;background:rgba(235,196,74,.12);display:grid;place-items:center;color:var(--gym-gold);font-size:16px">&#9878;</span>
+            <div style="flex:1;min-width:0"><h3 style="margin:0">Ciało i dane</h3>
+              <div class="meta" style="color:#fff;font-size:13px">58 kg · 168 cm</div>
+              <div class="meta">Ostatni pomiar: 12.10.2026</div></div>
+            <span aria-hidden="true" style="color:var(--gym-text-secondary)">&rsaquo;</span>
+          </div>
+        </a>
+
+        <a class="card" href="#" style="display:block;text-decoration:none;color:inherit;margin-top:12px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <span aria-hidden="true" style="width:40px;height:40px;border-radius:12px;background:rgba(235,196,74,.12);display:grid;place-items:center;color:var(--gym-gold);font-size:16px">&#127947;</span>
+            <div style="flex:1;min-width:0"><h3 style="margin:0">Trening i postępy</h3>
+              <div class="meta" style="color:#fff;font-size:13px">Cel cardio 150 min/tydz. · raport co 14 dni</div>
+              <div class="meta">Plan: Siła 5×/tydz.</div></div>
+            <span aria-hidden="true" style="color:var(--gym-text-secondary)">&rsaquo;</span>
+          </div>
+        </a>
+
+        <a class="card" href="#" style="display:block;text-decoration:none;color:inherit;margin-top:12px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <span aria-hidden="true" style="width:40px;height:40px;border-radius:12px;background:rgba(235,196,74,.12);display:grid;place-items:center;color:var(--gym-gold);font-size:16px">&#127860;</span>
+            <div style="flex:1;min-width:0"><h3 style="margin:0">Dieta</h3>
+              <div class="meta" style="color:#fff;font-size:13px">Dzień treningowy 2050 kcal · odpoczynku 1890 kcal</div>
+              <div style="margin-top:8px"><span class="sys warn">&#8599; Posiłki 2812 kcal: ponad cel o 762 kcal</span></div></div>
+            <span aria-hidden="true" style="color:var(--gym-text-secondary)">&rsaquo;</span>
+          </div>
+        </a>
+
+        <a class="card" href="#" style="display:block;text-decoration:none;color:inherit;margin-top:12px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <span aria-hidden="true" style="width:40px;height:40px;border-radius:12px;background:rgba(235,196,74,.12);display:grid;place-items:center;color:var(--gym-gold);font-size:16px">&#128276;</span>
+            <div style="flex:1;min-width:0"><h3 style="margin:0">Przypomnienia</h3>
+              <div class="meta" style="color:#fff;font-size:13px">2 z 3 włączone</div>
+              <div style="margin-top:8px"><span class="sys active">&#128276; Alarm na tym urządzeniu</span></div></div>
+            <span aria-hidden="true" style="color:var(--gym-text-secondary)">&rsaquo;</span>
+          </div>
+        </a>
+
+        <a class="card" href="#" style="display:block;text-decoration:none;color:inherit;margin-top:12px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <span aria-hidden="true" style="width:40px;height:40px;border-radius:12px;background:rgba(235,196,74,.12);display:grid;place-items:center;color:var(--gym-gold);font-size:16px">&#9635;</span>
+            <div style="flex:1;min-width:0"><h3 style="margin:0">Aplikacja</h3><div class="meta" style="color:#fff;font-size:13px">Język: Polski</div></div>
+            <span aria-hidden="true" style="color:var(--gym-text-secondary)">&rsaquo;</span>
+          </div>
+        </a>
+
+        <a class="card" href="#" style="display:block;text-decoration:none;color:inherit;margin-top:12px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <span aria-hidden="true" style="width:40px;height:40px;border-radius:12px;background:rgba(235,196,74,.12);display:grid;place-items:center;color:var(--gym-gold);font-size:16px">&#9881;</span>
+            <div style="flex:1;min-width:0"><h3 style="margin:0">Konto i prywatność</h3><div class="meta">Hasło, zgody, eksport danych i usunięcie konta</div></div>
+            <span aria-hidden="true" style="color:var(--gym-text-secondary)">&rsaquo;</span>
+          </div>
+        </a>
+      </section>
+    </div></div>
+  </figure>
+
+  <!-- RAMKA 2: /profile/body, częściowe dane, niezapisane zmiany -->
+  <figure>
+    <figcaption>2. /profile/body (Ciało i dane), 390 px. Waga i wzrost wpisane, wiek pusty z placeholderem (nie 25). Wskazówka o dacie ostatniego pomiaru i o wpisie do historii wagi. Blok zapisu w stanie „Niezapisane zmiany”.</figcaption>
+    <div class="phone"><div class="scroll">
+      <div class="acct">
+        <div class="av" aria-hidden="true">MZ</div>
+        <div><div class="nm">Marta Zielińska</div><div class="em">marta@przyklad.pl</div></div>
+        <button class="btn-out" type="button" aria-label="Wyloguj się"><span aria-hidden="true">&#8677;</span>Wyloguj</button>
+      </div>
+      <nav class="tabs" aria-label="Sekcje profilu">
+        <a class="ptab" href="#">Przegląd</a>
+        <a class="ptab on" href="#" aria-current="page">Ciało<span class="dot" role="img" aria-label="z niezapisanymi zmianami"></span></a>
+        <a class="ptab" href="#">Trening</a>
+        <a class="ptab" href="#">Dieta</a>
+        <a class="ptab" href="#">Przypomnienia</a>
+        <a class="ptab" href="#">Aplikacja</a>
+        <a class="ptab" href="#">Konto</a>
+      </nav>
+
+      <header class="hdr"><div class="kicker">PROFIL</div><h1 class="h1">Ciało i dane</h1></header>
+
+      <section aria-labelledby="b-os">
+        <div class="sec"><span class="idx">01</span><h2 id="b-os">Dane osobowe</h2></div>
+        <div class="card">
+          <div class="row2">
+            <div class="f"><label for="b-im">Imię</label><input id="b-im" class="inp" style="padding:0 14px;justify-content:flex-start" value="Marta" autocomplete="given-name"></div>
+            <div class="f"><label for="b-na">Nazwisko</label><input id="b-na" class="inp" style="padding:0 14px;justify-content:flex-start" value="Zielińska" autocomplete="family-name"></div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="b-par">
+        <div class="sec"><span class="idx">02</span><h2 id="b-par">Parametry ciała</h2></div>
+        <div class="card">
+          <div class="f">
+            <label for="b-w">Waga (kg)</label>
+            <div class="inp" style="justify-content:flex-start;gap:8px"><span class="tn" style="color:#fff">58</span><span class="unit" style="margin-left:auto">kg</span></div>
+            <div class="hint">Ostatni pomiar: 58 kg, 12.10.2026. Zmiana tutaj dodaje wpis do historii wagi.</div>
+          </div>
+          <div class="row2" style="margin-top:12px">
+            <div class="f"><label for="b-h">Wzrost (cm)</label><div class="inp" style="justify-content:flex-start"><span class="tn">168</span></div></div>
+            <div class="f"><label for="b-a">Wiek</label><div class="inp" style="justify-content:flex-start"><span class="ph">np. 25</span></div>
+              <div class="hint">Nie podano. Pole zostanie bez zmian.</div></div>
+          </div>
+          <div class="f" style="margin-top:12px">
+            <label for="b-p">Płeć</label>
+            <div class="inp" style="justify-content:space-between"><span>Nie podano</span><span class="unit" aria-hidden="true">&#9662;</span></div>
+            <div class="hint">Nieobowiązkowe. Bez wyboru liczymy szacunek uniwersalny.</div>
+          </div>
+        </div>
+
+        <div class="sec" style="margin-top:20px"><span class="idx">03</span><h2>Poziom aktywności</h2></div>
+        <div class="lst" role="radiogroup" aria-label="Poziom aktywności">
+          <div class="opt" role="radio" aria-checked="false"><span class="rd" aria-hidden="true"></span><div><b>Niska</b><span>Biurko, lekkie spacery</span></div></div>
+          <div class="opt on" role="radio" aria-checked="true"><span class="rd" aria-hidden="true"></span><div><b>Średnia</b><span>3–5 treningów tygodniowo</span></div></div>
+          <div class="opt" role="radio" aria-checked="false"><span class="rd" aria-hidden="true"></span><div><b>Wysoka</b><span>Codziennie lub intensywnie</span></div></div>
+        </div>
+
+        <div class="save">
+          <div class="st dirty"><span class="dot" aria-hidden="true"></span>Niezapisane zmiany</div>
+          <button class="cta" type="button">Zapisz parametry ciała</button>
+          <div class="hint center">Puste pola nie zmieniają zapisanych danych.</div>
+        </div>
+      </section>
+    </div></div>
+  </figure>
+
+  <!-- RAMKA 3: /profile/diet, dzień treningowy, suma poza celem -->
+  <figure>
+    <figcaption>3. /profile/diet (Dieta), 390 px, zakładka „Dzień treningowy”. Cele dnia i kalendarz w pierwszym przewinięciu. Makro posiłków: suma 2812 kcal względem celu 2050 kcal, różnica w kcal i procentach, bez oceniania. Zastrzeżenie stałe, kcal wyliczone w osobnym kontenerze.</figcaption>
+    <div class="phone"><div class="scroll">
+      <div class="acct">
+        <div class="av" aria-hidden="true">MZ</div>
+        <div><div class="nm">Marta Zielińska</div><div class="em">marta@przyklad.pl</div></div>
+        <button class="btn-out" type="button" aria-label="Wyloguj się"><span aria-hidden="true">&#8677;</span>Wyloguj</button>
+      </div>
+      <nav class="tabs" aria-label="Sekcje profilu">
+        <a class="ptab" href="#">Przegląd</a>
+        <a class="ptab" href="#">Ciało</a>
+        <a class="ptab" href="#">Trening</a>
+        <a class="ptab on" href="#" aria-current="page">Dieta</a>
+        <a class="ptab" href="#">Przypomnienia</a>
+        <a class="ptab" href="#">Aplikacja</a>
+        <a class="ptab" href="#">Konto</a>
+      </nav>
+
+      <header class="hdr"><div class="kicker">PROFIL</div><h1 class="h1">Dieta</h1></header>
+
+      <section id="cele-dnia" aria-labelledby="d-cele">
+        <div class="sec"><span class="idx">01</span><h2 id="d-cele">Cele dnia</h2></div>
+        <div class="card">
+          <h3>Dzień treningowy</h3>
+          <div class="row3">
+            <div class="f"><label for="d-tp">Białko (g)</label><div class="inp"><span class="tn">170</span></div></div>
+            <div class="f"><label for="d-tc">Węgle (g)</label><div class="inp"><span class="tn">203</span></div></div>
+            <div class="f"><label for="d-tf">Tłuszcz (g)</label><div class="inp"><span class="tn">62</span></div></div>
+          </div>
+          <div class="calc"><div class="lb"><span aria-hidden="true">&#9783;</span>Wyliczone</div><div class="v tn">2050 <small>kcal</small></div>
+            <div class="w">Białko i węgle po 4 kcal, tłuszcz 9 kcal.</div></div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <h3>Dzień odpoczynku</h3>
+          <div class="row3">
+            <div class="f"><label for="d-rp">Białko (g)</label><div class="inp"><span class="tn">170</span></div></div>
+            <div class="f"><label for="d-rc">Węgle (g)</label><div class="inp"><span class="tn">172</span></div></div>
+            <div class="f"><label for="d-rf">Tłuszcz (g)</label><div class="inp"><span class="tn">58</span></div></div>
+          </div>
+          <div class="calc"><div class="lb"><span aria-hidden="true">&#9783;</span>Wyliczone</div><div class="v tn">1890 <small>kcal</small></div>
+            <div class="w">Białko i węgle po 4 kcal, tłuszcz 9 kcal.</div></div>
+        </div>
+        <div class="hint" style="margin-top:10px">Wartości są orientacyjne. To nie jest porada medyczna ani dietetyczna.</div>
+      </section>
+
+      <section aria-labelledby="d-kal">
+        <div class="sec"><span class="idx">02</span><h2 id="d-kal">Kalendarz tygodnia</h2></div>
+        <div class="meta" style="margin:-4px 0 8px">Tydzień 19–25 paź</div>
+        <div class="cal" role="group" aria-label="Dni tygodnia">
+          <button class="day" type="button" aria-pressed="true" aria-label="Poniedziałek, 19 października, dzień treningowy"><span class="wd" aria-hidden="true">PN</span><span class="dn" aria-hidden="true">19</span><span class="ic" aria-hidden="true">&#127947;</span></button>
+          <button class="day" type="button" aria-pressed="false" aria-label="Wtorek, 20 października, odpoczynek"><span class="wd" aria-hidden="true">WT</span><span class="dn" aria-hidden="true">20</span><span class="ic" aria-hidden="true">&#9790;</span></button>
+          <button class="day" type="button" aria-pressed="true" aria-label="Środa, 21 października, dzień treningowy"><span class="wd" aria-hidden="true">ŚR</span><span class="dn" aria-hidden="true">21</span><span class="ic" aria-hidden="true">&#127947;</span></button>
+          <button class="day" type="button" aria-pressed="false" aria-label="Czwartek, 22 października, odpoczynek"><span class="wd" aria-hidden="true">CZ</span><span class="dn" aria-hidden="true">22</span><span class="ic" aria-hidden="true">&#9790;</span></button>
+          <button class="day" type="button" aria-pressed="true" aria-label="Piątek, 23 października, dzień treningowy"><span class="wd" aria-hidden="true">PT</span><span class="dn" aria-hidden="true">23</span><span class="ic" aria-hidden="true">&#127947;</span></button>
+          <button class="day" type="button" aria-pressed="true" aria-label="Sobota, 24 października, dzień treningowy"><span class="wd" aria-hidden="true">SB</span><span class="dn" aria-hidden="true">24</span><span class="ic" aria-hidden="true">&#127947;</span></button>
+          <button class="day" type="button" aria-pressed="false" aria-label="Niedziela, 25 października, odpoczynek"><span class="wd" aria-hidden="true">ND</span><span class="dn" aria-hidden="true">25</span><span class="ic" aria-hidden="true">&#9790;</span></button>
+        </div>
+        <div class="legend">Zaznaczone dni to trening. Pozostałe dni to odpoczynek.</div>
+        <div class="save">
+          <div class="st ok"><span aria-hidden="true">&#10003;</span>Zapisano 10:42</div>
+          <button class="cta" type="button" aria-disabled="true">Zapisz cele i kalendarz</button>
+        </div>
+      </section>
+
+      <section aria-labelledby="d-pos">
+        <div class="sec"><span class="idx">03</span><h2 id="d-pos">Makro posiłków</h2></div>
+        <div class="chips" role="group" aria-label="Zestaw posiłków">
+          <button class="chp" type="button" aria-pressed="true">Dzień treningowy</button>
+          <button class="chp" type="button" aria-pressed="false">Dzień odpoczynku</button>
+        </div>
+
+        <div class="meal"><div class="mh"><b>Posiłek 1</b><div class="calc compact" style="margin:0"><span class="lb" style="font-size:11px">Wyliczone</span><span class="v tn">530 kcal</span></div></div>
+          <div class="row3"><div class="f"><label>Białko (g)</label><div class="inp" style="padding:0 10px"><span class="tn">35</span></div></div>
+          <div class="f"><label>Węgle (g)</label><div class="inp" style="padding:0 10px"><span class="tn">30</span></div></div>
+          <div class="f"><label>Tłuszcz (g)</label><div class="inp" style="padding:0 10px"><span class="tn">30</span></div></div></div></div>
+        <div class="meal"><div class="mh"><b>Posiłek 2</b><div class="calc compact" style="margin:0"><span class="lb" style="font-size:11px">Wyliczone</span><span class="v tn">600 kcal</span></div></div>
+          <div class="row3"><div class="f"><label>Białko (g)</label><div class="inp" style="padding:0 10px"><span class="tn">40</span></div></div>
+          <div class="f"><label>Węgle (g)</label><div class="inp" style="padding:0 10px"><span class="tn">20</span></div></div>
+          <div class="f"><label>Tłuszcz (g)</label><div class="inp" style="padding:0 10px"><span class="tn">40</span></div></div></div></div>
+        <div class="meal"><div class="mh"><b>Posiłek 3</b><div class="calc compact" style="margin:0"><span class="lb" style="font-size:11px">Wyliczone</span><span class="v tn">572 kcal</span></div></div>
+          <div class="row3"><div class="f"><label>Białko (g)</label><div class="inp" style="padding:0 10px"><span class="tn">38</span></div></div>
+          <div class="f"><label>Węgle (g)</label><div class="inp" style="padding:0 10px"><span class="tn">24</span></div></div>
+          <div class="f"><label>Tłuszcz (g)</label><div class="inp" style="padding:0 10px"><span class="tn">36</span></div></div></div></div>
+        <div class="meal"><div class="mh"><b>Posiłek 4</b><div class="calc compact" style="margin:0"><span class="lb" style="font-size:11px">Wyliczone</span><span class="v tn">626 kcal</span></div></div>
+          <div class="row3"><div class="f"><label>Białko (g)</label><div class="inp" style="padding:0 10px"><span class="tn">32</span></div></div>
+          <div class="f"><label>Węgle (g)</label><div class="inp" style="padding:0 10px"><span class="tn">30</span></div></div>
+          <div class="f"><label>Tłuszcz (g)</label><div class="inp" style="padding:0 10px"><span class="tn">42</span></div></div></div></div>
+        <div class="meal"><div class="mh"><b>Posiłek 5</b><div class="calc compact" style="margin:0"><span class="lb" style="font-size:11px">Wyliczone</span><span class="v tn">484 kcal</span></div></div>
+          <div class="row3"><div class="f"><label>Białko (g)</label><div class="inp" style="padding:0 10px"><span class="tn">29</span></div></div>
+          <div class="f"><label>Węgle (g)</label><div class="inp" style="padding:0 10px"><span class="tn">20</span></div></div>
+          <div class="f"><label>Tłuszcz (g)</label><div class="inp" style="padding:0 10px"><span class="tn">32</span></div></div></div></div>
+
+        <div class="sumbox">
+          <div class="calc" style="margin-top:0"><div class="lb">Wyliczone · suma dnia</div><div class="v tn">2812 <small>kcal</small></div>
+            <div class="sumrow"><div>Białko<strong>174 g</strong></div><div>Węgle<strong>124 g</strong></div><div>Tłuszcz<strong>180 g</strong></div></div></div>
+          <div class="ban" role="status"><span class="ico" aria-hidden="true">&#8599;</span>
+            <div>Suma posiłków jest o 762 kcal (37%) wyższa niż cel dnia treningowego (2050 kcal).<small>To tylko różnica, nie zalecenie.</small>
+              <a class="link" href="#cele-dnia" style="padding:0">Zmień cele dnia</a></div></div>
+          <div class="hint" style="margin-top:10px">Zestaw dotyczy wybranego typu dnia. Zapis obejmuje oba zestawy.</div>
+        </div>
+        <div class="save">
+          <div class="st dirty"><span class="dot" aria-hidden="true"></span>Niezapisane zmiany</div>
+          <button class="cta" type="button">Zapisz makro posiłków</button>
+        </div>
+      </section>
+    </div></div>
+  </figure>
+
+  <!-- RAMKA 4: /profile/account, zgody, eksport, strefa niebezpieczna -->
+  <figure>
+    <figcaption>4. /profile/account (Konto i prywatność), 390 px. Zgody z równymi przyciskami (LR-3), niezbędne jako informacja (LR-2), marketing jako stan systemowy (LR-4), eksport z ostrzeżeniem (LR-6), strefa niebezpieczna oddzielona na dole (LR-7). Tekst docelowy statystyk wymaga bramki serwerowej.</figcaption>
+    <div class="phone"><div class="scroll">
+      <div class="acct">
+        <div class="av" aria-hidden="true">MZ</div>
+        <div><div class="nm">Marta Zielińska</div><div class="em">marta@przyklad.pl</div></div>
+        <button class="btn-out" type="button" aria-label="Wyloguj się"><span aria-hidden="true">&#8677;</span>Wyloguj</button>
+      </div>
+      <nav class="tabs" aria-label="Sekcje profilu">
+        <a class="ptab" href="#">Przegląd</a>
+        <a class="ptab" href="#">Ciało</a>
+        <a class="ptab" href="#">Trening</a>
+        <a class="ptab" href="#">Dieta</a>
+        <a class="ptab" href="#">Przypomnienia</a>
+        <a class="ptab" href="#">Aplikacja</a>
+        <a class="ptab on" href="#" aria-current="page">Konto</a>
+      </nav>
+
+      <header class="hdr"><div class="kicker">PROFIL</div><h1 class="h1">Konto i prywatność</h1></header>
+
+      <section aria-labelledby="a-zg">
+        <div class="sec"><span class="idx">01</span><h2 id="a-zg">Zgody</h2></div>
+        <div class="card">
+          <a class="link" href="#" style="padding:0;min-height:44px">Polityka prywatności</a>
+          <div class="swrow"><div><b>Niezbędne do działania</b><span>Sesja i zabezpieczenia konta. Nie da się ich wyłączyć.</span></div>
+            <span class="sys ok" style="flex:none"><span aria-hidden="true">&#128274;</span>Zawsze aktywne</span></div>
+          <div class="swrow"><div><b>Statystyki użycia aplikacji</b>
+              <span>Wejścia i ekrany w aplikacji. Wyłączenie wstrzymuje wysyłkę tych danych z Twojego konta.</span>
+              <span style="margin-top:6px">Ostatnia decyzja: 12.10.2026</span></div>
+            <button class="sw on" type="button" role="switch" aria-checked="true" aria-label="Statystyki użycia aplikacji"><span class="sr">włączone</span></button></div>
+          <div class="swrow"><div><b>Marketing i reklamy</b><span>Nieaktywne w tej wersji.</span></div>
+            <span class="sys dash" style="flex:none">Nieaktywne w tej wersji</span></div>
+        </div>
+        <div class="pair">
+          <button class="btn-o" type="button">Akceptuj wszystkie</button>
+          <button class="btn-o" type="button">Tylko niezbędne</button>
+        </div>
+        <div class="hint" style="margin-top:8px">Zgody zapisują się od razu. Status: Zapisano 10:42.</div>
+      </section>
+
+      <section aria-labelledby="a-dane">
+        <div class="sec"><span class="idx">02</span><h2 id="a-dane">Dane i eksport</h2></div>
+        <div class="card">
+          <div class="hint" style="margin:0;font-size:13px;color:rgba(255,255,255,.85)">Pobierz dane z aplikacji (JSON lub CSV). Zakres eksportu: [do potwierdzenia].</div>
+          <div class="ban info" role="note"><span class="ico" aria-hidden="true">&#9432;</span><span>Plik zawiera dane o treningach, zdrowiu i ciele. Przechowuj go bezpiecznie.</span></div>
+          <div class="pair" style="margin-top:12px">
+            <button class="btn-o" type="button">Pobierz JSON</button>
+            <button class="btn-o" type="button">Pobierz CSV</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="danger" aria-labelledby="a-strefa">
+        <h2 id="a-strefa"><span aria-hidden="true">&#9888;</span>Strefa niebezpieczna</h2>
+        <p>Usunięcie konta jest nieodwracalne. Znikną treningi, posiłki, wagi, raporty ciała, zdjęcia, posty i komentarze, znajomości oraz ustawienia. Dane mogą pozostać w kopiach zapasowych i u dostawców technicznych do czasu ich wygaśnięcia [do potwierdzenia].</p>
+        <div style="margin-top:12px"><button class="btn-dz" type="button">Usuń konto</button></div>
+      </section>
+    </div></div>
+  </figure>
+
+</div>
+
+<!-- PANEL STANÓW: zapis, dialogi, ostrzeżenia (wspólne dla wszystkich ekranów profilu) -->
+<div class="wall" style="padding-top:0">
+  <figure>
+    <figcaption>5. Stany wspólnych klocków (390 px): ProfileSaveBlock (czysty, zmieniony, zapisywanie, błąd, konflikt, offline), ostrzeżenie LR-10, dialog usunięcia konta, dialog niezapisanych zmian.</figcaption>
+    <div class="states">
+
+      <div>
+        <div class="kicker">ProfileSaveBlock · stany</div>
+        <div class="save" style="margin-top:8px;border-top:none;padding-top:0">
+          <div class="st ok"><span aria-hidden="true">&#10003;</span>Zapisano 10:42</div>
+          <button class="cta" type="button" aria-disabled="true">Zapisz cel cardio</button>
+        </div>
+        <div class="save">
+          <div class="st dirty"><span class="dot" aria-hidden="true"></span>Niezapisane zmiany</div>
+          <button class="cta" type="button">Zapisz cel cardio</button>
+        </div>
+        <div class="save">
+          <div class="st ok">Zapisywanie…</div>
+          <button class="cta busy" type="button" aria-busy="true">Zapisywanie…</button>
+        </div>
+        <div class="save">
+          <div class="ban err" role="alert"><span class="ico" aria-hidden="true">&#9888;</span><div>Nie udało się zapisać. Sprawdź połączenie i spróbuj ponownie. Wpisane wartości zostają w formularzu.</div></div>
+          <button class="cta" type="button">Zapisz cel cardio</button>
+        </div>
+        <div class="save">
+          <div class="ban" role="status"><span class="ico" aria-hidden="true">&#9888;</span>
+            <div>Te ustawienia zmieniono na innym urządzeniu. Wczytaj najnowsze dane. Zmian z tego ekranu nie zapiszemy automatycznie.</div></div>
+          <div class="pair" style="margin-top:12px">
+            <button class="cta" type="button" style="margin-top:0">Wczytaj najnowsze dane</button>
+            <button class="btn-g" type="button" style="height:48px">Zachowaj moje zmiany</button>
+          </div>
+        </div>
+        <div class="save">
+          <div class="ban info" role="status"><span class="ico" aria-hidden="true">&#9432;</span>Brak połączenia. Zapis wymaga sieci. Wpisane wartości zostają w formularzu.</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="kicker">Dialog: usunięcie konta</div>
+        <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dl-t" style="margin-top:8px">
+          <h3 id="dl-t">Usunąć konto?</h3>
+          <div style="font-size:13px;color:rgba(255,255,255,.85);margin-top:8px">Zostaną usunięte: treningi, posiłki, wagi, raporty ciała, zdjęcia, posty i komentarze, znajomości oraz ustawienia.</div>
+          <div style="font-size:13px;color:#fff;font-weight:600;margin-top:8px">Tej operacji nie da się cofnąć.</div>
+          <div class="f" style="margin-top:12px">
+            <label for="dl-in">Wpisz USUŃ, aby potwierdzić</label>
+            <input id="dl-in" class="inp" style="justify-content:flex-start;padding:0 14px" value="USU" aria-describedby="dl-h">
+            <div class="hint" id="dl-h">Wpisz USUŃ, aby włączyć przycisk.</div>
+          </div>
+          <div class="pair" style="margin-top:14px">
+            <button class="btn-o" type="button">Anuluj</button>
+            <button class="btn-dz" type="button" aria-disabled="true">Usuń na zawsze</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="kicker">Dialog: niezapisane zmiany przy zmianie zakładki</div>
+        <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dl2-t" style="margin-top:8px">
+          <h3 id="dl2-t">Masz niezapisane zmiany</h3>
+          <div style="font-size:13px;color:rgba(255,255,255,.85);margin-top:8px">W sekcji „Ciało i dane” są zmiany, których nie zapisano.</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+            <button class="cta" type="button" style="margin-top:0">Zapisz i przejdź</button>
+            <button class="btn-o" type="button">Odrzuć zmiany</button>
+            <button class="btn-g" type="button">Zostań</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="kicker">Ostrzeżenie LR-10 (konto 16–17 lat, cel z deficytem)</div>
+        <div class="ban info" role="note" style="margin-top:8px"><span class="ico" aria-hidden="true">&#9432;</span>
+          <div>Cele z deficytem kalorycznym nie są zalecane w tym wieku. Jeśli jedzenie lub waga zaczynają Cię martwić, porozmawiaj z lekarzem.<small>[treść do zatwierdzenia przez prawnika]</small></div></div>
+      </div>
+
+      <div>
+        <div class="kicker">Przegląd: nowy użytkownik (stan pusty)</div>
+        <div class="ban info" role="note" style="margin-top:8px"><span class="ico" aria-hidden="true">&#9432;</span>Zacznij od danych ciała. Wpływają na szacunek kcal z cardio.</div>
+        <div class="card" style="margin-top:12px"><div class="meta" style="font-size:13px;color:#fff">Ciało i dane</div>
+          <div style="margin-top:6px"><span class="sys warn">&#43; Uzupełnij dane ciała</span></div></div>
+      </div>
+
+    </div>
+  </figure>
+</div>
+
+</body>
+</html>
