@@ -733,3 +733,35 @@ A-1..A-3 pozostają zaakceptowane (bez nowych odstępstw).
 ### 19.6 Werdykt ux (etap 7b)
 
 **ODRZUCONE** (cofnięcie do etapu 5, frontend) - wyłącznie z powodu pięciu drobnych poprawek blokujących (19.2 i 19.3: pkt 6, 7, 10, 11 oraz R-1). Poprawki B-3, B-4, B-5 i B-6 są zrealizowane poprawnie i zostają zatwierdzone. Po wprowadzeniu pięciu poprawek ux wykona ponowną, ograniczoną weryfikację tylko tych punktów (bez pełnego przeglądu), a tester potwierdzi przepływ D-3. Jeśli te pięć punktów zostanie domkniętych, werdykt przechodzi na **ZATWIERDZONE Z UWAGAMI** (backlog z 19.3 i 19.4, właściciel frontend, uzgodnienia ux).
+
+## 20. Etap 7c - weryfikacja pięciu poprawek z sekcji 19 (ux, 2026-10-25)
+
+Zakres: wyłącznie pkt 6, 7, 10, 11 z 19.3 oraz R-1 (licznik serii, 19.2). Sprawdzono kod (nie zrzuty ekranu, bo w tej sesji nie uruchomiono aplikacji). Pozostałe punkty bez zmian oceny.
+
+### 20.1 Weryfikacja punktów blokujących
+
+| Pkt | Plik i miejsce | Wynik | Uzasadnienie |
+|---|---|---|---|
+| **R-1** licznik serii | `components/active-workout/workout-finished-screen.tsx:398-406` | **ZATWIERDZONE** | Widoczna liczba i ułamek (`{setsDone}` + `/{setsTotal}` gdy różne) są w `<span aria-hidden="true">`. Osobny `<span className="sr-only">` zawiera `{setsDone} z {setsTotal} serii wykonanych` (pełny tekst, z `setsDone`, nie sam fragment). Czytnik czyta jedno, niesprzeczne zdanie, zgodne z 8.3 (`aria-label` „14 z 16 serii wykonanych”). |
+| **6** odmiana „kolejne rekordy” | `workout-finished-screen.tsx:454-461` | **ZATWIERDZONE** | `plural(n, "kolejny rekord", "kolejne rekordy", "kolejnych rekordów")` z `lib/progress-format.ts:40-47`, `n = newMaxHits.length - 1`. Wynik: 1 → „kolejny rekord”, 2-4 → „kolejne rekordy”, 5+ → „kolejnych rekordów”, 12-14 i 22-24 poprawnie (wyjątek `lastTwo 12-14`). Podpis renderowany tylko przy `length > 1`, więc zero nie wpada w odmianę. |
+| **7** format cardio | `workout-finished-screen.tsx:229-237` + `lib/workout-finish-format.ts:23-35` | **ZATWIERDZONE** | Zweryfikowano implementację: `formatCountPl` wymusza `useGrouping: true` (domyślne `auto` dla pl-PL nie grupuje 4 cyfr), `formatDistanceKmPl` ma `maximumFractionDigits: 1`. Sprawdzenie w Node (ICU): `4500` → „4 500”, `20` → „20”, `1234567` → „1 234 567”, `3.2` → „3,2”, `3` → „3”, `0.25` → „0,3”, `12.75` → „12,8”. Test `lib/workout-finish-format.test.ts` przechodzi (5/5). Jednostki `min`, `km`, `kcal`, `kroków` dołączone w `cardioSummaryLine()`. |
+| **10** dialog odrzucenia w pasku | `components/active-workout/active-workout-global-bar.tsx:231-238` | **ZATWIERDZONE** | Pasek renderuje `<WorkoutDiscardSessionDialog open onOpenChange onConfirm>` z `components/active-workout/workout-discard-session-dialog.tsx` (ten sam komponent co menu sesji, `active-workout-view.tsx:843`). Inline `AlertDialog` „Odrzucić aktywny trening?” zniknął z pliku (grep: brak tekstu, brak importu `AlertDialog` w pasku). Jeden tytuł („Zakończyć bez zapisu?”) i jeden przycisk na obu wejściach. |
+| **11** kicker w przerwie | `components/active-workout/rest-break-screen.tsx:183` | **ZATWIERDZONE** | Kicker brzmi „Trening zakończony”. Nagłówek „Wszystkie serie za tobą” bez zmian. Termin „Koniec treningu” nie występuje w komponentach aktywnego treningu jako stan przerwy. |
+
+**Wynik: 5/5 punktów blokujących zamkniętych.**
+
+### 20.2 Uwagi niskiego ryzyka wynikające z weryfikacji (nie blokują)
+
+- **N-4 (niski, właściciel frontend)**: sr-only licznika serii jest renderowany zawsze, także przy `setsTotal === 0`, co daje „0 z 0 serii wykonanych”. Przypadek praktycznie nieosiągalny (sesja bez serii nie dochodzi do ekranu końcowego z tonażem), więc tylko do uporządkowania: renderować sr-only tylko przy `setsTotal > 0`, jak w 19.2.
+- Pozostałe uwagi z 19.3 (pkt 5, 8, 9, 12, 13, 15-25) i 19.4 (N-1, N-2, N-3) bez zmian: zostają w backlogu jako ZATWIERDZONE Z UWAGAMI, właściciel `frontend` (uzgodnienia `ux`). Pkt 5 i 13 (badge `text-[10px]`, linia rekordu bez `tabular-nums`) są najbliższe poprawce; zalecam je jako pierwsze w kolejnym przebiegu frontendu.
+- Pkt 19 (`aria-controls` na nieistniejący `id`, gdy postęp zwinięty) jest średni z perspektywy ARIA. Warto go domknąć przy okazji kolejnej zmiany w `workout-finished-screen.tsx`, bez osobnej rundy.
+
+### 20.3 Zakres niewykonany w tym etapie
+
+- Etap 8 (pełny przegląd wizualny z uruchomieniem aplikacji, porównanie z makietą właściciela, zrzuty w 360/390/768 px w trybie jasnym i ciemnym) - **nie wykonany**; w tej sesji brak środowiska uruchomieniowego, a zgodnie z zleceniem zostaje na osobny etap po tym werdykcie.
+- Punkty 1, 4 i 5 z 7b nie mają testów DOM (brak `@testing-library/react`/`jsdom` w repo). Ich weryfikacja jest czytaniem kodu; potwierdzenie wizualne przypada na etap 8.
+- Bramka testera (6b/7c) i E2E (D-07) - poza zakresem tego werdyktu ux.
+
+### 20.4 Werdykt ux (etap 7c, część spójność wyglądu i mikrokopii)
+
+**ZATWIERDZONE Z UWAGAMI.** Odrzucenie etapu 7 z 2026-10-25 (sekcja 19.6) zostaje zdjęte: pięć blokujących poprawek jest zrealizowanych zgodnie ze specyfikacją i zweryfikowanych w kodzie. Uwagi z 19.3, 19.4 oraz N-4 zostają w backlogu (właściciel `frontend`, uzgodnienia `ux`), bez blokowania wydania. Ten werdykt zamyka część ux etapu 7; etap 8 (przegląd wizualny) jest odrębną bramką.

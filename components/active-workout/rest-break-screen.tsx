@@ -180,7 +180,7 @@ function WorkoutEndCard({ progress }: { progress: SessionProgress }) {
   return (
     <section className="rounded-[18px] border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] p-3 compact:px-3 compact:py-2.5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-        Koniec treningu
+        Trening zakończony
       </p>
       <p className="mt-1 text-[17px] font-semibold text-white compact:text-[16px]">
         Wszystkie serie za tobą

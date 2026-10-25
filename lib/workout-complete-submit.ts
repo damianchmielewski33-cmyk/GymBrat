@@ -32,7 +32,14 @@ export type SubmitWorkoutResult =
       planCompare: WorkoutPlanComparePayload | null;
     }
   | { status: "queued"; localId: string }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string }
+  /**
+   * Serwer wykrył kolizję `operationId` między różnymi sesjami (`startedAt` się nie
+   * zgadza) — ADR 0004 p.12.5, defense in depth. Nie jest to retry tego samego zapisu,
+   * więc serwer odmawia odpowiedzi sukcesu; traktujemy to jak błąd zapisu (ekran błędu,
+   * „Spróbuj ponownie”), nigdy jak ekran sukcesu.
+   */
+  | { status: "conflict"; message: string };
 
 /**
  * Zapisuje trening na serwerze lub — przy braku sieci — w kolejce IndexedDB.
@@ -54,11 +61,18 @@ export async function submitCompletedWorkout(
     const data = (await res.json()) as {
       ok?: boolean;
       error?: string;
+      conflict?: boolean;
       workoutId?: string;
       duplicate?: boolean;
       strengthDeltaPercent?: number | null;
       planCompare?: WorkoutPlanComparePayload | null;
     };
+    if (res.status === 409 && data.conflict === true) {
+      return {
+        status: "conflict",
+        message: mapWorkoutCompleteClientError(res.status, data.error),
+      };
+    }
     if (!res.ok || !data.ok || typeof data.workoutId !== "string") {
       return {
         status: "error",

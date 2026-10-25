@@ -67,6 +67,23 @@ export function isActiveWorkoutCloudFresh(
   return now - updatedAt <= maxAgeMs;
 }
 
+/**
+ * Payload „wygaszonej” sesji — zapisywany w miejsce fizycznego DELETE (005, B-1b),
+ * żeby rewizja w `activeWorkoutSessions` nigdy nie wracała do zera. `hasActiveLocalSession`
+ * dla tego payloadu zawsze zwraca false, więc GET nigdy go nie wznowi jako aktywną sesję.
+ */
+export const ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD: ActiveWorkoutCloudPayload = {
+  startedAt: null,
+  pausedElapsedSeconds: 0,
+  workoutStartedAtMs: null,
+  operationId: null,
+  title: "",
+  workoutPlanId: null,
+  cardioMinutes: 0,
+  exercises: [],
+  selectedExerciseId: null,
+};
+
 export type CloudHydrateAction =
   | "noop"
   | "apply"

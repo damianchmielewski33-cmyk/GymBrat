@@ -550,7 +550,13 @@ export const workoutPlans = sqliteTable("workout_plans", {
     .$defaultFn(() => new Date()),
 });
 
-/** Jedna aktywna (niedokończona) sesja treningu na użytkownika — sync między urządzeniami. */
+/**
+ * Jedna aktywna (niedokończona) sesja treningu na użytkownika — sync między urządzeniami.
+ * Wiersz żyje permanentnie na użytkownika: `DELETE`/`GET` w `app/api/active-workout-session/route.ts`
+ * nigdy go fizycznie nie usuwają, tylko nadpisują wygaszonym payloadem
+ * (`ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD`) z inkrementowaną rewizją (005, B-1b) — inaczej rewizja
+ * wraca do zera i zaległy klient z wyższą rewizją może nadpisać nowo utworzoną sesję.
+ */
 export const activeWorkoutSessions = sqliteTable("active_workout_sessions", {
   userId: text("user_id")
     .primaryKey()

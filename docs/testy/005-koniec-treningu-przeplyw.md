@@ -281,3 +281,188 @@ Uzasadnienie:
 Po poprawkach powtórzyć: `tester` (testy B-1, B-2, D-03, D-04 w odpowiednich modułach), `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run test:e2e` (po aktualizacji D-07).
 
 Wszystkie kryteria P1-P10 są zaimplementowane w kodzie zgodnie z ADR i UX, z wyjątkiem: AC-2.3 (D-11, uzgodnione w UX), AC-7.3 (D-10), AC-6.2/6.4 (lokalizacja wskaźnika w edytorze, drobne), AC-10.3 (N). Najpoważniejsze ryzyko to B-1.
+
+---
+
+## 9. Powtórka po poprawkach (etap 7b)
+
+- **Data**: 2026-10-25, tester (powtórka po odrzuceniu etapu 7; zakres: B-1, B-2, D-03, D-04, D-06, D-07).
+- **Metoda**: czytanie zmienionego kodu, testy celowane Vitest, sonda na prawdziwym handlerze `app/api/active-workout-session/route.ts` (harness `createMemoryDb`, mock auth/CSRF; plik sondy usunięty po przebiegu, nie został w repo), próba `npm run test:e2e`.
+
+### 9.1 Wyniki komend
+
+| Komenda | Wynik |
+|---|---|
+| `npx vitest run` (4 pliki: cloud, persist, outbox-db, use-workout-finish-flow) | 22/22 zaliczonych |
+| `npm test` | 1060 testów: **1058 OK**, 2 niezaliczone (`lib/android-version.test.ts`, D-15 - pre-istniejące, bez zmian). 142 pliki: 141 OK, 1 z 2 awariami. |
+| `npx tsc --noEmit` | czysto (exit 0) |
+| `npm run lint` | 142 problemy: **104 błędy** (= baseline), 38 ostrzeżeń |
+| `npm run test:e2e` (`e2e/active-workout.spec.ts`) | **nie wykonano wykonawczo**: wszystkie 28 testów pominięte przez `test.skip` - brak `E2E_EMAIL` / `E2E_PASSWORD` w tej sesji (lokalna jednorazowa baza) |
+
+### 9.2 B-1 - idempotencja `operationId` między urządzeniami
+
+**Propagacja pola (zweryfikowana czytaniem kodu)**: `lib/stores/active-workout.ts` (`start()` generuje klucz tylko gdy `null`; `applyPlan`/`reset` czyszczą; `partialize` zawiera `operationId`) → `snapshotActiveWorkoutPayload` (`lib/active-workout-persist.ts`) → body `PUT` (`lib/active-workout-cloud.ts`, pole opcjonalne, walidacja `isActiveWorkoutCloudPayload`) → serwer zapisuje cały payload JSON (`route.ts`) → `GET`/konflikt 409 → `applyCloudPayload` (`components/active-workout/active-workout-cloud-sync.tsx`, `operationId: payload.operationId ?? null`) → `persistActiveWorkoutLocalNow` → `doSave` używa `ensureOperationId()`. Łańcuch jest kompletny.
+
+**Scenariusz A (dwa urządzenia, ten sam trening)**: duplikat wiersza jest zablokowany. Urządzenie B z kluczem X po odebraniu sesji dostaje X i serwer zwraca `duplicate: true`. Zamknięte w zakresie duplikatów wierszy.
+
+**Scenariusz B (B z nieaktualną sesją 1, A kończy 1 i startuje 2)**: pierwotny defekt (klucz sesji 1 przy zapisie sesji 2) jest naprawiony pod warunkiem, że B dostanie stan z chmury przed zakończeniem. **Odkryto nowy defekt B-1b (blokujący), który uniemożliwia zamknięcie scenariusza B.** Sonda na handlerze PUT/DELETE (wynik z konsoli):
+```
+A session2 revision 1
+B stale status 200
+B stale body {"ok":true,"revision":6,...}
+CLOUD AFTER op-X Sesja 1 devB-bbbbbbbb
+```
+Przebieg: B synchronizował sesję 1 pięć razy (rewizja klienta 5). A kończy sesję 1 - `deleteCloud()` kasuje wiersz i zeruje lokalną rewizję do 0. A startuje sesję 2 (`op-Z`) z rewizją 0 → serwer ustawia rewizję 1. Następny push B z rewizją 5 przechodzi, bo konflikt zgłaszany jest tylko przy `clientRevision < serverRevision` (`route.ts`, `handlePUT`). Sesja 2 zostaje nadpisana stanem B. A dostaje 409 i przejmuje sesję 1 z kluczem `op-X`. Zakończenie na A zwraca `duplicate: true` i nie zapisuje sesji 2. Sesja 2 jest cicho utracona. Serwer (`route.ts`) i `lib/active-workout-cloud.ts` nie zmieniły się względem `5aa8209`, więc defekt jest pre-istniejący, ale scenariusz B z pierwotnego raportu (cicha utrata) pozostaje otwarty.
+
+**Pokrycie testami B-1**: `lib/active-workout-cloud.test.ts` (4) testuje tylko `isActiveWorkoutCloudPayload`; `lib/active-workout-persist.test.ts` (+1) testuje tylko snapshot. Funkcja `applyCloudPayload` (jedyne miejsce przywracające klucz z chmury po stronie klienta) nie ma testu - jest w komponencie, bez eksportu. Brak testu integracyjnego wielourządzeniowego. Luka jest realna, ale sama w sobie nie blokuje; blokuje ją defekt B-1b, który test wielourządzeniowy by wykrył.
+
+**Werdykt B-1: NIE ZAMKNIĘTE** (propagacja klucza OK; scenariusz B nadal prowadzi do utraty sesji).
+
+### 9.3 B-2 - wpisy kolejki offline bez `operationId`
+
+- `lib/workout-outbox-db.ts` `outboxList()`: wpis bez klucza dostaje `crypto.randomUUID()`, a rekord jest zapisywany ponownie przez `outboxPut` (osobna transakcja, `await`), dopiero potem zwracany. Zapis jest trwały, a nie tylko w pamięci. Potwierdzone czytaniem kodu.
+- `lib/workout-outbox-db.test.ts` (2): sprawdza wartość zwróconą z `outboxList()`, ale **nie sprawdza trwałości** (ponowny odczyt tego samego rekordu z atrapy IDB). Luka niskiego ryzyka.
+- Residuum: gdy `outboxPut` się nie uda (błąd jest połknięty), każdy kolejny odczyt generuje nowy klucz. Jeśli pierwsze POST doszło do serwera, a wpis nie został usunięty, może powstać duplikat. Niskie ryzyko (wyjątek IDB przy zapisie).
+- Pętla 400 w `components/workout/workout-outbox-flush.tsx` **nie została zmieniona**. Wpis z 400 z innej przyczyny nadal jest ponawiany co 120 s bez końca. Przyczyna z brakiem klucza jest usunięta.
+
+**Werdykt B-2: ZAMKNIĘTE** (brak klucza jest naprawiany przy odczycie i utrwalany). Uwagi: pętla 400 (średni, backlog frontend) i brak asercji trwałości w teście (niski).
+
+### 9.4 D-03 - edytor cardio po zapisie 0 min
+
+- `openCardioEditor()` (`components/active-workout/workout-finished-screen.tsx`, ok. l. 240) ustawia szkice z aktualnego `cardioMinutes`/`cardioExtras` przy każdym otwarciu. Po zapisie 0 min `setCardioExtras` ustawia `distanceKm`/`avgHr`/`calories`/`steps` na `null`, a `draftMinutes` wraca do 20.
+- Brak testu automatycznego (brak DOM). Potwierdzone czytaniem kodu.
+
+**Werdykt D-03: ZAMKNIĘTE** (C; test renderowania nadal w luce, E2E do wykonania).
+
+### 9.5 D-04 - tempo cardio
+
+- Klient wysyła `paceMinPerKm: null` (`workout-finished-screen.tsx`, ok. l. 265). Serwer w `patchCardioInCompletedSessionJson` (`lib/workout-plan-compare.ts`, l. 266-271) liczy tempo jako `cardioMinutes / distanceKm`, gdy klient go nie poda. Tempo nie jest wyświetlane w `cardioSummaryLine` (pokazuje min, km, kcal, kroki), więc lokalny stan nie pokazuje starego tempa.
+- Ścieżka `null` + dystans przelicza tempo. Test jednostkowy konkretnie tej ścieżki nie został zweryfikowany. Potwierdzone czytaniem kodu.
+
+**Werdykt D-04: ZAMKNIĘTE** (C).
+
+### 9.6 D-06 - „Brak zaliczonych serii” przy masie ciała
+
+- `volumeCaption()` (l. 111) i karta „Najlepsze serie” (l. 465) używają `data.setsDone === 0`. Trening z zaliczonymi seriami 0 kg nie dostaje błędnego komunikatu. Potwierdzone czytaniem kodu; brak testu renderowania.
+
+**Werdykt D-06: ZAMKNIĘTE** (C).
+
+### 9.7 D-07 - testy E2E
+
+- Asercje w `e2e/active-workout.spec.ts` (statyczne porównanie z kodem): „Podaj ciężar” usunięte (asercja `toHaveCount(0)`), zapis masy ciała („Seria 1, zapisana: 0 kg”, „Zapisano 1 z 7 serii”), komunikat „Podaj liczbę powtórzeń” (`guided-session-layout.tsx:600`), menu „Zakończ trening” → „Zakończyć trening?” → „Zakończ i zapisz” → „Zapisuję trening…” → „Trening zakończony”. Wszystkie teksty istnieją w komponentach. Zgodność statyczna: tak.
+- **Nie wykonano** (brak credentials). Wszystkie 28 testów pominięte. Status: niewykonane end-to-end.
+
+**Werdykt D-07: NIEWYKONANE** (statycznie zgodne, wymaga przebiegu z `E2E_EMAIL`/`E2E_PASSWORD`).
+
+### 9.8 Ustalenia powtórki
+
+| ID | Status | Waga | Właściciel | Opis |
+|---|---|---|---|---|
+| B-1b (nowy) | otwarty | **blokujący** | backend (`app/api/active-workout-session/route.ts`), frontend (`active-workout-cloud-sync.tsx`) | Rewizja zerowana po DELETE pozwala nieaktualnemu urządzeniu nadpisać nową sesję (sonda). Do naprawy: monotoniczna rewizja po DELETE (np. wiersz-nagrobek albo klient przejmuje rewizję z odpowiedzi DELETE) i test regresji na handlerze PUT/DELETE (sonda jako stały test). |
+| B-1 (test) | otwarty | wysoki | frontend | Wyciągnąć `applyCloudPayload` do `lib/` i dopisać test propagacji `operationId`; test wielourządzeniowy po naprawie B-1b. |
+| B-2 pętla 400 | otwarty | średni | frontend | `workout-outbox-flush.tsx`: traktować 4xx (poza 401/429) jako odrzucenie z komunikatem, a nie ponawianie w nieskończoność. |
+| B-2 trwałość | otwarty | niski | frontend | Asercja w `lib/workout-outbox-db.test.ts` na ponowny odczyt rekordu; obsługa błędu `outboxPut`. |
+| D-07 | otwarty | wysoki przed merge | tester z credentials / frontend | Przebieg `npm run test:e2e` z `E2E_EMAIL`/`E2E_PASSWORD` na lokalnej bazie. |
+| D-03, D-04, D-06 | zamknięte | - | - | Potwierdzone czytaniem kodu; testy renderowania w luce (sekcja 6). |
+
+### 9.9 Czy luka testowa B-1 blokuje ZATWIERDZENIE
+
+Sama luka (brak testu integracyjnego wielourządzeniowego i brak testu `applyCloudPayload`) to uwaga na poziomie „ZATWIERDZONE Z UWAGAMI” z wpisem do backlogu. Sonda jednak pokazała, że przy scenariuszu B dochodzi do utraty danych, a test wielourządzeniowy by to wykrył. Dlatego luka razem z B-1b blokuje wydanie. Warunek zatwierdzenia: naprawiona rewizja po DELETE, stały test regresji na handlerze PUT/DELETE (sonda), test `applyCloudPayload` oraz przebieg E2E.
+
+### 9.10 Werdykt etapu 7b (tester)
+
+**ODRZUCONE** - cofnięcie do etapu 5 (`backend`: rewizja po DELETE w `app/api/active-workout-session/route.ts` + test regresji; `frontend`: przejęcie rewizji po DELETE / wyciągnięcie `applyCloudPayload` z testem, pętla 400 w flushu, asercja trwałości). Pozostałe pozycje (D-03, D-04, D-06, B-2 jako mechanizm klucza) przechodzą. D-07 wymaga przebiegu E2E przed merge.
+
+### 9.11 Ryzyka resztkowe
+
+- Brak wykonanego E2E (D-07) i brak testu renderowania ekranu końcowego i edytora cardio.
+- Zachowanie przeglądarki (pagehide, dwie karty z tym samym `deviceId` - `localStorage` jest wspólny dla kart) nie zostało przetestowane end-to-end.
+- Sonda pokazuje, że po naprawie B-1b trzeba potwierdzić zachowanie przy dwóch kartach na tym samym urządzeniu (ten sam `deviceId`).
+
+---
+
+## 10. Finalna weryfikacja (etap 7c, tester, 2026-10-25)
+
+- **Zakres**: B-1b (naprawa z etapu 5b: `handleDELETE`, GET ghost, `deleteCloud`, `respondWithExistingWorkout`), pięć poprawek ux z sekcji 19 raportu ux, komendy regresji, E2E (D-07). Metoda: czytanie kodu, testy Vitest, dwie tymczasowe sondy na prawdziwych handlerach `app/api/active-workout-session/route.ts` i klienta `lib/active-workout-cloud-client.ts` (atrapa `fetch` kierowana do `PUT`/`DELETE`/`GET` handlera, harness `createMemoryDb`). Pliki sond usunięte po przebiegu; nie zostały w repo.
+
+### 10.1 Wyniki komend (uruchomione w tej sesji)
+
+| Komenda | Wynik |
+|---|---|
+| `npm test` | 1081 testów: **1079 OK**, 2 niezaliczone (`lib/android-version.test.ts`, D-15, pre-istniejące). 144 pliki: 143 OK, 1 z 2 awariami. |
+| `npx tsc --noEmit` | czysto (exit 0) |
+| `npm run lint` | **142 problemy: 104 błędy, 38 ostrzeżeń** = baseline (`5aa8209`/etap 7b). Dwa błędy w dotkniętych plikach (`active-workout-global-bar.tsx:69`, `workout-finished-screen.tsx:185`, reguła `react-hooks/set-state-in-effect`) są identyczne z HEAD (wzorzec pre-istniejący). |
+| `npm run test:e2e` | **NIE WYKONANO**: brak `E2E_EMAIL` / `E2E_PASSWORD` w tej sesji (sprawdzone w środowisku, brak wpisu w `.env.local`). `e2e/active-workout.spec.ts` pomija 28 testów przez `test.skip`. Nie blokuje werdyktu tego etapu (wymóg przed merge, po stronie środowiska użytkownika / CI). |
+
+### 10.2 B-1b - scenariusz z sekcji 9.2 (zamknięty na poziomie serwera, ale nie na poziomie klienta)
+
+**Serwer (zweryfikowane)**: `app/api/active-workout-session/route.test.ts` odtwarza sekwencję z sekcji 9.2 (B pushuje 5×, A `DELETE` → rewizja 6, A `PUT` z rewizją 0 → 409, `GET` → rewizja 7, `PUT` z 7 → 200 rewizja 8, zaległy `PUT` B z rewizją 5 → 409, sesja 2 nienaruszona). Test przechodzi. `DELETE` nie zeruje już rewizji i nie usuwa wiersza. Scenariusz z sondy testera (`op-X` nadpisujące `op-Z`) jest na poziomie serwera zamknięty.
+
+**Klient (defekt, sonda)**: scenariusz końcowy nie jest zamknięty, bo `deleteCloud()` i `push()` w `components/active-workout/active-workout-cloud-sync.tsx` zakładają, że po DELETE lokalna rewizja wraca do 0. Po zmianie 5b jest inaczej (patrz B-1c i B-1d poniżej). Dwie sondy wykazały regresje względem `HEAD`.
+
+### 10.3 Nowe defekty znalezione w tej rundzie
+
+#### B-1c - BLOKUJĄCY - pętla DELETE co 8 s na bezczynnym urządzeniu; kasowanie aktywnej sesji drugiego urządzenia
+- **Plik / linie**: `components/active-workout/active-workout-cloud-sync.tsx:152` (`if (readRevision() > 0)` → `deleteCloud()`), `:248`/`:216` (`setInterval(push, 8 000)`), `lib/active-workout-cloud-client.ts:125-126` (`deleteCloud` zapisuje zwróconą rewizję ≥ 1); `app/api/active-workout-session/route.ts` `handleDELETE` (rewizja +1 przy każdym DELETE).
+- **Mechanizm**: w `HEAD` `deleteCloud` zapisywało `writeRevision(0)`, więc warunek `readRevision() > 0` przestawał być prawdziwy po jednym DELETE. Po zmianie 5b lokalna rewizja po DELETE zawsze wynosi ≥ 1, więc każdy tick interwału (co 8 s, także bez żadnej zmiany) na bezczynnej karcie z kiedykolwiek zakończoną sesją wysyła kolejny `DELETE`. Rewizja serwera rośnie bez końca, a wiersz (czyli aktywna sesja zapisana z innego urządzenia tego samego konta) jest nadpisywany pustym payloadem.
+- **Sonda** (`lib/tmp-probe-b1c.test.ts`, usunięta): warunek dokładnie jak w linii 152, pięć ticków → lokalna rewizja `[3,4,5,6,7]` (w `HEAD` zatrzymanie na 0). Drugi scenariusz: urządzenie B startuje sesję (PUT, rewizja 6), bezczynna karta A wykonuje jeden tick → `PUT` z B dostaje `409` z payloadem `exercises.length === 0`, czyli aktywna sesja B zostaje wyzerowana (`applyCloudPayload` w `:177-178`), a następnie B też wysyła DELETE.
+- **Skutek**: utrata trwającego treningu na drugim urządzeniu / w drugiej karcie (ta sama `deviceId`), niezależnie od intencji użytkownika. Dodatkowo stały ruch: DELETE + UPDATE co 8 s na każdą otwartą kartę, z ryzykiem trafienia w limit `RATE.activeWorkoutSession` (90/min na użytkownika), a wtedy `deleteCloud` zwraca `false` → `pendingPushRef` → natychmiastowe ponawianie.
+- **Waga**: blokujący (utrata danych treningu, regresja względem `HEAD`).
+- **Właściciel**: frontend (`active-workout-cloud-sync.tsx`: wartownik „chmura już wyzerowana” zamiast `readRevision() > 0`; DELETE jednorazowo na przejście aktywna→pusta); backend (ewentualnie: DELETE na już wygaszonym wierszu nie powinien inkrementować rewizji - patrz B-1d).
+
+#### B-1d - BLOKUJĄCY - pierwszy zapis nowego treningu po przeładowaniu aplikacji zostaje skasowany (409 z wygaszonym payloadem)
+- **Plik / linie**: `app/api/active-workout-session/route.ts` `handleGET` (gałąź ghost: `db.update` z `revision: row.revision + 1` przy KAŻDYM odczycie wygaszonego wiersza; hydratacja `ActiveWorkoutCloudSync` robi `fetchCloud()` przy każdym załadowaniu aplikacji); `components/active-workout/active-workout-cloud-sync.tsx:177-183` (przy `result.conflict` klient ZAWSZE wywołuje `applyCloudPayload(result.conflict.payload)` i `writeRevision`, także gdy payload jest wygaszony, czyli bez aktywnej sesji w chmurze).
+- **Mechanizm**: zakończenie treningu → `DELETE` (lokalna rewizja N+1) → przeładowanie aplikacji → `GET` na wygaszonym wierszu podbija rewizję serwera do N+2 → start nowego treningu → pierwszy `PUT` z rewizją N+1 → `409 { conflict: true, session: <wygaszony payload> }` → klient stosuje wygaszony payload, czyli kasuje świeżo rozpoczętą sesję lokalnie (i potem DELETE w chmurze).
+- **Sonda** (`lib/tmp-probe-b1d.test.ts`, usunięta): `putCloud` → `writeRevision` → `deleteCloud` → `fetchCloud` (null) → `putCloud(payload s2, readRevision())` → `{ ok: false, conflict: true, conflictExercises: 0, conflictRevision: 3 }`. Test oczekujący `ok: true` nie przeszedł. W `HEAD` ten sam przebieg kończył się `ok: true` (DELETE usuwał wiersz, GET nie zmieniał stanu).
+- **Skutek**: regresja względem `HEAD` w częstym przepływie „zakończ trening → zamknij/otwórz aplikację → zacznij trening". Nowa sesja znika w ciągu około 1 s (komunikat „Sesja zaktualizowana na innym urządzeniu”), a ewentualne serie zapisane po tym momencie są tracone. Nie jest to błąd cichy w sensie zapisu do historii (nic nie trafia do bazy), ale użytkownik traci trening w trakcie. Wcześniej działało.
+- **Uwaga kontraktowa**: ADR 0004 p.12 (krok 3) przyznaje, że GET zmienia rewizję i klient ma tego „nie zakładać”. Klient tego nie uwzględnia: traktuje każdy `409` jako „serwer nowszy, przejmij”.
+- **Waga**: blokujący.
+- **Właściciel**: backend (GET nie może zmieniać rewizji; wygaszenie bez inkrementacji albo tylko zapis payloadu bez `revision`) oraz frontend (409 z payloadem bez aktywnej sesji, a lokalnie aktywną: nie stosować pustego payloadu, tylko ponowić PUT z `conflict.revision` - „lokalna sesja wygrywa, chmura pusta”).
+
+#### Uwagi niskiego ryzyka (backlog, nie blokują)
+- **N-B1d-1 (niski)**: wyścig dwóch urządzeń w oknie między `DELETE` A a pierwszym `PUT` nowej sesji A: stale push B (rewizja sprzed DELETE, co 8 s) zwraca 409 z wygaszonym payloadem, B kasuje swoją sesję i wysyła DELETE, A dostaje 409 i traci świeżo startowaną sesję. Okno ~1 s; po naprawie B-1c/B-1d to ryzyko się zmniejsza, ale nie znika. Do rozważenia w tej samej poprawce (ta sama logika „pusty payload w 409 nie wygrywa z lokalną aktywną sesją”).
+- **N-B1-2 (niski)**: ścieżka `respondWithExistingWorkout` 409 (kolizja `operationId`) jest „ślepą uliczką”: po błędzie „Spróbuj ponownie” klient wysyła ten sam klucz i dostaje ten sam 409. Nie ma ciche utraty danych (użytkownik widzi błąd), ale bez odrzucenia treningu nie ma wyjścia. Scenariusz wymaga legacy stanu (dwie sesje z tym samym kluczem), więc rzadki.
+
+### 10.4 Pięć poprawek ux (sekcja 19 raportu ux) - weryfikacja w kodzie i testach
+
+| # | Poprawka | Wynik | Dowód |
+|---|---|---|---|
+| 1 | Licznik serii: widoczna liczba `aria-hidden`, pełny tekst w `sr-only` | **OK** | `workout-finished-screen.tsx:398-408`: `<span aria-hidden="true">{setsDone}/{setsTotal}</span>` + `<span className="sr-only">{setsDone} z {setsTotal} serii wykonanych</span>`. Brak sprzeczności „14/16 z 16”. |
+| 2 | Odmiana „kolejne/kolejnych rekordów” przez `plural()` | **OK** | `workout-finished-screen.tsx:456-461` używa `plural(n, "kolejny rekord", "kolejne rekordy", "kolejnych rekordów")` z `lib/progress-format.ts:40-47`. Sprawdzone ręcznie: 1 → „kolejny”, 2-4 → „kolejne”, 5, 0, 11-14 → „kolejnych”, 22 → „kolejne” (poprawna polska odmiana). |
+| 3 | Format liczb PL w cardio (`formatCountPl`, `formatDistanceKmPl`) | **OK** | `lib/workout-finish-format.ts`. Node ICU: `Intl.NumberFormat("pl-PL")` bez opcji daje `4500` i `1000` (potwierdzone: grupowanie „auto” nie grupuje 4-cyfrowych), `useGrouping: true` daje `4 500`, `1 000` (spacja NBSP U+00A0). `formatDistanceKmPl`: `3.2 → "3,2"`, `3 → "3"`, `0.25 → "0,3"`, `12.34 → "12,3"`, `0.05 → "0,1"`. Użyte w `cardioSummaryLine` (`:229-237`): `3,2 km`, `4 500 kroków`. Testy: `lib/workout-finish-format.test.ts` (+2). |
+| 4 | Wspólny `WorkoutDiscardSessionDialog` w pasku (nie inline) | **OK** | `active-workout-global-bar.tsx:231` (import z `workout-discard-session-dialog.tsx`), ten sam komponent w `active-workout-view.tsx:843`. Brak inline `AlertDialog` z tytułem „Odrzucić aktywny trening?” (grep: zero trafień). Tytuł we wspólnym pliku: „Zakończyć bez zapisu?”. |
+| 5 | „Trening zakończony” zamiast „Koniec treningu” w `rest-break-screen.tsx:183` | **OK** | `rest-break-screen.tsx:183` (`WorkoutEndCard`: kicker „Trening zakończony”). Grep w `components/`, `lib/`, `app/`: jedyne „Koniec treningu” to komentarz w `active-workout-view.tsx:419` i wpisy changelogu (`changelog-data.ts`, nie UI). |
+
+Dodatkowo potwierdzone w kodzie (poza 5 poprawkami): B-3 (`requestFinishFromSecondaryEntry` w `use-workout-finish-flow.ts:205-217`, wywołania: pasek `active-workout-global-bar.tsx:150`, menu `active-workout-view.tsx:742`; testy `use-workout-finish-flow.test.ts` w bloku B-3), B-4 (`aria-label` na przycisku „Zakończ trening” w pasku, `active-workout-global-bar.tsx:147`).
+
+Uwaga przy okazji (do etapu 8, nie defekt funkcjonalny): tekst opisu w `WorkoutDiscardSessionDialog` używa `text-white/65`; kontrast do sprawdzenia w etapie 8 (N-1 z ux obejmuje `white/45`).
+
+### 10.5 Pozostałe weryfikacje z zakresu 7b/7c
+
+- **B-1 (test)**: zamknięty. `lib/active-workout-cloud-client.test.ts` (10 testów, bez DOM) i `lib/active-workout-cloud.test.ts` (+2).
+- **B-2 (wpisy offline bez `operationId`)**: zamknięty (backfill w `outboxList()`, potwierdzone w 7b). Pętla 400 w `workout-outbox-flush.tsx` pozostaje w backlogu (średni).
+- **D-03, D-04, D-06**: bez zmian względem 7b (czytanie kodu).
+- **D-07 (E2E)**: NIEWYKONANE (brak credentials). Statyczna zgodność asercji z tekstami komponentów: bez zmian.
+- **Test regresji B-1c/B-1d**: w `route.test.ts` brak. Test „GET zmienia rewizję” (linie 116-128) utrwala zachowanie, które powoduje B-1d; dodatkowo testy klienta nie obejmują pętli DELETE ani 409 z wygaszonym payloadem przy lokalnej aktywnej sesji.
+
+### 10.6 Werdykt etapu 7c (tester)
+
+**ODRZUCONE** - cofnięcie do etapu 5 (`backend` i `frontend`).
+
+Uzasadnienie:
+1. **B-1c (blokujący)**: po zmianie 5b bezczynna karta z kiedykolwiek zakończoną sesją powtarza `DELETE` co 8 s i kasuje aktywną sesję drugiego urządzenia tego samego konta (sonda: rewizja `3,4,5,6,7`, 409 z wyzerowanym payloadem).
+2. **B-1d (blokujący, regresja względem `HEAD`)**: `GET` na wygaszonym wierszu podbija rewizję serwera, a klient przy 409 stosuje wygaszony payload, więc pierwszy zapis nowego treningu po przeładowaniu aplikacji jest kasowany (sonda: `ok: false`, `conflict: true`, `exercises: 0`).
+3. Naprawa B-1b na poziomie serwera (monotoniczność rewizji po DELETE, test sekwencji 9.2) jest zrealizowana i przechodzi. Warunek zamknięcia scenariusza B z sekcji 9.2 wymaga też poprawki klienta (B-1c, B-1d).
+4. Poprawki ux z sekcji 19 (pięć pozycji) przechodzą w kodzie i testach. Wizualnie: etap 8.
+5. E2E (D-07) nieuruchomione: wymóg przed merge, nie blokuje tego werdyktu.
+
+**Warunki ponownej weryfikacji (etap 6b/7d)**:
+- frontend: DELETE wysyłany jednorazowo przy przejściu aktywna→pusta (bez `readRevision() > 0` jako wartownika), oraz: 409 z payloadem bez aktywnej sesji, gdy lokalna sesja jest aktywna → ponowić PUT z `conflict.revision` zamiast stosować pusty payload.
+- backend: GET nie zmienia rewizji (wygaszenie wiersza bez inkrementacji albo bez zapisu), i aktualizacja testu „GET zmienia rewizję” w `route.test.ts`; ADR 0004 p.12 do korekty.
+- Testy regresji: sekwencja sondy B-1d (`finish → GET → start → PUT 200`), sekwencja B-1c (kolejne ticki nie wysyłają DELETE bez zmiany stanu), i scenariusz wielokartowy (ta sama `deviceId`) w `lib/active-workout-cloud-client.test.ts`.
+- Po poprawkach: `npm test`, `npx tsc --noEmit`, `npm run lint`, a przed merge `npm run test:e2e` z `E2E_EMAIL`/`E2E_PASSWORD` (D-07).
+
+### 10.7 Ryzyka resztkowe
+- Brak przebiegu E2E (D-07) i brak testu renderowania ekranu końcowego, edytora cardio i dialogów (sekcja 6).
+- Zachowanie wielokartowe i `pagehide` w przeglądarce nie zostały przetestowane end-to-end; sondy działają na atrapie `fetch` i handlerze w pamięci.
+- N-B1d-1 i N-B1-2 (sekcja 10.3) - niskie, backlog.

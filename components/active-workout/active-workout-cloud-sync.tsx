@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
+import { decideCloudHydrateAction, hasActiveLocalSession } from "@/lib/active-workout-cloud";
 import {
-  decideCloudHydrateAction,
-  hasActiveLocalSession,
-  type ActiveWorkoutCloudPayload,
-  type ActiveWorkoutCloudRecord,
-} from "@/lib/active-workout-cloud";
-import { EMPTY_CARDIO_EXTRAS } from "@/lib/cardio-utils";
+  applyCloudPayload,
+  deleteCloud,
+  fetchCloud,
+  putCloud,
+  readRevision,
+  writeRevision,
+} from "@/lib/active-workout-cloud-client";
 import {
   persistActiveWorkoutLocalNow,
   snapshotActiveWorkoutPayload,
@@ -19,7 +20,6 @@ import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { useI18n } from "@/components/i18n/i18n-provider";
 
 const DEVICE_KEY = "gymbrat:deviceId";
-const REVISION_KEY = "gymbrat:activeSessionRevision";
 /** Krótki debounce — sesja ma być zapisywana na bieżąco, nie dopiero na koniec. */
 const PUSH_DEBOUNCE_MS = 700;
 const PUSH_INTERVAL_MS = 8_000;
@@ -52,110 +52,15 @@ function getOrCreateDeviceId(): string {
   }
 }
 
-function readRevision(): number {
-  try {
-    const n = Number(localStorage.getItem(REVISION_KEY) ?? "0");
-    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function writeRevision(n: number) {
-  try {
-    localStorage.setItem(REVISION_KEY, String(n));
-  } catch {
-    /* ignore */
-  }
-}
-
-function applyCloudPayload(payload: ActiveWorkoutCloudPayload) {
-  useActiveWorkoutStore.setState({
-    startedAt: payload.startedAt,
-    pausedElapsedSeconds: payload.pausedElapsedSeconds,
-    workoutStartedAtMs: payload.workoutStartedAtMs,
-    // Klucz idempotencji podróżuje razem ze stanem sesji (005, defekt B-1) — nigdy
-    // regenerowany tu, tylko przy faktycznym starcie nowej sesji (start()/applyPlan()).
-    operationId: payload.operationId ?? null,
-    title: payload.title,
-    workoutPlanId: payload.workoutPlanId,
-    cardioMinutes: payload.cardioMinutes,
-    cardioExtras: payload.cardioExtras ?? {
-      ...EMPTY_CARDIO_EXTRAS,
-    },
-    exercises: payload.exercises,
-    selectedExerciseId: payload.selectedExerciseId,
-  });
-  persistActiveWorkoutLocalNow();
-}
-
-async function fetchCloud(): Promise<ActiveWorkoutCloudRecord | null> {
-  const res = await fetch("/api/active-workout-session", {
-    method: "GET",
-    credentials: "include",
-    cache: "no-store",
-  });
-  if (!res.ok) return null;
-  const json = (await res.json()) as {
-    ok?: boolean;
-    session?: ActiveWorkoutCloudRecord | null;
-  };
-  return json.session ?? null;
-}
-
-async function putCloud(
-  payload: ActiveWorkoutCloudPayload,
-  revision: number,
-  deviceId: string,
-  opts?: { keepalive?: boolean },
-): Promise<{ ok: boolean; revision?: number; conflict?: ActiveWorkoutCloudRecord | null }> {
-  await ensureCsrfCookie();
-  const res = await fetch("/api/active-workout-session", {
-    method: "PUT",
-    credentials: "include",
-    keepalive: opts?.keepalive === true,
-    headers: {
-      "Content-Type": "application/json",
-      ...getXsrfHeaders(),
-    },
-    body: JSON.stringify({ payload, revision, deviceId }),
-  });
-  let json: {
-    ok?: boolean;
-    revision?: number;
-    conflict?: boolean;
-    session?: ActiveWorkoutCloudRecord | null;
-  } = {};
-  try {
-    json = (await res.json()) as typeof json;
-  } catch {
-    /* empty body on some keepalive edge cases */
-  }
-  if (res.status === 409 && json.session) {
-    return { ok: false, conflict: json.session };
-  }
-  if (!res.ok || !json.ok) return { ok: false };
-  return { ok: true, revision: json.revision };
-}
-
-async function deleteCloud(): Promise<boolean> {
-  await ensureCsrfCookie();
-  const res = await fetch("/api/active-workout-session", {
-    method: "DELETE",
-    credentials: "include",
-    headers: { ...getXsrfHeaders() },
-  });
-  if (!res.ok) return false;
-  writeRevision(0);
-  return true;
-}
-
 /**
  * Synchronizuje lokalny zustand z chmurą:
  * - na starcie: pull nowszej sesji z innego urządzenia (bez wskrzeszania duchów)
  * - po każdej zmianie (debounce) + co ~8 s + pagehide/visibility: push
  * - kolejka: gdy push trwa, kolejna zmiana nie ginie
  * - po resecie (pusta sesja): DELETE
+ *
+ * Logika fetch (`fetchCloud`/`putCloud`/`deleteCloud`/`applyCloudPayload`) jest
+ * wydzielona do `lib/active-workout-cloud-client.ts` — testowalna bez DOM (ADR 0004 p.12).
  */
 export function ActiveWorkoutCloudSync() {
   const [banner, setBanner] = useState<string | null>(null);

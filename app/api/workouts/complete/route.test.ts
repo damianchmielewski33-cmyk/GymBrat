@@ -114,3 +114,66 @@ describe("POST /api/workouts/complete — idempotencja zapisu (ADR 0004 p. 1, LR
     expect(res.status).toBe(400);
   });
 });
+
+describe("POST /api/workouts/complete — defense in depth: kolizja operationId między różnymi sesjami (005, B-1b, ADR 0004 p.12)", () => {
+  let client: Client;
+
+  beforeAll(async () => {
+    ({ client, db } = await createMemoryDb());
+  });
+
+  afterAll(() => {
+    client.close();
+  });
+
+  beforeEach(async () => {
+    await client.execute("DELETE FROM workouts");
+    publishTeamFeedAfterWorkout.mockClear();
+  });
+
+  it("żądanie z operationId istniejącego wiersza, ale startedAt różnym o > 2s, zwraca 409 conflict zamiast fałszywego sukcesu", async () => {
+    const operationId = "44444444-4444-4444-8444-444444444444";
+    const first = basePayload(operationId);
+    const res1 = await completeReq(first);
+    expect(res1.status).toBe(200);
+    const body1 = (await res1.json()) as { workoutId: string };
+
+    const collidingPayload = {
+      ...basePayload(operationId),
+      // startedAt różni się o więcej niż tolerancja 2000 ms od zapisanego wiersza —
+      // to jest inna sesja, nie retry tego samego zapisu.
+      startedAt: Date.parse("2026-10-20T10:00:05Z"),
+    };
+    const res2 = await completeReq(collidingPayload);
+    expect(res2.status).toBe(409);
+    const body2 = (await res2.json()) as { ok: boolean; conflict: boolean; error: string };
+    expect(body2.ok).toBe(false);
+    expect(body2.conflict).toBe(true);
+    expect(typeof body2.error).toBe("string");
+
+    // Nie powstał drugi wiersz, oryginalny trening jest nienaruszony.
+    const rows = await client.execute("SELECT COUNT(*) AS c FROM workouts");
+    expect(Number(rows.rows[0]!.c)).toBe(1);
+    expect(publishTeamFeedAfterWorkout).toHaveBeenCalledTimes(1);
+    void body1;
+  });
+
+  it("ponowienie z tym samym operationId i startedAt w granicy tolerancji (<=2s) wciąż traktowane jako duplikat", async () => {
+    const operationId = "55555555-5555-4555-8555-555555555555";
+    const first = basePayload(operationId);
+    const res1 = await completeReq(first);
+    expect(res1.status).toBe(200);
+    const body1 = (await res1.json()) as { workoutId: string };
+
+    const retry = {
+      ...basePayload(operationId),
+      startedAt: Date.parse("2026-10-20T10:00:01.500Z"),
+    };
+    const res2 = await completeReq(retry);
+    expect(res2.status).toBe(200);
+    const body2 = (await res2.json()) as { ok: boolean; duplicate: boolean; workoutId: string };
+    expect(body2.ok).toBe(true);
+    expect(body2.duplicate).toBe(true);
+    expect(body2.workoutId).toBe(body1.workoutId);
+  });
+});

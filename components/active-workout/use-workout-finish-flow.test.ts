@@ -281,6 +281,20 @@ describe("useWorkoutFinishFlow: błąd zapisu (AC-3.5, E-5, E-12)", () => {
     expect(second.endedAt).toBe(first.endedAt);
   });
 
+  it("konflikt operacji (409, ADR 0004 p.12.5) kończy się jak błąd zapisu, nie ekranem sukcesu", () => {
+    setSession([{ id: "a", name: "Wyciskanie", sets: [DONE_SET] }]);
+    submitMock.mockResolvedValueOnce({ status: "conflict", message: "Konflikt operacji." });
+
+    useWorkoutFinishFlow().requestFinish();
+
+    return vi.waitFor(() => {
+      expect(flowState()).toEqual({ phase: "error", message: "Konflikt operacji." });
+      const store = useActiveWorkoutStore.getState();
+      expect(store.exercises).toHaveLength(1);
+      expect(store.finishPending).toBe(false);
+    });
+  });
+
   it("„Wróć do treningu” zamyka stan błędu i zostawia sesję nienaruszoną", () => {
     setSession([{ id: "a", name: "Wyciskanie", sets: [DONE_SET] }]);
     submitMock.mockResolvedValueOnce({ status: "error", message: "Błąd" });

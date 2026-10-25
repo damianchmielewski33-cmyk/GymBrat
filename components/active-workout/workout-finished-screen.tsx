@@ -22,7 +22,13 @@ import type { WorkoutFinishedScreenData } from "@/components/active-workout/work
 import { formatKgPl } from "@/lib/set-progression-suggestion";
 import { estimated1RM } from "@/lib/workout-history";
 import { formatVolumeKg } from "@/lib/workout-session-calculations";
-import { formatWeightRecordLine, formatWorkoutDurationPl } from "@/lib/workout-finish-format";
+import { plural } from "@/lib/progress-format";
+import {
+  formatCountPl,
+  formatDistanceKmPl,
+  formatWeightRecordLine,
+  formatWorkoutDurationPl,
+} from "@/lib/workout-finish-format";
 import {
   allSetsLineFromSession,
   bestSetIndexInExercise,
@@ -222,10 +228,10 @@ export function WorkoutFinishedScreen({
 
   function cardioSummaryLine(): string {
     const bits = [
-      `${cardioMinutes} min`,
-      cardioExtras.distanceKm != null ? `${cardioExtras.distanceKm} km` : null,
-      cardioExtras.calories != null ? `${cardioExtras.calories} kcal` : null,
-      cardioExtras.steps != null ? `${cardioExtras.steps} kroków` : null,
+      `${formatCountPl(cardioMinutes)} min`,
+      cardioExtras.distanceKm != null ? `${formatDistanceKmPl(cardioExtras.distanceKm)} km` : null,
+      cardioExtras.calories != null ? `${formatCountPl(cardioExtras.calories)} kcal` : null,
+      cardioExtras.steps != null ? `${formatCountPl(cardioExtras.steps)} kroków` : null,
     ].filter(Boolean);
     return `Cardio: ${bits.join(" · ")}`;
   }
@@ -389,12 +395,14 @@ export function WorkoutFinishedScreen({
                   <p
                     className="mt-1.5 text-[15px] font-semibold tabular-nums text-white"
                   >
-                    {data.setsDone}
-                    {data.setsTotal > 0 && data.setsTotal !== data.setsDone ? (
-                      <span className="text-[var(--gym-text-secondary)]">/{data.setsTotal}</span>
-                    ) : null}
+                    <span aria-hidden="true">
+                      {data.setsDone}
+                      {data.setsTotal > 0 && data.setsTotal !== data.setsDone
+                        ? `/${data.setsTotal}`
+                        : null}
+                    </span>
                     <span className="sr-only">
-                      {` z ${data.setsTotal} serii wykonanych`}
+                      {`${data.setsDone} z ${data.setsTotal} serii wykonanych`}
                     </span>
                   </p>
                 </div>
@@ -445,9 +453,12 @@ export function WorkoutFinishedScreen({
                   </div>
                   {data.newMaxHits.length > 1 ? (
                     <p className="mt-2 text-center text-[12px] text-[var(--gym-text-secondary)]">
-                      {data.newMaxHits.length - 1 === 1
-                        ? "+1 kolejny rekord w tej sesji"
-                        : `+${data.newMaxHits.length - 1} kolejnych rekordów w tej sesji`}
+                      {`+${data.newMaxHits.length - 1} ${plural(
+                        data.newMaxHits.length - 1,
+                        "kolejny rekord",
+                        "kolejne rekordy",
+                        "kolejnych rekordów",
+                      )} w tej sesji`}
                     </p>
                   ) : null}
                 </div>
