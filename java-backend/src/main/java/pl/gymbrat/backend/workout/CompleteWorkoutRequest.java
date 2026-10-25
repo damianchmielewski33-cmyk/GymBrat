@@ -3,6 +3,7 @@ package pl.gymbrat.backend.workout;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
@@ -14,7 +15,9 @@ public record CompleteWorkoutRequest(
         Double endedAt,
         @Min(0) @Max(24 * 60) Double cardioMinutes,
         @Size(max = 128) String workoutPlanId,
-        @Size(max = 200) List<ExercisePayload> exercises
+        @Size(max = 200) List<ExercisePayload> exercises,
+        /** Klucz idempotencji — jeden na sesję treningu (LR-3, ADR 0004 p. 1/p. 9). */
+        @NotBlank @Size(max = 64) String operationId
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ExercisePayload(

@@ -226,3 +226,73 @@ export function completedSessionJsonForCompare(input: {
 export function todayKeyFromMs(ms: number): string {
   return calendarDateKey(new Date(ms));
 }
+
+/** Pola cardio przyjmowane przez patch po zapisie (p. 2 ADR 0004) — te same co w `bodySchema.cardio`. */
+export type CardioExtrasInput = {
+  distanceKm?: number | null;
+  avgHr?: number | null;
+  maxHr?: number | null;
+  calories?: number | null;
+  caloriesBurned?: number | null;
+  steps?: number | null;
+  paceMinPerKm?: number | null;
+  cardioType?: string | null;
+  effortScore?: number | null;
+  heartRateZone?: number | null;
+};
+
+/**
+ * Patch cardio po zapisie (LR-4): aktualizuje minuty + obiekt `cardio` w JSON `exercises`
+ * zapisanego treningu, bez przeliczania reszty sesji. 0 min usuwa cały obiekt `cardio`
+ * (tętno, kalorie, kroki, dystans znikają razem z minutami — brak danych zdrowotnych "w tle").
+ */
+export function patchCardioInCompletedSessionJson(
+  exercisesJson: string,
+  cardioExtras: CardioExtrasInput | null,
+  cardioMinutes: number,
+): string {
+  const parsed = JSON.parse(exercisesJson) as Record<string, unknown>;
+  if (cardioMinutes <= 0) {
+    delete parsed.cardioMinutes;
+    delete parsed.cardio;
+    return JSON.stringify(parsed);
+  }
+  parsed.cardioMinutes = cardioMinutes;
+  if (cardioExtras) {
+    const dist =
+      cardioExtras.distanceKm != null && Number.isFinite(cardioExtras.distanceKm) && cardioExtras.distanceKm > 0
+        ? cardioExtras.distanceKm
+        : null;
+    const pace =
+      cardioExtras.paceMinPerKm != null && Number.isFinite(cardioExtras.paceMinPerKm) && cardioExtras.paceMinPerKm > 0
+        ? cardioExtras.paceMinPerKm
+        : dist != null
+          ? cardioMinutes / dist
+          : null;
+    const kcal =
+      cardioExtras.calories != null && Number.isFinite(cardioExtras.calories)
+        ? cardioExtras.calories
+        : cardioExtras.caloriesBurned != null && Number.isFinite(cardioExtras.caloriesBurned)
+          ? cardioExtras.caloriesBurned
+          : null;
+    const cardio: Record<string, unknown> = {
+      ...(dist != null ? { distanceKm: dist } : {}),
+      ...(cardioExtras.avgHr != null ? { avgHr: cardioExtras.avgHr } : {}),
+      ...(cardioExtras.maxHr != null ? { maxHr: cardioExtras.maxHr } : {}),
+      ...(kcal != null ? { calories: kcal } : {}),
+      ...(cardioExtras.steps != null ? { steps: cardioExtras.steps } : {}),
+      ...(pace != null ? { paceMinPerKm: pace } : {}),
+      ...(cardioExtras.cardioType ? { cardioType: cardioExtras.cardioType } : {}),
+      ...(cardioExtras.effortScore != null ? { effortScore: cardioExtras.effortScore } : {}),
+      ...(cardioExtras.heartRateZone != null ? { heartRateZone: cardioExtras.heartRateZone } : {}),
+    };
+    if (Object.keys(cardio).length > 0) {
+      parsed.cardio = cardio;
+    } else {
+      delete parsed.cardio;
+    }
+  } else {
+    delete parsed.cardio;
+  }
+  return JSON.stringify(parsed);
+}

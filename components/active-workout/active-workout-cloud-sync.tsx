@@ -74,6 +74,9 @@ function applyCloudPayload(payload: ActiveWorkoutCloudPayload) {
     startedAt: payload.startedAt,
     pausedElapsedSeconds: payload.pausedElapsedSeconds,
     workoutStartedAtMs: payload.workoutStartedAtMs,
+    // Klucz idempotencji podróżuje razem ze stanem sesji (005, defekt B-1) — nigdy
+    // regenerowany tu, tylko przy faktycznym starcie nowej sesji (start()/applyPlan()).
+    operationId: payload.operationId ?? null,
     title: payload.title,
     workoutPlanId: payload.workoutPlanId,
     cardioMinutes: payload.cardioMinutes,

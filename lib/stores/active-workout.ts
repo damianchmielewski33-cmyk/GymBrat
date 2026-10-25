@@ -3,13 +3,31 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type { WorkoutExerciseState, WorkoutSetState } from "@/components/workout/types";
 import {
   EMPTY_CARDIO_EXTRAS,
-  type CardioExtras,
+  type ActiveCardioExtras,
 } from "@/lib/cardio-utils";
 import type { WorkoutPlanPayload } from "@/lib/workout-plan-types";
+import type { SkippedWorkoutTarget } from "@/lib/workout-skipped-sets";
+import type { WorkoutFinishedScreenData } from "@/components/active-workout/workout-finish-types";
 
-export type ActiveCardioExtras = Omit<CardioExtras, "paceMinPerKm"> & {
-  paceMinPerKm?: number | null;
-};
+/** Re-eksport — importy istniejące w repo wskazują na ten moduł. */
+export type { ActiveCardioExtras };
+
+/**
+ * Stan przepływu zakończenia (ADR 0004 p.4): żyje w store, nie w `useState` lokalnym,
+ * bo trzy komponenty montowane niezależnie (ekran, pasek globalny, menu sesji) muszą
+ * widzieć ten samy stan (np. pasek musi zniknąć, gdy ekran jest w trakcie zapisu).
+ */
+export type WorkoutFinishFlowState =
+  | { phase: "idle" }
+  | {
+      phase: "skipped-dialog";
+      skippedCount: number;
+      incompleteCount: number;
+      target: SkippedWorkoutTarget;
+    }
+  | { phase: "saving" }
+  | { phase: "error"; message: string }
+  | { phase: "done"; result: WorkoutFinishedScreenData };
 
 type ActiveWorkoutState = {
   /** Kotwica działającego licznika (null = pauza) */
@@ -18,6 +36,16 @@ type ActiveWorkoutState = {
   pausedElapsedSeconds: number;
   /** Pierwsze kliknięcie Start — do zapisu API */
   workoutStartedAtMs: number | null;
+  /**
+   * Klucz idempotencji zapisu (ADR 0004 p.1): UUID v4 wygenerowany raz na sesję, w `start()`.
+   * Ten sam klucz jedzie w każdej próbie zapisu (pierwszej, ponowieniu po błędzie, kolejce
+   * offline) — serwer traktuje powtórzony klucz jako duplikat, nie drugi trening.
+   */
+  operationId: string | null;
+  /** Blokada równoległego zapisu z trzech wejść zakończenia (ekran, pasek, menu). */
+  finishPending: boolean;
+  /** Stan wspólnego przepływu zakończenia (ADR 0004 p.4) — jedno źródło prawdy dla UI. */
+  finishFlow: WorkoutFinishFlowState;
   title: string;
   workoutPlanId: string | null;
   cardioMinutes: number;
@@ -44,6 +72,11 @@ type ActiveWorkoutState = {
   stopTimer: () => void;
   applyPlan: (planId: string, plan: WorkoutPlanPayload) => void;
   reset: () => void;
+  beginFinish: () => void;
+  endFinish: () => void;
+  setFinishFlow: (state: WorkoutFinishFlowState) => void;
+  /** Gwarantuje `operationId` — sesje wznowione z wersji store bez idempotencji (migracja) mogą go nie mieć. */
+  ensureOperationId: () => string;
 };
 
 export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
@@ -52,6 +85,9 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
       startedAt: null,
       pausedElapsedSeconds: 0,
       workoutStartedAtMs: null,
+      operationId: null,
+      finishPending: false,
+      finishFlow: { phase: "idle" },
       title: "Sesja",
       workoutPlanId: null,
       cardioMinutes: 0,
@@ -161,6 +197,9 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
         set((s) => ({
           startedAt: Date.now(),
           workoutStartedAtMs: s.workoutStartedAtMs ?? Date.now(),
+          // Jeden operationId na całą sesję — wygenerowany przy pierwszym Start, nie
+          // przy każdym Wznów (ADR 0004 p.1).
+          operationId: s.operationId ?? crypto.randomUUID(),
         })),
       stopTimer: () =>
         set((s) => {
@@ -178,6 +217,9 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           startedAt: null,
           pausedElapsedSeconds: 0,
           workoutStartedAtMs: null,
+          operationId: null,
+          finishPending: false,
+          finishFlow: { phase: "idle" },
           cardioMinutes: 0,
           cardioExtras: { ...EMPTY_CARDIO_EXTRAS },
           exercises: [],
@@ -188,6 +230,9 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           startedAt: null,
           pausedElapsedSeconds: 0,
           workoutStartedAtMs: null,
+          operationId: null,
+          finishPending: false,
+          finishFlow: { phase: "idle" },
           title: "Sesja",
           workoutPlanId: null,
           cardioMinutes: 0,
@@ -195,6 +240,16 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           exercises: [],
           selectedExerciseId: null,
         }),
+      beginFinish: () => set({ finishPending: true }),
+      endFinish: () => set({ finishPending: false }),
+      setFinishFlow: (finishFlow) => set({ finishFlow }),
+      ensureOperationId: () => {
+        const existing = get().operationId;
+        if (existing) return existing;
+        const next = crypto.randomUUID();
+        set({ operationId: next });
+        return next;
+      },
     }),
     {
       name: "active-workout",
@@ -203,6 +258,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
         startedAt: s.startedAt,
         pausedElapsedSeconds: s.pausedElapsedSeconds,
         workoutStartedAtMs: s.workoutStartedAtMs,
+        operationId: s.operationId,
         title: s.title,
         workoutPlanId: s.workoutPlanId,
         cardioMinutes: s.cardioMinutes,
@@ -210,11 +266,16 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
         exercises: s.exercises,
         selectedExerciseId: s.selectedExerciseId,
       }),
-      version: 2,
+      version: 3,
       migrate: (persisted) => {
         const p = persisted as Record<string, unknown>;
         if (!p.cardioExtras || typeof p.cardioExtras !== "object") {
           p.cardioExtras = { ...EMPTY_CARDIO_EXTRAS };
+        }
+        if (typeof p.operationId !== "string") {
+          // Sesja wznowiona z wersji bez idempotencji — serie są zachowane; nowy klucz
+          // dostaje przy następnym `start()` (np. po „Wznów”).
+          p.operationId = null;
         }
         return p as never;
       },

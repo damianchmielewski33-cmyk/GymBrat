@@ -46,6 +46,12 @@ export const UserMessages = {
     "Trener nie zwrócił treści odpowiedzi. Spróbuj zadać pytanie jeszcze raz, nieco inaczej.",
   mealSuggestionsNoSession:
     "Musisz być zalogowany, aby zobaczyć propozycje posiłków z katalogu.",
+  workoutNotFound:
+    "Nie znaleziono tego treningu. Odśwież historię treningów i spróbuj ponownie.",
+  workoutCardioPatchInvalid:
+    "Dane cardio nie przeszły weryfikacji. Odśwież ekran i wpisz je ponownie.",
+  workoutCardioPatchUnknown:
+    "Nie udało się zapisać cardio. Spróbuj ponownie za chwilę.",
 } as const;
 
 /** Zapis treningu — mapowanie po `error` z API + opcjonalnie HTTP. */

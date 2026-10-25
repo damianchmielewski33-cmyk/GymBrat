@@ -29,7 +29,7 @@ public class WorkoutController {
         WorkoutService.StoredWorkout saved = workoutService.complete(userId, payload);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("ok", true);
-        body.put("id", saved.id());
+        body.put("workoutId", saved.id());
         body.put("date", saved.date());
         return body;
     }

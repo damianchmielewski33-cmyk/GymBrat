@@ -76,6 +76,14 @@ describe("active-workout-copy", () => {
     expect(primarySetActionLabel(2, false)).toBe("Zapisz serię 2");
     expect(primarySetActionLabel(1, true)).toBe("Popraw serię 1");
   });
+
+  it("primarySetActionLabel: ostatnia otwarta seria sesji zapisuje i kończy trening", () => {
+    expect(primarySetActionLabel(3, false, true)).toBe(
+      "Zakończ ostatnią serię i zapisz",
+    );
+    // Seria już zaliczona (poprawka) ma pierwszeństwo nad „ostatnia otwarta”.
+    expect(primarySetActionLabel(3, true, true)).toBe("Popraw serię 3");
+  });
 });
 
 /**
@@ -122,7 +130,11 @@ describe("regresja: „Pomiń serię” przy wypełnionej podpowiedzi", () => {
     expect(primarySetActionLabel(setIndex + 1, false)).toBe("Zapisz serię 1");
   });
 
-  it("puste pole ciężaru daje komunikat walidacji „weight”, nie ciche pominięcie", () => {
-    expect(resolveSetSaveIssue(parseWeightInput("") ?? 0, 12)).toBe("weight");
+  it("puste pole ciężaru z powtórzeniami nie blokuje zapisu (masa ciała, decyzja 005 p.7)", () => {
+    expect(resolveSetSaveIssue(parseWeightInput("") ?? 0, 12)).toBeNull();
+  });
+
+  it("brak powtórzeń daje komunikat walidacji „reps”, niezależnie od ciężaru", () => {
+    expect(resolveSetSaveIssue(parseWeightInput("") ?? 0, null)).toBe("reps");
   });
 });

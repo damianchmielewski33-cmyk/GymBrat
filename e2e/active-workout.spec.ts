@@ -271,7 +271,7 @@ test.describe("Aktywny trening (004)", () => {
     await expect(progressbar(page).last()).toHaveAttribute("aria-valuetext", "Zapisano 1 z 7 serii");
   });
 
-  test("US-5/BR-8/US-14: brak ciężaru -> role=alert, fokus na polu, seria nie jest zapisana", async ({
+  test("005 p.7/US-14: brak ciężaru nie blokuje zaliczenia (masa ciała, 0 kg)", async ({
     page,
   }) => {
     const later = page.getByRole("button", { name: "Później, odłóż ćwiczenie na później" });
@@ -279,15 +279,11 @@ test.describe("Aktywny trening (004)", () => {
     await later.click();
     await expect(page.getByRole("heading", { name: "Przysiad ze sztangą" })).toBeVisible();
     await expect(weightInput(page)).toHaveValue("");
+    // Pusty ciężar + powtórzenia zapisuje serię jako masę ciała (0 kg) — zaliczoną,
+    // bez komunikatu „Podaj ciężar” (usunięty, 005 sekcja 4; decyzja właściciela p.7).
     await page.getByRole("button", { name: "Zapisz serię 1" }).click();
-    await expect(page.getByRole("alert").filter({ hasText: "Podaj ciężar" })).toBeVisible();
-    await expect(weightInput(page)).toBeFocused();
-    await expect(weightInput(page)).toHaveAttribute("aria-invalid", "true");
-    await expect(progressbar(page)).toHaveAttribute("aria-valuetext", "Zapisano 0 z 7 serii");
-    // Po wpisaniu ciężaru komunikat znika, a zapis działa.
-    await weightInput(page).fill("100");
     await expect(page.getByRole("alert").filter({ hasText: "Podaj ciężar" })).toHaveCount(0);
-    await page.getByRole("button", { name: "Zapisz serię 1" }).click();
+    await expect(page.getByRole("button", { name: /^Seria 1, zapisana: 0 kg/ })).toBeVisible();
     await expect(progressbar(page).last()).toHaveAttribute("aria-valuetext", "Zapisano 1 z 7 serii");
   });
 
@@ -352,7 +348,10 @@ test.describe("Aktywny trening (004)", () => {
     await expect(page.getByRole("button", { name: "Wstecz, wróć do poprzedniej serii" })).toBeDisabled();
     await page.getByRole("button", { name: "Menu treningu" }).click();
     await page.getByRole("button", { name: "Zakończ trening" }).click();
-    await expect(page.getByRole("heading", { name: "Trening zrobiony" })).toBeVisible();
+    // Menu -> dialog potwierdzenia „Zakończyć trening?” (005 sekcja 7) -> zapis.
+    await page.getByRole("button", { name: "Zakończ i zapisz" }).click();
+    await expect(page.getByRole("heading", { name: "Zapisuję trening…" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Trening zakończony" })).toBeVisible();
   });
 
   test("US-13: plakietka Ghost bez „bez zapisu”", async ({ page }) => {

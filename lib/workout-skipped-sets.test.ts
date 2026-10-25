@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 import {
   canCompleteWorkoutSet,
+  countIncompleteWorkoutSets,
   countSkippedWorkoutSets,
   findFirstSkippedWorkoutTarget,
   findNextIncompleteExercise,
   isCompletedWorkoutSet,
   isExerciseIncomplete,
+  isLastOpenWorkoutSet,
   isSkippedWorkoutSet,
   resolveAdvanceAfterSet,
   resolveSkippedAfterEdit,
@@ -30,8 +32,8 @@ describe("workout-skipped-sets", () => {
     ).toBe(false);
   });
 
-  it("zielone zaliczenie wymaga ciężaru > 0; 0 kg → pomiń", () => {
-    expect(canCompleteWorkoutSet(0, 8)).toBe(false);
+  it("zielone zaliczenie wymaga tylko powtórzeń > 0; 0 kg + powt. = masa ciała zaliczona (decyzja właściciela 005 p.7)", () => {
+    expect(canCompleteWorkoutSet(0, 8)).toBe(true);
     expect(canCompleteWorkoutSet(60, null)).toBe(false);
     expect(canCompleteWorkoutSet(60, 8)).toBe(true);
     expect(
@@ -39,13 +41,42 @@ describe("workout-skipped-sets", () => {
     ).toBe(true);
     expect(
       isCompletedWorkoutSet({ done: true, reps: 8, weight: 0 }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       isSkippedWorkoutSet({ done: true, reps: 8, weight: 0 }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isSkippedWorkoutSet({ done: true, reps: null, weight: 0 }),
     ).toBe(true);
+  });
+
+  it("countIncompleteWorkoutSets liczy serie done=false, niezależnie od pominiętych", () => {
+    const exercises: WorkoutExerciseState[] = [
+      {
+        id: "a",
+        name: "Przysiad",
+        sets: [
+          { reps: 5, weight: 100, done: true, skipped: true },
+          { reps: null, weight: 0, done: false },
+        ],
+      },
+      {
+        id: "b",
+        name: "Pompki",
+        sets: [{ reps: 12, weight: 0, done: true }],
+      },
+    ];
+    expect(countIncompleteWorkoutSets(exercises)).toBe(1);
+    expect(countSkippedWorkoutSets(exercises)).toBe(1);
+  });
+
+  it("isLastOpenWorkoutSet: true tylko gdy wszystkie inne serie są done", () => {
+    const exercises: WorkoutExerciseState[] = [
+      { id: "a", name: "Ćw. 1", sets: [set(true), set(false)] },
+      { id: "b", name: "Ćw. 2", sets: [set(true)] },
+    ];
+    expect(isLastOpenWorkoutSet(exercises, "a", 1)).toBe(true);
+    expect(isLastOpenWorkoutSet(exercises, "a", 0)).toBe(false);
   });
 
   it("liczy wiele pominiętych serii i wskazuje pierwszą", () => {
@@ -208,12 +239,12 @@ describe("workout-skipped-sets", () => {
     });
   });
 
-  it("resolveSetSaveIssue: najpierw ciężar, potem powtórzenia", () => {
-    expect(resolveSetSaveIssue(0, 8)).toBe("weight");
-    expect(resolveSetSaveIssue(Number.NaN, 8)).toBe("weight");
+  it("resolveSetSaveIssue: tylko powtórzenia blokują zaliczenie (ciężar nigdy)", () => {
+    expect(resolveSetSaveIssue(0, 8)).toBeNull();
+    expect(resolveSetSaveIssue(Number.NaN, 8)).toBeNull();
     expect(resolveSetSaveIssue(50, null)).toBe("reps");
     expect(resolveSetSaveIssue(50, 0)).toBe("reps");
-    expect(resolveSetSaveIssue(0, null)).toBe("weight");
+    expect(resolveSetSaveIssue(0, null)).toBe("reps");
     expect(resolveSetSaveIssue(61.25, 8)).toBeNull();
   });
 
@@ -230,16 +261,40 @@ describe("workout-skipped-sets", () => {
       expect(canCompleteWorkoutSet(w, r)).toBe(resolveSetSaveIssue(w, r) === null);
     }
   });
+
+  // 005 P2 / AC-2.2 / BR-7 / E-4: trening złożony wyłącznie z serii na masę ciała nie może
+  // wywołać dialogu pominiętych (requestFinish warunkuje dialog na skippedCount + incompleteCount).
+  it("trening tylko z serii na masę ciała: zero pominiętych i niewykonanych, brak celu dialogu", () => {
+    const exercises: WorkoutExerciseState[] = [
+      { id: "p", name: "Pompki", sets: [{ reps: 12, weight: 0, done: true }, { reps: 10, weight: 0, done: true }] },
+      { id: "s", name: "Podciąganie", sets: [{ reps: 6, weight: 0, done: true, skipped: false }] },
+    ];
+    expect(countSkippedWorkoutSets(exercises)).toBe(0);
+    expect(countIncompleteWorkoutSets(exercises)).toBe(0);
+    expect(findFirstSkippedWorkoutTarget(exercises)).toBeNull();
+  });
+
+  it("seria na masę ciała z jawnym „Pomiń” nadal liczy się jako pominięta", () => {
+    const exercises: WorkoutExerciseState[] = [
+      { id: "p", name: "Pompki", sets: [{ reps: 12, weight: 0, done: true, skipped: true }] },
+    ];
+    expect(countSkippedWorkoutSets(exercises)).toBe(1);
+    expect(findFirstSkippedWorkoutTarget(exercises)?.exerciseId).toBe("p");
+  });
 });
 
 describe("resolveSkippedAfterEdit (edycja zapisanej serii)", () => {
   const saved = { weight: 60, reps: 8, done: true };
 
-  it("zapisana → wyczyść ciężar → wpisz ciężar ⇒ zapisana, nie pominięta", () => {
+  it("zapisana → wyczyść ciężar z powtórzeniami ⇒ wciąż zapisana (masa ciała, decyzja 005 p.7)", () => {
     const cleared = resolveSkippedAfterEdit(saved, { weight: 0 });
-    expect(cleared).toBe(true);
+    expect(cleared).toBe(false);
     const afterClear = { weight: 0, reps: 8, done: true };
     expect(resolveSkippedAfterEdit(afterClear, { weight: 62.5 })).toBe(false);
+  });
+
+  it("wyczyszczenie powtórzeń ⇒ pominięta (ciężar nie wystarcza bez powtórzeń)", () => {
+    expect(resolveSkippedAfterEdit(saved, { reps: null })).toBe(true);
   });
 
   it("pominięta seria bez nowych danych pozostaje pominięta", () => {

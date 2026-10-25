@@ -14,14 +14,13 @@ import {
   backfillSessionExerciseCategories,
   planExercisesToSession,
 } from "@/lib/start-workout-session";
-import {
-  detectSessionNewMaxes,
-  detectSessionWeightRecords,
-} from "@/lib/session-new-max";
 import { whenActiveWorkoutCloudHydrated } from "@/lib/active-workout-cloud-ready";
 import { ActiveSessionCard } from "@/components/active-workout/active-session-card";
 import { GuidedSessionLayout } from "@/components/active-workout/guided-session-layout";
 import { WorkoutFinishedScreen } from "@/components/active-workout/workout-finished-screen";
+import { WorkoutSavingScreen } from "@/components/active-workout/workout-saving-screen";
+import { WorkoutFinishConfirmDialog } from "@/components/active-workout/workout-finish-confirm-dialog";
+import { useWorkoutFinishFlow } from "@/components/active-workout/use-workout-finish-flow";
 import { StartWorkoutScreen } from "@/components/active-workout/start-workout-screen";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,25 +36,17 @@ import {
 } from "@/lib/rest-timer-signal";
 import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
 import type { WorkoutExerciseState } from "@/components/workout/types";
-import { sessionVolume } from "@/lib/workout-session-calculations";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { useCommunityWorkoutStore } from "@/lib/stores/community-workout";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
-import { mapUnknownFetchError, UserMessages } from "@/lib/user-facing-errors";
-import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 import {
   canCompleteWorkoutSet,
-  findFirstSkippedWorkoutTarget,
-  isSkippedWorkoutSet,
   resolveAdvanceAfterSet,
   resolveSkippedAfterEdit,
 } from "@/lib/workout-skipped-sets";
-import {
-  buildSessionProgress,
-  countSetsDone,
-} from "@/lib/workout-session-progress";
+import { buildSessionProgress, countSetsDone } from "@/lib/workout-session-progress";
 import { buildRestCompletedSet, buildRestNextStep } from "@/lib/rest-next-step";
-import { hapticExerciseDone, hapticNewMax, hapticWorkoutDone } from "@/lib/haptics";
+import { hapticExerciseDone } from "@/lib/haptics";
 import { RotateCcw } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18n-provider";
 
@@ -87,15 +78,11 @@ export function ActiveWorkoutView({
     workoutStartedAtMs,
     title,
     workoutPlanId,
-    cardioMinutes,
-    cardioExtras,
     exercises,
     selectedExerciseId,
     applyPlan,
     start,
     reset,
-    setCardioMinutes,
-    setCardioExtras,
     setExercises,
     setSelectedExerciseId,
     patchSet: patchSetInStore,
@@ -111,8 +98,7 @@ export function ActiveWorkoutView({
   const [hintsFetchDone, setHintsFetchDone] = useState(false);
   const hintsMergedRef = useRef(false);
 
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const flow = useWorkoutFinishFlow();
   const [restRemaining, setRestRemaining] = useState<number | null>(null);
   /** Pełny czas bieżącego cyklu przerwy — do animacji koła odliczania. */
   const [restDurationTotal, setRestDurationTotal] = useState(90);
@@ -129,17 +115,14 @@ export function ActiveWorkoutView({
   lastCompletedRef.current = lastCompleted;
   const [listOpen, setListOpen] = useState(false);
   const [resumePromptOpen, setResumePromptOpen] = useState(false);
-  const [allSetsDoneOpen, setAllSetsDoneOpen] = useState(false);
-  const [allSetsDoneSkipped, setAllSetsDoneSkipped] = useState<{
-    target: ReturnType<typeof findFirstSkippedWorkoutTarget>;
-    count: number;
-  }>({ target: null, count: 0 });
+  /** Dialog „Zakończyć trening?” (D-3) — jeden dodatkowy krok przed `flow.requestFinish()`
+   * wyłącznie dla wejścia z menu sesji (dolne „Zakończ”), nie dla ostatniej serii. */
+  const [menuFinishConfirmOpen, setMenuFinishConfirmOpen] = useState(false);
   const [focusSetRequest, setFocusSetRequest] = useState<{
     exerciseId: string;
     setIndex: number;
     nonce: number;
   } | null>(null);
-  const [finishOpen, setFinishOpen] = useState(false);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const [sessionExitPending, setSessionExitPending] = useState(false);
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
@@ -147,10 +130,6 @@ export function ActiveWorkoutView({
   const [storeHydrated, setStoreHydrated] = useState(false);
   /** Czekamy na pull chmury, żeby nie wyrzucić sesji z innego urządzenia. */
   const [cloudHydrated, setCloudHydrated] = useState(false);
-  const finishWeightRecords = useMemo(
-    () => detectSessionWeightRecords(exercises, lastPlanHints),
-    [exercises, lastPlanHints],
-  );
   /** Ekran przerwy: zapisana seria, „Następnie” i pasek (cel z `resolveAdvanceAfterSet`). */
   const restCompleted = useMemo(
     () => (lastCompleted ? buildRestCompletedSet(exercises, lastCompleted) : null),
@@ -330,6 +309,21 @@ export function ActiveWorkoutView({
     cloudHydrated,
   ]);
 
+  /**
+   * Zapis zakończenia resetuje store (więc `hasLoadedPlan` staje się `false`) przed
+   * pokazaniem ekranu „Trening zakończony” — bez tego route-gate wyżej przekierowałby
+   * na `/workout-plan` natychmiast po zapisie, zanim użytkownik zobaczy podsumowanie.
+   */
+  useEffect(() => {
+    if (
+      flow.state.phase === "saving" ||
+      flow.state.phase === "error" ||
+      flow.state.phase === "done"
+    ) {
+      setSuppressRouteGate(true);
+    }
+  }, [flow.state.phase]);
+
   function startRest(seconds: number) {
     void unlockRestTimerAudio();
     if (restSoundOn) {
@@ -397,7 +391,7 @@ export function ActiveWorkoutView({
     persistRestSecondsFromTimer();
     setRestRemaining(null);
     if (finished) {
-      setFinishOpen(true);
+      flow.requestFinish();
     }
   }
 
@@ -447,7 +441,6 @@ export function ActiveWorkoutView({
         ? { ...prev, exerciseFinished: false, workoutFinished: false }
         : prev,
     );
-    setAllSetsDoneOpen(false);
     return newIndex;
   }
 
@@ -482,14 +475,11 @@ export function ActiveWorkoutView({
     setExercises([]);
     setSelectedExerciseId(null);
     stopRest();
-    setAllSetsDoneOpen(false);
-    setFinishOpen(false);
+    useActiveWorkoutStore.getState().setFinishFlow({ phase: "idle" });
     setDiscardConfirmOpen(false);
     requestActiveWorkoutCloudPush(true);
     router.push("/workout-plan");
   }
-
-  const sessionTotal = useMemo(() => sessionVolume(exercises), [exercises]);
 
   useEffect(() => {
     if (startedAt == null) return;
@@ -604,31 +594,20 @@ export function ActiveWorkoutView({
     return pausedElapsedSeconds + running;
   }, [now, startedAt, pausedElapsedSeconds]);
 
-  const completedSets = useMemo(() => countSetsDone(exercises), [exercises]);
-
-  const skippedTarget = allSetsDoneSkipped.target;
-  const skippedCount = allSetsDoneSkipped.count;
-
+  /** „Wróć do serii” (dialog pominiętych): dane przez `flow.goToSkippedTarget()`,
+   * dodatkowo stopRest + fokus na pole (UI tej strony — poza zakresem hooka). */
   function goToSkippedTarget() {
-    const exercisesNow = useActiveWorkoutStore.getState().exercises;
-    const target = findFirstSkippedWorkoutTarget(exercisesNow);
-    if (!target) return;
+    const target =
+      flow.state.phase === "skipped-dialog" ? flow.state.target : null;
     stopRest();
-    const set = exercisesNow
-      .find((e) => e.id === target.exerciseId)
-      ?.sets[target.setIndex];
-    if (set && isSkippedWorkoutSet(set)) {
-      patchSetInStore(target.exerciseId, target.setIndex, {
-        done: false,
-        skipped: false,
+    flow.goToSkippedTarget();
+    if (target) {
+      setFocusSetRequest({
+        exerciseId: target.exerciseId,
+        setIndex: target.setIndex,
+        nonce: Date.now(),
       });
     }
-    setSelectedExerciseId(target.exerciseId);
-    setFocusSetRequest({
-      exerciseId: target.exerciseId,
-      setIndex: target.setIndex,
-      nonce: Date.now(),
-    });
   }
 
   function patchSet(
@@ -685,17 +664,13 @@ export function ActiveWorkoutView({
       const workoutComplete = total > 0 && done >= total;
 
       if (workoutComplete) {
-        // Zawsze pauza z „Koniec treningu” (także przy pominięciach / masie ciała) —
-        // dialog pominięć i „Trening zrobiony” dopiero po Dalej / końcu odliczania.
-        hapticWorkoutDone();
+        // Przerwa po ostatniej serii nie istnieje (ADR 0004 p.3/5) — od razu w przepływ
+        // zakończenia (dialog pominiętych, jeśli potrzebny, albo zapis).
         const endSnap = snap
           ? { ...snap, exerciseFinished: true, workoutFinished: true }
           : null;
         if (endSnap) setLastCompleted(endSnap);
-        setAllSetsDoneOpen(false);
-        setAllSetsDoneSkipped({ target: null, count: 0 });
-        const { defaultSeconds } = readRestTimerPrefs();
-        startRest(defaultSeconds);
+        flow.requestFinish();
         return;
       }
 
@@ -723,7 +698,7 @@ export function ActiveWorkoutView({
     const finished = shouldOpenFinishAfterRest();
     stopRest();
     if (finished) {
-      setFinishOpen(true);
+      flow.requestFinish();
     }
   }
 
@@ -735,126 +710,11 @@ export function ActiveWorkoutView({
     const next = planExercisesToSession(row.plan.exercises);
     setExercises(next);
     setSelectedExerciseId(next[0]?.id ?? null);
-    setSaveError(null);
     stopRest();
     start();
     if (entry === "start") {
       sessionStorage.setItem("active-workout:skipResumeOnce", "1");
       /** Nawigacja: wyłącznie efekt „route gate” (`start` + `hasLoadedPlan` → `replace`), żeby uniknąć podwójnego push/replace i wyścigów z hydracją. */
-    }
-  }
-
-  async function completeWorkout() {
-    setSaveError(null);
-    setSaving(true);
-    try {
-      // Prevent the `/active-workout` gate from overriding the redirect
-      // after we reset the active session state.
-      setSuppressRouteGate(true);
-
-      const endedAt = Date.now();
-      const sessionExercises = exercises;
-      const storeNow = useActiveWorkoutStore.getState();
-      const cardioMinutesNow = storeNow.cardioMinutes;
-      const cardioExtrasNow = storeNow.cardioExtras;
-      const newMaxHits = detectSessionNewMaxes(sessionExercises, lastPlanHints);
-      const baseSummary = {
-        title: title.trim() || "Trening",
-        endedAt,
-        durationSeconds: elapsed,
-        cardioMinutes: cardioMinutesNow,
-        exercisesCount: sessionExercises.length,
-        setsDone: completedSets.done,
-        setsTotal: completedSets.total,
-        totalVolume: sessionTotal,
-      };
-      const result = await submitCompletedWorkout({
-        title,
-        startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),
-        endedAt,
-        cardioMinutes: cardioMinutesNow,
-        cardio:
-          cardioMinutesNow > 0
-            ? {
-                distanceKm: cardioExtrasNow.distanceKm,
-                avgHr: cardioExtrasNow.avgHr,
-                calories: cardioExtrasNow.calories,
-                steps: cardioExtrasNow.steps,
-                paceMinPerKm: cardioExtrasNow.paceMinPerKm ?? null,
-              }
-            : null,
-        exercises: sessionExercises,
-        workoutPlanId,
-      });
-      if (result.status === "error") {
-        throw new Error(result.message);
-      }
-      setSessionExitPending(true);
-      const groupSessionId =
-        useCommunityWorkoutStore.getState().groupSessionId;
-      if (groupSessionId) {
-        try {
-          await ensureCsrfCookie();
-          await fetch(
-            `/api/community/group-workout/${groupSessionId}/presence`,
-            {
-              method: "DELETE",
-              credentials: "same-origin",
-              headers: getXsrfHeaders(),
-            },
-          );
-        } catch {
-          /* ignore */
-        }
-      }
-      useCommunityWorkoutStore.getState().clear();
-      reset();
-      setExercises([]);
-      setSelectedExerciseId(null);
-      stopRest();
-      setFinishOpen(false);
-      requestActiveWorkoutCloudPush(true);
-      const completedSummary = {
-        ...baseSummary,
-        strengthDeltaPercent:
-          result.status === "saved"
-            ? result.strengthDeltaPercent
-            : null,
-        planCompare: result.status === "saved" ? result.planCompare : null,
-        newMaxHits,
-      };
-      sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
-      if (newMaxHits.length > 0) {
-        hapticNewMax();
-        const primary = newMaxHits[0]!;
-        sessionStorage.setItem(
-          "gymbrat:newMaxToast",
-          `NOWY MAX: ${newMaxHits
-            .slice(0, 2)
-            .map((h) => `${h.exerciseName} (${h.value} kg)`)
-            .join(", ")}`,
-        );
-        router.push(
-          `/progress/exercises/${encodeURIComponent(primary.exerciseName)}`,
-        );
-        router.refresh();
-      } else {
-        hapticWorkoutDone();
-        sessionStorage.removeItem("gymbrat:newMaxToast");
-        router.push("/workout-plan");
-        router.refresh();
-      }
-      if (result.status === "queued") {
-        sessionStorage.setItem("gymbrat:workoutQueued", "1");
-      } else {
-        sessionStorage.removeItem("gymbrat:workoutQueued");
-      }
-    } catch (e) {
-      setSaveError(mapUnknownFetchError(e, UserMessages.workoutSaveUnknown));
-      setSessionExitPending(false);
-      setSuppressRouteGate(false);
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -878,10 +738,10 @@ export function ActiveWorkoutView({
         patchExercise(exerciseId, { note })
       }
       onCancelSession={requestDiscardSession}
-      onFinishSession={() => {
-        setFinishOpen(true);
-      }}
-      finishPending={saving}
+      onFinishSession={() =>
+        flow.requestFinishFromSecondaryEntry(() => setMenuFinishConfirmOpen(true))
+      }
+      finishPending={flow.state.phase === "saving"}
       focusSetRequest={focusSetRequest}
       onFocusSetHandled={() => setFocusSetRequest(null)}
     />
@@ -945,20 +805,39 @@ export function ActiveWorkoutView({
         />
       ) : null}
 
-      {skippedTarget ? (
+      {flow.state.phase === "skipped-dialog" ? (
         <WorkoutAllSetsDoneDialog
-          open={allSetsDoneOpen}
-          onOpenChange={(open) => {
-            setAllSetsDoneOpen(open);
-            if (!open) {
-              setAllSetsDoneSkipped({ target: null, count: 0 });
-            }
+          open
+          onOpenChange={() => {
+            /* Esc/outside — dialog sam woła `onGoToSkipped` (patrz implementacja). */
           }}
-          onFinish={() => setFinishOpen(true)}
-          skippedTarget={skippedTarget}
-          skippedCount={skippedCount}
+          onFinish={flow.confirmFinishFromDialog}
           onGoToSkipped={goToSkippedTarget}
+          target={flow.state.target}
+          skippedCount={flow.state.skippedCount}
+          incompleteCount={flow.state.incompleteCount}
+          zeroCompleted={countSetsDone(exercises).done - flow.state.skippedCount <= 0}
         />
+      ) : null}
+
+      <WorkoutFinishConfirmDialog
+        open={menuFinishConfirmOpen}
+        onOpenChange={setMenuFinishConfirmOpen}
+        busy={flow.state.phase === "saving"}
+        onConfirm={flow.requestFinish}
+      />
+
+      {flow.state.phase === "saving" || flow.state.phase === "error" ? (
+        <WorkoutSavingScreen
+          phase={flow.state.phase}
+          errorMessage={flow.state.phase === "error" ? flow.state.message : undefined}
+          onRetry={flow.retry}
+          onReturnToWorkout={flow.returnToWorkout}
+        />
+      ) : null}
+
+      {flow.state.phase === "done" ? (
+        <WorkoutFinishedScreen data={flow.state.result} onClose={flow.close} />
       ) : null}
 
       <WorkoutDiscardSessionDialog
@@ -990,11 +869,7 @@ export function ActiveWorkoutView({
                 !storeHydrated || !cloudHydrated || sessionExitPending ? (
                   <div className="flex flex-1 flex-col items-center justify-center gap-2 px-2 py-16 text-center">
                     <div className="h-9 w-9 animate-pulse rounded-full bg-white/[0.08]" />
-                    <p className="text-sm text-white/45">
-                      {sessionExitPending && saving
-                        ? "Zapisuję trening…"
-                        : t("session.loading")}
-                    </p>
+                    <p className="text-sm text-white/45">{t("session.loading")}</p>
                   </div>
                 ) : (
                   <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
@@ -1027,34 +902,6 @@ export function ActiveWorkoutView({
           </ActiveSessionCard>
         </div>
       </div>
-
-      {hasLoadedPlan && saveError ? (
-        <p className="fixed bottom-24 left-1/2 z-[60] w-[min(92vw,28rem)] -translate-x-1/2 rounded-xl border border-red-500/30 bg-red-950/90 px-4 py-2 text-center text-sm text-red-100">
-          {saveError}
-        </p>
-      ) : null}
-
-      {finishOpen && hasLoadedPlan ? (
-        <WorkoutFinishedScreen
-          title={title}
-          elapsedSeconds={elapsed}
-          setsDone={completedSets.done}
-          setsTotal={completedSets.total}
-          volumeKg={sessionTotal}
-          exercises={exercises}
-          weightRecords={finishWeightRecords}
-          cardioMinutes={cardioMinutes}
-          cardioExtras={cardioExtras}
-          onCardioMinutesChange={setCardioMinutes}
-          onCardioExtrasChange={setCardioExtras}
-          saving={saving}
-          onDone={() => {
-            void completeWorkout();
-          }}
-          onReturn={() => setFinishOpen(false)}
-          onClose={() => setFinishOpen(false)}
-        />
-      ) : null}
 
       {resumePromptOpen ? (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">

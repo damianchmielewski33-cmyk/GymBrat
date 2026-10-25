@@ -18,8 +18,3 @@ export function formatTonnagePl(kg: number): string {
 export function formatWeightRecordLine(previousKg: number, newKg: number): string {
   return `${formatKgPl(previousKg)} → ${formatKgPl(newKg)} kg`;
 }
-
-export function workoutFinishFooterLine(workoutsThisWeekBeforeSave: number): string {
-  const n = Math.max(1, workoutsThisWeekBeforeSave + 1);
-  return `Po „Gotowe” zapiszesz ${n}. trening w tym tygodniu. Ciężary trafią do historii i Postępów.`;
-}

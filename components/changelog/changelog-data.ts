@@ -5,6 +5,18 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Koniec treningu: jeden spójny ekran zamiast trzech",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Trening zapisuje się od razu po potwierdzeniu zakończenia, a ekran „Trening zakończony” pokazuje tonaż, zmianę względem ostatniej sesji, pełną listę serii i rozwijany postęp dopiero po zapisie.",
+      "Ostatnia seria sesji ma przycisk „Zakończ ostatnią serię i zapisz” i nie wymusza już przerwy po zaliczeniu.",
+      "Pominięte i niewykonane serie pokazują się w jednym dialogu z osobnymi licznikami, niezależnie czy kończysz trening przyciskiem głównym, paskiem czy menu.",
+      "Seria z 0 kg i powtórzeniami (np. pompki) liczy się jako zaliczona, nie pominięta.",
+      "Cardio po treningu można dodać i poprawić z ekranu podsumowania bez ponownego zapisywania całej sesji.",
+    ],
+  },
+  {
     title: "Zapowiedź — Aktywny trening: zapis serii jednym dotknięciem i czytelniejsza przerwa",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
