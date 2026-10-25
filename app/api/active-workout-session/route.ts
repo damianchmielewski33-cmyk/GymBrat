@@ -7,6 +7,7 @@ import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { activeWorkoutSessions } from "@/db/schema";
 import {
+  ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD,
   hasActiveLocalSession,
   isActiveWorkoutCloudFresh,
   isActiveWorkoutCloudPayload,
@@ -69,9 +70,17 @@ async function handleGET(req: Request) {
     !hasActiveLocalSession(payload) ||
     !isActiveWorkoutCloudFresh(updatedAt)
   ) {
-    // Duch po nieudanym DELETE / przeterminowana sesja — nie wznawiaj.
+    // Duch po nieudanym DELETE / przeterminowana sesja — nie wznawiaj. Wygaszamy payload
+    // i inkrementujemy rewizję (005, B-1b) zamiast fizycznie usuwać wiersz, żeby rewizja
+    // nigdy nie wracała do zera — inaczej zaległy klient z wyższą rewizją mógłby po 24h
+    // nadpisać świeżo utworzoną sesję (patrz ADR 0004 p. 12).
     await db
-      .delete(activeWorkoutSessions)
+      .update(activeWorkoutSessions)
+      .set({
+        payloadJson: JSON.stringify(ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD),
+        revision: row.revision + 1,
+        updatedAt: new Date(),
+      })
       .where(eq(activeWorkoutSessions.userId, session.user.id));
     return NextResponse.json({ ok: true, session: null });
   }
@@ -217,11 +226,35 @@ async function handleDELETE(req: Request) {
 
   await ready();
   const db = getDb();
-  await db
-    .delete(activeWorkoutSessions)
-    .where(eq(activeWorkoutSessions.userId, session.user.id));
+  const userId = session.user.id;
 
-  return NextResponse.json({ ok: true });
+  const [existing] = await db
+    .select({ revision: activeWorkoutSessions.revision })
+    .from(activeWorkoutSessions)
+    .where(eq(activeWorkoutSessions.userId, userId))
+    .limit(1);
+
+  // Brak wiersza — nic do wygaszenia; kolejny PUT i tak zacznie od rewizji 1 (brak historii do chronienia).
+  if (!existing) {
+    return NextResponse.json({ ok: true, revision: 0 });
+  }
+
+  // Rewizja NIGDY nie wraca do zera po "usunięciu" (005, B-1b) — inkrementacja, nie reset,
+  // żeby żaden zaległy klient z niższą-lub-równą rewizją nie mógł już nadpisać nowej sesji.
+  // Wiersz nie jest fizycznie usuwany — nadpisujemy go wygaszonym payloadem
+  // (`ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD`), bo `userId` jest kluczem głównym tej tabeli
+  // i tak czy inaczej nie rośnie liczba wierszy.
+  const nextRevision = existing.revision + 1;
+  await db
+    .update(activeWorkoutSessions)
+    .set({
+      payloadJson: JSON.stringify(ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD),
+      revision: nextRevision,
+      updatedAt: new Date(),
+    })
+    .where(eq(activeWorkoutSessions.userId, userId));
+
+  return NextResponse.json({ ok: true, revision: nextRevision });
 }
 
 export const GET = withApiErrors(handleGET);

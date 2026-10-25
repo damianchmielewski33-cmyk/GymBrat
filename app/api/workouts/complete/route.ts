@@ -309,6 +309,7 @@ async function respondWithExistingWorkout(
     date: string;
     workoutPlanId: string | null;
   },
+  requestedStartedAtMs: number,
 ) {
   const existingParsed = parseCompletedWorkout(existingRow.exercises);
   const title = (typeof existingParsed?.title === "string" ? existingParsed.title : "") || "Sesja";
@@ -316,6 +317,17 @@ async function respondWithExistingWorkout(
     existingParsed && typeof existingParsed.startedAt === "number" && Number.isFinite(existingParsed.startedAt)
       ? existingParsed.startedAt
       : new Date(`${existingRow.date}T12:00:00`).getTime();
+
+  // Defense in depth (005, B-1b): operationId identyczny, ale startedAt różny o więcej niż
+  // tolerancję zegara/zaokrąglenia -> to nie jest retry TEGO SAMEGO zapisu, to kolizja
+  // identyfikatora między dwiema różnymi sesjami. Nie udawaj sukcesu — zwróć konflikt.
+  if (Math.abs(startedAtMs - requestedStartedAtMs) > 2000) {
+    return NextResponse.json(
+      { ok: false, error: UserMessages.workoutOperationConflict, conflict: true },
+      { status: 409 },
+    );
+  }
+
   const currentVol = safeSessionVolume(existingParsed?.exercises ?? null);
 
   const { strengthDeltaPercent, planCompare } = await computePlanCompareResult({
@@ -443,13 +455,13 @@ async function handlePOST(req: Request) {
     .from(workouts)
     .where(and(eq(workouts.userId, session.user.id), eq(workouts.operationId, operationId)))
     .limit(1);
+  const currentStartedAtMs = startedAt.getTime();
   if (existingByOperation) {
-    return respondWithExistingWorkout(db, session.user.id, existingByOperation);
+    return respondWithExistingWorkout(db, session.user.id, existingByOperation, currentStartedAtMs);
   }
 
   // Strength proxy + pełne porównanie vs poprzedni trening z tego samego planu.
   const currentVol = safeSessionVolume(parsed.data.exercises ?? null);
-  const currentStartedAtMs = startedAt.getTime();
   const currentJson = completedSessionJsonForCompare({
     title,
     startedAtMs: currentStartedAtMs,
@@ -497,7 +509,7 @@ async function handlePOST(req: Request) {
         .where(and(eq(workouts.userId, session.user.id), eq(workouts.operationId, operationId)))
         .limit(1);
       if (raceRow) {
-        return respondWithExistingWorkout(db, session.user.id, raceRow);
+        return respondWithExistingWorkout(db, session.user.id, raceRow, currentStartedAtMs);
       }
     }
     throw err;

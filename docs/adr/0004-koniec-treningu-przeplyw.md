@@ -411,6 +411,207 @@ type WorkoutFinishedScreenData = {
 | Stan `WorkoutFinishFlowState` w globalnym store zwiększa powierzchnię store aktywnego treningu — ryzyko regresji w nietypowych kombinacjach (np. dialog otwarty + nawigacja). | `tester` pokrywa trzy ścieżki wejścia (ekran, pasek, menu) tym samym zestawem testów (DRY w testach — jeden zestaw funkcji testowych parametryzowany wejściem). |
 | Przeliczanie `planCompare` przy wykrytym duplikacie dodaje zapytania (`SELECT recent`) nawet gdy nic nie trzeba zapisywać. | Akceptowalne — ten sam koszt co normalny zapis, duplikat jest rzadkim przypadkiem (błąd sieci/retry), nie ścieżką główną. `tester-wydajnosci` mierzy p95 tylko dla ścieżki głównej (NFR-2). |
 
+## 12. Naprawa B-1b — monotoniczność rewizji po DELETE (dodatek, etap 7b → 3)
+
+- Status dodatku: zaproponowany
+- Data: 2026-10-25
+- Wejście: `docs/testy/005-koniec-treningu-przeplyw.md` sekcja 9 (ustalenia powtórki, werdykt tester etapu 7b: ODRZUCONE, defekt B-1b), ten ADR p. 1 (kontekst `operationId`)
+
+### Kontekst
+
+`activeWorkoutSessions` (`db/schema.ts:554-564`) ma `userId` jako **klucz główny** — jest co najwyżej jeden wiersz na użytkownika. `handleDELETE` (`app/api/active-workout-session/route.ts:198-225`) dziś fizycznie usuwa ten wiersz (`db.delete(...)`), a klient (`deleteCloud()`, `components/active-workout/active-workout-cloud-sync.tsx:141-151`) po sukcesie **zakłada lokalnie rewizję 0** (`writeRevision(0)`), niezależnie od tego, jaka rewizja była na serwerze w momencie usunięcia. `handlePUT` (`route.ts:142-165`) traktuje brak wiersza jako `serverRevision = 0` i akceptuje każdy `clientRevision >= serverRevision`.
+
+Skutek (sonda testera, sekcja 9.2 raportu): urządzenie B ma zalegający, nieaktualny stan sesji 1 z rewizją klienta 5 (np. z kolejki retry/debounce). Urządzenie A kończy sesję 1 → `DELETE` → wiersz zniknął, serwer "zapomina" rewizję 5. A startuje sesję 2 z nowym `operationId` → `PUT` z `clientRevision = 0` → serwer tworzy wiersz z `revision = 1`. Zanim B zdąży zsynchronizować się z chmurą (pull), B wysyła swój zaległy `PUT` z `clientRevision = 5` → `5 >= 1` → serwer **akceptuje i nadpisuje** sesję 2 danymi sesji 1. A w końcu dostaje konflikt 409, przejmuje `operationId` sesji 1 i przy zakończeniu treningu serwer (`/api/workouts/complete`) zgłasza `duplicate: true` dla sesji 1 — sesja 2 (prawdziwy trening) nigdy nie trafia do `workouts`. Cicha utrata danych.
+
+Źródło błędu to **nie** `operationId` (p. 1 działa poprawnie — propagacja klucza jest kompletna), a zerowanie rewizji przy DELETE, które otwiera okno, w którym zaległy, wyżej-rewizjonowany klient wygląda jak "nowszy" niż faktycznie nowa, świeżo utworzona sesja.
+
+### Decyzja
+
+**Wariant 1 (rewizja monotoniczna po DELETE) jako naprawa główna, wariant 3 (walidacja w `/api/workouts/complete` przy duplikacie) jako niezależna, tania druga warstwa (defense in depth).** Wariant 2 (klient przejmuje rewizję z odpowiedzi serwera) jest **częścią realizacji wariantu 1** — serwer musi zwrócić nową rewizję, a klient musi ją zapisać, zamiast zakładać 0 lokalnie; nie jest samodzielną alternatywą, bo bez zmiany po stronie serwera (rewizja wciąż liczona od 0 po realnym usunięciu wiersza) klient nie ma skąd wziąć wyższej wartości.
+
+Odrzucony wariant: wiersz-"nagrobek" w osobnej tabeli/kolumnie `tombstoneRevision` niezależnej od `activeWorkoutSessions`. Odrzucony, bo `userId` już jest kluczem głównym tej tabeli — **nie trzeba drugiego miejsca pamiętającego rewizję**; wystarczy nigdy nie usuwać wiersza fizycznie, tylko nadpisywać go "wygaszonym" payloadem z rewizją `+1`. Mniej kodu, mniej stanu, ten sam efekt.
+
+### Projekt
+
+**1. `lib/active-workout-cloud.ts` — nowa, współdzielona stała (backend + istniejące testy):**
+```ts
+/**
+ * Payload „wygaszonej” sesji — zapisywany w miejsce fizycznego DELETE (005, B-1b),
+ * żeby rewizja w `activeWorkoutSessions` nigdy nie wracała do zera. `hasActiveLocalSession`
+ * dla tego payloadu zawsze zwraca false, więc GET nigdy go nie wznowi jako aktywną sesję.
+ */
+export const ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD: ActiveWorkoutCloudPayload = {
+  startedAt: null,
+  pausedElapsedSeconds: 0,
+  workoutStartedAtMs: null,
+  operationId: null,
+  title: "",
+  workoutPlanId: null,
+  cardioMinutes: 0,
+  exercises: [],
+  selectedExerciseId: null,
+};
+```
+Eksportowana z `lib/`, bez `"use client"` — używana tylko po stronie serwera (route handler), zgodnie z istniejącym podziałem plików tego modułu (typy + czyste funkcje, zero zależności od DOM/store).
+
+**2. `app/api/active-workout-session/route.ts` — `handleDELETE` nie usuwa wiersza, tylko go "wygasza" z rewizją o +1:**
+```ts
+async function handleDELETE(req: Request) {
+  const csrf = assertCsrf(req);
+  if (csrf) return csrf;
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ ok: false, error: "Brak sesji." }, { status: 401 });
+  }
+  const rl = await checkRateLimitAsync(/* bez zmian */);
+  if (!rl.ok) { /* bez zmian */ }
+
+  await ready();
+  const db = getDb();
+  const userId = session.user.id;
+
+  const [existing] = await db
+    .select({ revision: activeWorkoutSessions.revision })
+    .from(activeWorkoutSessions)
+    .where(eq(activeWorkoutSessions.userId, userId))
+    .limit(1);
+
+  // Brak wiersza — nic do wygaszenia; kolejny PUT i tak zacznie od rewizji 1 (brak historii do chronienia).
+  if (!existing) {
+    return NextResponse.json({ ok: true, revision: 0 });
+  }
+
+  // Rewizja NIGDY nie wraca do zera po usunięciu (005, B-1b) — inkrementacja, nie reset,
+  // żeby żaden zaległy klient z niższą-lub-równą rewizją nie mógł już nadpisać nowej sesji.
+  const nextRevision = existing.revision + 1;
+  await db
+    .update(activeWorkoutSessions)
+    .set({
+      payloadJson: JSON.stringify(ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD),
+      revision: nextRevision,
+      updatedAt: new Date(),
+    })
+    .where(eq(activeWorkoutSessions.userId, userId));
+
+  return NextResponse.json({ ok: true, revision: nextRevision });
+}
+```
+Wiersz `activeWorkoutSessions` dla danego użytkownika **nigdy nie jest fizycznie usuwany** przez ten endpoint — tylko nadpisywany wygaszonym payloadem. To jest bezpieczne, bo `userId` jest kluczem głównym (nie rośnie liczba wierszy w tabeli), a `GET` (p. 3 niżej) już i tak traktuje wygaszony/pusty payload jak `session: null`.
+
+**3. `handleGET` — ta sama zasada przy czyszczeniu "ducha" po przeterminowaniu (`route.ts:67-77`):** dziś ta gałąź robi `db.delete(...)` dla nieświeżego/niepoprawnego wiersza. Dla pełnej konsekwencji (ten sam mechanizm obrony co DELETE, nie dwa różne), zamienić na tę samą operację "wygaszenia z inkrementacją rewizji" zamiast fizycznego usunięcia:
+```ts
+if (!payload || !hasActiveLocalSession(payload) || !isActiveWorkoutCloudFresh(updatedAt)) {
+  await db
+    .update(activeWorkoutSessions)
+    .set({
+      payloadJson: JSON.stringify(ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD),
+      revision: row.revision + 1,
+      updatedAt: new Date(),
+    })
+    .where(eq(activeWorkoutSessions.userId, session.user.id));
+  return NextResponse.json({ ok: true, session: null });
+}
+```
+Bez tej zmiany dodatkowej, naprawa w p. 2 byłaby obchodzona po 24 h (`ACTIVE_WORKOUT_CLOUD_MAX_AGE_MS`): zaległy klient z wysoką rewizją, który odczeka ponad dobę nieaktywności, nadal trafiłby na fizycznie usunięty wiersz i rewizję od zera. Koszt zmiany: zero nowych zapytań (już jest `UPDATE`/`DELETE` w tym miejscu), tylko inny rodzaj operacji.
+
+**4. `components/active-workout/active-workout-cloud-sync.tsx` — `deleteCloud()` przejmuje rewizję z odpowiedzi serwera, nie zakłada 0:**
+```ts
+async function deleteCloud(): Promise<boolean> {
+  await ensureCsrfCookie();
+  const res = await fetch("/api/active-workout-session", {
+    method: "DELETE",
+    credentials: "include",
+    headers: { ...getXsrfHeaders() },
+  });
+  if (!res.ok) return false;
+  let json: { ok?: boolean; revision?: number } = {};
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    /* empty body na edge-case'ach keepalive — rewizja zostaje bez zmian, kolejny push/pull naprawi */
+  }
+  if (typeof json.revision === "number" && json.revision >= 0) {
+    writeRevision(json.revision);
+  }
+  return true;
+}
+```
+To usuwa `writeRevision(0)` całkowicie z tej funkcji — lokalna rewizja po DELETE jest teraz tym, co faktycznie zwrócił serwer (`existing.revision + 1`), nigdy sztywnym zerem. Reszta `active-workout-cloud-sync.tsx` (wywołania `deleteCloud()` w `push()`) nie zmienia się — kontrakt zwracanego `boolean` jest zachowany.
+
+**5. Defense in depth — `app/api/workouts/complete/route.ts`, walidacja przy znalezionym "duplikacie" (wariant 3, niezależna warstwa):**
+
+Dzisiejsze `respondWithExistingWorkout` (`route.ts:302-339`) zakłada, że znaleziony wiersz po `operationId` to zawsze prawdziwy retry tego samego zapisu. Po naprawie B-1b to założenie jest *w zasadzie* bezpieczne (scenariusz, który je łamał, jest zamknięty w p. 2-4), ale kolizja identyfikatora operacji innym mechanizmem (błąd klienta, przyszła regresja, inny bug w cloud-sync) nie jest niemożliwa do wyobrażenia — a koszt sprawdzenia jest jednym porównaniem liczb, które serwer już liczy. Dodać porównanie `startedAt` żądania z `startedAt` zapisanego wiersza:
+```ts
+async function respondWithExistingWorkout(
+  db: ReturnType<typeof getDb>,
+  userId: string,
+  existingRow: { id: string; exercises: string; date: string; workoutPlanId: string | null },
+  requestedStartedAtMs: number, // NOWY parametr — startedAt z bieżącego żądania POST
+) {
+  const existingParsed = parseCompletedWorkout(existingRow.exercises);
+  const title = /* bez zmian */;
+  const startedAtMs = /* bez zmian — startedAt zapisanego wiersza */;
+
+  // Defense in depth (005, B-1b): operationId identyczny, ale startedAt różny o więcej niż
+  // tolerancję zegara/zaokrąglenia -> to nie jest retry TEGO SAMEGO zapisu, to kolizja
+  // identyfikatora między dwiema różnymi sesjami. Nie udawaj sukcesu — zwróć konflikt.
+  if (Math.abs(startedAtMs - requestedStartedAtMs) > 2000) {
+    return NextResponse.json(
+      { ok: false, error: UserMessages.workoutOperationConflict, conflict: true },
+      { status: 409 },
+    );
+  }
+
+  const currentVol = /* bez zmian */;
+  /* ... reszta bez zmian ... */
+}
+```
+Wywołania `respondWithExistingWorkout` (dwa miejsca w `handlePOST`, `route.ts:447` i `:500`) dostają dodatkowy argument `currentStartedAtMs` (już policzony wcześniej w funkcji, `route.ts:452`, albo — dla wywołania przy wyścigu `INSERT`, które dziś jest przed obliczeniem `currentStartedAtMs` w kodzie — przenieść liczenie `startedAt.getTime()` na początek `handlePOST`, od razu po walidacji Zod, żeby było dostępne w obu miejscach wywołania bez duplikacji).
+
+Tolerancja 2000 ms (nie dokładne `===`) dla zegara klienta/zaokrągleń przy serializacji JSON — `startedAt` jest liczbą ms z `Date.now()` po stronie klienta w momencie startu sesji, nie powinna się zmienić między próbami tego samego zapisu (store trzyma `workoutStartedAtMs` niezmienny po starcie), ale drobny margines jest bezpieczniejszy niż równość bitowa.
+
+Nowy komunikat w `lib/user-facing-errors.ts`:
+```ts
+workoutOperationConflict:
+  "Ten zapis nie zgadza się z wcześniejszą sesją o tym samym identyfikatorze. Odśwież stronę — jeśli trening nie jest w historii, zapisz go ponownie.",
+```
+
+### Pliki do zmiany — podział backend/frontend
+
+**Backend**
+- `lib/active-workout-cloud.ts` — nowa stała `ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD` (eksport).
+- `app/api/active-workout-session/route.ts` — `handleDELETE` (wygaszenie z inkrementacją rewizji zamiast `db.delete`), `handleGET` (ta sama zamiana w gałęzi "ghost/przeterminowana"), odpowiedź `DELETE` zwraca `revision`.
+- `app/api/workouts/complete/route.ts` — `respondWithExistingWorkout` przyjmuje `requestedStartedAtMs`, porównanie z tolerancją 2000 ms, nowa odpowiedź 409 przy niezgodności; przekazanie argumentu w obu miejscach wywołania (`:447`, `:500`); ewentualne przeniesienie wyliczenia `startedAt.getTime()` wyżej w funkcji, jeśli potrzebne przed drugim wywołaniem.
+- `lib/user-facing-errors.ts` — nowy komunikat `workoutOperationConflict`.
+
+**Frontend**
+- `components/active-workout/active-workout-cloud-sync.tsx` — `deleteCloud()` czyta `revision` z odpowiedzi i woła `writeRevision(json.revision)` zamiast `writeRevision(0)`.
+- `components/active-workout/use-workout-finish-flow.ts` (lub `lib/workout-complete-submit.ts`, tam gdzie dziś obsługiwany jest `SubmitWorkoutResult`) — obsłużyć nową odpowiedź `{ ok: false, conflict: true }` z `/api/workouts/complete` jako stan `"error"` z komunikatem `workoutOperationConflict` (dziś kod już ma gałąź `"error"` dla `!ok`, więc to rozszerzenie istniejącego mapowania błędu, nie nowa gałąź stanu — do potwierdzenia przez `frontend`, czy `submitCompletedWorkout` już przekazuje `error` z body 409 do UI, czy trzeba dopisać rozpoznanie statusu 409 vs 4xx ogólne).
+
+### Test regresji (wymagany, pokrywa dokładnie scenariusz testera)
+
+**Nowy plik `app/api/active-workout-session/route.test.ts` (backend, harness `createMemoryDb` + mock `auth`/CSRF, już używany w tym repo dla innych route handlerów)** — minimalny zestaw:
+1. `PUT` (A, rewizja 0) → `201`-ekwiwalent/`ok:true, revision:1`. `DELETE` (A) → `ok:true, revision:2` (nie `revision:0`). Kolejny `PUT` z `clientRevision: 0` (symulacja klienta, który nie zdążył zaktualizować lokalnej rewizji) → `409 conflict` (bo `0 < 2`), **nie** nadpisuje.
+2. **Odtworzenie dokładnego scenariusza z sondy testera**: `PUT` sesja 1 pięć razy jako B (`clientRevision` rośnie do 5, serwer odpowiada rewizjami 1..5) → `DELETE` jako A (sesja 1 zakończona) → asercja: odpowiedź `DELETE` ma `revision: 6` (nie 0) → `PUT` jako A, sesja 2, `clientRevision: 0` → serwer **musi odpowiedzieć 409 conflict** (bo `0 < 6`), nie zapisać. A (po konflikcie) pociąga `GET`, dostaje aktualną rewizję (6) i payload wygaszony, i wysyła kolejny `PUT` sesji 2 z `clientRevision: 6` → `200 ok, revision:7`. Następnie zaległy `PUT` B z `clientRevision: 5` → **musi dostać 409 conflict** (bo `5 < 7`), sesja 2 **nie jest nadpisana**. To jest asercja, której brak pozwolił defektowi przejść sondę w sekcji 9.2 — test musi explicite sprawdzić `payload` zwrócony w ciele `409` i potwierdzić, że to wciąż sesja 2, nie sesja B.
+3. `GET` wywołany dla przeterminowanego/niepoprawnego wiersza (`updatedAt` starsze niż `ACTIVE_WORKOUT_CLOUD_MAX_AGE_MS`) zwraca `session: null`, a kolejny odczyt bezpośrednio z bazy (pomocniczy `select` w teście) pokazuje, że wiersz **wciąż istnieje** z rewizją wyższą niż przed wywołaniem (nie został fizycznie usunięty).
+
+**Frontend — `lib/active-workout-cloud.test.ts` (rozszerzenie istniejącego pliku z p. 1)**: test `ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD` — `hasActiveLocalSession(ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD) === false`.
+
+**Frontend — test `deleteCloud()`**: dziś ta funkcja jest prywatna w komponencie `"use client"`, bez eksportu (ta sama luka co `applyCloudPayload`, odnotowana w sekcji 9.2 raportu testera jako "B-1 (test)"). Zalecenie dla `frontend`: wyciągnąć `deleteCloud`, `putCloud`, `applyCloudPayload` do nieklienckiego modułu `lib/active-workout-cloud-client.ts` (czysta logika fetch + mapowanie odpowiedzi, bez `"use client"` na poziomie funkcji — plik może zostać importowany przez komponent kliencki bez problemu, Next 16 nie wymaga, by funkcje pomocnicze używane WYŁĄCZNIE po stronie klienta nosiły same znacznik `"use client"`, ten znacznik jest potrzebny tylko w pliku komponentu). To zamyka równocześnie uwagę "B-1 (test)" z backlogu testera (sekcja 9.8) — jedna zmiana, dwie pozycje zamknięte. Test: mock `fetch` zwracający `{ ok:true, revision: 6 }` → asercja `writeRevision`-odpowiadającego efektu (eksportować też `readRevision`/`writeRevision` z tego samego modułu, żeby test mógł zweryfikować zapisany `localStorage`).
+
+### Konsekwencje i kompromisy
+
+- Wiersz `activeWorkoutSessions` nigdy nie jest fizycznie usuwany przez te dwa handlery — to jest zamierzone i bezpieczne (PK = `userId`, brak przyrostu liczby wierszy), ale oznacza, że "pusta" sesja w bazie wygląda teraz jak każda inna poza `hasActiveLocalSession`. Czytelność: komentarz w kodzie (p. 2-3 wyżej) i w schemacie (`db/schema.ts`, dopisać przy `activeWorkoutSessions`, że wiersz żyje permanentnie na użytkownika, `DELETE` z `route.ts` nie usuwa go fizycznie) — do dodania przez `backend`.
+- Rewizja rośnie bez końca (whole-number counter), nigdy się nie resetuje — brak ryzyka przelewu w praktyce (`integer`, SQLite `INTEGER` to 64-bit, dziesiątki tysięcy cykli start/koniec na użytkownika rocznie są nieszkodliwe).
+- Wariant 3 (walidacja `startedAt` przy duplikacie) jest tanią siecią bezpieczeństwa, nie naprawą głową — jeśli kiedyś powstanie inny bug, który doprowadzi do kolizji `operationId` między dwiema realnymi sesjami o niemal identycznym `startedAt` (teoretycznie możliwe, choć mało prawdopodobne — dwie różne sesje tego samego użytkownika z tym samym UUID `operationId` i startem w oknie 2 s), walidacja nie wykryje problemu i zwróci fałszywy sukces tak jak dziś. To jest zaakceptowane ograniczenie — główna naprawa (p. 2-4) usuwa realny wektor; p. 5 jest dodatkiem, nie substytutem.
+- Odrzucona alternatywa dla p. 5: porównanie całego JSON `exercises`/tonażu zamiast tylko `startedAt`. Odrzucona jako nadmiarowa — `startedAt` jest unikalnym, tanim w porównaniu polem, które już istnieje w obu strukturach (żądanie i zapisany wiersz), bez potrzeby parsowania/porównywania głębokich struktur ćwiczeń.
+
+### Werdykt dodatku
+
+**ZATWIERDZONE** — gotowe do implementacji. Warunek zamknięcia B-1b u `tester`: nowy test regresji z p. "Test regresji" wyżej (w szczególności krok 2, odtwarzający sondę) musi przejść, a `npm test`/`npx tsc --noEmit`/`npm run lint` bez nowych regresji. Przegląd architekta po implementacji **nie jest wymagany automatycznie** (zmiana jest wąska, zgodna z tym dodatkiem) — wywołać go tylko, jeśli `backend`/`frontend` zgłosi niepewność przy implementacji (np. co do przeniesienia `deleteCloud`/`applyCloudPayload` do `lib/`) albo `tester` znajdzie w teście regresji wynik niezgodny z projektem wyżej.
+
+---
+
 ## Werdykt
 
 **ZATWIERDZONE Z UWAGAMI.**
@@ -419,3 +620,5 @@ Projekt rozstrzyga oba wymogi blokujące merge (LR-3, LR-4) oraz wszystkie punkt
 1. Potwierdzenie przez `backend`, czy Android wywołuje `/api/workouts/complete` bezpośrednio — jeśli tak, pole `operationId` wymagane w schemacie wymaga wersjonowania API przed Promote (p. 9).
 2. Zachowanie unikalnego indeksu z `NULL` na libSQL/Turso do zweryfikowania empirycznie przed merge (p. 11).
 3. Parytet Java jest świadomie ograniczony (p. 9) — wymaga wpisu w backlogu, nie bloku tego zadania, bo ścieżka produkcyjna dziś biegnie przez TypeScript.
+
+**Dodatek p. 12 (B-1b, 2026-10-25): ZATWIERDZONE**, gotowy do implementacji przez `backend`/`frontend` (etap 5), bez powtórnego przeglądu architekta poza wyjątkiem opisanym w werdykcie dodatku.

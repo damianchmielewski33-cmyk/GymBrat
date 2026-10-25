@@ -52,6 +52,8 @@ export const UserMessages = {
     "Dane cardio nie przeszły weryfikacji. Odśwież ekran i wpisz je ponownie.",
   workoutCardioPatchUnknown:
     "Nie udało się zapisać cardio. Spróbuj ponownie za chwilę.",
+  workoutOperationConflict:
+    "Ten zapis nie zgadza się z wcześniejszą sesją o tym samym identyfikatorze. Odśwież stronę — jeśli trening nie jest w historii, zapisz go ponownie.",
 } as const;
 
 /** Zapis treningu — mapowanie po `error` z API + opcjonalnie HTTP. */
@@ -63,6 +65,7 @@ export function mapWorkoutCompleteClientError(
 
   if (status === 401) return UserMessages.sessionExpired;
   if (status === 429) return UserMessages.rateLimited;
+  if (status === 409) return UserMessages.workoutOperationConflict;
   if (status === 403) {
     const lower = raw.toLowerCase();
     if (

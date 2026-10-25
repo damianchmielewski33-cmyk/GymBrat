@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatCountPl,
+  formatDistanceKmPl,
   formatTonnagePl,
   formatWeightRecordLine,
   formatWorkoutDurationPl,
@@ -18,5 +20,16 @@ describe("workout-finish-format", () => {
   it("formatuje linię rekordu", () => {
     expect(formatWeightRecordLine(36, 40)).toBe("36 → 40 kg");
     expect(formatWeightRecordLine(38.5, 40)).toBe("38,5 → 40 kg");
+  });
+
+  it("formatCountPl grupuje tysiące odstępem, nawet dla liczb 4-cyfrowych (005, przegląd ux 19.3)", () => {
+    expect(formatCountPl(4500)).toBe(`4 500`);
+    expect(formatCountPl(12)).toBe("12");
+    expect(formatCountPl(10000)).toBe(`10 000`);
+  });
+
+  it("formatDistanceKmPl używa przecinka dziesiętnego (005, przegląd ux 19.3)", () => {
+    expect(formatDistanceKmPl(3.2)).toBe("3,2");
+    expect(formatDistanceKmPl(5)).toBe("5");
   });
 });

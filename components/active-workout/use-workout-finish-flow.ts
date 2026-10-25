@@ -89,7 +89,7 @@ async function doSave(reuse: boolean) {
     workoutPlanId: store.workoutPlanId,
   });
 
-  if (result.status === "error") {
+  if (result.status === "error" || result.status === "conflict") {
     store.endFinish();
     store.setFinishFlow({ phase: "error", message: result.message });
     return;

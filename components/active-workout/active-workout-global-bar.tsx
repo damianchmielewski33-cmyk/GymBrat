@@ -4,13 +4,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Check, Pause, Play, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { cn } from "@/lib/utils";
 import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
@@ -19,6 +12,7 @@ import { unlockDocumentInteraction } from "@/lib/unlock-document-interaction";
 import { useWorkoutFinishFlow } from "@/components/active-workout/use-workout-finish-flow";
 import { WorkoutFinishConfirmDialog } from "@/components/active-workout/workout-finish-confirm-dialog";
 import { WorkoutAllSetsDoneDialog } from "@/components/active-workout/workout-all-sets-done-dialog";
+import { WorkoutDiscardSessionDialog } from "@/components/active-workout/workout-discard-session-dialog";
 import { WorkoutSavingScreen } from "@/components/active-workout/workout-saving-screen";
 import { WorkoutFinishedScreen } from "@/components/active-workout/workout-finished-screen";
 import { countSetsDone } from "@/lib/workout-session-progress";
@@ -234,40 +228,14 @@ export function ActiveWorkoutGlobalBar() {
         <WorkoutFinishedScreen data={flow.state.result} onClose={flow.close} />
       ) : null}
 
-      <AlertDialog open={confirmDiscardOpen} onOpenChange={setConfirmDiscardOpen}>
-        <AlertDialogContent>
-          <AlertDialogTitle>Odrzucić aktywny trening?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Dane tej sesji zostaną usunięte z tego urządzenia. Tej operacji nie można cofnąć.
-          </AlertDialogDescription>
-
-          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <AlertDialogClose
-              render={
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
-                />
-              }
-            >
-              Anuluj
-            </AlertDialogClose>
-
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                setConfirmDiscardOpen(false);
-                reset();
-                requestActiveWorkoutCloudPush(true);
-              }}
-            >
-              Odrzuć
-            </Button>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+      <WorkoutDiscardSessionDialog
+        open={confirmDiscardOpen}
+        onOpenChange={setConfirmDiscardOpen}
+        onConfirm={() => {
+          reset();
+          requestActiveWorkoutCloudPush(true);
+        }}
+      />
     </>
   );
 }
