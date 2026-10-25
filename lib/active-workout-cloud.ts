@@ -5,13 +5,6 @@ export type ActiveWorkoutCloudPayload = {
   startedAt: number | null;
   pausedElapsedSeconds: number;
   workoutStartedAtMs: number | null;
-  /**
-   * Klucz idempotencji zapisu (ADR 0004 p.1), musi podróżować RAZEM ze stanem sesji
-   * przez chmurę — inaczej wznowienie na innym urządzeniu generuje nowy klucz i albo
-   * duplikuje zapis, albo (gorzej) ciche traktuje nową sesję jako duplikat starej
-   * (005, defekt B-1). Opcjonalne / `null` tylko dla rekordów zapisanych przed tą zmianą.
-   */
-  operationId?: string | null;
   title: string;
   workoutPlanId: string | null;
   cardioMinutes: number;
@@ -36,7 +29,6 @@ export function isActiveWorkoutCloudPayload(
     (o.startedAt === null || typeof o.startedAt === "number") &&
     typeof o.pausedElapsedSeconds === "number" &&
     (o.workoutStartedAtMs === null || typeof o.workoutStartedAtMs === "number") &&
-    (o.operationId === undefined || o.operationId === null || typeof o.operationId === "string") &&
     typeof o.title === "string" &&
     (o.workoutPlanId === null || typeof o.workoutPlanId === "string") &&
     typeof o.cardioMinutes === "number" &&
@@ -76,7 +68,6 @@ export const ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD: ActiveWorkoutCloudPayload = {
   startedAt: null,
   pausedElapsedSeconds: 0,
   workoutStartedAtMs: null,
-  operationId: null,
   title: "",
   workoutPlanId: null,
   cardioMinutes: 0,

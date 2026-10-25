@@ -20,6 +20,7 @@ import { UserMessages } from "@/lib/user-facing-errors";
 import { countSetsDone } from "@/lib/workout-session-progress";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
+import { deriveWorkoutOperationId } from "@/lib/workout-operation-id";
 import {
   countIncompleteWorkoutSets,
   countSkippedWorkoutSets,
@@ -46,7 +47,13 @@ async function doSave(reuse: boolean) {
   const exercises = store.exercises;
   const cardioMinutesNow = store.cardioMinutes;
   const cardioExtrasNow = store.cardioExtras;
-  const operationId = store.ensureOperationId();
+  // Klucz idempotencji wyliczony deterministycznie (ADR 0004 p.13, pivot) — nie czytany
+  // ze store'a, nie synchronizowany przez chmurę; ten sam łańcuch fallback co `startedAt`
+  // wysyłane w żądaniu poniżej, żeby obie wartości zawsze odpowiadały tej samej chwili.
+  const operationId = await deriveWorkoutOperationId(
+    store.workoutPlanId,
+    store.workoutStartedAtMs ?? store.startedAt ?? endedAt,
+  );
   const { done: setsDone, total: setsTotal } = countSetsDone(exercises);
   const volumeKg = sessionVolume(exercises);
   const elapsedSeconds =

@@ -31,6 +31,31 @@ function parsePayloadJson(raw: string): ActiveWorkoutCloudPayload | null {
   }
 }
 
+/**
+ * Wygasza wiersz sesji aktywnego treningu dla danego użytkownika: nadpisuje payload
+ * wygaszonym stanem i inkrementuje rewizję (005, B-1b — rewizja nigdy nie wraca do zera,
+ * ADR 0004 p.12). Wiersz NIE jest fizycznie usuwany — `userId` jest kluczem głównym tej
+ * tabeli, więc nadpisanie w miejscu nie zwiększa liczby wierszy. Współdzielona przez
+ * `handleDELETE` i (wyłącznie dla faktycznie przeterminowanej, aktywnej sesji) `handleGET`
+ * — patrz ADR 0004 p.13.3 krok 7, naprawa B-1d.
+ */
+async function clearRow(
+  db: ReturnType<typeof getDb>,
+  userId: string,
+  currentRevision: number,
+): Promise<number> {
+  const nextRevision = currentRevision + 1;
+  await db
+    .update(activeWorkoutSessions)
+    .set({
+      payloadJson: JSON.stringify(ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD),
+      revision: nextRevision,
+      updatedAt: new Date(),
+    })
+    .where(eq(activeWorkoutSessions.userId, userId));
+  return nextRevision;
+}
+
 async function handleGET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -65,23 +90,25 @@ async function handleGET(req: Request) {
       ? row.updatedAt.getTime()
       : Number(row.updatedAt);
 
-  if (
-    !payload ||
-    !hasActiveLocalSession(payload) ||
-    !isActiveWorkoutCloudFresh(updatedAt)
-  ) {
-    // Duch po nieudanym DELETE / przeterminowana sesja — nie wznawiaj. Wygaszamy payload
-    // i inkrementujemy rewizję (005, B-1b) zamiast fizycznie usuwać wiersz, żeby rewizja
-    // nigdy nie wracała do zera — inaczej zaległy klient z wyższą rewizją mógłby po 24h
-    // nadpisać świeżo utworzoną sesję (patrz ADR 0004 p. 12).
-    await db
-      .update(activeWorkoutSessions)
-      .set({
-        payloadJson: JSON.stringify(ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD),
-        revision: row.revision + 1,
-        updatedAt: new Date(),
-      })
-      .where(eq(activeWorkoutSessions.userId, session.user.id));
+  if (!payload) {
+    // Wiersz uszkodzony/nieparsowalny — wygaś i zgłoś jako brak sesji.
+    await clearRow(db, session.user.id, row.revision);
+    return NextResponse.json({ ok: true, session: null });
+  }
+
+  if (!hasActiveLocalSession(payload)) {
+    // Już wygaszony (poprzedni DELETE/GET) — czysty odczyt, BEZ mutacji, BEZ bumpa
+    // rewizji (005, B-1d: odczyt nie może być operacją z efektem ubocznym; wygaszanie
+    // już wygaszonego wiersza przy każdym GET psuło monotoniczność rewizji w sposób,
+    // który kasował świeżo zapisywane sesje — patrz ADR 0004 p.13.2).
+    return NextResponse.json({ ok: true, session: null });
+  }
+
+  if (!isActiveWorkoutCloudFresh(updatedAt)) {
+    // Prawdziwy ghost: aktywny payload, ale przeterminowany (nieudany DELETE
+    // w przeszłości) — to jest jedyny przypadek, w którym GET ma prawo mutować
+    // (oryginalny cel tej gałęzi, zachowany z ADR 0004 p.12).
+    await clearRow(db, session.user.id, row.revision);
     return NextResponse.json({ ok: true, session: null });
   }
 
@@ -241,18 +268,9 @@ async function handleDELETE(req: Request) {
 
   // Rewizja NIGDY nie wraca do zera po "usunięciu" (005, B-1b) — inkrementacja, nie reset,
   // żeby żaden zaległy klient z niższą-lub-równą rewizją nie mógł już nadpisać nowej sesji.
-  // Wiersz nie jest fizycznie usuwany — nadpisujemy go wygaszonym payloadem
-  // (`ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD`), bo `userId` jest kluczem głównym tej tabeli
-  // i tak czy inaczej nie rośnie liczba wierszy.
-  const nextRevision = existing.revision + 1;
-  await db
-    .update(activeWorkoutSessions)
-    .set({
-      payloadJson: JSON.stringify(ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD),
-      revision: nextRevision,
-      updatedAt: new Date(),
-    })
-    .where(eq(activeWorkoutSessions.userId, userId));
+  // Wiersz nie jest fizycznie usuwany — nadpisujemy go wygaszonym payloadem przez `clearRow`,
+  // bo `userId` jest kluczem głównym tej tabeli i tak czy inaczej nie rośnie liczba wierszy.
+  const nextRevision = await clearRow(db, userId, existing.revision);
 
   return NextResponse.json({ ok: true, revision: nextRevision });
 }

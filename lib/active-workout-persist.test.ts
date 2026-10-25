@@ -49,15 +49,14 @@ describe("active workout continuous persist", () => {
     expect(parsed.state.exercises[0]?.sets[0]?.done).toBe(true);
   });
 
-  it("includes operationId in the snapshot (005, defekt B-1) — musi podróżować z resztą sesji", () => {
+  it("nie zawiera operationId w snapshocie (ADR 0004 p.13, pivot) — klucz idempotencji nie jest już stanem synchronizowanym przez chmurę", () => {
     useActiveWorkoutStore.setState({
       workoutPlanId: "plan-1",
-      operationId: "op-123",
       exercises: [{ id: "ex-1", name: "Wyciskanie", sets: [{ reps: 10, weight: 42.5, done: true }] }],
     });
 
     const snapshot = snapshotActiveWorkoutPayload();
 
-    expect(snapshot.operationId).toBe("op-123");
+    expect(snapshot).not.toHaveProperty("operationId");
   });
 });

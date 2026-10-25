@@ -466,3 +466,82 @@ Uzasadnienie:
 - Brak przebiegu E2E (D-07) i brak testu renderowania ekranu końcowego, edytora cardio i dialogów (sekcja 6).
 - Zachowanie wielokartowe i `pagehide` w przeglądarce nie zostały przetestowane end-to-end; sondy działają na atrapie `fetch` i handlerze w pamięci.
 - N-B1d-1 i N-B1-2 (sekcja 10.3) - niskie, backlog.
+
+## 11. Weryfikacja pivotu p.13 (tester, etap 7d, 2026-10-25)
+
+- **Zakres**: pivot ADR 0004 p.13 (deterministyczny `operationId`, korekta B-1c/B-1d w kliencie i w `handleGET`). Sondy na prawdziwych handlerach `app/api/active-workout-session/route.ts`, prawdziwych funkcjach `lib/active-workout-cloud-client.ts`, prawdziwym `decideCloudHydrateAction` oraz kopii closure `push()`/hydrate z `components/active-workout/active-workout-cloud-sync.tsx` (komponent `"use client"` nie da się wyrenderować bez DOM — brak jsdom/testing-library w repo, jak w poprzednich rundach). Plik sondy `lib/tmp-probe-p13.test.ts` usunięty po przebiegu.
+- **Uwaga o środowisku**: pierwsza wersja sondy zawisła na scenariuszu „DELETE zwraca 500” (atrapa `fetch` oddawała się tylko mikrozadaniami, więc pętla ponowień nie oddawała pętli zdarzeń). Atrapę poprawiono (realne oddanie makrozadania) i powtórzono. Proces pierwszego, zawieszonego przebiegu Vitest (ID zadania w tle `blwbo65hg`) może nadal działać; nie został zabity, bo próba zabicia procesu została zablokowana przez uprawnienia — do ręcznego sprzątnięcia przez właściciela środowiska. Nie wpływa na pliki repo.
+
+### 11.1 Wyniki komend (uruchomione w tej sesji)
+
+| Komenda | Wynik |
+|---|---|
+| `npx tsc --noEmit` | exit 0, czysto |
+| `npm run lint` | **142 problemy: 104 błędy, 38 ostrzeżeń** = baseline, bez nowych problemów |
+| `npm test` | 145 plików: 144 OK, 1 plik z 2 awariami (`lib/android-version.test.ts`, D-15, pre-istniejące, niepowiązane). Zielone m.in.: `lib/workout-operation-id.test.ts`, `lib/active-workout-cloud-client.test.ts` (w tym 4 kombinacje `shouldApplyConflictPayload`), `app/api/active-workout-session/route.test.ts` (sekwencja 9.2 i „GET na wygaszonym wierszu nie mutuje”) |
+| `npm run test:e2e` | NIE WYKONANO (brak `E2E_EMAIL`/`E2E_PASSWORD`, jak w 7c) |
+
+### 11.2 Kontrola usunięcia `operationId` (punkt 5 polecenia)
+
+- Grep po `store.operationId`, `ensureOperationId`, `.operationId` w `lib/`, `components/`, `app/`: brak odwołań do pola store, payloadu chmury, `partialize` ani snapshotu. Trafienia: `lib/stores/active-workout.ts` (`migrate()` v3→v4, `delete p.operationId` — zamierzone); komentarz w `lib/workout-operation-id.ts:9-10` wspomina już nieistniejące `ensureOperationId` (kosmetyka, N-P13-5); `lib/workout-outbox-db.ts` (pole kolejki offline, kształt bez zmian); `app/api/workouts/complete/route.ts` (schemat i indeks, bez zmian).
+- Wynik: **OK**.
+
+### 11.3 Sonda P1 — B-1c (pętla DELETE)
+
+| Przypadek | Wynik | Ocena |
+|---|---|---|
+| A: kończy trening (PUT, potem pusty stan), 5 kolejnych ticków bezczynnej karty | DELETE: **1**, rewizja w bazie stała (2,2,2,2,2) | **OK**, pętla zamknięta |
+| Reset `clearedPushedRef` | tylko w gałęzi aktywnej sesji (`active-workout-cloud-sync.tsx:177`) i przy nieudanym DELETE (`:165`); nie w każdym ticku pustej karty (`:159` wczesny `return`) | **OK**, zgodnie z ADR p.13.3 krok 8 |
+| P1b: świeża karta (rewizja lokalna 0), chmura wygaszona rev 2, 5 ticków | DELETE: **1** | **NISKI**, N-P13-2 (odchylenie od „przejścia aktywna→pusta”) |
+| P1c: DELETE zwraca 500, 50 makrozadań | DELETE: **50** (bez czekania na interwał 8 s) | **ŚREDNI, pre-istniejące**, N-P13-3 (ten sam kształt w `HEAD`) |
+
+### 11.4 Sonda P2 — stray DELETE z jednej karty nie kasuje sesji drugiego urządzenia na stałe
+
+- Urządzenie B z aktywną sesją (rev 1); świeża karta A wysyła DELETE (rev 2). Tik B: 409 z wygaszonym payloadem → `shouldApplyConflictPayload` = false → B zachowuje lokalną sesję i wysyła PUT z rev 2.
+- Wynik: w chmurze **aktywna sesja B**, rewizja 3, `workoutPlanId: plan-b`, 1 ćwiczenie. **OK**: B samo-naprawia się bez utraty, bo lokalny stan jest źródłem prawdy dla aktywnej sesji.
+
+### 11.5 Sonda P3 — B-1d (GET nie podbija rewizji)
+
+- DELETE (rev 2), potem dwa kolejne GET (reload; `decideCloudHydrateAction` = `noop` x2): rewizja w bazie **2 → 2**. Nowy trening PUT z rewizją klienta 2: **ok**, brak 409. **OK**.
+- Cztery kombinacje `shouldApplyConflictPayload` (lokalnie aktywna/pusta × konflikt aktywny/pusty) potwierdzone w `lib/active-workout-cloud-client.test.ts:110-130`: `false` tylko dla (aktywna, pusta), pozostałe `true`. **OK**.
+
+### 11.6 Sonda P4 — zasada „lokalna wygrywa” przy konflikcie z wygaszonym payloadem (DEFEKT)
+
+Scenariusz: A rozpoczyna sesję S1 (rev 1); B hydratuje i dostaje S1 (`apply-other-device`); A kończy trening (DELETE, rev 2); B, z nadal otwartą kartą, wykonuje tik.
+
+- Tik B: 409 z wygaszonym payloadem, B zachowuje S1 i wysyła PUT. **W chmurze znów aktywna sesja S1, rev 3.**
+- Przeładowanie A: `decideCloudHydrateAction` zwraca **`apply-other-device`** (lokalnie pusto, chmura aktywna, inne urządzenie). A wznawia S1, czyli trening już **zakończony** na A.
+- Konsekwencja: jeśli użytkownik dopisze serie po wznowieniu i zakończy trening, `POST /api/workouts/complete` z tym samym `operationId` (ta sama `workoutStartedAtMs`) trafia w `respondWithExistingWorkout` (`app/api/workouts/complete/route.ts:446-457`; tolerancja startu ±2000 ms przechodzi, `:321-332`). Serwer **zwraca istniejący zapis bez INSERT i bez aktualizacji**, więc nowe serie są odrzucone po cichu. Klient w `use-workout-finish-flow.ts` traktuje `status: "saved"` z `duplicate: true` jako sukces (tylko `console.warn` przy pierwszej próbie).
+- Ocena: **WYSOKI, nowa regresja wprowadzona przez pivot** (korekta B-1d po stronie klienta, ADR p.13.3 krok 8). W `HEAD` ta sytuacja kończyła się inaczej: B kasował sesję po cleared payloadzie, a A nie wznawiał. Obie zasady mają scenariusz utraty: „pusta chmura kasuje żywą sesję” (B-1d) albo „zakończony trening wraca i gubi serie” (P4). Pivot nie analizował przypadku „zakończone na jednym urządzeniu, otwarte na drugim”. Szczegóły: N-P13-1.
+
+### 11.7 Sonda P5 — deterministyczność `operationId` (fundament pivotu)
+
+- Dwie niezależne instancje modułu (`vi.resetModules()` + ponowny import), te same argumenty, cztery przypadki (`"plan-1"`, `null`, `"plan-ż-ą"` z polskimi znakami, ułamkowe `startedAtMs`): **identyczne wyniki**, zgodne z niezależną referencją `node:crypto` (SHA-1, UUID v5, ta sama przestrzeń nazw, zaokrąglenie `Math.round`).
+- Algorytm referencyjny zweryfikowany na wektorze RFC 4122 (DNS, `www.example.com` → `2ed6657d-e927-568b-95e1-2665a8aea6a2`), więc zgodność nie jest zgodnością dwóch własnych implementacji.
+- Test „dwa urządzenia liczą ten sam operationId” w `lib/workout-operation-id.test.ts` jest w praktyce tym samym przypadkiem co „jest deterministyczny” (ten sam moduł, ten sam proces). Sonda P5 dodaje realną izolację i referencję. Zalecam zostawić oba testy, nie traktując testu „dwóch urządzeń” jako dowodu międzyprocesowego.
+- Zależność od `crypto.subtle`: działa tylko w kontekście bezpiecznym (HTTPS/localhost). To ten sam profil co wcześniejsze `crypto.randomUUID()` w `start()`, więc nie jest nowym ryzykiem produkcyjnym (produkcja na HTTPS). Niski, odnotowany.
+- Wynik: **OK**.
+
+### 11.8 Defekty i uwagi (etap 7d)
+
+- **N-P13-1 (WYSOKI, BLOKUJĄCY): zakończony trening wraca jako aktywny i może pochłonąć dopisane serie.** Pliki/linie: `components/active-workout/active-workout-cloud-sync.tsx:189-193` (zasada „lokalna wygrywa”), `lib/active-workout-cloud-client.ts:61-69` (`shouldApplyConflictPayload`), `app/api/active-workout-session/route.ts` (PUT akceptuje sesję po DELETE od innego urządzenia), `app/api/workouts/complete/route.ts:321-332, 446-457`, `components/active-workout/use-workout-finish-flow.ts` (brak rozgałęzienia na `duplicate`). Kroki: 11.6. Oczekiwane: zakończony trening nie wraca na żadnym urządzeniu, a zapis nie gubi serii. Faktyczne: wznowienie zakończonego treningu i po cichu odrzucone serie. Dotkliwość: wysoka (utrata danych treningu bez sygnału w UI). Prawdopodobieństwo: niskie do średniego (wymaga dwóch jednocześnie otwartych kart lub urządzeń z tą samą sesją). Właściciel: architekt (decyzja o zasadzie konfliktu po zakończeniu sesji), potem backend/frontend. Propozycja do rozważenia przez architekta (niezatwierdzona): wygaszenie zapisuje w tombstonie `workoutStartedAtMs` zakończonej sesji; klient przy konflikcie z tombstonem przyjmuje wygaszenie tylko wtedy, gdy lokalna `workoutStartedAtMs` jest tą samą wartością (zakończona sesja), a zachowuje lokalną, gdy jest inna (nowy trening). To zamyka zarówno B-1d, jak i P4 bez zmiany mechanizmu rewizji.
+- **N-P13-2 (NISKI): pierwszy tik na świeżej karcie wysyła DELETE.** `clearedPushedRef` startuje od `false` (`active-workout-cloud-sync.tsx:79`), więc każde załadowanie karty z pustym stanem wysyła jedno DELETE przy pierwszym ticku, nawet bez historii sesji (P1b: 1 DELETE przy rewizji lokalnej 0; gate `readRevision() > 0` w `HEAD` nie wysyłał). Skutek: zbędna rewizja; ewentualna aktywna sesja drugiego urządzenia zostaje wygaszona i samo-naprawiona przez B (P2). Zalecenie: inicjalizować wartownik `true` (DELETE tylko na realnym przejściu aktywna→pusta); ghost po stronie hydrate i tak obsługuje `decideCloudHydrateAction`. Właściciel: frontend. Nie blokuje.
+- **N-P13-3 (ŚREDNI, pre-istniejące w `HEAD`): gorąca pętla ponowień przy błędzie DELETE/PUT.** `active-workout-cloud-sync.tsx:164-173` i `:202-213`: nieudany DELETE/PUT ustawia `pendingPushRef`, a `finally` wywołuje `void push()` natychmiast, bez opóźnienia i bez limitu. Sonda P1c: 50 żądań DELETE w 50 makrozadaniach przy odpowiedzi 500. Przy 429 (limit `RATE.activeWorkoutSession`, 90/min) pętla podbija licznik limitu. Nie wprowadzone przez pivot (ten sam kształt w `HEAD`), ale pivot go nie łagodzi. Właściciel: frontend (backoff lub limit prób, najlepiej przed Promote). Nie blokuje tej rundy.
+- **N-P13-4 (NISKI): wyścig w ghost GET.** `handleGET` czyta wiersz, a przy przeterminowanej aktywnej sesji `clearRow` nadpisuje go bez warunku na rewizję (`app/api/active-workout-session/route.ts:107-111`, `clearRow` `:42-57`). Jeśli świeży PUT wpadnie między odczytem a zapisem, zostanie nadpisany (okno rzędu milisekund; klient i tak ponowi zapis). Właściciel: backend. Backlog.
+- **N-P13-5 (NISKI, kosmetyka):** komentarz w `lib/workout-operation-id.ts:9-10` wspomina `ensureOperationId` (usunięte). Właściciel: frontend. Backlog.
+
+### 11.9 Werdykt etapu 7d (tester)
+
+**ODRZUCONE**: cofnięcie do etapu 3 (architekt: zasada konfliktu po zakończeniu sesji na innym urządzeniu) i wąska poprawka w etapie 5.
+
+Uzasadnienie:
+1. Pivot jest zrealizowany poprawnie w zakresie, który miał naprawić: deterministyczny `operationId` (P5, referencja i wektor RFC), usunięcie stanu z store i payloadu (11.2), B-1c zamknięty (P1), B-1d zamknięty na handlerze i w kliencie (P3), scenariusz 9.2 zielony (`route.test.ts`), tsc czysty, lint na baseline, `npm test` bez nowych awarii.
+2. Mimo to pivot wprowadza nową regresję klasy „stale urządzenie zmienia stan po zakończeniu” (N-P13-1, P4): zakończony trening wraca na drugim urządzeniu, a jego wznowienie i zakończenie po cichu gubi dopisane serie. To nie jest drobna łatka: wynika z zasady „lokalna wygrywa”, którą ADR p.13.3 krok 8 przyjął bez analizy tego przypadku. Nie jest to więc „niskie ryzyko do backlogu”: utrata serii bez sygnału w UI jest wysoka, a mechanizm należy do funkcji synchronizacji między urządzeniami.
+3. Zakres poprawki jest wąski (tombstone z `workoutStartedAtMs` w wygaszeniu i warunek w `shouldApplyConflictPayload`), ale wymaga decyzji architekta, bo zmienia kształt wygaszonego payloadu. Nie wymaga przepisywania pivotu.
+
+Warunki zamknięcia (ponowna weryfikacja przez testera, bez pełnej nowej rundy):
+- P4 przechodzi: zakończona sesja nie wraca na A po przeładowaniu, a nowa sesja na B (inny `workoutStartedAtMs`) nie jest kasowana przez wygaszony payload (zachowanie B-1d utrzymane).
+- Testy regresji dla obu gałęzi tombstona (klient bez DOM i route handler).
+- N-P13-2 (wartownik `true`) zalecane w tej samej poprawce. N-P13-3 zaplanowane przed Promote, bo pogarsza limit API.
+
+Pozostałe elementy (B-1b, B-1c, B-1d, determinizm, usunięcie `operationId`, tsc, lint, testy) są **ZATWIERDZONE** w tej rundzie i nie wymagają ponownej weryfikacji poza testami regresji wymienionymi wyżej.

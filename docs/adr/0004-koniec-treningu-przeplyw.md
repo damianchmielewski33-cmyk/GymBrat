@@ -622,3 +622,418 @@ Projekt rozstrzyga oba wymogi blokujące merge (LR-3, LR-4) oraz wszystkie punkt
 3. Parytet Java jest świadomie ograniczony (p. 9) — wymaga wpisu w backlogu, nie bloku tego zadania, bo ścieżka produkcyjna dziś biegnie przez TypeScript.
 
 **Dodatek p. 12 (B-1b, 2026-10-25): ZATWIERDZONE**, gotowy do implementacji przez `backend`/`frontend` (etap 5), bez powtórnego przeglądu architekta poza wyjątkiem opisanym w werdykcie dodatku.
+
+**Status p. 12 po finalnej weryfikacji (etap 7c, 2026-10-25): naprawa serwerowa zamknięta (sekcja test. 10.2), ale wprowadziła B-1c i B-1d (blokujące) po stronie klienta/GET-ghost. Patrz p. 13 — p. 12 jest tam częściowo skorygowany (GET-ghost), a warstwa `operationId` w payloadzie chmury, którą p. 12 miał chronić, jest w p. 13 usunięta jako niepotrzebna.**
+
+---
+
+## 13. Pivot — deterministyczny `operationId`, korekta p.12 po trzecim odrzuceniu (etap 7c → 3)
+
+- Status: zaproponowany
+- Data: 2026-10-25
+- Wejście: `docs/testy/005-koniec-treningu-przeplyw.md` sekcja 10 (B-1c, B-1d, sondy), ten ADR p. 1 i p. 12, polecenie koordynatora po trzecim odrzuceniu etapu 7
+- Werdykt skrócony: **ZATWIERDZONE Z UWAGAMI — nie w kształcie zaproponowanym w poleceniu.** Deterministyczny `operationId` jest solidny i wart przyjęcia, ale **pełny rewers p.12 (fizyczny `DELETE`, `writeRevision(0)`) jest wadą dyskwalifikującą** — patrz p. 13.1. Zamiast tego: przyjąć deterministyczny `operationId` (usuwa warstwę, która faktycznie była krucha) **i naprawić B-1c/B-1d wąskimi korektami logiki w mechanizmie rewizji z p.12, który zostaje** (nie jest to „kolejna łatka na tym samym fundamencie” w sensie dodania nowej warstwy — to poprawka błędu nadmiernego wyzwalania wprowadzonego przez p.12, w mechanizmie, który chroni inny, odrębny problem niż `operationId`).
+
+### 13.1 Weryfikacja podejścia — gdzie polecenie się myli
+
+**Stabilność `startedAtMs` (zweryfikowane, podejście solidne pod tym względem):**
+- `lib/stores/active-workout.ts`, `start()`: `workoutStartedAtMs: s.workoutStartedAtMs ?? Date.now()` — ustawiane raz, przy pierwszym `Start`; `stopTimer()`/kolejne `start()` (Wznów) nie nadpisują niezerowej wartości. Reset tylko przez `applyPlan()`/`reset()` (nowa sesja).
+- `lib/active-workout-cloud-client.ts`, `applyCloudPayload()`: kopiuje `workoutStartedAtMs` wprost z payloadu chmury, nie generuje nic lokalnie. Czyli urządzenie B, które wznawia sesję z chmury, dostaje TĘ SAMĄ wartość co urządzenie A — determinizm trzyma się na warstwie, która już działa poprawnie (nie jest to nowe ryzyko).
+- Kolejność w `lib/start-workout-session.ts` (`beginWorkoutFromPlanRow`) i `active-workout-view.tsx` (`beginWorkoutFromPlan`): `applyPlan()` zawsze bezpośrednio przed `start()` — żadna ścieżka nie ustawia `exercises`/`sets` bez wcześniejszego `start()`. `workoutStartedAtMs` jest więc niezerowe w każdym punkcie, w którym użytkownik mógłby zapisać trening, poza jednym udokumentowanym już wyjątkiem migracji (`migrate()` w store — sesje z wersji store sprzed tego pola; dotyczy tylko bardzo starych, zawieszonych sesji, nie nowego kodu).
+- Fallback w `use-workout-finish-flow.ts:75` (`store.workoutStartedAtMs ?? store.startedAt ?? endedAt`) istnieje dla pola `startedAt` **wysyłanego w żądaniu** (data treningu / „vs ostatnio”), nie jest to coś nowego wprowadzanego tym pivotem — ale **funkcja wyliczająca `operationId` powinna czytać `workoutStartedAtMs` z tego samego łańcucha fallbacków** (nie samego pola store), żeby nie rozjeżdżać się z wartością `startedAt` wysyłaną w payloadzie przy rzadkiej, zdegradowanej sesji (patrz p.13.3, uwaga przy implementacji).
+- Kolizja ms między dwiema RÓŻNYMI sesjami: niemożliwa w normalnym użyciu (jedna karta: `Date.now()` przy kolejnym `start()` zawsze później niż poprzedni `reset()`; dwa urządzenia: dwie niezależnie wystartowane sesje tego samego planu w tej samej milisekundzie zegara to teoretyczne zero w praktyce — a nawet gdyby się zdarzyło, to są to faktycznie dwie próby zapisania „tego samego zdarzenia” w granicach tolerancji 2000 ms z p.12.5, więc degraduje się do istniejącej, zaakceptowanej warstwy defense-in-depth, nie do nowego ryzyka).
+- Przewidywalność/enumeracja: `operationId` nie jest nigdzie używany jako sekret/token autoryzacji (zweryfikowane grep — jedyne użycia to klucz dedup w `workouts` i pole żądania/odpowiedzi API); unikalność i tak jest wymuszana razem z `userId` przez indeks `(userId, operationId)` (p.1) — **`userId` nie musi wchodzić do funkcji skracającej** (patrz p.13.3, uprasza implementację po stronie klienta, zero potrzeby przekazywania `session.user.id` do czystej funkcji w `lib/`).
+
+**Wada dyskwalifikująca pełny rewers p.12 (polecenie, krok 2) — zweryfikowana czytaniem kodu:**
+
+B-1c i B-1d **nie są objawem kruchości warstwy `operationId`** — są regresją w mechanizmie synchronizacji **całego payloadu** sesji aktywnej (`activeWorkoutSessions`: `exercises`, `startedAt`, `workoutStartedAtMs`, `cardioMinutes` itd.), który chroni **inny, odrębny problem**: żeby zaległy klient z wyższą rewizją nie nadpisał świeżo utworzonej sesji innego urządzenia/karty. To jest problem p.12 sekcja 9.2 ("Scenariusz B") — i był **obecny w `HEAD`, przed samym p.12** (potwierdzone w sekcji 9.2 raportu testera: „Serwer... nie zmieniły się względem `5aa8209`, więc defekt jest pre-istniejący"). Mechanizm `operationId` nie bierze w tym udziału — żadna z dwóch analiz B-1c/B-1d (sekcja 10.3 raportu testera) nie wymienia `operationId` jako przyczyny; obie są wyłącznie o `revision`/`DELETE`/`GET`-ghost.
+
+**Co by się stało przy pełnym rewersie (polecenie, krok 2) — czytając kod krok po kroku:**
+Przywrócenie `writeRevision(0)` po `DELETE` i fizycznego `db.delete(...)` w `handleDELETE`/`handleGET`-ghost odtwarza **dokładnie** scenariusz z sekcji 9.2 ADR p.12 (opisany tam jako pierwotna przyczyna B-1b): zaległe urządzenie B z rewizją 5 nadpisuje świeżo utworzoną sesję 2 urządzenia A całym payloadem (nie tylko `operationId` — **całym stanem**: `exercises`, `cardioMinutes`, `workoutStartedAtMs`). Dalej: `push()` w `active-workout-cloud-sync.tsx` przy odpowiedzi `409 conflict` **bezwarunkowo** woła `applyCloudPayload(result.conflict.payload)` — czyli nadpisuje **żywy, lokalny stan store'a** urządzenia A (nie tylko wiersz w chmurze) payloadem z sesji B. Niezależnie od tego, czy `operationId` jest losowy czy deterministyczny, w tym momencie urządzenie A **traci realne, zapisane przez użytkownika serie** sesji 2 — bo cały obiekt `exercises` w jego własnym store zostaje zastąpiony pustym/starym stanem z sesji 1. To jest **poważniejsza utrata danych niż dzisiejsze B-1c/B-1d** (te dotyczą sesji dopiero zaczynanej/bezczynnej karty; rewers p.12 reotwiera utratę sesji **w trakcie wykonywania, z zapisanymi seriami**).
+
+**Wniosek**: krok 2 polecenia („REWERS zmian z ADR p.12 z powrotem do stanu SPRZED B-1b") jest niebezpieczny i **odrzucony**. Deterministyczny `operationId` elegancko zamyka **oryginalny, wąski problem B-1** (rozjazd klucza idempotencji między urządzeniami przy wznowieniu — p.1/p.12 sekcja 9.2 w części dotyczącej `operationId`), ale nie zastępuje potrzeby chronienia **ogólnego payloadu** sesji aktywnej przed nadpisaniem przez zaległego klienta — to jest wymóg niezależny od tego, jak liczony jest `operationId`.
+
+### 13.2 Co faktycznie powoduje B-1c i B-1d (odrębna diagnoza, nie „kolejna warstwa na tym samym fundamencie")
+
+Obie regresje są **nadmiernym wyzwalaniem** operacji wprowadzonych przez p.12, nie dowodem, że sam mechanizm (nigdy nie resetuj rewizji do zera) jest błędny:
+
+- **B-1c**: `active-workout-cloud-sync.tsx:152`, `if (readRevision() > 0)` jako warunek wysłania `DELETE`. Przed p.12 ten warunek miał sens („rewizja > 0 = jest coś do usunięcia po stronie serwera"), bo po `DELETE` rewizja lokalna wracała do 0. Po p.12 rewizja po `DELETE` jest zawsze ≥ 1 (bo serwer ją inkrementuje i klient to przejmuje) — więc warunek jest **zawsze prawdziwy** po pierwszym zakończonym treningu, na zawsze, i każdy tick interwału (8 s) na bezczynnej karcie wysyła kolejny `DELETE`. To nie jest wada mechanizmu rewizji — to jest warunek klienta, który **stracił sens** po tym, jak zmieniła się semantyka rewizji po `DELETE`, i nikt go nie zaktualizował.
+- **B-1d**: `handleGET` w `app/api/active-workout-session/route.ts`, gałąź „ghost" — bumpuje rewizję i zapisuje wygaszony payload **przy każdym odczycie**, niezależnie od tego, czy wiersz był już wygaszony (bo poprzedni `DELETE`/GET już to zrobił) czy był aktywny-ale-przeterminowany (prawdziwy ghost po nieudanym `DELETE`, oryginalny cel tej gałęzi). To są dwa różne przypadki potraktowane jedną gałęzią kodu — poprawka to rozróżnienie ich, nie usunięcie ochrony.
+
+Żadna z tych poprawek nie dodaje nowej warstwy na mechanizmie rewizji — obie **zwężają** warunek wyzwalający operację, która i tak już istnieje, do przypadków, w których jest faktycznie potrzebna. To odróżnia tę korektę od „kolejnej łatki": nie dodajemy nowego stanu, nowego pola, nowej heurystyki; naprawiamy warunek brzegowy w istniejącej logice.
+
+### 13.3 Projekt — pliki do zmiany
+
+**A. Usunięcie `operationId` jako stanu synchronizowanego przez chmurę (realizacja pivotu)**
+
+1. **Nowy plik `lib/workout-operation-id.ts`** (czysta funkcja, bez `"use client"`, działa w Node ≥20 i w przeglądarce — `crypto.subtle` jest globalne w obu; `package.json` wymaga `node >= 20"`):
+   ```ts
+   /**
+    * Klucz idempotencji zapisu treningu (ADR 0004 p.13, pivot po B-1c/B-1d).
+    * Wyliczany deterministycznie z (workoutPlanId, startedAtMs) — NIE generowany
+    * losowo i NIE synchronizowany jako stan przez chmurę. Dwa urządzenia wznawiające
+    * tę samą logiczną sesję mają już ten sam `workoutStartedAtMs` (kopiowany wprost
+    * przez `applyCloudPayload`, bez udziału tej funkcji) — więc wyliczają ten sam klucz
+    * NIEZALEŻNIE, bez żadnej komunikacji. Nowa sesja (`start()`) dostaje nowy
+    * `workoutStartedAtMs`, więc automatycznie nowy klucz — bez osobnej logiki
+    * "regeneruj tylko przy nowym starcie" (ta logika, `ensureOperationId` w store,
+    * jest usuwana razem z polem `operationId` ze store).
+    *
+    * `userId` NIE wchodzi do klucza: unikalność jest wymuszana razem z `userId`
+    * przez indeks `(userId, operationId)` w `workouts` (ADR p.1) — dodanie go tu
+    * tylko skomplikowałoby wywołanie z klienta (trzeba by przekazywać
+    * `session.user.id` do czystej funkcji w `lib/`) bez żadnej korzyści.
+    *
+    * Format: UUID v5 (RFC 4122, SHA-1, stała przestrzeń nazw) — zgodny bez zmian
+    * z `z.string().uuid()` w `/api/workouts/complete` i z kontraktem Androida.
+    */
+   const NAMESPACE_HEX = "a1f1a0a0-6f2e-5f0a-9c1b-0b7b7c2b9b11"; // stała aplikacji, bez znaczenia bezpieczeństwa
+
+   export async function deriveWorkoutOperationId(
+     workoutPlanId: string | null,
+     startedAtMs: number,
+   ): Promise<string> {
+     const name = `${workoutPlanId ?? "none"}:${Math.round(startedAtMs)}`;
+     const namespaceBytes = hexToBytes(NAMESPACE_HEX.replace(/-/g, ""));
+     const nameBytes = new TextEncoder().encode(name);
+     const data = new Uint8Array(namespaceBytes.length + nameBytes.length);
+     data.set(namespaceBytes, 0);
+     data.set(nameBytes, namespaceBytes.length);
+     const digest = new Uint8Array(await crypto.subtle.digest("SHA-1", data));
+     const bytes = digest.slice(0, 16);
+     bytes[6] = (bytes[6] & 0x0f) | 0x50; // wersja 5
+     bytes[8] = (bytes[8] & 0x3f) | 0x80; // wariant RFC 4122
+     const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+   }
+
+   function hexToBytes(hex: string): Uint8Array {
+     const out = new Uint8Array(hex.length / 2);
+     for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+     return out;
+   }
+   ```
+   Alternatywa odrzucona: `z.string().min(16).max(128)` zamiast formatu UUID (propozycja z polecenia). Odrzucona — format UUID v5 trzyma kontrakt `/api/workouts/complete`, Android i Javę **bez żadnej zmiany schematu**, kosztem ~15 linii czystej funkcji. Słabszy, niekryptograficzny hasz (np. prosty FNV) był też rozważony i odrzucony — `crypto.subtle.digest` jest globalne, darmowe do użycia, a SHA-1 w UUID v5 jest ustandaryzowanym, czytelnym dla każdego, kto znajdzie ten kod, wzorcem (nie wynajdujemy własnego formatu).
+
+2. **`lib/stores/active-workout.ts`** — usunąć: pole `operationId`, akcję `ensureOperationId()`, generowanie w `start()` (linia `operationId: s.operationId ?? crypto.randomUUID()`), czyszczenie w `applyPlan()`/`reset()`, wpis w `partialize`, specjalny przypadek w `migrate()` (`typeof p.operationId !== "string"`). Podbić `version` z 3 na 4 (zmiana kształtu persystowanego stanu — zgodnie z istniejącym wzorcem `migrate()` w tym pliku); nowy `migrate()` dla v3→v4 może po prostu zostawić ewentualny stary klucz `operationId` w obiekcie nietypowanym (zustand/persist i tak go zignoruje, bo nie jest w typie `ActiveWorkoutState`) — bez specjalnej obsługi.
+3. **`lib/active-workout-cloud.ts`** — usunąć pole `operationId` z `ActiveWorkoutCloudPayload`, z walidatora `isActiveWorkoutCloudPayload`, z `ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD`.
+4. **`lib/active-workout-cloud-client.ts`** — usunąć linię `operationId: payload.operationId ?? null` z `applyCloudPayload()`.
+5. **`lib/active-workout-persist.ts`** — usunąć `operationId: s.operationId` z `snapshotActiveWorkoutPayload()`.
+6. **`components/active-workout/use-workout-finish-flow.ts`** — zamienić `const operationId = store.ensureOperationId();` na:
+   ```ts
+   const operationId = await deriveWorkoutOperationId(
+     store.workoutPlanId,
+     store.workoutStartedAtMs ?? store.startedAt ?? endedAt,
+   );
+   ```
+   (ten sam łańcuch fallback co już istnieje dla pola `startedAt` wysyłanego w żądaniu, linia obok — żeby `operationId` i `startedAt` w jednym żądaniu zawsze odpowiadały tej samej wartości czasu, nawet w zdegradowanym przypadku). Import `deriveWorkoutOperationId` z nowego modułu. Diagnostyczny `console.warn` przy `duplicate: true` na pierwszej próbie (linia ok. 103) **zostaje** — nadal ma sens jako sygnał nieoczekiwanej kolizji (teraz: albo bug gdzie indziej, albo rzadka kolizja ms między dwiema różnymi sesjami, p.13.1).
+   **Bez zmian**: `app/api/workouts/complete/route.ts` (schemat `operationId: z.string().uuid()`), Java (`CompleteWorkoutRequest.operationId`), `lib/workout-outbox-db.ts` (`PendingWorkoutPayload.operationId: string` — kształt pola się nie zmienia, zmienia się tylko to, jak jest wyliczane przed wysłaniem/zakolejkowaniem).
+
+**B. Korekta p.12 (B-1c, B-1d) — zwężenie warunków, mechanizm rewizji zostaje**
+
+7. **`app/api/active-workout-session/route.ts`, `handleGET`** — rozróżnić „już wygaszony" od „aktywny, ale przeterminowany" (B-1d):
+   ```ts
+   if (!payload) {
+     // Wiersz uszkodzony/nieparsowalny — wygaś i zgłoś jako brak sesji.
+     await clearRow(db, session.user.id, row.revision);
+     return NextResponse.json({ ok: true, session: null });
+   }
+   if (!hasActiveLocalSession(payload)) {
+     // Już wygaszony (DELETE/poprzedni GET) — czysty odczyt, bez mutacji, bez bumpa
+     // rewizji (005, B-1d: odczyt NIE MOŻE być operacją z efektem ubocznym).
+     return NextResponse.json({ ok: true, session: null });
+   }
+   if (!isActiveWorkoutCloudFresh(updatedAt)) {
+     // Prawdziwy ghost: aktywny payload, ale przeterminowany (nieudany DELETE
+     // w przeszłości) — to jest jedyny przypadek, w którym GET ma prawo mutować
+     // (oryginalny cel tej gałęzi, zachowany z p.12).
+     await clearRow(db, session.user.id, row.revision);
+     return NextResponse.json({ ok: true, session: null });
+   }
+   return NextResponse.json({ ok: true, session: { payload, revision: row.revision, deviceId: row.deviceId, updatedAt } });
+   ```
+   (`clearRow` — mała pomocnicza funkcja wydzielona z dzisiejszego ciała `if`, używana też w `handleDELETE`, żeby nie duplikować `UPDATE ... SET payloadJson = CLEARED, revision = revision + 1`.)
+8. **`components/active-workout/active-workout-cloud-sync.tsx`** — B-1c: zamienić wartownik `readRevision() > 0` na jednorazowy ref, niezależny od wartości rewizji:
+   ```ts
+   const clearedPushedRef = useRef(false);
+   // w push():
+   if (!hasActiveLocalSession(payload)) {
+     if (clearedPushedRef.current) return; // już wysłane raz dla tego przejścia aktywna→pusta
+     clearedPushedRef.current = true;
+     pushingRef.current = true;
+     try {
+       const ok = await deleteCloud();
+       if (!ok) clearedPushedRef.current = false; // spróbuj ponownie przy następnym ticku
+     } finally { pushingRef.current = false; }
+     return;
+   }
+   clearedPushedRef.current = false; // sesja znów aktywna — jedno DELETE przy następnym opróżnieniu
+   ```
+   B-1d (warstwa klienta, defense in depth obok poprawki #7 serwera — na wypadek starego klienta wobec nowego serwera podczas wdrożenia, albo odwrotnie): w obsłudze `result.conflict` w `push()`, nie stosować payloadu konfliktu, jeśli lokalna sesja jest aktywna, a payload konfliktu nie jest:
+   ```ts
+   if (result.conflict) {
+     if (!hasActiveLocalSession(result.conflict.payload)) {
+       // Pusty/wygaszony stan w chmurze nie wygrywa z aktywną sesją lokalną (005, B-1d) —
+       // przejmij tylko rewizję i wypchnij ponownie lokalny stan.
+       writeRevision(result.conflict.revision);
+       pendingPushRef.current = true;
+     } else {
+       applyCloudPayload(result.conflict.payload);
+       writeRevision(result.conflict.revision);
+       setBanner(t("session.cloudUpdated"));
+       window.setTimeout(() => setBanner(null), 4000);
+     }
+   }
+   ```
+9. **Bez zmian**: `handleDELETE` (mechanizm „wygaszenia z inkrementacją" zostaje identyczny jak w p.12 — to jest poprawny, potrzebny mechanizm, problem był tylko w kliencie, który źle interpretował jego efekt, i w `GET`, które go nadużywało).
+10. **Bez zmian**: `app/api/workouts/complete/route.ts`, `respondWithExistingWorkout` — tolerancja `startedAt` ±2000 ms zostaje jako tania druga warstwa (polecenie p.3, potwierdzone — teraz jeszcze mniej prawdopodobna do trafienia, bo kolizja `operationId` wymaga identycznego `(workoutPlanId, startedAtMs)`, a nie tylko przypadkowego UUID).
+
+### 13.4 Testy regresji wymagane
+
+**Nowy `lib/workout-operation-id.test.ts`:**
+- Determinizm: dwa wywołania z tym samym `(workoutPlanId, startedAtMs)` → identyczny wynik.
+- Różny `startedAtMs` lub różny `workoutPlanId` (w tym `null`) → różny wynik.
+- Format wyjścia przechodzi `z.string().uuid()` (import schematu z `zod` w teście, albo regex UUID).
+- **Test wymagany przez polecenie koordynatora** — dwa „urządzenia" symulowane bez żadnej komunikacji: 
+  ```ts
+  it("dwa urządzenia liczą ten sam operationId bez komunikacji między sobą", async () => {
+    const planId = "plan-1";
+    const startedAtMs = 1_700_000_000_000;
+    const deviceA = await deriveWorkoutOperationId(planId, startedAtMs);
+    const deviceB = await deriveWorkoutOperationId(planId, startedAtMs); // osobne wywołanie, zero stanu współdzielonego
+    expect(deviceA).toBe(deviceB);
+  });
+  ```
+
+**Aktualizacja istniejących testów (usunięcie asercji o `operationId` jako stanie synchronizowanym):**
+- `lib/active-workout-cloud.test.ts` — usunąć asercje o polu `operationId` w payloadzie/walidatorze/`ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD`.
+- `lib/active-workout-cloud-client.test.ts` — usunąć testy „zachowuje operationId" / „payload wygaszony czyści operationId" (p. 50-85 obecnego pliku); **dodać** test B-1d: `push`-podobna logika konfliktu (wydzielić decyzję do małej czystej funkcji, np. `shouldApplyConflictPayload(local, conflictPayload): boolean`, testowalnej bez DOM) — `false`, gdy lokalny payload jest aktywny i payload konfliktu nie jest; `true` w przeciwnym razie.
+- `lib/active-workout-persist.test.ts` — usunąć asercje o `operationId` w snapshotcie.
+- `components/active-workout/use-workout-finish-flow.test.ts` — zamienić asercje o `store.operationId` na asercje o wartości zwróconej przez `deriveWorkoutOperationId` (ten sam wynik przy `retry()`, bo funkcja jest deterministyczna — test „Spróbuj ponownie wysyła ten sam `operationId`" zostaje, ale bez odwołania do pola store, które już nie istnieje).
+- `app/api/active-workout-session/route.test.ts` — **dodać**: GET na już wygaszonym wierszu nie zmienia `revision`/`updatedAt` w bazie (żadnego `UPDATE`) — asercja przez bezpośredni odczyt po dwóch kolejnych GET; GET na aktywnym, ale przeterminowanym (`updatedAt` > 24h) wiersza wciąż bumpuje i wygasza (zachowanie z p.12 nienaruszone).
+- `lib/stores/active-workout.test.ts` (jeśli istnieje — do potwierdzenia przez `frontend`) — usunąć testy `ensureOperationId`/generowania w `start()`.
+
+### 13.5 Ryzyka resztkowe i kompromisy
+
+- Logika B-1c (jednorazowy `clearedPushedRef`) żyje w komponencie `"use client"` (`active-workout-cloud-sync.tsx`) — ten sam ograniczenie testowe jak reszta tego komponentu (brak `jsdom`/`@testing-library/react` w repo, patrz raporty testera etap 7/7b/7c). Pokrycie: sonda jednorazowa (jak w poprzednich rundach testera, plik usuwany po przebiegu) + E2E (D-07, już w backlogu). To jest zaakceptowane ograniczenie testowe tego repo, nie nowe dla tej zmiany.
+- Fallback `store.workoutStartedAtMs ?? store.startedAt ?? endedAt` przy wyliczaniu `operationId` (p.13.3 krok 6) dziedziczy istniejące, już zaakceptowane ryzyko tego łańcucha (opisane w store `migrate()`) — dotyczy tylko sesji wznowionych z wersji store sprzed tego pola; nie jest nowym ryzykiem wprowadzonym tym pivotem.
+- Usunięcie `operationId` z payloadu chmury jest zmianą kompatybilną do przodu i do tyłu bez migracji danych: istniejące wiersze `activeWorkoutSessions` w bazie mają w `payloadJson` zapisane stare payloady z polem `operationId` — `isActiveWorkoutCloudPayload` (nowa wersja, bez wymogu tego pola) je nadal poprawnie parsuje (pole dodatkowe w JSON jest po prostu ignorowane przy odczycie przez nowy typ TS); nie jest wymagana migracja bazy.
+- Rozjazd wdrożeniowy (stary klient / nowy serwer lub odwrotnie) podczas Preview→Promote: stary klient nadal wysyła `operationId` w payloadzie PUT — nowy serwer go po prostu zapisze i zignoruje (nie czyta go z payloadu nigdzie w logice serwera dla `/api/active-workout-session`); nowy klient nie wysyła `operationId` — stary serwer (jeśli oba żyją chwilowo, co w modelu Vercel nie powinno się zdarzyć dla jednego route handlera, ale dla pewności) też nie ma z tym problemu, bo `operationId` był tam zawsze opcjonalny (`operationId?: string | null`). Brak okna niezgodności.
+
+### 13.6 Werdykt p.13
+
+**ZATWIERDZONE Z UWAGAMI** w zakresie: (a) deterministyczny `operationId` wg projektu p.13.3.A — gotowy do implementacji; (b) korekta B-1c/B-1d wg projektu p.13.3.B — gotowa do implementacji. **ODRZUCONE**: pełny rewers mechanizmu rewizji z p.12 (polecenie, krok 2, w części „fizyczny `DELETE`, `writeRevision(0)`") — zastąpiony korektą p.13.3.B, która zachowuje ochronę ogólnego payloadu sesji.
+
+Warunek zamknięcia u `tester`: wszystkie testy z p.13.4 przechodzą, w tym explicite test „dwa urządzenia bez komunikacji" i test „GET na już wygaszonym wierszu nie mutuje bazy"; `npm test`, `npx tsc --noEmit`, `npm run lint` bez nowych regresji; sonda na scenariusz z sekcji 9.2/10.3 (B-1b/B-1c/B-1d) powtórzona i czysta. Przegląd architekta po implementacji **nie jest wymagany automatycznie** — tylko w wyjątku z `przeplyw.md` (niepewność backend/frontend, albo `tester` znajdzie defekt wskazujący na problem strukturalny inny niż te już opisane tutaj).
+
+---
+
+## 14. Naprawa N-P13-1 — tożsamość tombstone (etap 7d → 3)
+
+- Status: zaproponowany
+- Data: 2026-10-25
+- Wejście: `docs/testy/005-koniec-treningu-przeplyw.md` sekcja 11.6, 11.8 (defekt N-P13-1, sonda P4, werdykt tester etapu 7d: ODRZUCONE), ten ADR p.12-13 (mechanizm wygaszania/rewizji, który zostaje)
+
+### 14.1 Problem (powtórzenie diagnozy testera, zweryfikowane czytaniem kodu)
+
+`shouldApplyConflictPayload` (`lib/active-workout-cloud-client.ts:61-69`) i wywołanie w `push()` (`components/active-workout/active-workout-cloud-sync.tsx:188-199`) rozstrzygają konflikt 409 wyłącznie na podstawie `hasActiveLocalSession()`: lokalna sesja aktywna + payload konfliktu pusty/wygaszony → **zawsze** „lokalna wygrywa" (zachowuje lokalny stan, wypycha go ponownie, `pendingPushRef = true`). To jest poprawne dla naprawy B-1d (świeżo startowana sesja na jednym urządzeniu nie może zostać skasowana przez wygaszony wiersz, który zostawiło inne/to samo urządzenie po zakończeniu *innego* treningu), ale błędne, gdy lokalna „aktywna" sesja na tym urządzeniu jest **tą samą** sesją, która została właśnie wygaszona gdzie indziej (np. zakończona na urządzeniu A, zanim urządzenie B zdążyło się zsynchronizować). W tym drugim przypadku „lokalna wygrywa" wskrzesza martwą sesję na B, B ją przejmuje, a jeśli użytkownik dopisze serie i zakończy trening, `respondWithExistingWorkout` (`app/api/workouts/complete/route.ts:446-457`, tolerancja ±2000 ms wokół `startedAt`, p.12 pkt 5) scala to po cichu z istniejącym zapisem **bez `UPDATE`** — nowe serie giną bez sygnału błędu w UI (sonda P4, sekcja 11.6 raportu testera).
+
+Przyczyna: wygaszony payload (`ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD`, p.12) nie niesie **żadnej tożsamości** tego, co wygasił — jest identyczny niezależnie od tego, która sesja została zakończona. `shouldApplyConflictPayload` nie ma więc jak odróżnić „to tombstone mojej własnej, już zakończonej sesji" od „to tombstone jakiejś zupełnie innej, nieistotnej sesji".
+
+### 14.2 Decyzja
+
+Wygaszony payload niesie tożsamość sesji, którą wygasił: nowe pole `clearedSessionStartedAtMs: number | null` — `workoutStartedAtMs` sesji aktywnej w momencie wygaszenia; `null`, gdy wygaszano wiersz pusty/nieparsowalny (nie ma czyjej tożsamości do zapisania). `shouldApplyConflictPayload` porównuje lokalne `workoutStartedAtMs` z `clearedSessionStartedAtMs` payloadu konfliktu:
+
+- **Zgadzają się** (ten sam `startedAtMs`, oba nie-`null`) → to dokładnie ta sama sesja, wygaszona gdzie indziej → **zaakceptuj wygaszenie**: zastosuj payload lokalnie (`applyCloudPayload`), **nie publikuj ponownie**. Lokalna sesja jest martwa; użytkownik ma zobaczyć, że trening już się zakończył, nie wznawiać go.
+- **Nie zgadzają się** (różne `startedAtMs`, albo `clearedSessionStartedAtMs == null`) → zachowanie B-1d bez zmian: lokalna wygrywa, publikuj ponownie.
+
+To nie jest nowy mechanizm synchronizacji — jest to rozszerzenie istniejącego payloadu `ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD` o jedno pole tożsamości i jeden dodatkowy warunek w funkcji, która już istnieje i jest już testowana bez DOM (`lib/active-workout-cloud-client.ts`).
+
+Odrzucona alternatywa: osobna tabela/kolumna "historia wygaszeń" (log tombstonów z TTL). Odrzucona — `activeWorkoutSessions` ma `userId` jako PK (co najwyżej jeden wygaszony wiersz na użytkownika na raz), więc nie trzeba pamiętać historii wielu wygaszeń; wystarczy, że *aktualny* tombstone niesie tożsamość ostatniej wygaszonej sesji — to jest jedyny tombstone, z którym jakikolwiek klient może się zderzyć w 409, bo kolejne wygaszenie nadpisuje poprzednie w tym samym wierszu.
+
+Odrzucona alternatywa: porównywać `operationId` zamiast `workoutStartedAtMs`. Odrzucona — po pivocie p.13 `operationId` nie jest już polem synchronizowanym przez chmurę (usunięte z `ActiveWorkoutCloudPayload`, p.13.3.A); re-wprowadzenie go tylko dla tombstone cofnęłoby część pivotu i zdublowało tożsamość sesji dwoma polami (`workoutStartedAtMs` i `operationId` są deterministycznie związane 1:1 przez `deriveWorkoutOperationId`, więc drugie pole nie dodaje informacji, tylko kod).
+
+### 14.3 Projekt — pliki do zmiany
+
+**1. `lib/active-workout-cloud.ts`**
+
+Nowe pole w typie (opcjonalne — obecne tylko na payloadach wygaszonych; nieobecne/`null` na prawdziwej aktywnej sesji, więc nie wpływa na `hasActiveLocalSession` ani na istniejące payloady w bazie zapisane przed tą zmianą):
+```ts
+export type ActiveWorkoutCloudPayload = {
+  startedAt: number | null;
+  pausedElapsedSeconds: number;
+  workoutStartedAtMs: number | null;
+  title: string;
+  workoutPlanId: string | null;
+  cardioMinutes: number;
+  cardioExtras?: ActiveCardioExtras;
+  exercises: WorkoutExerciseState[];
+  selectedExerciseId: string | null;
+  /**
+   * Tylko na payloadzie WYGASZONYM (005, N-P13-1): `workoutStartedAtMs` sesji, która była
+   * aktywna w momencie wygaszenia (DELETE/ghost-GET, p.12-13). `null`, gdy wygaszano wiersz
+   * pusty/nieparsowalny — nie ma czyjej tożsamości do zapisania. Nieobecne na prawdziwym
+   * payloadzie aktywnej sesji (`hasActiveLocalSession` go nie czyta).
+   */
+  clearedSessionStartedAtMs?: number | null;
+};
+```
+
+`isActiveWorkoutCloudPayload` — dopisać walidację opcjonalnego pola (nie wymagane, ale jeśli obecne, musi być `number | null`):
+```ts
+(o.clearedSessionStartedAtMs === undefined ||
+  o.clearedSessionStartedAtMs === null ||
+  typeof o.clearedSessionStartedAtMs === "number")
+```
+
+`ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD` (stała) → **fabryka**, bo wartość zależy od tego, co było wygaszane (dokładnie uwaga z polecenia koordynatora):
+```ts
+/**
+ * Payload „wygaszonej” sesji (005, B-1b/p.12) — budowany przy każdym wygaszeniu z
+ * tożsamością sesji, którą wygaszono (N-P13-1, p.14). `hasActiveLocalSession` dla tego
+ * payloadu zawsze zwraca false, więc GET nigdy go nie wznowi jako aktywną sesję.
+ */
+export function buildActiveWorkoutClearedPayload(
+  clearedSessionStartedAtMs: number | null,
+): ActiveWorkoutCloudPayload {
+  return {
+    startedAt: null,
+    pausedElapsedSeconds: 0,
+    workoutStartedAtMs: null,
+    title: "",
+    workoutPlanId: null,
+    cardioMinutes: 0,
+    exercises: [],
+    selectedExerciseId: null,
+    clearedSessionStartedAtMs,
+  };
+}
+```
+Usunięcie eksportu stałej `ACTIVE_WORKOUT_CLOUD_CLEARED_PAYLOAD` — wszystkie dzisiejsze miejsca użycia (`route.ts`, `lib/active-workout-cloud.test.ts`) przechodzą na wywołanie fabryki.
+
+**2. `app/api/active-workout-session/route.ts`**
+
+`clearRow` musi znać `startedAtMs` payloadu, który nadpisuje — przyjmuje go jako parametr (woła go caller, PRZED nadpisaniem, z wiersza, który jeszcze nie został zmutowany):
+```ts
+async function clearRow(
+  db: ReturnType<typeof getDb>,
+  userId: string,
+  currentRevision: number,
+  clearedSessionStartedAtMs: number | null,
+): Promise<number> {
+  const nextRevision = currentRevision + 1;
+  await db
+    .update(activeWorkoutSessions)
+    .set({
+      payloadJson: JSON.stringify(buildActiveWorkoutClearedPayload(clearedSessionStartedAtMs)),
+      revision: nextRevision,
+      updatedAt: new Date(),
+    })
+    .where(eq(activeWorkoutSessions.userId, userId));
+  return nextRevision;
+}
+```
+
+`handleDELETE` — dziś `SELECT` pobiera tylko `revision`; musi też pobrać `payloadJson`, żeby wyciągnąć tożsamość PRZED nadpisaniem:
+```ts
+const [existing] = await db
+  .select({ revision: activeWorkoutSessions.revision, payloadJson: activeWorkoutSessions.payloadJson })
+  .from(activeWorkoutSessions)
+  .where(eq(activeWorkoutSessions.userId, userId))
+  .limit(1);
+
+if (!existing) {
+  return NextResponse.json({ ok: true, revision: 0 });
+}
+
+const existingPayload = parsePayloadJson(existing.payloadJson);
+const clearedSessionStartedAtMs = existingPayload?.workoutStartedAtMs ?? null;
+const nextRevision = await clearRow(db, userId, existing.revision, clearedSessionStartedAtMs);
+
+return NextResponse.json({ ok: true, revision: nextRevision });
+```
+(Jeśli wiersz jest już wygaszony w momencie DELETE — rzadkie, ale możliwe, np. drugi DELETE z tej samej karty po network retry — `existingPayload.workoutStartedAtMs` jest już `null`, więc nowy tombstone też dostaje `null`; to jest poprawne, bo nie ma już żywej sesji, której tożsamość trzeba przenieść.)
+
+`handleGET` — dwa wywołania `clearRow` dostają trzeci argument z już dostępnego `payload`:
+```ts
+if (!payload) {
+  // Wiersz uszkodzony/nieparsowalny — nie ma tożsamości do zapisania.
+  await clearRow(db, session.user.id, row.revision, null);
+  return NextResponse.json({ ok: true, session: null });
+}
+
+if (!hasActiveLocalSession(payload)) {
+  return NextResponse.json({ ok: true, session: null }); // bez zmian — już wygaszony, bez mutacji
+}
+
+if (!isActiveWorkoutCloudFresh(updatedAt)) {
+  // Prawdziwy ghost: payload jest aktywny, więc ma tożsamość do przeniesienia na tombstone.
+  await clearRow(db, session.user.id, row.revision, payload.workoutStartedAtMs ?? null);
+  return NextResponse.json({ ok: true, session: null });
+}
+```
+
+**3. `lib/active-workout-cloud-client.ts`**
+
+`shouldApplyConflictPayload` — nowa logika (sygnatura wejścia bez zmian, oba argumenty to pełne payloady, które już niosą potrzebne pola):
+```ts
+/**
+ * Decyzja przy konflikcie 409 na PUT (005, N-P13-1, poprawka B-1d z p.13): pusty/wygaszony
+ * payload z chmury wygrywa z aktywną sesją lokalną TYLKO, gdy to dokładnie ta sama sesja,
+ * którą wygaszono (identyczny `workoutStartedAtMs` jak `clearedSessionStartedAtMs` tombstone'u)
+ * — wtedy lokalna sesja jest martwa i użytkownik ma zobaczyć zakończony trening, nie go
+ * wznawiać. W przeciwnym razie (różny `startedAtMs`, albo tombstone bez tożsamości) lokalna
+ * sesja jest inna/nowsza i wygrywa — zachowanie B-1d bez zmian.
+ */
+export function shouldApplyConflictPayload(
+  localPayload: ActiveWorkoutCloudPayload,
+  conflictPayload: ActiveWorkoutCloudPayload,
+): boolean {
+  if (hasActiveLocalSession(localPayload) && !hasActiveLocalSession(conflictPayload)) {
+    const clearedId = conflictPayload.clearedSessionStartedAtMs ?? null;
+    const localId = localPayload.workoutStartedAtMs ?? null;
+    return clearedId != null && localId != null && clearedId === localId;
+  }
+  return true;
+}
+```
+
+**4. `components/active-workout/active-workout-cloud-sync.tsx` — bez zmian kodu.**
+
+Weryfikacja: gałąź `push()` (linie 188-199) już rozdziela oba wyniki `shouldApplyConflictPayload` poprawnie dla nowej semantyki — `true` → `applyCloudPayload(result.conflict.payload)` + `writeRevision` + baner, **bez** ustawienia `pendingPushRef` (czyli bez republikacji) — to jest dokładnie wymagane zachowanie dla przypadku „zaakceptuj wygaszenie" (p.14.2, pierwsza gałąź). `false` → zachowuje lokalny stan i wypycha ponownie (`pendingPushRef = true`) — bez zmian, to B-1d. Innymi słowy: ta funkcja była już zbudowana tak, by przyjmowała wynik `boolean` o dwóch znaczeniach („cloud ma prawdziwie nowszy aktywny stan" **albo** „cloud ma tombstone tej samej, martwej sesji") — oba kończą się identyczną akcją klienta (zastosuj payload, nie republikuj), więc nie trzeba rozróżniać ich w komponencie. Jedyna zmiana jest w `shouldApplyConflictPayload` (plik 3).
+
+Mikro-uwaga UX (nie blokuje, do rozważenia przez `frontend`/`ux` przy implementacji, poza zakresem tej naprawy): baner `t("session.cloudUpdated")` ("Sesja zaktualizowana na innym urządzeniu") wyświetla się też w nowej gałęzi "zaakceptuj wygaszenie" — treść jest technicznie prawdziwa (stan rzeczywiście zmieniony przez chmurę), ale nie mówi wprost „trening już zakończony". Rozróżnienie tekstu wymagałoby przekazania przyczyny do komponentu — zostawione jako niska pozycja backlogu (nie jest to utrata danych, tylko mikrokopia).
+
+### 14.4 Testy regresji wymagane
+
+**`lib/active-workout-cloud-client.test.ts` (rozszerzenie istniejącego bloku `shouldApplyConflictPayload`):**
+1. **Scenariusz z polecenia — A kończy sesję 1, B ma lokalnie aktywną sesję 1 (ten sam `startedAtMs`):** lokalny payload aktywny z `workoutStartedAtMs: S1`; payload konfliktu wygaszony z `clearedSessionStartedAtMs: S1` → `shouldApplyConflictPayload(...)` **`true`** (B przyjmuje wygaszenie).
+2. **B ma lokalnie aktywną sesję 2 (inny `startedAtMs`):** lokalny payload aktywny z `workoutStartedAtMs: S2`; payload konfliktu wygaszony z `clearedSessionStartedAtMs: S1` (`S1 !== S2`) → **`false`** (B zachowuje lokalną, publikuje ponownie — bez regresji do stanu sprzed B-1d).
+3. Tombstone bez tożsamości (`clearedSessionStartedAtMs: null`, np. wygaszenie wiersza uszkodzonego) + lokalna aktywna sesja → **`false`** (zachowanie B-1d niezmienione — to jest dokładnie dzisiejsze zachowanie dla wszystkich tombstone'ów, teraz zwężone do przypadku „nie ta sama sesja").
+4. Istniejące trzy testy w tym bloku (`true` gdy obie puste, `true` gdy konflikt też aktywny, `true` gdy lokalna pusta) — bez zmian, muszą przejść niezmienione (budowa `payload(...)` w teście musi dodać `clearedSessionStartedAtMs: undefined` domyślnie albo nie ustawiać go wcale — opcjonalne pole).
+
+**`lib/active-workout-cloud.test.ts`:**
+- `isActiveWorkoutCloudPayload` akceptuje payload z `clearedSessionStartedAtMs` jako `number`, jako `null` i bez pola wcale; odrzuca, gdy pole jest np. `string`.
+- `buildActiveWorkoutClearedPayload(12345).clearedSessionStartedAtMs === 12345`; `buildActiveWorkoutClearedPayload(null).clearedSessionStartedAtMs === null`; `hasActiveLocalSession(buildActiveWorkoutClearedPayload(12345)) === false` (potwierdza, że dodanie pola nie zepsuło istniejącej reguły).
+
+**`app/api/active-workout-session/route.test.ts` (integracja na prawdziwym handlerze, harness `createMemoryDb`):**
+1. **Odtworzenie dokładnie scenariusza testera**: `PUT` jako A, sesja 1, `workoutStartedAtMs: S1`, rewizja 0 → `200`. `DELETE` jako A → `200`, rewizja N+1. Odczyt wiersza bezpośrednio z bazy w teście: `payloadJson` parsuje się do `clearedSessionStartedAtMs === S1`.
+2. `GET` na wierszu aktywnym-ale-przeterminowanym (ghost) z `workoutStartedAtMs: S1` → po wywołaniu, odczyt wiersza: `clearedSessionStartedAtMs === S1` (nie `null`) — pokrywa gałąź ghost z `handleGET`, odrębną od DELETE.
+3. `GET`/`DELETE` na wierszu z nieparsowalnym `payloadJson` (zapisać ręcznie zepsuty JSON w teście) → wygaszony wiersz ma `clearedSessionStartedAtMs === null`.
+4. `PUT` jako B z `revision: 5`, `workoutStartedAtMs: S1` (ta sama sesja, zaległy klient) PO tym jak A już wygasił sesję 1 (krok 1) i odpowiedź jest `409` z `conflict.session.payload.clearedSessionStartedAtMs === S1` — czysto kontraktowa asercja (nie testuje `shouldApplyConflictPayload`, to po stronie klienta), potwierdza, że serwer przekazuje pole dalej bez utraty przy serializacji przez `parsePayloadJson`/odpowiedź JSON.
+
+**Test end-to-end logiki (nie wymagany, ale zalecany jeśli `tester` ma czas) — symulacja w `active-workout-cloud-client.test.ts` łącząca 1+4:** zbudować payload konfliktu przez `buildActiveWorkoutClearedPayload(S1)` (import z `lib/active-workout-cloud`), potwierdzić że to jest to samo, co handler zwróciłby, przez porównanie pól (bez wywoływania handlera — czysto jednostkowe, zero sieci).
+
+### 14.5 Konsekwencje i kompromisy
+
+- Zmiana jest w pełni kompatybilna wstecz bez migracji: `clearedSessionStartedAtMs` jest opcjonalne w typie i walidatorze; wygaszone wiersze zapisane PRZED tą zmianą parsują się nadal poprawnie (pole `undefined` → `shouldApplyConflictPayload` liczy `conflictPayload.clearedSessionStartedAtMs ?? null` → `null` → gałąź „nie zgadzają się" → stare zachowanie B-1d, lokalna wygrywa). Żaden istniejący wiersz w bazie nie staje się nagle błędnie zinterpretowanym tombstone'em — brak tożsamości zawsze domyślnie oznacza „to nie ta sama sesja", nigdy „to ta sama".
+- `clearRow` wymaga teraz, by każdy wołający znał `workoutStartedAtMs` wygaszanego payloadu PRZED nadpisaniem — to jest jeden dodatkowy odczyt pola w `handleDELETE` (dziś selekcjonuje tylko `revision`, teraz też `payloadJson`; ten wiersz i tak jest już czytany w całości przez `handleGET` w analogicznej sytuacji, więc koszt jest symetryczny, nie nowy wzorzec w tym pliku). Brak dodatkowego zapytania do bazy — to ten sam `SELECT`, tylko więcej kolumn.
+- Pole nazwane `clearedSessionStartedAtMs` (nie `operationId`) świadomie, żeby nie reintrodukować zależności od `operationId` po pivocie p.13 (p.14.2, odrzucona alternatywa) — `workoutStartedAtMs` jest polem, które już było i jest synchronizowane przez chmurę niezależnie od tej naprawy (p.13.1), więc nie dodaje nowego wymiaru stanu, tylko kopiuje istniejące pole do tombstone'u.
+- Scenariusz z sekcji 10.3/N-B1d-1 (okno ~1 s wyścigu dwóch urządzeń wokół DELETE/PUT) zyskuje dodatkową ochronę: jeśli wyścig trafi w to samo `workoutStartedAtMs` (bo to dosłownie ta sama sesja kończona w locie z dwóch miejsc), nowa reguła poprawnie każe przyjąć wygaszenie, zamiast je odrzucać — N-B1d-1 nie jest w pełni zamknięte tą naprawą (dotyczy innej kombinacji czasowej), ale ryzyko się nie powiększa.
+- Nie rozwiązuje N-P13-2..5 (niskie/średnie, pre-istniejące lub drobne, sekcja 11.8 raportu testera) — te zostają w backlogu zgodnie z ustaleniami etapu 7d, nie są w zakresie tej naprawy.
+
+### 14.6 Werdykt p.14
+
+**ZATWIERDZONE — gotowe do implementacji.** Zakres jest wąski (jedno pole w typie payloadu, jedna fabryka zamiast stałej, jeden dodatkowy parametr w `clearRow` i jego trzech wywołaniach, jeden warunek w `shouldApplyConflictPayload`), nie zmienia schematu bazy (kolumna `payload_json` jest już JSON-em, weryfikacja p.14.1/`db/schema.ts:560-570`), nie zmienia kontraktu HTTP (pole jest wewnątrz istniejącego, nieparzonego ściśle pola `payload`/`session.payload`, nie nowym polem odpowiedzi), nie dotyka Androida/Javy (ten mechanizm synchronizacji aktywnej sesji nie jest używany przez `/api/workouts/complete` ani proxowany do Javy — potwierdzone w p.9, p.12, p.13, bez zmian tutaj). Przegląd architekta po implementacji **nie jest wymagany automatycznie** — wywołać go tylko, jeśli `backend`/`frontend` zgłosi niepewność, albo `tester` znajdzie w teście regresji z p.14.4 wynik niezgodny z projektem wyżej (w szczególności: scenariusz 1 musi dać `true`, scenariusz 2 musi dać `false` — każdy inny wynik jest defektem implementacji, nie luką projektu).
+
+Warunek zamknięcia u `tester`: wszystkie testy z p.14.4 przechodzą (w szczególności oba scenariusze z polecenia koordynatora — 1 i 2); powtórzenie sondy P4 z sekcji 11.6 raportu testera musi dać inny wynik niż wcześniej — konkretnie w kroku „tik B" (B ma nadal otwartą kartę z lokalnie aktywną sesją S1 i dostaje 409 z tombstone `clearedSessionStartedAtMs = S1`): `shouldApplyConflictPayload` zwraca teraz `true` (zamiast dawniejszego `false`), więc B **przyjmuje wygaszenie i nie republikuje** — w chmurze sesja 1 **zostaje wygaszona** (nie wraca jako aktywna), więc przeładowanie A po zakończeniu sesji 1 nie wznawia jej (`decideCloudHydrateAction` nie trafia już na aktywny wiersz innego urządzenia). To zamyka ścieżkę utraty danych opisaną w N-P13-1 bez zmiany zachowania dla scenariusza 2 (inna sesja na B, lokalna wygrywa, publikuje ponownie — bez regresji do stanu sprzed B-1d); `npm test`, `npx tsc --noEmit`, `npm run lint` bez nowych regresji.

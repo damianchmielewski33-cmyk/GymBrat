@@ -36,12 +36,6 @@ type ActiveWorkoutState = {
   pausedElapsedSeconds: number;
   /** Pierwsze kliknięcie Start — do zapisu API */
   workoutStartedAtMs: number | null;
-  /**
-   * Klucz idempotencji zapisu (ADR 0004 p.1): UUID v4 wygenerowany raz na sesję, w `start()`.
-   * Ten sam klucz jedzie w każdej próbie zapisu (pierwszej, ponowieniu po błędzie, kolejce
-   * offline) — serwer traktuje powtórzony klucz jako duplikat, nie drugi trening.
-   */
-  operationId: string | null;
   /** Blokada równoległego zapisu z trzech wejść zakończenia (ekran, pasek, menu). */
   finishPending: boolean;
   /** Stan wspólnego przepływu zakończenia (ADR 0004 p.4) — jedno źródło prawdy dla UI. */
@@ -75,8 +69,6 @@ type ActiveWorkoutState = {
   beginFinish: () => void;
   endFinish: () => void;
   setFinishFlow: (state: WorkoutFinishFlowState) => void;
-  /** Gwarantuje `operationId` — sesje wznowione z wersji store bez idempotencji (migracja) mogą go nie mieć. */
-  ensureOperationId: () => string;
 };
 
 export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
@@ -85,7 +77,6 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
       startedAt: null,
       pausedElapsedSeconds: 0,
       workoutStartedAtMs: null,
-      operationId: null,
       finishPending: false,
       finishFlow: { phase: "idle" },
       title: "Sesja",
@@ -197,9 +188,6 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
         set((s) => ({
           startedAt: Date.now(),
           workoutStartedAtMs: s.workoutStartedAtMs ?? Date.now(),
-          // Jeden operationId na całą sesję — wygenerowany przy pierwszym Start, nie
-          // przy każdym Wznów (ADR 0004 p.1).
-          operationId: s.operationId ?? crypto.randomUUID(),
         })),
       stopTimer: () =>
         set((s) => {
@@ -217,7 +205,6 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           startedAt: null,
           pausedElapsedSeconds: 0,
           workoutStartedAtMs: null,
-          operationId: null,
           finishPending: false,
           finishFlow: { phase: "idle" },
           cardioMinutes: 0,
@@ -230,7 +217,6 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           startedAt: null,
           pausedElapsedSeconds: 0,
           workoutStartedAtMs: null,
-          operationId: null,
           finishPending: false,
           finishFlow: { phase: "idle" },
           title: "Sesja",
@@ -243,13 +229,6 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
       beginFinish: () => set({ finishPending: true }),
       endFinish: () => set({ finishPending: false }),
       setFinishFlow: (finishFlow) => set({ finishFlow }),
-      ensureOperationId: () => {
-        const existing = get().operationId;
-        if (existing) return existing;
-        const next = crypto.randomUUID();
-        set({ operationId: next });
-        return next;
-      },
     }),
     {
       name: "active-workout",
@@ -258,7 +237,6 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
         startedAt: s.startedAt,
         pausedElapsedSeconds: s.pausedElapsedSeconds,
         workoutStartedAtMs: s.workoutStartedAtMs,
-        operationId: s.operationId,
         title: s.title,
         workoutPlanId: s.workoutPlanId,
         cardioMinutes: s.cardioMinutes,
@@ -266,17 +244,17 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
         exercises: s.exercises,
         selectedExerciseId: s.selectedExerciseId,
       }),
-      version: 3,
+      version: 4,
       migrate: (persisted) => {
         const p = persisted as Record<string, unknown>;
         if (!p.cardioExtras || typeof p.cardioExtras !== "object") {
           p.cardioExtras = { ...EMPTY_CARDIO_EXTRAS };
         }
-        if (typeof p.operationId !== "string") {
-          // Sesja wznowiona z wersji bez idempotencji — serie są zachowane; nowy klucz
-          // dostaje przy następnym `start()` (np. po „Wznów”).
-          p.operationId = null;
-        }
+        // v3→v4 (ADR 0004 p.13, pivot): `operationId` nie jest już stanem store'a —
+        // jest wyliczany deterministycznie z (workoutPlanId, workoutStartedAtMs) w
+        // `deriveWorkoutOperationId`. Pole ewentualnie obecne w starym payloadzie jest
+        // ignorowane (nie jest częścią `ActiveWorkoutState`), bez specjalnej obsługi.
+        delete p.operationId;
         return p as never;
       },
     },

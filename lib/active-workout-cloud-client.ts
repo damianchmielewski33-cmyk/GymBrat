@@ -7,9 +7,10 @@
  * pliku komponentu, nie w czystych funkcjach, które on importuje.
  */
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
-import type {
-  ActiveWorkoutCloudPayload,
-  ActiveWorkoutCloudRecord,
+import {
+  hasActiveLocalSession,
+  type ActiveWorkoutCloudPayload,
+  type ActiveWorkoutCloudRecord,
 } from "@/lib/active-workout-cloud";
 import { EMPTY_CARDIO_EXTRAS } from "@/lib/cardio-utils";
 import { persistActiveWorkoutLocalNow } from "@/lib/active-workout-persist";
@@ -39,9 +40,6 @@ export function applyCloudPayload(payload: ActiveWorkoutCloudPayload): void {
     startedAt: payload.startedAt,
     pausedElapsedSeconds: payload.pausedElapsedSeconds,
     workoutStartedAtMs: payload.workoutStartedAtMs,
-    // Klucz idempotencji podróżuje razem ze stanem sesji (005, defekt B-1) — nigdy
-    // regenerowany tu, tylko przy faktycznym starcie nowej sesji (start()/applyPlan()).
-    operationId: payload.operationId ?? null,
     title: payload.title,
     workoutPlanId: payload.workoutPlanId,
     cardioMinutes: payload.cardioMinutes,
@@ -52,6 +50,22 @@ export function applyCloudPayload(payload: ActiveWorkoutCloudPayload): void {
     selectedExerciseId: payload.selectedExerciseId,
   });
   persistActiveWorkoutLocalNow();
+}
+
+/**
+ * Decyzja przy konflikcie 409 na PUT (ADR 0004 p.13, B-1d): pusty/wygaszony payload
+ * zwrócony przez serwer nie wygrywa nad aktywną sesją lokalną — w tym przypadku
+ * trzeba tylko przejąć rewizję i wypchnąć ponownie lokalny stan, nie nadpisywać go.
+ * Wydzielona jako czysta funkcja (bez DOM), żeby dało się ją testować bez komponentu.
+ */
+export function shouldApplyConflictPayload(
+  localPayload: ActiveWorkoutCloudPayload,
+  conflictPayload: ActiveWorkoutCloudPayload,
+): boolean {
+  if (hasActiveLocalSession(localPayload) && !hasActiveLocalSession(conflictPayload)) {
+    return false;
+  }
+  return true;
 }
 
 export async function fetchCloud(): Promise<ActiveWorkoutCloudRecord | null> {

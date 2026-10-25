@@ -8,6 +8,7 @@ import {
   fetchCloud,
   putCloud,
   readRevision,
+  shouldApplyConflictPayload,
   writeRevision,
 } from "@/lib/active-workout-cloud-client";
 import {
@@ -70,6 +71,12 @@ export function ActiveWorkoutCloudSync() {
   const pendingPushRef = useRef(false);
   const hydratedRef = useRef(false);
   const debounceRef = useRef<number | null>(null);
+  /**
+   * B-1c (ADR 0004 p.13): jednorazowy wartownik DELETE dla przejścia aktywna→pusta,
+   * niezależny od wartości rewizji — po p.12 rewizja po DELETE jest zawsze ≥ 1, więc
+   * `readRevision() > 0` byłoby prawdziwe na zawsze i wysyłałoby DELETE co każdy tick.
+   */
+  const clearedPushedRef = useRef(false);
 
   useEffect(() => {
     deviceIdRef.current = getOrCreateDeviceId();
@@ -149,21 +156,25 @@ export function ActiveWorkoutCloudSync() {
       const payload = snapshotActiveWorkoutPayload();
 
       if (!hasActiveLocalSession(payload)) {
-        if (readRevision() > 0) {
-          pushingRef.current = true;
-          try {
-            const ok = await deleteCloud();
-            if (!ok) pendingPushRef.current = true;
-          } finally {
-            pushingRef.current = false;
-            if (pendingPushRef.current) {
-              pendingPushRef.current = false;
-              void push();
-            }
+        if (clearedPushedRef.current) return; // już wysłane raz dla tego przejścia aktywna→pusta
+        clearedPushedRef.current = true;
+        pushingRef.current = true;
+        try {
+          const ok = await deleteCloud();
+          if (!ok) {
+            clearedPushedRef.current = false; // spróbuj ponownie przy następnym ticku
+            pendingPushRef.current = true;
+          }
+        } finally {
+          pushingRef.current = false;
+          if (pendingPushRef.current) {
+            pendingPushRef.current = false;
+            void push();
           }
         }
         return;
       }
+      clearedPushedRef.current = false; // sesja znów aktywna — jedno DELETE przy następnym opróżnieniu
 
       pushingRef.current = true;
       pendingPushRef.current = false;
@@ -175,10 +186,17 @@ export function ActiveWorkoutCloudSync() {
           opts,
         );
         if (result.conflict) {
-          applyCloudPayload(result.conflict.payload);
-          writeRevision(result.conflict.revision);
-          setBanner(t("session.cloudUpdated"));
-          window.setTimeout(() => setBanner(null), 4000);
+          if (!shouldApplyConflictPayload(payload, result.conflict.payload)) {
+            // Pusty/wygaszony stan w chmurze nie wygrywa z aktywną sesją lokalną (005,
+            // B-1d) — przejmij tylko rewizję i wypchnij ponownie lokalny stan.
+            writeRevision(result.conflict.revision);
+            pendingPushRef.current = true;
+          } else {
+            applyCloudPayload(result.conflict.payload);
+            writeRevision(result.conflict.revision);
+            setBanner(t("session.cloudUpdated"));
+            window.setTimeout(() => setBanner(null), 4000);
+          }
         } else if (result.ok && result.revision != null) {
           writeRevision(result.revision);
         } else if (!result.ok) {
