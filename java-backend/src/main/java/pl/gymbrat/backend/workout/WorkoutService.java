@@ -22,6 +22,17 @@ public class WorkoutService {
     }
 
     public StoredWorkout complete(String userId, CompleteWorkoutRequest req) {
+        // Dedup idempotencji (LR-3, ADR 0004 p. 1/p. 9): ten sam operationId dla tego
+        // użytkownika już zapisany w mapie w pamięci — zwróć istniejący wpis, bez duplikatu.
+        List<StoredWorkout> existingForUser = byUser.get(userId);
+        if (existingForUser != null) {
+            for (StoredWorkout existing : existingForUser) {
+                if (existing.operationId().equals(req.operationId())) {
+                    return existing;
+                }
+            }
+        }
+
         String date = LocalDate.now(ZoneOffset.UTC).toString();
         int cardio = req.cardioMinutes() == null
                 ? 0
@@ -44,7 +55,8 @@ public class WorkoutService {
                 exercisesJson,
                 title,
                 req.startedAt(),
-                req.endedAt()
+                req.endedAt(),
+                req.operationId()
         );
         byUser.computeIfAbsent(userId, ignored -> new CopyOnWriteArrayList<>()).add(0, workout);
         return workout;
@@ -59,6 +71,7 @@ public class WorkoutService {
             String exercisesJson,
             String title,
             Double startedAt,
-            Double endedAt
+            Double endedAt,
+            String operationId
     ) {}
 }

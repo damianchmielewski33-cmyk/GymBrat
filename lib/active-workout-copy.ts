@@ -85,7 +85,15 @@ export function formatSignedKg(deltaKg: number): string {
 /**
  * D-2 / BR-8: przycisk główny zawsze zapisuje. Nigdy „Pomiń serię” —
  * pomijanie tylko linkiem „Pomiń”.
+ * `isLastOpenSet` (005, sekcja 4): ostatnia jeszcze otwarta seria całej sesji, jeszcze
+ * niezaliczona — etykieta mówi wprost, że to koniec treningu i że zapisuje (LR-2).
  */
-export function primarySetActionLabel(setOrdinal: number, setCompleted: boolean): string {
-  return setCompleted ? `Popraw serię ${setOrdinal}` : `Zapisz serię ${setOrdinal}`;
+export function primarySetActionLabel(
+  setOrdinal: number,
+  setCompleted: boolean,
+  isLastOpenSet = false,
+): string {
+  if (setCompleted) return `Popraw serię ${setOrdinal}`;
+  if (isLastOpenSet) return "Zakończ ostatnią serię i zapisz";
+  return `Zapisz serię ${setOrdinal}`;
 }

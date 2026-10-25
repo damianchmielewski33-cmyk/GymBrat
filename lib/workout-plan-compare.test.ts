@@ -3,6 +3,7 @@ import {
   buildExerciseVolumeRows,
   buildWorkoutPlanCompare,
   completedSessionJsonForCompare,
+  patchCardioInCompletedSessionJson,
 } from "@/lib/workout-plan-compare";
 import type { CompletedWorkoutDetails } from "@/lib/workout-history";
 
@@ -113,5 +114,85 @@ describe("workout-plan-compare", () => {
     expect(compare.currentVolumeKg).toBe(550);
     expect(compare.volumeDeltaPercent).toBeCloseTo(10, 5);
     expect(compare.compare?.up).toBe(1);
+  });
+});
+
+describe("patchCardioInCompletedSessionJson (ADR 0004 p. 2, LR-4)", () => {
+  function baseSessionJson(extra: Record<string, unknown> = {}): string {
+    return JSON.stringify({
+      kind: "completed_session",
+      title: "Trening",
+      startedAt: 1,
+      endedAt: 2,
+      workoutPlanId: null,
+      exercises: [{ id: "1", name: "Przysiad", sets: [] }],
+      ...extra,
+    });
+  }
+
+  it("0 minut usuwa cały obiekt cardio (tętno, kalorie, kroki, dystans) i minuty", () => {
+    const input = baseSessionJson({
+      cardioMinutes: 20,
+      cardio: { distanceKm: 3, avgHr: 140, maxHr: 160, calories: 300, steps: 4000 },
+    });
+
+    const result = patchCardioInCompletedSessionJson(input, null, 0);
+    const parsed = JSON.parse(result) as Record<string, unknown>;
+
+    expect(parsed.cardioMinutes).toBeUndefined();
+    expect(parsed.cardio).toBeUndefined();
+    // Reszta sesji — bez zmian.
+    expect(parsed.exercises).toEqual([{ id: "1", name: "Przysiad", sets: [] }]);
+  });
+
+  it("wartości absolutne — nowy stan zastępuje poprzedni, nie dolicza się do niego", () => {
+    const input = baseSessionJson({
+      cardioMinutes: 20,
+      cardio: { distanceKm: 3, avgHr: 140, maxHr: 160, calories: 300, steps: 4000 },
+    });
+
+    const result = patchCardioInCompletedSessionJson(
+      input,
+      { distanceKm: 5, avgHr: 150 },
+      30,
+    );
+    const parsed = JSON.parse(result) as {
+      cardioMinutes?: number;
+      cardio?: Record<string, unknown>;
+    };
+
+    expect(parsed.cardioMinutes).toBe(30);
+    expect(parsed.cardio?.distanceKm).toBe(5);
+    expect(parsed.cardio?.avgHr).toBe(150);
+    // Pola, które nie przyszły w patchu, nie "przeciekają" ze starego stanu.
+    expect(parsed.cardio?.maxHr).toBeUndefined();
+    expect(parsed.cardio?.calories).toBeUndefined();
+    expect(parsed.cardio?.steps).toBeUndefined();
+  });
+
+  it("dodanie cardio do sesji bez wcześniejszego obiektu cardio", () => {
+    const input = baseSessionJson();
+    const result = patchCardioInCompletedSessionJson(input, { steps: 1000 }, 15);
+    const parsed = JSON.parse(result) as { cardioMinutes?: number; cardio?: Record<string, unknown> };
+    expect(parsed.cardioMinutes).toBe(15);
+    expect(parsed.cardio?.steps).toBe(1000);
+  });
+
+  it("minuty > 0 bez obiektu cardio (null) zapisuje tylko minuty, bez obiektu cardio", () => {
+    const input = baseSessionJson();
+    const result = patchCardioInCompletedSessionJson(input, null, 10);
+    const parsed = JSON.parse(result) as { cardioMinutes?: number; cardio?: unknown };
+    expect(parsed.cardioMinutes).toBe(10);
+    expect(parsed.cardio).toBeUndefined();
+  });
+
+  it("nie zmienia pola exercises/title/startedAt — patch dotyczy tylko cardio", () => {
+    const input = baseSessionJson({ cardioMinutes: 5, cardio: { steps: 100 } });
+    const result = patchCardioInCompletedSessionJson(input, { steps: 200 }, 7);
+    const parsed = JSON.parse(result) as Record<string, unknown>;
+    expect(parsed.title).toBe("Trening");
+    expect(parsed.startedAt).toBe(1);
+    expect(parsed.endedAt).toBe(2);
+    expect(parsed.exercises).toEqual([{ id: "1", name: "Przysiad", sets: [] }]);
   });
 });

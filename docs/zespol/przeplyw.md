@@ -16,7 +16,7 @@ Dla drobnych poprawek stosuj ścieżkę skróconą zamiast pełnego przepływu. 
 - nie dotyka przetwarzania danych o zdrowiu i ciele, zgód ani dokumentów prawnych,
 - obejmuje niewielką liczbę plików w jednym obszarze.
 
-Etapy ścieżki skróconej: `backend` lub `frontend` (poprawka z testem regresji), `tester` (szybka weryfikacja poprawki i najbliższego otoczenia, bez pełnego planu testów). `architekt` wchodzi tylko w wyjątku opisanym w etapach pełnego przepływu (niepewność projektowa, zmiana kontraktu/schematu). Jeśli zmiana dotyka wyglądu, `ux` wykonuje przegląd wizualny. Gdy którykolwiek agent stwierdzi, że warunki nie są spełnione, zadanie przechodzi do pełnego przepływu. Karta zadania, werdykty i wymóg przejścia `npm run lint`, `npx tsc --noEmit` i `npm test` obowiązują tak samo.
+Etapy ścieżki skróconej: `backend` lub `frontend` (poprawka z testem regresji), `tester` (szybka weryfikacja poprawki i najbliższego otoczenia, w tym spójność wyglądu wg systemu projektowego `ux`, bez pełnego planu testów i bez udziału `ux`). `architekt` i `ux` wchodzą tylko w wyjątkach opisanych w etapach pełnego przepływu (niepewność projektowa, zmiana kontraktu/schematu, niejednoznaczne odstępstwo wizualne). Gdy którykolwiek agent stwierdzi, że warunki nie są spełnione, zadanie przechodzi do pełnego przepływu. Karta zadania, werdykty i wymóg przejścia `npm run lint`, `npx tsc --noEmit` i `npm test` obowiązują tak samo.
 
 ## Dobór modeli (koszt tokenów)
 Agenci mają w `.claude/agents/<nazwa>.md` domyślny model dobrany do kosztu ich pracy: tani model (`haiku`) dla `analityk`, `prawnik`, `ux`, `tester`, `tester-bezpieczenstwa`, `tester-wydajnosci` (zbieranie wymagań, dokumenty, testy, przegląd bezpieczeństwa i wydajności - praca w dużej mierze odtwarzalna wg szablonu); średni model (`sonnet`) dla `backend`, `frontend`, `architekt` (tworzenie kodu produkcyjnego i decyzje architektoniczne). Nie uruchamiaj żadnego etapu na `opus` bez wyraźnej prośby użytkownika.
@@ -32,19 +32,25 @@ Zasada ogólna: twórz i projektuj (kod, architektura) na `sonnet`, odtwarzaj i 
 ## Start zadania
 Na początku krótko napisz użytkownikowi, że zadanie wchodzi w przepływ (pełny albo skrócony) i jakie bramki obejmie. Jeśli polecenie jest niejednoznaczne, `analityk` zbiera pytania; zadaj je użytkownikowi zbiorczo, zanim zaczną się kosztowne etapy.
 
-## Etapy
-W pełnym przepływie nie pomijaj etapów, nawet gdy zadanie wydaje się małe (drobne poprawki idą ścieżką skróconą). Jeśli etap nie ma zastosowania, agent i tak wydaje werdykt "brak wpływu" z uzasadnieniem. Każdy agent kończy werdyktem ZATWIERDZONE, ZATWIERDZONE Z UWAGAMI albo ODRZUCONE.
+## Dobór ról (który agent jest wywoływany)
+Na etapie 1 `analityk` decyduje, które z bramek niżej są potrzebne do tego konkretnego zadania, i zapisuje decyzję z jednozdaniowym uzasadnieniem w karcie zadania. Bramkę uznaną za niepotrzebną **pomijasz całkowicie - nie wywołujesz tego agenta w ogóle**, nawet po to, by wydał werdykt "brak wpływu". To dotyczy każdej bramki warunkowej:
+- `prawnik` (etap 2): pomijany, gdy zadanie nie wprowadza i nie zmienia przetwarzania danych osobowych/zdrowotnych, zgód, treści prawnych ani niczego, co mogłoby mieć znaczenie prawne.
+- `ux` - makiety (etap 4): pomijany, gdy zadanie nie dotyka interfejsu (np. zmiana czysto backendowa).
+- `tester-bezpieczenstwa` / `tester-wydajnosci` (etap 7): każdy pomijany niezależnie, gdy zadanie nie dotyka odpowiednio bezpieczeństwa (auth, uprawnienia, dane wejściowe, sekrety) albo wydajności (nowe zapytania, duże listy, obciążenie).
 
-1. `analityk`: wymagania i kryteria akceptacji (`docs/analiza/`).
-2. `prawnik`: bramka wejściowa, reguły LR, zgody, dokumenty (`docs/prawo/`).
+`architekt` (projekt techniczny, etap 3) i `tester` (testy podstawowe, etap 6) są potrzebne praktycznie zawsze przy zmianie kodu produkcyjnego - pomijaj je tylko gdy zadanie w ogóle nie zmienia kodu (np. czysta dokumentacja). Jeśli w trakcie pracy okaże się, że pominięta bramka jest jednak potrzebna (np. implementacja zaczęła dotykać danych zdrowotnych), wywołaj odpowiedniego agenta wtedy - decyzja z etapu 1 nie jest nieodwracalna.
+
+## Etapy
+W pełnym przepływie nie pomijaj etapów uznanych za potrzebne (patrz "Dobór ról" wyżej), nawet gdy zadanie wydaje się małe (drobne poprawki idą ścieżką skróconą). Każdy wywołany agent kończy werdyktem ZATWIERDZONE, ZATWIERDZONE Z UWAGAMI albo ODRZUCONE.
+
+1. `analityk`: wymagania, kryteria akceptacji (`docs/analiza/`) i decyzja, które bramki poniżej są potrzebne (patrz "Dobór ról").
+2. `prawnik` - tylko gdy potrzebny: bramka wejściowa, reguły LR, zgody, dokumenty (`docs/prawo/`). Jedna ocena na zadanie wystarcza - nie ma osobnej, zawsze wymaganej bramki wyjściowej; wracaj do `prawnik` po implementacji tylko wyjątkowo, gdy zmieniło się coś prawnie istotne względem ustaleń z etapu 2.
 3. `architekt`: projekt techniczny, ADR-y, kontrakty API, zmiany schematu Drizzle (`docs/adr/`).
-4. `ux`: specyfikacje i makiety ekranów, gdy zadanie dotyka interfejsu (`docs/ux/`).
+4. `ux` - tylko gdy zadanie dotyka interfejsu: specyfikacje i makiety ekranów (`docs/ux/`).
 5. `backend` i `frontend`: implementacja z testami, równolegle po uzgodnieniu kontraktów. Czystość kodu (brak duplikatów, martwego i pustego kodu, zgodność z regułami repozytorium) sprawdzają sami przed zgłoszeniem gotowości - po implementacji nie ma już domyślnie osobnego przeglądu kodu architekta (patrz "Dobór modeli" i wyjątek poniżej).
-6. `tester` razem z `ux`: szybkie testy podstawowe (ścieżka główna funkcji + najważniejsze przypadki brzegowe) i spójność wyglądu aplikacji i komponentów (`docs/testy/`). Pełny plan testów tylko dla obszarów wysokiego ryzyka (patrz "Dobór modeli").
-7. `ux`: przegląd wizualny zaimplementowanych ekranów.
-8. `tester-bezpieczenstwa` i `tester-wydajnosci`, równolegle (`docs/bezpieczenstwo/`, `docs/wydajnosc/`).
-9. `prawnik`: bramka wyjściowa, zgodność wdrożenia z regułami LR.
-10. Zadanie jest gotowe, gdy wszystkie bramki mają werdykt ZATWIERDZONE lub ZATWIERDZONE Z UWAGAMI.
+6. `tester`: szybkie testy podstawowe (ścieżka główna funkcji + najważniejsze przypadki brzegowe) oraz spójność wyglądu aplikacji i komponentów wg systemu projektowego `ux` z `docs/ux/` (`docs/testy/`) - samodzielnie, bez udziału `ux`. Pełny plan testów tylko dla obszarów wysokiego ryzyka (patrz "Dobór modeli"). Gdy odstępstwo wizualne jest niejednoznaczne (nie wiadomo, czy to błąd implementacji czy luka w projekcie), wezwij `ux` wyjątkowo do oceny - w przeciwnym razie `ux` nie robi osobnego przeglądu po implementacji.
+7. `tester-bezpieczenstwa` i `tester-wydajnosci` - każdy tylko gdy potrzebny, równolegle (`docs/bezpieczenstwo/`, `docs/wydajnosc/`).
+8. Zadanie jest gotowe, gdy wszystkie wywołane bramki mają werdykt ZATWIERDZONE lub ZATWIERDZONE Z UWAGAMI.
 
 **Wyjątek - przegląd architekta po implementacji**: wezwij `architekt` ponownie po etapie 5 tylko gdy `backend`/`frontend` zgłosi niepewność co do projektu, zmiana dotyka kontraktu API/Android/Javy, schematu bazy lub wielu modułów naraz, albo `tester` znajdzie defekt wskazujący na problem strukturalny. W pozostałych przypadkach (typowa implementacja zgodna z ADR z etapu 3) pomiń ten przegląd - to największa oszczędność tokenów w przepływie.
 
@@ -52,6 +58,7 @@ W pełnym przepływie nie pomijaj etapów, nawet gdy zadanie wydaje się małe (
 - Dla każdego zadania zakładaj kartę `docs/zadania/<numer>-<nazwa>.md` na podstawie `docs/zadania/_szablon.md`: lista bramek, werdykty, daty, odnośniki do raportów. Aktualizuj ją po każdym etapie.
 - Przekazuj agentom pełny kontekst: wyniki poprzednich etapów, ścieżki dokumentów, uwagi do uwzględnienia. Agenci startują bez pamięci rozmowy; stan projektu opisuje baza wiedzy `docs/zespol/wiedza-o-projekcie.md`.
 - Werdykt ODRZUCONE cofa zadanie do właściwego etapu (kod do 5, projekt do 3 lub 4, wymagania do 1). Po poprawkach powtórz bramki, na które zmiana mogła wpłynąć. Każda zmiana kodu po etapie 5 wymaga ponownych testów przez `tester`.
+- Decyzja z etapu 1, które bramki pomijasz, obowiązuje do końca zadania, o ile charakter zmiany się nie zmieni; wtedy wywołaj pominiętą bramkę wyjątkowo (patrz "Dobór ról").
 - Blokują wydanie: podatności krytyczne i wysokie, przekroczone SLO wydajności w scenariuszu szczytowym, brak wymaganej zgody lub podstawy prawnej, niedziałające testy.
 - ZATWIERDZONE Z UWAGAMI dopuszczaj tylko dla uwag niskiego ryzyka; zapisuj je w backlogu z właścicielem.
 - Uruchamiaj niezależne etapy równolegle (backend i frontend; tester-bezpieczenstwa i tester-wydajnosci).

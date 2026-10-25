@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Check, Loader2, Pause, Play, Trash2 } from "lucide-react";
+import { Check, Pause, Play, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -13,15 +13,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { cn } from "@/lib/utils";
-import { sessionVolume } from "@/lib/workout-session-calculations";
-import {
-  mapUnknownFetchError,
-  UserMessages,
-} from "@/lib/user-facing-errors";
 import { requestActiveWorkoutCloudPush } from "@/lib/active-workout-persist";
 import { hapticTap } from "@/lib/haptics";
-import { submitCompletedWorkout } from "@/lib/workout-complete-submit";
 import { unlockDocumentInteraction } from "@/lib/unlock-document-interaction";
+import { useWorkoutFinishFlow } from "@/components/active-workout/use-workout-finish-flow";
+import { WorkoutFinishConfirmDialog } from "@/components/active-workout/workout-finish-confirm-dialog";
+import { WorkoutAllSetsDoneDialog } from "@/components/active-workout/workout-all-sets-done-dialog";
+import { WorkoutSavingScreen } from "@/components/active-workout/workout-saving-screen";
+import { WorkoutFinishedScreen } from "@/components/active-workout/workout-finished-screen";
+import { countSetsDone } from "@/lib/workout-session-progress";
 
 function formatDuration(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -32,16 +32,19 @@ function formatDuration(totalSeconds: number) {
   return `${mm}:${String(ss).padStart(2, "0")}`;
 }
 
+/**
+ * Pasek globalny (poza `/active-workout`). Od ADR 0004 p.4/8 używa wspólnego hooka
+ * zakończenia — ten sam dialog pominiętych, ekran zapisu i ekran końcowy jak na
+ * ekranie sesji, złoty CTA (bez czerwieni z dawnego przycisku), bez własnego `window.alert`.
+ */
 export function ActiveWorkoutGlobalBar() {
   const pathname = usePathname();
   const router = useRouter();
   const {
     startedAt,
     pausedElapsedSeconds,
-    workoutStartedAtMs,
     title,
     workoutPlanId,
-    cardioMinutes,
     exercises,
     start,
     stopTimer,
@@ -50,8 +53,8 @@ export function ActiveWorkoutGlobalBar() {
     setHideGlobalBarForRoute,
   } = useActiveWorkoutStore();
 
+  const flow = useWorkoutFinishFlow();
   const [now, setNow] = useState(() => Date.now());
-  const [completing, setCompleting] = useState(false);
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false);
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
 
@@ -84,217 +87,152 @@ export function ActiveWorkoutGlobalBar() {
     return pausedElapsedSeconds + running;
   }, [now, pausedElapsedSeconds, startedAt]);
 
-  const progress = useMemo(() => {
-    let done = 0;
-    let total = 0;
-    for (const ex of exercises) {
-      for (const set of ex.sets) {
-        total += 1;
-        if (set.done) done += 1;
-      }
-    }
-    return { done, total };
-  }, [exercises]);
+  const progress = useMemo(() => countSetsDone(exercises), [exercises]);
 
-  if (!hasSession) return null;
+  // Ekran główny (`/active-workout`) renderuje własne dialogi/ekrany tego samego hooka.
   if (onActiveWorkout) return null;
-  if (hideGlobalBarForRoute) return null;
+  // Nic do pokazania: brak sesji i przepływ zakończenia bezczynny.
+  if (!hasSession && flow.state.phase === "idle") return null;
 
-  async function completeWorkoutFromBar() {
-    if (completing) return;
-    setCompleting(true);
-    try {
-      const endedAt = Date.now();
-      const cardioMinutesNow = useActiveWorkoutStore.getState().cardioMinutes;
-      const baseSummary = {
-        title: title.trim() || "Trening",
-        endedAt,
-        durationSeconds: elapsedSeconds,
-        cardioMinutes: cardioMinutesNow,
-        exercisesCount: exercises.length,
-        setsDone: progress.done,
-        setsTotal: progress.total,
-        totalVolume: sessionVolume(exercises),
-      };
-      const result = await submitCompletedWorkout({
-        title,
-        startedAt: workoutStartedAtMs ?? startedAt ?? Date.now(),
-        endedAt,
-        cardioMinutes: cardioMinutesNow,
-        exercises,
-        workoutPlanId,
-      });
-      if (result.status === "error") {
-        throw new Error(result.message);
-      }
-      reset();
-      requestActiveWorkoutCloudPush(true);
-      const completedSummary = {
-        ...baseSummary,
-        strengthDeltaPercent:
-          result.status === "saved"
-            ? result.strengthDeltaPercent
-            : null,
-        planCompare: result.status === "saved" ? result.planCompare : null,
-      };
-      sessionStorage.setItem("workout:completedSummary", JSON.stringify(completedSummary));
-      if (result.status === "queued") {
-        sessionStorage.setItem("gymbrat:workoutQueued", "1");
-      } else {
-        sessionStorage.removeItem("gymbrat:workoutQueued");
-      }
-      router.push(result.status === "queued" ? "/reports?queued=1" : "/reports");
-      router.refresh();
-    } catch (e) {
-      window.alert(mapUnknownFetchError(e, UserMessages.workoutSaveUnknown));
-    } finally {
-      setCompleting(false);
-    }
-  }
+  const showBar = hasSession && !hideGlobalBarForRoute;
 
   return (
-    <div className="fixed inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-[60] px-3 md:bottom-[calc(16px+env(safe-area-inset-bottom))]">
-      <div
-        className="mx-auto max-w-6xl rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-xl"
-        style={{
-          boxShadow: "0 10px 30px rgba(0,0,0,0.55), 0 0 0 1px rgba(var(--neon-rgb),0.10) inset",
-        }}
-      >
-        <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
-          <button
-            type="button"
-            className="min-w-0 flex-1 rounded-xl text-left outline-none transition hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/40"
-            aria-label="Kontynuuj trening"
-            onClick={() => {
-              hapticTap();
-              unlockDocumentInteraction();
-              router.push("/active-workout");
+    <>
+      {showBar ? (
+        <div className="fixed inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-[60] px-3 md:bottom-[calc(16px+env(safe-area-inset-bottom))]">
+          <div
+            className="mx-auto max-w-6xl rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-xl"
+            style={{
+              boxShadow: "0 10px 30px rgba(0,0,0,0.55), 0 0 0 1px rgba(var(--neon-rgb),0.10) inset",
             }}
           >
-            <div className="min-w-0 px-1 py-1">
-              <div className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    "h-2 w-2 rounded-full",
-                    isRunning ? "bg-[var(--neon)]" : "bg-white/35",
-                  )}
-                  aria-hidden
-                />
-                <p className="truncate text-sm font-semibold text-white/90">
-                  {title || "Trening"}
-                </p>
-                <span className="shrink-0 text-xs text-white/50">
-                  {formatDuration(elapsedSeconds)}
-                </span>
-                {progress.total > 0 ? (
-                  <span className="shrink-0 text-xs text-white/45">
-                    • {progress.done}/{progress.total}
+            <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
+              <button
+                type="button"
+                className="min-w-0 flex-1 rounded-xl text-left outline-none transition hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/40"
+                aria-label="Kontynuuj trening"
+                onClick={() => {
+                  hapticTap();
+                  unlockDocumentInteraction();
+                  router.push("/active-workout");
+                }}
+              >
+                <div className="min-w-0 px-1 py-1">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        isRunning ? "bg-[var(--neon)]" : "bg-white/35",
+                      )}
+                      aria-hidden
+                    />
+                    <p className="truncate text-sm font-semibold text-white/90">
+                      {title || "Trening"}
+                    </p>
+                    <span className="shrink-0 text-xs text-white/50">
+                      {formatDuration(elapsedSeconds)}
+                    </span>
+                    {progress.total > 0 ? (
+                      <span className="shrink-0 text-xs text-white/45">
+                        • {progress.done}/{progress.total}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="truncate text-[11px] text-white/45">
+                    Kontynuuj trening — wróć do sesji
+                  </p>
+                </div>
+              </button>
+
+              <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+                <Button
+                  type="button"
+                  variant="cta"
+                  className="gap-2"
+                  disabled={flow.state.phase === "saving"}
+                  aria-label={flow.state.phase === "saving" ? "Zapisuję…" : "Zakończ trening"}
+                  onClick={() => {
+                    hapticTap();
+                    flow.requestFinishFromSecondaryEntry(() => setConfirmCompleteOpen(true));
+                  }}
+                >
+                  <Check className="h-4 w-4" />
+                  <span className="hidden sm:inline" aria-hidden="true">
+                    {flow.state.phase === "saving" ? "Zapisuję…" : "Zakończ trening"}
                   </span>
-                ) : null}
-              </div>
-              <p className="truncate text-[11px] text-white/45">
-                Kontynuuj trening — wróć do sesji
-              </p>
-            </div>
-          </button>
+                </Button>
 
-          <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
-            <Button
-              type="button"
-              className="gap-2 bg-[#FF1A4B] text-white hover:bg-[#e61645] disabled:opacity-50"
-              disabled={completing}
-              onClick={() => {
-                hapticTap();
-                setConfirmCompleteOpen(true);
-              }}
-            >
-              {completing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="h-4 w-4" />
-              )}
-              <span className="hidden sm:inline">
-                {completing ? "Zapisywanie…" : "Zakończ trening"}
-              </span>
-            </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    hapticTap();
+                    unlockDocumentInteraction();
+                    router.push("/active-workout");
+                  }}
+                >
+                  Kontynuuj
+                </Button>
 
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                hapticTap();
-                unlockDocumentInteraction();
-                router.push("/active-workout");
-              }}
-            >
-              Kontynuuj
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
-              onClick={() => (isRunning ? stopTimer() : start())}
-            >
-              {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              <span className="hidden sm:inline">{isRunning ? "Pauza" : "Wznów"}</span>
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
-              onClick={() => setConfirmDiscardOpen(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Odrzuć</span>
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <AlertDialog open={confirmCompleteOpen} onOpenChange={setConfirmCompleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogTitle>Zakończyć trening?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Zapiszemy sesję i przeniesiemy Cię do raportów.
-          </AlertDialogDescription>
-
-          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <AlertDialogClose
-              render={
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
-                  disabled={completing}
-                />
-              }
-            >
-              Anuluj
-            </AlertDialogClose>
+                  className="gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
+                  onClick={() => (isRunning ? stopTimer() : start())}
+                >
+                  {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  <span className="hidden sm:inline">{isRunning ? "Pauza" : "Wznów"}</span>
+                </Button>
 
-            <Button
-              type="button"
-              className="bg-[#FF1A4B] text-white hover:bg-[#e61645] disabled:opacity-50"
-              disabled={completing}
-              onClick={async () => {
-                setConfirmCompleteOpen(false);
-                await completeWorkoutFromBar();
-              }}
-            >
-              {completing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Zapisywanie…
-                </>
-              ) : (
-                "Zakończ i zapisz"
-              )}
-            </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
+                  onClick={() => setConfirmDiscardOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Odrzuć</span>
+                </Button>
+              </div>
+            </div>
           </div>
-        </AlertDialogContent>
-      </AlertDialog>
+        </div>
+      ) : null}
+
+      <WorkoutFinishConfirmDialog
+        open={confirmCompleteOpen}
+        onOpenChange={setConfirmCompleteOpen}
+        busy={flow.state.phase === "saving"}
+        onConfirm={flow.requestFinish}
+      />
+
+      {flow.state.phase === "skipped-dialog" ? (
+        <WorkoutAllSetsDoneDialog
+          open
+          onOpenChange={() => {
+            /* Esc/outside — dialog sam woła `onGoToSkipped` (patrz implementacja). */
+          }}
+          onFinish={flow.confirmFinishFromDialog}
+          onGoToSkipped={flow.goToSkippedTarget}
+          target={flow.state.target}
+          skippedCount={flow.state.skippedCount}
+          incompleteCount={flow.state.incompleteCount}
+          zeroCompleted={progress.done - flow.state.skippedCount <= 0}
+        />
+      ) : null}
+
+      {flow.state.phase === "saving" || flow.state.phase === "error" ? (
+        <WorkoutSavingScreen
+          phase={flow.state.phase}
+          errorMessage={flow.state.phase === "error" ? flow.state.message : undefined}
+          onRetry={flow.retry}
+          onReturnToWorkout={flow.returnToWorkout}
+        />
+      ) : null}
+
+      {flow.state.phase === "done" ? (
+        <WorkoutFinishedScreen data={flow.state.result} onClose={flow.close} />
+      ) : null}
 
       <AlertDialog open={confirmDiscardOpen} onOpenChange={setConfirmDiscardOpen}>
         <AlertDialogContent>
@@ -330,8 +268,6 @@ export function ActiveWorkoutGlobalBar() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
-
-    </div>
+    </>
   );
 }
-

@@ -22,13 +22,6 @@ import { NotificationBell } from "@/components/community/notification-bell";
 import { ReminderRunnerBoot } from "@/components/reminders/reminder-runner-boot";
 
 /** Ciężkie widgety Community / trening — poza krytycznym bundlem shella (LCP). */
-const WorkoutCompletePopup = dynamic(
-  () =>
-    import("@/components/reports/workout-complete-popup").then((m) => ({
-      default: m.WorkoutCompletePopup,
-    })),
-  { ssr: false },
-);
 const GroupWorkoutFloatingWidget = dynamic(
   () =>
     import("@/components/community/group-workout-floating-widget").then(
@@ -144,8 +137,6 @@ export function AppShell({
         {children}
       </main>
 
-      {/* Po zakończeniu treningu — rekordy / podsumowanie zaraz po nawigacji (nie dopiero na /progress). */}
-      <WorkoutCompletePopup />
       {sessionFullscreen ? null : <ReminderRunnerBoot />}
       <GroupWorkoutFloatingWidget />
       <FriendLiveWatchWidget />

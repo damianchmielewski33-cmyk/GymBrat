@@ -60,6 +60,7 @@ type CompletedWorkoutPayload = {
   cardioMinutes: number;
   exercises: unknown;
   workoutPlanId?: string | null;
+  operationId: string;
 };
 
 const setSchema = z.object({
@@ -148,20 +149,38 @@ const bodySchema = z.object({
     .optional(),
   workoutPlanId: z.string().min(1).max(128).optional().nullable(),
   exercises: z.array(exerciseSchema).max(200).optional().nullable(),
+  /** Klucz idempotencji — jeden na sesję treningu, generowany przez klienta (LR-3). */
+  operationId: z.string().uuid(),
 });
 
 function parseCompletedWorkout(json: string): {
   kind?: string;
   startedAt?: number;
   exercises?: unknown;
+  title?: string;
 } | null {
   try {
     const o = JSON.parse(json) as unknown;
     if (!o || typeof o !== "object") return null;
-    return o as { kind?: string; startedAt?: number; exercises?: unknown };
+    return o as { kind?: string; startedAt?: number; exercises?: unknown; title?: string };
   } catch {
     return null;
   }
+}
+
+/** Rozpoznaje naruszenie unikalnego ograniczenia (SQLite/libSQL) przy wyścigu dwóch żądań z tym samym `operationId`. */
+function isUniqueConstraintError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const message =
+    "message" in err && typeof (err as { message: unknown }).message === "string"
+      ? (err as { message: string }).message
+      : "";
+  const code = "code" in err ? String((err as { code: unknown }).code) : "";
+  return (
+    /UNIQUE constraint failed/i.test(message) ||
+    code === "SQLITE_CONSTRAINT" ||
+    code === "SQLITE_CONSTRAINT_UNIQUE"
+  );
 }
 
 function safeSessionVolume(exercises: unknown): number {
@@ -188,6 +207,135 @@ function dateKeyFromStartedAt(startedAtMs: number | null | undefined, fallback: 
     return calendarDateKey(new Date(startedAtMs));
   }
   return calendarDateKey(fallback);
+}
+
+/**
+ * Strength proxy + pełne porównanie vs poprzedni trening z tego samego planu.
+ * Współdzielone przez ścieżkę normalnego zapisu i ścieżkę duplikatu (LR-3) — w obu
+ * przypadkach wynik musi być deterministyczny i identyczny dla tych samych danych wejściowych.
+ */
+async function computePlanCompareResult(params: {
+  db: ReturnType<typeof getDb>;
+  userId: string;
+  rawPlanId: string | null;
+  title: string;
+  currentJson: string;
+  currentVol: number;
+  currentStartedAtMs: number;
+  /** Przy przeliczaniu dla już istniejącego wiersza (duplikat) wyklucza go z listy „poprzednich”. */
+  excludeWorkoutId?: string;
+}): Promise<{ strengthDeltaPercent: number | null; planCompare: WorkoutPlanComparePayload }> {
+  const { db, userId, rawPlanId, title, currentJson, currentVol, currentStartedAtMs, excludeWorkoutId } =
+    params;
+
+  if (!rawPlanId) {
+    return {
+      strengthDeltaPercent: null,
+      planCompare: buildWorkoutPlanCompare({
+        currentExercisesJson: currentJson,
+        previousExercisesJson: null,
+        currentDate: calendarDateKey(new Date(currentStartedAtMs)),
+        previousDate: null,
+        workoutPlanId: null,
+        planLabel: title,
+      }),
+    };
+  }
+
+  const [planRow] = await db
+    .select({ planJson: workoutPlans.planJson })
+    .from(workoutPlans)
+    .where(and(eq(workoutPlans.id, rawPlanId), eq(workoutPlans.userId, userId)))
+    .limit(1);
+
+  let planNameFromJson: string | null = null;
+  try {
+    const o = JSON.parse(planRow?.planJson ?? "{}") as { planName?: unknown; name?: unknown };
+    const n = String(o.planName ?? o.name ?? "").trim();
+    planNameFromJson = n || null;
+  } catch {
+    planNameFromJson = null;
+  }
+
+  const planLabel = workoutPlanDisplayLabel({
+    planName: planNameFromJson,
+    title,
+    workoutPlanId: rawPlanId,
+  });
+
+  const recent = await db
+    .select({ id: workouts.id, exercises: workouts.exercises, date: workouts.date })
+    .from(workouts)
+    .where(and(eq(workouts.userId, userId), eq(workouts.workoutPlanId, rawPlanId)))
+    .orderBy(desc(workouts.date))
+    .limit(13);
+
+  let prevJson: string | null = null;
+  let prevDate: string | null = null;
+  let prevVol: number | null = null;
+  for (const r of recent) {
+    if (excludeWorkoutId && r.id === excludeWorkoutId) continue;
+    const prevParsed = parseCompletedWorkout(r.exercises);
+    if (!prevParsed || prevParsed.kind !== "completed_session") continue;
+    const prevStartedAtMs = typeof prevParsed.startedAt === "number" ? prevParsed.startedAt : null;
+    if (prevStartedAtMs == null || !Number.isFinite(prevStartedAtMs)) continue;
+    if (prevStartedAtMs >= currentStartedAtMs) continue;
+    prevJson = r.exercises;
+    prevDate = dateKeyFromStartedAt(prevStartedAtMs, new Date(`${r.date}T12:00:00`));
+    prevVol = safeSessionVolume(prevParsed.exercises);
+    break;
+  }
+
+  const strengthDeltaPercent = prevVol != null ? deltaPct(currentVol, prevVol) : null;
+  const planCompare = buildWorkoutPlanCompare({
+    currentExercisesJson: currentJson,
+    previousExercisesJson: prevJson,
+    currentDate: calendarDateKey(new Date(currentStartedAtMs)),
+    previousDate: prevDate,
+    workoutPlanId: rawPlanId,
+    planLabel,
+  });
+
+  return { strengthDeltaPercent, planCompare };
+}
+
+/** Odpowiedź dla duplikatu (`operationId` już zapisany) — przelicza porównanie z wiersza, który już istnieje, bez drugiego `INSERT` i bez drugiej publikacji w feedzie (LR-3). */
+async function respondWithExistingWorkout(
+  db: ReturnType<typeof getDb>,
+  userId: string,
+  existingRow: {
+    id: string;
+    exercises: string;
+    date: string;
+    workoutPlanId: string | null;
+  },
+) {
+  const existingParsed = parseCompletedWorkout(existingRow.exercises);
+  const title = (typeof existingParsed?.title === "string" ? existingParsed.title : "") || "Sesja";
+  const startedAtMs =
+    existingParsed && typeof existingParsed.startedAt === "number" && Number.isFinite(existingParsed.startedAt)
+      ? existingParsed.startedAt
+      : new Date(`${existingRow.date}T12:00:00`).getTime();
+  const currentVol = safeSessionVolume(existingParsed?.exercises ?? null);
+
+  const { strengthDeltaPercent, planCompare } = await computePlanCompareResult({
+    db,
+    userId,
+    rawPlanId: existingRow.workoutPlanId,
+    title,
+    currentJson: existingRow.exercises,
+    currentVol,
+    currentStartedAtMs: startedAtMs,
+    excludeWorkoutId: existingRow.id,
+  });
+
+  return NextResponse.json({
+    ok: true,
+    workoutId: existingRow.id,
+    strengthDeltaPercent,
+    planCompare,
+    duplicate: true,
+  });
 }
 
 async function handlePOST(req: Request) {
@@ -266,6 +414,7 @@ async function handlePOST(req: Request) {
     typeof parsed.data.workoutPlanId === "string" && parsed.data.workoutPlanId.trim().length > 0
       ? parsed.data.workoutPlanId.trim()
       : null;
+  const operationId = parsed.data.operationId;
 
   const db = getDb();
   if (rawPlanId) {
@@ -282,9 +431,23 @@ async function handlePOST(req: Request) {
     }
   }
 
+  // Dedup idempotencji (LR-3): ten sam operationId już zapisany — zwróć wynik pierwszego
+  // zapisu (przeliczony, bez snapshotu), bez drugiego INSERT i bez drugiej publikacji w feedzie.
+  const [existingByOperation] = await db
+    .select({
+      id: workouts.id,
+      exercises: workouts.exercises,
+      date: workouts.date,
+      workoutPlanId: workouts.workoutPlanId,
+    })
+    .from(workouts)
+    .where(and(eq(workouts.userId, session.user.id), eq(workouts.operationId, operationId)))
+    .limit(1);
+  if (existingByOperation) {
+    return respondWithExistingWorkout(db, session.user.id, existingByOperation);
+  }
+
   // Strength proxy + pełne porównanie vs poprzedni trening z tego samego planu.
-  let strengthDeltaPercent: number | null = null;
-  let planCompare: WorkoutPlanComparePayload | null = null;
   const currentVol = safeSessionVolume(parsed.data.exercises ?? null);
   const currentStartedAtMs = startedAt.getTime();
   const currentJson = completedSessionJsonForCompare({
@@ -297,84 +460,48 @@ async function handlePOST(req: Request) {
     cardio: cardioMinutes > 0 ? cardioExtras : null,
   });
 
-  if (rawPlanId) {
-    const [planRow] = await db
-      .select({ planJson: workoutPlans.planJson })
-      .from(workoutPlans)
-      .where(and(eq(workoutPlans.id, rawPlanId), eq(workoutPlans.userId, session.user.id)))
-      .limit(1);
-
-    let planNameFromJson: string | null = null;
-    try {
-      const o = JSON.parse(planRow?.planJson ?? "{}") as { planName?: unknown; name?: unknown };
-      const n = String(o.planName ?? o.name ?? "").trim();
-      planNameFromJson = n || null;
-    } catch {
-      planNameFromJson = null;
-    }
-
-    const planLabel = workoutPlanDisplayLabel({
-      planName: planNameFromJson,
-      title,
-      workoutPlanId: rawPlanId,
-    });
-
-    const recent = await db
-      .select({ exercises: workouts.exercises, date: workouts.date })
-      .from(workouts)
-      .where(and(eq(workouts.userId, session.user.id), eq(workouts.workoutPlanId, rawPlanId)))
-      .orderBy(desc(workouts.date))
-      .limit(12);
-
-    let prevJson: string | null = null;
-    let prevDate: string | null = null;
-    let prevVol: number | null = null;
-    for (const r of recent) {
-      const prevParsed = parseCompletedWorkout(r.exercises);
-      if (!prevParsed || prevParsed.kind !== "completed_session") continue;
-      const prevStartedAtMs =
-        typeof prevParsed.startedAt === "number" ? prevParsed.startedAt : null;
-      if (prevStartedAtMs == null || !Number.isFinite(prevStartedAtMs)) continue;
-      if (prevStartedAtMs >= currentStartedAtMs) continue;
-      prevJson = r.exercises;
-      prevDate = dateKeyFromStartedAt(prevStartedAtMs, new Date(`${r.date}T12:00:00`));
-      prevVol = safeSessionVolume(prevParsed.exercises);
-      break;
-    }
-
-    if (prevVol != null) {
-      strengthDeltaPercent = deltaPct(currentVol, prevVol);
-    }
-
-    planCompare = buildWorkoutPlanCompare({
-      currentExercisesJson: currentJson,
-      previousExercisesJson: prevJson,
-      currentDate: calendarDateKey(startedAt),
-      previousDate: prevDate,
-      workoutPlanId: rawPlanId,
-      planLabel,
-    });
-  } else {
-    planCompare = buildWorkoutPlanCompare({
-      currentExercisesJson: currentJson,
-      previousExercisesJson: null,
-      currentDate: calendarDateKey(startedAt),
-      previousDate: null,
-      workoutPlanId: null,
-      planLabel: title,
-    });
-  }
+  const { strengthDeltaPercent, planCompare } = await computePlanCompareResult({
+    db,
+    userId: session.user.id,
+    rawPlanId,
+    title,
+    currentJson,
+    currentVol,
+    currentStartedAtMs,
+  });
 
   const dateKey = calendarDateKey(startedAt);
   const workoutId = crypto.randomUUID();
-  await db.insert(workouts).values({
-    id: workoutId,
-    userId: session.user.id,
-    workoutPlanId: rawPlanId,
-    date: dateKey,
-    cardioMinutes: Math.max(0, Math.round(cardioMinutes)),
-    exercises: currentJson,
-  });
+  try {
+    await db.insert(workouts).values({
+      id: workoutId,
+      userId: session.user.id,
+      workoutPlanId: rawPlanId,
+      date: dateKey,
+      cardioMinutes: Math.max(0, Math.round(cardioMinutes)),
+      exercises: currentJson,
+      operationId,
+    });
+  } catch (err) {
+    // Wyścig dwóch równoczesnych żądań z tym samym operationId (np. dwa urządzenia/zakładki) —
+    // unikalny indeks (userId, operationId) jest siecią bezpieczeństwa (LR-3, ADR p.1 krok 4).
+    if (isUniqueConstraintError(err)) {
+      const [raceRow] = await db
+        .select({
+          id: workouts.id,
+          exercises: workouts.exercises,
+          date: workouts.date,
+          workoutPlanId: workouts.workoutPlanId,
+        })
+        .from(workouts)
+        .where(and(eq(workouts.userId, session.user.id), eq(workouts.operationId, operationId)))
+        .limit(1);
+      if (raceRow) {
+        return respondWithExistingWorkout(db, session.user.id, raceRow);
+      }
+    }
+    throw err;
+  }
 
   const { publishTeamFeedAfterWorkout } = await import(
     "@/lib/community/team-feed-auto"
@@ -395,7 +522,13 @@ async function handlePOST(req: Request) {
   revalidatePath("/workout-history");
   revalidatePath("/community/teams");
 
-  return NextResponse.json({ ok: true, strengthDeltaPercent, planCompare });
+  return NextResponse.json({
+    ok: true,
+    workoutId,
+    strengthDeltaPercent,
+    planCompare,
+    duplicate: false,
+  });
 }
 
 export const POST = withApiErrors(handlePOST);

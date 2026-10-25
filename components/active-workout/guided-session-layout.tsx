@@ -40,6 +40,7 @@ import {
 import {
   findNextIncompleteExercise,
   hasPerformedReps,
+  isLastOpenWorkoutSet,
   isSkippedWorkoutSet,
   resolveAdvanceAfterSet,
   resolveSetSaveIssue,
@@ -59,7 +60,8 @@ const quickChipClass =
   "inline-flex h-8 min-w-14 items-center justify-center rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/8 px-2.5 text-[13px] font-semibold tabular-nums text-[var(--gym-gold)]";
 
 type ManualSet = { exerciseId: string; setIndex: number };
-type SaveIssueState = { weight: boolean; reps: boolean };
+/** Po decyzji właściciela 005 p.7 ciężar nigdy nie blokuje zaliczenia — tylko powtórzenia. */
+type SaveIssueState = { reps: boolean };
 type SyncedSet = { weight: number; reps: number | null; done: boolean };
 
 function weightToInput(kg: number | null): string {
@@ -269,11 +271,8 @@ export function GuidedSessionLayout({
     if (values.reps !== undefined) setRepsText(repsToInput(values.reps));
     setSaveIssue((prev) => {
       if (!prev) return prev;
-      const next = {
-        weight: prev.weight && !(values.weight != null && values.weight > 0),
-        reps: prev.reps && !hasPerformedReps(values.reps),
-      };
-      return next.weight || next.reps ? next : null;
+      const reps = prev.reps && !hasPerformedReps(values.reps);
+      return reps ? { reps } : null;
     });
     onPatchSet(exercise.id, activeSetIndex, {
       ...values,
@@ -347,8 +346,8 @@ export function GuidedSessionLayout({
     const { weight, reps } = draftValues();
     const issue = resolveSetSaveIssue(weight, reps);
     if (issue) {
-      setSaveIssue({ weight: issue === "weight", reps: !hasPerformedReps(reps) });
-      (issue === "weight" ? weightInputRef : repsInputRef).current?.focus();
+      setSaveIssue({ reps: true });
+      repsInputRef.current?.focus();
       return;
     }
     saveGuardUntilRef.current = Date.now() + SAVE_TAP_GUARD_MS;
@@ -380,6 +379,9 @@ export function GuidedSessionLayout({
   const group = progress.groups[selectedIndex];
   const setCompleted = set.done && !isSkippedWorkoutSet(set);
   const setOrdinal = activeSetIndex + 1;
+  /** Etykieta „Zakończ ostatnią serię i zapisz” (005 sekcja 4) — tylko dla serii jeszcze
+   * nieukończonej, gdy jest ostatnią otwartą w całej sesji. */
+  const isLastOpenSet = !setCompleted && isLastOpenWorkoutSet(exercises, exercise.id, activeSetIndex);
   const techniqueUrl = exercise.techniqueYoutubeUrl?.trim() || null;
   const superset = supersetLetter(supersetLabels[exercise.id]);
   const schemeParts = formatExerciseSchemeParts({
@@ -420,9 +422,6 @@ export function GuidedSessionLayout({
   function onWeightInput(raw: string) {
     setWeightText(raw);
     const parsed = parseWeightInput(raw);
-    if (parsed != null && parsed > 0) {
-      setSaveIssue((prev) => (prev && prev.reps ? { weight: false, reps: true } : null));
-    }
     if (parsed != null || raw.trim() === "") {
       onPatchSet(currentExercise.id, activeSetIndex, {
         weight: parsed ?? 0,
@@ -435,7 +434,7 @@ export function GuidedSessionLayout({
     setRepsText(raw);
     const parsed = parseRepsInput(raw);
     if (hasPerformedReps(parsed)) {
-      setSaveIssue((prev) => (prev && prev.weight ? { weight: true, reps: false } : null));
+      setSaveIssue(null);
     }
     if (parsed != null || raw.trim() === "") {
       onPatchSet(currentExercise.id, activeSetIndex, {
@@ -561,7 +560,7 @@ export function GuidedSessionLayout({
           unit="kg"
           accent
           inputRef={weightInputRef}
-          error={saveIssue?.weight ? "Podaj ciężar" : null}
+          error={null}
           onDecrement={() => adjustWeight(-adjustSteps.stepperKg)}
           onIncrement={() => adjustWeight(adjustSteps.stepperKg)}
           decrementLabel={`Zmniejsz ciężar o ${stepLabel} kg`}
@@ -641,7 +640,7 @@ export function GuidedSessionLayout({
           className="h-14 w-full gap-2 text-[17px] compact:h-[52px]"
         >
           <Check className="size-5" strokeWidth={2.5} />
-          {primarySetActionLabel(setOrdinal, setCompleted)}
+          {primarySetActionLabel(setOrdinal, setCompleted, isLastOpenSet)}
         </Button>
 
         <div className="mt-1 grid grid-cols-3 text-center">

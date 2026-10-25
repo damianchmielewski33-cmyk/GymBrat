@@ -276,10 +276,13 @@ export const workouts = sqliteTable(
     date: text("date").notNull(),
     cardioMinutes: integer("cardio_minutes").notNull().default(0),
     exercises: text("exercises").notNull(),
+    /** Klucz idempotencji zapisu — jeden na sesję treningu (LR-3). Nullable: wiersze historyczne. */
+    operationId: text("operation_id"),
   },
   (t) => [
     index("idx_workouts_user_plan_date").on(t.userId, t.workoutPlanId, t.date),
     index("idx_workouts_user_date").on(t.userId, t.date),
+    uniqueIndex("uq_workouts_user_operation").on(t.userId, t.operationId),
   ],
 );
 

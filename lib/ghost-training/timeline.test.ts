@@ -77,6 +77,58 @@ describe("buildGhostTimeline", () => {
     expect(timeline.synthetic).toBe(false);
   });
 
+  // 005 p.7 / Q-P1: seria na masę ciała (0 kg + powtórzenia > 0) jest zaliczona także
+  // w Ghost Training — bez osobnej reguły. Tonaż pozostaje 0, liczniki serii rosną.
+  it("masa ciała (0 kg, powt. > 0, done) wchodzi na oś czasu jako zaliczona, tonaż 0 (Q-P1)", () => {
+    const timeline = buildGhostTimeline({
+      sourceKind: "self",
+      sourceUserId: "u1",
+      sourceLabel: "Ty",
+      workoutId: "w1",
+      planId: null,
+      title: "Test",
+      exercisesJson: JSON.stringify([
+        {
+          id: "e1",
+          name: "Pompki",
+          sets: [
+            { reps: 12, weight: 0, done: true, elapsedSecondsAtCompletion: 60 },
+            { reps: 10, weight: 0, done: true, elapsedSecondsAtCompletion: 150 },
+          ],
+        },
+      ]),
+    });
+
+    expect(timeline.checkpoints).toHaveLength(2);
+    expect(timeline.totalSets).toBe(2);
+    expect(timeline.totalVolumeKg).toBe(0);
+    expect(timeline.checkpoints[1]!.cumulativeSets).toBe(2);
+  });
+
+  it("seria bez powtórzeń (done, reps null, 0 kg) nadal jest pominięta i poza osią czasu", () => {
+    const timeline = buildGhostTimeline({
+      sourceKind: "self",
+      sourceUserId: "u1",
+      sourceLabel: "Ty",
+      workoutId: "w1",
+      planId: null,
+      title: "Test",
+      exercisesJson: JSON.stringify([
+        {
+          id: "e1",
+          name: "Pompki",
+          sets: [
+            { reps: null, weight: 0, done: true, elapsedSecondsAtCompletion: 60 },
+            { reps: 10, weight: 0, done: true, elapsedSecondsAtCompletion: 150 },
+          ],
+        },
+      ]),
+    });
+
+    expect(timeline.checkpoints).toHaveLength(1);
+    expect(timeline.totalSets).toBe(1);
+  });
+
   it("miesza zaliczone i niezaliczone serie — do osi czasu wchodzą tylko zaliczone", () => {
     const timeline = buildGhostTimeline({
       sourceKind: "self",

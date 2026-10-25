@@ -16,7 +16,8 @@ const skippedFlag: WorkoutSetState = {
   done: true,
   skipped: true,
 };
-const skippedZeroKg: WorkoutSetState = { reps: 8, weight: 0, done: true };
+/** 0 kg + powtórzenia = masa ciała, ZALICZONA (decyzja właściciela 005 p.7, ADR 0004 p.6). */
+const bodyweightSaved: WorkoutSetState = { reps: 8, weight: 0, done: true };
 const todo: WorkoutSetState = { reps: 8, weight: 0, done: false };
 
 function ex(id: string, sets: WorkoutSetState[]): WorkoutExerciseState {
@@ -36,13 +37,13 @@ describe("buildSessionProgress", () => {
     });
   });
 
-  it("grupy per ćwiczenie i stany: zapisana / pominięta (flaga, 0 kg) / bieżąca / do zrobienia", () => {
+  it("grupy per ćwiczenie i stany: zapisana / pominięta (flaga) / masa ciała (0 kg, zaliczona) / bieżąca / do zrobienia", () => {
     const p = buildSessionProgress(
-      [ex("a", [saved, skippedFlag, skippedZeroKg]), ex("b", [todo, todo])],
+      [ex("a", [saved, skippedFlag, bodyweightSaved]), ex("b", [todo, todo])],
       { exerciseId: "b", setIndex: 0 },
     );
     expect(p.groups.map((g) => g.segments.map((s) => s.state))).toEqual([
-      ["saved", "skipped", "skipped"],
+      ["saved", "skipped", "saved"],
       ["current", "todo"],
     ]);
     expect(p.groups[1]!.exerciseIndex).toBe(1);
@@ -52,8 +53,8 @@ describe("buildSessionProgress", () => {
       state: "current",
       isCurrent: true,
     });
-    expect(p.savedSets).toBe(1);
-    expect(p.skippedSets).toBe(2);
+    expect(p.savedSets).toBe(2);
+    expect(p.skippedSets).toBe(1);
     expect(p.totalSets).toBe(5);
     expect(p.exercisesTotal).toBe(2);
   });
@@ -159,7 +160,7 @@ describe("buildSessionProgress: właściwości i skala (zadanie 004, tester)", (
       return s / 2 ** 32;
     };
   }
-  const variants: WorkoutSetState[] = [saved, skippedFlag, skippedZeroKg, todo];
+  const variants: WorkoutSetState[] = [saved, skippedFlag, bodyweightSaved, todo];
 
   it("inwariant: zapisane + pominięte + niezakończone = wszystkie; bieżąca jest dokładnie jedna", () => {
     const rnd = lcg(42);

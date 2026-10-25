@@ -101,6 +101,8 @@ export const RATE = {
   /** Twardy dzienny sufit generacji w całej aplikacji (nadpisz env `POLLINATIONS_DAILY_LIMIT`). */
   recipeImageDaily: { limit: 1500, windowMs: 24 * 60 * 60_000 },
   workoutComplete: { limit: 30, windowMs: 60_000 },
+  /** Patch cardio po zapisie treningu (LR-4) — rzadka, jednorazowa operacja na ekranie podsumowania. */
+  workoutCardioPatch: { limit: 30, windowMs: 60_000 },
   adminUnlock: { limit: 8, windowMs: 10 * 60_000 },
   adminMutation: { limit: 120, windowMs: 60_000 },
   bodyReportImport: { limit: 12, windowMs: 60_000 },

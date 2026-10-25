@@ -17,8 +17,9 @@ export function hasExternalWeight(weight: number | null | undefined): boolean {
 }
 
 /**
- * Seria zaliczona bez realnego wykonania (flaga pomiń, brak powtórzeń albo 0 kg).
- * Przy pustym / zerowym ciężarze w sesji jest „Pomiń serię”, nie zielone zaliczenie.
+ * Seria zaliczona bez realnego wykonania (flaga pomiń albo brak powtórzeń).
+ * Decyzja właściciela (005, p.7 / ADR 0004 p.6): 0 kg + powtórzenia > 0 (masa ciała)
+ * jest ZALICZONA, nie pominięta. Ciężar nigdy nie blokuje zaliczenia.
  */
 export function isSkippedWorkoutSet(set: {
   done: boolean;
@@ -28,7 +29,7 @@ export function isSkippedWorkoutSet(set: {
 }): boolean {
   if (!set.done) return false;
   if (set.skipped) return true;
-  return !hasPerformedReps(set.reps) || !hasExternalWeight(set.weight);
+  return !hasPerformedReps(set.reps);
 }
 
 /** Prawdziwie wykonana seria (zielona kropka) — nie pominięta, z ciężarem i powtórzeniami. */
@@ -41,17 +42,16 @@ export function isCompletedWorkoutSet(set: {
   return set.done && !isSkippedWorkoutSet(set);
 }
 
-export type SetSaveIssue = "weight" | "reps";
+export type SetSaveIssue = "reps";
 
 /**
- * BR-8 / P-2: zapis serii wymaga ciężaru > 0 i powtórzeń > 0.
- * Kolejność: najpierw ciężar. null = dane kompletne.
+ * BR-8 / P-2 (po decyzji właściciela 005 p.7): zapis serii wymaga tylko powtórzeń > 0.
+ * Ciężar 0 kg jest poprawny (masa ciała) i nigdy nie blokuje zaliczenia. null = dane kompletne.
  */
 export function resolveSetSaveIssue(
   weight: number,
   reps: number | null,
 ): SetSaveIssue | null {
-  if (!hasExternalWeight(weight)) return "weight";
   if (!hasPerformedReps(reps)) return "reps";
   return null;
 }
@@ -121,6 +121,36 @@ export function countSkippedWorkoutSets(exercises: WorkoutExerciseState[]): numb
     }
   }
   return n;
+}
+
+/** Serie jeszcze niewykonane (done=false) — osobny licznik od pominiętych (ADR 0004 p.4/6). */
+export function countIncompleteWorkoutSets(exercises: WorkoutExerciseState[]): number {
+  let n = 0;
+  for (const ex of exercises) {
+    for (const s of ex.sets) {
+      if (!s.done) n += 1;
+    }
+  }
+  return n;
+}
+
+/**
+ * Czy `exerciseId`/`setIndex` jest ostatnią jeszcze otwartą (niezaliczoną) serią całej
+ * sesji — do etykiety „Zakończ ostatnią serię i zapisz” (005, sekcja 4) liczonej
+ * PRZED zapisem tej serii (wszystkie inne serie muszą być już `done`).
+ */
+export function isLastOpenWorkoutSet(
+  exercises: WorkoutExerciseState[],
+  exerciseId: string,
+  setIndex: number,
+): boolean {
+  for (const ex of exercises) {
+    for (let i = 0; i < ex.sets.length; i++) {
+      if (ex.id === exerciseId && i === setIndex) continue;
+      if (!ex.sets[i]!.done) return false;
+    }
+  }
+  return true;
 }
 
 /** Ćwiczenie z co najmniej jedną serią jeszcze niezaliczoną (done=false). */

@@ -24,6 +24,10 @@ function isLikelyNetworkFailure(e: unknown): boolean {
 export type SubmitWorkoutResult =
   | {
       status: "saved";
+      /** Id treningu zapisanego na serwerze — wymagany do patcha cardio (ADR 0004 p.1/2). */
+      workoutId: string;
+      /** `true` gdy serwer wykrył duplikat `operationId` i zwrócił zapis istniejący (retry). */
+      duplicate: boolean;
       strengthDeltaPercent: number | null;
       planCompare: WorkoutPlanComparePayload | null;
     }
@@ -50,10 +54,12 @@ export async function submitCompletedWorkout(
     const data = (await res.json()) as {
       ok?: boolean;
       error?: string;
+      workoutId?: string;
+      duplicate?: boolean;
       strengthDeltaPercent?: number | null;
       planCompare?: WorkoutPlanComparePayload | null;
     };
-    if (!res.ok || !data.ok) {
+    if (!res.ok || !data.ok || typeof data.workoutId !== "string") {
       return {
         status: "error",
         message: mapWorkoutCompleteClientError(res.status, data.error),
@@ -66,7 +72,13 @@ export async function submitCompletedWorkout(
     const planCompare =
       data.planCompare && typeof data.planCompare === "object" ? data.planCompare : null;
     markWorkoutDataStaleForRouter();
-    return { status: "saved", strengthDeltaPercent, planCompare };
+    return {
+      status: "saved",
+      workoutId: data.workoutId,
+      duplicate: Boolean(data.duplicate),
+      strengthDeltaPercent,
+      planCompare,
+    };
   } catch (e) {
     if (isLikelyNetworkFailure(e) && isOutboxSupported()) {
       try {

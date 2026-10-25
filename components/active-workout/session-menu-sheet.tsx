@@ -202,12 +202,12 @@ export function SessionMenuSheet({
         {onFinish ? (
           <Button
             type="button"
-            variant="outline"
+            variant="cta"
             disabled={finishPending}
             onClick={onFinish}
-            className="mt-3 h-12 w-full text-[15px] font-bold text-[var(--gym-gold-bright)]"
+            className="mt-3 h-12 w-full text-[15px]"
           >
-            {finishPending ? "Kończenie…" : "Zakończ trening"}
+            {finishPending ? "Zapisuję…" : "Zakończ trening"}
           </Button>
         ) : null}
       </SheetContent>

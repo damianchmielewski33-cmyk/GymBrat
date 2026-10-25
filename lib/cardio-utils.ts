@@ -82,6 +82,11 @@ export type CardioExtras = {
   heartRateZone: HeartRateZone | null;
 };
 
+/** Cardio po siłowym w store aktywnego treningu — `paceMinPerKm` dopisywany po zapisie. */
+export type ActiveCardioExtras = Omit<CardioExtras, "paceMinPerKm"> & {
+  paceMinPerKm?: number | null;
+};
+
 export const EMPTY_CARDIO_EXTRAS: CardioExtras = {
   distanceKm: null,
   avgHr: null,
