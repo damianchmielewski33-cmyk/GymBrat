@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { ArrowDown, ArrowUp, Check, Equal } from "lucide-react";
 import type { WorkoutSetState } from "@/components/workout/types";
-import type {
-  SetSuggestionView,
-  SuggestionDirection,
+import {
+  DEFAULT_SUGGESTION_REASON,
+  type SetSuggestionView,
+  type SuggestionDirection,
 } from "@/lib/set-suggestion-view";
 import {
   formatDaysAgo,
@@ -12,9 +13,6 @@ import {
 } from "@/lib/active-workout-copy";
 import { formatKgPl } from "@/lib/set-progression-suggestion";
 import { cn } from "@/lib/utils";
-
-/** Powód przy sugestii bez krótkiego powodu z Live Coach (np. źródło progresji). */
-const DEFAULT_REASON = "na podstawie ostatnich serii";
 
 const DIRECTION_STYLE: Record<
   SuggestionDirection,
@@ -64,7 +62,7 @@ function suggestionSpoken(s: SetSuggestionView): string {
 
 /** Linia 2: różnica w kolorze kierunku + neutralny powód (LR-4, LR-5). */
 function ReasonLine({ suggestion }: { suggestion: SetSuggestionView }) {
-  const reason = suggestion.reason ?? DEFAULT_REASON;
+  const reason = suggestion.reason ?? DEFAULT_SUGGESTION_REASON;
   if (suggestion.referenceKg == null) return <>{reason}</>;
   if (suggestion.direction === "hold") return <>ten sam ciężar · {reason}</>;
   return (
@@ -155,7 +153,7 @@ export function SetSuggestionRow({
         {line1}
       </span>
       {line2 ? (
-        <span className="line-clamp-2 text-[12px] leading-4 text-[var(--gym-text-secondary)] tabular-nums compact:text-[11px] compact:leading-[14px]">
+        <span className="line-clamp-2 text-pretty text-[12px] leading-4 text-[var(--gym-text-secondary)] tabular-nums compact:text-[11px] compact:leading-[14px]">
           {line2}
         </span>
       ) : null}

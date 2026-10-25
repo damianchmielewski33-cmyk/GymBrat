@@ -136,6 +136,23 @@ export function resolveInitialSetDraft(args: {
   return { weightKg: null, reps: setReps, source: "empty" };
 }
 
+/**
+ * F2 (bramka prawna 004, LR-3): czy bieżący szkic pola to dokładnie ta wartość
+ * początkowa, którą zwrócił `resolveInitialSetDraft` przy wejściu na serię —
+ * czyli użytkownik niczego nie zmienił (nie wpisał, nie użył stepperów/szybkich
+ * przycisków). `flushDraft` w `guided-session-layout.tsx` używa tego, żeby nie
+ * zapisywać niepotwierdzonej podpowiedzi do store/chmury przy nawigacji, blurze
+ * czy otwarciu menu.
+ */
+export function isDraftUnchangedFromInitial(
+  draft: { weight: number; reps: number | null },
+  initial: InitialSetDraft,
+): boolean {
+  const initialWeight = initial.weightKg ?? 0;
+  const initialReps = initial.reps != null && initial.reps > 0 ? initial.reps : null;
+  return draft.weight === initialWeight && draft.reps === initialReps;
+}
+
 /** P-4 / D4: steppery = 1 krok, szybkie przyciski = 2 kroki. */
 export function resolveWeightAdjustSteps(step: WeightStep): {
   stepperKg: number;

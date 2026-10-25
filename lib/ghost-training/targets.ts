@@ -114,9 +114,19 @@ export async function loadGhostTimelineForTarget(input: {
   userId: string;
   workoutId: string;
 }): Promise<GhostTimeline | null> {
+  if (
+    input.kind !== "self" &&
+    input.kind !== "friend" &&
+    input.kind !== "leader"
+  ) {
+    // Defense in depth: nieznana wartość `kind` (np. pominięcie walidacji
+    // w route) nigdy nie ma dostępu do cudzych treningów.
+    return null;
+  }
   await ensureCriticalSchema();
-  if (input.kind === "self" && input.userId !== input.viewerId) return null;
-  if (input.kind === "friend") {
+  if (input.kind === "self") {
+    if (input.userId !== input.viewerId) return null;
+  } else if (input.kind === "friend") {
     const { friends } = await listFriendsAndPending(input.viewerId);
     const ok = friends.some(
       (f) =>
@@ -124,8 +134,7 @@ export async function loadGhostTimelineForTarget(input: {
         (f.mutualShare || f.theyShareWorkout),
     );
     if (!ok) return null;
-  }
-  if (input.kind === "leader") {
+  } else {
     const db = getDb();
     const shared = await db
       .select({ teamId: teamMembers.teamId })

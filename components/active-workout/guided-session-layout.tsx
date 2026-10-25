@@ -30,10 +30,12 @@ import {
   clampReps,
   clampWeight,
   findPreviousCompletedSet,
+  isDraftUnchangedFromInitial,
   parseRepsInput,
   parseWeightInput,
   resolveInitialSetDraft,
   resolveWeightAdjustSteps,
+  type InitialSetDraft,
 } from "@/lib/workout-set-draft";
 import {
   findNextIncompleteExercise,
@@ -130,6 +132,8 @@ export function GuidedSessionLayout({
   const weightInputRef = useRef<HTMLInputElement>(null);
   const repsInputRef = useRef<HTMLInputElement>(null);
   const saveGuardUntilRef = useRef(0);
+  /** F2: wartość początkowa dla bieżącej serii — baseline dla `flushDraft` (LR-3). */
+  const [initialDraft, setInitialDraft] = useState<InitialSetDraft | null>(null);
 
   const selectedIndex = Math.max(
     0,
@@ -218,6 +222,7 @@ export function GuidedSessionLayout({
     setRepsText(repsToInput(initial.reps));
     setSynced({ weight: set.weight, reps: set.reps, done: set.done });
     setSaveIssue(null);
+    setInitialDraft(initial);
   } else if (
     set &&
     synced &&
@@ -238,11 +243,19 @@ export function GuidedSessionLayout({
     return { weight, reps: repsParsed != null && repsParsed > 0 ? repsParsed : null };
   }
 
-  /** Pola do store bez zmiany statusu serii; bez zmian wartości nic nie wysyła. */
+  /**
+   * Pola do store bez zmiany statusu serii. Nic nie wysyła, gdy wartość się nie
+   * zmieniła względem store (bez zmian) ani gdy to wciąż ta sama wartość
+   * początkowa/podpowiedź z wejścia na serię, której użytkownik nie dotknął
+   * (F2, LR-3) — inaczej niepotwierdzona podpowiedź trafiłaby do chmury.
+   */
   function flushDraft() {
     if (!exercise || !set) return;
     const { weight, reps } = draftValues();
     if (weight === set.weight && reps === set.reps) return;
+    if (initialDraft && isDraftUnchangedFromInitial({ weight, reps }, initialDraft)) {
+      return;
+    }
     onPatchSet(exercise.id, activeSetIndex, {
       weight,
       reps,
@@ -486,8 +499,8 @@ export function GuidedSessionLayout({
               </a>
             ) : null}
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 compact:mt-0.5">
-            <p className="whitespace-nowrap text-[13px] tabular-nums text-[var(--gym-text-secondary)]">
+          <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 compact:mt-0.5 compact:flex-nowrap">
+            <p className="whitespace-nowrap text-[13px] tabular-nums text-[var(--gym-text-secondary)] compact:min-w-0 compact:flex-1 compact:truncate">
               <span className="font-semibold text-white">{schemeParts[0]}</span>
               {schemeParts.slice(1).map((part) => (
                 <span key={part}> · {part}</span>

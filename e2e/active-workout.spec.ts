@@ -109,7 +109,11 @@ async function loginAndClearSession(page: Page) {
 }
 
 /** Wstrzykuje stan sesji do localStorage i otwiera `/active-workout` (po `loginAndClearSession`). */
-async function injectSessionAndOpen(page: Page, session: ReturnType<typeof persistedSession>) {
+async function injectSessionAndOpen(
+  page: Page,
+  session: ReturnType<typeof persistedSession>,
+  readyButtonName = "Zapisz serię 1",
+) {
   // Init script (jednorazowo na kartę): inaczej globalny sync nadpisałby stan przy opuszczeniu „/”.
   await page.addInitScript((s) => {
     if (window.sessionStorage.getItem("e2e-seeded")) return;
@@ -120,7 +124,7 @@ async function injectSessionAndOpen(page: Page, session: ReturnType<typeof persi
   // Wznowienie niedokończonej sesji (istniejący dialog) — zatwierdzamy, jak użytkownik.
   const resume = page.getByRole("button", { name: "Kontynuuj" });
   await resume.click({ timeout: 15_000 }).catch(() => undefined);
-  await expect(page.getByRole("button", { name: "Zapisz serię 1" })).toBeVisible({
+  await expect(page.getByRole("button", { name: readyButtonName })).toBeVisible({
     timeout: 30_000,
   });
 }
@@ -134,7 +138,8 @@ async function openSession(page: Page) {
  * Sesja z jednym ćwiczeniem o `setsCount` seriach (pomiar geometrii: O-2/defekt 2 `ux`,
  * schemat + pigułki na wąskim ekranie). Bez historii/sugestii — nieistotne dla geometrii.
  */
-function sessionWithSets(setsCount: number) {
+/** `doneSetsCount` zapisanych serii na początku -> auto-wybrana (bieżąca) jest pierwsza otwarta. */
+function sessionWithSets(setsCount: number, doneSetsCount = 0) {
   return {
     state: {
       startedAt: Date.now() - 60_000,
@@ -149,7 +154,9 @@ function sessionWithSets(setsCount: number) {
         {
           id: "ex-geometry",
           name: "Wyciskanie hantli skos",
-          sets: Array.from({ length: setsCount }, () => set()),
+          sets: Array.from({ length: setsCount }, (_, i) =>
+            i < doneSetsCount ? last(40, 8, 1) : set(),
+          ),
           targetSets: setsCount,
           targetReps: 8,
           targetRir: 1,
@@ -160,9 +167,13 @@ function sessionWithSets(setsCount: number) {
   };
 }
 
-async function openSessionWithSets(page: Page, setsCount: number) {
+async function openSessionWithSets(page: Page, setsCount: number, doneSetsCount = 0) {
   await loginAndClearSession(page);
-  await injectSessionAndOpen(page, sessionWithSets(setsCount));
+  await injectSessionAndOpen(
+    page,
+    sessionWithSets(setsCount, doneSetsCount),
+    `Zapisz serię ${doneSetsCount + 1}`,
+  );
 }
 
 const progressbar = (page: Page) => page.getByRole("progressbar", { name: "Postęp treningu" });
@@ -373,6 +384,45 @@ test.describe("Aktywny trening (004)", () => {
     expect(rb.y + rb.height).toBeLessThanOrEqual(sb.y);
     expect(rb.height).toBeGreaterThanOrEqual(43.9);
   });
+
+  /** Seria z zapisu store (`localStorage["active-workout"]`, persist) — bez zależności od UI. */
+  async function storedSet(page: Page, exerciseIndex: number, setIndex: number) {
+    return page.evaluate(
+      ([e, s]) => {
+        const raw = window.localStorage.getItem("active-workout");
+        const parsed = raw ? (JSON.parse(raw) as { state?: { exercises?: unknown[] } }) : null;
+        const ex = parsed?.state?.exercises?.[e] as { sets?: unknown[] } | undefined;
+        return ex?.sets?.[s] ?? null;
+      },
+      [exerciseIndex, setIndex] as const,
+    );
+  }
+
+  test("F2/LR-3: podpowiedź w polu bez dotknięcia nie trafia do store przy przejściu na inną serię", async ({
+    page,
+  }) => {
+    await expect(weightInput(page)).toHaveValue("67.5");
+    await page.getByRole("button", { name: "Seria 2, do zrobienia" }).click();
+    await expect(page.getByRole("button", { name: "Zapisz serię 2" })).toBeVisible();
+    expect(await storedSet(page, 0, 0)).toMatchObject({ weight: 0, done: false });
+    // Powrót: pole nadal pokazuje tylko podpowiedź, seria nadal niezapisana.
+    await page.getByRole("button", { name: "Seria 1, do zrobienia" }).click();
+    await expect(weightInput(page)).toHaveValue("67.5");
+    await expect(page.getByRole("button", { name: "Zapisz serię 1" })).toBeVisible();
+    expect(await storedSet(page, 0, 0)).toMatchObject({ weight: 0, done: false });
+  });
+
+  test("F2/kontrast: zmiana ciężaru steperem przed przejściem zapisuje się do store", async ({
+    page,
+  }) => {
+    await expect(weightInput(page)).toHaveValue("67.5");
+    await page.getByRole("button", { name: /^Zwiększ ciężar o [\d.,]+ kg$/ }).first().click();
+    const changed = Number(await weightInput(page).inputValue());
+    expect(changed).toBeGreaterThan(67.5);
+    await page.getByRole("button", { name: "Seria 2, do zrobienia" }).click();
+    await expect(page.getByRole("button", { name: "Zapisz serię 2" })).toBeVisible();
+    expect(await storedSet(page, 0, 0)).toMatchObject({ weight: changed, done: false });
+  });
 });
 
 /**
@@ -385,8 +435,8 @@ test.describe("Aktywny trening (004) — geometria ekranu A przy wielu seriach",
     { width: 360, height: 640, label: "360x640" },
     { width: 390, height: 844, label: "390x844" },
   ] as const) {
-    for (const setsCount of [2, 4, 6]) {
-      test(`${viewport.label}, ${setsCount} serii: RIR i przycisk główny bez przewijania`, async ({
+    for (const setsCount of [2, 4, 6, 8]) {
+      test(`${viewport.label}, ${setsCount} serii: RIR, CTA i pigułki bez przewijania kolumny`, async ({
         page,
       }) => {
         await page.setViewportSize(viewport);
@@ -395,11 +445,17 @@ test.describe("Aktywny trening (004) — geometria ekranu A przy wielu seriach",
         const save = page.getByRole("button", { name: `Zapisz serię 1` });
         const rir0 = page.getByRole("button", { name: /^RIR 0,/ });
         const centerScroll = page.locator("[data-active-workout-scroll]");
+        const pills = page.getByRole("group", { name: "Serie ćwiczenia" });
 
         const saveBox = (await save.boundingBox())!;
         const rirBox = (await rir0.boundingBox())!;
         const scrollHeight = await centerScroll.evaluate((el) => el.scrollHeight);
         const clientHeight = await centerScroll.evaluate((el) => el.clientHeight);
+        // Defekt 2 (ux, przegląd wizualny): pigułki rozpychały kolumnę w poziomie,
+        // bo `.chip-scroll` w CSS nie był `@utility`, więc `compact:chip-scroll` nie
+        // generował żadnych reguł — pole pigułek było `overflow: visible`.
+        const centerScrollWidth = await centerScroll.evaluate((el) => el.scrollWidth);
+        const centerClientWidth = await centerScroll.evaluate((el) => el.clientWidth);
 
         expect(
           saveBox.y + saveBox.height,
@@ -411,9 +467,101 @@ test.describe("Aktywny trening (004) — geometria ekranu A przy wielu seriach",
         ).toBeLessThanOrEqual(saveBox.y);
         expect(
           scrollHeight,
-          `środek ekranu przewija się przy ${setsCount} seriach (${viewport.label}): scrollHeight ${scrollHeight} > clientHeight ${clientHeight}`,
+          `środek ekranu przewija się w pionie przy ${setsCount} seriach (${viewport.label}): scrollHeight ${scrollHeight} > clientHeight ${clientHeight}`,
         ).toBeLessThanOrEqual(clientHeight + 1);
+        expect(
+          centerScrollWidth,
+          `kolumna treści przewija się w poziomie przy ${setsCount} seriach (${viewport.label}): scrollWidth ${centerScrollWidth} > clientWidth ${centerClientWidth}`,
+        ).toBeLessThanOrEqual(centerClientWidth + 1);
+
+        if (setsCount >= 6) {
+          const scrollLeftBefore = await centerScroll.evaluate((el) => el.scrollLeft);
+          await page.getByRole("button", { name: "Seria 6, do zrobienia" }).click();
+          await expect(page.getByRole("button", { name: "Zapisz serię 6" })).toBeVisible();
+          const scrollLeftAfter = await centerScroll.evaluate((el) => el.scrollLeft);
+          expect(
+            scrollLeftAfter,
+            `wybór pigułki 6 przewinął kolumnę treści (${viewport.label})`,
+          ).toBe(scrollLeftBefore);
+          // Pigułka 6 jest przewinięta do widoku wewnątrz własnego pola, nie kolumny.
+          const pillsScrollWidth = await pills.evaluate((el) => el.scrollWidth);
+          const pillsClientWidth = await pills.evaluate((el) => el.clientWidth);
+          if (pillsScrollWidth > pillsClientWidth + 1) {
+            await expect(
+              page.getByRole("button", { name: "Seria 6, bieżąca" }),
+            ).toBeInViewport();
+          }
+        }
       });
     }
   }
 });
+
+/**
+ * Runda 2 przeglądu wizualnego `ux`: pozycja pigułki liczona z `offsetLeft`/`offsetWidth`
+ * (względem `offsetParent`, nie względem pola pigułek) chowała bieżącą/wybraną/fokusowaną
+ * pigułkę częściowo lub całkowicie. Asercja na geometrię pigułki względem pola (`group`),
+ * nie tylko na `scrollWidth`/`scrollLeft` kolumny — to nie wykrywałoby tego defektu.
+ */
+test.describe("Aktywny trening (004) — pigułka w całości widoczna w polu przewijania (360x640)", () => {
+  test.use({ viewport: { width: 360, height: 640 } });
+
+  // `scrollTo({ behavior: "smooth" })` animuje dojście do pozycji — `toPass` czeka,
+  // aż przewijanie się ustali (do 2 s), zamiast łapać geometrię w połowie animacji.
+  async function expectPillFullyInGroup(page: Page, pillName: string) {
+    await expect(async () => {
+      const group = page.getByRole("group", { name: "Serie ćwiczenia" });
+      const pill = page.getByRole("button", { name: pillName });
+      const groupBox = (await group.boundingBox())!;
+      const pillBox = (await pill.boundingBox())!;
+      expect(
+        pillBox.x,
+        `„${pillName}”: lewa krawędź poza polem pigułek (pillBox.x=${pillBox.x}, groupBox.x=${groupBox.x})`,
+      ).toBeGreaterThanOrEqual(groupBox.x - 0.5);
+      expect(
+        pillBox.x + pillBox.width,
+        `„${pillName}”: prawa krawędź poza polem pigułek (right=${pillBox.x + pillBox.width}, groupBox right=${groupBox.x + groupBox.width})`,
+      ).toBeLessThanOrEqual(groupBox.x + groupBox.width + 0.5);
+    }).toPass({ timeout: 2000 });
+  }
+
+  for (const setsCount of [2, 3, 4, 6, 8]) {
+    test(`${setsCount} serii: bieżąca pigułka widoczna od razu, po każdym kliku i po fokusie`, async ({
+      page,
+    }) => {
+      await openSessionWithSets(page, setsCount);
+
+      // Od razu po otwarciu ćwiczenia (seria 1 bieżąca).
+      await expectPillFullyInGroup(page, "Seria 1, bieżąca");
+
+      // Klik każdej pigułki po kolei — wybrana ma być w całości widoczna.
+      for (let i = 1; i <= setsCount; i++) {
+        const before = i === 1 ? "Seria 1, bieżąca" : `Seria ${i}, do zrobienia`;
+        await page.getByRole("button", { name: before }).click();
+        await expect(page.getByRole("button", { name: `Zapisz serię ${i}` })).toBeVisible();
+        await expectPillFullyInGroup(page, `Seria ${i}, bieżąca`);
+      }
+
+      // Fokus klawiaturą (np. Tab) na każdej pigułce — niezależnie od wyboru.
+      for (let i = 1; i <= setsCount; i++) {
+        const name =
+          i === setsCount ? `Seria ${i}, bieżąca` : `Seria ${i}, do zrobienia`;
+        const pill = page.getByRole("button", { name });
+        await pill.focus();
+        await expect(pill).toBeFocused();
+        await expectPillFullyInGroup(page, name);
+      }
+    });
+  }
+
+  test("6 serii, bieżąca od razu seria 6 (5 zapisanych): widoczna od razu po otwarciu", async ({
+    page,
+  }) => {
+    await openSessionWithSets(page, 6, 5);
+    await expectPillFullyInGroup(page, "Seria 6, bieżąca");
+  });
+});
+
+
+
+

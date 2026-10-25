@@ -1,0 +1,93 @@
+[
+  {
+    "label": "360x640-seria2-hist",
+    "viewport": "360x640",
+    "ctaBottom": 589,
+    "rirBottom": 520,
+    "ctaTop": 537,
+    "centerScrollsY": false,
+    "pillsCount": 2,
+    "pillsVisibleInRow": 2,
+    "pillsRowHeight": 44,
+    "pillsRowScrollsX": false,
+    "pillsRowWidth": 88,
+    "schemaTruncated": false,
+    "schemaText": "2 serie × 6–8 · RIR 1",
+    "pillsTopOffset": -12
+  },
+  {
+    "label": "360x640-seria6-hist",
+    "viewport": "360x640",
+    "ctaBottom": 588,
+    "rirBottom": 519,
+    "ctaTop": 536,
+    "centerScrollsY": false,
+    "pillsCount": 6,
+    "pillsVisibleInRow": 3,
+    "pillsRowHeight": 44,
+    "pillsRowScrollsX": true,
+    "pillsRowWidth": 152,
+    "schemaTruncated": false,
+    "schemaText": "6 serii × 6–8 · RIR 1",
+    "pillsTopOffset": -12
+  },
+  {
+    "label": "tekst wiersza sugestii (6 serii)",
+    "text": "Ostatnio 65 × 8 · 5 dni temu\n+2,5 kg · zakres zrobiony z zapasem\n67,5\n× 6"
+  },
+  {
+    "label": "pigułki: pozycja przewijania przed kliknięciem",
+    "scrollLeft": 0
+  },
+  {
+    "label": "etykiety pigulek",
+    "labels": [
+      "Seria 1, bieżąca",
+      "Seria 2, do zrobienia",
+      "Seria 3, do zrobienia",
+      "Seria 4, do zrobienia",
+      "Seria 5, do zrobienia",
+      "Seria 6, do zrobienia"
+    ]
+  },
+  {
+    "label": "pigułki: scrollLeft po wybraniu serii 6",
+    "scrollLeft": 0
+  },
+  {
+    "label": "360x640-seria6-bez",
+    "viewport": "360x640",
+    "ctaBottom": 588,
+    "rirBottom": 519,
+    "ctaTop": 536,
+    "centerScrollsY": false,
+    "pillsCount": 6,
+    "pillsVisibleInRow": 3,
+    "pillsRowHeight": 44,
+    "pillsRowScrollsX": true,
+    "pillsRowWidth": 152,
+    "schemaTruncated": false,
+    "schemaText": "6 serii × 6–8 · RIR 1",
+    "pillsTopOffset": -12
+  },
+  {
+    "label": "390x844-seria6-hist",
+    "viewport": "390x844",
+    "ctaBottom": 788,
+    "rirBottom": 645,
+    "ctaTop": 732,
+    "centerScrollsY": false,
+    "pillsCount": 6,
+    "pillsVisibleInRow": 6,
+    "pillsRowHeight": 44,
+    "pillsRowScrollsX": false,
+    "pillsRowWidth": 264,
+    "schemaTruncated": false,
+    "schemaText": "6 serii × 6–8 · RIR 1",
+    "pillsTopOffset": 20
+  },
+  {
+    "label": "B: karta Następnie (tekst)",
+    "text": "Zapisano\n\n67,5 kg × 8 · RIR 1\n\n1:30\nPRZERWA\n\n−15 s\n+30 s\n60 s\n90 s\n2 min\n3 min\n\nNASTĘPNIE\n\nSeria 2 z 2 · Wyciskanie sztangi leżąc\n\ncel 6–8 · RIR 1\n\nOstatnio 65 × 8\n+2,5 kg · na podstawie ostatnich serii\nSugestia: więcej, 67,5 kg, 8 powtórzeń\n67,5\n× 8"
+  }
+]

@@ -1,0 +1,128 @@
+{
+  "conditions": {
+    "viewport": "360x640",
+    "dpr": 2,
+    "cpuSlowdown": 4,
+    "network": "Regular 4G (150 ms, 1,6 Mb/s)",
+    "browser": "msedge",
+    "base": "http://localhost:3101",
+    "runs": 5
+  },
+  "open": {
+    "readyMs": {
+      "n": 5,
+      "p50": 681,
+      "p95": 1561,
+      "max": 1561
+    },
+    "fcpMs": {
+      "n": 5,
+      "p50": 324,
+      "p95": 348,
+      "max": 348
+    },
+    "lcpMs": {
+      "n": 5,
+      "p50": 1628,
+      "p95": 1776,
+      "max": 1776
+    },
+    "cls": {
+      "n": 5,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+    },
+    "longTaskCountPerRun": {
+      "n": 5,
+      "p50": 2,
+      "p95": 3,
+      "max": 3
+    },
+    "longTaskMsP95": {
+      "n": 8,
+      "p50": 93,
+      "p95": 176,
+      "max": 176
+    },
+    "raw": [
+      {
+        "readyMs": 1561,
+        "fcpMs": 300,
+        "lcpMs": 1444,
+        "cls": 0,
+        "longTasksMs": [
+          57,
+          176,
+          59
+        ]
+      },
+      {
+        "readyMs": 775,
+        "fcpMs": 348,
+        "lcpMs": 1776,
+        "cls": 0,
+        "longTasksMs": [
+          72,
+          122
+        ]
+      },
+      {
+        "readyMs": 639,
+        "fcpMs": 324,
+        "lcpMs": 1628,
+        "cls": 0,
+        "longTasksMs": [
+          50,
+          106
+        ]
+      },
+      {
+        "readyMs": 681,
+        "fcpMs": 324,
+        "lcpMs": 1648,
+        "cls": 0,
+        "longTasksMs": [
+          93
+        ]
+      },
+      {
+        "readyMs": 591,
+        "fcpMs": 244,
+        "lcpMs": 1604,
+        "cls": 0,
+        "longTasksMs": []
+      }
+    ]
+  },
+  "keystrokes": {
+    "wpisCiezaru": {
+      "znaki": 2,
+      "latencjaWejscieNaKlatke": {
+        "n": 2,
+        "p50": 19.6,
+        "p95": 19.6,
+        "max": 19.6
+      }
+    },
+    "zapisSerii": {
+      "przejscieNaPrzerwe_ms": 348
+    },
+    "edycjaZapisanejSerii": {
+      "znaki": 3,
+      "latencjaWejscieNaKlatke": {
+        "n": 3,
+        "p50": 27.2,
+        "p95": 32.3,
+        "max": 32.3
+      }
+    }
+  },
+  "pushes": {
+    "bezczynnosc9s": 1,
+    "wejscieNaSerie2": 1,
+    "wpisCiezaruNowaSeria": 1,
+    "zapisSerii": 3,
+    "edycjaZapisanejSerii": 2
+  }
+}

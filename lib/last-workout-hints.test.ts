@@ -160,4 +160,32 @@ describe("last-workout-hints — mergeHintsIntoExercises", () => {
     const [out] = mergeHintsIntoExercises([ex], hints(threeAtTop, [snap(), snap()]));
     expect(out).toBe(ex);
   });
+
+  it("V-2: niezapisana wartość początkowa (done: false) nie wpływa na podpowiedź kolejnego treningu", () => {
+    const hintsMap: LastPlanHintsMap = {
+      e1: {
+        sets: [
+          { reps: 10, weight: 36, done: true },
+          { reps: 10, weight: 36, done: true },
+          // Seria niezaliczona — wartość z pola to tylko podpowiedź/draft,
+          // użytkownik jej nie potwierdził. Nie może zasilać kolejnej sugestii.
+          { reps: 20, weight: 999, done: false },
+        ],
+        coachContext: {
+          daysSinceLastSession: 3,
+          recentSessionCount: 1,
+          avgTopSetWeightKg: 36,
+          stagnant: false,
+          recentSessions: [snap()],
+        },
+      },
+    };
+    const [out] = mergeHintsIntoExercises([exercise()], hintsMap);
+    // lastSessionSets nie zawiera draftu 999 kg / 20 powtórzeń.
+    expect(out!.lastSessionSets?.every((s) => s == null || s.weight !== 999)).toBe(
+      true,
+    );
+    // Sugestia liczona tylko z dwóch zaliczonych serii (bez draftu).
+    expect(out!.suggestedWeights).toEqual([36, 36]);
+  });
 });
