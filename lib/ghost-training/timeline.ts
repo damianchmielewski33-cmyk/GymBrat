@@ -1,4 +1,5 @@
 import type { GhostCheckpoint, GhostTimeline, GhostSourceKind } from "@/lib/ghost-training/types";
+import { isCompletedWorkoutSet } from "@/lib/workout-skipped-sets";
 
 type RawSet = {
   reps?: number | null;
@@ -52,10 +53,23 @@ export function buildGhostTimeline(input: {
     const sets = ex.sets ?? [];
     for (let i = 0; i < sets.length; i++) {
       const s = sets[i]!;
-      if (s.skipped) continue;
       const reps = Number(s.reps) || 0;
       const weight = Number(s.weight) || 0;
-      if (reps <= 0 && weight <= 0 && !s.done) continue;
+      // LR-3 / V-2: tylko faktycznie zaliczone serie (done===true, niepominięte,
+      // z realnym ciężarem i powtórzeniami) wchodzą do osi czasu Ghost Training —
+      // widoczną dla rywala. Prefill/draft zapisany przez flushDraft (np. przy
+      // nawigacji) bez kliknięcia „Zapisz serię” nie ma done===true i jest tu
+      // wykluczony, tak jak w `lib/last-workout-hints.ts`.
+      if (
+        !isCompletedWorkoutSet({
+          done: Boolean(s.done),
+          skipped: s.skipped,
+          reps: s.reps ?? null,
+          weight,
+        })
+      ) {
+        continue;
+      }
 
       cumulativeSets += 1;
       cumulativeVolume += weight * reps;

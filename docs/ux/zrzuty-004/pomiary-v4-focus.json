@@ -1,0 +1,82 @@
+[
+  {
+    "scenario": "6-serii-Tab",
+    "target": 1,
+    "reached": true,
+    "inGroup": true,
+    "label": "Seria 1, bieżąca",
+    "focusVisible": true,
+    "outline": "solid 2px rgba(247, 226, 143, 0.95)",
+    "outlineOffset": "-2px",
+    "btn": [
+      192,
+      236
+    ],
+    "field": [
+      192,
+      344
+    ],
+    "outlineInField": true,
+    "scrollLeft": 0
+  },
+  {
+    "scenario": "6-serii-Tab",
+    "target": 3,
+    "reached": true,
+    "inGroup": true,
+    "label": "Seria 3, do zrobienia",
+    "focusVisible": true,
+    "outline": "solid 2px rgba(247, 226, 143, 0.95)",
+    "outlineOffset": "-2px",
+    "btn": [
+      292,
+      336
+    ],
+    "field": [
+      192,
+      344
+    ],
+    "outlineInField": true,
+    "scrollLeft": 0
+  },
+  {
+    "scenario": "6-serii-Tab",
+    "target": 6,
+    "reached": true,
+    "inGroup": true,
+    "label": "Seria 6, do zrobienia",
+    "focusVisible": true,
+    "outline": "solid 2px rgba(247, 226, 143, 0.95)",
+    "outlineOffset": "-2px",
+    "btn": [
+      300,
+      344
+    ],
+    "field": [
+      192,
+      344
+    ],
+    "outlineInField": true,
+    "scrollLeft": 142
+  },
+  {
+    "scenario": "6-serii-klik6-potem-ShiftTab-do-1",
+    "reachedFrom6": true,
+    "reached1": true,
+    "inGroup": true,
+    "label": "Seria 1, do zrobienia",
+    "focusVisible": true,
+    "outline": "solid 2px rgba(247, 226, 143, 0.95)",
+    "outlineOffset": "-2px",
+    "btn": [
+      192,
+      236
+    ],
+    "field": [
+      192,
+      344
+    ],
+    "outlineInField": true,
+    "scrollLeft": 0
+  }
+]

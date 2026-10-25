@@ -119,7 +119,7 @@ Szczegóły:
 - **Nagłówek**: `X` i `☰` 44×44, obrys `--gym-border-gold`, tło `--gym-surface-gold`. Środek: tytuł; meta „trening m:ss · seria X/Y” (BR-4: X = numer bieżącej serii w całej sesji, Y = wszystkie serie; dla czasu ≥ 60 min „1:02:15”); plakietka Ghost (sekcja 8). Wiersz „A/B serii · C/D ćw.” usunięty.
 - **Pasek**: sekcja 5.1.
 - **Nagłówek ćwiczenia**: kicker „Ćwiczenie N z M” (uppercase przez CSS, w DOM zwykły tekst) + opcjonalnie „ · Superseria A” złotem; nazwa; wiersz: schemat po lewej, pigułki po prawej. Schemat budowany z istniejących części: „3 serie × 6–8”, „RIR 1”, „tempo 3-1-1”, łączone „ · ”; części bez danych pomijane. Przycisk filmu (`Play`) tylko przy `techniqueYoutubeUrl`. „Nagraj technikę” przenosi się do menu.
-- **Przepełnienie wiersza pigułek**: gdy schemat i pigułki nie mieszczą się w jednej linii (np. 5+ serii na 360 px), schemat przechodzi do osobnej linii nad pigułkami; powyżej 8 serii pigułki przewijają się poziomo (`chip-scroll`), bieżąca jest przewijana do widoku.
+- **Przepełnienie wiersza pigułek** (zmienione w przeglądzie etapu 8, wersja 2 - patrz „Weryfikacja poprawek”): na wysokości nienormatywnej (`compact`, < 720 px) schemat skraca się wielokropkiem, a pigułki przewijają się poziomo w polu max 9,5 rem (152 px), gdy nie mieszczą się w nim wszystkie; poza kompaktem, gdy schemat i pigułki nie mieszczą się w jednej linii, schemat przechodzi do osobnej linii nad pigułkami. Bieżąca pigułka jest przewijana do widoku, bez przewijania kolumny treści (sekcja 4.2, pkt 8).
 - **Wiersz sugestii**: sekcja 5.3.
 - **Karta ciężaru**: etykieta „Ciężar” + „· krok 2 kg” (secondary); po prawej dwa szybkie przyciski „−4” i „+4” (±2 kroki; widoczne 32×≥56, pole dotyku 44 przez ujemny margines jak dziś). Wartość: `input` z wartością (BR-7, nie placeholder), jednostka „kg” 14/600 złota 85%. Steppery „−” „+” = ±1 krok. Granice 0-999 jak dziś.
 - **Karta powtórzeń**: etykieta; po prawej znacznik celu: „✓ w celu 6–8” (`--gym-gold-bright`, gdy w zakresie) albo „cel 6–8” (secondary, gdy poza; bez czerwieni - poniżej celu to nie błąd). Brak celu w planie - brak znacznika.
@@ -137,6 +137,8 @@ Co się zwija (w tej kolejności priorytetu):
 4. RIR: pigułki 48 → 44, odstęp 6; etykieta skrócona do „RIR · w zapasie · cel 1”.
 5. Tytuł ćwiczenia 20/24; tytuł dnia 14/17; meta 11/14; plakietka Ghost h 24 (pole dotyku nadal 44).
 6. CTA 56 → 52; padding dołu 8/4.
+7. Pigułki serii (wersja 2 po przeglądzie etapu 8): pole 44×44 bez zmian; w kompakcie pole pigułek ma max 9,5 rem i przewija się poziomo, gdy jest więcej niż 3 pigułki (przy 6 seriach 3 widoczne naraz). Wskazówka krawędzi: gradient 24 px przy prawej (a po przewinięciu w prawo także przy lewej) krawędzi pola, tylko gdy są ukryte pigułki; bez strzałek i liczników.
+8. Kolumna treści nie przewija się poziomo nigdy. Wybór pigułki przewija wyłącznie jej pole (`scrollLeft` grupy), nie `scrollIntoView` na całym łańcuchu przodków (inaczej przesuwa się cały środek ekranu).
 Nigdy się nie zwija: cele dotyku ≥ 44 px, linki dolne 44, tekst ≥ 11 px, powód sugestii (zawija się do 2 linii, nie jest ucinany w środku znaczenia).
 Ostatnia linia obrony: treść środkowa ma `overflow-y: auto` (jak dziś), ale przy budżecie z 4.3 nie powinna się przewijać. Nagłówek i dół są poza obszarem przewijania, więc CTA jest zawsze widoczny.
 
@@ -178,7 +180,7 @@ Wniosek: rząd „+ Seria / Usuń / Notatka / Zgłoś” (56 px) i HUD Ghost (ok
 - Ruch: zmiana koloru `transition-colors 200ms`, `motion-reduce:transition-none`. Bez poświaty (`shadow-[0_0_8px…]` usunąć).
 
 ### 5.2 Pigułki serii
-Koło 34 px w polu 40×44, `role="tab"` w `role="tablist" aria-label="Serie ćwiczenia"` (jak dziś), `aria-selected` dla edytowanej.
+Koło 34 px w polu 44×44 (zmiana z 40×44 w przeglądzie etapu 8: LR-5 wymaga celów ≥ 44 px), `role="tab"` w `role="tablist" aria-label="Serie ćwiczenia"` (jak dziś), `aria-selected` dla edytowanej.
 
 | Stan | Wygląd | Zawartość | `aria-label` |
 |---|---|---|---|
@@ -448,3 +450,130 @@ Blokujących: 0.
 ### Werdykt
 
 ZATWIERDZONE Z UWAGAMI. Wygląd i paleta odpowiadają zatwierdzonej makiecie v2, tokeny i kształty stanów są wdrożone zgodnie ze specyfikacją, dostępność i cele dotyku bez blokad. Wymagane przed wydaniem: defekt 1 (mikrokopia powodu sugestii, ryzyko LR-4/LR-5, wymaga zatwierdzenia przez prawnika-człowieka razem z resztą mikrokopii) i defekt 2 (szerokość pigułek). Pozostałe do backlogu z właścicielem `frontend`. Przegląd wizualny z pomiarami w 390×844 i 360×640 oraz zatwierdzenie baseline zrzutów do wykonania po uruchomieniu ekranu z danymi testowymi (Preview).
+
+### Weryfikacja poprawek
+
+Autor: ux. Data: 2026-10-24. Metoda: lokalny `next dev` na porcie 3100, baza libSQL w katalogu tymczasowym poza repo, konto testowe z uzupełnionym profilem, sesja wstrzyknięta do `localStorage` (jak w `e2e/active-workout.spec.ts`), Microsoft Edge, DPR 2. Zrzuty w `docs/ux/zrzuty-004/` (360×640: seria 2 z historią, seria 6 z historią, seria 6 wybrana, seria 6 bez historii, przerwa z kartą „Następnie”; 390×844: seria 6), pomiary w `docs/ux/zrzuty-004/pomiary.json`. Ukryto tylko wskaźnik błędów dev Next (nie element produktu). Kod nie został zmieniony.
+
+**Defekt średni 1 (powód sugestii): ZAMKNIĘTY.**
+- `lib/set-suggestion-view.ts` mapuje reguły na teksty z §5.3; na zrzutach nie ma tekstów silnika („zakres zrobiony z zapasem”, „+2,5 kg”, „na podstawie ostatnich serii”). Kierunek liczony z porównania ciężarów (BR-5), powód go nie przeczy, test w `lib/set-suggestion-view.test.ts`.
+- LR-4, LR-5, LR-10: brak słów zakazanych, brak ikon ostrzeżeń, kierunek ma strzałkę, znak i słowo w `aria-label`.
+- Uwagi niskie (nie blokują; mikrokopię zatwierdza prawnik-człowiek):
+  1. „+1 powt.” (werdykt „ten sam ciężar · +1 powt.”) to skrót, a „+” kojarzy się z przyrostem ciężaru. Propozycja: „o 1 powt. więcej” (zmiana w `REASON_BY_RULE`, backend, z testem). Zaktualizować §5.3 i §10.
+  2. „lżej, nowy cykl zakresu”: „zakres” to żargon. Propozycja: „lżej, nowy cykl powtórzeń”.
+  3. „lżej, ostatnio bez zapasu” jest neutralne, ale opisuje poprzednią serię jako ciężką. Do oceny przez prawnika w bramce wyjściowej; bez zmiany na razie.
+  4. `DEFAULT_REASON` w `components/active-workout/set-suggestion-row.tsx` (l. 17) duplikuje `DEFAULT_SUGGESTION_REASON` z `set-suggestion-view.ts`. Importować stałą (frontend; architekt pilnuje duplikatów).
+  5. „na podstawie ostatnich serii” zawija się na 360 px z osamotnionym „serii”. Dodać `text-pretty` do drugiej linii (frontend).
+
+**Defekt średni 2 (zawijanie pigułek 360×640): NIE ZAMKNIĘTY. Wymaga poprawki przed wydaniem.**
+- Wysokość: wiersz pigułek nie dokłada wysokości (44 px). Przy 6 seriach CTA kończy się na 588 px, RIR na 519 px, bez przewijania pionowego. Ten cel jest spełniony.
+- Przewijanie poziome nie działa tak, jak zakłada kod. Klasa `compact:chip-scroll` w `components/active-workout/set-pills.tsx` nie generuje CSS, bo `.chip-scroll` w `app/globals.css` (ok. l. 898) jest zwykłą klasą w `@layer utilities`, a nie `@utility`, więc wariant `compact:` jej nie obsługuje. Zmierzony `overflow-x` grupy pigułek to `visible`. Pigułki 4-6 wychodzą poza pole 152 px.
+- Skutki zmierzone w przeglądarce (360×640, 6 serii): `scrollWidth` kolumny treści 456 px przy szerokości 360 px. Kliknięcie pigułki 6 wywołuje `scrollIntoView`, który przesuwa całą kolumnę o 96 px: znika część kickera i nazwy ćwiczenia, RIR i pigułki są ucięte (`360x640-seria6-wybrana.png`). W stanie domyślnym pigułki 4-5 są ucięte krawędzią ekranu, a nie krawędzią przewijanego pola.
+- To łamie §4.2 („nic się nie przewija”) i WCAG 1.4.10 (reflow przy 320 px).
+- Odpowiedź na pytanie o czytelność: poziome przewijanie bez wskazówki NIE jest czytelne. Koło przecięte na krawędzi wygląda jak błąd, nie jak przewijanie. Przy wybranej serii 6 pozostałe 1-3 są poza widokiem bez sygnału, a ich stan (zapisana / pominięta) znika z ekranu. Pasek postępu u góry nadal pokazuje wszystkie serie, więc przegląd jest zachowany, ale wskazówka jest potrzebna.
+
+Decyzja UX (wiążąca dla `frontend`, zmiana zapisana w §4.1, §4.2 pkt 7-8 i §5.2):
+1. W kompakcie pole pigułek ma max 9,5 rem i przewija się poziomo, gdy pigułek jest więcej niż 3. Poza kompaktem bez zmian: pigułki w jednym rzędzie, a gdy się nie mieszczą, zawijają się pod schemat.
+2. Jedna klasa bez wariantu: `chip-scroll max-w-full compact:max-w-[9.5rem]`, bez `shrink-0`. Usunąć `SCROLL_PILLS_THRESHOLD` i gałęzie warunkowe (kod martwy po zmianie). Alternatywa: `@utility chip-scroll` w `globals.css`, decyzja `architekt`. UX woli wariant pierwszy, bo nie zmienia kontraktu klas.
+3. Zamiast `scrollIntoView` ustawić `scrollLeft` samej grupy na podstawie `offsetLeft` pigułki (`behavior: smooth`, `auto` przy `prefers-reduced-motion`).
+4. Wskazówka krawędzi: gdy są ukryte pigułki po prawej, prawe 24 px pola ma gradient do przezroczystości (`mask-image`); po przewinięciu w prawo analogicznie lewa krawędź. Stan przez atrybuty `data-*` aktualizowane na `scroll` i `resize`. Bez strzałek i liczników.
+5. Pole pigułki zostaje 44×44 (LR-5). Specyfikacja poprawiona (40×44 było błędem).
+- Kryteria ponownego pomiaru (360×640; serie 2, 4, 6, 8): `scrollWidth` kolumny ≤ `clientWidth`; wybór pigułki 6 nie zmienia `scrollLeft` kolumny; RIR i CTA bez przewijania pionowego; ucięta pigułka ma wskazówkę krawędzi.
+
+**Nowa obserwacja: karta „Następnie” na przerwie, 360×640 (średni).**
+- Zrzut `360x640-przerwa-nastepnie.png` (2 serie z historią, po zapisie serii 1): dwuliniowy powód sugestii i presety czasu przesuwają kartę pod pasek dolny. Dolna część karty z chipem sugestii chowa się za przyciskiem „Zacznij serię 2”. Specyfikacja §7.2 zakładała zapas ok. 20 px.
+- Nie ustaliłem pomiarem, czy kolumna przerwy się przewija (sonda nie złapała ekranu przerwy po drugim przebiegu). Dlatego to tylko obserwacja wizualna.
+- Propozycja dla `frontend`, do zmierzenia: w kompakcie pierścień `min(54vw, 24dvh, 200px)`; powód w „Następnie” zawijany tylko w razie potrzeby (`text-pretty`); ustalić, czy kolumna przerwy ma przewijanie z sygnałem, czy ma się zmieścić.
+
+**Zgodność z prośbami użytkownika po poprawkach:** kolory, zielone zapisane serie i kierunek sugestii bez zmian (zatwierdzone). Defekty 1 i 2 oceniane powyżej.
+
+**Werdykt: WYMAGA DALSZEJ POPRAWKI** (w terminach przepływu: ODRZUCONE na etapie 8, cofka do etapu 5 dla `frontend`, potem ponowny etap 7 i 8). Blokujące: defekt 2 (przesunięcie kolumny po wyborze pigułki przy 360×640). Baseline zrzutów nie jest zatwierdzony: zatwierdzam go po poprawce i pomiarze, na zrzutach z tego przebiegu nie da się uznać układu za wzorcowy.
+
+### Weryfikacja poprawek — runda 2
+
+Autor: ux. Data: 2026-10-25. Metoda: ten sam przebieg co w rundzie 1 (`next dev` na porcie 3100, baza testowa poza repo, konto testowe, sesja wstrzyknięta do `localStorage`, Microsoft Edge, DPR 2). Jedyna zmiana w przebiegu: serwer dev na `localhost` zamiast `127.0.0.1` (Next blokował na `127.0.0.1` zasoby HMR, więc hydracja nie ruszała i logowanie szło natywnie). Kod nie został zmieniony. Pomiary: `docs/ux/zrzuty-004/pomiary-v2.json`; zrzuty: `*-v2.png` (360×640: seria 2, 3, 4, 6, 8 z historią; seria 6 wybrana; seria 6 bez historii; przerwa przed i po przewinięciu; 390×844: seria 6).
+
+**Kryteria z rundy 1:**
+
+| Kryterium | Wynik | Pomiar |
+|---|---|---|
+| `scrollWidth` kolumny treści ≤ `clientWidth` przy 2, 4, 6, 8 seriach (360×640) | ZALICZONE | 360 / 360 we wszystkich wariantach (także 3 serie) |
+| wybór pigułki 6 nie zmienia `scrollLeft` kolumny | ZALICZONE | `centerScrollLeft` 0 po kliku pigułki 6, po kliku pigułki 2 i po fokusie klawiaturą |
+| RIR i CTA bez przewijania pionowego | ZALICZONE | `centerScrollsY` false we wszystkich wariantach; RIR dół 519 px, CTA 536–588 px (ekran 640) |
+| wskazówka krawędzi widoczna, gdy są ukryte pigułki; znika, gdy ich nie ma | ZALICZONE (obecność i zanik) | 2 i 3 serie: `mask-image` none; 4, 6, 8 serii: gradient 24 px z prawej; po przewinięciu do końca (klik pigułki 6): gradient tylko z lewej |
+| karta „Następnie” na przerwie 360×640 przewijalna, nie ucięta pod CTA | ZALICZONE | kolumna `scrollHeight` 497 / `clientHeight` 464 (zapas 33 px). Przed przewinięciem dół karty na 596 px, za krawędzią kolumny (571). Po przewinięciu do końca dół karty 563 px, a górna krawędź CTA 580 px: karta w całości nad przyciskiem |
+| pigułka bieżąca przewijana do widoku (4.2 pkt 7) | NIE ZALICZONE | patrz defekt poniżej |
+
+**Defekt (blokujący): przewijanie pola pigułek ustawia zły `scrollLeft` (`components/active-workout/set-pills.tsx`, efekt na `activeSetIndex`).**
+- Po otwarciu ekranu z 6 seriami seria 1 jest bieżąca (`aria-pressed="true"`), ale `scrollLeft` pola wynosi 100 i pigułka 1 leży w −100 px, poza polem. Widać 3 pełne pigułki (3, 4, 5); w rzędzie nie ma żadnej pigułki bieżącej (`360x640-seria6-hist-v2.png`).
+- Przy 4 seriach: `scrollLeft` 42, pigułka 1 w −42 px (ukryta).
+- Klik pigułki 2 (bieżąca staje się seria 2): `scrollLeft` 142 (maksimum), pigułka 2 w −92 px, czyli ukryta. Ponowny klik nie zmienia wyniku.
+- Klik pigułki 6: `scrollLeft` 142, pigułka 6 w 108 px (widoczna). To wychodzi poprawnie tylko dlatego, że błędna wartość została przycięta do maksimum.
+- Fokus klawiaturą (`focus()`) na pigułce 6 ze stanu otwarcia: `scrollLeft` bez zmian (100), pigułka 6 w 150 px. Widoczne ok. 2 px z 44 px, pierścień fokusu obcięty. Aktywny element to „Seria 6, do zrobienia”, kolumna `scrollLeft` 0.
+- Przyczyna: efekt liczy położenie z `pill.offsetLeft`, a ta wartość jest względem `offsetParent` (wrapper `relative`, w którym pole pigułek stoi od x = 192 px), a nie względem pola. Przesunięcie o lewą część wiersza trafia więc do `scrollTo`.
+- Poprawka dla `frontend`: położenie względem pola z `getBoundingClientRect()`: `pillLeft = pill.getBoundingClientRect().left − group.getBoundingClientRect().left + group.scrollLeft` (analogicznie prawa krawędź), przewijanie tylko pola (`scrollTo`, bez `scrollIntoView`). Po poprawce powtórzyć pomiar: otwarcie 6 serii (pigułka 1 widoczna), klik pigułki 2 (widoczna), fokus klawiaturą na pigułce 6 (cała pigułka w polu). Gdyby fokus nadal nie przewijał pełnej pigułki, dodać `scroll-margin`/przewinięcie na fokus. Test w `e2e/active-workout.spec.ts` ma sprawdzać, że aktywna pigułka mieści się w polu, a nie tylko że kolumna się nie przesuwa.
+
+**Pozostałe obserwacje (niskie, nie blokują):**
+- Karta „Następnie” na przerwie 360×640: przed przewinięciem dół karty jest ucięty pod krawędzią kolumny, a na zrzucie nie ma wyraźnego sygnału, że treść jest niżej. Cała karta jest osiągalna (zapas 33 px), więc nie jest to defekt blokujący. Propozycja: cień lub wskazówka przy dolnej krawędzi kolumny w kompakcie.
+- 390×844, seria 6: sześć pigułek w jednym rzędzie (294 px), bez przewijania, bez wskazówki krawędzi. Zgodne ze specyfikacją.
+- Wskazówka krawędzi działa bez strzałek i liczników, zgodnie z 4.2 pkt 7.
+
+**Zgodność z prośbami użytkownika:** bez zmian względem rundy 1 (kolory, zielone serie, kierunek sugestii zatwierdzone). Zakres kolumny (defekt 2 w części dotyczącej przesunięcia kolumny) jest naprawiony.
+
+**Werdykt: ODRZUCONE** (etap 8). Cofka do etapu 5 dla `frontend` wyłącznie w zakresie przewijania pola pigułek; reszta poprawek (kolumna, RIR/CTA, wskazówka, karta „Następnie”) zaliczona. Baseline zrzutów NIE zatwierdzony. Po poprawce wymagany kolejny pomiar tym samym skryptem (`verify-004-v2`, pkt 2 i 3 powyżej), a następnie zatwierdzenie baseline.
+
+### Weryfikacja poprawek — runda 3 (finalna)
+
+Autor: ux. Data: 2026-10-25. Metoda: `next dev` na `localhost:3100` (nie `127.0.0.1`), baza testowa poza repo, konto testowe, sesja wstrzyknięta do `localStorage`, Microsoft Edge, 360×640, DPR 2. Pomiary: `docs/ux/zrzuty-004/pomiary-v3.json` (skrypt poza repo, Playwright). Zrzuty: `docs/ux/zrzuty-004/*-v3.png`. Kod nie został zmieniony.
+
+**Pozycja pigułek (defekt blokujący z rundy 2): ZAMKNIĘTY.**
+
+| Scenariusz | Wynik | Pomiar |
+|---|---|---|
+| (1) 6 serii, bieżąca = 1, bez klikania | ZALICZONE | `scrollLeft` 0; pigułka 1 w całości od razu i po 700 ms |
+| (2) 6 serii, 5 zapisanych, bieżąca = 6 | ZALICZONE | `scrollLeft` 142; pigułka 6 w całości od razu |
+| (3) klik każdej pigułki, 2, 3, 4, 6, 8 serii (23 kliknięcia) | ZALICZONE | klikana pigułka zawsze w całości w polu; `scrollLeft` nie przekracza maksimum; kolumna treści `scrollLeft` 0 we wszystkich wariantach; RIR dół 519, CTA dół 588 |
+| (4) fokus klawiaturą (Tab i Shift+Tab) na każdej pigułce, 2, 3, 4, 6, 8 serii | ZALICZONE (położenie), DEFEKT (pierścień, D-1) | każda pigułka z fokusem w całości w polu, także niewybrana; kolumna bez przesunięcia |
+
+**Wskazówka krawędzi, kolumna przerwy (nowy hak `use-scroll-edge-fade.ts`): ZALICZONE.**
+- 360×640, 2 serie z historią, karta „Następnie” wychodzi poza widok (dół karty 596 px, dół kolumny 571 px): gradient tylko na dole kolumny (`mask-image` od dołu).
+- Po przewinięciu do końca: karta w całości nad CTA (dół karty 563 px, górna krawędź CTA 580 px); gradient tylko na górze, dolny znika.
+- 390×844, karta mieści się bez przewijania: `mask-image` none, brak wskazówki.
+- Uwaga o zakresie: oba przypadki 360×640 mają sugestię (karta wysoka, 144 px), więc przypadku „karta mieści się” na 360×640 nie zmierzono; zmierzono go na 390×844.
+
+**Regresje rund 1-2 (bez zmian, zgodne):** kolumna treści bez przewijania poziomego (`scrollWidth` = `clientWidth` = 360 we wszystkich wariantach), RIR i CTA bez przewijania pionowego, powód sugestii z mapy (brak tekstów silnika na zrzutach), kolory zielone/czerwone/złote sugestii, pominięcie w 390×844 bez maski (6 pigułek w jednym rzędzie).
+
+**Defekt D-1 (średni, blokuje zamknięcie etapu 8): pierścień fokusu pigułki jest obcinany przez pole przewijania.**
+- Pomiar: pigułka 6 z fokusem klawiaturą ma `outline` 2 px z `outline-offset` 2 px, przycisk 300–344 px, pole 192–344 px. Obrys wychodzi poza pole, więc przycinany jest górny, dolny i prawy bok; widoczna jest tylko pionowa kreska po lewej (`zoom-focus6-v3.png`, zrzut elementu z fokusem). Zrzut `360x640-seria6-fokus-6-v3.png` pokazuje to samo: żółta kreska między pigułkami 5 i 6, zamiast pełnego pierścienia.
+- Dotyczy każdej pigułki z fokusem na krawędzi pola (pierwsza i ostatnia widoczna, także przy przewijaniu).
+- Dlaczego to blokuje: kryterium 4 („pigułka z fokusem w całości w polu”) jest spełnione geometrycznie, ale wskaźnik fokusu, który ma pokazać, gdzie jest klawiatura, jest niepełny. Spec §11 wymaga widocznego pierścienia fokusu.
+- Poprawka dla `frontend` (`components/active-workout/set-pills.tsx`): fokus wewnątrz pola, np. `focus-visible:outline-offset-[-2px]` na pigułkach (pierścień mieści się w polu 44 px), albo wewnętrzny padding pola 3 px z kompensacją ujemnym marginesem, bez zmiany układu. Wybór wariantu: `frontend`, bez zmiany kontraktu klas.
+- Test po poprawce: zrzut elementu grupy z fokusem na pigułce 1 i na pigułce 6 (360×640, 6 serii); oczekiwane cztery krawędzie pierścienia widoczne.
+
+**Defekt D-2 (niski, do backlogu, właściciel `frontend`): kółko wybranej pigułki wpada w strefę gradientu.**
+- Gdy wybrana pigułka leży przy krawędzi pola z ukrytą treścią, jej kółko (34 px) częściowo znajduje się w 24 px strefie przejścia do przezroczystości. Mierzone w 9 z 23 kliknięć i 9 z 23 fokusów Tab. Na zrzucie `zoom-pills-6-klik4-v3.png` efekt jest słaby, ale bieżąca pigułka powinna być w pełni krycia.
+- Propozycja: przy przewijaniu do pigułki na krawędzi z gradientem zostawić zapas 24 px (`SCROLL_EDGE_FADE_PX`) albo dodać wewnętrzny padding poziomy pola 24 px. Nie blokuje.
+
+**Zgodność z prośbami użytkownika:** kolory, zielone serie, kierunek sugestii bez zmian (zatwierdzone w rundzie 1). Mikrokopia z rundy 2 (pkt 1-5 w backlogu) bez zmian.
+
+**Baseline zrzutów: NIE zatwierdzony.** Zrzuty `*-v3.png` to zapis pomiarowy, nie wzorzec: zawierają D-1 w zrzucie fokusu. Zatwierdzę baseline po poprawce D-1 i powtórzeniu pomiaru (fokus 1 i 6 na 360×640, 2 i 6 serii).
+
+**Werdykt: ODRZUCONE (etap 8, runda 3).** Cofka do etapu 5 wyłącznie dla `frontend`: pierścień fokusu pigułek (D-1). Pozycja pigułek, wskazówka krawędzi i kolumna są zaliczone i nie wymagają zmian. Po poprawce: ponowny pomiar tym samym zestawem (scenariusze 1-4 i fokus elementu), testy `npm test` / e2e, a następnie zamknięcie etapu 8 i zatwierdzenie baseline. Etap 8 nie jest zamknięty.
+
+### Zamknięcie etapu 8
+
+Autor: ux. Data: 2026-10-25. Metoda: `next dev` na `localhost:3100`, Microsoft Edge, prawdziwy Tab i Shift+Tab (bez `.focus()` w pomiarze pierścienia), 360×640, DPR 2, 6 serii. Skrypt poza repo, pomiary `docs/ux/zrzuty-004/pomiary-v4.json` (pełny zestaw rundy 3) i `pomiary-v4-focus.json` (fokus, pigułki 1, 3, 6 i powrót do 1).
+
+**D-1 (pierścień fokusu pigułki): ZAMKNIĘTY.** Pigułka z `focus-visible:outline-offset-[-2px]`, obrys 2 px w całości w polu. Pigułka 1 (192-236 px, pole 192-344), pigułka 3 (292-336), pigułka 6 po scrollu (300-344, `scrollLeft` 142): obrys mieści się w polu, zrzuty elementu pokazują cztery krawędzie (`zoom-focus-6s-pill1-v4.png`, `zoom-focus-6s-pill3-v4.png`, `zoom-focus-6s-pill6-v4.png`). Cel dotyku 44×44 bez zmian.
+
+**Defekty średnie z rund 1-3: ZAMKNIĘTE.**
+- Powód sugestii (defekt 1 rundy 1): mapowanie z §5.3 przez `lib/set-suggestion-view.ts`, brak tekstów silnika na zrzutach. Mikrokopia (uwagi 1-5 z rundy 1) pozostaje w backlogu.
+- Pigułki 360×640 (defekt 2 rundy 1): kolumna bez przesunięcia (`scrollWidth` = `clientWidth` = 360), pigułka bieżąca i klikana zawsze w całości w polu (23 kliknięcia, fokus Tab i Shift+Tab na 2, 3, 4, 6, 8 seriach), RIR bottom 519 px, CTA bottom 588 px, bez przewijania pionowego kolumny.
+
+**Regresje rund 1-3: brak.** Pozycja pigułek po otwarciu (seria 1 i seria 6), wskazówka krawędzi pola pigułek, karta „Następnie” na przerwie (przed i po przewinięciu, 360×640; 390×844 bez maski), kolory i kierunek sugestii, 390×844 seria 6 w jednym rzędzie.
+
+**Pozostaje w backlogu (niski, nie blokuje, właściciel `frontend`):** D-2 (kółko bieżącej pigułki przy krawędzi w strefie gradientu, mierzone w części kliknięć i fokusów), uwagi 1-5 z rundy 1 (mikrokopia, duplikat `DEFAULT_REASON`, `text-pretty`), uwagi z rundy 2 (cień na dolnej krawędzi kolumny przerwy). Mikrokopia zatwierdzana przez prawnika-człowieka przed wydaniem.
+
+**Baseline zrzutów: ZATWIERDZONY** jako zestaw `*-v4.png` w `docs/ux/zrzuty-004/`: `360x640-seria6-start-v4`, `360x640-seria6-bez-wybrana-v4`, `360x640-seria6-wybrana-v4`, `360x640-seria8-klik4-v4`, `360x640-seria6-fokus-1/3/6-v4`, `360x640-przerwa-nastepnie-v4`, `360x640-przerwa-nastepnie-przewiniete-v4`, `360x640-przerwa-bez-historii-v4`, `390x844-seria6-v4`, `390x844-przerwa-nastepnie-v4`, oraz zrzuty elementu `zoom-focus-6s-*-v4`. Zastrzeżenie: zrzuty powstały na danych testowych z lokalnego dev, nie na Preview; przy zmianie wyglądu ich wzorzec wymaga nowej decyzji `ux`. Zrzuty `*-v2` i `*-v3` pozostają jako zapis pomiarowy rund 2 i 3.
+
+**Werdykt etapu 8: ZATWIERDZONE Z UWAGAMI.** Brak blokad wizualnych i dostępnościowych. Uwagi niskiego ryzyka z backlogu (D-2, mikrokopia) mają właściciela `frontend`; zatwierdzenie mikrokopii przez prawnika-człowieka jest warunkiem wydania. Testy funkcjonalne i e2e (`npm test`, `npm run test:e2e`) są poza zakresem tego przeglądu i zostają po stronie `tester` oraz koordynatora.

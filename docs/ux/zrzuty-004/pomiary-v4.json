@@ -1,0 +1,2189 @@
+[
+  {
+    "label": "S1-6-seria1-od-razu",
+    "scrollLeft": 0,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "focused": [],
+    "pressed": [
+      1
+    ]
+  },
+  {
+    "label": "S1-6-seria1-po-700ms",
+    "scrollLeft": 0,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "focused": [],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 486,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S2-6-seria6-od-razu",
+    "scrollLeft": 142,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": false,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      3
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "focused": [],
+    "pressed": [
+      6
+    ]
+  },
+  {
+    "label": "S2-6-seria6-po-700ms",
+    "scrollLeft": 142,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": false,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      3
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "focused": [],
+    "pressed": [
+      6
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-2-klik-1",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 94,
+    "clientWidth": 94,
+    "maskImage": false,
+    "edgeLeftFade": false,
+    "edgeRightFade": false,
+    "count": 2,
+    "fullyInField": 2,
+    "notFully": [],
+    "dotClipped": [],
+    "focused": [],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "2 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-2-klik-2",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 94,
+    "clientWidth": 94,
+    "maskImage": false,
+    "edgeLeftFade": false,
+    "edgeRightFade": false,
+    "count": 2,
+    "fullyInField": 2,
+    "notFully": [],
+    "dotClipped": [],
+    "focused": [],
+    "pressed": [
+      2
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "2 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-3-klik-1",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 144,
+    "clientWidth": 144,
+    "maskImage": false,
+    "edgeLeftFade": false,
+    "edgeRightFade": false,
+    "count": 3,
+    "fullyInField": 3,
+    "notFully": [],
+    "dotClipped": [],
+    "focused": [],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "3 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-3-klik-2",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 144,
+    "clientWidth": 144,
+    "maskImage": false,
+    "edgeLeftFade": false,
+    "edgeRightFade": false,
+    "count": 3,
+    "fullyInField": 3,
+    "notFully": [],
+    "dotClipped": [],
+    "focused": [],
+    "pressed": [
+      2
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "3 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-3-klik-3",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 144,
+    "clientWidth": 144,
+    "maskImage": false,
+    "edgeLeftFade": false,
+    "edgeRightFade": false,
+    "count": 3,
+    "fullyInField": 3,
+    "notFully": [],
+    "dotClipped": [],
+    "focused": [],
+    "pressed": [
+      3
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "3 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-4-klik-1",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 194,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 4,
+    "fullyInField": 3,
+    "notFully": [
+      4
+    ],
+    "dotClipped": [
+      3,
+      4
+    ],
+    "focused": [],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 386,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "4 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-4-klik-2",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 194,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 4,
+    "fullyInField": 3,
+    "notFully": [
+      4
+    ],
+    "dotClipped": [
+      3,
+      4
+    ],
+    "focused": [],
+    "pressed": [
+      2
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 386,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "4 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-4-klik-3",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": false,
+    "scrollLeft": 0,
+    "scrollWidth": 194,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 4,
+    "fullyInField": 3,
+    "notFully": [
+      4
+    ],
+    "dotClipped": [
+      3,
+      4
+    ],
+    "focused": [],
+    "pressed": [
+      3
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 386,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "4 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-4-klik-4",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 42,
+    "scrollWidth": 194,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": false,
+    "count": 4,
+    "fullyInField": 3,
+    "notFully": [
+      1
+    ],
+    "dotClipped": [
+      1,
+      2
+    ],
+    "focused": [],
+    "pressed": [
+      4
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "4 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-6-klik-1",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "focused": [],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 486,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-6-klik-2",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "focused": [],
+    "pressed": [
+      2
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 486,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-6-klik-3",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": false,
+    "scrollLeft": 0,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "focused": [],
+    "pressed": [
+      3
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 486,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-6-klik-4",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": false,
+    "scrollLeft": 50,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": true,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      5,
+      6
+    ],
+    "dotClipped": [
+      1,
+      2,
+      4,
+      5,
+      6
+    ],
+    "focused": [],
+    "pressed": [
+      4
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 436,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-6-klik-5",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": false,
+    "scrollLeft": 100,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": true,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      6
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      5,
+      6
+    ],
+    "focused": [],
+    "pressed": [
+      5
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 386,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-6-klik-6",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 142,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": false,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      3
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "focused": [],
+    "pressed": [
+      6
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-8-klik-1",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "focused": [],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 586,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-8-klik-2",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "focused": [],
+    "pressed": [
+      2
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 586,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-8-klik-3",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": false,
+    "scrollLeft": 0,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "focused": [],
+    "pressed": [
+      3
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 586,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-8-klik-4",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": false,
+    "scrollLeft": 50,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      5,
+      6,
+      7,
+      8
+    ],
+    "dotClipped": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "focused": [],
+    "pressed": [
+      4
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 536,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-8-klik-5",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": false,
+    "scrollLeft": 100,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      6,
+      7,
+      8
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      5,
+      6,
+      7,
+      8
+    ],
+    "focused": [],
+    "pressed": [
+      5
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 486,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-8-klik-6",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": false,
+    "scrollLeft": 150,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      3,
+      7,
+      8
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      4,
+      6,
+      7,
+      8
+    ],
+    "focused": [],
+    "pressed": [
+      6
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 436,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-8-klik-7",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": false,
+    "scrollLeft": 200,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      3,
+      4,
+      8
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      7,
+      8
+    ],
+    "focused": [],
+    "pressed": [
+      7
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 386,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S3-8-klik-8",
+    "clickedFullyInField": true,
+    "clickedDotOpaque": true,
+    "scrollLeft": 242,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": false,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "focused": [],
+    "pressed": [
+      8
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-2-fokus-1-JS",
+    "focusedFullyInField": true,
+    "scrollLeft": 0,
+    "scrollWidth": 94,
+    "clientWidth": 94,
+    "maskImage": false,
+    "edgeLeftFade": false,
+    "edgeRightFade": false,
+    "count": 2,
+    "fullyInField": 2,
+    "notFully": [],
+    "dotClipped": [],
+    "focused": [
+      1
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "2 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-2-Tab-na-2",
+    "focusedIndex": 2,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 94,
+    "clientWidth": 94,
+    "maskImage": false,
+    "edgeLeftFade": false,
+    "edgeRightFade": false,
+    "count": 2,
+    "fullyInField": 2,
+    "notFully": [],
+    "dotClipped": [],
+    "focused": [
+      2
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "2 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-2-ShiftTab-na-1",
+    "focusedIndex": 1,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true
+  },
+  {
+    "label": "S4-3-fokus-1-JS",
+    "focusedFullyInField": true,
+    "scrollLeft": 0,
+    "scrollWidth": 144,
+    "clientWidth": 144,
+    "maskImage": false,
+    "edgeLeftFade": false,
+    "edgeRightFade": false,
+    "count": 3,
+    "fullyInField": 3,
+    "notFully": [],
+    "dotClipped": [],
+    "focused": [
+      1
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "3 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-3-Tab-na-2",
+    "focusedIndex": 2,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 144,
+    "clientWidth": 144,
+    "maskImage": false,
+    "edgeLeftFade": false,
+    "edgeRightFade": false,
+    "count": 3,
+    "fullyInField": 3,
+    "notFully": [],
+    "dotClipped": [],
+    "focused": [
+      2
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "3 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-3-Tab-na-3",
+    "focusedIndex": 3,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 144,
+    "clientWidth": 144,
+    "maskImage": false,
+    "edgeLeftFade": false,
+    "edgeRightFade": false,
+    "count": 3,
+    "fullyInField": 3,
+    "notFully": [],
+    "dotClipped": [],
+    "focused": [
+      3
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "3 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-3-ShiftTab-na-2",
+    "focusedIndex": 2,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true
+  },
+  {
+    "label": "S4-3-ShiftTab-na-1",
+    "focusedIndex": 1,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true
+  },
+  {
+    "label": "S4-4-fokus-1-JS",
+    "focusedFullyInField": true,
+    "scrollLeft": 0,
+    "scrollWidth": 194,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 4,
+    "fullyInField": 3,
+    "notFully": [
+      4
+    ],
+    "dotClipped": [
+      3,
+      4
+    ],
+    "focused": [
+      1
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 386,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "4 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-4-Tab-na-2",
+    "focusedIndex": 2,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 194,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 4,
+    "fullyInField": 3,
+    "notFully": [
+      4
+    ],
+    "dotClipped": [
+      3,
+      4
+    ],
+    "focused": [
+      2
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 386,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "4 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-4-Tab-na-3",
+    "focusedIndex": 3,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false,
+    "scrollLeft": 0,
+    "scrollWidth": 194,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 4,
+    "fullyInField": 3,
+    "notFully": [
+      4
+    ],
+    "dotClipped": [
+      3,
+      4
+    ],
+    "focused": [
+      3
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 386,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "4 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-4-Tab-na-4",
+    "focusedIndex": 4,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true,
+    "scrollLeft": 42,
+    "scrollWidth": 194,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": false,
+    "count": 4,
+    "fullyInField": 3,
+    "notFully": [
+      1
+    ],
+    "dotClipped": [
+      1,
+      2
+    ],
+    "focused": [
+      4
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "4 serie × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-4-ShiftTab-na-3",
+    "focusedIndex": 3,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true
+  },
+  {
+    "label": "S4-4-ShiftTab-na-2",
+    "focusedIndex": 2,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false
+  },
+  {
+    "label": "S4-4-ShiftTab-na-1",
+    "focusedIndex": 1,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true
+  },
+  {
+    "label": "S4-6-fokus-1-JS",
+    "focusedFullyInField": true,
+    "scrollLeft": 0,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "focused": [
+      1
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 486,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-6-Tab-na-2",
+    "focusedIndex": 2,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "focused": [
+      2
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 486,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-6-Tab-na-3",
+    "focusedIndex": 3,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false,
+    "scrollLeft": 0,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "focused": [
+      3
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 486,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-6-Tab-na-4",
+    "focusedIndex": 4,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false,
+    "scrollLeft": 50,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": true,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      5,
+      6
+    ],
+    "dotClipped": [
+      1,
+      2,
+      4,
+      5,
+      6
+    ],
+    "focused": [
+      4
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 436,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-6-Tab-na-5",
+    "focusedIndex": 5,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false,
+    "scrollLeft": 100,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": true,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      6
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      5,
+      6
+    ],
+    "focused": [
+      5
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 386,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-6-Tab-na-6",
+    "focusedIndex": 6,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true,
+    "scrollLeft": 142,
+    "scrollWidth": 294,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": false,
+    "count": 6,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      3
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "focused": [
+      6
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "6 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-6-ShiftTab-na-5",
+    "focusedIndex": 5,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true
+  },
+  {
+    "label": "S4-6-ShiftTab-na-4",
+    "focusedIndex": 4,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false
+  },
+  {
+    "label": "S4-6-ShiftTab-na-3",
+    "focusedIndex": 3,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false
+  },
+  {
+    "label": "S4-6-ShiftTab-na-2",
+    "focusedIndex": 2,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true
+  },
+  {
+    "label": "S4-6-ShiftTab-na-1",
+    "focusedIndex": 1,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true
+  },
+  {
+    "label": "S4-8-fokus-1-JS",
+    "focusedFullyInField": true,
+    "scrollLeft": 0,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "focused": [
+      1
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 586,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-8-Tab-na-2",
+    "focusedIndex": 2,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true,
+    "scrollLeft": 0,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "focused": [
+      2
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 586,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-8-Tab-na-3",
+    "focusedIndex": 3,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false,
+    "scrollLeft": 0,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": false,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "dotClipped": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "focused": [
+      3
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 586,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-8-Tab-na-4",
+    "focusedIndex": 4,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false,
+    "scrollLeft": 50,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      5,
+      6,
+      7,
+      8
+    ],
+    "dotClipped": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "focused": [
+      4
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 536,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-8-Tab-na-5",
+    "focusedIndex": 5,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false,
+    "scrollLeft": 100,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      6,
+      7,
+      8
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      5,
+      6,
+      7,
+      8
+    ],
+    "focused": [
+      5
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 486,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-8-Tab-na-6",
+    "focusedIndex": 6,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false,
+    "scrollLeft": 150,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      3,
+      7,
+      8
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      4,
+      6,
+      7,
+      8
+    ],
+    "focused": [
+      6
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 436,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-8-Tab-na-7",
+    "focusedIndex": 7,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false,
+    "scrollLeft": 200,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": true,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      3,
+      4,
+      8
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      7,
+      8
+    ],
+    "focused": [
+      7
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 386,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-8-Tab-na-8",
+    "focusedIndex": 8,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true,
+    "scrollLeft": 242,
+    "scrollWidth": 394,
+    "clientWidth": 152,
+    "maskImage": true,
+    "edgeLeftFade": true,
+    "edgeRightFade": false,
+    "count": 8,
+    "fullyInField": 3,
+    "notFully": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "dotClipped": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "focused": [
+      8
+    ],
+    "pressed": [
+      1
+    ],
+    "column": {
+      "viewport": "360x640",
+      "colScrollWidth": 360,
+      "colClientWidth": 360,
+      "colScrollLeft": 0,
+      "colOverflowX": false,
+      "colScrollsY": false,
+      "widestRight": 344,
+      "ctaBottom": 588,
+      "rirBottom": 519,
+      "schemaText": "8 serii × 6–8 · RIR 1"
+    }
+  },
+  {
+    "label": "S4-8-ShiftTab-na-7",
+    "focusedIndex": 7,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true
+  },
+  {
+    "label": "S4-8-ShiftTab-na-6",
+    "focusedIndex": 6,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false
+  },
+  {
+    "label": "S4-8-ShiftTab-na-5",
+    "focusedIndex": 5,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false
+  },
+  {
+    "label": "S4-8-ShiftTab-na-4",
+    "focusedIndex": 4,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true
+  },
+  {
+    "label": "S4-8-ShiftTab-na-3",
+    "focusedIndex": 3,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": false
+  },
+  {
+    "label": "S4-8-ShiftTab-na-2",
+    "focusedIndex": 2,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true
+  },
+  {
+    "label": "S4-8-ShiftTab-na-1",
+    "focusedIndex": 1,
+    "focusedFullyInField": true,
+    "focusedDotOpaque": true
+  },
+  {
+    "label": "S5-przerwa-2-hist-start",
+    "colScrollsY": true,
+    "colScrollTop": 0,
+    "colScrollHeight": 497,
+    "colClientHeight": 464,
+    "colMaskImage": "gradient",
+    "cardBottom": 596,
+    "colBottom": 571,
+    "cardFullyVisibleInColumn": false,
+    "ctaTop": 580,
+    "cardFullyAboveCta": false,
+    "cardHeight": 144
+  },
+  {
+    "label": "S5-przerwa-2-hist-koniec",
+    "colScrollsY": true,
+    "colScrollTop": 33,
+    "colScrollHeight": 497,
+    "colClientHeight": 464,
+    "colMaskImage": "gradient",
+    "cardBottom": 563,
+    "colBottom": 571,
+    "cardFullyVisibleInColumn": true,
+    "ctaTop": 580,
+    "cardFullyAboveCta": true,
+    "cardHeight": 144
+  },
+  {
+    "label": "S5b-przerwa-2-bez-historii",
+    "colScrollsY": true,
+    "colScrollTop": 0,
+    "colScrollHeight": 497,
+    "colClientHeight": 464,
+    "colMaskImage": "gradient",
+    "cardBottom": 596,
+    "colBottom": 571,
+    "cardFullyVisibleInColumn": false,
+    "ctaTop": 580,
+    "cardFullyAboveCta": false,
+    "cardHeight": 144
+  },
+  {
+    "label": "S5c-przerwa-390x844-hist",
+    "colScrollsY": false,
+    "colScrollTop": 0,
+    "colScrollHeight": 651,
+    "colClientHeight": 651,
+    "colMaskImage": "none",
+    "cardBottom": 686,
+    "colBottom": 769,
+    "cardFullyVisibleInColumn": true,
+    "ctaTop": 780,
+    "cardFullyAboveCta": true,
+    "cardHeight": 162
+  },
+  {
+    "label": "S6-360-seria6-klik6-kolumna",
+    "viewport": "360x640",
+    "colScrollWidth": 360,
+    "colClientWidth": 360,
+    "colScrollLeft": 0,
+    "colOverflowX": false,
+    "colScrollsY": false,
+    "widestRight": 344,
+    "ctaBottom": 588,
+    "rirBottom": 519,
+    "schemaText": "6 serii × 6–8 · RIR 1"
+  },
+  {
+    "label": "S6-390-seria6-kolumna",
+    "viewport": "390x844",
+    "colScrollWidth": 390,
+    "colClientWidth": 390,
+    "colScrollLeft": 0,
+    "colOverflowX": false,
+    "colScrollsY": false,
+    "widestRight": 374,
+    "ctaBottom": 788,
+    "rirBottom": 645,
+    "schemaText": "6 serii × 6–8 · RIR 1",
+    "pills": {
+      "scrollLeft": 0,
+      "scrollWidth": 294,
+      "clientWidth": 294,
+      "maskImage": false,
+      "edgeLeftFade": false,
+      "edgeRightFade": false,
+      "count": 6,
+      "fullyInField": 6,
+      "notFully": [],
+      "dotClipped": [],
+      "focused": [],
+      "pressed": [
+        1
+      ]
+    }
+  }
+]

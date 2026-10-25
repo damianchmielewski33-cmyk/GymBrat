@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { GhostPickerSheet } from "@/components/active-workout/ghost-picker-sheet";
 import { SessionChromeHeader } from "@/components/active-workout/session-chrome";
 import { SetSuggestionRow } from "@/components/active-workout/set-suggestion-row";
+import { scrollEdgeFadeMaskImage, useScrollEdgeFade } from "@/hooks/use-scroll-edge-fade";
 import {
   formatExerciseSchemeParts,
   formatRepTarget,
@@ -236,6 +237,12 @@ export function RestBreakScreen({
   onOpenMenu,
 }: RestBreakScreenProps) {
   const continueRef = useRef<HTMLButtonElement>(null);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
+  // Wskazówka krawędzi (ux, przegląd wizualny, runda 2, obserwacja niska): karta
+  // „Następnie” bywa niżej niż widoczna część kolumny; przewijanie działa (`overflow-y:auto`),
+  // ale bez sygnału. Ten sam wzorzec co pigułki serii, tylko w osi pionowej.
+  const contentEdge = useScrollEdgeFade(contentScrollRef, "y", [next, completed]);
+  const contentMaskImage = scrollEdgeFadeMaskImage("y", contentEdge);
 
   useEffect(() => {
     if (!open) return;
@@ -268,7 +275,11 @@ export function RestBreakScreen({
           onOpenMenu={onOpenMenu}
         />
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3 compact:gap-2 compact:py-2">
+        <div
+          ref={contentScrollRef}
+          className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3 compact:gap-2 compact:py-2"
+          style={contentMaskImage ? { maskImage: contentMaskImage, WebkitMaskImage: contentMaskImage } : undefined}
+        >
           {completed ? <SavedCard completed={completed} /> : null}
 
           <div className="flex flex-col items-center gap-2.5 compact:gap-1.5">

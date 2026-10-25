@@ -886,31 +886,36 @@
   100% { transform: translateY(110vh) rotate(420deg); opacity: 0; }
 }
 
+/**
+ * Poziome chipy / filtry — snap + touch scroll bez pasków.
+ * `@utility` (nie `@layer utilities`), żeby warianty Tailwind (np. `compact:chip-scroll`
+ * w zadaniu 004) faktycznie generowały CSS — zwykła klasa w `@layer` nie jest widoczna
+ * dla silnika wariantów (zadanie 004, przegląd wizualny `ux`, defekt 2).
+ */
+@utility chip-scroll {
+  display: flex;
+  gap: 0.375rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  & > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+}
+
 /* —— Mobile-first UX: thumb zones / touch / chip scroll —— */
 @layer utilities {
   /** Min. ~44px hit target (Apple HIG / Material). */
   .touch-target {
     min-height: 2.75rem;
     min-width: 2.75rem;
-  }
-
-  /** Poziome chipy / filtry — snap + touch scroll bez pasków. */
-  .chip-scroll {
-    display: flex;
-    gap: 0.375rem;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 0.25rem;
-    scrollbar-width: none;
-  }
-  .chip-scroll::-webkit-scrollbar {
-    display: none;
-  }
-  .chip-scroll > * {
-    scroll-snap-align: start;
-    flex-shrink: 0;
   }
 
   /** Extra padding pod sticky thumb CTA (nad bottom nav). */

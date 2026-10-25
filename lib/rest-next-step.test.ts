@@ -64,6 +64,7 @@ describe("buildRestNextStep", () => {
         deltaKg: 2.5,
         referenceKg: 50,
         reason: null,
+        rule: null,
         source: "progression",
       },
       lastSessionSet: { reps: 8, weight: 50, done: true },

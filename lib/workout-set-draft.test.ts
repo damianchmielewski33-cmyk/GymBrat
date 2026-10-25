@@ -7,6 +7,7 @@ import {
   clampReps,
   clampWeight,
   findPreviousCompletedSet,
+  isDraftUnchangedFromInitial,
   parseRepsInput,
   parseWeightInput,
   resolveInitialSetDraft,
@@ -164,6 +165,63 @@ describe("findPreviousCompletedSet", () => {
     expect(findPreviousCompletedSet(sets, 1)).toBe(prev);
     expect(findPreviousCompletedSet(sets, 0)).toBeNull();
     expect(findPreviousCompletedSet(sets, 99)).toBe(sets[1]);
+  });
+});
+
+describe("isDraftUnchangedFromInitial (F2, LR-3)", () => {
+  it("podpowiedź niedotknięta = niezmieniona -> flushDraft nie powinien pushować", () => {
+    const initial = resolveInitialSetDraft({
+      set: open,
+      suggestion: { weightKg: 70, reps: 8 },
+      lastSessionSet: last,
+      previousSessionSet: prev,
+    });
+    expect(initial).toEqual({ weightKg: 70, reps: 8, source: "suggestion" });
+    expect(isDraftUnchangedFromInitial({ weight: 70, reps: 8 }, initial)).toBe(true);
+  });
+
+  it("zmiana ciężaru -> traktowana jako zmieniona", () => {
+    const initial = resolveInitialSetDraft({
+      set: open,
+      suggestion: { weightKg: 70, reps: 8 },
+      lastSessionSet: last,
+      previousSessionSet: prev,
+    });
+    expect(isDraftUnchangedFromInitial({ weight: 72.5, reps: 8 }, initial)).toBe(false);
+  });
+
+  it("zmiana powtórzeń -> traktowana jako zmieniona", () => {
+    const initial = resolveInitialSetDraft({
+      set: open,
+      suggestion: { weightKg: 70, reps: 8 },
+      lastSessionSet: last,
+      previousSessionSet: prev,
+    });
+    expect(isDraftUnchangedFromInitial({ weight: 70, reps: 10 }, initial)).toBe(false);
+  });
+
+  it("zmiana i powrót do dokładnie tej samej wartości -> znów niezmieniona", () => {
+    const initial = resolveInitialSetDraft({
+      set: open,
+      suggestion: { weightKg: 70, reps: 8 },
+      lastSessionSet: last,
+      previousSessionSet: prev,
+    });
+    // Użytkownik zmienił na 72.5, potem wrócił na 70 — bieżąca wartość liczy się,
+    // nie historia edycji.
+    expect(isDraftUnchangedFromInitial({ weight: 70, reps: 8 }, initial)).toBe(true);
+  });
+
+  it("puste pole początkowe (source=empty) traktuje puste jako niezmienione", () => {
+    const initial = resolveInitialSetDraft({
+      set: open,
+      suggestion: null,
+      lastSessionSet: null,
+      previousSessionSet: null,
+    });
+    expect(initial).toEqual({ weightKg: null, reps: null, source: "empty" });
+    expect(isDraftUnchangedFromInitial({ weight: 0, reps: null }, initial)).toBe(true);
+    expect(isDraftUnchangedFromInitial({ weight: 10, reps: null }, initial)).toBe(false);
   });
 });
 

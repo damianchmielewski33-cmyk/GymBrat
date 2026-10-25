@@ -407,11 +407,18 @@ export function mergeHintsIntoExercises(
   return exercises.map((ex) => {
     const h = hints[ex.id];
     if (!h?.sets?.length) return ex;
+    // Tylko rzeczywiście zaliczone serie (done, nie pominięte) mogą zasilać
+    // podpowiedzi i sugestie — niezapisany projekt wartości (np. z chipa
+    // podpowiedzi) nie ma `done: true` i nie trafia tutaj.
+    const completedHistSets = h.sets.filter((s) => isCompletedWorkoutSet(s));
     const lastSessionSets = ex.sets.map((_, i) => {
-      const hs = h.sets[i] ?? h.sets[h.sets.length - 1] ?? null;
+      const hs =
+        completedHistSets[i] ??
+        completedHistSets[completedHistSets.length - 1] ??
+        null;
       return hs;
     });
-    const workingHist = h.sets.filter(
+    const workingHist = completedHistSets.filter(
       (s) => s.weight > 0 && s.reps != null && s.reps > 0,
     );
     const repsOnlyBumpOk = qualifiesRepsOnlyBump(
