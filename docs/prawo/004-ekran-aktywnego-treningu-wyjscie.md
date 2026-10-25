@@ -238,4 +238,15 @@ LR-3 i LR-8 są spełnione w pełni. Luka z pierwszej bramki (`flushDraft` i oś
 | L-1 i W-3 (`flushDraft` przy nawigacji) | zamknięte przez F2 w tym zakresie; wpis do aktualizacji karty | koordynator |
 | Dialog „Zakończyć bez zapisu?” (`workout-discard-session-dialog.tsx`) poprawnie opisuje porzucenie, nie dotyczy Ghost. Zdanie w `docs/ux/004` §8 („tekst »bez zapisu« znika z całej aplikacji”) jest za szerokie | niski | ux |
 
+## 11. Aktualizacja LR-8 (d) po zadaniu 005 (2026-10-25)
+
+Dopisek asystenta AI (projekt roboczy). Zmienia wyłącznie opis zakresu osi czasu Ghost; nie zmienia werdyktu 004 ani warunków z sekcji 9.
+
+- **Co się zmieniło.** Reguła „0 kg z powtórzeniami = seria zaliczona” (decyzja właściciela produktu, zadanie 005, p. 7-8) zmienia `isSkippedWorkoutSet`, a przez to `isCompletedWorkoutSet`, z którego korzysta `lib/ghost-training/timeline.ts`. Serie na masę ciała (np. pompki) wchodzą teraz do osi czasu, liczby serii i objętości wyścigu. Wcześniej (zakres z pkt 3.2 i 6 tego dokumentu) były wykluczone.
+- **Aktualny zakres osi czasu Ghost (zastępuje opis z 3.2 w części „zakres”):** serie `done: true`, niepominięte, z powtórzeniami > 0 (z ciężarem > 0 albo na masę ciała, 0 kg). Serie `done: false` i pominięte nadal są wykluczone (F1 z 004 obowiązuje bez zmian).
+- **Kto widzi.** Odbiorcy się nie zmienili: znajomi z `mutualShare` lub `theyShareWorkout` (`lib/ghost-training/targets.ts`) oraz lider zespołu (bez flagi udostępniania, pozycja U-1). Kategoria danych się nie zmieniła (serie treningowe, które rywal już widzi dla serii z ciężarem).
+- **Wstecz.** Zmiana dotyczy też treningów zapisanych wcześniej (interpretacja przy odczycie, bez migracji). Użytkownik, który udostępnia trening, zobaczy w osi czasu serie masy ciała także z przeszłości.
+- **Ocena prawna.** Nie jest to nowa kategoria danych, nowy cel ani nowy odbiorca, więc nie wymaga nowej zgody. Mieści się w zgodzie na udostępnianie treningów, którą użytkownik daje w ustawieniach. Warunki (wszystkie przed Promote, szczegóły w raporcie `docs/prawo/005-koniec-treningu-przeplyw-wyjscie.md`): (1) wpis w changelogu, że serie na masę ciała, także z dawnych treningów, są widoczne dla rywali Ghost, którym udostępniasz trening; (2) korekta ADR 0004 p. 6 i tabeli LR-5 (dziś błędnie: „bez zmiany filtra Ghost”); (3) decyzja właściciela w sprawie U-1 dla lidera bez flagi, bo tam rozszerzenie dotyczy także osób, które nie udostępniają treningów.
+- **Test LR-8 (c)** z sekcji 9 pkt 3 nadal otwarty; ta aktualizacja go nie zamyka.
+
 Zastrzeżenie: projekt roboczy asystenta AI, nie porada prawna. Przed publikacją treści dla użytkowników zatwierdza prawnik-człowiek. Ten dokument nie zastępuje decyzji prawnika-człowieka ani właściciela produktu.
