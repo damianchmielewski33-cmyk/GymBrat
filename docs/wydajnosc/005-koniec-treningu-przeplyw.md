@@ -389,3 +389,76 @@ Przed poprawką (sekcja 9.1): B 75, C 75, D 75 + narastające nasłuchiwacze. Po
 ### 10.6 Werdykt
 
 **ODRZUCONE** (etap 5, frontend; wąska poprawka). Powód: P1 nie jest w pełni zamknięty (A2/A3: nieskończona pętla 401 co 8 s dla zalogowanego z wygasłą sesją, brak `pausedAuthRef`). Zamknięte: P2 (B/C/D), R-3, R-4 (G/G2), P1 dla gościa. Poprawka: w `active-workout-cloud-sync.tsx` flaga `pausedAuthRef` ustawiana w `scheduleRetry` przy 401/403 i respektowana przez tick i `push()` do zmiany `authenticated` (ok. 5 linii). Po niej oczekiwane: A2/A3 ok. 1 żądanie. Po ponownym przebiegu symulacji (`npx tsx docs/wydajnosc/005-koniec-treningu-sim-push.ts`) i zamknięciu P1 werdykt byłby ZATWIERDZONE Z UWAGAMI, z P3 jako warunkiem decyzji architekta przed Promote i ryzykami z 10.4 w backlogu.
+
+### 10.7 Implementacja poprawki (frontend, karta wiersz 5i, 2026-10-25)
+
+- `pausedAuthRef` dodany na poziomie komponentu `ActiveWorkoutCloudSync` (`components/active-workout/active-workout-cloud-sync.tsx`). Ustawiany na `true` w `scheduleRetry` przy `isAuthErrorStatus(resultStatus)`. Respektowany przez: tick `setInterval` (razem z `retryTimeoutRef`/`waitingOnlineRef`), wejście do `push()`, wejście do `hydrate()` (GET przy montażu/zmianie `authenticated`).
+- Reset: na początku ciała drugiego `useEffect` (ten z `push`/tick), gdy `authenticated === true` — czyli przy każdym (re)montażu efektu po przejściu `false`→`true`. Bez dodatkowego mechanizmu wykrywania „sesja faktycznie wróciła” (uznane za nadmiarowe dla rzadkiego przypadku, zgodnie z poleceniem).
+- Test: pozostaje tylko jako replika w symulacji (`docs/wydajnosc/005-koniec-treningu-sim-push.ts`, pole `refs.pausedAuth`) — nie wydzielono do `lib/active-workout-sync-backoff.ts`, bo to stan mutowalny współdzielony między trzema miejscami komponentu, nie czysta funkcja (ten sam status jak `waitingOnlineRef`/`retryTimeoutRef`, które też nie mają dedykowanych testów jednostkowych).
+- Wynik symulacji po poprawce: A2 i A3 — **1 żądanie w 10 min** (było 75), zgodnie z oczekiwaniem sekcji 9.1/10.6. Pozostałe scenariusze (A, B, C, D, E, F, G, G2) bez zmian względem 10.2.
+- `npx tsc --noEmit` czysty, `npm run lint` 142/104/38 (= baseline), `npm test` 1151 testów — 1149 OK, 2 awarie pre-istniejące (`lib/android-version.test.ts`, dryf wersji APK, niepowiązane).
+- Pozostaje otwarte przed Promote: P3 (PUT co 8 s z pełnym payloadem) — decyzja architekta, poza zakresem tej poprawki.
+
+## 11. Niezależna weryfikacja `pausedAuthRef` (P1/R-1), tester-wydajnosci, 2026-10-25
+
+Zakres: sekcja 10.7 i karta wiersz 5i. Weryfikacja w kodzie i ponowny przebieg `docs/wydajnosc/005-koniec-treningu-sim-push.ts` (`npx tsx`, stan roboczy gałęzi `feat/koniec-treningu-flow`; `active-workout-cloud-sync.tsx` bez zmian względem HEAD, `git diff` pusty dla tego pliku).
+
+### 11.1 Kod (`components/active-workout/active-workout-cloud-sync.tsx`)
+
+| Punkt | Linia | Stan |
+|---|---|---|
+| Deklaracja `pausedAuthRef` | 106 | obecna |
+| Ustawienie `true` w `scheduleRetry` przy 401/403 (bez ponowienia) | 216-224 | obecne, zgodne z `isAuthErrorStatus` (401, 403) |
+| Guard w `hydrate()` | 132 | obecny |
+| Guard w `push()` | 257 | obecny |
+| Guard w ticku `setInterval` | 379 | obecny |
+| Reset `false` przy `authenticated === true` | 199 | obecny, ale w drugim efekcie (patrz 11.3) |
+
+### 11.2 Wyniki symulacji (10 min symulowanego czasu)
+
+| Scenariusz | Wynik 2026-10-25 | Wynik po 10.2 | Ocena |
+|---|---|---|---|
+| A. Gość | 0 | 0 | bez zmian, ZAMKNIĘTE |
+| A2. Zalogowany, DELETE -> 401 | 1 (DELETE 1) | 1 | ZAMKNIĘTE (R-1) |
+| A3. Aktywna, PUT -> 401 | 1 (PUT 1) | 1 | ZAMKNIĘTE (R-1) |
+| B. PUT -> 429, `Retry-After: 60` | 10 | 10 | bez zmian, ZAMKNIĘTE (R-2) |
+| C. PUT -> 500 | 12 | 12 | bez zmian, ZAMKNIĘTE (R-2) |
+| D. Offline 10 min, potem `online` | 1 próba offline, 1 nasłuchiwacz; po `online` 3 PUT (1 + 2 ticki) | jak 10.2 | bez zmian, ZAMKNIĘTE (R-3) |
+| E. Kontrola PUT -> 200 | 75 | 75 | bez zmian, P3 otwarte |
+| F. Zalogowany bez sesji | 1 DELETE | 1 | bez zmian, ZAMKNIĘTE |
+| G. DELETE rzuca, potem sieć wraca | 2 DELETE (1 wyjątek, ponowienie, sukces), 0 nieobsłużonych | 2 | bez zmian, ZAMKNIĘTE (R-4) |
+| G2. DELETE rzuca przy `online=false`, potem `online` | 2 (1 offline, 1 po `online`) | 2 | bez zmian, ZAMKNIĘTE (R-4) |
+
+Brak regresji w A-G2. Symulacja nie zmienia wyniku dla A2/A3 w zależności od kolejności efektów (patrz 11.3): replika `start()` zeruje flagę przed "hydracją", a replika nie ma `hydrate()`.
+
+### 11.3 Ustalenie (kod, niska dotkliwość): reset flagi jest po `hydrate()`, więc pauza może pominąć hydrację po ponownym zalogowaniu
+
+- React uruchamia efekty komponentu w kolejności deklaracji. Pierwszy efekt (`hydrate`, linie 112-186) czyta `pausedAuthRef` w linii 132. Drugi efekt (linia 188+) zeruje flagę w linii 199. Przy przejściu `false`→`true` pierwszy efekt widzi jeszcze flagę ustawioną w poprzedniej sesji i kończy się wcześnie.
+- Warunek: 401/403 ustawił pauzę, a potem użytkownik wylogował się i zalogował ponownie w tej samej karcie bez przeładowania strony (przeładowanie tworzy nowy komponent i zeruje refy).
+- Skutek: brak GET i brak `decideCloudHydrateAction`, czyli nie zostaje podjęte wznowienie sesji z innego urządzenia. Blok `finally` mimo to ustawia `hydratedRef = true` i `markActiveWorkoutCloudHydrated()`, więc sync startuje bez stanu z chmury. Utraty danych nie ma: push niesie rewizję, a niezgodność daje 409, które obsługuje `shouldApplyConflictPayload`.
+- Twierdzenie z 10.7 i wiersza 5i, że `hydrate()` respektuje reset przy zmianie `authenticated`, jest błędne dla tej kolejności efektów.
+- Dotkliwość: NISKA (wąska ścieżka, bez wpływu na SLO i bez utraty danych).
+- Rekomendacja (frontend, jedna linia): zerować `pausedAuthRef.current = false` w gałęzi `if (!authenticated)` obu efektów (wtedy flaga jest czyszczona przy wyjściu z sesji, zanim nastąpi kolejne zalogowanie), albo na początku pierwszego efektu po `if (!authenticated) return;`.
+- Weryfikacja po poprawce: ręczny lub E2E scenariusz logout→login bez przeładowania po 401 (symulacja tego nie pokrywa).
+
+### 11.4 Ustalenie (kod, niska dotkliwość): 403 z CSRF/origin jest traktowany jak 401
+
+- `lib/csrf.ts` zwraca 403 przy braku lub niezgodności tokenu CSRF oraz przy niedozwolonym `Origin`. `isAuthErrorStatus` obejmuje 403, więc przejściowy błąd CSRF (np. cookie z innej karty) wstrzymuje sync do zmiany `authenticated`, bez ponowienia. Przed zmianą 5i ten przypadek był ponawiany backoffem.
+- Ryzyko niskie: `putCloud`/`deleteCloud` wywołują `ensureCsrfCookie()` przed żądaniem, więc ścieżka jest rzadka.
+- Rekomendacja (frontend, backlog): pauzować tylko przy 401, a 403 traktować jak błąd ponawialny (albo rozdzielić 403 CSRF od 403 sesji w odpowiedzi).
+
+### 11.5 Ryzyka resztkowe (backlog, właściciel: frontend)
+
+- Z 10.4 bez zmian: `schedulePush` i `pendingChangeRef` wywołują `push()` z pominięciem bramki backoff (przy 429 każda zmiana to jedno żądanie); listener `online` nie jest zdejmowany w cleanup.
+- Efekt drugi ma `t` w zależnościach. Jeśli `t` zmienia referencję w trakcie sesji, efekt restartuje się i zeruje pauzę, czyli wraca jedno żądanie 401. Ocena z kodu, nie zmierzona.
+
+### 11.6 Czego nie zmierzono
+
+- Przeglądarka (Chromium/Playwright): brak, sonda na żywo niewykonana.
+- Realne odpowiedzi 401 z NextAuth i przejście logout→login w jednej karcie (11.3).
+- Realne `Retry-After` z limitera.
+
+### 11.7 Werdykt
+
+- P1 (R-1, wydajność): **ZAMKNIĘTE**. Gość 0 żądań, zalogowany z wygasłą sesją 1 żądanie w 10 min (było 75), bez regresji w A-G2.
+- Bramka wydajności zadania 005 (wiersz 9g): **ZATWIERDZONE Z UWAGAMI**. Uwagi niskiego ryzyka do backlogu z właścicielem frontend: 11.3 (zalecana jednoliniowa poprawka przed Promote), 11.4, 11.5. P3 (PUT co 8 s z pełnym payloadem) pozostaje decyzją architekta przed Promote i nie wchodzi w tę bramkę.
