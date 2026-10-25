@@ -187,6 +187,10 @@ export function compareWorkoutExercises(
     if (!prev || !exerciseDone(prev)) continue;
     const curVol = exerciseVolume(ex);
     const prevVol = exerciseVolume(prev);
+    // N-22-1 (005): ćwiczenie na masę ciała (zaliczone, tonaż 0) nie ma sensownej
+    // delty vs poprzednia sesja z obciążeniem — nie licz go ani do „w górę”, ani
+    // do „w dół” (fałszywe -100%), i nie traktuj jak pominięte (seria jest zaliczona).
+    if (curVol === 0) continue;
     if (curVol > prevVol + 0.5) up += 1;
     else if (curVol < prevVol - 0.5) down += 1;
   }

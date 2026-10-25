@@ -6,8 +6,23 @@
  * Nie loguje ciała żądania, nagłówków ani query stringa (mogą zawierać dane osobowe).
  */
 
-import { AppError } from "@/lib/errors/app-error";
+import {
+  AppError,
+  isDrizzleQueryError,
+  sanitizeDrizzleQueryError,
+} from "@/lib/errors/app-error";
 import { formatErrorLine } from "@/lib/errors/catalog";
+
+/**
+ * Błąd `DrizzleQueryError` niesie w `.message` i `.stack` pełne SQL + wartości parametrów
+ * (dane treningowe/zdrowotne — patrz F-1, `docs/bezpieczenstwo/005-koniec-treningu-przeplyw.md`).
+ * Zamienia go na zastępczy błąd z bezpiecznym komunikatem i stackiem WŁASNYM (bez `Failed
+ * query:`/`params:`) — do użycia zamiast oryginału w logach konsoli i w Sentry. Inne błędy
+ * wracają niezmienione.
+ */
+function sanitizeForLogging(err: unknown): unknown {
+  return isDrizzleQueryError(err) ? sanitizeDrizzleQueryError(err) : err;
+}
 
 export type ServerLogContext = {
   requestId: string;
@@ -58,7 +73,10 @@ async function captureToSentry(
   if (!sentryEnabled()) return;
   try {
     const Sentry = await import("@sentry/nextjs");
-    Sentry.captureException(original instanceof Error ? original : err, {
+    // `original` może być `DrizzleQueryError` (SQL + wartości w .message/.stack) — nigdy
+    // wysyłać go 1:1 do Sentry (F-1). `sanitizeForLogging` zamienia go na bezpieczny zastępnik.
+    const safeOriginal = sanitizeForLogging(original);
+    Sentry.captureException(safeOriginal instanceof Error ? safeOriginal : err, {
       tags: {
         errorCode: err.code,
         httpStatus: String(err.status),
@@ -99,7 +117,9 @@ export function logServerError(
   }
 
   console.error(line);
-  const source = original ?? err.cause;
+  // `original`/`err.cause` mogą być `DrizzleQueryError` (SQL + wartości w .message/.stack,
+  // F-1) — sanitizujemy PRZED logowaniem stack/cause, nigdy po oryginale.
+  const source = sanitizeForLogging(original ?? err.cause);
   if (source instanceof Error && source.stack) {
     console.error(`[GymBrat][serwer][stack] (ref ${ctx.requestId}) ${source.stack}`);
   } else if (source !== undefined && source !== null) {

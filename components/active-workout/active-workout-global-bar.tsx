@@ -127,12 +127,12 @@ export function ActiveWorkoutGlobalBar() {
                       {formatDuration(elapsedSeconds)}
                     </span>
                     {progress.total > 0 ? (
-                      <span className="shrink-0 text-xs text-white/45">
+                      <span className="shrink-0 text-xs text-[var(--gym-text-secondary)]">
                         • {progress.done}/{progress.total}
                       </span>
                     ) : null}
                   </div>
-                  <p className="truncate text-[11px] text-white/45">
+                  <p className="truncate text-[11px] text-[var(--gym-text-secondary)]">
                     Kontynuuj trening — wróć do sesji
                   </p>
                 </div>
@@ -151,8 +151,8 @@ export function ActiveWorkoutGlobalBar() {
                   }}
                 >
                   <Check className="h-4 w-4" />
-                  <span className="hidden sm:inline" aria-hidden="true">
-                    {flow.state.phase === "saving" ? "Zapisuję…" : "Zakończ trening"}
+                  <span aria-hidden="true">
+                    {flow.state.phase === "saving" ? "Zapisuję…" : "Zakończ"}
                   </span>
                 </Button>
 
@@ -172,20 +172,26 @@ export function ActiveWorkoutGlobalBar() {
                   type="button"
                   variant="outline"
                   className="gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
+                  aria-label={isRunning ? "Pauza" : "Wznów"}
                   onClick={() => (isRunning ? stopTimer() : start())}
                 >
                   {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                  <span className="hidden sm:inline">{isRunning ? "Pauza" : "Wznów"}</span>
+                  <span className="hidden sm:inline" aria-hidden="true">
+                    {isRunning ? "Pauza" : "Wznów"}
+                  </span>
                 </Button>
 
                 <Button
                   type="button"
-                  variant="outline"
-                  className="gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.07]"
+                  variant="destructive"
+                  className="gap-2"
+                  aria-label="Odrzuć"
                   onClick={() => setConfirmDiscardOpen(true)}
                 >
                   <Trash2 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Odrzuć</span>
+                  <span className="hidden sm:inline" aria-hidden="true">
+                    Odrzuć
+                  </span>
                 </Button>
               </div>
             </div>

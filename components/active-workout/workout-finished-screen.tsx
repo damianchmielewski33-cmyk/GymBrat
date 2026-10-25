@@ -35,11 +35,11 @@ import {
 } from "@/lib/workout-finish-sets-line";
 import { formatHistoryShortDate } from "@/lib/workout-history-overview";
 import {
-  formatProgressDelta,
   progressDeltaTone,
   readProgressDeltaUnitLocal,
   type ProgressDeltaUnit,
 } from "@/lib/progress-delta-unit";
+import { formatProgressDeltaPl } from "@/lib/workout-finish-delta-format";
 import type { WorkoutPlanComparePayload } from "@/lib/workout-plan-compare";
 import {
   patchWorkoutCardio,
@@ -77,7 +77,9 @@ function DeltaChip({
   ariaLabelPrefix: string;
 }) {
   const tone = progressDeltaTone(unit, percent, absolute);
-  const label = formatProgressDelta({ unit, percent, absolute });
+  // W-4 (005, przegląd ux 21.3): formatter lokalny dla tego ekranu (przecinek
+  // dziesiętny, prawdziwy minus U+2212) — NIE współdzielony `formatProgressDelta`.
+  const label = formatProgressDeltaPl({ unit, percent, absolute });
   if (tone === "none" || label == null) {
     return <span className="text-sm text-[var(--gym-text-secondary)]">—</span>;
   }
@@ -90,7 +92,7 @@ function DeltaChip({
         tone === "down" && "border-[var(--gym-trend-down)]/65 bg-[var(--gym-trend-down)]/10 text-[var(--gym-trend-down)]",
         tone === "flat" && "border-[var(--gym-border-gold)] text-[var(--gym-text-secondary)]",
       )}
-      aria-label={`${ariaLabelPrefix}: ${toneWord}${tone !== "flat" ? ` o ${label.replace(/^[+-]/, "")}` : ""}`}
+      aria-label={`${ariaLabelPrefix}: ${toneWord}${tone !== "flat" ? ` o ${label.replace(/^[+−-]/, "")}` : ""}`}
     >
       {tone === "up" ? (
         <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
@@ -116,6 +118,12 @@ function volumeCaption(
   // zaliczone (005 p.7) — rozróżniamy od realnego braku zaliczonych serii (D-06).
   if (data.setsDone === 0) {
     return "Brak zaliczonych serii.";
+  }
+  // BL-2 (005, przegląd ux 21.2/21.6): trening złożony z samych serii na masę ciała
+  // ma tonaż 0 mimo zaliczonych serii — porównanie z poprzednim tonażem (> 0) dałoby
+  // mylące −100%, więc tu zawsze „brak porównania”, niezależnie od `compare`.
+  if (data.volumeKg === 0) {
+    return "Ten trening nie ma tonażu (serie na masę ciała) — brak porównania.";
   }
   if (!compare) {
     return "Brak zapisanej sesji tego planu.";
@@ -216,6 +224,9 @@ export function WorkoutFinishedScreen({
     !!compare &&
     compare.previousVolumeKg != null &&
     compare.previousVolumeKg > 0;
+  /** BL-2 (005, przegląd ux 21.2): trening bez tonażu (serie na masę ciała) nigdy
+   * nie ma sensownej delty objętości, choćby `compare` istniał. */
+  const noTonnageComparison = data.volumeKg === 0 && data.setsDone > 0;
 
   const recordsSectionIndex = 1;
   const bestSetsSectionIndex = data.weightRecords.length > 0 ? 2 : 1;
@@ -432,10 +443,10 @@ export function WorkoutFinishedScreen({
                     key={row.exerciseId}
                     className="grid grid-cols-[minmax(0,1fr)_minmax(5.75rem,auto)] items-center gap-x-3 px-4 py-3.5"
                   >
-                    <p className="min-w-0 text-[14px] font-medium leading-snug text-white/90 line-clamp-2">
+                    <p className="min-w-0 text-[15px] font-semibold leading-snug text-white/90 line-clamp-2">
                       {displayExerciseName(row.exerciseName)}
                     </p>
-                    <p className="justify-self-end text-right text-[14px] font-semibold leading-none text-[var(--gym-gold)]">
+                    <p className="justify-self-end text-right text-[15px] font-semibold leading-none tabular-nums text-[var(--gym-gold)]">
                       {formatWeightRecordLine(row.previousKg, row.newKg)}
                     </p>
                   </li>
@@ -572,12 +583,16 @@ export function WorkoutFinishedScreen({
                         Zmiana objętości
                       </p>
                       <div className="mt-2 flex justify-center">
-                        <DeltaChip
-                          percent={compare!.volumeDeltaPercent}
-                          absolute={volumeAbs}
-                          unit={progressDeltaUnit}
-                          ariaLabelPrefix="Zmiana objętości"
-                        />
+                        {noTonnageComparison ? (
+                          <span className="text-sm text-[var(--gym-text-secondary)]">—</span>
+                        ) : (
+                          <DeltaChip
+                            percent={compare!.volumeDeltaPercent}
+                            absolute={volumeAbs}
+                            unit={progressDeltaUnit}
+                            ariaLabelPrefix="Zmiana objętości"
+                          />
+                        )}
                       </div>
                       {compare!.compare ? (
                         <p className="mt-1.5 text-[11px] leading-snug text-[var(--gym-text-secondary)]">
@@ -592,7 +607,7 @@ export function WorkoutFinishedScreen({
                     {compare!.exercises.map((ex) => {
                       const absDelta =
                         ex.previousVolumeKg != null ? ex.currentVolumeKg - ex.previousVolumeKg : null;
-                      const label = formatProgressDelta({
+                      const label = formatProgressDeltaPl({
                         unit: progressDeltaUnit,
                         percent: ex.deltaPercent,
                         absolute: absDelta,
@@ -610,7 +625,12 @@ export function WorkoutFinishedScreen({
                               </p>
                             </div>
                             <div className="flex shrink-0 items-center gap-1 pt-0.5 text-xs font-semibold tabular-nums">
-                              {ex.status === "up" ? (
+                              {ex.currentVolumeKg === 0 && ex.status !== "skipped" ? (
+                                // N-22-1 (005): ćwiczenie na masę ciała (zaliczone, tonaż 0) —
+                                // delta vs poprzednio z obciążeniem jest zawsze „−100%” i myląca,
+                                // ten sam wzorzec jak w karcie „Zmiana objętości” wyżej.
+                                <span className="text-[var(--gym-text-secondary)]">—</span>
+                              ) : ex.status === "up" ? (
                                 <span className={toneClass("up")}>
                                   <ArrowUpRight className="mr-1 inline h-3.5 w-3.5" aria-hidden />
                                   {label}
@@ -621,11 +641,11 @@ export function WorkoutFinishedScreen({
                                   {label}
                                 </span>
                               ) : ex.status === "skipped" ? (
-                                <span className="rounded-full border border-[var(--gym-border-gold)] px-2 py-0.5 text-[10px] uppercase tracking-wide text-[var(--gym-text-secondary)]">
+                                <span className="rounded-full border border-[var(--gym-border-gold)] px-2 py-0.5 text-[11px] uppercase tracking-wide text-[var(--gym-text-secondary)]">
                                   bez porównania
                                 </span>
                               ) : ex.status === "new" ? (
-                                <span className="rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-[var(--gym-gold)]">
+                                <span className="rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-2 py-0.5 text-[11px] uppercase tracking-wide text-[var(--gym-gold)]">
                                   nowe
                                 </span>
                               ) : (
@@ -751,7 +771,7 @@ export function WorkoutFinishedScreen({
                   <Button
                     type="button"
                     variant={draftMinutes === 0 && cardioMinutes > 0 ? "outline" : "cta"}
-                    disabled={cardioStatus === "saving"}
+                    disabled={cardioStatus === "saving" || cardioStatus === "not-found"}
                     aria-busy={cardioStatus === "saving"}
                     onClick={() => void saveCardio()}
                     className={cn(

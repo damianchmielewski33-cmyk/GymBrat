@@ -158,14 +158,34 @@ function parseCompletedWorkout(json: string): {
   startedAt?: number;
   exercises?: unknown;
   title?: string;
+  cardioMinutes?: number;
 } | null {
   try {
     const o = JSON.parse(json) as unknown;
     if (!o || typeof o !== "object") return null;
-    return o as { kind?: string; startedAt?: number; exercises?: unknown; title?: string };
+    return o as {
+      kind?: string;
+      startedAt?: number;
+      exercises?: unknown;
+      title?: string;
+      cardioMinutes?: number;
+    };
   } catch {
     return null;
   }
+}
+
+/**
+ * Skrót treści sesji (005, F-3 / N-7h-2): porównuje `exercises` + `cardioMinutes`
+ * żądania z tym, co jest już zapisane pod tym `operationId`. Ten sam `operationId`
+ * i `startedAt` (w tolerancji) nie znaczy automatycznie "to ten sam zapis" — klient mógł
+ * dopisać serie po zgubionej pierwszej odpowiedzi i wysłać retry z inną treścią.
+ * To wykrywanie przypadkowej rozbieżności (nie obrona przed atakiem), więc wystarczy
+ * deterministyczny `JSON.stringify` znormalizowanych pól bez kryptografii.
+ */
+function sessionContentKey(exercises: unknown, cardioMinutes: number): string {
+  const normalizedCardio = Math.max(0, Math.round(Number(cardioMinutes) || 0));
+  return JSON.stringify({ exercises: exercises ?? null, cardioMinutes: normalizedCardio });
 }
 
 /** Rozpoznaje naruszenie unikalnego ograniczenia (SQLite/libSQL) przy wyścigu dwóch żądań z tym samym `operationId`. */
@@ -310,6 +330,7 @@ async function respondWithExistingWorkout(
     workoutPlanId: string | null;
   },
   requestedStartedAtMs: number,
+  requestedContent: { exercises: unknown; cardioMinutes: number },
 ) {
   const existingParsed = parseCompletedWorkout(existingRow.exercises);
   const title = (typeof existingParsed?.title === "string" ? existingParsed.title : "") || "Sesja";
@@ -322,6 +343,24 @@ async function respondWithExistingWorkout(
   // tolerancję zegara/zaokrąglenia -> to nie jest retry TEGO SAMEGO zapisu, to kolizja
   // identyfikatora między dwiema różnymi sesjami. Nie udawaj sukcesu — zwróć konflikt.
   if (Math.abs(startedAtMs - requestedStartedAtMs) > 2000) {
+    return NextResponse.json(
+      { ok: false, error: UserMessages.workoutOperationConflict, conflict: true },
+      { status: 409 },
+    );
+  }
+
+  // 005, F-3 / N-7h-2: operationId i startedAt zgodne, ale treść (serie/cardio) się różni —
+  // np. retry po zgubionej odpowiedzi, do którego klient dopisał kolejne serie. Nie wolno po
+  // cichu zwrócić starego wyniku jako sukces, bo nowe dane zostałyby bezpowrotnie zignorowane.
+  const existingContentKey = sessionContentKey(
+    existingParsed?.exercises ?? null,
+    existingParsed?.cardioMinutes ?? 0,
+  );
+  const requestedContentKey = sessionContentKey(
+    requestedContent.exercises,
+    requestedContent.cardioMinutes,
+  );
+  if (existingContentKey !== requestedContentKey) {
     return NextResponse.json(
       { ok: false, error: UserMessages.workoutOperationConflict, conflict: true },
       { status: 409 },
@@ -456,8 +495,18 @@ async function handlePOST(req: Request) {
     .where(and(eq(workouts.userId, session.user.id), eq(workouts.operationId, operationId)))
     .limit(1);
   const currentStartedAtMs = startedAt.getTime();
+  const requestedContent = {
+    exercises: parsed.data.exercises ?? null,
+    cardioMinutes,
+  };
   if (existingByOperation) {
-    return respondWithExistingWorkout(db, session.user.id, existingByOperation, currentStartedAtMs);
+    return respondWithExistingWorkout(
+      db,
+      session.user.id,
+      existingByOperation,
+      currentStartedAtMs,
+      requestedContent,
+    );
   }
 
   // Strength proxy + pełne porównanie vs poprzedni trening z tego samego planu.
@@ -509,7 +558,13 @@ async function handlePOST(req: Request) {
         .where(and(eq(workouts.userId, session.user.id), eq(workouts.operationId, operationId)))
         .limit(1);
       if (raceRow) {
-        return respondWithExistingWorkout(db, session.user.id, raceRow, currentStartedAtMs);
+        return respondWithExistingWorkout(
+          db,
+          session.user.id,
+          raceRow,
+          currentStartedAtMs,
+          requestedContent,
+        );
       }
     }
     throw err;

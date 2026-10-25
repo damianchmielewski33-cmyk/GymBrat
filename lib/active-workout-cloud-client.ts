@@ -53,17 +53,23 @@ export function applyCloudPayload(payload: ActiveWorkoutCloudPayload): void {
 }
 
 /**
- * Decyzja przy konflikcie 409 na PUT (ADR 0004 p.13, B-1d): pusty/wygaszony payload
- * zwrócony przez serwer nie wygrywa nad aktywną sesją lokalną — w tym przypadku
- * trzeba tylko przejąć rewizję i wypchnąć ponownie lokalny stan, nie nadpisywać go.
- * Wydzielona jako czysta funkcja (bez DOM), żeby dało się ją testować bez komponentu.
+ * Decyzja przy konflikcie 409 na PUT (005, N-P13-1, poprawka B-1d z ADR 0004 p.13):
+ * pusty/wygaszony payload z chmury wygrywa z aktywną sesją lokalną TYLKO, gdy to
+ * dokładnie ta sama sesja, którą wygaszono (identyczny `workoutStartedAtMs` jak
+ * `clearedSessionStartedAtMs` tombstone'u) — wtedy lokalna sesja jest martwa i
+ * użytkownik ma zobaczyć zakończony trening, nie go wznawiać. W przeciwnym razie
+ * (różny `startedAtMs`, albo tombstone bez tożsamości) lokalna sesja jest
+ * inna/nowsza i wygrywa — zachowanie B-1d bez zmian. Wydzielona jako czysta
+ * funkcja (bez DOM), żeby dało się ją testować bez komponentu.
  */
 export function shouldApplyConflictPayload(
   localPayload: ActiveWorkoutCloudPayload,
   conflictPayload: ActiveWorkoutCloudPayload,
 ): boolean {
   if (hasActiveLocalSession(localPayload) && !hasActiveLocalSession(conflictPayload)) {
-    return false;
+    const clearedId = conflictPayload.clearedSessionStartedAtMs ?? null;
+    const localId = localPayload.workoutStartedAtMs ?? null;
+    return clearedId != null && localId != null && clearedId === localId;
   }
   return true;
 }
@@ -82,12 +88,33 @@ export async function fetchCloud(): Promise<ActiveWorkoutCloudRecord | null> {
   return json.session ?? null;
 }
 
+/**
+ * Rezultat `putCloud`/`deleteCloud` niesie `status` i `retryAfterSec` (005, P1/P2) —
+ * wołający (`ActiveWorkoutCloudSync`) używa ich do decyzji: 401/403 nie ponawiać
+ * automatycznie, 429 respektować `Retry-After`, inne błędy ponawiać z backoffem
+ * (`lib/active-workout-sync-backoff.ts`), zamiast dobijać natychmiast w pętli.
+ */
+export type CloudWriteResult = {
+  ok: boolean;
+  revision?: number;
+  conflict?: ActiveWorkoutCloudRecord | null;
+  status?: number;
+  retryAfterSec?: number;
+};
+
+function parseRetryAfterSec(res: Response): number | undefined {
+  const raw = res.headers?.get?.("Retry-After");
+  if (!raw) return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
 export async function putCloud(
   payload: ActiveWorkoutCloudPayload,
   revision: number,
   deviceId: string,
   opts?: { keepalive?: boolean },
-): Promise<{ ok: boolean; revision?: number; conflict?: ActiveWorkoutCloudRecord | null }> {
+): Promise<CloudWriteResult> {
   await ensureCsrfCookie();
   const res = await fetch("/api/active-workout-session", {
     method: "PUT",
@@ -111,33 +138,48 @@ export async function putCloud(
     /* empty body on some keepalive edge cases */
   }
   if (res.status === 409 && json.session) {
-    return { ok: false, conflict: json.session };
+    return { ok: false, status: 409, conflict: json.session };
   }
-  if (!res.ok || !json.ok) return { ok: false };
+  if (!res.ok || !json.ok) {
+    return { ok: false, status: res.status, retryAfterSec: parseRetryAfterSec(res) };
+  }
   return { ok: true, revision: json.revision };
 }
 
 /**
- * Serwer "wygasza" wiersz (nigdy go fizycznie nie usuwa) i zwraca rewizję o +1
- * (005, B-1b) — nigdy nie zakładaj tu 0, bo zaległy klient z wyższą rewizją
- * mógłby nadpisać nową sesję.
+ * Serwer "wygasza" wiersz (nigdy go fizycznie nie usuwa) TYLKO, gdy `revision`
+ * przekazana przez klienta jest >= aktualnej rewizji serwera — ta sama kontrola
+ * optymistycznej współbieżności co `putCloud` (005, N-P13-7, ADR 0004 p.16).
+ * Wywołujący MUSI przekazać rewizję, którą faktycznie zna (świeżo odczytaną z
+ * chmury albo ostatnią zsynchronizowaną lokalnie) — nigdy stałą/zgadywaną wartość.
  */
-export async function deleteCloud(): Promise<boolean> {
+export async function deleteCloud(revision: number): Promise<CloudWriteResult> {
   await ensureCsrfCookie();
   const res = await fetch("/api/active-workout-session", {
     method: "DELETE",
     credentials: "include",
-    headers: { ...getXsrfHeaders() },
+    headers: {
+      "Content-Type": "application/json",
+      ...getXsrfHeaders(),
+    },
+    body: JSON.stringify({ revision }),
   });
-  if (!res.ok) return false;
-  let json: { ok?: boolean; revision?: number } = {};
+  let json: {
+    ok?: boolean;
+    revision?: number;
+    conflict?: boolean;
+    session?: ActiveWorkoutCloudRecord | null;
+  } = {};
   try {
     json = (await res.json()) as typeof json;
   } catch {
     /* empty body na edge-case'ach keepalive — rewizja zostaje bez zmian, kolejny push/pull naprawi */
   }
-  if (typeof json.revision === "number" && json.revision >= 0) {
-    writeRevision(json.revision);
+  if (res.status === 409 && json.session) {
+    return { ok: false, status: 409, conflict: json.session };
   }
-  return true;
+  if (!res.ok || !json.ok) {
+    return { ok: false, status: res.status, retryAfterSec: parseRetryAfterSec(res) };
+  }
+  return { ok: true, revision: json.revision };
 }

@@ -34,6 +34,7 @@ export function formatDistanceKmPl(km: number): string {
   );
 }
 
+/** `82,5 kg → 85 kg` — jednostka przy obu wartościach (005, przegląd ux 21.3 W-3). */
 export function formatWeightRecordLine(previousKg: number, newKg: number): string {
-  return `${formatKgPl(previousKg)} → ${formatKgPl(newKg)} kg`;
+  return `${formatKgPl(previousKg)} kg → ${formatKgPl(newKg)} kg`;
 }

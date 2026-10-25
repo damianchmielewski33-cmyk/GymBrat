@@ -97,6 +97,39 @@ describe("workout-history-overview helpers", () => {
     });
   });
 
+  it("N-22-1 (005): ćwiczenie na masę ciała (zaliczone, tonaż 0) nie liczy się ani do „w górę”, ani do „w dół”", () => {
+    const prev = details({
+      date: "2026-09-27",
+      exercises: [
+        {
+          id: "a",
+          name: "Pompki",
+          bestE1rm: 0,
+          volumeKg: 500,
+          sets: [{ reps: 20, weight: 25, done: true, e1rm: 0 }],
+        },
+      ],
+    });
+    const current = details({
+      date: "2026-09-28",
+      exercises: [
+        {
+          id: "a",
+          name: "Pompki",
+          bestE1rm: 0,
+          volumeKg: 0,
+          sets: [{ reps: 20, weight: 0, done: true, e1rm: 0 }],
+        },
+      ],
+    });
+
+    expect(compareWorkoutExercises(current, prev)).toEqual({
+      up: 0,
+      down: 0,
+      skipped: 0,
+    });
+  });
+
   it("bez poprzedniej sesji zwraca null", () => {
     const current = details({
       exercises: [

@@ -17,9 +17,9 @@ describe("workout-finish-format", () => {
     expect(formatTonnagePl(8004)).toBe("8004 kg");
   });
 
-  it("formatuje linię rekordu", () => {
-    expect(formatWeightRecordLine(36, 40)).toBe("36 → 40 kg");
-    expect(formatWeightRecordLine(38.5, 40)).toBe("38,5 → 40 kg");
+  it("formatuje linię rekordu z jednostką przy obu wartościach (005, przegląd ux 21.3 W-3)", () => {
+    expect(formatWeightRecordLine(36, 40)).toBe("36 kg → 40 kg");
+    expect(formatWeightRecordLine(38.5, 40)).toBe("38,5 kg → 40 kg");
   });
 
   it("formatCountPl grupuje tysiące odstępem, nawet dla liczb 4-cyfrowych (005, przegląd ux 19.3)", () => {

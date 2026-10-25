@@ -158,6 +158,50 @@ describe("POST /api/workouts/complete — defense in depth: kolizja operationId 
     void body1;
   });
 
+  it("ten sam operationId i startedAt (w tolerancji), ale RÓŻNA treść exercises → 409 conflict, bez nadpisania zapisanego wiersza (005, F-3/N-7h-2)", async () => {
+    const operationId = "66666666-6666-4666-8666-666666666666";
+    const first = basePayload(operationId);
+    const res1 = await completeReq(first);
+    expect(res1.status).toBe(200);
+    const body1 = (await res1.json()) as { workoutId: string };
+
+    // Retry po zgubionej odpowiedzi, do którego klient dopisał kolejną serię —
+    // ten sam operationId i startedAt w tolerancji, ale inna treść sesji.
+    const retryWithExtraSet = {
+      ...basePayload(operationId),
+      startedAt: Date.parse("2026-10-20T10:00:01.000Z"),
+      exercises: [
+        {
+          id: "1",
+          name: "Przysiad",
+          sets: [
+            { reps: 5, weight: 100, done: true },
+            { reps: 5, weight: 100, done: true },
+          ],
+        },
+      ],
+    };
+    const res2 = await completeReq(retryWithExtraSet);
+    expect(res2.status).toBe(409);
+    const body2 = (await res2.json()) as { ok: boolean; conflict: boolean; error: string };
+    expect(body2.ok).toBe(false);
+    expect(body2.conflict).toBe(true);
+    expect(typeof body2.error).toBe("string");
+
+    // Zapisany wiersz nie został nadpisany ani zduplikowany.
+    const rows = await client.execute("SELECT COUNT(*) AS c FROM workouts");
+    expect(Number(rows.rows[0]!.c)).toBe(1);
+    const stored = await client.execute({
+      sql: "SELECT exercises FROM workouts WHERE id = ?",
+      args: [body1.workoutId],
+    });
+    const storedExercises = JSON.parse(String(stored.rows[0]!.exercises)) as {
+      exercises: Array<{ sets: unknown[] }>;
+    };
+    expect(storedExercises.exercises[0]!.sets.length).toBe(1);
+    expect(publishTeamFeedAfterWorkout).toHaveBeenCalledTimes(1);
+  });
+
   it("ponowienie z tym samym operationId i startedAt w granicy tolerancji (<=2s) wciąż traktowane jako duplikat", async () => {
     const operationId = "55555555-5555-4555-8555-555555555555";
     const first = basePayload(operationId);

@@ -38,6 +38,7 @@ import {
   type InitialSetDraft,
 } from "@/lib/workout-set-draft";
 import {
+  canCompleteWorkoutSet,
   findNextIncompleteExercise,
   hasPerformedReps,
   isLastOpenWorkoutSet,
@@ -379,9 +380,15 @@ export function GuidedSessionLayout({
   const group = progress.groups[selectedIndex];
   const setCompleted = set.done && !isSkippedWorkoutSet(set);
   const setOrdinal = activeSetIndex + 1;
+  const draft = draftValues();
   /** Etykieta „Zakończ ostatnią serię i zapisz” (005 sekcja 4) — tylko dla serii jeszcze
-   * nieukończonej, gdy jest ostatnią otwartą w całej sesji. */
-  const isLastOpenSet = !setCompleted && isLastOpenWorkoutSet(exercises, exercise.id, activeSetIndex);
+   * nieukończonej, gdy jest ostatnią otwartą w całej sesji I dane wystarczają do
+   * zapisu (W-6, 005 przegląd ux 21.3) — inaczej obietnica „i zapisz” jest nieprawdziwa,
+   * bo walidacja (brak powtórzeń) zablokuje zapis. */
+  const isLastOpenSet =
+    !setCompleted &&
+    isLastOpenWorkoutSet(exercises, exercise.id, activeSetIndex) &&
+    canCompleteWorkoutSet(draft.weight, draft.reps);
   const techniqueUrl = exercise.techniqueYoutubeUrl?.trim() || null;
   const superset = supersetLetter(supersetLabels[exercise.id]);
   const schemeParts = formatExerciseSchemeParts({
@@ -400,7 +407,7 @@ export function GuidedSessionLayout({
     repsNow >= repRange.min &&
     repsNow <= repRange.max;
 
-  const { weight: draftWeight, reps: draftReps } = draftValues();
+  const { weight: draftWeight, reps: draftReps } = draft;
   const suggestionApplied =
     suggestion != null &&
     draftWeight === suggestion.weightKg &&
