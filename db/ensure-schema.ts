@@ -229,6 +229,57 @@ CREATE TABLE IF NOT EXISTS "exercise_technique_links" (
   );
 
   await client.execute(`
+CREATE TABLE IF NOT EXISTS "exercises" (
+  "id" text PRIMARY KEY NOT NULL,
+  "name" text NOT NULL,
+  "category_id" text NOT NULL,
+  "secondary_category_ids" text,
+  "aliases_en" text,
+  "aliases_pl" text,
+  "equipment" text,
+  "difficulty" text,
+  "description" text,
+  "cues" text,
+  "technique_youtube_url" text,
+  "technique_youtube_title" text,
+  "is_active" integer DEFAULT 1 NOT NULL,
+  "created_at" integer NOT NULL,
+  "updated_at" integer NOT NULL,
+  "created_by_user_id" text,
+  "updated_by_user_id" text
+);
+`);
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "idx_exercises_category" ON "exercises" ("category_id")`,
+  );
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "idx_exercises_name" ON "exercises" ("name")`,
+  );
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "idx_exercises_active" ON "exercises" ("is_active")`,
+  );
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "user_exercise_notes" (
+  "id" text PRIMARY KEY NOT NULL,
+  "user_id" text NOT NULL,
+  "exercise_id" text NOT NULL,
+  "personal_youtube_url" text,
+  "note" text,
+  "created_at" integer NOT NULL,
+  "updated_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("exercise_id") REFERENCES "exercises"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await db.$client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "uq_user_exercise_notes_user_exercise" ON "user_exercise_notes" ("user_id", "exercise_id")`,
+  );
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "idx_user_exercise_notes_user" ON "user_exercise_notes" ("user_id")`,
+  );
+
+  await client.execute(`
 CREATE TABLE IF NOT EXISTS "app_branding_assets" (
   "slot" text PRIMARY KEY NOT NULL,
   "mime_type" text NOT NULL,

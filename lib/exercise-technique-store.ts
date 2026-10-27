@@ -1,9 +1,15 @@
 import "server-only";
 
 import { eq } from "drizzle-orm";
+import { revalidateTag } from "next/cache";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
-import { exerciseTechniqueLinks } from "@/db/schema";
+import { exerciseTechniqueLinks, exercises } from "@/db/schema";
+import {
+  EXERCISES_CACHE_TAG,
+  getExerciseTechniqueUrlMapFromDb,
+  updateExerciseTechniqueUrl,
+} from "@/lib/exercises/exercises-repository";
 import { CATALOG_EXERCISES } from "@/lib/workout-exercise-catalog";
 import { normalizeYoutubeUrl } from "@/lib/youtube-url";
 
@@ -22,9 +28,15 @@ export type ExerciseTechniqueLinkRow = {
   youtubeUrl: string | null;
 };
 
-/** Mapa catalogId → URL (tylko ustawione). */
+/** Mapa catalogId → URL (tylko ustawione). Preferuje tabelę `exercises`. */
 export async function loadExerciseTechniqueUrlMap(): Promise<Record<string, string>> {
   await ensureTechniqueTable();
+  try {
+    const fromExercises = await getExerciseTechniqueUrlMapFromDb();
+    if (Object.keys(fromExercises).length > 0) return fromExercises;
+  } catch {
+    /* fallback legacy */
+  }
   const db = getDb();
   const rows = await db.select().from(exerciseTechniqueLinks);
   const out: Record<string, string> = {};
@@ -60,8 +72,28 @@ export async function upsertExerciseTechniqueLink(
   const url = normalizeYoutubeUrl(youtubeUrlRaw);
   const now = new Date();
 
+  try {
+    await updateExerciseTechniqueUrl(id, url, actorUserId);
+    revalidateTag(EXERCISES_CACHE_TAG);
+  } catch {
+    /* legacy tabela poniżej */
+  }
+
   if (!url) {
     await db.delete(exerciseTechniqueLinks).where(eq(exerciseTechniqueLinks.id, id));
+    try {
+      await db
+        .update(exercises)
+        .set({
+          techniqueYoutubeUrl: null,
+          updatedAt: now,
+          updatedByUserId: actorUserId,
+        })
+        .where(eq(exercises.id, id));
+      revalidateTag(EXERCISES_CACHE_TAG);
+    } catch {
+      /* ignore */
+    }
     return { catalogId: id, youtubeUrl: null };
   }
 

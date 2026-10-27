@@ -119,3 +119,12 @@ Nowe pozycje dopisuje koordynator na końcu właściwej sekcji (albo nowej, jeś
 | Pulpit „Ostatnie treningi” prowadzi wierszem do szczegółu, a stopką do listy; po wdrożeniu deep linku `?sesja=` ujednolicić oba wejścia | `components/home/home-recent-workouts.tsx` | 011 | ux, etap 3 (AC-10.1) |
 | Nagłówki ekranów historii, szczegółu i edycji nie korzystają ze wspólnego `AppPageHeader` (Wróć tekstowy, inny kicker) | `workout-history-view.tsx`, `[id]/page.tsx`, `[id]/edit/page.tsx` | 011 | ux, etap 3 (`00-system` pkt 9) |
 | Duplikat wzorca chipów filtra (`fbar`/`chp`) w innych listach z filtrem (np. atlas, hub) - kandydat do wspólnego komponentu po wdrożeniu 011 | `components/workout-plan/*`, `components/community/*` | 011 | ux, etap 3 (`00-system` sekcja 4) |
+
+## Plany treningowe / atlas (008): dokończenie v1.1
+| Opis | Lokalizacja | Zadanie źródłowe | Źródło (agent) |
+|---|---|---|---|
+| Pełna karta ćwiczenia (`?cwiczenie=`) z sekcją „Tylko dla Ciebie” — v1 ma atlas partii/listę bez szczegółów | `components/plany/atlas-client.tsx`, `actions/user-exercise-notes.ts` | 008 | koordynator (implementacja) |
+| Pełny CRUD admina ćwiczeń + UI wyszukiwania YouTube (wrapper API już jest) | `components/admin/admin-exercises-client.tsx`, `lib/exercises/youtube-search.ts` | 008 | ADR 0007 §2.4/2.4a |
+| Tryb „Zmień kolejność” planów na liście (↑↓ z natychmiastowym zapisem) | `components/plany/plan-list-client.tsx` | 008 | ux §4.3 |
+| Prywatna notatka ćwiczenia w eksporcie danych / usuwaniu konta | `user_exercise_notes` | 008 | ux Q-A6 / prawnik |
+| Treści opisów i cue dla atlasu (BR-11) — migracja seed bez opisów | tabela `exercises` | 008 | właściciel produktu |

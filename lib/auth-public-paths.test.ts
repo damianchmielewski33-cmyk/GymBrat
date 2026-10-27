@@ -32,6 +32,8 @@ describe("auth-public-paths", () => {
     expect(postAuthDestination(false)).toBe("/complete-profile");
     expect(postAuthDestination(true)).toBe("/");
     expect(mustCompleteProfile("/workout-plan", false)).toBe(true);
+    expect(mustCompleteProfile("/plany", false)).toBe(true);
+    expect(mustCompleteProfile("/plany/atlas", false)).toBe(true);
     expect(mustCompleteProfile("/complete-profile", false)).toBe(false);
     expect(mustCompleteProfile("/regulamin", false)).toBe(false);
     expect(mustCompleteProfile("/", true)).toBe(false);

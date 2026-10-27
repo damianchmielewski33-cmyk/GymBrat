@@ -169,7 +169,7 @@ export function HomeTrainingCard({
               Ustaw dni planu, żeby szybko startować sesję.
             </p>
             <Link
-              href="/profile/workout-plan"
+              href="/plany"
               className="gold-btn mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm"
             >
               <Play className="h-4 w-4 fill-current" aria-hidden />

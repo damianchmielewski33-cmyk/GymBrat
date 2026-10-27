@@ -94,7 +94,7 @@ export function PlanDayPreviewSheet({
             <div className="p-4">
               {exercises.length === 0 ? (
                 <Link
-                  href="/profile/workout-plan"
+                  href="/plany"
                   className={cn(buttonVariants({ variant: "cta" }), "w-full gap-2")}
                 >
                   <PencilLine aria-hidden />

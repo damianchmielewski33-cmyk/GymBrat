@@ -80,6 +80,7 @@ describe("admin-config-status", () => {
       "SMTP_HOST",
       "HOTPAY_SEKRET",
       "POLLINATIONS_API_KEY",
+      "YOUTUBE_API_KEY",
       "JAVA_API_BASE_URL",
     ]) {
       expect(names).toContain(required);

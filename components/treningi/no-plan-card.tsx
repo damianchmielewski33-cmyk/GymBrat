@@ -23,11 +23,11 @@ export function NoPlanCard({ titleRef }: { titleRef?: Ref<HTMLHeadingElement> })
         Ustaw dni planu, żeby szybko startować sesję.
       </p>
       <Link
-        href="/profile/workout-plan"
+        href="/plany/nowy"
         className={cn(buttonVariants({ variant: "cta" }), "mt-4 w-full gap-2")}
       >
         <Plus aria-hidden />
-        Ustaw plan
+        Dodaj plan
       </Link>
     </MainCardShell>
   );

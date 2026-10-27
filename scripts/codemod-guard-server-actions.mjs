@@ -15,8 +15,6 @@ const HOUR = 60 * MINUTE;
 /** Ostrzejsze limity dla akcji kosztownych lub podatnych na nadużycia. */
 const STRICT = {
   aiAnalyzePhoto: [12, MINUTE],
-  aiGeneratePlan: [12, MINUTE],
-  generateAndSaveAiWorkoutPlans: [12, MINUTE],
   generateMealSuggestionsAction: [20, MINUTE],
   activeWorkoutCoachAction: [40, MINUTE],
   changePassword: [8, 15 * MINUTE],

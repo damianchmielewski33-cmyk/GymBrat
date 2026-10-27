@@ -148,21 +148,8 @@ export default async function ProfilePage() {
         id="training"
         icon={Dumbbell}
         title="Trening i postępy"
-        description="Plan, cele tygodniowe i sposób pokazywania zmian."
+        description="Cele tygodniowe i sposób pokazywania zmian."
       >
-        <ProfileBlock
-          title="Plan treningowy"
-          description="Dni i ćwiczenia planu. Start sesji oraz cardio są w zakładce Treningi."
-          action={
-            <Link
-              href="/profile/workout-plan"
-              className="gym-btn-primary inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold sm:w-auto"
-            >
-              <Dumbbell className="h-4 w-4" aria-hidden />
-              Ustaw plan
-            </Link>
-          }
-        />
         <ProfileBlock
           title="Cel cardio"
           description="Minuty cardio na tydzień — postęp widać na Start i w Treningach."

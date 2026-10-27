@@ -6,12 +6,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth, signIn } from "@/auth";
 import { LOGIN_RATE_LIMITED_CODE } from "@/lib/auth-error-codes";
-import {
-  analyzeBodyPhoto,
-  generateTrainingPlan,
-  type AiImage,
-  type TrainingPlanInput,
-} from "@/ai/coach";
+import { analyzeBodyPhoto, type AiImage } from "@/ai/coach";
 import { updateBodyParams } from "@/actions/profile";
 import { getDb } from "@/db";
 import { users, userSettings, workouts } from "@/db/schema";
@@ -254,94 +249,6 @@ export async function getWeeklyCardioProgress() {
     minutesCompleted: progress.minutesCompleted,
     percentProgress: progress.percent,
   };
-}
-
-const aiPlanSchema = z.object({
-  goals: z.array(z.string()).optional(),
-  daysPerWeek: z.coerce.number().int().min(1).max(7).optional(),
-  experienceLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
-  equipment: z.array(z.string()).optional(),
-  injuriesOrLimitations: z.string().optional(),
-});
-
-export async function aiGeneratePlan(overrides?: unknown) {
-  await guardAction("backend.aiGeneratePlan", { limit: 12, windowMs: 60000 });
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { ok: false as const, error: UserMessages.sessionExpired };
-  }
-
-  const user = await getUser();
-  if (!user) {
-    return {
-      ok: false as const,
-      error: "Nie udało się wczytać profilu. Odśwież stronę i zaloguj się ponownie.",
-    };
-  }
-
-  const parsed = aiPlanSchema.safeParse(overrides ?? {});
-  if (!parsed.success) {
-    return {
-      ok: false as const,
-      error: "Opcje planu są nieprawidłowe. Sprawdź liczbę dni i pozostałe ustawienia.",
-    };
-  }
-
-  const o = parsed.data;
-  if (
-    user.weightKg == null ||
-    user.heightCm == null ||
-    user.age == null ||
-    !user.activityLevel
-  ) {
-    return {
-      ok: false as const,
-      error: "Complete body metrics and activity level in your profile first.",
-    };
-  }
-
-  const db = getDb();
-  const [nutritionSettingsRow] = await db
-    .select({
-      trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
-      restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
-      nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
-    })
-    .from(userSettings)
-    .where(eq(userSettings.userId, session.user.id))
-    .limit(1);
-  const nutritionToday = await loadTodaysNutritionSummary(
-    session.user.id,
-    nutritionSettingsRow,
-  );
-  const activityMap: Record<
-    string,
-    TrainingPlanInput["activityLevel"]
-  > = {
-    low: "sedentary",
-    medium: "moderate",
-    high: "active",
-  };
-  const activityLevel =
-    activityMap[user.activityLevel] ?? "moderate";
-
-  const input: TrainingPlanInput = {
-    age: user.age,
-    weightKg: user.weightKg,
-    heightCm: user.heightCm,
-    activityLevel,
-    goals: o.goals?.length ? o.goals : ["General fitness"],
-    daysPerWeek: o.daysPerWeek ?? 4,
-    experienceLevel: o.experienceLevel,
-    equipment: o.equipment,
-    injuriesOrLimitations: o.injuriesOrLimitations
-      ? [o.injuriesOrLimitations]
-      : undefined,
-    nutritionToday,
-  };
-
-  const plan = await generateTrainingPlan(input);
-  return { ok: true as const, plan };
 }
 
 const aiPhotoSchema = z.object({

@@ -88,8 +88,14 @@ export function AppShell({
     pathname.startsWith("/cardio/record");
   /** Formularz poprawy treningu — własna belka Zapisz zamiast dolnego menu. */
   const hideBottomNav =
-    sessionFullscreen || /\/workout-history\/[^/]+\/edit\/?$/.test(pathname);
+    sessionFullscreen ||
+    /\/workout-history\/[^/]+\/edit\/?$/.test(pathname) ||
+    pathname.startsWith("/plany/import") ||
+    pathname.startsWith("/plany/nowy") ||
+    // edytor dnia: /plany/<id>, ale nie /plany/atlas
+    (/^\/plany\/[^/]+\/?$/.test(pathname) && !pathname.startsWith("/plany/atlas"));
   const hideChromeHeader = pathname === "/";
+  // /plany* — zarządzanie planem, bez FAB Raport (UX 008)
   const showReportFab =
     pathname === "/" ||
     pathname.startsWith("/workout-plan") ||

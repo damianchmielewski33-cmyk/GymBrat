@@ -55,7 +55,7 @@ export function PlanDaysPanel({
               PDF
             </Button>
             <Link
-              href="/profile/workout-plan"
+              href="/plany"
               aria-label="Edytuj plan"
               className={cn(
                 buttonVariants({ variant: "ghost", size: "sm" }),

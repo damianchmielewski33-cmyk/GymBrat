@@ -18,7 +18,21 @@ import {
   type ExerciseRename,
 } from "@/lib/workout-exercise-rename";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
+import {
+  MAX_PLANS_PER_USER,
+  validateWorkoutPlanPayload,
+} from "@/lib/workout-plan/plan-validation";
 import { UserMessages } from "@/lib/user-facing-errors";
+
+function revalidatePlanPaths(planId?: string) {
+  revalidatePath("/plany");
+  revalidatePath("/workout-plan");
+  if (planId) revalidatePath(`/plany/${planId}`);
+  revalidatePath("/active-workout");
+  revalidatePath("/progress");
+  revalidatePath("/workout-history");
+  revalidatePath("/profile");
+}
 
 export type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
 
@@ -142,9 +156,11 @@ export async function saveWorkoutPlan(plan: WorkoutPlanPayload, planId?: string)
     return { ok: false as const, error: UserMessages.sessionExpired };
   }
 
-  if (plan.version !== 2 || plan.path !== "custom") {
-    return { ok: false as const, error: "Nieprawidłowy format planu" };
+  const validated = validateWorkoutPlanPayload(plan);
+  if (!validated.ok) {
+    return { ok: false as const, error: validated.error };
   }
+  plan = validated.plan;
 
   const db = getDb();
   const userId = session.user.id;
@@ -194,13 +210,19 @@ export async function saveWorkoutPlan(plan: WorkoutPlanPayload, planId?: string)
       planExerciseNameById(planToSave),
     );
 
-    revalidatePath("/workout-plan");
-    revalidatePath("/profile/workout-plan");
-    revalidatePath("/profile");
-    revalidatePath("/active-workout");
-    revalidatePath("/progress");
-    revalidatePath("/workout-history");
+    revalidatePlanPaths(planId);
     return { ok: true as const, id: planId };
+  }
+
+  const existingCount = await db
+    .select({ id: workoutPlans.id })
+    .from(workoutPlans)
+    .where(eq(workoutPlans.userId, userId));
+  if (existingCount.length >= MAX_PLANS_PER_USER) {
+    return {
+      ok: false as const,
+      error: `Możesz mieć maksymalnie ${MAX_PLANS_PER_USER} planów.`,
+    };
   }
 
   const id = randomUUID();
@@ -212,10 +234,7 @@ export async function saveWorkoutPlan(plan: WorkoutPlanPayload, planId?: string)
     updatedAt: now,
   });
 
-  revalidatePath("/workout-plan");
-  revalidatePath("/profile/workout-plan");
-  revalidatePath("/profile");
-  revalidatePath("/active-workout");
+  revalidatePlanPaths(id);
   return { ok: true as const, id };
 }
 
@@ -240,9 +259,6 @@ export async function deleteWorkoutPlan(planId: string) {
       and(eq(workoutPlans.id, planId), eq(workoutPlans.userId, session.user.id)),
     );
 
-  revalidatePath("/workout-plan");
-  revalidatePath("/profile/workout-plan");
-  revalidatePath("/profile");
-  revalidatePath("/active-workout");
+  revalidatePlanPaths(planId);
   return { ok: true as const };
 }

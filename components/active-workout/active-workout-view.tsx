@@ -888,7 +888,7 @@ export function ActiveWorkoutView({
                       <Button type="button" onClick={() => router.push("/workout-plan")}>
                         {t("session.startWorkout")}
                       </Button>
-                      <Button type="button" variant="outline" onClick={() => router.push("/profile/workout-plan")}>
+                      <Button type="button" variant="outline" onClick={() => router.push("/plany")}>
                         {t("session.setPlan")}
                       </Button>
                     </div>

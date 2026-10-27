@@ -14,8 +14,6 @@ import {
   detectSessionNewMaxes,
   detectSessionWeightRecords,
 } from "@/lib/session-new-max";
-import { trainingPlanToWorkoutPayloads } from "@/lib/ai-training-plan-to-payload";
-
 describe("workout plan normalize — RIR/tempo/note/superset", () => {
   it("zachowuje nowe pola planu", () => {
     const plan = normalizeWorkoutPlan({
@@ -228,42 +226,5 @@ describe("mergeHintsIntoExercises", () => {
     expect(merged[0]?.suggestedWeights?.[0]).toBe(60);
     expect(merged[0]?.suggestedWeights?.[1]).toBe(60);
     expect(merged[0]?.sets[0]?.weight).toBe(0);
-  });
-});
-
-describe("AI plan → payload", () => {
-  it("mapuje dni strength na plany", () => {
-    const payloads = trainingPlanToWorkoutPayloads({
-      days: [
-        {
-          day: 1,
-          title: "Full Body A",
-          type: "strength",
-          session: {
-            main: [
-              {
-                name: "Squat",
-                sets: 3,
-                reps: "8-10",
-                restSec: 120,
-                notes: "brace",
-              },
-            ],
-          },
-        },
-        {
-          day: 2,
-          title: "Rest",
-          type: "rest",
-          session: { main: [] },
-        },
-      ],
-    });
-    expect(payloads).toHaveLength(1);
-    expect(payloads[0]?.planName).toBe("Full Body A");
-    expect(payloads[0]?.exercises[0]?.name).toBe("Squat");
-    expect(payloads[0]?.exercises[0]?.sets).toBe(3);
-    expect(payloads[0]?.exercises[0]?.reps).toBe(8);
-    expect(payloads[0]?.exercises[0]?.note).toBe("brace");
   });
 });
