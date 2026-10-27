@@ -74,6 +74,7 @@ import {
 } from "@/lib/week-training-compare";
 import { resolveExerciseMuscles } from "@/lib/resolve-exercise-muscles";
 import type { MuscleRegionId } from "@/lib/resolve-exercise-muscles";
+import type { ProgressTabId } from "@/lib/progress-tabs";
 
 export type VolumeTrendKind = "up" | "flat" | "down";
 
@@ -327,16 +328,21 @@ function weekShortLabel(monday: string): string {
 
 const DAY_LABELS = ["Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd"] as const;
 
-export async function getProgressHubData(userId: string): Promise<ProgressHubData> {
+export async function getProgressHubData(userId: string, scope: ProgressTabId | "all" = "all"): Promise<ProgressHubData> {
   await ensureCriticalSchema();
   return withDbRetry(
-    () => loadProgressHubData(userId),
-    { attempts: 3, baseDelayMs: 280, label: "progress-hub" },
+    () => loadProgressHubData(userId, scope),
+    { attempts: 3, baseDelayMs: 280, label: `progress-${scope}` },
   );
 }
 
-async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
+async function loadProgressHubData(userId: string, scope: ProgressTabId | "all"): Promise<ProgressHubData> {
   const db = getDb();
+  const wantsOverview = scope === "przeglad" || scope === "all";
+  const wantsStrength = scope === "sila" || scope === "all";
+  const wantsBody = scope === "sylwetka" || wantsOverview;
+  const wantsWeek = scope === "tydzien" || scope === "all";
+  const wantsIntelligence = scope !== "sylwetka";
   const today = calendarDateKey();
   const monday = mondayOfWeek(today);
   const sunday = addCalendarDays(monday, 6);
@@ -356,7 +362,7 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       .where(eq(userSettings.userId, userId))
       .limit(1)
       .then((r) => r[0] ?? null),
-    db
+    wantsStrength ? db
       .select({
         id: workoutPlans.id,
         planJson: workoutPlans.planJson,
@@ -364,8 +370,8 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       })
       .from(workoutPlans)
       .where(eq(workoutPlans.userId, userId))
-      .orderBy(desc(workoutPlans.updatedAt)),
-    db
+      .orderBy(desc(workoutPlans.updatedAt)) : Promise.resolve([]),
+    scope !== "sylwetka" ? db
       .select({
         id: workouts.id,
         date: workouts.date,
@@ -376,10 +382,10 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       .from(workouts)
       .where(and(eq(workouts.userId, userId), gte(workouts.date, from180)))
       .orderBy(desc(workouts.date), desc(workouts.id))
-      .limit(400),
-    // Bez blobów — tylko meta (id), media serwowane osobno po /api/media/…
-    getBodyReports(userId, { photos: "none" }),
-    db
+      .limit(400) : Promise.resolve([]),
+    // Body reports bez metadanych zdjęć; metadata są ładowane osobną akcją.
+    wantsBody ? getBodyReports(userId, { photos: "none" }) : Promise.resolve([]),
+    wantsIntelligence ? db
       .select({
         age: users.age,
         weightKg: users.weightKg,
@@ -388,8 +394,8 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       .from(users)
       .where(eq(users.id, userId))
       .limit(1)
-      .then((r) => r[0] ?? null),
-    db
+      .then((r) => r[0] ?? null) : Promise.resolve(null),
+    wantsIntelligence ? db
       .select({
         date: dailyCheckins.date,
         sleepQuality: dailyCheckins.sleepQuality,
@@ -405,7 +411,7 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
         ),
       )
       .orderBy(desc(dailyCheckins.date))
-      .limit(21),
+      .limit(21) : Promise.resolve([]),
   ]);
 
   const goals = parseFitnessGoalsJson(settingsRow?.fitnessGoalsJson ?? null);
@@ -1033,7 +1039,7 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
     }
   }
 
-  const [lifetimeTotals] = await db
+  const lifetimeTotals = wantsOverview ? (await db
     .select({
       tonnageKg: sql<number>`coalesce(sum(${workouts.tonnageKg}), 0)`,
       sessions: sql<number>`count(case when ${workouts.tonnageKg} > 0 or (${workouts.tonnageKg} = 0 and ${workouts.cardioMinutes} = 0) then 1 end)`,
@@ -1041,7 +1047,7 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       pending: sql<number>`count(case when ${workouts.tonnageKg} is null then 1 end)`,
     })
     .from(workouts)
-    .where(eq(workouts.userId, userId));
+    .where(eq(workouts.userId, userId)))[0] : null;
   // Keep the bounded-window values until the one-time legacy backfill has run.
   if (Number(lifetimeTotals?.pending ?? 0) === 0) {
     totalTonnageKg = Number(lifetimeTotals?.tonnageKg ?? 0);
@@ -1061,7 +1067,7 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
     }
   }
 
-  const logRows = await db
+  const logRows = wantsBody ? await db
     .select({
       recordedAt: weightLogs.recordedAt,
       weightKg: weightLogs.weightKg,
@@ -1069,7 +1075,7 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
     .from(weightLogs)
     .where(eq(weightLogs.userId, userId))
     .orderBy(asc(weightLogs.recordedAt))
-    .limit(300);
+    .limit(300) : [];
 
   for (const w of logRows) {
     const recorded = new Date(w.recordedAt);
@@ -1414,17 +1420,19 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
     }),
   );
   let dietTraining = emptyProgressDietTrainingBlock();
-  try {
-    dietTraining = await loadProgressDietTrainingBlock({
-      userId,
-      settings: nutritionSettings,
-      today,
-      mondaysOldestFirst: last8.map((w) => w.monday),
-      weekLabel: weekShortLabel,
-      trainingByMonday,
-    });
-  } catch {
-    dietTraining = emptyProgressDietTrainingBlock();
+  if (wantsWeek) {
+    try {
+      dietTraining = await loadProgressDietTrainingBlock({
+        userId,
+        settings: nutritionSettings,
+        today,
+        mondaysOldestFirst: last8.map((w) => w.monday),
+        weekLabel: weekShortLabel,
+        trainingByMonday,
+      });
+    } catch {
+      dietTraining = emptyProgressDietTrainingBlock();
+    }
   }
 
   // --- Intelligence (Analityka 11/10) ---
@@ -1485,8 +1493,9 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
     sexRaw === "male" || sexRaw === "female" ? sexRaw : null;
 
   let intelligence: ProgressIntelligence = emptyProgressIntelligence();
-  try {
-    intelligence = buildProgressIntelligence({
+  if (wantsIntelligence) {
+    try {
+      intelligence = buildProgressIntelligence({
       today,
       weeklySessionsTarget: weeklyTarget,
       weeklyCardioGoalMinutes: cardioGoal,
@@ -1520,13 +1529,14 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
             }
           : null,
       dietAdherencePct,
-    });
-  } catch (e) {
-    console.error(
-      "[progress-hub] intelligence",
-      e instanceof Error ? e.message : e,
-    );
-    intelligence = emptyProgressIntelligence();
+      });
+    } catch (e) {
+      console.error(
+        "[progress-hub] intelligence",
+        e instanceof Error ? e.message : e,
+      );
+      intelligence = emptyProgressIntelligence();
+    }
   }
 
   return {
