@@ -109,7 +109,7 @@ export function PlanDayRow({
     <li className="flex items-center">
       {count === 0 ? (
         <Link
-          href="/profile/workout-plan"
+          href="/plany"
           aria-label={ariaLabel}
           className={cn(rowTargetClass, startDisabled && "pointer-events-none opacity-60")}
           aria-disabled={startDisabled || undefined}

@@ -106,6 +106,8 @@ export const RATE = {
   adminUnlock: { limit: 8, windowMs: 10 * 60_000 },
   adminMutation: { limit: 120, windowMs: 60_000 },
   bodyReportImport: { limit: 12, windowMs: 60_000 },
+  /** Import planu treningowego (preview + confirm) — osobny bucket od raportów ciała. */
+  workoutPlanImport: { limit: 12, windowMs: 60_000 },
   bodyReportCreate: { limit: 24, windowMs: 60_000 },
   bugReportCreate: { limit: 12, windowMs: 60_000 },
   progressExercise: { limit: 60, windowMs: 60_000 },

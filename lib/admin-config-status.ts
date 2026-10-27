@@ -296,6 +296,20 @@ const INTEGRATIONS: IntegrationDef[] = [
     link: { href: "/admin/catalog", label: "Katalog przepisów" },
   },
   {
+    id: "youtube-technique-search",
+    group: "content",
+    label: "Wyszukiwanie filmów techniki (YouTube)",
+    description:
+      "Panel admina: kandydaci filmów techniki do ćwiczeń (YouTube Data API v3).",
+    level: "optional",
+    effectWhenMissing:
+      "Przycisk „Szukaj filmu” w panelu ćwiczeń nie działa — nadal można wkleić link ręcznie.",
+    hostingHint:
+      "Utwórz klucz API w Google Cloud z włączonym YouTube Data API v3 i ustaw YOUTUBE_API_KEY w zmiennych środowiska hostingu.",
+    vars: [{ names: ["YOUTUBE_API_KEY"] }],
+    link: { href: "/admin/exercises", label: "Ćwiczenia (admin)" },
+  },
+  {
     id: "nutrition",
     group: "content",
     label: "Baza produktów (USDA FDC)",

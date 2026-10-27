@@ -129,7 +129,7 @@ export function NextWorkoutTile({
           </p>
         </div>
         <Link
-          href="/profile/workout-plan"
+          href="/plany"
           className="gym-btn-primary inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm"
         >
           <Play className="h-4 w-4 fill-current" aria-hidden />

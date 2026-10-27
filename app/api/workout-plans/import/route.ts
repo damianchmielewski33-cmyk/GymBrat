@@ -190,7 +190,7 @@ async function handlePOST(req: Request) {
     insertedIds.push(id);
   }
 
-  revalidatePath("/profile/workout-plan");
+  revalidatePath("/plany");
   revalidatePath("/profile");
   revalidatePath("/workout-plan");
   revalidatePath("/");

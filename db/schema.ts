@@ -376,8 +376,8 @@ export const mealCatalogImages = sqliteTable("meal_catalog_images", {
 });
 
 /**
- * Linki techniki (YouTube) do ćwiczeń z katalogu — konfiguracja w panelu admina.
- * `id` = CatalogExercise.id (np. c-bench-bar).
+ * @deprecated ADR 0007 — linki techniki przeniesione do `exercises.techniqueYoutubeUrl`.
+ * Tabela zostaje do czasu seeda/migracji danych; nowe zapisy idą do `exercises`.
  */
 export const exerciseTechniqueLinks = sqliteTable(
   "exercise_technique_links",
@@ -390,6 +390,70 @@ export const exerciseTechniqueLinks = sqliteTable(
     updatedByUserId: text("updated_by_user_id"),
   },
   (t) => [index("idx_exercise_technique_updated").on(t.updatedAt)],
+);
+
+/**
+ * Atlas ćwiczeń (ADR 0007) — kuratorowany katalog w Turso.
+ * `id` stabilne jak dawne CatalogExercise.id (np. c-bench-bar).
+ */
+export const exercises = sqliteTable(
+  "exercises",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    categoryId: text("category_id").notNull(),
+    secondaryCategoryIds: text("secondary_category_ids", { mode: "json" }).$type<string[]>(),
+    aliasesEn: text("aliases_en", { mode: "json" }).$type<string[]>(),
+    aliasesPl: text("aliases_pl", { mode: "json" }).$type<string[]>(),
+    equipment: text("equipment", { mode: "json" }).$type<string[]>(),
+    difficulty: text("difficulty"),
+    description: text("description"),
+    cues: text("cues", { mode: "json" }).$type<string[]>(),
+    techniqueYoutubeUrl: text("technique_youtube_url"),
+    techniqueYoutubeTitle: text("technique_youtube_title"),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    createdByUserId: text("created_by_user_id"),
+    updatedByUserId: text("updated_by_user_id"),
+  },
+  (t) => [
+    index("idx_exercises_category").on(t.categoryId),
+    index("idx_exercises_name").on(t.name),
+    index("idx_exercises_active").on(t.isActive),
+  ],
+);
+
+/** Prywatna notatka / link użytkownika do ćwiczenia z atlasu (ADR 0007 §2.4c). */
+export const userExerciseNotes = sqliteTable(
+  "user_exercise_notes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    exerciseId: text("exercise_id")
+      .notNull()
+      .references(() => exercises.id, { onDelete: "cascade" }),
+    personalYoutubeUrl: text("personal_youtube_url"),
+    note: text("note"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("uq_user_exercise_notes_user_exercise").on(t.userId, t.exerciseId),
+    index("idx_user_exercise_notes_user").on(t.userId),
+  ],
 );
 
 /** Wpisy posiłków dodane ręcznie / ze skanu — źródło spożycia makroskładników. */

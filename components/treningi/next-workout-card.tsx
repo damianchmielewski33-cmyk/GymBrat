@@ -66,7 +66,7 @@ export function NextWorkoutCard({
           <MuscleGlyph summary={null} size="hero" />
         </div>
         <Link
-          href="/profile/workout-plan"
+          href="/plany"
           className={cn(buttonVariants({ variant: "cta" }), "mt-4 w-full gap-2")}
         >
           <PencilLine aria-hidden />

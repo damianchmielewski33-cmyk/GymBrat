@@ -1,20 +1,20 @@
-import { getWorkoutPlans } from "@/actions/workout-plan";
-import { WorkoutPlanEditor } from "@/components/workout-plan/workout-plan-editor";
+import { redirect } from "next/navigation";
 
 type PageProps = {
   searchParams?: Promise<{ edit?: string }>;
 };
 
-export default async function ProfileWorkoutPlanPage({ searchParams }: PageProps) {
-  const [initialPlans, params] = await Promise.all([
-    getWorkoutPlans(),
-    searchParams ?? Promise.resolve({} as { edit?: string }),
-  ]);
+/** Stara ścieżka Profil → Plan: trwałe przekierowanie na /plany (AC-1.3, AC-1.4). */
+export default async function ProfileWorkoutPlanRedirectPage({
+  searchParams,
+}: PageProps) {
+  const params = await (searchParams ?? Promise.resolve({} as { edit?: string }));
   const editId =
     typeof params.edit === "string" && params.edit.trim()
       ? params.edit.trim()
       : null;
-  return (
-    <WorkoutPlanEditor initialPlans={initialPlans} initialEditId={editId} />
-  );
+  if (editId) {
+    redirect(`/plany/${encodeURIComponent(editId)}`);
+  }
+  redirect("/plany");
 }

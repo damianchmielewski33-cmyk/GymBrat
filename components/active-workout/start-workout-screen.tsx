@@ -244,7 +244,7 @@ export function StartWorkoutScreen({
 
       <div className="flex items-center justify-between gap-3 px-1">
         <Link
-          href="/profile/workout-plan"
+          href="/plany"
           className="inline-flex items-center gap-2 text-sm text-white/55 hover:text-white/80"
         >
           <Pencil className="h-4 w-4" />
@@ -267,7 +267,7 @@ export function StartWorkoutScreen({
             Najpierw utwórz plan z ćwiczeniami.
           </p>
           <Link
-            href="/profile/workout-plan"
+            href="/plany"
             className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-[var(--gym-gold)] px-5 text-sm font-semibold text-black"
           >
             Nowy plan

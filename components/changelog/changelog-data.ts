@@ -5,6 +5,17 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Plany treningowe: nowe miejsce, atlas i koniec generatora AI",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Zarządzanie planami jest w Menu jako „Plany treningowe” (/plany), a nie w Profilu — stare adresy przekierowują.",
+      "Nowy flow: lista dni, tworzenie od zera albo z pliku z podglądem przed zapisem, edytor z potwierdzeniem przy wyjściu.",
+      "Atlas ćwiczeń w Menu (partie i wyszukiwarka); baza ćwiczeń przechodzi do tabeli w bazie z panelem admina.",
+      "Usunięto funkcję „Stwórz plan treningowy z AI” z UI i kodu — istniejące plany zostają bez zmian.",
+    ],
+  },
+  {
     title: "Zapowiedź — Hosting VPS: Docker, Caddy i staging obok Rendera",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
