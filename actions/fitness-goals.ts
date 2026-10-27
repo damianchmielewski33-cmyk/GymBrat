@@ -40,6 +40,9 @@ export async function saveFitnessGoalsAction(input: unknown) {
   if (!("targetWeightKg" in (input as object))) {
     next.targetWeightKg = prev.targetWeightKg;
   }
+  if (!("waistGoalCm" in (input as object))) next.waistGoalCm = prev.waistGoalCm;
+  if (!("tonnageGoalKg" in (input as object))) next.tonnageGoalKg = prev.tonnageGoalKg;
+  if (!("streakWeeksGoal" in (input as object))) next.streakWeeksGoal = prev.streakWeeksGoal;
   if (!("supplements" in (input as object))) {
     next.supplements = prev.supplements;
   }

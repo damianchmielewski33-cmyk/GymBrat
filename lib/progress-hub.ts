@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
+import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { withDbRetry } from "@/db/with-retry";
 import {
   dailyCheckins,
@@ -22,6 +23,7 @@ import {
 } from "@/lib/analytics";
 import { computeAchievements, type AchievementDef } from "@/lib/achievements";
 import { getBodyReports } from "@/lib/body-reports";
+import { computeWeightTrendKgPerWeek } from "@/lib/analytics/weight-trend";
 import {
   extractCardioExtrasFromSessionJson,
   parseCardioLog,
@@ -33,7 +35,12 @@ import {
 } from "@/lib/diet-training-weeks";
 import { estimated1RM, safeNormalizeExercises, safeParseCompletedSession } from "@/lib/workout-history";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
-import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
+import {
+  parseFitnessGoalsJson,
+  STREAK_WEEKS_GOAL_DEFAULT,
+  TONNAGE_GOAL_KG_DEFAULT,
+  WAIST_GOAL_CM_DEFAULT,
+} from "@/lib/fitness-goals";
 import {
   addCalendarDays,
   calendarDateKey,
@@ -324,6 +331,7 @@ function weekShortLabel(monday: string): string {
 const DAY_LABELS = ["Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd"] as const;
 
 export async function getProgressHubData(userId: string): Promise<ProgressHubData> {
+  await ensureCriticalSchema();
   return withDbRetry(
     () => loadProgressHubData(userId),
     { attempts: 3, baseDelayMs: 280, label: "progress-hub" },
@@ -1029,6 +1037,22 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
     }
   }
 
+  const [lifetimeTotals] = await db
+    .select({
+      tonnageKg: sql<number>`coalesce(sum(${workouts.tonnageKg}), 0)`,
+      sessions: sql<number>`count(case when ${workouts.tonnageKg} > 0 or (${workouts.tonnageKg} = 0 and ${workouts.cardioMinutes} = 0) then 1 end)`,
+      firstDate: sql<string | null>`min(case when ${workouts.tonnageKg} > 0 or (${workouts.tonnageKg} = 0 and ${workouts.cardioMinutes} = 0) then ${workouts.date} end)`,
+      pending: sql<number>`count(case when ${workouts.tonnageKg} is null then 1 end)`,
+    })
+    .from(workouts)
+    .where(eq(workouts.userId, userId));
+  // Keep the bounded-window values until the one-time legacy backfill has run.
+  if (Number(lifetimeTotals?.pending ?? 0) === 0) {
+    totalTonnageKg = Number(lifetimeTotals?.tonnageKg ?? 0);
+    totalStrengthSessions = Number(lifetimeTotals?.sessions ?? 0);
+    firstWorkoutDate = lifetimeTotals?.firstDate ?? firstWorkoutDate;
+  }
+
   // --- Body / tempo ---
   const weightByDay = new Map<string, number>();
   for (const r of [...bodyReports].reverse()) {
@@ -1091,17 +1115,7 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
   if (weights.length >= 2) {
     const from = addCalendarDays(today, -42);
     const slice = weights.filter((p) => p.date >= from);
-    if (slice.length >= 2) {
-      const a = slice[0]!;
-      const b = slice[slice.length - 1]!;
-      const days = Math.max(
-        1,
-        (new Date(`${b.date}T12:00:00`).getTime() -
-          new Date(`${a.date}T12:00:00`).getTime()) /
-          (24 * 60 * 60 * 1000),
-      );
-      kgPerWeekLast6 = safeRound1(((b.kg - a.kg) / days) * 7);
-    }
+    kgPerWeekLast6 = computeWeightTrendKgPerWeek(slice);
   }
 
   let kgPerWeekFromStart: number | null = null;
@@ -1314,11 +1328,11 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
     waistDeltaCm != null && waistDeltaCm < 0
       ? Math.abs(waistDeltaCm)
       : 0;
-  const waistGoalCm = 15;
+  const waistGoalCm = goals.waistGoalCm ?? WAIST_GOAL_CM_DEFAULT;
   const waistRemain = Math.max(0, safeRound1(waistGoalCm - waistLostCm));
-  const tonnageGoalKg = 50_000;
+  const tonnageGoalKg = goals.tonnageGoalKg ?? TONNAGE_GOAL_KG_DEFAULT;
   const tonnageRemainKg = Math.max(0, tonnageGoalKg - totalTonnageKg);
-  const streakGoal = 4;
+  const streakGoal = goals.streakWeeksGoal ?? STREAK_WEEKS_GOAL_DEFAULT;
   const streakRemain = Math.max(0, streakGoal - streakWeeks);
 
   const goalBars: ProgressGoalBar[] = [
@@ -1333,8 +1347,8 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       ),
     },
     {
-      id: "tonnage-50t",
-      label: "50 t podniesione",
+      id: "tonnage-goal",
+      label: `${safeRound1(tonnageGoalKg / 1000)} t podniesione`,
       remainingLabel:
         tonnageRemainKg <= 0
           ? "cel osiągnięty"
@@ -1345,8 +1359,8 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       ),
     },
     {
-      id: "streak-4",
-      label: `${streakGoal} tygodnie z rzędu`,
+      id: "streak-goal",
+      label: `${streakGoal} ${streakGoal === 1 ? "tydzień" : "tygodnie"} z rzędu`,
       remainingLabel:
         streakRemain <= 0
           ? "cel osiągnięty"

@@ -45,6 +45,7 @@ async function ensureCriticalSchemaOnce(): Promise<void> {
   await tryAddColumn(
     `ALTER TABLE "page_views" ADD COLUMN "deployment_env" text`,
   );
+  await tryAddColumn(`ALTER TABLE "workouts" ADD COLUMN "tonnage_kg" real`);
   await tryAddColumn(
     `ALTER TABLE "site_activity_log" ADD COLUMN "deployment_env" text`,
   );

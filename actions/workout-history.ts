@@ -17,6 +17,7 @@ import {
 } from "@/lib/workout-history";
 import { completedSessionJsonForCompare } from "@/lib/workout-plan-compare";
 import { UserMessages } from "@/lib/user-facing-errors";
+import { computeSessionTonnageKg } from "@/lib/analytics/tonnage";
 
 function preprocessReps(val: unknown): unknown {
   if (val === undefined) return undefined;
@@ -197,7 +198,7 @@ export async function updateCompletedWorkout(input: {
   // Zachowaj target* w JSON (completedSessionJsonForCompare nie filtruje pól ćwiczeń).
   await db
     .update(workouts)
-    .set({ exercises: nextJson })
+    .set({ exercises: nextJson, tonnageKg: computeSessionTonnageKg(nextJson) })
     .where(and(eq(workouts.userId, userId), eq(workouts.id, row.id)));
 
   revalidatePath("/workout-history");

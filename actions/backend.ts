@@ -19,6 +19,7 @@ import { getReportsData } from "@/lib/reports";
 import { getLatestBodyReportMetrics } from "@/lib/body-reports";
 import { getWeeklyCardioProgress as getWeeklyCardioProgressData } from "@/lib/cardio";
 import { calendarDateKey } from "@/lib/local-date";
+import { computeSessionTonnageKg } from "@/lib/analytics/tonnage";
 import { loadTodaysNutritionSummary } from "@/lib/nutrition-dashboard";
 import { activityLevels } from "@/lib/validations/register";
 import { UserMessages } from "@/lib/user-facing-errors";
@@ -151,6 +152,7 @@ export async function saveWorkoutSession(input: unknown) {
     date: dateKey,
     cardioMinutes: Math.max(0, Math.round(cardioMinutes)),
     exercises: exercisesJson,
+    tonnageKg: computeSessionTonnageKg(exercises),
   });
 
   revalidatePath("/");

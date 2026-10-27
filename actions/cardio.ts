@@ -163,6 +163,7 @@ export async function createCardioLog(input: {
     date: logDate.date,
     cardioMinutes: minutes,
     exercises: JSON.stringify(payload),
+    tonnageKg: null,
   });
 
   revalidateCardio(id);
@@ -292,6 +293,7 @@ export async function updateCardioLogAction(
     .set({
       cardioMinutes: minutes,
       exercises: JSON.stringify(payload),
+      tonnageKg: null,
     })
     .where(and(eq(workouts.id, id), eq(workouts.userId, session.user.id)));
 
@@ -359,7 +361,7 @@ export async function setCardioDevicePhotoAction(
   };
   await db
     .update(workouts)
-    .set({ exercises: JSON.stringify(payload) })
+    .set({ exercises: JSON.stringify(payload), tonnageKg: null })
     .where(and(eq(workouts.id, id), eq(workouts.userId, session.user.id)));
 
   revalidateCardio(id);

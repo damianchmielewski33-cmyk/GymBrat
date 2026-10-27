@@ -28,13 +28,6 @@ import { exerciseProgressKey } from "@/lib/progress-tabs";
 import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
 
-function formatMetric(n: number, metric: ProgressExerciseRow["metric"]) {
-  const v = new Intl.NumberFormat("pl-PL", { maximumFractionDigits: 0 }).format(
-    Math.round(n),
-  );
-  return metric === "reps" ? `${v} powt.` : `${v} kg`;
-}
-
 type ExerciseMetric = "e1rm" | "volume" | "record";
 
 type ExerciseDisplay = {
@@ -79,11 +72,16 @@ function exerciseDisplay(
       ? `${best.bestWeight} kg × ${best.bestReps}`
       : `${best.bestReps} powt.`;
     const newCutoff = addCalendarDays(today, -21);
+    const orderedValues = sessions.map((point) => weighted ? point.bestE1rm : point.bestReps);
+    const previous = orderedValues.length > 1 ? orderedValues[orderedValues.length - 2]! : null;
+    const latest = orderedValues[orderedValues.length - 1]!;
+    const delta = sessions.length >= 3 && previous != null && previous > 0 ? ((latest - previous) / previous) * 100 : null;
+    const trend = delta == null || Math.abs(delta) < 3 ? "flat" : delta > 0 ? "up" : "down";
     return {
       source: exercise,
       status: sessions.length > 1 ? "compare" : "first",
-      trend: "flat",
-      hasTrend: false,
+      trend,
+      hasTrend: delta != null,
       valueLabel: label,
       subtitle: `Najlepszy wynik · ${formatDayMonth(best.date)}`,
       spark: [],
@@ -98,7 +96,7 @@ function exerciseDisplay(
   if (!values.length) return noData;
   const latest = values[values.length - 1]!;
   const previous = values.length > 1 ? values[values.length - 2]! : null;
-  const deltaPercent = previous != null && previous > 0
+  const deltaPercent = sessions.length >= 3 && previous != null && previous > 0
     ? Math.round(((latest - previous) / previous) * 100)
     : null;
   const trend = deltaPercent == null || Math.abs(deltaPercent) < 3
@@ -106,7 +104,7 @@ function exerciseDisplay(
     : deltaPercent > 0 ? "up" : "down";
   const label = metric === "e1rm" && weighted ? `${latest} kg` : `${Math.round(latest)} ${weighted ? "kg" : "powt."}`;
   const subtitle = deltaPercent == null
-    ? `Za mało danych do trendu · ${sessions.length} ${sessions.length === 1 ? "sesja" : "sesje"}`
+    ? `Za mało danych do trendu. Potrzeba 3 sesji · ${sessions.length}/3`
     : `${deltaPercent > 0 ? "+" : ""}${deltaPercent}% · ${sessions.length} sesji`;
 
   return {
@@ -281,26 +279,23 @@ export function StrengthTab({
   const { planGroups, intensity } = data;
   const [filter, setFilter] = useState<"all" | "up" | "down" | "flat">("all");
   const [displayMetric, setDisplayMetric] = useState<ExerciseMetric>("e1rm");
-  const visibleGroups = planGroups
+  const today = calendarDateKey();
+  const periodGroups = planGroups
     .map((group) => ({
       ...group,
-      exercises: group.exercises.filter((exercise) => {
-        if (filter === "all") return true;
-        const trend = displayMetric === "e1rm" ? exercise.e1rmTrend : exercise.trend;
-        const hasTrend = displayMetric === "e1rm" ? exercise.e1rmDeltaPercent != null : exercise.status === "compare";
-        return hasTrend && trend === filter;
-      }),
-    }))
+      exercises: group.exercises.map((exercise) => exerciseDisplay(exercise, displayMetric, period, today)),
+    }));
+  const eligibleGroups = periodGroups
+    .map((group) => ({ ...group, exercises: group.exercises.filter((exercise) => exercise.status !== "pending") }))
     .filter((group) => group.exercises.length > 0);
-  const exerciseCount = planGroups.reduce((count, group) => count + group.exercises.length, 0);
-  const trendCounts = planGroups.reduce(
+  const visibleGroups = periodGroups
+    .map((group) => ({ ...group, exercises: filter === "all" ? group.exercises : group.exercises.filter((exercise) => exercise.status !== "pending" && exercise.hasTrend && exercise.trend === filter) }))
+    .filter((group) => group.exercises.length > 0);
+  const exerciseCount = eligibleGroups.reduce((count, group) => count + group.exercises.length, 0);
+  const trendCounts = eligibleGroups.reduce(
     (counts, group) => {
       for (const exercise of group.exercises) {
-        const trend = displayMetric === "e1rm" ? exercise.e1rmTrend : exercise.trend;
-        const hasTrend = displayMetric === "e1rm"
-          ? exercise.e1rmDeltaPercent != null
-          : exercise.status === "compare";
-        if (hasTrend) counts[trend] += 1;
+        if (exercise.hasTrend) counts[exercise.trend] += 1;
       }
       return counts;
     },
@@ -346,15 +341,14 @@ export function StrengthTab({
               >
                 <div className="divide-y divide-white/[0.06]">
                   {group.exercises.map((ex) => (
-                    <ExerciseRow key={`${group.planId}-${ex.name}`} ex={ex} period={period} displayMetric={displayMetric} />
+                    <ExerciseRow key={`${group.planId}-${ex.source.name}`} display={ex} period={period} />
                   ))}
                 </div>
               </CollapsibleCard>
             ))}
             <Explainer>
               <p>
-                Strzałka porównuje objętość ostatniego treningu z poprzednim.
-                Tonaż to suma powtórzeń × ciężar we wszystkich zaliczonych seriach.
+                Tonaż to suma powtórzeń × ciężar we wszystkich zaliczonych seriach. e1RM to szacowany ciężar na jedno powtórzenie; przy ćwiczeniach z masą ciała porównujemy liczbę powtórzeń.
               </p>
             </Explainer>
           </div>
