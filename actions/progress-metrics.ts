@@ -2,26 +2,28 @@
 
 import { auth } from "@/auth";
 import { guardAction } from "@/lib/action-guard";
-import { getProgressHubData } from "@/lib/progress-hub";
 import { loadProgressBodyMetrics } from "@/lib/progress-metrics/body";
+import { loadProgressOverviewMetrics } from "@/lib/progress-metrics/overview";
+import { loadProgressStrengthMetrics } from "@/lib/progress-metrics/strength";
+import { loadProgressWeekMetrics } from "@/lib/progress-metrics/week";
 import type { ProgressTabData } from "@/lib/progress-metrics/types";
 
-async function loadForSignedInUser(actionName: string) {
+async function getSignedInUserId(actionName: string) {
   await guardAction(actionName);
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) throw new Error("Sesja wygasła.");
-  return getProgressHubData(userId);
+  return userId;
 }
 
 export async function getOverviewMetricsAction(): Promise<ProgressTabData["przeglad"]> {
-  const data = await loadForSignedInUser("progress.metrics.overview");
-  return { intelligence: data.intelligence, body: data.body, week: data.week };
+  const userId = await getSignedInUserId("progress.metrics.overview");
+  return loadProgressOverviewMetrics(userId);
 }
 
 export async function getStrengthMetricsAction(): Promise<ProgressTabData["sila"]> {
-  const data = await loadForSignedInUser("progress.metrics.strength");
-  return { strength: data.strength, intelligence: data.intelligence };
+  const userId = await getSignedInUserId("progress.metrics.strength");
+  return loadProgressStrengthMetrics(userId);
 }
 
 export async function getBodyMetricsAction(): Promise<ProgressTabData["sylwetka"]> {
@@ -32,6 +34,6 @@ export async function getBodyMetricsAction(): Promise<ProgressTabData["sylwetka"
 }
 
 export async function getWeekMetricsAction(): Promise<ProgressTabData["tydzien"]> {
-  const data = await loadForSignedInUser("progress.metrics.week");
-  return { week: data.week, intelligence: data.intelligence };
+  const userId = await getSignedInUserId("progress.metrics.week");
+  return loadProgressWeekMetrics(userId);
 }

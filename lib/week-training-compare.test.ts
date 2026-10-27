@@ -80,7 +80,7 @@ describe("week-training-compare", () => {
       avgRir: { current: null, previous: null },
     });
     expect(c.verdict).toBe("progress");
-    expect(c.verdictLabel).toMatch(/Progres/);
+    expect(c.verdictLabel).toBe("Wynik wyższy niż w wybranym tygodniu");
   });
 
   it("uses full weeks when both picks are historical", () => {
