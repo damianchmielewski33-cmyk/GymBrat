@@ -5,6 +5,8 @@ import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { WeekBarChart } from "@/components/progress/week-bar-chart";
 import { WeekOverWeekCard } from "@/components/progress/week-over-week-card";
 import {
+  CollapsibleCard,
+  EmptyNote,
   Eyebrow,
   Explainer,
   ProgressSection,
@@ -180,7 +182,7 @@ function CardioSection({ cardio }: { cardio: ProgressIntelligence["cardio"] }) {
     cardio.performance.verdict === "improved"
       ? "text-emerald-300"
       : cardio.performance.verdict === "declined"
-        ? "text-rose-300"
+        ? "text-[var(--gym-text-secondary)]"
         : cardio.performance.verdict === "stable"
           ? "text-white/55"
           : "text-white/40";
@@ -297,13 +299,17 @@ export function WeekTab({
     summary.compareWeeks?.length >= 2 || summary.weekCompare?.metrics?.length;
 
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-5">
       {canCompare ? (
         <WeekOverWeekCard
           weeks={summary.compareWeeks ?? []}
           initialCompare={summary.weekCompare}
         />
-      ) : null}
+      ) : (
+        <ProgressSection title="Porównanie tygodni">
+          <EmptyNote>Porównanie pojawi się po zapisaniu danych z kolejnego tygodnia.</EmptyNote>
+        </ProgressSection>
+      )}
 
       <ProgressSection title="Ostatnie 8 tygodni">
         <Surface className="p-3">
@@ -311,14 +317,17 @@ export function WeekTab({
         </Surface>
       </ProgressSection>
 
-      <DietTrainingSection block={dietTraining} />
-
-      <CardioSection cardio={intelligence.cardio} />
-
       <AdherenceSection
         adherence={intelligence.adherence}
         consistency={intelligence.consistency}
       />
+
+      <CollapsibleCard title="Dieta i cardio" summary="Dziennik, makroskładniki i strefy tętna" lazy>
+        <div className="space-y-5 p-3.5">
+          <DietTrainingSection block={dietTraining} />
+          <CardioSection cardio={intelligence.cardio} />
+        </div>
+      </CollapsibleCard>
     </div>
   );
 }

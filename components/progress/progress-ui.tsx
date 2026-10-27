@@ -222,21 +222,27 @@ export function CollapsibleCard({
   summary,
   icon,
   defaultOpen = false,
+  lazy = false,
   children,
 }: {
   title: string;
   summary?: ReactNode;
   icon?: ReactNode;
   defaultOpen?: boolean;
+  lazy?: boolean;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const [mounted, setMounted] = useState(defaultOpen);
   const contentId = useId();
   return (
     <div className="app-panel overflow-hidden">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setMounted(true);
+          setOpen((v) => !v);
+        }}
         aria-expanded={open}
         aria-controls={contentId}
         className="flex w-full items-center gap-2.5 px-3.5 py-3 text-left"
@@ -264,9 +270,11 @@ export function CollapsibleCard({
           aria-hidden
         />
       </button>
-      <div id={contentId} hidden={!open} className="border-t border-white/[0.06]">
-        {children}
-      </div>
+      {(!lazy || mounted) ? (
+        <div id={contentId} hidden={!open} className="border-t border-white/[0.06]">
+          {children}
+        </div>
+      ) : <div id={contentId} hidden className="border-t border-white/[0.06]" />}
     </div>
   );
 }

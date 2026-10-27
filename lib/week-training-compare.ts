@@ -193,10 +193,10 @@ export function buildWeekTrainingCompare(input: {
   let verdictLabel = "Bez wyraźnej zmiany między tygodniami";
   if (progress > regress) {
     verdict = "progress";
-    verdictLabel = "Progres względem wybranego tygodnia";
+    verdictLabel = "Wynik wyższy niż w wybranym tygodniu";
   } else if (regress > progress) {
     verdict = "regress";
-    verdictLabel = "Regres względem wybranego tygodnia";
+    verdictLabel = "Wynik niższy niż w wybranym tygodniu";
   }
 
   return {

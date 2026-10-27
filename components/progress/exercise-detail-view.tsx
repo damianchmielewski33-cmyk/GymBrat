@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   CartesianGrid,
@@ -21,6 +22,8 @@ import type {
 } from "@/lib/exercise-progress";
 import type { ExercisePeriodCompares } from "@/lib/exercise-period-compare";
 import { ExercisePeriodComparePanel } from "@/components/progress/exercise-period-compare-panel";
+import { SegmentedControl } from "@/components/progress/progress-ui";
+import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
 import type {
   PredictionConfidence,
   PredictionItem,
@@ -81,6 +84,7 @@ export function ExerciseDetailView({
   periodCompares,
   prediction = null,
   stagnation = null,
+  initialPeriod = "30",
 }: {
   name: string;
   points: ExerciseProgressPoint[];
@@ -91,20 +95,27 @@ export function ExerciseDetailView({
   periodCompares: ExercisePeriodCompares;
   prediction?: PredictionItem | null;
   stagnation?: StagnationItem | null;
+  initialPeriod?: "7" | "30" | "90" | "all";
 }) {
+  const [period, setPeriod] = useState<"7" | "30" | "90" | "all">(initialPeriod);
+  const [chartMetric, setChartMetric] = useState<"e1rm" | "volume">("e1rm");
   const latest = points.length ? points[points.length - 1]! : null;
   const isReps = metric === "reps";
-  const heroValue = isReps
-    ? (latest?.totalReps ?? prs.maxTotalReps.value)
-    : (latest?.tonnageKg ?? prs.maxTonnageKg.value);
-  const sessions = points.length;
+  const cutoff = period === "all" ? null : addCalendarDays(calendarDateKey(), -(Number(period) - 1));
+  const periodPoints = useMemo(
+    () => points.filter((p) => cutoff == null || p.date >= cutoff),
+    [points, cutoff],
+  );
+  const chartPoints = isReps
+    ? periodPoints.filter((p) => p.totalReps > 0)
+    : chartMetric === "e1rm"
+      ? periodPoints.filter((p) => p.bestE1rm > 0)
+      : periodPoints.filter((p) => p.tonnageKg > 0);
+  const sessions = periodPoints.length;
   const heaviest = prs.maxWeight;
-  const volumePoints = isReps
-    ? points.filter((p) => p.totalReps > 0)
-    : points.filter((p) => p.tonnageKg > 0);
-  const chartKey = isReps ? "totalReps" : "tonnageKg";
+  const chartKey = isReps ? "totalReps" : chartMetric === "e1rm" ? "bestE1rm" : "tonnageKg";
   const chartUnit = isReps ? "powt." : "kg";
-  const chartLabel = isReps ? "Powtórzenia" : "Objętość";
+  const chartLabel = isReps ? "Powtórzenia" : chartMetric === "e1rm" ? "e1RM" : "Objętość";
   const intensityPoints = points.filter(
     (p) => p.avgRir != null || p.avgRpe != null,
   );
@@ -116,7 +127,7 @@ export function ExerciseDetailView({
     <div className="mx-auto w-full max-w-lg space-y-5 pb-10">
       <div className="flex items-start gap-3">
         <Link
-          href="/progress?tab=sila"
+          href={`/progress?tab=sila&okres=${period === "all" ? "30" : period}`}
           className="mt-1 flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-black/25 text-white/70"
           aria-label="Wróć do Siła"
         >
@@ -126,7 +137,7 @@ export function ExerciseDetailView({
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
             Ćwiczenie
           </p>
-          <h1 className="mt-1 truncate font-heading text-2xl font-semibold text-white">
+          <h1 className="mt-1 line-clamp-2 font-heading text-2xl font-semibold leading-8 text-white">
             {name}
           </h1>
           {matchedNames.length > 1 ? (
@@ -142,29 +153,36 @@ export function ExerciseDetailView({
           className="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-[var(--gym-gold)]/[0.08] blur-3xl"
           aria-hidden
         />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
-          {isReps ? "Powtórzenia" : "Objętość"}
-        </p>
-        <p className="mt-2 font-metric text-5xl tabular-nums text-white">
-          <AnimatedMetric value={heroValue} decimals={0} />
-          <span className="ml-2 text-lg text-white/35">{chartUnit}</span>
-        </p>
-        <p className="mt-1 text-xs text-white/40">
-          {latest
-            ? `Ostatni trening: ${formatShortDate(latest.date)}${
-                isReps ? " · masa ciała" : ""
-              }`
-            : "Brak zaliczonych serii"}
-        </p>
+        {!isReps ? (
+          <SegmentedControl
+            options={[{ id: "e1rm", label: "e1RM" }, { id: "volume", label: "Objętość" }] as const}
+            value={chartMetric}
+            onChange={setChartMetric}
+            ariaLabel="Metryka wykresu"
+          />
+        ) : null}
+        <SegmentedControl
+          className="mt-2"
+          options={[{ id: "7", label: "7 dni" }, { id: "30", label: "30 dni" }, { id: "90", label: "90 dni" }, { id: "all", label: "Wszystko" }] as const}
+          value={period}
+          onChange={(next) => {
+            setPeriod(next);
+            const url = new URL(window.location.href);
+            if (next === "all") url.searchParams.delete("okres");
+            else url.searchParams.set("okres", next);
+            window.history.replaceState(window.history.state, "", url.pathname + url.search);
+          }}
+          ariaLabel="Okres wykresu"
+        />
 
-        <div className="relative mt-4 h-[220px] w-full min-w-0">
-          {volumePoints.length < 2 ? (
+        <div role="img" aria-label={`Wykres ${chartLabel}, ${chartPoints.length} sesji`} className="relative mt-3 h-[220px] w-full min-w-0">
+          {chartPoints.length < 2 ? (
             <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-xs text-white/40">
               Potrzeba co najmniej dwóch treningów do wykresu.
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={volumePoints} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <LineChart data={chartPoints} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis
                   dataKey="date"
@@ -200,6 +218,9 @@ export function ExerciseDetailView({
             </ResponsiveContainer>
           )}
         </div>
+        <p className="mt-2 text-[13px] text-[var(--gym-text-secondary)]">
+          {latest ? `Ostatni trening: ${formatShortDate(latest.date)}${isReps ? " · masa ciała" : ""} · ${chartPoints.length} sesji` : "Brak zaliczonych serii"}
+        </p>
       </section>
 
       <section className="grid grid-cols-3 gap-2.5">

@@ -14,14 +14,19 @@ import { withDbRetry } from "@/db/with-retry";
 
 export default async function ProgressExercisePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ key: string }>;
+  searchParams: Promise<{ okres?: string | string[] }>;
 }) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) redirect("/login?callbackUrl=/progress");
 
   const { key } = await params;
+  const query = await searchParams;
+  const rawPeriod = Array.isArray(query?.okres) ? query.okres[0] : query?.okres;
+  const initialPeriod = rawPeriod === "7" || rawPeriod === "90" || rawPeriod === "all" ? rawPeriod : "30";
   const name = decodeExerciseProgressKey(key);
   if (!name) notFound();
 
@@ -76,6 +81,7 @@ export default async function ProgressExercisePage({
       periodCompares={periodCompares}
       prediction={prediction}
       stagnation={stagnation}
+      initialPeriod={initialPeriod}
     />
   );
 }

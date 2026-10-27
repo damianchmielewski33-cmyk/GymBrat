@@ -7,41 +7,12 @@ import { BodyTab } from "@/components/progress/body-tab";
 import { WeekTab } from "@/components/progress/week-tab";
 import { ProgressTabs } from "@/components/progress/progress-tabs";
 import { hapticTap } from "@/lib/haptics";
-import { plural } from "@/lib/progress-format";
 import type { ProgressHubData } from "@/lib/progress-hub";
 import {
   DEFAULT_PROGRESS_TAB,
   parseProgressTab,
   type ProgressTabId,
 } from "@/lib/progress-tabs";
-
-const PL_MONTH = [
-  "STYCZNIA",
-  "LUTEGO",
-  "MARCA",
-  "KWIETNIA",
-  "MAJA",
-  "CZERWCA",
-  "LIPCA",
-  "SIERPNIA",
-  "WRZEŚNIA",
-  "PAŹDZIERNIKA",
-  "LISTOPADA",
-  "GRUDNIA",
-] as const;
-
-function formatSinceKicker(iso: string | null, workouts: number): string {
-  const tren = `${workouts} ${plural(workouts, "TRENING", "TRENINGI", "TRENINGÓW")}`;
-  if (!iso) return tren;
-  try {
-    const d = new Date(`${iso}T12:00:00`);
-    if (Number.isNaN(d.getTime())) return tren;
-    const month = PL_MONTH[d.getMonth()] ?? "";
-    return `OD ${d.getDate()} ${month} · ${tren}`;
-  } catch {
-    return tren;
-  }
-}
 
 function writeTabToUrl(tab: ProgressTabId) {
   if (typeof window === "undefined") return;
@@ -54,24 +25,42 @@ function writeTabToUrl(tab: ProgressTabId) {
 export function ProgressHubView({
   data,
   initialTab,
+  initialPeriod,
 }: {
   data: ProgressHubData;
   initialTab: ProgressTabId;
+  initialPeriod: "7" | "30" | "90";
 }) {
   const [tab, setTab] = useState<ProgressTabId>(initialTab);
+  const [period, setPeriod] = useState<"7" | "30" | "90">(initialPeriod);
 
   useEffect(() => {
     setTab(initialTab);
   }, [initialTab]);
+
+  useEffect(() => {
+    setPeriod(initialPeriod);
+  }, [initialPeriod]);
 
   // Wstecz / naprzód przeglądarki (gdy ktoś pushuje historię).
   useEffect(() => {
     const onPopState = () => {
       const params = new URLSearchParams(window.location.search);
       setTab(parseProgressTab(params.get("tab")));
+      const value = params.get("okres");
+      setPeriod(value === "7" || value === "90" ? value : "30");
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const onPeriodChange = useCallback((next: "7" | "30" | "90") => {
+    setPeriod(next);
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (next === "30") url.searchParams.delete("okres");
+    else url.searchParams.set("okres", next);
+    window.history.replaceState(window.history.state, "", url.pathname + url.search);
   }, []);
 
   const onTabChange = useCallback(
@@ -91,8 +80,8 @@ export function ProgressHubView({
 
   return (
     <div className="space-y-3.5">
-      <p className="-mt-1 px-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
-        {formatSinceKicker(data.strength.sinceDate, data.strength.workoutCount)}
+      <p className="-mt-1 px-0.5 text-[12px] text-[var(--gym-text-secondary)]">
+        Analiza treningów i pomiarów
       </p>
 
       <ProgressTabs active={tab} onTabChange={onTabChange} />
@@ -101,7 +90,7 @@ export function ProgressHubView({
         <OverviewTab data={data} onNavigate={onTabChange} />
       ) : null}
       {tab === "sila" ? (
-        <StrengthTab data={data.strength} intelligence={data.intelligence} />
+        <StrengthTab data={data.strength} intelligence={data.intelligence} period={period} onPeriodChange={onPeriodChange} />
       ) : null}
       {tab === "sylwetka" ? (
         <BodyTab body={data.body} photos={data.photos} />
