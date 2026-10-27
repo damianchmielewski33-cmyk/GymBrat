@@ -44,6 +44,7 @@ export function replaceConsumptionWithMealLogs(
     ...summary,
     caloriesConsumed: kcal,
     macros: { protein, fat, carbs },
+    entryCount: has ? agg!.entryCount : 0,
   };
 }
 

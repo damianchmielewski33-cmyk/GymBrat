@@ -7,13 +7,14 @@ import {
   avgWeeksAdherencePct,
   dayVsWeekAverageDelta,
   rollupMacroThroughIndex,
+  rollupMacroWindow,
   rollupWeekThroughIndex,
 } from "@/lib/nutrition-week-stats";
 
 function row(
   partial: Partial<WeekDayNutritionRow> & Pick<WeekDayNutritionRow, "dateKey">,
 ): WeekDayNutritionRow {
-  return {
+  const base = {
     headline: partial.dateKey,
     caloriesConsumed: 0,
     caloriesGoal: null,
@@ -23,8 +24,19 @@ function row(
     fatGoal: null,
     carbsConsumed: 0,
     carbsGoal: null,
+    entryCount: 0,
+    dayType: "rest" as const,
     ...partial,
   };
+  if (partial.entryCount == null) {
+    const hasMacros =
+      (partial.caloriesConsumed ?? 0) > 0 ||
+      (partial.proteinConsumed ?? 0) > 0 ||
+      (partial.fatConsumed ?? 0) > 0 ||
+      (partial.carbsConsumed ?? 0) > 0;
+    base.entryCount = hasMacros ? 1 : 0;
+  }
+  return base;
 }
 
 describe("rollupMacroThroughIndex", () => {
@@ -182,6 +194,80 @@ describe("avgWeeksAdherencePct", () => {
     ];
     // 100% and 50% → 75%
     expect(avgWeeksAdherencePct([w1, w2], 1, "calories")).toBe(75);
+  });
+});
+
+describe("rollupMacroWindow", () => {
+  it("excludes no_entries from goal sum (AU-4)", () => {
+    const rows = [
+      row({
+        dateKey: "2026-10-05",
+        entryCount: 0,
+        caloriesConsumed: 0,
+        caloriesGoal: 2000,
+      }),
+      row({
+        dateKey: "2026-10-06",
+        caloriesConsumed: 1800,
+        caloriesGoal: 2000,
+      }),
+    ];
+    const t = rollupMacroWindow(rows, "2026-10-06", "calories", {
+      includeFutureDays: false,
+      includeInProgressGoal: "only_if_consumed",
+    });
+    expect(t.consumed).toBe(1800);
+    expect(t.goal).toBe(2000);
+    expect(t.daysNoEntries).toBeGreaterThanOrEqual(1);
+  });
+
+  it("includes today goal only when consumed (BR-5)", () => {
+    const rows = [
+      row({
+        dateKey: "2026-10-06",
+        entryCount: 0,
+        caloriesConsumed: 0,
+        caloriesGoal: 2000,
+      }),
+    ];
+    const without = rollupMacroWindow(rows, "2026-10-06", "calories", {
+      includeFutureDays: false,
+      includeInProgressGoal: "only_if_consumed",
+    });
+    expect(without.goal).toBeNull();
+    expect(without.consumed).toBe(0);
+
+    const withAlways = rollupMacroWindow(rows, "2026-10-06", "calories", {
+      includeFutureDays: false,
+      includeInProgressGoal: "always",
+    });
+    expect(withAlways.goal).toBe(2000);
+  });
+
+  it("documents includeFutureDays true vs false", () => {
+    const rows = [
+      row({
+        dateKey: "2026-10-06",
+        caloriesConsumed: 1000,
+        caloriesGoal: 2000,
+      }),
+      row({
+        dateKey: "2026-10-07",
+        entryCount: 0,
+        caloriesConsumed: 0,
+        caloriesGoal: 2000,
+      }),
+    ];
+    const toToday = rollupMacroWindow(rows, "2026-10-06", "calories", {
+      includeFutureDays: false,
+      includeInProgressGoal: "only_if_consumed",
+    });
+    const full = rollupMacroWindow(rows, "2026-10-06", "calories", {
+      includeFutureDays: true,
+      includeInProgressGoal: "always",
+    });
+    expect(toToday.goal).toBe(2000);
+    expect(full.goal).toBe(4000);
   });
 });
 

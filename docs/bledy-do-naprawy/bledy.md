@@ -120,6 +120,13 @@ Nowe pozycje dopisuje koordynator na końcu właściwej sekcji (albo nowej, jeś
 | Nagłówki ekranów historii, szczegółu i edycji nie korzystają ze wspólnego `AppPageHeader` (Wróć tekstowy, inny kicker) | `workout-history-view.tsx`, `[id]/page.tsx`, `[id]/edit/page.tsx` | 011 | ux, etap 3 (`00-system` pkt 9) |
 | Duplikat wzorca chipów filtra (`fbar`/`chp`) w innych listach z filtrem (np. atlas, hub) - kandydat do wspólnego komponentu po wdrożeniu 011 | `components/workout-plan/*`, `components/community/*` | 011 | ux, etap 3 (`00-system` sekcja 4) |
 
+## Bilans makro (006): dług i weryfikacje
+| Opis | Lokalizacja | Zadanie źródłowe | Źródło (agent) |
+|---|---|---|---|
+| AU-11: nie dodano kolumny `isIncomplete` w `meal_logs` — `hasIncompleteData` w ViewModel domyślnie false; wymaga potwierdzenia, czy zapis posiłku zeruje brakujące makro | `lib/meal-logs.ts`, `types/fitatu.ts` | 006 | koordynator (implementacja ADR 0005) |
+| Offline / szkielet ładowania / banner „dane z HH:MM” na `/nutrition/today` — MVP bez pełnych stanów 5.6–5.8 | `components/nutrition/nutrition-today-view.tsx` | 006 | ux §5.6–5.8 (P3) |
+| Sortowanie odchyleń po wadze (BR-10) i wariant compact bez wykresu na niskim ekranie — odłożone | `DayBalanceCard`, `WeekTrendBars` | 006 | ux §4.4.4 / §4.5 |
+
 ## Plany treningowe / atlas (008): dokończenie v1.1
 | Opis | Lokalizacja | Zadanie źródłowe | Źródło (agent) |
 |---|---|---|---|

@@ -30,4 +30,6 @@ export type FitatuDaySummary = {
   source: "live" | "mock" | "error" | "unavailable";
   /** Gdy `source === "error"` — komunikat dla użytkownika. */
   errorMessage?: string;
+  /** Liczba wpisów w dzienniku (0 = brak posiłków; nie mylić z 0 kcal). */
+  entryCount?: number;
 };

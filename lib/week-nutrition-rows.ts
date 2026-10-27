@@ -1,4 +1,5 @@
 import type { FitatuDaySummary } from "@/types/fitatu";
+import type { NutritionDayType } from "@/lib/nutrition-goals";
 import {
   rollupWeekThroughIndex,
   weekDayIndexThroughToday as weekDayIndexThroughTodayImpl,
@@ -17,6 +18,10 @@ export type WeekDayNutritionRow = {
   fatGoal: number | null;
   carbsConsumed: number;
   carbsGoal: number | null;
+  /** Liczba wpisów meal_logs; 0 = brak posiłków (AU-4). */
+  entryCount: number;
+  /** Typ dnia z profilu; brak klucza w dayTypes = rest. */
+  dayType: NutritionDayType;
 };
 
 function formatPlDayHeadline(dateKey: string): string {
@@ -33,6 +38,7 @@ function formatPlDayHeadline(dateKey: string): string {
 
 export function buildWeekNutritionRows(
   days: FitatuDaySummary[],
+  dayTypes: Record<string, NutritionDayType> = {},
 ): WeekDayNutritionRow[] {
   return days.map((d) => {
     const mg = d.macroGoals;
@@ -49,6 +55,16 @@ export function buildWeekNutritionRows(
       fatGoal: mg != null && mg.fat > 0 ? mg.fat : null,
       carbsConsumed: d.macros.carbs,
       carbsGoal: mg != null && mg.carbs > 0 ? mg.carbs : null,
+      entryCount:
+        typeof d.entryCount === "number" && Number.isFinite(d.entryCount)
+          ? Math.max(0, Math.floor(d.entryCount))
+          : d.caloriesConsumed > 0 ||
+              d.macros.protein > 0 ||
+              d.macros.fat > 0 ||
+              d.macros.carbs > 0
+            ? 1
+            : 0,
+      dayType: dayTypes[d.date] ?? "rest",
     };
   });
 }

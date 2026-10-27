@@ -3,7 +3,7 @@
 - **Polecenie użytkownika**: Dla ekranu „Statystyki bilansu” (MAKRO DZIŚ, zakładka Dieta/Analiza): (1) analiza techniczna i wizualna, (2) propozycja nowego wyglądu, (3) zmiany architektoniczne i techniczne, (4) sprawdzenie poprawności przekazywania i wyliczeń wszystkich elementów, (5) nowa architektura i makieta. Na tym etapie BEZ implementacji - deliverable to analiza, ocena, propozycja architektury i makieta.
 - **Ścieżka**: pełna (zmiana UI i wyliczeń, wymaga decyzji architektonicznej o jednym źródle sum; etap bez kodu produkcyjnego - bramki implementacyjne pominięte, patrz niżej)
 - **Gałąź / PR**: brak na tym etapie. Implementacja po decyzji właściciela: nowa gałąź od `main` (nie `feat/koniec-treningu-flow`, która ma niezcommitowane zmiany zadania 005). PR: (do utworzenia)
-- **Status**: w toku (etapy 1, 3 i 4 zakończone; warunki ux z etapu 4 pkt 2 — BR-5/AU-1 — rozstrzygnięte przez architekta w `docs/adr/0005-redesign-bilansu-makro.md`; pozostaje warunek pkt 1 — zatwierdzenie Q-O1..Q-O3 przez właściciela — przed startem etapu 5; odpowiedzi do Q-O1..Q-O5 zastąpione na razie założeniami domyślnymi architekta, patrz ADR p. 1)
+- **Status**: w toku (etap 5 wdrożony 2026-10-28 wg ADR 0005 i `docs/ux/006-…`; Q-O1..Q-O3 przyjęte domyślnie z ADR; pozostają testy etapu 6)
 
 ## Decyzja o bramkach (etap 1, analityk)
 
@@ -23,7 +23,7 @@
 | 2 | Bramka wejściowa | prawnik | POMINIĘTA (brak wpływu prawnego, sekcja powyżej) | | |
 | 3 | Projekt techniczny | architekt | ZATWIERDZONE Z UWAGAMI (audyt AU-1..AU-16 zamknięty: 3 potwierdzone błędy do naprawy — AU-1, AU-2/AU-3, AU-4; 1 ryzyko świadomie odłożone — AU-8; reszta bez błędu lub poza zakresem) | 2026-10-25 | `docs/adr/0005-redesign-bilansu-makro.md` |
 | 4 | Projekt ekranów | ux | ZATWIERDZONE Z UWAGAMI (warunki: Q-O1..Q-O3 zatwierdzone przez właściciela; odpowiedź architekta na BR-5 i AU-1; model widoku zgodny z sekcją 9 specyfikacji) | 2026-10-25 | `docs/ux/006-redesign-bilansu-makro.md`, makieta `docs/ux/006-redesign-bilansu-makro-makieta.html` |
-| 5 | Implementacja | backend, frontend | POMINIĘTA na tym etapie | | |
+| 5 | Implementacja | backend, frontend | ZATWIERDZONE Z UWAGAMI (ViewModel RSC, rollupMacroWindow, redesign UI wg makiety; AU-11 bez migracji) | 2026-10-28 | kod: `lib/nutrition-*`, `components/nutrition/*` |
 | 6 | Przegląd kodu | architekt | POMINIĘTA na tym etapie | | |
 | 7 | Testy funkcjonalne i spójność | tester, ux | POMINIĘTA na tym etapie | | `docs/testy/` |
 | 8 | Przegląd wizualny | ux | POMINIĘTA na tym etapie | | |

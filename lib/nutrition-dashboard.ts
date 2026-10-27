@@ -58,6 +58,7 @@ export type TodaysNutritionSettingsRow = {
 
 function weekSheetFromRollup(
   week: NutritionWeekRollup,
+  dayTypes: NutritionSettingsState["dayTypes"] = {},
 ): PreviousWeekNutritionSheetWeek {
   return {
     weekLabel: formatPlCalendarRange(week.weekStart, week.weekEnd),
@@ -73,7 +74,7 @@ function weekSheetFromRollup(
       sumCaloriesGoal: week.sumCaloriesGoal,
       sumCaloriesConsumed: week.sumCaloriesConsumed,
     },
-    dayRows: buildWeekNutritionRows(week.days),
+    dayRows: buildWeekNutritionRows(week.days, dayTypes),
   };
 }
 
@@ -186,7 +187,7 @@ export async function loadNutritionWeekHistory(
     ),
   );
 
-  return weeksData.map(weekSheetFromRollup);
+  return weeksData.map((week) => weekSheetFromRollup(week, settings.dayTypes));
 }
 
 /**
