@@ -5,6 +5,26 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Hosting VPS: Docker, Caddy i staging obok Rendera",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W repozytorium jest obraz Docker (Next.js standalone), Compose z Caddy, Uptime Kuma i cron sprzątania oraz workflow publikujący obraz do GHCR.",
+      "Staging na własnym VPS za Cloudflare można postawić równolegle; Render Free pozostaje adresem produkcji i APK do osobnego GO-LIVE po checklistie.",
+      "Instrukcje deploy, staging, rollback i szkic odtworzenia serwera są w dokumentacji repozytorium.",
+    ],
+  },
+  {
+    title: "Zapowiedź — iPhone: powłoka gotowa pod App Store i instalacja bez Developer",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "W Profilu na iPhonie jest instrukcja „Udostępnij → Dodaj do ekranu początkowego”, żeby korzystać z GymBrat bez konta Apple Developer.",
+      "Powłoka iOS ma splash, ekran offline, pull-to-refresh, Privacy Manifest i most haptyki — baza do wysyłki przez App Store Connect na Macu.",
+      "Natywna aplikacja dokleja User-Agent GymBratIosApp; checklista publikacji jest w dokumentacji repozytorium.",
+    ],
+  },
+  {
     title: "Zapowiedź — Koniec treningu: jeden spójny ekran zamiast trzech",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

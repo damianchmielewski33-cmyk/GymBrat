@@ -1,8 +1,8 @@
 /**
  * Wibracje / haptyka: `navigator.vibrate` w przeglądarce oraz most
- * `GymBratAndroid.vibrate` / `AwpAndroid.vibrate` w WebView APK.
+ * `GymBratAndroid.vibrate` / `AwpAndroid.vibrate` / `GymBratIos.vibrate` w WebView.
  *
- * iOS Safari nie wspiera Vibration API — wywołanie jest no-op.
+ * iOS Safari nie wspiera Vibration API — natywna powłoka iOS używa haptics.
  */
 
 export type HapticPattern = number[];
@@ -33,6 +33,15 @@ function tryNativeBridge(pattern: HapticPattern): boolean {
   if (typeof gym === "function") {
     try {
       gym.call(window.GymBratAndroid, csv);
+      return true;
+    } catch {
+      /* fallback poniżej */
+    }
+  }
+  const ios = window.GymBratIos?.vibrate;
+  if (typeof ios === "function") {
+    try {
+      ios.call(window.GymBratIos, csv);
       return true;
     } catch {
       /* fallback poniżej */

@@ -36,6 +36,22 @@ describe("haptics", () => {
     expect(navVibrate).not.toHaveBeenCalled();
   });
 
+  it("używa mostu GymBratIos.vibrate gdy brak Androida", () => {
+    const bridgeVibrate = vi.fn();
+    const navVibrate = vi.fn(() => true);
+    vi.stubGlobal("navigator", { vibrate: navVibrate });
+    vi.stubGlobal("window", {
+      GymBratIos: {
+        getVersionName: () => "1.0.0",
+        getVersionCode: () => 1,
+        vibrate: bridgeVibrate,
+      },
+    });
+    hapticTap();
+    expect(bridgeVibrate).toHaveBeenCalledWith(HAPTIC_TAP.join(","));
+    expect(navVibrate).not.toHaveBeenCalled();
+  });
+
   it("fallback do AwpAndroid.vibrate gdy brak GymBratAndroid", () => {
     const bridgeVibrate = vi.fn();
     const navVibrate = vi.fn(() => true);

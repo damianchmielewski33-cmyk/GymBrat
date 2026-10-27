@@ -1,0 +1,43 @@
+name: GymBrat
+options:
+  bundleIdPrefix: pl.gymbrat
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: 1
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+targets:
+  GymBrat:
+    type: application
+    platform: iOS
+    sources:
+      - path: GymBrat
+        excludes:
+          - "**/*.md"
+          - Assets.xcassets
+          - "**/*.xcprivacy"
+          - "**/*.entitlements"
+    resources:
+      - path: GymBrat/Assets.xcassets
+      - path: GymBrat/PrivacyInfo.xcprivacy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: pl.gymbrat.app
+        PRODUCT_NAME: GymBrat
+        INFOPLIST_FILE: GymBrat/Info.plist
+        GENERATE_INFOPLIST_FILE: false
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: GymBrat/GymBrat.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: false
+        ENABLE_PREVIEWS: false
+    info:
+      path: GymBrat/Info.plist
+      properties:
+        CFBundleDisplayName: GymBrat

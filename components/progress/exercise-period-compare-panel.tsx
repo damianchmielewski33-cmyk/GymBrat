@@ -44,13 +44,13 @@ const TABS: { id: ExercisePeriodKind; label: string }[] = [
 
 function outcomeTone(o: ExercisePeriodOutcome): string {
   if (o === "progress") return "text-emerald-300";
-  if (o === "regress") return "text-rose-300";
-  return "text-white/45";
+  if (o === "regress") return "text-[var(--gym-text-secondary)]";
+  return "text-[var(--gym-text-secondary)]";
 }
 
 function barFill(o: ExercisePeriodOutcome): string {
   if (o === "progress") return "#34d399";
-  if (o === "regress") return "#fb7185";
+  if (o === "regress") return "#9a9182";
   return "#ebc44a";
 }
 
@@ -59,7 +59,7 @@ function OutcomeIcon({ outcome }: { outcome: ExercisePeriodOutcome }) {
     return <ArrowUpRight className="h-3.5 w-3.5 text-emerald-300" aria-hidden />;
   }
   if (outcome === "regress") {
-    return <ArrowDownRight className="h-3.5 w-3.5 text-rose-300" aria-hidden />;
+    return <ArrowDownRight className="h-3.5 w-3.5 text-[var(--gym-text-secondary)]" aria-hidden />;
   }
   return <Minus className="h-3.5 w-3.5 text-white/35" aria-hidden />;
 }
@@ -69,7 +69,7 @@ function VerdictBadge({ compare }: { compare: ExercisePeriodCompare }) {
     compare.verdict === "progress"
       ? "bg-emerald-400/15 text-emerald-300"
       : compare.verdict === "regress"
-        ? "bg-rose-400/15 text-rose-300"
+        ? "bg-white/[0.06] text-[var(--gym-text-secondary)]"
         : "bg-white/[0.08] text-white/55";
   return (
     <span
@@ -90,7 +90,7 @@ function PercentBar({ metric }: { metric: ExercisePeriodMetric }) {
     metric.outcome === "progress"
       ? "bg-gradient-to-r from-emerald-500 to-emerald-300"
       : metric.outcome === "regress"
-        ? "bg-gradient-to-r from-rose-500 to-rose-300"
+        ? "bg-gradient-to-r from-neutral-600 to-neutral-400"
         : "bg-gradient-to-r from-[var(--gym-gold-deep)] to-[var(--gym-gold)]";
 
   return (
@@ -159,7 +159,7 @@ function ChipList({
                 "rounded-lg border px-2 py-1 text-[11px]",
                 m.outcome === "progress"
                   ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
-                  : "border-rose-400/25 bg-rose-400/10 text-rose-200",
+                  : "border-white/15 bg-white/[0.05] text-[var(--gym-text-secondary)]",
               )}
             >
               {m.label}{" "}

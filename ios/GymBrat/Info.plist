@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_BASE_URL</key>
+	<string>https://gym-brat.vercel.app/</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>pl</string>
+	<key>CFBundleDisplayName</key>
+	<string>GymBrat</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>GymBrat używa kamery do skanowania kodów kreskowych produktów i zdjęć posiłków oraz sylwetki.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Mikrofon może być użyty przy nagrywaniu wideo z kamery w skanerze lub raportach — tylko gdy sam to włączysz.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>GymBrat potrzebuje dostępu do zdjęć, aby dodać zdjęcia posiłków i sylwetki do dziennika.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>GymBrat może zapisać wyeksportowane zdjęcie na rolce aparatu, gdy o to poprosisz.</string>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleLightContent</string>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>pl.gymbrat.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>gymbrat</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

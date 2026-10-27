@@ -1,28 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Dumbbell, Flame, Medal, Scale, Trophy } from "lucide-react";
+import { useMemo } from "react";
+import { ChevronRight, Dumbbell, Flame, Medal, Scale, Trophy } from "lucide-react";
 import { ReadinessCard } from "@/components/progress/readiness-card";
 import { WeekProgressCalendarCard } from "@/components/progress/week-progress-calendar-card";
 import {
   Meter,
+  CollapsibleCard,
+  EmptyNote,
+  PctValue,
   ProgressSection,
-  StatTile,
   Surface,
-  toneText,
 } from "@/components/progress/progress-ui";
-import { velocityTone } from "@/lib/analytics";
 import type { AchievementIcon } from "@/lib/achievements";
 import {
   fmtNum,
-  fmtPct,
   fmtSigned,
   formatDayMonth,
-  plural,
 } from "@/lib/progress-format";
 import type { ProgressHubData } from "@/lib/progress-hub";
 import type { ProgressTabId } from "@/lib/progress-tabs";
-import { cn } from "@/lib/utils";
 
 function AchievementGlyph({ icon }: { icon: AchievementIcon }) {
   const cls = "h-4 w-4 text-[var(--gym-gold)]";
@@ -33,7 +30,6 @@ function AchievementGlyph({ icon }: { icon: AchievementIcon }) {
   return <Trophy className={cls} aria-hidden />;
 }
 
-const ACHIEVEMENTS_PREVIEW = 3;
 
 /**
  * Przegląd = jedno miejsce na „co jest teraz”: gotowość, tydzień, skrót trendów,
@@ -47,7 +43,6 @@ export function OverviewTab({
   onNavigate: (tab: ProgressTabId) => void;
 }) {
   const { intelligence, body, week } = data;
-  const [showAll, setShowAll] = useState(false);
 
   const unlocked = useMemo(
     () =>
@@ -56,61 +51,36 @@ export function OverviewTab({
         .sort((a, b) => (b.unlockedAt ?? "").localeCompare(a.unlockedAt ?? "")),
     [week.achievements],
   );
-  const visible = showAll ? unlocked : unlocked.slice(0, ACHIEVEMENTS_PREVIEW);
-
   const e1rm30 = intelligence.velocity.overall.e1rmPct.days30;
-  const tonnage30 = intelligence.velocity.overall.volumePct.days30;
-  const month = intelligence.consistency.month;
   const { tempo } = body;
 
   return (
-    <div className="space-y-3.5">
-      <ReadinessCard data={intelligence} />
-
+    <div className="space-y-5">
       <WeekProgressCalendarCard summary={week.summary} />
 
-      <ProgressSection title="Trendy" trailing="ostatnie 30 dni">
-        <div className="grid grid-cols-2 gap-2">
-          <StatTile
-            label="Siła · e1RM"
-            value={fmtPct(e1rm30)}
-            valueClassName={toneText(velocityTone(e1rm30))}
-            hint="średnio po ćwiczeniach"
-            onClick={() => onNavigate("sila")}
-          />
-          <StatTile
-            label="Tonaż"
-            value={fmtPct(tonnage30)}
-            valueClassName={toneText(velocityTone(tonnage30))}
-            hint="łączna objętość"
-            onClick={() => onNavigate("sila")}
-          />
-          <StatTile
-            label="Waga od startu"
-            value={
-              <>
-                {fmtSigned(tempo.deltaFromStartKg, "", 1)}
-                <span className="ml-1 text-[11px] text-white/40">kg</span>
-              </>
-            }
-            hint={
-              tempo.currentKg != null
-                ? `teraz ${fmtNum(tempo.currentKg, 1)} kg`
-                : "brak raportów wagi"
-            }
-            onClick={() => onNavigate("sylwetka")}
-          />
-          <StatTile
-            label="Regularność"
-            value={`${month.scorePct}%`}
-            hint={`${month.done} z ${month.planned} ${plural(month.planned, "treningu", "treningów", "treningów")}`}
-            onClick={() => onNavigate("tydzien")}
-          />
-        </div>
+      <div className="grid gap-5 md:grid-cols-2">
+      <ProgressSection title="Gotowość" trailing="7 dni">
+        <ReadinessCard data={intelligence} />
       </ProgressSection>
 
-      {week.goals.length > 0 ? (
-        <ProgressSection title="Następne cele">
+      <ProgressSection title="Postęp" trailing="ostatnie 30 dni">
+        <Surface variant="list" className="overflow-hidden">
+          <button type="button" onClick={() => onNavigate("sila")} className="flex min-h-14 w-full items-center gap-3 px-3.5 py-3 text-left">
+            <span className="min-w-0 flex-1"><span className="block text-[15px] font-semibold text-white">Siła (e1RM)</span><span className="mt-0.5 block text-[12px] text-[var(--gym-text-secondary)]">średnio po ćwiczeniach</span></span>
+            <PctValue value={e1rm30} className="text-[15px]" /><ChevronRight className="h-4 w-4 text-[var(--gym-text-secondary)]" aria-hidden />
+          </button>
+          <button type="button" onClick={() => onNavigate("sylwetka")} className="flex min-h-14 w-full items-center gap-3 px-3.5 py-3 text-left">
+            <span className="min-w-0 flex-1"><span className="block text-[15px] font-semibold text-white">Waga od startu</span><span className="mt-0.5 block text-[12px] text-[var(--gym-text-secondary)]">{tempo.currentKg != null ? `teraz ${fmtNum(tempo.currentKg, 1)} kg` : "Dodaj pierwszy pomiar wagi"}</span></span>
+            {tempo.deltaFromStartKg != null ? <span className="font-metric text-[15px] tabular-nums text-white">{fmtSigned(tempo.deltaFromStartKg, " kg", 1)}</span> : <span className="text-[12px] text-[var(--gym-text-secondary)]">Za mało danych</span>}
+            <ChevronRight className="h-4 w-4 text-[var(--gym-text-secondary)]" aria-hidden />
+          </button>
+        </Surface>
+      </ProgressSection>
+      </div>
+
+      <ProgressSection title="Cele i osiągnięcia">
+        <div className="space-y-2.5">
+          {week.goals.length > 0 ? (
           <Surface className="space-y-3">
             {week.goals.map((g) => (
               <div key={g.id} className="space-y-1.5">
@@ -126,18 +96,11 @@ export function OverviewTab({
               </div>
             ))}
           </Surface>
-        </ProgressSection>
-      ) : null}
-
-      <ProgressSection title="Zdobyte" trailing={unlocked.length}>
-        {unlocked.length === 0 ? (
-          <Surface className="py-6 text-center text-[13px] text-white/45">
-            Trenuj dalej — osiągnięcia odblokują się automatycznie.
-          </Surface>
-        ) : (
-          <>
+          ) : null}
+          <CollapsibleCard title={unlocked.length ? `Osiągnięcia · ${unlocked.length}` : "Osiągnięcia"} summary={unlocked.length ? `Ostatnie: ${unlocked[0]?.title ?? "—"}${unlocked[0]?.unlockedAt ? ` · ${formatDayMonth(unlocked[0].unlockedAt)}` : ""}` : "Pierwsze odznaki pojawią się po kilku treningach."}>
+          {unlocked.length > 0 ? (
             <Surface variant="list" className="overflow-hidden">
-              {visible.map((a) => (
+              {unlocked.slice(0, 5).map((a) => (
                 <div key={a.id} className="flex items-center gap-3 px-3.5 py-3">
                   <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--neon-rgb),0.12)]">
                     <AchievementGlyph icon={a.icon} />
@@ -158,20 +121,9 @@ export function OverviewTab({
                 </div>
               ))}
             </Surface>
-            {unlocked.length > ACHIEVEMENTS_PREVIEW ? (
-              <button
-                type="button"
-                onClick={() => setShowAll((v) => !v)}
-                className={cn(
-                  "w-full text-center text-[11px] font-semibold uppercase tracking-[0.16em]",
-                  "text-white/45 hover:text-white/70",
-                )}
-              >
-                {showAll ? "Pokaż mniej" : `Pokaż wszystkie (${unlocked.length})`}
-              </button>
-            ) : null}
-          </>
-        )}
+          ) : <p className="px-3.5 py-3 text-[13px] text-[var(--gym-text-secondary)]">Zapisz kilka treningów, aby odblokować pierwsze osiągnięcia.</p>}
+          </CollapsibleCard>
+        </div>
       </ProgressSection>
     </div>
   );

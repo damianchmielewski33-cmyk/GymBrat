@@ -22,7 +22,7 @@ function VerdictBadge({
     verdict === "progress"
       ? "bg-emerald-400/15 text-emerald-300"
       : verdict === "regress"
-        ? "bg-rose-400/15 text-rose-300"
+        ? "bg-white/[0.06] text-[var(--gym-text-secondary)]"
         : verdict === "flat"
           ? "bg-white/[0.08] text-white/60"
           : "bg-white/[0.06] text-white/40";
@@ -49,7 +49,7 @@ function OutcomeIcon({
     );
   }
   if (outcome === "regress") {
-    return <ArrowDownRight className="h-3.5 w-3.5 text-rose-300" aria-hidden />;
+    return <ArrowDownRight className="h-3.5 w-3.5 text-[var(--gym-text-secondary)]" aria-hidden />;
   }
   return <Minus className="h-3.5 w-3.5 text-white/35" aria-hidden />;
 }
@@ -219,7 +219,7 @@ export function WeekOverWeekCard({
             m.outcome === "progress"
               ? "text-emerald-300"
               : m.outcome === "regress"
-                ? "text-rose-300"
+                ? "text-[var(--gym-text-secondary)]"
                 : "text-white/40";
           return (
             <li
@@ -251,7 +251,7 @@ export function WeekOverWeekCard({
       <Explainer>
         <p>
           {alignedPartial
-            ? "Gdy jeden tydzień to bieżący, oba zakresy są wyrównane do Pn→dziś — środek tygodnia nie wygląda jak regres względem pełnego Pn–Nd."
+            ? "Gdy jeden tydzień to bieżący, oba zakresy są wyrównane do Pn→dziś, aby porównanie uwzględniało taką samą liczbę dni."
             : "Oba tygodnie liczone w pełnym zakresie Pn–Nd."}
         </p>
       </Explainer>

@@ -1,0 +1,52 @@
+# Zależności i artefakty buildu
+node_modules
+.next
+out
+build
+dist
+coverage
+*.tsbuildinfo
+
+# Git / IDE / lokalne
+.git
+.github
+.cursor
+.claude
+.vscode
+.idea
+*.md
+!README.md
+
+# Env i sekrety — nigdy w obrazie
+.env
+.env.*
+!.env.example
+deploy/.env
+deploy/.env.*
+!deploy/.env.example
+
+# Lokalna baza / certyfikaty
+*.db
+*.db-journal
+local.db
+*.pem
+
+# Android (build APK poza obrazem WWW; fetch-android-apk przy buildzie)
+android/.gradle
+android/**/build
+.android-sdk
+public/gymbrat.apk
+public/gymbrat.apk.tmp
+public/gymbrat-*.apk
+
+# Java local compose
+java-backend/target
+
+# Testy / E2E / docs niepotrzebne w runtime
+e2e
+docs
+playwright-report
+test-results
+
+# Vercel
+.vercel

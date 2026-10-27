@@ -103,6 +103,12 @@ export type ProgressExerciseRow = {
   lastBestWeight: number;
   /** Najlepsza seria powtórzeń (przydatne przy 0 kg). */
   lastBestReps: number;
+  /** e1RM z ostatniej sesji oraz kierunek zmian między dwiema ostatnimi sesjami. */
+  lastBestE1rm: number | null;
+  e1rmTrend: VolumeTrendKind;
+  e1rmDeltaPercent: number | null;
+  bestSetLabel: string | null;
+  history: ExerciseSessionPoint[];
   spark: number[];
   trend: VolumeTrendKind;
   status: ProgressExerciseStatus;
@@ -440,6 +446,11 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
         lastVolumeKg: 0,
         lastBestWeight: 0,
         lastBestReps: 0,
+        lastBestE1rm: null,
+        e1rmTrend: "flat",
+        e1rmDeltaPercent: null,
+        bestSetLabel: null,
+        history: [],
         spark: [],
         trend: "flat",
         status: "pending",
@@ -449,12 +460,29 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
         metric: "kg",
       };
     }
+    const e1rmPoints = agg.points.filter((point) => point.bestE1rm > 0);
+    const lastE1rmPoint = e1rmPoints.at(-1);
+    const previousE1rmPoint = e1rmPoints.at(-2);
+    const e1rmTrend = lastE1rmPoint && previousE1rmPoint
+      ? trendOf(previousE1rmPoint.bestE1rm, lastE1rmPoint.bestE1rm)
+      : "flat";
+    const e1rmDeltaPercent = lastE1rmPoint && previousE1rmPoint && previousE1rmPoint.bestE1rm > 0
+      ? Math.round(((lastE1rmPoint.bestE1rm - previousE1rmPoint.bestE1rm) / previousE1rmPoint.bestE1rm) * 100)
+      : null;
+    const bestSetLabel = agg.hasWeighted
+      ? `${safeRound1(agg.bestWeight)} kg × ${agg.bestReps}`
+      : `${agg.bestReps} powt.`;
     if (spark.length === 1) {
       return {
         name: displayName,
         lastVolumeKg: agg.lastVolume,
         lastBestWeight: safeRound1(agg.bestWeight),
         lastBestReps: agg.bestReps,
+        lastBestE1rm: lastE1rmPoint?.bestE1rm ?? null,
+        e1rmTrend,
+        e1rmDeltaPercent,
+        bestSetLabel,
+        history: agg.points,
         spark,
         trend: "flat",
         status: "first",
@@ -475,6 +503,11 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       lastVolumeKg: agg.lastVolume,
       lastBestWeight: safeRound1(agg.bestWeight),
       lastBestReps: agg.bestReps,
+      lastBestE1rm: lastE1rmPoint?.bestE1rm ?? null,
+      e1rmTrend,
+      e1rmDeltaPercent,
+      bestSetLabel,
+      history: agg.points,
       spark,
       trend,
       status: "compare",

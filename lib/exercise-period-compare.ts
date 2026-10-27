@@ -385,18 +385,18 @@ function buildCompare(
     verdict = "progress";
     verdictLabel =
       kind === "week"
-        ? "Progres względem poprzedniego tygodnia"
+        ? "Wynik wyższy niż w poprzednim tygodniu"
         : kind === "month"
-          ? "Progres względem poprzedniego miesiąca"
-          : "Progres względem poprzedniego roku";
+          ? "Wynik wyższy niż w poprzednim miesiącu"
+          : "Wynik wyższy niż w poprzednim roku";
   } else if (falling.length > rising.length) {
     verdict = "regress";
     verdictLabel =
       kind === "week"
-        ? "Regres względem poprzedniego tygodnia"
+        ? "Wynik niższy niż w poprzednim tygodniu"
         : kind === "month"
-          ? "Regres względem poprzedniego miesiąca"
-          : "Regres względem poprzedniego roku";
+          ? "Wynik niższy niż w poprzednim miesiącu"
+          : "Wynik niższy niż w poprzednim roku";
   }
 
   return {

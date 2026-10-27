@@ -36,12 +36,12 @@ Pełna wizja „Principal SaaS” = **Faza 2+**, nie warunek Fazy 1.
 
 ## Kolejność Fazy 1
 
-1. Docker + Caddy + Compose + cron + Kuma w repo.  
-2. Staging na VPS za Cloudflare.  
-3. Checklista staging → GO.  
+1. Docker + Caddy + Compose + cron + Kuma w repo — **zrobione** (`Dockerfile`, `deploy/*`, `deploy-vps.yml`, runbooki).  
+2. Staging na VPS za Cloudflare (właściciel + sekrety).  
+3. Checklista staging → GO (`docs/staging.md`).  
 4. Cutover DNS/env/OAuth/APK za zgodą.  
 5. Changelog Deploy Guardian (`planned` → `date`).  
-6. Wyłączenie Render Free jako produkcji.
+6. Wyłączenie Render Free jako produkcji — **nigdy przed zielonym stagingiem**.
 
 ## Raport
 

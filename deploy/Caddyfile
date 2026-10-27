@@ -1,0 +1,29 @@
+# GymBrat — reverse proxy (Faza 1).
+# GYMBRAT_DOMAIN = host publiczny, np. staging.example.com (bez https://)
+# Za Cloudflare: SSL Full Strict; Caddy może użyć origin cert albo ACME.
+# Docs: docs/deployment.md
+
+{
+	email {$CADDY_ACME_EMAIL}
+}
+
+{$GYMBRAT_DOMAIN} {
+	encode gzip zstd
+
+	header {
+		Strict-Transport-Security "max-age=15552000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "SAMEORIGIN"
+		-Server
+	}
+
+	# Statyczne assety Next — dłuższy cache na edge (Cloudflare i tak może nadpisać)
+	@static path /_next/static/*
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
+	reverse_proxy gymbrat-web:3000 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+	}
+}

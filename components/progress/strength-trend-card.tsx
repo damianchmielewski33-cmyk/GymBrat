@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
+import { useMemo } from "react";
 import { TrendingUp } from "lucide-react";
 import {
   CollapsibleCard,
@@ -17,19 +16,15 @@ import {
 } from "@/components/progress/progress-ui";
 import {
   pickVelocity,
-  velocityTone,
   type PredictionItem,
   type StrengthVelocitySnapshot,
   type VelocityPeriodKey,
 } from "@/lib/analytics";
 import {
   buildPredictionAggregate,
-  buildStrengthMovers,
   confidenceLabelPl,
-  type StrengthMover,
 } from "@/lib/analytics/strength-movers";
 import { fmtPct } from "@/lib/progress-format";
-import { exerciseProgressKey } from "@/lib/progress-tabs";
 import { cn } from "@/lib/utils";
 
 type PeriodId = "7" | "30" | "90";
@@ -40,52 +35,6 @@ const PERIODS: { id: PeriodId; label: string; key: VelocityPeriodKey }[] = [
   { id: "90", label: "90 dni", key: "days90" },
 ];
 
-const MUSCLES_PREVIEW = 4;
-
-function MoverList({
-  title,
-  tone,
-  items,
-}: {
-  title: string;
-  tone: "up" | "down";
-  items: StrengthMover[];
-}) {
-  return (
-    <div className="min-w-0 space-y-1">
-      <Eyebrow className={tone === "up" ? "text-emerald-300/85" : "text-rose-300/85"}>
-        {title}
-      </Eyebrow>
-      {items.length === 0 ? (
-        <p className="py-1.5 text-[12px] text-white/35">brak wyraźnych zmian</p>
-      ) : (
-        <ul>
-          {items.map((m) => (
-            <li key={m.exerciseKey}>
-              <Link
-                href={`/progress/exercises/${exerciseProgressKey(m.name)}`}
-                className="flex items-center justify-between gap-2 py-1.5"
-              >
-                <span className="truncate text-[12px] font-medium text-white/85">
-                  {m.name}
-                </span>
-                <span
-                  className={cn(
-                    "shrink-0 font-metric text-[12px] tabular-nums",
-                    toneText(tone),
-                  )}
-                >
-                  {fmtPct(m.scorePct)}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 /**
  * Jeden wspólny „Trend siły” z jednym przełącznikiem okresu.
  * Zastępuje trzy karty, które pokazywały to samo: licznik rośnie/stoi/spada,
@@ -93,39 +42,28 @@ function MoverList({
  */
 export function StrengthTrendCard({
   velocity,
+  period,
+  onPeriodChange,
 }: {
   velocity: StrengthVelocitySnapshot;
+  period: PeriodId;
+  onPeriodChange: (period: PeriodId) => void;
 }) {
-  const [period, setPeriod] = useState<PeriodId>("30");
-  const [allMuscles, setAllMuscles] = useState(false);
   const meta = PERIODS.find((p) => p.id === period) ?? PERIODS[1]!;
   const key = meta.key;
 
   const e1rm = pickVelocity(velocity.overall.e1rmPct, key);
   const volume = pickVelocity(velocity.overall.volumePct, key);
 
-  const movers = useMemo(() => buildStrengthMovers(velocity, 3, key), [velocity, key]);
-
-  const muscles = useMemo(
-    () =>
-      velocity.byMuscle
-        .map((m) => ({ ...m, pct: pickVelocity(m.volumePct, key) }))
-        .filter((m) => m.pct != null)
-        .sort((a, b) => Math.abs(b.pct!) - Math.abs(a.pct!)),
-    [velocity.byMuscle, key],
-  );
-  const shownMuscles = allMuscles ? muscles : muscles.slice(0, MUSCLES_PREVIEW);
-
-  const hasMovers = movers.rising.length > 0 || movers.falling.length > 0;
-  const hasAny = e1rm != null || volume != null || muscles.length > 0 || hasMovers;
+  const hasAny = e1rm != null || volume != null;
 
   return (
-    <ProgressSection title="Trend siły" trailing={meta.label}>
-      <Surface className="space-y-3">
+    <ProgressSection title="Podsumowanie" trailing={meta.label}>
+      <Surface variant="hero" className="space-y-3">
         <SegmentedControl
           options={PERIODS}
           value={period}
-          onChange={setPeriod}
+          onChange={onPeriodChange}
           ariaLabel="Okres trendu siły"
         />
 
@@ -145,39 +83,6 @@ export function StrengthTrendCard({
                 value={<PctValue value={volume} className="text-[1.35rem]" />}
               />
             </div>
-
-            {hasMovers ? (
-              <div className="grid grid-cols-2 gap-x-4">
-                <MoverList title="Rośnie" tone="up" items={movers.rising} />
-                <MoverList title="Spada" tone="down" items={movers.falling} />
-              </div>
-            ) : null}
-
-            {muscles.length > 0 ? (
-              <div className="space-y-1">
-                <Eyebrow>Partie · objętość</Eyebrow>
-                <ul className="divide-y divide-white/[0.06]">
-                  {shownMuscles.map((m) => (
-                    <li
-                      key={m.id}
-                      className="flex items-center justify-between gap-2 py-1.5"
-                    >
-                      <span className="text-[13px] text-white/85">{m.label}</span>
-                      <PctValue value={m.pct} className="text-[13px]" />
-                    </li>
-                  ))}
-                </ul>
-                {muscles.length > MUSCLES_PREVIEW ? (
-                  <button
-                    type="button"
-                    onClick={() => setAllMuscles((v) => !v)}
-                    className="w-full pt-1 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45 hover:text-white/70"
-                  >
-                    {allMuscles ? "Pokaż mniej" : `Pokaż wszystkie (${muscles.length})`}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
 
             <Explainer>
               <p>

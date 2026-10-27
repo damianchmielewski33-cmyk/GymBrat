@@ -6,6 +6,7 @@ import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { WeightAverageChart } from "@/components/progress/weight-average-chart";
 import { PhotoCompareSection } from "@/components/progress/photos-tab";
 import {
+  CollapsibleCard,
   Explainer,
   Eyebrow,
   ProgressSection,
@@ -64,7 +65,7 @@ function etaLabel(input: {
 }
 
 /**
- * Sylwetka = waga (z celem) → tempo → obwody → zdjęcia.
+ * Sylwetka = waga → wykres i tempo → obwody → zdjęcia na żądanie.
  * Zakładka Zdjęcia została tu włączona: wcześniej waga i pas „od startu”
  * były pokazane w trzech miejscach (hero, tempo, zdjęcia).
  */
@@ -134,7 +135,7 @@ export function BodyTab({
   }
 
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-5">
       <Surface variant="hero" className="space-y-3">
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
@@ -174,8 +175,6 @@ export function BodyTab({
             ) : null}
           </div>
         </div>
-
-        <WeightAverageChart weights={weights} />
 
         <div className="border-t border-white/10 pt-2.5">
           {editingGoal ? (
@@ -251,18 +250,19 @@ export function BodyTab({
           )}
         </div>
 
-        <Explainer>
-          <p>Kropki to raporty, linia to średnia z ostatnich raportów.</p>
-        </Explainer>
       </Surface>
 
       <ProgressSection
-        title="Tempo"
+        title="Wykres i tempo"
         trailing={`${tempo.reportCount} ${plural(tempo.reportCount, "raport", "raporty", "raportów")}`}
       >
+        <Surface className="space-y-2">
+          <WeightAverageChart weights={weights} />
+          <Explainer><p>Kropki to raporty. Linia pokazuje średnią z ostatnich raportów. „Zmiana w 6 tyg.” to tempo wyliczone z pomiarów w tym okresie.</p></Explainer>
+        </Surface>
         <div className="grid grid-cols-3 gap-2">
           <StatTile
-            label="6 tygodni"
+            label="Zmiana w 6 tyg."
             value={fmtSigned(tempo.kgPerWeekLast6, "", 2)}
             hint="kg / tydzień"
           />
@@ -348,7 +348,9 @@ export function BodyTab({
         </Surface>
       </ProgressSection>
 
-      <PhotoCompareSection data={photos} />
+      <CollapsibleCard title="Zdjęcia" summary="Porównanie Start i Teraz · pokaż na żądanie" lazy>
+        <PhotoCompareSection data={photos} />
+      </CollapsibleCard>
     </div>
   );
 }

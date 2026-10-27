@@ -1,26 +1,23 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
   Gauge,
-  Trophy,
 } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { MiniSparkline } from "@/components/home/mini-sparkline";
 import { MuscleBalancePanel } from "@/components/progress/muscle-balance-panel";
-import {
-  StrengthForecastCard,
-  StrengthTrendCard,
-} from "@/components/progress/strength-trend-card";
+import { StrengthTrendCard } from "@/components/progress/strength-trend-card";
 import {
   CollapsibleCard,
   EmptyNote,
   Explainer,
   ProgressSection,
+  SegmentedControl,
   StatTile,
   Surface,
 } from "@/components/progress/progress-ui";
@@ -28,6 +25,7 @@ import type { ProgressIntelligence } from "@/lib/analytics";
 import { formatDayMonth } from "@/lib/progress-format";
 import type { ProgressExerciseRow, ProgressHubData } from "@/lib/progress-hub";
 import { exerciseProgressKey } from "@/lib/progress-tabs";
+import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
 
 function formatMetric(n: number, metric: ProgressExerciseRow["metric"]) {
@@ -37,90 +35,110 @@ function formatMetric(n: number, metric: ProgressExerciseRow["metric"]) {
   return metric === "reps" ? `${v} powt.` : `${v} kg`;
 }
 
-function ExerciseRow({ ex }: { ex: ProgressExerciseRow }) {
-  const href = `/progress/exercises/${exerciseProgressKey(ex.name)}`;
+type ExerciseMetric = "e1rm" | "volume" | "record";
 
-  let sub: ReactNode = null;
-  if (ex.status === "pending") {
-    sub = <span className="text-white/35">jeszcze nie robione</span>;
-  } else if (ex.status === "first" && ex.firstDate) {
-    sub = (
-      <span className="text-white/40">
-        pierwszy trening {formatDayMonth(ex.firstDate)}
-      </span>
-    );
-  } else if (ex.status === "compare" && ex.volumeDeltaKg != null) {
-    const neg = ex.volumeDeltaKg < 0;
-    const pos = ex.volumeDeltaKg > 0;
-    const deltaAbs = Math.abs(Math.round(ex.volumeDeltaKg));
-    const unit = ex.metric === "reps" ? " powt." : " kg";
-    const pct =
-      ex.volumeDeltaPercent != null
-        ? ` (${ex.volumeDeltaPercent > 0 ? "+" : ""}${ex.volumeDeltaPercent}%)`
-        : "";
-    sub = (
-      <span
-        className={cn(
-          pos && "text-emerald-400",
-          neg && "text-rose-400",
-          !pos && !neg && "text-white/45",
-        )}
-      >
-        {pos ? "+" : neg ? "−" : ""}
-        {deltaAbs}
-        {unit}
-        {pct}
-      </span>
-    );
+type ExerciseDisplay = {
+  source: ProgressExerciseRow;
+  status: "pending" | "first" | "compare";
+  trend: "up" | "flat" | "down";
+  hasTrend: boolean;
+  valueLabel: string;
+  subtitle: string;
+  spark: number[];
+  isNewRecord: boolean;
+};
+
+function exerciseDisplay(
+  exercise: ProgressExerciseRow,
+  metric: ExerciseMetric,
+  period: "7" | "30" | "90",
+  today: string,
+): ExerciseDisplay {
+  const cutoff = addCalendarDays(today, -(Number(period) - 1));
+  const sessions = exercise.history.filter((point) => point.date >= cutoff);
+  const weighted = exercise.metric === "kg";
+  const noData: ExerciseDisplay = {
+    source: exercise,
+    status: "pending",
+    trend: "flat",
+    hasTrend: false,
+    valueLabel: "—",
+    subtitle: "Brak treningów w tym okresie",
+    spark: [],
+    isNewRecord: false,
+  };
+  if (!sessions.length) return noData;
+
+  if (metric === "record") {
+    const best = sessions.reduce((current, point) => {
+      const value = weighted ? point.bestE1rm : point.bestReps;
+      const bestValue = weighted ? current.bestE1rm : current.bestReps;
+      return value > bestValue ? point : current;
+    });
+    const label = weighted
+      ? `${best.bestWeight} kg × ${best.bestReps}`
+      : `${best.bestReps} powt.`;
+    const newCutoff = addCalendarDays(today, -21);
+    return {
+      source: exercise,
+      status: sessions.length > 1 ? "compare" : "first",
+      trend: "flat",
+      hasTrend: false,
+      valueLabel: label,
+      subtitle: `Najlepszy wynik · ${formatDayMonth(best.date)}`,
+      spark: [],
+      isNewRecord: best.date >= newCutoff,
+    };
   }
 
+  const values = sessions.map((point) =>
+    metric === "e1rm" ? (weighted ? point.bestE1rm : point.bestReps) :
+      (weighted ? point.volumeKg : point.totalReps),
+  ).filter((value) => value > 0);
+  if (!values.length) return noData;
+  const latest = values[values.length - 1]!;
+  const previous = values.length > 1 ? values[values.length - 2]! : null;
+  const deltaPercent = previous != null && previous > 0
+    ? Math.round(((latest - previous) / previous) * 100)
+    : null;
+  const trend = deltaPercent == null || Math.abs(deltaPercent) < 3
+    ? "flat"
+    : deltaPercent > 0 ? "up" : "down";
+  const label = metric === "e1rm" && weighted ? `${latest} kg` : `${Math.round(latest)} ${weighted ? "kg" : "powt."}`;
+  const subtitle = deltaPercent == null
+    ? `Za mało danych do trendu · ${sessions.length} ${sessions.length === 1 ? "sesja" : "sesje"}`
+    : `${deltaPercent > 0 ? "+" : ""}${deltaPercent}% · ${sessions.length} sesji`;
+
+  return {
+    source: exercise,
+    status: values.length > 1 ? "compare" : "first",
+    trend,
+    hasTrend: deltaPercent != null,
+    valueLabel: label,
+    subtitle,
+    spark: values.slice(-6),
+    isNewRecord: false,
+  };
+}
+
+function ExerciseRow({ display, period }: { display: ExerciseDisplay; period: "7" | "30" | "90" }) {
+  const { source: exercise } = display;
+  const href = `/progress/exercises/${exerciseProgressKey(exercise.name)}?okres=${period}`;
   return (
-    <Link
-      href={href}
-      className="grid grid-cols-[1fr_auto] items-center gap-2.5 px-3.5 py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[1fr_3rem_auto]"
-    >
+    <Link href={href} className="grid min-h-14 grid-cols-[1fr_auto] items-center gap-2.5 px-3.5 py-3 transition-colors hover:bg-white/[0.02] sm:grid-cols-[1fr_3.5rem_auto]">
       <div className="min-w-0">
-        <p className="truncate text-[13px] font-semibold leading-snug text-white">
-          {ex.name}
-        </p>
-        <p className="mt-0.5 text-[11px] leading-snug">{sub}</p>
+        <p className="line-clamp-2 text-[15px] font-semibold leading-5 text-white">{exercise.name}</p>
+        <p className="mt-0.5 text-[12px] leading-snug text-[var(--gym-text-secondary)]">{display.subtitle}</p>
       </div>
-
-      {ex.status === "compare" && ex.spark.length >= 2 ? (
+      {display.spark.length >= 2 ? (
         <div className="hidden w-12 shrink-0 sm:block">
-          <MiniSparkline
-            values={ex.spark.slice(-6)}
-            color={
-              ex.trend === "down"
-                ? "#fb7185"
-                : ex.trend === "up"
-                  ? "#34d399"
-                  : "#a3a3a3"
-            }
-            className="h-6 w-full"
-          />
+          <MiniSparkline values={display.spark} color={display.trend === "up" ? "#3ecf72" : "#9a9182"} className="h-5 w-full" />
         </div>
-      ) : (
-        <span className="hidden sm:block" aria-hidden />
-      )}
-
+      ) : <span className="hidden sm:block" aria-hidden />}
       <div className="flex shrink-0 items-center justify-end gap-1">
-        {ex.status === "pending" ? (
-          <span className="font-metric text-[15px] text-white/30">—</span>
-        ) : (
-          <span className="font-metric text-[14px] tabular-nums text-white">
-            {formatMetric(ex.lastVolumeKg, ex.metric)}
-          </span>
-        )}
-        {ex.status === "compare" ? (
-          ex.trend === "down" ? (
-            <ArrowDownRight className="h-3.5 w-3.5 text-rose-400" aria-hidden />
-          ) : ex.trend === "up" ? (
-            <ArrowUpRight className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
-          ) : (
-            <ArrowRight className="h-3.5 w-3.5 text-white/30" aria-hidden />
-          )
-        ) : null}
+        <span className={cn("font-metric text-[14px] tabular-nums text-white", display.valueLabel.length > 12 && "max-w-28 text-right text-[12px]")}>{display.valueLabel}</span>
+        {display.isNewRecord ? <span className="rounded-full border border-[var(--gym-gold)]/45 px-2 py-0.5 text-[11px] font-semibold text-[var(--gym-gold)]">Nowy</span> : null}
+        {display.hasTrend ? display.trend === "up" ? <ArrowUpRight className="h-3.5 w-3.5 text-[var(--gym-success)]" aria-hidden /> : display.trend === "down" ? <ArrowDownRight className="h-3.5 w-3.5 text-[var(--gym-text-secondary)]" aria-hidden /> : <ArrowRight className="h-3.5 w-3.5 text-[var(--gym-text-secondary)]" aria-hidden /> : null}
       </div>
     </Link>
   );
@@ -159,11 +177,10 @@ function IntensityCard({
       ? "#fb7185"
       : intensity.rirTrend === "up"
         ? "#34d399"
-        : "#a3a3a3";
+        : "#9a9182";
 
   return (
-    <ProgressSection title="Intensywność" trailing="ostatnie 6 treningów">
-      <Surface className="space-y-3">
+    <Surface className="space-y-3">
         <div className="flex items-start gap-2.5">
           <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]">
             <Gauge className="h-3.5 w-3.5" aria-hidden />
@@ -243,125 +260,84 @@ function IntensityCard({
             <p>Tempo z planu pojawi się tu, gdy ustawisz je przy ćwiczeniach.</p>
           )}
         </Explainer>
-      </Surface>
-    </ProgressSection>
-  );
-}
-
-function RecordsCard({ maxes }: { maxes: ProgressHubData["strength"]["maxes"] }) {
-  const newest = maxes.find((m) => m.isNew) ?? maxes[0] ?? null;
-
-  if (maxes.length === 0) {
-    return (
-      <EmptyNote>
-        Zaliczone serie (także bez ciężaru) pojawią się tu jako rekordy.
-      </EmptyNote>
-    );
-  }
-
-  return (
-    <CollapsibleCard
-      title="Rekordy"
-      icon={<Trophy className="h-3.5 w-3.5" aria-hidden />}
-      summary={
-        newest
-          ? `${maxes.length} · ostatni: ${newest.name}`
-          : `${maxes.length}`
-      }
-    >
-      <ul className="divide-y divide-white/[0.06]">
-        {maxes.map((m) => (
-          <li key={`${m.kind}-${m.name}`}>
-            <Link
-              href={`/progress/exercises/${exerciseProgressKey(m.name)}`}
-              className="grid grid-cols-[1fr_auto] items-center gap-2.5 px-3.5 py-2.5"
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="truncate text-[13px] font-semibold leading-snug text-white">
-                    {m.name}
-                  </p>
-                  {m.isNew ? (
-                    <span className="shrink-0 rounded-md bg-[var(--gym-gold)]/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--gym-gold)]">
-                      nowy
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-0.5 text-[11px] leading-snug text-white/40">
-                  {m.kind === "bodyweight"
-                    ? `masa ciała · ${formatDayMonth(m.date)}`
-                    : `${m.bestWeight} kg × ${m.bestReps} · ${formatDayMonth(m.date)}`}
-                </p>
-              </div>
-              <div className="min-w-[3.5rem] text-right">
-                <AnimatedMetric
-                  value={m.kind === "bodyweight" ? m.bestReps : m.bestE1rm}
-                  decimals={m.kind === "bodyweight" ? 0 : 1}
-                  className="text-[16px] leading-none text-white"
-                />
-                <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-white/35">
-                  {m.kind === "bodyweight" ? "powt." : "e1RM"}
-                </p>
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </CollapsibleCard>
-  );
-}
-
-function CountChips({
-  counts,
-}: {
-  counts: { up: number; flat: number; down: number };
-}) {
-  return (
-    <span className="inline-flex items-center gap-2 tabular-nums">
-      <span className="inline-flex items-center gap-0.5 text-emerald-400">
-        <ArrowUpRight className="h-3 w-3" aria-hidden />
-        {counts.up}
-      </span>
-      <span className="inline-flex items-center gap-0.5 text-white/50">
-        <ArrowRight className="h-3 w-3" aria-hidden />
-        {counts.flat}
-      </span>
-      <span className="inline-flex items-center gap-0.5 text-rose-400">
-        <ArrowDownRight className="h-3 w-3" aria-hidden />
-        {counts.down}
-      </span>
-    </span>
+    </Surface>
   );
 }
 
 /**
- * Siła: trend → ćwiczenia wg planu → rekordy → intensywność → balans → prognoza.
- * Liczniki rośnie/stoi/spada (dawny osobny hero) są teraz w nagłówku listy ćwiczeń.
+ * Siła: podsumowanie, lista ćwiczeń, balans i zwijana intensywność.
  */
 export function StrengthTab({
   data,
   intelligence,
+  period,
+  onPeriodChange,
 }: {
   data: ProgressHubData["strength"];
   intelligence: ProgressIntelligence;
+  period: "7" | "30" | "90";
+  onPeriodChange: (period: "7" | "30" | "90") => void;
 }) {
-  const { maxes, volumeCounts, volumeComparedCount, planGroups, intensity } = data;
+  const { planGroups, intensity } = data;
+  const [filter, setFilter] = useState<"all" | "up" | "down" | "flat">("all");
+  const [displayMetric, setDisplayMetric] = useState<ExerciseMetric>("e1rm");
+  const visibleGroups = planGroups
+    .map((group) => ({
+      ...group,
+      exercises: group.exercises.filter((exercise) => {
+        if (filter === "all") return true;
+        const trend = displayMetric === "e1rm" ? exercise.e1rmTrend : exercise.trend;
+        const hasTrend = displayMetric === "e1rm" ? exercise.e1rmDeltaPercent != null : exercise.status === "compare";
+        return hasTrend && trend === filter;
+      }),
+    }))
+    .filter((group) => group.exercises.length > 0);
+  const exerciseCount = planGroups.reduce((count, group) => count + group.exercises.length, 0);
+  const trendCounts = planGroups.reduce(
+    (counts, group) => {
+      for (const exercise of group.exercises) {
+        const trend = displayMetric === "e1rm" ? exercise.e1rmTrend : exercise.trend;
+        const hasTrend = displayMetric === "e1rm"
+          ? exercise.e1rmDeltaPercent != null
+          : exercise.status === "compare";
+        if (hasTrend) counts[trend] += 1;
+      }
+      return counts;
+    },
+    { up: 0, down: 0, flat: 0 },
+  );
 
   return (
-    <div className="space-y-3.5">
-      <StrengthTrendCard velocity={intelligence.velocity} />
+    <div className="space-y-5">
+      <StrengthTrendCard velocity={intelligence.velocity} period={period} onPeriodChange={onPeriodChange} />
 
       <ProgressSection
-        title="Ćwiczenia wg planu"
-        trailing={
-          volumeComparedCount > 0 ? <CountChips counts={volumeCounts} /> : undefined
-        }
+        title="Ćwiczenia"
+        trailing="ostatnie sesje"
       >
         {planGroups.length === 0 ? (
           <EmptyNote>Ustaw plan treningowy albo zalicz pierwsze serie.</EmptyNote>
         ) : (
           <div className="space-y-2">
-            {planGroups.map((group, idx) => (
+            <SegmentedControl
+              options={[{ id: "e1rm", label: "e1RM" }, { id: "volume", label: "Tonaż" }, { id: "record", label: "Rekord" }] as const}
+              value={displayMetric}
+              onChange={setDisplayMetric}
+              ariaLabel="Metryka ćwiczeń"
+            />
+            <div role="group" aria-label="Filtr ćwiczeń" className="flex gap-2 overflow-x-auto pb-1">
+              {([
+                { id: "all", label: "Wszystkie", count: exerciseCount },
+                { id: "up", label: "Rośnie", count: trendCounts.up },
+                { id: "down", label: "Spada", count: trendCounts.down },
+                { id: "flat", label: "Stoją", count: trendCounts.flat },
+              ] as const).map((option) => (
+                <button key={option.id} type="button" aria-pressed={filter === option.id} onClick={() => setFilter(option.id)} className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-medium ${filter === option.id ? "border-[var(--gym-gold)]/60 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)]" : "border-[var(--gym-border-gold)] text-white/80"}`}>
+                  {option.label} <span className="tabular-nums text-[var(--gym-text-secondary)]">{option.count}</span>
+                </button>
+              ))}
+            </div>
+            {visibleGroups.length === 0 ? <EmptyNote>Brak ćwiczeń w tej grupie w wybranym okresie.</EmptyNote> : visibleGroups.map((group, idx) => (
               <CollapsibleCard
                 key={group.planId}
                 title={group.planName}
@@ -370,7 +346,7 @@ export function StrengthTab({
               >
                 <div className="divide-y divide-white/[0.06]">
                   {group.exercises.map((ex) => (
-                    <ExerciseRow key={`${group.planId}-${ex.name}`} ex={ex} />
+                    <ExerciseRow key={`${group.planId}-${ex.name}`} ex={ex} period={period} displayMetric={displayMetric} />
                   ))}
                 </div>
               </CollapsibleCard>
@@ -378,23 +354,23 @@ export function StrengthTab({
             <Explainer>
               <p>
                 Strzałka porównuje objętość ostatniego treningu z poprzednim.
-                Objętość = powtórzenia × kg × serie.
+                Tonaż to suma powtórzeń × ciężar we wszystkich zaliczonych seriach.
               </p>
             </Explainer>
           </div>
         )}
       </ProgressSection>
 
-      <RecordsCard maxes={maxes} />
+      <MuscleBalancePanel muscle={intelligence.muscle} />
 
-      <IntensityCard intensity={intensity} />
+      <CollapsibleCard
+        title="Intensywność · ostatnie 6 treningów"
+        summary={`RIR śr. ${intensity.avgRir ?? "—"} · RPE śr. ${intensity.avgRpe ?? "—"}`}
+        icon={<Gauge className="h-3.5 w-3.5" aria-hidden />}
+      >
+        <IntensityCard intensity={intensity} />
+      </CollapsibleCard>
 
-      <MuscleBalancePanel
-        muscle={intelligence.muscle}
-        stagnation={intelligence.stagnation}
-      />
-
-      <StrengthForecastCard predictions={intelligence.predictions} />
     </div>
   );
 }

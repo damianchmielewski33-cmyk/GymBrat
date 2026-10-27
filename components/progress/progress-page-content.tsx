@@ -6,9 +6,11 @@ import type { ProgressTabId } from "@/lib/progress-tabs";
 export async function ProgressPageContent({
   userId,
   tab,
+  period,
 }: {
   userId: string;
   tab: ProgressTabId;
+  period: "7" | "30" | "90";
 }) {
   let data: Awaited<ReturnType<typeof getProgressHubData>>;
   try {
@@ -37,5 +39,5 @@ export async function ProgressPageContent({
     );
   }
 
-  return <ProgressHubView data={data} initialTab={tab} />;
+  return <ProgressHubView data={data} initialTab={tab} initialPeriod={period} />;
 }

@@ -33,6 +33,11 @@ const APK_RESPONSE_HEADERS = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  /**
+   * Obraz Docker (Faza 1 VPS): lekki runtime bez pełnego node_modules.
+   * Render / lokalne `next start` nadal działają.
+   */
+  output: "standalone",
   /** Mniej śladu w Sources / Network — bez map źródeł w przeglądarce. */
   productionBrowserSourceMaps: false,
   outputFileTracingRoot: path.join(projectRoot),
