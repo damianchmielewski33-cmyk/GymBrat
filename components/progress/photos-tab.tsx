@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MoveHorizontal } from "lucide-react";
 import { clearStartPhotoAction } from "@/actions/start-photo";
+import { revealProgressPhotosAction } from "@/actions/progress-photos";
 import { ChangeStartPhotoButton } from "@/components/progress/change-start-photo-button";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import {
@@ -71,11 +72,41 @@ function DeltaChip({
  * Porównanie zdjęć Start ↔ Teraz. Jedna karta z suwakiem zamiast trzech
  * powtórzeń tych samych zdjęć i wag (suwak, dwie karty Start/Teraz, tabela).
  */
-export function PhotoCompareSection({
-  data,
-}: {
-  data: ProgressHubData["photos"];
-}) {
+export function PhotoCompareSection() {
+  const [data, setData] = useState<ProgressHubData["photos"] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await revealProgressPhotosAction();
+      if (result.ok) setData(result.data);
+      else setError(result.error);
+    } catch {
+      setError("Nie udało się wczytać zdjęć.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
+
+  if (loading) return <p className="px-3.5 py-5 text-center text-[13px] text-[var(--gym-text-secondary)]">Ładowanie zdjęć…</p>;
+  if (error || !data) return (
+    <div className="space-y-2 p-3.5 text-center">
+      <p role="alert" className="text-[13px] text-[var(--gym-text-secondary)]">{error ?? "Nie udało się wczytać zdjęć."}</p>
+      <button type="button" onClick={() => void load()} className="min-h-11 rounded-xl border border-[var(--gym-border-gold)] px-4 text-[13px] font-semibold text-white">Spróbuj ponownie</button>
+    </div>
+  );
+  return <PhotoCompareContent data={data} />;
+}
+
+function PhotoCompareContent({ data }: { data: ProgressHubData["photos"] }) {
   const { items, now } = data;
   const router = useRouter();
   const { notifySaved, notifyError } = useSaveFeedback();
@@ -85,11 +116,11 @@ export function PhotoCompareSection({
   const [pos, setPos] = useState(50);
 
   useEffect(() => {
-    try {
-      setBaselineId(window.localStorage.getItem(BASELINE_KEY));
-    } catch {
-      setBaselineId(null);
-    }
+    const frame = window.requestAnimationFrame(() => {
+      try { setBaselineId(window.localStorage.getItem(BASELINE_KEY)); }
+      catch { setBaselineId(null); }
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const start: ProgressPhotoItem | null = useMemo(() => {

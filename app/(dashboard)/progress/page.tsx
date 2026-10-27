@@ -32,7 +32,7 @@ export default async function ProgressPage({
       </header>
 
       <Suspense fallback={<DashboardRouteSkeleton />}>
-        <ProgressPageContent userId={userId} tab={tab} period={period} />
+        <ProgressPageContent tab={tab} period={period} />
       </Suspense>
     </div>
   );

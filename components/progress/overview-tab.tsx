@@ -7,7 +7,6 @@ import { WeekProgressCalendarCard } from "@/components/progress/week-progress-ca
 import {
   Meter,
   CollapsibleCard,
-  EmptyNote,
   PctValue,
   ProgressSection,
   Surface,
@@ -39,7 +38,7 @@ export function OverviewTab({
   data,
   onNavigate,
 }: {
-  data: ProgressHubData;
+  data: Pick<ProgressHubData, "intelligence" | "body" | "week">;
   onNavigate: (tab: ProgressTabId) => void;
 }) {
   const { intelligence, body, week } = data;

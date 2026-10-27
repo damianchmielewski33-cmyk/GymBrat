@@ -26,17 +26,24 @@ async function main() {
   if (!url) throw new Error("Missing TURSO_DATABASE_URL.");
   const token = process.env.TURSO_AUTH_TOKEN;
   const client = createClient({ url, ...(token ? { authToken: token } : {}) });
-  const rows = await client.execute("SELECT id, exercises FROM workouts WHERE tonnage_kg IS NULL");
   let updated = 0;
-  for (let offset = 0; offset < rows.rows.length; offset += 50) {
-    const batch = rows.rows.slice(offset, offset + 50).map((row) => ({
+  let cursor = "";
+  while (true) {
+    const rows = await client.execute({
+      sql: "SELECT id, exercises FROM workouts WHERE tonnage_kg IS NULL AND id > ? ORDER BY id LIMIT 200",
+      args: [cursor],
+    });
+    if (!rows.rows.length) break;
+    const batch = rows.rows.map((row) => ({
       sql: "UPDATE workouts SET tonnage_kg = ? WHERE id = ? AND tonnage_kg IS NULL",
       args: [computeSessionTonnageKg(String(row.exercises ?? "")), String(row.id)],
     }));
     await client.batch(batch, "write");
     updated += batch.length;
-    console.log(`Backfilled ${updated}/${rows.rows.length} workout rows`);
+    cursor = String(rows.rows[rows.rows.length - 1]!.id);
+    console.log(`Backfilled ${updated} workout rows`);
   }
+  console.log(`Finished. Updated ${updated} workout rows.`);
   client.close();
 }
 
