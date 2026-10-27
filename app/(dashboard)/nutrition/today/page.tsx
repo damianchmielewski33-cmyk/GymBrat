@@ -7,6 +7,7 @@ import { NutritionTodayView } from "@/components/nutrition/nutrition-today-view"
 import { loadNutritionWeekHistory } from "@/lib/nutrition-dashboard";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { calendarDateKey } from "@/lib/local-date";
+import { buildMacroBalanceViewModel } from "@/lib/nutrition-day-balance";
 
 export default async function NutritionTodayPage() {
   const session = await auth();
@@ -34,8 +35,11 @@ export default async function NutritionTodayPage() {
   );
   const weeks = await loadNutritionWeekHistory(userId, settings, todayKey, 0);
   const currentWeek = weeks[0] ?? null;
-
-  return (
-    <NutritionTodayView todayKey={todayKey} currentWeek={currentWeek} />
+  const viewModel = buildMacroBalanceViewModel(
+    currentWeek?.dayRows ?? [],
+    todayKey,
+    currentWeek?.weekLabel ?? "Bieżący tydzień",
   );
+
+  return <NutritionTodayView model={viewModel} />;
 }

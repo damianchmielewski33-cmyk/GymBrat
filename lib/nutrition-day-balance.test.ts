@@ -13,7 +13,7 @@ import {
 function row(
   partial: Partial<WeekDayNutritionRow> & Pick<WeekDayNutritionRow, "dateKey">,
 ): WeekDayNutritionRow {
-  return {
+  const base = {
     headline: partial.headline ?? partial.dateKey,
     caloriesConsumed: 0,
     caloriesGoal: null,
@@ -23,8 +23,19 @@ function row(
     fatGoal: null,
     carbsConsumed: 0,
     carbsGoal: null,
+    entryCount: 0,
+    dayType: "rest" as const,
     ...partial,
   };
+  if (partial.entryCount == null) {
+    const hasMacros =
+      (partial.caloriesConsumed ?? 0) > 0 ||
+      (partial.proteinConsumed ?? 0) > 0 ||
+      (partial.fatConsumed ?? 0) > 0 ||
+      (partial.carbsConsumed ?? 0) > 0;
+    base.entryCount = hasMacros ? 1 : 0;
+  }
+  return base;
 }
 
 describe("nutrition-day-balance", () => {
@@ -67,7 +78,9 @@ describe("nutrition-day-balance", () => {
     const carbs = day.macros.find((m) => m.key === "carbs")!;
     expect(carbs.status).toBe("on_track");
 
-    expect(day.highlights.map((h) => h.key).sort()).toEqual([
+    // Dziś (in_progress): lista odchyleń pusta — hero używa direction, nie highlights.
+    expect(day.highlights).toEqual([]);
+    expect(day.macros.filter((m) => m.status === "deficit" || m.status === "surplus").map((h) => h.key).sort()).toEqual([
       "calories",
       "fat",
       "protein",
@@ -112,10 +125,39 @@ describe("nutrition-day-balance", () => {
       .filter((r) => r.dateKey <= "2026-10-06")
       .map((r) => buildDayMacroBalance(r, "2026-10-06"));
     const highlights = collectDayHighlights(days);
-    expect(highlights[0]?.day.isToday).toBe(true);
+    // AU-4 / UX: dziś nie wchodzi na listę odchyleń (jest w hero).
+    expect(highlights.every((h) => !h.day.isToday)).toBe(true);
     expect(highlights.some((h) => h.macro.key === "fat" && !h.day.isToday)).toBe(
       true,
     );
+  });
+
+  it("excludes empty days with goals from period and highlights (AU-4)", () => {
+    const rows = [
+      row({
+        dateKey: "2026-10-05",
+        entryCount: 0,
+        proteinConsumed: 0,
+        proteinGoal: 160,
+        caloriesConsumed: 0,
+        caloriesGoal: 2000,
+      }),
+      row({
+        dateKey: "2026-10-06",
+        proteinConsumed: 100,
+        proteinGoal: 160,
+        caloriesConsumed: 1800,
+        caloriesGoal: 2000,
+      }),
+    ];
+    const period = buildPeriodMacroBalance(rows, "2026-10-06");
+    const protein = period.macros.find((m) => m.key === "protein")!;
+    expect(protein.consumed).toBe(100);
+    expect(protein.goal).toBe(160);
+
+    const days = rows.map((r) => buildDayMacroBalance(r, "2026-10-06"));
+    const highlights = collectDayHighlights(days);
+    expect(highlights.every((h) => h.day.dateKey !== "2026-10-05")).toBe(true);
   });
 
   it("formats signed amounts and relative day labels", () => {

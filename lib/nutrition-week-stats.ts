@@ -2,6 +2,15 @@ import type { WeekDayNutritionRow } from "@/lib/week-nutrition-rows";
 
 export type MacroKey = "calories" | "protein" | "carbs" | "fat";
 
+/** Próg „w normie”: |Δ%| ≤ MACRO_TOLERANCE_PP albo |Δ| < 1 (Q-O1). */
+export const MACRO_TOLERANCE_PP = 5;
+
+export type DayEvaluationState =
+  | "future"
+  | "in_progress"
+  | "no_entries"
+  | "evaluated";
+
 export type MacroTotals = {
   /** Spożycie tylko z dni mających cel dla tego makro (spójne z goal). */
   consumed: number;
@@ -9,6 +18,15 @@ export type MacroTotals = {
   goal: number | null;
   daysWithGoal: number;
   daysInWindow: number;
+};
+
+export type MacroWindowRollup = MacroTotals & {
+  daysEvaluated: number;
+  daysNoEntries: number;
+  consumedClosed: number;
+  consumedToday: number;
+  goalClosed: number;
+  goalToday: number;
 };
 
 export type WeekMacroRollup = {
@@ -40,6 +58,115 @@ function emptyTotals(daysInWindow: number): MacroTotals {
     goal: null,
     daysWithGoal: 0,
     daysInWindow,
+  };
+}
+
+export function classifyDayState(
+  row: WeekDayNutritionRow,
+  todayKey: string,
+): DayEvaluationState {
+  if (row.dateKey > todayKey) return "future";
+  if (row.dateKey === todayKey) return "in_progress";
+  if (!(row.entryCount > 0)) return "no_entries";
+  return "evaluated";
+}
+
+/**
+ * Jedno źródło sum makro (ADR 0005): wspólna pętla z jawnym zakresem.
+ * Dni `no_entries` nigdy nie wchodzą do sumy celów ani spożycia.
+ */
+export function rollupMacroWindow(
+  rows: WeekDayNutritionRow[],
+  todayKey: string,
+  key: MacroKey,
+  opts: {
+    includeFutureDays: boolean;
+    includeInProgressGoal: "only_if_consumed" | "always" | "never";
+  },
+): MacroWindowRollup {
+  let consumed = 0;
+  let goalSum = 0;
+  let daysWithGoal = 0;
+  let daysInWindow = 0;
+  let daysEvaluated = 0;
+  let daysNoEntries = 0;
+  let consumedClosed = 0;
+  let consumedToday = 0;
+  let goalClosed = 0;
+  let goalToday = 0;
+
+  for (const row of rows) {
+    const state = classifyDayState(row, todayKey);
+    if (state === "future" && !opts.includeFutureDays) continue;
+
+    daysInWindow += 1;
+
+    if (state === "no_entries") {
+      daysNoEntries += 1;
+      continue;
+    }
+    if (state === "future") {
+      // Przyszłość w rollupie „cały tydzień”: cel wchodzi, spożycie 0.
+      const m = dayMacro(row, key);
+      if (m.goal != null && m.goal > 0) {
+        daysWithGoal += 1;
+        goalSum += m.goal;
+      }
+      continue;
+    }
+
+    const m = dayMacro(row, key);
+    const safeConsumed = Number.isFinite(m.consumed) ? m.consumed : 0;
+    const hasGoal = m.goal != null && m.goal > 0;
+    const hasEntries = row.entryCount > 0;
+
+    if (state === "in_progress") {
+      if (!hasEntries) {
+        daysNoEntries += 1;
+        if (opts.includeInProgressGoal === "always" && hasGoal) {
+          daysWithGoal += 1;
+          goalSum += m.goal!;
+          goalToday += m.goal!;
+        }
+        continue;
+      }
+      // BR-5: od pierwszego wpisu dziś wchodzi do sumy.
+      consumedToday += safeConsumed;
+      consumed += safeConsumed;
+      daysEvaluated += 1;
+      const includeGoal =
+        opts.includeInProgressGoal === "always" ||
+        opts.includeInProgressGoal === "only_if_consumed";
+      if (includeGoal && hasGoal) {
+        daysWithGoal += 1;
+        goalSum += m.goal!;
+        goalToday += m.goal!;
+      }
+      continue;
+    }
+
+    // evaluated (zamknięty z wpisami)
+    consumedClosed += safeConsumed;
+    consumed += safeConsumed;
+    daysEvaluated += 1;
+    if (hasGoal) {
+      daysWithGoal += 1;
+      goalSum += m.goal!;
+      goalClosed += m.goal!;
+    }
+  }
+
+  return {
+    consumed,
+    goal: daysWithGoal > 0 ? goalSum : null,
+    daysWithGoal,
+    daysInWindow,
+    daysEvaluated,
+    daysNoEntries,
+    consumedClosed,
+    consumedToday,
+    goalClosed,
+    goalToday,
   };
 }
 

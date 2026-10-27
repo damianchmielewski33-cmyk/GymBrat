@@ -306,26 +306,114 @@ export function EmptyNote({ children }: { children: ReactNode }) {
   );
 }
 
-/** Poziomy pasek (miernik, udział). */
+/** Poziomy pasek (miernik, udział). ADR/UX 006: overflow, segments, size. */
 export function Meter({
   pct,
   className,
   barClassName,
+  size = "md",
+  overflow = false,
+  segments,
+  none = false,
+  "aria-valuetext": ariaValueText,
+  "aria-label": ariaLabel,
 }: {
   pct: number;
   className?: string;
   barClassName?: string;
+  size?: "sm" | "md" | "lg";
+  /** Odcinek nadwyżki za 100% (biały). */
+  overflow?: boolean;
+  /** Zamknięte + dziś w toku (udziały 0–100 sumarycznie względem celu). */
+  segments?: { closedPct: number; todayPct: number };
+  /** Brak celu: tor przerywany bez wypełnienia. */
+  none?: boolean;
+  "aria-valuetext"?: string;
+  "aria-label"?: string;
 }) {
-  const w = Math.max(0, Math.min(100, pct));
+  const height =
+    size === "lg" ? "h-2" : size === "sm" ? "h-1" : "h-1.5";
+  const track = none
+    ? "rounded-full border border-dashed border-[var(--gym-text-secondary)]/50 bg-transparent"
+    : "rounded-full bg-[var(--gym-track)]";
+
+  if (none) {
+    return (
+      <div
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={0}
+        aria-valuetext={ariaValueText}
+        aria-label={ariaLabel}
+        className={cn(height, track, className)}
+      />
+    );
+  }
+
+  const safePct = Number.isFinite(pct) ? Math.max(0, pct) : 0;
+  const filled = Math.min(100, safePct);
+  const overflowPct = overflow && safePct > 100 ? Math.min(50, safePct - 100) : 0;
+
+  if (segments) {
+    const closed = Math.max(0, Math.min(100, segments.closedPct));
+    const today = Math.max(0, Math.min(100 - closed, segments.todayPct));
+    return (
+      <div
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(Math.min(100, closed + today))}
+        aria-valuetext={ariaValueText}
+        aria-label={ariaLabel}
+        className={cn(height, "relative overflow-hidden", track, className)}
+      >
+        <div className="absolute inset-0 flex">
+          <div
+            className={cn(
+              "h-full bg-[var(--gym-gold)] transition-[width] duration-500 ease-out motion-reduce:transition-none",
+              barClassName,
+            )}
+            style={{ width: `${closed}%` }}
+          />
+          <div
+            className="h-full bg-[color-mix(in_srgb,var(--gym-gold)_45%,transparent)] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+            style={{ width: `${today}%` }}
+          />
+        </div>
+        {overflowPct > 0 ? (
+          <div
+            className="absolute right-0 top-0 h-full bg-[color-mix(in_srgb,var(--foreground)_70%,transparent)]"
+            style={{ width: `${overflowPct}%` }}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
   return (
-    <div className={cn("h-1.5 overflow-hidden rounded-full bg-white/[0.08]", className)}>
+    <div
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(filled)}
+      aria-valuetext={ariaValueText}
+      aria-label={ariaLabel}
+      className={cn(height, "relative overflow-hidden", track, className)}
+    >
       <div
         className={cn(
-          "h-full rounded-full bg-[var(--gym-gold)] transition-[width] duration-300 motion-reduce:transition-none",
+          "h-full rounded-full bg-[var(--gym-gold)] transition-[width] duration-500 ease-out motion-reduce:transition-none",
           barClassName,
         )}
-        style={{ width: `${w}%` }}
+        style={{ width: `${filled}%` }}
       />
+      {overflowPct > 0 ? (
+        <div
+          className="absolute top-0 h-full bg-[color-mix(in_srgb,var(--foreground)_70%,transparent)]"
+          style={{ left: "100%", width: `${overflowPct}%`, marginLeft: `-${overflowPct}%` }}
+        />
+      ) : null}
     </div>
   );
 }

@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Bilans makro: czytelniejszy ekran MAKRO DZIŚ",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Ekran Statystyki bilansu pokazuje dziś jako hero (do celu / ponad cel), sumę pn→dziś z odcinkiem „dzień w toku” i listę odchyleń zamkniętych dni bez duplikacji.",
+      "Dni bez wpisów nie generują już fałszywego „brakuje 100%”; statusy są bez czerwieni oceniającej (złoto / biel / zieleń) i zawsze z tekstem.",
+      "Sumy tygodnia i bilansu pn→dziś liczą się jedną funkcją z jawnym zakresem — etykiety rozróżniają obie metryki.",
+    ],
+  },
+  {
     title: "Zapowiedź — Plany treningowe: nowe miejsce, atlas i koniec generatora AI",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

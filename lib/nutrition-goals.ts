@@ -1,6 +1,8 @@
 import type { FitatuDaySummary, FitatuMacroGrams } from "@/types/fitatu";
 import { kcalFromMacros } from "@/lib/kcal-from-macros";
 import { weekDateKeysMondayFirst } from "@/lib/local-date";
+import { buildWeekNutritionRows } from "@/lib/week-nutrition-rows";
+import { rollupMacroWindow } from "@/lib/nutrition-week-stats";
 
 export { weekDateKeysMondayFirst };
 
@@ -158,42 +160,39 @@ export async function buildWeeklyNutritionRollup(
     days.push(mergeSummaryWithProfileGoals(raw, settings, dateKey));
   }
 
-  let sumCaloriesGoal = 0;
-  let sumCaloriesConsumed = 0;
-  let sumProteinGoal = 0;
-  let sumProteinConsumed = 0;
-  let sumCarbsGoal = 0;
-  let sumCarbsConsumed = 0;
-  let sumFatGoal = 0;
-  let sumFatConsumed = 0;
-
-  for (const d of days) {
-    sumCaloriesConsumed += d.caloriesConsumed;
-    const mg = d.macroGoals;
-    const cg = d.caloriesGoal;
-    if (cg != null && Number.isFinite(cg)) sumCaloriesGoal += cg;
-    if (mg) {
-      sumProteinGoal += mg.protein;
-      sumCarbsGoal += mg.carbs;
-      sumFatGoal += mg.fat;
-    }
-    sumProteinConsumed += d.macros.protein;
-    sumCarbsConsumed += d.macros.carbs;
-    sumFatConsumed += d.macros.fat;
-  }
+  // ADR 0005: wspólna funkcja rollupMacroWindow — cel całego tygodnia
+  // (includeFutureDays), dziś zawsze z celem; dni bez wpisów wykluczone.
+  const rows = buildWeekNutritionRows(days, settings.dayTypes);
+  const todayKey = anchorDateKey;
+  const cal = rollupMacroWindow(rows, todayKey, "calories", {
+    includeFutureDays: true,
+    includeInProgressGoal: "always",
+  });
+  const pro = rollupMacroWindow(rows, todayKey, "protein", {
+    includeFutureDays: true,
+    includeInProgressGoal: "always",
+  });
+  const carb = rollupMacroWindow(rows, todayKey, "carbs", {
+    includeFutureDays: true,
+    includeInProgressGoal: "always",
+  });
+  const fat = rollupMacroWindow(rows, todayKey, "fat", {
+    includeFutureDays: true,
+    includeInProgressGoal: "always",
+  });
 
   return {
     weekStart: keys[0]!,
     weekEnd: keys[6]!,
     anchorDate: anchorDateKey,
     days,
-    sumCaloriesGoal,
-    sumCaloriesConsumed,
-    sumProteinGoal,
-    sumProteinConsumed,
-    sumCarbsGoal,
-    sumCarbsConsumed,
-    sumFatGoal,
-    sumFatConsumed,
+    sumCaloriesGoal: cal.goal ?? 0,
+    sumCaloriesConsumed: cal.consumed,
+    sumProteinGoal: pro.goal ?? 0,
+    sumProteinConsumed: pro.consumed,
+    sumCarbsGoal: carb.goal ?? 0,
+    sumCarbsConsumed: carb.consumed,
+    sumFatGoal: fat.goal ?? 0,
+    sumFatConsumed: fat.consumed,
   };
 }
