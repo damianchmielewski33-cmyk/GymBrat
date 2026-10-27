@@ -7,7 +7,10 @@ import {
   hasAndroidNativeTorch,
   isAndroidPhoneBrowserUserAgent,
   isAppWebViewUserAgent,
+  isIosAppWebViewUserAgent,
+  isIosPhoneBrowserUserAgent,
   parseAndroidAppIdentity,
+  parseIosAppIdentity,
   setAndroidNativeTorch,
   shouldShowAndroidUpdatePrompt,
   stableAndroidIdentity,
@@ -22,6 +25,35 @@ describe("app-webview", () => {
     expect(isAppWebViewUserAgent("Mozilla/5.0 AWPAndroidApp/1.10.3")).toBe(true);
     expect(isAppWebViewUserAgent("Mozilla/5.0 GymBratAndroidApp/0.1.0")).toBe(true);
     expect(isAppWebViewUserAgent("Mozilla/5.0")).toBe(false);
+  });
+
+  it("rozpoznaje natywny WebView iOS i Safari na iPhonie", () => {
+    expect(
+      isIosAppWebViewUserAgent(
+        "Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 GymBratIosApp/0.1.0 GymBratIosBuild/1",
+      ),
+    ).toBe(true);
+    expect(isIosAppWebViewUserAgent("Mozilla/5.0 (iPhone)")).toBe(false);
+    expect(
+      parseIosAppIdentity(
+        "Mozilla/5.0 GymBratIosApp/0.1.0 GymBratIosBuild/3",
+      ),
+    ).toEqual({ versionName: "0.1.0", versionCode: 3 });
+    expect(
+      isIosPhoneBrowserUserAgent(
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
+      ),
+    ).toBe(true);
+    expect(
+      isIosPhoneBrowserUserAgent(
+        "Mozilla/5.0 (iPhone) GymBratIosApp/0.1.0 GymBratIosBuild/1",
+      ),
+    ).toBe(false);
+    expect(
+      isIosPhoneBrowserUserAgent(
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Mobile Safari/537.36",
+      ),
+    ).toBe(false);
   });
 
   it("rozpoznaje przeglądarkę na telefonie Android (nie desktop, nie APK)", () => {

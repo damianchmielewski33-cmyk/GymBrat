@@ -6,6 +6,7 @@ import { Bell, Dumbbell, ShieldCheck, Smartphone, User as UserIcon, Utensils } f
 import { getDb } from "@/db";
 import { userSettings, users } from "@/db/schema";
 import { AndroidAppVersionCard } from "@/components/android-app-version-card";
+import { IosInstallCard } from "@/components/ios-install-card";
 import { ConsentSettingsCard } from "@/components/consent/consent-settings-card";
 import { AppPageHeader } from "@/components/layout/screen";
 import { BodyParamsForm } from "@/components/profile/body-params-form";
@@ -231,6 +232,7 @@ export default async function ProfilePage() {
           <LocaleSwitch />
         </ProfileBlock>
         <AndroidAppVersionCard />
+        <IosInstallCard />
       </ProfileSection>
 
       <ProfileSection

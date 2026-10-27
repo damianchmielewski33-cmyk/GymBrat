@@ -1,0 +1,111 @@
+# GymBrat — staging / produkcja na VPS (Faza 1).
+# Render Free pozostaje primary do GO-LIVE — ten stack działa równolegle.
+# Użycie (na VPS, w katalogu z tym plikiem i .env):
+#   docker compose pull && docker compose up -d
+# Docs: docs/deployment.md, docs/staging.md, docs/rollback.md
+
+name: gymbrat
+
+services:
+  caddy:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      GYMBRAT_DOMAIN: ${GYMBRAT_DOMAIN:?set GYMBRAT_DOMAIN}
+      CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      gymbrat-web:
+        condition: service_healthy
+    networks:
+      - gymbrat
+
+  gymbrat-web:
+    image: ${GYMBRAT_IMAGE:-ghcr.io/damianchmielewski33-cmyk/gymbrat:latest}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+      # SSoT URL — te same wartości co w .env (nadpisanie jawne dla czytelności)
+      NEXTAUTH_URL: ${NEXTAUTH_URL:?set NEXTAUTH_URL}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-${NEXTAUTH_URL}}
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-qO-",
+          "http://127.0.0.1:3000/api/version",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
+      retries: 3
+    networks:
+      - gymbrat
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    volumes:
+      - uptime_kuma_data:/app/data
+    ports:
+      - "3001:3001"
+    networks:
+      - gymbrat
+
+  cron-service:
+    image: curlimages/curl:8.12.1
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      CRON_INTERVAL_SEC: ${CRON_INTERVAL_SEC:-86400}
+      # Wewnętrzny URL Compose (nie przez Cloudflare)
+      CRON_TARGET_URL: ${CRON_TARGET_URL:-http://gymbrat-web:3000/api/cron/cleanup}
+    depends_on:
+      gymbrat-web:
+        condition: service_healthy
+    networks:
+      - gymbrat
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        echo "cron-service: target=$$CRON_TARGET_URL interval=$${CRON_INTERVAL_SEC}s"
+        while true; do
+          if [ -z "$${CRON_SECRET:-}" ]; then
+            echo "cron-service: brak CRON_SECRET — pomijam wywołanie"
+          else
+            code=$$(curl -sS -o /tmp/cron-out -w "%{http_code}" \
+              -X POST "$$CRON_TARGET_URL" \
+              -H "Authorization: Bearer $$CRON_SECRET" \
+              -H "Content-Type: application/json" \
+              --max-time 120 || echo "000")
+            echo "cron-service: HTTP $$code $$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            head -c 200 /tmp/cron-out 2>/dev/null || true
+            echo
+          fi
+          sleep "$$CRON_INTERVAL_SEC"
+        done
+
+networks:
+  gymbrat:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+  uptime_kuma_data:

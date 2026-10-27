@@ -1,6 +1,9 @@
 # GymBrat — produkcja na VPS + Docker
 
-Plan hostingu strony i originu APK. **Implementacja później** — ten dokument jest źródłem prawdy co do faz i architektury.
+Plan hostingu strony i originu APK. **Źródło prawdy** co do faz i architektury.  
+**Status Fazy 1 (kod w repo):** Dockerfile / `deploy/*` / Actions / runbooki — **tak**.  
+**Primary hosting nadal:** Render Free (`gymbrat.onrender.com`) do GO-LIVE po zielonym stagingu.  
+**Cutover DNS/APK / wyłączenie Render:** dopiero po checklistach i osobnej zgodzie.
 
 Powiązany agent Cursor: [`.cursor/agents/vps-docker-production.md`](../.cursor/agents/vps-docker-production.md).  
 Reguły wdrożeń / changelog: [AGENTS.md](../AGENTS.md), Deploy Guardian.
@@ -274,7 +277,7 @@ Wzorzec: [`env.example`](../env.example).
 | D5 | Storage zdjęć | Turso + limity → **R2 w Fazie 2** | ☐ |
 | D6 | Proxy | Caddy | ☐ |
 | D7 | Java na start | Nie | ☐ |
-| D8 | Domena prod | `https://________/` | ☐ |
+| D8 | Domena prod | `https://________/` (env `GYMBRAT_DOMAIN` / staging najpierw) | ☐ uzupełnij przy deployu |
 | D9 | Staging | `staging.<domena>` osobny env | ☐ |
 | D10 | CI/CD | GHCR + Actions (Faza 1) | ☐ |
 
@@ -286,7 +289,7 @@ Wzorzec: [`env.example`](../env.example).
 - Postgres zamiast Turso (chyba że osobna decyzja)  
 - Vercel Hobby jako produkcja  
 - Kopiowanie changelogu / wersji z AWP  
-- Implementacja w tym PR — **tylko dokumentacja; wdrożenie później**
+- Cutover produkcji / wyłączenie Render w tym samym kroku co pierwsze pliki Docker (Render zostaje aż staging zielony + GO)
 
 ---
 
@@ -294,10 +297,10 @@ Wzorzec: [`env.example`](../env.example).
 
 | Plik | Faza | Treść |
 |------|------|--------|
-| `docs/deployment.md` | 1 | Deploy Compose / Actions / Cloudflare |
-| `docs/staging.md` | 1 | Staging + checklista |
-| `docs/rollback.md` | 1 | Tagi image, cofnięcie &lt;2 min |
-| `docs/disaster-recovery.md` | 1 (szkic) / 2 (pełny) | Restore na nowym VPS |
+| `docs/deployment.md` | 1 | Deploy Compose / Actions / Cloudflare — **jest** |
+| `docs/staging.md` | 1 | Staging + checklista — **jest** |
+| `docs/rollback.md` | 1 | Tagi image, cofnięcie &lt;2 min — **jest** |
+| `docs/disaster-recovery.md` | 1 (szkic) / 2 (pełny) | Restore na nowym VPS — **szkic jest** |
 | `docs/security.md` | 2 | Hardening, Cloudflare, sekrety |
 | `docs/monitoring.md` | 2 | Kuma, zasoby, Sentry, logi |
 
@@ -320,3 +323,4 @@ Ten plik (`vps-docker-production.md`) pozostaje **mapą faz i decyzji**.
 |------|------|
 | 2026-10-20 | Pierwsza wersja — plan migracji Render → VPS |
 | 2026-10-20 | Fazy 1/2/3; Cloudflare + Compose + Kuma + cron; R2/Sentry/DR przy komercji; wdrożenie odłożone |
+| 2026-10-27 | Faza 1 w repo: Dockerfile, deploy/Compose/Caddy, GHCR Actions, runbooki; Render nadal primary |

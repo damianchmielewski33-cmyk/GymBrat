@@ -7,6 +7,11 @@ const APP_WEBVIEW_UA_MARKERS = ["AWPAndroidApp", "GymBratAndroidApp"] as const;
 const APP_WEBVIEW_VERSION_RE = /(?:AWPAndroidApp|GymBratAndroidApp)\/([^\s]+)/;
 const APP_WEBVIEW_CODE_RE = /(?:AWPAndroidCode|GymBratAndroidCode)\/(\d+)/;
 
+/** Natywna powłoka iOS (WKWebView) — katalog `ios/`. */
+const IOS_APP_UA_MARKER = "GymBratIosApp";
+const IOS_APP_VERSION_RE = /GymBratIosApp\/([^\s]+)/;
+const IOS_APP_BUILD_RE = /GymBratIosBuild\/(\d+)/;
+
 export const ANDROID_UPDATE_LATER_STORAGE_PREFIX = "gymbrat-android-update-later:";
 
 declare global {
@@ -44,6 +49,14 @@ declare global {
       canScheduleExactAlarms?: () => boolean;
       openExactAlarmSettings?: () => void;
     };
+    /** Most WKWebView iOS (`ios/`) — wersja, haptics, Safari. */
+    GymBratIos?: {
+      getVersionName: () => string;
+      getVersionCode: () => number;
+      notifyContentReady?: () => void;
+      vibrate?: (patternCsv: string) => void;
+      openExternalUrl?: (url: string) => void;
+    };
     /** Callback po systemowym dialogu POST_NOTIFICATIONS (Android 13+). */
     __gymbratOnNotificationPermission?: (granted: boolean) => void;
     /** Callback ustawiany przez ensureAndroidCameraPermission przed mostem. */
@@ -79,6 +92,52 @@ export function isAndroidPhoneBrowserUserAgent(ua: string | null | undefined): b
 export function isAndroidPhoneBrowserClient(): boolean {
   if (typeof navigator === "undefined") return false;
   return isAndroidPhoneBrowserUserAgent(navigator.userAgent);
+}
+
+export function isIosAppWebViewUserAgent(ua: string | null | undefined): boolean {
+  if (!ua) return false;
+  return ua.includes(IOS_APP_UA_MARKER);
+}
+
+export function isRunningInIosAppWebView(): boolean {
+  if (typeof navigator === "undefined") return false;
+  if (typeof window !== "undefined" && window.GymBratIos) return true;
+  return isIosAppWebViewUserAgent(navigator.userAgent);
+}
+
+/**
+ * Safari / WebKit na iPhone/iPad (nie natywny WKWebView GymBrat, nie desktop).
+ * Do karty „Dodaj do ekranu” w Profilu.
+ */
+export function isIosPhoneBrowserUserAgent(ua: string | null | undefined): boolean {
+  if (!ua) return false;
+  if (isIosAppWebViewUserAgent(ua)) return false;
+  if (isAppWebViewUserAgent(ua)) return false;
+  // iPadOS 13+ często reportuje jak Mac — zostawiamy klasyczny iPhone/iPad token.
+  if (!/iPhone|iPod|iPad/i.test(ua)) return false;
+  return true;
+}
+
+export function isIosPhoneBrowserClient(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return isIosPhoneBrowserUserAgent(navigator.userAgent);
+}
+
+export type IosAppIdentity = {
+  versionName: string;
+  versionCode: number | null;
+};
+
+export function parseIosAppIdentity(ua: string | null | undefined): IosAppIdentity | null {
+  if (!isIosAppWebViewUserAgent(ua)) return null;
+  const name = ua?.match(IOS_APP_VERSION_RE)?.[1]?.trim();
+  if (!name) return { versionName: "nieznana", versionCode: null };
+  const codeRaw = ua?.match(IOS_APP_BUILD_RE)?.[1];
+  const versionCode = codeRaw ? Number(codeRaw) : null;
+  return {
+    versionName: name,
+    versionCode: Number.isFinite(versionCode) ? versionCode : null,
+  };
 }
 
 /** Zainstalowany APK: most JS albo User-Agent WebView. Zwykła przeglądarka / PWA — nie. */

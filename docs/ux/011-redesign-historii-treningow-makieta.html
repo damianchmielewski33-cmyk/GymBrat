@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Makieta 011 - Historia treningów (statyczna, referencja dla frontend)</title>
+<!-- Makieta referencyjna dla `frontend`. Specyfikacja: docs/ux/011-redesign-historii-treningow.md (wygrywa specyfikacja, gdy się różnią).
+     Tokeny wyłącznie z app/globals.css: --gym-black, --gym-gold, --gym-gold-deep, --gym-surface, --gym-surface-raised,
+     --gym-border-gold, --gym-text-secondary, --gym-success, --destructive, --neon-fg, --gym-on-gold.
+     Ramki: 390 px (telefon), jedna ramka 360 px dla kontroli wąskiego ekranu. Brak JS logiki biznesowej.
+     Dane przykładowe: fikcyjne treningi (plany Push A, Nogi, Pull, Barki i plecy, Klatka i ramiona), data "dziś" = 26.10.
+     Ikony: lucide (w makiecie uproszczone symbole o tym samym znaczeniu). -->
+<style>
+  :root {
+    --gym-black:#070708; --gym-gold:#ebc44a; --gym-gold-bright:#f7e28f; --gym-gold-deep:#c49a1f;
+    --gym-on-gold:#1a1408; --neon-fg:#120f05; --destructive:#ff3347; --foreground:rgba(255,255,255,.92);
+    --gym-success:#3ecf72; --gym-text-secondary:#9a9182; --gym-border-gold:#33291a;
+    --gym-surface:#161616; --gym-surface-raised:#1c1c1f; --gym-surface-gold:#15120b;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#1d1d1d; color:var(--foreground); font:14px/1.35 "Segoe UI", system-ui, sans-serif; }
+  .wall { display:flex; flex-wrap:wrap; gap:28px; padding:24px; align-items:flex-start; }
+  .group-title { width:100%; color:#ddd; font:600 15px/1.2 system-ui; margin:16px 0 0; padding-bottom:6px; border-bottom:1px solid #333; }
+  figure { margin:0; }
+  figcaption { font-size:12px; color:#bbb; margin:0 0 8px; max-width:390px; line-height:1.4; }
+  .ph { width:390px; height:844px; background:var(--gym-black); border-radius:14px; overflow:hidden; outline:1px solid #333; display:flex; flex-direction:column; position:relative; }
+  .ph.short { height:620px; }
+  .ph.w360 { width:360px; }
+  .sc { flex:1; overflow-y:auto; padding:0 16px 24px; position:relative; }
+  .sc::-webkit-scrollbar { display:none; }
+  .scrim { position:absolute; inset:0; background:rgba(0,0,0,.6); }
+  .panelwrap { width:390px; background:var(--gym-black); border-radius:14px; outline:1px solid #333; padding:16px; display:flex; flex-direction:column; gap:14px; }
+  .lbl { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--gym-text-secondary); font-weight:600; margin:0 0 6px; }
+
+  /* ikony */
+  .i { width:20px; height:20px; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .i.sm { width:16px; height:16px; }
+  .i.xs { width:14px; height:14px; }
+
+  /* topbar */
+  .top { display:flex; align-items:center; justify-content:space-between; height:56px; padding:0 8px 0 16px; flex:none; }
+  .brand { font:600 13px/1 "Space Grotesk", system-ui; letter-spacing:.14em; color:#fff; }
+  .icon-btn { width:44px; height:44px; border-radius:16px; border:1px solid var(--gym-border-gold); background:transparent; color:#fff; display:inline-grid; place-items:center; flex:none; padding:0; }
+  .icon-btn.ghost { border-color:transparent; }
+
+  /* wróć + nagłówek */
+  .back { display:inline-flex; align-items:center; gap:6px; min-height:44px; color:#fff; font-size:14px; text-decoration:none; padding:0 4px; }
+  .hdr { padding:4px 0 0; }
+  .kicker { font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:var(--gym-gold); }
+  .h1 { font-size:28px; line-height:32px; font-weight:600; color:#fff; margin:4px 0 0; font-family:"Space Grotesk", system-ui, sans-serif; }
+  .meta { font-size:12px; line-height:16px; color:var(--gym-text-secondary); margin-top:4px; font-variant-numeric:tabular-nums; }
+
+  /* sekcja (SectionLabel) */
+  .sec { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:20px 0 10px; min-height:24px; }
+  .sec h2 { font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:#fff; margin:0; }
+  .sec .chipz { font-size:12px; color:var(--gym-gold); border:1px solid rgba(235,196,74,.45); border-radius:999px; padding:3px 10px; white-space:nowrap; }
+  .sec .chipz.neutral { color:var(--gym-text-secondary); border-color:rgba(255,255,255,.15); }
+
+  /* karty */
+  .card { background:var(--gym-surface); border:1px solid var(--gym-border-gold); border-radius:22px; padding:16px; }
+  .card.flat { border-color:rgba(255,255,255,.08); }
+  .panel { background:var(--gym-surface); border:1px solid rgba(255,255,255,.08); border-radius:16px; overflow:hidden; }
+  .muted { color:var(--gym-text-secondary); font-size:12px; line-height:16px; }
+  .tn { font-variant-numeric:tabular-nums; }
+  h3 { font-size:15px; font-weight:600; color:#fff; margin:0; line-height:20px; }
+
+  /* podsumowanie */
+  .sum { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:16px 12px; }
+  .sum > div { text-align:center; min-width:0; }
+  .sum .k { font-size:10px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:var(--gym-text-secondary); }
+  .sum .v { margin-top:6px; font:500 26px/1 "Space Grotesk", system-ui; color:#fff; font-variant-numeric:tabular-nums; }
+  .sum .v small { font:400 13px/1 system-ui; color:var(--gym-text-secondary); margin-left:3px; }
+  .sum .v.dash { color:var(--gym-text-secondary); }
+  .sum .s { margin-top:6px; font-size:11px; line-height:14px; color:var(--gym-text-secondary); display:flex; align-items:center; justify-content:center; gap:4px; }
+  .limit { font-size:12px; line-height:16px; color:var(--gym-text-secondary); margin:8px 2px 0; }
+
+  /* filtr */
+  .fbar { position:sticky; top:0; z-index:2; background:var(--gym-black); margin:14px -16px 0; padding:8px 16px 8px; display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent); mask-image:linear-gradient(90deg,#000 88%,transparent); }
+  .fbar::-webkit-scrollbar { display:none; }
+  .chp { flex:none; min-height:44px; padding:0 14px; border-radius:999px; border:1px solid var(--gym-border-gold); background:transparent; color:rgba(255,255,255,.82); font-size:13px; font-weight:500; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; font-family:inherit; }
+  .chp .n { color:var(--gym-text-secondary); font-variant-numeric:tabular-nums; font-size:12px; }
+  .chp.on { border-color:rgba(235,196,74,.6); background:rgba(235,196,74,.10); color:#fff; font-weight:600; }
+  .chp.on .n { color:var(--gym-gold); }
+  .chp.on .i { color:var(--gym-gold); }
+  .resbar { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:44px; font-size:12px; color:var(--gym-text-secondary); font-variant-numeric:tabular-nums; }
+  .resbar b { color:#fff; font-weight:600; }
+  .clear { background:transparent; border:0; color:var(--gym-gold); font:600 13px/1 system-ui; min-height:44px; padding:0 8px; display:inline-flex; align-items:center; gap:4px; }
+
+  /* tydzień */
+  .wk { display:flex; align-items:flex-end; justify-content:space-between; gap:8px; margin:22px 0 10px; }
+  .wk .tag { font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:var(--gym-gold); }
+  .wk .tag.mute { color:var(--gym-text-secondary); }
+  .wk h2 { font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:#fff; margin:4px 0 0; }
+  .wk .agg { font-size:12px; color:var(--gym-text-secondary); font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+  /* wiersz treningu */
+  .row { display:flex; gap:12px; align-items:center; padding:12px 14px; min-height:72px; width:100%; background:transparent; border:0; color:inherit; text-align:left; font:inherit; }
+  .row + .row { border-top:1px solid rgba(255,255,255,.06); }
+  .row .d { width:48px; flex:none; }
+  .row .d .wd { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--gym-text-secondary); font-weight:600; }
+  .row .d .wd.today { color:var(--gym-gold); }
+  .row .d .dt { font:500 15px/1.2 "Space Grotesk", system-ui; color:#fff; font-variant-numeric:tabular-nums; margin-top:2px; }
+  .row .mid { flex:1; min-width:0; }
+  .row .mid .m { font-size:12px; color:var(--gym-text-secondary); margin-top:3px; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .end { text-align:right; flex:none; }
+  .row .kg { font:500 16px/1 "Space Grotesk", system-ui; color:#fff; font-variant-numeric:tabular-nums; }
+  .row .chev { color:var(--gym-text-secondary); margin-left:auto; display:block; margin-top:6px; }
+  .row.open { background:rgba(255,255,255,.02); }
+  .row.hl { box-shadow: inset 0 0 0 2px var(--gym-gold); }
+
+  /* pastylka porównania */
+  .cmp { display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:16px; color:var(--gym-text-secondary); margin-top:4px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .cmp .i { width:14px; height:14px; }
+  .cmp.up { color:#fff; }
+  .cmp.up .i { color:var(--gym-success); }
+
+  /* rozwinięcie */
+  .det { border-top:1px solid rgba(255,255,255,.06); padding:12px 14px 16px; display:flex; flex-direction:column; gap:16px; background:rgba(255,255,255,.015); }
+  .cblk { border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px 14px; background:var(--gym-surface); }
+  .cblk .h { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--gym-text-secondary); font-weight:600; }
+  .cblk p { margin:6px 0 0; font-size:14px; line-height:20px; color:rgba(255,255,255,.85); }
+  .cblk p b { color:#fff; font-weight:600; font-variant-numeric:tabular-nums; }
+  .cblk .foot { margin-top:8px; font-size:12px; line-height:16px; color:var(--gym-text-secondary); }
+  .legend { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--gym-text-secondary); line-height:16px; }
+  .legend .i { color:var(--gym-gold); width:14px; height:14px; }
+  .legend b { color:#fff; font-weight:600; }
+  .exl { display:flex; flex-direction:column; gap:12px; }
+  .exn { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+  .exn .nm { font-size:14px; font-weight:500; color:rgba(255,255,255,.92); min-width:0; }
+  .exn .tt { font-size:12px; color:var(--gym-text-secondary); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .sets { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .set { height:36px; min-width:72px; padding:0 10px; border-radius:12px; border:1px solid rgba(255,255,255,.14); display:inline-flex; align-items:center; justify-content:center; gap:4px; font:500 13px/1 "Space Grotesk", system-ui; color:rgba(255,255,255,.85); font-variant-numeric:tabular-nums; }
+  .set .x { color:var(--gym-text-secondary); }
+  .set.pr { border-color:var(--gym-gold); background:rgba(235,196,74,.10); color:var(--gym-gold); font-weight:600; }
+  .set.pr .i { width:12px; height:12px; }
+  .set.none { border-style:dashed; color:var(--gym-text-secondary); }
+  .acts { display:flex; gap:8px; }
+  .btn { height:48px; padding:0 14px; border-radius:16px; font:600 14px/1 system-ui; display:inline-flex; align-items:center; justify-content:center; gap:8px; border:1px solid transparent; width:100%; text-decoration:none; color:#fff; background:transparent; flex:1; }
+  .btn.out { border-color:var(--gym-border-gold); }
+  .btn.dz { border-color:rgba(255,51,71,.45); color:#ff8593; }
+  .btn.dz-fill { background:var(--destructive); color:#fff; border-color:var(--destructive); }
+  .btn.cta { background:linear-gradient(180deg,var(--gym-gold-bright),var(--gym-gold) 55%,var(--gym-gold-deep)); color:var(--neon-fg); }
+  .btn.ghost { background:transparent; color:var(--gym-gold); }
+  .btn.full { flex:none; }
+  .hint { font-size:12px; line-height:16px; color:var(--gym-text-secondary); margin-top:8px; }
+
+  /* stany, banery, szkielety */
+  .banner { border-radius:16px; padding:12px 14px; display:flex; gap:10px; font-size:13px; line-height:18px; border:1px solid; }
+  .banner .i { margin-top:1px; }
+  .banner b { display:block; font-weight:600; color:#fff; margin-bottom:2px; }
+  .banner.info { border-color:rgba(255,255,255,.15); background:rgba(255,255,255,.04); color:rgba(255,255,255,.85); }
+  .banner.warn { border-color:rgba(235,196,74,.45); background:rgba(235,196,74,.06); color:rgba(255,255,255,.88); }
+  .banner.err { border-color:rgba(255,51,71,.5); background:rgba(255,51,71,.07); color:#ffd0d5; }
+  .sk { background:rgba(255,255,255,.06); border-radius:12px; }
+  .glyph { width:56px; height:56px; border-radius:18px; background:var(--gym-surface-gold); border:1px solid var(--gym-border-gold); display:grid; place-items:center; color:var(--gym-gold); margin:0 auto; }
+  .glyph .i { width:26px; height:26px; }
+  .empty { text-align:center; padding:28px 18px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .empty h3 { margin-top:8px; }
+  .empty p { margin:0; font-size:14px; line-height:20px; color:rgba(255,255,255,.8); }
+
+  /* dialog */
+  .dlg { position:absolute; left:20px; right:20px; top:50%; transform:translateY(-50%); background:#1c1c1f; border:1px solid var(--gym-border-gold); border-radius:22px; padding:20px; box-shadow:0 24px 60px rgba(0,0,0,.6); }
+  .dlg h3 { font-size:17px; margin-bottom:8px; }
+  .dlg p { margin:0; font-size:14px; line-height:20px; color:rgba(255,255,255,.8); }
+  .dlg .acts { display:flex; flex-direction:column; gap:8px; margin-top:18px; }
+  .dlg .acts .btn { width:100%; }
+  .dlg .banner { margin-top:12px; }
+
+  /* belka dolna */
+  .belka { position:absolute; left:12px; right:12px; bottom:10px; height:56px; border-radius:30px; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.08); display:flex; justify-content:space-around; align-items:center; font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.55); }
+  .belka .on { color:var(--gym-gold); }
+
+  /* panel wariantów */
+  .var { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .var .sum { padding:12px 8px; }
+  .var .sum .v { font-size:22px; }
+  .tiny { font-size:11px; line-height:14px; color:var(--gym-text-secondary); }
+  .spacer { height:12px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+    <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+    <symbol id="i-trend-up" viewBox="0 0 24 24"><path d="M22 7l-8.5 8.5-5-5L2 17M16 7h6v6"/></symbol>
+    <symbol id="i-trend-down" viewBox="0 0 24 24"><path d="M22 17l-8.5-8.5-5 5L2 7M16 17h6v-6"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></symbol>
+    <symbol id="i-cal-x" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M9.5 14.5l5 5M14.5 14.5l-5 5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></symbol>
+    <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M2 2l20 20M8.5 16.4a5 5 0 017 0M5 12.9a10 10 0 0110.3-2.4M2 8.8a15 15 0 015-3.1M16.4 5.6A15 15 0 0122 8.8"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2zM12 10v4M12 17h.01"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-3-6.7L21 8M21 3v5h-5"/></symbol>
+    <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M6 6v12M18 6v12M3 9v6M21 9v6M6 12h12"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1112 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 004 0"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  </defs>
+</svg>
+
+<div class="wall">
+
+<!-- ============ GRUPA 1: LISTA ============ -->
+<div class="group-title">1. Lista i podsumowanie (stan główny)</div>
+
+<figure>
+  <figcaption>A1. Stan główny: filtr „Wszystkie”, podsumowanie z zakresem „Wszystkie treningi”, tonaż z podpisem limitu „z 400 ostatnich”. Tygodnie bez numerów; „TEN TYDZIEŃ” jako etykieta. Zwinięte wiersze z pastylką porównania (strzałka + procent + data, ikona zawsze obecna). Numer sesji usunięty.</figcaption>
+  <div class="ph">
+    <div class="top"><span class="brand">GYMBRAT</span><div style="display:flex;gap:4px"><button class="icon-btn ghost" aria-label="Powiadomienia"><svg class="i"><use href="#i-bell"/></svg></button><button class="icon-btn" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button></div></div>
+    <div class="sc">
+      <a class="back" href="#"><svg class="i sm"><use href="#i-arrow-left"/></svg>Wróć</a>
+      <div class="hdr">
+        <div class="kicker">Trening</div>
+        <h1 class="h1">Historia treningów</h1>
+        <div class="meta">38 treningów w historii</div>
+      </div>
+
+      <div class="sec"><h2>Podsumowanie</h2><span class="chipz neutral">Wszystkie treningi</span></div>
+      <div class="card sum" role="group" aria-label="Podsumowanie: wszystkie treningi">
+        <div><div class="k">Na tydzień</div><div class="v tn">2,4</div><div class="s">średnio z 8 tyg.</div></div>
+        <div><div class="k">Średni czas</div><div class="v tn">69<small>min</small></div><div class="s">z 38 treningów</div></div>
+        <div><div class="k">Tonaż</div><div class="v tn">180,6<small>t</small></div><div class="s">z 400 ostatnich <svg class="i xs" aria-hidden="true"><use href="#i-info"/></svg></div></div>
+      </div>
+      <p class="limit">Tonaż liczymy z 400 ostatnich treningów. Starsze się nie wliczają.</p>
+
+      <div class="fbar" role="group" aria-label="Filtr dnia planu">
+        <button class="chp on" aria-pressed="true"><svg class="i xs"><use href="#i-check"/></svg>Wszystkie <span class="n">38</span></button>
+        <button class="chp" aria-pressed="false">Push A <span class="n">12</span></button>
+        <button class="chp" aria-pressed="false">Nogi <span class="n">9</span></button>
+        <button class="chp" aria-pressed="false">Pull <span class="n">8</span></button>
+        <button class="chp" aria-pressed="false">Barki i plecy <span class="n">5</span></button>
+        <button class="chp" aria-pressed="false">Klatka i ramiona <span class="n">4</span></button>
+      </div>
+      <div class="resbar"><span>Pokazano <b>38</b> treningów</span></div>
+
+      <div class="wk"><div><div class="tag">Ten tydzień</div><h2>26 paź – 1 lis</h2></div><span class="agg">1 tr. · 4,0 t</span></div>
+      <div class="panel">
+        <button class="row" aria-expanded="false" aria-label="Push A, 26.10, 4 020 kilogramów, +2,1% względem 22.10. Pokaż szczegóły">
+          <div class="d"><div class="wd today">Dziś</div><div class="dt">26.10</div></div>
+          <div class="mid"><h3>Push A</h3><div class="m">52 min · 17 serii · 6 ćw.</div></div>
+          <div class="end"><div class="kg">4 020 kg</div><div class="cmp up"><svg class="i"><use href="#i-trend-up"/></svg>+2,1% · 22.10</div></div>
+        </button>
+      </div>
+
+      <div class="wk"><div><div class="tag mute">Poprzedni tydzień</div><h2>19–25 października</h2></div><span class="agg">3 tr. · 16,4 t</span></div>
+      <div class="panel">
+        <button class="row" aria-expanded="false" aria-label="Nogi, 23.10, 9 410 kilogramów, +4,8% względem 15.10. Pokaż szczegóły">
+          <div class="d"><div class="wd">Pt</div><div class="dt">23.10</div></div>
+          <div class="mid"><h3>Nogi</h3><div class="m">64 min · 22 serie · 7 ćw.</div></div>
+          <div class="end"><div class="kg">9 410 kg</div><div class="cmp up"><svg class="i"><use href="#i-trend-up"/></svg>+4,8% · 15.10</div></div>
+        </button>
+        <button class="row" aria-expanded="true" aria-label="Push A, 22.10, 4 190 kilogramów, +5,3% względem 17.10. Ukryj szczegóły">
+          <div class="d"><div class="wd">Czw</div><div class="dt">22.10</div></div>
+          <div class="mid"><h3>Push A</h3><div class="m">61 min · 19 serii · 6 ćw.</div></div>
+          <div class="end"><div class="kg">4 190 kg</div><div class="cmp up"><svg class="i"><use href="#i-trend-up"/></svg>+5,3% · 17.10</div></div>
+        </button>
+        <button class="row" aria-expanded="false" aria-label="Pull, 21.10, 2 760 kilogramów, pierwszy trening z tego planu. Pokaż szczegóły">
+          <div class="d"><div class="wd">Śr</div><div class="dt">21.10</div></div>
+          <div class="mid"><h3>Pull</h3><div class="m">49 min · 15 serii · 5 ćw.</div></div>
+          <div class="end"><div class="kg">2 760 kg</div><div class="cmp">Pierwszy w planie</div></div>
+        </button>
+      </div>
+
+      <div class="wk"><div><div class="tag mute">Tydzień</div><h2>12–18 października</h2></div><span class="agg">2 tr. · 7,9 t</span></div>
+      <div class="panel">
+        <button class="row" aria-expanded="false" aria-label="Barki i plecy, 18.10, 3 120 kilogramów, +1,4% względem 11.10. Pokaż szczegóły">
+          <div class="d"><div class="wd">Nd</div><div class="dt">18.10</div></div>
+          <div class="mid"><h3>Barki i plecy</h3><div class="m">58 min · 16 serii · 7 ćw.</div></div>
+          <div class="end"><div class="kg">3 120 kg</div><div class="cmp up"><svg class="i"><use href="#i-trend-up"/></svg>+1,4% · 11.10</div></div>
+        </button>
+        <button class="row" aria-expanded="false" aria-label="Klatka i ramiona, 16.10, 4 760 kilogramów, bez porównania. Pokaż szczegóły">
+          <div class="d"><div class="wd">Pt</div><div class="dt">16.10</div></div>
+          <div class="mid"><h3>Klatka i ramiona</h3><div class="m">67 min · 17 serii · 7 ćw.</div></div>
+          <div class="end"><div class="kg">4 760 kg</div><div class="cmp"><svg class="i"><use href="#i-minus"/></svg>bez zmiany · 10.10</div></div>
+        </button>
+      </div>
+
+      <p class="limit" style="text-align:center;margin-top:20px">Pokazano 400 ostatnich treningów.</p>
+    </div>
+    <nav class="belka" aria-label="Nawigacja główna (kontekst)"><span>Pulpit</span><span class="on">Trening</span><span>Dieta</span><span>Analiza</span><span>Team</span></nav>
+  </div>
+  <figcaption style="margin-top:8px;">Uwaga: rozwinięty wiersz „Push A 22.10” pokazany w B2/C1 z pełnym szczegółem. Tu tylko stan zwinięty i kontrast poziomów: data, nazwa, tonaż, porównanie.</figcaption>
+</figure>
+
+<figure>
+  <figcaption>A2. Warianty podsumowania (referencja dla frontend). Tonaż: „cała historia” gdy treningów ≤ 400, „z 400 ostatnich” przy limicie. Pusty filtr: „—” zamiast zera, z podpisem. Dla rozstrzygnięcia A-1/A-2 w ADR.</figcaption>
+  <div class="ph short" style="height:auto;padding:16px;gap:14px;">
+    <div class="lbl">Tonaż: zakres</div>
+    <div class="card var" style="padding:12px">
+      <div class="sum" style="padding:8px"><div><div class="k" style="font-size:9px">Tonaż</div><div class="v">24,1<small>t</small></div><div class="s" style="font-size:10px">cała historia</div></div></div>
+      <div class="sum" style="padding:8px"><div><div class="k" style="font-size:9px">Tonaż</div><div class="v">180,6<small>t</small></div><div class="s" style="font-size:10px">z 400 ostatnich</div></div></div>
+      <div class="sum" style="padding:8px"><div><div class="k" style="font-size:9px">Tonaż</div><div class="v dash">—</div><div class="s" style="font-size:10px">brak treningów</div></div></div>
+    </div>
+    <div class="lbl">Porównanie w wierszu (zwinięty)</div>
+    <div class="panel" style="padding:4px 14px">
+      <div class="row" style="min-height:56px;padding:8px 0"><div class="mid"><h3 style="font-size:14px">Wzrost</h3></div><div class="end"><div class="cmp up"><svg class="i"><use href="#i-trend-up"/></svg>+5,3% · 17.10</div></div></div>
+      <div class="row" style="min-height:56px;padding:8px 0"><div class="mid"><h3 style="font-size:14px">Spadek</h3></div><div class="end"><div class="cmp"><svg class="i"><use href="#i-trend-down"/></svg>−3,1% · 17.10</div></div></div>
+      <div class="row" style="min-height:56px;padding:8px 0"><div class="mid"><h3 style="font-size:14px">Bez zmiany</h3></div><div class="end"><div class="cmp"><svg class="i"><use href="#i-minus"/></svg>bez zmiany · 17.10</div></div></div>
+      <div class="row" style="min-height:56px;padding:8px 0"><div class="mid"><h3 style="font-size:14px">Pierwszy</h3></div><div class="end"><div class="cmp">Pierwszy w planie</div></div></div>
+    </div>
+    <p class="tiny">Spadek tonażu ma ton neutralny (bez czerwieni): to informacja, nie porażka. Kierunek zawsze z ikoną i tekstem.</p>
+  </div>
+</figure>
+
+<!-- ============ GRUPA 2: FILTR ============ -->
+<div class="group-title">2. Filtr dnia planu</div>
+
+<figure>
+  <figcaption>B1. Filtr aktywny „Push A”: chip z obrysem, tłem, ikoną check i `aria-pressed`. Podsumowanie przeliczone i opisane zakresem w chipie („Push A”). Pasek wyniku: „Pokazano 12 treningów” i „Wyczyść filtr” (44 px). Pasek filtrów przylega do góry obszaru przewijania. Brak widocznego scrollbara.</figcaption>
+  <div class="ph">
+    <div class="top"><span class="brand">GYMBRAT</span><div style="display:flex;gap:4px"><button class="icon-btn ghost" aria-label="Powiadomienia"><svg class="i"><use href="#i-bell"/></svg></button><button class="icon-btn" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button></div></div>
+    <div class="sc">
+      <a class="back" href="#"><svg class="i sm"><use href="#i-arrow-left"/></svg>Wróć</a>
+      <div class="hdr"><div class="kicker">Trening</div><h1 class="h1">Historia treningów</h1><div class="meta">12 z 38 treningów</div></div>
+
+      <div class="sec"><h2>Podsumowanie</h2><span class="chipz">Push A</span></div>
+      <div class="card sum" aria-live="polite">
+        <div><div class="k">Na tydzień</div><div class="v tn">1,5</div><div class="s">średnio z 8 tyg.</div></div>
+        <div><div class="k">Średni czas</div><div class="v tn">61<small>min</small></div><div class="s">z 12 treningów</div></div>
+        <div><div class="k">Tonaż</div><div class="v tn">48,2<small>t</small></div><div class="s">z 400 ostatnich</div></div>
+      </div>
+
+      <div class="fbar" role="group" aria-label="Filtr dnia planu">
+        <button class="chp" aria-pressed="false">Wszystkie <span class="n">38</span></button>
+        <button class="chp on" aria-pressed="true"><svg class="i xs"><use href="#i-check"/></svg>Push A <span class="n">12</span></button>
+        <button class="chp" aria-pressed="false">Nogi <span class="n">9</span></button>
+        <button class="chp" aria-pressed="false">Pull <span class="n">8</span></button>
+        <button class="chp" aria-pressed="false">Barki i plecy <span class="n">5</span></button>
+      </div>
+      <div class="resbar"><span>Pokazano <b>12</b> treningów · Push A</span><button class="clear">Wyczyść filtr</button></div>
+
+      <div class="wk"><div><div class="tag">Ten tydzień</div><h2>26 paź – 1 lis</h2></div><span class="agg">1 tr. · 4,0 t</span></div>
+      <div class="panel">
+        <button class="row" aria-expanded="false" aria-label="Push A, 26.10, 4 020 kilogramów, +2,1% względem 22.10. Pokaż szczegóły">
+          <div class="d"><div class="wd today">Dziś</div><div class="dt">26.10</div></div>
+          <div class="mid"><h3>Push A</h3><div class="m">52 min · 17 serii · 6 ćw.</div></div>
+          <div class="end"><div class="kg">4 020 kg</div><div class="cmp up"><svg class="i"><use href="#i-trend-up"/></svg>+2,1% · 22.10</div></div>
+        </button>
+      </div>
+      <div class="wk"><div><div class="tag mute">Poprzedni tydzień</div><h2>19–25 października</h2></div><span class="agg">1 tr. · 4,0 t</span></div>
+      <div class="panel">
+        <button class="row" aria-expanded="false" aria-label="Push A, 22.10, 4 190 kilogramów, +5,3% względem 17.10. Pokaż szczegóły">
+          <div class="d"><div class="wd">Czw</div><div class="dt">22.10</div></div>
+          <div class="mid"><h3>Push A</h3><div class="m">61 min · 19 serii · 6 ćw.</div></div>
+          <div class="end"><div class="kg">4 190 kg</div><div class="cmp up"><svg class="i"><use href="#i-trend-up"/></svg>+5,3% · 17.10</div></div>
+        </button>
+      </div>
+    </div>
+    <nav class="belka" aria-label="Nawigacja główna (kontekst)"><span>Pulpit</span><span class="on">Trening</span><span>Dieta</span><span>Analiza</span><span>Team</span></nav>
+  </div>
+</figure>
+
+<figure>
+  <figcaption>B2. Filtr bez wyników („Nogi” po usunięciu wszystkich treningów dnia). Podsumowanie pokazuje „—” z podpisem, nie zera (AC-2.3). Stan pusty w karcie: tekst „Brak treningów dla „Nogi”” i przycisk „Pokaż wszystkie” (outline, 48 px, kasuje filtr).</figcaption>
+  <div class="ph">
+    <div class="top"><span class="brand">GYMBRAT</span><div style="display:flex;gap:4px"><button class="icon-btn ghost" aria-label="Powiadomienia"><svg class="i"><use href="#i-bell"/></svg></button><button class="icon-btn" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button></div></div>
+    <div class="sc">
+      <a class="back" href="#"><svg class="i sm"><use href="#i-arrow-left"/></svg>Wróć</a>
+      <div class="hdr"><div class="kicker">Trening</div><h1 class="h1">Historia treningów</h1><div class="meta">0 z 38 treningów</div></div>
+
+      <div class="sec"><h2>Podsumowanie</h2><span class="chipz">Nogi</span></div>
+      <div class="card sum" aria-live="polite">
+        <div><div class="k">Na tydzień</div><div class="v dash">—</div><div class="s">brak treningów</div></div>
+        <div><div class="k">Średni czas</div><div class="v dash">—</div><div class="s">brak treningów</div></div>
+        <div><div class="k">Tonaż</div><div class="v dash">—</div><div class="s">brak treningów</div></div>
+      </div>
+
+      <div class="fbar" role="group" aria-label="Filtr dnia planu">
+        <button class="chp" aria-pressed="false">Wszystkie <span class="n">38</span></button>
+        <button class="chp" aria-pressed="false">Push A <span class="n">12</span></button>
+        <button class="chp on" aria-pressed="true"><svg class="i xs"><use href="#i-check"/></svg>Nogi <span class="n">0</span></button>
+      </div>
+      <div class="resbar"><span>Pokazano <b>0</b> treningów · Nogi</span><button class="clear">Wyczyść filtr</button></div>
+
+      <div class="card flat empty" style="margin-top:14px">
+        <div class="glyph"><svg class="i"><use href="#i-cal-x"/></svg></div>
+        <h3>Brak treningów dla „Nogi”</h3>
+        <p>Ten dzień planu nie ma jeszcze zapisanych treningów albo wszystkie usunięto.</p>
+        <button class="btn out" style="margin-top:10px;width:100%;flex:none">Pokaż wszystkie</button>
+      </div>
+    </div>
+    <nav class="belka" aria-label="Nawigacja główna (kontekst)"><span>Pulpit</span><span class="on">Trening</span><span>Dieta</span><span>Analiza</span><span>Team</span></nav>
+  </div>
+</figure>
+
+<!-- ============ GRUPA 3: ROZWINIĘCIE ============ -->
+<div class="group-title">3. Karta treningu: rozwinięcie, porównanie, rekordy, akcje</div>
+
+<figure>
+  <figcaption>C1. Rozwinięta karta „Push A, 22.10”. Blok „Względem 17.10” (tonaż w kg i %, liczba ćwiczeń w górę / w dół / bez zmian, zdanie o ćwiczeniach bez ciężaru). Legenda rekordu tylko, bo rekord jest w treningu. Rekord: gwiazdka + złoty obrys + tekst w `aria-label`. Stopka: „Popraw” (termin) i „Usuń trening” (48 px).</figcaption>
+  <div class="ph">
+    <div class="top"><span class="brand">GYMBRAT</span><div style="display:flex;gap:4px"><button class="icon-btn ghost" aria-label="Powiadomienia"><svg class="i"><use href="#i-bell"/></svg></button><button class="icon-btn" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button></div></div>
+    <div class="sc">
+      <a class="back" href="#"><svg class="i sm"><use href="#i-arrow-left"/></svg>Wróć</a>
+      <div class="hdr"><div class="kicker">Trening</div><h1 class="h1">Historia treningów</h1><div class="meta">38 treningów w historii</div></div>
+      <div class="wk" style="margin-top:14px"><div><div class="tag mute">Poprzedni tydzień</div><h2>19–25 października</h2></div><span class="agg">3 tr. · 16,4 t</span></div>
+      <div class="panel">
+        <button class="row open" aria-expanded="true" aria-controls="det-c1" aria-label="Push A, 22.10, 4 190 kilogramów, +5,3% względem 17.10. Ukryj szczegóły" style="min-height:72px">
+          <div class="d"><div class="wd">Czw</div><div class="dt">22.10</div></div>
+          <div class="mid"><h3>Push A</h3><div class="m">61 min · 19 serii · 6 ćw.</div></div>
+          <div class="end"><div class="kg">4 190 kg</div><div class="cmp up"><svg class="i"><use href="#i-trend-up"/></svg>+5,3% · 17.10</div><svg class="i sm chev" style="transform:rotate(180deg)" aria-hidden="true"><use href="#i-chev-d"/></svg></div>
+        </button>
+        <div class="det" id="det-c1">
+          <div class="cblk">
+            <div class="h">Względem 17.10 · Push A</div>
+            <p>Tonaż <b>+210 kg</b> (<b>+5,3%</b>)</p>
+            <p>Ćwiczenia: <b>3</b> w górę · <b>1</b> w dół · <b>1</b> bez zmian</p>
+            <div class="foot">Ćwiczenia bez ciężaru (dipy) nie wliczają się do porównania.</div>
+          </div>
+
+          <div class="legend"><svg class="i"><use href="#i-star"/></svg><span><b>Rekord</b> - nowe najlepsze e1RM w ćwiczeniu.</span></div>
+
+          <div class="exl" aria-label="Ćwiczenia w treningu">
+            <div>
+              <div class="exn"><span class="nm">Wyciskanie sztangi na ławce płaskiej</span><span class="tt">1 480 kg</span></div>
+              <div class="sets">
+                <span class="set" aria-label="Seria 1: 80 kilogramów na 8 powtórzeń"><span>80</span><span class="x">×</span><span>8</span></span>
+                <span class="set pr" aria-label="Seria 2: 85 kilogramów na 6 powtórzeń, rekord"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg><span>85</span><span class="x">×</span><span>6</span></span>
+                <span class="set" aria-label="Seria 3: 85 kilogramów na 6 powtórzeń"><span>85</span><span class="x">×</span><span>6</span></span>
+                <span class="set" aria-label="Seria 4: 80 kilogramów na 8 powtórzeń"><span>80</span><span class="x">×</span><span>8</span></span>
+              </div>
+            </div>
+            <div>
+              <div class="exn"><span class="nm">Wyciskanie hantli na ławce skośnej</span><span class="tt">820 kg</span></div>
+              <div class="sets">
+                <span class="set"><span>30</span><span class="x">×</span><span>10</span></span>
+                <span class="set"><span>30</span><span class="x">×</span><span>10</span></span>
+                <span class="set pr" aria-label="Seria 3: 32,5 kilograma na 8 powtórzeń, rekord"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg><span>32,5</span><span class="x">×</span><span>8</span></span>
+              </div>
+            </div>
+            <div>
+              <div class="exn"><span class="nm">Dipy na poręczach</span><span class="tt">masa ciała</span></div>
+              <div class="sets">
+                <span class="set">12 <span class="x">powt.</span></span>
+                <span class="set">10 <span class="x">powt.</span></span>
+                <span class="set">10 <span class="x">powt.</span></span>
+              </div>
+            </div>
+            <div>
+              <div class="exn"><span class="nm">Wyciskanie żołnierskie</span><span class="tt">610 kg</span></div>
+              <div class="sets">
+                <span class="set">40 <span class="x">×</span> 8</span>
+                <span class="set">40 <span class="x">×</span> 8</span>
+                <span class="set none" aria-label="seria niewykonana"><span>—</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="acts">
+              <button class="btn out" style="min-height:48px">
+                <svg class="i sm"><use href="#i-pencil"/></svg>Popraw
+              </button>
+              <button class="btn dz">
+                <svg class="i sm"><use href="#i-trash"/></svg>Usuń trening
+              </button>
+            </div>
+            <p class="hint">Edycja do 31.10, 20:14.</p>
+          </div>
+        </div>
+        <button class="row" aria-expanded="false" aria-label="Pull, 21.10, 2 760 kilogramów, pierwszy trening z tego planu. Pokaż szczegóły">
+          <div class="d"><div class="wd">Śr</div><div class="dt">21.10</div></div>
+          <div class="mid"><h3>Pull</h3><div class="m">49 min · 15 serii · 5 ćw.</div></div>
+          <div class="end"><div class="kg">2 760 kg</div><div class="cmp">Pierwszy w planie</div></div>
+        </button>
+      </div>
+    </div>
+    <nav class="belka" aria-label="Nawigacja główna (kontekst)"><span>Pulpit</span><span class="on">Trening</span><span>Dieta</span><span>Analiza</span><span>Team</span></nav>
+  </div>
+</figure>
+
+<figure>
+  <figcaption>C2. Pierwszy trening planu („Pull”, bez porównania) i edycja zamknięta (po 7 dniach). Zamiast bloku porównania zdanie „Pierwszy trening z tego planu”. Brak rekordów: legendy nie ma (AC-6.3). „Popraw” nie jest renderowany; zamiast niego informacja. „Usuń trening” zajmuje pełną szerokość.</figcaption>
+  <div class="ph">
+    <div class="top"><span class="brand">GYMBRAT</span><div style="display:flex;gap:4px"><button class="icon-btn ghost" aria-label="Powiadomienia"><svg class="i"><use href="#i-bell"/></svg></button><button class="icon-btn" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button></div></div>
+    <div class="sc">
+      <a class="back" href="#"><svg class="i sm"><use href="#i-arrow-left"/></svg>Wróć</a>
+      <div class="hdr"><div class="kicker">Trening</div><h1 class="h1">Historia treningów</h1><div class="meta">38 treningów w historii</div></div>
+      <div class="wk" style="margin-top:14px"><div><div class="tag mute">Tydzień</div><h2>19–25 października</h2></div><span class="agg">3 tr. · 16,4 t</span></div>
+      <div class="panel">
+        <button class="row open" aria-expanded="true" aria-controls="det-c2" aria-label="Pull, 21.10, 2 760 kilogramów, pierwszy trening z tego planu. Ukryj szczegóły" style="min-height:72px">
+          <div class="d"><div class="wd">Śr</div><div class="dt">21.10</div></div>
+          <div class="mid"><h3>Pull</h3><div class="m">49 min · 15 serii · 5 ćw.</div></div>
+          <div class="end"><div class="kg">2 760 kg</div><div class="cmp">Pierwszy w planie</div><svg class="i sm chev" style="transform:rotate(180deg)" aria-hidden="true"><use href="#i-chev-d"/></svg></div>
+        </button>
+        <div class="det" id="det-c2">
+          <div class="cblk">
+            <div class="h">Porównanie</div>
+            <p>Pierwszy trening z tego planu. Porównanie pojawi się przy następnym.</p>
+          </div>
+          <div class="exl">
+            <div>
+              <div class="exn"><span class="nm">Wiosłowanie sztangą w opadzie</span><span class="tt">1 140 kg</span></div>
+              <div class="sets">
+                <span class="set"><span>70</span><span class="x">×</span><span>8</span></span>
+                <span class="set"><span>70</span><span class="x">×</span><span>8</span></span>
+                <span class="set"><span>72,5</span><span class="x">×</span><span>7</span></span>
+              </div>
+            </div>
+            <div>
+              <div class="exn"><span class="nm">Podciąganie na drążku</span><span class="tt">masa ciała</span></div>
+              <div class="sets">
+                <span class="set">8 <span class="x">powt.</span></span>
+                <span class="set">7 <span class="x">powt.</span></span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="acts"><button class="btn dz" style="flex:1 1 100%">
+              <svg class="i sm"><use href="#i-trash"/></svg>Usuń trening</button></div>
+            <p class="hint">Edycja niedostępna po 7 dniach.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <nav class="belka" aria-label="Nawigacja główna (kontekst)"><span>Pulpit</span><span class="on">Trening</span><span>Dieta</span><span>Analiza</span><span>Team</span></nav>
+  </div>
+</figure>
+
+<figure>
+  <figcaption>C3. Wejście z Pulpitu („Ostatnie treningi” → „Push A, 22.10”). Adres `?sesja=&lt;id&gt;`: lista przewija się do wiersza, wiersz jest rozwinięty i podświetlony obrysem 2 px na 2 s (bez animacji przy reduced-motion). „Wróć” wraca na Pulpit.</figcaption>
+  <div class="ph short">
+    <div class="top"><span class="brand">GYMBRAT</span><button class="icon-btn" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button></div>
+    <div class="sc" style="padding-top:0">
+      <a class="back" href="#"><svg class="i sm"><use href="#i-arrow-left"/></svg>Wróć na Pulpit</a>
+      <div class="hdr"><div class="kicker">Trening</div><h1 class="h1" style="font-size:26px;line-height:30px">Historia treningów</h1></div>
+      <div class="wk" style="margin-top:12px"><div><div class="tag mute">Poprzedni tydzień</div><h2>19–25 października</h2></div></div>
+      <div class="panel">
+        <button class="row open hl" aria-expanded="true" aria-label="Push A, 22.10, 4 190 kilogramów, +5,3% względem 17.10. Ukryj szczegóły" style="min-height:72px">
+          <div class="d"><div class="wd">Czw</div><div class="dt">22.10</div></div>
+          <div class="mid"><h3>Push A</h3><div class="m">61 min · 19 serii · 6 ćw.</div></div>
+          <div class="end"><div class="kg">4 190 kg</div><div class="cmp up"><svg class="i"><use href="#i-trend-up"/></svg>+5,3% · 17.10</div></div>
+        </button>
+        <div class="det" style="padding:10px 14px 12px"><p class="muted" style="margin:0">Pozostałe ćwiczenia i porównanie jak w C1.</p></div>
+      </div>
+    </div>
+  </div>
+</figure>
+
+<!-- ============ GRUPA 4: USUWANIE ============ -->
+<div class="group-title">4. Usuwanie treningu (potwierdzenie, błędy)</div>
+
+<figure>
+  <figcaption>D1. Potwierdzenie usunięcia nad listą. Fokus na „Anuluj” (bezpieczny, pierwszy w kolejności). Przycisk „Usuń trening” wypełniony kolorem destrukcyjnym. Treść mówi o skutkach: seria i tonaż znikają, plan zostaje.</figcaption>
+  <div class="ph">
+    <div class="top"><span class="brand">GYMBRAT</span><button class="icon-btn" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button></div>
+    <div class="sc">
+      <div class="hdr"><div class="kicker">Trening</div><h1 class="h1">Historia treningów</h1><div class="meta">38 treningów w historii</div></div>
+      <div class="panel" style="margin-top:20px"><button class="row" aria-expanded="false"><div class="d"><div class="wd">Czw</div><div class="dt">22.10</div></div><div class="mid"><h3>Push A</h3><div class="m">61 min · 19 serii · 6 ćw.</div></div><div class="end"><div class="kg">4 190 kg</div></div></button></div>
+    </div>
+    <div class="scrim"></div>
+    <div class="dlg" role="alertdialog" aria-labelledby="d1t" aria-describedby="d1d">
+      <h3 id="d1t">Usunąć trening?</h3>
+      <p id="d1d">„Push A” z 22.10 zniknie z historii wraz z seriami i tonażem. Plan się nie zmieni. Tej operacji nie można cofnąć.</p>
+      <div class="acts">
+        <button class="btn out" style="flex:none" autofocus>Anuluj</button>
+        <button class="btn dz-fill" style="flex:none">Usuń trening</button>
+      </div>
+    </div>
+    <nav class="belka" aria-label="Nawigacja główna (kontekst)"><span>Pulpit</span><span class="on">Trening</span><span>Dieta</span><span>Analiza</span><span>Team</span></nav>
+  </div>
+</figure>
+
+<figure>
+  <figcaption>D2. Dwa warianty wyniku usuwania. (a) Błąd sieci w dialogu: wpis zostaje na liście, „Spróbuj ponownie”. (b) Trening już usunięty na innym urządzeniu: baner informacyjny nad listą, lista odświeżona, bez kodu błędu.</figcaption>
+  <div class="panelwrap">
+    <div>
+      <div class="lbl">a. Błąd sieci w dialogu</div>
+      <div class="card" style="position:relative;height:330px;padding:0;background:#0c0c0e;border-color:#222;">
+        <div class="scrim" style="border-radius:22px"></div>
+        <div class="dlg" style="top:auto;bottom:16px;transform:none;padding:16px">
+          <h3>Usunąć trening?</h3>
+          <p>„Push A” z 22.10 zniknie z historii wraz z seriami i tonażem.</p>
+          <div class="banner err" role="alert" style="margin-top:12px"><svg class="i sm"><use href="#i-alert"/></svg><div><b>Nie udało się usunąć treningu.</b>Sprawdź połączenie. Wpis zostaje na liście.</div></div>
+          <div class="acts"><button class="btn out" style="flex:none">Anuluj</button><button class="btn dz-fill" style="flex:none"><svg class="i sm"><use href="#i-refresh"/></svg>Spróbuj ponownie</button></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="lbl">b. Już usunięty na innym urządzeniu</div>
+      <div class="card" style="padding:12px;background:#0c0c0e;border-color:#222">
+        <div class="banner info" role="status"><svg class="i sm"><use href="#i-info"/></svg><div><b>Ten trening już nie istnieje.</b>Odświeżyliśmy listę.</div></div>
+        <p class="tiny" style="margin:10px 0 0">Wiersz znika z listy, podsumowanie i licznik przeliczają się. Bez kodu błędu.</p>
+      </div>
+    </div>
+  </div>
+</figure>
+
+<!-- ============ GRUPA 5: STANY SYSTEMOWE ============ -->
+<div class="group-title">5. Stany: pierwsze użycie, ładowanie, offline i błąd</div>
+
+<figure>
+  <figcaption>E1. Pierwsze użycie: brak treningów. Bez podsumowania (nie ma liczb), bez filtra. Jedno CTA: „Przejdź do Treningów”. Tekst mówi, co pojawi się po ukończeniu treningu.</figcaption>
+  <div class="ph">
+    <div class="top"><span class="brand">GYMBRAT</span><button class="icon-btn" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button></div>
+    <div class="sc">
+      <a class="back" href="#"><svg class="i sm"><use href="#i-arrow-left"/></svg>Wróć</a>
+      <div class="hdr"><div class="kicker">Trening</div><h1 class="h1">Historia treningów</h1></div>
+      <div class="card flat empty" style="margin-top:24px;padding:36px 20px">
+        <div class="glyph" style="width:64px;height:64px"><svg class="i"><use href="#i-dumbbell"/></svg></div>
+        <h3 style="margin-top:14px">Nie masz jeszcze treningów</h3>
+        <p>Ukończony trening pojawi się tutaj z ciężarami i tonażem.</p>
+        <a class="btn cta" href="#" style="margin-top:12px;width:100%;flex:none">Przejdź do Treningów</a>
+      </div>
+    </div>
+    <nav class="belka" aria-label="Nawigacja główna (kontekst)"><span>Pulpit</span><span class="on">Trening</span><span>Dieta</span><span>Analiza</span><span>Team</span></nav>
+  </div>
+</figure>
+
+<figure>
+  <figcaption>E2. Ładowanie: szkielety o tym samym układzie co lista (podsumowanie, chipy, dwa tygodnie). Bez pulsu przy reduced-motion. Bez spinnera na całym ekranie.</figcaption>
+  <div class="ph">
+    <div class="top"><span class="brand">GYMBRAT</span><button class="icon-btn" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button></div>
+    <div class="sc" aria-busy="true" aria-label="Ładowanie historii treningów">
+      <div class="sk" style="height:22px;width:55%;margin-top:18px;border-radius:8px"></div>
+      <div class="sk" style="height:34px;width:85%;margin-top:10px;border-radius:10px"></div>
+      <div class="card" style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:16px 12px;"><div class="sk" style="height:56px"></div><div class="sk" style="height:56px"></div><div class="sk" style="height:56px"></div></div>
+      <div style="display:flex;gap:8px;margin-top:14px"><div class="sk" style="height:44px;width:96px;border-radius:999px"></div><div class="sk" style="height:44px;width:120px;border-radius:999px"></div><div class="sk" style="height:44px;width:84px;border-radius:999px"></div></div>
+      <div class="sk" style="height:18px;width:40%;margin-top:26px;border-radius:8px"></div>
+      <div class="panel" style="margin-top:10px;padding:4px 0">
+        <div class="row"><div class="sk" style="width:48px;height:40px"></div><div style="flex:1"><div class="sk" style="height:14px;width:60%"></div><div class="sk" style="height:10px;width:45%;margin-top:8px"></div></div></div>
+        <div class="row"><div class="sk" style="width:48px;height:40px"></div><div style="flex:1"><div class="sk" style="height:14px;width:55%"></div><div class="sk" style="height:10px;width:40%;margin-top:8px"></div></div></div>
+      </div>
+    </div>
+  </div>
+</figure>
+
+<figure>
+  <figcaption>E3. Offline i błąd wczytania. Offline (AC-14.1): baner ostrzegawczy, bez zer i bez pustej listy. Błąd: komunikat i „Spróbuj ponownie” (44 px), bez starych danych jako aktualnych.</figcaption>
+  <div class="panelwrap" style="gap:18px">
+    <div>
+      <div class="lbl">Offline</div>
+      <div class="banner warn" role="status"><svg class="i sm"><use href="#i-wifi-off"/></svg><div><b>Brak połączenia.</b>Historia pokaże się po powrocie sieci.</div></div>
+    </div>
+    <div>
+      <div class="lbl">Błąd wczytania</div>
+      <div class="banner err" role="alert"><svg class="i sm"><use href="#i-alert"/></svg><div><b>Nie udało się wczytać historii.</b>Spróbuj ponownie za chwilę.</div></div>
+      <button class="btn out" style="margin-top:10px;height:44px;width:100%"><svg class="i sm"><use href="#i-refresh"/></svg>Spróbuj ponownie</button>
+    </div>
+  </div>
+</figure>
+
+<!-- ============ GRUPA 6: WĄSKI EKRAN ============ -->
+<div class="group-title">6. Kontrola wąskiego ekranu (360 px)</div>
+
+<figure>
+  <figcaption>F1. 360 px: podsumowanie zostaje w trzech kolumnach (etykiety skrócone w kolumnie, pełny tekst w `aria-label`). Chipy przewijają się poziomo z maską. Pastylki porównania nie zawijają się, bo mieszczą się w kolumnie 130 px. Stopka rozwinięcia: przyciski w rzędzie, etykiety mieszczą się bez zawijania.</figcaption>
+  <div class="ph w360" style="height:600px">
+    <div class="top"><span class="brand">GYMBRAT</span><button class="icon-btn" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button></div>
+    <div class="sc">
+      <div class="hdr"><div class="kicker">Trening</div><h1 class="h1" style="font-size:26px;line-height:30px">Historia treningów</h1><div class="meta">12 z 38 treningów</div></div>
+      <div class="card sum" style="margin-top:14px;padding:12px 8px">
+        <div><div class="k" style="font-size:9px">Na tydz.</div><div class="v tn" style="font-size:22px">1,5</div><div class="s" style="font-size:10px">z 8 tyg.</div></div>
+        <div><div class="k" style="font-size:9px">Czas</div><div class="v tn" style="font-size:22px">61<small>min</small></div><div class="s" style="font-size:10px">z 12 tr.</div></div>
+        <div><div class="k" style="font-size:9px">Tonaż</div><div class="v tn" style="font-size:22px">48,2<small>t</small></div><div class="s" style="font-size:10px">z 400 ost.</div></div>
+      </div>
+      <div class="fbar" style="margin-left:-16px;margin-right:-16px;padding-left:16px">
+        <button class="chp on" aria-pressed="true"><svg class="i xs"><use href="#i-check"/></svg>Push A <span class="n">12</span></button>
+        <button class="chp" aria-pressed="false">Nogi <span class="n">9</span></button>
+        <button class="chp" aria-pressed="false">Barki i plecy <span class="n">5</span></button>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <button class="row open" aria-expanded="true" style="min-height:72px">
+          <div class="d" style="width:44px"><div class="wd">Czw</div><div class="dt">22.10</div></div>
+          <div class="mid"><h3>Push A</h3><div class="m">61 min · 19 serii</div></div>
+          <div class="end"><div class="kg">4 190 kg</div><div class="cmp up" style="font-size:11px"><svg class="i"><use href="#i-trend-up"/></svg>+5,3% · 17.10</div></div>
+        </button>
+        <div class="det" style="padding:12px">
+          <div class="acts"><button class="btn out" style="min-height:48px;padding:0 10px;font-size:13px"><svg class="i sm"><use href="#i-pencil"/></svg>Popraw</button><button class="btn dz" style="padding:0 10px;font-size:13px"><svg class="i sm"><use href="#i-trash"/></svg>Usuń trening</button></div>
+          <p class="hint">Edycja do 31.10, 20:14.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</figure>
+
+</div>
+</body>
+</html>

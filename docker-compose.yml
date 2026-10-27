@@ -1,3 +1,7 @@
+# Lokalny Java BFF (dev) — NIE używany na produkcji VPS (Faza 1, D7 = bez Javy).
+# Produkcja / staging: deploy/docker-compose.yml
+# Docs: docs/deployment.md, docs/vps-docker-production.md
+
 services:
   java-backend:
     image: maven:3.9.6-eclipse-temurin-17

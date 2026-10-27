@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { ArrowDownRight, ArrowUpRight, ChevronDown, Info, Minus } from "lucide-react";
 import { SectionLabel } from "@/components/ui/section-label";
 import { velocityTone } from "@/lib/analytics";
@@ -16,10 +16,8 @@ import { cn } from "@/lib/utils";
 export type Tone = "up" | "down" | "flat" | "none";
 
 export function toneText(tone: Tone): string {
-  if (tone === "up") return "text-emerald-300";
-  if (tone === "down") return "text-rose-300";
-  if (tone === "flat") return "text-white/55";
-  return "text-white/35";
+  if (tone === "up") return "text-[var(--gym-success)]";
+  return "text-[var(--gym-text-secondary)]";
 }
 
 export function ToneIcon({
@@ -72,7 +70,7 @@ export function ProgressSection({
 }) {
   return (
     <section className={cn("space-y-2", className)}>
-      <SectionLabel title={title} trailing={trailing} titleTone="white" />
+      <SectionLabel title={title} trailing={trailing} titleTone="white" titleAs="h2" />
       {children}
     </section>
   );
@@ -111,7 +109,7 @@ export function Eyebrow({
     <p
       className={cn(
         "text-[10px] font-semibold uppercase tracking-[0.14em]",
-        gold ? "text-[var(--gym-gold)]" : "text-white/40",
+        gold ? "text-[var(--gym-gold)]" : "text-[var(--gym-text-secondary)]",
         className,
       )}
     >
@@ -148,7 +146,7 @@ export function StatTile({
         {value}
       </div>
       {hint ? (
-        <p className="mt-1.5 text-[11px] leading-snug text-white/40">{hint}</p>
+        <p className="mt-1.5 text-[11px] leading-snug text-[var(--gym-text-secondary)]">{hint}</p>
       ) : null}
     </>
   );
@@ -187,7 +185,7 @@ export function SegmentedControl<T extends string>({
 }) {
   return (
     <div
-      className={cn(
+        className={cn(
         "flex gap-1 rounded-xl border border-white/10 bg-black/30 p-1",
         className,
       )}
@@ -204,10 +202,10 @@ export function SegmentedControl<T extends string>({
             aria-selected={active}
             onClick={() => onChange(o.id)}
             className={cn(
-              "min-w-0 flex-1 truncate rounded-lg px-2 py-2 text-[12px] font-semibold transition active:scale-[0.97]",
+              "min-h-11 min-w-0 flex-1 whitespace-nowrap rounded-lg px-1.5 py-2 text-[12px] font-semibold transition active:scale-[0.97]",
               active
                 ? "bg-[var(--gym-gold)]/20 text-[var(--gym-gold)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.35)]"
-                : "text-white/50 hover:text-white/75",
+                : "text-[var(--gym-text-secondary)] hover:text-white/90",
             )}
           >
             {o.label}
@@ -233,12 +231,14 @@ export function CollapsibleCard({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const contentId = useId();
   return (
     <div className="app-panel overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
+        aria-controls={contentId}
         className="flex w-full items-center gap-2.5 px-3.5 py-3 text-left"
       >
         {icon ? (
@@ -264,9 +264,9 @@ export function CollapsibleCard({
           aria-hidden
         />
       </button>
-      {open ? (
-        <div className="border-t border-white/[0.06]">{children}</div>
-      ) : null}
+      <div id={contentId} hidden={!open} className="border-t border-white/[0.06]">
+        {children}
+      </div>
     </div>
   );
 }
@@ -280,8 +280,8 @@ export function Explainer({
   label?: string;
 }) {
   return (
-    <details className="text-[11px] leading-snug text-white/40">
-      <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-white/45 select-none [&::-webkit-details-marker]:hidden">
+    <details className="text-[11px] leading-snug text-[var(--gym-text-secondary)]">
+      <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 text-[var(--gym-text-secondary)] select-none [&::-webkit-details-marker]:hidden">
         <Info className="h-3 w-3" aria-hidden />
         {label}
       </summary>
@@ -313,7 +313,7 @@ export function Meter({
     <div className={cn("h-1.5 overflow-hidden rounded-full bg-white/[0.08]", className)}>
       <div
         className={cn(
-          "h-full rounded-full bg-[var(--gym-gold)] transition-[width] duration-500",
+          "h-full rounded-full bg-[var(--gym-gold)] transition-[width] duration-300 motion-reduce:transition-none",
           barClassName,
         )}
         style={{ width: `${w}%` }}

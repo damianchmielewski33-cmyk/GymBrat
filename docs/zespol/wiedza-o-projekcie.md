@@ -13,6 +13,7 @@ Stan na 2026-10-23. Dokumenty powstały z analizy kodu przez zespół agentów (
 | Ścieżki krytyczne, SLO, problemy wydajności, limity planów | [docs/wydajnosc/00-analiza-bazowa.md](../wydajnosc/00-analiza-bazowa.md) | tester-wydajnosci |
 | Decyzje właściciela produktu (odpowiedzi na pytania otwarte) | [docs/zespol/decyzje-wlasciciela.md](decyzje-wlasciciela.md) | koordynator |
 | Backlog zadań w kolejności priorytetu | [docs/zespol/backlog.md](backlog.md) | koordynator |
+| Błędy brzegowe/niskiego priorytetu odłożone na później, cała aplikacja (jeden wspólny plik, nie per zadanie) — nie wracają do zespołu bez decyzji właściciela, zasady w `docs/zespol/przeplyw.md` | [docs/bledy-do-naprawy/bledy.md](../bledy-do-naprawy/bledy.md) | koordynator |
 | Podstawy prawne i retencja (projekt roboczy) | [docs/prawo/01-podstawy-prawne-i-retencja.md](../prawo/01-podstawy-prawne-i-retencja.md) | prawnik |
 | Aktualność istniejących specyfikacji w docs/ | [docs/analiza/01-aktualnosc-specyfikacji.md](../analiza/01-aktualnosc-specyfikacji.md) | analityk |
 
@@ -20,6 +21,7 @@ Stan na 2026-10-23. Dokumenty powstały z analizy kodu przez zespół agentów (
 - Polskojęzyczna aplikacja B2C dla osoby ćwiczącej samodzielnie: trening, cardio, dziennik posiłków, raporty ciała ze zdjęciami, postępy, społeczność, panel admina. Coach to heurystyki (bez LLM); AI tylko do grafik przepisów (Pollinations).
 - Next 16.4 (`proxy.ts`, build `--webpack`), React 19, Tailwind 4, Drizzle + Turso, NextAuth v5. Faktyczne źródło schematu: `db/ensure-schema.ts`.
 - Android to WebView na tych samych stronach; Java backend obsługuje tylko 5 tras i trzyma dane w pamięci.
+- iOS: powłoka WKWebView w `ios/` (build na macOS); użytkownicy bez Apple Developer instalują PWA (Safari → Dodaj do ekranu) — `docs/ios-instalacja-bez-developer.md`.
 - Design: tylko tryb ciemny "black iron & gold", tokeny w `app/globals.css`, ale wiele kolorów wpisanych na sztywno.
 
 ## Znane problemy linii bazowej (do zaplanowania jako zadania)

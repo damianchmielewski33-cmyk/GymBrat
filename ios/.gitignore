@@ -1,0 +1,10 @@
+# Xcode / XcodeGen
+GymBrat.xcodeproj/
+GymBrat.xcworkspace/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.ipa
+*.dSYM.zip
+*.dSYM
+.DS_Store

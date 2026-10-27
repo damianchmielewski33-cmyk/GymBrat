@@ -1,0 +1,143 @@
+# GymBrat — build obrazu Docker → GHCR; opcjonalny deploy na VPS (Faza 1).
+# Render Free pozostaje primary do GO-LIVE (docs/vps-docker-production.md).
+#
+# Sekrety (Settings → Secrets):
+#   VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_DEPLOY_PATH  — wymagane do kroku deploy
+# Bez sekretów VPS: tylko build + push (na master / tag / workflow_dispatch).
+#
+# Obrazy: ghcr.io/damianchmielewski33-cmyk/gymbrat:latest oraz :sha-<short>
+
+name: Deploy VPS (Docker)
+
+on:
+  push:
+    branches: [master, main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Deploy na VPS po pushu do GHCR (wymaga sekretów VPS_*)"
+        required: false
+        type: boolean
+        default: true
+      image_tag:
+        description: "Opcjonalny tag obrazu (np. v0.1.0); pusty = sha + latest"
+        required: false
+        type: string
+        default: ""
+
+concurrency:
+  group: deploy-vps-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: gymbrat
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      tags: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve image tags
+        id: meta
+        shell: bash
+        run: |
+          OWNER_LC='${{ github.repository_owner }}'
+          OWNER_LC="${OWNER_LC,,}"
+          REPO_LC='${{ env.IMAGE_NAME }}'
+          IMAGE="${{ env.REGISTRY }}/${OWNER_LC}/${REPO_LC}"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          TAGS="${IMAGE}:sha-${SHORT_SHA},${IMAGE}:latest"
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME}"
+            TAGS="${TAGS},${IMAGE}:${VERSION}"
+          fi
+          EXTRA="${{ github.event.inputs.image_tag }}"
+          if [[ -n "${EXTRA}" ]]; then
+            TAGS="${TAGS},${IMAGE}:${EXTRA}"
+          fi
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+          echo "Resolved tags: ${TAGS}"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_APP_URL=
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: >
+      (github.event_name == 'workflow_dispatch' && inputs.deploy == true)
+      || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')))
+    steps:
+      - name: Check VPS secrets
+        id: gate
+        shell: bash
+        run: |
+          if [[ -z "${{ secrets.VPS_HOST }}" || -z "${{ secrets.VPS_SSH_KEY }}" || -z "${{ secrets.VPS_USER }}" || -z "${{ secrets.VPS_DEPLOY_PATH }}" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Brak sekretów VPS_* — pomijam deploy (obraz jest w GHCR). Render nadal primary."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy over SSH
+        if: steps.gate.outputs.skip != 'true'
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.VPS_DEPLOY_PATH }}"
+            SHORT_SHA="${{ github.sha }}"
+            SHORT_SHA="${SHORT_SHA:0:7}"
+            OWNER_LC="${{ github.repository_owner }}"
+            # bash lowercase
+            OWNER_LC=$(echo "$OWNER_LC" | tr '[:upper:]' '[:lower:]')
+            export GYMBRAT_IMAGE="ghcr.io/${OWNER_LC}/gymbrat:sha-${SHORT_SHA}"
+            # Preferuj tag z pliku .env jeśli ustawiony; nadpisz do świeżego sha
+            if grep -q '^GYMBRAT_IMAGE=' .env 2>/dev/null; then
+              sed -i "s|^GYMBRAT_IMAGE=.*|GYMBRAT_IMAGE=${GYMBRAT_IMAGE}|" .env
+            else
+              echo "GYMBRAT_IMAGE=${GYMBRAT_IMAGE}" >> .env
+            fi
+            # Preferuj PAT z read:packages (sekret GHCR_READ_TOKEN); inaczej zakładamy
+            # jednorazowy `docker login ghcr.io` na VPS (docs/deployment.md).
+            if [ -n "${{ secrets.GHCR_READ_TOKEN }}" ]; then
+              echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
+            fi
+            docker compose pull gymbrat-web
+            docker compose up -d
+            docker compose ps
+            echo "Deploy OK: ${GYMBRAT_IMAGE}"

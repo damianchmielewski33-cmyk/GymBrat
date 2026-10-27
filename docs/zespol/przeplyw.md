@@ -57,13 +57,22 @@ W pełnym przepływie nie pomijaj etapów uznanych za potrzebne (patrz "Dobór r
 ## Zasady koordynacji
 - Dla każdego zadania zakładaj kartę `docs/zadania/<numer>-<nazwa>.md` na podstawie `docs/zadania/_szablon.md`: lista bramek, werdykty, daty, odnośniki do raportów. Aktualizuj ją po każdym etapie.
 - Przekazuj agentom pełny kontekst: wyniki poprzednich etapów, ścieżki dokumentów, uwagi do uwzględnienia. Agenci startują bez pamięci rozmowy; stan projektu opisuje baza wiedzy `docs/zespol/wiedza-o-projekcie.md`.
-- Werdykt ODRZUCONE cofa zadanie do właściwego etapu (kod do 5, projekt do 3 lub 4, wymagania do 1). Po poprawkach powtórz bramki, na które zmiana mogła wpłynąć. Każda zmiana kodu po etapie 5 wymaga ponownych testów przez `tester`.
+- Werdykt ODRZUCONE cofa zadanie do właściwego etapu (kod do 5, projekt do 3 lub 4, wymagania do 1) **tylko dla defektów blokujących** (patrz "Błędy brzegowe i niski priorytet" niżej) — po poprawkach powtórz bramki, na które zmiana mogła wpłynąć; każda zmiana kodu po etapie 5 wymaga ponownych testów przez `tester`.
 - Decyzja z etapu 1, które bramki pomijasz, obowiązuje do końca zadania, o ile charakter zmiany się nie zmieni; wtedy wywołaj pominiętą bramkę wyjątkowo (patrz "Dobór ról").
 - Blokują wydanie: podatności krytyczne i wysokie, przekroczone SLO wydajności w scenariuszu szczytowym, brak wymaganej zgody lub podstawy prawnej, niedziałające testy.
-- ZATWIERDZONE Z UWAGAMI dopuszczaj tylko dla uwag niskiego ryzyka; zapisuj je w backlogu z właścicielem.
+- ZATWIERDZONE Z UWAGAMI dopuszczaj tylko dla uwag niskiego/średniego ryzyka niebędących blokującymi (patrz "Błędy brzegowe i niski priorytet"); zapisuj je we wspólnym `docs/bledy-do-naprawy/bledy.md` (cała aplikacja, nie per zadanie).
 - Uruchamiaj niezależne etapy równolegle (backend i frontend; tester-bezpieczenstwa i tester-wydajnosci).
 - Dokumenty prawne tworzone przez `prawnik` są projektami roboczymi; przypominaj, że przed publikacją musi je zatwierdzić prawnik-człowiek.
 - Nie zgłaszaj zadania jako zakończonego, dopóki nie sprawdziłeś, że wszystkie bramki mają werdykt, a `npm run lint`, `npx tsc --noEmit` i `npm test` faktycznie przeszły.
+
+## Błędy brzegowe i niski priorytet — nie wracają do zespołu bez decyzji właściciela
+Każdy agent (głównie `tester`, `tester-bezpieczenstwa`, `tester-wydajnosci`, `ux`, `prawnik`) klasyfikuje każde znalezisko jako **blokujące** albo **do naprawy później**, zanim wyda werdykt ODRZUCONE.
+
+**Blokujące** (uzasadniają ODRZUCONE i cofnięcie do właściwego etapu): defekt na głównej, typowej ścieżce funkcji (nie w rzadkim przypadku brzegowym), realna utrata lub ujawnienie danych w zwykłym użyciu, naruszenie bezpieczeństwa lub prawa na głównej ścieżce, test głównego scenariusza, który nie przechodzi, `npm run lint`/`npx tsc --noEmit`/`npm test` czerwone na zmienionych plikach, SLO wydajności przekroczone w typowym (nie szczytowym ani złośliwym) obciążeniu.
+
+**Do naprawy później** (NIE blokuje — ZATWIERDZONE albo ZATWIERDZONE Z UWAGAMI, nigdy ODRZUCONE z tego powodu): rzadkie wyścigi wielourządzeniowe/współbieżne o niskim prawdopodobieństwie, przypadki brzegowe (np. puste/ekstremalne dane, rzadkie sekwencje kliknięć), drobne niespójności tekstu/UX niskiego ryzyka, dług techniczny i wzorce kodu poza zmienianym obszarem, pytania wymagające decyzji właściciela produktu lub prawnika-człowieka, które nie blokują działania funkcji (np. klasyfikacja prawna nowej kategorii danych, okres retencji, zakres zgody), braki w pokryciu testami wymagające środowiska niedostępnego w sesji (E2E z danymi logowania, przeglądarka).
+
+Agent zapisuje każdą pozycję „do naprawy później" w **jednym wspólnym pliku dla całej aplikacji** `docs/bledy-do-naprawy/bledy.md` (NIE jeden plik na zadanie — to worek współdzielony między wszystkimi zadaniami), dopisując wiersz do pasującej sekcji tematycznej (albo nowej, jeśli żadna nie pasuje) z kolumną „Zadanie źródłowe" (numer karty z `docs/zadania/`). Format: Opis | Lokalizacja | Zadanie źródłowe | Źródło (agent, etap). Koordynator **nie uruchamia zespołu ponownie nad pozycjami z tego pliku** bez wyraźnej decyzji użytkownika — użytkownik przegląda plik samodzielnie i decyduje, kiedy i co naprawić (w tej sesji albo w innej, później, niezależnie od tego, które zadanie dany wpis wykryło). Przy zamykaniu zadania koordynator krótko wspomina w podsumowaniu dla użytkownika, że lista czeka w tym pliku, bez wyliczania jej w całości.
 
 ## Zgodność z istniejącymi regułami wdrożeń (`AGENTS.md`)
 Przepływ zespołu uzupełnia, a nie zastępuje reguł wdrożeniowych repozytorium.
@@ -78,4 +87,4 @@ Przepływ zespołu uzupełnia, a nie zastępuje reguł wdrożeniowych repozytori
 - Dane o ciele i zdrowiu (waga, pomiary, zdjęcia, posiłki) to dane wrażliwe: minimalizacja, zgody, brak w logach i Sentry.
 - Jedna funkcjonalność w jednym miejscu; jeden komponent w jednym katalogu komponentów; brak martwego kodu, pustych metod i zdublowanych funkcji.
 - Interfejs po polsku; spójna mikrokopia.
-- Dokumentacja zespołu w `docs/`: `analiza/`, `prawo/`, `adr/`, `ux/`, `testy/`, `bezpieczenstwo/`, `wydajnosc/`, `zadania/`. Istniejące dokumenty w `docs/` zostają bez zmian.
+- Dokumentacja zespołu w `docs/`: `analiza/`, `prawo/`, `adr/`, `ux/`, `testy/`, `bezpieczenstwo/`, `wydajnosc/`, `zadania/`, `bledy-do-naprawy/bledy.md` (JEDEN wspólny plik dla całej aplikacji — błędy brzegowe/niskiego priorytetu odłożone na później, patrz sekcja wyżej, nie plik per zadanie). Istniejące dokumenty w `docs/` zostają bez zmian.
