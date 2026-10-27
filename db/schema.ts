@@ -276,6 +276,8 @@ export const workouts = sqliteTable(
     date: text("date").notNull(),
     cardioMinutes: integer("cardio_minutes").notNull().default(0),
     exercises: text("exercises").notNull(),
+    /** Denormalized total completed-set tonnage for lifetime progress aggregates. */
+    tonnageKg: real("tonnage_kg"),
     /** Klucz idempotencji zapisu — jeden na sesję treningu (LR-3). Nullable: wiersze historyczne. */
     operationId: text("operation_id"),
   },

@@ -1,9 +1,16 @@
 import { z } from "zod";
 
+export const WAIST_GOAL_CM_DEFAULT = 15;
+export const TONNAGE_GOAL_KG_DEFAULT = 50_000;
+export const STREAK_WEEKS_GOAL_DEFAULT = 4;
+
 export const fitnessGoalsSchema = z.object({
   weeklySessionsTarget: z.number().int().min(1).max(14).optional(),
   /** Waga docelowa (kg) — Postępy → Sylwetka. */
   targetWeightKg: z.number().positive().max(400).optional(),
+  waistGoalCm: z.number().positive().max(60).optional(),
+  tonnageGoalKg: z.number().positive().max(10_000_000).optional(),
+  streakWeeksGoal: z.number().int().min(1).max(52).optional(),
   exerciseTargets: z
     .array(
       z.object({
@@ -45,6 +52,9 @@ export function fitnessGoalsToJson(goals: FitnessGoals): string | null {
   if (
     !v.weeklySessionsTarget &&
     v.targetWeightKg == null &&
+    v.waistGoalCm == null &&
+    v.tonnageGoalKg == null &&
+    v.streakWeeksGoal == null &&
     !v.exerciseTargets?.length &&
     v.supplements === undefined
   ) {
