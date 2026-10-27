@@ -74,7 +74,7 @@ export async function upsertExerciseTechniqueLink(
 
   try {
     await updateExerciseTechniqueUrl(id, url, actorUserId);
-    revalidateTag(EXERCISES_CACHE_TAG);
+    revalidateTag(EXERCISES_CACHE_TAG, "max");
   } catch {
     /* legacy tabela poniżej */
   }
@@ -90,7 +90,7 @@ export async function upsertExerciseTechniqueLink(
           updatedByUserId: actorUserId,
         })
         .where(eq(exercises.id, id));
-      revalidateTag(EXERCISES_CACHE_TAG);
+      revalidateTag(EXERCISES_CACHE_TAG, "max");
     } catch {
       /* ignore */
     }
