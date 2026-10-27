@@ -69,13 +69,7 @@ function etaLabel(input: {
  * Zakładka Zdjęcia została tu włączona: wcześniej waga i pas „od startu”
  * były pokazane w trzech miejscach (hero, tempo, zdjęcia).
  */
-export function BodyTab({
-  body,
-  photos,
-}: {
-  body: ProgressHubData["body"];
-  photos: ProgressHubData["photos"];
-}) {
+export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
   const { weights, tempo, measures, targetWeightKg } = body;
   const router = useRouter();
   const [editingGoal, setEditingGoal] = useState(false);
@@ -349,7 +343,7 @@ export function BodyTab({
       </ProgressSection>
 
       <CollapsibleCard title="Zdjęcia" summary="Porównanie Start i Teraz · pokaż na żądanie" lazy>
-        <PhotoCompareSection data={photos} />
+        <PhotoCompareSection />
       </CollapsibleCard>
     </div>
   );

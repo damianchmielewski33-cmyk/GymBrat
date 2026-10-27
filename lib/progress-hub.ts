@@ -49,10 +49,7 @@ import {
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { frontBodyReportPhoto } from "@/lib/body-report-photo-slots";
 import { CUSTOM_START_PHOTO_ID } from "@/lib/start-photo-id";
-import {
-  bodyReportPhotoMediaPath,
-  startPhotoMediaPath,
-} from "@/lib/user-photo-media";
+import { bodyReportPhotoMediaPath, startPhotoMediaPath } from "@/lib/user-photo-media";
 import { resolveExerciseIdentity } from "@/lib/exercise-identity";
 import {
   buildProgressIntensitySummary,
@@ -351,7 +348,6 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       .select({
         weeklyCardioGoalMinutes: userSettings.weeklyCardioGoalMinutes,
         fitnessGoalsJson: userSettings.fitnessGoalsJson,
-        hasStartPhoto: sql<number>`CASE WHEN ${userSettings.startPhotoDataUrl} IS NOT NULL AND length(trim(${userSettings.startPhotoDataUrl})) > 0 THEN 1 ELSE 0 END`,
         trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
         restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
         nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
@@ -382,7 +378,7 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       .orderBy(desc(workouts.date), desc(workouts.id))
       .limit(400),
     // Bez blobów — tylko meta (id), media serwowane osobno po /api/media/…
-    getBodyReports(userId, { photos: "meta" }),
+    getBodyReports(userId, { photos: "none" }),
     db
       .select({
         age: users.age,
@@ -1199,7 +1195,7 @@ async function loadProgressHubData(userId: string): Promise<ProgressHubData> {
       waistCm: r.waistCm,
     });
   }
-  const hasCustomStartPhoto = Number(settingsRow?.hasStartPhoto ?? 0) === 1;
+  const hasCustomStartPhoto = false;
   const firstReportPhoto = photoItems[0] ?? null;
   const startPhoto: ProgressPhotoItem | null = hasCustomStartPhoto
     ? {

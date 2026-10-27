@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { TrendingUp } from "lucide-react";
 import {
   CollapsibleCard,
   EmptyNote,
-  Eyebrow,
   Explainer,
   PctValue,
   ProgressSection,
@@ -16,6 +16,7 @@ import {
 } from "@/components/progress/progress-ui";
 import {
   pickVelocity,
+  velocityTone,
   type PredictionItem,
   type StrengthVelocitySnapshot,
   type VelocityPeriodKey,
@@ -25,6 +26,7 @@ import {
   confidenceLabelPl,
 } from "@/lib/analytics/strength-movers";
 import { fmtPct } from "@/lib/progress-format";
+import { exerciseProgressKey } from "@/lib/progress-tabs";
 import { cn } from "@/lib/utils";
 
 type PeriodId = "7" | "30" | "90";
