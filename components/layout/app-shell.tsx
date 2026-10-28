@@ -116,7 +116,7 @@ export function AppShell({
         <header className="sticky top-0 z-40 bg-black/55 pt-[env(safe-area-inset-top)] backdrop-blur-md">
           <div
             className={cn(
-              "mx-auto flex items-center justify-between gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3.5",
+              "mx-auto flex items-center justify-between gap-2 px-[var(--space-screen-x)] py-2.5 sm:gap-3 sm:px-[var(--space-screen-x-sm)] sm:py-3.5",
               APP_SHELL_MAX,
             )}
           >
@@ -136,8 +136,8 @@ export function AppShell({
           sessionFullscreen
             ? "h-[100dvh] max-h-[100dvh] overflow-hidden px-0 py-0"
             : hideBottomNav
-              ? "px-3 py-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-4"
-              : "px-3 py-3 pb-[calc(7.75rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-4",
+              ? "px-[var(--space-screen-x)] py-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-[var(--space-screen-x-sm)] sm:py-4"
+              : "px-[var(--space-screen-x)] py-3 pb-[calc(7.75rem+env(safe-area-inset-bottom))] sm:px-[var(--space-screen-x-sm)] sm:py-4",
         )}
       >
         {children}
@@ -161,7 +161,7 @@ export function AppShell({
             ) : null}
             <div
               className={cn(
-                "grid grid-cols-5 items-stretch gap-0.5 rounded-[30px] border border-white/[0.1]",
+                "grid grid-cols-5 items-stretch gap-0.5 rounded-[var(--radius-nav)] border border-white/[0.1]",
                 "bg-black/55 px-1.5 pb-1.5 backdrop-blur-2xl",
                 "shadow-[0_8px_40px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.04)_inset]",
                 showReportFab ? "pt-7" : "pt-1.5",
@@ -194,7 +194,7 @@ function ReportFab() {
     <Link
       href="/reports?new=1"
       onClick={() => hapticTap()}
-      className="gym-btn-primary absolute left-1/2 top-0 z-10 inline-flex h-12 min-h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 rounded-full px-5 text-sm shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)]"
+      className="gym-btn-primary absolute left-1/2 top-0 z-10 inline-flex h-12 min-h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 rounded-full px-5 text-sm font-semibold shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]"
       aria-label="Dodaj raport"
     >
       <Plus className="h-4 w-4" aria-hidden />
@@ -227,8 +227,6 @@ function TabLink({
           : pathname.startsWith(item.href);
   const visuallyActive = active || optimisticHref === item.href;
 
-  const isDietTab = item.href === "/meal-suggestions";
-
   return (
     <Link
       href={item.href}
@@ -239,24 +237,17 @@ function TabLink({
       }}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex min-h-[3.25rem] min-w-0 flex-col items-center justify-center gap-0.5 rounded-[22px] px-0.5 py-1.5 text-center text-[9px] font-medium transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80 sm:gap-1 sm:text-[10px]",
+        "relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-[var(--radius-card)] px-0.5 py-1.5 text-center text-[length:var(--text-label)] font-semibold transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80 sm:gap-1 sm:text-[length:var(--text-caption)]",
         visuallyActive
-          ? isDietTab
-            ? "bg-[#DDBB6D]/12 text-[#DDBB6D]"
-            : "bg-[var(--gym-gold)]/10 text-[var(--gym-gold)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.45),0_0_18px_rgba(var(--neon-rgb),0.55),0_0_36px_rgba(var(--neon-rgb),0.28)]"
-          : "text-white/45 shadow-none",
+          ? "bg-[var(--gym-gold)]/10 text-[var(--gym-gold)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.45),0_0_18px_rgba(var(--neon-rgb),0.55),0_0_36px_rgba(var(--neon-rgb),0.28)]"
+          : "text-white/55 shadow-none",
         optimisticHref === item.href && !active ? "opacity-90" : null,
       )}
     >
       {visuallyActive ? (
         <span
           aria-hidden
-          className={cn(
-            "pointer-events-none absolute inset-0 rounded-[22px]",
-            isDietTab
-              ? "diary-nav-breathe bg-[#DDBB6D]/12"
-              : "bg-[var(--gym-gold)]/15 blur-md",
-          )}
+          className="pointer-events-none absolute inset-0 rounded-[var(--radius-card)] bg-[var(--gym-gold)]/15 blur-md"
         />
       ) : null}
       <item.icon className="relative h-5 w-5 sm:h-[1.35rem] sm:w-[1.35rem]" />

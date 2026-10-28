@@ -123,7 +123,7 @@ export function OverviewTab({
                   </span>
                 </span>
                 {tempo.deltaFromStartKg != null ? (
-                  <span className="font-metric text-[15px] tabular-nums text-white">
+                  <span className="font-heading text-[15px] tabular-nums text-white">
                     {fmtSigned(tempo.deltaFromStartKg, " kg", 1)}
                   </span>
                 ) : (

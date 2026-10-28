@@ -153,12 +153,21 @@ export function AdminStat({
             ? "text-[var(--gym-gold)]"
             : "text-white";
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-white/45">{label}</p>
-      <p className={cn("font-heading mt-1.5 text-2xl font-semibold tabular-nums", valueTone)}>
+    <div className="app-panel border border-white/10 p-4">
+      <p className="app-label">{label}</p>
+      <p
+        className={cn(
+          "font-metric mt-1.5 text-[length:var(--text-kpi)] leading-none tabular-nums sm:text-2xl",
+          valueTone,
+        )}
+      >
         {value}
       </p>
-      {hint ? <p className="mt-1 text-xs text-white/45">{hint}</p> : null}
+      {hint ? (
+        <p className="mt-1.5 text-[length:var(--text-caption)] text-white/55">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }

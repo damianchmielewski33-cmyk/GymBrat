@@ -11,6 +11,7 @@ import type { MealLogDto } from "@/lib/meal-logs";
 import { deleteMealLogFormAction, type MealLogFormState } from "@/actions/meal-log";
 import { FoodSearchScan } from "@/components/meal-suggestions/food-search-scan";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Sheet,
   SheetContent,
@@ -38,6 +39,9 @@ function DeleteMealButton({ id }: { id: string }) {
   const { notifySaved } = useSaveFeedback();
   const router = useRouter();
   const handledOkRef = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const allowSubmitRef = useRef(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!state?.ok) {
@@ -51,21 +55,39 @@ function DeleteMealButton({ id }: { id: string }) {
   }, [state?.ok, notifySaved, router]);
 
   return (
-    <form
-      action={action}
-      onSubmit={(e) => {
-        if (!confirm("Usunąć ten produkt z dziennika?")) e.preventDefault();
-      }}
-    >
-      <input type="hidden" name="id" value={id} />
-      <button
-        type="submit"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-400/20 text-rose-200/90 hover:bg-rose-500/15"
-        aria-label="Usuń"
+    <>
+      <form
+        ref={formRef}
+        action={action}
+        onSubmit={(e) => {
+          if (!allowSubmitRef.current) {
+            e.preventDefault();
+            setConfirmOpen(true);
+            return;
+          }
+          allowSubmitRef.current = false;
+        }}
       >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
-    </form>
+        <input type="hidden" name="id" value={id} />
+        <button
+          type="submit"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-rose-400/20 text-rose-200/90 hover:bg-rose-500/15"
+          aria-label="Usuń"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </form>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Usunąć produkt z dziennika?"
+        confirmLabel="Usuń"
+        onConfirm={() => {
+          allowSubmitRef.current = true;
+          formRef.current?.requestSubmit();
+        }}
+      />
+    </>
   );
 }
 

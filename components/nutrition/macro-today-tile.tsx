@@ -82,7 +82,7 @@ export function MacroTodayTile({
           <div>
             <p className="font-metric text-[40px] leading-none tabular-nums text-[var(--gym-gold)] sm:text-[44px]">
               {formatPlNumber(macro.consumed)}
-              <span className="ml-1 text-[16px] font-semibold text-white/90">
+              <span className="ml-1 font-heading text-[16px] font-semibold text-white/90">
                 kcal
               </span>
             </p>

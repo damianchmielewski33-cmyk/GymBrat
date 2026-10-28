@@ -144,7 +144,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                   decimals={1}
                   className="text-[2rem] leading-none text-white"
                 />
-                <span className="font-metric text-[15px] text-white/50">kg</span>
+                <span className="font-heading text-[15px] text-white/50">kg</span>
               </p>
             ) : (
               <p className="mt-2 font-metric text-[2rem] leading-none text-white/35">
@@ -182,7 +182,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                   value={goalDraft}
                   onChange={(e) => setGoalDraft(e.target.value)}
                   placeholder="np. 65"
-                  className="h-10 w-full max-w-[160px] rounded-xl border border-white/15 bg-black/40 px-3 font-metric text-[16px] text-white outline-none focus:border-[var(--gym-gold)]/50"
+                  className="h-10 w-full max-w-[160px] rounded-xl border border-white/15 bg-black/40 px-3 font-heading text-[16px] text-white outline-none focus:border-[var(--gym-gold)]/50"
                   autoFocus
                 />
                 {goalError ? (
@@ -316,7 +316,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                   <div className="text-right">
                     {row.currentCm != null ? (
                       <>
-                        <p className="font-metric text-[15px] leading-none tabular-nums text-white">
+                        <p className="font-heading text-[15px] leading-none tabular-nums text-white">
                           {fmtNum(row.currentCm, row.currentCm % 1 ? 1 : 0)}
                           <span className="ml-0.5 text-[10px] text-white/40">
                             cm
@@ -332,7 +332,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                         </p>
                       </>
                     ) : (
-                      <p className="font-metric text-[15px] text-white/30">—</p>
+                      <p className="font-heading text-[15px] text-white/30">—</p>
                     )}
                   </div>
                 </div>

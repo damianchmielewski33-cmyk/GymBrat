@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
 import { InlineBanner } from "@/components/ui/inline-banner";
 
@@ -52,7 +53,7 @@ export function AuthSessionHydrating({
   if (giveUp) {
     return (
       <div className="mx-auto w-full max-w-lg space-y-4 pb-10">
-        <div className="glass-panel gold-panel p-6 sm:p-8 space-y-4">
+        <AuthCard bodyClassName="space-y-4">
           <InlineBanner role="alert" variant="error">
             Sesja po Google nie dograła się na tym urządzeniu. Zaloguj się ponownie.
           </InlineBanner>
@@ -66,18 +67,18 @@ export function AuthSessionHydrating({
           >
             Wróć do logowania
           </Button>
-        </div>
+        </AuthCard>
       </div>
     );
   }
 
   return (
     <div className="mx-auto w-full max-w-lg pb-10">
-      <div className="glass-panel gold-panel p-6 sm:p-8">
+      <AuthCard>
         <p className="text-sm text-white/70" aria-live="polite">
           Kończymy logowanie Google…
         </p>
-      </div>
+      </AuthCard>
     </div>
   );
 }

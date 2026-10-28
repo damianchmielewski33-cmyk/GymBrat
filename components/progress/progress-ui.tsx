@@ -45,7 +45,7 @@ export function PctValue({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 font-metric tabular-nums",
+        "inline-flex items-center gap-1 font-heading text-[length:var(--text-body-sm)] font-semibold tabular-nums",
         toneText(tone),
         className,
       )}
@@ -108,7 +108,7 @@ export function Eyebrow({
   return (
     <p
       className={cn(
-        "text-[10px] font-semibold uppercase tracking-[0.14em]",
+        "text-[length:var(--text-label)] font-semibold uppercase tracking-[0.14em]",
         gold ? "text-[var(--gym-gold)]" : "text-[var(--gym-text-secondary)]",
         className,
       )}
@@ -139,18 +139,20 @@ export function StatTile({
       <Eyebrow>{label}</Eyebrow>
       <div
         className={cn(
-          "mt-1.5 font-metric text-[1.35rem] leading-none tabular-nums text-white",
+          "mt-1.5 font-metric text-[length:var(--text-kpi)] leading-none tabular-nums text-white",
           valueClassName,
         )}
       >
         {value}
       </div>
       {hint ? (
-        <p className="mt-1.5 text-[11px] leading-snug text-[var(--gym-text-secondary)]">{hint}</p>
+        <p className="mt-1.5 text-[length:var(--text-label)] leading-snug text-[var(--gym-text-secondary)]">
+          {hint}
+        </p>
       ) : null}
     </>
   );
-  const base = "rounded-xl border border-white/10 bg-black/35 px-3 py-2.5";
+  const base = "app-panel border border-white/10 px-3 py-2.5";
   if (onClick) {
     return (
       <button

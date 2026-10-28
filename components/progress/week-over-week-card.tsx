@@ -236,7 +236,7 @@ export function WeekOverWeekCard({
               </div>
               <p
                 className={cn(
-                  "inline-flex items-center gap-1 font-metric text-[13px] tabular-nums",
+                  "inline-flex items-center gap-1 font-heading text-[13px] tabular-nums",
                   deltaTone,
                 )}
               >

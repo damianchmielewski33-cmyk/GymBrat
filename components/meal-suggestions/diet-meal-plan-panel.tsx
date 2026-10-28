@@ -38,7 +38,7 @@ import {
 import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
-const PLAN_GOLD = "#DDBB6D";
+const PLAN_GOLD = "var(--gym-gold)";
 const springSoft = { type: "spring" as const, stiffness: 380, damping: 28 };
 const springExpand = { type: "spring" as const, stiffness: 320, damping: 30 };
 
@@ -104,7 +104,7 @@ function ShoppingListCard({
         aria-expanded={open}
       >
         <ShoppingBag
-          className="h-5 w-5 shrink-0 text-[#DDBB6D]"
+          className="h-5 w-5 shrink-0 text-[var(--gym-gold)]"
           aria-hidden
         />
         <div className="min-w-0 flex-1">
@@ -155,7 +155,7 @@ function ShoppingListCard({
                   className={cn(
                     "mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border",
                     item.checked
-                      ? "border-[#DDBB6D]/60 bg-[#DDBB6D] text-black"
+                      ? "border-[var(--gym-gold)]/60 bg-[var(--gym-gold)] text-black"
                       : "border-white/25 text-transparent",
                   )}
                 >
@@ -286,7 +286,7 @@ function PlanMealCard({
             <ChevronDown
               className={cn(
                 "h-4 w-4",
-                open ? "text-[#DDBB6D]" : "text-white/40",
+                open ? "text-[var(--gym-gold)]" : "text-white/40",
               )}
             />
           </motion.span>
@@ -540,7 +540,7 @@ export function DietMealPlanPanel({
                     key={`${item.name}-${item.amount ?? ""}`}
                     className="flex items-center gap-3 px-4 py-3 text-sm text-white/85"
                   >
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#DDBB6D]" />
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--gym-gold)]" />
                     <span className="min-w-0 flex-1">
                       <span className="block">{item.name}</span>
                       {item.amount?.trim() ? (
@@ -555,7 +555,7 @@ export function DietMealPlanPanel({
               <div className="border-t border-white/[0.06] px-4 py-3">
                 <Link
                   href="/supplements"
-                  className="text-sm font-medium text-[#DDBB6D] hover:text-[#E8D08A]"
+                  className="text-sm font-medium text-[var(--gym-gold)] hover:text-[#E8D08A]"
                 >
                   Zarządzaj suplementami
                 </Link>
@@ -589,7 +589,7 @@ export function DietMealPlanPanel({
             <div className="mt-2 flex items-end gap-2">
               <AnimatedMetric
                 value={weeklyCardioGoalMinutes}
-                className="text-[40px] leading-none text-[#DDBB6D]"
+                className="text-[40px] leading-none text-[var(--gym-gold)]"
               />
               <span className="mb-1.5 text-sm text-white/45">min</span>
             </div>
@@ -632,7 +632,7 @@ export function DietMealPlanPanel({
             <ul className="space-y-3 border-t border-white/[0.06] px-4 py-4">
               {CHEATSHEET_TIPS.map((tip) => (
                 <li key={tip.title}>
-                  <p className="text-sm font-semibold text-[#DDBB6D]">
+                  <p className="text-sm font-semibold text-[var(--gym-gold)]">
                     {tip.title}
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-white/65">

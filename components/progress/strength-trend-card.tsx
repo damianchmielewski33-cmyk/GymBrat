@@ -155,10 +155,10 @@ export function StrengthForecastCard({
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className={cn("font-metric text-[13px] tabular-nums", toneText(d30))}>
+                    <p className={cn("font-heading text-[13px] tabular-nums", toneText(d30))}>
                       30d {fmtPct(item.e1rmDeltaPct30)}
                     </p>
-                    <p className="mt-0.5 font-metric text-[11px] tabular-nums text-white/45">
+                    <p className="mt-0.5 font-heading text-[11px] tabular-nums text-white/45">
                       90d {fmtPct(item.e1rmDeltaPct90)}
                     </p>
                   </div>

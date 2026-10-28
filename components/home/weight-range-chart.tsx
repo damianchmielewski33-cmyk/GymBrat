@@ -117,7 +117,7 @@ export function WeightRangeChart({
         </div>
         <div className="flex items-center gap-3 text-[10px] text-white/45">
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-1.5 w-3 rounded-full bg-[#d4af37]" />
+            <span className="h-1.5 w-3 rounded-full bg-[var(--gym-gold)]" />
             Waga
           </span>
           <span className="inline-flex items-center gap-1.5">
@@ -132,7 +132,7 @@ export function WeightRangeChart({
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
             Waga
           </p>
-          <p className="mt-1 font-display text-[22px] tabular-nums text-[#e8c547]">
+          <p className="mt-1 font-display text-[22px] tabular-nums text-[var(--gym-gold)]">
             {summary.lastKg != null ? `${formatNum(summary.lastKg)} kg` : "—"}
           </p>
           <p className="mt-0.5 text-[11px] text-white/40">
@@ -238,7 +238,7 @@ export function WeightRangeChart({
               type="monotone"
               dataKey="kg"
               name="Waga"
-              stroke="#d4af37"
+              stroke="var(--gym-gold)"
               strokeWidth={2.5}
               dot={
                 showDots
@@ -249,7 +249,7 @@ export function WeightRangeChart({
                       }
                       return (
                         <g key={`kg-${props.index}`}>
-                          <Dot cx={cx} cy={cy} r={3.5} fill="#d4af37" strokeWidth={0} />
+                          <Dot cx={cx} cy={cy} r={3.5} fill="var(--gym-gold)" strokeWidth={0} />
                           <text
                             x={cx}
                             y={cy - 8}
@@ -263,9 +263,9 @@ export function WeightRangeChart({
                         </g>
                       );
                     }
-                  : { r: 3, fill: "#d4af37", strokeWidth: 0 }
+                  : { r: 3, fill: "var(--gym-gold)", strokeWidth: 0 }
               }
-              activeDot={{ r: 5, fill: "#d4af37", strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: "var(--gym-gold)", strokeWidth: 0 }}
               connectNulls
               isAnimationActive
               animationDuration={750}

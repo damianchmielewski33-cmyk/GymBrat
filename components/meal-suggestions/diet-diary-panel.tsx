@@ -51,7 +51,7 @@ function MealActionButton({
       transition={{ type: "spring", stiffness: 520, damping: 22 }}
       className={cn(
         "inline-flex h-9 w-9 items-center justify-center rounded-full",
-        "border border-[rgba(221,187,109,0.42)] text-[#DDBB6D]",
+        "border border-[rgba(221,187,109,0.42)] text-[var(--gym-gold)]",
         "bg-white/[0.02] shadow-[0_0_0_0_rgba(221,187,109,0)]",
         "transition-[box-shadow,background-color] duration-200",
         "hover:bg-[rgba(221,187,109,0.1)] hover:shadow-[0_0_16px_rgba(221,187,109,0.28)]",
@@ -147,7 +147,7 @@ function MealSlotCard({
                 <p
                   className={cn(
                     "mt-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
-                    cell.key === "kcal" ? "text-white/40" : "text-[#DDBB6D]",
+                    cell.key === "kcal" ? "text-white/40" : "text-[var(--gym-gold)]",
                   )}
                 >
                   {cell.label}

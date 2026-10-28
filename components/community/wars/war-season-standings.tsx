@@ -40,7 +40,7 @@ export function WarSeasonStandings({
                   </div>
                 </div>
               </div>
-              <span className="font-metric text-[16px] text-[var(--gym-gold)]">
+              <span className="font-heading text-[16px] text-[var(--gym-gold)]">
                 {s.lp}
               </span>
             </li>

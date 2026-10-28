@@ -92,19 +92,19 @@ export function GhostRaceHud() {
       <div className="mt-2 grid grid-cols-3 gap-2 text-center">
         <div>
           <p className="text-[11px] text-[var(--gym-text-secondary)]">Czas</p>
-          <p className="font-metric text-[15px] tabular-nums text-white">
+          <p className="font-heading text-[15px] tabular-nums text-white">
             {signed(delta.timeDeltaSeconds, " s")}
           </p>
         </div>
         <div>
           <p className="text-[11px] text-[var(--gym-text-secondary)]">Serie</p>
-          <p className="font-metric text-[15px] tabular-nums text-white">
+          <p className="font-heading text-[15px] tabular-nums text-white">
             {signed(delta.setsDelta)}
           </p>
         </div>
         <div>
           <p className="text-[11px] text-[var(--gym-text-secondary)]">Progres</p>
-          <p className="font-metric text-[15px] tabular-nums text-white">
+          <p className="font-heading text-[15px] tabular-nums text-white">
             {signed(delta.progressDeltaPct, "%")}
           </p>
         </div>

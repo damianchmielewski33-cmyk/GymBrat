@@ -45,11 +45,11 @@ export function ProfileSection({
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold leading-tight text-white">
+          <h2 className="font-heading text-lg font-semibold leading-tight text-white">
             {title}
           </h2>
           {description ? (
-            <p className="mt-1 text-[13px] leading-relaxed text-white/45">
+            <p className="mt-1 text-[length:var(--text-body-sm)] leading-relaxed text-white/55">
               {description}
             </p>
           ) : null}

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { cn } from "@/lib/utils";
 
-const HERO_GOLD = "#DDBB6D";
+const HERO_GOLD = "var(--gym-gold)";
 const HERO_GOLD_RGB = "221, 187, 109";
 
 const springSoft = { type: "spring" as const, stiffness: 380, damping: 28 };
@@ -169,7 +169,7 @@ export function MacroProgressHero({
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#F5E4A3" />
-                <stop offset="55%" stopColor="#DDBB6D" />
+                <stop offset="55%" stopColor="var(--gym-gold)" />
                 <stop offset="100%" stopColor="#B88A32" />
               </linearGradient>
             </defs>
