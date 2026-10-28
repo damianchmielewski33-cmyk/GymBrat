@@ -33,11 +33,21 @@ export async function ensureWarSeason(): Promise<string> {
     .where(eq(warSeasons.key, key))
     .limit(1);
   if (existing) return key;
-  const [y, , s] = key.split(/-S/);
-  const seasonNum = Number(s);
+  // key = "YYYY-S{n}" → split(/-S/) daje ["YYYY", "n"] (nie trzy segmenty).
+  const [yRaw, seasonRaw] = key.split(/-S/);
+  const year = Number(yRaw);
+  const seasonNum = Number(seasonRaw);
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(seasonNum) ||
+    seasonNum < 1 ||
+    seasonNum > 4
+  ) {
+    throw new Error(`Nieprawidłowy klucz sezonu wojen: ${key}`);
+  }
   const startMonth = (seasonNum - 1) * 3;
-  const startsAt = new Date(Date.UTC(Number(y), startMonth, 1));
-  const endsAt = new Date(Date.UTC(Number(y), startMonth + 3, 1));
+  const startsAt = new Date(Date.UTC(year, startMonth, 1));
+  const endsAt = new Date(Date.UTC(year, startMonth + 3, 1));
   await db.insert(warSeasons).values({
     key,
     title: `Sezon wojen ${key}`,
