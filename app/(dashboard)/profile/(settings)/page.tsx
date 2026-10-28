@@ -10,11 +10,6 @@ import {
   getCurrentWeightKg,
 } from "@/lib/current-weight";
 import { calendarDateKey } from "@/lib/local-date";
-import {
-  mealTemplatesDaySum,
-  mealTemplatesForProfile,
-} from "@/lib/meal-templates";
-import { MEAL_SUM_TOLERANCE_PCT } from "@/lib/kcal-from-macros";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { parseRemindersJson } from "@/lib/reminders-types";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
@@ -43,7 +38,6 @@ export default async function ProfileOverviewPage() {
         trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
         restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
         nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
-        mealTemplatesJson: userSettings.mealTemplatesJson,
         remindersJson: userSettings.remindersJson,
       })
       .from(userSettings)
@@ -88,21 +82,7 @@ export default async function ProfileOverviewPage() {
       nutritionDayTypesJson: null,
     },
   );
-  const meals = mealTemplatesForProfile(s?.mealTemplatesJson ?? null);
-  const trainingSum = mealTemplatesDaySum(meals.training);
-  const trainingGoal = nutrition.training?.calories ?? null;
-  let dietMealsHint = "Ustaw cel dnia, aby zobaczyć porównanie";
-  if (trainingGoal != null && trainingGoal > 0 && trainingSum.calories > 0) {
-    const diff = trainingSum.calories - trainingGoal;
-    const pct = Math.abs(diff) / trainingGoal * 100;
-    if (pct > MEAL_SUM_TOLERANCE_PCT) {
-      dietMealsHint = `Suma posiłków treningowych ${trainingSum.calories} kcal · cel ${trainingGoal} kcal`;
-    } else {
-      dietMealsHint = `Posiłki ≈ cel dnia treningowego (${trainingGoal} kcal)`;
-    }
-  } else if (trainingSum.calories > 0) {
-    dietMealsHint = `Suma posiłków treningowych: ${trainingSum.calories} kcal`;
-  }
+  const dietMealsHint = "5 posiłków dzielą cel dnia równo";
 
   const reminders = parseRemindersJson(s?.remindersJson ?? null);
   const reminderSlots = [

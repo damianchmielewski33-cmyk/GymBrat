@@ -408,8 +408,6 @@ export function MealSuggestionsView({
     });
   }, [dateKey, notifyError, refreshDay]);
 
-  const dayKindKicker =
-    dayKind === "training" ? "DZIEŃ TRENINGOWY" : "DZIEŃ NIETRENINGOWY";
   const kcalKicker =
     dayMacros.caloriesGoal != null
       ? `${Math.round(dayMacros.caloriesGoal)} KCAL`
@@ -461,7 +459,7 @@ export function MealSuggestionsView({
                     "tracking-[0.16em] text-[#DDBB6D]/85",
                   )}
                 >
-                  {dayKindKicker}
+                  Dziś zostało
                   {kcalKicker ? ` · ${kcalKicker}` : ""}
                 </motion.p>
                 <motion.h1
@@ -475,7 +473,7 @@ export function MealSuggestionsView({
                   }}
                   className={cn(appPageTitleClass, "mt-1.5 text-white")}
                 >
-                  Twój plan
+                  Przepisy
                 </motion.h1>
               </div>
             ) : (
@@ -619,10 +617,14 @@ export function MealSuggestionsView({
             dateKey={dateKey}
             dayKind={dayKind}
             dayMacros={{
-              proteinGoal: dayMacros.proteinGoal,
-              carbsGoal: dayMacros.carbsGoal,
-              fatGoal: dayMacros.fatGoal,
+              caloriesConsumed: dayMacros.caloriesConsumed,
               caloriesGoal: dayMacros.caloriesGoal,
+              proteinConsumed: dayMacros.proteinConsumed,
+              proteinGoal: dayMacros.proteinGoal,
+              carbsConsumed: dayMacros.carbsConsumed,
+              carbsGoal: dayMacros.carbsGoal,
+              fatConsumed: dayMacros.fatConsumed,
+              fatGoal: dayMacros.fatGoal,
             }}
             supplements={supplements}
             weeklyCardioGoalMinutes={weeklyCardioGoalMinutes}

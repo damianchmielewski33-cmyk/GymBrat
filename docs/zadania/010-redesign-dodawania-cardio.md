@@ -28,6 +28,7 @@
 - [x] `npx vitest run lib/cardio-validation.test.ts`
 - [x] eslint zmienionych plików
 - Changelog: wpis `planned: true`
+- Domknięcie 2026-10-28: arkusz z Pulpitu dostaje `getCardioWeekProgressPnNd`; Esc / fokus minut; CTA z datą wstecz; skala wysiłku jako radiogroup; podgląd „Cel osiągnięty”
 
 ## Założenia robocze (Q otwarte właściciela)
 - Q-C1: zostać w kontekście po zapisie ✓

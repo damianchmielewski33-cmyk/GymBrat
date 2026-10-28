@@ -180,16 +180,17 @@ function WorkoutEndCard({ progress }: { progress: SessionProgress }) {
   return (
     <section className="rounded-[18px] border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] p-3 compact:px-3 compact:py-2.5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-        Trening zakończony
+        Serie zaliczone
       </p>
       <p className="mt-1 text-[17px] font-semibold text-white compact:text-[16px]">
         Wszystkie serie za tobą
       </p>
       <p className="mt-0.5 text-[13px] tabular-nums text-[var(--gym-text-secondary)]">
-        Zapisano {progress.savedSets} z {progress.totalSets} serii
+        Zaliczone {progress.savedSets} z {progress.totalSets} serii
         {skipped > 0
           ? ` · ${skipped} ${plural(skipped, "pominięta", "pominięte", "pominiętych")}`
           : null}
+        {" — trening zapiszesz w następnym kroku"}
       </p>
     </section>
   );
@@ -258,7 +259,7 @@ export function RestBreakScreen({
 
   const ringTotal = Math.max(durationTotal, remaining, 1);
   const ctaLabel = !next
-    ? "Zakończ trening"
+    ? "Zakończ i zapisz trening"
     : next.kind === "set"
       ? `Zacznij serię ${next.setOrdinal}`
       : `Zacznij ćwiczenie ${next.exerciseOrdinal}`;

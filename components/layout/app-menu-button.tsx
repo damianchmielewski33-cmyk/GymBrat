@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
+  ArrowLeft,
   BadgePercent,
   Bell,
   Bug,
@@ -13,7 +14,6 @@ import {
   BookOpen,
   ClipboardList,
   Clock3,
-  Dumbbell,
   FileText,
   Flame,
   History,
@@ -32,7 +32,13 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { SectionLabel } from "@/components/ui/section-label";
 import { PRIVACY_PATH, REGULAMIN_PATH } from "@/lib/legal-seller";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +57,7 @@ type MenuRow = {
 
 type MenuSection = {
   id: string;
+  index: string;
   title: string;
   rows: MenuRow[];
 };
@@ -65,6 +72,7 @@ const NESTED_ACTIVE = [
   "/community/challenges",
   "/community/wars",
   "/community/hall-of-fame",
+  "/plany",
 ];
 
 function isActivePath(pathname: string, href: string): boolean {
@@ -94,12 +102,12 @@ function MenuRowView({
         className={cn(
           "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border",
           row.disabled
-            ? "border-white/[0.06] bg-white/[0.03] text-white/30"
+            ? "border-white/[0.08] bg-white/[0.03] text-white/30"
             : danger
-              ? "border-rose-400/25 bg-rose-500/10 text-rose-300"
-              : gold
-                ? "border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)]"
-                : "border-white/10 bg-white/[0.04] text-white/70",
+              ? "border-[var(--destructive)]/35 bg-[var(--destructive)]/10 text-[var(--destructive)]"
+              : gold || active
+                ? "border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] text-[var(--gym-gold)]"
+                : "border-[var(--gym-border-gold)] bg-transparent text-[var(--gym-gold)]",
         )}
       >
         <Icon className="h-4 w-4" aria-hidden />
@@ -107,11 +115,11 @@ function MenuRowView({
       <span className="min-w-0 flex-1">
         <span
           className={cn(
-            "block text-[15px] font-semibold leading-snug",
+            "block text-[14px] font-semibold leading-snug",
             row.disabled
               ? "text-white/40"
               : danger
-                ? "text-rose-200"
+                ? "text-[color-mix(in_srgb,var(--destructive)_85%,white)]"
                 : active
                   ? "text-[var(--gym-gold)]"
                   : "text-white",
@@ -119,27 +127,32 @@ function MenuRowView({
         >
           {row.title}
         </span>
-        <span className="mt-0.5 block text-[12px] leading-snug text-white/40">{row.subtitle}</span>
+        <span className="mt-0.5 block text-[12px] leading-snug text-[var(--gym-text-secondary)]">
+          {row.subtitle}
+        </span>
       </span>
       {row.disabled ? (
-        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/35">
+        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
           Wkrótce
         </span>
       ) : danger ? null : (
-        <ChevronRight className="h-4 w-4 shrink-0 text-white/25" aria-hidden />
+        <ChevronRight
+          className="h-4 w-4 shrink-0 text-[var(--gym-text-secondary)]"
+          aria-hidden
+        />
       )}
     </>
   );
 
   const rowClass = cn(
-    "flex w-full items-center gap-3 px-3 py-3 text-left transition-colors",
+    "flex w-full min-h-14 items-center gap-3 rounded-2xl px-2.5 py-2 text-left transition-colors",
     row.disabled
       ? "cursor-not-allowed opacity-70"
       : active
-        ? "bg-[var(--gym-gold)]/[0.08]"
+        ? "border border-[rgba(235,196,74,0.35)] bg-[rgba(235,196,74,0.10)]"
         : danger
-          ? "hover:bg-rose-500/10"
-          : "hover:bg-white/[0.04]",
+          ? "hover:bg-[var(--destructive)]/10"
+          : "border border-transparent hover:bg-white/[0.04]",
   );
 
   if (row.disabled) {
@@ -190,9 +203,9 @@ function MenuSectionBlock({
 }) {
   if (section.rows.length === 0) return null;
   return (
-    <section>
-      <p className="app-label mb-2 px-0.5 text-[var(--gym-gold)]">{section.title}</p>
-      <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] divide-y divide-white/[0.06]">
+    <section className="space-y-1.5">
+      <SectionLabel index={section.index} title={section.title} className="px-1" />
+      <div className="space-y-0.5">
         {section.rows.map((row) => (
           <MenuRowView
             key={`${row.href ?? row.title}-${row.title}`}
@@ -242,6 +255,7 @@ export function AppMenuButton({
   const sections: MenuSection[] = [
     {
       id: "package",
+      index: "01",
       title: "Pakiet",
       rows: [
         {
@@ -249,14 +263,14 @@ export function AppMenuButton({
           title: "Twój pakiet",
           subtitle: packageEndsLabel
             ? `aktywny ${packageEndsLabel}`
-            : "kup pakiet albo oglądaj reklamy",
+            : "plan i limity konta",
           icon: CalendarCheck2,
           iconTone: "gold",
         },
         {
           href: "/promo-codes",
           title: "Kody rabatowe",
-          subtitle: "zniżki partnerskie — w przygotowaniu",
+          subtitle: "zniżki partnerskie",
           icon: BadgePercent,
           disabled: true,
         },
@@ -264,19 +278,20 @@ export function AppMenuButton({
     },
     {
       id: "progress",
+      index: "02",
       title: "Postępy",
       rows: [
         {
           href: "/reports?new=1",
           title: "Wyślij raport",
-          subtitle: "waga, obwody, samopoczucie, zdjęcia",
+          subtitle: "waga, obwody, zdjęcia",
           icon: ClipboardList,
           iconTone: "gold",
         },
         {
           href: "/progress",
           title: "Postępy",
-          subtitle: "przegląd, siła, sylwetka, tygodnie",
+          subtitle: "siła, sylwetka, tygodnie",
           icon: LineChart,
         },
         {
@@ -288,13 +303,13 @@ export function AppMenuButton({
         {
           href: "/reports",
           title: "Historia raportów",
-          subtitle: "pomiary, notatki i zalecenia",
+          subtitle: "pomiary i zalecenia",
           icon: Clock3,
         },
         {
           href: "/labs",
           title: "Badania",
-          subtitle: "wyniki krwi i hormony — w przygotowaniu",
+          subtitle: "wyniki krwi i hormony",
           icon: TestTube2,
           disabled: true,
         },
@@ -302,6 +317,7 @@ export function AppMenuButton({
     },
     {
       id: "community",
+      index: "03",
       title: "Społeczność",
       rows: [
         {
@@ -314,19 +330,19 @@ export function AppMenuButton({
         {
           href: "/community/friends",
           title: "Znajomi",
-          subtitle: "udostępnianie treningu i podgląd na żywo",
+          subtitle: "udostępnianie treningu",
           icon: UserPlus,
         },
         {
           href: "/community/challenges",
           title: "Wyzwania",
-          subtitle: "globalne wyzwania, XP i odznaki",
+          subtitle: "XP i odznaki",
           icon: Trophy,
         },
         {
           href: "/community/wars",
           title: "Wojny drużyn",
-          subtitle: "Team Wars · ligi Bronze→Diamond",
+          subtitle: "ligi Bronze→Diamond",
           icon: Swords,
         },
         {
@@ -338,13 +354,14 @@ export function AppMenuButton({
         {
           href: "/community/notifications",
           title: "Powiadomienia",
-          subtitle: "komentarze, trening na żywo, ogłoszenia",
+          subtitle: "komentarze i ogłoszenia",
           icon: Bell,
         },
       ],
     },
     {
       id: "training",
+      index: "04",
       title: "Trening",
       rows: [
         {
@@ -388,12 +405,13 @@ export function AppMenuButton({
     },
     {
       id: "account",
+      index: "05",
       title: "Konto",
       rows: [
         {
           href: "/profile",
           title: "Profil",
-          subtitle: "ciało, cele, dieta, przypomnienia, konto",
+          subtitle: "ciało, cele, dieta, konto",
           icon: User,
           iconTone: "gold",
         },
@@ -408,7 +426,7 @@ export function AppMenuButton({
               {
                 href: "/admin",
                 title: "Panel admina",
-                subtitle: "użytkownicy, konfiguracja, błędy",
+                subtitle: "użytkownicy i konfiguracja",
                 icon: Shield,
                 iconTone: "gold" as const,
               },
@@ -484,43 +502,58 @@ export function AppMenuButton({
         side="right"
         showCloseButton={false}
         className={cn(
-          "w-full max-w-none gap-0 border-l border-white/[0.08] p-0 text-white sm:max-w-md",
-          "bg-[#070708]",
+          // Makieta: szuflada ~300 px z prawej, złoty obrys.
+          "w-[min(100%,20rem)] max-w-none gap-0 overflow-hidden border-l border-[var(--gym-border-gold)] p-0 text-white sm:max-w-[20rem]",
+          "bg-[#101012]",
           "pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]",
         )}
       >
+        <SheetTitle className="sr-only">Menu aplikacji</SheetTitle>
         <div className="flex min-h-0 flex-1 flex-col">
-          <header className="shrink-0 border-b border-white/[0.06] px-4 pb-4">
+          <header className="sticky top-0 z-10 shrink-0 border-b border-white/[0.06] bg-[#101012]/95 px-3.5 pb-3.5 backdrop-blur-md">
             <div className="flex items-center justify-between gap-2">
-              <p className="app-label text-[var(--gym-gold)]">Menu</p>
               <button
                 type="button"
                 onClick={close}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/70 transition-colors hover:bg-white/[0.07] hover:text-white"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-1.5 text-[13px] font-semibold text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white"
+                aria-label="Wróć"
+              >
+                <ArrowLeft className="h-4 w-4" aria-hidden />
+                Wróć
+              </button>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+                Menu
+              </p>
+              <button
+                type="button"
+                onClick={close}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/70 transition-colors hover:bg-white/[0.07] hover:text-white"
                 aria-label="Zamknij menu"
               >
                 <X className="h-4 w-4" aria-hidden />
               </button>
             </div>
 
-            <div className="mt-3 flex items-center gap-3">
+            <div className="mt-3 flex items-center gap-3 px-0.5">
               <div
-                className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/10 font-heading text-[15px] font-semibold text-[var(--gym-gold)]"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/10 font-heading text-[14px] font-semibold text-[var(--gym-gold)]"
                 aria-hidden
               >
                 {avatar}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[17px] font-semibold leading-tight text-white">
+                <p className="truncate text-[16px] font-semibold leading-tight text-white">
                   {displayName}
                 </p>
                 {planLabel ? (
-                  <p className="mt-0.5 truncate text-[12px] text-white/50">{planLabel}</p>
+                  <p className="mt-0.5 truncate text-[12px] text-[var(--gym-text-secondary)]">
+                    {planLabel}
+                  </p>
                 ) : (
                   <Link
                     href="/profile"
                     onClick={close}
-                    className="mt-0.5 inline-block text-[12px] text-white/45 underline-offset-2 hover:text-white/75 hover:underline"
+                    className="mt-0.5 inline-block text-[12px] text-[var(--gym-text-secondary)] underline-offset-2 hover:text-white/80 hover:underline"
                   >
                     Ustawienia konta
                   </Link>
@@ -529,19 +562,19 @@ export function AppMenuButton({
               <Link
                 href="/package"
                 onClick={close}
-                className="shrink-0 rounded-xl border border-white/[0.08] bg-black/30 px-3 py-2 text-right"
+                className="shrink-0 rounded-xl border border-white/[0.08] bg-black/30 px-2.5 py-2 text-right"
               >
-                <p className="font-metric text-[22px] leading-none tabular-nums text-white">
+                <p className="font-metric text-[20px] leading-none tabular-nums text-white">
                   {daysLeft != null ? daysLeft : "—"}
                 </p>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-white/40">
+                <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[var(--gym-text-secondary)]">
                   dni pakietu
                 </p>
               </Link>
             </div>
           </header>
 
-          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3.5 py-4">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-4">
             {sections.map((section) => (
               <MenuSectionBlock
                 key={section.id}
@@ -553,12 +586,12 @@ export function AppMenuButton({
 
             <nav
               aria-label="Dokumenty prawne"
-              className="flex flex-wrap gap-x-4 gap-y-2 px-0.5 pb-2 text-[12px] text-white/40"
+              className="flex flex-wrap gap-x-4 gap-y-2 px-1 pb-2 text-[12px] text-[var(--gym-text-secondary)]"
             >
               <Link
                 href={REGULAMIN_PATH}
                 onClick={close}
-                className="inline-flex items-center gap-1 hover:text-white/70"
+                className="inline-flex items-center gap-1 hover:text-white/80"
               >
                 <FileText className="h-3 w-3" aria-hidden />
                 Regulamin
@@ -566,7 +599,7 @@ export function AppMenuButton({
               <Link
                 href={PRIVACY_PATH}
                 onClick={close}
-                className="inline-flex items-center gap-1 hover:text-white/70"
+                className="inline-flex items-center gap-1 hover:text-white/80"
               >
                 <Shield className="h-3 w-3" aria-hidden />
                 Polityka prywatności

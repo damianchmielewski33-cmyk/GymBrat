@@ -104,7 +104,6 @@ export function ActiveWorkoutGlobalBar() {
               <button
                 type="button"
                 className="min-w-0 flex-1 rounded-xl text-left outline-none transition hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--neon)]/40"
-                aria-label="Kontynuuj trening"
                 onClick={() => {
                   hapticTap();
                   unlockDocumentInteraction();

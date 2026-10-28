@@ -7,10 +7,10 @@ Nowe pozycje dopisuje koordynator na końcu właściwej sekcji (albo nowej, jeś
 ## Mikrokopia / tekst
 | Opis | Lokalizacja | Zadanie źródłowe | Źródło (agent) |
 |---|---|---|---|
-| B-1: przycisk „Zakończ trening” na ekranie przerwy po ostatniej serii (rzadka, defensywna gałąź) zapisuje od razu bez słowa „zapisz” w etykiecie | `components/active-workout/rest-break-screen.tsx:260-261`, `active-workout-view.tsx:697-703` | 005 | prawnik, etap 10 |
-| B-2: „Zapisano X z Y serii” i kicker „Trening zakończony” na ekranie przerwy pojawiają się przed faktycznym zapisem treningu — sugerują trwały zapis przedwcześnie | `rest-break-screen.tsx:183,189` | 005 | prawnik, etap 10 |
-| B-3: tekst „Ciężary są w historii i w Postępach” nieprawdziwy dla treningu złożonego z samych serii na masę ciała (brak ciężarów) | `workout-finished-screen.tsx:343` | 005 | prawnik, etap 10 |
-| B-4: wpis w changelogu „Zapowiedź — Koniec treningu” nie wspomina, że serie na masę ciała są teraz widoczne dla rywali Ghost Training, także w treningach historycznych | `components/changelog/changelog-data.ts` | 005 | prawnik, etap 10 |
+| ~~B-1~~ **ZROBIONE**: CTA na przerwie po ostatniej serii → „Zakończ i zapisz trening” | `rest-break-screen.tsx` | 005 | prawnik, etap 10 |
+| ~~B-2~~ **ZROBIONE**: kicker „Serie zaliczone” / „Zaliczone X z Y — trening zapiszesz w następnym kroku” | `rest-break-screen.tsx` | 005 | prawnik, etap 10 |
+| ~~B-3~~ **ZROBIONE**: przy tonażu 0 komunikat o seriach zamiast ciężarów | `workout-finished-screen.tsx` | 005 | prawnik, etap 10 |
+| ~~B-4~~ **ZROBIONE**: changelog wspomina widoczność serii masy ciała w Ghost (także historycznych) | `changelog-data.ts` | 005 | prawnik, etap 10 |
 
 ## Decyzje produktowe/prawne wymagające właściciela-człowieka (przed Promote)
 | Opis | Opcje | Zadanie źródłowe | Źródło |
@@ -30,16 +30,16 @@ Nowe pozycje dopisuje koordynator na końcu właściwej sekcji (albo nowej, jeś
 | F-4: `isActiveWorkoutCloudPayload` nie waliduje elementów `exercises`; brak limitu rozmiaru body (PUT/POST complete) | `lib/active-workout-cloud.ts` | 005 | tester-bezpieczenstwa |
 | F-5: `GET /api/active-workout-session` może mutować (wygaszanie ghost) — ryzyko CSRF-GET ograniczone przez SameSite | `app/api/active-workout-session/route.ts` | 005 | tester-bezpieczenstwa |
 | F-6: `clientIpFromHeaders` bierze pierwszy wpis `x-forwarded-for` (spoofowalny bez poprawnej konfiguracji platformy) | `lib/rate-limit.ts:70-76` | 005 | tester-bezpieczenstwa |
-| F-7: brak maksimum `revision` w `putSchema`/`deleteSchema` (self-DoS) | `app/api/active-workout-session/route.ts` | 005 | tester-bezpieczenstwa |
+| ~~F-7~~ **ZROBIONE**: `revision` w PUT/DELETE ma `.max(1_000_000_000)` | `app/api/active-workout-session/route.ts` | 005 | tester-bezpieczenstwa |
 | F-8: ścieżka Javy `/complete` dedup w pamięci, bez trwałości/limitu mapy; Java nie wspiera PATCH cardio (świadomie, ADR p.9) | `java-backend/...` | 005 | architekt, tester-bezpieczenstwa |
 | F-9: brak testu izolacji wielu użytkowników w dedupie `/complete` | `app/api/workouts/complete/route.test.ts` | 005 | tester-bezpieczenstwa |
 | N-7h-3: `PATCH` cardio to read-modify-write bez CAS (ta sama klasa co naprawione `activeWorkoutSessions`, ale okno ms na własnych danych użytkownika) | `app/api/workouts/[workoutId]/cardio/route.ts` | 005 | tester, etap 7h |
 | N-7h-4: `publishTeamFeedAfterWorkout` bez ponowienia po błędzie publikacji | `app/api/workouts/complete/route.ts` | 005 | tester, etap 7h |
 | N-7h-5: `isUniqueViolation` rozpoznaje tylko komunikat błędu SQLite, nie zweryfikowano na Turso/Hrana | `db/errors.ts` | 005 | architekt, etap 3g |
 | 7 plików z wzorcem SELECT-then-UPDATE bez CAS poza `activeWorkoutSessions` (osobny dług, nie ten sam mechanizm) | `lib/community/hof.ts`, `team-quests.ts`, `team-wars.ts`, `progression.ts`, `teams.ts`, `lib/meal-catalog-images.ts`, `lib/app-settings.ts` | 005 | architekt, etap 3g — priorytet: `team-wars.ts`/`team-quests.ts` |
-| N-P13-2: `clearedPushedRef` od `false` zamiast `true` na świeżej karcie — zbędny jeden DELETE, bez wpływu na poprawność po naprawie CAS | `components/active-workout/active-workout-cloud-sync.tsx` | 005 | architekt, etap 3e |
-| Ten sam błąd etykiety „TYDZIEŃ N” (numer sesji dnia planu mylony z tygodniem) co naprawiany w liście historii (011) występuje też na ekranie edycji sesji | `components/workout-history/workout-history-edit-client.tsx:206` | 011 | architekt, etap 3 (ADR 0010, sekcja 6.1) |
-| Dwie niezależne implementacje liczenia tonażu/czasu/liczby serii z tego samego surowego JSON sesji (`lib/treningi-hub-stats.ts` reimplementuje, zamiast reużyć `computeWorkoutDetails` z `lib/workout-history.ts`) — ryzyko rozjazdu liczb między Pulpitem a historią | `lib/treningi-hub-stats.ts`, `lib/workout-history.ts` | 011 | architekt, etap 3 (ADR 0010, sekcja 2.8/6.2) |
+| ~~N-P13-2~~ **ZROBIONE**: `clearedPushedRef` startuje od `true` | `active-workout-cloud-sync.tsx` | 005 | architekt, etap 3e |
+| ~~TYDZIEŃ N na edycji~~ **ZROBIONE**: etykieta „Dzień planu N” | `workout-history-edit-client.tsx` | 011 | architekt, etap 3 (ADR 0010, sekcja 6.1) |
+| ~~Tonaż hub vs historia~~ **ZROBIONE**: hub używa `computeWorkoutDetails` + `countPerformedSets` | `lib/treningi-hub-stats.ts` | 011 | architekt, etap 3 (ADR 0010, sekcja 2.8/6.2) |
 | `planCompareKey` po znormalizowanej nazwie dnia planu rozdziela historię/porównania przy zmianie nazwy dnia — istniejące zachowanie całego modułu porównań (używane też w 005), do oceny w osobnym zadaniu | `lib/workout-plan-compare-key.ts` | 011 | architekt, etap 3 (ADR 0010, sekcja 2.10/6.3) |
 | Rozjazd licznika nagłówka historii (`workoutsTotal - removedIds.size`) po usunięciu treningu na dwóch urządzeniach jednocześnie — rzadki wyścig, niski priorytet | `components/workout-history/workout-history-view.tsx` | 011 | architekt, etap 3 (ADR 0010, sekcja 2.9/6.4) |
 
@@ -48,9 +48,9 @@ Nowe pozycje dopisuje koordynator na końcu właściwej sekcji (albo nowej, jeś
 |---|---|---|
 | P3 właściwe: PUT co 8s z pełnym payloadem (~9,4KB), ~40% darmowego limitu zapisów Turso przy 300 treningach/dzień — decyzja architekta: wykrywanie zmian przed PUT, odchudzenie payloadu (-52% możliwe) | 005 | tester-wydajnosci |
 | `schedulePush`/`pendingChangeRef` w `finally` omija bramkę backoff przy realnej zmianie (nie pętla, ale każda zmiana podczas 429 = żądanie) | 005 | tester-wydajnosci |
-| Listener `online` w `active-workout-cloud-sync.tsx` nie jest zdejmowany w cleanup efektu | 005 | tester-wydajnosci |
-| Dedup SELECT w `/complete` mógłby iść równolegle z `planRow`/`recent` (`Promise.all`) zamiast szeregowo | 005 | tester-wydajnosci |
-| `use-workout-finish-flow.ts`: `fetchLastWorkoutHintsForPlan` szeregowo przed `submitCompletedWorkout`, mogłoby być `Promise.all` | 005 | tester-wydajnosci |
+| ~~Listener `online`~~ **ZROBIONE**: zdejmowany w cleanup efektu | 005 | tester-wydajnosci |
+| ~~planRow/recent szeregowo~~ **ZROBIONE**: `Promise.all` w porównaniu planu przy `/complete` | 005 | tester-wydajnosci |
+| ~~hints przed submit~~ **ZROBIONE**: `Promise.all` z `submitCompletedWorkout` (pierwsza próba) | 005 | tester-wydajnosci |
 | 403 z CSRF/origin traktowane jak 401 w `pausedAuthRef` — wstrzymuje sync bez ponowienia (ryzyko niskie) | 005 | tester-wydajnosci, etap 9g |
 | Kolejność efektów: `pausedAuthRef` resetowany w drugim efekcie (push), ale `hydrate()` w pierwszym efekcie czyta flagę wcześniej — po 401 i ponownym zalogowaniu bez przeładowania strony hydracja z chmury może być pominięta raz | 005 | tester-wydajnosci, etap 9g |
 
@@ -69,17 +69,17 @@ Nowe pozycje dopisuje koordynator na końcu właściwej sekcji (albo nowej, jeś
 ## UX
 | Opis | Lokalizacja | Zadanie źródłowe |
 |---|---|---|
-| S-1: `aria-controls` na nieistniejący `id` przy zwiniętym „Zobacz postęp” | `workout-finished-screen.tsx` | 005 |
-| S-2: wiersz cardio bez `aria-expanded`, bez szewronu i etykiety „Edytuj” | `workout-finished-screen.tsx` | 005 |
-| S-3: brak etykiety „Minuty cardio” i obsługi Esc w edytorze cardio | `workout-finished-screen.tsx` | 005 |
-| S-4: kontener główny to `div` zamiast `section aria-labelledby` | `workout-finished-screen.tsx` | 005 |
-| S-5: `sr-only` licznika serii przy `setsTotal = 0` (praktycznie nieosiągalne) | `workout-finished-screen.tsx` | 005 |
-| S-6: pusta karta „Najlepsze serie”, gdy brak ćwiczeń | `workout-finished-screen.tsx` | 005 |
-| S-7: tekst błędu na ekranie zapisu 13px zamiast 14px; przyciski w `max-w-lg` zamiast `max-w-sm` | `workout-saving-screen.tsx` | 005 |
-| S-8: lista w „Zobacz postęp” renderuje `ex.name` zamiast `displayExerciseName(ex.name)` | `workout-finished-screen.tsx:619` | 005 |
-| N-22-2: `aria-label` „Kontynuuj trening” przy widocznym tekście „Kontynuuj” | `active-workout-global-bar.tsx:107` | 005 |
-| N-23-1: ćwiczenie ze statusem „nowe” i tonażem 0 pokazuje „—” zamiast badge „nowe” (gałąź „—” sprawdzana pierwsza) | `workout-finished-screen.tsx` | 005 |
-| N-23-2: brak `sr-only` przy „—” (brak porównania) dla czytnika ekranu | `workout-finished-screen.tsx` | 005 |
+| ~~S-1~~ **ZROBIONE**: panel postępu zawsze w DOM (`hidden` gdy zwinięty) | `workout-finished-screen.tsx` | 005 |
+| ~~S-2~~ **ZROBIONE**: `aria-expanded`, „Edytuj”, szewron na wierszu cardio | `workout-finished-screen.tsx` | 005 |
+| ~~S-3~~ **ZROBIONE**: etykieta „Minuty cardio” + Esc zamyka edytor | `workout-finished-screen.tsx` | 005 |
+| ~~S-4~~ **ZROBIONE**: główny kontener to `section aria-labelledby` | `workout-finished-screen.tsx` | 005 |
+| ~~S-5~~ **ZROBIONE**: `sr-only` serii bez „z 0” przy `setsTotal = 0` | `workout-finished-screen.tsx` | 005 |
+| ~~S-6~~ **ZROBIONE**: sekcja „Najlepsze serie” tylko gdy są ćwiczenia | `workout-finished-screen.tsx` | 005 |
+| ~~S-7~~ **ZROBIONE**: błąd 14px, przyciski w `max-w-sm` | `workout-saving-screen.tsx` | 005 |
+| ~~S-8~~ **ZROBIONE**: `displayExerciseName` na liście postępu | `workout-finished-screen.tsx` | 005 |
+| ~~N-22-2~~ **ZROBIONE**: usunięty zbędny `aria-label` przy widocznym tekście | `active-workout-global-bar.tsx` | 005 |
+| ~~N-23-1~~ **ZROBIONE**: status „new” sprawdzany przed gałęzią „—” | `workout-finished-screen.tsx` | 005 |
+| ~~N-23-2~~ **ZROBIONE**: `sr-only` „brak porównania” przy „—” | `workout-finished-screen.tsx` | 005 |
 | D-05: niespójność czasu trwania między ekranem końcowym (bez pauz) a historią (z pauzami) — pre-istniejące, wymaga decyzji analityka co to jest „czas treningu” | `use-workout-finish-flow.ts`, `lib/workout-history-overview.ts` | 005 |
 | D-09: parytet Java (brak PATCH cardio, brak planCompare) — świadomie poza zakresem, ADR p.9 | `java-backend/...` | 005 |
 

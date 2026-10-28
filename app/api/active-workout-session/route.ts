@@ -206,9 +206,12 @@ function buildRevisionConflictResponse(existing: {
   );
 }
 
+/** Górny limit rewizji chroni przed self-DoS (F-7) — realny licznik rośnie o 1 na zapis. */
+const REVISION_MAX = 1_000_000_000;
+
 const putSchema = z.object({
   payload: z.unknown(),
-  revision: z.number().int().min(0),
+  revision: z.number().int().min(0).max(REVISION_MAX),
   deviceId: z.string().min(8).max(80),
 });
 
@@ -334,7 +337,7 @@ async function handlePUT(req: Request) {
   });
 }
 
-const deleteSchema = z.object({ revision: z.number().int().min(0) });
+const deleteSchema = z.object({ revision: z.number().int().min(0).max(REVISION_MAX) });
 
 async function handleDELETE(req: Request) {
   const csrf = assertCsrf(req);

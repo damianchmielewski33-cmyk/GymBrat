@@ -157,6 +157,8 @@ function CardioLogSheetDialog({
 
   const handledIdRef = useRef<string | null>(null);
   const notifiedErrorRef = useRef<string | null>(null);
+  const minutesInputRef = useRef<HTMLInputElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   const [state, formAction, pending] = useActionState(
     logCardioDetailedAction as (
@@ -206,10 +208,32 @@ function CardioLogSheetDialog({
     }
   }, [state, router, notifyError]);
 
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const el = minutesInputRef.current;
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      el.select();
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (pending) return;
+      e.preventDefault();
+      onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pending, onClose]);
+
   const maxDate = useMemo(() => localDateInputValue(0), []);
   const minDate = useMemo(() => localDateInputValue(-60), []);
-  const effectiveDate = dateKey || calendarDateKey();
-  const todayMonday = calendarWeekMondayKey(calendarDateKey());
+  const todayKey = calendarDateKey();
+  const effectiveDate = dateKey || todayKey;
+  const todayMonday = calendarWeekMondayKey(todayKey);
   const entryMonday = calendarWeekMondayKey(effectiveDate);
   const entryInThisWeek = entryMonday === todayMonday;
 
@@ -227,7 +251,14 @@ function CardioLogSheetDialog({
   const goal = weekProgress.goalMinutes;
   const dateLine = dateKey
     ? `zapisuję na ${dateLabelPl(dateKey)}`
-    : `zapisuję na dziś, ${dateLabelPl(calendarDateKey())}`;
+    : `zapisuję na dziś, ${dateLabelPl(todayKey)}`;
+  const minutesForCta = /^\d+$/.test(minutesText.trim())
+    ? minutesText.trim()
+    : null;
+  const ctaDateSuffix =
+    dateKey && dateKey !== todayKey
+      ? ` · ${shortDateDdMm(dateKey)}`
+      : "";
 
   function validateField(field: CardioFieldKey) {
     const result = validateCardioMetrics({
@@ -295,6 +326,7 @@ function CardioLogSheetDialog({
         }}
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cardio-sheet-title"
@@ -414,6 +446,7 @@ function CardioLogSheetDialog({
 
               <CardioLogMinutesField
                 minutesText={minutesText}
+                inputRef={minutesInputRef}
                 onMinutesTextChange={(v) => {
                   setMinutesText(v);
                   const result = validateCardioMetrics({
@@ -539,11 +572,7 @@ function CardioLogSheetDialog({
                 ) : (
                   <>
                     <Footprints className="h-4 w-4" aria-hidden />
-                    Zapisz{" "}
-                    {/^\d+$/.test(minutesText.trim())
-                      ? minutesText.trim()
-                      : "…"}{" "}
-                    min
+                    Zapisz {minutesForCta ?? "…"} min{ctaDateSuffix}
                   </>
                 )}
               </button>
@@ -563,4 +592,16 @@ function formatWeekOf(dateKey: string): string {
   const fmt = (d: Date) =>
     d.toLocaleDateString("pl-PL", { day: "numeric", month: "numeric" });
   return `${fmt(a)}–${fmt(b)}`;
+}
+
+function shortDateDdMm(dateKey: string): string {
+  try {
+    const [y, m, d] = dateKey.split("-").map(Number);
+    return new Intl.DateTimeFormat("pl-PL", {
+      day: "numeric",
+      month: "numeric",
+    }).format(new Date(y!, m! - 1, d!, 12));
+  } catch {
+    return dateKey;
+  }
 }

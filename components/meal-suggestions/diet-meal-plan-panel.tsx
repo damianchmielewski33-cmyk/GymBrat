@@ -7,10 +7,12 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Plus,
   ShoppingBag,
   Trash2,
 } from "lucide-react";
 import { DietRecipeGrid } from "@/components/meal-suggestions/diet-recipe-grid";
+import { MacroProgressHero } from "@/components/meal-suggestions/macro-progress-hero";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
 import {
@@ -337,28 +339,39 @@ export function DietMealPlanPanel({
   dateKey: string;
   dayKind: NutritionDayType;
   dayMacros: {
-    proteinGoal: number | null;
-    carbsGoal: number | null;
-    fatGoal: number | null;
+    caloriesConsumed: number;
     caloriesGoal: number | null;
+    proteinConsumed: number;
+    proteinGoal: number | null;
+    carbsConsumed: number;
+    carbsGoal: number | null;
+    fatConsumed: number;
+    fatGoal: number | null;
   };
   supplements: DietSupplement[];
   weeklyCardioGoalMinutes: number;
 }) {
   void _dayKind;
+  void mealTemplates;
+  // Tura 2: zawsze równy podział celu dnia (bez szablonów z profilu).
   const rows = useMemo(
-    () => buildMealPlanRows(mealTemplates, dayMacros),
-    [mealTemplates, dayMacros],
+    () =>
+      buildMealPlanRows([], {
+        proteinGoal: dayMacros.proteinGoal,
+        carbsGoal: dayMacros.carbsGoal,
+        fatGoal: dayMacros.fatGoal,
+        caloriesGoal: dayMacros.caloriesGoal,
+      }),
+    [dayMacros],
   );
   const [openIdState, setOpenId] = useState<string | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
   const [suppOpen, setSuppOpen] = useState(false);
+  const [libraryTab, setLibraryTab] = useState<"mine" | "catalog">("mine");
 
-  // Otwarty posiłek, który zniknął z planu, jest traktowany jak zamknięty.
   const openId =
     openIdState && rows.some((r) => r.id === openIdState) ? openIdState : null;
 
-  // Lista zakupów żyje w localStorage — serwer renderuje pustą, klient dociąga zapis.
   const shoppingRaw = useSyncExternalStore(
     subscribeShoppingList,
     getShoppingListSnapshot,
@@ -366,205 +379,122 @@ export function DietMealPlanPanel({
   );
   const shopping = useMemo(() => parseShoppingList(shoppingRaw), [shoppingRaw]);
 
-  const kcalGoal = dayMacros.caloriesGoal;
-  const proteinGoal = dayMacros.proteinGoal;
-  const carbsGoal = dayMacros.carbsGoal;
-  const fatGoal = dayMacros.fatGoal;
-
-  const macroRows = [
-    { key: "protein", label: "Białko", value: proteinGoal, kcalPerG: 4, color: "#F3D98B" },
-    { key: "carbs", label: "Węgle", value: carbsGoal, kcalPerG: 4, color: "#C9973A" },
-    { key: "fat", label: "Tłuszcze", value: fatGoal, kcalPerG: 9, color: "#7A5A22" },
-  ] as const;
-  const macroKcal = macroRows.map((r) => (r.value ?? 0) * r.kcalPerG);
-  const macroKcalTotal = macroKcal.reduce((a, b) => a + b, 0);
-  const macroShare = macroKcal.map((v) =>
-    macroKcalTotal > 0 ? (v / macroKcalTotal) * 100 : 0,
-  );
-  const sharePct = macroShare.map((v) => Math.round(v));
-
-  // Pierścień: segmenty proporcjonalne do udziału kcal, z małymi przerwami.
-  const RING_R = 70;
-  const RING_C = 2 * Math.PI * RING_R;
-  const RING_GAP = 6;
-  const ringSegments = macroRows.map((row, i) => {
-    const start = macroShare.slice(0, i).reduce((a, b) => a + b, 0);
-    const len = Math.max(0, (macroShare[i] / 100) * RING_C - RING_GAP);
-    return {
-      key: row.key,
-      color: row.color,
-      len,
-      offset: -((start / 100) * RING_C),
-    };
-  });
-
   return (
     <div className="space-y-5">
-      {/* Hero makro */}
-      <motion.section
-        initial={{ opacity: 0, y: 28 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...springSoft, delay: 0.35 }}
-        className="relative overflow-hidden rounded-[28px] border px-[22px] pb-6 pt-[22px]"
-        style={{
-          borderColor: "rgba(226, 184, 90, 0.22)",
-          background: `
-            radial-gradient(120% 90% at 0% 0%, rgba(226, 184, 90, 0.14), transparent 55%),
-            linear-gradient(180deg, #131314, #0A0A0B)
-          `,
-          boxShadow:
-            "0 20px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)",
+      <MacroProgressHero
+        label="Dziś zostało"
+        mode="remaining"
+        enterDelay={0.35}
+        calories={{
+          consumed: dayMacros.caloriesConsumed,
+          goal: dayMacros.caloriesGoal,
         }}
-      >
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#E2B85A]">
-          Makro na dzień
-        </p>
-
-        <div className="mb-[22px] mt-[18px] flex items-center gap-[22px] max-[420px]:flex-col max-[420px]:items-stretch">
-          <div className="relative h-[148px] w-[148px] flex-none max-[420px]:mx-auto">
-            <svg viewBox="0 0 160 160" className="h-full w-full -rotate-90" aria-hidden>
-              <circle
-                cx="80"
-                cy="80"
-                r={RING_R}
-                fill="none"
-                stroke="rgba(255,255,255,0.06)"
-                strokeWidth="12"
-              />
-              {ringSegments.map((seg) =>
-                seg.len > 0 ? (
-                  <circle
-                    key={seg.key}
-                    cx="80"
-                    cy="80"
-                    r={RING_R}
-                    fill="none"
-                    stroke={seg.color}
-                    strokeWidth="12"
-                    strokeLinecap="round"
-                    strokeDasharray={`${seg.len} ${RING_C - seg.len}`}
-                    strokeDashoffset={seg.offset}
-                  />
-                ) : null,
-              )}
-            </svg>
-            <div className="absolute inset-0 grid place-content-center text-center">
-              {kcalGoal != null ? (
-                <p
-                  className="font-metric text-[42px] font-bold leading-none"
-                  style={{
-                    background: "linear-gradient(180deg, #fff, #E9DCC0)",
-                    WebkitBackgroundClip: "text",
-                    backgroundClip: "text",
-                    color: "transparent",
-                  }}
-                >
-                  <AnimatedMetric
-                    value={Math.round(kcalGoal)}
-                    durationMs={700}
-                    className="text-[42px] leading-none"
-                  />
-                </p>
-              ) : (
-                <p className="font-metric text-[42px] font-bold leading-none text-white/30">
-                  —
-                </p>
-              )}
-              <p className="mt-1.5 text-[11px] font-bold tracking-[0.2em] text-[#8A8A90]">
-                KCAL
-              </p>
-            </div>
-          </div>
-
-          <div className="grid flex-1 gap-3.5">
-            {macroRows.map((row, i) => (
-              <div
-                key={row.key}
-                className="grid grid-cols-[10px_1fr_auto] items-baseline gap-x-2.5"
-              >
-                <span
-                  aria-hidden
-                  className="h-2.5 w-2.5 self-center rounded-full"
-                  style={{ backgroundColor: row.color }}
-                />
-                <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#E2B85A]">
-                  {row.label}
-                </span>
-                <span className="font-metric text-[26px] font-bold leading-none tabular-nums text-white">
-                  {row.value != null ? (
-                    <>
-                      <AnimatedMetric
-                        value={Math.round(row.value)}
-                        durationMs={700}
-                        className="text-[26px] leading-none"
-                      />
-                      <small className="ml-[3px] font-sans text-[13px] font-semibold text-[#B9B9C0]">
-                        g
-                      </small>
-                    </>
-                  ) : (
-                    <span className="text-white/30">—</span>
-                  )}
-                </span>
-                <div className="col-span-2 col-start-2 mt-1.5 h-1 overflow-hidden rounded bg-white/[0.07]">
-                  <i
-                    className="block h-full rounded"
-                    style={{
-                      width: `${Math.min(100, Math.max(0, macroShare[i]))}%`,
-                      backgroundColor: row.color,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex justify-between border-t border-white/[0.07] pt-4 text-[12px] text-[#8A8A90]">
-          {macroRows.map((row, i) => (
-            <span key={row.key}>
-              {row.label}{" "}
-              <b className="font-semibold text-[#D9D9DE]">
-                {macroKcalTotal > 0 ? `${sharePct[i]}%` : "—"}
-              </b>
-            </span>
-          ))}
-        </div>
-      </motion.section>
+        protein={{
+          consumed: dayMacros.proteinConsumed,
+          goal: dayMacros.proteinGoal,
+        }}
+        carbs={{
+          consumed: dayMacros.carbsConsumed,
+          goal: dayMacros.carbsGoal,
+        }}
+        fat={{
+          consumed: dayMacros.fatConsumed,
+          goal: dayMacros.fatGoal,
+        }}
+      />
 
       <section className="space-y-3">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.52 }}
-        >
-          <SectionLabel
-            index={1}
-            title="Posiłki"
-            trailing={`${rows.length} na dzień`}
-          />
-        </motion.div>
-        {mealTemplates.length === 0 ? (
-          <p className="rounded-[20px] border border-dashed border-white/12 bg-[#0E0E0E] px-4 py-3 text-[13px] leading-relaxed text-white/50">
-            Brak własnych posiłków w profilu — pokazujemy 5 domyślnych slotów
-            z makro podzielonym z celu dnia. Ustaw B/W/T per posiłek w Profilu
-            (max 5), żeby przepisy były skalowane dokładnie pod Ciebie.
-          </p>
-        ) : null}
-        <ul className="space-y-2.5">
-          {rows.map((row, index) => (
-            <PlanMealCard
-              key={row.id}
-              row={row}
-              index={index}
-              open={openId === row.id}
-              catalogMeals={catalogMeals}
-              dateKey={dateKey}
-              onToggle={() => setOpenId(openId === row.id ? null : row.id)}
-              onShoppingChange={ignoreShoppingChange}
+        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/[0.1] bg-white/[0.04] p-1">
+          <button
+            type="button"
+            onClick={() => setLibraryTab("mine")}
+            className={cn(
+              "rounded-full px-3 py-2 text-[12px] font-semibold transition-colors",
+              libraryTab === "mine"
+                ? "bg-gradient-to-b from-[#F5E4A3] via-[#E4C56D] to-[#D1A84A] text-[#1A1408]"
+                : "text-white/55 hover:text-white/80",
+            )}
+          >
+            Twoje przepisy
+          </button>
+          <button
+            type="button"
+            onClick={() => setLibraryTab("catalog")}
+            className={cn(
+              "rounded-full px-3 py-2 text-[12px] font-semibold transition-colors",
+              libraryTab === "catalog"
+                ? "bg-gradient-to-b from-[#F5E4A3] via-[#E4C56D] to-[#D1A84A] text-[#1A1408]"
+                : "text-white/55 hover:text-white/80",
+            )}
+          >
+            Katalog
+          </button>
+        </div>
+
+        {libraryTab === "mine" ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2 px-0.5">
+              <SectionLabel
+                index={1}
+                title="Twoje przepisy"
+                className="min-w-0 flex-1"
+              />
+              <button
+                type="button"
+                disabled
+                title="Własne przepisy — wkrótce"
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] px-3 text-[12px] font-semibold text-[var(--gym-gold)] opacity-70"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+                Dodaj przepis
+              </button>
+            </div>
+            <div className="rounded-[22px] border border-dashed border-white/12 bg-[#0E0E0E] px-4 py-8 text-center">
+              <p className="text-[15px] font-semibold text-white">
+                Nie masz jeszcze żadnego przepisu
+              </p>
+              <p className="mt-2 text-[13px] leading-relaxed text-white/50">
+                Brak przepisów? Sklonuj coś z katalogu →
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  hapticTap();
+                  setLibraryTab("catalog");
+                }}
+                className="mt-4 inline-flex h-11 items-center justify-center rounded-full border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] px-5 text-[13px] font-semibold text-[var(--gym-gold)]"
+              >
+                Przeglądaj katalog
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <SectionLabel
+              index={1}
+              title="Katalog"
+              trailing={`${rows.length} slotów`}
             />
-          ))}
-        </ul>
+            <p className="px-0.5 text-[12px] leading-relaxed text-white/45">
+              Przepisy z katalogu GymBrat — dopasowane do równego podziału celu
+              dnia na 5 posiłków.
+            </p>
+            <ul className="space-y-2.5">
+              {rows.map((row, index) => (
+                <PlanMealCard
+                  key={row.id}
+                  row={row}
+                  index={index}
+                  open={openId === row.id}
+                  catalogMeals={catalogMeals}
+                  dateKey={dateKey}
+                  onToggle={() => setOpenId(openId === row.id ? null : row.id)}
+                  onShoppingChange={ignoreShoppingChange}
+                />
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
 
       <ShoppingListCard items={shopping} onChange={ignoreShoppingChange} />

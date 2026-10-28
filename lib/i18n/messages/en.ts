@@ -20,7 +20,7 @@ export const en = {
     teams: "Team",
   },
   diet: {
-    tabPlan: "Plan",
+    tabPlan: "Recipes",
     tabDiary: "Diary",
     catalogLabel: "Meal catalog",
     catalogEmptyTitle: "No recipes in Diet yet",

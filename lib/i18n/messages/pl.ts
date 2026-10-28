@@ -20,7 +20,7 @@ export const pl = {
     teams: "Team",
   },
   diet: {
-    tabPlan: "Plan",
+    tabPlan: "Przepisy",
     tabDiary: "Dziennik",
     catalogLabel: "Katalog posiłków",
     catalogEmptyTitle: "Brak przepisów w Dietcie",

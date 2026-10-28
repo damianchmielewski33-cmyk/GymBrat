@@ -78,7 +78,9 @@ export function CardioLogWeekProgress({ weekProgress, previewAfter }: Props) {
       ) : null}
       {previewAfter != null && previewAfter !== minutesCompleted ? (
         <p className="mt-2 text-[12px] tabular-nums text-white/80">
-          Po zapisie:{" "}
+          {previewAfter >= goalMinutes && goalMinutes > 0
+            ? "Cel osiągnięty: "
+            : "Po zapisie: "}
           <b className="font-semibold text-white">
             {previewAfter} z {goalMinutes} min
           </b>
