@@ -116,9 +116,23 @@ export async function getTeamTodayHub(input: {
     getWeeklyRingsForUser(input.userId),
     getUserProgressionView(input.userId),
     getTeamProgressionView(input.teamId),
-    getQuestBoardView(input.teamId),
-    getMyTeamWarSummary(input.teamId),
-    getBadgeCatalogForUser(input.userId),
+    getQuestBoardView(input.teamId).catch(() => null),
+    getMyTeamWarSummary(input.teamId).catch(() => ({
+      league: "bronze" as const,
+      lp: 0,
+      wins: 0,
+      losses: 0,
+      draws: 0,
+      seasonKey: "",
+      hasPlayed: false,
+      liveWarId: null,
+    })),
+    getBadgeCatalogForUser(input.userId).catch(() => ({
+      items: [],
+      unlockedCount: 0,
+      totalCount: 0,
+      suggestedKey: null,
+    })),
     getCurrentConsents(input.userId),
     db
       .select({ n: sql<number>`count(*)` })

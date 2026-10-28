@@ -184,17 +184,23 @@ async function refreshRarityIfStale(definitionKey: string): Promise<number | nul
     })
     .from(userBadges)
     .where(eq(userBadges.definitionKey, definitionKey));
-  const holders = Number(holdersRow?.n ?? 0);
+  const holdersRaw = Number(holdersRow?.n ?? 0);
+  const holders = Number.isFinite(holdersRaw) ? holdersRaw : 0;
 
   const [usersRow] = await db.select({
     n: sql<number>`count(distinct ${userBadges.userId})`,
   }).from(userBadges);
-  const totalUsersWithBadges = Math.max(1, Number(usersRow?.n ?? 0));
+  const usersRaw = Number(usersRow?.n ?? 0);
+  const totalUsersWithBadges = Math.max(
+    1,
+    Number.isFinite(usersRaw) ? usersRaw : 0,
+  );
 
-  const pct =
+  const rawPct =
     holders >= BADGE_RARITY_MIN_HOLDERS
       ? Math.round((holders / totalUsersWithBadges) * 1000) / 10
       : null;
+  const pct = rawPct != null && Number.isFinite(rawPct) ? rawPct : null;
 
   await db
     .update(badgeDefinitions)
