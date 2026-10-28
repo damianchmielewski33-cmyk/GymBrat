@@ -600,21 +600,27 @@ export const userSettingsRelations = relations(userSettings, ({ one }) => ({
   }),
 }));
 
-export const workoutPlans = sqliteTable("workout_plans", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  planJson: text("plan_json").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
+export const workoutPlans = sqliteTable(
+  "workout_plans",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    planJson: text("plan_json").notNull(),
+    /** Kolejność dni na liście /plany i w hubie Treningi (dayNumber). */
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("idx_workout_plans_user_sort").on(t.userId, t.sortOrder)],
+);
 
 /**
  * Jedna aktywna (niedokończona) sesja treningu na użytkownika — sync między urządzeniami.
@@ -660,6 +666,46 @@ export const weightLogs = sqliteTable("weight_logs", {
 export const weightLogsRelations = relations(weightLogs, ({ one }) => ({
   user: one(users, {
     fields: [weightLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+/**
+ * Zgody RODO / cookies — append-only (ADR 0006 §9).
+ * Aktualny stan = najnowszy wiersz per (userId, type).
+ */
+export const userConsents = sqliteTable(
+  "user_consents",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** "analytics" | "marketing" */
+    type: text("type").notNull(),
+    granted: integer("granted", { mode: "boolean" }).notNull(),
+    /** Wersja treści zgody — np. "2026-10-v1". */
+    textVersion: text("text_version").notNull(),
+    /** "banner" | "profile" | "android_bridge" */
+    source: text("source").notNull(),
+    decidedAt: integer("decided_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("user_consents_user_type_decided").on(
+      t.userId,
+      t.type,
+      t.decidedAt,
+    ),
+  ],
+);
+
+export const userConsentsRelations = relations(userConsents, ({ one }) => ({
+  user: one(users, {
+    fields: [userConsents.userId],
     references: [users.id],
   }),
 }));

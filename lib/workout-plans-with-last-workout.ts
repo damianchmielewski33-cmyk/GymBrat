@@ -4,6 +4,7 @@ import { and, asc, eq, isNotNull, max } from "drizzle-orm";
 import { cache } from "react";
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
 import { getDb } from "@/db";
+import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { workoutPlans, workouts } from "@/db/schema";
 import { withDbRetry } from "@/db/with-retry";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
@@ -12,6 +13,7 @@ import { comparePlansByWorkoutRecencyAsc } from "@/lib/workout-plan-queue";
 async function queryPlansWithLastWorkout(
   userId: string,
 ): Promise<WorkoutPlanWithLastWorkoutDTO[]> {
+  await ensureCriticalSchema();
   const db = getDb();
   const [lastByPlan, rows] = await Promise.all([
     db
@@ -27,7 +29,11 @@ async function queryPlansWithLastWorkout(
       })
       .from(workoutPlans)
       .where(eq(workoutPlans.userId, userId))
-      .orderBy(asc(workoutPlans.createdAt), asc(workoutPlans.id)),
+      .orderBy(
+        asc(workoutPlans.sortOrder),
+        asc(workoutPlans.createdAt),
+        asc(workoutPlans.id),
+      ),
   ]);
 
   const lastMap = new Map<string, string>();
@@ -49,7 +55,7 @@ async function queryPlansWithLastWorkout(
       plan,
       updatedAt: row.updatedAt.toISOString(),
       lastWorkoutDate: lastMap.get(row.id) ?? null,
-      // Numer nadawany po created_at/id spośród poprawnych planów — ciągły, stały względem kolejki.
+      // Numer po sort_order (lista /plany) — ciągły wśród poprawnych planów.
       dayNumber: out.length + 1,
     });
   }

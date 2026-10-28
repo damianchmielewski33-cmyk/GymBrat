@@ -3,6 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { workoutPlans, workouts } from "@/db/schema";
+import { computeSessionTonnageKg } from "@/lib/analytics/tonnage";
 import { calendarDateKey } from "@/lib/local-date";
 import { sessionVolume } from "@/lib/workout-session-calculations";
 import {
@@ -541,6 +542,7 @@ async function handlePOST(req: Request) {
       date: dateKey,
       cardioMinutes: Math.max(0, Math.round(cardioMinutes)),
       exercises: currentJson,
+      tonnageKg: computeSessionTonnageKg(currentJson) || null,
       operationId,
     });
   } catch (err) {

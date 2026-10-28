@@ -26,7 +26,10 @@ export default async function ProgressPage({
   return (
     <div className="mx-auto w-full max-w-lg space-y-3.5 pb-8">
       <header className="px-0.5">
-        <h1 className="font-heading text-[28px] font-semibold leading-8 tracking-tight text-white">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
+          Analiza
+        </p>
+        <h1 className="mt-1 font-heading text-[28px] font-semibold leading-8 tracking-tight text-white">
           Analiza postępów
         </h1>
       </header>

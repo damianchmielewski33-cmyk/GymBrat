@@ -34,6 +34,13 @@ export type CatalogExercise = {
   categoryId: string;
   /** Angielskie nazwy, skróty i warianty — dopasowanie do kategorii / techniki. */
   aliasesEn?: string[];
+  /** Synonimy PL (atlas / import). */
+  aliasesPl?: string[];
+  equipment?: string[];
+  difficulty?: string;
+  description?: string;
+  cues?: string[];
+  techniqueYoutubeUrl?: string;
 };
 
 export const CATALOG_EXERCISES: CatalogExercise[] = [
@@ -1141,7 +1148,12 @@ export function normalizeForSearch(s: string): string {
 
 /** Tekst do przeszukania: polska nazwa + aliasy (złożone jak zapytanie — bez ogonków). */
 function exerciseSearchHaystack(ex: CatalogExercise): string {
-  const parts = [ex.name, ...(ex.aliasesEn ?? [])];
+  const parts = [
+    ex.name,
+    ...(ex.aliasesEn ?? []),
+    ...(ex.aliasesPl ?? []),
+    ...(ex.equipment ?? []),
+  ];
   return normalizeForSearch(parts.join(" "));
 }
 

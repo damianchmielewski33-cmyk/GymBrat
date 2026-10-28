@@ -1,10 +1,42 @@
 import { describe, expect, it } from "vitest";
 import {
   compareWorkoutExercises,
+  computeHistoryKpis,
+  formatHistoryKg,
   formatHistoryShortDate,
+  formatHistoryWeekRange,
   formatTonnes,
+  type WorkoutHistoryCard,
 } from "@/lib/workout-history-overview";
 import type { CompletedWorkoutDetails } from "@/lib/workout-history";
+
+function card(
+  partial: Partial<WorkoutHistoryCard> & Pick<WorkoutHistoryCard, "id" | "date">,
+): WorkoutHistoryCard {
+  return {
+    title: "Trening",
+    planName: "Push A",
+    planCompareKey: "name:push-a",
+    planLabel: "Push A",
+    workoutPlanId: null,
+    volumeKg: 1000,
+    volumeDeltaPercent: null,
+    volumeDeltaKg: null,
+    compare: null,
+    firstOfDay: true,
+    noComparison: true,
+    prevDate: null,
+    exerciseCount: 1,
+    setsDone: 3,
+    setsTotal: 3,
+    cardioMinutes: 0,
+    durationMinutes: 60,
+    endedAt: null,
+    planOccurrence: 1,
+    exercises: [],
+    ...partial,
+  };
+}
 
 function details(
   partial: Partial<CompletedWorkoutDetails> & {
@@ -94,6 +126,7 @@ describe("workout-history-overview helpers", () => {
       up: 1,
       down: 1,
       skipped: 2,
+      same: 0,
     });
   });
 
@@ -127,6 +160,7 @@ describe("workout-history-overview helpers", () => {
       up: 0,
       down: 0,
       skipped: 0,
+      same: 0,
     });
   });
 
@@ -143,5 +177,48 @@ describe("workout-history-overview helpers", () => {
       ],
     });
     expect(compareWorkoutExercises(current, null)).toBeNull();
+  });
+
+  it("computeHistoryKpis: pełny zbiór i pusty podzbiór (filtr)", () => {
+    const cards = [
+      card({
+        id: "1",
+        date: "2026-10-20",
+        volumeKg: 2000,
+        durationMinutes: 50,
+        planCompareKey: "name:push",
+      }),
+      card({
+        id: "2",
+        date: "2026-10-22",
+        volumeKg: 3000,
+        durationMinutes: 70,
+        planCompareKey: "name:nogi",
+      }),
+    ];
+    const all = computeHistoryKpis(cards, "2026-10-26");
+    expect(all.workoutsTotal).toBe(2);
+    expect(all.tonnageTotalKg).toBe(5000);
+    expect(all.avgDurationMinutes).toBe(60);
+
+    const empty = computeHistoryKpis([], "2026-10-26");
+    expect(empty.workoutsTotal).toBe(0);
+    expect(empty.tonnageTotalKg).toBe(0);
+    expect(empty.avgDurationMinutes).toBeNull();
+    expect(empty.avgWorkoutsPerWeekLast8).toBe(0);
+  });
+
+  it("formatHistoryKg powyżej 9999 kg pokazuje tony", () => {
+    expect(formatHistoryKg(12400)).toBe("12,4 t");
+    expect(formatHistoryKg(4250)).toMatch(/4.?250 kg/);
+  });
+
+  it("formatHistoryWeekRange bez uppercase miesięcy", () => {
+    expect(formatHistoryWeekRange("2026-10-20", "2026-10-26")).toMatch(
+      /października/i,
+    );
+    expect(formatHistoryWeekRange("2026-10-20", "2026-10-26")).not.toMatch(
+      /PAŹDZIERNIKA/,
+    );
   });
 });

@@ -6,6 +6,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
+import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { activeWorkoutSessions, workoutPlans, workouts } from "@/db/schema";
 import type { WorkoutPlanPayload } from "@/lib/workout-plan-types";
 import { getLastWorkoutHintsForPlan } from "@/lib/last-workout-hints";
@@ -45,7 +46,7 @@ export type WorkoutPlanListItemDTO = {
 /** Plan na ekranie treningu: data ostatniego zapisu treningu z tego planu (YYYY-MM-DD lub null). */
 export type WorkoutPlanWithLastWorkoutDTO = WorkoutPlanListItemDTO & {
   lastWorkoutDate: string | null;
-  /** 1..N wg created_at ASC, id ASC; stały, niezależny od kolejki. */
+  /** 1..N wg sort_order ASC, created_at ASC, id ASC; stały względem kolejki (recency). */
   dayNumber: number;
 };
 
@@ -61,6 +62,7 @@ export async function getWorkoutPlans(): Promise<WorkoutPlanListItemDTO[]> {
   const session = await auth();
   if (!session?.user?.id) return [];
 
+  await ensureCriticalSchema();
   const db = getDb();
   const rows = await db
     .select({
@@ -70,7 +72,11 @@ export async function getWorkoutPlans(): Promise<WorkoutPlanListItemDTO[]> {
     })
     .from(workoutPlans)
     .where(eq(workoutPlans.userId, session.user.id))
-    .orderBy(asc(workoutPlans.createdAt), asc(workoutPlans.id));
+    .orderBy(
+      asc(workoutPlans.sortOrder),
+      asc(workoutPlans.createdAt),
+      asc(workoutPlans.id),
+    );
 
   const out: WorkoutPlanListItemDTO[] = [];
   for (const row of rows) {
@@ -162,6 +168,7 @@ export async function saveWorkoutPlan(plan: WorkoutPlanPayload, planId?: string)
   }
   plan = validated.plan;
 
+  await ensureCriticalSchema();
   const db = getDb();
   const userId = session.user.id;
   const now = new Date();
@@ -214,28 +221,81 @@ export async function saveWorkoutPlan(plan: WorkoutPlanPayload, planId?: string)
     return { ok: true as const, id: planId };
   }
 
-  const existingCount = await db
-    .select({ id: workoutPlans.id })
+  const existingRows = await db
+    .select({ id: workoutPlans.id, sortOrder: workoutPlans.sortOrder })
     .from(workoutPlans)
     .where(eq(workoutPlans.userId, userId));
-  if (existingCount.length >= MAX_PLANS_PER_USER) {
+  if (existingRows.length >= MAX_PLANS_PER_USER) {
     return {
       ok: false as const,
       error: `Możesz mieć maksymalnie ${MAX_PLANS_PER_USER} planów.`,
     };
   }
+  const nextSort =
+    existingRows.reduce((m, r) => Math.max(m, r.sortOrder), -1) + 1;
 
   const id = randomUUID();
   await db.insert(workoutPlans).values({
     id,
     userId,
     planJson: JSON.stringify(plan),
+    sortOrder: nextSort,
     createdAt: now,
     updatedAt: now,
   });
 
   revalidatePlanPaths(id);
   return { ok: true as const, id };
+}
+
+/**
+ * Ustawia kolejność dni (lista /plany = numer dnia w Treningach).
+ * `orderedIds` musi zawierać dokładnie wszystkie plany użytkownika, bez duplikatów.
+ */
+export async function reorderWorkoutPlans(orderedIds: string[]) {
+  await guardAction("workout-plan.reorderWorkoutPlans", {
+    limit: 60,
+    windowMs: 60_000,
+  });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false as const, error: UserMessages.sessionExpired };
+  }
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+    return { ok: false as const, error: "Podaj listę planów." };
+  }
+  const ids = orderedIds.map((id) => String(id ?? "").trim()).filter(Boolean);
+  if (ids.length !== orderedIds.length || new Set(ids).size !== ids.length) {
+    return { ok: false as const, error: "Niepoprawna lista planów." };
+  }
+
+  await ensureCriticalSchema();
+  const db = getDb();
+  const userId = session.user.id;
+  const existing = await db
+    .select({ id: workoutPlans.id })
+    .from(workoutPlans)
+    .where(eq(workoutPlans.userId, userId));
+  const existingIds = new Set(existing.map((r) => r.id));
+  if (
+    existingIds.size !== ids.length ||
+    ids.some((id) => !existingIds.has(id))
+  ) {
+    return {
+      ok: false as const,
+      error: "Lista planów jest nieaktualna. Odśwież stronę i spróbuj ponownie.",
+    };
+  }
+
+  for (let i = 0; i < ids.length; i++) {
+    await db
+      .update(workoutPlans)
+      .set({ sortOrder: i })
+      .where(and(eq(workoutPlans.id, ids[i]!), eq(workoutPlans.userId, userId)));
+  }
+
+  revalidatePlanPaths();
+  return { ok: true as const };
 }
 
 /** Podpowiedzi z ostatniego treningu dla danego planu (ciężar / RPE). */

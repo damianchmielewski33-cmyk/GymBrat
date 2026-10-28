@@ -4,6 +4,7 @@ import { userSettings } from "@/db/schema";
 import { getBodyReports } from "@/lib/body-reports";
 import { frontBodyReportPhoto } from "@/lib/body-report-photo-slots";
 import { calendarDateKey } from "@/lib/local-date";
+import { resolveProgressStart } from "@/lib/progress-metrics/start";
 import { CUSTOM_START_PHOTO_ID } from "@/lib/start-photo-id";
 import type { ProgressHubData, ProgressPhotoItem } from "@/lib/progress-hub";
 import { bodyReportPhotoMediaPath, startPhotoMediaPath } from "@/lib/user-photo-media";
@@ -32,19 +33,60 @@ export async function loadProgressPhotoMetrics(userId: string): Promise<Progress
   }
   const hasCustomStart = Number(settings?.hasStartPhoto ?? 0) === 1;
   const first = items[0] ?? null;
-  const start = hasCustomStart
-    ? { id: CUSTOM_START_PHOTO_ID, reportId: "", src: startPhotoMediaPath(), date: first?.date ?? calendarDateKey(), weightKg: first?.weightKg ?? null, waistCm: first?.waistCm ?? null }
-    : first;
   const now = items.at(-1) ?? null;
+  const progressStart = resolveProgressStart({
+    weights: items
+      .filter((item) => item.weightKg != null)
+      .map((item) => ({ date: item.date, kg: item.weightKg! })),
+    hasCustomStartPhoto: hasCustomStart,
+    customStartPhoto: hasCustomStart
+      ? {
+          date: first?.date ?? calendarDateKey(),
+          weightKg: first?.weightKg ?? null,
+          waistCm: first?.waistCm ?? null,
+        }
+      : null,
+    firstReportWithPhoto: first
+      ? {
+          date: first.date,
+          weightKg: first.weightKg,
+          waistCm: first.waistCm,
+        }
+      : null,
+  });
+  const start = hasCustomStart
+    ? {
+        id: CUSTOM_START_PHOTO_ID,
+        reportId: "",
+        src: startPhotoMediaPath(),
+        date: progressStart.date ?? calendarDateKey(),
+        weightKg: progressStart.weightKg,
+        waistCm: progressStart.waistCm,
+      }
+    : first
+      ? {
+          ...first,
+          weightKg: progressStart.weightKg,
+          waistCm: progressStart.waistCm ?? first.waistCm,
+        }
+      : null;
   const waistReports = reports.filter((report) => report.waistCm != null);
-  const firstWaist = waistReports.at(-1)?.waistCm ?? null;
+  const firstWaist = progressStart.waistCm ?? waistReports.at(-1)?.waistCm ?? null;
   const lastWaist = waistReports[0]?.waistCm ?? null;
   return {
     items,
     start,
     now,
     hasCustomStart,
-    weightDeltaKg: start?.weightKg != null && now?.weightKg != null ? Math.round((now.weightKg - start.weightKg) * 10) / 10 : null,
-    waistDeltaCm: firstWaist != null && lastWaist != null ? Math.round((lastWaist - firstWaist) * 10) / 10 : start?.waistCm != null && now?.waistCm != null ? Math.round((now.waistCm - start.waistCm) * 10) / 10 : null,
+    weightDeltaKg:
+      progressStart.weightKg != null && now?.weightKg != null
+        ? Math.round((now.weightKg - progressStart.weightKg) * 10) / 10
+        : null,
+    waistDeltaCm:
+      firstWaist != null && lastWaist != null
+        ? Math.round((lastWaist - firstWaist) * 10) / 10
+        : start?.waistCm != null && now?.waistCm != null
+          ? Math.round((now.waistCm - start.waistCm) * 10) / 10
+          : null,
   };
 }

@@ -47,6 +47,12 @@ async function ensureCriticalSchemaOnce(): Promise<void> {
   );
   await tryAddColumn(`ALTER TABLE "workouts" ADD COLUMN "tonnage_kg" real`);
   await tryAddColumn(
+    `ALTER TABLE "workout_plans" ADD COLUMN "sort_order" integer NOT NULL DEFAULT 0`,
+  );
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "idx_workout_plans_user_sort" ON "workout_plans" ("user_id", "sort_order")`,
+  );
+  await tryAddColumn(
     `ALTER TABLE "site_activity_log" ADD COLUMN "deployment_env" text`,
   );
 
@@ -1541,6 +1547,22 @@ CREATE TABLE IF NOT EXISTS "reminder_dispatches" (
   await tryAddColumn(`ALTER TABLE "workouts" ADD COLUMN "operation_id" text`);
   await client.execute(
     `CREATE UNIQUE INDEX IF NOT EXISTS "uq_workouts_user_operation" ON "workouts" ("user_id","operation_id")`,
+  );
+
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "user_consents" (
+  "id" text PRIMARY KEY NOT NULL,
+  "user_id" text NOT NULL,
+  "type" text NOT NULL,
+  "granted" integer NOT NULL,
+  "text_version" text NOT NULL,
+  "source" text NOT NULL,
+  "decided_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "user_consents_user_type_decided" ON "user_consents" ("user_id","type","decided_at")`,
   );
 }
 

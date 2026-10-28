@@ -16,6 +16,10 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 /**
  * Rolling 7-day cardio: sums `workouts` (by local `date`) plus legacy
  * `training_sessions` rows in the same window so older data still counts.
+ *
+ * ADR 0009: arkusz „Dodaj cardio” używa tygodnia pn–nd (`getCardioWeekProgressPnNd`
+ * w `lib/cardio-hub.ts`). Ta funkcja zostaje dla kafelka głównego (rolling) —
+ * ujednolicenie to osobne zadanie (BR-2 / Q-C3).
  */
 export async function getWeeklyCardioProgress(userId: string) {
   const db = getDb();

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ArrowDown,
+  ArrowUp,
   BookOpen,
   Copy,
   ListChecks,
@@ -13,7 +15,11 @@ import {
   Trash2,
 } from "lucide-react";
 import type { WorkoutPlanListItemDTO } from "@/actions/workout-plan";
-import { deleteWorkoutPlan, saveWorkoutPlan } from "@/actions/workout-plan";
+import {
+  deleteWorkoutPlan,
+  reorderWorkoutPlans,
+  saveWorkoutPlan,
+} from "@/actions/workout-plan";
 import { AppPageHeader } from "@/components/layout/screen";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -55,12 +61,44 @@ export function PlanListClient({
   const [menuPlanId, setMenuPlanId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reorderMode, setReorderMode] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const menuPlan = useMemo(
     () => plans.find((p) => p.id === menuPlanId) ?? null,
     [plans, menuPlanId],
   );
+
+  function persistOrder(next: PlanListItemView[], previous: PlanListItemView[]) {
+    startTransition(async () => {
+      const res = await reorderWorkoutPlans(next.map((p) => p.id));
+      if (!res.ok) {
+        setPlans(previous);
+        setError(res.error);
+        return;
+      }
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      setSavedAt(`${hh}:${mm}`);
+      setError(null);
+      router.refresh();
+    });
+  }
+
+  function movePlan(id: string, dir: -1 | 1) {
+    setPlans((prev) => {
+      const idx = prev.findIndex((p) => p.id === id);
+      const nextIdx = idx + dir;
+      if (idx < 0 || nextIdx < 0 || nextIdx >= prev.length) return prev;
+      const next = [...prev];
+      const [row] = next.splice(idx, 1);
+      next.splice(nextIdx, 0, row!);
+      persistOrder(next, prev);
+      return next;
+    });
+  }
 
   function onDelete() {
     if (!deleteId) return;
@@ -155,49 +193,105 @@ export function PlanListClient({
               <span className="mr-2 text-[var(--gym-gold)]">01</span>
               Twoje plany · {plans.length}
             </h2>
+            {plans.length > 1 ? (
+              <Button
+                type="button"
+                variant={reorderMode ? "cta" : "ghost"}
+                className="h-11 px-3 text-[12px]"
+                onClick={() => {
+                  setReorderMode((v) => !v);
+                  setMenuPlanId(null);
+                }}
+              >
+                {reorderMode ? "Gotowe" : "Zmień kolejność"}
+              </Button>
+            ) : null}
           </div>
+          {reorderMode && savedAt ? (
+            <p className="mb-2 text-[12px] text-[var(--gym-success)]" role="status">
+              Zapisano {savedAt}
+            </p>
+          ) : null}
           <ul className="flex flex-col gap-3">
-            {plans.map((item) => {
+            {plans.map((item, index) => {
               const isDraft = item.plan.exercises.length === 0;
               return (
                 <li key={item.id} className="app-card p-0">
                   <div className="flex items-start gap-1 p-2 pl-4">
-                    <Link
-                      href={`/plany/${item.id}`}
-                      className="min-w-0 flex-1 py-2"
-                      aria-label={`${item.plan.planName}, ${item.plan.exercises.length} ćwiczeń, ${item.setsTotal} serii`}
-                    >
-                      <p className="truncate text-[15px] font-semibold text-white">
-                        {item.plan.planName || "Bez nazwy"}
-                      </p>
-                      {isDraft ? (
+                    {reorderMode ? (
+                      <div className="min-w-0 flex-1 py-2">
+                        <p className="truncate text-[15px] font-semibold text-white">
+                          {item.plan.planName || "Bez nazwy"}
+                        </p>
                         <p className="mt-1 text-[12px] text-[var(--gym-text-secondary)]">
-                          Brak ćwiczeń. Dodaj co najmniej jedno, aby plan był w
-                          Treningach.
+                          Dzień {index + 1}
                         </p>
-                      ) : (
-                        <p className="mt-1 text-[12px] tabular-nums text-[var(--gym-text-secondary)]">
-                          {item.plan.exercises.length} ćwiczeń · {item.setsTotal}{" "}
-                          serii · zmiana {formatPlanMeta(item.updatedAt)}
-                        </p>
-                      )}
-                      <div className="mt-2.5 flex items-center gap-2">
-                        <MuscleGlyph summary={item.muscles} size="row" />
-                        <span className="truncate text-[12px] text-white/75">
-                          {item.muscles?.labels.join(", ") ?? ""}
-                        </span>
                       </div>
-                    </Link>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-11 w-11 shrink-0 px-0"
-                      aria-label={`Akcje planu ${item.plan.planName}`}
-                      aria-haspopup="menu"
-                      onClick={() => setMenuPlanId(item.id)}
-                    >
-                      <MoreVertical className="h-5 w-5" aria-hidden />
-                    </Button>
+                    ) : (
+                      <Link
+                        href={`/plany/${item.id}`}
+                        className="min-w-0 flex-1 py-2"
+                        aria-label={`${item.plan.planName}, ${item.plan.exercises.length} ćwiczeń, ${item.setsTotal} serii`}
+                      >
+                        <p className="truncate text-[15px] font-semibold text-white">
+                          {item.plan.planName || "Bez nazwy"}
+                        </p>
+                        {isDraft ? (
+                          <p className="mt-1 text-[12px] text-[var(--gym-text-secondary)]">
+                            Brak ćwiczeń. Dodaj co najmniej jedno, aby plan był w
+                            Treningach.
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-[12px] tabular-nums text-[var(--gym-text-secondary)]">
+                            {item.plan.exercises.length} ćwiczeń · {item.setsTotal}{" "}
+                            serii · zmiana {formatPlanMeta(item.updatedAt)}
+                          </p>
+                        )}
+                        <div className="mt-2.5 flex items-center gap-2">
+                          <MuscleGlyph summary={item.muscles} size="row" />
+                          <span className="truncate text-[12px] text-white/75">
+                            {item.muscles?.labels.join(", ") ?? ""}
+                          </span>
+                        </div>
+                      </Link>
+                    )}
+                    {reorderMode ? (
+                      <div className="flex shrink-0 flex-col gap-1 pr-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 w-11 px-0"
+                          disabled={index === 0 || pending}
+                          aria-label={`Przesuń ${item.plan.planName} w górę`}
+                          aria-disabled={index === 0}
+                          onClick={() => movePlan(item.id, -1)}
+                        >
+                          <ArrowUp className="h-4 w-4" aria-hidden />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 w-11 px-0"
+                          disabled={index >= plans.length - 1 || pending}
+                          aria-label={`Przesuń ${item.plan.planName} w dół`}
+                          aria-disabled={index >= plans.length - 1}
+                          onClick={() => movePlan(item.id, 1)}
+                        >
+                          <ArrowDown className="h-4 w-4" aria-hidden />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-11 w-11 shrink-0 px-0"
+                        aria-label={`Akcje planu ${item.plan.planName}`}
+                        aria-haspopup="menu"
+                        onClick={() => setMenuPlanId(item.id)}
+                      >
+                        <MoreVertical className="h-5 w-5" aria-hidden />
+                      </Button>
+                    )}
                   </div>
                 </li>
               );

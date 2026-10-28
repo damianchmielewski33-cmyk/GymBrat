@@ -4,6 +4,7 @@ import { workoutPlans, workouts } from "@/db/schema";
 import {
   addCalendarDays,
   calendarDateKey,
+  calendarWeekMondayKey,
   calendarWeekdaySun0,
   PL_MONTH_GENITIVE,
 } from "@/lib/local-date";
@@ -22,12 +23,6 @@ import {
   isStandaloneCardioLog,
 } from "@/lib/workout-cardio-attribution";
 import { resolveExerciseIdentity } from "@/lib/exercise-identity";
-
-function mondayOfWeek(dateKey: string): string {
-  const dow = calendarWeekdaySun0(dateKey);
-  const offset = dow === 0 ? -6 : 1 - dow;
-  return addCalendarDays(dateKey, offset);
-}
 
 function durationMinutesFromDetails(
   details: CompletedWorkoutDetails,
@@ -75,6 +70,8 @@ export type WorkoutHistoryExercisePreview = {
   id: string;
   name: string;
   volumeKg: number;
+  /** Zaliczona seria z ciężarem 0 (np. pompki) — UI pokazuje „masa ciała”. */
+  isBodyweight: boolean;
   sets: WorkoutHistorySetPill[];
 };
 
@@ -82,6 +79,8 @@ export type WorkoutHistoryExerciseCompare = {
   up: number;
   down: number;
   skipped: number;
+  /** Tonaż ćwiczenia bez istotnej zmiany vs poprzednia sesja. */
+  same: number;
 };
 
 export type WorkoutHistoryCard = {
@@ -130,6 +129,8 @@ export type WorkoutHistoryOverview = {
   cards: WorkoutHistoryCard[];
   cardio: WorkoutHistoryCardioItem[];
   planFilters: Array<{ id: string; label: string; count: number }>;
+  /** true gdy zapytanie ucięło wynik limitem (rows.length === 400). */
+  sessionsLimitReached: boolean;
 };
 
 type SessionJson = {
@@ -174,6 +175,7 @@ export function compareWorkoutExercises(
   let up = 0;
   let down = 0;
   let skipped = 0;
+  let same = 0;
   const seen = new Set<string>();
 
   for (const ex of current.exercises) {
@@ -193,6 +195,7 @@ export function compareWorkoutExercises(
     if (curVol === 0) continue;
     if (curVol > prevVol + 0.5) up += 1;
     else if (curVol < prevVol - 0.5) down += 1;
+    else same += 1;
   }
 
   for (const [key, prev] of prevByName) {
@@ -200,7 +203,7 @@ export function compareWorkoutExercises(
     if (exerciseDone(prev)) skipped += 1;
   }
 
-  return { up, down, skipped };
+  return { up, down, skipped, same };
 }
 
 export function formatTonnes(volumeKg: number): string {
@@ -225,35 +228,87 @@ export function formatHistoryShortDate(ymd: string): string {
 
 const PL_WEEKDAY_SHORT = ["nd", "pon", "wt", "śr", "czw", "pt", "sob"] as const;
 
-/** Zakres tygodnia jak na makiecie: „28 WRZEŚNIA – 4 PAŹDZIERNIKA”. */
-export function formatHistoryWeekRange(monday: string): string {
+/** Zakres tygodnia: „20–26 października” (rok gdy inny niż bieżący). */
+export function formatHistoryWeekRange(
+  monday: string,
+  todayKey: string = calendarDateKey(),
+): string {
   const sunday = addCalendarDays(monday, 6);
   const start = new Date(`${monday}T12:00:00`);
   const end = new Date(`${sunday}T12:00:00`);
+  const today = new Date(`${todayKey}T12:00:00`);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
     return `${formatHistoryShortDate(monday)}–${formatHistoryShortDate(sunday)}`;
   }
   const startDay = start.getDate();
   const endDay = end.getDate();
-  const startMonth = PL_MONTH_GENITIVE[start.getMonth()]?.toUpperCase() ?? "";
-  const endMonth = PL_MONTH_GENITIVE[end.getMonth()]?.toUpperCase() ?? "";
+  const startMonth = PL_MONTH_GENITIVE[start.getMonth()] ?? "";
+  const endMonth = PL_MONTH_GENITIVE[end.getMonth()] ?? "";
+  const yearSuffix =
+    !Number.isNaN(today.getTime()) && end.getFullYear() !== today.getFullYear()
+      ? ` ${end.getFullYear()}`
+      : "";
   if (start.getMonth() === end.getMonth()) {
-    return `${startDay}–${endDay} ${endMonth}`;
+    return `${startDay}–${endDay} ${endMonth}${yearSuffix}`;
   }
-  return `${startDay} ${startMonth} – ${endDay} ${endMonth}`;
+  return `${startDay} ${startMonth} – ${endDay} ${endMonth}${yearSuffix}`;
 }
 
-/** np. „pt 02.10”. */
+/** Etykieta względna tygodnia: TEN TYDZIEŃ / POPRZEDNI TYDZIEŃ / null. */
+export function formatHistoryWeekRelativeTag(
+  monday: string,
+  todayKey: string = calendarDateKey(),
+): "TEN TYDZIEŃ" | "POPRZEDNI TYDZIEŃ" | null {
+  const thisMonday = calendarWeekMondayKey(todayKey);
+  if (monday === thisMonday) return "TEN TYDZIEŃ";
+  if (monday === addCalendarDays(thisMonday, -7)) return "POPRZEDNI TYDZIEŃ";
+  return null;
+}
+
+const PL_WEEKDAY_CAP = ["Nd", "Pon", "Wt", "Śr", "Czw", "Pt", "Sob"] as const;
+
+/** Części daty karty: skrót dnia + „24.10” albo „Dziś”/„Wczoraj”. */
+export function formatHistorySessionDateParts(
+  ymd: string,
+  todayKey: string = calendarDateKey(),
+): { weekday: string; day: string; isRelative: boolean } {
+  if (ymd === todayKey) {
+    return { weekday: "Dziś", day: formatHistoryShortDate(ymd), isRelative: true };
+  }
+  if (ymd === addCalendarDays(todayKey, -1)) {
+    return {
+      weekday: "Wczoraj",
+      day: formatHistoryShortDate(ymd),
+      isRelative: true,
+    };
+  }
+  const dow = calendarWeekdaySun0(ymd);
+  return {
+    weekday: PL_WEEKDAY_CAP[dow] ?? "",
+    day: formatHistoryShortDate(ymd),
+    isRelative: false,
+  };
+}
+
+/** np. „Pt 02.10” (zachowane dla edycji / starszych wywołań). */
 export function formatHistoryDayChip(ymd: string): string {
   const dow = calendarWeekdaySun0(ymd);
   const short = PL_WEEKDAY_SHORT[dow] ?? "";
   return `${short} ${formatHistoryShortDate(ymd)}`;
 }
 
+/** Tonaż sesji: kg do 9 999, powyżej w tonach. */
 export function formatHistoryKg(volumeKg: number): string {
+  const kg = Math.max(0, Math.round(volumeKg));
+  if (kg > 9999) return formatTonnes(kg);
   return `${new Intl.NumberFormat("pl-PL", {
     maximumFractionDigits: 0,
-  }).format(Math.max(0, Math.round(volumeKg)))} kg`;
+  }).format(kg)} kg`;
+}
+
+export function formatHistoryExercisesLabel(n: number): string {
+  if (n === 1) return "1 ćw.";
+  return `${n} ćw.`;
 }
 
 export function formatSetsLabel(n: number): string {
@@ -279,15 +334,82 @@ export function canEditWorkout(endedAt: number | null, dateYmd: string, now = Da
 
 export function formatEditDeadline(ms: number): string {
   try {
-    return new Intl.DateTimeFormat("pl-PL", {
-      day: "numeric",
-      month: "long",
+    const d = new Date(ms);
+    const day = new Intl.DateTimeFormat("pl-PL", {
+      day: "2-digit",
+      month: "2-digit",
+    }).format(d);
+    const time = new Intl.DateTimeFormat("pl-PL", {
       hour: "2-digit",
       minute: "2-digit",
-    }).format(new Date(ms));
+    }).format(d);
+    return `${day}, ${time}`;
   } catch {
     return "—";
   }
+}
+
+/** Agregacja KPI z kart historii — ta sama funkcja na serwerze i w kliencie (filtr). */
+export function computeHistoryKpis(
+  cards: WorkoutHistoryCard[],
+  todayKey: string = calendarDateKey(),
+): WorkoutHistoryKpis {
+  const since30 = addCalendarDays(todayKey, -29);
+  const weekMonday = calendarWeekMondayKey(todayKey);
+  const weekSunday = addCalendarDays(weekMonday, 6);
+  const since8w = addCalendarDays(todayKey, -55);
+
+  let workoutsLast30 = 0;
+  let tonnageLast30Kg = 0;
+  let workoutsThisWeek = 0;
+  let tonnageThisWeekKg = 0;
+  let tonnageTotalKg = 0;
+  let durationSum = 0;
+  let durationCount = 0;
+  let workoutsLast8Weeks = 0;
+  const activePlanKeys = new Set<string>();
+
+  for (const c of cards) {
+    tonnageTotalKg += c.volumeKg;
+    if (c.date >= since30) {
+      workoutsLast30 += 1;
+      tonnageLast30Kg += c.volumeKg;
+    }
+    if (c.date >= since8w) {
+      workoutsLast8Weeks += 1;
+    }
+    if (c.date >= weekMonday && c.date <= weekSunday) {
+      workoutsThisWeek += 1;
+      tonnageThisWeekKg += c.volumeKg;
+    }
+    if (c.durationMinutes != null) {
+      durationSum += c.durationMinutes;
+      durationCount += 1;
+    }
+    activePlanKeys.add(c.planCompareKey);
+  }
+
+  const avgDurationMinutes =
+    durationCount > 0 ? Math.round(durationSum / durationCount) : null;
+  const avgWorkoutsPerWeekLast8 =
+    Math.round((workoutsLast8Weeks / 8) * 10) / 10;
+  const planDaysActive = activePlanKeys.size;
+
+  return {
+    workoutsLast30,
+    tonnageLast30Kg,
+    cardioMinutesLast30: 0,
+    cardioEntriesLast30: 0,
+    planDaysActive,
+    planDaysTotal: planDaysActive,
+    workoutsTotal: cards.length,
+    lastWorkoutDate: cards[0]?.date ?? null,
+    workoutsThisWeek,
+    avgDurationMinutes,
+    tonnageThisWeekKg,
+    avgWorkoutsPerWeekLast8,
+    tonnageTotalKg,
+  };
 }
 
 function safePlanNameFromJson(planJson: string | null): string | null {
@@ -466,10 +588,16 @@ export async function getWorkoutHistoryOverview(
       (ex) => {
         const key = normalizeName(ex.name);
         const priorBest = bestE1rmByExercise.get(key) ?? 0;
+        const doneSets = ex.sets.filter((s) => s.done);
+        const isBodyweight =
+          doneSets.length > 0 &&
+          ex.volumeKg === 0 &&
+          doneSets.every((s) => s.weight === 0);
         return {
           id: ex.id,
           name: ex.name,
           volumeKg: ex.volumeKg,
+          isBodyweight,
           sets: ex.sets.map((s) => ({
             reps: s.reps,
             weight: s.weight,
@@ -522,43 +650,6 @@ export async function getWorkoutHistoryOverview(
     .map((w) => cardById.get(w.id)!)
     .filter(Boolean);
 
-  const weekMonday = mondayOfWeek(today);
-  const weekSunday = addCalendarDays(weekMonday, 6);
-
-  let workoutsLast30 = 0;
-  let tonnageLast30Kg = 0;
-  let workoutsThisWeek = 0;
-  let tonnageThisWeekKg = 0;
-  let tonnageTotalKg = 0;
-  let durationSum = 0;
-  let durationCount = 0;
-  const since8w = addCalendarDays(today, -55);
-  let workoutsLast8Weeks = 0;
-  const activePlanKeys = new Set<string>();
-  for (const c of cards) {
-    tonnageTotalKg += c.volumeKg;
-    if (c.date >= since30) {
-      workoutsLast30 += 1;
-      tonnageLast30Kg += c.volumeKg;
-    }
-    if (c.date >= since8w) {
-      workoutsLast8Weeks += 1;
-    }
-    if (c.date >= weekMonday && c.date <= weekSunday) {
-      workoutsThisWeek += 1;
-      tonnageThisWeekKg += c.volumeKg;
-    }
-    if (c.durationMinutes != null) {
-      durationSum += c.durationMinutes;
-      durationCount += 1;
-    }
-    activePlanKeys.add(c.planCompareKey);
-  }
-  const avgDurationMinutes =
-    durationCount > 0 ? Math.round(durationSum / durationCount) : null;
-  const avgWorkoutsPerWeekLast8 =
-    Math.round((workoutsLast8Weeks / 8) * 10) / 10;
-
   const planFiltersMap = new Map<string, { id: string; label: string; count: number }>();
   for (const c of cards) {
     const existing = planFiltersMap.get(c.planCompareKey);
@@ -582,33 +673,26 @@ export async function getWorkoutHistoryOverview(
       })
       .filter(Boolean),
   );
-  const planDaysActive = activePlanKeys.size;
+  const baseKpis = computeHistoryKpis(cards, today);
   const planDaysTotalResolved = Math.max(
     planDaysFromCatalog.size,
     planDaysTotal,
-    planDaysActive,
+    baseKpis.planDaysActive,
   );
 
   return {
     kpis: {
-      workoutsLast30,
-      tonnageLast30Kg,
+      ...baseKpis,
       cardioMinutesLast30,
       cardioEntriesLast30,
-      planDaysActive,
       planDaysTotal: planDaysTotalResolved,
-      workoutsTotal: cards.length,
-      lastWorkoutDate: cards[0]?.date ?? null,
-      workoutsThisWeek,
-      avgDurationMinutes,
-      tonnageThisWeekKg,
-      avgWorkoutsPerWeekLast8,
-      tonnageTotalKg,
     },
     cards,
     cardio: cardio.slice(0, 30),
-    planFilters: Array.from(planFiltersMap.values()).sort((a, b) =>
-      a.label.localeCompare(b.label, "pl"),
-    ),
+    planFilters: Array.from(planFiltersMap.values()).sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.label.localeCompare(b.label, "pl");
+    }),
+    sessionsLimitReached: rows.length === 400,
   };
 }

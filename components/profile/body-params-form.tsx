@@ -4,8 +4,14 @@ import { useActionState, useEffect } from "react";
 import { updateBodyParamsFormAction } from "@/actions/profile";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { SubmitButton } from "@/components/home/submit-button";
-import { ProfileField, ProfileSelect } from "@/components/profile/profile-ui";
+import {
+  ProfileChipGroup,
+  ProfileField,
+  ProfileSelect,
+} from "@/components/profile/profile-ui";
 import { Input } from "@/components/ui/input";
+import { WEIGHT_KG_MAX, WEIGHT_KG_MIN } from "@/lib/kcal-from-macros";
+import { useState } from "react";
 
 type BodyParamsInitial = {
   firstName: string | null;
@@ -18,9 +24,21 @@ type BodyParamsInitial = {
 };
 
 const ACTIVITY_OPTIONS = [
-  { value: "low", label: "Niska — biurko, lekkie spacery" },
-  { value: "medium", label: "Średnia — 3–5 treningów tygodniowo" },
-  { value: "high", label: "Wysoka — codziennie lub intensywnie" },
+  {
+    value: "low",
+    label: "Niska",
+    description: "Biurko, lekkie spacery",
+  },
+  {
+    value: "medium",
+    label: "Średnia",
+    description: "3–5 treningów tygodniowo",
+  },
+  {
+    value: "high",
+    label: "Wysoka",
+    description: "Codziennie lub intensywnie",
+  },
 ] as const;
 
 export function BodyParamsForm({ initial }: { initial: BodyParamsInitial }) {
@@ -29,17 +47,24 @@ export function BodyParamsForm({ initial }: { initial: BodyParamsInitial }) {
     ok?: boolean;
     error?: string;
   });
+  const sex =
+    initial.sex === "male" || initial.sex === "female" ? initial.sex : "";
+  const initialActivity = ACTIVITY_OPTIONS.some(
+    (o) => o.value === initial.activityLevel,
+  )
+    ? (initial.activityLevel as string)
+    : "";
+  const [activity, setActivity] = useState(initialActivity);
+
+  useEffect(() => {
+    setActivity(initialActivity);
+  }, [initialActivity]);
 
   useEffect(() => {
     if (state?.ok === true) notifySaved("Zapisano dane profilu.");
     else if (state?.ok === false && state.error)
       notifyError("Nie udało się zapisać danych — sprawdź pola.");
   }, [state, notifySaved, notifyError]);
-
-  const sex = initial.sex === "male" || initial.sex === "female" ? initial.sex : "";
-  const activity = ACTIVITY_OPTIONS.some((o) => o.value === initial.activityLevel)
-    ? (initial.activityLevel as string)
-    : "medium";
 
   return (
     <form action={formAction} className="space-y-4">
@@ -70,9 +95,12 @@ export function BodyParamsForm({ initial }: { initial: BodyParamsInitial }) {
             type="number"
             inputMode="decimal"
             step="0.1"
-            min={30}
-            max={400}
-            defaultValue={initial.weightKg ?? 80}
+            min={WEIGHT_KG_MIN}
+            max={WEIGHT_KG_MAX}
+            placeholder="np. 78"
+            defaultValue={
+              initial.weightKg != null ? String(initial.weightKg) : ""
+            }
           />
         </ProfileField>
         <ProfileField label="Wzrost (cm)" htmlFor="heightCm">
@@ -83,7 +111,10 @@ export function BodyParamsForm({ initial }: { initial: BodyParamsInitial }) {
             inputMode="numeric"
             min={100}
             max={250}
-            defaultValue={initial.heightCm ?? 180}
+            placeholder="np. 178"
+            defaultValue={
+              initial.heightCm != null ? String(initial.heightCm) : ""
+            }
           />
         </ProfileField>
         <ProfileField label="Wiek" htmlFor="age">
@@ -94,7 +125,8 @@ export function BodyParamsForm({ initial }: { initial: BodyParamsInitial }) {
             inputMode="numeric"
             min={13}
             max={120}
-            defaultValue={initial.age ?? 25}
+            placeholder="np. 28"
+            defaultValue={initial.age != null ? String(initial.age) : ""}
           />
         </ProfileField>
       </div>
@@ -103,7 +135,7 @@ export function BodyParamsForm({ initial }: { initial: BodyParamsInitial }) {
         <ProfileField
           label="Płeć"
           htmlFor="sex"
-          hint="Do szacowania kcal z tętna (Keytel). Bez wyboru — wzór uniwersalny."
+          hint="Do szacowania kcal z tętna. Bez wyboru — wzór uniwersalny."
         >
           <ProfileSelect id="sex" name="sex" defaultValue={sex}>
             <option value="">Nie podano</option>
@@ -111,19 +143,27 @@ export function BodyParamsForm({ initial }: { initial: BodyParamsInitial }) {
             <option value="female">Kobieta</option>
           </ProfileSelect>
         </ProfileField>
-        <ProfileField
-          label="Poziom aktywności"
-          htmlFor="activityLevel"
-          hint="Wpływa na szacunek zapotrzebowania kalorycznego."
-        >
-          <ProfileSelect id="activityLevel" name="activityLevel" defaultValue={activity}>
-            {ACTIVITY_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </ProfileSelect>
-        </ProfileField>
+        <div className="space-y-1.5">
+          <p className="block text-[13px] font-medium text-white/75">
+            Poziom aktywności
+          </p>
+          <input type="hidden" name="activityLevel" value={activity} />
+          <ProfileChipGroup
+            aria-label="Poziom aktywności"
+            variant="list"
+            value={activity || null}
+            onChange={setActivity}
+            options={ACTIVITY_OPTIONS.map((o) => ({
+              value: o.value,
+              label: o.label,
+              description: o.description,
+            }))}
+          />
+          <p className="text-xs leading-snug text-white/40">
+            Wpływa na szacunek zapotrzebowania kalorycznego. Nic nie zaznaczaj,
+            jeśli nie chcesz zmieniać.
+          </p>
+        </div>
       </div>
 
       <SubmitButton>Zapisz parametry ciała</SubmitButton>

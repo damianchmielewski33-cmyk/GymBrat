@@ -1,5 +1,7 @@
 /** Czyste typy i formatowanie cardio — bez DB ani szyfrowania (bezpieczne dla klienta). */
 
+import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
+
 /** Stabilny slug aktywności (Analityka 2.0). */
 export const CARDIO_TYPE_SLUGS = [
   "walk",
@@ -329,9 +331,10 @@ export function parseCardioLog(raw: unknown): CardioLogPayload | null {
   };
 }
 
-/** Limity wpisu cardio (serwer i klient). */
+/** Limity wpisu cardio (serwer i klient) — jedna stała, bez cichego ucinania. */
 export const CARDIO_INPUT_LIMITS = {
-  minutesMax: 24 * 60,
+  /** Max 10 h w jednym wpisie (ADR 0009). */
+  minutesMax: 600,
   caloriesMax: 20_000,
   /** Powyżej tego kcal/min wpis to prawie na pewno literówka. */
   caloriesPerMinMax: 25,
@@ -339,7 +342,22 @@ export const CARDIO_INPUT_LIMITS = {
   hrMax: 250,
   distanceKmMax: 500,
   stepsMax: 500_000,
+  notesMax: 280,
+  backdateMaxDays: 60,
 } as const;
+
+export type CardioFieldKey =
+  | "minutes"
+  | "date"
+  | "distanceKm"
+  | "avgHr"
+  | "maxHr"
+  | "effortScore"
+  | "calories"
+  | "steps"
+  | "notes";
+
+export type CardioFieldError = { field: CardioFieldKey; message: string };
 
 export type CardioMetricsInput = {
   minutes: unknown;
@@ -348,6 +366,9 @@ export type CardioMetricsInput = {
   maxHr?: unknown;
   calories?: unknown;
   steps?: unknown;
+  effortScore?: unknown;
+  notes?: unknown;
+  date?: unknown;
 };
 
 export type ValidatedCardioMetrics = {
@@ -357,82 +378,285 @@ export type ValidatedCardioMetrics = {
   maxHr: number | null;
   calories: number | null;
   steps: number | null;
+  effortScore: number | null;
+  notes: string | null;
+  date: string | null;
 };
 
-function optionalPositive(n: unknown): number | null {
-  if (n == null || n === "") return null;
-  const v = typeof n === "number" ? n : Number(n);
-  if (!Number.isFinite(v) || v <= 0) return null;
-  return v;
+function isBlank(v: unknown): boolean {
+  return v == null || (typeof v === "string" && v.trim() === "");
+}
+
+function rawString(v: unknown): string {
+  if (v == null) return "";
+  return String(v).trim();
 }
 
 /**
- * Walidacja metryk cardio po stronie serwera.
- * Minuty: 1–1440. Pola opcjonalne ≤ 0 / puste → null; poza zakresem → błąd.
+ * Parsuje opcjonalne pole liczbowe.
+ * Puste → null (OK). Niepuste, ale nie liczba dodatnia / poza zakresem → błąd (nigdy ciche null).
+ */
+function parseOptionalPositive(
+  raw: unknown,
+  field: CardioFieldKey,
+  opts: {
+    parseMessage: string;
+    max?: number;
+    maxMessage?: string;
+    min?: number;
+    maxExclusive?: boolean;
+    allowDecimal?: boolean;
+  },
+): { ok: true; value: number | null } | { ok: false; error: CardioFieldError } {
+  if (isBlank(raw)) return { ok: true, value: null };
+  const s = rawString(raw).replace(",", ".");
+  if (opts.allowDecimal === false && /[.,]/.test(rawString(raw))) {
+    return { ok: false, error: { field, message: opts.parseMessage } };
+  }
+  if (!/^-?\d+(\.\d+)?$/.test(s)) {
+    return { ok: false, error: { field, message: opts.parseMessage } };
+  }
+  const n = Number(s);
+  if (!Number.isFinite(n) || n <= 0) {
+    return { ok: false, error: { field, message: opts.parseMessage } };
+  }
+  if (
+    (opts.min != null && n < opts.min) ||
+    (opts.max != null && n > opts.max)
+  ) {
+    return {
+      ok: false,
+      error: {
+        field,
+        message: opts.maxMessage ?? opts.parseMessage,
+      },
+    };
+  }
+  return { ok: true, value: n };
+}
+
+/**
+ * Walidacja metryk cardio — ta sama funkcja klient (podgląd) i serwer (źródło prawdy).
+ * Zero cichych zamian na null / clamp: zła wartość = fieldError.
  */
 export function validateCardioMetrics(
   input: CardioMetricsInput,
 ):
-  | ({ ok: true } & ValidatedCardioMetrics)
-  | { ok: false; error: string } {
+  | { ok: true; values: ValidatedCardioMetrics }
+  | { ok: false; fieldErrors: CardioFieldError[] } {
   const L = CARDIO_INPUT_LIMITS;
+  const fieldErrors: CardioFieldError[] = [];
 
-  const minutesRaw = Number(input.minutes);
-  if (!Number.isFinite(minutesRaw)) {
-    return { ok: false, error: "Podaj liczbę minut cardio." };
-  }
-  const minutes = Math.round(minutesRaw);
-  if (minutes < 1) {
-    return { ok: false, error: "Czas cardio musi wynosić co najmniej 1 minutę." };
-  }
-  if (minutes > L.minutesMax) {
-    return { ok: false, error: "Czas cardio nie może przekraczać 24 godzin." };
-  }
-
-  const distance = optionalPositive(input.distanceKm);
-  if (distance != null && distance > L.distanceKmMax) {
-    return { ok: false, error: "Dystans wygląda na pomyłkę (max 500 km)." };
-  }
-
-  const avgHrRaw = optionalPositive(input.avgHr);
-  const maxHrRaw = optionalPositive(input.maxHr);
-  for (const hr of [avgHrRaw, maxHrRaw]) {
-    if (hr != null && (hr < L.hrMin || hr > L.hrMax)) {
-      return {
-        ok: false,
-        error: `Tętno musi mieścić się w zakresie ${L.hrMin}–${L.hrMax} bpm.`,
-      };
+  // —— Minuty (wymagane, tylko cyfry całkowite) ——
+  const minutesStr = rawString(input.minutes);
+  let minutes = 0;
+  if (!minutesStr) {
+    fieldErrors.push({
+      field: "minutes",
+      message: "Podaj czas w minutach, 1–600.",
+    });
+  } else if (!/^\d+$/.test(minutesStr)) {
+    fieldErrors.push({
+      field: "minutes",
+      message: "Minuty wpisz jako liczbę całkowitą, np. 90.",
+    });
+  } else {
+    minutes = Number(minutesStr);
+    if (minutes < 1) {
+      fieldErrors.push({ field: "minutes", message: "Minimum to 1 minuta." });
+    } else if (minutes > L.minutesMax) {
+      fieldErrors.push({
+        field: "minutes",
+        message: "Maksymalnie 600 minut w jednym wpisie.",
+      });
     }
   }
 
-  const caloriesRaw = optionalPositive(input.calories);
-  if (caloriesRaw != null) {
-    if (caloriesRaw > L.caloriesMax) {
-      return { ok: false, error: "Kalorie wyglądają na pomyłkę (max 20 000)." };
-    }
-    if (caloriesRaw / minutes > L.caloriesPerMinMax) {
-      return {
-        ok: false,
-        error:
-          "Kalorie są nierealnie wysokie jak na podany czas — sprawdź wpis.",
-      };
+  // —— Opcjonalne liczby ——
+  const distance = parseOptionalPositive(input.distanceKm, "distanceKm", {
+    parseMessage: "Podaj dystans liczbą, np. 3,5.",
+    max: L.distanceKmMax,
+    maxMessage: "Dystans wygląda na pomyłkę (max 500 km).",
+    allowDecimal: true,
+  });
+  if (!distance.ok) fieldErrors.push(distance.error);
+
+  const avgHr = parseOptionalPositive(input.avgHr, "avgHr", {
+    parseMessage: "Podaj tętno samą liczbą, np. 125.",
+    min: L.hrMin,
+    max: L.hrMax,
+    maxMessage: `Tętno w zakresie ${L.hrMin}–${L.hrMax} bpm.`,
+    allowDecimal: false,
+  });
+  if (!avgHr.ok) fieldErrors.push(avgHr.error);
+
+  const maxHr = parseOptionalPositive(input.maxHr, "maxHr", {
+    parseMessage: "Podaj tętno samą liczbą, np. 125.",
+    min: L.hrMin,
+    max: L.hrMax,
+    maxMessage: `Tętno w zakresie ${L.hrMin}–${L.hrMax} bpm.`,
+    allowDecimal: false,
+  });
+  if (!maxHr.ok) fieldErrors.push(maxHr.error);
+
+  const avgHrVal =
+    avgHr.ok && avgHr.value != null ? Math.round(avgHr.value) : null;
+  const maxHrVal =
+    maxHr.ok && maxHr.value != null ? Math.round(maxHr.value) : null;
+  if (
+    avgHrVal != null &&
+    maxHrVal != null &&
+    maxHrVal < avgHrVal &&
+    !fieldErrors.some((e) => e.field === "maxHr")
+  ) {
+    fieldErrors.push({
+      field: "maxHr",
+      message: "Maksymalne tętno nie może być niższe od średniego.",
+    });
+  }
+
+  const calories = parseOptionalPositive(input.calories, "calories", {
+    parseMessage: "Podaj kalorie liczbą, np. 280.",
+    max: L.caloriesMax,
+    maxMessage: "Kalorie wyglądają na pomyłkę (max 20 000).",
+    allowDecimal: false,
+  });
+  if (!calories.ok) fieldErrors.push(calories.error);
+  else if (
+    calories.value != null &&
+    minutes >= 1 &&
+    calories.value / minutes > L.caloriesPerMinMax
+  ) {
+    fieldErrors.push({
+      field: "calories",
+      message: "Kalorie nierealne przy tym czasie. Sprawdź wpis.",
+    });
+  }
+
+  const steps = parseOptionalPositive(input.steps, "steps", {
+    parseMessage: "Podaj liczbę kroków, np. 4500.",
+    max: L.stepsMax,
+    maxMessage: "Liczba kroków wygląda na pomyłkę.",
+    allowDecimal: false,
+  });
+  if (!steps.ok) fieldErrors.push(steps.error);
+
+  // —— Wysiłek 1–10 ——
+  let effortScore: number | null = null;
+  if (!isBlank(input.effortScore)) {
+    const es = rawString(input.effortScore);
+    if (!/^\d+$/.test(es)) {
+      fieldErrors.push({
+        field: "effortScore",
+        message: "Wybierz wysiłek w skali 1–10.",
+      });
+    } else {
+      const n = Number(es);
+      if (n < 1 || n > 10) {
+        fieldErrors.push({
+          field: "effortScore",
+          message: "Wybierz wysiłek w skali 1–10.",
+        });
+      } else {
+        effortScore = n;
+      }
     }
   }
 
-  const stepsRaw = optionalPositive(input.steps);
-  if (stepsRaw != null && stepsRaw > L.stepsMax) {
-    return { ok: false, error: "Liczba kroków wygląda na pomyłkę." };
+  // —— Notatka ——
+  let notes: string | null = null;
+  if (!isBlank(input.notes)) {
+    const n = String(input.notes).trim();
+    if (n.length > L.notesMax) {
+      fieldErrors.push({
+        field: "notes",
+        message: "Notatka może mieć najwyżej 280 znaków.",
+      });
+    } else {
+      notes = n.length ? n : null;
+    }
+  }
+
+  // —— Data ——
+  let date: string | null = null;
+  if (!isBlank(input.date)) {
+    const resolved = resolveCardioLogDate(rawString(input.date));
+    if (!resolved.ok) {
+      fieldErrors.push(...resolved.fieldErrors);
+    } else {
+      date = resolved.date;
+    }
+  }
+
+  if (fieldErrors.length > 0) {
+    return { ok: false, fieldErrors };
   }
 
   return {
     ok: true,
-    minutes,
-    distanceKm: distance,
-    avgHr: avgHrRaw != null ? Math.round(avgHrRaw) : null,
-    maxHr: maxHrRaw != null ? Math.round(maxHrRaw) : null,
-    calories: caloriesRaw != null ? Math.round(caloriesRaw) : null,
-    steps: stepsRaw != null ? Math.round(stepsRaw) : null,
+    values: {
+      minutes,
+      distanceKm: distance.ok ? distance.value : null,
+      avgHr: avgHrVal,
+      maxHr: maxHrVal,
+      calories:
+        calories.ok && calories.value != null
+          ? Math.round(calories.value)
+          : null,
+      steps:
+        steps.ok && steps.value != null ? Math.round(steps.value) : null,
+      effortScore,
+      notes,
+      date,
+    },
   };
+}
+
+/** Pusta data = dziś; inaczej YYYY-MM-DD z zakresu [dziś−60, dziś]. */
+export function resolveCardioLogDate(
+  dateKey: string | null | undefined,
+):
+  | { ok: true; date: string }
+  | { ok: false; fieldErrors: CardioFieldError[] } {
+  const todayKey = calendarDateKey(new Date());
+  const raw = (dateKey ?? "").trim();
+  if (!raw) return { ok: true, date: todayKey };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw) || Number.isNaN(Date.parse(raw))) {
+    return {
+      ok: false,
+      fieldErrors: [{ field: "date", message: "Nieprawidłowa data cardio." }],
+    };
+  }
+  if (raw > todayKey) {
+    return {
+      ok: false,
+      fieldErrors: [
+        { field: "date", message: "Nie można zapisać wpisu z przyszłości." },
+      ],
+    };
+  }
+  if (raw < addCalendarDays(todayKey, -CARDIO_INPUT_LIMITS.backdateMaxDays)) {
+    return {
+      ok: false,
+      fieldErrors: [
+        {
+          field: "date",
+          message: "Można wpisać najwyżej 60 dni wstecz.",
+        },
+      ],
+    };
+  }
+  return { ok: true, date: raw };
+}
+
+/** Etykieta tygodnia pn–nd, np. „20–26 paź”. */
+export function formatCardioWeekShortLabel(monday: string): string {
+  const sun = addCalendarDays(monday, 6);
+  const a = new Date(`${monday}T12:00:00`);
+  const b = new Date(`${sun}T12:00:00`);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
+  return `${fmt(a)}–${fmt(b)}`;
 }
 
 export function computePaceMinPerKm(

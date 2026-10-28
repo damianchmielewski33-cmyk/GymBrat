@@ -24,6 +24,7 @@ import {
 import { computeAchievements, type AchievementDef } from "@/lib/achievements";
 import { getBodyReports } from "@/lib/body-reports";
 import { computeWeightTrendKgPerWeek } from "@/lib/analytics/weight-trend";
+import { resolveProgressStart } from "@/lib/progress-metrics/start";
 import {
   extractCardioExtrasFromSessionJson,
   parseCardioLog,
@@ -357,6 +358,7 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
         trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
         restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
         nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
+        startPhotoDataUrl: userSettings.startPhotoDataUrl,
       })
       .from(userSettings)
       .where(eq(userSettings.userId, userId))
@@ -1090,19 +1092,13 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([date, kg]) => ({ date, kg }));
 
-  const startKg = weights[0]?.kg ?? null;
   const currentKg = weights.length ? weights[weights.length - 1]!.kg : null;
   const prevKg = weights.length >= 2 ? weights[weights.length - 2]!.kg : null;
   const deltaVsPrevKg =
     currentKg != null && prevKg != null ? safeRound1(currentKg - prevKg) : null;
-  const deltaFromStartKg =
-    startKg != null && currentKg != null
-      ? safeRound1(currentKg - startKg)
-      : null;
   const lastReportDate = weights.length
     ? weights[weights.length - 1]!.date
     : null;
-  const startDate = weights[0]?.date ?? null;
   const reportCount = weights.length;
   let lastAvgKg: number | null = null;
   if (weights.length) {
@@ -1120,19 +1116,66 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
     kgPerWeekLast6 = computeWeightTrendKgPerWeek(slice);
   }
 
+  // --- Photos (meta only here; full reveal stays in loadProgressPhotoMetrics) ---
+  const photoItems: ProgressPhotoItem[] = [];
+  for (const r of [...bodyReports].reverse()) {
+    if (!r.createdAt) continue;
+    const created =
+      r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt);
+    if (Number.isNaN(created.getTime())) continue;
+    const date = calendarDateKey(created);
+    const front = frontBodyReportPhoto(r.photos);
+    if (!front?.id) continue;
+    photoItems.push({
+      id: front.id,
+      reportId: r.id,
+      src: bodyReportPhotoMediaPath(front.id),
+      date,
+      weightKg: r.weightKg,
+      waistCm: r.waistCm,
+    });
+  }
+  const hasCustomStartPhoto = Boolean(
+    settingsRow?.startPhotoDataUrl?.trim(),
+  );
+  const firstReportPhoto = photoItems[0] ?? null;
+  const progressStart = resolveProgressStart({
+    weights,
+    hasCustomStartPhoto,
+    customStartPhoto: hasCustomStartPhoto
+      ? {
+          date: firstReportPhoto?.date ?? today,
+          weightKg: firstReportPhoto?.weightKg ?? null,
+          waistCm: firstReportPhoto?.waistCm ?? null,
+        }
+      : null,
+    firstReportWithPhoto: firstReportPhoto
+      ? {
+          date: firstReportPhoto.date,
+          weightKg: firstReportPhoto.weightKg,
+          waistCm: firstReportPhoto.waistCm,
+        }
+      : null,
+  });
+  const startKg = progressStart.weightKg;
+  const startDate = progressStart.date;
+  const deltaFromStartKg =
+    startKg != null && currentKg != null
+      ? safeRound1(currentKg - startKg)
+      : null;
+
   let kgPerWeekFromStart: number | null = null;
   let weeksFromStart: number | null = null;
-  if (weights.length >= 2 && startKg != null && currentKg != null) {
-    const a = weights[0]!;
+  if (weights.length >= 2 && startKg != null && currentKg != null && startDate) {
     const b = weights[weights.length - 1]!;
     const days = Math.max(
       1,
       (new Date(`${b.date}T12:00:00`).getTime() -
-        new Date(`${a.date}T12:00:00`).getTime()) /
+        new Date(`${startDate}T12:00:00`).getTime()) /
         (24 * 60 * 60 * 1000),
     );
     weeksFromStart = safeRound1(days / 7);
-    kgPerWeekFromStart = safeRound1(((b.kg - a.kg) / days) * 7);
+    kgPerWeekFromStart = safeRound1(((currentKg - startKg) / days) * 7);
   }
 
   const measureDefs: Array<{
@@ -1182,48 +1225,29 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
       ? safeRound1(goals.targetWeightKg)
       : null;
 
-  // --- Photos ---
-  const photoItems: ProgressPhotoItem[] = [];
-  for (const r of [...bodyReports].reverse()) {
-    if (!r.createdAt) continue;
-    const created =
-      r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt);
-    if (Number.isNaN(created.getTime())) continue;
-    const date = calendarDateKey(created);
-    const front = frontBodyReportPhoto(r.photos);
-    if (!front?.id) continue;
-    photoItems.push({
-      id: front.id,
-      reportId: r.id,
-      src: bodyReportPhotoMediaPath(front.id),
-      date,
-      weightKg: r.weightKg,
-      waistCm: r.waistCm,
-    });
-  }
-  const hasCustomStartPhoto = false;
-  const firstReportPhoto = photoItems[0] ?? null;
   const startPhoto: ProgressPhotoItem | null = hasCustomStartPhoto
     ? {
         id: CUSTOM_START_PHOTO_ID,
         reportId: "",
         src: startPhotoMediaPath(),
-        date: firstReportPhoto?.date ?? today,
-        weightKg: firstReportPhoto?.weightKg ?? null,
-        waistCm: firstReportPhoto?.waistCm ?? null,
+        date: progressStart.date ?? today,
+        weightKg: progressStart.weightKg,
+        waistCm: progressStart.waistCm,
       }
     : firstReportPhoto;
   const nowPhoto = photoItems.length ? photoItems[photoItems.length - 1]! : null;
   const weightDeltaKg =
-    startPhoto?.weightKg != null && nowPhoto?.weightKg != null
-      ? safeRound1(nowPhoto.weightKg - startPhoto.weightKg)
-      : startKg != null && currentKg != null
-        ? safeRound1(currentKg - startKg)
+    progressStart.weightKg != null && currentKg != null
+      ? safeRound1(currentKg - progressStart.weightKg)
+      : startPhoto?.weightKg != null && nowPhoto?.weightKg != null
+        ? safeRound1(nowPhoto.weightKg - startPhoto.weightKg)
         : null;
   const waistReports = bodyReports.filter((r) => r.waistCm != null);
-  const firstWaist = waistReports.length
-    ? waistReports[waistReports.length - 1]!.waistCm
-    : null;
+  const firstWaist =
+    progressStart.waistCm ??
+    (waistReports.length
+      ? waistReports[waistReports.length - 1]!.waistCm
+      : null);
   const lastWaist = waistReports[0]?.waistCm ?? null;
   const waistDeltaCm =
     firstWaist != null && lastWaist != null

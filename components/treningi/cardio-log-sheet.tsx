@@ -1,46 +1,62 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Footprints, Minus, Plus, X } from "lucide-react";
+import { CheckCircle2, Footprints, Loader2, X } from "lucide-react";
 import { logCardioDetailedAction } from "@/actions/workout";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
-import { resolveCardioType } from "@/lib/cardio-utils";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { InlineBanner } from "@/components/ui/inline-banner";
+import { CardioLogDetailsSection } from "@/components/treningi/cardio-log-details-section";
+import { CardioLogMinutesField } from "@/components/treningi/cardio-log-minutes-field";
+import { CardioLogTypePicker } from "@/components/treningi/cardio-log-type-picker";
+import {
+  CardioLogWeekProgress,
+  type CardioWeekProgress,
+} from "@/components/treningi/cardio-log-week-progress";
+import {
+  addCalendarDays,
+  calendarDateKey,
+  calendarWeekMondayKey,
+} from "@/lib/local-date";
+import {
+  CARDIO_TYPE_LABELS_PL,
+  resolveCardioType,
+  validateCardioMetrics,
+  type CardioFieldError,
+  type CardioFieldKey,
+  type CardioTypeSlug,
+} from "@/lib/cardio-utils";
 import { cn } from "@/lib/utils";
 
-const MACHINES = [
-  "Marsz",
-  "Bieżnia",
-  "Rower",
-  "Orbitrek",
-  "Schody",
-  "Bieg",
-  "Pływanie",
-  "Inne",
-] as const;
+export type { CardioWeekProgress };
 
 type CardioLogSheetProps = {
   open: boolean;
   onClose: () => void;
-  cardioGoalMinutes: number;
-  /** Domyślny typ aktywności przy otwarciu. */
-  defaultTitle?: (typeof MACHINES)[number] | string;
+  weekProgress: CardioWeekProgress;
+  defaultTitle?: string;
 };
 
-function todayLabelPl(): string {
-  try {
-    return new Intl.DateTimeFormat("pl-PL", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    }).format(new Date());
-  } catch {
-    return "dziś";
-  }
-}
+type ActionState = {
+  ok?: boolean;
+  error?: string;
+  fieldErrors?: CardioFieldError[];
+  id?: string;
+  weekMinutesAfter?: number;
+  minutes?: number;
+  dateKey?: string;
+};
 
-/** YYYY-MM-DD w strefie przeglądarki (do atrybutów min/max pola daty). */
 function localDateInputValue(offsetDays = 0): string {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
@@ -54,102 +70,229 @@ function dateLabelPl(dateKey: string): string {
   try {
     const [y, m, d] = dateKey.split("-").map(Number);
     return new Intl.DateTimeFormat("pl-PL", {
-      weekday: "long",
+      weekday: "short",
       day: "numeric",
-      month: "long",
+      month: "numeric",
     }).format(new Date(y!, m! - 1, d!, 12));
   } catch {
     return dateKey;
   }
 }
 
-function clampMinutes(n: number): number {
-  if (!Number.isFinite(n)) return 30;
-  return Math.min(300, Math.max(1, Math.round(n)));
+function errorsToMap(
+  list: CardioFieldError[] | undefined,
+): Partial<Record<CardioFieldKey, string>> {
+  const out: Partial<Record<CardioFieldKey, string>> = {};
+  for (const e of list ?? []) {
+    if (!out[e.field]) out[e.field] = e.message;
+  }
+  return out;
 }
 
-const fieldClass =
-  "mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 text-sm text-white outline-none placeholder:text-white/30 transition focus:border-[var(--gym-gold)]/45 focus:ring-2 focus:ring-[var(--gym-gold)]/20";
+function noteFromDefaultTitle(defaultTitle: string, slug: CardioTypeSlug): string {
+  const matchLabel =
+    CARDIO_TYPE_LABELS_PL[slug] === defaultTitle ||
+    Object.values(CARDIO_TYPE_LABELS_PL).some(
+      (l) => l.toLowerCase() === String(defaultTitle).toLowerCase(),
+    );
+  return matchLabel ? "" : String(defaultTitle);
+}
 
 export function CardioLogSheet({
   open,
   onClose,
-  cardioGoalMinutes,
+  weekProgress,
   defaultTitle = "Marsz",
 }: CardioLogSheetProps) {
+  const [wasOpen, setWasOpen] = useState(false);
+  const [sessionKey, setSessionKey] = useState(0);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setSessionKey((k) => k + 1);
+  }
+
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <CardioLogSheetDialog
+      key={sessionKey}
+      onClose={onClose}
+      weekProgress={weekProgress}
+      defaultTitle={defaultTitle}
+    />,
+    document.body,
+  );
+}
+
+function CardioLogSheetDialog({
+  onClose,
+  weekProgress,
+  defaultTitle,
+}: {
+  onClose: () => void;
+  weekProgress: CardioWeekProgress;
+  defaultTitle: string;
+}) {
   const router = useRouter();
-  const { notifySaved, notifyError } = useSaveFeedback();
-  const [mounted, setMounted] = useState(false);
-  const [machine, setMachine] = useState<(typeof MACHINES)[number]>("Marsz");
+  const { notifyError } = useSaveFeedback();
+  const initialSlug = resolveCardioType(defaultTitle);
+
+  const [machine, setMachine] = useState<CardioTypeSlug>(initialSlug);
   const [minutesText, setMinutesText] = useState("30");
   const [distanceKm, setDistanceKm] = useState("");
   const [avgHr, setAvgHr] = useState("");
   const [maxHr, setMaxHr] = useState("");
   const [calories, setCalories] = useState("");
   const [steps, setSteps] = useState("");
-  const [effortScore, setEffortScore] = useState("");
-  const [note, setNote] = useState("");
-  /** Pusta = dziś (serwer ustawia datę w strefie kalendarza aplikacji). */
+  const [effortScore, setEffortScore] = useState<number | null>(null);
+  const [note, setNote] = useState(() =>
+    noteFromDefaultTitle(defaultTitle, initialSlug),
+  );
   const [dateKey, setDateKey] = useState("");
+  const [dateOpen, setDateOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [clientErrors, setClientErrors] = useState<
+    Partial<Record<CardioFieldKey, string>>
+  >({});
 
-  const [state, formAction, pending] = useActionState(logCardioDetailedAction, {} as {
-    ok?: boolean;
-    error?: string;
-    id?: string;
-  });
+  const handledIdRef = useRef<string | null>(null);
+  const notifiedErrorRef = useRef<string | null>(null);
 
-  useEffect(() => setMounted(true), []);
+  const [state, formAction, pending] = useActionState(
+    logCardioDetailedAction as (
+      prev: ActionState,
+      formData: FormData,
+    ) => Promise<ActionState>,
+    {} as ActionState,
+  );
 
-  useEffect(() => {
-    if (!open) return;
-    const match = MACHINES.find(
-      (m) => m.toLowerCase() === String(defaultTitle).toLowerCase(),
+  const success =
+    state?.ok === true && state.id
+      ? {
+          id: state.id,
+          minutes: state.minutes ?? (Number(minutesText) || 0),
+          weekMinutesAfter:
+            state.weekMinutesAfter ?? weekProgress.minutesCompleted,
+          dateKey: state.dateKey ?? calendarDateKey(),
+        }
+      : null;
+
+  const serverFieldErrors =
+    state?.ok === false && state.fieldErrors?.length
+      ? errorsToMap(state.fieldErrors)
+      : null;
+  const fieldErrors = { ...clientErrors, ...serverFieldErrors };
+
+  const forceDetailsOpen =
+    state?.ok === false &&
+    !!state.fieldErrors?.some(
+      (e) => e.field !== "minutes" && e.field !== "date",
     );
-    setMachine(match ?? "Marsz");
-    setMinutesText("30");
-    setDistanceKm("");
-    setAvgHr("");
-    setMaxHr("");
-    setCalories("");
-    setSteps("");
-    setEffortScore("");
-    setDateKey("");
-    setNote(match ? "" : String(defaultTitle));
-  }, [open, defaultTitle]);
+  const detailsExpanded = detailsOpen || forceDetailsOpen;
 
+  // Tylko efekty uboczne na zewnątrz React (refresh / toast) — bez setState.
   useEffect(() => {
-    if (state?.ok === true) {
-      notifySaved("Zapisano cardio.");
-      onClose();
-      if (state.id) {
-        router.push(`/cardio/${state.id}`);
-        router.refresh();
-      }
-    } else if (state?.ok === false && state.error) {
+    if (state?.ok === true && state.id && handledIdRef.current !== state.id) {
+      handledIdRef.current = state.id;
+      router.refresh();
+    } else if (
+      state?.ok === false &&
+      state.error &&
+      !state.fieldErrors?.length &&
+      notifiedErrorRef.current !== state.error
+    ) {
+      notifiedErrorRef.current = state.error;
       notifyError(state.error);
     }
-  }, [state, notifySaved, notifyError, onClose, router]);
+  }, [state, router, notifyError]);
 
-  const dateLine = useMemo(
-    () =>
-      dateKey
-        ? `zapisuję na ${dateLabelPl(dateKey)}`
-        : `zapisuję na dziś, ${todayLabelPl()}`,
-    [dateKey],
-  );
   const maxDate = useMemo(() => localDateInputValue(0), []);
   const minDate = useMemo(() => localDateInputValue(-60), []);
-  const minutes = clampMinutes(Number(String(minutesText).replace(",", ".")));
+  const effectiveDate = dateKey || calendarDateKey();
+  const todayMonday = calendarWeekMondayKey(calendarDateKey());
+  const entryMonday = calendarWeekMondayKey(effectiveDate);
+  const entryInThisWeek = entryMonday === todayMonday;
 
-  if (!open || !mounted) return null;
+  const previewAfter = useMemo(() => {
+    if (!entryInThisWeek) return null;
+    const m = /^\d+$/.test(minutesText.trim())
+      ? Number(minutesText.trim())
+      : null;
+    if (m == null || m < 1) return null;
+    return weekProgress.minutesCompleted + m;
+  }, [entryInThisWeek, minutesText, weekProgress.minutesCompleted]);
 
-  return createPortal(
+  const minutesError = fieldErrors.minutes ?? null;
+  const canSubmit = !pending && !minutesError && minutesText.trim() !== "";
+  const goal = weekProgress.goalMinutes;
+  const dateLine = dateKey
+    ? `zapisuję na ${dateLabelPl(dateKey)}`
+    : `zapisuję na dziś, ${dateLabelPl(calendarDateKey())}`;
+
+  function validateField(field: CardioFieldKey) {
+    const result = validateCardioMetrics({
+      minutes: minutesText,
+      distanceKm,
+      avgHr,
+      maxHr,
+      calories,
+      steps,
+      effortScore: effortScore == null ? "" : String(effortScore),
+      notes: note,
+      date: dateKey || undefined,
+    });
+    setClientErrors((prev) => {
+      const next = { ...prev };
+      delete next[field];
+      if (!result.ok) {
+        const hit = result.fieldErrors.find((e) => e.field === field);
+        if (hit) next[field] = hit.message;
+      }
+      return next;
+    });
+  }
+
+  function validateAll(): CardioFieldError[] {
+    const result = validateCardioMetrics({
+      minutes: minutesText,
+      distanceKm,
+      avgHr,
+      maxHr,
+      calories,
+      steps,
+      effortScore: effortScore == null ? "" : String(effortScore),
+      notes: note,
+      date: dateKey || undefined,
+    });
+    if (result.ok) {
+      setClientErrors({});
+      return [];
+    }
+    setClientErrors(errorsToMap(result.fieldErrors));
+    return result.fieldErrors;
+  }
+
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
+    const errs = validateAll();
+    if (errs.length) {
+      e.preventDefault();
+      const first = errs[0]!;
+      if (first.field !== "minutes" && first.field !== "date") {
+        setDetailsOpen(true);
+      }
+    }
+  }
+
+  return (
     <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center sm:p-4">
       <button
         type="button"
         className="absolute inset-0 cursor-default bg-black/80 backdrop-blur-[3px]"
         aria-label="Zamknij"
-        onClick={onClose}
+        disabled={pending}
+        onClick={() => {
+          if (!pending) onClose();
+        }}
       />
       <div
         role="dialog"
@@ -173,193 +316,251 @@ export function CardioLogSheet({
             </p>
             <h2
               id="cardio-sheet-title"
-              className="mt-1.5 text-[26px] font-semibold leading-tight tracking-tight text-white"
+              className="mt-1.5 text-[24px] font-semibold leading-tight tracking-tight text-white"
             >
               Dodaj cardio
             </h2>
-            <p className="mt-1.5 text-[13px] text-white/45">{dateLine}</p>
-            <p className="mt-0.5 text-[12px] text-white/35">
-              Zalecenie: {cardioGoalMinutes} min / tydzień
-            </p>
           </div>
           <button
             type="button"
-            onClick={onClose}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/75 transition hover:bg-white/[0.08]"
+            disabled={pending}
+            onClick={() => {
+              if (!pending) onClose();
+            }}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/75 transition hover:bg-white/[0.08] disabled:opacity-50"
             aria-label="Zamknij"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <form action={formAction} className="relative flex min-h-0 flex-1 flex-col">
-          <input type="hidden" name="title" value={machine} />
-          <input type="hidden" name="cardioType" value={resolveCardioType(machine)} />
-          <input type="hidden" name="minutes" value={minutes} />
-          <input type="hidden" name="distanceKm" value={distanceKm} />
-          <input type="hidden" name="avgHr" value={avgHr} />
-          <input type="hidden" name="maxHr" value={maxHr} />
-          <input type="hidden" name="calories" value={calories} />
-          <input type="hidden" name="steps" value={steps} />
-          <input type="hidden" name="effortScore" value={effortScore} />
-          <input type="hidden" name="notes" value={note} />
-          <input type="hidden" name="date" value={dateKey} />
-
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-3">
-            <div className="flex flex-wrap gap-2">
-              {MACHINES.map((m) => {
-                const active = m === machine;
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMachine(m)}
-                    className={cn(
-                      "inline-flex h-8 items-center rounded-full px-3.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition",
-                      active
-                        ? "border border-[var(--gym-gold)]/55 bg-[rgba(var(--neon-rgb),0.14)] text-[var(--gym-gold)] shadow-[0_4px_14px_rgba(235,196,74,0.18)]"
-                        : "border border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.06] hover:text-white/80",
-                    )}
-                  >
-                    {m}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="app-panel mt-5 px-4 py-4">
-              <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                <span>Czas · min</span>
-                <span>wpisz albo ±5</span>
-              </div>
-              <div className="mt-3 flex items-center justify-center gap-4">
-                <button
-                  type="button"
-                  aria-label="Mniej minut"
-                  onClick={() => setMinutesText(String(clampMinutes(minutes - 5)))}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white transition hover:bg-white/[0.08]"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={minutesText}
-                  onChange={(e) => setMinutesText(e.target.value.replace(/[^\d]/g, ""))}
-                  onBlur={() => setMinutesText(String(minutes))}
-                  aria-label="Minuty cardio"
-                  className="h-14 w-24 rounded-xl border border-[var(--gym-gold)]/40 bg-black/35 text-center font-metric text-4xl tabular-nums text-[var(--gym-gold)] outline-none focus:border-[var(--gym-gold)] focus:ring-2 focus:ring-[var(--gym-gold)]/25"
-                />
-                <button
-                  type="button"
-                  aria-label="Więcej minut"
-                  onClick={() => setMinutesText(String(clampMinutes(minutes + 5)))}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white transition hover:bg-white/[0.08]"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <label className="col-span-2 block">
-                <span className="app-label">Data (do 60 dni wstecz)</span>
-                <input
-                  type="date"
-                  value={dateKey}
-                  min={minDate}
-                  max={maxDate}
-                  onChange={(e) => setDateKey(e.target.value)}
-                  className={fieldClass}
-                />
-              </label>
-              <label className="block">
-                <span className="app-label">Dystans (km)</span>
-                <input
-                  value={distanceKm}
-                  onChange={(e) => setDistanceKm(e.target.value)}
-                  inputMode="decimal"
-                  placeholder="np. 3,5"
-                  className={fieldClass}
-                />
-              </label>
-              <label className="block">
-                <span className="app-label">Śr. tętno</span>
-                <input
-                  value={avgHr}
-                  onChange={(e) => setAvgHr(e.target.value)}
-                  inputMode="numeric"
-                  placeholder="np. 125"
-                  className={fieldClass}
-                />
-              </label>
-              <label className="block">
-                <span className="app-label">Max tętno</span>
-                <input
-                  value={maxHr}
-                  onChange={(e) => setMaxHr(e.target.value)}
-                  inputMode="numeric"
-                  placeholder="np. 165"
-                  className={fieldClass}
-                />
-              </label>
-              <label className="block">
-                <span className="app-label">Wysiłek (1–10)</span>
-                <input
-                  value={effortScore}
-                  onChange={(e) => setEffortScore(e.target.value)}
-                  inputMode="numeric"
-                  placeholder="np. 6"
-                  className={fieldClass}
-                />
-              </label>
-              <label className="block">
-                <span className="app-label">Kalorie</span>
-                <input
-                  value={calories}
-                  onChange={(e) => setCalories(e.target.value)}
-                  inputMode="numeric"
-                  placeholder="np. 280"
-                  className={fieldClass}
-                />
-              </label>
-              <label className="block">
-                <span className="app-label">Kroki</span>
-                <input
-                  value={steps}
-                  onChange={(e) => setSteps(e.target.value)}
-                  inputMode="numeric"
-                  placeholder="np. 4500"
-                  className={fieldClass}
-                />
-              </label>
-            </div>
-
-            <label className="mt-4 mb-2 block">
-              <span className="app-label">Notatka</span>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={2}
-                placeholder="np. pod górkę, 6% nachylenia"
-                className="mt-1.5 w-full resize-none rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 py-3 text-sm text-white outline-none placeholder:text-white/30 transition focus:border-[var(--gym-gold)]/45 focus:ring-2 focus:ring-[var(--gym-gold)]/20"
+        {success ? (
+          <div className="relative flex min-h-0 flex-1 flex-col px-5 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+0.75rem))]">
+            <div className="flex flex-1 flex-col items-center justify-center text-center">
+              <CheckCircle2
+                className="h-8 w-8 text-[var(--gym-gold)]"
+                aria-hidden
               />
-            </label>
+              <h3 className="mt-3 text-[24px] font-semibold text-white">
+                Zapisano {success.minutes} min
+              </h3>
+              <p className="mt-2 text-[15px] text-white/85">
+                {success.weekMinutesAfter >= goal
+                  ? `Cel tygodnia zrobiony: ${success.weekMinutesAfter} z ${goal} min.`
+                  : `Tydzień: ${success.weekMinutesAfter} z ${goal} min.`}
+              </p>
+              <p className="mt-1 text-[13px] text-[var(--gym-text-secondary)]">
+                Wpis trafił na {dateLabelPl(success.dateKey)}.
+              </p>
+            </div>
+            <div className="mt-4 flex flex-col gap-2">
+              <Link
+                href={`/cardio/${success.id}`}
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "h-12 w-full",
+                )}
+              >
+                Zobacz wpis
+              </Link>
+              <Button
+                type="button"
+                variant="cta"
+                className="h-12 w-full"
+                onClick={onClose}
+                autoFocus
+              >
+                Gotowe
+              </Button>
+            </div>
           </div>
+        ) : (
+          <form
+            action={formAction}
+            onSubmit={onSubmit}
+            className="relative flex min-h-0 flex-1 flex-col"
+          >
+            <input
+              type="hidden"
+              name="title"
+              value={CARDIO_TYPE_LABELS_PL[machine]}
+            />
+            <input type="hidden" name="cardioType" value={machine} />
+            <input type="hidden" name="minutes" value={minutesText} />
+            <input type="hidden" name="distanceKm" value={distanceKm} />
+            <input type="hidden" name="avgHr" value={avgHr} />
+            <input type="hidden" name="maxHr" value={maxHr} />
+            <input type="hidden" name="calories" value={calories} />
+            <input type="hidden" name="steps" value={steps} />
+            <input
+              type="hidden"
+              name="effortScore"
+              value={effortScore == null ? "" : String(effortScore)}
+            />
+            <input type="hidden" name="notes" value={note} />
+            <input type="hidden" name="date" value={dateKey} />
 
-          <div className="relative shrink-0 border-t border-white/[0.06] bg-[var(--gym-surface-sunken)]/95 px-5 pt-3 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+0.75rem))] backdrop-blur-sm">
-            <button
-              type="submit"
-              disabled={pending}
-              className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_8px_28px_rgba(235,196,74,0.45)] disabled:opacity-60"
-            >
-              <Footprints className="h-4 w-4" aria-hidden />
-              {pending ? "Zapisuję…" : `Zapisz ${minutes} min`}
-            </button>
-          </div>
-        </form>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 pb-3">
+              <CardioLogWeekProgress
+                weekProgress={weekProgress}
+                previewAfter={previewAfter}
+              />
+
+              <CardioLogTypePicker
+                value={machine}
+                onChange={setMachine}
+                disabled={pending}
+              />
+
+              <CardioLogMinutesField
+                minutesText={minutesText}
+                onMinutesTextChange={(v) => {
+                  setMinutesText(v);
+                  const result = validateCardioMetrics({
+                    minutes: v,
+                    distanceKm,
+                    avgHr,
+                    maxHr,
+                    calories,
+                    steps,
+                  });
+                  setClientErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.minutes;
+                    if (!result.ok) {
+                      const hit = result.fieldErrors.find(
+                        (e) => e.field === "minutes",
+                      );
+                      if (hit) next.minutes = hit.message;
+                    }
+                    return next;
+                  });
+                }}
+                error={minutesError}
+                disabled={pending}
+                errorId="err-minutes"
+              />
+
+              <div className="rounded-2xl border border-white/[0.08] px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-text-secondary)]">
+                      Dzień
+                    </p>
+                    <p className="mt-1 text-[14px] text-white">{dateLine}</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    className="inline-flex min-h-11 items-center px-2 text-[13px] font-semibold text-[var(--gym-gold)]"
+                    onClick={() => setDateOpen((v) => !v)}
+                  >
+                    Zmień
+                  </button>
+                </div>
+                {dateOpen ? (
+                  <input
+                    type="date"
+                    value={dateKey || calendarDateKey()}
+                    min={minDate}
+                    max={maxDate}
+                    disabled={pending}
+                    aria-invalid={fieldErrors.date != null}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDateKey(v === calendarDateKey() ? "" : v);
+                      setDateOpen(false);
+                    }}
+                    className="mt-2 h-12 w-full rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 text-sm text-white outline-none"
+                  />
+                ) : null}
+                {fieldErrors.date ? (
+                  <p className="mt-1 text-[12px] text-[#ff8593]" role="alert">
+                    {fieldErrors.date}
+                  </p>
+                ) : null}
+                {!entryInThisWeek && dateKey ? (
+                  <p className="mt-2 text-[12px] text-[var(--gym-text-secondary)]">
+                    Wpis trafi do tygodnia {formatWeekOf(dateKey)} — nie zmienia
+                    bieżącego postępu powyżej.
+                  </p>
+                ) : null}
+              </div>
+
+              <CardioLogDetailsSection
+                open={detailsExpanded}
+                onToggle={() => setDetailsOpen((v) => !v)}
+                distanceKm={distanceKm}
+                avgHr={avgHr}
+                maxHr={maxHr}
+                calories={calories}
+                steps={steps}
+                effortScore={effortScore}
+                note={note}
+                fieldErrors={fieldErrors}
+                disabled={pending}
+                onChange={(patch) => {
+                  if (patch.distanceKm != null) setDistanceKm(patch.distanceKm);
+                  if (patch.avgHr != null) setAvgHr(patch.avgHr);
+                  if (patch.maxHr != null) setMaxHr(patch.maxHr);
+                  if (patch.calories != null) setCalories(patch.calories);
+                  if (patch.steps != null) setSteps(patch.steps);
+                  if (patch.note != null) setNote(patch.note);
+                  if ("effortScore" in patch)
+                    setEffortScore(patch.effortScore ?? null);
+                }}
+                onBlurField={validateField}
+              />
+            </div>
+
+            <div className="relative shrink-0 border-t border-white/[0.06] bg-[var(--gym-surface-sunken)]/95 px-5 pt-3 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+0.75rem))] backdrop-blur-sm">
+              <p className="mb-2 text-[12px] leading-4 text-[var(--gym-text-secondary)]">
+                Liczy się czas. Pozostałe pola to dane do analizy obciążenia.
+              </p>
+              {state?.ok === false &&
+              state.error &&
+              !state.fieldErrors?.length ? (
+                <InlineBanner variant="error" role="alert" className="mb-2">
+                  {state.error}
+                </InlineBanner>
+              ) : null}
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_8px_28px_rgba(235,196,74,0.45)] disabled:opacity-60"
+              >
+                {pending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    Zapisuję…
+                  </>
+                ) : minutesError ? (
+                  "Podaj minuty, by zapisać"
+                ) : (
+                  <>
+                    <Footprints className="h-4 w-4" aria-hidden />
+                    Zapisz{" "}
+                    {/^\d+$/.test(minutesText.trim())
+                      ? minutesText.trim()
+                      : "…"}{" "}
+                    min
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
-    </div>,
-    document.body,
+    </div>
   );
+}
+
+function formatWeekOf(dateKey: string): string {
+  const monday = calendarWeekMondayKey(dateKey);
+  const sun = addCalendarDays(monday, 6);
+  const a = new Date(`${monday}T12:00:00`);
+  const b = new Date(`${sun}T12:00:00`);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("pl-PL", { day: "numeric", month: "numeric" });
+  return `${fmt(a)}–${fmt(b)}`;
 }

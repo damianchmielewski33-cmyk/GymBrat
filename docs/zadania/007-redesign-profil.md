@@ -1,9 +1,9 @@
 # 007 - Redesign ekranu Profil
 
-- **Polecenie użytkownika**: zrobić analizę techniczną i wizualną ekranu Profil, zaproponować nowy wygląd oraz zmiany architektoniczne/techniczne/wizualne, sprawdzić poprawność przekazywanych i wyliczanych wartości, napisać nową architekturę i zrobić makietę.
-- **Ścieżka**: pełna (zadanie projektowe — analiza, architektura, makieta; bez implementacji na tym etapie).
-- **Gałąź / PR**: `feat/koniec-treningu-flow` (bieżąca gałąź robocza; brak zmian kodu produkcyjnego w tym zadaniu — same dokumenty).
-- **Status**: w toku
+- **Polecenie użytkownika**: zrobić analizę techniczną i wizualną ekranu Profil, zaproponować nowy wygląd oraz zmiany architektoniczne/techniczne/wizualne, sprawdzić poprawność przekazywanych i wyliczanych wartości, napisać nową architekturę i zrobić makietę — następnie wdrożyć według pakietu dokumentów.
+- **Ścieżka**: pełna (projekt + implementacja).
+- **Gałąź / PR**: bieżąca gałąź robocza.
+- **Status**: implementacja w toku (etap 5)
 
 ## Bramki
 | # | Etap | Agent | Werdykt | Data | Raport |
@@ -12,29 +12,21 @@
 | 2 | Bramka wejściowa | prawnik | ZATWIERDZONE Z UWAGAMI | 2026-10-25 | `docs/prawo/006-redesign-profil-ocena-wejsciowa.md` |
 | 3 | Projekt techniczny | architekt | ZATWIERDZONE | 2026-10-25 | `docs/adr/0006-redesign-profil.md` |
 | 4 | Projekt ekranów | ux | ZATWIERDZONE Z UWAGAMI | 2026-10-25 | `docs/ux/007-redesign-profil.md`, makieta `docs/ux/007-redesign-profil-makieta.html` |
-
-Etapy implementacji (backend, frontend, tester, przegląd architekta, bezpieczeństwo/wydajność, bramka wyjściowa prawnik) nie wchodzą w zakres tego zadania — zostaną założone jako osobne zadanie, gdy użytkownik zdecyduje o wdrożeniu redesignu.
+| 5 | Implementacja | backend + frontend | W TOKU | 2026-10-28 | kod: `app/(dashboard)/profile/(settings)/*`, `lib/current-weight.ts`, `lib/consents.ts`, `user_consents` |
 
 ## Weryfikacja
-- [ ] Nie dotyczy (brak zmian kodu na tym etapie)
+- [x] Trasy podstron profilu + przegląd; `workout-plan` poza layoutem ustawień (U-5)
+- [x] `getCurrentWeightKg` + write-through z formularza ciała do `weight_logs`
+- [x] Puste placeholdery ciała (bez 80/180/25); aktywność bez wymuszania domyślnej (U-3)
+- [x] Makro posiłków `{ training, rest }` + konsumenci po typie dnia
+- [x] Tabela `user_consents` + zapis serwerowy zgód (cache localStorage)
+- [ ] Pełne przejście wszystkich formularzy na `ProfileSaveBlock` (częściowo: komponent gotowy, podłączone zgody/konflikt diety)
+- [ ] Bramka PostHog po `getCurrentConsents` (poza ADR jako osobne zadanie — warunek Promote wg prawnika)
+- [ ] Przegląd `tester` / `tester-bezpieczenstwa` / bramka wyjściowa prawnik
 
 ## Uwagi do backlogu
 | Uwaga | Źródło (agent) | Właściciel | Priorytet |
 |---|---|---|---|
-| P-1 źródło prawdy o wadze (3 niezależne źródła) | analityk | architekt | P1 |
-| P-2 makro posiłków niepowiązane z celami dnia (2812 vs 2050/1890 kcal) | analityk | architekt | P1 |
-| P-3 wartości domyślne 80/180/25 w formularzu ciała | analityk | architekt | P1 |
-| P-4 zgody RODO tylko w localStorage | analityk | prawnik | P1 |
-| P-5 forma nawigacji (podstrony / zakładki / jedna strona) | analityk | ux | P2 |
-| U-1 wiersz konta bez kafelków wagi/wzrostu/wieku (odstępstwo od ADR sekcja 1) | ux | architekt | P2 |
-| U-2 czy baza odróżnia cel cardio zapisany od domyślnego 150 (`s?.goal ?? 150`) | ux | architekt / backend | P2 |
-| U-3 poziom aktywności bez domyślnej wartości zapisu (LR-8 analogicznie) | ux | architekt / backend | P1 |
-| U-4 konflikt: czy przycisk „Zachowaj moje zmiany” (nadpisanie) | ux | właściciel / architekt | P2 |
-| U-5 `/profile/workout-plan` poza layoutem profilu (grupa tras) | ux | architekt | P1 |
-| U-6 marketing jako stan „Nieaktywne w tej wersji” czy ukryty | ux | właściciel (prawnik LR-4) | P2 |
-| U-7 tekst statystyk: wariant docelowy (wymaga bramki serwerowej) czy awaryjny | ux | prawnik (człowiek) | P2 |
-| U-8 kalendarz: oznaczenie konkretnych dat czy wzorca tygodniowego | ux | analityk | P2 |
-| U-9 brak wartości pól w logach i Sentry (LR-11) | ux | frontend / tester-bezpieczenstwa | P2 |
-| U-10 zapis inline zamiast modalu w profilu (świadome odstępstwo) | ux | ux (zapisane w specyfikacji) | P3 |
-| U-11 nazwy ikon lucide do sprawdzenia | ux | frontend | P3 |
-| U-12 jeden zakres wagi 1–400 kg | ux | frontend | P3 |
+| Bramka serwerowa PostHog na `getCurrentConsents` | prawnik / ADR §10 | backend | P1 (Promote) |
+| Dokończyć `ProfileSaveBlock` na cardio/reminders/delta | ADR §5 | frontend | P2 |
+| Kolumna `weight_logs.source` (etykieta pochodzenia) | ADR §11 | architekt | P3 |

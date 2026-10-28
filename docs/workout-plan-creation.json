@@ -2,20 +2,36 @@
   "title": "GymBrat — Tworzenie planu treningowego",
   "version": "1.0",
   "date": "2026-10-22",
-  "purpose": "Dokumentacja procesu tworzenia planu treningowego: punkty wejścia UI, trzy ścieżki (ręczna, generator heurystyczny „AI”, import pliku), model danych, zapis do DB oraz powiązanie z sesją i progresją.",
-  "uiRoute": "/profile/workout-plan",
+  "purpose": "Dokumentacja procesu tworzenia planu treningowego: punkty wejścia UI, dwie ścieżki (od zera / z pliku z podglądem), atlas ćwiczeń, model danych, zapis do DB oraz powiązanie z sesją. Generator AI usunięty (ADR 0007).",
+  "uiRoute": "/plany",
   "relatedRoutes": [
     {
-      "path": "/profile/workout-plan",
-      "role": "Edytor tworzenia i edycji planów (główny punkt wejścia)"
+      "path": "/plany",
+      "role": "Lista dni treningowych, kolejność, akcje (główny punkt zarządzania)"
+    },
+    {
+      "path": "/plany/nowy",
+      "role": "Wybór: od zera albo z pliku"
+    },
+    {
+      "path": "/plany/[id]",
+      "role": "Edytor dnia"
+    },
+    {
+      "path": "/plany/import",
+      "role": "Import pliku: podgląd z pewnością odczytu, potem confirm"
+    },
+    {
+      "path": "/plany/atlas",
+      "role": "Atlas ćwiczeń (partie, filtry, karta ?cwiczenie=)"
     },
     {
       "path": "/workout-plan",
       "role": "Hub Treningi — wybór dnia/planu i start sesji; nie tworzy planu"
     },
     {
-      "path": "/profile",
-      "role": "CTA „Ustaw plan” → /profile/workout-plan"
+      "path": "/profile/workout-plan",
+      "role": "Redirect 308 → /plany (legacy)"
     },
     {
       "path": "/start-workout",
@@ -23,21 +39,19 @@
     }
   ],
   "sourceOfTruth": [
-    "components/workout-plan/workout-plan-editor.tsx",
-    "components/workout-plan/workout-plan-word-import.tsx",
+    "components/plany/*",
     "actions/workout-plan.ts",
-    "actions/ai-workout-plan.ts",
-    "actions/backend.ts (aiGeneratePlan)",
-    "ai/coach.ts (generateTrainingPlan / makeHeuristicPlan)",
-    "lib/ai-training-plan-to-payload.ts",
+    "actions/user-exercise-notes.ts",
     "lib/workout-plan-types.ts",
     "lib/workout-plan-utils.ts",
-    "lib/workout-exercise-catalog.ts",
-    "app/api/workout-plans/import/route.ts",
+    "lib/workout-exercise-catalog.ts (seed / fallback)",
+    "lib/exercises/exercises-repository.ts",
+    "app/api/workout-plans/import/preview/route.ts",
+    "app/api/workout-plans/import/confirm/route.ts",
     "lib/pdf/workout-plan-import.ts",
     "lib/docx/workout-plan-import.ts",
     "lib/excel/workout-plan-import.ts",
-    "db/schema.ts (workout_plans)"
+    "db/schema.ts (workout_plans, exercises, user_exercise_notes)"
   ],
   "coreModel": {
     "storage": {
@@ -47,9 +61,10 @@
         "user_id": "FK → users.id (cascade delete)",
         "plan_json": "serializowany WorkoutPlanPayload",
         "created_at": "timestamp_ms",
-        "updated_at": "timestamp_ms"
+        "updated_at": "timestamp_ms",
+        "sort_order": "integer — kolejność na liście /plany i dayNumber w Treningach"
       },
-      "note": "Brak osobnych tabel dni/ćwiczeń/serii — cała struktura dnia siedzi w plan_json."
+      "note": "Brak osobnych tabel dni/ćwiczeń/serii — cała struktura dnia siedzi w plan_json. Atlas: tabela exercises."
     },
     "payloadV2": {
       "type": "WorkoutPlanPayload",

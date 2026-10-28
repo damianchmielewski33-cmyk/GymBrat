@@ -5,6 +5,26 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Dodaj cardio: czytelniejszy arkusz i walidacja bez cichych zmian",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Arkusz pokazuje postęp tygodnia (pn–nd), dominujące minuty z presetami oraz zwinięte szczegóły; po zapisie zostajesz w kontekście z podsumowaniem zamiast automatycznego przekierowania.",
+      "Błędne wartości (tętno, dystans, kalorie, wysiłek, minuty > 600) są komunikowane przy polu — bez cichego zamieniania na puste ani ucinania limitu.",
+      "Jedna wspólna walidacja klienta i serwera; limit jednego wpisu to 600 minut.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Historia treningów: czytelniejsza lista z filtrem i porównaniem",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Ekran Historii ma podsumowanie zależne od filtra dnia planu, chipy 44 px bez paska przewijania i etykietę, gdy widać tylko 400 ostatnich treningów.",
+      "Na karcie widać porównanie z poprzednią sesją tego samego dnia planu (procent i szczegóły po rozwinięciu), bez mylącego numeru „tydz. N”.",
+      "Usuwanie treningu jest widocznym przyciskiem obok „Popraw”; filtr i rozwinięcie z Pulpitu działają przez adres (?plan=, ?open=).",
+    ],
+  },
+  {
     title: "Zapowiedź — Bilans makro: czytelniejszy ekran MAKRO DZIŚ",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
@@ -20,8 +40,9 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
       "Zarządzanie planami jest w Menu jako „Plany treningowe” (/plany), a nie w Profilu — stare adresy przekierowują.",
-      "Nowy flow: lista dni, tworzenie od zera albo z pliku z podglądem przed zapisem, edytor z potwierdzeniem przy wyjściu.",
-      "Atlas ćwiczeń w Menu (partie i wyszukiwarka); baza ćwiczeń przechodzi do tabeli w bazie z panelem admina.",
+      "Nowy flow: lista dni z kolejnością ↑↓, tworzenie od zera albo z pliku z podglądem i plakietkami pewności odczytu, edytor z potwierdzeniem przy wyjściu.",
+      "Atlas ćwiczeń: partie, filtry, paginacja i karta ćwiczenia z instrukcją, filmem zespołu oraz prywatną notatką użytkownika.",
+      "Baza ćwiczeń w tabeli Turso z pełnym CRUD w panelu admina i wyszukiwaniem kandydatów YouTube (zatwierdzenie ręczne).",
       "Usunięto funkcję „Stwórz plan treningowy z AI” z UI i kodu — istniejące plany zostają bez zmian.",
     ],
   },
@@ -130,15 +151,23 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     ],
   },
   {
-    title: "Zapowiedź — Profil: nowy układ, przypomnienia i spójny wygląd",
+    title: "Zapowiedź — Profil: podstrony, jedna waga i makro na typ dnia",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
-      "Profil jest podzielony na sześć sekcji — Ciało, Trening, Dieta, Przypomnienia, Aplikacja i Konto — z paskiem skrótów na górze oraz nagłówkiem z inicjałami, adresem e-mail i podsumowaniem wagi, wzrostu i wieku.",
-      "Nowa sekcja Przypomnienia pozwala ustawić godziny powiadomień o treningu, posiłku i check-inie oraz wybrać dni tygodnia; powiadomienia przychodzą też przy zamkniętej aplikacji Android (alarmy w telefonie) i przy zamkniętej karcie w przeglądarce (Web Push).",
-      "Cel cardio, cykl raportów i jednostka porównań są w jednej sekcji Trening i postępy, a cele dzienne i makro posiłków w sekcji Dieta, z gotowymi skrótami wartości.",
-      "Poziom aktywności ma czytelne opisy zamiast angielskich wartości, formularz hasła czyści pola po zapisie i znika u kont logujących się przez Google, a zgody na cookies mają przełączniki.",
-      "Wszystkie formularze w profilu mają te same pola, przyciski i odstępy; usunięto zdublowaną kartę z danymi logowania, a eksport i usunięcie konta są oddzielnymi blokami na końcu strony.",
+      "Profil ma przegląd z kartami stanu oraz osobne podstrony Ciało, Trening, Dieta, Przypomnienia, Aplikacja i Konto — plan treningowy zostaje pod dotychczasowym adresem, bez paska ustawień.",
+      "Aktualna waga pochodzi z historii wpisów (także po zapisie w Profilu) i jest pokazywana z datą; puste pola ciała nie dostają domyślnych 80 kg / 180 cm / 25 lat.",
+      "Makro pięciu posiłków ma osobne zestawy na dzień treningowy i wolny, z porównaniem sumy do celu dnia; zgody analityki i marketingu zapisują się na serwerze (historia decyzji), a localStorage zostaje jako szybki cache.",
+      "Przy zapisie celów żywieniowych i makro posiłków widać konflikt, gdy ktoś zmienił ustawienia z innego urządzenia; kalorie z gramów przelicza zawsze serwer.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Profil: przypomnienia i spójny wygląd sekcji",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Sekcja Przypomnienia pozwala ustawić godziny powiadomień o treningu, posiłku i check-inie oraz wybrać dni tygodnia; powiadomienia przychodzą też przy zamkniętej aplikacji Android i przy zamkniętej karcie w przeglądarce.",
+      "Cel cardio, cykl raportów i jednostka porównań są w Trening i postępy; eksport i usunięcie konta są oddzielnymi blokami w Koncie.",
     ],
   },
   {
@@ -244,15 +273,23 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     ],
   },
   {
-    title: "Zapowiedź — Postępy: uporządkowany układ ekranów analizy",
+    title: "Zapowiedź — Analiza postępów: Przegląd, Siła i jedna definicja startu",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
-      "Analiza postępów ma cztery zakładki: Przegląd, Siła, Sylwetka i Tygodnie; zdjęcia są teraz w Sylwetce, a stare linki do zakładki Zdjęcia nadal działają.",
-      "Nowy Przegląd zbiera w jednym miejscu gotowość do treningu (zmęczenie i regenerację), bieżący tydzień z tonażem, cardio i serią, skrót trendów z ostatnich 30 dni, cele oraz zdobyte osiągnięcia.",
-      "W Sile trzy karty z tym samym trendem zostały połączone w jedną z jednym przełącznikiem 7, 30 lub 90 dni; ćwiczenia wg planu, rekordy i prognoza e1RM są zwijane, a licznik rośnie, stoi i spada trafił do nagłówka listy ćwiczeń.",
-      "W Sylwetce waga, cel z szacowanym terminem i wykres są w jednej karcie, a porównanie zdjęć Start i Teraz to jeden suwak zamiast powtarzania tych samych zdjęć i wag w trzech miejscach.",
-      "Objaśnienia typu „jak to liczymy” są schowane pod ikoną informacji, a sekcje nie mają już mieszanej numeracji 01, A i C.",
+      "Przegląd otwiera się kartą „Ten tydzień” (licznik, pasek, werdykt i dni Pn–Nd z ikonami siły/cardio), potem Gotowość, skrót postępu 30 dni oraz cele z osiągnięciami — bez powtarzania tonażu i regularności z innych zakładek.",
+      "Siła ma jedną listę ćwiczeń z przełącznikiem e1RM / Tonaż / Rekord i filtrami Rośnie / Spada / Stoją; intensywność jest zwinięta jako „ostatnie 6 treningów”.",
+      "Waga „od startu” i tempo w Sylwetce biorą się z tej samej definicji startu co w Przeglądzie; tempo liczy się regresją z pomiarów w oknie, nie różnicą dwóch punktów.",
+      "Tonaż treningu zapisuje się przy zakończeniu sesji, a agregaty „od zawsze” korzystają z kolumny tonażu zamiast okna 180 dni; zakładki ładują się osobno przy pierwszym wejściu.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Postępy: wcześniejszy układ zakładek analizy",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Analiza postępów ma cztery zakładki: Przegląd, Siła, Sylwetka i Tygodnie; zdjęcia są w Sylwetce, a stare linki do zakładki Zdjęcia nadal działają.",
+      "W Sylwetce porównanie zdjęć Start i Teraz to jeden suwak; objaśnienia „jak to liczymy” są schowane pod rozwinięciem.",
     ],
   },
   {

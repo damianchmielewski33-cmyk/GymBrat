@@ -11,7 +11,8 @@ import type { WorkoutPlanPayload } from "@/lib/workout-plan-types";
 import { bestExerciseNameMatch } from "@/lib/workout-plan/match-exercise-name";
 import type { CatalogExercise } from "@/lib/workout-exercise-catalog";
 
-export type ImportConfidence = "high" | "low";
+/** high = pewne; name_check = sprawdź nazwę; low = sprawdź cały wiersz. */
+export type ImportConfidence = "high" | "name_check" | "low";
 
 export type PreviewExercise = WorkoutPlanPayload["exercises"][number] & {
   confidence: ImportConfidence;
@@ -115,13 +116,32 @@ export async function parseWorkoutPlanUpload(args: {
     selected: true,
     exercises: plan.exercises.map((ex) => {
       const match = bestExerciseNameMatch(ex.name, args.catalog);
-      let confidence: ImportConfidence = isStructured ? "high" : "low";
-      if (match && match.score >= 80) confidence = "high";
-      else if (!match || match.score < 80) confidence = "low";
+      const setsOk =
+        Number.isFinite(ex.sets) && ex.sets >= 1 && ex.sets <= 20;
+      const repsOk = Number.isFinite(ex.reps) && ex.reps >= 1;
+      let confidence: ImportConfidence;
+
+      if (!setsOk || !repsOk) {
+        confidence = "low";
+      } else if (match && match.score >= 92) {
+        confidence = isStructured ? "high" : match.score >= 100 ? "high" : "name_check";
+      } else if (match && match.score >= 70) {
+        confidence = "name_check";
+      } else if (!match) {
+        confidence = "name_check";
+      } else if (!isStructured) {
+        confidence = "low";
+      } else {
+        confidence = "high";
+      }
+
+      const useAtlasName = match && match.score >= 80;
       return {
         ...ex,
-        name: match?.exercise.name ?? ex.name,
-        categoryId: match?.exercise.categoryId ?? ex.categoryId,
+        name: useAtlasName ? match!.exercise.name : ex.name,
+        categoryId: useAtlasName
+          ? match!.exercise.categoryId
+          : ex.categoryId,
         confidence,
         matchedCatalogId: match?.exercise.id ?? null,
         matchedCatalogName: match?.exercise.name ?? null,

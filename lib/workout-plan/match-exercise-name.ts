@@ -27,7 +27,10 @@ export function matchExerciseName(
 
   for (const ex of catalog) {
     const nameN = normalizeForSearch(ex.name);
-    const aliasNs = (ex.aliasesEn ?? []).map((a) => normalizeForSearch(a));
+    const aliasNs = [
+      ...(ex.aliasesEn ?? []),
+      ...(ex.aliasesPl ?? []),
+    ].map((a) => normalizeForSearch(a));
     let score = 0;
     if (nameN === q || aliasNs.includes(q)) score = 100;
     else if (aliasNs.some((a) => a === q || a.includes(q) || q.includes(a))) {
@@ -35,7 +38,7 @@ export function matchExerciseName(
     } else if (nameN.includes(q) || q.includes(nameN)) score = 80;
     else {
       const nameTokens = new Set(tokens(ex.name));
-      for (const a of ex.aliasesEn ?? []) {
+      for (const a of [...(ex.aliasesEn ?? []), ...(ex.aliasesPl ?? [])]) {
         for (const t of tokens(a)) nameTokens.add(t);
       }
       let hit = 0;

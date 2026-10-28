@@ -113,15 +113,28 @@ export function ProgressHubView({
     [tab, loadTab],
   );
 
+  const updatedLabel = (() => {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    return `Aktualizacja dziś, ${hh}:${mm}`;
+  })();
+
   return (
     <div className="space-y-3.5">
       <p className="-mt-1 px-0.5 text-[12px] text-[var(--gym-text-secondary)]">
-        Analiza treningów i pomiarów
+        {updatedLabel}
       </p>
 
       <ProgressTabs active={tab} onTabChange={onTabChange} />
 
-      {loading[tab] || (!cache[tab] && !errors[tab]) ? <div role="status" aria-label="Ładowanie zakładki" className="space-y-3"><div className="h-28 animate-pulse rounded-2xl bg-white/[0.06]" /><div className="h-24 animate-pulse rounded-2xl bg-white/[0.06]" /><div className="h-40 animate-pulse rounded-2xl bg-white/[0.06]" /></div> : null}
+      {loading[tab] || (!cache[tab] && !errors[tab]) ? (
+        <div role="status" aria-label="Ładowanie zakładki" className="space-y-3">
+          <div className="h-28 rounded-2xl bg-white/[0.06]" />
+          <div className="h-24 rounded-2xl bg-white/[0.06]" />
+          <div className="h-40 rounded-2xl bg-white/[0.06]" />
+        </div>
+      ) : null}
       {errors[tab] ? <div role="alert" className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-5 text-center"><p className="text-[13px] text-[var(--gym-text-secondary)]">{errors[tab]}</p><button type="button" onClick={() => loadTab(tab)} className="min-h-11 rounded-xl border border-[var(--gym-border-gold)] px-4 text-[13px] font-semibold text-white">Spróbuj ponownie</button></div> : null}
       {!loading[tab] && !errors[tab] && tab === "przeglad" && cache.przeglad ? <OverviewTab data={cache.przeglad} onNavigate={onTabChange} /> : null}
       {!loading[tab] && !errors[tab] && tab === "sila" && cache.sila ? <StrengthTab data={cache.sila.strength} intelligence={cache.sila.intelligence} period={period} onPeriodChange={onPeriodChange} /> : null}

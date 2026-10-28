@@ -8,13 +8,31 @@ import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { ensureMealLogsTableOncePerProcess } from "@/db/ensure-schema";
 import { mealLogs, userSettings } from "@/db/schema";
+import { kcalFromMacros } from "@/lib/kcal-from-macros";
+import { calendarDateKey } from "@/lib/local-date";
 import {
   defaultMealTemplateName,
   MAX_MEAL_TEMPLATES,
-  parseMealTemplatesJson,
-  serializeMealTemplates,
+  mealTemplatesForDay,
+  mealTemplatesForProfile,
+  serializeMealTemplatesByDayType,
+  type MealDayType,
   type MealTemplate,
+  type MealTemplatesByDayType,
 } from "@/lib/meal-templates";
+import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
+
+function dayTypeForDate(
+  nutritionDayTypesJson: string | null | undefined,
+  date: string,
+): MealDayType {
+  const settings = nutritionSettingsFromDbRow({
+    trainingNutritionGoalsJson: null,
+    restNutritionGoalsJson: null,
+    nutritionDayTypesJson: nutritionDayTypesJson ?? null,
+  });
+  return settings.dayTypes[date] ?? "rest";
+}
 
 export async function repeatLastMealAction(date: string) {
   await guardAction("meal-quick.repeatLastMealAction");
@@ -62,12 +80,16 @@ export async function addMealFromTemplateAction(date: string, templateId: string
 
   const db = getDb();
   const [row] = await db
-    .select({ mealTemplatesJson: userSettings.mealTemplatesJson })
+    .select({
+      mealTemplatesJson: userSettings.mealTemplatesJson,
+      nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
+    })
     .from(userSettings)
     .where(eq(userSettings.userId, session.user.id))
     .limit(1);
 
-  const templates = parseMealTemplatesJson(row?.mealTemplatesJson ?? null);
+  const dayType = dayTypeForDate(row?.nutritionDayTypesJson, date);
+  const templates = mealTemplatesForDay(row?.mealTemplatesJson ?? null, dayType);
   const t = templates.find((x) => x.id === templateId);
   if (!t) return { ok: false as const, error: "Nie znaleziono szablonu." };
 
@@ -94,26 +116,50 @@ export async function saveMealTemplateAction(
   const session = await auth();
   if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
 
+  const proteinG = Number(template.proteinG);
+  const fatG = Number(template.fatG);
+  const carbsG = Number(template.carbsG);
+  if (
+    !Number.isFinite(proteinG) ||
+    !Number.isFinite(fatG) ||
+    !Number.isFinite(carbsG) ||
+    proteinG < 0 ||
+    fatG < 0 ||
+    carbsG < 0
+  ) {
+    return { ok: false as const, error: "Nieprawidłowe dane posiłku." };
+  }
+
   const entry: MealTemplate = {
     id: template.id?.trim() || randomUUID(),
     name: template.name.trim(),
-    calories: template.calories,
-    proteinG: template.proteinG,
-    fatG: template.fatG,
-    carbsG: template.carbsG,
+    calories: kcalFromMacros(proteinG, fatG, carbsG),
+    proteinG,
+    fatG,
+    carbsG,
   };
 
   const db = getDb();
   const [row] = await db
-    .select({ mealTemplatesJson: userSettings.mealTemplatesJson })
+    .select({
+      mealTemplatesJson: userSettings.mealTemplatesJson,
+      nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
+    })
     .from(userSettings)
     .where(eq(userSettings.userId, session.user.id))
     .limit(1);
 
-  const existing = parseMealTemplatesJson(row?.mealTemplatesJson ?? null);
+  const byDay = mealTemplatesForProfile(row?.mealTemplatesJson ?? null);
+  const today = calendarDateKey();
+  const dayType = dayTypeForDate(row?.nutritionDayTypesJson, today);
+  const existing = dayType === "training" ? byDay.training : byDay.rest;
   const without = existing.filter((x) => x.id !== entry.id);
   const next = [...without, entry].slice(0, MAX_MEAL_TEMPLATES);
-  const json = serializeMealTemplates(next);
+  const nextByDay: MealTemplatesByDayType =
+    dayType === "training"
+      ? { training: next, rest: byDay.rest }
+      : { training: byDay.training, rest: next };
+  const json = serializeMealTemplatesByDayType(nextByDay);
 
   await db
     .update(userSettings)
@@ -125,61 +171,100 @@ export async function saveMealTemplateAction(
 
   revalidatePath("/");
   revalidatePath("/profile");
+  revalidatePath("/profile/diet");
   revalidatePath("/meal-suggestions");
   return { ok: true as const };
 }
 
-/** Zastępuje listę 5 stałych posiłków — tylko makro; nazwy Posiłek 1…5. */
-export async function saveMealTemplatesAction(templates: MealTemplate[]) {
+export type MealTemplatesSaveResult =
+  | { ok: true; savedAt: string }
+  | { ok: false; error: string };
+
+/** Zastępuje oba zestawy (training/rest) — kcal zawsze z gramów na serwerze. */
+export async function saveMealTemplatesAction(
+  byDay: MealTemplatesByDayType,
+  expectedUpdatedAt?: string | null,
+): Promise<MealTemplatesSaveResult> {
   await guardAction("meal-quick.saveMealTemplatesAction");
   const session = await auth();
-  if (!session?.user?.id) return { ok: false as const, error: "Brak sesji." };
+  if (!session?.user?.id) return { ok: false, error: "Brak sesji." };
 
-  if (!Array.isArray(templates)) {
-    return { ok: false as const, error: "Nieprawidłowe dane posiłków." };
+  if (
+    !byDay ||
+    !Array.isArray(byDay.training) ||
+    !Array.isArray(byDay.rest)
+  ) {
+    return { ok: false, error: "Nieprawidłowe dane posiłków." };
   }
 
-  const cleaned: MealTemplate[] = [];
-  for (let i = 0; i < Math.min(templates.length, MAX_MEAL_TEMPLATES); i++) {
-    const t = templates[i]!;
-    const proteinG = Number(t.proteinG);
-    const fatG = Number(t.fatG);
-    const carbsG = Number(t.carbsG);
-    const calories = Number(t.calories);
-    if (
-      !Number.isFinite(calories) ||
-      !Number.isFinite(proteinG) ||
-      !Number.isFinite(fatG) ||
-      !Number.isFinite(carbsG) ||
-      calories < 0 ||
-      proteinG < 0 ||
-      fatG < 0 ||
-      carbsG < 0
-    ) {
-      return { ok: false as const, error: "Nieprawidłowe dane posiłku." };
+  function cleanSet(
+    templates: MealTemplate[],
+    dayType: MealDayType,
+  ): MealTemplate[] | { error: string } {
+    const cleaned: MealTemplate[] = [];
+    for (let i = 0; i < Math.min(templates.length, MAX_MEAL_TEMPLATES); i++) {
+      const t = templates[i]!;
+      const proteinG = Number(t.proteinG);
+      const fatG = Number(t.fatG);
+      const carbsG = Number(t.carbsG);
+      if (
+        !Number.isFinite(proteinG) ||
+        !Number.isFinite(fatG) ||
+        !Number.isFinite(carbsG) ||
+        proteinG < 0 ||
+        fatG < 0 ||
+        carbsG < 0
+      ) {
+        return { error: "Nieprawidłowe dane posiłku." };
+      }
+      cleaned.push({
+        id: String(t.id ?? "").trim() || randomUUID(),
+        name: defaultMealTemplateName(i + 1),
+        calories: kcalFromMacros(proteinG, fatG, carbsG),
+        proteinG,
+        fatG,
+        carbsG,
+      });
     }
-    cleaned.push({
-      id: String(t.id ?? "").trim() || randomUUID(),
-      name: defaultMealTemplateName(i + 1),
-      calories,
-      proteinG,
-      fatG,
-      carbsG,
-    });
+    return cleaned;
   }
 
-  const json = serializeMealTemplates(cleaned);
+  const training = cleanSet(byDay.training, "training");
+  if ("error" in training) return { ok: false, error: training.error };
+  const rest = cleanSet(byDay.rest, "rest");
+  if ("error" in rest) return { ok: false, error: rest.error };
+
   const db = getDb();
+  const [row] = await db
+    .select({ updatedAt: userSettings.updatedAt })
+    .from(userSettings)
+    .where(eq(userSettings.userId, session.user.id))
+    .limit(1);
+
+  if (expectedUpdatedAt && row?.updatedAt) {
+    const expectedMs = Date.parse(expectedUpdatedAt);
+    const actualMs = row.updatedAt.getTime();
+    if (
+      Number.isFinite(expectedMs) &&
+      Math.abs(expectedMs - actualMs) > 500
+    ) {
+      return { ok: false, error: "conflict" };
+    }
+  }
+
+  const json = serializeMealTemplatesByDayType({ training, rest });
+  const now = new Date();
   await db
     .update(userSettings)
     .set({
       mealTemplatesJson: json,
-      updatedAt: new Date(),
+      updatedAt: now,
     })
     .where(eq(userSettings.userId, session.user.id));
 
   revalidatePath("/");
   revalidatePath("/profile");
+  revalidatePath("/profile/diet");
   revalidatePath("/meal-suggestions");
-  return { ok: true as const };
+  return { ok: true, savedAt: now.toISOString() };
 }
