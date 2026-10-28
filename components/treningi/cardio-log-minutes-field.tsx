@@ -1,5 +1,6 @@
 "use client";
 
+import type { Ref } from "react";
 import { Minus, Plus } from "lucide-react";
 import { CARDIO_INPUT_LIMITS } from "@/lib/cardio-utils";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ type Props = {
   error: string | null;
   disabled?: boolean;
   errorId: string;
+  inputRef?: Ref<HTMLInputElement>;
 };
 
 export function CardioLogMinutesField({
@@ -20,6 +22,7 @@ export function CardioLogMinutesField({
   error,
   disabled,
   errorId,
+  inputRef,
 }: Props) {
   const parsed = /^\d+$/.test(minutesText.trim())
     ? Number(minutesText.trim())
@@ -61,13 +64,14 @@ export function CardioLogMinutesField({
           <Minus className="h-5 w-5" aria-hidden />
         </button>
         <input
+          ref={inputRef}
           type="text"
           inputMode="numeric"
           value={minutesText}
           disabled={disabled}
           aria-invalid={error != null}
           aria-describedby={error ? errorId : undefined}
-          aria-label="Minuty cardio"
+          aria-label="Minuty"
           onChange={(e) => onMinutesTextChange(e.target.value)}
           className={cn(
             "h-14 w-28 rounded-xl border bg-black/35 text-center font-metric text-4xl tabular-nums outline-none",

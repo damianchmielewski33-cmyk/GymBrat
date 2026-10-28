@@ -263,11 +263,20 @@ async function computePlanCompareResult(params: {
     };
   }
 
-  const [planRow] = await db
-    .select({ planJson: workoutPlans.planJson })
-    .from(workoutPlans)
-    .where(and(eq(workoutPlans.id, rawPlanId), eq(workoutPlans.userId, userId)))
-    .limit(1);
+  const [planRows, recent] = await Promise.all([
+    db
+      .select({ planJson: workoutPlans.planJson })
+      .from(workoutPlans)
+      .where(and(eq(workoutPlans.id, rawPlanId), eq(workoutPlans.userId, userId)))
+      .limit(1),
+    db
+      .select({ id: workouts.id, exercises: workouts.exercises, date: workouts.date })
+      .from(workouts)
+      .where(and(eq(workouts.userId, userId), eq(workouts.workoutPlanId, rawPlanId)))
+      .orderBy(desc(workouts.date))
+      .limit(13),
+  ]);
+  const planRow = planRows[0];
 
   let planNameFromJson: string | null = null;
   try {
@@ -283,13 +292,6 @@ async function computePlanCompareResult(params: {
     title,
     workoutPlanId: rawPlanId,
   });
-
-  const recent = await db
-    .select({ id: workouts.id, exercises: workouts.exercises, date: workouts.date })
-    .from(workouts)
-    .where(and(eq(workouts.userId, userId), eq(workouts.workoutPlanId, rawPlanId)))
-    .orderBy(desc(workouts.date))
-    .limit(13);
 
   let prevJson: string | null = null;
   let prevDate: string | null = null;

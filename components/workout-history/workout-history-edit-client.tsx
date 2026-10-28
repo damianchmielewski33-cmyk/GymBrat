@@ -203,7 +203,7 @@ export function WorkoutHistoryEditClient({
     <div className="mx-auto w-full max-w-lg space-y-5 pb-28">
       <header className="relative space-y-1 pr-12 pt-1">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
-          {initial.weekdayLabel} · TYDZIEŃ {initial.planOccurrence}
+          {initial.weekdayLabel} · Dzień planu {initial.planOccurrence}
         </p>
         <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-white">
           Popraw trening

@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   CloudOff,
   Flame,
@@ -199,6 +200,17 @@ export function WorkoutFinishedScreen({
     h1Ref.current?.focus({ preventScroll: true });
   }, [mounted]);
 
+  useEffect(() => {
+    if (!cardioEditing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setCardioEditing(false);
+      setCardioStatus("idle");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cardioEditing]);
+
   const endedLabel = useMemo(() => {
     try {
       return new Date(data.endedAtMs)
@@ -228,6 +240,7 @@ export function WorkoutFinishedScreen({
    * nie ma sensownej delty objętości, choćby `compare` istniał. */
   const noTonnageComparison = data.volumeKg === 0 && data.setsDone > 0;
 
+  const showBestSets = data.exercises.length > 0;
   const recordsSectionIndex = 1;
   const bestSetsSectionIndex = data.weightRecords.length > 0 ? 2 : 1;
   const progressSectionVisible =
@@ -306,7 +319,10 @@ export function WorkoutFinishedScreen({
   }
 
   const content = (
-    <div className="fixed inset-0 z-[1200] flex flex-col bg-[var(--gym-black)] text-white">
+    <section
+      className="fixed inset-0 z-[1200] flex flex-col bg-[var(--gym-black)] text-white"
+      aria-labelledby="workout-finished-heading"
+    >
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
         <div className="mx-auto w-full max-w-lg px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] sm:px-5">
           <header className="flex items-start gap-3 pt-1">
@@ -318,6 +334,7 @@ export function WorkoutFinishedScreen({
                 {data.planLabel || "TRENING"}
               </p>
               <h1
+                id="workout-finished-heading"
                 ref={h1Ref}
                 tabIndex={-1}
                 className="mt-1 font-heading text-[26px] font-semibold leading-[1.1] tracking-tight text-white sm:text-[29px]"
@@ -340,7 +357,9 @@ export function WorkoutFinishedScreen({
               <>
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--gym-trend-up)]" aria-hidden />
                 <p className="text-[12px] leading-snug text-white/75">
-                  Trening jest zapisany. Ciężary są w historii i w Postępach.
+                  {data.volumeKg > 0
+                    ? "Trening jest zapisany. Ciężary są w historii i w Postępach."
+                    : "Trening jest zapisany. Serie są w historii i w Postępach."}
                 </p>
               </>
             ) : (
@@ -412,9 +431,13 @@ export function WorkoutFinishedScreen({
                         ? `/${data.setsTotal}`
                         : null}
                     </span>
-                    <span className="sr-only">
-                      {`${data.setsDone} z ${data.setsTotal} serii wykonanych`}
-                    </span>
+                    {data.setsTotal > 0 ? (
+                      <span className="sr-only">
+                        {`${data.setsDone} z ${data.setsTotal} serii wykonanych`}
+                      </span>
+                    ) : (
+                      <span className="sr-only">{`${data.setsDone} serii wykonanych`}</span>
+                    )}
                   </p>
                 </div>
                 <div className="pl-2 text-right">
@@ -477,61 +500,63 @@ export function WorkoutFinishedScreen({
             </section>
           ) : null}
 
-          <section className="mt-6 space-y-2.5">
-            <SectionLabel
-              className="items-center"
-              index={bestSetsSectionIndex}
-              title="Najlepsze serie"
-              trailing={String(data.exercises.length)}
-            />
-            {data.setsDone === 0 ? (
-              <p className="px-0.5 text-[13px] text-[var(--gym-text-secondary)]">
-                Brak zaliczonych serii.
-              </p>
-            ) : null}
-            <ul className="app-card divide-y divide-white/[0.06] overflow-hidden">
-              {data.exercises.map((ex) => {
-                const bestIndex = bestSetIndexInExercise(ex.sets, estimated1RM);
-                const bestSet = bestIndex != null ? ex.sets[bestIndex] : null;
-                const lines = allSetsLineFromSession(ex.sets, estimated1RM);
-                return (
-                  <li key={ex.id} className="px-4 py-3.5">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="min-w-0 text-[15px] font-semibold leading-snug text-white/90 line-clamp-2">
-                        {displayExerciseName(ex.name)}
-                      </p>
-                      {bestSet ? (
-                        <p className="shrink-0 text-right text-[15px] font-semibold leading-none text-[var(--gym-gold)]">
-                          <BestSetStat weight={bestSet.weight} reps={bestSet.reps ?? 0} />
+          {showBestSets ? (
+            <section className="mt-6 space-y-2.5">
+              <SectionLabel
+                className="items-center"
+                index={bestSetsSectionIndex}
+                title="Najlepsze serie"
+                trailing={String(data.exercises.length)}
+              />
+              {data.setsDone === 0 ? (
+                <p className="px-0.5 text-[13px] text-[var(--gym-text-secondary)]">
+                  Brak zaliczonych serii.
+                </p>
+              ) : null}
+              <ul className="app-card divide-y divide-white/[0.06] overflow-hidden">
+                {data.exercises.map((ex) => {
+                  const bestIndex = bestSetIndexInExercise(ex.sets, estimated1RM);
+                  const bestSet = bestIndex != null ? ex.sets[bestIndex] : null;
+                  const lines = allSetsLineFromSession(ex.sets, estimated1RM);
+                  return (
+                    <li key={ex.id} className="px-4 py-3.5">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <p className="min-w-0 text-[15px] font-semibold leading-snug text-white/90 line-clamp-2">
+                          {displayExerciseName(ex.name)}
                         </p>
-                      ) : (
-                        <p className="shrink-0 text-right text-[13px] text-[var(--gym-text-secondary)]">
-                          bez zaliczonej serii
-                        </p>
-                      )}
-                    </div>
-                    <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-[var(--gym-text-secondary)]">
-                      {lines.map((line) => (
-                        <li key={line.ordinal}>
-                          {line.ordinal}:{" "}
-                          {line.state === "best" ? (
-                            <>
-                              <span className="font-semibold text-white">{line.label}</span>
-                              <span className="sr-only"> (najlepsza)</span>
-                            </>
-                          ) : line.state === "skipped" ? (
-                            <span className="text-[var(--gym-skipped)]">{line.label}</span>
-                          ) : (
-                            line.label
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+                        {bestSet ? (
+                          <p className="shrink-0 text-right text-[15px] font-semibold leading-none text-[var(--gym-gold)]">
+                            <BestSetStat weight={bestSet.weight} reps={bestSet.reps ?? 0} />
+                          </p>
+                        ) : (
+                          <p className="shrink-0 text-right text-[13px] text-[var(--gym-text-secondary)]">
+                            bez zaliczonej serii
+                          </p>
+                        )}
+                      </div>
+                      <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-[var(--gym-text-secondary)]">
+                        {lines.map((line) => (
+                          <li key={line.ordinal}>
+                            {line.ordinal}:{" "}
+                            {line.state === "best" ? (
+                              <>
+                                <span className="font-semibold text-white">{line.label}</span>
+                                <span className="sr-only"> (najlepsza)</span>
+                              </>
+                            ) : line.state === "skipped" ? (
+                              <span className="text-[var(--gym-skipped)]">{line.label}</span>
+                            ) : (
+                              line.label
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ) : null}
 
           {progressSectionVisible ? (
             <section className="mt-6">
@@ -551,8 +576,11 @@ export function WorkoutFinishedScreen({
                 )}
               </Button>
 
-              {progressOpen ? (
-                <div id="workout-finish-progress-panel" className="app-card mt-2.5 p-4">
+              <div
+                id="workout-finish-progress-panel"
+                hidden={!progressOpen}
+                className={cn("app-card mt-2.5 p-4", !progressOpen && "hidden")}
+              >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
                     Ten sam plan
                   </p>
@@ -616,7 +644,9 @@ export function WorkoutFinishedScreen({
                         <li key={ex.name} className="app-card px-3.5 py-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="truncate text-[15px] font-semibold text-white">{ex.name}</p>
+                              <p className="truncate text-[15px] font-semibold text-white">
+                                {displayExerciseName(ex.name)}
+                              </p>
                               <p className="mt-1 text-[12px] tabular-nums text-[var(--gym-text-secondary)]">
                                 {Math.round(ex.currentVolumeKg)} kg
                                 {ex.previousVolumeKg != null
@@ -625,11 +655,18 @@ export function WorkoutFinishedScreen({
                               </p>
                             </div>
                             <div className="flex shrink-0 items-center gap-1 pt-0.5 text-xs font-semibold tabular-nums">
-                              {ex.currentVolumeKg === 0 && ex.status !== "skipped" ? (
+                              {ex.status === "new" ? (
+                                <span className="rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-2 py-0.5 text-[11px] uppercase tracking-wide text-[var(--gym-gold)]">
+                                  nowe
+                                </span>
+                              ) : ex.currentVolumeKg === 0 && ex.status !== "skipped" ? (
                                 // N-22-1 (005): ćwiczenie na masę ciała (zaliczone, tonaż 0) —
                                 // delta vs poprzednio z obciążeniem jest zawsze „−100%” i myląca,
                                 // ten sam wzorzec jak w karcie „Zmiana objętości” wyżej.
-                                <span className="text-[var(--gym-text-secondary)]">—</span>
+                                <span className="text-[var(--gym-text-secondary)]">
+                                  —
+                                  <span className="sr-only"> brak porównania</span>
+                                </span>
                               ) : ex.status === "up" ? (
                                 <span className={toneClass("up")}>
                                   <ArrowUpRight className="mr-1 inline h-3.5 w-3.5" aria-hidden />
@@ -644,10 +681,6 @@ export function WorkoutFinishedScreen({
                                 <span className="rounded-full border border-[var(--gym-border-gold)] px-2 py-0.5 text-[11px] uppercase tracking-wide text-[var(--gym-text-secondary)]">
                                   bez porównania
                                 </span>
-                              ) : ex.status === "new" ? (
-                                <span className="rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-2 py-0.5 text-[11px] uppercase tracking-wide text-[var(--gym-gold)]">
-                                  nowe
-                                </span>
                               ) : (
                                 <span className={toneClass("flat")}>
                                   <Minus className="mr-1 inline h-3.5 w-3.5" aria-hidden />
@@ -660,8 +693,7 @@ export function WorkoutFinishedScreen({
                       );
                     })}
                   </ul>
-                </div>
-              ) : null}
+              </div>
             </section>
           ) : null}
 
@@ -677,7 +709,17 @@ export function WorkoutFinishedScreen({
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
                   Cardio
                 </p>
-                <div className="mt-3 flex items-center justify-center gap-4">
+                <p
+                  id="workout-finish-cardio-minutes-label"
+                  className="mt-3 text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--gym-text-secondary)]"
+                >
+                  Minuty cardio
+                </p>
+                <div
+                  className="mt-2 flex items-center justify-center gap-4"
+                  role="group"
+                  aria-labelledby="workout-finish-cardio-minutes-label"
+                >
                   <button
                     type="button"
                     aria-label="Mniej minut"
@@ -797,13 +839,18 @@ export function WorkoutFinishedScreen({
             ) : (
               <button
                 type="button"
+                aria-expanded={false}
                 onClick={openCardioEditor}
                 className="flex min-h-12 w-full items-center gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-left"
               >
                 <Flame className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
-                <span className="text-[15px] text-white/90">
+                <span className="min-w-0 flex-1 text-[15px] text-white/90">
                   {cardioMinutes > 0 ? cardioSummaryLine() : "Dodaj cardio po treningu"}
                 </span>
+                <span className="shrink-0 text-[13px] font-semibold text-[var(--gym-gold)]">
+                  Edytuj
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-[var(--gym-text-secondary)]" aria-hidden />
               </button>
             )}
           </section>
@@ -817,7 +864,7 @@ export function WorkoutFinishedScreen({
           </Button>
         </div>
       </div>
-    </div>
+    </section>
   );
 
   if (!mounted) return null;

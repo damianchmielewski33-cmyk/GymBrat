@@ -18,8 +18,7 @@ import {
   formatPlanLastDoneRelative,
   formatPlanLastDoneShort,
 } from "@/lib/workout-plan-queue";
-import { formatCardioWeekShortLabel } from "@/lib/cardio-utils";
-import { calendarDateKey, calendarWeekMondayKey } from "@/lib/local-date";
+import { calendarDateKey } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
 
 export type HomeTrainingDayOption = {
@@ -64,6 +63,7 @@ export function HomeTrainingCard({
   cardioThisWeekMinutes,
   workoutStreakWeeks,
   cardioGoalMinutes,
+  cardioSheetWeek,
   extraCardio = null,
 }: {
   recommendedPlanId: string | null;
@@ -74,6 +74,12 @@ export function HomeTrainingCard({
   cardioThisWeekMinutes: number;
   workoutStreakWeeks: number;
   cardioGoalMinutes: number;
+  /** Tydzień pn–nd do arkusza (ADR 0009) — nie mylić z rolling kafelka. */
+  cardioSheetWeek: {
+    minutesCompleted: number;
+    goalMinutes: number;
+    weekLabel: string;
+  };
   extraCardio?: ExtraCardioAdvice | null;
 }) {
   const router = useRouter();
@@ -130,13 +136,7 @@ export function HomeTrainingCard({
     <CardioLogSheet
       open={cardioOpen}
       onClose={() => setCardioOpen(false)}
-      weekProgress={{
-        minutesCompleted: cardioThisWeekMinutes,
-        goalMinutes: cardioGoalMinutes,
-        weekLabel: formatCardioWeekShortLabel(
-          calendarWeekMondayKey(calendarDateKey()),
-        ),
-      }}
+      weekProgress={cardioSheetWeek}
     />
   );
 

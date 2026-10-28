@@ -61,22 +61,7 @@ async function doSave(reuse: boolean) {
       ? Math.max(0, Math.floor((endedAt - store.startedAt) / 1000))
       : 0) + store.pausedElapsedSeconds;
 
-  let hints: LastPlanHintsMap;
-  if (reuse && lastAttempt) {
-    hints = lastAttempt.hints;
-  } else {
-    try {
-      hints = store.workoutPlanId ? await fetchLastWorkoutHintsForPlan(store.workoutPlanId) : {};
-    } catch {
-      hints = {};
-    }
-  }
-  lastAttempt = { endedAt, hints };
-
-  const weightRecords = detectSessionWeightRecords(exercises, hints);
-  const newMaxHits = detectSessionNewMaxes(exercises, hints);
-
-  const result = await submitCompletedWorkout({
+  const submitPromise = submitCompletedWorkout({
     operationId,
     title: store.title,
     startedAt: store.workoutStartedAtMs ?? store.startedAt ?? endedAt,
@@ -95,6 +80,22 @@ async function doSave(reuse: boolean) {
     exercises,
     workoutPlanId: store.workoutPlanId,
   });
+
+  let hints: LastPlanHintsMap;
+  let result: Awaited<ReturnType<typeof submitCompletedWorkout>>;
+  if (reuse && lastAttempt) {
+    hints = lastAttempt.hints;
+    result = await submitPromise;
+  } else {
+    const hintsPromise: Promise<LastPlanHintsMap> = store.workoutPlanId
+      ? fetchLastWorkoutHintsForPlan(store.workoutPlanId).catch(() => ({} as LastPlanHintsMap))
+      : Promise.resolve({} as LastPlanHintsMap);
+    [hints, result] = await Promise.all([hintsPromise, submitPromise]);
+    lastAttempt = { endedAt, hints };
+  }
+
+  const weightRecords = detectSessionWeightRecords(exercises, hints);
+  const newMaxHits = detectSessionNewMaxes(exercises, hints);
 
   if (result.status === "error" || result.status === "conflict") {
     store.endFinish();

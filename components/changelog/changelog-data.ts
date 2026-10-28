@@ -25,13 +25,14 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     ],
   },
   {
-    title: "Zapowiedź — Bilans makro: czytelniejszy ekran MAKRO DZIŚ",
+    title: "Zapowiedź — Bilans makro: czytelniejszy ekran MAKRO DZIŚ i TYDZIEŃ",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
       "Ekran Statystyki bilansu pokazuje dziś jako hero (do celu / ponad cel), sumę pn→dziś z odcinkiem „dzień w toku” i listę odchyleń zamkniętych dni bez duplikacji.",
       "Dni bez wpisów nie generują już fałszywego „brakuje 100%”; statusy są bez czerwieni oceniającej (złoto / biel / zieleń) i zawsze z tekstem.",
       "Sumy tygodnia i bilansu pn→dziś liczą się jedną funkcją z jawnym zakresem — etykiety rozróżniają obie metryki.",
+      "Ekran MAKRO TYDZIEŃ ma ten sam układ i ton (MacroMeter, paski dni, DayBalanceCard, filtry), nawigację ‹ › oraz porównanie tygodni bez czerwono-zielonej skali oceniającej.",
     ],
   },
   {
@@ -74,7 +75,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Trening zapisuje się od razu po potwierdzeniu zakończenia, a ekran „Trening zakończony” pokazuje tonaż, zmianę względem ostatniej sesji, pełną listę serii i rozwijany postęp dopiero po zapisie.",
       "Ostatnia seria sesji ma przycisk „Zakończ ostatnią serię i zapisz” i nie wymusza już przerwy po zaliczeniu.",
       "Pominięte i niewykonane serie pokazują się w jednym dialogu z osobnymi licznikami, niezależnie czy kończysz trening przyciskiem głównym, paskiem czy menu.",
-      "Seria z 0 kg i powtórzeniami (np. pompki) liczy się jako zaliczona, nie pominięta.",
+      "Seria z 0 kg i powtórzeniami (np. pompki) liczy się jako zaliczona, nie pominięta — także w Ghost Training (rywale widzą te serie, również w treningach historycznych).",
       "Cardio po treningu można dodać i poprawić z ekranu podsumowania bez ponownego zapisywania całej sesji.",
     ],
   },
@@ -141,11 +142,21 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     ],
   },
   {
+    title: "Zapowiedź — Dieta Tura 2: wspólne makro, Przepisy zamiast Planu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Dziennik i zakładka Przepisy (dawniej Plan) korzystają z jednego komponentu makro: pierścień kcal + białko/węgle/tłuszcze; w Dzienniku etykieta „Zjedzone”, w Przepisach „Dziś zostało”.",
+      "Zakładka Przepisy ma sekcje Twoje przepisy (pusty stan + CTA do katalogu) oraz Katalog z daniami GymBrat; dodawanie własnego przepisu będzie w kolejnej iteracji.",
+      "Z Profilu znika ustawianie makro per posiłek — pięć slotów w Dzienniku zawsze dzieli cel dnia równo.",
+    ],
+  },
+  {
     title: "Zapowiedź — Menu boczne: nowy układ i nieaktywne funkcje w przygotowaniu",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
     bullets: [
-      "Menu boczne ma stały nagłówek z inicjałami, pakietem i liczbą dni oraz krótsze, jednolite wiersze z ikonami w kwadratach zamiast kółek.",
+      "Menu boczne to szuflada ~320 px ze złotym obrysem: Wróć, awatar z imieniem i dniami pakietu, potem płaska lista sekcji 01–05 (Pakiet, Postępy, Społeczność, Trening, Konto) z wierszami ikona w kwadracie–tytuł–opis–strzałka.",
       "Kody rabatowe i Badania zostają w menu jako nieaktywne pozycje z plakietką „Wkrótce”, bo te funkcje nie są jeszcze dostępne.",
       "Regulamin i polityka prywatności są na dole jako zwykłe linki, a wylogowanie jest w sekcji Konto razem z profilem i zgłoszeniem błędu.",
     ],
@@ -157,8 +168,8 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     bullets: [
       "Profil ma przegląd z kartami stanu oraz osobne podstrony Ciało, Trening, Dieta, Przypomnienia, Aplikacja i Konto — plan treningowy zostaje pod dotychczasowym adresem, bez paska ustawień.",
       "Aktualna waga pochodzi z historii wpisów (także po zapisie w Profilu) i jest pokazywana z datą; puste pola ciała nie dostają domyślnych 80 kg / 180 cm / 25 lat.",
-      "Makro pięciu posiłków ma osobne zestawy na dzień treningowy i wolny, z porównaniem sumy do celu dnia; zgody analityki i marketingu zapisują się na serwerze (historia decyzji), a localStorage zostaje jako szybki cache.",
-      "Przy zapisie celów żywieniowych i makro posiłków widać konflikt, gdy ktoś zmienił ustawienia z innego urządzenia; kalorie z gramów przelicza zawsze serwer.",
+      "Cele makro dnia mają osobne zestawy na trening i dzień wolny; zgody analityki i marketingu zapisują się na serwerze (historia decyzji), a localStorage zostaje jako szybki cache.",
+      "Przy zapisie celów żywieniowych widać konflikt, gdy ktoś zmienił ustawienia z innego urządzenia; kalorie z gramów przelicza zawsze serwer.",
     ],
   },
   {

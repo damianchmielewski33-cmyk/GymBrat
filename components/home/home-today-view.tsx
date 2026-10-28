@@ -71,6 +71,11 @@ export type HomeTodayViewProps = {
   cardioThisWeekMinutes: number;
   workoutStreakWeeks: number;
   cardioGoalMinutes: number;
+  cardioSheetWeek: {
+    minutesCompleted: number;
+    goalMinutes: number;
+    weekLabel: string;
+  };
   extraCardio?: ExtraCardioAdvice | null;
 };
 
@@ -95,6 +100,7 @@ export function HomeTodayView(props: HomeTodayViewProps) {
         cardioThisWeekMinutes={props.cardioThisWeekMinutes}
         workoutStreakWeeks={props.workoutStreakWeeks}
         cardioGoalMinutes={props.cardioGoalMinutes}
+        cardioSheetWeek={props.cardioSheetWeek}
         extraCardio={props.extraCardio}
       />
 

@@ -7,6 +7,7 @@ export function parseDietTab(raw: unknown): DietTabId {
   if (key === "diary" || key === "dziennik" || key === "jadlospis") {
     return "diary";
   }
-  if (key === "plan") return "plan";
+  // „przepisy” = ta sama zakładka co dawny Plan (id URL zostaje `plan`).
+  if (key === "plan" || key === "przepisy" || key === "recipes") return "plan";
   return "plan";
 }

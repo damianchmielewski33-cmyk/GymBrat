@@ -6,6 +6,7 @@ import { AlertTriangle, Loader2, Save } from "lucide-react";
 import { createPortal } from "react-dom";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { isSessionExpiredFinishError } from "@/components/active-workout/use-workout-finish-flow";
+import { cn } from "@/lib/utils";
 
 const SLOW_THRESHOLD_MS = 10_000;
 
@@ -68,7 +69,7 @@ export function WorkoutSavingScreen({
       aria-live={phase === "error" ? undefined : "polite"}
       aria-busy={phase === "saving"}
     >
-      <div className="w-full max-w-lg">
+      <div className={phase === "error" ? "w-full max-w-sm" : "w-full max-w-lg"}>
         <div
           className={
             phase === "error"
@@ -93,7 +94,12 @@ export function WorkoutSavingScreen({
           {phase === "error" ? "Nie udało się zapisać treningu" : "Zapisuję trening…"}
         </h1>
 
-        <p className="mt-2 text-[13px] leading-relaxed text-[var(--gym-text-secondary)]">
+        <p
+          className={cn(
+            "mt-2 leading-relaxed text-[var(--gym-text-secondary)]",
+            phase === "error" ? "text-[14px]" : "text-[13px]",
+          )}
+        >
           {phase === "error"
             ? sessionExpired
               ? "Zaloguj się ponownie, a serie zostaną na ekranie."

@@ -10,7 +10,6 @@ import {
 } from "@/lib/nutrition-dashboard";
 import { computeMacroGaps } from "@/lib/meal-suggestions-gaps";
 import { listMealLogsForDay } from "@/lib/meal-logs";
-import { mealTemplatesForDay } from "@/lib/meal-templates";
 import { calendarDateKey } from "@/lib/local-date";
 import { loadMergedMealCatalog } from "@/lib/meal-catalog-store";
 import { isAdminEligible } from "@/lib/admin-session";
@@ -97,10 +96,7 @@ export async function MealSuggestionsPageContent({
       initialLogs={logs}
       initialDayKind={dayKind}
       initialDayKindExplicit={dayKindExplicit}
-      mealTemplates={mealTemplatesForDay(
-        settingsRow?.mealTemplatesJson ?? null,
-        dayKind === "training" ? "training" : "rest",
-      )}
+      mealTemplates={[]}
       catalogMeals={catalogMeals}
       isAdmin={adminEligible}
       supplements={supplements}

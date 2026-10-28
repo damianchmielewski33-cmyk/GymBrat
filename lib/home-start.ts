@@ -17,6 +17,7 @@ import {
   startPhotoMediaPath,
 } from "@/lib/user-photo-media";
 import { getWeeklyCardioProgress } from "@/lib/cardio";
+import { getCardioWeekProgressPnNd } from "@/lib/cardio-hub";
 import { getHomeStats } from "@/lib/home-stats";
 import {
   addCalendarDays,
@@ -90,6 +91,12 @@ export type HomeStartDashboard = {
   weeklySessionsTarget: number;
   cardioThisWeekMinutes: number;
   cardioWeeklyGoal: number;
+  /** Postęp pn–nd do arkusza „Dodaj cardio” (ADR 0009) — niezależny od rolling kafelka. */
+  cardioSheetWeek: {
+    minutesCompleted: number;
+    goalMinutes: number;
+    weekLabel: string;
+  };
   /** Dodatkowe cardio przy nadwyżce makro (pasek na Pulpicie). */
   extraCardio: ExtraCardioAdvice;
   /** Kolejne tygodnie kalendarzowe (pon–niedz.) z ≥1 treningiem. */
@@ -936,6 +943,7 @@ async function loadHomeStartDashboard(
     workoutsThisWeek,
     cardioThisWeekMinutes,
     cardioRolling,
+    cardioSheetWeek,
     recentCardioSamples,
     workoutStreakWeeks,
     stats,
@@ -973,6 +981,7 @@ async function loadHomeStartDashboard(
     countDistinctWorkoutDaysInRange(userId, weekStart, weekEnd),
     sumCardioMinutesInCalendarWeek(userId, weekKeys),
     getWeeklyCardioProgress(userId),
+    getCardioWeekProgressPnNd(userId),
     getRecentCardioSamples(userId, todayKey),
     getWorkoutStreakWeeks(userId, todayKey),
     getHomeStats(userId),
@@ -1050,6 +1059,11 @@ async function loadHomeStartDashboard(
     weeklySessionsTarget,
     cardioThisWeekMinutes,
     cardioWeeklyGoal: cardioRolling.weeklyGoal,
+    cardioSheetWeek: {
+      minutesCompleted: cardioSheetWeek.minutesThisWeek,
+      goalMinutes: cardioSheetWeek.goalMinutes,
+      weekLabel: cardioSheetWeek.weekLabel,
+    },
     extraCardio,
     workoutStreakWeeks,
     daysInProgram,

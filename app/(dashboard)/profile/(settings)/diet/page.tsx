@@ -3,7 +3,6 @@ import { eq } from "drizzle-orm";
 import { Utensils } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AppPageHeader } from "@/components/layout/screen";
-import { MealTemplatesForm } from "@/components/profile/meal-templates-form";
 import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
 import {
   ProfileBlock,
@@ -11,7 +10,6 @@ import {
 } from "@/components/profile/profile-ui";
 import { getDb } from "@/db";
 import { userSettings, users } from "@/db/schema";
-import { mealTemplatesForProfile } from "@/lib/meal-templates";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 
 export default async function ProfileDietPage() {
@@ -26,7 +24,6 @@ export default async function ProfileDietPage() {
         trainingNutritionGoalsJson: userSettings.trainingNutritionGoalsJson,
         restNutritionGoalsJson: userSettings.restNutritionGoalsJson,
         nutritionDayTypesJson: userSettings.nutritionDayTypesJson,
-        mealTemplatesJson: userSettings.mealTemplatesJson,
         updatedAt: userSettings.updatedAt,
       })
       .from(userSettings)
@@ -55,7 +52,7 @@ export default async function ProfileDietPage() {
       <AppPageHeader
         kicker="Profil"
         title="Dieta"
-        description="Cele makro oraz podział na 5 stałych posiłków — osobno na dzień treningowy i wolny."
+        description="Cel kaloryczny dnia oraz makro B/W/T — osobno na dzień treningowy i wolny. Pięć posiłków w Dzienniku dzieli cel równo."
       />
       <ProfileSection
         icon={Utensils}
@@ -63,8 +60,8 @@ export default async function ProfileDietPage() {
         description="Makro B/W/T. Kalorie liczą się z gramów."
       >
         <ProfileBlock
-          title="Cele dzienne"
-          description="Osobne zestawy na dzień treningowy i wolny."
+          title="Cel kaloryczny dnia"
+          description="Osobne zestawy na dzień treningowy i wolny. Posiłki dzielą cel dnia równo (5×)."
         >
           <div id="cele-dzienne" className="scroll-mt-24" />
           {isMinorAccount ? (
@@ -81,19 +78,6 @@ export default async function ProfileDietPage() {
             initialTraining={nutritionInitial.training}
             initialRest={nutritionInitial.rest}
             initialDayTypes={nutritionInitial.dayTypes}
-            expectedUpdatedAt={expectedUpdatedAt}
-          />
-        </ProfileBlock>
-        <ProfileBlock
-          title="Makro posiłków"
-          description="Zalecane B/W/T dla Posiłku 1–5 — osobno na trening i dzień wolny. Dieta dobierze przepisy i przeskaluje gramaturę."
-        >
-          <MealTemplatesForm
-            initial={mealTemplatesForProfile(s?.mealTemplatesJson ?? null)}
-            goals={{
-              training: nutritionInitial.training,
-              rest: nutritionInitial.rest,
-            }}
             expectedUpdatedAt={expectedUpdatedAt}
           />
         </ProfileBlock>

@@ -155,24 +155,25 @@ export function CardioLogDetailsSection({
           <div>
             <p className="app-label">Wysiłek (1–10)</p>
             <div
-              role="group"
-              aria-label="Skala wysiłku"
+              role="radiogroup"
+              aria-label="Wysiłek w skali 1 do 10"
               className="mt-1.5 grid grid-cols-5 gap-2"
             >
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
-                const pressed = effortScore === n;
+                const checked = effortScore === n;
                 return (
                   <button
                     key={n}
                     type="button"
+                    role="radio"
                     disabled={disabled}
-                    aria-pressed={pressed}
+                    aria-checked={checked}
                     onClick={() =>
-                      onChange({ effortScore: pressed ? null : n })
+                      onChange({ effortScore: checked ? null : n })
                     }
                     className={cn(
                       "inline-flex h-11 items-center justify-center rounded-xl border text-[13px] font-semibold tabular-nums",
-                      pressed
+                      checked
                         ? "border-[rgba(235,196,74,0.55)] bg-[rgba(235,196,74,0.12)] text-[var(--gym-gold)]"
                         : "border-white/10 text-white/75",
                     )}

@@ -85,7 +85,9 @@ export function ActiveWorkoutCloudSync() {
    * niezależny od wartości rewizji — po p.12 rewizja po DELETE jest zawsze ≥ 1, więc
    * `readRevision() > 0` byłoby prawdziwe na zawsze i wysyłałoby DELETE co każdy tick.
    */
-  const clearedPushedRef = useRef(false);
+  // Start od `true`: świeża karta bez lokalnej sesji nie wysyła zbędnego DELETE (N-P13-2).
+  // Flaga wraca na `false` dopiero gdy sesja znów jest aktywna (patrz push poniżej).
+  const clearedPushedRef = useRef(true);
   /** Liczba kolejnych błędów od ostatniego sukcesu — do wykładniczego backoffu (005, P2). */
   const retryAttemptRef = useRef(0);
   const retryTimeoutRef = useRef<number | null>(null);
@@ -237,20 +239,19 @@ export function ActiveWorkoutCloudSync() {
     /**
      * Brak sieci (P2): czekaj na `online`, nie odpytuj w pętli. Dedupe (R-4/tester):
      * jeśli nasłuchiwacz już czeka, nie dodawaj drugiego — kolejne wywołania z różnych
-     * gałęzi błędu (push/DELETE) dzielą jeden listener.
+     * gałęzi błędu (push/DELETE) dzielą jeden listener. Cleanup efektu zdejmuje listener.
      */
+    let onlineHandler: (() => void) | null = null;
     const waitForOnline = () => {
       if (unmounted || typeof window === "undefined") return;
       if (waitingOnlineRef.current) return;
       waitingOnlineRef.current = true;
-      window.addEventListener(
-        "online",
-        () => {
-          waitingOnlineRef.current = false;
-          if (!unmounted) void push();
-        },
-        { once: true },
-      );
+      onlineHandler = () => {
+        waitingOnlineRef.current = false;
+        onlineHandler = null;
+        if (!unmounted) void push();
+      };
+      window.addEventListener("online", onlineHandler, { once: true });
     };
 
     const push = async (opts?: { keepalive?: boolean }) => {
@@ -406,6 +407,11 @@ export function ActiveWorkoutCloudSync() {
       clearRetryTimeout();
       window.clearInterval(id);
       if (debounceRef.current != null) window.clearTimeout(debounceRef.current);
+      if (onlineHandler) {
+        window.removeEventListener("online", onlineHandler);
+        onlineHandler = null;
+        waitingOnlineRef.current = false;
+      }
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("pagehide", flushOnLeave);
       window.removeEventListener("freeze", flushOnLeave);

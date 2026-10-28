@@ -7,6 +7,8 @@ import {
   isCompletedStrengthSession,
   isStandaloneCardioLog,
 } from "@/lib/workout-cardio-attribution";
+import { computeWorkoutDetails } from "@/lib/workout-history";
+import { countPerformedSets } from "@/lib/workout-session-calculations";
 
 export type RecentWorkoutItem = {
   id: string;
@@ -64,43 +66,33 @@ function parseSession(json: string): SessionJson | null {
   }
 }
 
-function volumeFromExercises(exercises: ParsedExercise[] | undefined): number {
-  let volume = 0;
-  for (const ex of exercises ?? []) {
-    for (const s of ex.sets ?? []) {
-      if (!s.done || Boolean(s.skipped)) continue;
-      const reps = Math.max(0, Math.round(Number(s.reps ?? 0)));
-      const weight = Math.max(0, Number(s.weight ?? 0));
-      if (!(reps > 0) || !(weight > 0)) continue;
-      volume += reps * weight;
-    }
+function metricsFromSessionJson(
+  id: string,
+  date: string,
+  rawJson: string,
+): { volumeKg: number; durationMinutes: number | null; setsDone: number; title: string } {
+  const details = computeWorkoutDetails({
+    id,
+    date,
+    rawJson,
+    workoutPlanId: null,
+    planName: null,
+  });
+  if (!details) {
+    return { volumeKg: 0, durationMinutes: null, setsDone: 0, title: "Trening" };
   }
-  return Math.round(volume);
-}
-
-function setsDoneFromExercises(exercises: ParsedExercise[] | undefined): number {
-  let n = 0;
-  for (const ex of exercises ?? []) {
-    for (const s of ex.sets ?? []) {
-      if (!s.done || Boolean(s.skipped)) continue;
-      const reps = Math.max(0, Math.round(Number(s.reps ?? 0)));
-      if (!(reps > 0)) continue;
-      n += 1;
-    }
-  }
-  return n;
-}
-
-function durationMinutes(parsed: SessionJson | null): number | null {
-  if (!parsed) return null;
-  if (
-    typeof parsed.startedAt === "number" &&
-    typeof parsed.endedAt === "number" &&
-    parsed.endedAt > parsed.startedAt
-  ) {
-    return Math.max(1, Math.round((parsed.endedAt - parsed.startedAt) / 60000));
-  }
-  return null;
+  const durationMinutes =
+    details.startedAt != null &&
+    details.endedAt != null &&
+    details.endedAt > details.startedAt
+      ? Math.max(1, Math.round((details.endedAt - details.startedAt) / 60000))
+      : null;
+  return {
+    volumeKg: details.volumeKg,
+    durationMinutes,
+    setsDone: countPerformedSets(details.exercises),
+    title: details.title.trim() || "Trening",
+  };
 }
 
 function isGuidedStrength(parsed: SessionJson | null): boolean {
@@ -110,6 +102,7 @@ function isGuidedStrength(parsed: SessionJson | null): boolean {
 /**
  * Statystyki i listy pod hub Treningi (tydzień kalendarzowy + ostatnie wpisy).
  * `todayKey` pozwala wyliczyć tydzień z tego samego „dziś” co reszta ekranu.
+ * Tonaż / serie / czas — te same reguły co historia (`computeWorkoutDetails`).
  */
 export async function getTreningiHubStats(
   userId: string,
@@ -154,6 +147,7 @@ export async function getTreningiHubStats(
 
   for (const row of lookbackRows) {
     const parsed = parseSession(row.exercises);
+    const metrics = metricsFromSessionJson(row.id, row.date, row.exercises);
     const inThisWeek = row.date >= monday && row.date <= sunday;
     if (inThisWeek) {
       const weekCardio = countableCardioMinutes(parsed, row.cardioMinutes ?? 0);
@@ -161,7 +155,7 @@ export async function getTreningiHubStats(
       if (weekCardio > 0) cardioSessionsThisWeek += 1;
       if (isGuidedStrength(parsed)) {
         workoutsThisWeek += 1;
-        tonnageThisWeekKg += volumeFromExercises(parsed?.exercises);
+        tonnageThisWeekKg += metrics.volumeKg;
       }
     }
     if (isGuidedStrength(parsed)) {
@@ -170,13 +164,10 @@ export async function getTreningiHubStats(
         recentWorkouts.push({
           id: row.id,
           date: row.date,
-          title:
-            typeof parsed?.title === "string" && parsed.title.trim()
-              ? parsed.title.trim()
-              : "Trening",
-          volumeKg: volumeFromExercises(parsed?.exercises),
-          durationMinutes: durationMinutes(parsed),
-          setsDone: setsDoneFromExercises(parsed?.exercises),
+          title: metrics.title,
+          volumeKg: metrics.volumeKg,
+          durationMinutes: metrics.durationMinutes,
+          setsDone: metrics.setsDone,
         });
       }
     }
@@ -188,11 +179,7 @@ export async function getTreningiHubStats(
         ? typeof parsed?.title === "string" && parsed.title.trim()
           ? parsed.title.trim()
           : "Cardio"
-        : `${
-            typeof parsed?.title === "string" && parsed.title.trim()
-              ? parsed.title.trim()
-              : "Trening"
-          } · cardio`;
+        : `${metrics.title} · cardio`;
       const avgHrRaw = parsed?.avgHr ?? parsed?.heartRate ?? null;
       const avgHr =
         typeof avgHrRaw === "number" && Number.isFinite(avgHrRaw) && avgHrRaw > 0
