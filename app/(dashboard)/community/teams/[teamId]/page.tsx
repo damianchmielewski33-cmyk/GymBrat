@@ -11,6 +11,7 @@ import {
 } from "@/lib/community/challenges";
 import { listTeamMentionCandidates } from "@/lib/community/feed-mentions";
 import { listTeamFeed } from "@/lib/community/team-feed";
+import { getTeamTodayHub } from "@/lib/community/team-hub";
 import { getTeamDetail } from "@/lib/community/teams";
 
 async function TeamCelebrations({ userId }: { userId: string }) {
@@ -31,13 +32,18 @@ export default async function TeamDetailPage({
   const team = await getTeamDetail(teamId, userId);
   if (!team) notFound();
 
-  const [feedPosts, mentionCandidates, challenges] = team.isMember
+  const [feedPosts, mentionCandidates, challenges, todayHub] = team.isMember
     ? await Promise.all([
         listTeamFeed(teamId, userId, { limit: 12 }),
         listTeamMentionCandidates(teamId),
         listTeamChallenges(teamId, userId),
+        getTeamTodayHub({
+          teamId,
+          userId,
+          teamName: team.name,
+        }),
       ])
-    : [[], [], []];
+    : [[], [], [], null];
 
   return (
     <div className="space-y-4">
@@ -58,6 +64,7 @@ export default async function TeamDetailPage({
         feedPosts={feedPosts}
         mentionCandidates={mentionCandidates}
         challenges={challenges}
+        todayHub={todayHub}
       />
     </div>
   );

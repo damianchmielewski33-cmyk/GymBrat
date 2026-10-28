@@ -281,7 +281,8 @@ export async function finalizeWarIfDue(warId: string): Promise<boolean> {
   const winnerTeamId =
     result === "a" ? war.teamAId : result === "b" ? war.teamBId : null;
 
-  await db
+  // CAS: tylko jeden równoległy finalize stosuje LP (ADR 0011 §6).
+  const cas = await db
     .update(wars)
     .set({
       status: "completed",
@@ -291,7 +292,13 @@ export async function finalizeWarIfDue(warId: string): Promise<boolean> {
       summaryJson: JSON.stringify({ result, scoreA, scoreB }),
       completedAt: new Date(),
     })
-    .where(eq(wars.id, warId));
+    .where(and(eq(wars.id, warId), eq(wars.status, "live")));
+
+  const affected =
+    typeof cas === "object" && cas && "rowsAffected" in cas
+      ? Number((cas as { rowsAffected: number }).rowsAffected)
+      : 0;
+  if (affected !== 1) return false;
 
   await applyWarResults(war.teamAId, war.teamBId, result);
   await grantWarRewards(war, result);
@@ -433,6 +440,34 @@ export async function getWarsHubData(userId: string) {
     standings,
     recent,
     queues,
+  };
+}
+
+/** Lekka karta ligi na hubie grupy — bez pełnego standings (ADR 0011 §8 US-11). */
+export async function getMyTeamWarSummary(teamId: string): Promise<{
+  league: WarLeague;
+  lp: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  seasonKey: string;
+  hasPlayed: boolean;
+  liveWarId: string | null;
+}> {
+  await ensureCriticalSchema();
+  const stats = await getOrCreateTeamWarStats(teamId);
+  const live = await getLiveWarForTeam(teamId);
+  if (live) await finalizeWarIfDue(live.id);
+  const fresh = await getLiveWarForTeam(teamId);
+  return {
+    league: leagueFromLp(stats.lp),
+    lp: stats.lp,
+    wins: stats.wins,
+    losses: stats.losses,
+    draws: stats.draws,
+    seasonKey: stats.seasonKey,
+    hasPlayed: stats.wins + stats.losses + stats.draws > 0,
+    liveWarId: fresh?.id ?? null,
   };
 }
 

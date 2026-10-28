@@ -2,6 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import {
+  teamActiveQuestLock,
   teamMembers,
   teamQuestCompletions,
   teamQuestContributions,
@@ -19,6 +20,7 @@ import {
   TEAM_QUEST_TEMPLATES,
   type TeamQuestTemplate,
 } from "@/lib/community/team-quest-types";
+import { calendarDateKey, hashWeek, mondayOf } from "@/lib/community/week";
 
 export function listQuestTemplates(): TeamQuestTemplate[] {
   return TEAM_QUEST_TEMPLATES;
@@ -71,7 +73,85 @@ export async function startTeamQuest(input: {
     rewardTitle: template.rewardTitle,
     createdBy: input.createdBy,
   });
+
+  try {
+    await db.insert(teamActiveQuestLock).values({
+      teamId: input.teamId,
+      questId: id,
+    });
+  } catch {
+    // Przegrany wyścig: usuń naszą misję, zwróć zwycięzcę (ADR 0011 §6).
+    await db
+      .update(teamQuests)
+      .set({ status: "expired" })
+      .where(eq(teamQuests.id, id));
+    const existing = await getActiveQuestForTeam(input.teamId);
+    if (existing) return { ok: true, questId: existing.id };
+    const [lock] = await db
+      .select()
+      .from(teamActiveQuestLock)
+      .where(eq(teamActiveQuestLock.teamId, input.teamId))
+      .limit(1);
+    if (lock) return { ok: true, questId: lock.questId };
+    return { ok: false, error: "Nie udało się uruchomić misji (wyścig)." };
+  }
   return { ok: true, questId: id };
+}
+
+function pickNextTemplateKey(
+  teamId: string,
+  weekStart: string,
+  recentTemplateKeys: string[],
+): string {
+  const templates = TEAM_QUEST_TEMPLATES;
+  const start = hashWeek(teamId, weekStart) % templates.length;
+  for (let i = 0; i < templates.length; i++) {
+    const t = templates[(start + i) % templates.length]!;
+    if (!recentTemplateKeys.includes(t.key)) return t.key;
+  }
+  return templates[start]!.key;
+}
+
+/** Leniwa rotacja misji przy wejściu — ADR 0011 §5. */
+export async function ensureActiveQuestForTeam(
+  teamId: string,
+  createdByUserId: string,
+): Promise<typeof teamQuests.$inferSelect | null> {
+  await ensureCriticalSchema();
+  const active = await getActiveQuestForTeam(teamId);
+  if (active) {
+    if (active.endsAt.getTime() > Date.now()) return active;
+    await expireIfNeeded(active.id, active.endsAt);
+  }
+
+  const db = getDb();
+  const recent = await db
+    .select({ templateKey: teamQuests.templateKey })
+    .from(teamQuests)
+    .where(eq(teamQuests.teamId, teamId))
+    .orderBy(desc(teamQuests.startsAt))
+    .limit(3);
+
+  const weekStart = mondayOf(calendarDateKey());
+  const templateKey = pickNextTemplateKey(
+    teamId,
+    weekStart,
+    recent.map((r) => r.templateKey),
+  );
+  const started = await startTeamQuest({
+    teamId,
+    templateKey,
+    createdBy: createdByUserId,
+  });
+  if (!started.ok) {
+    return getActiveQuestForTeam(teamId);
+  }
+  const [quest] = await db
+    .select()
+    .from(teamQuests)
+    .where(eq(teamQuests.id, started.questId))
+    .limit(1);
+  return quest ?? null;
 }
 
 export async function listQuestHistory(teamId: string, limit = 20) {
@@ -155,10 +235,25 @@ export async function getQuestBoardView(
 async function expireIfNeeded(questId: string, endsAt: Date) {
   if (Date.now() < endsAt.getTime()) return;
   const db = getDb();
+  const [quest] = await db
+    .select({ teamId: teamQuests.teamId })
+    .from(teamQuests)
+    .where(eq(teamQuests.id, questId))
+    .limit(1);
   await db
     .update(teamQuests)
     .set({ status: "expired" })
     .where(and(eq(teamQuests.id, questId), eq(teamQuests.status, "active")));
+  if (quest) {
+    await db
+      .delete(teamActiveQuestLock)
+      .where(
+        and(
+          eq(teamActiveQuestLock.teamId, quest.teamId),
+          eq(teamActiveQuestLock.questId, questId),
+        ),
+      );
+  }
 }
 
 export async function applyQuestProgressAfterWorkout(input: {
@@ -256,6 +351,14 @@ async function tryCompleteQuest(questId: string): Promise<void> {
     .update(teamQuests)
     .set({ status: "completed", completedAt: new Date() })
     .where(eq(teamQuests.id, questId));
+  await db
+    .delete(teamActiveQuestLock)
+    .where(
+      and(
+        eq(teamActiveQuestLock.teamId, quest.teamId),
+        eq(teamActiveQuestLock.questId, questId),
+      ),
+    );
 
   try {
     await db.insert(teamQuestCompletions).values({
@@ -270,6 +373,7 @@ async function tryCompleteQuest(questId: string): Promise<void> {
   }
 
   const { awardProgressionXp } = await import("@/lib/community/progression");
+  const definitionKey = `quest_template:${quest.templateKey}`;
   for (const c of activeContribs) {
     const badgeKey = `quest_${quest.templateKey}_${questId}`;
     try {
@@ -278,6 +382,7 @@ async function tryCompleteQuest(questId: string): Promise<void> {
         badgeKey,
         title: quest.rewardTitle,
         emoji: quest.emoji,
+        definitionKey,
       });
     } catch {
       /* */
