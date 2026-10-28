@@ -11,43 +11,24 @@ import {
   heartRateZoneFromHr,
   isCardioTypeSlug,
   parseCardioLog,
+  resolveCardioLogDate,
   resolveCardioType,
   validateCardioMetrics,
+  type CardioFieldError,
   type CardioLogPayload,
   type CardioTypeSlug,
   type HeartRateZone,
 } from "@/lib/cardio";
-import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
 import { encryptCardioDevicePhoto } from "@/lib/cardio-device-photo";
+import { getCardioWeekProgressPnNd } from "@/lib/cardio-hub";
 import {
   isCompletedStrengthSession,
   parseWorkoutSessionJson,
 } from "@/lib/workout-cardio-attribution";
 
-/** Ile dni wstecz można dopisać cardio. */
-const CARDIO_BACKDATE_MAX_DAYS = 60;
-
-/** Pusta data = dziś; inaczej YYYY-MM-DD z zakresu [dziś−60, dziś]. */
-function resolveCardioLogDate(
-  dateKey: string | null | undefined,
-): { ok: true; date: string } | { ok: false; error: string } {
-  const todayKey = calendarDateKey(new Date());
-  const raw = (dateKey ?? "").trim();
-  if (!raw) return { ok: true, date: todayKey };
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw) || Number.isNaN(Date.parse(raw))) {
-    return { ok: false, error: "Nieprawidłowa data cardio." };
-  }
-  if (raw > todayKey) {
-    return { ok: false, error: "Nie można zapisać cardio z przyszłości." };
-  }
-  if (raw < addCalendarDays(todayKey, -CARDIO_BACKDATE_MAX_DAYS)) {
-    return {
-      ok: false,
-      error: `Cardio można dopisać maksymalnie ${CARDIO_BACKDATE_MAX_DAYS} dni wstecz.`,
-    };
-  }
-  return { ok: true, date: raw };
-}
+export type CardioSaveResult =
+  | { ok: true; id: string; weekMinutesAfter: number; minutes: number; dateKey: string }
+  | { ok: false; error?: string; fieldErrors?: CardioFieldError[] };
 
 function revalidateCardio(id?: string) {
   revalidatePath("/");
@@ -62,24 +43,25 @@ function revalidateCardio(id?: string) {
 
 export async function createCardioLog(input: {
   title: string;
-  cardioMinutes: number;
-  notes?: string;
+  /** Surowe wejście — walidacja w validateCardioMetrics (ADR 0009). */
+  cardioMinutes: unknown;
+  notes?: unknown;
   cardioType?: CardioTypeSlug | null;
-  distanceKm?: number | null;
-  avgHr?: number | null;
-  maxHr?: number | null;
-  calories?: number | null;
-  steps?: number | null;
+  distanceKm?: unknown;
+  avgHr?: unknown;
+  maxHr?: unknown;
+  calories?: unknown;
+  steps?: unknown;
   paceMinPerKm?: number | null;
-  effortScore?: number | null;
+  effortScore?: unknown;
   /** YYYY-MM-DD; puste = dziś. Do 60 dni wstecz. */
-  date?: string | null;
-}) {
+  date?: unknown;
+}): Promise<CardioSaveResult> {
   await guardAction("cardio.createCardioLog");
   const session = await auth();
   if (!session?.user?.id) {
     return {
-      ok: false as const,
+      ok: false,
       error: "Sesja wygasła. Zaloguj się ponownie, aby zapisać wpis treningu.",
     };
   }
@@ -91,16 +73,31 @@ export async function createCardioLog(input: {
     maxHr: input.maxHr,
     calories: input.calories,
     steps: input.steps,
+    effortScore: input.effortScore,
+    notes: input.notes,
+    date: input.date,
   });
   if (!metrics.ok) {
-    return { ok: false as const, error: metrics.error };
-  }
-  const logDate = resolveCardioLogDate(input.date);
-  if (!logDate.ok) {
-    return { ok: false as const, error: logDate.error };
+    return { ok: false, fieldErrors: metrics.fieldErrors };
   }
 
-  const { minutes, distanceKm, avgHr, maxHr, calories, steps } = metrics;
+  const {
+    minutes,
+    distanceKm,
+    avgHr,
+    maxHr,
+    calories,
+    steps,
+    effortScore,
+    notes,
+    date,
+  } = metrics.values;
+
+  const logDate = resolveCardioLogDate(date);
+  if (!logDate.ok) {
+    return { ok: false, fieldErrors: logDate.fieldErrors };
+  }
+
   const pace =
     input.paceMinPerKm != null &&
     Number.isFinite(input.paceMinPerKm) &&
@@ -130,18 +127,11 @@ export async function createCardioLog(input: {
     avgHr,
     hrMax ?? maxHr,
   );
-  const effort =
-    input.effortScore != null &&
-    Number.isFinite(input.effortScore) &&
-    input.effortScore >= 1 &&
-    input.effortScore <= 10
-      ? Math.round(input.effortScore)
-      : null;
 
   const payload: CardioLogPayload = {
     kind: "cardio_log",
     title: input.title,
-    notes: input.notes ?? null,
+    notes,
     cardioType,
     distanceKm,
     avgHr,
@@ -150,7 +140,7 @@ export async function createCardioLog(input: {
     caloriesBurned: calories,
     steps,
     paceMinPerKm: pace,
-    effortScore: effort,
+    effortScore,
     heartRateZone: zone,
     devicePhotoDataUrl: null,
   };
@@ -166,8 +156,15 @@ export async function createCardioLog(input: {
     tonnageKg: null,
   });
 
+  const week = await getCardioWeekProgressPnNd(session.user.id);
   revalidateCardio(id);
-  return { ok: true as const, id };
+  return {
+    ok: true,
+    id,
+    weekMinutesAfter: week.minutesThisWeek,
+    minutes,
+    dateKey: logDate.date,
+  };
 }
 
 export async function updateCardioLogAction(
@@ -194,25 +191,6 @@ export async function updateCardioLogAction(
   const stepsRaw = String(formData.get("steps") ?? "").trim();
   const effortRaw = String(formData.get("effortScore") ?? "").trim();
   const typeRaw = String(formData.get("cardioType") ?? "").trim();
-  const effortScore = effortRaw ? Number(effortRaw) : null;
-
-  const metrics = validateCardioMetrics({
-    minutes: formData.get("minutes") ?? 0,
-    distanceKm: distanceRaw || null,
-    avgHr: avgHrRaw || null,
-    maxHr: maxHrRaw || null,
-    calories: caloriesRaw || null,
-    steps: stepsRaw || null,
-  });
-  if (!metrics.ok) return { ok: false as const, error: metrics.error };
-  const {
-    minutes,
-    distanceKm: dist,
-    avgHr: hr,
-    maxHr: maxHrN,
-    calories: kcal,
-    steps: stepN,
-  } = metrics;
 
   const db = getDb();
   const [row] = await db
@@ -221,6 +199,40 @@ export async function updateCardioLogAction(
     .where(and(eq(workouts.id, id), eq(workouts.userId, session.user.id)))
     .limit(1);
   if (!row) return { ok: false as const, error: "Nie znaleziono wpisu." };
+
+  const existingMinutes = Math.round(row.cardioMinutes ?? 0);
+  const minutesRaw = String(formData.get("minutes") ?? "").trim();
+  const grandfatherMinutes =
+    minutesRaw === String(existingMinutes) && existingMinutes > 600;
+
+  const metrics = validateCardioMetrics({
+    // Q-C6: historyczne > 600 bez zmiany minut — waliduj z placeholderem w limicie.
+    minutes: grandfatherMinutes ? 30 : (formData.get("minutes") ?? 0),
+    distanceKm: distanceRaw || null,
+    avgHr: avgHrRaw || null,
+    maxHr: maxHrRaw || null,
+    calories: caloriesRaw || null,
+    steps: stepsRaw || null,
+    effortScore: effortRaw || null,
+    notes: notesRaw || null,
+  });
+  if (!metrics.ok) {
+    return {
+      ok: false as const,
+      error: metrics.fieldErrors[0]?.message ?? "Niepoprawne dane.",
+      fieldErrors: metrics.fieldErrors,
+    };
+  }
+  const {
+    distanceKm: dist,
+    avgHr: hr,
+    maxHr: maxHrN,
+    calories: kcal,
+    steps: stepN,
+    effortScore: effortValidated,
+    notes: notesValidated,
+  } = metrics.values;
+  const minutes = grandfatherMinutes ? existingMinutes : metrics.values.minutes;
 
   let existingPhoto: string | null = null;
   let prevPace: number | null = null;
@@ -246,13 +258,6 @@ export async function updateCardioLogAction(
     Math.round(row.cardioMinutes ?? 0) === minutes;
   const pace = unchangedForPace ? prevPace : computePaceMinPerKm(dist, minutes);
 
-  const effort =
-    effortScore != null &&
-    Number.isFinite(effortScore) &&
-    effortScore >= 1 &&
-    effortScore <= 10
-      ? Math.round(effortScore)
-      : null;
   const cardioType =
     (isCardioTypeSlug(typeRaw) ? typeRaw : null) ?? resolveCardioType(title);
 
@@ -274,7 +279,7 @@ export async function updateCardioLogAction(
   const payload: CardioLogPayload = {
     kind: "cardio_log",
     title,
-    notes: notesRaw || null,
+    notes: notesValidated,
     cardioType,
     distanceKm: dist,
     avgHr: hr,
@@ -283,7 +288,7 @@ export async function updateCardioLogAction(
     caloriesBurned: kcal,
     steps: stepN,
     paceMinPerKm: pace,
-    effortScore: effort,
+    effortScore: effortValidated,
     heartRateZone: zone,
     devicePhotoDataUrl: encryptCardioDevicePhoto(existingPhoto),
   };

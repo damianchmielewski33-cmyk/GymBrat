@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown,
@@ -24,9 +24,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { AtlasPickerList } from "@/components/plany/atlas/atlas-picker-list";
 import {
   MUSCLE_CATEGORIES,
-  exerciseMatchesQuery,
   type CatalogExercise,
 } from "@/lib/workout-exercise-catalog";
 import type { WorkoutPlanExercise, WorkoutPlanPayload } from "@/lib/workout-plan-types";
@@ -105,8 +105,6 @@ export function PlanEditorClient({
     initialPlan.exercises[0]?.id ?? null,
   );
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [categoryId, setCategoryId] = useState<string>("chest");
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
@@ -128,21 +126,6 @@ export function PlanEditorClient({
     if (!dirty) return;
     writePlanDraft(draftKey, plan);
   }, [dirty, draftKey, plan]);
-
-  const pickerResults = useMemo(() => {
-    const q = query.trim();
-    if (q.length === 1) return [];
-    if (q.length >= 2) {
-      const matched = catalog.filter((ex) => exerciseMatchesQuery(ex, q));
-      const inCategory = matched.filter((ex) => ex.categoryId === categoryId);
-      const rest = matched.filter((ex) => ex.categoryId !== categoryId);
-      return [...inCategory, ...rest].slice(0, 40);
-    }
-    return catalog
-      .filter((e) => e.categoryId === categoryId)
-      .sort((a, b) => a.name.localeCompare(b.name, "pl"))
-      .slice(0, 40);
-  }, [query, categoryId, catalog]);
 
   function patch(next: WorkoutPlanPayload) {
     setPlan(next);
@@ -173,6 +156,7 @@ export function PlanEditorClient({
     const row = createDefaultPlanExercise({
       name: ex.name,
       categoryId: ex.categoryId,
+      techniqueYoutubeUrl: ex.techniqueYoutubeUrl ?? null,
     });
     const next = { ...plan, exercises: [...plan.exercises, row] };
     patch(next);
@@ -613,74 +597,15 @@ export function PlanEditorClient({
           <SheetHeader>
             <SheetTitle className="text-white">Dodaj ćwiczenie</SheetTitle>
           </SheetHeader>
-          <div className="mt-3 space-y-3 pb-6">
-            <Input
-              className="h-12"
-              placeholder="Szukaj: wyciskanie, bench, wiosłowanie…"
-              aria-label="Szukaj ćwiczenia"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+          <div className="mt-3">
+            <AtlasPickerList
+              catalog={catalog}
+              alreadyInPlanIds={plan.exercises.map(
+                (e) =>
+                  catalog.find((c) => c.name === e.name)?.id ?? e.id,
+              )}
+              onAdd={addFromCatalog}
             />
-            {query.trim().length === 1 ? (
-              <p className="text-[12px] text-[var(--gym-text-secondary)]">
-                Wpisz co najmniej 2 znaki.
-              </p>
-            ) : null}
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {MUSCLE_CATEGORIES.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  aria-pressed={categoryId === c.id}
-                  className={cn(
-                    "h-11 shrink-0 rounded-full border px-3.5 text-[13px]",
-                    categoryId === c.id
-                      ? "border-[rgba(235,196,74,0.6)] bg-[rgba(235,196,74,0.1)] font-semibold text-white"
-                      : "border-[var(--gym-border-gold)] text-white/80",
-                  )}
-                  onClick={() => setCategoryId(c.id)}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-            {pickerResults.length === 0 && query.trim().length >= 2 ? (
-              <div className="app-card border border-white/10 p-4">
-                <p className="font-semibold text-white">
-                  Brak wyników dla „{query.trim()}”
-                </p>
-                <p className="mt-1 text-[13px] text-[var(--gym-text-secondary)]">
-                  Spróbuj krótszej nazwy albo po angielsku.
-                </p>
-              </div>
-            ) : (
-              <ul>
-                {pickerResults.map((ex) => (
-                  <li
-                    key={ex.id}
-                    className="flex min-h-16 items-center gap-3 border-b border-white/10 py-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[15px] font-semibold text-white">{ex.name}</p>
-                      <p className="text-[12px] text-[var(--gym-text-secondary)]">
-                        {ex.aliasesEn?.[0] ??
-                          MUSCLE_CATEGORIES.find((c) => c.id === ex.categoryId)
-                            ?.label}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-11 w-11 px-0"
-                      aria-label={`Dodaj ${ex.name} do planu`}
-                      onClick={() => addFromCatalog(ex)}
-                    >
-                      <Plus className="h-4 w-4" aria-hidden />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
         </SheetContent>
       </Sheet>

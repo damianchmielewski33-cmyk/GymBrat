@@ -5,6 +5,7 @@ import { getDb } from "@/db";
 import { userSettings, workouts } from "@/db/schema";
 import {
   extractCardioExtrasFromSessionJson,
+  formatCardioWeekShortLabel,
   type CardioExtras,
 } from "@/lib/cardio-utils";
 import type { CardioHubData, CardioHubItem, CardioWeekBar } from "@/lib/cardio-hub-shared";
@@ -37,12 +38,57 @@ function mondayOfWeek(dateKey: string): string {
 }
 
 function weekShortLabel(monday: string): string {
-  const sun = addCalendarDays(monday, 6);
-  const a = new Date(`${monday}T12:00:00`);
-  const b = new Date(`${sun}T12:00:00`);
-  const fmt = (d: Date) =>
-    d.toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
-  return `${fmt(a)}–${fmt(b)}`;
+  return formatCardioWeekShortLabel(monday);
+}
+
+/**
+ * Lekki postęp tygodnia pn–nd (bez historii 8 tyg. / listy wpisów).
+ * ADR 0009 §2.3–2.4 — do arkusza „Dodaj cardio” i weekMinutesAfter po zapisie.
+ *
+ * Uwaga: `getWeeklyCardioProgress` (lib/cardio.ts) nadal liczy okno kroczące
+ * 7 dni dla kafelka głównego — ujednolicenie poza zakresem zadania 010.
+ */
+export async function getCardioWeekProgressPnNd(userId: string): Promise<{
+  minutesThisWeek: number;
+  goalMinutes: number;
+  weekMonday: string;
+  weekLabel: string;
+}> {
+  const db = getDb();
+  const today = calendarDateKey();
+  const weekMonday = mondayOfWeek(today);
+  const sunday = addCalendarDays(weekMonday, 6);
+
+  const [goalRow] = await db
+    .select({ goal: userSettings.weeklyCardioGoalMinutes })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
+
+  const rows = await db
+    .select({
+      date: workouts.date,
+      cardioMinutes: workouts.cardioMinutes,
+      exercises: workouts.exercises,
+    })
+    .from(workouts)
+    .where(eq(workouts.userId, userId))
+    .orderBy(desc(workouts.date), desc(workouts.id))
+    .limit(400);
+
+  let minutesThisWeek = 0;
+  for (const row of rows) {
+    if (row.date < weekMonday || row.date > sunday) continue;
+    const parsed = parseWorkoutSessionJson(row.exercises);
+    minutesThisWeek += countableCardioMinutes(parsed, row.cardioMinutes ?? 0);
+  }
+
+  return {
+    minutesThisWeek: Math.round(minutesThisWeek),
+    goalMinutes: goalRow?.goal ?? 150,
+    weekMonday,
+    weekLabel: weekShortLabel(weekMonday),
+  };
 }
 
 function clockFromPayload(raw: string): string | null {

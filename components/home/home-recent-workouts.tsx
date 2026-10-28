@@ -62,7 +62,7 @@ export function HomeRecentWorkouts({
               return (
                 <li key={w.id}>
                   <Link
-                    href={`/workout-history/${w.id}`}
+                    href={`/workout-history?open=${encodeURIComponent(w.id)}`}
                     className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
                   >
                     <span className="w-11 shrink-0 text-[12px] tabular-nums text-white/40">

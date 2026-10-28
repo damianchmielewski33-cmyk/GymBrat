@@ -47,8 +47,25 @@ export async function loadExerciseTechniqueUrlMap(): Promise<Record<string, stri
   return out;
 }
 
-/** Lista katalogu + aktualne URL-e do panelu admina. */
+/** Lista katalogu + aktualne URL-e do panelu admina (preferuje tabelę `exercises`). */
 export async function listExerciseTechniqueAdminRows(): Promise<ExerciseTechniqueLinkRow[]> {
+  await ensureTechniqueTable();
+  try {
+    const { getCachedActiveExercises } = await import(
+      "@/lib/exercises/exercises-repository"
+    );
+    const rows = await getCachedActiveExercises();
+    if (rows.length > 0) {
+      return rows.map((ex) => ({
+        catalogId: ex.id,
+        name: ex.name,
+        categoryId: ex.categoryId,
+        youtubeUrl: ex.techniqueYoutubeUrl,
+      }));
+    }
+  } catch {
+    /* fallback katalogu */
+  }
   const map = await loadExerciseTechniqueUrlMap();
   return CATALOG_EXERCISES.map((ex) => ({
     catalogId: ex.id,
@@ -65,17 +82,27 @@ export async function upsertExerciseTechniqueLink(
 ): Promise<{ catalogId: string; youtubeUrl: string | null }> {
   await ensureTechniqueTable();
   const id = catalogId.trim();
-  if (!CATALOG_EXERCISES.some((e) => e.id === id)) {
-    throw new Error("Nieznane ćwiczenie katalogu.");
-  }
+  if (!id) throw new Error("Brak id ćwiczenia.");
   const db = getDb();
   const url = normalizeYoutubeUrl(youtubeUrlRaw);
   const now = new Date();
 
   try {
+    const { getExerciseById } = await import(
+      "@/lib/exercises/exercises-repository"
+    );
+    const row = await getExerciseById(id);
+    if (
+      !row &&
+      !CATALOG_EXERCISES.some((e) => e.id === id)
+    ) {
+      throw new Error("Nieznane ćwiczenie katalogu.");
+    }
     await updateExerciseTechniqueUrl(id, url, actorUserId);
     revalidateTag(EXERCISES_CACHE_TAG, "max");
-  } catch {
+    return { catalogId: id, youtubeUrl: url };
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("Nieznane")) throw e;
     /* legacy tabela poniżej */
   }
 

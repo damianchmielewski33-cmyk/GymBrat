@@ -34,6 +34,12 @@ function toCatalogShape(row: ExerciseRow): CatalogExercise {
     name: row.name,
     categoryId: row.categoryId,
     aliasesEn: row.aliasesEn ?? undefined,
+    aliasesPl: row.aliasesPl ?? undefined,
+    equipment: row.equipment ?? undefined,
+    difficulty: row.difficulty ?? undefined,
+    description: row.description ?? undefined,
+    cues: row.cues ?? undefined,
+    techniqueYoutubeUrl: row.techniqueYoutubeUrl ?? undefined,
   };
 }
 

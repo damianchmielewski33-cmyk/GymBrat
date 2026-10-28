@@ -180,7 +180,11 @@ export function CardioRecordClient() {
               : undefined,
       });
       if (!res.ok) {
-        notifyError(res.error);
+        notifyError(
+          res.error ??
+            res.fieldErrors?.[0]?.message ??
+            "Nie udało się zapisać trasy.",
+        );
         return;
       }
       notifySaved("Zapisano trasę.");

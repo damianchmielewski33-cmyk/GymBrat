@@ -54,7 +54,7 @@ Nowe pozycje dopisuje koordynator na końcu właściwej sekcji (albo nowej, jeś
 | 403 z CSRF/origin traktowane jak 401 w `pausedAuthRef` — wstrzymuje sync bez ponowienia (ryzyko niskie) | 005 | tester-wydajnosci, etap 9g |
 | Kolejność efektów: `pausedAuthRef` resetowany w drugim efekcie (push), ale `hydrate()` w pierwszym efekcie czyta flagę wcześniej — po 401 i ponownym zalogowaniu bez przeładowania strony hydracja z chmury może być pominięta raz | 005 | tester-wydajnosci, etap 9g |
 
-| Historia treningów: zapytanie ogranicza się do 400 ostatnich sesji (`.limit(400)`), bez komunikatu; KPI „łącznie” (tonaż, liczba treningów) cicho zaniża wynik dla użytkowników z dłuższą historią; cała lista z seriami idzie w jednym payloadzie | `lib/workout-history-overview.ts:357` | 011 | analityk, etap 1 (decyzja Q3 w analizie 011) |
+| Historia treningów: zapytanie nadal ogranicza się do 400 ostatnich sesji (komunikat UI dodany w 011); cała lista z seriami idzie w jednym payloadzie — paginacja / leniwe serie poza v1 | `lib/workout-history-overview.ts` (`.limit(400)`) | 011 | analityk, etap 1 (Q3); częściowo zaadresowane banerem limitu |
 
 ## Redesign Team (012): prawo, decyzje właściciela (nieblokujące)
 | Opis | Lokalizacja | Zadanie źródłowe | Źródło (agent, etap) |
@@ -116,7 +116,7 @@ Nowe pozycje dopisuje koordynator na końcu właściwej sekcji (albo nowej, jeś
 | Ekran edycji sesji ma inny nagłówek niż przeprojektowana historia; ujednolicenie w osobnym zadaniu (formularz bez zmian) | `app/(dashboard)/workout-history/[id]/edit/page.tsx` | 011 | ux, etap 3 (sekcja 5.2 analizy) |
 | Kontener historii `max-w-lg` zamiast `APP_SHELL_MAX` (węższy ekran na tabletach niż reszta aplikacji) | `components/workout-history/workout-history-view.tsx` (kontener główny) | 011 | ux, etap 3 (`00-system` sekcja 2) |
 | Payload historii zawiera `cardio` (do 30 wpisów) nieużywany w widoku; zbędny transfer do czasu decyzji o cardio w historii (Q5) | `lib/workout-history-overview.ts` (`cardio`) | 011 | ux, etap 3 (analiza 2.3, Q5) |
-| Pulpit „Ostatnie treningi” prowadzi wierszem do szczegółu, a stopką do listy; po wdrożeniu deep linku `?sesja=` ujednolicić oba wejścia | `components/home/home-recent-workouts.tsx` | 011 | ux, etap 3 (AC-10.1) |
+| Strona szczegółu `workout-history/[id]` nadal istnieje, ale Pulpit prowadzi już do `?open=` na liście — brak osobnego wejścia na szczegół z listy; decyzja o usunięciu szczegółu otwarta | `app/(dashboard)/workout-history/[id]/page.tsx` | 011 | ux (A-4); deep link z Pulpitu wdrożony |
 | Nagłówki ekranów historii, szczegółu i edycji nie korzystają ze wspólnego `AppPageHeader` (Wróć tekstowy, inny kicker) | `workout-history-view.tsx`, `[id]/page.tsx`, `[id]/edit/page.tsx` | 011 | ux, etap 3 (`00-system` pkt 9) |
 | Duplikat wzorca chipów filtra (`fbar`/`chp`) w innych listach z filtrem (np. atlas, hub) - kandydat do wspólnego komponentu po wdrożeniu 011 | `components/workout-plan/*`, `components/community/*` | 011 | ux, etap 3 (`00-system` sekcja 4) |
 

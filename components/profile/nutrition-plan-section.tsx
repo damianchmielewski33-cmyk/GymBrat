@@ -4,10 +4,16 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { saveNutritionPlanAction } from "@/actions/nutrition-settings";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import type { NutritionGoalsPayload } from "@/lib/nutrition-goals";
-import { kcalFromMacros } from "@/lib/kcal-from-macros";
+import {
+  kcalFromMacros,
+  parseMacroGrams,
+} from "@/lib/kcal-from-macros";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ProfileField } from "@/components/profile/profile-ui";
+import {
+  ProfileComputedValue,
+  ProfileField,
+} from "@/components/profile/profile-ui";
 import {
   calendarDateKey,
   formatPlCalendarRange,
@@ -15,14 +21,6 @@ import {
 } from "@/lib/local-date";
 
 type DayMap = Record<string, "training" | "rest">;
-
-/** Atwater: białko i węgle 4 kcal/g, tłuszcz 9 kcal/g. */
-function gramsForKcal(s: string): number {
-  const t = s.trim();
-  if (!t) return 0;
-  const n = Number(t.replace(",", "."));
-  return Number.isFinite(n) && n >= 0 ? n : 0;
-}
 
 function kcalStringFromMacros(
   proteinG: string,
@@ -36,9 +34,9 @@ function kcalStringFromMacros(
   if (!any) return "";
   return String(
     kcalFromMacros(
-      gramsForKcal(proteinG),
-      gramsForKcal(fatG),
-      gramsForKcal(carbsG),
+      parseMacroGrams(proteinG),
+      parseMacroGrams(fatG),
+      parseMacroGrams(carbsG),
     ),
   );
 }
@@ -68,9 +66,9 @@ function readGoalsFromFields(f: {
   fatG: string;
   carbsG: string;
 }): NutritionGoalsPayload | null {
-  const proteinG = gramsForKcal(f.proteinG);
-  const fatG = gramsForKcal(f.fatG);
-  const carbsG = gramsForKcal(f.carbsG);
+  const proteinG = parseMacroGrams(f.proteinG);
+  const fatG = parseMacroGrams(f.fatG);
+  const carbsG = parseMacroGrams(f.carbsG);
   const empty =
     !f.proteinG.trim() && !f.fatG.trim() && !f.carbsG.trim();
   if (empty) return null;
@@ -93,10 +91,12 @@ export function NutritionPlanSection({
   initialTraining,
   initialRest,
   initialDayTypes,
+  expectedUpdatedAt,
 }: {
   initialTraining: NutritionGoalsPayload | null;
   initialRest: NutritionGoalsPayload | null;
   initialDayTypes: DayMap;
+  expectedUpdatedAt?: string | null;
 }) {
   const [trainingFields, setTrainingFields] = useState(() =>
     parseGoalsPayload(initialTraining),
@@ -112,8 +112,14 @@ export function NutritionPlanSection({
   const [state, formAction, isPending] = useActionState(saveNutritionPlanAction, {
     ok: true,
   });
-  const { notifySaved } = useSaveFeedback();
+  const { notifySaved, notifyError } = useSaveFeedback();
   const saveCycleRef = useRef(false);
+
+  useEffect(() => {
+    setTrainingFields(parseGoalsPayload(initialTraining));
+    setRestFields(parseGoalsPayload(initialRest));
+    setDayTypes({ ...initialDayTypes });
+  }, [initialTraining, initialRest, initialDayTypes]);
 
   useEffect(() => {
     if (isPending) {
@@ -124,9 +130,13 @@ export function NutritionPlanSection({
       saveCycleRef.current = false;
       if (state?.ok === true) {
         notifySaved("Zapisano cele żywieniowe i kalendarz.");
+      } else if (state?.ok === false && state.error === "conflict") {
+        notifyError(
+          "Te ustawienia zmieniono z innego urządzenia — odśwież stronę.",
+        );
       }
     }
-  }, [isPending, state?.ok, notifySaved]);
+  }, [isPending, state, notifySaved, notifyError]);
 
   function toggleDay(dateKey: string) {
     setDayTypes((prev) => {
@@ -172,6 +182,9 @@ export function NutritionPlanSection({
         dayTypes,
       }),
     );
+    if (expectedUpdatedAt) {
+      fd.set("expectedUpdatedAt", expectedUpdatedAt);
+    }
     return fd;
   }
 
@@ -268,7 +281,23 @@ export function NutritionPlanSection({
         <p className="text-sm text-rose-300">{clientError}</p>
       ) : null}
       {state.ok === false ? (
-        <p className="text-sm text-rose-300">{state.error}</p>
+        state.error === "conflict" ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-amber-400/35 bg-amber-400/10 px-4 py-3 text-[13px] leading-relaxed text-amber-100/90"
+          >
+            Te ustawienia zmieniono z innego urządzenia — wczytaj najnowsze dane.
+            <button
+              type="button"
+              className="mt-2 block text-[13px] font-semibold text-[var(--gym-gold)] underline-offset-2 hover:underline"
+              onClick={() => window.location.reload()}
+            >
+              Odśwież stronę
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-rose-300">{state.error}</p>
+        )
       ) : null}
 
       <Button type="submit" variant="cta" disabled={isPending} className="w-full">
@@ -345,12 +374,10 @@ function GoalFields({
           />
         </ProfileField>
       </div>
-      <p className="flex items-baseline justify-between gap-3 rounded-lg bg-white/[0.04] px-3 py-2 text-[13px] text-white/50">
-        <span>Kalorie z makroskładników</span>
-        <span className="font-heading text-lg font-semibold tabular-nums text-white">
-          {displayKcal ? `${displayKcal} kcal` : "—"}
-        </span>
-      </p>
+      <ProfileComputedValue
+        label="Kalorie z makroskładników"
+        value={displayKcal ? `${displayKcal} kcal` : "—"}
+      />
     </div>
   );
 }

@@ -17,7 +17,7 @@ const goalsSchema = z.object({
 });
 
 export type NutritionPlanFormState =
-  | { ok: true }
+  | { ok: true; savedAt?: string }
   | { ok: false; error: string };
 
 const payloadSchema = z.object({
@@ -84,7 +84,31 @@ export async function saveNutritionPlanAction(
       return { ok: false, error: "Zbyt wiele oznaczonych dni — skróć zakres." };
     }
 
+    const expectedRaw = formData.get("expectedUpdatedAt");
+    const expectedUpdatedAt =
+      typeof expectedRaw === "string" && expectedRaw.trim()
+        ? expectedRaw.trim()
+        : null;
+
     const db = getDb();
+    const [row] = await db
+      .select({ updatedAt: userSettings.updatedAt })
+      .from(userSettings)
+      .where(eq(userSettings.userId, session.user.id))
+      .limit(1);
+
+    if (expectedUpdatedAt && row?.updatedAt) {
+      const expectedMs = Date.parse(expectedUpdatedAt);
+      const actualMs = row.updatedAt.getTime();
+      if (
+        Number.isFinite(expectedMs) &&
+        Math.abs(expectedMs - actualMs) > 500
+      ) {
+        return { ok: false, error: "conflict" };
+      }
+    }
+
+    const now = new Date();
     await db
       .update(userSettings)
       .set({
@@ -94,13 +118,14 @@ export async function saveNutritionPlanAction(
           dayTypes && Object.keys(dayTypes).length > 0
             ? JSON.stringify(dayTypes)
             : null,
-        updatedAt: new Date(),
+        updatedAt: now,
       })
       .where(eq(userSettings.userId, session.user.id));
 
     revalidatePath("/profile");
+    revalidatePath("/profile/diet");
     revalidatePath("/");
-    return { ok: true };
+    return { ok: true, savedAt: now.toISOString() };
   } catch (err) {
     console.error("[saveNutritionPlanAction] failed", err);
     return {

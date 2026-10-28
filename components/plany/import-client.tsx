@@ -11,8 +11,29 @@ import { InlineBanner } from "@/components/ui/inline-banner";
 import { Input } from "@/components/ui/input";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { isLikelyEmptyUpload } from "@/lib/file-snapshot";
+import {
+  ConfidenceBadge,
+  type ConfidenceDisplay,
+} from "@/components/plany/confidence-badge";
 import type { PreviewDay } from "@/lib/workout-plan/import-parse";
 import { cn } from "@/lib/utils";
+
+type PreviewExerciseView = PreviewDay["exercises"][number] & {
+  corrected?: boolean;
+};
+type PreviewDayView = Omit<PreviewDay, "exercises"> & {
+  exercises: PreviewExerciseView[];
+};
+
+function displayConfidence(ex: PreviewExerciseView): ConfidenceDisplay {
+  if (ex.corrected) return "corrected";
+  return ex.confidence;
+}
+
+function needsReview(ex: PreviewExerciseView): boolean {
+  if (ex.corrected || ex.reviewed) return false;
+  return ex.confidence === "low" || ex.confidence === "name_check";
+}
 
 function isSupportedPlanFile(file: File): boolean {
   const n = (file.name || "").toLowerCase();
@@ -54,27 +75,12 @@ function namedUploadFile(file: File): File {
   });
 }
 
-function ConfidenceBadge({ level }: { level: "high" | "low" }) {
-  if (level === "high") {
-    return (
-      <span className="inline-flex h-6 items-center gap-1 rounded-full border border-[rgba(62,207,114,0.5)] px-2 text-[11px] font-semibold text-white">
-        Wysoka pewność
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex h-6 items-center gap-1 rounded-full border border-[rgba(255,51,71,0.55)] px-2 text-[11px] font-semibold text-[#ffd0d5]">
-      Sprawdź wiersz
-    </span>
-  );
-}
-
 export function ImportClient() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
-  const [days, setDays] = useState<PreviewDay[]>([]);
+  const [days, setDays] = useState<PreviewDayView[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [onlyReview, setOnlyReview] = useState(false);
@@ -83,9 +89,7 @@ export function ImportClient() {
   const reviewCount = useMemo(
     () =>
       days.reduce(
-        (n, d) =>
-          n +
-          d.exercises.filter((e) => e.confidence === "low" && !e.reviewed).length,
+        (n, d) => n + d.exercises.filter((e) => needsReview(e)).length,
         0,
       ),
     [days],
@@ -106,13 +110,12 @@ export function ImportClient() {
 
   const canConfirm =
     selectedStats.plans > 0 &&
-    reviewCount === 0 &&
     days.every((d) =>
       !d.selected
         ? true
         : d.exercises
             .filter((e) => e.selected && e.confidence === "low")
-            .every((e) => e.reviewed),
+            .every((e) => e.reviewed || e.corrected),
     );
 
   function runPreview() {
@@ -373,13 +376,20 @@ export function ImportClient() {
                 </div>
                 <ul className="mt-3 space-y-3">
                   {day.exercises
-                    .filter((ex) =>
-                      onlyReview ? ex.confidence === "low" && !ex.reviewed : true,
-                    )
-                    .map((ex, ei) => (
+                    .filter((ex) => (onlyReview ? needsReview(ex) : true))
+                    .map((ex) => {
+                      const ei = day.exercises.findIndex((row) => row.id === ex.id);
+                      return (
                       <li
                         key={ex.id}
-                        className="rounded-2xl border border-white/10 p-3"
+                        className={cn(
+                          "rounded-2xl border p-3",
+                          ex.confidence === "low" && !ex.corrected
+                            ? "border-[rgba(255,51,71,0.35)]"
+                            : ex.confidence === "name_check" && !ex.corrected
+                              ? "border-[rgba(235,196,74,0.35)]"
+                              : "border-white/10",
+                        )}
                       >
                         <div className="flex items-start gap-2">
                           <input
@@ -412,7 +422,7 @@ export function ImportClient() {
                             }
                           />
                           <div className="min-w-0 flex-1 space-y-2">
-                            <ConfidenceBadge level={ex.confidence} />
+                            <ConfidenceBadge level={displayConfidence(ex)} />
                             <Input
                               className="h-11"
                               value={ex.name}
@@ -429,6 +439,7 @@ export function ImportClient() {
                                                   ...row,
                                                   name: e.target.value,
                                                   reviewed: true,
+                                                  corrected: true,
                                                 }
                                               : row,
                                           ),
@@ -460,6 +471,7 @@ export function ImportClient() {
                                                       Math.max(1, n || 1),
                                                     ),
                                                     reviewed: true,
+                                                    corrected: true,
                                                   }
                                                 : row,
                                             ),
@@ -490,6 +502,7 @@ export function ImportClient() {
                                                       Math.max(1, n || 1),
                                                     ),
                                                     reviewed: true,
+                                                    corrected: true,
                                                   }
                                                 : row,
                                             ),
@@ -508,7 +521,9 @@ export function ImportClient() {
                                 Brak w atlasie, zapisze się jako własne. Sprawdź nazwę.
                               </p>
                             )}
-                            {ex.confidence === "low" && !ex.reviewed ? (
+                            {ex.confidence === "low" &&
+                            !ex.reviewed &&
+                            !ex.corrected ? (
                               <Button
                                 type="button"
                                 variant="outline"
@@ -536,7 +551,8 @@ export function ImportClient() {
                           </div>
                         </div>
                       </li>
-                    ))}
+                    );
+                    })}
                 </ul>
               </section>
             ))}

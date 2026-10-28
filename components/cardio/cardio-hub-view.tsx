@@ -12,7 +12,7 @@ import {
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
-import { formatPace } from "@/lib/cardio-utils";
+import { formatCardioWeekShortLabel, formatPace } from "@/lib/cardio-utils";
 import type { CardioHubData } from "@/lib/cardio-hub-shared";
 import {
   formatCardioDurationClock,
@@ -575,7 +575,13 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
       <CardioLogSheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        cardioGoalMinutes={data.goalMinutes}
+        weekProgress={{
+          minutesCompleted: data.minutesThisWeek,
+          goalMinutes: data.goalMinutes,
+          weekLabel:
+            data.last8[0]?.label ??
+            formatCardioWeekShortLabel(data.weekMonday),
+        }}
         defaultTitle="Marsz"
       />
     </div>

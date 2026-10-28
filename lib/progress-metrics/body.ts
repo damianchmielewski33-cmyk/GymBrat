@@ -1,11 +1,13 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { userSettings, weightLogs } from "@/db/schema";
 import { getBodyReports } from "@/lib/body-reports";
+import { frontBodyReportPhoto } from "@/lib/body-report-photo-slots";
 import { computeWeightTrendKgPerWeek } from "@/lib/analytics/weight-trend";
 import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
 import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
+import { resolveProgressStart } from "@/lib/progress-metrics/start";
 import type { ProgressHubData, ProgressMeasureKey, ProgressMeasureRow, ProgressWeightPoint } from "@/lib/progress-hub";
 
 function round1(value: number) { return Math.round(value * 10) / 10; }
@@ -15,10 +17,13 @@ export async function loadProgressBodyMetrics(userId: string): Promise<ProgressH
   await ensureCriticalSchema();
   const db = getDb();
   const [reports, logs, settings] = await Promise.all([
-    getBodyReports(userId, { photos: "none" }),
+    getBodyReports(userId, { photos: "meta" }),
     db.select({ recordedAt: weightLogs.recordedAt, weightKg: weightLogs.weightKg })
       .from(weightLogs).where(eq(weightLogs.userId, userId)).orderBy(asc(weightLogs.recordedAt)).limit(300),
-    db.select({ fitnessGoalsJson: userSettings.fitnessGoalsJson })
+    db.select({
+      fitnessGoalsJson: userSettings.fitnessGoalsJson,
+      hasStartPhoto: sql<number>`CASE WHEN ${userSettings.startPhotoDataUrl} IS NOT NULL AND length(trim(${userSettings.startPhotoDataUrl})) > 0 THEN 1 ELSE 0 END`,
+    })
       .from(userSettings).where(eq(userSettings.userId, userId)).limit(1).then((rows) => rows[0] ?? null),
   ]);
   const byDay = new Map<string, number>();
@@ -31,11 +36,44 @@ export async function loadProgressBodyMetrics(userId: string): Promise<ProgressH
     if (!byDay.has(date) && Number(row.weightKg) > 0) byDay.set(date, round1(Number(row.weightKg)));
   }
   const weights: ProgressWeightPoint[] = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, kg]) => ({ date, kg }));
-  const startKg = weights[0]?.kg ?? null;
+  const firstWithPhoto = [...reports]
+    .reverse()
+    .find((r) => Boolean(frontBodyReportPhoto(r.photos)?.id));
+  const progressStart = resolveProgressStart({
+    weights,
+    hasCustomStartPhoto: Number(settings?.hasStartPhoto ?? 0) === 1,
+    customStartPhoto:
+      Number(settings?.hasStartPhoto ?? 0) === 1
+        ? {
+            date: firstWithPhoto
+              ? calendarDateKey(firstWithPhoto.createdAt)
+              : weights[0]?.date ?? calendarDateKey(),
+            weightKg: firstWithPhoto?.weightKg ?? null,
+            waistCm: firstWithPhoto?.waistCm ?? null,
+          }
+        : null,
+    firstReportWithPhoto: firstWithPhoto
+      ? {
+          date: calendarDateKey(firstWithPhoto.createdAt),
+          weightKg: firstWithPhoto.weightKg,
+          waistCm: firstWithPhoto.waistCm,
+        }
+      : null,
+  });
+  const startKg = progressStart.weightKg;
   const currentKg = weights.at(-1)?.kg ?? null;
   const prevKg = weights.at(-2)?.kg ?? null;
   const deltaFromStartKg = startKg != null && currentKg != null ? round1(currentKg - startKg) : null;
-  const days = weights.length > 1 ? Math.max(1, (Date.parse(`${weights.at(-1)!.date}T12:00:00Z`) - Date.parse(`${weights[0]!.date}T12:00:00Z`)) / 86_400_000) : 0;
+  const startDate = progressStart.date ?? weights[0]?.date ?? null;
+  const days =
+    weights.length > 1 && startDate
+      ? Math.max(
+          1,
+          (Date.parse(`${weights.at(-1)!.date}T12:00:00Z`) -
+            Date.parse(`${startDate}T12:00:00Z`)) /
+            86_400_000,
+        )
+      : 0;
   const lastSixWeeks = weights.filter((point) => point.date >= addCalendarDays(calendarDateKey(), -42));
   const recent = weights.slice(-3);
   const goals = parseFitnessGoalsJson(settings?.fitnessGoalsJson);
@@ -62,7 +100,7 @@ export async function loadProgressBodyMetrics(userId: string): Promise<ProgressH
       weeksFromStart: days > 0 ? round1(days / 7) : null,
       deltaFromStartKg,
       lastReportDate: weights.at(-1)?.date ?? null,
-      startDate: weights[0]?.date ?? null,
+      startDate,
       reportCount: weights.length,
       lastAvgKg: recent.length ? round1(recent.reduce((sum, point) => sum + point.kg, 0) / recent.length) : null,
     },

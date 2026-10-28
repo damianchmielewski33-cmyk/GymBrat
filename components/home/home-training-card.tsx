@@ -18,7 +18,8 @@ import {
   formatPlanLastDoneRelative,
   formatPlanLastDoneShort,
 } from "@/lib/workout-plan-queue";
-import { calendarDateKey } from "@/lib/local-date";
+import { formatCardioWeekShortLabel } from "@/lib/cardio-utils";
+import { calendarDateKey, calendarWeekMondayKey } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
 
 export type HomeTrainingDayOption = {
@@ -129,7 +130,13 @@ export function HomeTrainingCard({
     <CardioLogSheet
       open={cardioOpen}
       onClose={() => setCardioOpen(false)}
-      cardioGoalMinutes={cardioGoalMinutes}
+      weekProgress={{
+        minutesCompleted: cardioThisWeekMinutes,
+        goalMinutes: cardioGoalMinutes,
+        weekLabel: formatCardioWeekShortLabel(
+          calendarWeekMondayKey(calendarDateKey()),
+        ),
+      }}
     />
   );
 

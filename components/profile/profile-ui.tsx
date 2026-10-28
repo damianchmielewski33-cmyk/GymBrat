@@ -1,5 +1,10 @@
+"use client";
+
 import type { ComponentProps, ReactNode } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
+import { Calculator, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -8,34 +13,62 @@ import { cn } from "@/lib/utils";
  */
 
 export const PROFILE_SECTIONS = [
-  { id: "body", label: "Ciało" },
-  { id: "training", label: "Trening" },
-  { id: "diet", label: "Dieta" },
-  { id: "reminders", label: "Przypomnienia" },
-  { id: "app", label: "Aplikacja" },
-  { id: "account", label: "Konto" },
+  { id: "body", label: "Ciało", href: "/profile/body" },
+  { id: "training", label: "Trening", href: "/profile/training" },
+  { id: "diet", label: "Dieta", href: "/profile/diet" },
+  { id: "reminders", label: "Przypomnienia", href: "/profile/reminders" },
+  { id: "app", label: "Aplikacja", href: "/profile/app" },
+  { id: "account", label: "Konto", href: "/profile/account" },
 ] as const;
 
 export type ProfileSectionId = (typeof PROFILE_SECTIONS)[number]["id"];
 
-/** Pasek skrótów do sekcji — zwykłe kotwice, więc działa bez JS. */
-export function ProfileNav() {
+/** Zakładki podstron profilu — prawdziwe trasy (ADR 0006 / UX U-5). */
+export function ProfileTabs() {
+  const pathname = usePathname();
   return (
     <nav
       aria-label="Sekcje profilu"
       className="-mx-3 flex gap-1.5 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:-mx-5 sm:px-5 [&::-webkit-scrollbar]:hidden"
     >
-      {PROFILE_SECTIONS.map((s) => (
-        <a
-          key={s.id}
-          href={`#${s.id}`}
-          className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2 text-[13px] font-medium text-white/65 transition-colors hover:border-[var(--gym-gold)]/40 hover:text-[var(--gym-gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50"
-        >
-          {s.label}
-        </a>
-      ))}
+      <Link
+        href="/profile"
+        aria-current={pathname === "/profile" ? "page" : undefined}
+        className={cn(
+          "shrink-0 rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50",
+          pathname === "/profile"
+            ? "border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]"
+            : "border-white/10 bg-white/[0.04] text-white/65 hover:border-[var(--gym-gold)]/40 hover:text-[var(--gym-gold)]",
+        )}
+      >
+        Przegląd
+      </Link>
+      {PROFILE_SECTIONS.map((s) => {
+        const active =
+          pathname === s.href || pathname.startsWith(`${s.href}/`);
+        return (
+          <Link
+            key={s.id}
+            href={s.href}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "shrink-0 rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50",
+              active
+                ? "border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]"
+                : "border-white/10 bg-white/[0.04] text-white/65 hover:border-[var(--gym-gold)]/40 hover:text-[var(--gym-gold)]",
+            )}
+          >
+            {s.label}
+          </Link>
+        );
+      })}
     </nav>
   );
+}
+
+/** @deprecated użyj ProfileTabs — kotwice na jednej stronie. */
+export function ProfileNav() {
+  return <ProfileTabs />;
 }
 
 export function ProfileSection({
@@ -45,7 +78,7 @@ export function ProfileSection({
   description,
   children,
 }: {
-  id: ProfileSectionId;
+  id?: ProfileSectionId | string;
   icon: LucideIcon;
   title: string;
   description?: string;
@@ -61,13 +94,16 @@ export function ProfileSection({
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold leading-tight text-white">{title}</h2>
+          <h2 className="text-lg font-semibold leading-tight text-white">
+            {title}
+          </h2>
           {description ? (
-            <p className="mt-1 text-[13px] leading-relaxed text-white/45">{description}</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-white/45">
+              {description}
+            </p>
           ) : null}
         </div>
       </header>
-      {/* Bloki oddziela cienka linia; puste (null) bloki nie zostawiają odstępów. */}
       <div className="mt-5 divide-y divide-white/[0.07] [&>*]:py-5 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
         {children}
       </div>
@@ -101,7 +137,9 @@ export function ProfileBlock({
             {title}
           </h3>
           {description ? (
-            <p className="mt-1 text-[13px] leading-relaxed text-white/45">{description}</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-white/45">
+              {description}
+            </p>
           ) : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
@@ -127,17 +165,171 @@ export function ProfileField({
 }) {
   return (
     <div className={cn("space-y-1.5", className)}>
-      <label htmlFor={htmlFor} className="block text-[13px] font-medium text-white/75">
+      <label
+        htmlFor={htmlFor}
+        className="block text-[13px] font-medium text-white/75"
+      >
         {label}
       </label>
       {children}
-      {hint ? <p className="text-xs leading-snug text-white/40">{hint}</p> : null}
+      {hint ? (
+        <p className="text-xs leading-snug text-white/40">{hint}</p>
+      ) : null}
     </div>
   );
 }
 
-/** Natywny select w wyglądzie `Input` (jedna wysokość i focus w całym profilu). */
-export function ProfileSelect({ className, ...props }: ComponentProps<"select">) {
+/** Wartość wyliczona — nie wygląda jak pole edytowalne (ADR 0006 §6). */
+export function ProfileComputedValue({
+  label,
+  value,
+  hint,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-3.5 py-3",
+        className,
+      )}
+    >
+      <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
+        <Calculator className="h-3.5 w-3.5" aria-hidden />
+        <span>{label}</span>
+        <span className="normal-case tracking-normal text-white/30">
+          · wyliczone
+        </span>
+      </div>
+      <p className="mt-1.5 text-sm font-semibold tabular-nums text-white/90">
+        {value}
+      </p>
+      {hint ? (
+        <p className="mt-1 text-xs leading-snug text-white/40">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
+
+/** Stan systemowy — chip/badge, nie switch (ADR 0006 §6). */
+export function ProfileSystemState({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "inline-flex max-w-full items-center gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2",
+        className,
+      )}
+    >
+      <Lock className="h-3.5 w-3.5 shrink-0 text-white/35" aria-hidden />
+      <span className="text-[11px] text-white/40">{label}</span>
+      <span className="truncate text-[13px] font-medium text-white/80">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/** Grupa chipów / radiogroup z aria-pressed (ADR 0006 §7). */
+export function ProfileChipGroup({
+  options,
+  value,
+  onChange,
+  name,
+  variant = "chips",
+  "aria-label": ariaLabel,
+}: {
+  options: Array<{ value: string; label: string; description?: string }>;
+  value: string | null | undefined;
+  onChange: (next: string) => void;
+  name?: string;
+  variant?: "chips" | "list";
+  "aria-label"?: string;
+}) {
+  if (variant === "list") {
+    return (
+      <div
+        role="radiogroup"
+        aria-label={ariaLabel}
+        className="space-y-2"
+      >
+        {options.map((o) => {
+          const selected = value === o.value;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              name={name}
+              onClick={() => onChange(o.value)}
+              className={cn(
+                "flex min-h-14 w-full flex-col items-start justify-center rounded-xl border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50",
+                selected
+                  ? "border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/12"
+                  : "border-white/10 bg-black/25 hover:bg-white/[0.04]",
+              )}
+            >
+              <span className="text-sm font-semibold text-white/90">
+                {o.label}
+              </span>
+              {o.description ? (
+                <span className="mt-0.5 text-xs text-white/45">
+                  {o.description}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      className="flex flex-wrap gap-2"
+    >
+      {options.map((o) => {
+        const pressed = value === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            aria-pressed={pressed}
+            onClick={() => onChange(o.value)}
+            className={cn(
+              "rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50",
+              pressed
+                ? "border-[var(--gym-gold)]/55 bg-[var(--gym-gold)]/20 text-[var(--gym-gold)]"
+                : "border-white/12 bg-white/[0.04] text-white/70 hover:border-white/25",
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Natywny select w wyglądzie `Input`. */
+export function ProfileSelect({
+  className,
+  ...props
+}: ComponentProps<"select">) {
   return (
     <select
       className={cn(
@@ -149,7 +341,7 @@ export function ProfileSelect({ className, ...props }: ComponentProps<"select">)
   );
 }
 
-/** Przełącznik on/off (role=switch) — zamiast gołych checkboxów. */
+/** Przełącznik on/off (role=switch). */
 export function ProfileSwitch({
   checked,
   onChange,
@@ -173,9 +365,13 @@ export function ProfileSwitch({
       className="flex w-full items-center justify-between gap-4 rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-left transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50 disabled:opacity-50"
     >
       <span className="min-w-0">
-        <span className="block text-sm font-semibold text-white/90">{label}</span>
+        <span className="block text-sm font-semibold text-white/90">
+          {label}
+        </span>
         {description ? (
-          <span className="mt-0.5 block text-xs leading-snug text-white/45">{description}</span>
+          <span className="mt-0.5 block text-xs leading-snug text-white/45">
+            {description}
+          </span>
         ) : null}
       </span>
       <span
@@ -198,12 +394,50 @@ export function ProfileSwitch({
   );
 }
 
-/** Mały kafelek „etykieta + wartość” (np. e-mail w nagłówku). */
-export function ProfileStat({ label, value }: { label: string; value: ReactNode }) {
+/** Mały kafelek „etykieta + wartość”. */
+export function ProfileStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
   return (
     <div className="min-w-0 rounded-xl border border-white/[0.08] bg-black/25 px-3.5 py-3">
       <p className="app-label">{label}</p>
       <p className="mt-1 truncate text-sm font-medium text-white/90">{value}</p>
     </div>
+  );
+}
+
+/** Karta stanu na przeglądzie `/profile`. */
+export function ProfileOverviewCard({
+  href,
+  title,
+  summary,
+  cta,
+}: {
+  href: string;
+  title: string;
+  summary: ReactNode;
+  cta?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="block rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition-colors hover:border-[var(--gym-gold)]/35 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[15px] font-semibold text-white">{title}</p>
+          <div className="mt-1.5 text-[13px] leading-relaxed text-white/55">
+            {summary}
+          </div>
+        </div>
+        <span className="shrink-0 text-[12px] font-medium text-[var(--gym-gold)]">
+          {cta ?? "Otwórz"}
+        </span>
+      </div>
+    </Link>
   );
 }

@@ -10,14 +10,18 @@ import { Plus } from "lucide-react";
 
 export function QuickLogCardio() {
   const { notifySaved, notifyError } = useSaveFeedback();
-  const [state, formAction] = useActionState(logCardioFormAction, {} as {
-    ok?: boolean;
-    error?: string;
-  });
+  const [state, formAction] = useActionState(
+    logCardioFormAction as (
+      prev: { ok?: boolean; error?: string },
+      formData: FormData,
+    ) => Promise<{ ok?: boolean; error?: string }>,
+    {} as { ok?: boolean; error?: string },
+  );
 
   useEffect(() => {
     if (state?.ok === true) notifySaved("Zapisano sesję cardio.");
-    else if (state?.ok === false && state.error) notifyError("Nie udało się zapisać sesji.");
+    else if (state?.ok === false)
+      notifyError(state.error ?? "Nie udało się zapisać sesji.");
   }, [state, notifySaved, notifyError]);
 
   return (

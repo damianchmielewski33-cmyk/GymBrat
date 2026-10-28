@@ -11,7 +11,7 @@ import { updateBodyParams } from "@/actions/profile";
 import { getDb } from "@/db";
 import { users, userSettings, workouts } from "@/db/schema";
 import { getReportsData } from "@/lib/reports";
-import { getLatestBodyReportMetrics } from "@/lib/body-reports";
+import { getCurrentWeightKg } from "@/lib/current-weight";
 import { getWeeklyCardioProgress as getWeeklyCardioProgressData } from "@/lib/cardio";
 import { calendarDateKey } from "@/lib/local-date";
 import { computeSessionTonnageKg } from "@/lib/analytics/tonnage";
@@ -85,8 +85,7 @@ export async function getUser(): Promise<CurrentUser | null> {
 
   if (!row) return null;
 
-  const latestReport = await getLatestBodyReportMetrics(session.user.id);
-  const weightKgFromReports = latestReport?.weightKg ?? null;
+  const currentWeight = await getCurrentWeightKg(session.user.id);
 
   const [settings] = await db
     .select({ weeklyCardioGoalMinutes: userSettings.weeklyCardioGoalMinutes })
@@ -96,7 +95,7 @@ export async function getUser(): Promise<CurrentUser | null> {
 
   return {
     ...row,
-    weightKg: weightKgFromReports ?? row.weightKg,
+    weightKg: currentWeight?.weightKg ?? row.weightKg,
     weeklyCardioGoalMinutes: settings?.weeklyCardioGoalMinutes ?? 150,
   };
 }
