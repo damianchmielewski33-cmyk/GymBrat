@@ -47,7 +47,9 @@ function Ring({
             {pct == null ? "—" : value}
           </p>
           {pct != null ? (
-            <p className="mt-0.5 text-[11px] font-medium text-white/45">%</p>
+            <p className="mt-0.5 text-[length:var(--text-label)] font-medium text-white/55">
+              %
+            </p>
           ) : null}
         </div>
       </div>
@@ -131,7 +133,7 @@ export function ComplianceCard({
       </div>
 
       <div className="mt-5 grid grid-cols-3 gap-2">
-        <Ring label="Dieta" pct={dietPct} tone="#e8c547" />
+        <Ring label="Dieta" pct={dietPct} tone="var(--gym-gold)" />
         <Ring label="Treningi" pct={trainingPct} tone="#7ddea0" />
         <Ring label="Cardio" pct={cardioPct} tone="#6eb5ff" />
       </div>

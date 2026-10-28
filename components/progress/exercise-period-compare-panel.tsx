@@ -114,7 +114,7 @@ function PercentBar({ metric }: { metric: ExercisePeriodMetric }) {
           <OutcomeIcon outcome={metric.outcome} />
           <span
             className={cn(
-              "font-metric text-sm tabular-nums",
+              "font-heading text-sm tabular-nums",
               outcomeTone(metric.outcome),
             )}
           >

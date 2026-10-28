@@ -75,16 +75,18 @@ function MetricTile({
           strokeWidth={1.75}
           aria-hidden
         />
-        <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
+        <p className="text-[length:var(--text-caption)] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
           {label}
         </p>
       </div>
       <p className="mt-3 flex items-baseline gap-1.5">
-        <span className="font-display text-[44px] leading-none tracking-wide text-white">
+        <span className="font-metric text-[44px] leading-none tracking-wide text-white">
           {value}
         </span>
         {unit ? (
-          <span className="text-[14px] font-medium text-white/60">{unit}</span>
+          <span className="font-heading text-[14px] font-medium text-white/60">
+            {unit}
+          </span>
         ) : null}
       </p>
       {badge || caption ? (

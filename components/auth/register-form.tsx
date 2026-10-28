@@ -484,13 +484,13 @@ export function RegisterForm({
           headline="Kończymy logowanie Google…"
           support="Sesja się dogrywa — zaraz wrócisz do rejestracji (imię, parametry ciała)."
         />
-        <div className="glass-panel gold-panel p-6 text-center text-sm text-white/65">
+        <AuthCard bodyClassName="text-center text-sm text-white/65">
           Jeśli nic się nie dzieje,{" "}
           <Link href="/register" className="text-[var(--neon)] underline-offset-4 hover:underline">
             wróć do rejestracji
           </Link>{" "}
           i spróbuj ponownie.
-        </div>
+        </AuthCard>
       </div>
     );
   }

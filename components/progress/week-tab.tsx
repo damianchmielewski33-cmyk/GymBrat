@@ -115,7 +115,7 @@ function DietTrainingWeekRow({ week }: { week: ProgressDietTrainingWeek }) {
           ) : null}
         </p>
       </div>
-      <p className="shrink-0 text-right font-metric text-[14px] tabular-nums text-white">
+      <p className="shrink-0 text-right font-heading text-[14px] tabular-nums text-white">
         {formatTonnes(week.tonnageKg)}
       </p>
     </li>
@@ -211,7 +211,7 @@ function CardioSection({ cardio }: { cardio: ProgressIntelligence["cardio"] }) {
                 <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
                   Z{z.zone}
                 </p>
-                <p className="mt-0.5 font-metric text-[13px] tabular-nums text-white">
+                <p className="mt-0.5 font-heading text-[13px] tabular-nums text-white">
                   {Math.round(z.minutes)}
                 </p>
               </div>

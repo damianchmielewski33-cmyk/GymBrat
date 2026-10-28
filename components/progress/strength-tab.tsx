@@ -134,7 +134,7 @@ function ExerciseRow({ display, period }: { display: ExerciseDisplay; period: "7
         </div>
       ) : <span className="hidden sm:block" aria-hidden />}
       <div className="flex shrink-0 items-center justify-end gap-1">
-        <span className={cn("font-metric text-[14px] tabular-nums text-white", display.valueLabel.length > 12 && "max-w-28 text-right text-[12px]")}>{display.valueLabel}</span>
+        <span className={cn("font-heading text-[14px] tabular-nums text-white", display.valueLabel.length > 12 && "max-w-28 text-right text-[12px]")}>{display.valueLabel}</span>
         {display.isNewRecord ? <span className="rounded-full border border-[var(--gym-gold)]/45 px-2 py-0.5 text-[11px] font-semibold text-[var(--gym-gold)]">Nowy</span> : null}
         {display.hasTrend ? display.trend === "up" ? <ArrowUpRight className="h-3.5 w-3.5 text-[var(--gym-success)]" aria-hidden /> : display.trend === "down" ? <ArrowDownRight className="h-3.5 w-3.5 text-[var(--gym-text-secondary)]" aria-hidden /> : <ArrowRight className="h-3.5 w-3.5 text-[var(--gym-text-secondary)]" aria-hidden /> : null}
       </div>

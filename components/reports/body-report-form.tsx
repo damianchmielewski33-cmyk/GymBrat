@@ -196,7 +196,7 @@ function ProgressSegments({ step }: { step: number }) {
           key={i}
           className={cn(
             "h-1 flex-1 rounded-full transition-colors",
-            i < step ? "bg-[#d4af37]" : "bg-white/12",
+            i < step ? "bg-[var(--gym-gold)]" : "bg-white/12",
           )}
         />
       ))}
@@ -217,7 +217,7 @@ function StepBadge({
 }) {
   return (
     <div className="mt-5 flex gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#d4af37]/40 bg-[#d4af37]/12 text-[#d4af37]">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/12 text-[var(--gym-gold)]">
         {icon}
       </div>
       <div className="min-w-0">
@@ -233,9 +233,9 @@ function StepBadge({
 
 function FieldLabel({ children, required }: { children: ReactNode; required?: boolean }) {
   return (
-    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d4af37]/90">
+    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]/90">
       {children}
-      {required ? <span className="text-[#d4af37]">, wymagane</span> : null}
+      {required ? <span className="text-[var(--gym-gold)]">, wymagane</span> : null}
     </p>
   );
 }
@@ -272,9 +272,9 @@ function MeasureInput({
         aria-invalid={invalid || undefined}
         className={cn(
           "w-full rounded-xl border bg-black/50 px-3 text-white outline-none transition placeholder:text-white/30",
-          "focus-visible:border-[#d4af37]/55 focus-visible:ring-2 focus-visible:ring-[#d4af37]/25",
+          "focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25",
           large ? "h-14 text-2xl font-semibold tabular-nums" : "h-12 text-lg tabular-nums",
-          invalid ? "border-red-500/55" : "border-[#d4af37]/22",
+          invalid ? "border-red-500/55" : "border-[var(--gym-gold)]/22",
         )}
       />
       {hint && !value.trim() ? (
@@ -311,7 +311,7 @@ function ScoreBars({
           {label}
         </p>
         {value != null ? (
-          <p className="text-[11px] font-semibold tabular-nums text-[#e8c547]">
+          <p className="text-[11px] font-semibold tabular-nums text-[var(--gym-gold)]">
             {value}/10
           </p>
         ) : hint != null && !readOnly ? (
@@ -334,7 +334,7 @@ function ScoreBars({
                 className={cn(
                   "h-full min-w-0 flex-1 rounded-full",
                   active
-                    ? "bg-gradient-to-t from-[#b8922a] to-[#e8c547] shadow-[0_0_10px_rgba(212,175,55,0.35)]"
+                    ? "bg-gradient-to-t from-[var(--gym-gold-deep)] to-[var(--gym-gold)] shadow-[0_0_10px_rgba(212,175,55,0.35)]"
                     : "border border-white/12 bg-transparent",
                 )}
               />
@@ -350,9 +350,9 @@ function ScoreBars({
               className={cn(
                 "h-full min-w-0 flex-1 rounded-full transition",
                 active
-                  ? "bg-gradient-to-t from-[#b8922a] to-[#e8c547] shadow-[0_0_10px_rgba(212,175,55,0.35)]"
+                  ? "bg-gradient-to-t from-[var(--gym-gold-deep)] to-[var(--gym-gold)] shadow-[0_0_10px_rgba(212,175,55,0.35)]"
                   : ghost
-                    ? "border border-[#d4af37]/25 bg-[#d4af37]/10"
+                    ? "border border-[var(--gym-gold)]/25 bg-[var(--gym-gold)]/10"
                     : "border border-white/18 bg-transparent hover:border-white/35",
               )}
             />
@@ -474,7 +474,7 @@ function PhotoSlotCard({
   };
 
   return (
-    <div className="relative min-h-[9.5rem] overflow-hidden rounded-2xl border border-[#d4af37]/25 bg-black/45">
+    <div className="relative min-h-[9.5rem] overflow-hidden rounded-2xl border border-[var(--gym-gold)]/25 bg-black/45">
       <input
         ref={inputRef}
         type="file"
@@ -502,7 +502,7 @@ function PhotoSlotCard({
           >
             <X className="h-3.5 w-3.5" />
           </button>
-          <p className="absolute bottom-2 left-0 right-0 text-center text-[10px] font-bold tracking-[0.16em] text-[#d4af37]">
+          <p className="absolute bottom-2 left-0 right-0 text-center text-[10px] font-bold tracking-[0.16em] text-[var(--gym-gold)]">
             {label}
           </p>
         </>
@@ -887,7 +887,7 @@ export function BodyReportForm({
         <div className="theme-black-gold overflow-hidden rounded-3xl border border-white/10 bg-[#141416]/90 p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d4af37]/80">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--gym-gold)]/80">
                 Nowy raport
               </p>
               <p className="mt-1 text-sm text-white/60">
@@ -913,14 +913,14 @@ export function BodyReportForm({
     <div className="theme-black-gold overflow-hidden rounded-3xl border border-white/[0.08] bg-[#161618] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.55)] sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <ClipboardList className="h-4 w-4 text-[#d4af37]" aria-hidden />
+          <ClipboardList className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/85">
             Nowy raport
           </p>
         </div>
         <div className="flex items-center gap-3">
           {dueLabel ? (
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#d4af37]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
               {dueLabel}
             </p>
           ) : null}
@@ -1088,7 +1088,7 @@ export function BodyReportForm({
                 value={complianceNotes}
                 onChange={(e) => setComplianceNotes(e.target.value)}
                 placeholder="np. cardio 1× zamiast 2×, delegacja w tygodniu"
-                className="w-full resize-y rounded-xl border border-[#d4af37]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus-visible:border-[#d4af37]/55 focus-visible:ring-2 focus-visible:ring-[#d4af37]/25"
+                className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
               />
             </div>
           ) : null}
@@ -1146,13 +1146,13 @@ export function BodyReportForm({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
                   {label}
                 </p>
-                <p className="mt-1 text-sm font-semibold tabular-nums text-[#e8c547]">{val}</p>
+                <p className="mt-1 text-sm font-semibold tabular-nums text-[var(--gym-gold)]">{val}</p>
               </div>
             ))}
           </div>
 
           <div className="mt-5 space-y-4 rounded-2xl border border-white/10 bg-black/30 p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d4af37]/85">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]/85">
               Ogólne — samopoczucie
             </p>
             <ScoreBars label="Energia dnia" value={dayEnergy} readOnly />
@@ -1162,7 +1162,7 @@ export function BodyReportForm({
           </div>
 
           <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d4af37]/85">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]/85">
               Zgodność z planem
             </p>
             <div className="flex gap-2">
@@ -1173,7 +1173,7 @@ export function BodyReportForm({
           </div>
 
           <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d4af37]/85">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]/85">
               Zdjęcia
             </p>
             <div className="grid grid-cols-3 gap-2">
@@ -1212,7 +1212,7 @@ export function BodyReportForm({
               value={additionalInfo}
               onChange={(e) => setAdditionalInfo(e.target.value)}
               placeholder="Opcjonalnie…"
-              className="w-full resize-y rounded-xl border border-[#d4af37]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus-visible:border-[#d4af37]/55 focus-visible:ring-2 focus-visible:ring-[#d4af37]/25"
+              className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
             />
           </div>
         </div>

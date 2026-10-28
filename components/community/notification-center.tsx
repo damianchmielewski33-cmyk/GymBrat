@@ -20,6 +20,7 @@ import {
   type NotificationView,
 } from "@/lib/community/notification-types";
 import { useNotificationsRealtime } from "@/hooks/use-notifications-realtime";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 const PAGE = 30;
@@ -166,6 +167,7 @@ export function NotificationCenterClient() {
   const [hasMore, setHasMore] = useState(false);
   const [marking, setMarking] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const pendingSeen = useRef(new Set<string>());
   const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -269,12 +271,6 @@ export function NotificationCenterClient() {
   );
 
   const deleteAll = useCallback(async () => {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm("Usunąć wszystkie powiadomienia? Tej operacji nie cofniesz.")
-    ) {
-      return;
-    }
     setDeleting(true);
     try {
       setItems([]);
@@ -414,7 +410,7 @@ export function NotificationCenterClient() {
             <button
               type="button"
               disabled={deleting || marking}
-              onClick={() => void deleteAll()}
+              onClick={() => setConfirmDeleteAll(true)}
               className="min-h-11 rounded-2xl border border-rose-400/25 px-3.5 text-[12px] font-semibold text-rose-200/80 transition hover:border-rose-400/45 hover:text-rose-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40"
             >
               {deleting ? "Usuwanie…" : "Usuń wszystkie"}
@@ -422,6 +418,16 @@ export function NotificationCenterClient() {
           ) : null}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDeleteAll}
+        onOpenChange={setConfirmDeleteAll}
+        title="Usunąć wszystkie powiadomienia?"
+        description="Tej operacji nie cofniesz."
+        confirmLabel="Usuń wszystkie"
+        pending={deleting}
+        onConfirm={() => void deleteAll()}
+      />
 
       <div className="chip-scroll -mx-0.5 px-0.5">
         {filters.map((f) => (

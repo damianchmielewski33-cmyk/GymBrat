@@ -22,7 +22,7 @@ export default function RegulaminPage() {
         adresem{" "}
         <a
           href={s.siteUrl}
-          className="text-[#DDBB6D] underline-offset-2 hover:underline"
+          className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
         >
           {s.siteUrl}
         </a>{" "}
@@ -62,7 +62,7 @@ export default function RegulaminPage() {
           e-mail:{" "}
           <a
             href={`mailto:${s.email}`}
-            className="text-[#DDBB6D] underline-offset-2 hover:underline"
+            className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
           >
             {s.email}
           </a>
@@ -72,7 +72,7 @@ export default function RegulaminPage() {
               telefon:{" "}
               <a
                 href={`tel:${s.phone.replace(/\s+/g, "")}`}
-                className="text-[#DDBB6D] underline-offset-2 hover:underline"
+                className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
               >
                 {s.phone}
               </a>
@@ -149,7 +149,7 @@ export default function RegulaminPage() {
           stronie{" "}
           <Link
             href="/package"
-            className="text-[#DDBB6D] underline-offset-2 hover:underline"
+            className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
           >
             /package
           </Link>{" "}
@@ -308,7 +308,7 @@ export default function RegulaminPage() {
           Zasady przetwarzania danych osobowych określa{" "}
           <Link
             href={PRIVACY_PATH}
-            className="text-[#DDBB6D] underline-offset-2 hover:underline"
+            className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
           >
             Polityka prywatności
           </Link>
@@ -337,7 +337,7 @@ export default function RegulaminPage() {
         Adres Regulaminu:{" "}
         <a
           href={`${s.siteUrl}/regulamin`}
-          className="break-all text-[#DDBB6D] underline-offset-2 hover:underline"
+          className="break-all text-[var(--gym-gold)] underline-offset-2 hover:underline"
         >
           {s.siteUrl}/regulamin
         </a>

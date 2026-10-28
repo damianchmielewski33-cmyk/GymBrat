@@ -14,6 +14,8 @@
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-space);
   --font-display: var(--font-bebas), var(--font-space), sans-serif;
+  /* KPI / duże liczby — alias Bebas (bez szeryfów). */
+  --font-metric: var(--font-bebas), var(--font-space), sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -136,6 +138,28 @@
     0 0 0 1px rgba(255, 255, 255, 0.03) inset,
     0 1px 0 rgba(255, 236, 180, 0.05) inset,
     0 0 22px rgba(var(--neon-rgb), 0.06);
+
+  /* Skala typografii (redesign bezszeryfowy) */
+  --text-label: 0.6875rem; /* 11px — etykiety uppercase */
+  --text-caption: 0.75rem; /* 12px */
+  --text-body-sm: 0.8125rem; /* 13px */
+  --text-body: 0.875rem; /* 14px */
+  --text-body-lg: 0.9375rem; /* 15px */
+  --text-title: 1.5rem; /* 24px — tytuł ekranu mobile */
+  --text-title-lg: 1.75rem; /* 28px */
+  --text-kpi: 1.375rem; /* 22px — KPI min. Bebas */
+  --text-kpi-lg: 2.5rem; /* 40px */
+  --text-hero: 3rem; /* 48px */
+
+  /* Spacing ekranu */
+  --space-screen-x: 0.75rem;
+  --space-screen-x-sm: 1.25rem;
+  --space-section: 1.25rem;
+
+  /* Promienie kanoniczne kart */
+  --radius-card: 1.375rem; /* 22px ≈ radius-3xl */
+  --radius-panel: 1rem; /* 16px */
+  --radius-nav: 1.875rem; /* 30px belka */
 }
 
 /* Alias kept for auth / legacy classNames — same tokens as :root */
@@ -680,16 +704,16 @@
   }
 
   .app-card {
-    border-radius: 22px;
+    border-radius: var(--radius-card);
   }
 
   .app-card-raised {
-    border-radius: 16px;
+    border-radius: var(--radius-panel);
     background-color: var(--gym-surface-raised);
   }
 
   .app-panel {
-    border-radius: 16px;
+    border-radius: var(--radius-panel);
     background-color: var(--gym-surface-sunken);
   }
 
@@ -761,7 +785,7 @@
   }
 
   .app-dialog {
-    border-radius: 22px;
+    border-radius: var(--radius-card);
     background: var(--gym-surface-sunken);
     background-image: none;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -769,11 +793,11 @@
   }
 
   .app-label {
-    font-size: 10px;
+    font-size: var(--text-label);
     font-weight: 600;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.38);
+    color: rgba(255, 255, 255, 0.55);
   }
 
   .app-value {
@@ -781,8 +805,11 @@
     color: var(--neon);
   }
 
+  /**
+   * Duże KPI (≥18 px): Bebas. Poniżej 18 px używaj font-heading + tabular-nums.
+   */
   .font-metric {
-    font-family: var(--font-metric), ui-serif, Georgia, "Times New Roman", serif;
+    font-family: var(--font-metric);
   }
 }
 

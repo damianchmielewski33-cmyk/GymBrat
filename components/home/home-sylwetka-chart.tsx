@@ -25,7 +25,8 @@ const RANGES = [
 type RangeId = (typeof RANGES)[number]["id"];
 
 const DAY_MS = 86_400_000;
-const GOLD = "#e8c547";
+/** Hex for Recharts/SVG props (CSS var nie zawsze działa w atrybutach biblioteki). */
+const GOLD = "#ebc44a";
 const GREEN = "#86efac";
 const Y_AXIS_WIDTH = 38;
 const PLOT_HEIGHT = 112;

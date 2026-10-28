@@ -132,7 +132,7 @@ function MenuRowView({
         </span>
       </span>
       {row.disabled ? (
-        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[length:var(--text-label)] font-semibold uppercase tracking-[0.12em] text-white/55">
           Wkrótce
         </span>
       ) : danger ? null : (

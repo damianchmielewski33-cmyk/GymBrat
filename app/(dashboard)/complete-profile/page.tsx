@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { AuthCard } from "@/components/auth/auth-card";
 import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
 import { AuthSessionHydrating } from "@/components/auth/auth-session-hydrating";
 import { CompleteProfileForm } from "@/components/auth/complete-profile-form";
@@ -55,7 +56,7 @@ export default async function CompleteProfilePage() {
         headline="Dokończ rejestrację"
         support="Konto Google jest połączone — uzupełnij imię, parametry ciała i aktywność, żeby dokończyć rejestrację (jak przy e-mailu)."
       />
-      <div className="glass-panel gold-panel relative overflow-hidden p-6 sm:p-8">
+      <AuthCard>
         <p className="mb-5 text-sm text-white/55">
           Rejestracja:{" "}
           <span className="font-medium text-white/85">{row.email}</span>
@@ -70,7 +71,7 @@ export default async function CompleteProfilePage() {
             activityLevel: row.activityLevel,
           }}
         />
-      </div>
+      </AuthCard>
     </div>
   );
 }

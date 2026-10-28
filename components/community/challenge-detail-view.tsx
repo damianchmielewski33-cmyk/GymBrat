@@ -102,7 +102,7 @@ export function ChallengeDetailClient({
           <div className="relative mt-4 grid grid-cols-3 gap-2">
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-center">
               <p className="text-[10px] uppercase text-white/40">XP</p>
-              <p className="font-metric text-[16px] text-[var(--gym-gold)]">
+              <p className="font-heading text-[16px] text-[var(--gym-gold)]">
                 +{challenge.rewardXp}
               </p>
             </div>
@@ -114,7 +114,7 @@ export function ChallengeDetailClient({
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-center">
               <p className="text-[10px] uppercase text-white/40">Poziom</p>
-              <p className="font-metric text-[16px] text-white">
+              <p className="font-heading text-[16px] text-white">
                 {challenge.myXp.level}
               </p>
             </div>
@@ -159,7 +159,7 @@ export function ChallengeDetailClient({
               >
                 <span
                   className={cn(
-                    "font-metric w-6 text-center text-[15px]",
+                    "font-heading w-6 text-center text-[15px]",
                     row.rank <= 3
                       ? "text-[var(--gym-gold)]"
                       : "text-white/35",
@@ -171,7 +171,7 @@ export function ChallengeDetailClient({
                   {row.displayName}
                   {row.completed ? " ✓" : ""}
                 </span>
-                <span className="font-metric shrink-0 text-sm tabular-nums text-white/70">
+                <span className="font-heading shrink-0 text-sm tabular-nums text-white/70">
                   {row.valueDisplay}
                 </span>
               </li>

@@ -4,7 +4,7 @@ import { BrandMark } from "@/components/layout/brand-mark";
 import { cn } from "@/lib/utils";
 
 export const screenKickerClass =
-  "text-[10px] font-bold uppercase tracking-wider text-white/35";
+  "text-[length:var(--text-label)] font-bold uppercase tracking-wider text-white/55";
 
 export const screenTitleClass =
   "font-heading text-2xl font-semibold text-white";
@@ -12,21 +12,22 @@ export const screenTitleClass =
 export const screenSubtitleClass = "text-sm text-white/60";
 
 export const screenLinkClass =
-  "rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
+  "rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]";
 
 export const screenCtaClass =
-  "gym-btn-primary h-11 rounded-2xl px-5 text-base focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]";
+  "gym-btn-primary h-11 rounded-2xl px-5 text-base focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]";
 export const screenInputClass =
   "min-h-11 border-white/20 bg-black/50 text-base text-white placeholder:text-white/40 sm:text-sm";
 
 /** Left-aligned dashboard page header (gold kicker + title). */
 export const appPageKickerClass =
-  "text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]";
+  "text-[length:var(--text-label)] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]";
 
 export const appPageTitleClass =
-  "font-heading text-[28px] font-semibold leading-tight tracking-tight text-white";
+  "font-heading text-[length:var(--text-title-lg)] font-semibold leading-tight tracking-tight text-white";
 
-export const appPageSubtitleClass = "text-[13px] leading-relaxed text-white/45";
+export const appPageSubtitleClass =
+  "text-[length:var(--text-body-sm)] leading-relaxed text-white/55";
 
 export function AppPageHeader({
   kicker,
@@ -55,7 +56,7 @@ export function AppPageHeader({
         <TitleTag
           className={cn(
             appPageTitleClass,
-            "text-[24px] sm:text-[28px]",
+            "text-[length:var(--text-title)] sm:text-[length:var(--text-title-lg)]",
             kicker ? "mt-1.5" : undefined,
           )}
         >
@@ -89,9 +90,9 @@ export function AppStatTile({
     <div className={cn("app-card px-3 py-3 text-center", className)}>
       <p
         className={cn(
-          "font-display text-[26px] leading-none tabular-nums",
+          "font-metric text-[length:var(--text-kpi)] leading-none tabular-nums sm:text-[26px]",
           tone === "gold" && "text-[var(--gym-gold)]",
-          tone === "mint" && "text-emerald-300",
+          tone === "mint" && "text-[var(--gym-success)]",
           tone === "muted" && "text-white/70",
         )}
       >

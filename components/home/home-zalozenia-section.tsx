@@ -203,7 +203,7 @@ export function HomeZalozeniaSection({
 
       <div className="app-card space-y-3.5 p-4">
         <div className="grid grid-cols-3 gap-2">
-          <ComplianceRing label="Dieta" pct={dietPct} tone="#e8c547" />
+          <ComplianceRing label="Dieta" pct={dietPct} tone="var(--gym-gold)" />
           <ComplianceRing label="Treningi" pct={trainingPct} tone="#7ddea0" />
           <ComplianceRing label="Cardio" pct={cardioPct} tone="#6eb5ff" />
         </div>

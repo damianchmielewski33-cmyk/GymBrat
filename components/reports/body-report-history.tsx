@@ -66,7 +66,7 @@ function TrendMark({ trend }: { trend: "up" | "down" | "flat" | "none" }) {
 function scoreColor(n: number | null | undefined): string {
   if (n == null) return "text-white/35";
   if (n >= 8) return "text-emerald-400";
-  if (n >= 6) return "text-[#d4af37]";
+  if (n >= 6) return "text-[var(--gym-gold)]";
   return "text-red-400/90";
 }
 
@@ -111,10 +111,10 @@ export function BodyReportHistory({ reports }: Props) {
   return (
     <div className="theme-black-gold rounded-3xl border border-white/[0.08] bg-[#161618] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-4 sm:px-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d4af37]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--gym-gold)]">
           Historia pomiarów
         </p>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#d4af37]/85">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]/85">
           {reports.length} {reports.length === 1 ? "raport" : "raportów"}
         </p>
       </div>
@@ -140,7 +140,7 @@ export function BodyReportHistory({ reports }: Props) {
                 className={cn(
                   "shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition",
                   view === id
-                    ? "bg-[#d4af37]/20 text-[#e8c547]"
+                    ? "bg-[var(--gym-gold)]/20 text-[var(--gym-gold)]"
                     : "text-white/45 hover:bg-white/[0.05] hover:text-white/70",
                 )}
               >
@@ -255,7 +255,7 @@ function MetricCell({
 }) {
   return (
     <td className="px-3 py-3 tabular-nums">
-      <span className={cn("font-semibold", highlight ? "text-[#d4af37]" : "text-white/90")}>
+      <span className={cn("font-semibold", highlight ? "text-[var(--gym-gold)]" : "text-white/90")}>
         {fmtNum(value)}
       </span>
       {delta.trend !== "none" ? (

@@ -52,7 +52,7 @@ export function HomeCardioProgressStrip({
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
             Cardio · ten tydzień
           </p>
-          <p className="mt-0.5 font-metric text-[15px] leading-none tabular-nums text-white">
+          <p className="mt-0.5 font-heading text-[15px] leading-none tabular-nums text-white">
             <span className="text-[var(--gym-gold)]">{mins}</span>
             <span className="text-white/35"> / {weeklyGoal} min</span>
           </p>

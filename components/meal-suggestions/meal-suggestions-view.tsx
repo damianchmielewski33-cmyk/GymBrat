@@ -164,7 +164,7 @@ function dayKindButtonClass(active: boolean) {
   return cn(
     "rounded-full border px-3.5 py-2 text-[12px] backdrop-blur-md transition-[border-color,background-color,box-shadow,color] duration-200",
     active
-      ? "border-[#DDBB6D]/50 bg-[#DDBB6D]/16 font-semibold text-[#DDBB6D] shadow-[0_0_20px_rgba(221,187,109,0.22)]"
+      ? "border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/16 font-semibold text-[var(--gym-gold)] shadow-[0_0_20px_rgba(221,187,109,0.22)]"
       : "border-white/[0.1] bg-white/[0.03] font-medium text-white/50",
   );
 }
@@ -456,7 +456,7 @@ export function MealSuggestionsView({
                   transition={{ duration: 0.25, delay: 0 }}
                   className={cn(
                     appPageKickerClass,
-                    "tracking-[0.16em] text-[#DDBB6D]/85",
+                    "tracking-[0.16em] text-[var(--gym-gold)]/85",
                   )}
                 >
                   Dziś zostało
@@ -486,7 +486,7 @@ export function MealSuggestionsView({
                 <p
                   className={cn(
                     appPageKickerClass,
-                    "tracking-[0.18em] text-[#DDBB6D]/85",
+                    "tracking-[0.18em] text-[var(--gym-gold)]/85",
                   )}
                 >
                   Co jesz

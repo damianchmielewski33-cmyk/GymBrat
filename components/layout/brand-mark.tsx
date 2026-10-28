@@ -34,7 +34,7 @@ export function BrandMark({
     "inline-flex max-w-full flex-col rounded-sm font-display font-normal uppercase leading-[0.85] text-[var(--neon)]",
     s.wrap,
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
-    "focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]/80",
+    "focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]/80",
     className,
   );
   const content = logoUrl ? (

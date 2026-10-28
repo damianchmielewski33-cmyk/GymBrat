@@ -54,15 +54,15 @@ export function ReportSubmitPopup({ phase, summary, onClose }: Props) {
         {phase === "saving" ? (
           <div className="flex flex-col items-center px-2 py-6 text-center">
             <div
-              className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[#d4af37]/35 bg-[#d4af37]/10"
+              className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10"
               style={{ boxShadow: "0 0 28px rgba(212,175,55,0.28)" }}
             >
               <Loader2
-                className="h-8 w-8 animate-spin text-[#e8c547]"
+                className="h-8 w-8 animate-spin text-[var(--gym-gold)]"
                 aria-hidden
               />
               <span
-                className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-[#d4af37]/15"
+                className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-[var(--gym-gold)]/15"
                 aria-hidden
               />
             </div>
@@ -135,7 +135,7 @@ export function ReportSubmitPopup({ phase, summary, onClose }: Props) {
                 render={
                   <Button
                     type="button"
-                    className="h-11 min-w-[8rem] rounded-2xl bg-gradient-to-b from-[#f0d56a] via-[#d4af37] to-[#b8922a] font-bold text-[#0a0906] hover:brightness-110"
+                    className="h-11 min-w-[8rem] rounded-2xl bg-gradient-to-b from-[#f0d56a] via-[var(--gym-gold)] to-[var(--gym-gold-deep)] font-bold text-[#0a0906] hover:brightness-110"
                   />
                 }
               >
