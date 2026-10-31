@@ -7,7 +7,9 @@ import {
   LOGIN_RATE_LIMITED_CODE,
   SESSION_EXPIRED_PARAM,
 } from "@/lib/auth-error-codes";
-import { Button } from "@/components/ui/button";
+import { safeCallbackPath } from "@/lib/safe-callback-url";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
@@ -43,7 +45,7 @@ export function LoginForm({
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const callbackUrl = params.get("callbackUrl") ?? "/";
+  const callbackUrl = safeCallbackPath(params.get("callbackUrl"));
   const registered = params.get("registered");
   const oauthExisting = params.get("oauth") === "existing";
   const trainerEnabled = isTrainerFlowEnabled();
@@ -57,6 +59,10 @@ export function LoginForm({
     () => params.get("session") === SESSION_EXPIRED_PARAM,
   );
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
   const [pending, start] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -128,6 +134,20 @@ export function LoginForm({
         const fd = new FormData(e.currentTarget);
         const email = String(fd.get("email") ?? "");
         const password = String(fd.get("password") ?? "");
+        // Puste pola łapiemy w przeglądarce — nie zużywamy limitu prób logowania na serwerze.
+        const nextFieldErrors: { email?: string; password?: string } = {};
+        if (!email.trim()) nextFieldErrors.email = "Wpisz adres e-mail.";
+        else if (!/^\S+@\S+\.\S+$/.test(email.trim()))
+          nextFieldErrors.email = "Wpisz poprawny adres e-mail.";
+        if (!password) nextFieldErrors.password = "Wpisz hasło.";
+        setFieldErrors(nextFieldErrors);
+        if (nextFieldErrors.email || nextFieldErrors.password) {
+          setError(null);
+          document
+            .getElementById(nextFieldErrors.email ? "email" : "password")
+            ?.focus();
+          return;
+        }
         setError(null);
         setOauthError(null);
         setSessionExpired(false);
@@ -152,7 +172,9 @@ export function LoginForm({
                 return;
               }
               setError(
-                "Nieprawidłowy e-mail lub hasło, albo typ konta (zawodnik / trener) nie zgadza się z profilem.",
+                trainerEnabled
+                  ? "Nieprawidłowy e-mail lub hasło, albo typ konta (zawodnik / trener) nie zgadza się z profilem."
+                  : "Nieprawidłowy e-mail lub hasło. Sprawdź dane i spróbuj ponownie.",
               );
               return;
             }
@@ -176,6 +198,15 @@ export function LoginForm({
         });
       }}
     >
+      <div className="space-y-1">
+        <h2 className="font-heading text-2xl font-semibold tracking-tight text-white">
+          Zaloguj się
+        </h2>
+        <p className="text-sm text-white/55">
+          Wróć do swoich planów i historii treningów.
+        </p>
+      </div>
+
       {oauthError ? (
         <InlineBanner role="alert" variant="error">
           {oauthError}
@@ -237,23 +268,42 @@ export function LoginForm({
         </div>
       ) : null}
       <div className="space-y-2">
-        <Label htmlFor="email">
-          Email
-        </Label>
+        <Label htmlFor="email">E-mail</Label>
         <Input
           id="email"
           name="email"
           type="email"
+          inputMode="email"
           required
-          autoComplete="email"
-          aria-invalid={error ? true : undefined}
-          aria-describedby={hasBanner ? "login-banner" : undefined}
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          placeholder="twoj@email.pl"
+          aria-invalid={error || fieldErrors.email ? true : undefined}
+          aria-describedby={
+            fieldErrors.email
+              ? "email-error"
+              : hasBanner
+                ? "login-banner"
+                : undefined
+          }
         />
+        {fieldErrors.email ? (
+          <p id="email-error" className="text-xs text-red-100">
+            {fieldErrors.email}
+          </p>
+        ) : null}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">
-          Hasło
-        </Label>
+        <div className="flex items-baseline justify-between gap-3">
+          <Label htmlFor="password">Hasło</Label>
+          <Link
+            href="/forgot-password"
+            className="rounded-sm text-xs text-white/65 underline-offset-4 hover:text-[var(--neon)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+          >
+            Nie pamiętasz hasła?
+          </Link>
+        </div>
         <div className="relative">
           <Input
             id="password"
@@ -261,8 +311,14 @@ export function LoginForm({
             type={showPassword ? "text" : "password"}
             required
             autoComplete="current-password"
-            aria-invalid={error ? true : undefined}
-            aria-describedby={hasBanner ? "login-banner" : undefined}
+            aria-invalid={error || fieldErrors.password ? true : undefined}
+            aria-describedby={
+              fieldErrors.password
+                ? "password-error"
+                : hasBanner
+                  ? "login-banner"
+                  : undefined
+            }
             className="pr-12"
           />
           <button
@@ -279,6 +335,11 @@ export function LoginForm({
             )}
           </button>
         </div>
+        {fieldErrors.password ? (
+          <p id="password-error" className="text-xs text-red-100">
+            {fieldErrors.password}
+          </p>
+        ) : null}
       </div>
       <Button
         type="submit"
@@ -293,15 +354,18 @@ export function LoginForm({
             ? "Zaloguj się jako trener"
             : "Zaloguj się"}
       </Button>
-      <p className="text-center text-sm text-white/55">
-        Nie masz konta?{" "}
+      <div className="space-y-3 border-t border-white/10 pt-5">
+        <p className="text-center text-sm text-white/60">Pierwszy raz w GymBrat?</p>
         <Link
           href={registerHref}
-          className="rounded-sm text-[var(--neon)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "h-11 w-full border-white/20 bg-white/[0.04] font-semibold text-white hover:bg-white/[0.08]",
+          )}
         >
           Utwórz konto
         </Link>
-      </p>
+      </div>
       <p className="text-center text-[13px] text-white/65">
         <Link href="/regulamin" className="underline-offset-2 hover:underline">
           Regulamin

@@ -5,5 +5,5 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AuthPageFrame>{children}</AuthPageFrame>;
+  return <AuthPageFrame variant="auth">{children}</AuthPageFrame>;
 }

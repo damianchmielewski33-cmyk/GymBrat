@@ -349,14 +349,17 @@ Kolumna "Bazuje na" wskazuje istniejący moduł, co wymusza zasadę "rozszerzaj,
 | Rotacja tygodniowych misji i wyzwań (US-8) | Must | szablony misji (5) i wyzwań (6) | Harmonogram (sposób do decyzji `architekt`) |
 | Kontrola widoczności wyniku (US-15, BR-9, BR-10) | Must | `userSocialProfiles`, `teams.ts` (privacy) | Ustawienie "ukryj w rankingu" i nowe domyślne; wymaga `prawnik` |
 | Ranking względny, bez ciężarów bezwzględnych (US-16, BR-3, BR-12) | Must | `fcs.ts` | Zasada prezentacji i weryfikacja danych w rankingach |
+| **Zgoda lidera na udostępnienie ducha treningowego (US-21, BR-13, BR-14)** | **Must** | `lib/ghost-training/targets.ts` (ścieżka `leader`) | **Naprawa defektu prywatności** (sekcja 17.2): flaga zgody + payload ograniczony do progresu względnego. Warunek wstępny przed szerszym użyciem ducha w hubie. |
 | Pierścienie tygodnia: trening i cardio (US-3) | Should (MVP jeśli czas) | `user_settings` (cel cardio, cel treningów), `lib/cardio.ts` (po D9) | Widget i reguła celu |
 | Seria tygodni (US-4) | Should | komponent `streak` w FCS, post `streak` | Licznik i komunikat |
 | Gratulacje w tablicy (US-12) | Should | `team_posts` typ `personal_record`, reakcje | Oznaczenie i limit zbiorczy |
 | Powiadomienia o wyprzedzeniu i odznace kolegi (US-13) | Should | `notifications.ts`, `group_key` | Nowy rodzaj zdarzenia |
+| **Cotygodniowe podsumowanie (US-20)** | **Should** | wzorzec leniwej rotacji (ADR 0011), `notifications.ts` | **Nowy rodzaj powiadomienia `weekly_digest`, bez migracji (kolumna `kind` to wolny tekst)** |
+| **Odznaka za pierwszy wspólny trening grupowy (US-19)** | **Could** | `group-workout.ts`, `user_badges` | **Nowe zdarzenie nagrody po zakończeniu sesji grupowej (idempotentnie po `sourceKey`)** |
 | Wyzwanie dopasowane do poziomu (US-9) | Should | szablony wyzwań, `challenges.ts` | Progi zależne od poziomu |
 | Liga zespołu na hubie (US-11) | Should | `team-wars.ts`, `wars-hub` | Karta na hubie |
 | Rzadkość odznak (US-6) | Should | `user_badges` | Agregacja z progiem N i cache |
-| Pojedynek 1 na 1 ze znajomym (US-10) | Should (v1.1) | `friendships`, silnik wyzwań | Nowy typ wyzwania i rozliczenie |
+| **Pojedynek 1 na 1 ze znajomym przez ducha (US-10, US-17, US-18)** | Should (v1.1) | `friendships.ts`, **`lib/ghost-training/` (deltas, predict) — rozszerzenie zamiast nowego systemu (sekcja 17.3)** | Tabela pojedynków, rozliczenie XP (BR-15), nowy rodzaj powiadomienia `duel_result` |
 | Gratulacje i rekordy w tablicy (ranking ćwiczenia względny) | Could | `personal_record`, `e1RM` | Ranking per ćwiczenie |
 | Udostępnianie karty wyniku (obraz bez danych wrażliwych) | Could | - | Nowa funkcja; `prawnik` przed wdrożeniem |
 | Sezon z przepustką (nagrody za poziom sezonu) | Could | `user_season_xp`, `progression-rewards.ts` | Ścieżka nagród |
@@ -372,8 +375,13 @@ Kolumna "Bazuje na" wskazuje istniejący moduł, co wymusza zasadę "rozszerzaj,
 1. Widoczność istniejących sygnałów (XP, miejsce, liga) na stronie grupy. Najszybszy wpływ na "wow" i najmniejsze ryzyko, bo dane już są.
 2. Katalog odznak z progresem i rotacja misji. Dają pętlę "zdobądź i wróć".
 3. Kontrola widoczności i ranking względny. Warunek wstępny dla wdrożenia 1 i 2 w produkcji (prawo i zaufanie).
-4. Pierścienie i serie tygodni. Najlepsza wizualnie zmiana, ale zależy od D9.
-5. Rywalizacja 1 na 1 i powiadomienia (v1.1).
+4. **Naprawa zgody lidera w duchu treningowym (US-21).** Istniejący defekt prywatności, niezależny od reszty — można i warto zrobić równolegle z punktem 3, tym samym wzorcem zgody.
+5. Pierścienie i serie tygodni. Najlepsza wizualnie zmiana, ale zależy od D9.
+6. **Cotygodniowe podsumowanie (US-20).** Tanie (bez migracji), wysoki wpływ na powrót w poniedziałek — kandydat do przesunięcia wyżej, jeśli właściciel chce szybki efekt retencyjny małym kosztem.
+7. **Odznaka za wspólny trening (US-19).** Tanie, wzmacnia więź w grupie równolegle z punktem 2.
+8. Rywalizacja 1 na 1 przez ducha (US-10/17/18) i powiadomienia o pojedynku (v1.1).
+
+Pełne uzasadnienie i kryteria akceptacji dla punktów 4, 6-8: sekcja 17.
 
 ---
 
@@ -506,3 +514,77 @@ Maksymalnie 5 pytań dla właściciela. Przy każdym przyjęte założenie, jeś
 ---
 
 Werdykt etapu 1: **ZATWIERDZONE**. Analiza kompletna. Pytania Q1-Q5 otwarte z założeniami. Kluczowe ryzyko do potwierdzenia przed projektem: ścieżka zapisu treningu przez backend Java (sekcja 11, pkt 1) oraz brak baseline'u użycia.
+
+---
+
+## 17. Rozszerzenie: znajomi, duch treningowy, powiadomienia
+
+Dopisane na polecenie właściciela 2026-10-31 — po zmianie konfiguracji repozytorium (pojedynczy agent `webdev`, bez formalnych bramek zespołu). Ten dodatek nie ma osobnego werdyktu bramek `prawnik`/`architekt`/`ux` — traktować jako rozszerzoną analizę, do uwzględnienia razem z resztą dokumentu przy ewentualnej implementacji.
+
+### 17.1 Stan obecny (potwierdzone w kodzie)
+
+| Obszar | Co działa | Gdzie widać | Luka / ryzyko |
+|---|---|---|---|
+| Znajomi (`friendships.ts`) | Relacja wymaga akceptacji obu stron; udostępnianie treningu na żywo wymaga osobnej, **wzajemnej** zgody (`shareWorkoutA`/`shareWorkoutB`, oba muszą być 1) | `/community/friends` | Model zgody poprawny, zgodny z wymogiem opt-in ustalonym przez `prawnik` w etapie 2. Nic do naprawy. |
+| Wspólny trening (`group-workout.ts`) | Sesja jawnie tworzona (`createGroupWorkoutSession`) i dołączana (`join`), nie automatyczny broadcast; presence pokazuje ćwiczenie/serię/ciężar/tempo uczestnikom sesji | Sekcja "Aktywne treningi" na stronie grupy | Brak powiązania z pętlą motywacyjną huba (brak CTA, brak nagrody XP/odznaki za wspólny trening). |
+| Duch treningowy (`lib/ghost-training/`) | 3 źródła: `self` (własny poprzedni trening), `friend` (trening znajomego — **wymaga** wzajemnej zgody udostępniania, sprawdzone w `targets.ts` `loadGhostTimelineForTarget`), `leader` (trening lidera rankingu FCS grupy) | `ghost-race-hud.tsx`, `ghost-picker-sheet.tsx` w aktywnym treningu | **Defekt (sekcja 17.2):** ścieżka `leader` pokazuje cały timeline treningu lidera — łącznie z bezwzględnym ciężarem na serię (`GhostCheckpoint.weight`) — każdemu członkowi zespołu, **bez żadnej zgody lidera**. Koliduje z BR-3/BR-9/BR-12. |
+| Powiadomienia (`notification-types.ts`) | 10 rodzajów (comment, reaction, invite, achievement, challenge, live, friend_live, ranking, hall_of_fame, team_announcement); kolumna `kind` w `notifications` to wolny `text` (**bez migracji** przy dodaniu nowego rodzaju — potwierdzone w `db/schema.ts:2082`); grupowanie `group_key`, okno ~2h | `/community/notifications`, dzwonek | Rodzaj `ranking` pokrywa już ideę US-13 ("wyprzedzono Cię"). Brakuje rodzajów wspierających nową pętlę: cotygodniowe podsumowanie, wynik pojedynku z duchem, zaproszenie do pojedynku. |
+
+### 17.2 Defekt: duch lidera bez zgody (do naprawy przed rozszerzeniem Team)
+
+`lib/ghost-training/targets.ts`, funkcja `loadGhostTimelineForTarget`, gałąź `kind === "leader"` (ok. linii 137-155): sprawdza tylko wspólne członkostwo w zespole, nie zgodę lidera. W efekcie każdy członek grupy może pobrać pełny przebieg treningu lidera — co do serii, ciężaru, powtórzeń — bez jego wiedzy i zgody. To sprzeczne z modelem opt-in, który `prawnik` narzucił w etapie 2 dla reszty funkcji Team (widoczność wyniku), oraz z BR-3/BR-12 (zakaz ciężarów bezwzględnych w udostępnianych widokach bez zgody).
+
+**Rekomendacja naprawy (dwuczęściowa, niezależna od reszty redesignu — można wdrożyć osobno jako hotfix):**
+1. Lider musi świadomie włączyć udostępnianie swojego ducha (nowa flaga zgody, analogiczna do `shareWorkoutA/B` w `friendships`, np. per-zespół w `team_members` albo w `user_social_profiles`). Domyślnie wyłączone.
+2. Nawet po zgodzie, payload ducha pokazywany **innej osobie niż właściciel** nie powinien zawierać surowego ciężaru — tylko progres względny (tempo, % ukończenia, delta czasu), zgodnie z zasadą używaną już w rankingu FCS. Bezwzględny ciężar zostaje tylko w widoku właściciela danych.
+
+### 17.3 Duch jako fundament pod pojedynek 1:1 (US-10)
+
+Silnik ducha (`deltas.ts`, `predict.ts`) już liczy różnicę czasu, serii, objętości i przewidywany wynik (`"winning" | "trailing" | "neck"`) względem źródła — to **w praktyce gotowy silnik pojedynku**, brakuje mu tylko: (1) formalnego rekordu wyzwania z okresem i statusem, (2) rozliczenia wyniku w XP/odznaczu, (3) osobnej zgody na pojedynek (różnej od ogólnej zgody "udostępniaj mi trening na żywo").
+
+**Rekomendacja:** rozszerzyć istniejący mechanizm ducha o rozliczenie, zamiast budować nowy system pojedynków od zera. Nowa, mała tabela (`team_duels` lub `friend_duels`): wyzywający, przeciwnik, status (pending/active/completed/declined), okres (7 dni, zgodnie z Z4/BR-4), rozliczenie przez istniejący wzorzec `sourceKey` UNIQUE (jak XP). Koszt wdrożenia wyraźnie niższy niż nowy system od zera.
+
+### 17.4 Nowe user stories
+
+**US-17 Wyzwanie ducha znajomego (Should, v1.1)**
+Jako osoba ćwicząca chcę wyzwać znajomego na pojedynek oparty o mój/jego ostatni trening, aby mieć osobistego rywala bez czekania na nowy system.
+- AC-17.1: Given wzajemna zgoda udostępniania (istniejąca `shareWorkoutA/B`), When wysyłam wyzwanie z profilu znajomego lub z `ghost-picker-sheet`, Then druga strona dostaje powiadomienie i może zaakceptować/odrzucić.
+- AC-17.2: Given pojedynek trwający 7 dni, When oba treningi się kończą, Then wygrywa wynik względny (jak w US-16, nie ciężar bezwzględny).
+
+**US-18 Powiadomienie o wyniku pojedynku z duchem (Should)**
+Jako osoba ćwicząca chcę dostać powiadomienie, gdy wygram lub przegram pojedynek, aby wrócić i sprawdzić wynik.
+- Nowy rodzaj powiadomienia `duel_result` — bez migracji schematu (kolumna `kind` to wolny tekst).
+
+**US-19 Odznaka za pierwszy wspólny trening grupowy (Could)**
+Jako członek grupy chcę dostać odznakę za pierwszy wspólny trening (`group-workout`), aby czuć, że wspólne ćwiczenie ma wartość.
+- AC-19.1: Given ukończona sesja grupowa z ≥2 aktywnymi uczestnikami, When sesja się kończy, Then każdy uczestnik dostaje odznakę "Razem" raz (idempotentnie po `sourceKey` sesji).
+
+**US-20 Cotygodniowe podsumowanie (Should)**
+Jako osoba ćwicząca chcę dostać w niedzielę wieczorem podsumowanie tygodnia w zespole (pierścienie, miejsce w rankingu, zbliżająca się seria), aby wiedzieć, czy coś jeszcze mogę dociągnąć.
+- Nowy rodzaj powiadomienia `weekly_digest`, generowany leniwie (ten sam wzorzec co rotacja misji w ADR 0011), bez nowej usługi/crona.
+
+**US-21 Zgoda lidera na udostępnienie ducha (Must — naprawia defekt 17.2)**
+Jako lider rankingu grupy chcę decydować, czy inni mogą ścigać się z moim duchem, aby nie ujawniać swojego treningu bez zgody.
+- AC-21.1: Given brak zgody lidera, When członek grupy otwiera listę celów ducha, Then opcja "lider" nie jest widoczna.
+- AC-21.2: Given zgoda lidera udzielona, When inny członek ściga się z duchem lidera, Then widzi tylko progres względny, nie surowy ciężar.
+
+### 17.5 Nowe reguły biznesowe
+
+- **BR-13** Duch źródła `leader` wymaga osobnej, jawnej zgody lidera; bez zgody ścieżka jest niedostępna (naprawia defekt 17.2).
+- **BR-14** Payload ducha pokazywany komuś innemu niż właściciel danych zawiera tylko progres względny (czas, % ukończenia, delta), nigdy surowy ciężar/powtórzenia źródła — spójne z BR-3/BR-12.
+- **BR-15** Rozliczenie pojedynku (US-17) jest idempotentne, tym samym wzorcem `sourceKey` co reszta nagród XP (BR-5).
+- **BR-16** Nowe rodzaje powiadomień (`duel_result`, `weekly_digest`) nie wymagają migracji schematu (kolumna `kind` jest wolnym tekstem) — tylko rozszerzenia `NOTIFICATION_KINDS` w `notification-types.ts`.
+
+### 17.6 Co jeszcze warto dodać (odpowiedź na pytanie właściciela)
+
+Uszeregowane wg stosunku efektu do kosztu wdrożenia (taniej = bliżej góry):
+
+1. **Cotygodniowe podsumowanie (US-20).** Najtańsze (wolna kolumna `kind`, istniejący wzorzec leniwego uruchomienia z ADR 0011) i to dokładnie mechanizm, który w Strava/Apple Fitness najbardziej napędza powrót w poniedziałek.
+2. **Odznaka za wspólny trening (US-19).** Tanie — dane sesji grupowej już istnieją, brakuje tylko zdarzenia nagrody. Wzmacnia więź w grupie, nie tylko rywalizację.
+3. **Pojedynek przez ducha (US-17/18) zamiast nowego systemu.** Średni koszt, ale redukuje pracę nad US-10 z "nowy system od zera" do "rozszerzenie istniejącego silnika o rozliczenie" — to największa dźwignia w tej turze.
+4. **Naprawa zgody lidera (US-21/BR-13-14).** Nie jest to "nice to have" tylko wymagane przed jakimkolwiek szerszym użyciem ducha w hubie — inaczej rozszerzamy funkcję na defekcie prywatności.
+5. *(Could, z sekcji 9)* Karta wyniku tygodnia do udostępnienia poza aplikację — teraz bardziej uzasadniona, bo silnik ducha i FCS już dostarczają gotowe dane progresu względnego do wizualizacji, bez dodatkowej logiki liczącej.
+
+### 17.7 Aktualizacja zakresu MVP/v1.1
+
+Te 4 pozycje (US-21, US-20, US-19, US-17/18) są **wpisane bezpośrednio do głównej tabeli zakresu — sekcja 9** — i do priorytetyzacji MVP tamże (punkty 4, 6-8), żeby nie było dwóch rozbieżnych list. Uzasadnienie kosztu/efektu każdej pozycji: sekcja 17.6 wyżej.

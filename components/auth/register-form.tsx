@@ -9,6 +9,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   ChevronLeft,
+  Eye,
+  EyeOff,
   FlaskConical,
   Mail,
   MailX,
@@ -161,7 +163,15 @@ export function RegisterForm({
   const router = useRouter();
   const { update: updateSession, status: sessionStatus } = useSession();
   const steps = oauthContinue ? OAUTH_STEPS : STEPS;
-  const [stepIndex, setStepIndex] = useState(0);
+  // Tylko e-mail → ekran wyboru metody miałby jeden przycisk; zaczynamy od razu od formularza.
+  const emailOnly =
+    !oauthContinue &&
+    !availability.blocked &&
+    availability.emailMode !== "disabled" &&
+    !availability.google &&
+    !availability.facebook;
+  const firstStepIndex = emailOnly ? 1 : 0;
+  const [stepIndex, setStepIndex] = useState(firstStepIndex);
   const step = steps[stepIndex]!;
   const [rootError, setRootError] = useState<string | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -232,6 +242,7 @@ export function RegisterForm({
   const emailValue = watch("email");
   const emailCodeValue = watch("emailCode");
   const weeklySessionsTarget = Number(watch("weeklySessionsTarget") || 4);
+  const [showPassword, setShowPassword] = useState(false);
   const [codeInfo, setCodeInfo] = useState<string | null>(null);
   const [sendingCode, setSendingCode] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
@@ -272,7 +283,8 @@ export function RegisterForm({
           support: welcome.support,
         }
       : STEP_COPY[step];
-  const progress = ((stepIndex + 1) / steps.length) * 100;
+  const progress =
+    ((stepIndex + 1 - firstStepIndex) / (steps.length - firstStepIndex)) * 100;
 
   async function goNext() {
     setRootError(null);
@@ -297,9 +309,9 @@ export function RegisterForm({
 
   function goBack() {
     setRootError(null);
-    if (stepIndex <= 0) return;
+    if (stepIndex <= firstStepIndex) return;
     setDirection(-1);
-    setStepIndex((i) => Math.max(0, i - 1));
+    setStepIndex((i) => Math.max(firstStepIndex, i - 1));
   }
 
   function jumpBackTo(target: StepId) {
@@ -510,9 +522,9 @@ export function RegisterForm({
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
-                {copy.kicker} · {stepIndex + 1}/{steps.length}
+                Krok {stepIndex + 1 - firstStepIndex} z {steps.length - firstStepIndex}
               </p>
-              {stepIndex > 0 ? (
+              {stepIndex > firstStepIndex ? (
                 <button
                   type="button"
                   onClick={goBack}
@@ -793,19 +805,34 @@ export function RegisterForm({
             {step === "password" ? (
               <div className="space-y-2">
                 <Label htmlFor="password">Hasło</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="new-password"
-                  autoFocus
-                  aria-invalid={errors.password ? true : undefined}
-                  ref={(el) => {
-                    passwordRef.current = el;
-                    passwordRhfRef(el);
-                  }}
-                  className={cn(errors.password && "border-destructive")}
-                  {...passwordRegister}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    autoFocus
+                    aria-invalid={errors.password ? true : undefined}
+                    ref={(el) => {
+                      passwordRef.current = el;
+                      passwordRhfRef(el);
+                    }}
+                    className={cn("pr-12", errors.password && "border-destructive")}
+                    {...passwordRegister}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-1 top-1/2 flex h-9 min-w-9 -translate-y-1/2 items-center justify-center rounded-md text-white/60 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)]"
+                    aria-label={showPassword ? "Ukryj hasło" : "Pokaż hasło"}
+                    aria-pressed={showPassword}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" aria-hidden />
+                    ) : (
+                      <Eye className="h-4 w-4" aria-hidden />
+                    )}
+                  </button>
+                </div>
                 {errors.password ? (
                   <p className="text-xs text-red-100">
                     {errors.password.message}
