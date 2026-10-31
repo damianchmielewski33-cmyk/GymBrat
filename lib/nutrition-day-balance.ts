@@ -92,15 +92,6 @@ export type MacroBalanceViewModel = {
   goalsAnnotation: string | null;
 };
 
-export type DayMacroBalance = {
-  dateKey: string;
-  headline: string;
-  isToday: boolean;
-  hasFood: boolean;
-  macros: MacroBalance[];
-  highlights: MacroBalance[];
-};
-
 export type PeriodMacroBalance = {
   macros: MacroBalance[];
   highlights: MacroBalance[];
@@ -110,18 +101,13 @@ export type PeriodMacroBalance = {
 const MACRO_META: {
   key: MacroKey;
   label: string;
-  shortLabel: string;
   unit: "g" | "kcal";
 }[] = [
-  { key: "calories", label: "Kalorie", shortLabel: "KCAL", unit: "kcal" },
-  { key: "protein", label: "Białko", shortLabel: "BIAŁKO", unit: "g" },
-  { key: "carbs", label: "Węglowodany", shortLabel: "WĘGLE", unit: "g" },
-  { key: "fat", label: "Tłuszcz", shortLabel: "TŁUSZCZ", unit: "g" },
+  { key: "calories", label: "Kalorie", unit: "kcal" },
+  { key: "protein", label: "Białko", unit: "g" },
+  { key: "carbs", label: "Węglowodany", unit: "g" },
+  { key: "fat", label: "Tłuszcz", unit: "g" },
 ];
-
-export function macroShortLabel(key: MacroKey): string {
-  return MACRO_META.find((m) => m.key === key)?.shortLabel ?? key;
-}
 
 function dayConsumedGoal(
   row: WeekDayNutritionRow,
@@ -141,12 +127,11 @@ function dayConsumedGoal(
 
 /**
  * Próg „w normie”: |Δ%| ≤ MACRO_TOLERANCE_PP albo |Δ| poniżej 1 jednostki.
- * Q-O3: nadwyżka węgli w dniu treningowym nadal jest surplus (neutralny ton w UI).
+ * Nadwyżka = surplus (ton komunikatu to sprawa UI).
  */
 export function classifyMacroBalance(
   delta: number | null,
   deltaPct: number | null,
-  _opts?: { dayType?: NutritionDayType; key?: MacroKey },
 ): MacroBalance["status"] {
   if (delta == null || deltaPct == null) return "no_goal";
   if (Math.abs(delta) < 1 || Math.abs(deltaPct) <= MACRO_TOLERANCE_PP) {
@@ -168,7 +153,7 @@ export function buildMacroBalance(
   consumed: number,
   goal: number | null,
   meta: { key: MacroKey; label: string; unit: "g" | "kcal" },
-  opts?: { dayType?: NutritionDayType; isPartial?: boolean },
+  opts?: { isPartial?: boolean },
 ): MacroBalance {
   const safeConsumed = Number.isFinite(consumed) ? consumed : 0;
   if (goal == null || !(goal > 0)) {
@@ -191,10 +176,7 @@ export function buildMacroBalance(
   const pct = adherencePct(safeConsumed, goal);
   const deltaPct =
     pct == null ? null : Math.round((safeConsumed / goal - 1) * 100);
-  const status = classifyMacroBalance(delta, deltaPct, {
-    dayType: opts?.dayType,
-    key: meta.key,
-  });
+  const status = classifyMacroBalance(delta, deltaPct);
   return {
     key: meta.key,
     label: meta.label,
@@ -278,7 +260,6 @@ export function buildDayCardViewModel(
   const macros = MACRO_META.map((meta) => {
     const { consumed, goal } = dayConsumedGoal(row, meta.key);
     return buildMacroBalance(consumed, goal, meta, {
-      dayType: row.dayType,
       isPartial: hasIncompleteData,
     });
   });
@@ -304,39 +285,6 @@ export function buildDayCardViewModel(
   };
 }
 
-/** @deprecated prefer buildDayCardViewModel — zostawione dla starszych testów. */
-export function buildDayMacroBalance(
-  row: WeekDayNutritionRow,
-  todayKey: string,
-): DayMacroBalance {
-  const card = buildDayCardViewModel(row, todayKey);
-  return {
-    dateKey: card.dateKey,
-    headline: card.headline,
-    isToday: row.dateKey === todayKey,
-    hasFood: row.entryCount > 0,
-    macros: card.macros,
-    highlights: card.deviations,
-  };
-}
-
-/** Dni od poniedziałku do dziś (włącznie), bez przyszłości. */
-export function daysThroughToday(
-  rows: WeekDayNutritionRow[],
-  todayKey: string,
-): WeekDayNutritionRow[] {
-  return rows.filter((r) => r.dateKey <= todayKey);
-}
-
-export function buildDaysMacroBalance(
-  rows: WeekDayNutritionRow[],
-  todayKey: string,
-): DayMacroBalance[] {
-  return daysThroughToday(rows, todayKey).map((r) =>
-    buildDayMacroBalance(r, todayKey),
-  );
-}
-
 /** Suma spożycia i celów pn→dziś (ADR: only_if_consumed, bez no_entries). */
 export function buildPeriodMacroBalance(
   rows: WeekDayNutritionRow[],
@@ -352,8 +300,19 @@ export function buildPeriodMacroBalance(
       includeInProgressGoal: "only_if_consumed",
     });
     const balance = buildMacroBalance(r.consumed, r.goal, meta);
+    // Dziś w toku wlicza pełny cel dnia: status z dni zamkniętych, by nie sugerować „brakuje”.
+    // Bez zamkniętych dni nie ma jeszcze czego oceniać — status neutralny.
+    const partial = r.goalToday > 0;
+    const closedStatus: MacroBalance["status"] = !partial
+      ? balance.status
+      : r.goalClosed > 0
+        ? buildMacroBalance(r.consumedClosed, r.goalClosed, meta).status
+        : "on_track";
     return {
       ...balance,
+      status: closedStatus,
+      direction: directionFromStatus(closedStatus),
+      isPartial: partial,
       consumedClosed: r.consumedClosed,
       consumedToday: r.consumedToday,
       goalClosed: r.goalClosed,
@@ -368,22 +327,6 @@ export function buildPeriodMacroBalance(
     ),
     daysCounted: window.daysEvaluated,
   };
-}
-
-/** Odchylenia tylko z zamkniętych dni z wpisami (AU-4). */
-export function collectDayHighlights(
-  days: DayMacroBalance[],
-): { day: DayMacroBalance; macro: MacroBalance }[] {
-  const ordered = [...days]
-    .filter((d) => !d.isToday && d.hasFood)
-    .sort((a, b) => b.dateKey.localeCompare(a.dateKey));
-  const out: { day: DayMacroBalance; macro: MacroBalance }[] = [];
-  for (const day of ordered) {
-    for (const macro of day.highlights) {
-      out.push({ day, macro });
-    }
-  }
-  return out;
 }
 
 function buildTrendDays(
@@ -535,28 +478,4 @@ export function plOdchylenia(n: number): string {
     return `${n} odchylenia`;
   }
   return `${n} odchyleń`;
-}
-
-export function dayRelativeLabel(
-  day: { dateKey: string; isToday?: boolean; headline?: string },
-  todayKey: string,
-): string {
-  if (day.isToday || day.dateKey === todayKey) return "Dziś";
-  const y = new Date(`${todayKey}T12:00:00`);
-  y.setDate(y.getDate() - 1);
-  const yKey = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, "0")}-${String(y.getDate()).padStart(2, "0")}`;
-  if (day.dateKey === yKey) return "Wczoraj";
-  try {
-    return new Intl.DateTimeFormat("pl-PL", { weekday: "long" })
-      .format(new Date(`${day.dateKey}T12:00:00`))
-      .replace(/^./, (c) => c.toUpperCase());
-  } catch {
-    return day.headline ?? day.dateKey;
-  }
-}
-
-export function highlightVerb(status: MacroBalance["status"]): string {
-  if (status === "deficit") return "brakuje";
-  if (status === "surplus") return "ponad cel";
-  return "w normie";
 }

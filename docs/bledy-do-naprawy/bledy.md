@@ -42,6 +42,8 @@ Nowe pozycje dopisuje koordynator na końcu właściwej sekcji (albo nowej, jeś
 | ~~Tonaż hub vs historia~~ **ZROBIONE**: hub używa `computeWorkoutDetails` + `countPerformedSets` | `lib/treningi-hub-stats.ts` | 011 | architekt, etap 3 (ADR 0010, sekcja 2.8/6.2) |
 | `planCompareKey` po znormalizowanej nazwie dnia planu rozdziela historię/porównania przy zmianie nazwy dnia — istniejące zachowanie całego modułu porównań (używane też w 005), do oceny w osobnym zadaniu | `lib/workout-plan-compare-key.ts` | 011 | architekt, etap 3 (ADR 0010, sekcja 2.10/6.3) |
 | Rozjazd licznika nagłówka historii (`workoutsTotal - removedIds.size`) po usunięciu treningu na dwóch urządzeniach jednocześnie — rzadki wyścig, niski priorytet | `components/workout-history/workout-history-view.tsx` | 011 | architekt, etap 3 (ADR 0010, sekcja 2.9/6.4) |
+| Pasek tygodnia cardio filtruje legacy `training_sessions` po `startedAt` (strefa serwera), a silnik długu dodatkowego cardio po `calendarDateKey` (strefa kalendarza) — możliwa rozbieżność minut na granicy doby | `lib/home-start.ts` (`sumCardioMinutesInCalendarWeek` vs `getRecentCardioSamples`) | ad-hoc (analiza dodatkowego cardio) | webdev |
+| `estimateBurnKcalPerMin` liczy jedną uśrednioną stawkę kcal/min z ostatnich 120 dni bez rozróżnienia typu/intensywności aktywności (marsz i rower wchodzą do tej samej personal/calories_entered stawki) — przy mocno mieszanym cardio rekomendacja minut może być nieprecyzyjna | `lib/extra-cardio-from-macros.ts` (`estimateBurnKcalPerMin`) | ad-hoc (analiza dodatkowego cardio) | webdev |
 
 ## Wydajność
 | Opis | Zadanie źródłowe | Źródło |

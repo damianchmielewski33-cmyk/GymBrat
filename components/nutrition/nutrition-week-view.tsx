@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { AppPageHeader } from "@/components/layout/screen";
 import { SectionLabel } from "@/components/ui/section-label";
@@ -257,20 +257,41 @@ export function NutritionWeekView({
   weeks: PreviousWeekNutritionSheetWeek[];
 }) {
   const [viewIndex, setViewIndex] = useState(0);
-  const [compareIndex, setCompareIndex] = useState(weeks.length > 1 ? 1 : 0);
-  const [filter, setFilter] = useState<MacroFilter>("all");
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  // key resetuje filtr, porównanie i rozwiniętą kartę przy zmianie tygodnia.
+  return (
+    <NutritionWeekBody
+      key={viewIndex}
+      todayKey={todayKey}
+      weeks={weeks}
+      viewIndex={viewIndex}
+      setViewIndex={setViewIndex}
+    />
+  );
+}
 
+function NutritionWeekBody({
+  todayKey,
+  weeks,
+  viewIndex,
+  setViewIndex,
+}: {
+  todayKey: string;
+  weeks: PreviousWeekNutritionSheetWeek[];
+  viewIndex: number;
+  setViewIndex: (update: (i: number) => number) => void;
+}) {
   const maxViewIndex = Math.max(0, weeks.length - 1);
-  const viewWeek = weeks[viewIndex] ?? weeks[0] ?? null;
-  const dayRows = viewWeek?.dayRows ?? [];
+  const [compareIndex, setCompareIndex] = useState(
+    Math.min(viewIndex + 1, maxViewIndex),
+  );
+  const [filter, setFilter] = useState<MacroFilter>("all");
+  // undefined = domyślnie pierwszy dzień z odchyleniami; null = wszystko zwinięte.
+  const [expandedOverride, setExpandedOverride] = useState<
+    string | null | undefined
+  >(undefined);
 
-  useEffect(() => {
-    if (!viewWeek) return;
-    setCompareIndex(Math.min(viewIndex + 1, maxViewIndex));
-    setFilter("all");
-    setExpandedKey(null);
-  }, [viewIndex, viewWeek, maxViewIndex]);
+  const viewWeek = weeks[viewIndex] ?? weeks[0] ?? null;
+  const dayRows = useMemo(() => viewWeek?.dayRows ?? [], [viewWeek]);
 
   const isCurrentWeek = Boolean(
     viewWeek &&
@@ -296,10 +317,10 @@ export function NutritionWeekView({
     return list.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
   }, [model]);
 
-  useEffect(() => {
-    const first = allDays.find((d) => d.status === "deviations");
-    setExpandedKey(first?.dateKey ?? null);
-  }, [allDays]);
+  const expandedKey =
+    expandedOverride !== undefined
+      ? expandedOverride
+      : (allDays.find((d) => d.status === "deviations")?.dateKey ?? null);
 
   const filteredDays = useMemo(() => {
     if (filter === "all") return allDays;
@@ -545,8 +566,8 @@ export function NutritionWeekView({
                       day={day}
                       expanded={expandedKey === day.dateKey}
                       onToggle={() =>
-                        setExpandedKey((cur) =>
-                          cur === day.dateKey ? null : day.dateKey,
+                        setExpandedOverride(
+                          expandedKey === day.dateKey ? null : day.dateKey,
                         )
                       }
                       filterKey={filter}

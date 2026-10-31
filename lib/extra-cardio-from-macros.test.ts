@@ -351,6 +351,24 @@ describe("extra-cardio-from-macros", () => {
     );
   });
 
+  it("offset kcal liczony z sesji NADPROGRAMOWEJ, nie z proporcji całego tygodnia", () => {
+    // Cel 150 min. Wcześnie w tygodniu: 150 min lekkiego marszu (2 kcal/min, wiarygodne).
+    // Później, już ponad cel: 50 min intensywnego biegu (16 kcal/min, wiarygodne).
+    // Stara (błędna) metoda mieszała kcal obu sesji proporcjonalnie do minut całego
+    // tygodnia: (300+800) * (50/200) = 275 kcal — nadwyżka policzona tempem marszu,
+    // mimo że realnie nadprogramowe minuty to szybki bieg (800 kcal).
+    const { offsetKcal } = cardioKcalAboveWeeklyGoal({
+      samples: [
+        { minutes: 150, calories: 300, paceMinPerKm: 10, dateKey: "2026-10-06" },
+        { minutes: 50, calories: 800, paceMinPerKm: 5, dateKey: "2026-10-07" },
+      ],
+      weekKeys,
+      weeklyCardioGoalMinutes: 150,
+      burnKcalPerMin: 8,
+    });
+    expect(offsetKcal).toBe(800);
+  });
+
   it("domknięty cel w sobotę nie zawyża dodatkowego cardio w niedzielę bez jedzenia", () => {
     const weeklyGoal = 210;
     const cardio = [

@@ -587,6 +587,12 @@ export function elapsedWeekDayCount(
  * tworzyło „sztuczny nadmiar”, który znikał w niedzielę i zawyżał dodatkowe minuty.
  * Zwykłe cardio w ramach tygodniowego celu nadal nie kasuje propozycji.
  * Wpisy z (wiarygodnymi) calories używają podanych kcal.
+ *
+ * Minuty „zjadają” cel chronologicznie (wcześniejsze sesje w tygodniu domykają
+ * cel pierwsze) — kcal nadprogramowych minut liczone z kcal/min WŁASNEJ sesji,
+ * nigdy z tygodniowej średniej. Inaczej mix sesji o różnym tempie spalania
+ * (np. jedna z wiarygodnymi kcal, inna szacowana z MET) rozmywał nadwyżkę po
+ * całym tygodniu, a nie po faktycznie nadprogramowych minutach.
  */
 export function cardioKcalAboveWeeklyGoal(input: {
   samples: RecentCardioSample[];
@@ -599,29 +605,41 @@ export function cardioKcalAboveWeeklyGoal(input: {
   netWeightKg?: number | null;
 }): { offsetKcal: number; totalMinutes: number; goalMinutes: number } {
   const set = new Set(input.weekKeys);
-  let totalMinutes = 0;
-  let totalKcal = 0;
-  for (const s of input.samples) {
-    if (!s.dateKey || !set.has(s.dateKey)) continue;
-    if (!(s.minutes > 0)) continue;
-    totalMinutes += s.minutes;
-    if (isPlausibleEnteredCalories(s.minutes, s.calories)) {
-      totalKcal +=
-        input.netWeightKg === undefined
-          ? (s.calories as number)
-          : grossToNetKcal(s.calories as number, s.minutes, input.netWeightKg);
-    } else if (input.burnKcalPerMin > 0) {
-      totalKcal += s.minutes * input.burnKcalPerMin;
-    }
-  }
+  const weekSamples = input.samples.filter(
+    (s) => s.dateKey && set.has(s.dateKey) && s.minutes > 0,
+  );
+  // Stabilne sortowanie: w ramach tego samego dnia zachowujemy kolejność wejściową.
+  const ordered = [...weekSamples].sort((a, b) =>
+    (a.dateKey as string).localeCompare(b.dateKey as string),
+  );
 
   const goalMinutes = Math.max(0, input.weeklyCardioGoalMinutes);
-  const excessMinutes = Math.max(0, totalMinutes - goalMinutes);
-  if (excessMinutes <= 0 || totalMinutes <= 0) {
-    return { offsetKcal: 0, totalMinutes, goalMinutes };
+  let totalMinutes = 0;
+  let minutesBefore = 0;
+  let offsetKcal = 0;
+
+  for (const s of ordered) {
+    const sessionKcal = isPlausibleEnteredCalories(s.minutes, s.calories)
+      ? input.netWeightKg === undefined
+        ? (s.calories as number)
+        : grossToNetKcal(s.calories as number, s.minutes, input.netWeightKg)
+      : input.burnKcalPerMin > 0
+        ? s.minutes * input.burnKcalPerMin
+        : 0;
+
+    const minutesAfter = minutesBefore + s.minutes;
+    const excessBefore = Math.max(0, minutesBefore - goalMinutes);
+    const excessAfter = Math.max(0, minutesAfter - goalMinutes);
+    const excessInSession = excessAfter - excessBefore;
+    if (excessInSession > 0) {
+      offsetKcal += sessionKcal * (excessInSession / s.minutes);
+    }
+
+    totalMinutes = minutesAfter;
+    minutesBefore = minutesAfter;
   }
-  const offsetKcal = Math.round(totalKcal * (excessMinutes / totalMinutes));
-  return { offsetKcal, totalMinutes, goalMinutes };
+
+  return { offsetKcal: Math.round(offsetKcal), totalMinutes, goalMinutes };
 }
 
 /**
