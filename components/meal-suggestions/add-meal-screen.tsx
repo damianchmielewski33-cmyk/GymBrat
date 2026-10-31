@@ -260,14 +260,7 @@ export function AddMealScreen({
               {DIET_DIARY_SLOT_LABELS[slot]} · {dateLabel}
             </p>
           </div>
-          <button
-            type="submit"
-            form="quick-meal-form"
-            disabled={savePending}
-            className="min-w-10 text-sm font-semibold text-[var(--gym-gold)] disabled:opacity-45"
-          >
-            Zapisz
-          </button>
+          <span aria-hidden className="w-10" />
         </header>
 
         <form
@@ -277,51 +270,83 @@ export function AddMealScreen({
         >
           <input type="hidden" name="date" value={dateKey} />
           <input type="hidden" name="slot" value={slot} />
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-5">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5">
             <label className="block">
-              <span className="text-sm text-white/80">Nazwa</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                Nazwa
+              </span>
               <input
                 name="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required={sub === "product"}
+                autoComplete="off"
                 placeholder={
                   sub === "product" ? "np. Skyr naturalny" : "np. Kanapka z pracy"
                 }
-                className="mt-2 h-12 w-full rounded-xl border-0 bg-[var(--gym-gold)]/90 px-3 text-base font-medium text-black outline-none placeholder:text-black/45"
+                className="mt-2 h-12 w-full rounded-2xl border border-white/10 bg-[#1a1a1a] px-3.5 text-[15px] font-medium text-white outline-none placeholder:text-white/30 focus:border-[var(--gym-gold)]/45"
               />
             </label>
 
-            {(
-              [
-                ["calories", "Wartość energetyczna", "kcal", kcal, setKcal],
-                ["fatG", "Tłuszcze", "g", fat, setFat],
-                ["carbsG", "Węglowodany", "g", carbs, setCarbs],
-                ["proteinG", "Białka", "g", protein, setProtein],
-              ] as const
-            ).map(([field, label, unit, val, setVal]) => (
-              <div
-                key={field}
-                className="flex items-center justify-between gap-3 border-b border-white/[0.06] py-3"
-              >
-                <span className="text-sm text-white/85">{label}</span>
-                <div className="flex items-center gap-2">
-                  <input
-                    name={field}
-                    value={val}
-                    onChange={(e) => setVal(e.target.value)}
-                    inputMode="decimal"
-                    className="h-10 w-20 rounded-lg border-0 bg-[var(--gym-gold)]/90 px-2 text-center text-base font-semibold tabular-nums text-black outline-none"
-                  />
-                  <span className="w-8 text-sm text-white/55">{unit}</span>
-                </div>
-              </div>
-            ))}
+            <label className="block rounded-3xl border border-white/10 bg-[#121214] px-4 py-5 text-center">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                Wartość energetyczna
+              </span>
+              <span className="mt-2 flex items-baseline justify-center gap-2">
+                <input
+                  name="calories"
+                  value={kcal}
+                  onChange={(e) => setKcal(e.target.value)}
+                  inputMode="decimal"
+                  placeholder={computedKcal != null ? String(computedKcal) : "0"}
+                  className="w-32 border-0 bg-transparent text-center text-5xl font-semibold tabular-nums text-[var(--gym-gold)] outline-none placeholder:text-white/20"
+                />
+                <span className="text-base text-white/50">kcal</span>
+              </span>
+              <span className="mt-1 block text-xs text-white/40">
+                {computedKcal != null && !kcal.trim()
+                  ? "Policzone z makroskładników"
+                  : "Zostaw puste, by policzyć z makro"}
+              </span>
+            </label>
 
-            {finalKcal != null && !kcal.trim() ? (
-              <p className="text-xs text-white/40">
-                Z makro ≈ {finalKcal} kcal
-              </p>
+            <div className="grid grid-cols-3 gap-2.5">
+              {(
+                [
+                  ["proteinG", "Białka", "bg-sky-400", protein, setProtein],
+                  ["carbsG", "Węglowodany", "bg-amber-400", carbs, setCarbs],
+                  ["fatG", "Tłuszcze", "bg-rose-400", fat, setFat],
+                ] as const
+              ).map(([field, label, dot, val, setVal]) => (
+                <label
+                  key={field}
+                  className="flex flex-col items-center rounded-2xl border border-white/10 bg-[#141414] px-2 py-3 focus-within:border-[var(--gym-gold)]/45"
+                >
+                  <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/70">
+                    <span className={cn("h-2 w-2 rounded-full", dot)} aria-hidden />
+                    {label}
+                  </span>
+                  <span className="mt-2 flex items-baseline gap-1">
+                    <input
+                      name={field}
+                      value={val}
+                      onChange={(e) => setVal(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="0"
+                      className="w-14 border-0 bg-transparent text-center text-2xl font-semibold tabular-nums text-white outline-none placeholder:text-white/20"
+                    />
+                    <span className="text-xs text-white/45">g</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            {hasMacros ? (
+              <div aria-hidden className="flex h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                <span className="bg-sky-400" style={{ flexGrow: p * 4 }} />
+                <span className="bg-amber-400" style={{ flexGrow: c * 4 }} />
+                <span className="bg-rose-400" style={{ flexGrow: f * 9 }} />
+              </div>
             ) : null}
           </div>
 
@@ -329,9 +354,13 @@ export function AddMealScreen({
             <button
               type="submit"
               disabled={savePending}
-              className="inline-flex h-12 w-full items-center justify-center rounded-full bg-white text-base font-semibold text-black disabled:opacity-55"
+              className="gold-btn inline-flex h-12 w-full items-center justify-center rounded-full text-base font-semibold text-black disabled:opacity-55"
             >
-              {savePending ? "Zapisuję…" : "Zapisz"}
+              {savePending
+                ? "Zapisuję…"
+                : finalKcal
+                  ? `Dodaj · ${finalKcal} kcal`
+                  : "Dodaj do dziennika"}
             </button>
           </div>
         </form>
