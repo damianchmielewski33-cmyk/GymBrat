@@ -347,6 +347,8 @@ public final class GymBratAndroidJsBridge {
     @JavascriptInterface
     public void checkUpdate() {
         if (!isCallFromAppOrigin()) return;
+        // Wariant Google Play: aktualizacje wyłącznie przez sklep.
+        if (!pl.gymbrat.app.BuildConfig.IN_APP_UPDATE) return;
         updateInstaller.requestInstall();
     }
 

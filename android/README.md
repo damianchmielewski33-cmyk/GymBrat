@@ -27,10 +27,12 @@ Lokalnie (wymaga Android SDK):
 cd android
 echo "sdk.dir=$ANDROID_HOME" > local.properties
 echo "api.base.url=https://gym-brat.vercel.app/" >> local.properties
-gradle :app:assembleRelease
+gradle :app:assembleSideloadRelease   # APK z własnym updaterem
+gradle :app:bundlePlayRelease          # AAB do Google Play (bez instalatora APK)
 ```
 
-APK: `app/build/outputs/apk/release/app-release.apk`
+APK: `app/build/outputs/apk/sideload/release/app-sideload-release.apk`
+AAB: `app/build/outputs/bundle/playRelease/app-play-release.aab`
 
 ## Konfiguracja URL
 

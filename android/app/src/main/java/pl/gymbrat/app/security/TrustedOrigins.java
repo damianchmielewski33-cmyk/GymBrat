@@ -31,11 +31,9 @@ public final class TrustedOrigins {
         if (siteHost != null && h.equals(siteHost)) {
             return true;
         }
-        // Znane aliasy produkcyjne / preview tego samego produktu
-        if (h.equals("gym-brat.vercel.app")
-                || h.equals("gymbrat.onrender.com")
-                || (h.endsWith(".vercel.app") && h.contains("gym-brat"))
-                || (h.endsWith(".onrender.com") && h.contains("gymbrat"))) {
+        // Tylko dokładne, znane hosty produkcyjne — bez wzorców po subdomenach
+        // (każdy może zarejestrować np. xxx-gym-brat.vercel.app).
+        if (h.equals("gym-brat.vercel.app") || h.equals("gymbrat.onrender.com")) {
             return true;
         }
         return false;

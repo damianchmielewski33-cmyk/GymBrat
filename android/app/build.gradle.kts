@@ -36,17 +36,17 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "pl.gymbrat.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "pl.gymbrat.app"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 17
         versionName = "0.1.16"
 
         ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
         }
 
         val apiBase = readLocalProperty("api.base.url")
@@ -86,9 +86,24 @@ android {
         }
     }
 
+    // sideload = APK z własnym updaterem (strona /gymbrat.apk); play = AAB do Google Play
+    // (bez REQUEST_INSTALL_PACKAGES i bez instalatora APK — zakazane w polityce Play).
+    flavorDimensions += "dist"
+    productFlavors {
+        create("sideload") {
+            dimension = "dist"
+            buildConfigField("boolean", "IN_APP_UPDATE", "true")
+        }
+        create("play") {
+            dimension = "dist"
+            buildConfigField("boolean", "IN_APP_UPDATE", "false")
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             val releaseSigning = signingConfigs.getByName("release")
             val requireReleaseSigning =
                 System.getenv("CI") == "true" ||
@@ -129,7 +144,6 @@ android {
     }
 
     lint {
-        disable += "ExpiredTargetSdkVersion"
         checkReleaseBuilds = true
         abortOnError = true
     }
