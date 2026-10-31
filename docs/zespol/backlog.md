@@ -1,6 +1,6 @@
 # Backlog zespołu
 
-Kolejność zadań wynikająca z analizy bazowej (2026-10-23) i decyzji właściciela (`docs/zespol/decyzje-wlasciciela.md`). Każda pozycja to osobne zadanie z kartą w `docs/zadania/` i przejściem przez przepływ (`docs/zespol/przeplyw.md`).
+Kolejność zadań wynikająca z analizy bazowej (2026-10-23) i decyzji właściciela (`docs/zespol/decyzje-wlasciciela.md`). Każda pozycja to osobne zadanie z kartą w `docs/zadania/` i pracą agenta `webdev`.
 
 ## Po stronie właściciela (bez kodu)
 - Założyć dedykowaną skrzynkę e-mail i ustawić `SMTP_*` na Render (warunek zadania 1).
