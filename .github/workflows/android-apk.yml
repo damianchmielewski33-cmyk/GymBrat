@@ -39,12 +39,12 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: "platform-tools platforms;android-35 build-tools;35.0.0"
+          packages: "platform-tools platforms;android-36 build-tools;36.0.0"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.9"
+          gradle-version: "8.11.1"
 
       - name: Resolve API base URL
         id: api
@@ -125,7 +125,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          if ! gradle :app:assembleRelease --stacktrace 2>&1 | tee ../build.log; then
+          if ! gradle :app:assembleSideloadRelease --stacktrace 2>&1 | tee ../build.log; then
             echo "=== Gradle failure (last 120 lines) ==="
             tail -n 120 ../build.log || true
             exit 1
@@ -143,8 +143,8 @@ jobs:
         working-directory: android
         run: |
           set -euo pipefail
-          OUT_DIR="app/build/outputs/apk/release"
-          APK="$OUT_DIR/app-release.apk"
+          OUT_DIR="app/build/outputs/apk/sideload/release"
+          APK="$OUT_DIR/app-sideload-release.apk"
           if [ ! -f "$APK" ]; then
             echo "Brak $APK"; ls -la "$OUT_DIR" || true; exit 1
           fi
@@ -159,7 +159,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/gymbrat.apk
+          cp android/app/build/outputs/apk/sideload/release/app-sideload-release.apk dist/gymbrat.apk
           cp dist/gymbrat.apk public/gymbrat.apk
           VERSION_CODE=$(grep -E '^\s*versionCode\s*=' android/app/build.gradle.kts | head -1 | grep -oE '[0-9]+')
           VERSION_NAME=$(grep -E '^\s*versionName\s*=' android/app/build.gradle.kts | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
