@@ -64,20 +64,22 @@ export default async function RegisterPage({
   const oauthContinue = Boolean(oauthPrefill) || wantsOauthContinue;
 
   return (
-    <Suspense
-      fallback={
-        <div className="text-center text-sm text-white/50">Ładowanie…</div>
-      }
-    >
-      <RegisterForm
-        availability={availability}
-        emailTestCode={
-          availability.emailMode === "test" ? TEST_REGISTER_CODE : null
+    <div className="mx-auto w-full max-w-xl">
+      <Suspense
+        fallback={
+          <div className="text-center text-sm text-white/50">Ładowanie…</div>
         }
-        oauthContinue={oauthContinue}
-        oauthPrefill={oauthPrefill}
-        accountResetNotice={oauthContinue && accountResetNotice}
-      />
-    </Suspense>
+      >
+        <RegisterForm
+          availability={availability}
+          emailTestCode={
+            availability.emailMode === "test" ? TEST_REGISTER_CODE : null
+          }
+          oauthContinue={oauthContinue}
+          oauthPrefill={oauthPrefill}
+          accountResetNotice={oauthContinue && accountResetNotice}
+        />
+      </Suspense>
+    </div>
   );
 }

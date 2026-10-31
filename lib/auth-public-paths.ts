@@ -13,6 +13,8 @@ export const ANONYMOUS_PUBLIC_PATHS = new Set([
   /** Potwierdzenie przejęcia konta niezweryfikowanego (ADR 0001 D4) — bez sesji. */
   TAKEOVER_CONFIRM_PATH,
   "/register",
+  /** Reset hasła kodem z e-maila — bez sesji. */
+  "/forgot-password",
   "/regulamin",
   "/polityka-prywatnosci",
 ]);
@@ -29,7 +31,7 @@ export function shouldBounceAuthenticatedFromAuthPage(
   pathname: string,
   profileComplete?: boolean,
 ): boolean {
-  if (pathname === "/login") return true;
+  if (pathname === "/login" || pathname === "/forgot-password") return true;
   if (pathname === "/register") {
     // Pełne konto → odbij; po OAuth bez wagi/wzrostu zostaje na wizardzie rejestracji.
     return profileComplete === true;

@@ -19,7 +19,8 @@ export type SecurityEventType =
   | "account_takeover"
   | "admin_role_granted"
   | "admin_role_denied"
-  | "backfill_verified";
+  | "backfill_verified"
+  | "password_reset";
 
 export type SecurityEventInput = {
   type: SecurityEventType;

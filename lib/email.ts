@@ -74,6 +74,24 @@ export async function sendOptionalDailyBriefEmail(params: {
   }
 }
 
+export async function sendPasswordResetCodeEmail(params: {
+  to: string;
+  code: string;
+  minutesValid: number;
+}): Promise<void> {
+  const transport = createSmtpTransport();
+  const from = getEmailFrom();
+  const replyTo = process.env.EMAIL_REPLY_TO?.trim();
+
+  await transport.sendMail({
+    from,
+    to: params.to,
+    ...(replyTo ? { replyTo } : {}),
+    subject: "GymBrat — kod do zmiany hasła",
+    text: `Twój kod do zmiany hasła w GymBrat: ${params.code}\n\nKod jest ważny przez ${params.minutesValid} min.\n\nJeśli to nie Ty prosiłeś o zmianę hasła, zignoruj tę wiadomość — Twoje hasło pozostaje bez zmian.`,
+  });
+}
+
 export async function sendRegisterVerificationCodeEmail(params: {
   to: string;
   code: string;

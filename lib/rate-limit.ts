@@ -92,6 +92,11 @@ export const RATE = {
   registerSendCodeEmail: { limit: 5, windowMs: 60 * 60_000 },
   registerSubmitIp: { limit: 20, windowMs: 60 * 60_000 },
   registerSubmitEmail: { limit: 15, windowMs: 60 * 60_000 },
+  /** Reset hasła: wysyłka kodu i ustawienie nowego hasła. */
+  resetSendCodeIp: { limit: 10, windowMs: 60 * 60_000 },
+  resetSendCodeEmail: { limit: 5, windowMs: 60 * 60_000 },
+  resetSubmitIp: { limit: 20, windowMs: 60 * 60_000 },
+  resetSubmitEmail: { limit: 15, windowMs: 60 * 60_000 },
   /** Wszystkie akcje serwerowe (ogólny budżet): na adres IP i na sesję. */
   actionIp: { limit: 600, windowMs: 60_000 },
   actionSession: { limit: 180, windowMs: 60_000 },

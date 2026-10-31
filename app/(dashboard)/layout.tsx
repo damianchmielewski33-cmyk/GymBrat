@@ -12,7 +12,8 @@ export default async function DashboardLayout({
 }) {
   const session = await auth().catch(() => null);
   if (!session?.user?.id) {
-    return <AuthPageFrame>{children}</AuthPageFrame>;
+    // GET / bez sesji renderuje ekran logowania (jak /login).
+    return <AuthPageFrame variant="auth">{children}</AuthPageFrame>;
   }
 
   // Po Google (bez wagi/wzrostu itd.) tylko formularz — bez dolnej nawigacji.
