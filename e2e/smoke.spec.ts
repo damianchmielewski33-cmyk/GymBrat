@@ -40,7 +40,7 @@ test("start bez sesji pokazuje logowanie pod / z kodem 200", async ({ page }) =>
   expect(res?.status()).toBe(200);
   expect(new URL(page.url()).pathname).toBe("/");
   await expect(
-    page.getByRole("button", { name: /zaloguj się jako zawodnik/i }),
+    page.getByRole("button", { name: /^zaloguj się$/i }),
   ).toBeVisible();
 });
 
@@ -50,9 +50,9 @@ test("opcja: smoke po zalogowaniu (E2E_EMAIL / E2E_PASSWORD)", async ({ page }) 
   test.skip(!email || !password, "Ustaw E2E_EMAIL i E2E_PASSWORD dla pełnego smoke.");
 
   await page.goto("/login");
-  await page.getByLabel("Email").fill(email!);
+  await page.getByLabel("E-mail").fill(email!);
   await page.getByLabel("Hasło", { exact: true }).fill(password!);
-  await page.getByRole("button", { name: /zaloguj się jako zawodnik/i }).click();
+  await page.getByRole("button", { name: /^zaloguj się$/i }).click();
   await page.waitForURL((url) => url.pathname === "/", { timeout: 25_000 });
   await expect(
     page.getByRole("heading", { name: /gotowy na trening/i }),
