@@ -47,13 +47,35 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
+const siteOrigin = (
+  process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+  process.env.NEXTAUTH_URL?.trim() ||
+  "http://localhost:3000"
+).replace(/\/$/, "");
+
+const siteDescription =
+  "Nowoczesny dziennik treningowy i żywieniowy: plany, historia, raporty, skan posiłków i wartości odżywcze.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin),
   title: {
     default: "GymBrat — centrum treningowe",
     template: "%s · GymBrat",
   },
-  description:
-    "Nowoczesny dziennik treningowy i żywieniowy: plany, historia, raporty, skan posiłków i wartości odżywcze.",
+  description: siteDescription,
+  alternates: { canonical: "./" },
+  openGraph: {
+    type: "website",
+    locale: "pl_PL",
+    siteName: "GymBrat",
+    title: "GymBrat — centrum treningowe",
+    description: siteDescription,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GymBrat — centrum treningowe",
+    description: siteDescription,
+  },
   manifest: "/api/branding/manifest",
   appleWebApp: {
     capable: true,

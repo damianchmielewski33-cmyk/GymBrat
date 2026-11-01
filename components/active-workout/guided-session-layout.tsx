@@ -625,6 +625,25 @@ export function GuidedSessionLayout({
           }
         />
 
+        <button
+          type="button"
+          aria-pressed={Boolean(set.warmup)}
+          onClick={() =>
+            onPatchSet(exercise.id, activeSetIndex, {
+              warmup: !set.warmup,
+              done: set.done,
+            })
+          }
+          className={cn(
+            "h-9 self-start rounded-xl border px-3 text-[13px] font-semibold transition",
+            set.warmup
+              ? "border-[var(--gym-gold-bright)] text-[var(--gym-gold-bright)]"
+              : "border-white/[0.08] text-white/60",
+          )}
+        >
+          {set.warmup ? "✓ Rozgrzewka (poza statystykami)" : "Oznacz jako rozgrzewkę"}
+        </button>
+
         <RirPicker
           value={set.rir ?? exercise.targetRir ?? null}
           targetRir={exercise.targetRir ?? null}

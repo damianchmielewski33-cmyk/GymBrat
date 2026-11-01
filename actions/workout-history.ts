@@ -60,6 +60,7 @@ const setSchema = z.object({
   weight: z.preprocess(preprocessWeightKg, z.number().min(0).max(2000)),
   done: z.boolean().optional(),
   skipped: z.boolean().optional(),
+  warmup: z.boolean().optional(),
   rir: z.union([z.number().finite().min(0).max(5), z.null()]).optional(),
   rpe: z.union([z.number().finite().min(1).max(10), z.null()]).optional(),
 });
@@ -95,6 +96,7 @@ export async function updateCompletedWorkout(input: {
       weight: number;
       done?: boolean;
       skipped?: boolean;
+      warmup?: boolean;
       rir?: number | null;
       rpe?: number | null;
     }>;
@@ -180,6 +182,7 @@ export async function updateCompletedWorkout(input: {
         weight,
         done,
         skipped,
+        ...(s.warmup ? { warmup: true } : {}),
         rir: s.rir ?? null,
         rpe: s.rpe ?? null,
       };

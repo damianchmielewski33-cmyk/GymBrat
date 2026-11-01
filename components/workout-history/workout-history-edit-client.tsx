@@ -90,6 +90,20 @@ function SetRow({
       </button>
       <button
         type="button"
+        aria-pressed={Boolean(set.warmup)}
+        aria-label="Seria rozgrzewkowa"
+        onClick={() => onChange({ warmup: !set.warmup })}
+        className={cn(
+          "h-11 shrink-0 rounded-xl border px-2.5 text-[11px] font-semibold uppercase tracking-wide",
+          set.warmup
+            ? "border-[var(--gym-gold)]/40 text-[var(--gym-gold)]"
+            : "border-white/12 text-white/45",
+        )}
+      >
+        Roz.
+      </button>
+      <button
+        type="button"
         onClick={onRemove}
         disabled={!canRemove}
         className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/40 disabled:opacity-30"
@@ -184,6 +198,7 @@ export function WorkoutHistoryEditClient({
               s.reps > 0 &&
               s.weight > 0,
             skipped: Boolean(s.skipped),
+            warmup: Boolean(s.warmup),
             rir: s.rir ?? null,
             rpe: s.rpe ?? null,
           })),

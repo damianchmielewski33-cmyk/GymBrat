@@ -97,8 +97,12 @@ function DotRow({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <p className="w-14 shrink-0 text-[11px] font-medium text-white/45">{label}</p>
-      <div className="flex min-w-0 flex-1 items-center gap-[2px] overflow-hidden">
+      <p className="w-14 shrink-0 text-[11px] font-medium text-white/60">{label}</p>
+      <div
+        role="img"
+        aria-label={`${label}: ${slots.filter((s) => s === "tak").length} z ${slots.length} zrealizowane`}
+        className="flex min-w-0 flex-1 items-center gap-[2px] overflow-hidden"
+      >
         {slots.length === 0 ? (
           <p className="text-[11px] text-white/30">Brak danych</p>
         ) : (
@@ -186,7 +190,6 @@ export function HomeZalozeniaSection({
   return (
     <section className="space-y-3">
       <SectionLabel
-        index={2}
         title="Założenia"
         trailing={
           reportCount > 0

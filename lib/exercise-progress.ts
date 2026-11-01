@@ -34,6 +34,11 @@ export type ExerciseProgressPoint = {
   rirVsTarget: RirVsTarget | null;
 };
 
+/** Najcięższy ciężar podniesiony na co najmniej N powtórzeń. */
+export type ExerciseRepRecord = { reps: number; weight: number; date: string };
+
+export const REP_RECORD_BUCKETS = [1, 3, 5, 8, 10, 12] as const;
+
 export type ExercisePrs = {
   maxE1rm: { value: number; date: string | null };
   maxWeight: { value: number; date: string | null };
@@ -165,6 +170,7 @@ export async function getExerciseProgressSeries(params: {
   metric: ExerciseMetricKind;
   newMax: { e1rm: boolean; weight: boolean; tonnage: boolean; reps: boolean };
   hasNewMax: boolean;
+  repRecords: ExerciseRepRecord[];
 }> {
   const q = params.exerciseQuery.trim();
   if (!q) {
@@ -177,6 +183,7 @@ export async function getExerciseProgressSeries(params: {
       metric: "kg",
       newMax: { e1rm: false, weight: false, tonnage: false, reps: false },
       hasNewMax: false,
+      repRecords: [],
     };
   }
 
@@ -222,11 +229,13 @@ export async function getExerciseProgressSeries(params: {
       metric: "kg",
       newMax: { e1rm: false, weight: false, tonnage: false, reps: false },
       hasNewMax: false,
+      repRecords: [],
     };
   }
 
   const matchedNameCounts = new Map<string, number>();
   let everWeighted = false;
+  const repRecordMap = new Map<number, ExerciseRepRecord>();
 
   for (const r of rows) {
     const parsed = safeParseCompletedSession(r.exercisesJson);
@@ -275,7 +284,10 @@ export async function getExerciseProgressSeries(params: {
             : Number(s.weight ?? 0);
         const w = clampNonNegative(weight);
         const performed =
-          Boolean(s.done) && !Boolean(s.skipped) && hasPerformedReps(reps);
+          Boolean(s.done) &&
+          !Boolean(s.skipped) &&
+          !Boolean((s as { warmup?: boolean }).warmup) &&
+          hasPerformedReps(reps);
         if (performed) {
           dayTotalReps += reps!;
           if (reps! > dayBestReps && !hasExternalWeight(w)) {
@@ -285,6 +297,13 @@ export async function getExerciseProgressSeries(params: {
             everWeighted = true;
             dayTonnage += reps! * w;
             const e1rm = estimated1RM(w, reps!);
+            for (const n of REP_RECORD_BUCKETS) {
+              if (reps! < n) continue;
+              const cur = repRecordMap.get(n);
+              if (!cur || w > cur.weight) {
+                repRecordMap.set(n, { reps: n, weight: w, date: dateKey });
+              }
+            }
             if (w > dayBestWeight) {
               dayBestWeight = w;
               dayBestReps = reps!;
@@ -484,5 +503,6 @@ export async function getExerciseProgressSeries(params: {
     metric,
     newMax,
     hasNewMax,
+    repRecords: [...repRecordMap.values()].sort((a, b) => a.reps - b.reps),
   };
 }

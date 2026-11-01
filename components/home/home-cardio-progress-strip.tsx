@@ -62,7 +62,7 @@ export function HomeCardioProgressStrip({
             type="button"
             onClick={onAddCardio}
             aria-label="Dodaj cardio"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--gym-gold)]/45 bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)] transition hover:bg-[rgba(var(--neon-rgb),0.2)]"
+            className="gym-tap inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--gym-gold)]/45 bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)] transition hover:bg-[rgba(var(--neon-rgb),0.2)]"
           >
             <Plus className="h-4 w-4" aria-hidden />
           </button>
@@ -77,7 +77,7 @@ export function HomeCardioProgressStrip({
         aria-valuenow={Math.min(mins, weeklyGoal)}
       >
         <div
-          className="h-full rounded-full bg-gradient-to-r from-[var(--gym-gold-deep)] via-[var(--gym-gold)] to-[var(--gym-gold-bright)]"
+          className="h-full rounded-full bg-gradient-to-r from-[var(--gym-gold-deep)] via-[var(--gym-gold)] to-[var(--gym-gold-bright)] transition-[width] duration-700 ease-out"
           style={{ width: `${pct}%` }}
         />
       </div>

@@ -18,7 +18,6 @@ import {
 } from "@/lib/user-photo-media";
 import { getWeeklyCardioProgress } from "@/lib/cardio";
 import { getCardioWeekProgressPnNd } from "@/lib/cardio-hub";
-import { getHomeStats } from "@/lib/home-stats";
 import {
   addCalendarDays,
   calendarDateKey,
@@ -106,7 +105,6 @@ export type HomeStartDashboard = {
   daysSinceLastReport: number | null;
   reportCadenceDays: number;
   currentWeightKg: number | null;
-  tempoKgPerMin: number | null;
   weightFromStartKg: number | null;
   weightDeltaFromPreviousKg: number | null;
   weightSeries: HomeStartWeightPoint[];
@@ -946,7 +944,6 @@ async function loadHomeStartDashboard(
     cardioSheetWeek,
     recentCardioSamples,
     workoutStreakWeeks,
-    stats,
     weightFromStart,
     weightSeries,
     macroBundle,
@@ -984,7 +981,6 @@ async function loadHomeStartDashboard(
     getCardioWeekProgressPnNd(userId),
     getRecentCardioSamples(userId, todayKey),
     getWorkoutStreakWeeks(userId, todayKey),
-    getHomeStats(userId),
     getWeightFromStart(userId),
     getWeightSeries(userId),
     getMacroSeriesAndToday(userId),
@@ -1001,12 +997,6 @@ async function loadHomeStartDashboard(
     userRow?.lastName?.trim() ||
     userRow?.name?.trim()?.split(/\s+/).slice(1).join(" ") ||
     null;
-
-  let tempoKgPerMin: number | null = null;
-  const last = stats.lastWorkout;
-  if (last && last.durationMinutes && last.durationMinutes > 0 && last.volumeKg > 0) {
-    tempoKgPerMin = Math.round((last.volumeKg / last.durationMinutes) * 10) / 10;
-  }
 
   const currentWeightKg =
     weightFromStart.currentKg ??
@@ -1074,7 +1064,6 @@ async function loadHomeStartDashboard(
       Math.max(3, settingsRow?.reportCadenceDays ?? 14),
     ),
     currentWeightKg,
-    tempoKgPerMin,
     weightFromStartKg: weightFromStart.deltaKg,
     weightDeltaFromPreviousKg: weightFromStart.deltaFromPreviousKg,
     weightSeries,

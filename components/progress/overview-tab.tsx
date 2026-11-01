@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { ChevronRight, Dumbbell, Flame, Medal, Scale, Trophy } from "lucide-react";
+import { ExerciseGoalsEditor } from "@/components/progress/exercise-goals-editor";
 import { ReadinessCard } from "@/components/progress/readiness-card";
 import { WeekProgressCalendarCard } from "@/components/progress/week-progress-calendar-card";
 import {
@@ -171,6 +172,10 @@ export function OverviewTab({
                 ))}
               </Surface>
             ) : null}
+            <ExerciseGoalsEditor
+              targets={week.exerciseTargets}
+              exerciseNames={week.exerciseNameOptions}
+            />
             <CollapsibleCard
               title={
                 unlocked.length

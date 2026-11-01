@@ -49,9 +49,13 @@ function scoreAtEnd(
   const weekSessions = sessions.filter((s) => inWindow(s.date, endDate, 7));
   const prev4w = sessions.filter((s) => inWindow(s.date, endDate, 28));
   const weeklyTonnage = weekSessions.reduce((a, s) => a + s.tonnageKg, 0);
-  const weeksInPrev = 4;
+  // Baza przewlekła = 3 tygodnie PRZED bieżącym (bieżący nie zaniża stosunku ostrego do przewlekłego).
+  const weekSet = new Set(weekSessions);
+  const baseline = prev4w.filter((s) => !weekSet.has(s));
   const avgWeekly4 =
-    prev4w.reduce((a, s) => a + s.tonnageKg, 0) / Math.max(1, weeksInPrev);
+    baseline.length > 0
+      ? baseline.reduce((a, s) => a + s.tonnageKg, 0) / 3
+      : weeklyTonnage;
 
   const tonnageRatio =
     avgWeekly4 > 0 ? weeklyTonnage / avgWeekly4 : weekSessions.length > 0 ? 1 : 0;
@@ -68,7 +72,7 @@ function scoreAtEnd(
     .reduce((a, s) => a + s.tonnageKg, 0);
   const tonnageTrendPct = pctDelta(tonFirst, tonSecond);
   const trendComponent =
-    tonnageTrendPct == null
+    tonnageTrendPct == null || weekDates.length < 3
       ? 0
       : clamp(tonnageTrendPct * 0.4, -8, 15);
 
@@ -87,7 +91,7 @@ function scoreAtEnd(
     avgRpe != null ? clamp((avgRpe - 6) * 6, 0, 18) : 0;
 
   const sessionsThisWeek = weekSessions.length;
-  const sessionComponent = clamp((sessionsThisWeek - 3) * 4, 0, 12);
+  const sessionComponent = clamp((sessionsThisWeek - 4) * 4, 0, 12);
 
   const cardioComponent = clamp(cardioLoadWeek / 40, 0, 15);
 
@@ -143,13 +147,13 @@ export function computeFatigueScore(args: {
     sessions,
     args.cardioLoadByEndDate(d7),
     d7,
-    Math.max(0, args.consecutiveTrainingDays - 1),
+    consecutiveDaysEndingAt(sessions, d7),
   );
   const prev30 = scoreAtEnd(
     sessions,
     args.cardioLoadByEndDate(d30),
     d30,
-    0,
+    consecutiveDaysEndingAt(sessions, d30),
   );
   const band = fatigueBandOf(now.score);
   return {
@@ -161,6 +165,17 @@ export function computeFatigueScore(args: {
     recommendation: recommendationFor(band, now.score),
     inputs: now.inputs,
   };
+}
+
+/** Liczba kolejnych dni z treningiem kończących się w `endDate` (włącznie). */
+function consecutiveDaysEndingAt(
+  sessions: AnalyticsStrengthSession[],
+  endDate: string,
+): number {
+  const dates = new Set(sessions.map((s) => s.date));
+  let n = 0;
+  for (let d = endDate; dates.has(d); d = addDaysIso(d, -1)) n += 1;
+  return n;
 }
 
 function addDaysIso(iso: string, days: number): string {

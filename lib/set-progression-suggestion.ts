@@ -68,6 +68,7 @@ export const SET_PROGRESSION_RULES = [
 
 const PLATE_STEP = DEFAULT_STEP_KG;
 const DELOAD_PCT = 0.05;
+const STAGNATION_COMPOUND_DELOAD_PCT = 0.1;
 
 /** Ile ostatnich treningów musi mieć wszystkie serie na górze zakresu (bez RIR/RPE). */
 export const REPS_ONLY_SESSIONS_REQUIRED = 2;
@@ -95,10 +96,14 @@ export function bumpWeightByPlate(kg: number, step = PLATE_STEP): number {
 }
 
 /** Deload: max(1 krok, 5% ciężaru roboczego) — surowa wartość przed zaokrągleniem. */
-export function deloadDropKg(workingKg: number, step = PLATE_STEP): number {
+export function deloadDropKg(
+  workingKg: number,
+  step = PLATE_STEP,
+  pct = DELOAD_PCT,
+): number {
   const s = Number.isFinite(step) && step > 0 ? step : PLATE_STEP;
   if (!Number.isFinite(workingKg) || workingKg <= 0) return s;
-  return Math.max(s, workingKg * DELOAD_PCT);
+  return Math.max(s, workingKg * pct);
 }
 
 /**
@@ -106,10 +111,14 @@ export function deloadDropKg(workingKg: number, step = PLATE_STEP): number {
  * (zdejmujemy całkowitą liczbę kroków, min. 1) — wynik da się załadować,
  * jeśli ciężar roboczy dało się załadować (np. 62,5 → 60, hantle 2 kg: 20 → 18).
  */
-export function applyDeload(workingKg: number, step = PLATE_STEP): number {
+export function applyDeload(
+  workingKg: number,
+  step = PLATE_STEP,
+  pct = DELOAD_PCT,
+): number {
   const s = Number.isFinite(step) && step > 0 ? step : PLATE_STEP;
   if (!Number.isFinite(workingKg) || workingKg <= 0) return 0;
-  const drop = deloadDropKg(workingKg, s);
+  const drop = deloadDropKg(workingKg, s, pct);
   const steps = Math.max(1, Math.round(drop / s));
   return Math.max(0, round2(workingKg - steps * s));
 }
@@ -129,7 +138,8 @@ export function resolveRepRange(
   if (max === 2) return { min: 1, max: 2 };
   if (max === 3) return { min: 2, max: 3 };
   if (max === 4) return { min: 3, max: 4 };
-  return { min: Math.max(1, max - 2), max };
+  // Klasyczny zakres hipertroficzny ma szerokość 3 (np. 9–12), nie 2.
+  return { min: Math.max(1, max - (max >= 12 ? 3 : 2)), max };
 }
 
 export function formatRepRangeLabel(range: RepRange): string {
@@ -315,7 +325,8 @@ export function isHighSessionVolume(
   targetReps: number | null | undefined,
   setIndex: number,
 ): boolean {
-  if (setIndex >= 3) return true;
+  // Od 5. serii — przy planach 4-seriowych nie blokujemy dokładki na ostatniej serii.
+  if (setIndex >= 4) return true;
   if (volumeKg == null || !Number.isFinite(volumeKg) || volumeKg <= 0) {
     return false;
   }
@@ -403,7 +414,12 @@ export function buildSetProgressionSuggestion(
   }
 
   if (args.includeDeload && args.stagnant && setIndex === 0) {
-    const nextW = applyDeload(weight, step.stepKg);
+    // Compound po stagnacji schodzi głębiej (10%) niż izolacja (5%).
+    const nextW = applyDeload(
+      weight,
+      step.stepKg,
+      kind === "isolation" ? DELOAD_PCT : STAGNATION_COMPOUND_DELOAD_PCT,
+    );
     if (nextW < weight) {
       return buildSuggestion({
         weightKg: nextW,
@@ -461,6 +477,20 @@ export function buildSetProgressionSuggestion(
   if (!range) return null;
 
   if (reps < range.min) {
+    // Poniżej dolnej granicy na pierwszej serii ciężar jest za duży — zejdź o krok.
+    if (args.includeDeload && setIndex === 0) {
+      const lighter = round2(weight - step.stepKg);
+      if (lighter > 0) {
+        return buildSuggestion({
+          weightKg: lighter,
+          reps: range.min,
+          deltaKg: 0,
+          kind: "reps",
+          reason: "ostatnio poniżej zakresu — zejdź o krok i domknij zakres",
+          rule: "below_range_or_hard",
+        });
+      }
+    }
     return null;
   }
 

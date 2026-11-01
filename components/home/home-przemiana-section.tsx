@@ -44,7 +44,6 @@ export function HomePrzemianaSection({
   return (
     <section className="space-y-3">
       <SectionLabel
-        index={4}
         title="Przemiana"
         trailing={fmtDeltaKg(weightFromStartKg) || undefined}
       />
@@ -108,7 +107,7 @@ export function HomePrzemianaSection({
               max={100}
               value={pos}
               onChange={(e) => setPos(Number(e.target.value))}
-              className="absolute inset-0 z-10 cursor-ew-resize opacity-0"
+              className="absolute inset-0 z-10 cursor-ew-resize touch-pan-y opacity-0"
               aria-label="Porównanie przemiany"
             />
           </div>

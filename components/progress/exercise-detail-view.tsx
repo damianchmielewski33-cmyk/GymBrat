@@ -82,6 +82,7 @@ export function ExerciseDetailView({
   metric,
   matchedNames,
   periodCompares,
+  repRecords = [],
   prediction = null,
   stagnation = null,
   initialPeriod = "30",
@@ -93,6 +94,7 @@ export function ExerciseDetailView({
   metric: ExerciseMetricKind;
   matchedNames: string[];
   periodCompares: ExercisePeriodCompares;
+  repRecords?: Array<{ reps: number; weight: number; date: string }>;
   prediction?: PredictionItem | null;
   stagnation?: StagnationItem | null;
   initialPeriod?: "7" | "30" | "90" | "all";
@@ -487,6 +489,18 @@ export function ExerciseDetailView({
             </>
           )}
         </div>
+        {!isReps && repRecords.length > 0 ? (
+          <div className="app-card divide-y divide-white/8 p-0">
+            {repRecords.map((r) => (
+              <RecordRow
+                key={r.reps}
+                label={`Najcięższe na ${r.reps}+ powt.`}
+                value={`${r.weight.toLocaleString("pl-PL")} kg`}
+                date={r.date}
+              />
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="space-y-3">

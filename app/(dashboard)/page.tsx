@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { auth } from "@/auth";
 import { LoginScreen } from "@/components/auth/login-screen";
@@ -9,6 +10,11 @@ import { HomeHeaderSkeleton } from "@/components/home/home-header-skeleton";
 import { HomeTodayHeader } from "@/components/home/home-today-header";
 import { HomeTodayPageContent } from "@/components/home/home-today-page-content";
 import { DashboardRouteSkeleton } from "@/components/layout/dashboard-route-skeleton";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
+};
 
 export default async function HomePage() {
   const session = await auth().catch((err) => {

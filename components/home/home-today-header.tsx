@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { NotificationBell } from "@/components/community/notification-bell";
 import { AppMenuButton } from "@/components/layout/app-menu-button";
 import { HomeScanButton } from "@/components/home/home-scan-button";
@@ -65,7 +66,16 @@ export async function HomeTodayHeader({ userId }: { userId: string }) {
           ) : null}
         </h1>
         <p className="mt-1.5 text-[13px] text-white/45">
-          <span className="font-semibold text-white">{reportCountdownLabel}</span>
+          <Link
+            href="/reports?new=1"
+            className={
+              daysToReport === 0 || daysToReport == null
+                ? "gym-tap inline-flex min-h-8 items-center rounded-full bg-[var(--gym-gold)]/15 px-2.5 font-semibold text-[var(--gym-gold)]"
+                : "font-semibold text-white"
+            }
+          >
+            {reportCountdownLabel}
+          </Link>
           {" · "}
           {data.reportCount}{" "}
           {data.reportCount === 1

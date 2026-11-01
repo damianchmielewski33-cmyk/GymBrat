@@ -98,7 +98,6 @@ export function HomeSylwetkaSection({
   return (
     <section className="space-y-3">
       <SectionLabel
-        index={1}
         title="Sylwetka"
         trailing={
           lastReportLabel ? (
@@ -186,7 +185,7 @@ export function HomeSylwetkaSection({
 
         <Link
           href="/progress"
-          className="flex w-full items-center justify-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-3.5 text-[14px] font-medium text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white"
+          className="gym-tap flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-3.5 text-[14px] font-medium text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white"
         >
           <TrendingUp className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />
           Wszystkie postępy: siła, sylwetka, zdjęcia

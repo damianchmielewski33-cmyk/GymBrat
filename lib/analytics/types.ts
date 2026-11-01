@@ -45,14 +45,27 @@ export type AnalyticsMuscleGroupId =
 
 export type MuscleGroupWindowStats = {
   sets: number;
+  effectiveSets: number;
   reps: number;
   tonnageKg: number;
   sharePct: number;
 };
 
+export type MuscleAcuteChronic = {
+  acute: number;
+  chronicWeekly: number;
+  /** acute / chronicWeekly; null bez bazy przewlekłej. */
+  ratio: number | null;
+  band: "unknown" | "detraining" | "optimal" | "high" | "spike";
+};
+
 export type MuscleGroupRow = {
   id: AnalyticsMuscleGroupId;
   label: string;
+  /** YYYY-MM-DD ostatniego treningu grupy (null = brak w historii). */
+  lastTrainedDate: string | null;
+  /** Obciążenie ostre (7 dni) vs przewlekłe (średnia tygodniowa z dni 8–28), serie efektywne. */
+  acuteChronic: MuscleAcuteChronic;
   week: MuscleGroupWindowStats;
   days30: MuscleGroupWindowStats;
   days90: MuscleGroupWindowStats;

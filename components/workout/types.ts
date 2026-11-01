@@ -8,6 +8,8 @@ export type WorkoutSetState = {
   done: boolean;
   /** Seria pominięta („Pomiń serię”) — done, ale bez realnego wykonania. */
   skipped?: boolean;
+  /** Seria rozgrzewkowa — poza objętością, statystykami i podpowiedziami progresji. */
+  warmup?: boolean;
   /** RPE 1–10, opcjonalnie */
   rpe?: number | null;
   /** RIR 0–3+ (w zapasie), opcjonalnie */

@@ -10,6 +10,7 @@ export type CompletedSessionSet = {
   rir?: number | null;
   rpe?: number | null;
   skipped?: boolean;
+  warmup?: boolean;
   /** Odpoczynek (s) — telemetria dla fatigue / rest awareness. */
   restSeconds?: number | null;
   heartRate?: number | null;
@@ -62,6 +63,7 @@ export type CompletedWorkoutDetails = CompletedWorkoutListItem & {
       e1rm: number;
       rir?: number | null;
       skipped?: boolean;
+      warmup?: boolean;
     }>;
     bestE1rm: number;
     volumeKg: number;
@@ -133,11 +135,14 @@ export function safeNormalizeExercises(exercises: unknown): CompletedSessionExer
 }
 
 /** Epley estimated 1RM: \(w * (1 + reps/30)\). */
+const E1RM_MAX_REPS = 12;
+
 export function estimated1RM(weight: number, reps: number): number {
   const w = clampNonNegative(weight, 0);
   const r = clampNonNegative(reps, 0);
   if (w <= 0 || r <= 0) return 0;
-  return w * (1 + r / 30);
+  // Epley zawyża 1RM przy wysokich powtórzeniach — powyżej 12 nie ekstrapolujemy.
+  return w * (1 + Math.min(r, E1RM_MAX_REPS) / 30);
 }
 
 export function computeWorkoutDetails(input: {
@@ -165,9 +170,11 @@ export function computeWorkoutDetails(input: {
         const reps = safeNumber(s.reps);
         const weight = clampNonNegative(safeNumber(s.weight), 0);
         const skipped = Boolean(s.skipped);
+        const warmup = Boolean(s.warmup);
         const performed =
           Boolean(s.done) &&
           !skipped &&
+          !warmup &&
           reps != null &&
           reps > 0;
         const e1rm =
@@ -183,6 +190,7 @@ export function computeWorkoutDetails(input: {
           e1rm,
           rir,
           skipped,
+          warmup,
         };
       });
 
