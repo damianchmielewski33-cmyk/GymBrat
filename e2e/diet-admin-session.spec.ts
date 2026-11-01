@@ -5,9 +5,9 @@ async function loginAsAthlete(page: import("@playwright/test").Page) {
   const password = process.env.E2E_PASSWORD?.trim();
   test.skip(!email || !password, "Ustaw E2E_EMAIL i E2E_PASSWORD.");
   await page.goto("/login");
-  await page.getByLabel("Email").fill(email!);
+  await page.getByLabel("E-mail").fill(email!);
   await page.getByLabel("Hasło", { exact: true }).fill(password!);
-  await page.getByRole("button", { name: /zaloguj się jako zawodnik/i }).click();
+  await page.getByRole("button", { name: /^zaloguj się$/i }).click();
   await page.waitForURL((url) => url.pathname === "/", { timeout: 25_000 });
 }
 

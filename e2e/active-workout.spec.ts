@@ -93,7 +93,7 @@ async function loginAndClearSession(page: Page) {
     );
   });
   await page.goto("/login");
-  await page.getByLabel("Email").fill(email!);
+  await page.getByLabel("E-mail").fill(email!);
   await page.getByLabel("Hasło", { exact: true }).fill(password!);
   await page.getByRole("button", { name: /^zaloguj się$/i }).click();
   await page.waitForURL((url) => url.pathname === "/", { timeout: 30_000 });
@@ -102,10 +102,13 @@ async function loginAndClearSession(page: Page) {
   await page.goto("about:blank");
   await page.request.get("/api/csrf");
   const xsrf = (await page.context().cookies()).find((c) => c.name === "gymbrat_xsrf")?.value ?? "";
+  const current = await page.request.get("/api/active-workout-session");
+  const currentJson = (await current.json().catch(() => null)) as { session?: { revision?: number } | null } | null;
   const del = await page.request.delete("/api/active-workout-session", {
     headers: { "x-xsrf-token": decodeURIComponent(xsrf) },
+    data: { revision: currentJson?.session?.revision ?? 0 },
   });
-  expect(del.ok()).toBeTruthy();
+  expect(del.ok(), `DELETE /api/active-workout-session -> ${del.status()} ${(await del.text()).slice(0, 160)}`).toBeTruthy();
 }
 
 /** Wstrzykuje stan sesji do localStorage i otwiera `/active-workout` (po `loginAndClearSession`). */
