@@ -187,3 +187,17 @@ describe("plan-review rozszerzenia", () => {
     ).toBe(0.75);
   });
 });
+
+describe("domyślne powtórzenia planu", () => {
+  it("podnosi cel, gdy 3 sesje z rzędu ponad celem", () => {
+    const history = hist([100, 101, 102, 103]).map((p) => ({ ...p, bestReps: 11 }));
+    const r = buildPlanReview({ ...base, exercises: [ex({ reps: 8, history })] });
+    expect(r.proposals[0]).toMatchObject({ kind: "change_reps", change: { reps: 11 } });
+  });
+
+  it("obniża cel, gdy realnie dużo poniżej", () => {
+    const history = hist([100, 101, 102, 103]).map((p) => ({ ...p, bestReps: 6 }));
+    const r = buildPlanReview({ ...base, exercises: [ex({ reps: 10, history })] });
+    expect(r.proposals[0]).toMatchObject({ change: { reps: 6 } });
+  });
+});

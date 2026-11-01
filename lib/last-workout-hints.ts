@@ -15,7 +15,7 @@ import { volumeFromSets } from "@/lib/live-coach/personal-records";
 import {
   qualifiesRepsOnlyBump,
   resolveRepRange,
-  suggestedWeightFromProgression,
+  buildSetProgressionSuggestion,
 } from "@/lib/set-progression-suggestion";
 import { roundHoldKg } from "@/lib/weight-step";
 import { isCompletedWorkoutSet } from "@/lib/workout-skipped-sets";
@@ -256,7 +256,7 @@ export function isStagnantV2(
  * Sugestia ciężaru: double progression (RIR-first, bez easy_anywhere).
  * Hard nie dokładamy kg (stary fallback RIR≤1 → +2.5 usunięty).
  */
-export function suggestWeightFromLastSet(
+export function suggestSetFromLastSet(
   last: {
     weight: number;
     reps?: number | null;
@@ -281,8 +281,8 @@ export function suggestWeightFromLastSet(
     repsOnlyBumpOk?: boolean;
     setIndex?: number;
   },
-): number {
-  const fromProgression = suggestedWeightFromProgression({
+): { weight: number; reps: number | null } {
+  const progression = buildSetProgressionSuggestion({
     last: {
       weight: last.weight,
       reps: last.reps ?? null,
@@ -304,11 +304,30 @@ export function suggestWeightFromLastSet(
     movementKind: undefined,
     setIndex: opts?.setIndex,
   });
-  if (fromProgression != null && fromProgression > 0) return fromProgression;
+  if (progression) {
+    return { weight: progression.weightKg, reps: progression.reps };
+  }
   const base = Math.max(0, Number(last.weight) || 0);
-  if (base <= 0) return 0;
-  return roundHoldKg(base);
+  if (base <= 0) return { weight: 0, reps: null };
+  // Hold: ten sam ciężar, powtórzenia jak ostatnio (w granicach zakresu planu).
+  const range = resolveRepRange(targetReps);
+  const lastReps =
+    last.reps != null && last.reps > 0 ? Math.round(last.reps) : null;
+  const reps =
+    lastReps != null
+      ? range
+        ? Math.min(range.max, Math.max(range.min, lastReps))
+        : lastReps
+      : (range?.max ?? null);
+  return { weight: roundHoldKg(base), reps };
 }
+
+export function suggestWeightFromLastSet(
+  ...args: Parameters<typeof suggestSetFromLastSet>
+): number {
+  return suggestSetFromLastSet(...args).weight;
+}
+
 
 type SessionEx = {
   dateMs: number;
@@ -451,7 +470,7 @@ export function mergeHintsIntoExercises(
       h.coachContext?.recentSessions,
       resolveRepRange(ex.targetReps),
     );
-    const suggestedWeights = ex.sets.map((_, i) => {
+    const suggestedSets = ex.sets.map((_, i) => {
       // Chip pierwszej serii: decyzja z całego bloku ostatniej sesji (trailing easy).
       // Kolejne chipy: odpowiadająca seria + prior w tej sesji.
       const refSet =
@@ -470,7 +489,7 @@ export function mergeHintsIntoExercises(
             : workingHist.slice(0, -1).slice(-3)
           : workingHist.slice(0, Math.min(i, workingHist.length));
 
-      return suggestWeightFromLastSet(
+      return suggestSetFromLastSet(
         {
           weight: last.weight,
           reps: last.reps,
@@ -491,7 +510,8 @@ export function mergeHintsIntoExercises(
     });
     const base = {
       ...ex,
-      suggestedWeights,
+      suggestedWeights: suggestedSets.map((x) => x?.weight ?? null),
+      suggestedReps: suggestedSets.map((x) => x?.reps ?? null),
       lastSessionSets,
       coachContext: h.coachContext ?? ex.coachContext,
       note: ex.note?.trim() ? ex.note : h.note,

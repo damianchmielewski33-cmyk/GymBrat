@@ -75,7 +75,7 @@ export function suggestionReasonForRule(
 export type SetSuggestionView = {
   /** > 0 */
   weightKg: number;
-  /** null przy źródle suggestedWeights. */
+  /** null, gdy silnik nie podał powtórzeń. */
   reps: number | null;
   direction: SuggestionDirection;
   /** round2(S - B); 0 przy "hold". Do tekstu „+5 kg” / „−5 kg”. */
@@ -120,7 +120,8 @@ export function buildSetSuggestionView(
     const suggested = exercise.suggestedWeights?.[setIndex];
     if (!isPositiveKg(suggested)) return null;
     weightKg = round2(suggested);
-    reps = null;
+    const suggestedReps = exercise.suggestedReps?.[setIndex];
+    reps = suggestedReps != null && suggestedReps > 0 ? suggestedReps : null;
     rule = null;
     source = "progression";
   }

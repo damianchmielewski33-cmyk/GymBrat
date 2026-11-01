@@ -36,6 +36,8 @@ export type WorkoutExerciseState = {
   supersetGroupId?: string | null;
   /** Sugestia ciężaru per seria (z ostatniej sesji). */
   suggestedWeights?: Array<number | null>;
+  /** Powtórzenia proponowane przez silnik progresji (równolegle do `suggestedWeights`). */
+  suggestedReps?: Array<number | null>;
   /** Ostatnia sesja tego ćwiczenia — do „Ostatnio …” i progresji. */
   lastSessionSets?: Array<WorkoutSetState | null>;
   /** Kontekst 2–4 ostatnich treningów (przerwa, stagnacja, średni top). */

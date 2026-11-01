@@ -89,8 +89,10 @@ export function resolveInitialSetDraft(args: {
   lastSessionSet: WorkoutSetState | null;
   /** Najbliższa wcześniejsza zapisana seria tego ćwiczenia w sesji. */
   previousSessionSet: WorkoutSetState | null;
+  /** Domyślne powtórzenia z planu — silnik progresji je nadpisuje, wpis użytkownika nie. */
+  defaultReps?: number | null;
 }): InitialSetDraft {
-  const { set, suggestion, lastSessionSet, previousSessionSet } = args;
+  const { set, suggestion, lastSessionSet, previousSessionSet, defaultReps } = args;
   const setReps = positiveReps(set.reps);
 
   if (set.done || hasExternalWeight(set.weight)) {
@@ -125,9 +127,18 @@ export function resolveInitialSetDraft(args: {
 
   for (const c of candidates) {
     if (hasExternalWeight(c.weightKg)) {
+      // Powtórzenia z silnika mają pierwszeństwo przed domyślnymi z planu
+      // (ale nie przed tym, co użytkownik wpisał sam).
+      const engineReps =
+        c.source === "suggestion" ? positiveReps(c.reps) : null;
+      const planDefault =
+        setReps == null || (defaultReps != null && setReps === defaultReps);
       return {
         weightKg: clampWeight(c.weightKg!),
-        reps: setReps ?? positiveReps(c.reps),
+        reps:
+          engineReps != null && planDefault
+            ? engineReps
+            : (setReps ?? positiveReps(c.reps)),
         source: c.source,
       };
     }
