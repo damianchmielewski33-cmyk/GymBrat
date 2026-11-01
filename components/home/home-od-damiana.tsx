@@ -22,7 +22,7 @@ export function HomeOdDamiana({
 
   return (
     <section className="space-y-3">
-      <SectionLabel index={3} title="Od Damiana" />
+      <SectionLabel title="Od Damiana" />
       <div className="flex gap-3 px-0.5">
         <div className="flex flex-col items-center">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--gym-gold)] font-semibold text-black">

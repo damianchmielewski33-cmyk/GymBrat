@@ -447,7 +447,7 @@
     transition:
       filter 160ms ease,
       box-shadow 160ms ease,
-      transform 120ms ease;
+      transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .gym-btn-primary:hover:not(:disabled) {
@@ -459,9 +459,14 @@
       0 2px 0 rgba(0, 0, 0, 0.32);
   }
 
+  .gym-btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
   .gym-btn-primary:active:not(:disabled) {
-    transform: translateY(1px);
+    transform: translateY(1px) scale(0.97);
     filter: brightness(0.97);
+    transition-duration: 90ms;
   }
 
   /** Alias używany w treningu / przerwie / raporcie — ten sam złoty CTA. */
@@ -487,7 +492,7 @@
     transition:
       filter 160ms ease,
       box-shadow 160ms ease,
-      transform 120ms ease;
+      transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .gold-btn:hover:not(:disabled) {
@@ -499,9 +504,57 @@
       0 2px 0 rgba(0, 0, 0, 0.32);
   }
 
+  .gold-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
   .gold-btn:active:not(:disabled) {
-    transform: translateY(1px);
+    transform: translateY(1px) scale(0.97);
     filter: brightness(0.97);
+    transition-duration: 90ms;
+  }
+
+  /** Wejście sekcji pulpitu — kolejność z `--i`, bez ruchu przy reduced-motion. */
+  .gym-rise {
+    animation: page-enter 480ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 55ms);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gym-rise {
+      animation: none;
+    }
+  }
+
+  /** Sprężyste „wciśnięcie" dla kart-linków, chipów i małych przycisków. */
+  .gym-tap {
+    transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .gym-tap:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .gym-tap:active:not(:disabled) {
+    transform: scale(0.97);
+    transition-duration: 90ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gold-btn,
+    .gym-btn-primary,
+    .gym-tap {
+      transition-property: filter, box-shadow;
+    }
+
+    .gold-btn:hover:not(:disabled),
+    .gold-btn:active:not(:disabled),
+    .gym-btn-primary:hover:not(:disabled),
+    .gym-btn-primary:active:not(:disabled),
+    .gym-tap:hover:not(:disabled),
+    .gym-tap:active:not(:disabled) {
+      transform: none;
+    }
   }
 
   .gold-btn:disabled {

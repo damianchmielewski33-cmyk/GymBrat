@@ -30,7 +30,7 @@ export function HomeSupplementsChip({
   return (
     <Link
       href="/supplements"
-      className="app-card flex items-center gap-3 px-3.5 py-3 transition-colors hover:bg-white/[0.04]"
+      className="app-card gym-tap flex items-center gap-3 px-3.5 py-3 transition-colors hover:bg-white/[0.04]"
     >
       <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]">
         <Pill className="h-4 w-4" aria-hidden />

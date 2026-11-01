@@ -124,7 +124,6 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
       weightDeltaFromPreviousKg={dash.weightDeltaFromPreviousKg}
       weightFromStartKg={dash.weightFromStartKg}
       weightKgPerWeek={weightKgPerWeek(dash.weightSeries)}
-      tempoKgPerMin={dash.tempoKgPerMin}
       todayMacros={dash.todayMacros}
       weekMacros={dash.weekMacros}
       weightSeries={dash.weightSeries}

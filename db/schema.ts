@@ -456,6 +456,34 @@ export const userExerciseNotes = sqliteTable(
   ],
 );
 
+/**
+ * Rewizje planu treningowego: poprzednia wersja planu zapisana przed zmianą
+ * z przeglądu planu (trwałe „Cofnij”) i granica mezocyklu.
+ */
+export const planRevisions = sqliteTable(
+  "plan_revisions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    planId: text("plan_id").notNull(),
+    /** Plan SPRZED zmiany (JSON). */
+    previousPlanJson: text("previous_plan_json").notNull(),
+    /** review (propozycje) | deload (tydzień odciążenia) */
+    kind: text("kind").notNull().default("review"),
+    summary: text("summary"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    /** Ustawiane po cofnięciu zmiany. */
+    revertedAt: integer("reverted_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [index("idx_plan_revisions_user_plan").on(t.userId, t.planId)],
+);
+
 /** Wpisy posiłków dodane ręcznie / ze skanu — źródło spożycia makroskładników. */
 export const mealLogs = sqliteTable(
   "meal_logs",

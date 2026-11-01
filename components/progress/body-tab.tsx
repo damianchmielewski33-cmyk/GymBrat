@@ -15,6 +15,7 @@ import {
 } from "@/components/progress/progress-ui";
 import { MiniSparkline } from "@/components/home/mini-sparkline";
 import { saveFitnessGoalsAction } from "@/actions/fitness-goals";
+import { GOAL_TYPE_LABEL, type GoalType } from "@/lib/goal-projection";
 import type { ProgressHubData } from "@/lib/progress-hub";
 import { calendarWeekdaySun0 } from "@/lib/local-date";
 import {
@@ -70,12 +71,14 @@ function etaLabel(input: {
  * były pokazane w trzech miejscach (hero, tempo, zdjęcia).
  */
 export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
-  const { weights, tempo, measures, targetWeightKg } = body;
+  const { weights, tempo, measures, targetWeightKg, goalType, goalDeadline } = body;
   const router = useRouter();
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalDraft, setGoalDraft] = useState(
     targetWeightKg != null ? String(targetWeightKg).replace(".", ",") : "",
   );
+  const [goalTypeDraft, setGoalTypeDraft] = useState<GoalType | "">(goalType ?? "");
+  const [deadlineDraft, setDeadlineDraft] = useState(goalDeadline ?? "");
   const [goalError, setGoalError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -111,6 +114,8 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
     startTransition(async () => {
       const res = await saveFitnessGoalsAction({
         targetWeightKg: Math.round(n * 10) / 10,
+        ...(goalTypeDraft ? { goalType: goalTypeDraft } : {}),
+        ...(deadlineDraft ? { goalDeadline: deadlineDraft } : {}),
       });
       if (!res.ok) {
         setGoalError(res.error);
@@ -184,6 +189,26 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                   placeholder="np. 65"
                   className="h-10 w-full max-w-[160px] rounded-xl border border-white/15 bg-black/40 px-3 font-heading text-[16px] text-white outline-none focus:border-[var(--gym-gold)]/50"
                   autoFocus
+                />
+                <select
+                  value={goalTypeDraft}
+                  onChange={(e) => setGoalTypeDraft(e.target.value as GoalType | "")}
+                  aria-label="Typ celu"
+                  className="h-10 w-full max-w-[200px] rounded-xl border border-white/15 bg-black/40 px-3 text-[14px] text-white outline-none"
+                >
+                  <option value="">Typ celu (opcjonalnie)</option>
+                  {(Object.keys(GOAL_TYPE_LABEL) as GoalType[]).map((t) => (
+                    <option key={t} value={t}>
+                      {GOAL_TYPE_LABEL[t]}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  value={deadlineDraft}
+                  onChange={(e) => setDeadlineDraft(e.target.value)}
+                  aria-label="Termin celu"
+                  className="h-10 w-full max-w-[200px] rounded-xl border border-white/15 bg-black/40 px-3 text-[14px] text-white outline-none"
                 />
                 {goalError ? (
                   <p className="text-[11px] text-rose-300">{goalError}</p>

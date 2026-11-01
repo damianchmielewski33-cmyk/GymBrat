@@ -618,6 +618,7 @@ export function ActiveWorkoutView({
       weight: number;
       done: boolean;
       skipped: boolean;
+      warmup: boolean;
       rpe: number | null;
       rir: number | null;
     }>,

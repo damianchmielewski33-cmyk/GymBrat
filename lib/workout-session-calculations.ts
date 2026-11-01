@@ -8,6 +8,7 @@ export type VolumeSetInput = {
   weight: number;
   done?: boolean;
   skipped?: boolean;
+  warmup?: boolean;
 };
 
 export function safeNonNegative(n: number, fallback = 0): number {
@@ -23,7 +24,7 @@ export function safeNonNegative(n: number, fallback = 0): number {
  * - brak obu flag (legacy surowe liczby) → tak
  */
 export function isCountedPerformedSet(s: VolumeSetInput): boolean {
-  if (Boolean(s.skipped)) return false;
+  if (Boolean(s.skipped) || Boolean(s.warmup)) return false;
   if (s.done === false) return false;
   if (s.done === true) return true;
   // Legacy: ani done, ani skipped nie podano.

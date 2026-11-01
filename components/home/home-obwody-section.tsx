@@ -68,7 +68,7 @@ export function HomeObwodySection({
 
   return (
     <section className="space-y-3">
-      <SectionLabel index={5} title="Obwody" trailing="od startu" />
+      <SectionLabel title="Obwody" trailing="od startu" />
 
       <div className="app-card divide-y divide-white/[0.06] overflow-hidden">
         {ROWS.map((row) => {
@@ -95,11 +95,7 @@ export function HomeObwodySection({
               ? "text-white/35"
               : improved
                 ? "text-emerald-400"
-                : delta < 0
-                  ? "text-rose-400"
-                  : row.color === "#c9a84a"
-                    ? "text-[var(--gym-gold)]"
-                    : "text-white/70";
+                : "text-rose-400";
 
           return (
             <div

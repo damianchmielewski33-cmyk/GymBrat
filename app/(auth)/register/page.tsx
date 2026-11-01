@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import { Suspense } from "react";
 import { auth } from "@/auth";
@@ -18,6 +19,12 @@ type Search = Promise<{
 function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
+
+export const metadata: Metadata = {
+  title: "Rejestracja",
+  description: "Załóż konto w GymBrat i zacznij planować treningi oraz posiłki.",
+  alternates: { canonical: "/register" },
+};
 
 export default async function RegisterPage({
   searchParams,

@@ -306,6 +306,21 @@ export function StrengthTab({
     <div className="space-y-5">
       <StrengthTrendCard velocity={intelligence.velocity} period={period} onPeriodChange={onPeriodChange} />
 
+      <Link
+        href="/progress/objetosc"
+        className="app-panel flex items-center justify-between px-3.5 py-3 text-[14px] font-semibold text-white"
+      >
+        Objętość tygodniowa i regeneracja mięśni
+        <span aria-hidden className="text-white/45">›</span>
+      </Link>
+      <Link
+        href="/progress/przeglad-planu"
+        className="app-panel flex items-center justify-between px-3.5 py-3 text-[14px] font-semibold text-white"
+      >
+        Przegląd planu — propozycje zmian
+        <span aria-hidden className="text-white/45">›</span>
+      </Link>
+
       <ProgressSection
         title="Ćwiczenia"
         trailing="ostatnie sesje"

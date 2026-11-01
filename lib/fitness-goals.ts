@@ -8,6 +8,13 @@ export const fitnessGoalsSchema = z.object({
   weeklySessionsTarget: z.number().int().min(1).max(14).optional(),
   /** Waga docelowa (kg) — Postępy → Sylwetka. */
   targetWeightKg: z.number().positive().max(400).optional(),
+  /** Główny cel treningowy — steruje domyślnymi celami i prognozami. */
+  goalType: z.enum(["cut", "bulk", "recomp", "strength"]).optional(),
+  /** Termin celu wagi (YYYY-MM-DD). */
+  goalDeadline: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   waistGoalCm: z.number().positive().max(60).optional(),
   tonnageGoalKg: z.number().positive().max(10_000_000).optional(),
   streakWeeksGoal: z.number().int().min(1).max(52).optional(),
@@ -16,6 +23,13 @@ export const fitnessGoalsSchema = z.object({
       z.object({
         name: z.string().trim().min(1).max(80),
         targetKg: z.number().positive().max(1000).optional(),
+        /** Powtórzenia celu (np. 100 kg × 5); brak = pojedyncze powtórzenie. */
+        targetReps: z.number().int().min(1).max(30).optional(),
+        /** Termin celu ćwiczenia (YYYY-MM-DD). */
+        deadline: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
       }),
     )
     .max(12)
@@ -52,6 +66,8 @@ export function fitnessGoalsToJson(goals: FitnessGoals): string | null {
   if (
     !v.weeklySessionsTarget &&
     v.targetWeightKg == null &&
+    v.goalType == null &&
+    v.goalDeadline == null &&
     v.waistGoalCm == null &&
     v.tonnageGoalKg == null &&
     v.streakWeeksGoal == null &&

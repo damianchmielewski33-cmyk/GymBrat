@@ -106,5 +106,7 @@ export async function loadProgressBodyMetrics(userId: string): Promise<ProgressH
     },
     measures,
     targetWeightKg: goals.targetWeightKg != null ? round1(goals.targetWeightKg) : null,
+    goalType: goals.goalType ?? null,
+    goalDeadline: goals.goalDeadline ?? null,
   };
 }

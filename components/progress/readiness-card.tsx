@@ -64,6 +64,11 @@ export function ReadinessCard({ data }: { data: ProgressIntelligence }) {
             <p className="mt-0.5 text-[12px] tabular-nums text-[var(--gym-text-secondary)]">
               {Math.round(recovery.score)} / 100
             </p>
+            {recovery.source === "inverse_fatigue" ? (
+              <p className="mt-0.5 text-[11px] text-[var(--gym-text-secondary)]">
+                szacunek z obciążenia
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

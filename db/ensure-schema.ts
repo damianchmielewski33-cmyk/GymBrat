@@ -79,6 +79,23 @@ CREATE TABLE IF NOT EXISTS "meal_logs" (
   );
 
   await client.execute(`
+CREATE TABLE IF NOT EXISTS "plan_revisions" (
+  "id" text PRIMARY KEY NOT NULL,
+  "user_id" text NOT NULL,
+  "plan_id" text NOT NULL,
+  "previous_plan_json" text NOT NULL,
+  "kind" text NOT NULL DEFAULT 'review',
+  "summary" text,
+  "created_at" integer NOT NULL,
+  "reverted_at" integer,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "idx_plan_revisions_user_plan" ON "plan_revisions" ("user_id","plan_id")`,
+  );
+
+  await client.execute(`
 CREATE TABLE IF NOT EXISTS "oauth_accounts" (
   "id" text PRIMARY KEY NOT NULL,
   "user_id" text NOT NULL,

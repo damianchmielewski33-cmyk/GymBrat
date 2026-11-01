@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     "http://localhost:3000";
   const origin = base.replace(/\/$/, "");
   return {
-    rules: [{ userAgent: "*", allow: "/", disallow: ["/api/"] }],
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/api/", "/admin", "/forgot-password"] }],
     sitemap: `${origin}/sitemap.xml`,
   };
 }

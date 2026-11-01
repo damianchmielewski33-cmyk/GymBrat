@@ -4,7 +4,7 @@ import { LegalDocShell, LegalSection } from "@/components/legal/legal-doc-shell"
 import { getLegalSeller, PRIVACY_PATH } from "@/lib/legal-seller";
 
 export const metadata: Metadata = {
-  title: "Regulamin | GymBrat",
+  title: "Regulamin",
   description:
     "Regulamin świadczenia usług drogą elektroniczną i sprzedaży pakietów dostępu do aplikacji GymBrat.",
   robots: { index: true, follow: true },

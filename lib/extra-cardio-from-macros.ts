@@ -214,7 +214,13 @@ export function macroSurplusKcal(day: MacroDaySnapshot): {
     carbsOver * KCAL_PER_G.carbs +
     fatOver * KCAL_PER_G.fat;
 
-  const surplusKcal = Math.round(Math.max(fromMacros, calOver));
+  // Przy znanym celu kcal liczy się wyłącznie nadwyżka energetyczna: makro
+  // przekroczone przy kcal > cel to ta sama energia, nie dodatkowa.
+  const hasCalorieGoal =
+    day.caloriesGoal != null &&
+    Number.isFinite(day.caloriesGoal) &&
+    day.caloriesGoal > 0;
+  const surplusKcal = Math.round(hasCalorieGoal ? calOver : fromMacros);
 
   const exceeded: ExceededMacro[] = [];
   if (proteinOver > 0) exceeded.push("protein");
@@ -823,7 +829,7 @@ export function computeExtraCardioAdvice(
   ];
   if (daysLeft > 0) {
     explanation.push(
-      `Do końca tygodnia: ${daysLeft} ${daysLeft === 1 ? "dzień" : "dni"} — szansa wyrównania dietą: ${balanceChancePct}%.`,
+      `Do końca tygodnia: ${daysLeft} ${daysLeft === 1 ? "dzień" : "dni"} — orientacyjna szansa wyrównania dietą: ok. ${balanceChancePct}% (szacunek, nie prognoza).`,
     );
   }
   if (show) {

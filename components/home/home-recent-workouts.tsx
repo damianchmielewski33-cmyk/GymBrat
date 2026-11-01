@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { ChevronRight, Clock, TrendingUp } from "lucide-react";
+import { ChevronRight, Clock } from "lucide-react";
 import { SectionLabel } from "@/components/ui/section-label";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
-import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
 import type { RecentWorkoutItem } from "@/lib/treningi-hub-stats";
 
 function formatDayMonth(iso: string): string {
@@ -13,26 +12,18 @@ function formatDayMonth(iso: string): string {
   });
 }
 
-function relativeDayLabel(iso: string, today: string): string {
-  if (iso === today) return "dziś";
-  if (iso === addCalendarDays(today, -1)) return "wczoraj";
-  return formatDayMonth(iso);
-}
-
 export function HomeRecentWorkouts({
   workouts,
 }: {
   workouts: RecentWorkoutItem[];
 }) {
-  const today = calendarDateKey();
   const shown = workouts.slice(0, 4);
 
   return (
     <section className="space-y-3">
       <SectionLabel
-        index={6}
         title="Ostatnie treningi"
-        trailing={workouts.length > 0 ? String(workouts.length) : "—"}
+        trailing={shown.length > 0 ? `ostatnie ${shown.length}` : undefined}
       />
 
       <div className="app-card overflow-hidden">
@@ -44,7 +35,6 @@ export function HomeRecentWorkouts({
           <ul className="divide-y divide-white/[0.06]">
             {shown.map((w) => {
               const meta = [
-                relativeDayLabel(w.date, today),
                 w.durationMinutes != null ? `${w.durationMinutes} min` : null,
                 w.setsDone > 0
                   ? `${w.setsDone} ${
@@ -63,9 +53,9 @@ export function HomeRecentWorkouts({
                 <li key={w.id}>
                   <Link
                     href={`/workout-history?open=${encodeURIComponent(w.id)}`}
-                    className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+                    className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03] active:bg-white/[0.06]"
                   >
-                    <span className="w-11 shrink-0 text-[12px] tabular-nums text-white/40">
+                    <span className="w-11 shrink-0 text-[12px] tabular-nums text-white/55">
                       {formatDayMonth(w.date)}
                     </span>
                     <span className="min-w-0 flex-1">
@@ -105,7 +95,7 @@ export function HomeRecentWorkouts({
         <div className="divide-y divide-white/[0.06] border-t border-white/[0.06]">
           <Link
             href="/workout-history"
-            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03] active:bg-white/[0.06]"
           >
             <Clock className="h-4 w-4 shrink-0 text-[var(--gym-gold)]" aria-hidden />
             <span className="min-w-0 flex-1">
@@ -114,24 +104,6 @@ export function HomeRecentWorkouts({
               </span>
               <span className="mt-0.5 block text-[12px] text-white/45">
                 każda seria, poprawki do 7 dni
-              </span>
-            </span>
-            <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
-          </Link>
-          <Link
-            href="/progress"
-            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
-          >
-            <TrendingUp
-              className="h-4 w-4 shrink-0 text-[var(--gym-gold)]"
-              aria-hidden
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-white">
-                Postępy
-              </span>
-              <span className="mt-0.5 block text-[12px] text-white/45">
-                siła, sylwetka, zdjęcia, tydzień
               </span>
             </span>
             <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />

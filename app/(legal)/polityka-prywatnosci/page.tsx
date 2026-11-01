@@ -4,7 +4,7 @@ import { LegalDocShell, LegalSection } from "@/components/legal/legal-doc-shell"
 import { getLegalSeller, REGULAMIN_PATH } from "@/lib/legal-seller";
 
 export const metadata: Metadata = {
-  title: "Polityka prywatności | GymBrat",
+  title: "Polityka prywatności",
   description:
     "Polityka prywatności i ochrony danych osobowych w serwisie GymBrat (RODO).",
   robots: { index: true, follow: true },

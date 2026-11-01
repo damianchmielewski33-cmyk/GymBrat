@@ -5,7 +5,10 @@ import {
   TEST_REGISTER_CODE,
 } from "@/lib/register-email-mode";
 
-export const metadata: Metadata = { title: "Zmiana hasła — GymBrat" };
+export const metadata: Metadata = {
+  title: "Zmiana hasła — GymBrat",
+  robots: { index: false, follow: false },
+};
 
 export default function ForgotPasswordPage() {
   const mode = getRegisterEmailMode();

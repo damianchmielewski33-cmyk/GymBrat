@@ -1,19 +1,7 @@
 import Link from "next/link";
-import { Activity, ArrowRight, ArrowDown, ArrowUp, Scale, type LucideIcon } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { HomeStartTodayMacros, HomeStartWeekMacros } from "@/lib/home-start";
-
-function formatKg(n: number | null): string {
-  if (n == null || !Number.isFinite(n)) return "—";
-  return String(Math.round(n * 10) / 10).replace(".", ",");
-}
-
-function formatSignedKg(n: number | null): string {
-  if (n == null || !Number.isFinite(n)) return "—";
-  const rounded = Math.round(n * 10) / 10;
-  const sign = rounded > 0 ? "+" : "";
-  return `${sign}${String(rounded).replace(".", ",")}`;
-}
 
 function formatGrams(n: number | null): string {
   if (n == null || !Number.isFinite(n)) return "—";
@@ -22,91 +10,6 @@ function formatGrams(n: number | null): string {
 
 function formatKcal(n: number): string {
   return String(Math.round(n));
-}
-
-type BadgeTone = "neutral" | "good" | "bad";
-
-/** Plakietka ze zmianą / statusem (Waga, Tempo) — wspólny styl obu kafelków. */
-function Badge({
-  tone = "neutral",
-  direction,
-  children,
-}: {
-  tone?: BadgeTone;
-  direction?: "up" | "down";
-  children: string;
-}) {
-  const Arrow = direction === "up" ? ArrowUp : direction === "down" ? ArrowDown : null;
-  return (
-    <span
-      className={cn(
-        "inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] font-semibold leading-none",
-        tone === "bad" && "bg-rose-500/15 text-rose-400",
-        tone === "good" && "bg-emerald-500/15 text-emerald-400",
-        tone === "neutral" && "bg-white/[0.08] text-white/80",
-      )}
-    >
-      {Arrow ? <Arrow className="h-3 w-3" strokeWidth={2.5} aria-hidden /> : null}
-      {children}
-    </span>
-  );
-}
-
-function MetricTile({
-  label,
-  value,
-  unit,
-  badge,
-  caption,
-  Icon,
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-  badge?: { text: string; tone?: BadgeTone; direction?: "up" | "down" };
-  caption?: string;
-  Icon: LucideIcon;
-}) {
-  return (
-    <div className="app-card flex min-h-[132px] min-w-0 flex-col px-4 py-4">
-      <div className="flex items-center gap-2">
-        <Icon
-          className="h-[18px] w-[18px] shrink-0 text-[var(--gym-gold)]"
-          strokeWidth={1.75}
-          aria-hidden
-        />
-        <p className="text-[length:var(--text-caption)] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-          {label}
-        </p>
-      </div>
-      <p className="mt-3 flex items-baseline gap-1.5">
-        <span className="font-metric text-[44px] leading-none tracking-wide text-white">
-          {value}
-        </span>
-        {unit ? (
-          <span className="font-heading text-[14px] font-medium text-white/60">
-            {unit}
-          </span>
-        ) : null}
-      </p>
-      {badge || caption ? (
-        <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1.5 pt-3">
-          {badge ? (
-            <Badge tone={badge.tone} direction={badge.direction}>
-              {badge.text}
-            </Badge>
-          ) : null}
-          {caption ? (
-            <span className="text-[12px] leading-snug text-white/60">
-              {caption}
-            </span>
-          ) : null}
-        </div>
-      ) : (
-        <div className="mt-auto pt-3" />
-      )}
-    </div>
-  );
 }
 
 /**
@@ -299,7 +202,7 @@ function MacroProgressTile({
   );
 
   const className =
-    "app-card flex flex-col px-4 py-4 transition hover:bg-white/[0.02]";
+    "app-card gym-tap flex flex-col px-4 py-4 hover:bg-white/[0.02]";
 
   if (href) {
     return (
@@ -313,65 +216,21 @@ function MacroProgressTile({
     );
   }
 
-  return <div className={cn(className, "col-span-2")}>{body}</div>;
+  return (
+    <div className={cn(className, "col-span-2 !transform-none")}>{body}</div>
+  );
 }
 
 export function StartMetricTiles({
-  weightKg,
-  tempoKgPerMin,
-  weightFromStartKg,
-  weightDeltaFromPreviousKg,
   todayMacros,
   weekMacros,
 }: {
-  weightKg: number | null;
-  tempoKgPerMin: number | null;
-  weightFromStartKg: number | null;
-  weightDeltaFromPreviousKg?: number | null;
   todayMacros: HomeStartTodayMacros;
   weekMacros: HomeStartWeekMacros;
 }) {
-  let weightBadge:
-    | { text: string; tone?: BadgeTone; direction?: "up" | "down" }
-    | undefined;
-  let weightCaption: string | undefined;
-  if (
-    weightDeltaFromPreviousKg != null &&
-    Number.isFinite(weightDeltaFromPreviousKg) &&
-    Math.abs(weightDeltaFromPreviousKg) >= 0.05
-  ) {
-    const down = weightDeltaFromPreviousKg < 0;
-    weightBadge = {
-      text: `${formatSignedKg(weightDeltaFromPreviousKg)} kg`,
-      tone: down ? "good" : "bad",
-      direction: down ? "down" : "up",
-    };
-    weightCaption = "od ostatniego raportu";
-  } else if (weightFromStartKg != null && Number.isFinite(weightFromStartKg)) {
-    weightBadge = { text: `${formatSignedKg(weightFromStartKg)} kg`, tone: "neutral" };
-    weightCaption = "od startu";
-  } else if (weightKg != null) {
-    weightBadge = { text: "Ostatni pomiar", tone: "neutral" };
-  }
-
   return (
     <section className="space-y-2.5">
       <div className="grid grid-cols-2 gap-2.5">
-        <MetricTile
-          Icon={Scale}
-          label="Waga"
-          value={weightKg != null ? formatKg(weightKg) : "—"}
-          unit="kg"
-          badge={weightBadge}
-          caption={weightCaption}
-        />
-        <MetricTile
-          Icon={Activity}
-          label="Tempo"
-          value={tempoKgPerMin != null ? formatKg(tempoKgPerMin) : "—"}
-          unit="kg/tydz"
-          badge={{ text: "Ostatnia sesja", tone: "neutral" }}
-        />
         <MacroProgressTile
           title="Makro dziś"
           macros={todayMacros}

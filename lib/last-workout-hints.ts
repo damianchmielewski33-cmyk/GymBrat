@@ -187,6 +187,30 @@ function avgRirFromSets(sets: WorkoutSetState[]): number | null {
  * ≥3 sesje, brak wzrostu kg, reps, e1RM, średni RIR ≤1.
  * Rosnący e1RM wyklucza stagnację.
  */
+/**
+ * Seria odniesienia dla pierwszej serii nowej sesji. Domyślnie ostatnia robocza
+ * (konserwatywna dla dokładki kg). Gdy najlepsza seria na ciężarze topowym była
+ * poniżej góry zakresu, odnosimy się do niej — ostatnia, najbardziej zmęczona
+ * seria zaniżałaby cel powtórzeń na starcie.
+ */
+export function pickReferenceSet<
+  T extends { weight: number; reps: number | null },
+>(
+  working: T[],
+  range: { min: number; max: number } | null,
+): { set: T; usedBest: boolean } | null {
+  if (working.length === 0) return null;
+  const lastSet = working[working.length - 1]!;
+  if (!range) return { set: lastSet, usedBest: false };
+  const topKg = Math.max(...working.map((s) => s.weight));
+  const atTop = working.filter((s) => s.weight >= topKg * 0.98);
+  const best = atTop.reduce((a, b) => ((b.reps ?? 0) > (a.reps ?? 0) ? b : a));
+  if ((best.reps ?? 0) < range.max && best !== lastSet) {
+    return { set: best, usedBest: true };
+  }
+  return { set: lastSet, usedBest: false };
+}
+
 export function isStagnantV2(
   sessions: Array<{
     topKg: number;
@@ -410,7 +434,9 @@ export function mergeHintsIntoExercises(
     // Tylko rzeczywiście zaliczone serie (done, nie pominięte) mogą zasilać
     // podpowiedzi i sugestie — niezapisany projekt wartości (np. z chipa
     // podpowiedzi) nie ma `done: true` i nie trafia tutaj.
-    const completedHistSets = h.sets.filter((s) => isCompletedWorkoutSet(s));
+    const completedHistSets = h.sets.filter(
+      (s) => isCompletedWorkoutSet(s) && !s.warmup,
+    );
     const lastSessionSets = ex.sets.map((_, i) => {
       const hs =
         completedHistSets[i] ??
@@ -428,14 +454,20 @@ export function mergeHintsIntoExercises(
     const suggestedWeights = ex.sets.map((_, i) => {
       // Chip pierwszej serii: decyzja z całego bloku ostatniej sesji (trailing easy).
       // Kolejne chipy: odpowiadająca seria + prior w tej sesji.
+      const refSet =
+        i === 0
+          ? pickReferenceSet(workingHist, resolveRepRange(ex.targetReps))
+          : null;
       const last =
         i === 0
-          ? (workingHist[workingHist.length - 1] ?? lastSessionSets[i])
+          ? (refSet?.set ?? lastSessionSets[i])
           : lastSessionSets[i];
       if (!last || last.weight <= 0) return null;
       const priorSets =
         i === 0
-          ? workingHist.slice(0, -1).slice(-3)
+          ? refSet?.usedBest
+            ? []
+            : workingHist.slice(0, -1).slice(-3)
           : workingHist.slice(0, Math.min(i, workingHist.length));
 
       return suggestWeightFromLastSet(

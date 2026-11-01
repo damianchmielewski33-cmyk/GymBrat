@@ -115,6 +115,7 @@ export default async function WorkoutHistoryEditPage({
         weight: s.weight,
         done: s.done,
         skipped: s.skipped,
+        warmup: s.warmup,
         rir: s.rir ?? targetRir,
         rpe: null,
       })),
