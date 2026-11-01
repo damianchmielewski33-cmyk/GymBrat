@@ -161,6 +161,36 @@ export function buildPlanReview(input: PlanReviewInput): PlanReviewResult {
       });
       continue;
     }
+    // Domyślne powtórzenia planu nadążają za realnymi wynikami z 3 ostatnich sesji.
+    if (h.length >= 3 && ex.stagnation !== "regressing") {
+      const reps3 = h.slice(-3).map((p) => p.bestReps);
+      const lo = Math.min(...reps3);
+      const hi = Math.max(...reps3);
+      if (lo >= ex.reps + 1) {
+        const next = Math.min(ex.reps + 3, lo);
+        push({
+          id: `raise-reps-${ex.id}`,
+          kind: "change_reps",
+          exerciseId: ex.id,
+          title: `${ex.name}: cel ${next} powt.`,
+          reason: `W 3 ostatnich sesjach robisz ${lo}+ powt. przy celu ${ex.reps} — podnieś domyślną liczbę powtórzeń.`,
+          change: { reps: next },
+        });
+        continue;
+      }
+      if (hi <= ex.reps - 2) {
+        const next = Math.max(hi, 1);
+        push({
+          id: `lower-reps-${ex.id}`,
+          kind: "change_reps",
+          exerciseId: ex.id,
+          title: `${ex.name}: cel ${next} powt.`,
+          reason: `W 3 ostatnich sesjach najwyżej ${hi} powt. przy celu ${ex.reps} — dostosuj cel do realnych wyników.`,
+          change: { reps: next },
+        });
+        continue;
+      }
+    }
     if (
       ex.stagnation === "stagnating" &&
       h.length >= 3 &&

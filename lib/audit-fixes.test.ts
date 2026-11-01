@@ -64,3 +64,25 @@ describe("poprawki audytu", () => {
     ).toHaveLength(1);
   });
 });
+
+import { suggestSetFromLastSet } from "@/lib/last-workout-hints";
+import { resolveInitialSetDraft } from "@/lib/workout-set-draft";
+
+describe("podpowiedzi: ciężar i powtórzenia z silnika", () => {
+  it("silnik zwraca ciężar i powtórzenia (w zakresie → +1 powt.)", () => {
+    const s = suggestSetFromLastSet({ weight: 60, reps: 8 }, 10, { weightStepKg: 2.5 });
+    expect(s).toEqual({ weight: 60, reps: 9 });
+  });
+
+  it("powtórzenia z silnika nadpisują domyślne z planu, ale nie wpis użytkownika", () => {
+    const base = {
+      suggestion: { weightKg: 60, reps: 9 },
+      lastSessionSet: null,
+      previousSessionSet: null,
+    };
+    const set = (reps: number | null) => ({ reps, weight: 0, done: false });
+    expect(resolveInitialSetDraft({ ...base, set: set(10), defaultReps: 10 }).reps).toBe(9);
+    expect(resolveInitialSetDraft({ ...base, set: set(null) }).reps).toBe(9);
+    expect(resolveInitialSetDraft({ ...base, set: set(7), defaultReps: 10 }).reps).toBe(7);
+  });
+});

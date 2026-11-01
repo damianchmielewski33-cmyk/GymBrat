@@ -219,6 +219,7 @@ export function GuidedSessionLayout({
       suggestion,
       lastSessionSet,
       previousSessionSet: findPreviousCompletedSet(exercise.sets, activeSetIndex),
+      defaultReps: exercise.targetReps ?? null,
     });
     setDraftKey(setKey);
     setWeightText(weightToInput(initial.weightKg));
