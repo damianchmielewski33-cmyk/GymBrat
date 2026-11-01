@@ -130,6 +130,16 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  /** SEO: roboty i podglądy linków (OG) nie mają sesji — robots/sitemap/grafika OG muszą dać 200. */
+  if (
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname === "/opengraph-image" ||
+    pathname === "/twitter-image"
+  ) {
+    return NextResponse.next();
+  }
+
   /** Trwałe grafiki katalogu (wygenerowane przy imporcie) — publiczne dla <img>. */
   if (pathname.startsWith("/api/catalog-meal-image/")) {
     return NextResponse.next();
