@@ -1,0 +1,33 @@
+{
+  "model": "sonnet",
+  "env": {
+    "MAX_THINKING_TOKENS": "8000"
+  },
+  "permissions": {
+    "deny": [
+      "Read(./package-lock.json)",
+      "Read(./tsconfig.tsbuildinfo)",
+      "Read(./test-results/**)",
+      "Read(./.next/**)",
+      "Read(./public/**)",
+      "Read(./docs/zadania/**)",
+      "Read(./docs/analiza/**)",
+      "Read(./docs/adr/**)",
+      "Read(./docs/ux/**)",
+      "Read(./docs/prawo/**)",
+      "Read(./docs/testy/**)",
+      "Read(./docs/bezpieczenstwo/**)",
+      "Read(./docs/wydajnosc/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "node .claude/hooks/trim-output.mjs" }
+        ]
+      }
+    ]
+  }
+}

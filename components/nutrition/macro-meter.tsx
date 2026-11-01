@@ -15,7 +15,6 @@ export function MacroMeter({
   const goal = macro.goal;
   const none = goal == null;
   const pct = macro.adherencePct ?? 0;
-  const closedGoal = macro.goalClosed ?? 0;
   const todayGoal = macro.goalToday ?? 0;
   const totalGoal = goal ?? 0;
   const closedPct =
