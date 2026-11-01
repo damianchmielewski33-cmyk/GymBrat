@@ -35,7 +35,7 @@ function FcsBreakdown({ row }: { row: TeamRankingRow }) {
                 style={{ width: `${Math.min(100, Math.round(v * 100))}%` }}
               />
             </div>
-            <span className="w-10 shrink-0 text-right font-metric text-[11px] tabular-nums text-white/55">
+            <span className="w-10 shrink-0 text-right font-heading text-[11px] tabular-nums text-white/55">
               {pct(v)}
             </span>
             <span className="w-8 shrink-0 text-right text-[9px] text-white/30">
@@ -124,7 +124,7 @@ export function TeamFcsLeaderboard({
                 >
                   <span
                     className={cn(
-                      "font-metric flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[14px]",
+                      "font-heading flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[14px]",
                       row.rank <= 3
                         ? "bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]"
                         : "text-white/35",
@@ -141,7 +141,7 @@ export function TeamFcsLeaderboard({
                       </span>
                     ) : null}
                   </span>
-                  <span className="font-metric text-[15px] tabular-nums text-white/75">
+                  <span className="font-heading text-[15px] tabular-nums text-white/75">
                     {isFcs ? `${row.score}` : row.score}
                     {isFcs ? (
                       <span className="ml-1 text-[10px] text-white/35">FCS</span>

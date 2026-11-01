@@ -61,10 +61,10 @@ export function AnimatedDumbbellMark({
         <rect x="28" y="54" width="64" height="12" rx="4" fill="url(#gb-bar)" />
         {/* Lewe talerze */}
         <rect x="14" y="38" width="12" height="44" rx="3" fill="url(#gb-plate)" />
-        <rect x="22" y="44" width="8" height="32" rx="2" fill="#d4af37" />
+        <rect x="22" y="44" width="8" height="32" rx="2" fill="#ebc44a" />
         {/* Prawe talerze */}
         <rect x="94" y="38" width="12" height="44" rx="3" fill="url(#gb-plate)" />
-        <rect x="90" y="44" width="8" height="32" rx="2" fill="#d4af37" />
+        <rect x="90" y="44" width="8" height="32" rx="2" fill="#ebc44a" />
         {/* Uchwyty */}
         <rect x="8" y="52" width="8" height="16" rx="2" fill="#f7e28f" />
         <rect x="104" y="52" width="8" height="16" rx="2" fill="#f7e28f" />

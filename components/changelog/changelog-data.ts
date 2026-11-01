@@ -5,6 +5,26 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Team: hub „Dziś w zespole”, pierścienie i katalog odznak",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Na stronie grupy pojawia się hub tygodnia: własne miejsce w rankingu (po zgodzie opt-in), pierścienie trening/cardio (pon–nd), poziomy XP osoby i grupy, seria tygodni, misja, liga wojny oraz wejście do katalogu odznak.",
+      "Udział w rankingu wymaga świadomej zgody (C-T1) i opcjonalnie minut cardio (C-T2); bez zgody nadal działają tablica, czat i trening w grupie.",
+      "Nowa trasa katalogu odznak z progresem i rzadkością globalną; rotacja misji zespołu bez ręcznej pracy admina; zabezpieczenie wyścigów przy kończeniu wojen i starcie misji.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Redesign UX: typografia bezszeryfowa i spójny system ekranów",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Cała aplikacja przechodzi na czcionki bezszeryfowe: Geist (treść), Space Grotesk (nagłówki), Bebas Neue (display i duże KPI) — usunięto Playfair/szeryfy.",
+      "Wspólne tokeny typografii, odstępów i promieni kart; belka nawigacji, puste stany, potwierdzenia i kafelki metryk mówią jednym językiem wizualnym (black iron & gold).",
+      "Huby dolnej belki, trening, dieta, analiza, community, auth, profil, legal i admin dostają spójniejszą hierarchię, czytelniejsze etykiety i kontrast.",
+    ],
+  },
+  {
     title: "Zapowiedź — Dodaj cardio: czytelniejszy arkusz i walidacja bez cichych zmian",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

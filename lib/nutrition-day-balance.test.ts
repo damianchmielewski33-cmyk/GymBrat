@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { WeekDayNutritionRow } from "@/lib/week-nutrition-rows";
 import {
-  buildDayMacroBalance,
+  buildDayCardViewModel,
+  buildMacroBalanceViewModel,
   buildPeriodMacroBalance,
   classifyMacroBalance,
-  collectDayHighlights,
-  dayRelativeLabel,
   formatSignedAmount,
   formatSignedPct,
 } from "@/lib/nutrition-day-balance";
@@ -47,7 +46,7 @@ describe("nutrition-day-balance", () => {
   });
 
   it("builds day balance with deficit protein and surplus fat", () => {
-    const day = buildDayMacroBalance(
+    const day = buildDayCardViewModel(
       row({
         dateKey: "2026-10-06",
         headline: "Wtorek, 6 października",
@@ -63,7 +62,7 @@ describe("nutrition-day-balance", () => {
       "2026-10-06",
     );
 
-    expect(day.isToday).toBe(true);
+    expect(day.state).toBe("in_progress");
     const protein = day.macros.find((m) => m.key === "protein")!;
     expect(protein.status).toBe("deficit");
     expect(protein.delta).toBe(-80);
@@ -79,7 +78,7 @@ describe("nutrition-day-balance", () => {
     expect(carbs.status).toBe("on_track");
 
     // Dziś (in_progress): lista odchyleń pusta — hero używa direction, nie highlights.
-    expect(day.highlights).toEqual([]);
+    expect(day.deviations).toEqual([]);
     expect(day.macros.filter((m) => m.status === "deficit" || m.status === "surplus").map((h) => h.key).sort()).toEqual([
       "calories",
       "fat",
@@ -114,22 +113,18 @@ describe("nutrition-day-balance", () => {
     const protein = period.macros.find((m) => m.key === "protein")!;
     expect(protein.consumed).toBe(250);
     expect(protein.goal).toBe(310);
-    expect(protein.status).toBe("deficit");
+    // Status z dni zamkniętych (150/150); dziś w toku nie generuje „brakuje”.
+    expect(protein.status).toBe("on_track");
 
     const fat = period.macros.find((m) => m.key === "fat")!;
     expect(fat.consumed).toBe(160);
     expect(fat.goal).toBe(140);
     expect(fat.status).toBe("surplus");
 
-    const days = rows
-      .filter((r) => r.dateKey <= "2026-10-06")
-      .map((r) => buildDayMacroBalance(r, "2026-10-06"));
-    const highlights = collectDayHighlights(days);
-    // AU-4 / UX: dziś nie wchodzi na listę odchyleń (jest w hero).
-    expect(highlights.every((h) => !h.day.isToday)).toBe(true);
-    expect(highlights.some((h) => h.macro.key === "fat" && !h.day.isToday)).toBe(
-      true,
-    );
+    const model = buildMacroBalanceViewModel(rows, "2026-10-06", "Tydzień");
+    // Dziś nie wchodzi na listę odchyleń (jest w hero).
+    expect(model.pastDays.every((d) => d.dateKey < "2026-10-06")).toBe(true);
+    expect(model.pastDays[0].deviations.some((m) => m.key === "fat")).toBe(true);
   });
 
   it("excludes empty days with goals from period and highlights (AU-4)", () => {
@@ -155,26 +150,53 @@ describe("nutrition-day-balance", () => {
     expect(protein.consumed).toBe(100);
     expect(protein.goal).toBe(160);
 
-    const days = rows.map((r) => buildDayMacroBalance(r, "2026-10-06"));
-    const highlights = collectDayHighlights(days);
-    expect(highlights.every((h) => h.day.dateKey !== "2026-10-05")).toBe(true);
+    const model = buildMacroBalanceViewModel(rows, "2026-10-06", "Tydzień");
+    const empty = model.pastDays.find((d) => d.dateKey === "2026-10-05")!;
+    expect(empty.status).toBe("empty");
+    expect(empty.deviations).toEqual([]);
   });
 
-  it("formats signed amounts and relative day labels", () => {
+  it("does not report deficit for the period when closed days are on target and today is in progress", () => {
+    const rows = [
+      row({
+        dateKey: "2026-10-05",
+        proteinConsumed: 150,
+        proteinGoal: 150,
+      }),
+      row({
+        dateKey: "2026-10-06",
+        proteinConsumed: 10,
+        proteinGoal: 150,
+      }),
+    ];
+    const protein = buildPeriodMacroBalance(rows, "2026-10-06").macros.find(
+      (m) => m.key === "protein",
+    )!;
+    expect(protein.isPartial).toBe(true);
+    expect(protein.status).toBe("on_track");
+    expect(protein.goal).toBe(300);
+  });
+
+  it("keeps the period status neutral when today is in progress and no closed day exists", () => {
+    const rows = [
+      row({
+        dateKey: "2026-10-06",
+        caloriesConsumed: 400,
+        caloriesGoal: 2000,
+      }),
+    ];
+    const kcal = buildPeriodMacroBalance(rows, "2026-10-06").macros.find(
+      (m) => m.key === "calories",
+    )!;
+    expect(kcal.isPartial).toBe(true);
+    expect(kcal.status).toBe("on_track");
+    expect(kcal.direction).toBe("in_range");
+  });
+
+  it("formats signed amounts", () => {
     expect(formatSignedAmount(-32, "g")).toBe("-32 g");
     expect(formatSignedAmount(18, "g")).toBe("+18 g");
     expect(formatSignedPct(-15)).toBe("-15%");
     expect(formatSignedPct(22)).toBe("+22%");
-
-    const today = buildDayMacroBalance(
-      row({ dateKey: "2026-10-06" }),
-      "2026-10-06",
-    );
-    const yesterday = buildDayMacroBalance(
-      row({ dateKey: "2026-10-05" }),
-      "2026-10-06",
-    );
-    expect(dayRelativeLabel(today, "2026-10-06")).toBe("Dziś");
-    expect(dayRelativeLabel(yesterday, "2026-10-06")).toBe("Wczoraj");
   });
 });

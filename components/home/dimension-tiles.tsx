@@ -107,7 +107,7 @@ function DimensionTile({
         <MiniSparkline values={values} color={color} className="h-14 w-full" />
       </div>
 
-      <div className="mt-1.5 flex items-center justify-between gap-2 text-[10px] text-white/40">
+      <div className="mt-1.5 flex items-center justify-between gap-2 text-[length:var(--text-label)] text-white/55">
         <span>start {fmtCm(start)}</span>
         <span>
           {count} {count === 1 ? "pomiar" : count >= 2 && count <= 4 ? "pomiary" : "pomiarów"}

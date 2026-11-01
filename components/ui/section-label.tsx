@@ -24,29 +24,26 @@ export function SectionLabel({
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 items-baseline gap-2">
         {indexText ? (
-          <span className="font-metric text-[15px] leading-none text-[var(--gym-gold)]">
+          <span className="font-heading text-[length:var(--text-body-lg)] font-semibold leading-none tabular-nums text-[var(--gym-gold)]">
             {indexText}
           </span>
-        ) : (
-          <span
-            aria-hidden
-            className="h-3.5 w-1 shrink-0 rounded-full bg-[var(--gym-gold)]"
-          />
-        )}
+        ) : null}
         <TitleTag
           className={cn(
-            "text-[13px] font-semibold uppercase tracking-[0.14em]",
+            "text-[length:var(--text-caption)] font-semibold uppercase tracking-[0.14em]",
             titleTone === "white" ? "text-white/85" : "text-[var(--gym-gold)]",
           )}
         >
           {title}
         </TitleTag>
       </div>
-      <div className="h-px min-w-[1.5rem] flex-1 bg-white/[0.08]" />
+      <div className="h-px min-w-[1.5rem] flex-1 bg-[var(--gym-gold)]/35" />
       {trailing != null ? (
-        <div className="shrink-0 text-[12px] text-white/55">{trailing}</div>
+        <div className="shrink-0 text-[length:var(--text-label)] text-white/55">
+          {trailing}
+        </div>
       ) : null}
     </div>
   );

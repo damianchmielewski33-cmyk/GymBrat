@@ -196,7 +196,7 @@ export function WorkoutHistorySessionCard({
           >
             {dateParts.weekday}
           </p>
-          <p className="mt-0.5 font-metric text-[15px] tabular-nums leading-tight text-white">
+          <p className="mt-0.5 font-heading text-[15px] tabular-nums leading-tight text-white">
             {dateParts.day}
           </p>
         </div>
@@ -207,7 +207,7 @@ export function WorkoutHistorySessionCard({
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="font-metric text-[16px] tabular-nums leading-none text-white">
+          <p className="font-heading text-[16px] tabular-nums leading-none text-white">
             {formatHistoryKg(card.volumeKg)}
           </p>
           <WorkoutHistoryCompareChip card={card} />

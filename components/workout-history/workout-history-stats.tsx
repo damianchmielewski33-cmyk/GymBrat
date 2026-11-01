@@ -101,7 +101,7 @@ export function WorkoutHistoryStats({
             ) : (
               <>
                 <AnimatedMetric value={kpis.avgDurationMinutes} />
-                <span className="ml-1 font-metric text-sm text-[var(--gym-text-secondary)]">
+                <span className="ml-1 font-heading text-sm text-[var(--gym-text-secondary)]">
                   min
                 </span>
               </>
@@ -129,7 +129,7 @@ export function WorkoutHistoryStats({
             ) : (
               <>
                 <AnimatedMetric value={tonnageTonnes} decimals={1} />
-                <span className="ml-1 font-metric text-sm text-[var(--gym-text-secondary)]">
+                <span className="ml-1 font-heading text-sm text-[var(--gym-text-secondary)]">
                   t
                 </span>
               </>

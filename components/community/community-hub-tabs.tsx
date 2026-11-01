@@ -14,7 +14,7 @@ export function CommunityHubTabs() {
   const pathname = usePathname();
   return (
     <nav
-      className="flex flex-wrap gap-2"
+      className="flex flex-wrap gap-1.5 rounded-xl border border-white/10 bg-black/30 p-1"
       aria-label="Widoki Community"
     >
       {TABS.map((t) => {
@@ -23,10 +23,11 @@ export function CommunityHubTabs() {
           <Link
             key={t.href}
             href={t.href}
+            aria-current={active ? "page" : undefined}
             className={
               active
-                ? "rounded-full border border-[var(--gym-gold)]/45 bg-[var(--gym-gold)]/15 px-3.5 py-2 text-[12px] font-medium text-[var(--gym-gold)]"
-                : "rounded-full border border-white/10 bg-white/5 px-3.5 py-2 text-[12px] text-white/55 hover:text-white"
+                ? "inline-flex min-h-11 items-center rounded-lg border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/20 px-3.5 text-[length:var(--text-caption)] font-semibold text-[var(--gym-gold)]"
+                : "inline-flex min-h-11 items-center rounded-lg border border-transparent px-3.5 text-[length:var(--text-caption)] font-semibold text-white/55 hover:text-white"
             }
           >
             {t.label}

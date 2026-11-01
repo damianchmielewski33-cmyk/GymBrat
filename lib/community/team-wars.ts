@@ -33,11 +33,21 @@ export async function ensureWarSeason(): Promise<string> {
     .where(eq(warSeasons.key, key))
     .limit(1);
   if (existing) return key;
-  const [y, , s] = key.split(/-S/);
-  const seasonNum = Number(s);
+  // key = "YYYY-S{n}" → split(/-S/) daje ["YYYY", "n"] (nie trzy segmenty).
+  const [yRaw, seasonRaw] = key.split(/-S/);
+  const year = Number(yRaw);
+  const seasonNum = Number(seasonRaw);
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(seasonNum) ||
+    seasonNum < 1 ||
+    seasonNum > 4
+  ) {
+    throw new Error(`Nieprawidłowy klucz sezonu wojen: ${key}`);
+  }
   const startMonth = (seasonNum - 1) * 3;
-  const startsAt = new Date(Date.UTC(Number(y), startMonth, 1));
-  const endsAt = new Date(Date.UTC(Number(y), startMonth + 3, 1));
+  const startsAt = new Date(Date.UTC(year, startMonth, 1));
+  const endsAt = new Date(Date.UTC(year, startMonth + 3, 1));
   await db.insert(warSeasons).values({
     key,
     title: `Sezon wojen ${key}`,
@@ -281,7 +291,8 @@ export async function finalizeWarIfDue(warId: string): Promise<boolean> {
   const winnerTeamId =
     result === "a" ? war.teamAId : result === "b" ? war.teamBId : null;
 
-  await db
+  // CAS: tylko jeden równoległy finalize stosuje LP (ADR 0011 §6).
+  const cas = await db
     .update(wars)
     .set({
       status: "completed",
@@ -291,7 +302,13 @@ export async function finalizeWarIfDue(warId: string): Promise<boolean> {
       summaryJson: JSON.stringify({ result, scoreA, scoreB }),
       completedAt: new Date(),
     })
-    .where(eq(wars.id, warId));
+    .where(and(eq(wars.id, warId), eq(wars.status, "live")));
+
+  const affected =
+    typeof cas === "object" && cas && "rowsAffected" in cas
+      ? Number((cas as { rowsAffected: number }).rowsAffected)
+      : 0;
+  if (affected !== 1) return false;
 
   await applyWarResults(war.teamAId, war.teamBId, result);
   await grantWarRewards(war, result);
@@ -433,6 +450,34 @@ export async function getWarsHubData(userId: string) {
     standings,
     recent,
     queues,
+  };
+}
+
+/** Lekka karta ligi na hubie grupy — bez pełnego standings (ADR 0011 §8 US-11). */
+export async function getMyTeamWarSummary(teamId: string): Promise<{
+  league: WarLeague;
+  lp: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  seasonKey: string;
+  hasPlayed: boolean;
+  liveWarId: string | null;
+}> {
+  await ensureCriticalSchema();
+  const stats = await getOrCreateTeamWarStats(teamId);
+  const live = await getLiveWarForTeam(teamId);
+  if (live) await finalizeWarIfDue(live.id);
+  const fresh = await getLiveWarForTeam(teamId);
+  return {
+    league: leagueFromLp(stats.lp),
+    lp: stats.lp,
+    wins: stats.wins,
+    losses: stats.losses,
+    draws: stats.draws,
+    seasonKey: stats.seasonKey,
+    hasPlayed: stats.wins + stats.losses + stats.draws > 0,
+    liveWarId: fresh?.id ?? null,
   };
 }
 

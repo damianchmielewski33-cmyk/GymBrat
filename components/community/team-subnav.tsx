@@ -58,10 +58,10 @@ export function TeamSubnav({ teamId }: { teamId: string }) {
               href={item.href}
               onClick={() => hapticTap()}
               className={cn(
-                "inline-flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-semibold uppercase tracking-wide transition",
+                "inline-flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-[length:var(--text-label)] font-semibold uppercase tracking-wide transition",
                 active
                   ? "bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]"
-                  : "text-white/45 hover:bg-white/[0.04] hover:text-white/70",
+                  : "text-white/55 hover:bg-white/[0.04] hover:text-white/80",
               )}
             >
               <Icon className="h-4 w-4" aria-hidden />

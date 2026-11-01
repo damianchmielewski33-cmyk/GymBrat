@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   archiveTeamAction,
@@ -9,6 +9,7 @@ import {
 } from "@/actions/teams";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +28,9 @@ export function TeamSettingsForm({ team }: { team: TeamDetailView }) {
     archiveTeamAction,
     {} as TeamActionState,
   );
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+  const archiveFormRef = useRef<HTMLFormElement>(null);
+  const allowArchiveRef = useRef(false);
 
   useEffect(() => {
     if (state.error) notifyError(state.error);
@@ -124,33 +128,47 @@ export function TeamSettingsForm({ team }: { team: TeamDetailView }) {
       </form>
 
       {team.myRole === "owner" ? (
-        <form
-          action={archiveAction}
-          className="app-card space-y-3 border-red-500/20 p-5"
-          onSubmit={(e) => {
-            if (
-              !window.confirm(
-                "Zarchiwizować grupę? Członkowie stracą do niej dostęp.",
-              )
-            ) {
-              e.preventDefault();
-            }
-          }}
-        >
-          <input type="hidden" name="teamId" value={team.id} />
-          <p className="text-sm font-semibold text-red-300">Strefa właściciela</p>
-          <p className="text-[13px] text-white/45">
-            Archiwizacja ukrywa grupę i blokuje nowe dołączenia.
-          </p>
-          <Button
-            type="submit"
-            variant="destructive"
-            className="w-full"
-            disabled={archivePending}
+        <>
+          <form
+            ref={archiveFormRef}
+            action={archiveAction}
+            className="app-card space-y-3 border-red-500/20 p-5"
+            onSubmit={(e) => {
+              if (!allowArchiveRef.current) {
+                e.preventDefault();
+                setArchiveConfirmOpen(true);
+                return;
+              }
+              allowArchiveRef.current = false;
+            }}
           >
-            {archivePending ? "Archiwizacja…" : "Zarchiwizuj grupę"}
-          </Button>
-        </form>
+            <input type="hidden" name="teamId" value={team.id} />
+            <p className="text-sm font-semibold text-red-300">Strefa właściciela</p>
+            <p className="text-[length:var(--text-body-sm)] text-white/55">
+              Archiwizacja ukrywa grupę i blokuje nowe dołączenia.
+            </p>
+            <Button
+              type="submit"
+              variant="destructive"
+              className="w-full"
+              disabled={archivePending}
+            >
+              {archivePending ? "Archiwizacja…" : "Zarchiwizuj grupę"}
+            </Button>
+          </form>
+          <ConfirmDialog
+            open={archiveConfirmOpen}
+            onOpenChange={setArchiveConfirmOpen}
+            title="Zarchiwizować grupę?"
+            description="Członkowie stracą do niej dostęp."
+            confirmLabel="Zarchiwizuj"
+            pending={archivePending}
+            onConfirm={() => {
+              allowArchiveRef.current = true;
+              archiveFormRef.current?.requestSubmit();
+            }}
+          />
+        </>
       ) : null}
     </div>
   );

@@ -34,7 +34,7 @@ export function AuthHeroBrand({
           href="/login"
           className={cn(
             "mt-4 inline-flex max-w-full flex-col items-center justify-center rounded-sm",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]/80",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]/80",
           )}
           aria-label="GymBrat — strona główna"
         >

@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
+import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
 import { InlineBanner } from "@/components/ui/inline-banner";
 
@@ -32,7 +33,7 @@ export function CompleteProfileSessionBridge() {
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-10">
-      <div className="glass-panel gold-panel relative overflow-hidden p-6 sm:p-8">
+      <AuthCard>
         {error ? (
           <div className="space-y-4">
             <InlineBanner role="alert" variant="error">
@@ -52,7 +53,7 @@ export function CompleteProfileSessionBridge() {
             Profil jest gotowy — wchodzimy do GymBrat…
           </p>
         )}
-      </div>
+      </AuthCard>
     </div>
   );
 }

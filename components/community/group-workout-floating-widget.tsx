@@ -96,7 +96,7 @@ export function GroupWorkoutFloatingWidget() {
               <span className="max-w-[9rem] truncate">
                 {teamName ? `Grupa · ${teamName}` : "Grupa na żywo"}
               </span>
-              <span className="rounded-full bg-[var(--gym-gold)]/20 px-1.5 py-0.5 font-metric text-[11px] tabular-nums text-[var(--gym-gold)]">
+              <span className="rounded-full bg-[var(--gym-gold)]/20 px-1.5 py-0.5 font-heading text-[11px] tabular-nums text-[var(--gym-gold)]">
                 {liveCount}
               </span>
               <ChevronDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
@@ -162,7 +162,7 @@ export function GroupWorkoutFloatingWidget() {
                             </p>
                           </div>
                           <div className="shrink-0 text-right">
-                            <p className="font-metric text-[13px] tabular-nums text-white/80">
+                            <p className="font-heading text-[13px] tabular-nums text-white/80">
                               {formatElapsed(pr.elapsedSeconds)}
                             </p>
                             <p className="text-[10px] text-white/40">
@@ -180,7 +180,7 @@ export function GroupWorkoutFloatingWidget() {
                             <p className="text-[9px] uppercase tracking-wide text-white/35">
                               Seria
                             </p>
-                            <p className="font-metric text-[13px] text-white">
+                            <p className="font-heading text-[13px] text-white">
                               {pr.setIndex}/{pr.setTotal}
                             </p>
                           </div>
@@ -188,7 +188,7 @@ export function GroupWorkoutFloatingWidget() {
                             <p className="text-[9px] uppercase tracking-wide text-white/35">
                               Powt.
                             </p>
-                            <p className="font-metric text-[13px] text-white">
+                            <p className="font-heading text-[13px] text-white">
                               {pr.reps ?? "—"}
                             </p>
                           </div>
@@ -196,7 +196,7 @@ export function GroupWorkoutFloatingWidget() {
                             <p className="text-[9px] uppercase tracking-wide text-white/35">
                               kg
                             </p>
-                            <p className="font-metric text-[13px] text-white">
+                            <p className="font-heading text-[13px] text-white">
                               {pr.weight > 0 ? pr.weight : "—"}
                             </p>
                           </div>

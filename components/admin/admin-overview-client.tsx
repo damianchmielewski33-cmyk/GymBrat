@@ -270,7 +270,7 @@ export function AdminOverviewClient() {
                       tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
                     />
                     <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="views" fill="#d4af37" radius={[0, 6, 6, 0]} name="Wejścia" />
+                    <Bar dataKey="views" fill="var(--gym-gold)" radius={[0, 6, 6, 0]} name="Wejścia" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -291,7 +291,7 @@ export function AdminOverviewClient() {
                     <XAxis dataKey="label" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
                     <YAxis tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} width={36} />
                     <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="views" fill="#d4af37" radius={[6, 6, 0, 0]} name="Wejścia" />
+                    <Bar dataKey="views" fill="var(--gym-gold)" radius={[6, 6, 0, 0]} name="Wejścia" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

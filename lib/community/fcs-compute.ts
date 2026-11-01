@@ -16,13 +16,13 @@ import {
   teamPostReactions,
   teamPosts,
   userSettings,
+  userSocialProfiles,
   users,
   workouts,
 } from "@/db/schema";
 import {
   addCalendarDays,
   calendarDateKey,
-  weekDateKeysMondayFirst,
 } from "@/lib/local-date";
 import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import {
@@ -32,6 +32,7 @@ import {
   type FcsComponents,
 } from "@/lib/community/fcs";
 import { cacheGet, cacheSet } from "@/lib/community/perf-cache";
+import { mondayOf } from "@/lib/community/week";
 
 const CACHE_TTL_MS = 45_000;
 const NEWCOMER_DAYS = 21;
@@ -46,9 +47,20 @@ export type FcsRankingRow = {
   newcomerBoost: number;
 };
 
-function mondayOf(dateKey: string): string {
-  return weekDateKeysMondayFirst(dateKey)[0]!;
-}
+export type MyRankingSummary = {
+  consentGranted: boolean;
+  /** true gdy kiedyś udzielono C-T1, a teraz wycofano */
+  consentWithdrawn: boolean;
+  memberCount: number;
+  optedInCount: number;
+  rank: number | null;
+  score: number | null;
+  total: number;
+  gapToNext: { rank: number; score: number; delta: number } | null;
+  tip: string;
+  streakWeeks: number;
+  atRiskThisWeek: boolean;
+};
 
 function displayNameFromUser(row: {
   firstName: string | null;
@@ -479,4 +491,157 @@ export async function computeTeamFcsRanking(
 
   cacheSet(cacheKey, ranked, CACHE_TTL_MS);
   return ranked;
+}
+
+/** Ranking widoczny dla innych: tylko członkowie z C-T1 (opt-in). */
+export async function computeTeamFcsRankingOptedIn(
+  teamId: string,
+  opts?: { force?: boolean },
+): Promise<FcsRankingRow[]> {
+  const full = await computeTeamFcsRanking(teamId, opts);
+  if (full.length === 0) return [];
+  const db = getDb();
+  const opted = await db
+    .select({ userId: userSocialProfiles.userId })
+    .from(userSocialProfiles)
+    .where(
+      and(
+        inArray(
+          userSocialProfiles.userId,
+          full.map((r) => r.userId),
+        ),
+        eq(userSocialProfiles.optedInToTeamRanking, 1),
+      ),
+    );
+  const allowed = new Set(opted.map((o) => o.userId));
+  return full
+    .filter((r) => allowed.has(r.userId))
+    .map((row, i) => ({ ...row, rank: i + 1 }));
+}
+
+export async function getMyRankingSummary(
+  teamId: string,
+  userId: string,
+): Promise<MyRankingSummary> {
+  const db = getDb();
+  const [profile] = await db
+    .select({
+      optedIn: userSocialProfiles.optedInToTeamRanking,
+    })
+    .from(userSocialProfiles)
+    .where(eq(userSocialProfiles.userId, userId))
+    .limit(1);
+
+  const { hasGrantedConsent } = await import("@/lib/consents");
+  const consentGranted =
+    (await hasGrantedConsent(userId, "team_ranking")) ||
+    profile?.optedIn === 1;
+  // Wycofanie: był wiersz zgody z granted=false, a flaga 0
+  const consents = await import("@/lib/consents").then((m) =>
+    m.getCurrentConsents(userId),
+  );
+  const consentRow = consents.team_ranking;
+  const consentWithdrawn = Boolean(
+    consentRow && !consentRow.granted && !consentGranted,
+  );
+
+  const members = await db
+    .select({ userId: teamMembers.userId })
+    .from(teamMembers)
+    .where(
+      and(eq(teamMembers.teamId, teamId), eq(teamMembers.status, "active")),
+    );
+  const memberCount = members.length;
+
+  const ranked = await computeTeamFcsRankingOptedIn(teamId);
+  const me = ranked.find((r) => r.userId === userId);
+  const fullForStreak = await computeTeamFcsRanking(teamId);
+  const meFull = fullForStreak.find((r) => r.userId === userId);
+  const streakWeeks = meFull?.components.streak
+    ? Math.round((meFull.components.streak / 100) * 8)
+    : 0;
+
+  const { hasWorkoutThisWeek } = await import("@/lib/community/rings");
+  const trained = await hasWorkoutThisWeek(userId);
+  const atRiskThisWeek = streakWeeks > 0 && !trained;
+
+  if (!consentGranted) {
+    return {
+      consentGranted: false,
+      consentWithdrawn,
+      memberCount,
+      optedInCount: ranked.length,
+      rank: null,
+      score: null,
+      total: ranked.length,
+      gapToNext: null,
+      tip: "Zobacz, jak wypadasz na tle grupy w tym tygodniu.",
+      streakWeeks,
+      atRiskThisWeek,
+    };
+  }
+
+  if (memberCount <= 1) {
+    return {
+      consentGranted: true,
+      consentWithdrawn: false,
+      memberCount,
+      optedInCount: ranked.length,
+      rank: me?.rank ?? 1,
+      score: me?.score ?? null,
+      total: ranked.length,
+      gapToNext: null,
+      tip: "Zaproś kogoś, aby zobaczyć ranking tygodnia.",
+      streakWeeks,
+      atRiskThisWeek,
+    };
+  }
+
+  if (!me) {
+    return {
+      consentGranted: true,
+      consentWithdrawn: false,
+      memberCount,
+      optedInCount: ranked.length,
+      rank: null,
+      score: null,
+      total: ranked.length,
+      gapToNext: null,
+      tip: "Zrób trening w tym tygodniu, aby wejść na tablicę.",
+      streakWeeks,
+      atRiskThisWeek,
+    };
+  }
+
+  const above = ranked.find((r) => r.rank === me.rank - 1) ?? null;
+  let tip: string;
+  if (me.rank === 1) {
+    tip = "Jesteś na czele tego tygodnia. Utrzymaj tempo.";
+  } else if (me.rank === ranked.length) {
+    tip = "Zrób trening w tym tygodniu, aby wejść na tablicę.";
+  } else if (above) {
+    tip = `Brakuje ${Math.max(1, Math.ceil(above.score - me.score))} pkt FCS do ${above.rank}. miejsca.`;
+  } else {
+    tip = "Kontynuuj treningi w tym tygodniu.";
+  }
+
+  return {
+    consentGranted: true,
+    consentWithdrawn: false,
+    memberCount,
+    optedInCount: ranked.length,
+    rank: me.rank,
+    score: me.score,
+    total: ranked.length,
+    gapToNext: above
+      ? {
+          rank: above.rank,
+          score: above.score,
+          delta: Math.max(0, above.score - me.score),
+        }
+      : null,
+    tip,
+    streakWeeks,
+    atRiskThisWeek,
+  };
 }

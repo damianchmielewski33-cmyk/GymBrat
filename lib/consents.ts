@@ -52,7 +52,7 @@ export async function getCurrentConsents(
       )
       .orderBy(desc(userConsents.decidedAt))
       .limit(1);
-    if (row && (row.type === "analytics" || row.type === "marketing")) {
+    if (row && isConsentType(row.type)) {
       out[row.type] = {
         type: row.type,
         granted: Boolean(row.granted),
@@ -63,6 +63,14 @@ export async function getCurrentConsents(
     }
   }
   return out;
+}
+
+export async function hasGrantedConsent(
+  userId: string,
+  type: ConsentType,
+): Promise<boolean> {
+  const map = await getCurrentConsents(userId);
+  return Boolean(map[type]?.granted);
 }
 
 export function isConsentType(v: string): v is ConsentType {

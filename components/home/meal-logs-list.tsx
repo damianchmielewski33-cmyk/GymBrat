@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   deleteMealLogFormAction,
   updateMealLogAction,
@@ -21,6 +21,7 @@ import {
 import type { MealLogDto } from "@/lib/meal-logs";
 import { kcalFromMacros, parseMacroGrams } from "@/lib/kcal-from-macros";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Calculator, Flame, Pencil, Trash2 } from "lucide-react";
 
 function MealDeleteForm({ mealId }: { mealId: string }) {
@@ -29,35 +30,51 @@ function MealDeleteForm({ mealId }: { mealId: string }) {
     {} as MealLogFormState,
   );
   const { notifySaved } = useSaveFeedback();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const allowSubmitRef = useRef(false);
 
   useEffect(() => {
     if (state?.ok) notifySaved("Usunięto wpis posiłku.");
   }, [state?.ok, notifySaved]);
 
   return (
-    <form
-      action={formAction}
-      onSubmit={(e) => {
-        if (
-          !confirm(
-            "Usunąć ten wpis posiłku? Spożycie na dziś zostanie przeliczone.",
-          )
-        ) {
-          e.preventDefault();
-        }
-      }}
-    >
-      <input type="hidden" name="id" value={mealId} />
-      <Button
-        type="submit"
-        variant="outline"
-        size="sm"
-        className="border-rose-400/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+    <>
+      <form
+        ref={formRef}
+        action={formAction}
+        onSubmit={(e) => {
+          if (!allowSubmitRef.current) {
+            e.preventDefault();
+            setConfirmOpen(true);
+            return;
+          }
+          allowSubmitRef.current = false;
+        }}
       >
-        <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-        Usuń
-      </Button>
-    </form>
+        <input type="hidden" name="id" value={mealId} />
+        <Button
+          type="submit"
+          variant="outline"
+          size="sm"
+          className="border-rose-400/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+        >
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+          Usuń
+        </Button>
+      </form>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Usunąć wpis posiłku?"
+        description="Spożycie na dziś zostanie przeliczone."
+        confirmLabel="Usuń"
+        onConfirm={() => {
+          allowSubmitRef.current = true;
+          formRef.current?.requestSubmit();
+        }}
+      />
+    </>
   );
 }
 

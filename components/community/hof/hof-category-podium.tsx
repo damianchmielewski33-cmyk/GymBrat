@@ -24,7 +24,7 @@ export function HofCategoryPodium({ board }: { board: HofCategoryBoard }) {
                 className={
                   l.rank === 1
                     ? "font-metric text-[18px] text-[var(--gym-gold)]"
-                    : "font-metric text-[16px] text-white/45"
+                    : "font-heading text-[16px] text-white/45"
                 }
               >
                 #{l.rank}

@@ -37,18 +37,19 @@ export async function ensureSocialProfile(
   }
   await db.insert(userSocialProfiles).values({
     userId,
-    visibility: "friends",
-    showStats: 1,
-    showOnGlobal: 1,
-    discoverable: 1,
+    // Privacy-by-default (prawo 012 / LR-T2) — nowe konta i fallback bez wiersza.
+    visibility: "private",
+    showStats: 0,
+    showOnGlobal: 0,
+    discoverable: 0,
   });
   return {
     userId,
-    visibility: "friends",
+    visibility: "private",
     bio: null,
-    showStats: true,
-    showOnGlobal: true,
-    discoverable: true,
+    showStats: false,
+    showOnGlobal: false,
+    discoverable: false,
   };
 }
 

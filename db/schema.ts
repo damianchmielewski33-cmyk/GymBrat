@@ -1961,16 +1961,22 @@ export const userSocialProfiles = sqliteTable("user_social_profiles", {
   userId: text("user_id")
     .primaryKey()
     .references(() => users.id, { onDelete: "cascade" }),
-  visibility: text("visibility").notNull().default("friends"),
+  /** LR-T2: domyślnie private / bez globalu i wyszukiwania (opt-in). */
+  visibility: text("visibility").notNull().default("private"),
   bio: text("bio"),
-  showStats: integer("show_stats").notNull().default(1),
-  showOnGlobal: integer("show_on_global").notNull().default(1),
-  discoverable: integer("discoverable").notNull().default(1),
+  showStats: integer("show_stats").notNull().default(0),
+  showOnGlobal: integer("show_on_global").notNull().default(0),
+  discoverable: integer("discoverable").notNull().default(0),
+  /** Denormalizacja C-T1 — źródło prawdy: user_consents (ADR 0011 + prawo 012 opt-in). */
+  optedInToTeamRanking: integer("opted_in_to_team_ranking")
+    .notNull()
+    .default(0),
+  /** Denormalizacja C-T2. */
+  optedInToTeamCardio: integer("opted_in_to_team_cardio").notNull().default(0),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),
 });
-
 export const userFollows = sqliteTable(
   "user_follows",
   {
@@ -2069,6 +2075,27 @@ export const userReputationEvents = sqliteTable(
   ],
 );
 
+/**
+ * Katalog definicji odznak (materializacja stałych TS + rarity cache) — ADR 0011 §4.1.
+ */
+export const badgeDefinitions = sqliteTable("badge_definitions", {
+  key: text("key").primaryKey(),
+  category: text("category").notNull(),
+  title: text("title").notNull(),
+  emoji: text("emoji").notNull(),
+  description: text("description"),
+  targetValue: integer("target_value"),
+  unitLabel: text("unit_label"),
+  isRepeatable: integer("is_repeatable").notNull().default(0),
+  rarityCachePct: real("rarity_cache_pct"),
+  rarityCacheUpdatedAt: integer("rarity_cache_updated_at", {
+    mode: "timestamp_ms",
+  }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const userBadges = sqliteTable(
   "user_badges",
   {
@@ -2084,6 +2111,8 @@ export const userBadges = sqliteTable(
     challengeId: text("challenge_id").references(() => challenges.id, {
       onDelete: "set null",
     }),
+    /** FK logiczna do badge_definitions.key — nullable dla starych wierszy. */
+    definitionKey: text("definition_key"),
     unlockedAt: integer("unlocked_at", { mode: "timestamp_ms" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -2091,8 +2120,19 @@ export const userBadges = sqliteTable(
   (t) => [
     uniqueIndex("user_badges_user_key_uidx").on(t.userId, t.badgeKey),
     index("user_badges_user_idx").on(t.userId),
+    index("user_badges_definition_idx").on(t.definitionKey),
   ],
 );
+
+/** Semafor: jedna aktywna misja na drużynę (CAS rotacji) — ADR 0011 §6. */
+export const teamActiveQuestLock = sqliteTable("team_active_quest_lock", {
+  teamId: text("team_id")
+    .primaryKey()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  questId: text("quest_id")
+    .notNull()
+    .references(() => teamQuests.id, { onDelete: "cascade" }),
+});
 
 /**
  * Community notification inbox

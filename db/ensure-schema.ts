@@ -1476,11 +1476,11 @@ CREATE TABLE IF NOT EXISTS "user_cosmetic_loadout" (
   await client.execute(`
 CREATE TABLE IF NOT EXISTS "user_social_profiles" (
   "user_id" text PRIMARY KEY NOT NULL,
-  "visibility" text DEFAULT 'friends' NOT NULL,
+  "visibility" text DEFAULT 'private' NOT NULL,
   "bio" text,
-  "show_stats" integer DEFAULT 1 NOT NULL,
-  "show_on_global" integer DEFAULT 1 NOT NULL,
-  "discoverable" integer DEFAULT 1 NOT NULL,
+  "show_stats" integer DEFAULT 0 NOT NULL,
+  "show_on_global" integer DEFAULT 0 NOT NULL,
+  "discoverable" integer DEFAULT 0 NOT NULL,
   "updated_at" integer NOT NULL,
   FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
@@ -1581,6 +1581,43 @@ CREATE TABLE IF NOT EXISTS "user_consents" (
   await client.execute(
     `CREATE INDEX IF NOT EXISTS "user_consents_user_type_decided" ON "user_consents" ("user_id","type","decided_at")`,
   );
+
+  // Redesign Team 012 / ADR 0011
+  await tryAddColumn(
+    `ALTER TABLE "user_social_profiles" ADD COLUMN "opted_in_to_team_ranking" integer NOT NULL DEFAULT 0`,
+  );
+  await tryAddColumn(
+    `ALTER TABLE "user_social_profiles" ADD COLUMN "opted_in_to_team_cardio" integer NOT NULL DEFAULT 0`,
+  );
+  await tryAddColumn(
+    `ALTER TABLE "user_badges" ADD COLUMN "definition_key" text`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "user_badges_definition_idx" ON "user_badges" ("definition_key")`,
+  );
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "badge_definitions" (
+  "key" text PRIMARY KEY NOT NULL,
+  "category" text NOT NULL,
+  "title" text NOT NULL,
+  "emoji" text NOT NULL,
+  "description" text,
+  "target_value" integer,
+  "unit_label" text,
+  "is_repeatable" integer DEFAULT 0 NOT NULL,
+  "rarity_cache_pct" real,
+  "rarity_cache_updated_at" integer,
+  "created_at" integer NOT NULL
+);
+`);
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "team_active_quest_lock" (
+  "team_id" text PRIMARY KEY NOT NULL,
+  "quest_id" text NOT NULL,
+  FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("quest_id") REFERENCES "team_quests"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
 }
 
 let mealLogsEnsured = false;

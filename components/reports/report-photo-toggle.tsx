@@ -38,7 +38,7 @@ export function ReportPhotoToggle({
         size="sm"
         className={
           compact
-            ? "h-8 shrink-0 border-[#d4af37]/35 bg-[#d4af37]/10 px-2.5 text-[11px] font-semibold text-[#e8c547] hover:bg-[#d4af37]/20 hover:text-[#f7e28f]"
+            ? "h-8 shrink-0 border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 px-2.5 text-[11px] font-semibold text-[var(--gym-gold)] hover:bg-[var(--gym-gold)]/20 hover:text-[#f7e28f]"
             : "w-fit border-white/15 bg-white/5 text-white/90 hover:bg-white/10 hover:text-white"
         }
         onClick={() => setOpen((v) => !v)}

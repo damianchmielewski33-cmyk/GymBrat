@@ -13,7 +13,7 @@
 | 2 | Bramka wejściowa | prawnik | ODRZUCONE w zakresie widoczności wyników; ZATWIERDZONE dla pracy architekta i ux nad elementami bez publikacji danych innym (warunki B-1 do B-5) | 2026-10-26 | `docs/prawo/012-redesign-funkcji-team.md` |
 | 3 | Projekt techniczny | architekt | ZATWIERDZONE Z UWAGAMI | 2026-10-26 | `docs/adr/0011-redesign-funkcji-team.md` |
 | 4 | Projekt ekranów | ux | **ZATWIERDZONE Z UWAGAMI** — zaprojektowano hub „Dziś w zespole" i katalog odznak; dokument i makieta zaktualizowane po przeczytaniu werdyktu prawnika (etap 2) tak, by model widoczności był **opt-in** (`ConsentSheet`, dwie niezaznaczone zgody C-T1/C-T2), a nie opt-out z pierwotnego założenia analizy (Z5). 4 otwarte pytania pozostają (sekcja 12.1 specyfikacji), żadne nie blokuje layoutu | 2026-10-26 | `docs/ux/012-redesign-funkcji-team.md`, makieta `docs/ux/012-redesign-funkcji-team-makieta.html` |
-| 5 | Implementacja | backend, frontend | NIE na tym etapie (brak zmian kodu) | | |
+| 5 | Implementacja | backend, frontend | W TOKU (2026-10-28): hub, pierścienie, katalog, zgody C-T1/C-T2, CAS wojen, rotacja misji | 2026-10-28 | kod: `lib/community/{week,rings,badge-catalog,team-hub}.ts`, `actions/team-ranking-consent.ts`, `components/community/team-today-hub.tsx` |
 | 6 | Przegląd kodu | architekt | warunkowo (po implementacji, tylko przy zmianie schematu lub kontraktu) | | |
 | 7 | Testy funkcjonalne i spójność | tester, ux | TAK w implementacji (testy domenowe: tydzień pon-nd, idempotencja XP, capy, progres względny) | | `docs/testy/` |
 | 8 | Przegląd wizualny | ux | TAK w implementacji (warunkowo, jeśli odstępstwa niejednoznaczne) | | |
@@ -29,11 +29,11 @@
 - **tester - TAK w implementacji** (testy podstawowe; pełny plan dla logiki tygodnia i nagród).
 
 ## Weryfikacja
-- [ ] `npm run lint` - nie dotyczy (brak zmian kodu w etapie 1)
-- [ ] `npx tsc --noEmit` - nie dotyczy
-- [ ] `npm test` - nie dotyczy
-- [ ] `npm run deploy:check` (przed merge) - do wykonania po implementacji
-- [ ] Wpis w `components/changelog/changelog-data.ts` (`planned: true`) - po zatwierdzeniu zakresu MVP, przy PR
+- [ ] `npm run lint` - do odpalenia przed PR
+- [x] `npx tsc --noEmit` - OK (2026-10-28)
+- [x] `npm test -- lib/community` - OK 33/33 (2026-10-28)
+- [ ] `npm run deploy:check` (przed merge)
+- [x] Wpis w `components/changelog/changelog-data.ts` (`planned: true`) - zapowiedź Team hub
 
 ## Pytania do właściciela (z analizy, sekcja 12)
 1. Q1 - Kierunek: rywalizacja względna w grupie jako główny tryb, współpraca jako drugi (założenie).

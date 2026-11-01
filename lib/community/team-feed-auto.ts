@@ -247,6 +247,11 @@ export async function publishTeamFeedAfterWorkout(input: {
       0,
     );
 
+    // LR-T10: auto-posty z wynikiem tylko przy aktywnej zgodzie C-T1.
+    const { hasGrantedConsent } = await import("@/lib/consents");
+    const canAutoPost = await hasGrantedConsent(input.userId, "team_ranking");
+    if (!canAutoPost) return;
+
     await publishAutoPostToUserTeams({
       authorUserId: input.userId,
       type: "workout_complete",

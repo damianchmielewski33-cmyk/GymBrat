@@ -4,7 +4,6 @@ import {
   Bebas_Neue,
   Geist,
   Geist_Mono,
-  Playfair_Display,
   Space_Grotesk,
 } from "next/font/google";
 import "./globals.css";
@@ -38,12 +37,6 @@ const bebasNeue = Bebas_Neue({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-bebas",
-  display: "swap",
-});
-
-const playfair = Playfair_Display({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-metric",
   display: "swap",
 });
 
@@ -101,7 +94,7 @@ export default function RootLayout({
   return (
     <html
       lang="pl"
-      className={`dark ${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${bebasNeue.variable} ${playfair.variable} h-full`}
+      className={`dark ${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${bebasNeue.variable} h-full`}
     >
       <body className="min-h-full font-sans antialiased">
         {process.env.NODE_ENV === "production" ? (

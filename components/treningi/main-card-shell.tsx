@@ -3,11 +3,11 @@ import { cn } from "@/lib/utils";
 
 /** Kicker karty głównej („Następny · Dzień 3”, „Niedokończony trening”, „Plan treningowy”). */
 export const mainCardKickerClass =
-  "text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]";
+  "text-[length:var(--text-label)] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]";
 
 /** Tytuł karty głównej (h2); na niskich ekranach 1 linia (budżet „above the fold”). */
 export const mainCardTitleClass =
-  "mt-1.5 line-clamp-2 font-heading text-[22px] font-semibold leading-tight text-white outline-none [overflow-wrap:anywhere] compact:line-clamp-1";
+  "mt-1.5 line-clamp-2 font-heading text-[length:var(--text-kpi)] font-semibold leading-tight text-white outline-none [overflow-wrap:anywhere] compact:line-clamp-1";
 
 /**
  * Wspólna rama czterech wariantów karty głównej ekranu Trening (jeden slot, BR-11).

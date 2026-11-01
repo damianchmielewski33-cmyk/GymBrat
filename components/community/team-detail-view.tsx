@@ -23,6 +23,7 @@ import {
 import { ChallengeCard } from "@/components/community/challenge-card";
 import { TeamFeedSection } from "@/components/community/team-feed-section";
 import { TeamSubnav } from "@/components/community/team-subnav";
+import { TeamTodayHubView } from "@/components/community/team-today-hub";
 import { JoinGroupWorkoutButton } from "@/components/community/join-group-workout-button";
 import { WorkoutChatPanel } from "@/components/community/workout-chat-panel";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
@@ -32,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import type { ChallengeListItem } from "@/lib/community/challenges";
 import type { MentionCandidate } from "@/lib/community/feed-mentions";
 import type { TeamFeedPost } from "@/lib/community/team-feed";
+import type { TeamTodayHub } from "@/lib/community/team-hub";
 import type { TeamDetailView } from "@/lib/community/teams";
 import {
   teamPrivacyLabel,
@@ -45,12 +47,14 @@ export function TeamDetailClient({
   feedPosts,
   mentionCandidates,
   challenges,
+  todayHub,
 }: {
   team: TeamDetailView;
   viewerUserId: string;
   feedPosts: TeamFeedPost[];
   mentionCandidates: MentionCandidate[];
   challenges: ChallengeListItem[];
+  todayHub: TeamTodayHub | null;
 }) {
   const router = useRouter();
   const { notifySaved, notifyError } = useSaveFeedback();
@@ -171,6 +175,8 @@ export function TeamDetailClient({
           ) : null}
         </div>
       </section>
+
+      {team.isMember && todayHub ? <TeamTodayHubView hub={todayHub} /> : null}
 
       {team.canInvite && team.inviteCode ? (
         <section className="app-card space-y-3 p-5">

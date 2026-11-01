@@ -237,7 +237,9 @@ export function PackagePageClient({
                   <span className="font-display text-[44px] leading-none">
                     {p.days}
                   </span>
-                  <span className="text-[14px] text-white/55">dni</span>
+                  <span className="font-heading text-[14px] text-white/55">
+                    dni
+                  </span>
                 </h2>
                 <p className="mt-3 flex-1 text-[12px] leading-snug text-white/55">
                   {p.description}

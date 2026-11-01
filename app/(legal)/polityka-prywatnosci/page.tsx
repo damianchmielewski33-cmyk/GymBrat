@@ -44,7 +44,7 @@ export default function PolitykaPrywatnosciPage() {
           Kontakt w sprawach ochrony danych:{" "}
           <a
             href={`mailto:${s.email}`}
-            className="text-[#DDBB6D] underline-offset-2 hover:underline"
+            className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
           >
             {s.email}
           </a>
@@ -54,7 +54,7 @@ export default function PolitykaPrywatnosciPage() {
               / tel.{" "}
               <a
                 href={`tel:${s.phone.replace(/\s+/g, "")}`}
-                className="text-[#DDBB6D] underline-offset-2 hover:underline"
+                className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
               >
                 {s.phone}
               </a>
@@ -163,7 +163,7 @@ export default function PolitykaPrywatnosciPage() {
         Zobacz także{" "}
         <Link
           href={REGULAMIN_PATH}
-          className="text-[#DDBB6D] underline-offset-2 hover:underline"
+          className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
         >
           Regulamin
         </Link>

@@ -274,7 +274,7 @@ export function ExerciseDetailView({
             </p>
           </div>
           {intensity.lastTempo ? (
-            <span className="shrink-0 rounded-lg border border-white/12 bg-black/30 px-2 py-1 font-metric text-xs tabular-nums text-[var(--gym-gold)]">
+            <span className="shrink-0 rounded-lg border border-white/12 bg-black/30 px-2 py-1 font-heading text-xs tabular-nums text-[var(--gym-gold)]">
               tempo {intensity.lastTempo}
             </span>
           ) : null}
@@ -432,7 +432,7 @@ export function ExerciseDetailView({
                 <p className="text-[10px] uppercase tracking-wider text-white/40">
                   Tonaż 30 dni
                 </p>
-                <p className="mt-1 font-metric text-[16px] text-white">
+                <p className="mt-1 font-heading text-[16px] text-white">
                   {prediction.tonnage30d.toLocaleString("pl-PL")} kg
                 </p>
               </div>
@@ -440,7 +440,7 @@ export function ExerciseDetailView({
                 <p className="text-[10px] uppercase tracking-wider text-white/40">
                   Tonaż 90 dni
                 </p>
-                <p className="mt-1 font-metric text-[16px] text-white">
+                <p className="mt-1 font-heading text-[16px] text-white">
                   {prediction.tonnage90d.toLocaleString("pl-PL")} kg
                 </p>
               </div>

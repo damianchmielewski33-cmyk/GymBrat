@@ -46,8 +46,8 @@ export function ReportsCharts({ dailyCardio, weeklySessions }: ReportsChartsProp
               <AreaChart data={dailyCardio} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="neonCardio" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#d4af37" stopOpacity={0.45} />
-                    <stop offset="95%" stopColor="#d4af37" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--gym-gold)" stopOpacity={0.45} />
+                    <stop offset="95%" stopColor="var(--gym-gold)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -83,11 +83,11 @@ export function ReportsCharts({ dailyCardio, weeklySessions }: ReportsChartsProp
                 <Area
                   type="monotone"
                   dataKey="minutes"
-                  stroke="#d4af37"
+                  stroke="var(--gym-gold)"
                   strokeWidth={2}
                   fill="url(#neonCardio)"
-                  dot={{ r: 3, fill: "#d4af37", strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#d4af37", stroke: "#fff", strokeWidth: 2 }}
+                  dot={{ r: 3, fill: "var(--gym-gold)", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "var(--gym-gold)", stroke: "#fff", strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -96,7 +96,7 @@ export function ReportsCharts({ dailyCardio, weeklySessions }: ReportsChartsProp
       </div>
 
       <div className="app-card p-5 sm:p-6">
-        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(225deg,rgba(120,120,255,0.12),transparent_50%)]" />
+        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(225deg,rgba(var(--neon-rgb),0.12),transparent_50%)]" />
         <div className="relative">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
             Częstotliwość treningów

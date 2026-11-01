@@ -50,7 +50,7 @@ function SetRow({
           onChange({ weight: Number.isFinite(n) ? Math.max(0, n) : 0 });
         }}
         placeholder="0"
-        className="h-11 w-[72px] rounded-xl border border-white/12 bg-black/40 px-2 text-center font-metric text-[16px] text-white outline-none focus:border-[var(--gym-gold)]/50"
+        className="h-11 w-[72px] rounded-xl border border-white/12 bg-black/40 px-2 text-center font-heading text-[16px] text-white outline-none focus:border-[var(--gym-gold)]/50"
         aria-label={`Ciężar seria ${index + 1}`}
       />
       <span className="text-white/35">×</span>
@@ -69,7 +69,7 @@ function SetRow({
           });
         }}
         placeholder="0"
-        className="h-11 w-[64px] rounded-xl border border-white/12 bg-black/40 px-2 text-center font-metric text-[16px] text-white outline-none focus:border-[var(--gym-gold)]/50"
+        className="h-11 w-[64px] rounded-xl border border-white/12 bg-black/40 px-2 text-center font-heading text-[16px] text-white outline-none focus:border-[var(--gym-gold)]/50"
         aria-label={`Powtórzenia seria ${index + 1}`}
       />
       <button
