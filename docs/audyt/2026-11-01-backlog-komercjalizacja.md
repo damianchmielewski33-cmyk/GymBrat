@@ -2,7 +2,7 @@
 
 Źródło: [audyt przedkomercyjny](2026-11-01-audyt-przedkomercyjny.md) (identyfikatory PAY/SEC/ARCH/PERF/UX/BIZ odnoszą się do niego). Poprzedni backlog `docs/zespol/backlog.md` (23.10) jest włączony tam, gdzie pozycje są nadal otwarte; zrobione pozycje pominięto.
 
-> **Numeracja robocza: `US1–US83` w [backlog-us.md](backlog-us.md)** (tam polecenie „zrealizuj usN" i statusy). Ten plik zostaje jako opis epików ze starymi identyfikatorami (E1-2 itd.); pole „dawne E…" przy każdym US wskazuje odpowiednik.
+> **Numeracja robocza: `US1–US20` w [backlog-us.md](backlog-us.md)** (polecenie „zrealizuj usN", statusy); podzadania `Z1–Z83` w [szczegoly-zadan.md](szczegoly-zadan.md). Ten plik zostaje jako opis epików ze starymi identyfikatorami (E1-2 itd.), które są w nagłówkach sekcji `## Zn`.
 
 Legenda: **Prio** P0 = blokuje komercjalizację, P1 = przed startem sprzedaży, P2 = krótko po starcie, P3 = porządki. **Rozm.** S ≤ 1 dzień, M 2–3 dni, L 4–6 dni (orientacyjnie, jeden deweloper). Przepływ zmian zgodnie z `AGENTS.md`: PR/Preview → zatwierdzenie → Promote; na PR wpis changelogu z `planned: true`.
 
