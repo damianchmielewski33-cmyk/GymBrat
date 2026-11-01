@@ -6,7 +6,7 @@
 
 1. Przeczytaj sekcję `## USN` poniżej oraz sekcje `## Zn` z [szczegoly-zadan.md](szczegoly-zadan.md) **tylko dla podzadań tego US** (Ctrl+F `## Z5 `). Sprawdź **Zależności** — jeśli zależą od niezakończonego US, powiedz to użytkownikowi, zanim zaczniesz.
 2. US jest duży: zrób **plan podzadań** (update_plan), realizuj po kolei, po każdym podzadaniu testy i osobny, mały commit/PR tylko jeśli użytkownik poprosi. Jeśli US nie mieści się w jednej sesji, dokończ możliwie najdalej, oznacz zrobione podzadania w polu **Postęp** i powiedz, co zostało.
-3. Podzadanie typu **decyzja** = brak kodu: zadaj właścicielowi pytania (AskUserQuestion), zapisz odpowiedź w `docs/zespol/decyzje-wlasciciela.md`. Podzadanie **kod+prawnik** = kod gotowy, treści prawne wymagają zatwierdzenia przez człowieka — nie deklaruj ich jako zatwierdzone. Podzadania „konfig/ops" (np. ustawienia hostingu) wykonuje właściciel; przygotuj checklistę i weryfikację.
+3. **Prace poza kodem są na sam koniec** (sekcja „Zasada: prace poza kodem na sam koniec" niżej): pomijaj podzadania `[NA KONIEC]`; jeśli kod zależy od decyzji właściciela, **zapytaj o nią i poczekaj na akceptację** (nie przyjmuj założeń sam), a w międzyczasie rób to, co od niej nie zależy. Podzadanie typu **decyzja** = brak kodu: zadaj właścicielowi pytania (AskUserQuestion), zapisz odpowiedź w `docs/zespol/decyzje-wlasciciela.md`. Podzadanie **kod+prawnik** = kod gotowy, treści prawne wymagają zatwierdzenia przez człowieka — nie deklaruj ich jako zatwierdzone. Podzadania „konfig/ops" (np. ustawienia hostingu) wykonuje właściciel; przygotuj checklistę i weryfikację.
 4. Pracuj jak agent `webdev` (zob. `CLAUDE.md`): zwięźle, minimum odczytów. Zasady repo: `AGENTS.md` (PR/Preview → Promote, changelog `planned: true`, `npm run deploy:check`, funkcje zależne od env w `lib/admin-config-status.ts`). Skille: `gymbrat-server-action`, `gymbrat-db-migration`, `gymbrat-sensitive-data`, `gymbrat-ui`, `gymbrat-ship`.
 5. Przed zakończeniem: testy dla zmiany (`npx vitest run <plik>`), `npx tsc --noEmit`, lint zmienionych plików. Nie pogarszaj stanu bazowego (2026-11-01: testy 1237 zielone, tsc czysty, eslint 102 błędy, E2E 9/41).
 6. Po zakończeniu uzupełnij **Postęp** US i statusy podzadań w tabeli w `szczegoly-zadan.md`; w tabeli poniżej zmień **Status** US na `ZROBIONE (data)` dopiero, gdy wszystkie jego podzadania są zrobione.
@@ -41,14 +41,26 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 
 Weryfikacja pokrycia: 6+4+4+4+4+4+2+5+4+4+5+3+4+4+3+4+9+4+2+4 = 83 podzadania (każde Z1–Z83 występuje dokładnie raz).
 
+## Zasada: prace poza kodem na sam koniec (decyzja właściciela)
+
+Właściciel zrobi wszystko, co nie jest kodem, **na końcu**. Dlatego przy realizacji dowolnego US agent **pomija podzadania oznaczone `[NA KONIEC]`** (zostawia je jako niewykonane, wymienia w raporcie) i robi tylko część w repo. **Każda decyzja, od której zależy kod, wymaga akceptacji właściciela.** Gdy podzadanie zależy od decyzji, której jeszcze nie ma, agent **pyta właściciela** (AskUserQuestion: krótko, z rekomendowaną opcją jako pierwszą i skutkami) i dopiero po jego akceptacji implementuje to, co od niej zależy; zapisuje decyzję w `docs/zespol/decyzje-wlasciciela.md` i w polu **Decyzje** danego US. Do czasu odpowiedzi agent robi wszystko, co od decyzji **nie** zależy, i wskazuje, co czeka. Agent nie przyjmuje decyzji sam, także „tymczasowo". Kod zależny od decyzji ma być konfigurowalny (stała/flaga/env), żeby zmiana decyzji nie wymagała przebudowy.
+
+Podzadania `[NA KONIEC]` (faza końcowa, robi właściciel; agent przygotowuje checklisty/projekty, ale nie zamyka ich sam):
+- **US1 w całości** — Z1, Z2, Z3, Z18, Z19, Z82 oraz część „decyzja" z Z54 (decyzje właściciela). Propozycje do akceptacji (przed implementacją zależnego kodu agent MUSI zapytać właściciela): Z2/Z3 — pakiet = „bez reklam" wyłączony z oferty do czasu decyzji, checkout za flagą wyłączony (`/package` bez możliwości zakupu), cennik z bazy bez zmian; Z1 — dane sprzedawcy z `lib/legal-seller.ts` bez zmian, faktury (Z21) projektowane pod wersję „działalność gospodarcza"; Z18 — Java traktowana jako do usunięcia (kod z Z31 fail-closed, Z73 usunięcie), AWP bez zmian, repo prywatne dopiero na końcu; Z19 — Android bez zakupów w aplikacji.
+- **Konfiguracja i operacje po stronie właściciela:** Z17 (SMTP, DNS SPF/DKIM/DMARC, zmienne na hostingu), Z47 (utworzenie stagingu i kluczy HotPay), Z48 (test przywracania backupu), Z49 (skonfigurowanie alertów w Sentry/uptime), Z33 (zmiana widoczności repo i rotacja sekretów), Z57 (rotacja sekretów — sama procedura/dokument jest w kodzie), Z51 (Google Play: konto, Data Safety, publikacja), Z52 (soft launch z testerami).
+- **Zatwierdzenia prawne:** część Z15 i Z28 „zatwierdzenie przez prawnika" (projekty dokumentów i okresy retencji agent przygotowuje w repo wcześniej, jako szkice).
+
+Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentów, checklisty i skrypty dla prac `[NA KONIEC]`.
+
 ## Kolejność i zależności między US
 
-`US1` (decyzje, równolegle ze wszystkim) → `US2` (webhook; bloker płatności) → `US3` (zgody) → `US4`, `US5`, `US6` → `US7` → `US8` (SMTP wcześniej, bo odblokowuje rejestrację) → `US9`–`US15` wg priorytetu → `US16`–`US18`, `US20` → `US19` (publikacja, wymaga US6, US8, US10) po zamknięciu P0.
+**Faza 1 — kod i dokumenty w repo:** `US2` (webhook; bloker płatności) → `US3` (zgody) → `US4`, `US5`, `US6` → `US7` (szkice dokumentów) → `US9`–`US15` wg priorytetu → `US16`–`US18`, `US20`; w `US8` tylko Z50 (wsparcie w aplikacji), w `US11` tylko część w repo (Z31, Z32, Z34, Z73), w `US10` Z29, Z30, Z56 i dokument rotacji z Z57.
+**Faza 2 — na sam koniec, prace poza kodem:** `US1` (decyzje) → konfiguracja i ops z US8 (Z17, Z47, Z48, Z49) → Z33, rotacja sekretów (Z57) → zatwierdzenia prawne (Z15, Z28) → domknięcie decyzji z pól „Decyzje" → `US19` (Z51 publikacja, Z52 soft launch, decyzja go/no-go).
 
 ---
 
-## US1 — Decyzje właściciela
-**P0 · M · Zależności** brak · **Postęp** 0/6
+## US1 — Decyzje właściciela  **[NA KONIEC — cały US]**
+**P0 · M · Zależności** brak · **Postęp** 0/6 · **Decyzje** brak zapisanych (patrz „Zasada: prace poza kodem na sam koniec"); poniższe są **propozycjami do akceptacji**, nie ustaleniami
 **Cel** Zebrać wszystkie decyzje, które blokują kod i dokumenty: komu i jak sprzedajemy, co jest Premium, reklamy, Java/AWP/repo, płatności na Androidzie, kody promocyjne/Badania, mapa Premium.
 **Podzadania** Z1 podmiot sprzedający · Z2 model Free/Premium i cennik · Z3 reklamy AdMob · Z18 Java, iframe AWP, repo prywatne · Z19 płatności na Androidzie · Z82 mapa drogowa Premium (+ decyzja części „definicja" z Z54).
 **Gotowe, gdy** Wszystkie decyzje są zapisane w `docs/zespol/decyzje-wlasciciela.md`; US2–US5, US11, US19 mają jednoznaczne wejście. Zadaj pytania paczką (AskUserQuestion, max 4 naraz).
@@ -87,13 +99,13 @@ Weryfikacja pokrycia: 6+4+4+4+4+4+2+5+4+4+5+3+4+4+3+4+9+4+2+4 = 83 podzadania (k
 ## US7 — Dokumenty prawne i retencja
 **P0 · L · Zależności** US1 (Z1) · **Postęp** 0/2
 **Cel** Komplet dokumentów i automatyczna retencja. **Zatwierdzenie przez człowieka-prawnika; nie deklaruj jako gotowe.**
-**Podzadania** Z15 dokumenty prawne i podmioty przetwarzające (regulamin, polityka, RCP, umowy powierzenia, DPIA) · Z28 retencja i automatyczne usuwanie (crony + testy).
+**Podzadania** Z15 dokumenty prawne i podmioty przetwarzające (regulamin, polityka, RCP, umowy powierzenia, DPIA) — szkice w repo teraz, zatwierdzenie prawnika `[NA KONIEC]` · Z28 retencja i automatyczne usuwanie (crony + testy; okresy z projektu w `docs/prawo/01-…`, zatwierdzenie `[NA KONIEC]`).
 **Gotowe, gdy** Projekty w `docs/prawo/` i teksty w aplikacji są wersjonowane i gotowe do przeglądu prawnika; crony czyszczące działają zgodnie z zatwierdzonymi okresami.
 
 ## US8 — Operacje i uruchomienie
 **P0 · L · Zależności** US2 (staging do testów płatności) · **Postęp** 0/5
 **Cel** Środowisko produkcyjne gotowe do obsługi klientów: e-mail, staging, backup, monitoring, wsparcie.
-**Podzadania** Z17 SMTP produkcyjny (warunek rejestracji e-mailem) · Z47 staging z testowymi kluczami HotPay · Z48 test przywracania backupu · Z49 monitoring, alerty, status · Z50 wsparcie klienta i reklamacje.
+**Podzadania** Z17 SMTP produkcyjny `[NA KONIEC]` · Z47 staging z testowymi kluczami HotPay `[NA KONIEC]` · Z48 test przywracania backupu `[NA KONIEC]` · Z49 monitoring, alerty, status `[NA KONIEC]` (w repo tylko ewentualne zdarzenia/tagi do Sentry) · Z50 wsparcie klienta i reklamacje (kod, robić od razu).
 **Gotowe, gdy** Rejestracja kodem i reset hasła działają na produkcji; płatność testowa przechodzi na stagingu; backup przywrócony na próbę (RTO/RPO zapisane); alerty skonfigurowane; kontakt i FAQ dostępne.
 
 ## US9 — Admin: zamówienia, alerty, finanse
@@ -105,13 +117,13 @@ Weryfikacja pokrycia: 6+4+4+4+4+4+2+5+4+4+5+3+4+4+3+4+9+4+2+4 = 83 podzadania (k
 ## US10 — Bezpieczeństwo aplikacji
 **P1 · L · Zależności** US3 (Z12 — znane źródła do CSP) · **Postęp** 0/4
 **Cel** Utwardzić warstwę HTTP.
-**Podzadania** Z29 CSP w trybie egzekwowania · Z30 rate limiting produkcyjny i zaufane IP · Z56 ograniczenie osadzania w iframe · Z57 skan zależności i rotacja sekretów.
+**Podzadania** Z29 CSP w trybie egzekwowania · Z30 rate limiting produkcyjny i zaufane IP · Z56 ograniczenie osadzania w iframe · Z57 skan zależności i rotacja sekretów (workflow i dokument procedury w repo teraz; sama rotacja `[NA KONIEC]`).
 **Gotowe, gdy** CSP jest egzekwowane bez naruszeń na głównych ekranach; limity działają przez Upstash; spoofing `x-forwarded-for` nie omija limitów; workflow zależności blokuje High/Critical.
 
 ## US11 — Bezpieczeństwo admina, Java i repo
 **P1 · L · Zależności** US1 (Z18) · **Postęp** 0/5
 **Cel** Zamknąć ryzyka kont uprzywilejowanych, backendu Java i widoczności kodu.
-**Podzadania** Z31 Java fail-closed · Z73 realizacja decyzji o Javie (usunięcie albo pełna implementacja) · Z32 2FA i blokada dla admina, usunięcie PIN-u · Z33 repo prywatne i higiena drzewa · Z34 test uprawnień tras admina.
+**Podzadania** Z31 Java fail-closed · Z73 realizacja decyzji o Javie (zależne od decyzji Z18 — zapytaj właściciela; propozycja: usunięcie) · Z32 2FA i blokada dla admina, usunięcie PIN-u · Z33 repo prywatne `[NA KONIEC]` (w repo tylko higiena drzewa: usunięcie `undefined/`, `.gitignore`) · Z34 test uprawnień tras admina.
 **Gotowe, gdy** Java nie ufa nagłówkom bez tokenu (lub jest usunięta); admin ma 2FA; martwy kod PIN usunięty; test enumeruje trasy admina; drzewo robocze czyste.
 
 ## US12 — Spójność liczb (cardio)
@@ -156,7 +168,7 @@ Weryfikacja pokrycia: 6+4+4+4+4+4+2+5+4+4+5+3+4+4+3+4+9+4+2+4 = 83 podzadania (k
 **Podzadania** Z36 komunikaty rejestracji bez SMTP · Z58 onboarding świadomy historii (plan z ostatnich treningów) · Z77 usunięcie `inbox` i roli `trener` · Z78 usunięcie martwych komponentów.
 **Gotowe, gdy** `/register` mówi, jakie metody są dostępne; konto z historią dostaje propozycję planu; brak `inbox`, roli `trener` i martwych komponentów.
 
-## US19 — Android i soft launch
+## US19 — Android i soft launch  **[NA KONIEC — cały US]**
 **P1 · XL · Zależności** US1 (Z19), US6, US8, US10 · **Postęp** 0/2
 **Cel** Publikacja i kontrolowane wejście na rynek.
 **Podzadania** Z51 publikacja Android w Google Play (Data Safety, AAB, `/usun-konto`, strategia płatności) · Z52 soft launch (20–50 testerów, 2 tygodnie, KPI) i decyzja go/no-go wg sekcji 13 audytu.
