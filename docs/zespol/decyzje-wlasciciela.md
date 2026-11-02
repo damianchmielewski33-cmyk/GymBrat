@@ -45,3 +45,18 @@ Odpowiedzi właściciela na pytania otwarte zespołu (2026-10-23). Decyzje są w
 | DW-3 | `ADMIN_EMAILS` na Render przed wdrożeniem | Tak, właściciel ustawi przed Promote. |
 | DW-4 | Google OAuth na produkcji | Skonfigurowany i działa. |
 | DW-5 | Reguła R-B z ADR 0001 (unieważnienie hasła i sesji kont, do których Google dołączono po rejestracji hasłem) | Odrzucona. Takie konta dostają tylko `email_verified_at`; hasło i sesje bez zmian. Właściciel akceptuje ryzyko resztkowe: założyciel konta kodem `1234` może nadal znać hasło (ADR 0001, ryzyko A2/S2). |
+
+## US1 — decyzje komercjalizacyjne (2026-11-02)
+Zapisane na podstawie odpowiedzi właściciela (backlog US1). Kod zależny od decyzji ma być konfigurowalny (stała/flaga/env).
+
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-1 | Z1 Podmiot sprzedający | Osoba prywatna, **działalność nierejestrowana** (art. 5 Prawa przedsiębiorców). Warunki: limit przychodu (miesięcznie ok. 75% minimalnego wynagrodzenia) i brak działalności w ostatnich 60 miesiącach. **Do zatwierdzenia przez prawnika-człowieka**; dane sprzedawcy w `lib/legal-seller.ts` bez zmian; faktury (Z21) projektowane jako rachunki/potwierdzenia bez VAT; limit sprzedaży konfigurowalny. Zmienia D17 tylko co do formy sprzedaży. |
+| DK-2 | Z2 Model Free/Premium | Cennik bez zmian (3,99 / 8,99 / 24,99 / 79,99 zł za 7 / 30 / 90 / 365 dni), płatność jednorazowa, bez odnowień automatycznych, bez okresu próbnego. |
+| DK-3 | Z3 Reklamy | **Konfigurujemy AdMob**; pakiet znosi reklamy. Wymaga zgód (CMP) w US3 i konta AdMob po stronie właściciela. Uwaga: obowiązuje D18 (minimalny wiek 16 lat). |
+| DK-4 | Z18 Java | Usuwamy backend Java (Z31 fail-closed na czas przejściowy, Z73 usunięcie). |
+| DK-5 | Z18 iframe AWP | Zostaje bez zmian. |
+| DK-6 | Z18 Repo | Prywatne, **na końcu** (Z33, rotacja sekretów Z57 robi właściciel). |
+| DK-7 | Z19 Android | **Opcja B: Google Play Billing.** Konsekwencje do wyceny w US19/Z51 i US2: drugi kanał płatności, weryfikacja zakupów po stronie serwera, prowizja Google; zakupy cyfrowe w aplikacji Android muszą iść przez Play Billing. |
+| DK-8 | Z82 Mapa Premium | Pierwsze dwie funkcje: zaawansowana analiza postępów i raporty PDF (PDF dotyka danych o ciele: `gymbrat-sensitive-data`). |
+| DK-9 | Z54 / D11 | Kody rabatowe (`/promo-codes`) i Badania (`/labs`) ukryte za flagą do czasu definicji produktu; bez kasowania kodu. Dotyczy tylko części „decyzja" Z54. |

@@ -18,7 +18,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 
 | US | Tytuł | Prio | Rozm. | Podzadania (Z) | Status |
 |---|---|---|---|---|---|
-| US1 | Decyzje właściciela | P0 | M | Z1, Z2, Z3, Z18, Z19, Z82 | TODO |
+| US1 | Decyzje właściciela | P0 | M | Z1, Z2, Z3, Z18, Z19, Z82 | ZROBIONE (2026-11-02) |
 | US2 | Naprawa płatności HotPay | P0 | L | Z4, Z5, Z8, Z16 | TODO |
 | US3 | Zgody i prywatność użytkownika | P0 | XL | Z11, Z12, Z13, Z81 | TODO |
 | US4 | Zamówienia: zgody, anonimizacja, historia, faktury | P0 | XL | Z6, Z7, Z20, Z21 | TODO |
@@ -60,7 +60,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 ---
 
 ## US1 — Decyzje właściciela  **[NA KONIEC — cały US]**
-**P0 · M · Zależności** brak · **Postęp** 0/6 · **Decyzje** brak zapisanych (patrz „Zasada: prace poza kodem na sam koniec"); poniższe są **propozycjami do akceptacji**, nie ustaleniami
+**P0 · M · Zależności** brak · **Postęp** 6/6 (2026-11-02) · **Decyzje** DK-1…DK-9 w `docs/zespol/decyzje-wlasciciela.md` (sekcja „US1")
 **Cel** Zebrać wszystkie decyzje, które blokują kod i dokumenty: komu i jak sprzedajemy, co jest Premium, reklamy, Java/AWP/repo, płatności na Androidzie, kody promocyjne/Badania, mapa Premium.
 **Podzadania** Z1 podmiot sprzedający · Z2 model Free/Premium i cennik · Z3 reklamy AdMob · Z18 Java, iframe AWP, repo prywatne · Z19 płatności na Androidzie · Z82 mapa drogowa Premium (+ decyzja części „definicja" z Z54).
 **Gotowe, gdy** Wszystkie decyzje są zapisane w `docs/zespol/decyzje-wlasciciela.md`; US2–US5, US11, US19 mają jednoznaczne wejście. Zadaj pytania paczką (AskUserQuestion, max 4 naraz).
