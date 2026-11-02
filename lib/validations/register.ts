@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MIN_AGE_MESSAGE, MIN_USER_AGE } from "@/lib/min-age";
 
 export const activityLevels = ["low", "medium", "high"] as const;
 
@@ -34,7 +35,7 @@ export const registerSchema = z.object({
   age: z.coerce
     .number("Wpisz swój wiek")
     .int("Użyj liczby całkowitej")
-    .min(13, "Minimalny wiek: 13")
+    .min(MIN_USER_AGE, MIN_AGE_MESSAGE)
     .max(120, "Maksymalny wiek: 120"),
   activityLevel: z.enum(activityLevels, {
     message: "Wybierz poziom aktywności",

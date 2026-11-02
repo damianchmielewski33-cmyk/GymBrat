@@ -1,3 +1,5 @@
+import { MIN_USER_AGE } from "@/lib/min-age";
+
 /** Pola z rejestracji e-mail, których Google OAuth nie zbiera. */
 export type BodyProfileFields = {
   firstName?: string | null;
@@ -34,7 +36,7 @@ export function isUserBodyProfileComplete(u: BodyProfileFields): boolean {
     height >= 100 &&
     height <= 250 &&
     age != null &&
-    age >= 13 &&
+    age >= MIN_USER_AGE &&
     age <= 120 &&
     (activity === "low" || activity === "medium" || activity === "high")
   );

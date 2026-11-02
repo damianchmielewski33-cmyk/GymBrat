@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import { cn } from "@/lib/utils";
 import { activityLevels } from "@/lib/validations/register";
+import { MIN_USER_AGE } from "@/lib/min-age";
 
 const activityCopy: Record<
   (typeof activityLevels)[number],
@@ -140,11 +141,14 @@ export function CompleteProfileForm({ initial }: { initial: Initial }) {
               name="age"
               type="number"
               inputMode="numeric"
-              min={13}
+              min={MIN_USER_AGE}
               max={120}
               required
               defaultValue={initial.age ?? ""}
             />
+            <p className="text-[11px] leading-snug text-white/40">
+              Aplikacja jest dla osób od {MIN_USER_AGE} lat. Podając wiek, oświadczasz, że masz co najmniej {MIN_USER_AGE} lat.
+            </p>
           </div>
         </div>
       </section>

@@ -20,7 +20,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 |---|---|---|---|---|---|
 | US1 | Decyzje właściciela | P0 | M | Z1, Z2, Z3, Z18, Z19, Z82 | TODO |
 | US2 | Naprawa płatności HotPay | P0 | L | Z4, Z5, Z8, Z16 | TODO |
-| US3 | Zgody i prywatność użytkownika | P0 | XL | Z11, Z12, Z13, Z81 | TODO |
+| US3 | Zgody i prywatność użytkownika | P0 | XL | Z11, Z12, Z13, Z81 | W TOKU: kod w repo, testy nieuruchomione, Z11 niepełne (2026-11-02) |
 | US4 | Zamówienia: zgody, anonimizacja, historia, faktury | P0 | XL | Z6, Z7, Z20, Z21 | TODO |
 | US5 | Premium: realna wartość pakietu | P0 | XL | Z9, Z10, Z24, Z54 | TODO |
 | US6 | Prawa użytkownika (usunięcie, eksport, dane AI) | P0 | L | Z14, Z25, Z26, Z27 | TODO |
@@ -73,7 +73,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Podpisany anonimowy POST na `/api/payments/hotpay/notify` zwraca 200; zamówienie 19,99 zł z `KWOTA=0.01` nie daje pakietu; powtórka nie przedłuża; test chroni nowe trasy publiczne.
 
 ## US3 — Zgody i prywatność użytkownika
-**P0 · XL · Zależności** US7 (treści zgód — można zacząć równolegle z szkicami) · **Postęp** 0/4
+**P0 · XL · Zależności** US7 (treści zgód — można zacząć równolegle z szkicami) · **Postęp** Z12, Z13, Z81 kod gotowy; Z11 częściowo (brak ekranu zgód przy rejestracji i zatwierdzonych treści); testy/tsc/lint NIEURUCHOMIONE (brak npm w sesji) · **Decyzje** DK-10 (konta < 16: blokada do potwierdzenia wieku), DK-11 (przypomnienia zostają, za zgodą push)
 **Cel** Zgody na dane o ciele i zdjęcia, analityka/Sentry dopiero po zgodzie, minimalny wiek 16, push za zgodą.
 **Podzadania** Z11 rejestr zgód i zgoda na dane zdrowotne · Z12 analityka i monitoring po zgodzie · Z13 wiek 16+ · Z81 przypomnienia za zgodą.
 **Gotowe, gdy** Nie da się zapisać raportu ciała/zdjęć bez zgody; przed zgodą brak zdarzeń PostHog/Sentry (test sieciowy); rejestracja odrzuca < 16 lat; cofnięcie zgód w Profilu działa.

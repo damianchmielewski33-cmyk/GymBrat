@@ -845,7 +845,7 @@ export async function createTeam(ownerUserId: string, input: CreateTeamInput) {
 
   invalidatePublicTeamsCache();
 
-  const { track } = await import("@/lib/analytics/track");
+  const { track } = await import("@/lib/analytics/track-server");
   track.teamCreated(ownerUserId, {
     team_id: teamId,
     privacy: input.privacy,
@@ -921,7 +921,7 @@ export async function joinTeamByCode(
   await refreshMemberCount(team.id);
   invalidatePublicTeamsCache();
 
-  const { track } = await import("@/lib/analytics/track");
+  const { track } = await import("@/lib/analytics/track-server");
   track.teamJoined(userId, {
     team_id: team.id,
     join_method: opts?.joinMethod ?? "code",

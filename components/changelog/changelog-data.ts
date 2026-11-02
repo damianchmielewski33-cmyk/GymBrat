@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Prywatność: zgody na dane o ciele i zdjęcia, wiek 16+",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Raport ciała, zdjęcia sylwetki i tętno zapisujemy dopiero po Twojej zgodzie — okno zgody pojawia się przy pierwszym zapisie, a w Profilu → Konto możesz każdą zgodę cofnąć.",
+      "Analityka i monitoring błędów w przeglądarce włączają się wyłącznie po zgodzie na analitykę; „Tylko niezbędne” niczego nie ładuje.",
+      "Minimalny wiek to 16 lat (konta młodsze proszone o potwierdzenie wieku), a pakiet Premium można kupić od 18 lat. Przypomnienia treningowe wysyłamy tylko za zgodą.",
+    ],
+  },
+  {
     title: "Zapowiedź — Team: hub „Dziś w zespole”, pierścienie i katalog odznak",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

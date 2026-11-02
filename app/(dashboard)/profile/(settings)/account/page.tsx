@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { ShieldCheck } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ConsentSettingsCard } from "@/components/consent/consent-settings-card";
+import { SensitiveConsentsCard } from "@/components/consent/sensitive-consents-card";
 import { AppPageHeader } from "@/components/layout/screen";
 import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import {
@@ -63,6 +64,18 @@ export default async function ProfileAccountPage() {
                 consents.analytics?.decidedAt?.toISOString() ??
                 consents.marketing?.decidedAt?.toISOString() ??
                 null,
+            }}
+          />
+        </ProfileBlock>
+        <ProfileBlock
+          title="Dane o ciele, zdjęcia i przypomnienia"
+          description="Osobne zgody. Bez nich nie zapiszemy raportu ciała, zdjęć ani tętna i nie wyślemy przypomnień."
+        >
+          <SensitiveConsentsCard
+            initial={{
+              health: consents.health?.granted ?? false,
+              photos: consents.photos?.granted ?? false,
+              push: consents.push?.granted ?? false,
             }}
           />
         </ProfileBlock>

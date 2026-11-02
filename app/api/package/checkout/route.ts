@@ -1,10 +1,11 @@
 import { withApiErrors } from "@/lib/errors/api";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
-import { subscriptionOrders } from "@/db/schema";
+import { subscriptionOrders, users } from "@/db/schema";
 import { assertCsrf } from "@/lib/csrf";
 import {
   buildHotpayPaymentHash,
@@ -13,6 +14,7 @@ import {
   hotpayPaymentUrl,
   hotpaySekret,
 } from "@/lib/hotpay";
+import { MIN_PURCHASE_AGE } from "@/lib/min-age";
 import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
 import { getSubscriptionPlanBySku } from "@/lib/subscription-plans";
 
@@ -74,6 +76,20 @@ async function handlePOST(req: Request) {
 
   await ensureCriticalSchema();
   const db = getDb();
+
+  // Z13: pakiet można kupić od 18 lat (zakup przez osobę z ograniczoną zdolnością do czynności prawnych).
+  const [buyer] = await db
+    .select({ age: users.age })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+  if (buyer?.age != null && buyer.age < MIN_PURCHASE_AGE) {
+    return NextResponse.json(
+      { ok: false, error: `Pakiet Premium można kupić od ${MIN_PURCHASE_AGE}. roku życia.` },
+      { status: 403 },
+    );
+  }
+
   const [order] = await db
     .insert(subscriptionOrders)
     .values({

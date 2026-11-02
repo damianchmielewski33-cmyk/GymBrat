@@ -45,3 +45,9 @@ Odpowiedzi właściciela na pytania otwarte zespołu (2026-10-23). Decyzje są w
 | DW-3 | `ADMIN_EMAILS` na Render przed wdrożeniem | Tak, właściciel ustawi przed Promote. |
 | DW-4 | Google OAuth na produkcji | Skonfigurowany i działa. |
 | DW-5 | Reguła R-B z ADR 0001 (unieważnienie hasła i sesji kont, do których Google dołączono po rejestracji hasłem) | Odrzucona. Takie konta dostają tylko `email_verified_at`; hasło i sesje bez zmian. Właściciel akceptuje ryzyko resztkowe: założyciel konta kodem `1234` może nadal znać hasło (ADR 0001, ryzyko A2/S2). |
+
+## US3 — decyzje (2026-11-02)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-10 | Z13 Konta < 16 | Blokada do potwierdzenia wieku: konta z wiekiem < 16 wracają na uzupełnienie profilu (min. 16 + oświadczenie w rejestrze zgód). Automatycznego usuwania takich kont nie robimy bez osobnej zgody właściciela i oceny prawnika. Zakup pakietu od 18 lat. |
+| DK-11 | Z81 Przypomnienia | Zostają, za zgodą `push` w rejestrze zgód (włączenie przypomnień zapisuje zgodę, wyłączenie ją cofa). |

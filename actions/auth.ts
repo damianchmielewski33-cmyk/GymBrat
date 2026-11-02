@@ -9,9 +9,11 @@ import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import {
   emailVerificationCodes,
   siteActivityLog,
+  userConsents,
   userSettings,
   users,
 } from "@/db/schema";
+import { CURRENT_CONSENT_TEXT_VERSION } from "@/lib/consents-client";
 import {
   registerSchema,
   type RegisterInput,
@@ -334,6 +336,15 @@ export async function registerUser(
         createdAt: now,
       }),
       db.insert(userSettings).values(newUserSettingsRow(userId, data.weeklySessionsTarget)),
+      // Z13: oświadczenie o wieku 16+ w rejestrze zgód (dowód, że użytkownik je złożył).
+      db.insert(userConsents).values({
+        userId,
+        type: "age_16",
+        granted: true,
+        textVersion: CURRENT_CONSENT_TEXT_VERSION,
+        source: "registration",
+        decidedAt: now,
+      }),
       db.delete(emailVerificationCodes).where(eq(emailVerificationCodes.id, codeRow.id)),
       securityEventInsert(db, {
         type: "register",

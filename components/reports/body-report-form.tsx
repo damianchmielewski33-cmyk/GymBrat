@@ -31,6 +31,8 @@ import {
 } from "@/components/reports/report-submit-popup";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { cn } from "@/lib/utils";
+import { ConsentRequiredDialog } from "@/components/consent/consent-required-dialog";
+import type { SensitiveConsentType } from "@/lib/consents-client";
 
 type BodyReportFormProps = {
   maxPhotos?: number;
@@ -535,6 +537,7 @@ export function BodyReportForm({
   const { notifySaved } = useSaveFeedback();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [consentNeeded, setConsentNeeded] = useState<SensitiveConsentType | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const wantNew =
     searchParams.get("new") === "1" || searchParams.get("new") === "true";
@@ -852,9 +855,19 @@ export function BodyReportForm({
             photoDataUrls: photos.slice(0, maxPhotos),
           }),
         });
-        const json = (await res.json()) as { ok: boolean; error?: string };
+        const json = (await res.json()) as {
+          ok: boolean;
+          error?: string;
+          code?: string;
+          consent?: SensitiveConsentType;
+        };
         if (!json.ok) {
           setSubmitPhase("idle");
+          // Z11: serwer wymaga zgody (dane o ciele / zdjęcia) — pokaż okno zgody i ponów zapis.
+          if (json.code === "CONSENT_REQUIRED" && json.consent) {
+            setConsentNeeded(json.consent);
+            return;
+          }
           setError(json.error ?? "Nie udało się zapisać raportu.");
           return;
         }
@@ -869,15 +882,27 @@ export function BodyReportForm({
   };
 
   const submitPopup = (
-    <ReportSubmitPopup
-      phase={submitPhase}
-      summary={submitSummary}
-      onClose={() => {
-        setSubmitPhase("idle");
-        setSubmitSummary(null);
-        router.refresh();
-      }}
-    />
+    <>
+      <ReportSubmitPopup
+        phase={submitPhase}
+        summary={submitSummary}
+        onClose={() => {
+          setSubmitPhase("idle");
+          setSubmitSummary(null);
+          router.refresh();
+        }}
+      />
+      {consentNeeded ? (
+        <ConsentRequiredDialog
+          type={consentNeeded}
+          onCancel={() => setConsentNeeded(null)}
+          onGranted={() => {
+            setConsentNeeded(null);
+            submit();
+          }}
+        />
+      ) : null}
+    </>
   );
 
   if (!isOpen) {

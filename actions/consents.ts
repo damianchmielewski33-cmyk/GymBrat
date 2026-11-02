@@ -12,6 +12,11 @@ import {
   type ConsentSource,
   type ConsentType,
 } from "@/lib/consents";
+import {
+  SENSITIVE_CONSENT_TEXT_VERSION,
+  SENSITIVE_CONSENT_TYPES,
+  type SensitiveConsentType,
+} from "@/lib/consents-client";
 import { UserMessages } from "@/lib/user-facing-errors";
 
 export type ConsentSaveResult =
@@ -97,5 +102,40 @@ export async function saveConsentsBulkAction(
 
   revalidatePath("/profile");
   revalidatePath("/profile/account");
+  return { ok: true, savedAt: decidedAt.toISOString() };
+}
+
+/**
+ * Zgoda/cofnięcie zgody na dane o ciele (`health`) lub zdjęcia (`photos`) — Z11.
+ * Append-only; treść zgody to szkic do zatwierdzenia przez prawnika (wersja `...-szkic-...`).
+ */
+export async function setSensitiveConsentAction(
+  type: SensitiveConsentType,
+  granted: boolean,
+  source: ConsentSource = "profile",
+): Promise<ConsentSaveResult> {
+  await guardAction("consents.setSensitiveConsentAction");
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, error: UserMessages.sessionExpired };
+  }
+  if (!(SENSITIVE_CONSENT_TYPES as readonly string[]).includes(type)) {
+    return { ok: false, error: "Nieznany typ zgody." };
+  }
+
+  const db = getDb();
+  const decidedAt = new Date();
+  await db.insert(userConsents).values({
+    userId: session.user.id,
+    type,
+    granted: Boolean(granted),
+    textVersion: SENSITIVE_CONSENT_TEXT_VERSION,
+    source: isConsentSource(source) ? source : "profile",
+    decidedAt,
+  });
+
+  revalidatePath("/profile");
+  revalidatePath("/profile/account");
+  revalidatePath("/reports");
   return { ok: true, savedAt: decidedAt.toISOString() };
 }

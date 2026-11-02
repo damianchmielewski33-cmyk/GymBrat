@@ -24,9 +24,9 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z8 | Testy płatności | kod | P0 | M | TODO |
 | Z9 | Realna wartość pakietu | kod | P0 | L | TODO |
 | Z10 | Gating Premium po stronie serwera | kod | P0 | M | TODO |
-| Z11 | Rejestr zgód i zgoda na dane zdrowotne | kod+prawnik | P0 | L | TODO |
-| Z12 | Analityka i monitoring tylko po zgodzie | kod | P0 | M | TODO |
-| Z13 | Minimalny wiek 16 lat | kod | P0 | M | TODO |
+| Z11 | Rejestr zgód i zgoda na dane zdrowotne | kod+prawnik | P0 | L | CZĘŚCIOWO: kod+testy napisane, nieuruchomione; brak ekranu zgód przy rejestracji i treści od prawnika (2026-11-02) |
+| Z12 | Analityka i monitoring tylko po zgodzie | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
+| Z13 | Minimalny wiek 16 lat | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z14 | Usuwanie konta z ponownym uwierzytelnieniem | kod | P0 | M | TODO |
 | Z15 | Dokumenty prawne i podmioty przetwarzające | kod+prawnik | P0 | M | TODO |
 | Z16 | Test „trasy API vs proxy" | kod | P0 | S | TODO |
@@ -94,7 +94,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z78 | Usunięcie martwych komponentów | kod | P3 | S | TODO |
 | Z79 | Mniej pollingu społeczności | kod | P3 | M | TODO |
 | Z80 | Rozbicie dużych modułów | kod | P3 | L | TODO |
-| Z81 | Przypomnienia treningowe za zgodą | kod | P3 | M | TODO |
+| Z81 | Przypomnienia treningowe za zgodą | kod | P3 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z82 | Mapa drogowa funkcji Premium | decyzja | P3 | S | TODO |
 | Z83 | Aktualizacja dokumentacji projektu | dok | P3 | S | TODO |
 

@@ -49,6 +49,7 @@ import {
   registerStepFields,
   type RegisterFormValues,
 } from "@/lib/validations/register";
+import { MIN_USER_AGE } from "@/lib/min-age";
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
 
@@ -887,12 +888,15 @@ export function RegisterForm({
                     id="age"
                     type="number"
                     inputMode="numeric"
-                    min={13}
+                    min={MIN_USER_AGE}
                     max={120}
                     aria-invalid={errors.age ? true : undefined}
                     className={cn(errors.age && "border-destructive")}
                     {...register("age")}
                   />
+                  <p className="text-[11px] leading-snug text-white/40">
+                    Aplikacja jest dla osób od {MIN_USER_AGE} lat. Podając wiek, oświadczasz, że masz co najmniej {MIN_USER_AGE} lat.
+                  </p>
                   {errors.age ? (
                     <p className="text-xs text-red-100">
                       {errors.age.message}

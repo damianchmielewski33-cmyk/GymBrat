@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { WEIGHT_KG_MAX, WEIGHT_KG_MIN } from "@/lib/kcal-from-macros";
 import { useState } from "react";
+import { MIN_USER_AGE } from "@/lib/min-age";
 
 type BodyParamsInitial = {
   firstName: string | null;
@@ -123,7 +124,7 @@ export function BodyParamsForm({ initial }: { initial: BodyParamsInitial }) {
             name="age"
             type="number"
             inputMode="numeric"
-            min={13}
+            min={MIN_USER_AGE}
             max={120}
             placeholder="np. 28"
             defaultValue={initial.age != null ? String(initial.age) : ""}

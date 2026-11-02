@@ -9,6 +9,7 @@ import {
   userSettings,
   users,
 } from "@/db/schema";
+import { isConsentGranted } from "@/lib/consents";
 import { sendOptionalDailyBriefEmail } from "@/lib/email";
 import { dueReminders, REMINDER_COPY, type ReminderKind } from "@/lib/reminders-schedule";
 import { parseRemindersJson } from "@/lib/reminders-types";
@@ -75,10 +76,16 @@ async function handle(req: Request) {
     .innerJoin(users, eq(users.id, userSettings.userId))
     .where(isNotNull(userSettings.remindersJson));
 
-  const due = rows
+  const dueByTime = rows
     .map((r) => ({ ...r, prefs: parseRemindersJson(r.remindersJson) }))
     .map((r) => ({ ...r, due: dueReminders(r.prefs, now) }))
     .filter((r) => r.due.kinds.length > 0 || r.due.emailDue);
+
+  // Z81: przypomnienia (push i skrót e-mail) tylko dla osób z aktualną zgodą `push` w rejestrze zgód.
+  const due: typeof dueByTime = [];
+  for (const r of dueByTime) {
+    if (await isConsentGranted(r.userId, "push")) due.push(r);
+  }
 
   const subsByUser = new Map<
     string,
@@ -154,6 +161,7 @@ async function handle(req: Request) {
     ok: true,
     checked: rows.length,
     due: due.length,
+    skippedNoConsent: dueByTime.length - due.length,
     pushConfigured: pushReady,
     pushSent,
     emailSent,
