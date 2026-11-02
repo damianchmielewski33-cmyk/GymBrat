@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Twoje dane: bezpieczne usuwanie konta, pełny eksport, grafiki AI bez danych",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Usunięcie konta wymaga hasła albo świeżego logowania (Google/Facebook) i frazy potwierdzającej; po usunięciu dostajesz e-mail (gdy poczta jest skonfigurowana). Publiczna strona /usun-konto opisuje proces.",
+      "Eksport danych (JSON) obejmuje teraz wszystkie dane powiązane z kontem: zamówienia, zgody, przypomnienia, społeczność i inne; CSV zawiera skrót i zamówienia.",
+      "Zewnętrzny generator grafik AI nie dostaje już nazwy ćwiczenia ani ciężaru; grafiki AI są oznaczone.",
+    ],
+  },
+  {
     title: "Zapowiedź — Premium: raport postępów, bramka po stronie serwera, przypomnienia",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

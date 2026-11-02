@@ -23,7 +23,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US3 | Zgody i prywatność użytkownika | P0 | XL | Z11, Z12, Z13, Z81 | W TOKU: kod gotowy, testy nieuruchomione, czeka na treści od prawnika (2026-11-02) |
 | US4 | Zamówienia: zgody, anonimizacja, historia, faktury | P0 | XL | Z6, Z7, Z20, Z21 | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | US5 | Premium: realna wartość pakietu | P0 | XL | Z9, Z10, Z24, Z54 | KOD GOTOWY, TESTY NIEURUCHOMIONE |
-| US6 | Prawa użytkownika (usunięcie, eksport, dane AI) | P0 | L | Z14, Z25, Z26, Z27 | TODO |
+| US6 | Prawa użytkownika (usunięcie, eksport, dane AI) | P0 | L | Z14, Z25, Z26, Z27 | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | US7 | Dokumenty prawne i retencja | P0 | L | Z15, Z28 | TODO |
 | US8 | Operacje i uruchomienie | P0 | L | Z17, Z47, Z48, Z49, Z50 | TODO |
 | US9 | Admin: zamówienia, alerty, finanse | P1 | L | Z22, Z23, Z55, Z75 | TODO |
@@ -91,7 +91,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Użytkownik bez pakietu nie dostaje funkcji Premium (test 402/403); `/package` wymienia dokładnie to, co jest odblokowane; banner końca pakietu i „Przedłuż" działają.
 
 ## US6 — Prawa użytkownika (usunięcie, eksport, dane AI)
-**P0 · L · Zależności** US4 (Z7), US3 · **Postęp** 0/4
+**P0 · L · Zależności** US4 (Z7), US3 · **Postęp** 4/4 (kod; testy nieuruchomione)
 **Cel** Realizacja praw RODO i wymogów Google Play.
 **Podzadania** Z14 usuwanie konta z ponownym uwierzytelnieniem · Z25 publiczna strona `/usun-konto` · Z26 kompletny eksport danych · Z27 Pollinations bez danych osobowych.
 **Gotowe, gdy** Usunięcie wymaga hasła/świeżego logowania i usuwa dane zdrowotne, zdjęcia, push, sesje; eksport pokrywa wszystkie tabele z `user_id`; prompty obrazów bez danych osobowych; `/usun-konto` jest publiczna.

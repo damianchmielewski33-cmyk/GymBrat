@@ -75,6 +75,11 @@ export function PrAchievementGraphic({
             {exerciseLabel}
           </p>
           <p className="mt-2 text-sm tabular-nums text-white/80">{dateLabel}</p>
+          {!failed ? (
+            <p className="mt-auto text-[10px] uppercase tracking-[0.14em] text-white/45">
+              Tło wygenerowane przez AI
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

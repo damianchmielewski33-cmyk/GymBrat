@@ -17,15 +17,22 @@ function hashSeed(input: string): number {
   return Math.abs(h) % 1_000_000_000;
 }
 
+/**
+ * Z27 (RODO): do zewnętrznego generatora (Pollinations) NIE trafiają dane osobowe — ani nazwa ćwiczenia
+ * (może być wpisana przez użytkownika), ani ciężar, ani nic, co da się z nich wyprowadzić (seed).
+ * `exerciseName` i `valueKg` służą wyłącznie do tekstu nakładanego w UI po stronie klienta.
+ */
 export type PrAchievementImageInput = {
   exerciseName: string;
   valueKg: number;
   atMs?: number;
 };
 
-/** Prompt cinematic — złoty puchar / medal na ławce, siłownia, bez tekstu. */
-export function buildPrAchievementImagePrompt(input: PrAchievementImageInput): string {
-  const exercise = input.exerciseName.trim() || "barbell lift";
+/** Wersja promptu/seedu — podbij przy zmianie wyglądu; wpływa na cache grafiki. */
+const PR_IMAGE_VERSION = "pr-v3";
+
+/** Prompt cinematic — złoty puchar / medal na ławce, siłownia, bez tekstu i bez danych użytkownika. */
+export function buildPrAchievementImagePrompt(_input?: PrAchievementImageInput): string {
   return [
     POLLINATIONS_RAW_PROMPT_PREFIX,
     "dramatic overhead spotlight",
@@ -35,7 +42,7 @@ export function buildPrAchievementImagePrompt(input: PrAchievementImageInput): s
     "high contrast gold and black luxury fitness aesthetic",
     "gritty professional gym atmosphere",
     "subtle dust motes in light beam",
-    `mood of personal record celebration for ${exercise}`,
+    "mood of personal record celebration",
     "no people",
     "no text",
     "no letters",
@@ -54,9 +61,8 @@ export function getPrAchievementImageUrl(input: PrAchievementImageInput): string
     input.atMs != null
       ? new Date(input.atMs).toISOString().slice(0, 10)
       : new Date().toISOString().slice(0, 10);
-  const seed = hashSeed(
-    `${input.exerciseName}|${input.valueKg}|${day}|pr-v2`,
-  );
+  // Seed tylko z daty (wariant dzienny) — bez nazwy ćwiczenia i ciężaru.
+  const seed = hashSeed(`${day}|${PR_IMAGE_VERSION}`);
   return buildAppRecipeImageProxyUrl({
     prompt,
     seed,

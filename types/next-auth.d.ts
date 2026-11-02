@@ -2,6 +2,8 @@ import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
+    /** Czas (ms) ostatniego logowania; brak = sesja sprzed wprowadzenia pola. */
+    authAt?: number;
     user: {
       id: string;
       role: "zawodnik" | "trener" | "admin";
@@ -20,6 +22,8 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
+    /** Czas (ms) logowania, które utworzyło sesję. */
+    authAt?: number;
     id?: string;
     role?: "zawodnik" | "trener" | "admin";
     profileComplete?: boolean;

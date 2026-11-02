@@ -27,7 +27,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z11 | Rejestr zgód i zgoda na dane zdrowotne | kod+prawnik | P0 | L | KOD GOTOWY, TESTY NIEURUCHOMIONE; treści zgód wymagają zatwierdzenia prawnika (2026-11-02) |
 | Z12 | Analityka i monitoring tylko po zgodzie | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z13 | Minimalny wiek 16 lat | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
-| Z14 | Usuwanie konta z ponownym uwierzytelnieniem | kod | P0 | M | TODO |
+| Z14 | Usuwanie konta z ponownym uwierzytelnieniem | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (e-mail po usunięciu działa po SMTP z Z17 [NA KONIEC]) |
 | Z15 | Dokumenty prawne i podmioty przetwarzające | kod+prawnik | P0 | M | TODO |
 | Z16 | Test „trasy API vs proxy" | kod | P0 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z17 | SMTP produkcyjny | decyzja+konfig | P0 | S | TODO |
@@ -38,9 +38,9 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z22 | Panel zamówień i zwroty (admin) | kod | P1 | M | TODO |
 | Z23 | Alerty płatności | kod | P1 | S | TODO |
 | Z24 | Przypomnienie o końcu pakietu i odnowienie | kod | P1 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (e-mail działa po SMTP z Z17 [NA KONIEC]) |
-| Z25 | Publiczna strona `/usun-konto` | kod | P1 | S | TODO |
-| Z26 | Kompletny eksport danych | kod | P1 | S | TODO |
-| Z27 | Pollinations bez danych osobowych | kod | P1 | S | TODO |
+| Z25 | Publiczna strona `/usun-konto` | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (link w Play Console ustawia właściciel [NA KONIEC]) |
+| Z26 | Kompletny eksport danych | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z27 | Pollinations bez danych osobowych | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z28 | Retencja i automatyczne usuwanie danych | kod+prawnik | P1 | M | TODO |
 | Z29 | CSP w trybie egzekwowania | kod | P1 | M | TODO |
 | Z30 | Rate limiting produkcyjny i zaufane IP | kod | P1 | S | TODO |

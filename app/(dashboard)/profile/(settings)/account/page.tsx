@@ -15,22 +15,31 @@ import {
   ProfileSection,
 } from "@/components/profile/profile-ui";
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { oauthAccounts, users } from "@/db/schema";
 import { getCurrentConsents } from "@/lib/consents";
 
-export default async function ProfileAccountPage() {
+export default async function ProfileAccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ delete?: string }>;
+}) {
+  const sp = await searchParams;
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) redirect("/login");
 
   const db = getDb();
-  const [[u], consents] = await Promise.all([
+  const [[u], consents, links] = await Promise.all([
     db
       .select({ passwordHash: users.passwordHash })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1),
     getCurrentConsents(userId),
+    db
+      .select({ provider: oauthAccounts.provider })
+      .from(oauthAccounts)
+      .where(eq(oauthAccounts.userId, userId)),
   ]);
 
   const hasPassword = Boolean(u?.passwordHash);
@@ -88,9 +97,12 @@ export default async function ProfileAccountPage() {
         <ProfileBlock
           tone="danger"
           title="Usuń konto"
-          description="Trwale kasuje konto i powiązane dane w GymBrat. Operacji nie można cofnąć."
+          description="Trwale kasuje konto i powiązane dane w GymBrat; wymaga hasła lub świeżego logowania. Operacji nie można cofnąć."
         >
-          <DeleteAccountControl />
+          <DeleteAccountControl
+            oauthProviders={links.map((l) => l.provider)}
+            autoOpen={sp.delete === "1"}
+          />
         </ProfileBlock>
       </ProfileSection>
     </div>

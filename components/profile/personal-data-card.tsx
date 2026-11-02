@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Download, Trash2 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signIn, signOut } from "next-auth/react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -77,12 +77,26 @@ export function DataExportActions() {
   );
 }
 
-/** Usunięcie konta z potwierdzeniem wpisaniem frazy. */
-export function DeleteAccountControl() {
+const PROVIDER_LABEL: Record<string, string> = { google: "Google", facebook: "Facebook" };
+
+/**
+ * Usunięcie konta: fraza + ponowne uwierzytelnienie (Z14) — hasło albo świeże logowanie
+ * dostawcą OAuth (po powrocie z logowania okno otwiera się samo: `autoOpen`).
+ */
+export function DeleteAccountControl({
+  oauthProviders = [],
+  autoOpen = false,
+}: {
+  oauthProviders?: string[];
+  autoOpen?: boolean;
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [confirmText, setConfirmText] = useState("");
+  const [password, setPassword] = useState("");
+  const [needsReauth, setNeedsReauth] = useState(false);
+  const provider = oauthProviders.find((p) => p in PROVIDER_LABEL) ?? null;
   const confirmed = confirmText.trim().toUpperCase() === DELETE_PHRASE;
 
   async function onDelete() {
@@ -94,13 +108,21 @@ export function DeleteAccountControl() {
       const res = await fetch("/api/user/account", {
         method: "DELETE",
         credentials: "include",
-        headers: { ...getXsrfHeaders() },
+        headers: { "Content-Type": "application/json", ...getXsrfHeaders() },
+        body: JSON.stringify({
+          confirm: confirmText.trim(),
+          ...(password ? { password } : {}),
+        }),
       });
       const data = (await res.json().catch(() => null)) as {
         ok?: boolean;
         error?: string;
+        code?: string;
       } | null;
-      if (!res.ok) throw new Error(data?.error || "Nie udało się usunąć konta.");
+      if (!res.ok) {
+        if (data?.code === "REAUTH_REQUIRED") setNeedsReauth(true);
+        throw new Error(data?.error || "Nie udało się usunąć konta.");
+      }
       setOpen(false);
       await signOut({ callbackUrl: "/login" });
     } catch (e) {
@@ -116,6 +138,8 @@ export function DeleteAccountControl() {
         disabled={busy}
         onClick={() => {
           setConfirmText("");
+          setPassword("");
+          setNeedsReauth(false);
           setError(null);
           setOpen(true);
         }}
@@ -139,6 +163,37 @@ export function DeleteAccountControl() {
             Wpisz <span className="font-semibold text-white">{DELETE_PHRASE}</span>, żeby
             potwierdzić. Tej operacji nie da się cofnąć.
           </AlertDialogDescription>
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Hasło do konta"
+            autoComplete="current-password"
+            aria-label="Hasło do konta"
+            className="mt-4 focus-visible:border-rose-400/50"
+          />
+          {provider ? (
+            <p className="mt-2 text-[12px] leading-snug text-white/50">
+              Logujesz się przez {PROVIDER_LABEL[provider]}? Zamiast hasła możesz{" "}
+              <button
+                type="button"
+                className="underline"
+                onClick={() =>
+                  void signIn(
+                    provider,
+                    { redirectTo: "/profile/account?delete=1" },
+                    { prompt: "login", auth_type: "reauthenticate" },
+                  )
+                }
+              >
+                zalogować się ponownie
+              </button>{" "}
+              — okno usuwania otworzy się po powrocie.
+            </p>
+          ) : null}
+          {needsReauth && !provider ? (
+            <p className="mt-2 text-[12px] text-amber-200/80">Podaj hasło, aby potwierdzić tożsamość.</p>
+          ) : null}
           <Input
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}

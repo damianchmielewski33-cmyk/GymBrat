@@ -69,3 +69,6 @@ Zapisane na podstawie odpowiedzi właściciela (backlog US1). Kod zależny od de
 | DK-12 | Z9/Z10 Zakres Premium i karencja | Premium blokuje wyłącznie **nowe** funkcje (raport postępów do wydruku/PDF z zaawansowaną analizą, `/progress/report`); obecne darmowe funkcje nie są zabierane. Reklamy znikają po aktywacji pakietu. **Bez karencji** po wygaśnięciu pakietu. |
 | DK-13 | Z9 Checkout | Zakup pakietu wyłączony flagą (`PREMIUM_CHECKOUT_ENABLED=1` włącza); do czasu włączenia `/package` pokazuje „wkrótce”, a API zwraca 503. |
 | DK-14 | Z24 Przypomnienia o końcu pakietu | Baner w aplikacji przy ≤ 7 dniach + e-mail przy ≤ 3 dniach, tylko za zgodą `push`, raz na okres (wymaga SMTP z Z17). „Przedłuż” wybiera ten sam plan; przedłużenie liczone od końca bieżącego pakietu. |
+| DK-15 | Z14 Ponowne uwierzytelnienie | Usunięcie konta wymaga hasła **albo** świeżego logowania (≤ 5 min; dla Google/Facebook ponowne logowanie z `prompt=login`) oraz frazy USUŃ. Bez kodu e-mail (nie zależy od SMTP). |
+| DK-16 | Z14 Termin usunięcia | Natychmiast i nieodwracalnie (bez karencji). Zamówienia odpinane od konta, dokumentacja sprzedaży zostaje (Z7). |
+| DK-17 | Z14 E-mail po usunięciu | Wysyłany best-effort na adres sprzed usunięcia (po SMTP z Z17); adresu nie zapisujemy. |

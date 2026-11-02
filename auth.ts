@@ -196,6 +196,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = linked.email;
         token.role = await syncAdminRoleOnLogin(linked);
         token.sv = linked.sessionVersion;
+        token.authAt = Date.now();
       } else if (user) {
         if (typeof user.id === "string") {
           token.id = user.id;
@@ -204,6 +205,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (user.role) token.role = user.role;
         if (typeof user.email === "string" && user.email) token.email = user.email;
         token.sv = user.sv ?? 0;
+        token.authAt = Date.now();
       } else {
         const uid =
           typeof token.id === "string" ? token.id : typeof token.sub === "string" ? token.sub : "";
@@ -257,6 +259,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     session({ session, token }) {
+      // Moment ostatniego logowania (nie odświeżania tokenu) — do ponownego uwierzytelnienia (Z14).
+      session.authAt = typeof token.authAt === "number" ? token.authAt : undefined;
       if (session.user) {
         const id =
           (typeof token.id === "string" ? token.id : undefined) ??

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalDocShell, LegalSection } from "@/components/legal/legal-doc-shell";
-import { getLegalSeller, REGULAMIN_PATH } from "@/lib/legal-seller";
+import { DELETE_ACCOUNT_PATH, getLegalSeller, REGULAMIN_PATH } from "@/lib/legal-seller";
 
 export const metadata: Metadata = {
   title: "Polityka prywatności",
@@ -137,7 +137,8 @@ export default function PolitykaPrywatnosciPage() {
         </p>
         <p>
           Wnioski: {s.email}. W Profilu → „Prywatność i zgody” możesz pobrać
-          eksport JSON/CSV oraz trwale usunąć Konto.
+          eksport JSON/CSV oraz trwale usunąć Konto. Instrukcja usunięcia konta (także bez
+          logowania): <Link href={DELETE_ACCOUNT_PATH} className="text-[var(--gym-gold)] underline-offset-2 hover:underline">{DELETE_ACCOUNT_PATH}</Link>.
         </p>
       </LegalSection>
 

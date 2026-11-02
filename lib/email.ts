@@ -143,3 +143,12 @@ export async function sendPackageExpiryEmail(params: { to: string; daysLeft: num
     text: `Twój pakiet GymBrat kończy się za ${params.daysLeft} ${params.daysLeft === 1 ? "dzień" : "dni"}.\n\nPrzedłużenie liczymy od końca bieżącego pakietu, więc nic nie tracisz: Pakiet → Przedłuż.\n\nNie chcesz takich wiadomości? Wyłącz zgodę na przypomnienia w Profilu → Konto.\n\n— GymBrat`,
   });
 }
+
+/** Z14: potwierdzenie usunięcia konta. Best-effort — adres nie jest nigdzie zapisywany po wysyłce. */
+export async function sendAccountDeletedEmail(params: { to: string }): Promise<boolean> {
+  return sendOptionalDailyBriefEmail({
+    to: params.to,
+    subject: "GymBrat — konto zostało usunięte",
+    text: "Potwierdzamy usunięcie Twojego konta GymBrat wraz z danymi o treningach, ciele, posiłkach, zdjęciami i powiązaniami logowania.\n\nDokumentacja sprzedaży (zamówienia pakietów) jest przechowywana w formie niepowiązanej z kontem przez okres wymagany prawem.\n\nJeśli to nie Ty usunąłeś konto, skontaktuj się z nami odpowiadając na tę wiadomość.\n\n— GymBrat",
+  });
+}

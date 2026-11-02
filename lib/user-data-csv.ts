@@ -54,5 +54,27 @@ export async function buildUserDataCsv(userId: string): Promise<string> {
     );
   }
 
+  for (const o of d.orders) {
+    const row = o as Record<string, unknown>;
+    lines.push(
+      [
+        csvCell("order"),
+        csvCell(String(row.paidAt ?? row.createdAt ?? "")),
+        csvCell(row.planSku != null ? String(row.planSku) : ""),
+        csvCell(row.amountGrosze != null ? String(row.amountGrosze) : ""),
+        csvCell(row.status != null ? String(row.status) : ""),
+        csvCell(row.receiptNumber != null ? String(row.receiptNumber) : ""),
+        csvCell(""),
+      ].join(","),
+    );
+  }
+
+  // CSV to skrót (treningi, posiłki, zamówienia); pozostałe dane — w eksporcie JSON (art. 20 RODO).
+  for (const [table, rows] of Object.entries(d.otherData)) {
+    lines.push(
+      [csvCell("other"), csvCell(""), csvCell(table), csvCell(String(rows.length)), "", "", ""].join(","),
+    );
+  }
+
   return lines.join("\r\n");
 }

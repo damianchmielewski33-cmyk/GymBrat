@@ -83,6 +83,14 @@ export const RecipeImage = memo(function RecipeImage({
         onError={onError}
         className="h-full w-full object-cover"
       />
+      {!failed ? (
+        <span
+          className="pointer-events-none absolute right-1 top-1 rounded bg-black/60 px-1 py-px text-[9px] font-semibold leading-none text-white/70"
+          title="Grafika wygenerowana przez AI"
+        >
+          AI
+        </span>
+      ) : null}
       {failed ? (
         <span
           className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/65 to-transparent px-2 pb-2 pt-8 text-center"
