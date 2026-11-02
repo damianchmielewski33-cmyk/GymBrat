@@ -22,7 +22,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US2 | Naprawa płatności HotPay | P0 | L | Z4, Z5, Z8, Z16 | W TOKU: kod gotowy, wymaga uruchomienia testów (2026-11-02) |
 | US3 | Zgody i prywatność użytkownika | P0 | XL | Z11, Z12, Z13, Z81 | W TOKU: kod gotowy, testy nieuruchomione, czeka na treści od prawnika (2026-11-02) |
 | US4 | Zamówienia: zgody, anonimizacja, historia, faktury | P0 | XL | Z6, Z7, Z20, Z21 | KOD GOTOWY, TESTY NIEURUCHOMIONE |
-| US5 | Premium: realna wartość pakietu | P0 | XL | Z9, Z10, Z24, Z54 | TODO |
+| US5 | Premium: realna wartość pakietu | P0 | XL | Z9, Z10, Z24, Z54 | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | US6 | Prawa użytkownika (usunięcie, eksport, dane AI) | P0 | L | Z14, Z25, Z26, Z27 | TODO |
 | US7 | Dokumenty prawne i retencja | P0 | L | Z15, Z28 | TODO |
 | US8 | Operacje i uruchomienie | P0 | L | Z17, Z47, Z48, Z49, Z50 | TODO |
@@ -85,7 +85,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Checkout bez zgód zwraca 400 i zapisuje dowód zgody; usunięcie konta nie kasuje zamówień; klient widzi historię i dostaje e-mail; dokument sprzedaży jest dostępny.
 
 ## US5 — Premium: realna wartość pakietu
-**P0 · XL · Zależności** US1 (Z2, Z3) · **Postęp** 0/4
+**P0 · XL · Zależności** US1 (Z2, Z3) · **Postęp** 4/4 (kod; testy nieuruchomione)
 **Cel** Pakiet faktycznie coś odblokowuje i jest to egzekwowane po stronie serwera; checkout włączany dopiero, gdy wartość istnieje.
 **Podzadania** Z9 realna wartość pakietu (AdMob albo funkcje Premium) · Z10 gating `requirePremium()` po stronie serwera · Z24 przypomnienie o końcu pakietu i odnowienie · Z54 kody promocyjne i Badania (wdrożyć albo usunąć wg decyzji).
 **Gotowe, gdy** Użytkownik bez pakietu nie dostaje funkcji Premium (test 402/403); `/package` wymienia dokładnie to, co jest odblokowane; banner końca pakietu i „Przedłuż" działają.

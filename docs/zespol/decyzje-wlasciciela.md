@@ -66,3 +66,6 @@ Zapisane na podstawie odpowiedzi właściciela (backlog US1). Kod zależny od de
 |---|---|---|
 | DK-10 | Z13 Konta < 16 | Blokada do potwierdzenia wieku: konta z wiekiem < 16 wracają na uzupełnienie profilu (min. 16 + oświadczenie w rejestrze zgód). Automatycznego usuwania takich kont nie robimy bez osobnej zgody właściciela i oceny prawnika. Zakup pakietu od 18 lat. |
 | DK-11 | Z81 Przypomnienia | Zostają, za zgodą `push` w rejestrze zgód (włączenie przypomnień zapisuje zgodę, wyłączenie ją cofa). |
+| DK-12 | Z9/Z10 Zakres Premium i karencja | Premium blokuje wyłącznie **nowe** funkcje (raport postępów do wydruku/PDF z zaawansowaną analizą, `/progress/report`); obecne darmowe funkcje nie są zabierane. Reklamy znikają po aktywacji pakietu. **Bez karencji** po wygaśnięciu pakietu. |
+| DK-13 | Z9 Checkout | Zakup pakietu wyłączony flagą (`PREMIUM_CHECKOUT_ENABLED=1` włącza); do czasu włączenia `/package` pokazuje „wkrótce”, a API zwraca 503. |
+| DK-14 | Z24 Przypomnienia o końcu pakietu | Baner w aplikacji przy ≤ 7 dniach + e-mail przy ≤ 3 dniach, tylko za zgodą `push`, raz na okres (wymaga SMTP z Z17). „Przedłuż” wybiera ten sam plan; przedłużenie liczone od końca bieżącego pakietu. |

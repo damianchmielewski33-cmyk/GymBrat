@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { signOut, useSession } from "next-auth/react";
+import { showUnfinishedPages } from "@/lib/feature-flags";
 import {
   ArrowLeft,
   BadgePercent,
@@ -252,7 +253,7 @@ export function AppMenuButton({
       ? Math.max(0, Math.round(packageDaysLeft))
       : null;
 
-  const sections: MenuSection[] = [
+  const allSections: MenuSection[] = [
     {
       id: "package",
       index: "01",
@@ -444,6 +445,13 @@ export function AppMenuButton({
       ],
     },
   ];
+  // Z54/DK-9: pozycje bez zdefiniowanego produktu (Kody rabatowe, Badania) ukryte za flagą.
+  const sections: MenuSection[] = showUnfinishedPages()
+    ? allSections
+    : allSections.map((section) => ({
+        ...section,
+        rows: section.rows.filter((r) => r.href !== "/promo-codes" && r.href !== "/labs"),
+      }));
 
   useEffect(() => {
     setOpen(false);

@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Premium: raport postępów, bramka po stronie serwera, przypomnienia",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Nowy raport postępów (siła, tygodnie, ciało) do wydruku lub zapisu jako PDF — dostępny w pakiecie Premium; sekcja o ciele tylko za zgodą na dane o ciele.",
+      "Funkcje Premium są chronione po stronie serwera (kod 402), a pakiet wygasa dokładnie w dniu końca. Zakup pakietu włączany osobną flagą, do tego czasu strona pakietu pokazuje „wkrótce”.",
+      "Baner „Przedłuż” przy ≤ 7 dniach do końca pakietu oraz opcjonalny e-mail (za zgodą). Kody rabatowe i Badania ukryte do czasu zdefiniowania produktu.",
+    ],
+  },
+  {
     title: "Zapowiedź — Zamówienia: zgody przy zakupie, historia i potwierdzenie zakupu",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -54,6 +54,7 @@ describe("POST /api/package/checkout", () => {
 
   beforeEach(async () => {
     configured = true;
+    process.env.PREMIUM_CHECKOUT_ENABLED = "1";
     auth.mockReset().mockResolvedValue({ user: { id: "u1", email: "u1@example.com" } });
     assertCsrf.mockReset().mockReturnValue(null);
     checkRateLimitAsync.mockReset().mockResolvedValue({ ok: true, retryAfterSec: 0 });
@@ -66,6 +67,13 @@ describe("POST /api/package/checkout", () => {
   async function orders() {
     return (await client.execute(`SELECT status, amount_grosze AS a, days, plan_sku AS sku FROM subscription_orders`)).rows;
   }
+
+  it("flaga PREMIUM_CHECKOUT_ENABLED wyłączona → 503 i brak zamówienia (DK-13)", async () => {
+    delete process.env.PREMIUM_CHECKOUT_ENABLED;
+    const res = await checkout();
+    expect(res.status).toBe(503);
+    expect(await orders()).toHaveLength(0);
+  });
 
   it("zalogowany + aktywny plan: zamówienie pending z ceną i dniami z planu, pola formularza HotPay", async () => {
     const res = await checkout();

@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { PackagePageClient } from "@/components/package/package-page-client";
+import { isPackageCheckoutEnabled } from "@/lib/feature-flags";
 import { listSubscriptionPlans } from "@/lib/subscription-plans";
 import { getUserPackageStatus } from "@/lib/user-package";
 
@@ -31,6 +32,8 @@ export default async function PackagePage({
       daysLeft={pkg.daysLeft}
       endsLabel={pkg.endsLabel}
       planSku={pkg.planSku}
+      checkoutEnabled={isPackageCheckoutEnabled()}
+      renewSku={pkg.active ? pkg.planSku : null}
       paidHint={sp.paid === "1"}
       orderId={sp.paid === "1" ? (sp.order ?? null) : null}
     />

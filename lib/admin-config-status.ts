@@ -268,6 +268,15 @@ const INTEGRATIONS: IntegrationDef[] = [
     link: { href: "/admin/packages", label: "Pakiety i ceny" },
   },
   {
+    id: "premium-checkout",
+    group: "users",
+    label: "Sprzedaż pakietu (flaga)",
+    description: "Włącza zakup pakietu Premium po stronie serwera (DK-13).",
+    level: "recommended",
+    effectWhenMissing: "Zakup pakietu jest wyłączony — strona pakietu pokazuje „wkrótce”.",
+    vars: [{ names: ["PREMIUM_CHECKOUT_ENABLED"] }],
+  },
+  {
     id: "legal",
     group: "users",
     label: "Dane sprzedawcy (regulamin)",

@@ -25,6 +25,7 @@ const FEATURED_SKU = "d30";
 const BENEFITS = [
   "Bez reklam przed treningiem",
   "Bez reklam przy dodawaniu produktu",
+  "Raport postępów do wydruku / PDF (siła, tygodnie, ciało)",
 ] as const;
 
 /** Pakiet roczny (i dłuższe) dostaje szeroki blok; krótsze idą w jednym rzędzie. */
@@ -46,7 +47,9 @@ function BuyButton({
   disabled,
   onClick,
   className,
+  renew,
 }: {
+  renew?: boolean;
   solid: boolean;
   busy: boolean;
   disabled: boolean;
@@ -61,7 +64,7 @@ function BuyButton({
       disabled={disabled}
       onClick={onClick}
     >
-      {busy ? "Przekierowanie…" : "Kup pakiet"}
+      {busy ? "Przekierowanie…" : renew ? "Przedłuż" : "Kup pakiet"}
     </Button>
   );
 }
@@ -74,6 +77,8 @@ export function PackagePageClient({
   planSku,
   paidHint,
   orderId,
+  checkoutEnabled = true,
+  renewSku = null,
 }: {
   plans: PackagePlanCard[];
   packageActive: boolean;
@@ -82,6 +87,9 @@ export function PackagePageClient({
   planSku: string | null;
   paidHint?: boolean;
   orderId?: string | null;
+  checkoutEnabled?: boolean;
+  /** Plan do przedłużenia jednym kliknięciem (Z24) — ten sam, co bieżący. */
+  renewSku?: string | null;
 }) {
   const { notifyError, notifySaved } = useSaveFeedback();
   const [busySku, setBusySku] = useState<string | null>(null);
@@ -189,6 +197,21 @@ export function PackagePageClient({
         </ul>
       ) : null}
 
+      {!checkoutEnabled ? (
+        <p
+          role="status"
+          className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[13px] text-white/70"
+        >
+          Zakup pakietu będzie dostępny wkrótce.
+        </p>
+      ) : null}
+
+      {packageActive ? (
+        <Link href="/progress/report" className="inline-block text-[13px] text-[var(--gym-gold)] underline">
+          Otwórz raport postępów (Premium)
+        </Link>
+      ) : null}
+
       <div className="space-y-2">
         <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
           <input
@@ -240,7 +263,7 @@ export function PackagePageClient({
           }}
         >
           {shortPlans.map((p) => {
-            const featured = p.sku === FEATURED_SKU;
+            const featured = p.sku === (renewSku ?? FEATURED_SKU);
             return (
               <article
                 key={p.sku}
@@ -272,9 +295,10 @@ export function PackagePageClient({
                   {formatPlnFromGrosze(p.priceGrosze)}
                 </p>
                 <BuyButton
+                  renew={packageActive && p.sku === renewSku}
                   solid={featured}
                   busy={busySku === p.sku}
-                  disabled={busySku != null || !consentsOk}
+                  disabled={busySku != null || !consentsOk || !checkoutEnabled}
                   onClick={() => void checkout(p.sku)}
                   className="mt-3"
                 />
@@ -303,9 +327,10 @@ export function PackagePageClient({
               {formatPlnFromGrosze(p.priceGrosze)}
             </p>
             <BuyButton
+              renew={packageActive && p.sku === renewSku}
               solid
               busy={busySku === p.sku}
-              disabled={busySku != null || !consentsOk}
+              disabled={busySku != null || !consentsOk || !checkoutEnabled}
               onClick={() => void checkout(p.sku)}
             />
           </div>

@@ -58,6 +58,12 @@ export const ERROR_CATALOG = {
     log: "Brak uprawnień (403)",
     severity: "warn",
   },
+  PREMIUM_REQUIRED: {
+    status: 402,
+    message: "Ta funkcja jest dostępna w pakiecie Premium. Aktywuj pakiet, aby z niej skorzystać.",
+    log: "Funkcja wymaga aktywnego pakietu Premium (402)",
+    severity: "warn",
+  },
   CSRF_FAILED: {
     status: 403,
     message: UserMessages.securityBlocked,
@@ -226,6 +232,7 @@ export function catalogEntry(code: ErrorCode): ErrorCatalogEntry {
 const STATUS_TO_CODE: Readonly<Record<number, ErrorCode>> = {
   400: "BAD_REQUEST",
   401: "UNAUTHORIZED",
+  402: "PREMIUM_REQUIRED",
   403: "FORBIDDEN",
   404: "NOT_FOUND",
   405: "METHOD_NOT_ALLOWED",

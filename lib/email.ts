@@ -134,3 +134,12 @@ export async function sendOrderConfirmationEmail(params: {
     text: `Dziękujemy za zakup pakietu GymBrat.\n\nPakiet: ${params.planSku} (${params.days} dni)\nKwota: ${price}\n\nPakiet został aktywowany. Historię zamówień i potwierdzenie zakupu znajdziesz w aplikacji: Pakiet → Moje zamówienia.\n\n— GymBrat`,
   });
 }
+
+/** Z24: przypomnienie o końcu pakietu (wysyłane tylko za zgodą `push`). */
+export async function sendPackageExpiryEmail(params: { to: string; daysLeft: number }): Promise<boolean> {
+  return sendOptionalDailyBriefEmail({
+    to: params.to,
+    subject: "GymBrat — Twój pakiet wkrótce się kończy",
+    text: `Twój pakiet GymBrat kończy się za ${params.daysLeft} ${params.daysLeft === 1 ? "dzień" : "dni"}.\n\nPrzedłużenie liczymy od końca bieżącego pakietu, więc nic nie tracisz: Pakiet → Przedłuż.\n\nNie chcesz takich wiadomości? Wyłącz zgodę na przypomnienia w Profilu → Konto.\n\n— GymBrat`,
+  });
+}

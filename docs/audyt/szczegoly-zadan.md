@@ -22,8 +22,8 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z6 | Zapis zgód konsumenckich przy zakupie | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (treść zgód to szkic — do akceptacji prawnika) |
 | Z7 | Anonimizacja zamówień zamiast kaskady | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z8 | Testy płatności | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
-| Z9 | Realna wartość pakietu | kod | P0 | L | TODO |
-| Z10 | Gating Premium po stronie serwera | kod | P0 | M | TODO |
+| Z9 | Realna wartość pakietu | kod | P0 | L | KOD GOTOWY, TESTY NIEURUCHOMIONE (raport Premium + flaga checkoutu; AdMob po stronie właściciela) |
+| Z10 | Gating Premium po stronie serwera | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z11 | Rejestr zgód i zgoda na dane zdrowotne | kod+prawnik | P0 | L | KOD GOTOWY, TESTY NIEURUCHOMIONE; treści zgód wymagają zatwierdzenia prawnika (2026-11-02) |
 | Z12 | Analityka i monitoring tylko po zgodzie | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z13 | Minimalny wiek 16 lat | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
@@ -37,7 +37,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z21 | Faktury / paragony | kod | P1 | L | KOD GOTOWY, TESTY NIEURUCHOMIONE (potwierdzenie zakupu bez VAT wg DK-1; forma do akceptacji księgowego/prawnika) |
 | Z22 | Panel zamówień i zwroty (admin) | kod | P1 | M | TODO |
 | Z23 | Alerty płatności | kod | P1 | S | TODO |
-| Z24 | Przypomnienie o końcu pakietu i odnowienie | kod | P1 | M | TODO |
+| Z24 | Przypomnienie o końcu pakietu i odnowienie | kod | P1 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (e-mail działa po SMTP z Z17 [NA KONIEC]) |
 | Z25 | Publiczna strona `/usun-konto` | kod | P1 | S | TODO |
 | Z26 | Kompletny eksport danych | kod | P1 | S | TODO |
 | Z27 | Pollinations bez danych osobowych | kod | P1 | S | TODO |
@@ -67,7 +67,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z51 | Publikacja Android w Google Play | ops+kod | P1 | L | TODO |
 | Z52 | Soft launch i decyzja go/no-go | ops | P1 | M | TODO |
 | Z53 | KPI i lejek | kod | P1 | M | TODO |
-| Z54 | Kody promocyjne i Badania — definicja albo usunięcie | decyzja+kod | P2 | S | TODO |
+| Z54 | Kody promocyjne i Badania — definicja albo usunięcie | decyzja+kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (część „decyzja”: DK-9; strony ukryte flagą) |
 | Z55 | Zmiana cen bez wdrożenia | kod | P2 | S | TODO |
 | Z56 | Ograniczenie osadzania w iframe | kod | P2 | S | TODO |
 | Z57 | Skan zależności i rotacja sekretów | kod+dok | P2 | S | TODO |

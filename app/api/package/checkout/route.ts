@@ -15,6 +15,7 @@ import {
   hotpayPaymentUrl,
   hotpaySekret,
 } from "@/lib/hotpay";
+import { isPackageCheckoutEnabled } from "@/lib/feature-flags";
 import { MIN_PURCHASE_AGE } from "@/lib/min-age";
 import {
   ORDER_CONSENT_REQUIRED_MESSAGE,
@@ -40,6 +41,13 @@ async function handlePOST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Brak autoryzacji" }, { status: 401 });
+  }
+
+  if (!isPackageCheckoutEnabled()) {
+    return NextResponse.json(
+      { ok: false, error: "Zakup pakietu będzie dostępny wkrótce." },
+      { status: 503 },
+    );
   }
 
   if (!hotpayConfigured()) {

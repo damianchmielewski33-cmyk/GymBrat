@@ -4,6 +4,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { getDb, type Database } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { subscriptionOrders, users } from "@/db/schema";
+import { AppError } from "@/lib/errors/app-error";
 
 export type UserPackageStatus = {
   active: boolean;
@@ -139,4 +140,23 @@ export async function setUserPackageEndsAt(args: {
     patch.packagePlanSku = args.planSku;
   }
   await db.update(users).set(patch).where(eq(users.id, args.userId));
+}
+
+/**
+ * Czy konto ma aktywny pakiet Premium. Bez karencji (DK-12): dostęp kończy się dokładnie
+ * z `packageEndsAt`; `computePackageStatus` traktuje `endsAt <= teraz` jako nieaktywny.
+ */
+export async function isPremiumActive(userId: string): Promise<boolean> {
+  return (await getUserPackageStatus(userId)).active;
+}
+
+/**
+ * Bramka funkcji Premium po stronie serwera (Z10). Wołaj w akcjach, trasach i stronach
+ * Premium PRZED pobraniem danych; UI nigdy nie jest jedyną ochroną.
+ * Rzuca `AppError("PREMIUM_REQUIRED")` → 402 w trasach (`withApiErrors`).
+ */
+export async function requirePremium(userId: string): Promise<UserPackageStatus> {
+  const status = await getUserPackageStatus(userId);
+  if (!status.active) throw new AppError("PREMIUM_REQUIRED");
+  return status;
 }
