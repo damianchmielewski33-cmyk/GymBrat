@@ -15,6 +15,16 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     ],
   },
   {
+    title: "Zapowiedź — Płatności: automatyczna aktywacja pakietu i weryfikacja kwoty",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Po zapłaceniu pakiet aktywuje się automatycznie: powiadomienie z HotPay nie jest już odrzucane jako żądanie bez logowania.",
+      "Pakiet jest przyznawany tylko za kwotę zgodną z zamówieniem i dokładnie raz — powtórzone lub równoległe powiadomienia go nie przedłużają, a niezgodna kwota trafia do ręcznej obsługi.",
+      "Dodane testy płatności i test pilnujący, które trasy API działają bez sesji.",
+    ],
+  },
+  {
     title: "Zapowiedź — Team: hub „Dziś w zespole”, pierścienie i katalog odznak",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
