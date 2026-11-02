@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Pomoc i reklamacje w aplikacji",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Nowa strona /pomoc: dane kontaktowe, najczęstsze pytania i formularz zgłoszenia lub reklamacji (opcjonalnie z wyborem zamówienia); odpowiadamy w ciągu 14 dni, a potwierdzenie przychodzi e-mailem, gdy poczta jest skonfigurowana.",
+      "Link w menu, w Profilu → Konto i w regulaminie; zgłoszenia trafiają do nowego działu „Wsparcie” w panelu admina z terminem odpowiedzi i oznaczeniem przeterminowanych.",
+    ],
+  },
+  {
     title: "Zapowiedź — Dokumenty prawne (wersja robocza) i automatyczna retencja danych",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

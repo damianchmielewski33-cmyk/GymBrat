@@ -3,6 +3,7 @@ import {
   Bug,
   Dumbbell,
   ImageIcon,
+  LifeBuoy,
   Package,
   Settings2,
   UtensilsCrossed,
@@ -52,6 +53,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/settings", label: "Konfiguracja", shortLabel: "Konfig.", icon: Settings2, badge: "config" },
       { href: "/admin/bugs", label: "Błędy", shortLabel: "Błędy", icon: Bug, badge: "bugs" },
+      { href: "/admin/support", label: "Wsparcie", shortLabel: "Wsparcie", icon: LifeBuoy },
     ],
   },
 ];

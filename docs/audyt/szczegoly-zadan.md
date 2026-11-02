@@ -63,7 +63,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z47 | Staging z testowymi kluczami HotPay | konfig | P1 | M | TODO |
 | Z48 | Test przywracania backupu | ops | P1 | S | TODO |
 | Z49 | Monitoring, alerty, status | ops | P1 | M | TODO |
-| Z50 | Wsparcie klienta i reklamacje | kod | P1 | S | TODO |
+| Z50 | Wsparcie klienta i reklamacje | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z51 | Publikacja Android w Google Play | ops+kod | P1 | L | TODO |
 | Z52 | Soft launch i decyzja go/no-go | ops | P1 | M | TODO |
 | Z53 | KPI i lejek | kod | P1 | M | TODO |

@@ -172,3 +172,18 @@ export async function sendInactivityWarningEmail(params: {
     text: `Od dłuższego czasu nie korzystasz z GymBrat. ${what} za ${params.daysToDelete} dni.\n\nAby tego uniknąć, wystarczy się zalogować. Przed usunięciem możesz też pobrać swoje dane w Profilu → Konto.\n\n— GymBrat`,
   });
 }
+
+/** Z50: potwierdzenie przyjęcia zgłoszenia do wsparcia / reklamacji (best-effort). */
+export async function sendSupportReceivedEmail(params: {
+  to: string;
+  requestId: string;
+  subject: string;
+  dueAt: Date;
+}): Promise<boolean> {
+  const due = params.dueAt.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Warsaw" });
+  return sendOptionalDailyBriefEmail({
+    to: params.to,
+    subject: `GymBrat — przyjęliśmy zgłoszenie (${params.requestId.slice(0, 8)})`,
+    text: `Dziękujemy, otrzymaliśmy Twoje zgłoszenie: "${params.subject}".\n\nNumer zgłoszenia: ${params.requestId}\nOdpowiemy najpóźniej do: ${due} (14 dni).\n\n— GymBrat`,
+  });
+}

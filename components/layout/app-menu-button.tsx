@@ -20,6 +20,7 @@ import {
   History,
   LineChart,
   ListChecks,
+  LifeBuoy,
   LogOut,
   Menu,
   Play,
@@ -421,6 +422,12 @@ export function AppMenuButton({
           title: "Zgłoś błąd",
           subtitle: "opis i zdjęcia z ekranu",
           icon: Bug,
+        },
+        {
+          href: "/pomoc",
+          title: "Pomoc i reklamacje",
+          subtitle: "kontakt, FAQ, formularz",
+          icon: LifeBuoy,
         },
         ...(showAdminLink
           ? [

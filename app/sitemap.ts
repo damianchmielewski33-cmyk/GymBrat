@@ -33,6 +33,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
+      url: `${origin}/pomoc`,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
       url: `${origin}/usun-konto`,
       changeFrequency: "yearly",
       priority: 0.4,

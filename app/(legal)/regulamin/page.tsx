@@ -273,7 +273,8 @@ export default function RegulaminPage() {
         <p>
           Reklamacje dotyczące Pakietu, płatności lub działania Serwisu należy
           składać na adres {s.email}
-          {s.phone ? ` lub telefonicznie: ${s.phone}` : ""}.
+          {s.phone ? ` lub telefonicznie: ${s.phone}` : ""}, a także formularzem
+          na stronie /pomoc (dla zalogowanych).
         </p>
         <p>
           Reklamacja powinna zawierać: dane Kontaktowe, opis problemu oraz —

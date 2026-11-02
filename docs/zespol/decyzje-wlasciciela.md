@@ -73,3 +73,9 @@ Zapisane na podstawie odpowiedzi właściciela (backlog US1). Kod zależny od de
 | DK-16 | Z14 Termin usunięcia | Natychmiast i nieodwracalnie (bez karencji). Zamówienia odpinane od konta, dokumentacja sprzedaży zostaje (Z7). |
 | DK-17 | Z14 E-mail po usunięciu | Wysyłany best-effort na adres sprzed usunięcia (po SMTP z Z17); adresu nie zapisujemy. |
 | DK-18 | Z28 Retencja | Nieaktywne konta (24 mies., ostrzeżenie e-mail 30 dni wcześniej) i zdjęcia sylwetki (12 mies.) usuwa cron **domyślnie wyłączony** (flaga `RETENTION_INACTIVE_ACCOUNTS_ENABLED=1`, po zatwierdzeniu okresów przez prawnika i SMTP). Zgłoszenia błędów: zrzuty 90 dni i treść 12 mies. od rozwiązania - od razu. |
+
+## US8 — decyzje (2026-11-02)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-19 | Z50 Wsparcie i reklamacje | Zgłoszenia zapisywane w bazie (`support_requests`) i obsługiwane w panelu admina (`/admin/support`); termin odpowiedzi 14 dni (regulamin §8). Punkt wejścia: publiczna strona `/pomoc` (kontakt, FAQ, formularz dla zalogowanych) z linkami w menu, Profilu → Konto i regulaminie. E-mail potwierdzający best-effort (wymaga SMTP z Z17). Treść FAQ i §8 to szkic do zatwierdzenia przez prawnika. |
+

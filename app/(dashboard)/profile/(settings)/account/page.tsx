@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ConsentSettingsCard } from "@/components/consent/consent-settings-card";
 import { SensitiveConsentsCard } from "@/components/consent/sensitive-consents-card";
@@ -93,6 +94,14 @@ export default async function ProfileAccountPage({
           description="Eksport obejmuje dane konta, treningi, dietę i raporty dostępne w aplikacji."
         >
           <DataExportActions />
+        </ProfileBlock>
+        <ProfileBlock
+          title="Pomoc i reklamacje"
+          description="Pytania, problemy z płatnością lub reklamacja — odpowiadamy w ciągu 14 dni."
+        >
+          <Link href="/pomoc" className="text-sm text-[var(--gym-gold)] underline-offset-2 hover:underline">
+            Przejdź do formularza zgłoszenia
+          </Link>
         </ProfileBlock>
         <ProfileBlock
           tone="danger"

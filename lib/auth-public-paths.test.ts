@@ -15,6 +15,7 @@ describe("auth-public-paths", () => {
     expect(isAnonymousPublicPath("/polityka-prywatnosci")).toBe(true);
     expect(isAnonymousPublicPath("/login/zabezpiecz-konto")).toBe(true);
     expect(isAnonymousPublicPath("/usun-konto")).toBe(true);
+    expect(isAnonymousPublicPath("/pomoc")).toBe(true);
     expect(isAnonymousPublicPath("/reports")).toBe(false);
     expect(isAnonymousPublicPath("/profile")).toBe(false);
   });

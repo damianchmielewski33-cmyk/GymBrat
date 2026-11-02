@@ -25,7 +25,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US5 | Premium: realna wartość pakietu | P0 | XL | Z9, Z10, Z24, Z54 | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | US6 | Prawa użytkownika (usunięcie, eksport, dane AI) | P0 | L | Z14, Z25, Z26, Z27 | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | US7 | Dokumenty prawne i retencja | P0 | L | Z15, Z28 | KOD GOTOWY, TESTY NIEURUCHOMIONE (zatwierdzenie prawnika na koniec) |
-| US8 | Operacje i uruchomienie | P0 | L | Z17, Z47, Z48, Z49, Z50 | TODO |
+| US8 | Operacje i uruchomienie | P0 | L | Z17, Z47, Z48, Z49, Z50 | W TOKU (Z50 kod gotowy; Z17, Z47, Z48, Z49 `[NA KONIEC]`) |
 | US9 | Admin: zamówienia, alerty, finanse | P1 | L | Z22, Z23, Z55, Z75 | TODO |
 | US10 | Bezpieczeństwo aplikacji | P1 | L | Z29, Z30, Z56, Z57 | TODO |
 | US11 | Bezpieczeństwo admina, Java i repo | P1 | L | Z31, Z32, Z33, Z34, Z73 | TODO |
@@ -103,7 +103,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Projekty w `docs/prawo/` i teksty w aplikacji są wersjonowane i gotowe do przeglądu prawnika; crony czyszczące działają zgodnie z zatwierdzonymi okresami.
 
 ## US8 — Operacje i uruchomienie
-**P0 · L · Zależności** US2 (staging do testów płatności) · **Postęp** 0/5
+**P0 · L · Zależności** US2 (staging do testów płatności) · **Postęp** 1/5 (Z50 kod gotowy 2026-11-02, testy/tsc/lint NIEURUCHOMIONE; Z17, Z47, Z48, Z49 zostają dla właściciela) · **Decyzje** DK-19
 **Cel** Środowisko produkcyjne gotowe do obsługi klientów: e-mail, staging, backup, monitoring, wsparcie.
 **Podzadania** Z17 SMTP produkcyjny `[NA KONIEC]` · Z47 staging z testowymi kluczami HotPay `[NA KONIEC]` · Z48 test przywracania backupu `[NA KONIEC]` · Z49 monitoring, alerty, status `[NA KONIEC]` (w repo tylko ewentualne zdarzenia/tagi do Sentry) · Z50 wsparcie klienta i reklamacje (kod, robić od razu).
 **Gotowe, gdy** Rejestracja kodem i reset hasła działają na produkcji; płatność testowa przechodzi na stagingu; backup przywrócony na próbę (RTO/RPO zapisane); alerty skonfigurowane; kontakt i FAQ dostępne.

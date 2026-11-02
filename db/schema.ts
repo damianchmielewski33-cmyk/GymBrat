@@ -833,6 +833,40 @@ export const bugReports = sqliteTable(
   ],
 );
 
+/** Zgłoszenia do wsparcia i reklamacje (Z50); termin odpowiedzi 14 dni zgodnie z regulaminem §8. */
+export const supportRequests = sqliteTable(
+  "support_requests",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** `complaint` | `question` | `order` | `other` */
+    kind: text("kind").notNull(),
+    subject: text("subject").notNull(),
+    message: text("message").notNull(),
+    /** Opcjonalnie: zamówienie, którego dotyczy zgłoszenie (zawsze własne). */
+    orderId: text("order_id"),
+    /** Adres do odpowiedzi (domyślnie e-mail konta). */
+    contactEmail: text("contact_email").notNull(),
+    /** `new` | `in_progress` | `resolved` */
+    status: text("status").notNull().default("new"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    /** Termin odpowiedzi (createdAt + 14 dni). */
+    dueAt: integer("due_at", { mode: "timestamp_ms" }).notNull(),
+    resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
+    adminNote: text("admin_note"),
+  },
+  (t) => [
+    index("support_requests_status_created").on(t.status, t.createdAt),
+    index("support_requests_user").on(t.userId, t.createdAt),
+  ],
+);
+
 export const bugReportPhotos = sqliteTable(
   "bug_report_photos",
   {
