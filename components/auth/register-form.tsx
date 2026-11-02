@@ -24,7 +24,9 @@ import {
   type RegisterErrorCode,
   type RegisterState,
 } from "@/actions/auth";
+import { setSensitiveConsentAction } from "@/actions/consents";
 import { updateBodyParams } from "@/actions/profile";
+import { SENSITIVE_CONSENT_COPY } from "@/lib/consents-client";
 import {
   OFFLINE_REGISTER_MESSAGE,
   registerWelcomeCopy,
@@ -225,6 +227,8 @@ export function RegisterForm({
       activityLevel: "medium",
       weeklySessionsTarget: 4,
       role: "zawodnik",
+      healthConsent: false,
+      photosConsent: false,
     },
     mode: "onSubmit",
   });
@@ -388,6 +392,9 @@ export function RegisterForm({
       setRootError(result.error);
       return;
     }
+    // Z11: zgody z ekranu rejestracji także w ścieżce po Google (osobne wpisy w rejestrze).
+    if (values.healthConsent) await setSensitiveConsentAction("health", true, "registration");
+    if (values.photosConsent) await setSensitiveConsentAction("photos", true, "registration");
     try {
       await updateSession();
     } catch {
@@ -989,6 +996,41 @@ export function RegisterForm({
                     {errors.weeklySessionsTarget.message}
                   </p>
                 ) : null}
+
+                <fieldset className="space-y-2.5 rounded-xl border border-white/[0.08] bg-black/30 px-3 py-3">
+                  <legend className="px-1 text-[11px] font-semibold uppercase tracking-wider text-white/40">
+                    Zgody (opcjonalne)
+                  </legend>
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      {...register("healthConsent")}
+                      className="mt-1 h-4 w-4 accent-[var(--gym-gold)]"
+                    />
+                    <span className="text-[12px] leading-snug text-white/60">
+                      <span className="block font-medium text-white/85">
+                        {SENSITIVE_CONSENT_COPY.health.title}
+                      </span>
+                      {SENSITIVE_CONSENT_COPY.health.body}
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      {...register("photosConsent")}
+                      className="mt-1 h-4 w-4 accent-[var(--gym-gold)]"
+                    />
+                    <span className="text-[12px] leading-snug text-white/60">
+                      <span className="block font-medium text-white/85">
+                        {SENSITIVE_CONSENT_COPY.photos.title}
+                      </span>
+                      {SENSITIVE_CONSENT_COPY.photos.body}
+                    </span>
+                  </label>
+                  <p className="text-[11px] text-white/35">
+                    Możesz pominąć — zgodę wyrazisz później przy pierwszym zapisie albo w Profilu.
+                  </p>
+                </fieldset>
               </div>
             ) : null}
           </motion.div>

@@ -20,7 +20,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 |---|---|---|---|---|---|
 | US1 | Decyzje właściciela | P0 | M | Z1, Z2, Z3, Z18, Z19, Z82 | TODO |
 | US2 | Naprawa płatności HotPay | P0 | L | Z4, Z5, Z8, Z16 | TODO |
-| US3 | Zgody i prywatność użytkownika | P0 | XL | Z11, Z12, Z13, Z81 | W TOKU: kod w repo, testy nieuruchomione, Z11 niepełne (2026-11-02) |
+| US3 | Zgody i prywatność użytkownika | P0 | XL | Z11, Z12, Z13, Z81 | W TOKU: kod gotowy, testy nieuruchomione, czeka na treści od prawnika (2026-11-02) |
 | US4 | Zamówienia: zgody, anonimizacja, historia, faktury | P0 | XL | Z6, Z7, Z20, Z21 | TODO |
 | US5 | Premium: realna wartość pakietu | P0 | XL | Z9, Z10, Z24, Z54 | TODO |
 | US6 | Prawa użytkownika (usunięcie, eksport, dane AI) | P0 | L | Z14, Z25, Z26, Z27 | TODO |

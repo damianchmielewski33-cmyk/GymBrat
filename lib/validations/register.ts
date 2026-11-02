@@ -48,6 +48,9 @@ export const registerSchema = z.object({
     .max(7, "Maksimum 7 dni"),
   /** Na razie rejestracja tylko jako zawodnik (trener — w przyszłości). */
   role: z.literal("zawodnik"),
+  /** Opcjonalne zgody z ekranu rejestracji (Z11); brak = brak zgody, można dać później. */
+  healthConsent: z.boolean().optional(),
+  photosConsent: z.boolean().optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

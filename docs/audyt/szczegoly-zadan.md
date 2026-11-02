@@ -24,7 +24,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z8 | Testy płatności | kod | P0 | M | TODO |
 | Z9 | Realna wartość pakietu | kod | P0 | L | TODO |
 | Z10 | Gating Premium po stronie serwera | kod | P0 | M | TODO |
-| Z11 | Rejestr zgód i zgoda na dane zdrowotne | kod+prawnik | P0 | L | CZĘŚCIOWO: kod+testy napisane, nieuruchomione; brak ekranu zgód przy rejestracji i treści od prawnika (2026-11-02) |
+| Z11 | Rejestr zgód i zgoda na dane zdrowotne | kod+prawnik | P0 | L | KOD GOTOWY, TESTY NIEURUCHOMIONE; treści zgód wymagają zatwierdzenia prawnika (2026-11-02) |
 | Z12 | Analityka i monitoring tylko po zgodzie | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z13 | Minimalny wiek 16 lat | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z14 | Usuwanie konta z ponownym uwierzytelnieniem | kod | P0 | M | TODO |

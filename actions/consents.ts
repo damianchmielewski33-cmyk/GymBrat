@@ -7,6 +7,7 @@ import { getDb } from "@/db";
 import { userConsents } from "@/db/schema";
 import {
   CURRENT_CONSENT_TEXT_VERSION,
+  getCurrentConsents,
   isConsentSource,
   isConsentType,
   type ConsentSource,
@@ -70,6 +71,11 @@ export async function saveConsentsBulkAction(
     analytics: boolean;
     marketing: boolean;
     source?: ConsentSource;
+    /**
+     * Tylko typy bez żadnej decyzji w bazie (stary wybór z przeglądarki nie może nadpisać
+     * cofnięcia zgody zrobionego na innym urządzeniu).
+     */
+    onlyIfUndecided?: boolean;
   },
 ): Promise<ConsentSaveResult> {
   await guardAction("consents.saveConsentsBulkAction");
@@ -81,24 +87,29 @@ export async function saveConsentsBulkAction(
   const db = getDb();
   const decidedAt = new Date();
   const source = input.source ?? "profile";
-  await db.insert(userConsents).values([
-    {
-      userId: session.user.id,
-      type: "analytics",
-      granted: input.analytics,
-      textVersion: CURRENT_CONSENT_TEXT_VERSION,
-      source,
-      decidedAt,
-    },
-    {
-      userId: session.user.id,
-      type: "marketing",
-      granted: input.marketing,
-      textVersion: CURRENT_CONSENT_TEXT_VERSION,
-      source,
-      decidedAt,
-    },
-  ]);
+  // Bez zmiany (ta sama decyzja i wersja tekstu) nie dopisujemy wiersza — synchronizacja z banera
+  // może być wołana wielokrotnie.
+  const current = await getCurrentConsents(session.user.id);
+  const wanted = [
+    { type: "analytics" as const, granted: input.analytics },
+    { type: "marketing" as const, granted: input.marketing },
+  ].filter((w) => {
+    const c = current[w.type];
+    if (input.onlyIfUndecided) return !c;
+    return !(c && c.granted === w.granted && c.textVersion === CURRENT_CONSENT_TEXT_VERSION);
+  });
+  if (wanted.length > 0) {
+    await db.insert(userConsents).values(
+      wanted.map((w) => ({
+        userId: session.user.id,
+        type: w.type,
+        granted: w.granted,
+        textVersion: CURRENT_CONSENT_TEXT_VERSION,
+        source,
+        decidedAt,
+      })),
+    );
+  }
 
   revalidatePath("/profile");
   revalidatePath("/profile/account");
