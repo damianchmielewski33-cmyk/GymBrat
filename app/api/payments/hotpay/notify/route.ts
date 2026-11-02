@@ -7,12 +7,14 @@ import { subscriptionOrders } from "@/db/schema";
 import { AppError } from "@/lib/errors/app-error";
 import { logServerError, newRequestId } from "@/lib/errors/server-log";
 import { verifyHotpayNotificationHash } from "@/lib/hotpay";
-import { extendUserPackage } from "@/lib/user-package";
+import { hotpayKwotaToGrosze } from "@/lib/hotpay-amount";
+import { extendUserPackageIfOrderPending } from "@/lib/user-package";
 
 export const runtime = "nodejs";
 
 /**
- * Webhook HotPay (form-data POST).
+ * Webhook HotPay (form-data POST). Wywołuje go serwer płatności, bez sesji — wyjątek w `proxy.ts`
+ * (`lib/proxy-public-api.ts`); autoryzacja = podpis HASH + zgodność kwoty z zamówieniem.
  * W panelu HotPay ustaw: https://TWOJA-DOMENA/api/payments/hotpay/notify
  */
 async function handlePOST(req: Request) {
@@ -73,30 +75,59 @@ async function handlePOST(req: Request) {
   }
 
   if (status === "SUCCESS") {
-    // Pakiet tylko przy faktycznym przejściu `pending` → `paid`: powtórzone notify (już `paid`),
-    // zamówienie anulowane (np. przy przejęciu konta, ADR 0001 D4) i `failed` nie przedłużają pakietu.
-    const changed = await db
-      .update(subscriptionOrders)
-      .set({
-        status: "paid",
-        hotpayPaymentId: idPlatnosci,
-        paidAt: new Date(),
-      })
-      .where(
-        and(
-          eq(subscriptionOrders.id, order.id),
-          eq(subscriptionOrders.status, "pending"),
-        ),
-      )
-      .returning({ id: subscriptionOrders.id });
-    if (changed.length > 0) {
-      await extendUserPackage({
-        userId: order.userId,
-        days: order.days,
-        planSku: order.planSku,
-      });
-    } else if (order.status !== "paid" && order.status !== "pending") {
-      // Płatność za zamówienie `cancelled`/`failed`: do ręcznej obsługi (zwrot), tylko identyfikatory.
+    if (order.status === "pending") {
+      // Pakiet tylko za zgodną kwotę: `KWOTA` z powiadomienia musi równać się cenie zamówienia.
+      // Podpis HASH nie chroni kwoty przed płatnością za grosze, jeśli ktoś zmieni ją w formularzu płatności.
+      const paidGrosze = hotpayKwotaToGrosze(kwota);
+      if (paidGrosze !== order.amountGrosze) {
+        const flagged = await db
+          .update(subscriptionOrders)
+          .set({ status: "amount_mismatch", hotpayPaymentId: idPlatnosci })
+          .where(
+            and(
+              eq(subscriptionOrders.id, order.id),
+              eq(subscriptionOrders.status, "pending"),
+            ),
+          )
+          .returning({ id: subscriptionOrders.id });
+        if (flagged.length > 0) {
+          // Do ręcznej obsługi (zwrot/wyjaśnienie): tylko identyfikatory i kwoty, bez danych osobowych.
+          logServerError(
+            new AppError("INTERNAL", {
+              message: `hotpay.notify: amount_mismatch order ${order.id} payment ${idPlatnosci} expected ${order.amountGrosze} got ${kwota}`,
+            }),
+            { requestId: newRequestId(), origin: "hotpay.notify" },
+          );
+        }
+        return new NextResponse("OK", { status: 200 });
+      }
+
+      // Jedna transakcja (libSQL batch): przedłużenie pakietu jest warunkowane statusem `pending`,
+      // więc powtórka i równoległe powiadomienie nie przedłużą go drugi raz, a awaria w połowie
+      // nie zostawi zamówienia `paid` bez pakietu ani pakietu bez `paid`.
+      await db.batch([
+        extendUserPackageIfOrderPending(db, {
+          userId: order.userId,
+          orderId: order.id,
+          days: order.days,
+          planSku: order.planSku,
+        }),
+        db
+          .update(subscriptionOrders)
+          .set({
+            status: "paid",
+            hotpayPaymentId: idPlatnosci,
+            paidAt: new Date(),
+          })
+          .where(
+            and(
+              eq(subscriptionOrders.id, order.id),
+              eq(subscriptionOrders.status, "pending"),
+            ),
+          ),
+      ]);
+    } else if (order.status !== "paid") {
+      // Płatność za zamówienie `cancelled`/`failed`/`amount_mismatch`: do ręcznej obsługi (zwrot), tylko identyfikatory.
       logServerError(
         new AppError("INTERNAL", {
           message: `hotpay.notify: paid_${order.status}_order ${order.id} ${idPlatnosci}`,

@@ -105,7 +105,7 @@ export const subscriptionOrders = sqliteTable(
     planSku: text("plan_sku").notNull(),
     days: integer("days").notNull(),
     amountGrosze: integer("amount_grosze").notNull(),
-    /** pending | paid | failed | cancelled | manual */
+    /** pending | paid | failed | cancelled | manual | amount_mismatch (kwota z HotPay ≠ cena zamówienia, bez pakietu) */
     status: text("status").notNull().default("pending"),
     hotpayPaymentId: text("hotpay_payment_id"),
     source: text("source").notNull().default("hotpay"),

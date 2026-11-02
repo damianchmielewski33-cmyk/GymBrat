@@ -19,7 +19,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US | Tytuł | Prio | Rozm. | Podzadania (Z) | Status |
 |---|---|---|---|---|---|
 | US1 | Decyzje właściciela | P0 | M | Z1, Z2, Z3, Z18, Z19, Z82 | ZROBIONE (2026-11-02) |
-| US2 | Naprawa płatności HotPay | P0 | L | Z4, Z5, Z8, Z16 | TODO |
+| US2 | Naprawa płatności HotPay | P0 | L | Z4, Z5, Z8, Z16 | W TOKU: kod gotowy, wymaga uruchomienia testów (2026-11-02) |
 | US3 | Zgody i prywatność użytkownika | P0 | XL | Z11, Z12, Z13, Z81 | TODO |
 | US4 | Zamówienia: zgody, anonimizacja, historia, faktury | P0 | XL | Z6, Z7, Z20, Z21 | TODO |
 | US5 | Premium: realna wartość pakietu | P0 | XL | Z9, Z10, Z24, Z54 | TODO |
@@ -66,7 +66,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Wszystkie decyzje są zapisane w `docs/zespol/decyzje-wlasciciela.md`; US2–US5, US11, US19 mają jednoznaczne wejście. Zadaj pytania paczką (AskUserQuestion, max 4 naraz).
 
 ## US2 — Naprawa płatności HotPay
-**P0 · L · Zależności** brak · **Postęp** 0/4
+**P0 · L · Zależności** brak · **Postęp** 4/4 kodu napisane (2026-11-02), testy/tsc/lint NIEURUCHOMIONE (brak dostępu do npm w sesji)
 **Cel** Płatność kończy się aktywacją pakietu dokładnie raz i za właściwą kwotę; powstaje siatka testów.
 **Podzadania** Z4 webhook omija sesję (potwierdzony błąd 401) · Z5 weryfikacja kwoty i atomowe księgowanie · Z16 test „trasy API vs proxy" · Z8 testy płatności.
 **Kolejność** Z4 → Z16 (razem) → Z5 → Z8.

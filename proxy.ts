@@ -8,6 +8,7 @@ import { isAuthSessionCookieName } from "@/lib/auth-session-cookie";
 import { errorResponse } from "@/lib/errors/api";
 import { AppError } from "@/lib/errors/app-error";
 import { logServerError, requestIdFrom } from "@/lib/errors/server-log";
+import { isProxyPublicApiPath } from "@/lib/proxy-public-api";
 import { logAuthFailure } from "@/lib/security-events";
 import {
   isAnonymousPublicPath,
@@ -87,33 +88,11 @@ function revokedSessionResponse(req: NextRequest, pathname: string): NextRespons
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  /** Anonimowe zliczanie wejść — bez JWT (por. tracker klienta). */
-  if (pathname.startsWith("/api/analytics/")) {
-    return NextResponse.next();
-  }
-
   /**
    * Aktualizacje APK: natywna aplikacja Android nie ma sesji NextAuth.
    * Bez tego GET /api/android/version i /gymbrat.apk lądują na HTML logowania.
    */
-  if (
-    pathname.startsWith("/api/android/") ||
-    pathname === "/android-version.json" ||
-    pathname.endsWith(".apk")
-  ) {
-    return NextResponse.next();
-  }
-
-  /**
-   * Crony (Vercel Cron, GitHub Actions, systemd) nie mają sesji NextAuth — każda trasa
-   * w /api/cron/ sama sprawdza `CRON_SECRET`. Bez tego wywołania kończyły się 401.
-   */
-  if (pathname.startsWith("/api/cron/")) {
-    return NextResponse.next();
-  }
-
-  /** Branding / PWA ikony — publiczne (login, favicon, WebView bez sesji). */
-  if (pathname.startsWith("/api/branding")) {
+  if (pathname === "/android-version.json" || pathname.endsWith(".apk")) {
     return NextResponse.next();
   }
 
@@ -122,11 +101,6 @@ export async function proxy(req: NextRequest) {
    * nie 307 na /login.
    */
   if (pathname.startsWith("/.well-known/")) {
-    return NextResponse.next();
-  }
-
-  /** Publiczny provenance wdrożenia — wyłącznie z repozytorium GymBrat. */
-  if (pathname === "/api/version") {
     return NextResponse.next();
   }
 
@@ -140,23 +114,11 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  /** Trwałe grafiki katalogu (wygenerowane przy imporcie) — publiczne dla <img>. */
-  if (pathname.startsWith("/api/catalog-meal-image/")) {
-    return NextResponse.next();
-  }
-
-  /** Token CSRF (double-submit) — publiczny GET, bez sesji. */
-  if (pathname === "/api/csrf") {
-    return NextResponse.next();
-  }
-
-  /** CSP raporty (Report-Only) — publiczny POST z przeglądarki. */
-  if (pathname === "/api/security/csp-report") {
-    return NextResponse.next();
-  }
-
-  /** Błędy z przeglądarki → logi serwera; błąd może wystąpić też na /login (bez sesji). */
-  if (pathname === "/api/client-errors") {
+  /**
+   * Trasy API bez sesji NextAuth (crony, webhook HotPay, CSRF itd.) — jedna lista w
+   * `lib/proxy-public-api.ts`, pilnowana testem. Każda sama się uwierzytelnia.
+   */
+  if (isProxyPublicApiPath(pathname)) {
     return NextResponse.next();
   }
 

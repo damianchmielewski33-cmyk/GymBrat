@@ -17,11 +17,11 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z1 | Podmiot sprzedający | decyzja | P0 | S | ZROBIONE (2026-11-02) |
 | Z2 | Model Free/Premium i cennik | decyzja | P0 | S | ZROBIONE (2026-11-02) |
 | Z3 | Decyzja o reklamach (AdMob) | decyzja | P0 | S | ZROBIONE (2026-11-02) |
-| Z4 | Naprawa webhooka HotPay | kod | P0 | S | TODO |
-| Z5 | Weryfikacja kwoty i atomowe księgowanie | kod | P0 | M | TODO |
+| Z4 | Naprawa webhooka HotPay | kod | P0 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
+| Z5 | Weryfikacja kwoty i atomowe księgowanie | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z6 | Zapis zgód konsumenckich przy zakupie | kod | P0 | M | TODO |
 | Z7 | Anonimizacja zamówień zamiast kaskady | kod | P0 | M | TODO |
-| Z8 | Testy płatności | kod | P0 | M | TODO |
+| Z8 | Testy płatności | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z9 | Realna wartość pakietu | kod | P0 | L | TODO |
 | Z10 | Gating Premium po stronie serwera | kod | P0 | M | TODO |
 | Z11 | Rejestr zgód i zgoda na dane zdrowotne | kod+prawnik | P0 | L | TODO |
@@ -29,7 +29,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z13 | Minimalny wiek 16 lat | kod | P0 | M | TODO |
 | Z14 | Usuwanie konta z ponownym uwierzytelnieniem | kod | P0 | M | TODO |
 | Z15 | Dokumenty prawne i podmioty przetwarzające | kod+prawnik | P0 | M | TODO |
-| Z16 | Test „trasy API vs proxy" | kod | P0 | S | TODO |
+| Z16 | Test „trasy API vs proxy" | kod | P0 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z17 | SMTP produkcyjny | decyzja+konfig | P0 | S | TODO |
 | Z18 | Decyzja: Java, iframe AWP, repo prywatne | decyzja | P1 | S | ZROBIONE (2026-11-02) |
 | Z19 | Decyzja: płatności na Androidzie | decyzja | P1 | S | ZROBIONE (2026-11-02) |

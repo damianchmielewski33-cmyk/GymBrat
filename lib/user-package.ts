@@ -1,9 +1,9 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
-import { getDb } from "@/db";
+import { and, eq, sql } from "drizzle-orm";
+import { getDb, type Database } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
-import { users } from "@/db/schema";
+import { subscriptionOrders, users } from "@/db/schema";
 
 export type UserPackageStatus = {
   active: boolean;
@@ -96,6 +96,32 @@ export async function extendUserPackage(args: {
     })
     .where(eq(users.id, args.userId));
   return ends;
+}
+
+/**
+ * Instrukcja przedłużenia pakietu do wykonania w `db.batch` razem ze zmianą statusu zamówienia
+ * (jedna transakcja). Przedłuża od max(teraz, obecny koniec) + days, a robi to tylko wtedy,
+ * gdy zamówienie `orderId` nadal jest `pending` — dzięki temu powtórka ani równoległe
+ * powiadomienie nie przedłużą pakietu drugi raz. Wstawiać PRZED aktualizacją zamówienia.
+ */
+export function extendUserPackageIfOrderPending(
+  db: Database,
+  args: { userId: string; orderId: string; days: number; planSku: string; now?: number },
+) {
+  const now = args.now ?? Date.now();
+  const addMs = Math.max(1, args.days) * 86_400_000;
+  return db
+    .update(users)
+    .set({
+      packageEndsAt: sql`cast(max(${now}, coalesce(${users.packageEndsAt}, 0)) + ${addMs} as integer)`,
+      packagePlanSku: args.planSku,
+    })
+    .where(
+      and(
+        eq(users.id, args.userId),
+        sql`exists (select 1 from ${subscriptionOrders} where ${subscriptionOrders.id} = ${args.orderId} and ${subscriptionOrders.status} = 'pending')`,
+      ),
+    );
 }
 
 export async function setUserPackageEndsAt(args: {
