@@ -109,3 +109,28 @@ export async function sendRegisterVerificationCodeEmail(params: {
     text: `Twój kod weryfikacyjny do rejestracji w GymBrat: ${params.code}\n\nKod jest ważny przez ${params.minutesValid} min.\n\nJeśli to nie Ty, zignoruj tę wiadomość.`,
   });
 }
+
+/**
+ * Potwierdzenie zakupu pakietu (Z20). Wysyłane po opłaceniu zamówienia; wywołujący łapie błąd,
+ * żeby brak SMTP nie psuł księgowania płatności. Bez danych wrażliwych — tylko plan, okres i kwota.
+ */
+export async function sendOrderConfirmationEmail(params: {
+  to: string;
+  planSku: string;
+  days: number;
+  amountGrosze: number;
+}): Promise<void> {
+  if (!isSmtpConfigured()) return;
+  const transport = createSmtpTransport();
+  const from = getEmailFrom();
+  const replyTo = process.env.EMAIL_REPLY_TO?.trim();
+  const price = `${(Math.max(0, Math.round(params.amountGrosze)) / 100).toFixed(2).replace(".", ",")} zł`;
+
+  await transport.sendMail({
+    from,
+    to: params.to,
+    ...(replyTo ? { replyTo } : {}),
+    subject: "GymBrat — potwierdzenie zakupu pakietu",
+    text: `Dziękujemy za zakup pakietu GymBrat.\n\nPakiet: ${params.planSku} (${params.days} dni)\nKwota: ${price}\n\nPakiet został aktywowany. Historię zamówień i potwierdzenie zakupu znajdziesz w aplikacji: Pakiet → Moje zamówienia.\n\n— GymBrat`,
+  });
+}

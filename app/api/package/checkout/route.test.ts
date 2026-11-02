@@ -30,7 +30,9 @@ vi.mock("@/lib/hotpay", () => ({
 
 const { POST } = await import("@/app/api/package/checkout/route");
 
-function checkout(body: unknown = { sku: "m1" }) {
+const CONSENTS = { termsAccepted: true, immediateServiceConsent: true };
+
+function checkout(body: unknown = { sku: "m1", ...CONSENTS }) {
   return POST(
     new Request("http://localhost/api/package/checkout", {
       method: "POST",
@@ -79,7 +81,7 @@ describe("POST /api/package/checkout", () => {
   });
 
   it("cena pochodzi z bazy, nie z żądania", async () => {
-    const res = await checkout({ sku: "m1", priceGrosze: 1, amount: "0.01" });
+    const res = await checkout({ sku: "m1", priceGrosze: 1, amount: "0.01", ...CONSENTS });
     expect(res.status).toBe(200);
     expect((await orders())[0]!.a).toBe(1999);
   });
@@ -120,11 +122,35 @@ describe("POST /api/package/checkout", () => {
 
   it("nieistniejący lub nieaktywny plan: 404 bez zamówienia", async () => {
     getSubscriptionPlanBySku.mockResolvedValue(null);
-    expect((await checkout({ sku: "x" })).status).toBe(404);
+    expect((await checkout({ sku: "x", ...CONSENTS })).status).toBe(404);
     getSubscriptionPlanBySku.mockResolvedValue({
       id: "plan1", sku: "m1", title: "30 dni", days: 30, priceGrosze: 1999, active: 0,
     });
     expect((await checkout()).status).toBe(404);
+    expect(await orders()).toHaveLength(0);
+  });
+
+  it("Z6: zapisuje dowód zgód (czasy, wersja, skrót tekstu)", async () => {
+    expect((await checkout()).status).toBe(200);
+    const rs = await client.execute(
+      `SELECT terms_accepted_at AS t, immediate_service_consent_at AS i, terms_version AS v, consent_text_hash AS h FROM subscription_orders`,
+    );
+    const row = rs.rows[0]!;
+    expect(Number(row.t)).toBeGreaterThan(0);
+    expect(Number(row.i)).toBeGreaterThan(0);
+    expect(row.v).toBe("2026-11-orders-szkic-v1");
+    expect(String(row.h)).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it.each([
+    ["bez żadnej zgody", { sku: "m1" }],
+    ["tylko regulamin", { sku: "m1", termsAccepted: true }],
+    ["tylko natychmiastowe świadczenie", { sku: "m1", immediateServiceConsent: true }],
+    ["zgody false", { sku: "m1", termsAccepted: false, immediateServiceConsent: false }],
+  ])("Z6: %s → 400 i brak zamówienia", async (_name, body) => {
+    const res = await checkout(body);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/zaakceptuj Regulamin/i);
     expect(await orders()).toHaveLength(0);
   });
 });

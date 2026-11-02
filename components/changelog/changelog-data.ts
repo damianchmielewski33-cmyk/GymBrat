@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Zamówienia: zgody przy zakupie, historia i potwierdzenie zakupu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Przed płatnością akceptujesz regulamin i zgodę na natychmiastowe rozpoczęcie usługi — zapisujemy dowód zgody; bez niej zakup nie ruszy.",
+      "Nowy ekran „Moje zamówienia” z historią zakupów, statusem płatności po powrocie z bramki, e-mailem z potwierdzeniem i możliwością wystawienia potwierdzenia zakupu (opcjonalnie z NIP).",
+      "Usunięcie konta nie kasuje dokumentacji sprzedaży — zamówienia zostają odpięte od konta i przechowywane w wymaganym okresie.",
+    ],
+  },
+  {
     title: "Zapowiedź — Prywatność: zgody na dane o ciele i zdjęcia, wiek 16+",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

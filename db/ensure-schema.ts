@@ -444,10 +444,10 @@ CREATE TABLE IF NOT EXISTS "subscription_plans" (
     `CREATE INDEX IF NOT EXISTS "subscription_plans_active_sort" ON "subscription_plans" ("active", "sort_order")`,
   );
 
-  await client.execute(`
-CREATE TABLE IF NOT EXISTS "subscription_orders" (
+  const ORDERS_DDL = (table: string) => `
+CREATE TABLE IF NOT EXISTS "${table}" (
   "id" text PRIMARY KEY NOT NULL,
-  "user_id" text NOT NULL,
+  "user_id" text,
   "plan_id" text,
   "plan_sku" text NOT NULL,
   "days" integer NOT NULL,
@@ -457,15 +457,60 @@ CREATE TABLE IF NOT EXISTS "subscription_orders" (
   "source" text DEFAULT 'hotpay' NOT NULL,
   "created_at" integer NOT NULL,
   "paid_at" integer,
-  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  "terms_accepted_at" integer,
+  "immediate_service_consent_at" integer,
+  "terms_version" text,
+  "consent_text_hash" text,
+  "receipt_number" text,
+  "receipt_issued_at" integer,
+  "buyer_name" text,
+  "buyer_tax_id" text,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE SET NULL,
   FOREIGN KEY ("plan_id") REFERENCES "subscription_plans"("id") ON UPDATE NO ACTION ON DELETE SET NULL
-);
-`);
-  await db.$client.execute(
+)`;
+  await client.execute(ORDERS_DDL("subscription_orders"));
+  // Z7: starsza tabela miała `user_id NOT NULL ... ON DELETE CASCADE` (usunięcie konta kasowało zamówienia).
+  // SQLite nie zmienia tego ALTER-em, więc jednorazowo przebudowujemy tabelę w jednej transakcji.
+  const orderCols = await client.execute(`PRAGMA table_info("subscription_orders")`);
+  const userIdCol = orderCols.rows.find((r) => String(r.name) === "user_id");
+  if (userIdCol && Number(userIdCol.notnull) === 1) {
+    const oldCols =
+      '"id", "user_id", "plan_id", "plan_sku", "days", "amount_grosze", "status", "hotpay_payment_id", "source", "created_at", "paid_at"';
+    await client.batch(
+      [
+        `DROP TABLE IF EXISTS "subscription_orders_new"`,
+        ORDERS_DDL("subscription_orders_new"),
+        `INSERT INTO "subscription_orders_new" (${oldCols}) SELECT ${oldCols} FROM "subscription_orders"`,
+        `DROP TABLE "subscription_orders"`,
+        `ALTER TABLE "subscription_orders_new" RENAME TO "subscription_orders"`,
+      ],
+      "write",
+    );
+  }
+  // Tabela mogła powstać już z nowszej migracji bez części kolumn — dopełnij.
+  for (const col of [
+    `"terms_accepted_at" integer`,
+    `"immediate_service_consent_at" integer`,
+    `"terms_version" text`,
+    `"consent_text_hash" text`,
+    `"receipt_number" text`,
+    `"receipt_issued_at" integer`,
+    `"buyer_name" text`,
+    `"buyer_tax_id" text`,
+  ]) {
+    await tryAddColumn(`ALTER TABLE "subscription_orders" ADD COLUMN ${col}`);
+  }
+  await client.execute(
     `CREATE INDEX IF NOT EXISTS "subscription_orders_user_created" ON "subscription_orders" ("user_id", "created_at")`,
   );
-  await db.$client.execute(
+  await client.execute(
     `CREATE INDEX IF NOT EXISTS "subscription_orders_status" ON "subscription_orders" ("status")`,
+  );
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "subscription_orders_receipt_number" ON "subscription_orders" ("receipt_number")`,
+  );
+  await client.execute(
+    `CREATE TABLE IF NOT EXISTS "receipt_counters" ("year" integer PRIMARY KEY NOT NULL, "last_number" integer DEFAULT 0 NOT NULL)`,
   );
 
   await client.execute(`

@@ -3,7 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
-import { subscriptionOrders } from "@/db/schema";
+import { subscriptionOrders, users } from "@/db/schema";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 import { AppError } from "@/lib/errors/app-error";
 import { logServerError, newRequestId } from "@/lib/errors/server-log";
 import { verifyHotpayNotificationHash } from "@/lib/hotpay";
@@ -17,6 +18,28 @@ export const runtime = "nodejs";
  * (`lib/proxy-public-api.ts`); autoryzacja = podpis HASH + zgodność kwoty z zamówieniem.
  * W panelu HotPay ustaw: https://TWOJA-DOMENA/api/payments/hotpay/notify
  */
+type OrderRow = typeof subscriptionOrders.$inferSelect;
+
+async function sendOrderConfirmation(db: ReturnType<typeof getDb>, order: OrderRow) {
+  if (!order.userId) return;
+  try {
+    const [buyer] = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, order.userId))
+      .limit(1);
+    if (!buyer?.email) return;
+    await sendOrderConfirmationEmail({
+      to: buyer.email,
+      planSku: order.planSku,
+      days: order.days,
+      amountGrosze: order.amountGrosze,
+    });
+  } catch (err) {
+    logServerError(err, { requestId: newRequestId(), origin: "hotpay.notify.email" });
+  }
+}
+
 async function handlePOST(req: Request) {
   await ensureCriticalSchema();
 
@@ -75,7 +98,15 @@ async function handlePOST(req: Request) {
   }
 
   if (status === "SUCCESS") {
-    if (order.status === "pending") {
+    if (order.status === "pending" && !order.userId) {
+      // Konto usunięte przed zaksięgowaniem — nie ma komu przyznać pakietu; do ręcznej obsługi (zwrot).
+      logServerError(
+        new AppError("INTERNAL", {
+          message: `hotpay.notify: paid_order_without_user ${order.id} ${idPlatnosci}`,
+        }),
+        { requestId: newRequestId(), origin: "hotpay.notify" },
+      );
+    } else if (order.status === "pending" && order.userId) {
       // Pakiet tylko za zgodną kwotę: `KWOTA` z powiadomienia musi równać się cenie zamówienia.
       // Podpis HASH nie chroni kwoty przed płatnością za grosze, jeśli ktoś zmieni ją w formularzu płatności.
       const paidGrosze = hotpayKwotaToGrosze(kwota);
@@ -105,7 +136,7 @@ async function handlePOST(req: Request) {
       // Jedna transakcja (libSQL batch): przedłużenie pakietu jest warunkowane statusem `pending`,
       // więc powtórka i równoległe powiadomienie nie przedłużą go drugi raz, a awaria w połowie
       // nie zostawi zamówienia `paid` bez pakietu ani pakietu bez `paid`.
-      await db.batch([
+      const [, paidRows] = await db.batch([
         extendUserPackageIfOrderPending(db, {
           userId: order.userId,
           orderId: order.id,
@@ -124,8 +155,14 @@ async function handlePOST(req: Request) {
               eq(subscriptionOrders.id, order.id),
               eq(subscriptionOrders.status, "pending"),
             ),
-          ),
+          )
+          .returning({ id: subscriptionOrders.id }),
       ]);
+      // Z20: e-mail z potwierdzeniem tylko przy faktycznym przejściu pending → paid; błąd wysyłki
+      // (np. brak SMTP) nie może zepsuć księgowania ani odpowiedzi dla HotPay.
+      if (paidRows.length > 0) {
+        await sendOrderConfirmation(db, order);
+      }
     } else if (order.status !== "paid") {
       // Płatność za zamówienie `cancelled`/`failed`/`amount_mismatch`: do ręcznej obsługi (zwrot), tylko identyfikatory.
       logServerError(

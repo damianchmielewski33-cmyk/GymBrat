@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { OrderStatusBanner } from "@/components/package/order-status-banner";
 import { Button } from "@/components/ui/button";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { PRIVACY_PATH, REGULAMIN_PATH } from "@/lib/legal-seller";
+import { ORDER_CONSENT_REQUIRED_MESSAGE, ORDER_CONSENT_TEXTS } from "@/lib/order-consents";
 import { formatPlnFromGrosze } from "@/lib/subscription-plans-format";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +73,7 @@ export function PackagePageClient({
   endsLabel,
   planSku,
   paidHint,
+  orderId,
 }: {
   plans: PackagePlanCard[];
   packageActive: boolean;
@@ -78,18 +81,19 @@ export function PackagePageClient({
   endsLabel: string | null;
   planSku: string | null;
   paidHint?: boolean;
+  orderId?: string | null;
 }) {
   const { notifyError, notifySaved } = useSaveFeedback();
   const [busySku, setBusySku] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [immediateAccepted, setImmediateAccepted] = useState(false);
+  const consentsOk = termsAccepted && immediateAccepted;
   const shortPlans = plans.filter((p) => !isLongPlan(p));
   const longPlans = plans.filter(isLongPlan);
 
   async function checkout(sku: string) {
-    if (!termsAccepted) {
-      notifyError(
-        "Aby kupić pakiet, zaakceptuj Regulamin i zgodę na rozpoczęcie świadczenia.",
-      );
+    if (!consentsOk) {
+      notifyError(ORDER_CONSENT_REQUIRED_MESSAGE);
       return;
     }
     setBusySku(sku);
@@ -102,7 +106,11 @@ export function PackagePageClient({
           "Content-Type": "application/json",
           ...getXsrfHeaders(),
         },
-        body: JSON.stringify({ sku }),
+        body: JSON.stringify({
+          sku,
+          termsAccepted: true,
+          immediateServiceConsent: true,
+        }),
       });
       const data = (await res.json().catch(() => null)) as {
         ok?: boolean;
@@ -150,12 +158,17 @@ export function PackagePageClient({
               }.`
             : "Bez aktywnego pakietu w aplikacji pojawiają się pełnoekranowe reklamy (AdMob) przed treningiem i dodaniem produktu."}
         </p>
-        {paidHint ? (
+        {paidHint && orderId ? (
+          <OrderStatusBanner orderId={orderId} />
+        ) : paidHint ? (
           <p className="mt-3 rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10 px-3 py-2 text-sm text-[var(--gym-gold)]">
             Dziękujemy — po potwierdzeniu płatności pakiet aktywuje się
             automatycznie (zwykle w ciągu kilku sekund).
           </p>
         ) : null}
+        <Link href="/package/orders" className="mt-3 inline-block text-[13px] text-white/60 underline">
+          Moje zamówienia
+        </Link>
       </header>
 
       {!packageActive ? (
@@ -176,37 +189,48 @@ export function PackagePageClient({
         </ul>
       ) : null}
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
-        <input
-          type="checkbox"
-          checked={termsAccepted}
-          onChange={(e) => setTermsAccepted(e.target.checked)}
-          className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--gym-gold)]"
-        />
-        <span className="text-[13px] leading-relaxed text-white/70">
-          Akceptuję{" "}
-          <Link
-            href={REGULAMIN_PATH}
-            className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Regulamin
-          </Link>{" "}
-          oraz{" "}
-          <Link
-            href={PRIVACY_PATH}
-            className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Politykę prywatności
-          </Link>
-          . Żądam rozpoczęcia świadczenia Pakietu przed upływem 14-dniowego
-          terminu odstąpienia i przyjmuję do wiadomości, że po aktywacji
-          tracę prawo odstąpienia od umowy o treść cyfrową.
-        </span>
-      </label>
+      <div className="space-y-2">
+        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--gym-gold)]"
+          />
+          <span className="text-[13px] leading-relaxed text-white/70">
+            Akceptuję{" "}
+            <Link
+              href={REGULAMIN_PATH}
+              className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Regulamin
+            </Link>{" "}
+            oraz{" "}
+            <Link
+              href={PRIVACY_PATH}
+              className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Politykę prywatności
+            </Link>
+            .
+          </span>
+        </label>
+        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+          <input
+            type="checkbox"
+            checked={immediateAccepted}
+            onChange={(e) => setImmediateAccepted(e.target.checked)}
+            className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--gym-gold)]"
+          />
+          <span className="text-[13px] leading-relaxed text-white/70">
+            {ORDER_CONSENT_TEXTS.immediateService}
+          </span>
+        </label>
+      </div>
 
       {shortPlans.length > 0 ? (
         <div
@@ -250,7 +274,7 @@ export function PackagePageClient({
                 <BuyButton
                   solid={featured}
                   busy={busySku === p.sku}
-                  disabled={busySku != null || !termsAccepted}
+                  disabled={busySku != null || !consentsOk}
                   onClick={() => void checkout(p.sku)}
                   className="mt-3"
                 />
@@ -281,7 +305,7 @@ export function PackagePageClient({
             <BuyButton
               solid
               busy={busySku === p.sku}
-              disabled={busySku != null || !termsAccepted}
+              disabled={busySku != null || !consentsOk}
               onClick={() => void checkout(p.sku)}
             />
           </div>

@@ -21,7 +21,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US1 | Decyzje właściciela | P0 | M | Z1, Z2, Z3, Z18, Z19, Z82 | ZROBIONE (2026-11-02) |
 | US2 | Naprawa płatności HotPay | P0 | L | Z4, Z5, Z8, Z16 | W TOKU: kod gotowy, wymaga uruchomienia testów (2026-11-02) |
 | US3 | Zgody i prywatność użytkownika | P0 | XL | Z11, Z12, Z13, Z81 | W TOKU: kod gotowy, testy nieuruchomione, czeka na treści od prawnika (2026-11-02) |
-| US4 | Zamówienia: zgody, anonimizacja, historia, faktury | P0 | XL | Z6, Z7, Z20, Z21 | TODO |
+| US4 | Zamówienia: zgody, anonimizacja, historia, faktury | P0 | XL | Z6, Z7, Z20, Z21 | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | US5 | Premium: realna wartość pakietu | P0 | XL | Z9, Z10, Z24, Z54 | TODO |
 | US6 | Prawa użytkownika (usunięcie, eksport, dane AI) | P0 | L | Z14, Z25, Z26, Z27 | TODO |
 | US7 | Dokumenty prawne i retencja | P0 | L | Z15, Z28 | TODO |
@@ -79,7 +79,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Nie da się zapisać raportu ciała/zdjęć bez zgody; przed zgodą brak zdarzeń PostHog/Sentry (test sieciowy); rejestracja odrzuca < 16 lat; cofnięcie zgód w Profilu działa.
 
 ## US4 — Zamówienia: zgody, anonimizacja, historia, faktury
-**P0 · XL · Zależności** US2, US1 (Z1 dla faktur), US7 (treść zgody) · **Postęp** 0/4
+**P0 · XL · Zależności** US2, US1 (Z1 dla faktur), US7 (treść zgody) · **Postęp** 4/4 (kod; testy nieuruchomione)
 **Cel** Kompletny, rozliczalny cykl zamówienia po stronie klienta i sprzedawcy.
 **Podzadania** Z6 zapis zgód konsumenckich przy zakupie · Z7 anonimizacja zamówień zamiast kaskady · Z20 historia zamówień i e-mail z potwierdzeniem (wymaga SMTP z US8) · Z21 faktury/paragony.
 **Gotowe, gdy** Checkout bez zgód zwraca 400 i zapisuje dowód zgody; usunięcie konta nie kasuje zamówień; klient widzi historię i dostaje e-mail; dokument sprzedaży jest dostępny.

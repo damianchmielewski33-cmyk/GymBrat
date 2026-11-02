@@ -96,9 +96,11 @@ export const subscriptionOrders = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    /**
+     * Nullable + `ON DELETE SET NULL` (Z7): usunięcie konta anonimizuje zamówienie, ale nie kasuje
+     * dokumentacji sprzedaży (retencja 5 lat). Anonimowe wiersze mają `user_id = NULL`.
+     */
+    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
     planId: text("plan_id").references(() => subscriptionPlans.id, {
       onDelete: "set null",
     }),
@@ -113,17 +115,35 @@ export const subscriptionOrders = sqliteTable(
       .notNull()
       .$defaultFn(() => new Date()),
     paidAt: integer("paid_at", { mode: "timestamp_ms" }),
+    /** Z6: dowód zgód konsumenckich przy zakupie (regulamin + natychmiastowe świadczenie). */
+    termsAcceptedAt: integer("terms_accepted_at", { mode: "timestamp_ms" }),
+    immediateServiceConsentAt: integer("immediate_service_consent_at", {
+      mode: "timestamp_ms",
+    }),
+    /** Wersja regulaminu/zgód, na którą klient się zgodził (np. "2026-11-orders-szkic-v1"). */
+    termsVersion: text("terms_version"),
+    /** SHA-256 dokładnego tekstu zgód wyświetlonego klientowi. */
+    consentTextHash: text("consent_text_hash"),
+    /** Z21: numer dokumentu sprzedaży (GB/RRRR/NNNNNN), nadawany po opłaceniu; unikalny. */
+    receiptNumber: text("receipt_number"),
+    receiptIssuedAt: integer("receipt_issued_at", { mode: "timestamp_ms" }),
+    /** Z21: opcjonalne dane nabywcy na dokumencie (imię i nazwisko/firma, NIP). */
+    buyerName: text("buyer_name"),
+    buyerTaxId: text("buyer_tax_id"),
   },
   (t) => [
     index("subscription_orders_user_created").on(t.userId, t.createdAt),
     index("subscription_orders_status").on(t.status),
+    uniqueIndex("subscription_orders_receipt_number").on(t.receiptNumber),
   ],
 );
 
-/**
- * Powiązania OAuth (Google itd.) z kontem `users`.
- * Logowanie hasłem nadal używa `users.password_hash`; konta Google mają losowy hash.
- */
+/** Z21: licznik numeracji dokumentów sprzedaży per rok (atomowy upsert w `db.batch`). */
+export const receiptCounters = sqliteTable("receipt_counters", {
+  year: integer("year").primaryKey(),
+  lastNumber: integer("last_number").notNull().default(0),
+});
+
 export const oauthAccounts = sqliteTable(
   "oauth_accounts",
   {

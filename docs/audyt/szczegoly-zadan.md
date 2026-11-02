@@ -19,8 +19,8 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z3 | Decyzja o reklamach (AdMob) | decyzja | P0 | S | ZROBIONE (2026-11-02) |
 | Z4 | Naprawa webhooka HotPay | kod | P0 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z5 | Weryfikacja kwoty i atomowe księgowanie | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
-| Z6 | Zapis zgód konsumenckich przy zakupie | kod | P0 | M | TODO |
-| Z7 | Anonimizacja zamówień zamiast kaskady | kod | P0 | M | TODO |
+| Z6 | Zapis zgód konsumenckich przy zakupie | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (treść zgód to szkic — do akceptacji prawnika) |
+| Z7 | Anonimizacja zamówień zamiast kaskady | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z8 | Testy płatności | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z9 | Realna wartość pakietu | kod | P0 | L | TODO |
 | Z10 | Gating Premium po stronie serwera | kod | P0 | M | TODO |
@@ -33,8 +33,8 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z17 | SMTP produkcyjny | decyzja+konfig | P0 | S | TODO |
 | Z18 | Decyzja: Java, iframe AWP, repo prywatne | decyzja | P1 | S | ZROBIONE (2026-11-02) |
 | Z19 | Decyzja: płatności na Androidzie | decyzja | P1 | S | ZROBIONE (2026-11-02) |
-| Z20 | Historia zamówień i e-mail z potwierdzeniem | kod | P1 | M | TODO |
-| Z21 | Faktury / paragony | kod | P1 | L | TODO |
+| Z20 | Historia zamówień i e-mail z potwierdzeniem | kod | P1 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (e-mail działa po SMTP z Z17 [NA KONIEC]) |
+| Z21 | Faktury / paragony | kod | P1 | L | KOD GOTOWY, TESTY NIEURUCHOMIONE (potwierdzenie zakupu bez VAT wg DK-1; forma do akceptacji księgowego/prawnika) |
 | Z22 | Panel zamówień i zwroty (admin) | kod | P1 | M | TODO |
 | Z23 | Alerty płatności | kod | P1 | S | TODO |
 | Z24 | Przypomnienie o końcu pakietu i odnowienie | kod | P1 | M | TODO |

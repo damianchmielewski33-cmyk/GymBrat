@@ -1,4 +1,5 @@
 import { withApiErrors } from "@/lib/errors/api";
+import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -15,6 +16,11 @@ import {
   hotpaySekret,
 } from "@/lib/hotpay";
 import { MIN_PURCHASE_AGE } from "@/lib/min-age";
+import {
+  ORDER_CONSENT_REQUIRED_MESSAGE,
+  ORDER_TERMS_VERSION,
+  orderConsentCanonicalText,
+} from "@/lib/order-consents";
 import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
 import { getSubscriptionPlanBySku } from "@/lib/subscription-plans";
 
@@ -22,6 +28,9 @@ export const runtime = "nodejs";
 
 const bodySchema = z.object({
   sku: z.string().trim().min(1).max(32),
+  /** Z6: obie zgody wymagane po stronie serwera (UI tylko je przekazuje). */
+  termsAccepted: z.boolean().optional(),
+  immediateServiceConsent: z.boolean().optional(),
 });
 
 async function handlePOST(req: Request) {
@@ -66,6 +75,13 @@ async function handlePOST(req: Request) {
     return NextResponse.json({ ok: false, error: "Wybierz pakiet." }, { status: 400 });
   }
 
+  if (parsed.data.termsAccepted !== true || parsed.data.immediateServiceConsent !== true) {
+    return NextResponse.json(
+      { ok: false, error: ORDER_CONSENT_REQUIRED_MESSAGE },
+      { status: 400 },
+    );
+  }
+
   const plan = await getSubscriptionPlanBySku(parsed.data.sku);
   if (!plan || plan.active !== 1) {
     return NextResponse.json(
@@ -90,6 +106,7 @@ async function handlePOST(req: Request) {
     );
   }
 
+  const acceptedAt = new Date();
   const [order] = await db
     .insert(subscriptionOrders)
     .values({
@@ -100,6 +117,11 @@ async function handlePOST(req: Request) {
       amountGrosze: plan.priceGrosze,
       status: "pending",
       source: "hotpay",
+      // Z6: dowód zgód konsumenckich (czas, wersja, skrót dokładnego tekstu).
+      termsAcceptedAt: acceptedAt,
+      immediateServiceConsentAt: acceptedAt,
+      termsVersion: ORDER_TERMS_VERSION,
+      consentTextHash: createHash("sha256").update(orderConsentCanonicalText(), "utf8").digest("hex"),
     })
     .returning({ id: subscriptionOrders.id });
 

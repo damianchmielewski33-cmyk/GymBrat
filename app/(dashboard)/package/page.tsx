@@ -7,7 +7,7 @@ import { getUserPackageStatus } from "@/lib/user-package";
 export default async function PackagePage({
   searchParams,
 }: {
-  searchParams: Promise<{ paid?: string }>;
+  searchParams: Promise<{ paid?: string; order?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/package");
@@ -32,6 +32,7 @@ export default async function PackagePage({
       endsLabel={pkg.endsLabel}
       planSku={pkg.planSku}
       paidHint={sp.paid === "1"}
+      orderId={sp.paid === "1" ? (sp.order ?? null) : null}
     />
   );
 }
