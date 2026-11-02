@@ -155,7 +155,7 @@ describe("HotPay notify: przedłużenie pakietu tylko przy przejściu pending �
     expect(logServerError).toHaveBeenCalledTimes(1);
   });
 
-  it.each(["cancelled", "failed"])(
+  it.each(["cancelled", "failed", "expired"])(
     "%s + SUCCESS: bez pakietu, status bez zmian, log do ręcznej obsługi bez danych osobowych",
     async (status) => {
       await seedOrder(status);
@@ -185,5 +185,37 @@ describe("HotPay notify: przedłużenie pakietu tylko przy przejściu pending �
 
   it("nieznane zamówienie: 404", async () => {
     expect((await notify("SUCCESS", "brak")).status).toBe(404);
+  });
+
+  it("pending + SUCCESS ustawia fulfilled_at (Z23)", async () => {
+    await seedOrder("pending");
+    await notify("SUCCESS");
+    const rs = await client.execute(`SELECT fulfilled_at AS f FROM subscription_orders WHERE id = 'o1'`);
+    expect(rs.rows[0]!.f).not.toBeNull();
+  });
+
+  it("płatność dla anulowanego zamówienia ustawia late_payment_at do obsługi w panelu (Z22)", async () => {
+    await seedOrder("cancelled");
+    await notify("SUCCESS");
+    const rs = await client.execute(`SELECT late_payment_at AS l FROM subscription_orders WHERE id = 'o1'`);
+    expect(rs.rows[0]!.l).not.toBeNull();
+    expect(await packageEndsAt()).toBeNull();
+  });
+
+  it("zaksięgowane ręcznie: kolejne SUCCESS nie generuje alertu ani nie przedłuża", async () => {
+    await seedOrder("manual");
+    await notify("SUCCESS");
+    expect(logServerError).not.toHaveBeenCalled();
+    expect(await packageEndsAt()).toBeNull();
+  });
+
+  it("Z55: zmiana ceny planu po utworzeniu zamówienia nie psuje płatności (kwota z zamówienia)", async () => {
+    await seedOrder("pending"); // zamówienie 19,99 zł
+    // cena planu zmieniona w panelu na 24,99 — zamówienie trzyma swoją kwotę
+    await client.execute(
+      `UPDATE subscription_plans SET price_grosze = 2499 WHERE sku = 'm1'`,
+    ).catch(() => undefined);
+    expect((await notify("SUCCESS", "o1", "19.99")).status).toBe(200);
+    expect(await orderStatus()).toBe("paid");
   });
 });

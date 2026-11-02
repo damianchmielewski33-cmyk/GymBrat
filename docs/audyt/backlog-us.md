@@ -26,7 +26,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US6 | Prawa użytkownika (usunięcie, eksport, dane AI) | P0 | L | Z14, Z25, Z26, Z27 | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | US7 | Dokumenty prawne i retencja | P0 | L | Z15, Z28 | KOD GOTOWY, TESTY NIEURUCHOMIONE (zatwierdzenie prawnika na koniec) |
 | US8 | Operacje i uruchomienie | P0 | L | Z17, Z47, Z48, Z49, Z50 | W TOKU (Z50 kod gotowy; Z17, Z47, Z48, Z49 `[NA KONIEC]`) |
-| US9 | Admin: zamówienia, alerty, finanse | P1 | L | Z22, Z23, Z55, Z75 | TODO |
+| US9 | Admin: zamówienia, alerty, finanse | P1 | L | Z22, Z23, Z55, Z75 | ZROBIONE (kod; testy nieuruchomione) 2026-11-02 |
 | US10 | Bezpieczeństwo aplikacji | P1 | L | Z29, Z30, Z56, Z57 | TODO |
 | US11 | Bezpieczeństwo admina, Java i repo | P1 | L | Z31, Z32, Z33, Z34, Z73 | TODO |
 | US12 | Spójność liczb (cardio) | P1 | M | Z35, Z38, Z44 | TODO |
@@ -109,7 +109,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Rejestracja kodem i reset hasła działają na produkcji; płatność testowa przechodzi na stagingu; backup przywrócony na próbę (RTO/RPO zapisane); alerty skonfigurowane; kontakt i FAQ dostępne.
 
 ## US9 — Admin: zamówienia, alerty, finanse
-**P1 · L · Zależności** US2, US4 · **Postęp** 0/4
+**P1 · L · Zależności** US2, US4 · **Postęp** 4/4 (kod; testy/tsc/lint NIEURUCHOMIONE, brak npm w sesji) · **Decyzje** DK-20
 **Cel** Właściciel widzi i obsługuje płatności bez wchodzenia do bazy.
 **Podzadania** Z22 panel zamówień i zwroty · Z23 alerty płatności · Z55 zmiana cen bez wdrożenia (bez psucia trwających zamówień) · Z75 panel finansowy.
 **Gotowe, gdy** Lista zamówień z filtrem, ręczne księgowanie/anulowanie, cron wygaszający `pending`, alerty dla płatności bez pakietu, przychody i aktywne pakiety w panelu.

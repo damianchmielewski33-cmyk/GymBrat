@@ -5,6 +5,8 @@ export type OrderStatus =
   | "paid"
   | "failed"
   | "cancelled"
+  | "expired"
+  | "refunded"
   | "manual"
   | "amount_mismatch";
 
@@ -13,6 +15,8 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   paid: "Opłacone",
   failed: "Płatność nieudana",
   cancelled: "Anulowane",
+  expired: "Wygasłe",
+  refunded: "Zwrócone",
   manual: "Przyznane ręcznie",
   amount_mismatch: "W weryfikacji",
 };
@@ -28,6 +32,10 @@ export function orderStatusHint(status: string): string | null {
       return "Czekamy na potwierdzenie płatności z banku — zwykle trwa to kilka sekund.";
     case "paid":
       return "Pakiet jest aktywny.";
+    case "expired":
+      return "Zamówienie wygasło, bo nie dotarła płatność. Możesz złożyć nowe.";
+    case "refunded":
+      return "Zwrot został zrealizowany.";
     case "failed":
       return "Płatność nie powiodła się. Możesz spróbować ponownie.";
     case "amount_mismatch":

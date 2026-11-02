@@ -225,6 +225,13 @@
       "when": 1806000000000,
       "tag": "0038_support_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1806100000000,
+      "tag": "0039_orders_admin",
+      "breakpoints": true
     }
   ]
 }

@@ -17,7 +17,7 @@ vi.mock("@/auth", () => ({ auth }));
 vi.mock("@/lib/csrf", () => ({ assertCsrf }));
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimitAsync,
-  RATE: { adminMutation: { limit: 120, windowMs: 60_000 } },
+  RATE: { checkout: { limit: 20, windowMs: 600_000 } },
 }));
 vi.mock("@/lib/subscription-plans", () => ({ getSubscriptionPlanBySku }));
 vi.mock("@/lib/hotpay", () => ({
@@ -160,5 +160,32 @@ describe("POST /api/package/checkout", () => {
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/zaakceptuj Regulamin/i);
     expect(await orders()).toHaveLength(0);
+  });
+
+  it("Z22: ponowne kliknięcie w 15 min używa istniejącego pending (ten sam ID_ZAMOWIENIA)", async () => {
+    const a = await (await checkout()).json();
+    const b = await (await checkout()).json();
+    expect(b.fields.ID_ZAMOWIENIA).toBe(a.fields.ID_ZAMOWIENIA);
+    expect(await orders()).toHaveLength(1);
+  });
+
+  it("Z22: pending starszy niż 15 min nie jest używany ponownie", async () => {
+    await checkout();
+    await client.execute({
+      sql: `UPDATE subscription_orders SET created_at = ?`,
+      args: [Date.now() - 16 * 60_000],
+    });
+    await checkout();
+    expect(await orders()).toHaveLength(2);
+  });
+
+  it("Z55: po zmianie ceny planu powstaje nowe zamówienie z nową kwotą, stare zachowuje starą", async () => {
+    await checkout();
+    getSubscriptionPlanBySku.mockResolvedValue({
+      id: "plan1", sku: "m1", title: "30 dni", days: 30, priceGrosze: 2499, active: 1,
+    });
+    await checkout();
+    const rows = await orders();
+    expect(rows.map((r) => Number(r.a)).sort()).toEqual([1999, 2499]);
   });
 });

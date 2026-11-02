@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Płatności w panelu admina: zamówienia, alerty i finanse",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Nowy dział „Zamówienia”: lista z filtrem statusu, ręczne księgowanie (nadaje pakiet), anulowanie i notatka o zwrocie; nieopłacone zamówienia wygasają po 24 h, a ponowne kliknięcie „Kup” używa świeżego zamówienia zamiast tworzyć kolejne.",
+      "Widżet alertów płatności (opłacone bez pakietu, płatność dla anulowanego zamówienia, niezgodna kwota, oczekujące > 1 h) oraz nowy dział „Finanse”: przychód dzienny i miesięczny, aktywne pakiety, konwersja. Zmiana ceny w „Pakietach” nie wpływa na trwające zamówienia.",
+    ],
+  },
+  {
     title: "Zapowiedź — Pomoc i reklamacje w aplikacji",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

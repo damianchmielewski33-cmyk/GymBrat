@@ -492,6 +492,10 @@ CREATE TABLE IF NOT EXISTS "${table}" (
   "receipt_issued_at" integer,
   "buyer_name" text,
   "buyer_tax_id" text,
+  "fulfilled_at" integer,
+  "late_payment_at" integer,
+  "refunded_at" integer,
+  "admin_note" text,
   FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE SET NULL,
   FOREIGN KEY ("plan_id") REFERENCES "subscription_plans"("id") ON UPDATE NO ACTION ON DELETE SET NULL
 )`;
@@ -524,9 +528,17 @@ CREATE TABLE IF NOT EXISTS "${table}" (
     `"receipt_issued_at" integer`,
     `"buyer_name" text`,
     `"buyer_tax_id" text`,
+    `"fulfilled_at" integer`,
+    `"late_payment_at" integer`,
+    `"refunded_at" integer`,
+    `"admin_note" text`,
   ]) {
     await tryAddColumn(`ALTER TABLE "subscription_orders" ADD COLUMN ${col}`);
   }
+  // Z23: zamówienia opłacone przed wprowadzeniem `fulfilled_at` (pakiet i `paid` szły jedną transakcją).
+  await client.execute(
+    `UPDATE "subscription_orders" SET "fulfilled_at" = "paid_at" WHERE "status" IN ('paid','manual') AND "fulfilled_at" IS NULL AND "paid_at" IS NOT NULL`,
+  );
   await client.execute(
     `CREATE INDEX IF NOT EXISTS "subscription_orders_user_created" ON "subscription_orders" ("user_id", "created_at")`,
   );

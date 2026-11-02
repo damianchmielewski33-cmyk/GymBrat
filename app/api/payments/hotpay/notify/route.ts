@@ -1,12 +1,12 @@
 import { withApiErrors } from "@/lib/errors/api";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { subscriptionOrders, users } from "@/db/schema";
 import { sendOrderConfirmationEmail } from "@/lib/email";
-import { AppError } from "@/lib/errors/app-error";
 import { logServerError, newRequestId } from "@/lib/errors/server-log";
+import { logPaymentAlert } from "@/lib/payment-alerts";
 import { verifyHotpayNotificationHash } from "@/lib/hotpay";
 import { hotpayKwotaToGrosze } from "@/lib/hotpay-amount";
 import { extendUserPackageIfOrderPending } from "@/lib/user-package";
@@ -100,12 +100,11 @@ async function handlePOST(req: Request) {
   if (status === "SUCCESS") {
     if (order.status === "pending" && !order.userId) {
       // Konto usunięte przed zaksięgowaniem — nie ma komu przyznać pakietu; do ręcznej obsługi (zwrot).
-      logServerError(
-        new AppError("INTERNAL", {
-          message: `hotpay.notify: paid_order_without_user ${order.id} ${idPlatnosci}`,
-        }),
-        { requestId: newRequestId(), origin: "hotpay.notify" },
-      );
+      await db
+        .update(subscriptionOrders)
+        .set({ latePaymentAt: new Date(), hotpayPaymentId: idPlatnosci })
+        .where(and(eq(subscriptionOrders.id, order.id), isNull(subscriptionOrders.latePaymentAt)));
+      logPaymentAlert("paid_without_user", `hotpay.notify: paid_order_without_user ${order.id} ${idPlatnosci}`);
     } else if (order.status === "pending" && order.userId) {
       // Pakiet tylko za zgodną kwotę: `KWOTA` z powiadomienia musi równać się cenie zamówienia.
       // Podpis HASH nie chroni kwoty przed płatnością za grosze, jeśli ktoś zmieni ją w formularzu płatności.
@@ -123,11 +122,9 @@ async function handlePOST(req: Request) {
           .returning({ id: subscriptionOrders.id });
         if (flagged.length > 0) {
           // Do ręcznej obsługi (zwrot/wyjaśnienie): tylko identyfikatory i kwoty, bez danych osobowych.
-          logServerError(
-            new AppError("INTERNAL", {
-              message: `hotpay.notify: amount_mismatch order ${order.id} payment ${idPlatnosci} expected ${order.amountGrosze} got ${kwota}`,
-            }),
-            { requestId: newRequestId(), origin: "hotpay.notify" },
+          logPaymentAlert(
+            "amount_mismatch",
+            `hotpay.notify: amount_mismatch order ${order.id} payment ${idPlatnosci} expected ${order.amountGrosze} got ${kwota}`,
           );
         }
         return new NextResponse("OK", { status: 200 });
@@ -149,6 +146,7 @@ async function handlePOST(req: Request) {
             status: "paid",
             hotpayPaymentId: idPlatnosci,
             paidAt: new Date(),
+            fulfilledAt: new Date(),
           })
           .where(
             and(
@@ -163,14 +161,16 @@ async function handlePOST(req: Request) {
       if (paidRows.length > 0) {
         await sendOrderConfirmation(db, order);
       }
-    } else if (order.status !== "paid") {
-      // Płatność za zamówienie `cancelled`/`failed`/`amount_mismatch`: do ręcznej obsługi (zwrot), tylko identyfikatory.
-      logServerError(
-        new AppError("INTERNAL", {
-          message: `hotpay.notify: paid_${order.status}_order ${order.id} ${idPlatnosci}`,
-        }),
-        { requestId: newRequestId(), origin: "hotpay.notify" },
-      );
+    } else if (["cancelled", "failed", "expired", "amount_mismatch"].includes(order.status)) {
+      // Płatność za zamówienie `cancelled`/`failed`/`expired`/`amount_mismatch`: do ręcznej obsługi
+      // (księgowanie albo zwrot w panelu), tylko identyfikatory. Znacznik widoczny w widżecie alertów.
+      if (order.status !== "amount_mismatch") {
+        await db
+          .update(subscriptionOrders)
+          .set({ latePaymentAt: new Date(), hotpayPaymentId: idPlatnosci })
+          .where(and(eq(subscriptionOrders.id, order.id), isNull(subscriptionOrders.latePaymentAt)));
+      }
+      logPaymentAlert("late_payment", `hotpay.notify: paid_${order.status}_order ${order.id} ${idPlatnosci}`);
     }
     return new NextResponse("OK", { status: 200 });
   }

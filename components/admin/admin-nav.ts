@@ -5,6 +5,8 @@ import {
   ImageIcon,
   LifeBuoy,
   Package,
+  Receipt,
+  Wallet,
   Settings2,
   UtensilsCrossed,
   Users,
@@ -38,6 +40,8 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/users", label: "Konta", shortLabel: "Konta", icon: Users },
       { href: "/admin/packages", label: "Pakiety i ceny", shortLabel: "Pakiety", icon: Package },
+      { href: "/admin/orders", label: "Zamówienia", shortLabel: "Zamówienia", icon: Receipt },
+      { href: "/admin/finance", label: "Finanse", shortLabel: "Finanse", icon: Wallet },
     ],
   },
   {

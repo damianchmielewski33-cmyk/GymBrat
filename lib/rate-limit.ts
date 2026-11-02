@@ -110,6 +110,8 @@ export const RATE = {
   workoutCardioPatch: { limit: 30, windowMs: 60_000 },
   adminUnlock: { limit: 8, windowMs: 10 * 60_000 },
   adminMutation: { limit: 120, windowMs: 60_000 },
+  /** Z22: start płatności (osobny klucz, nie dzieli budżetu z mutacjami admina). */
+  checkout: { limit: 20, windowMs: 10 * 60_000 },
   bodyReportImport: { limit: 12, windowMs: 60_000 },
   /** Import planu treningowego (preview + confirm) — osobny bucket od raportów ciała. */
   workoutPlanImport: { limit: 12, windowMs: 60_000 },

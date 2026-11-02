@@ -2,6 +2,7 @@ import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
+import { expirePendingOrders } from "@/lib/order-admin";
 import { runDbCleanup } from "@/lib/db-retention";
 import { sendInactivityWarningEmail } from "@/lib/email";
 import { getExtraRetentionPolicy, runBugReportRetention, runInactiveRetention } from "@/lib/retention-extra";
@@ -37,10 +38,12 @@ async function handle(req: Request) {
   const inactive = await runInactiveRetention(db, now, policy, {
     sendWarning: sendInactivityWarningEmail,
   });
+  // Z22: wygaszenie nieopłaconych zamówień (pending > 24 h).
+  const expiredOrders = await expirePendingOrders(db, now);
   return NextResponse.json({
     ok: true,
     ...result,
-    extra: { bugReports, inactive, inactiveAccountsEnabled: policy.inactiveAccountsEnabled },
+    extra: { bugReports, inactive, expiredOrders, inactiveAccountsEnabled: policy.inactiveAccountsEnabled },
   });
 }
 

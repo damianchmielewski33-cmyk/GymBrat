@@ -22,6 +22,7 @@ import {
   ORDER_TERMS_VERSION,
   orderConsentCanonicalText,
 } from "@/lib/order-consents";
+import { findReusablePendingOrder } from "@/lib/order-admin";
 import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
 import { getSubscriptionPlanBySku } from "@/lib/subscription-plans";
 
@@ -62,8 +63,8 @@ async function handlePOST(req: Request) {
 
   const rl = await checkRateLimitAsync(
     `package-checkout:${session.user.id}`,
-    RATE.adminMutation.limit,
-    RATE.adminMutation.windowMs,
+    RATE.checkout.limit,
+    RATE.checkout.windowMs,
   );
   if (!rl.ok) {
     return NextResponse.json(
@@ -114,8 +115,17 @@ async function handlePOST(req: Request) {
     );
   }
 
+  // Z22: ponowne kliknięcie w 15 min używa istniejącego `pending` (ta sama kwota), zamiast mnożyć zamówienia.
+  const reusedId = await findReusablePendingOrder(db, {
+    userId: session.user.id,
+    planSku: plan.sku,
+    amountGrosze: plan.priceGrosze,
+  });
+
   const acceptedAt = new Date();
-  const [order] = await db
+  const [order] = reusedId
+    ? [{ id: reusedId }]
+    : await db
     .insert(subscriptionOrders)
     .values({
       userId: session.user.id,

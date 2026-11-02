@@ -35,8 +35,8 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z19 | Decyzja: płatności na Androidzie | decyzja | P1 | S | ZROBIONE (2026-11-02) |
 | Z20 | Historia zamówień i e-mail z potwierdzeniem | kod | P1 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (e-mail działa po SMTP z Z17 [NA KONIEC]) |
 | Z21 | Faktury / paragony | kod | P1 | L | KOD GOTOWY, TESTY NIEURUCHOMIONE (potwierdzenie zakupu bez VAT wg DK-1; forma do akceptacji księgowego/prawnika) |
-| Z22 | Panel zamówień i zwroty (admin) | kod | P1 | M | TODO |
-| Z23 | Alerty płatności | kod | P1 | S | TODO |
+| Z22 | Panel zamówień i zwroty (admin) | kod | P1 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z23 | Alerty płatności | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z24 | Przypomnienie o końcu pakietu i odnowienie | kod | P1 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (e-mail działa po SMTP z Z17 [NA KONIEC]) |
 | Z25 | Publiczna strona `/usun-konto` | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (link w Play Console ustawia właściciel [NA KONIEC]) |
 | Z26 | Kompletny eksport danych | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
@@ -68,7 +68,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z52 | Soft launch i decyzja go/no-go | ops | P1 | M | TODO |
 | Z53 | KPI i lejek | kod | P1 | M | TODO |
 | Z54 | Kody promocyjne i Badania — definicja albo usunięcie | decyzja+kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (część „decyzja”: DK-9; strony ukryte flagą) |
-| Z55 | Zmiana cen bez wdrożenia | kod | P2 | S | TODO |
+| Z55 | Zmiana cen bez wdrożenia | kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z56 | Ograniczenie osadzania w iframe | kod | P2 | S | TODO |
 | Z57 | Skan zależności i rotacja sekretów | kod+dok | P2 | S | TODO |
 | Z58 | Onboarding świadomy historii | kod | P2 | M | TODO |
@@ -88,7 +88,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z72 | CAS w modułach społeczności | kod | P2 | M | TODO |
 | Z73 | Realizacja decyzji o Javie | kod | P2 | M | TODO |
 | Z74 | Dostępność WCAG AA | kod | P2 | M | TODO |
-| Z75 | Panel finansowy | kod | P2 | M | TODO |
+| Z75 | Panel finansowy | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z76 | Publiczna strona produktu | kod | P2 | M | TODO |
 | Z77 | Usunięcie `inbox` i roli `trener` | kod | P3 | S | TODO |
 | Z78 | Usunięcie martwych komponentów | kod | P3 | S | TODO |

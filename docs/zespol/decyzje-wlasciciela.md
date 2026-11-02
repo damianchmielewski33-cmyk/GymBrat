@@ -79,3 +79,8 @@ Zapisane na podstawie odpowiedzi właściciela (backlog US1). Kod zależny od de
 |---|---|---|
 | DK-19 | Z50 Wsparcie i reklamacje | Zgłoszenia zapisywane w bazie (`support_requests`) i obsługiwane w panelu admina (`/admin/support`); termin odpowiedzi 14 dni (regulamin §8). Punkt wejścia: publiczna strona `/pomoc` (kontakt, FAQ, formularz dla zalogowanych) z linkami w menu, Profilu → Konto i regulaminie. E-mail potwierdzający best-effort (wymaga SMTP z Z17). Treść FAQ i §8 to szkic do zatwierdzenia przez prawnika. |
 
+
+## US9 — decyzje (2026-11-02)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-20 | Z22/Z75 Zamówienia i finanse | Ręczne „zaksięguj” nadaje pakiet (jak webhook, jednorazowo) i ustawia status `manual`; zwrot = notatka + status `refunded` (zwrot pieniędzy robisz w HotPay), **bez cofania dni pakietu**; przychód w panelu finansowym = zamówienia `paid`, a `manual` i `refunded` pokazane osobno; konwersja = zapłacone / utworzone zamówienia (30 dni). Doprecyzowanie z AC: `pending` > 24 h wygasa (`expired`), ponowne kliknięcie w 15 min używa istniejącego `pending`, alert dla `pending` > 1 h i `paid` bez pakietu (Sentry z tagiem `area=payments` + widżet). Dokument sprzedaży (Z21) nadal wystawiany tylko dla `paid`. |

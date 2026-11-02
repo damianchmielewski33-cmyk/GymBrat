@@ -35,6 +35,8 @@ export type ServerLogContext = {
   digest?: string;
   /** Skąd pochodzi log (np. `withApiErrors`, `onRequestError`, `client-report`). */
   origin?: string;
+  /** Dodatkowe tagi Sentry (np. `{ area: "payments" }`) — tylko stałe, bez danych osobowych. */
+  tags?: Record<string, string>;
 };
 
 /** Ścieżka bez query/hash — bezpieczna do logów. */
@@ -81,6 +83,7 @@ async function captureToSentry(
         errorCode: err.code,
         httpStatus: String(err.status),
         requestId: ctx.requestId,
+        ...ctx.tags,
       },
       extra: { path: ctx.path, method: ctx.method, routeType: ctx.routeType },
     });

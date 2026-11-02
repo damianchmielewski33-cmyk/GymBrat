@@ -113,7 +113,7 @@ export const subscriptionOrders = sqliteTable(
     planSku: text("plan_sku").notNull(),
     days: integer("days").notNull(),
     amountGrosze: integer("amount_grosze").notNull(),
-    /** pending | paid | failed | cancelled | manual | amount_mismatch (kwota z HotPay ≠ cena zamówienia, bez pakietu) */
+    /** pending | paid | failed | cancelled | expired (pending > 24 h) | manual | refunded | amount_mismatch (kwota z HotPay ≠ cena zamówienia, bez pakietu) */
     status: text("status").notNull().default("pending"),
     hotpayPaymentId: text("hotpay_payment_id"),
     source: text("source").notNull().default("hotpay"),
@@ -136,6 +136,14 @@ export const subscriptionOrders = sqliteTable(
     /** Z21: opcjonalne dane nabywcy na dokumencie (imię i nazwisko/firma, NIP). */
     buyerName: text("buyer_name"),
     buyerTaxId: text("buyer_tax_id"),
+    /** Z22/Z23: pakiet przyznany (webhook lub księgowanie ręczne); `paid` bez tej daty = alert. */
+    fulfilledAt: integer("fulfilled_at", { mode: "timestamp_ms" }),
+    /** Z22: płatność dotarła dla zamówienia anulowanego/nieudanego/wygasłego lub bez konta — do ręcznej obsługi. */
+    latePaymentAt: integer("late_payment_at", { mode: "timestamp_ms" }),
+    /** Z22: zwrot wykonany poza aplikacją (HotPay) i odnotowany w panelu. */
+    refundedAt: integer("refunded_at", { mode: "timestamp_ms" }),
+    /** Z22: notatki admina (księgowanie, anulowanie, zwrot) — bez danych osobowych klienta. */
+    adminNote: text("admin_note"),
   },
   (t) => [
     index("subscription_orders_user_created").on(t.userId, t.createdAt),
