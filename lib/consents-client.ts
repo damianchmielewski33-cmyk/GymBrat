@@ -1,3 +1,4 @@
+import { LEGAL_VERSIONS } from "@/lib/legal-versions";
 /** Stałe zgód dostępne też w komponencie klienckim (bez server-only). */
 
 export const CURRENT_CONSENT_TEXT_VERSION = "2026-10-v1";
@@ -43,7 +44,7 @@ export const TEAM_RANKING_CONSENT_TEXT_VERSION = "2026-10-team-v1";
 export const SENSITIVE_CONSENT_TYPES = ["health", "photos"] as const;
 export type SensitiveConsentType = (typeof SENSITIVE_CONSENT_TYPES)[number];
 
-export const SENSITIVE_CONSENT_TEXT_VERSION = "2026-11-sensitive-szkic-v1";
+export const SENSITIVE_CONSENT_TEXT_VERSION: string = LEGAL_VERSIONS.sensitiveConsents;
 
 export const SENSITIVE_CONSENT_COPY: Record<
   SensitiveConsentType,

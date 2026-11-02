@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalDocShell, LegalSection } from "@/components/legal/legal-doc-shell";
+import { LEGAL_DOCS_UPDATED_LABEL } from "@/lib/legal-versions";
 import { getLegalSeller, PRIVACY_PATH } from "@/lib/legal-seller";
 
 export const metadata: Metadata = {
@@ -13,7 +14,7 @@ export default function UsunKontoPage() {
   const s = getLegalSeller();
 
   return (
-    <LegalDocShell title="Usuwanie konta i danych" updated="2 listopada 2026" incomplete={!s.complete}>
+    <LegalDocShell title="Usuwanie konta i danych" updated={LEGAL_DOCS_UPDATED_LABEL} incomplete={!s.complete}>
       <p>
         Na tej stronie opisujemy, jak usunąć konto <strong className="text-white/90">GymBrat</strong>{" "}
         (aplikacja internetowa i Android) oraz co dzieje się z Twoimi danymi.

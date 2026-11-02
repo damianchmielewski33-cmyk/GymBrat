@@ -421,6 +421,9 @@ CREATE TABLE IF NOT EXISTS "schema_flags" (
   );
   await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "package_plan_sku" text`);
   await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "admin_note" text`);
+  await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "last_active_at" integer`);
+  await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "inactivity_warned_at" integer`);
+  await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "photos_warned_at" integer`);
   await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "sex" text`);
   await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "email_verified_at" integer`);
   await tryAddColumn(

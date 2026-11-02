@@ -1,7 +1,7 @@
 /**
  * Retencja danych — chroni darmowy limit Turso.
- * NIE kasujemy: treningów, meal logs, wag, kont ani zdjęć użytkowników
- * (raporty ciała, media feedu, zdjęcia zgłoszeń błędów).
+ * Tu NIE kasujemy treningów, meal logs, wag, kont ani zdjęć użytkowników. Retencja kont, zdjęć
+ * sylwetki (nieaktywność) i zgłoszeń błędów (zamknięte) jest w `lib/retention-extra.ts` (Z28).
  * Usuwanie zwalnia miejsce logicznie; fizyczny odzysk zależy od Turso.
  */
 

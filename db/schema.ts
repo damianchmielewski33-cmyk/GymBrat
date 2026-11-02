@@ -57,6 +57,12 @@ export const users = sqliteTable("users", {
   packagePlanSku: text("package_plan_sku"),
   /** Notatka administratora na karcie konta. */
   adminNote: text("admin_note"),
+  /** Ostatnia aktywność (logowanie / użycie); NULL = liczymy od `createdAt`. Retencja nieaktywnych kont (Z28). */
+  lastActiveAt: integer("last_active_at", { mode: "timestamp_ms" }),
+  /** Kiedy wysłano ostrzeżenie o usunięciu konta z powodu nieaktywności (Z28); czyszczone po powrocie. */
+  inactivityWarnedAt: integer("inactivity_warned_at", { mode: "timestamp_ms" }),
+  /** Kiedy wysłano ostrzeżenie o usunięciu zdjęć z powodu nieaktywności (Z28). */
+  photosWarnedAt: integer("photos_warned_at", { mode: "timestamp_ms" }),
   /** Potwierdzenie kontroli adresu (kod z e-maila, Google z `email_verified`); NULL = niezweryfikowany. */
   emailVerifiedAt: integer("email_verified_at", { mode: "timestamp_ms" }),
   /** Wersja sesji: podbicie unieważnia wszystkie wydane JWT (`lib/account-auth-state.ts`). */

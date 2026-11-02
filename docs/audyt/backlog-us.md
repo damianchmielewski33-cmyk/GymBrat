@@ -24,7 +24,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US4 | Zamówienia: zgody, anonimizacja, historia, faktury | P0 | XL | Z6, Z7, Z20, Z21 | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | US5 | Premium: realna wartość pakietu | P0 | XL | Z9, Z10, Z24, Z54 | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | US6 | Prawa użytkownika (usunięcie, eksport, dane AI) | P0 | L | Z14, Z25, Z26, Z27 | KOD GOTOWY, TESTY NIEURUCHOMIONE |
-| US7 | Dokumenty prawne i retencja | P0 | L | Z15, Z28 | TODO |
+| US7 | Dokumenty prawne i retencja | P0 | L | Z15, Z28 | KOD GOTOWY, TESTY NIEURUCHOMIONE (zatwierdzenie prawnika na koniec) |
 | US8 | Operacje i uruchomienie | P0 | L | Z17, Z47, Z48, Z49, Z50 | TODO |
 | US9 | Admin: zamówienia, alerty, finanse | P1 | L | Z22, Z23, Z55, Z75 | TODO |
 | US10 | Bezpieczeństwo aplikacji | P1 | L | Z29, Z30, Z56, Z57 | TODO |
@@ -97,7 +97,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Usunięcie wymaga hasła/świeżego logowania i usuwa dane zdrowotne, zdjęcia, push, sesje; eksport pokrywa wszystkie tabele z `user_id`; prompty obrazów bez danych osobowych; `/usun-konto` jest publiczna.
 
 ## US7 — Dokumenty prawne i retencja
-**P0 · L · Zależności** US1 (Z1) · **Postęp** 0/2
+**P0 · L · Zależności** US1 (Z1) · **Postęp** 2/2 (szkice i kod; zatwierdzenie prawnika na koniec, testy nieuruchomione)
 **Cel** Komplet dokumentów i automatyczna retencja. **Zatwierdzenie przez człowieka-prawnika; nie deklaruj jako gotowe.**
 **Podzadania** Z15 dokumenty prawne i podmioty przetwarzające (regulamin, polityka, RCP, umowy powierzenia, DPIA) — szkice w repo teraz, zatwierdzenie prawnika `[NA KONIEC]` · Z28 retencja i automatyczne usuwanie (crony + testy; okresy z projektu w `docs/prawo/01-…`, zatwierdzenie `[NA KONIEC]`).
 **Gotowe, gdy** Projekty w `docs/prawo/` i teksty w aplikacji są wersjonowane i gotowe do przeglądu prawnika; crony czyszczące działają zgodnie z zatwierdzonymi okresami.

@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Dokumenty prawne (wersja robocza) i automatyczna retencja danych",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Regulamin i Polityka prywatności opisują dane o zdrowiu i zdjęciach (za zgodą), odbiorców danych, transfery poza EOG, minimalny wiek i okresy przechowywania; strony pokazują wersję dokumentu i oznaczenie „wersja robocza” do czasu zatwierdzenia.",
+      "Automatyczne czyszczenie: zgłoszenia błędów po okresie od rozwiązania oraz — po włączeniu — nieaktywne konta i zdjęcia (z ostrzeżeniem e-mail). Aktywni użytkownicy, administratorzy i konta z pakietem nie są usuwane.",
+    ],
+  },
+  {
     title: "Zapowiedź — Twoje dane: bezpieczne usuwanie konta, pełny eksport, grafiki AI bez danych",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

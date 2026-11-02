@@ -1,3 +1,5 @@
+import { LEGAL_VERSIONS } from "@/lib/legal-versions";
+
 /**
  * Zgody konsumenckie przy zakupie pakietu (Z6). Jedno źródło tekstu dla UI i serwera:
  * serwer zapisuje wersję i SHA-256 dokładnie tego tekstu jako dowód, co klient zaakceptował.
@@ -5,7 +7,7 @@
  * UWAGA: treści to SZKIC do zatwierdzenia przez prawnika (US7/Z15). Po zmianie tekstu
  * podnieś `ORDER_TERMS_VERSION`.
  */
-export const ORDER_TERMS_VERSION = "2026-11-orders-szkic-v1";
+export const ORDER_TERMS_VERSION: string = LEGAL_VERSIONS.orderTerms;
 
 export const ORDER_CONSENT_TEXTS = {
   terms: "Akceptuję Regulamin oraz Politykę prywatności.",

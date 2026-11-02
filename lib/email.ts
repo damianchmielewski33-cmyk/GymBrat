@@ -152,3 +152,23 @@ export async function sendAccountDeletedEmail(params: { to: string }): Promise<b
     text: "Potwierdzamy usunięcie Twojego konta GymBrat wraz z danymi o treningach, ciele, posiłkach, zdjęciami i powiązaniami logowania.\n\nDokumentacja sprzedaży (zamówienia pakietów) jest przechowywana w formie niepowiązanej z kontem przez okres wymagany prawem.\n\nJeśli to nie Ty usunąłeś konto, skontaktuj się z nami odpowiadając na tę wiadomość.\n\n— GymBrat",
   });
 }
+
+/** Z28: ostrzeżenie przed usunięciem zdjęć / konta z powodu nieaktywności. */
+export async function sendInactivityWarningEmail(params: {
+  to: string;
+  kind: "photos" | "account";
+  daysToDelete: number;
+}): Promise<boolean> {
+  const what =
+    params.kind === "account"
+      ? "Twoje konto GymBrat wraz ze wszystkimi danymi zostanie usunięte"
+      : "Twoje zdjęcia sylwetki w GymBrat zostaną usunięte (konto i pozostałe dane zostają)";
+  return sendOptionalDailyBriefEmail({
+    to: params.to,
+    subject:
+      params.kind === "account"
+        ? "GymBrat — Twoje konto zostanie usunięte z powodu nieaktywności"
+        : "GymBrat — Twoje zdjęcia zostaną usunięte z powodu nieaktywności",
+    text: `Od dłuższego czasu nie korzystasz z GymBrat. ${what} za ${params.daysToDelete} dni.\n\nAby tego uniknąć, wystarczy się zalogować. Przed usunięciem możesz też pobrać swoje dane w Profilu → Konto.\n\n— GymBrat`,
+  });
+}

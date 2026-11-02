@@ -72,3 +72,4 @@ Zapisane na podstawie odpowiedzi właściciela (backlog US1). Kod zależny od de
 | DK-15 | Z14 Ponowne uwierzytelnienie | Usunięcie konta wymaga hasła **albo** świeżego logowania (≤ 5 min; dla Google/Facebook ponowne logowanie z `prompt=login`) oraz frazy USUŃ. Bez kodu e-mail (nie zależy od SMTP). |
 | DK-16 | Z14 Termin usunięcia | Natychmiast i nieodwracalnie (bez karencji). Zamówienia odpinane od konta, dokumentacja sprzedaży zostaje (Z7). |
 | DK-17 | Z14 E-mail po usunięciu | Wysyłany best-effort na adres sprzed usunięcia (po SMTP z Z17); adresu nie zapisujemy. |
+| DK-18 | Z28 Retencja | Nieaktywne konta (24 mies., ostrzeżenie e-mail 30 dni wcześniej) i zdjęcia sylwetki (12 mies.) usuwa cron **domyślnie wyłączony** (flaga `RETENTION_INACTIVE_ACCOUNTS_ENABLED=1`, po zatwierdzeniu okresów przez prawnika i SMTP). Zgłoszenia błędów: zrzuty 90 dni i treść 12 mies. od rozwiązania - od razu. |
