@@ -84,3 +84,8 @@ Zapisane na podstawie odpowiedzi właściciela (backlog US1). Kod zależny od de
 | # | Zadanie | Decyzja |
 |---|---|---|
 | DK-20 | Z22/Z75 Zamówienia i finanse | Ręczne „zaksięguj” nadaje pakiet (jak webhook, jednorazowo) i ustawia status `manual`; zwrot = notatka + status `refunded` (zwrot pieniędzy robisz w HotPay), **bez cofania dni pakietu**; przychód w panelu finansowym = zamówienia `paid`, a `manual` i `refunded` pokazane osobno; konwersja = zapłacone / utworzone zamówienia (30 dni). Doprecyzowanie z AC: `pending` > 24 h wygasa (`expired`), ponowne kliknięcie w 15 min używa istniejącego `pending`, alert dla `pending` > 1 h i `paid` bez pakietu (Sentry z tagiem `area=payments` + widżet). Dokument sprzedaży (Z21) nadal wystawiany tylko dla `paid`. |
+
+## US10 — decyzje (2026-11-02)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-21 | Z29/Z30/Z56 Utwardzenie HTTP | CSP z nonce budowana w `proxy.ts` (`lib/csp.ts`); **domyślnie Report-Only**, egzekwowanie włącza env `CSP_MODE=enforce` po analizie raportów i teście na Preview (strony renderowane per żądanie, bo nonce). `frame-ancestors` zawsze egzekwowane: domyślnie `'self'` + AWP (DK-5), własna lista w `FRAME_ANCESTORS_ALLOWED`, `none` blokuje. Produkcja za własnym proxy (Caddy): adres klienta tylko z `x-real-ip` (`TRUSTED_IP_HEADER` zmienia), `x-forwarded-for` ignorowany. Brak Upstash na produkcji: wpis „wymagane” w Konfiguracji, limity w pamięci instancji (bez blokowania logowania). |

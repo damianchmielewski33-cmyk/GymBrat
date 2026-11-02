@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
 import Script from "next/script";
 import {
   Bebas_Neue,
@@ -86,11 +87,13 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // CSP z nonce (Z29): strony muszą być renderowane per żądanie, żeby skrypty dostały nonce z proxy.
+  if (process.env.NODE_ENV === "production") await connection();
   return (
     <html
       lang="pl"

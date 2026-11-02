@@ -66,13 +66,29 @@ export function checkRateLimit(
   return { ok: true };
 }
 
-/** Adres klienta z nagłówków proxy (Vercel / Render / Cloudflare ustawiają je po swojej stronie). */
-export function clientIpFromHeaders(headers: Pick<Headers, "get">): string {
-  return (
-    headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    headers.get("x-real-ip") ||
-    "local"
-  );
+/** Domyślny zaufany nagłówek: `X-Real-IP` ustawiany przez Caddy (deploy/Caddyfile, `header_up`). */
+export const DEFAULT_TRUSTED_IP_HEADER = "x-real-ip";
+
+/** Nazwa zaufanego nagłówka z adresem klienta (env `TRUSTED_IP_HEADER`, tylko poprawne nazwy). */
+export function trustedIpHeaderName(env: Record<string, string | undefined> = process.env): string {
+  const raw = env.TRUSTED_IP_HEADER?.trim().toLowerCase();
+  return raw && /^[a-z0-9-]+$/.test(raw) ? raw : DEFAULT_TRUSTED_IP_HEADER;
+}
+
+/**
+ * Adres klienta (Z30). Na produkcji ufamy WYŁĄCZNIE nagłówkowi ustawianemu przez własny reverse
+ * proxy (nadpisuje wartość od klienta); `x-forwarded-for` jest dowolnie ustawiany przez klienta
+ * i nie może wyznaczać klucza limitu. Brak nagłówka → wspólny kubełek `unknown` (bezpieczniej
+ * niż adres z podrobionego nagłówka). Poza produkcją dopuszczamy `x-forwarded-for` (dev/testy).
+ */
+export function clientIpFromHeaders(
+  headers: Pick<Headers, "get">,
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const trusted = headers.get(trustedIpHeaderName(env))?.split(",")[0]?.trim();
+  if (trusted) return trusted;
+  if (env.NODE_ENV === "production") return "unknown";
+  return headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
 }
 
 export function rateLimitKey(label: string, req: Request): string {

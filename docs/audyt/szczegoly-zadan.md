@@ -42,8 +42,8 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z26 | Kompletny eksport danych | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z27 | Pollinations bez danych osobowych | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z28 | Retencja i automatyczne usuwanie danych | kod+prawnik | P1 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (okresy do zatwierdzenia przez prawnika [NA KONIEC]; flaga nieaktywnych kont domyślnie wyłączona) |
-| Z29 | CSP w trybie egzekwowania | kod | P1 | M | TODO |
-| Z30 | Rate limiting produkcyjny i zaufane IP | kod | P1 | S | TODO |
+| Z29 | CSP w trybie egzekwowania | kod | P1 | M | KOD GOTOWY (Report-Only; egzekwowanie CSP_MODE=enforce NA KONIEC po analizie raportów), TESTY NIEURUCHOMIONE |
+| Z30 | Rate limiting produkcyjny i zaufane IP | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z31 | Java fail-closed (lub usunięcie) | kod | P1 | S | TODO |
 | Z32 | 2FA i blokada dla admina; usunięcie PIN-u | kod | P1 | M | TODO |
 | Z33 | Repo prywatne i higiena drzewa | kod/konfig | P1 | S | TODO |
@@ -69,8 +69,8 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z53 | KPI i lejek | kod | P1 | M | TODO |
 | Z54 | Kody promocyjne i Badania — definicja albo usunięcie | decyzja+kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (część „decyzja”: DK-9; strony ukryte flagą) |
 | Z55 | Zmiana cen bez wdrożenia | kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
-| Z56 | Ograniczenie osadzania w iframe | kod | P2 | S | TODO |
-| Z57 | Skan zależności i rotacja sekretów | kod+dok | P2 | S | TODO |
+| Z56 | Ograniczenie osadzania w iframe | kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z57 | Skan zależności i rotacja sekretów | kod+dok | P2 | S | WORKFLOW I PROCEDURA GOTOWE; sama rotacja NA KONIEC |
 | Z58 | Onboarding świadomy historii | kod | P2 | M | TODO |
 | Z59 | Kontekstowy przycisk pływający | kod | P2 | S | TODO |
 | Z60 | Tytuły stron i nazewnictwo sekcji | kod | P2 | S | TODO |

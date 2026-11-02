@@ -176,6 +176,25 @@ const INTEGRATIONS: IntegrationDef[] = [
     vars: [{ names: ["APP_ENCRYPTION_KEY"], hint: "32 bajty w base64." }],
   },
   {
+    id: "csp",
+    group: "core",
+    label: "Polityka CSP (egzekwowanie)",
+    description: "Przeglądarka blokuje niedozwolone skrypty i zasoby (ochrona przed XSS).",
+    level: "recommended",
+    effectWhenMissing:
+      "CSP działa tylko w trybie raportowania (Report-Only) — przeglądarka zgłasza naruszenia do /api/security/csp-report, ale ich nie blokuje.",
+    hostingHint:
+      "Po przejrzeniu raportów CSP w Sentry i teście na Preview ustaw CSP_MODE=enforce w zmiennych środowiska hostingu i zrób redeploy. Osadzanie w iframe: domyślnie tylko AWP; własna lista originów w FRAME_ANCESTORS_ALLOWED (po przecinku, `none` blokuje).",
+    vars: [
+      { names: ["CSP_MODE"], hint: "Ustaw enforce, aby egzekwować politykę." },
+      {
+        names: ["FRAME_ANCESTORS_ALLOWED"],
+        optional: true,
+        hint: "Lista originów dozwolonych do osadzania GymBrat w iframe.",
+      },
+    ],
+  },
+  {
     id: "cron",
     group: "core",
     label: "Zadania cykliczne (cron)",
@@ -192,10 +211,20 @@ const INTEGRATIONS: IntegrationDef[] = [
     group: "core",
     label: "Limity żądań (Upstash)",
     description: "Współdzielone limity prób logowania i akcji serwerowych.",
-    level: "recommended",
+    level: "required",
     effectWhenMissing:
-      "Limity działają tylko w pamięci jednej instancji — na wielu instancjach są łatwiejsze do obejścia.",
-    vars: [{ names: ["UPSTASH_REDIS_REST_URL"] }, { names: ["UPSTASH_REDIS_REST_TOKEN"] }],
+      "Limity działają tylko w pamięci jednej instancji (zerują się po restarcie i nie są wspólne dla instancji) — ochrona logowania i płatności przed nadużyciami jest słabsza.",
+    hostingHint:
+      "Załóż bazę Upstash Redis (region UE) i ustaw UPSTASH_REDIS_REST_URL oraz UPSTASH_REDIS_REST_TOKEN w zmiennych środowiska hostingu, potem redeploy. Adres klienta jest brany z nagłówka X-Real-IP ustawianego przez Caddy (zmień nazwą TRUSTED_IP_HEADER, jeśli proxy ustawia inny nagłówek).",
+    vars: [
+      { names: ["UPSTASH_REDIS_REST_URL"] },
+      { names: ["UPSTASH_REDIS_REST_TOKEN"] },
+      {
+        names: ["TRUSTED_IP_HEADER"],
+        optional: true,
+        hint: "Domyślnie x-real-ip (Caddy). Nigdy nie wskazuj nagłówka ustawianego przez klienta.",
+      },
+    ],
   },
   {
     id: "email",

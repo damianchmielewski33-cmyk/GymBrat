@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Utwardzenie zabezpieczeń HTTP",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Polityka bezpieczeństwa treści (CSP) z nonce dla skryptów: na start tryb raportowania, egzekwowanie włączane zmienną CSP_MODE=enforce po sprawdzeniu raportów; osadzanie w iframe ograniczone do jawnej listy (domyślnie Akademia).",
+      "Limity żądań liczone po adresie klienta z zaufanego nagłówka serwera (podrobiony x-forwarded-for nie omija limitów); brak Upstash widoczny w panelu Konfiguracja jako wymagany. Cotygodniowy skan zależności blokuje luki High/Critical, a procedura rotacji sekretów jest w docs.",
+    ],
+  },
+  {
     title: "Zapowiedź — Płatności w panelu admina: zamówienia, alerty i finanse",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -27,7 +27,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US7 | Dokumenty prawne i retencja | P0 | L | Z15, Z28 | KOD GOTOWY, TESTY NIEURUCHOMIONE (zatwierdzenie prawnika na koniec) |
 | US8 | Operacje i uruchomienie | P0 | L | Z17, Z47, Z48, Z49, Z50 | W TOKU (Z50 kod gotowy; Z17, Z47, Z48, Z49 `[NA KONIEC]`) |
 | US9 | Admin: zamówienia, alerty, finanse | P1 | L | Z22, Z23, Z55, Z75 | ZROBIONE (kod; testy nieuruchomione) 2026-11-02 |
-| US10 | Bezpieczeństwo aplikacji | P1 | L | Z29, Z30, Z56, Z57 | TODO |
+| US10 | Bezpieczeństwo aplikacji | P1 | L | Z29, Z30, Z56, Z57 | ZROBIONE W REPO 2026-11-02 (egzekwowanie CSP i rotacja sekretów NA KONIEC; testy nieuruchomione) |
 | US11 | Bezpieczeństwo admina, Java i repo | P1 | L | Z31, Z32, Z33, Z34, Z73 | TODO |
 | US12 | Spójność liczb (cardio) | P1 | M | Z35, Z38, Z44 | TODO |
 | US13 | Trening i raport ciała: poprawki UX | P1 | L | Z37, Z62, Z63, Z64 | TODO |
@@ -115,7 +115,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Lista zamówień z filtrem, ręczne księgowanie/anulowanie, cron wygaszający `pending`, alerty dla płatności bez pakietu, przychody i aktywne pakiety w panelu.
 
 ## US10 — Bezpieczeństwo aplikacji
-**P1 · L · Zależności** US3 (Z12 — znane źródła do CSP) · **Postęp** 0/4
+**P1 · L · Zależności** US3 (Z12 — znane źródła do CSP) · **Postęp** 4/4 w repo (testy/tsc/lint NIEURUCHOMIONE; przełączenie CSP_MODE=enforce i rotacja sekretów zostają dla właściciela) · **Decyzje** DK-21
 **Cel** Utwardzić warstwę HTTP.
 **Podzadania** Z29 CSP w trybie egzekwowania · Z30 rate limiting produkcyjny i zaufane IP · Z56 ograniczenie osadzania w iframe · Z57 skan zależności i rotacja sekretów (workflow i dokument procedury w repo teraz; sama rotacja `[NA KONIEC]`).
 **Gotowe, gdy** CSP jest egzekwowane bez naruszeń na głównych ekranach; limity działają przez Upstash; spoofing `x-forwarded-for` nie omija limitów; workflow zależności blokuje High/Critical.

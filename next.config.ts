@@ -4,21 +4,6 @@ import type { NextConfig } from "next";
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
-/** Origin Akademii — AWP osadza GymBrat w iframe na /gymbrat. */
-const DEFAULT_AWP_ORIGIN = "https://akademia-wielkich-pilkarzy.vercel.app";
-
-function awpFrameAncestor(): string {
-  const raw = process.env.NEXT_PUBLIC_AWP_URL?.trim();
-  if (raw) {
-    try {
-      return new URL(raw).origin;
-    } catch {
-      /* ignore */
-    }
-  }
-  return DEFAULT_AWP_ORIGIN;
-}
-
 const APK_RESPONSE_HEADERS = [
   {
     key: "Content-Type",
@@ -63,17 +48,14 @@ const nextConfig: NextConfig = {
 
   async headers() {
     const isProd = process.env.NODE_ENV === "production";
-    const awpOrigin = awpFrameAncestor();
     /**
-     * AWP otwiera GymBrat w iframe. X-Frame-Options: DENY blokowało ten embed.
-     * Kontrola przez CSP frame-ancestors. Cache /sw.js i /login — bez starego PWA.
+     * Content-Security-Policy (w tym `frame-ancestors`, Z56) ustawia `proxy.ts` per żądanie
+     * (nonce) — logika w `lib/csp.ts`. Tu zostają statyczne nagłówki i cache /sw.js, /login.
      */
-    const frameAncestors = `'self' ${awpOrigin}`;
 
     const base = [
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Content-Security-Policy", value: `frame-ancestors ${frameAncestors}` },
       { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
       { key: "Cross-Origin-Opener-Policy", value: "unsafe-none" },
       { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
@@ -82,8 +64,7 @@ const nextConfig: NextConfig = {
     ];
 
     /**
-     * CSP (Report-Only): start od zbierania raportów, bez blokowania.
-     * Po zebraniu danych można przełączyć na `Content-Security-Policy` (enforce).
+     * Endpoint raportów CSP (polityka: `lib/csp.ts`, tryb: env `CSP_MODE`).
      */
     const cspReportEndpointPath = "/api/security/csp-report";
     const reportGroup = "csp-endpoint";
@@ -95,20 +76,6 @@ const nextConfig: NextConfig = {
       },
     ]);
 
-    const cspReportOnly = [
-      "default-src 'self'",
-      "base-uri 'self'",
-      "object-src 'none'",
-      `frame-ancestors ${frameAncestors}`,
-      "form-action 'self'",
-      // Next/Tailwind często wymagają inline styles; na start zbieramy raporty.
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://image.pollinations.ai https://gen.pollinations.ai https://images.unsplash.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com",
-      "font-src 'self' data:",
-      "connect-src 'self'",
-      `report-to ${reportGroup}`,
-    ].join("; ");
-
     const prodOnly = isProd
       ? [
           {
@@ -117,7 +84,6 @@ const nextConfig: NextConfig = {
           },
           { key: "Report-To", value: reportTo },
           { key: "Reporting-Endpoints", value: `${reportGroup}="${cspReportEndpointPath}"` },
-          { key: "Content-Security-Policy-Report-Only", value: cspReportOnly },
         ]
       : [];
     return [
