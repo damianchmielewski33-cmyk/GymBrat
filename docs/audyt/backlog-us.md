@@ -29,7 +29,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US9 | Admin: zamówienia, alerty, finanse | P1 | L | Z22, Z23, Z55, Z75 | ZROBIONE (kod; testy nieuruchomione) 2026-11-02 |
 | US10 | Bezpieczeństwo aplikacji | P1 | L | Z29, Z30, Z56, Z57 | ZROBIONE W REPO 2026-11-02 (egzekwowanie CSP i rotacja sekretów NA KONIEC; testy nieuruchomione) |
 | US11 | Bezpieczeństwo admina, Java i repo | P1 | L | Z31, Z32, Z33, Z34, Z73 | ZROBIONE W REPO 2026-11-03 (Z33 repo prywatne i włączenie wymogu 2FA NA KONIEC; testy nieuruchomione) |
-| US12 | Spójność liczb (cardio) | P1 | M | Z35, Z38, Z44 | TODO |
+| US12 | Spójność liczb (cardio) | P1 | M | Z35, Z38, Z44 | ZROBIONE W REPO 2026-11-03 (testy nieuruchomione; kcal: różnica brutto/netto celowo zostaje) |
 | US13 | Trening i raport ciała: poprawki UX | P1 | L | Z37, Z62, Z63, Z64 | TODO |
 | US14 | Jakość: lint, E2E, bramki wdrożeniowe | P1 | XL | Z42, Z43, Z45, Z46 | TODO |
 | US15 | Dane i architektura | P1 | XL | Z39, Z40, Z72 | TODO |
@@ -127,7 +127,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Java nie ufa nagłówkom bez tokenu (lub jest usunięta); admin ma 2FA; martwy kod PIN usunięty; test enumeruje trasy admina; drzewo robocze czyste.
 
 ## US12 — Spójność liczb (cardio)
-**P1 · M · Zależności** brak · **Postęp** 0/3
+**P1 · M · Zależności** brak · **Postęp** 3/3 (kod; testy nieuruchomione) · **Decyzje** DK-23 w `docs/zespol/decyzje-wlasciciela.md` (sekcja „US12")
 **Cel** Te same minuty cardio i tydzień (pon–niedz) na Pulpicie, w Treningu i w silniku dodatkowego cardio, także bez planu.
 **Podzadania** Z35 jedna definicja tygodnia i minut cardio · Z38 spójne cardio bez planu (+ martwy `/start-workout`) · Z44 testy kontraktowe liczb między ekranami.
 **Gotowe, gdy** Dane mock (20 min w tygodniu) dają 20 wszędzie, także w stanie „brak planu"; test kontraktowy pilnuje.

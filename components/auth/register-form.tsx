@@ -400,7 +400,7 @@ export function RegisterForm({
     } catch {
       /* hard-nav i tak odświeży JWT */
     }
-    window.location.assign(`${window.location.origin}/start-workout`);
+    window.location.assign(`${window.location.origin}/workout-plan`);
   }
 
   async function onSubmit(values: RegisterFormValues) {
@@ -467,7 +467,7 @@ export function RegisterForm({
         password: values.password,
         role: values.role,
         redirect: false,
-        redirectTo: "/start-workout",
+        redirectTo: "/workout-plan",
       });
     } catch {
       setRootError(
@@ -481,7 +481,7 @@ export function RegisterForm({
       );
       return;
     }
-    window.location.assign(`${window.location.origin}/start-workout`);
+    window.location.assign(`${window.location.origin}/workout-plan`);
   }
 
   const { ref: passwordRhfRef, ...passwordRegister } = register("password");

@@ -158,6 +158,9 @@ CREATE TABLE IF NOT EXISTS "daily_checkins" (
   await tryAddColumn(`ALTER TABLE "user_settings" ADD COLUMN "meal_templates_json" text`);
   await tryAddColumn(`ALTER TABLE "user_settings" ADD COLUMN "fitness_goals_json" text`);
   await tryAddColumn(
+    `ALTER TABLE "user_settings" ADD COLUMN "cardio_week_mode" text NOT NULL DEFAULT 'calendar'`,
+  );
+  await tryAddColumn(
     `ALTER TABLE "user_settings" ADD COLUMN "onboarding_completed_at" integer`,
   );
   await tryAddColumn(

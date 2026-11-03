@@ -126,7 +126,7 @@ export function ActiveWorkoutView({
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const [sessionExitPending, setSessionExitPending] = useState(false);
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
-  /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/start-workout`. */
+  /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/workout-plan`. */
   const [storeHydrated, setStoreHydrated] = useState(false);
   /** Czekamy na pull chmury, żeby nie wyrzucić sesji z innego urządzenia. */
   const [cloudHydrated, setCloudHydrated] = useState(false);
@@ -288,7 +288,7 @@ export function ActiveWorkoutView({
 
   // Route gating:
   // - `/active-workout` is a strict "session view" and must NOT be accessible without an active session.
-  // - `/start-workout` is the entry point that lets user pick a plan and begin a session.
+  // - `/workout-plan` is the entry point that lets user pick a plan and begin a session.
   useEffect(() => {
     if (display !== "page") return;
     if (suppressRouteGate || !storeHydrated || !cloudHydrated) return;

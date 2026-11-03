@@ -22,7 +22,6 @@ Grupy tras i ramy:
 | Ścieżka | Cel | Komponenty |
 |---|---|---|
 | `active-workout/page.tsx` | Sesja na żywo (pełny ekran, bez belki) | `active-workout/active-workout-view` (`guided-session-layout`, `session-chrome`, `rest-break-screen`, `live-coach-banner`, `ghost-race-hud`, `workout-finished-screen`), `workout/SetRow`, `workout/plate-calculator-sheet` |
-| `start-workout/page.tsx` | Przekierowanie na `/workout-plan` | - |
 | `workout-history/page.tsx`, `[id]/page.tsx`, `[id]/edit/page.tsx` | Historia, szczegół, korekta sesji | `workout-history/*`, `ScreenHeader` |
 | `profile/workout-plan/page.tsx` | Edytor planu | `workout-plan/workout-plan-editor`, `workout-plan-word-import` |
 | `cardio/page.tsx`, `cardio/record/page.tsx`, `cardio/[id]/page.tsx` | Hub cardio, nagrywanie trasy (pełny ekran), szczegół | `cardio/cardio-hub-view`, `cardio-record-client`, `cardio-detail-client`, `cardio-route-map` |

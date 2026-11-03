@@ -1,9 +1,9 @@
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { getDb } from "@/db";
-import { userSettings, workouts } from "@/db/schema";
+import { workouts } from "@/db/schema";
+import { getCardioWeekSummary } from "@/lib/cardio-week";
 import { addCalendarDays, calendarDateKey, calendarWeekMondayKey } from "@/lib/local-date";
 import {
-  countableCardioMinutes,
   isCompletedStrengthSession,
   isStandaloneCardioLog,
 } from "@/lib/workout-cardio-attribution";
@@ -113,11 +113,8 @@ export async function getTreningiHubStats(
   const sunday = addCalendarDays(monday, 6);
   const streakLookbackMonday = addCalendarDays(monday, -7 * 11);
 
-  const [goalRow] = await db
-    .select({ goal: userSettings.weeklyCardioGoalMinutes })
-    .from(userSettings)
-    .where(eq(userSettings.userId, userId))
-    .limit(1);
+  // Minuty / sesje / cel cardio — jedna wspólna funkcja (US12), jak Pulpit i hub cardio.
+  const cardioWeek = await getCardioWeekSummary(userId, { todayKey });
 
   const lookbackRows = await db
     .select({
@@ -137,8 +134,6 @@ export async function getTreningiHubStats(
     .orderBy(desc(workouts.date), desc(workouts.id));
 
   let workoutsThisWeek = 0;
-  let cardioMinutesThisWeek = 0;
-  let cardioSessionsThisWeek = 0;
   let tonnageThisWeekKg = 0;
   const weeksWithGuided = new Set<string>();
 
@@ -150,9 +145,6 @@ export async function getTreningiHubStats(
     const metrics = metricsFromSessionJson(row.id, row.date, row.exercises);
     const inThisWeek = row.date >= monday && row.date <= sunday;
     if (inThisWeek) {
-      const weekCardio = countableCardioMinutes(parsed, row.cardioMinutes ?? 0);
-      cardioMinutesThisWeek += weekCardio;
-      if (weekCardio > 0) cardioSessionsThisWeek += 1;
       if (isGuidedStrength(parsed)) {
         workoutsThisWeek += 1;
         tonnageThisWeekKg += metrics.volumeKg;
@@ -205,9 +197,9 @@ export async function getTreningiHubStats(
 
   return {
     workoutsThisWeek,
-    cardioMinutesThisWeek,
-    cardioSessionsThisWeek,
-    cardioGoalMinutes: goalRow?.goal ?? 150,
+    cardioMinutesThisWeek: cardioWeek.minutes,
+    cardioSessionsThisWeek: cardioWeek.sessions,
+    cardioGoalMinutes: cardioWeek.goalMinutes,
     tonnageThisWeekKg,
     streakWeeks,
     recentWorkouts,

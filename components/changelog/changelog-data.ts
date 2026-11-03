@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Te same liczby cardio i tonaż na każdym ekranie",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Minuty cardio w tygodniu są liczone jedną regułą (pon–niedz, razem ze starszymi wpisami) na Start, w Treningach, w arkuszu „Dodaj cardio”, w Analizie i w raportach — także bez planu treningowego. W Profilu → Trening możesz przełączyć liczenie na „ostatnie 7 dni”.",
+      "Tonaż i serie liczą się tak samo na Start, w Historii i w Analizie (rozgrzewki nie wchodzą do tonażu). Usunięta nieużywana strona /start-workout; testy kontraktowe pilnują zgodności liczb.",
+    ],
+  },
+  {
     title: "Zapowiedź — Bezpieczniejszy panel administratora i porządki w repozytorium",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

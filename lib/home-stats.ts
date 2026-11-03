@@ -1,3 +1,8 @@
+import {
+  exerciseTotalReps,
+  exerciseVolume,
+  type VolumeSetInput,
+} from "@/lib/workout-session-calculations";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { workoutPlans, workouts } from "@/db/schema";
@@ -33,6 +38,8 @@ type ParsedSet = {
   reps?: number | string;
   weight?: number | string;
   done?: boolean;
+  skipped?: boolean;
+  warmup?: boolean;
 };
 
 type ParsedExercise = {
@@ -48,7 +55,7 @@ type CompletedSessionJson = {
   exercises?: ParsedExercise[];
 };
 
-function parseWorkoutExercises(json: string): {
+export function parseWorkoutExercises(json: string): {
   volumeKg: number;
   totalReps: number;
   title: string;
@@ -76,19 +83,25 @@ function parseWorkoutExercises(json: string): {
   }
 
   const exercises = Array.isArray(parsed.exercises) ? parsed.exercises : [];
+  // Kanon tonażu / powtórzeń: lib/workout-session-calculations.ts (jak Historia i Analiza).
   let volumeKg = 0;
   let totalReps = 0;
-
   for (const ex of exercises) {
-    const sets = Array.isArray(ex.sets) ? ex.sets : [];
-    for (const s of sets) {
-      if (!s.done || Boolean((s as { skipped?: boolean }).skipped)) continue;
-      const reps = Math.max(0, Math.round(Number(s.reps ?? 0)));
-      const weight = Math.max(0, Number(s.weight ?? 0));
-      if (!(reps > 0)) continue;
-      totalReps += reps;
-      if (weight > 0) volumeKg += reps * weight;
-    }
+    const sets: VolumeSetInput[] = (Array.isArray(ex.sets) ? ex.sets : []).map(
+      (s) => {
+        const reps = Number(s.reps ?? 0);
+        const weight = Number(s.weight ?? 0);
+        return {
+          reps: Number.isFinite(reps) ? Math.round(reps) : null,
+          weight: Number.isFinite(weight) ? weight : 0,
+          done: s.done,
+          skipped: s.skipped,
+          warmup: s.warmup,
+        };
+      },
+    );
+    volumeKg += exerciseVolume(sets);
+    totalReps += exerciseTotalReps(sets);
   }
 
   return { volumeKg: Math.round(volumeKg), totalReps, title, durationMinutes };

@@ -239,6 +239,13 @@
       "when": 1806200000000,
       "tag": "0040_admin_two_factor",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1806300000000,
+      "tag": "0041_cardio_week_mode",
+      "breakpoints": true
     }
   ]
 }

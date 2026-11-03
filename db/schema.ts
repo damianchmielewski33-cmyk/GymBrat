@@ -645,6 +645,8 @@ export const userSettings = sqliteTable("user_settings", {
   weeklyCardioGoalMinutes: integer("weekly_cardio_goal_minutes")
     .notNull()
     .default(150),
+  /** Jak liczyć tydzień cardio: "calendar" (pon–niedz) albo "rolling" (ostatnie 7 dni). */
+  cardioWeekMode: text("cardio_week_mode").notNull().default("calendar"),
   /** Co ile dni dodawać raport sylwetki (timer na Pulpicie restartuje się po zapisie). */
   reportCadenceDays: integer("report_cadence_days").notNull().default(14),
   /** JSON: { calories, proteinG, fatG, carbsG } — cele na dzień treningowy */

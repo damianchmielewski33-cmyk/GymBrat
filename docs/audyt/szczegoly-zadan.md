@@ -48,16 +48,16 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z32 | 2FA i blokada dla admina; usunięcie PIN-u | kod | P1 | M | KOD GOTOWY (wymóg za flagą ADMIN_2FA_REQUIRED, włączenie NA KONIEC), TESTY NIEURUCHOMIONE |
 | Z33 | Repo prywatne i higiena drzewa | kod/konfig | P1 | S | HIGIENA W REPO GOTOWA; zmiana widoczności repo NA KONIEC (właściciel) |
 | Z34 | Test uprawnień tras admina | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
-| Z35 | Jedna definicja tygodnia i minut cardio | kod | P1 | M | TODO |
+| Z35 | Jedna definicja tygodnia i minut cardio | kod | P1 | M | KOD GOTOWY (`lib/cardio-week-range.ts` + `lib/cardio-week.ts`, wybór trybu w Profilu), TESTY NIEURUCHOMIONE |
 | Z36 | Komunikaty rejestracji bez SMTP | kod | P1 | S | TODO |
 | Z37 | Obecność w treningu tylko przy udostępnianiu | kod | P1 | S | TODO |
-| Z38 | Spójne cardio także bez planu | kod | P1 | S | TODO |
+| Z38 | Spójne cardio także bez planu | kod | P1 | S | KOD GOTOWY (martwy `/start-workout` usunięty, rejestracja → `/workout-plan`), TESTY NIEURUCHOMIONE |
 | Z39 | Zdjęcia w magazynie obiektowym | kod | P1 | L | TODO |
 | Z40 | Jedno źródło schematu bazy | kod | P1 | L | TODO |
 | Z41 | Pomiar wydajności na buildzie produkcyjnym | kod/pomiar | P1 | S | TODO |
 | Z42 | Lint zielony | kod | P1 | L | TODO |
 | Z43 | E2E krytycznych ścieżek | kod | P1 | L | TODO |
-| Z44 | Testy kontraktowe liczb między ekranami | kod | P1 | M | TODO |
+| Z44 | Testy kontraktowe liczb między ekranami | kod | P1 | M | KOD GOTOWY (`lib/cardio-week-range.test.ts`, `lib/volume-contract.test.ts`), NIEURUCHOMIONE |
 | Z45 | Rozszerzony `deploy:check` | kod | P1 | S | TODO |
 | Z46 | Naprawa i utrzymanie specyfikacji E2E | kod | P1 | M | TODO |
 | Z47 | Staging z testowymi kluczami HotPay | konfig | P1 | M | TODO |

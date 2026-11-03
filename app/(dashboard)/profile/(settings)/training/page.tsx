@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Dumbbell } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AppPageHeader } from "@/components/layout/screen";
+import { CardioWeekModePicker } from "@/components/profile/cardio-week-mode-picker";
 import { ProfileGoalForm } from "@/components/profile/profile-goal-form";
 import {
   ProfileBlock,
@@ -13,6 +14,7 @@ import { ProgressDeltaUnitPicker } from "@/components/profile/progress-delta-uni
 import { ReportCadenceForm } from "@/components/profile/report-cadence-form";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
+import { parseCardioWeekMode } from "@/lib/cardio-week-range";
 import { parseProgressDeltaUnit } from "@/lib/progress-delta-unit";
 
 export default async function ProfileTrainingPage() {
@@ -24,6 +26,7 @@ export default async function ProfileTrainingPage() {
   const [s] = await db
     .select({
       goal: userSettings.weeklyCardioGoalMinutes,
+      cardioWeekMode: userSettings.cardioWeekMode,
       reportCadenceDays: userSettings.reportCadenceDays,
       progressDeltaUnit: userSettings.progressDeltaUnit,
     })
@@ -48,6 +51,12 @@ export default async function ProfileTrainingPage() {
           description="Minuty cardio na tydzień."
         >
           <ProfileGoalForm initialGoal={s?.goal ?? 150} />
+        </ProfileBlock>
+        <ProfileBlock
+          title="Tydzień cardio"
+          description="Jak liczyć minuty do celu: ten sam wybór na Start, w Treningach i w arkuszu cardio."
+        >
+          <CardioWeekModePicker initialMode={parseCardioWeekMode(s?.cardioWeekMode)} />
         </ProfileBlock>
         <ProfileBlock
           title="Cykl raportów"
