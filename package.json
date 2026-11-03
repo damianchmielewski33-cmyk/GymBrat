@@ -17,6 +17,8 @@
     "deploy:check:production": "node scripts/check-gymbrat-deploy.mjs --quality --production",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:run": "node scripts/db-migrate.mjs",
+    "db:migrate:check": "node scripts/db-migrate.mjs --check",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:reset": "node scripts/db-reset.js"

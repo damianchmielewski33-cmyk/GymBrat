@@ -1,6 +1,7 @@
 import type { Client } from "@libsql/client";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { getDb } from "./index";
+import { getSchemaMode } from "./schema-mode";
 import * as schema from "./schema";
 import { withDbRetry } from "./with-retry";
 
@@ -15,6 +16,8 @@ let schemaEnsured = false;
  */
 export async function ensureCriticalSchema(): Promise<void> {
   if (schemaEnsured) return;
+  // Z40: w trybie `migrations` schemat pochodzi wyłącznie z migracji — brak DDL w gorących ścieżkach.
+  if (getSchemaMode() === "migrations") return;
   if (!schemaEnsurePromise) {
     schemaEnsurePromise = withDbRetry(() => ensureCriticalSchemaOnce(), {
       attempts: 3,

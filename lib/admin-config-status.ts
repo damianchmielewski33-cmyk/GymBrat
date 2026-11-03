@@ -126,6 +126,11 @@ const INTEGRATIONS: IntegrationDef[] = [
     vars: [
       { names: ["TURSO_DATABASE_URL"], hint: "Lokalnie: file:./local.db" },
       { names: ["TURSO_AUTH_TOKEN"], optional: true, hint: "Wymagany dla Turso w chmurze." },
+      {
+        names: ["SCHEMA_MODE"],
+        optional: true,
+        hint: "Puste/ensure = schemat dopełniany w runtime (domyślnie). migrations = tylko migracje (npm run db:migrate:run przed wdrożeniem).",
+      },
     ],
   },
   {
