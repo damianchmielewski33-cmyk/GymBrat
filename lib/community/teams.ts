@@ -918,7 +918,19 @@ export async function joinTeamByCode(
     });
   }
 
-  await refreshMemberCount(team.id);
+  // Z72: limit członków sprawdzany też po zapisie (równoległe dołączenia).
+  const joinedCount = await refreshMemberCount(team.id);
+  if (joinedCount > team.maxMembers) {
+    await db
+      .update(teamMembers)
+      .set({ status: "left", leftAt: new Date() })
+      .where(
+        and(eq(teamMembers.teamId, team.id), eq(teamMembers.userId, userId)),
+      );
+    await refreshMemberCount(team.id);
+    invalidatePublicTeamsCache();
+    return { ok: false as const, error: "Grupa osiągnęła limit członków." };
+  }
   invalidatePublicTeamsCache();
 
   const { track } = await import("@/lib/analytics/track-server");
