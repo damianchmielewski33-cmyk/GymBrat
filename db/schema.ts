@@ -259,6 +259,8 @@ export const bodyReportPhotos = sqliteTable("body_report_photos", {
     .references(() => bodyReports.id, { onDelete: "cascade" }),
   /** Data URL (base64) — docelowo można wymienić na URL storage */
   dataUrl: text("data_url").notNull(),
+  /** Z39: klucz obiektu w magazynie S3 (gdy ustawiony, `data_url` jest pusty). */
+  objectKey: text("object_key"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),

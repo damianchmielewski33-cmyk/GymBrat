@@ -32,7 +32,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US12 | Spójność liczb (cardio) | P1 | M | Z35, Z38, Z44 | ZROBIONE W REPO 2026-11-03 (testy nieuruchomione; kcal: różnica brutto/netto celowo zostaje) |
 | US13 | Trening i raport ciała: poprawki UX | P1 | L | Z37, Z62, Z63, Z64 | ZROBIONE W REPO 2026-11-03 (testy, E2E i axe nieuruchomione) |
 | US14 | Jakość: lint, E2E, bramki wdrożeniowe | P1 | XL | Z42, Z43, Z45, Z46 | CZĘŚCIOWO 2026-11-03: Z45 zrobione i uruchomione; Z43/Z46 kod gotowy, NIEURUCHOMIONE; Z42 (lint) TODO — brak eslinta w sesji |
-| US15 | Dane i architektura | P1 | XL | Z39, Z40, Z72 | TODO |
+| US15 | Dane i architektura | P1 | XL | Z39, Z40, Z72 | GOTOWE W KODZIE 2026-11-03 (za flagami; testy/tsc NIEURUCHOMIONE, brak npm): Z72 pełne; Z40 runner + `SCHEMA_MODE` (domyślnie `ensure`); Z39 S3 dla zdjęć raportów (domyślnie wyłączone), bez miniatur i uploadu z klienta |
 | US16 | Wydajność | P2 | L | Z41, Z70, Z71, Z79 | TODO |
 | US17 | Spójność wizualna i dostępność | P2 | XL | Z59, Z60, Z61, Z65, Z66, Z67, Z68, Z69, Z74 | TODO |
 | US18 | Onboarding, rejestracja i porządki produktu | P2 | L | Z36, Z58, Z77, Z78 | TODO |
@@ -145,7 +145,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** 0 błędów lint; E2E zielone lokalnie i w CI; `deploy:check` blokuje promote przy braku konfiguracji płatności/SMTP/Upstash/`CRON_SECRET`/`ADMIN_EMAILS`.
 
 ## US15 — Dane i architektura
-**P1 · XL · Zależności** US3 (zgody na zdjęcia) · **Postęp** 0/3
+**P1 · XL · Zależności** US3 (zgody na zdjęcia) · **Postęp** 1/3 gotowe w kodzie (Z72), 2/3 częściowo za flagami domyślnie OFF (Z39 tylko zdjęcia raportów, bez miniatur/uploadu z klienta; Z40 runner + `SCHEMA_MODE`, ensure-schema nadal domyślny) · **Decyzje** DK-26 w `docs/zespol/decyzje-wlasciciela.md`
 **Cel** Uporządkować magazynowanie i schemat zanim wzrośnie skala.
 **Podzadania** Z40 jedno źródło schematu (migracje Drizzle) · Z39 zdjęcia w magazynie obiektowym zamiast `data_url` w bazie · Z72 CAS w modułach społeczności.
 **Gotowe, gdy** `ensure-schema` sprowadzony do kontroli wersji; zdjęcia poza bazą z migracją danych; równoległe zapisy XP/wojen nie gubią punktów (testy współbieżności).

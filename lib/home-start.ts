@@ -685,7 +685,7 @@ async function loadTransformationPhotos(userId: string): Promise<{
         reportIds.length === 1
           ? eq(bodyReportPhotos.reportId, reportIds[0]!)
           : inArray(bodyReportPhotos.reportId, reportIds),
-        sql`${bodyReportPhotos.dataUrl} IS NOT NULL AND length(trim(${bodyReportPhotos.dataUrl})) > 0`,
+        sql`(${bodyReportPhotos.objectKey} IS NOT NULL OR (${bodyReportPhotos.dataUrl} IS NOT NULL AND length(trim(${bodyReportPhotos.dataUrl})) > 0))`,
       ),
     )
     .orderBy(asc(bodyReportPhotos.createdAt), asc(bodyReportPhotos.id));

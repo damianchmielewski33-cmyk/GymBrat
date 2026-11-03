@@ -5,6 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import type { Database } from "@/db";
 import { subscriptionOrders, users } from "@/db/schema";
 import { buildUserDataPurgeStatements } from "@/lib/account-purge";
+import { deleteObjectKeys, listUserPhotoObjectKeys } from "@/lib/photo-objects-cleanup";
 
 /** Logowanie OAuth/hasłem nie starsze niż tyle liczy się jako „świeże” (DK-15). */
 export const REAUTH_WINDOW_MS = 5 * 60_000;
@@ -43,6 +44,7 @@ export async function verifyDeleteReauth(args: {
  * na końcu wiersz `users`. Sesje JWT przestają działać, bo konto nie istnieje (`getAccountAuthState`).
  */
 export async function deleteUserAccount(db: Database, userId: string): Promise<void> {
+  const photoKeys = await listUserPhotoObjectKeys(db, userId);
   const purge = buildUserDataPurgeStatements(db, userId);
   const [first, ...rest] = [
     ...purge,
@@ -50,4 +52,5 @@ export async function deleteUserAccount(db: Database, userId: string): Promise<v
     db.delete(users).where(eq(users.id, userId)),
   ];
   await db.batch([first!, ...rest]);
+  await deleteObjectKeys(photoKeys);
 }

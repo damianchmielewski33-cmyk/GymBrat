@@ -17,6 +17,7 @@
     "deploy:check:production": "node scripts/check-gymbrat-deploy.mjs --quality --production",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "photos:migrate-storage": "node --experimental-strip-types --no-warnings scripts/migrate-photos-to-storage.ts",
     "db:migrate:run": "node scripts/db-migrate.mjs",
     "db:migrate:check": "node scripts/db-migrate.mjs --check",
     "db:push": "drizzle-kit push",

@@ -13,6 +13,7 @@ import {
   workouts,
 } from "@/db/schema";
 import { maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
+import { loadStoredPhotoPayload } from "@/lib/photo-payload";
 import { buildExtraExport } from "@/lib/user-data-export-extra";
 
 export type UserDataExport = {
@@ -94,7 +95,7 @@ export async function buildUserDataExport(userId: string): Promise<UserDataExpor
     const arr = photosByReport.get(p.reportId) ?? [];
     arr.push({
       id: p.id,
-      dataUrl: maybeDecryptSensitiveField(p.dataUrl) ?? "",
+      dataUrl: maybeDecryptSensitiveField(await loadStoredPhotoPayload(p)) ?? "",
     });
     photosByReport.set(p.reportId, arr);
   }

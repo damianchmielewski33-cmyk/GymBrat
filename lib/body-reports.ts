@@ -1,3 +1,5 @@
+import { isObjectStorageEnabled, putObject } from "@/lib/object-storage";
+import { loadStoredPhotoPayload } from "@/lib/photo-payload";
 import { desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { bodyReportPhotos, bodyReports, weightLogs } from "@/db/schema";
@@ -149,7 +151,12 @@ export async function getBodyReports(
         photoMode === "meta"
           ? "meta"
           : maybeDecryptSensitiveField(
-              "dataUrl" in p ? String(p.dataUrl ?? "") : "",
+              "dataUrl" in p
+                ? await loadStoredPhotoPayload({
+                    dataUrl: String(p.dataUrl ?? ""),
+                    objectKey: "objectKey" in p ? p.objectKey : null,
+                  })
+                : "",
             ) ?? "";
       arr.push({
         id: p.id,
@@ -285,12 +292,17 @@ export async function createBodyReport(userId: string, input: CreateBodyReportIn
     .slice(0, 8);
 
   if (dataUrls.length) {
-    await db.insert(bodyReportPhotos).values(
-      dataUrls.map((dataUrl) => ({
-        reportId,
-        dataUrl: encryptSensitiveField(dataUrl),
-      })),
+    const rows = await Promise.all(
+      dataUrls.map(async (dataUrl) => {
+        const encrypted = encryptSensitiveField(dataUrl);
+        if (!isObjectStorageEnabled()) return { reportId, dataUrl: encrypted };
+        // Z39: zaszyfrowany ładunek trafia do magazynu obiektowego, w bazie tylko klucz.
+        const objectKey = `body-reports/${userId}/${reportId}/${crypto.randomUUID()}`;
+        await putObject(objectKey, encrypted, "text/plain");
+        return { reportId, dataUrl: "", objectKey };
+      }),
     );
+    await db.insert(bodyReportPhotos).values(rows);
   }
 
   return reportId;

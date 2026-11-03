@@ -52,8 +52,8 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z36 | Komunikaty rejestracji bez SMTP | kod | P1 | S | TODO |
 | Z37 | Obecność w treningu tylko przy udostępnianiu | kod | P1 | S | KOD GOTOWY (204 zamiast 403 + klient przestaje wysyłać; test trasy), TESTY NIEURUCHOMIONE |
 | Z38 | Spójne cardio także bez planu | kod | P1 | S | KOD GOTOWY (martwy `/start-workout` usunięty, rejestracja → `/workout-plan`), TESTY NIEURUCHOMIONE |
-| Z39 | Zdjęcia w magazynie obiektowym | kod | P1 | L | TODO |
-| Z40 | Jedno źródło schematu bazy | kod | P1 | L | TODO |
+| Z39 | Zdjęcia w magazynie obiektowym | kod | P1 | L | CZĘŚCIOWO 2026-11-03: S3-kompatybilny klient (SigV4, wektor AWS zielony w node), `object_key`, serwowanie z autoryzacją, sprzątanie przy usunięciu konta/retencji, skrypt migracji + rollback, limity; flaga `PHOTO_STORAGE=s3` domyślnie OFF. Brak: miniatur, uploadu z klienta, pozostałych tabel z `data_url` |
+| Z40 | Jedno źródło schematu bazy | kod | P1 | L | CZĘŚCIOWO 2026-11-03: runner `db:migrate:run`/`db:migrate:check`, `SCHEMA_MODE=migrations` wyłącza runtime DDL, test zgodności schema.ts↔migracje (NIEURUCHOMIONY). Domyślnie nadal `ensure`; przełączenie i usunięcie ensure-schema po teście na stagingu |
 | Z41 | Pomiar wydajności na buildzie produkcyjnym | kod/pomiar | P1 | S | TODO |
 | Z42 | Lint zielony | kod | P1 | L | TODO — wymaga uruchomienia `npm run lint` (102 błędy); dodano `lint:ci` (`--max-warnings=0`) i job CI nieblokujący |
 | Z43 | E2E krytycznych ścieżek | kod | P1 | L | KOD GOTOWY (`payments.spec.ts`, `registration.spec.ts`, CI), NIEURUCHOMIONE; raport HTML w artefakcie CI |
@@ -85,7 +85,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z69 | Dokończenie przeglądu wizualnego ekranów | pomiar | P2 | M | TODO |
 | Z70 | Mniejszy payload RSC (Dieta/Tydzień, Atlas) | kod | P2 | M | TODO |
 | Z71 | Mniej zapisów synchronizacji treningu | kod | P2 | M | TODO |
-| Z72 | CAS w modułach społeczności | kod | P2 | M | TODO |
+| Z72 | CAS w modułach społeczności | kod | P2 | M | GOTOWE W KODZIE 2026-11-03 (testy NIEURUCHOMIONE) |
 | Z73 | Realizacja decyzji o Javie | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z74 | Dostępność WCAG AA | kod | P2 | M | TODO |
 | Z75 | Panel finansowy | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |

@@ -117,6 +117,22 @@ export const CONFIG_GROUP_LABELS: Record<ConfigGroupId, { label: string; descrip
 
 const INTEGRATIONS: IntegrationDef[] = [
   {
+    id: "photo-storage",
+    group: "core",
+    label: "Magazyn zdjęć (S3 / R2 / MinIO)",
+    description: "Opcjonalny magazyn obiektowy dla zdjęć raportów sylwetki zamiast bazy (data_url).",
+    level: "optional",
+    effectWhenMissing: "Zdjęcia nadal zapisywane w bazie (zaszyfrowane) — działa jak dotychczas.",
+    vars: [
+      { names: ["PHOTO_STORAGE"], optional: true, hint: "Ustaw s3, aby włączyć magazyn obiektowy." },
+      { names: ["OBJECT_STORAGE_ENDPOINT"], optional: true, hint: "Np. https://<account>.r2.cloudflarestorage.com" },
+      { names: ["OBJECT_STORAGE_BUCKET"], optional: true },
+      { names: ["OBJECT_STORAGE_ACCESS_KEY_ID"], optional: true },
+      { names: ["OBJECT_STORAGE_SECRET_ACCESS_KEY"], optional: true },
+      { names: ["OBJECT_STORAGE_REGION"], optional: true, hint: "Domyślnie auto (R2). AWS: np. eu-central-1." },
+    ],
+  },
+  {
     id: "database",
     group: "core",
     label: "Baza danych (Turso)",

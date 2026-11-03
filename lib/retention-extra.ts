@@ -1,3 +1,4 @@
+import { deleteObjectKeys, listUserPhotoObjectKeys } from "@/lib/photo-objects-cleanup";
 import "server-only";
 
 import { and, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
@@ -153,7 +154,9 @@ export async function runInactiveRetention(
       (r) => r.id,
     );
     if (reportIds.length > 0) {
+      const photoKeys = await listUserPhotoObjectKeys(db, u.id);
       await db.delete(bodyReportPhotos).where(inArray(bodyReportPhotos.reportId, reportIds));
+      await deleteObjectKeys(photoKeys);
     }
     await db.update(userSettings).set({ startPhotoDataUrl: null }).where(eq(userSettings.userId, u.id));
     result.photosPurged += 1;

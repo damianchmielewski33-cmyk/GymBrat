@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Dane i wydajność: uczciwe punkty, przygotowanie pod skalę",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Punkty doświadczenia, wojny zespołów i misje liczą się poprawnie także przy równoczesnych treningach wielu osób (bez gubienia XP i podwójnych nagród).",
+      "Przygotowanie pod większą skalę: opcjonalny magazyn zdjęć w chmurze (S3/R2) oraz tryb schematu bazy tylko z migracji. Obie opcje są domyślnie wyłączone, więc nic się nie zmienia, dopóki właściciel ich nie włączy.",
+    ],
+  },
+  {
     title: "Zapowiedź — Bramki jakości przed wdrożeniem",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

@@ -1685,6 +1685,9 @@ CREATE TABLE IF NOT EXISTS "user_consents" (
     `CREATE INDEX IF NOT EXISTS "user_consents_user_type_decided" ON "user_consents" ("user_id","type","decided_at")`,
   );
 
+  await tryAddColumn(
+    `ALTER TABLE "body_report_photos" ADD COLUMN "object_key" text`,
+  );
   // Redesign Team 012 / ADR 0011
   await tryAddColumn(
     `ALTER TABLE "user_social_profiles" ADD COLUMN "opted_in_to_team_ranking" integer NOT NULL DEFAULT 0`,
