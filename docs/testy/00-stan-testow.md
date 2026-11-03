@@ -7,7 +7,7 @@ Data: 2026-10-23, gałąź `feat/error-handling-system`. Dokument informacyjny, 
 | Obszar | Narzędzie | Konfiguracja |
 |---|---|---|
 | Unit/integracja | Vitest 2.1.9 | `vitest.config.ts`: środowisko `node`, `include: ["**/*.test.ts"]`, `globals: false` (importuj `describe/it/expect` z `vitest`), alias `@` -> korzeń repo. Brak setupu, brak jsdom, brak pokrycia (coverage), brak testów `.tsx`. |
-| E2E | Playwright 1.59 | `playwright.config.ts`: `testDir ./e2e`, `baseURL` = `PLAYWRIGHT_BASE_URL` lub `http://127.0.0.1:3000`, retries 2 na CI, trace on-first-retry. Brak `webServer` (serwer trzeba uruchomić ręcznie), brak projektów mobilnych/przeglądarek, brak testów wizualnych. |
+| E2E | Playwright 1.59 | `playwright.config.ts`: `testDir ./e2e`, `baseURL` = `PLAYWRIGHT_BASE_URL` lub `http://127.0.0.1:3000`, retries 2 na CI, trace on-first-retry. Od US14: `webServer` (`next dev`, gdy brak `PLAYWRIGHT_BASE_URL`), `globalSetup` loguje raz (`storageState`), projekty `public` i `authed`; CI: `.github/workflows/ci.yml` (job E2E na `file:./e2e.db` + `scripts/seed-local-mock.cjs`, na razie nieblokujący). Brak projektów mobilnych/przeglądarek, brak testów wizualnych. |
 | Lint | ESLint 9 + `eslint-config-next` (reguły React Compiler/react-hooks) | `eslint.config.*` |
 | Typy | `tsc --noEmit` | `tsconfig.json` |
 | Java | JUnit/Spring | `java-backend/src/test/java/pl/gymbrat/backend/ApiIntegrationTest.java` (jedyny test) |

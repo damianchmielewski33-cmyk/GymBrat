@@ -65,3 +65,7 @@ android/**/build/
 /blob-report/
 /undefined
 *.log
+
+# E2E (US14)
+/e2e/.auth/
+e2e.db*

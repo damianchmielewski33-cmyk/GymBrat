@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Bramki jakości przed wdrożeniem",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Kontrola przed wdrożeniem na produkcję blokuje promote, gdy brakuje konfiguracji płatności (HotPay), poczty (SMTP), limitów (Upstash), CRON_SECRET lub ADMIN_EMAILS; może też uruchomić lint i testy.",
+      "Nowy przebieg CI: typy, testy jednostkowe, lint oraz testy E2E rejestracji, płatności i treningu na lokalnej bazie z danymi testowymi (E2E i lint na razie nie blokują merge).",
+    ],
+  },
+  {
     title: "Zapowiedź — Spokojniejszy trening i dostępny raport ciała",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

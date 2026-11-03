@@ -31,7 +31,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US11 | Bezpieczeństwo admina, Java i repo | P1 | L | Z31, Z32, Z33, Z34, Z73 | ZROBIONE W REPO 2026-11-03 (Z33 repo prywatne i włączenie wymogu 2FA NA KONIEC; testy nieuruchomione) |
 | US12 | Spójność liczb (cardio) | P1 | M | Z35, Z38, Z44 | ZROBIONE W REPO 2026-11-03 (testy nieuruchomione; kcal: różnica brutto/netto celowo zostaje) |
 | US13 | Trening i raport ciała: poprawki UX | P1 | L | Z37, Z62, Z63, Z64 | ZROBIONE W REPO 2026-11-03 (testy, E2E i axe nieuruchomione) |
-| US14 | Jakość: lint, E2E, bramki wdrożeniowe | P1 | XL | Z42, Z43, Z45, Z46 | TODO |
+| US14 | Jakość: lint, E2E, bramki wdrożeniowe | P1 | XL | Z42, Z43, Z45, Z46 | CZĘŚCIOWO 2026-11-03: Z45 zrobione i uruchomione; Z43/Z46 kod gotowy, NIEURUCHOMIONE; Z42 (lint) TODO — brak eslinta w sesji |
 | US15 | Dane i architektura | P1 | XL | Z39, Z40, Z72 | TODO |
 | US16 | Wydajność | P2 | L | Z41, Z70, Z71, Z79 | TODO |
 | US17 | Spójność wizualna i dostępność | P2 | XL | Z59, Z60, Z61, Z65, Z66, Z67, Z68, Z69, Z74 | TODO |
@@ -139,7 +139,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Trening solo nie generuje błędów 403; 0 kg wymaga świadomego wyboru; ekran Trening nie dubluje akcji; pola i skale raportu mają etykiety (axe bez błędów krytycznych).
 
 ## US14 — Jakość: lint, E2E, bramki wdrożeniowe
-**P1 · XL · Zależności** brak (Z46 przed Z43) · **Postęp** 0/4
+**P1 · XL · Zależności** brak (Z46 przed Z43) · **Postęp** 1/4 zrobione (Z45), 2/4 kod bez uruchomienia (Z43, Z46), 1/4 TODO (Z42; wymaga `npm ci` i `npm run lint`) · **Decyzje** DK-25 w `docs/zespol/decyzje-wlasciciela.md` (sekcja „US14")
 **Cel** Zielone bramki jakości i działające E2E w CI.
 **Podzadania** Z46 naprawa specyfikacji E2E (dziś 9/41) · Z43 E2E krytycznych ścieżek (rejestracja, płatność sandbox, usunięcie konta) · Z42 lint zielony (102 błędy) · Z45 rozszerzony `deploy:check`.
 **Gotowe, gdy** 0 błędów lint; E2E zielone lokalnie i w CI; `deploy:check` blokuje promote przy braku konfiguracji płatności/SMTP/Upstash/`CRON_SECRET`/`ADMIN_EMAILS`.

@@ -55,11 +55,11 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z39 | Zdjęcia w magazynie obiektowym | kod | P1 | L | TODO |
 | Z40 | Jedno źródło schematu bazy | kod | P1 | L | TODO |
 | Z41 | Pomiar wydajności na buildzie produkcyjnym | kod/pomiar | P1 | S | TODO |
-| Z42 | Lint zielony | kod | P1 | L | TODO |
-| Z43 | E2E krytycznych ścieżek | kod | P1 | L | TODO |
+| Z42 | Lint zielony | kod | P1 | L | TODO — wymaga uruchomienia `npm run lint` (102 błędy); dodano `lint:ci` (`--max-warnings=0`) i job CI nieblokujący |
+| Z43 | E2E krytycznych ścieżek | kod | P1 | L | KOD GOTOWY (`payments.spec.ts`, `registration.spec.ts`, CI), NIEURUCHOMIONE; raport HTML w artefakcie CI |
 | Z44 | Testy kontraktowe liczb między ekranami | kod | P1 | M | KOD GOTOWY (`lib/cardio-week-range.test.ts`, `lib/volume-contract.test.ts`), NIEURUCHOMIONE |
-| Z45 | Rozszerzony `deploy:check` | kod | P1 | S | TODO |
-| Z46 | Naprawa i utrzymanie specyfikacji E2E | kod | P1 | M | TODO |
+| Z45 | Rozszerzony `deploy:check` | kod | P1 | S | ZROBIONE (skrypt uruchomiony, test jednostkowy napisany): `deploy:check --production`/`--env-file`/`--quality`, bramka w `deploy-vps.yml` |
+| Z46 | Naprawa i utrzymanie specyfikacji E2E | kod | P1 | M | KOD GOTOWY (storageState, projekty, CI `ci.yml`), NIEURUCHOMIONE; 4 rozbieżności asercji nierozstrzygnięte w pełni |
 | Z47 | Staging z testowymi kluczami HotPay | konfig | P1 | M | TODO |
 | Z48 | Test przywracania backupu | ops | P1 | S | TODO |
 | Z49 | Monitoring, alerty, status | ops | P1 | M | TODO |
