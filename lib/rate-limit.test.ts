@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { checkRateLimit, clientIpFromHeaders, trustedIpHeaderName } from "@/lib/rate-limit";
+import {
+  checkRateLimit,
+  clientIpFromHeaders,
+  isRateLimited,
+  resetRateLimit,
+  trustedIpHeaderName,
+} from "@/lib/rate-limit";
 
 describe("checkRateLimit (in-memory)", () => {
   it("allows under limit", () => {
@@ -41,5 +47,19 @@ describe("clientIpFromHeaders (Z30: zaufane IP)", () => {
   it("poza produkcją dopuszcza x-forwarded-for (dev/testy), bez nagłówków → local", () => {
     expect(clientIpFromHeaders(h({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" }), { NODE_ENV: "development" })).toBe("1.2.3.4");
     expect(clientIpFromHeaders(h({}), { NODE_ENV: "test" })).toBe("local");
+  });
+});
+
+describe("isRateLimited / resetRateLimit (blokada tylko po porażkach, DK-22)", () => {
+  it("nie zużywa próby; blokuje dopiero po wyczerpaniu limitu; reset zdejmuje blokadę", async () => {
+    const k = `admin-fail:${Math.random()}`;
+    expect(await isRateLimited(k, 2, 60_000)).toBe(false);
+    expect(await isRateLimited(k, 2, 60_000)).toBe(false); // sprawdzenie nie zużywa
+    checkRateLimit(k, 2, 60_000);
+    expect(await isRateLimited(k, 2, 60_000)).toBe(false);
+    checkRateLimit(k, 2, 60_000);
+    expect(await isRateLimited(k, 2, 60_000)).toBe(true);
+    await resetRateLimit(k, 2, 60_000);
+    expect(await isRateLimited(k, 2, 60_000)).toBe(false);
   });
 });

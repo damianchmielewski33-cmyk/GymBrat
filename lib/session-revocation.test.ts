@@ -40,6 +40,8 @@ vi.mock("@/lib/google-auth", () => ({
 vi.mock("@/lib/account-takeover", () => ({ signTakeoverToken: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimitAsync: vi.fn(),
+  isRateLimited: vi.fn(async () => false),
+  resetRateLimit: vi.fn(async () => undefined),
   clientIpFromHeaders: () => "ip",
   RATE: { loginIp: {}, loginEmail: {}, adminLogin: { limit: 5, windowMs: 900000 } },
 }));

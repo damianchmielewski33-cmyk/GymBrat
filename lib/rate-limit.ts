@@ -48,6 +48,38 @@ export async function checkRateLimitAsync(
   return { ok: true };
 }
 
+/**
+ * Czy klucz jest już wyczerpany — BEZ zużywania próby (np. blokada po błędnych logowaniach admina:
+ * próby zużywamy tylko przy porażce). Błąd Redis → nie blokujemy (fail-open).
+ */
+export async function isRateLimited(key: string, limit: number, windowMs: number): Promise<boolean> {
+  const lim = getUpstashLimiter(limit, windowMs);
+  if (!lim) {
+    const b = buckets.get(key);
+    return Boolean(b && Date.now() <= b.reset && b.n >= limit);
+  }
+  try {
+    const { remaining } = await lim.getRemaining(key);
+    return remaining <= 0;
+  } catch {
+    return false;
+  }
+}
+
+/** Zeruje licznik klucza (np. po udanym logowaniu). */
+export async function resetRateLimit(key: string, limit: number, windowMs: number): Promise<void> {
+  const lim = getUpstashLimiter(limit, windowMs);
+  if (!lim) {
+    buckets.delete(key);
+    return;
+  }
+  try {
+    await lim.resetUsedTokens(key);
+  } catch {
+    /* licznik wygaśnie sam */
+  }
+}
+
 export function checkRateLimit(
   key: string,
   limit: number,
@@ -126,7 +158,7 @@ export const RATE = {
   workoutCardioPatch: { limit: 30, windowMs: 60_000 },
   /** Weryfikacja 2FA admina (na IP); blokada konta po 5 błędach jest w bazie (lib/admin-2fa). */
   adminUnlock: { limit: 8, windowMs: 10 * 60_000 },
-  /** Logowanie hasłem na konto admina (DK-22): 5 prób / 15 min na konto. */
+  /** Logowanie hasłem na konto admina (DK-22): 5 BŁĘDNYCH prób / 15 min na konto i adres IP (udane logowanie zeruje). */
   adminLogin: { limit: 5, windowMs: 15 * 60_000 },
   adminMutation: { limit: 120, windowMs: 60_000 },
   /** Z22: start płatności (osobny klucz, nie dzieli budżetu z mutacjami admina). */

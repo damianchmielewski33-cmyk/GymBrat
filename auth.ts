@@ -24,6 +24,8 @@ import { LOGIN_RATE_LIMITED_CODE } from "@/lib/auth-error-codes";
 import {
   checkRateLimitAsync,
   clientIpFromHeaders,
+  isRateLimited,
+  resetRateLimit,
   RATE,
 } from "@/lib/rate-limit";
 
@@ -115,19 +117,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .limit(1);
         if (!user?.passwordHash) return null;
 
-        // Z32 / DK-22: konta admina — ostrzejsza blokada (5 prób na 15 min) niezależnie od IP.
-        if (user.appRole === "admin" || parseAdminEmails().has(normalizeAdminEmail(user.email))) {
-          const adminLimit = await checkRateLimitAsync(
-            `admin-login:${user.id}`,
-            RATE.adminLogin.limit,
-            RATE.adminLogin.windowMs,
-          );
-          if (!adminLimit.ok) throw new LoginRateLimited();
+        // Z32 / DK-22: konta admina — blokada po 5 BŁĘDNYCH hasłach na 15 min. Klucz = konto + IP, więc
+        // obcy z innego adresu nie zablokuje właścicielowi logowania; udane logowanie zeruje licznik.
+        const isAdminAccount =
+          user.appRole === "admin" || parseAdminEmails().has(normalizeAdminEmail(user.email));
+        const adminFailKey = isAdminAccount
+          ? `admin-login-fail:${user.id}:${clientIpFromHeaders(request.headers)}`
+          : null;
+        if (adminFailKey && (await isRateLimited(adminFailKey, RATE.adminLogin.limit, RATE.adminLogin.windowMs))) {
+          throw new LoginRateLimited();
         }
 
         const { compare } = await import("bcryptjs");
         const valid = await compare(password, user.passwordHash);
-        if (!valid) return null;
+        if (!valid) {
+          if (adminFailKey) await checkRateLimitAsync(adminFailKey, RATE.adminLogin.limit, RATE.adminLogin.windowMs);
+          return null;
+        }
+        if (adminFailKey) await resetRateLimit(adminFailKey, RATE.adminLogin.limit, RATE.adminLogin.windowMs);
 
         const effectiveRole = await syncAdminRoleOnLogin({
           id: user.id,

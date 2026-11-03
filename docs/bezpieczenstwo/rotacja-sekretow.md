@@ -23,3 +23,8 @@ Ogólna kolejność: **1)** wygeneruj nową wartość, **2)** ustaw ją na hosti
 
 ## Skan zależności
 Workflow `.github/workflows/dependency-security.yml` uruchamia `npm audit --audit-level=high` na każdym PR, pushu na `main`/`master` i co poniedziałek; zależności z lukami High/Critical blokują scalenie. PR dodatkowo przechodzi przegląd nowych zależności (`dependency-review-action`). Nie ignoruj alertu bez wpisu w tym pliku z uzasadnieniem i terminem naprawy.
+
+## Przed zmianą repozytorium na prywatne (Z33)
+- `scripts/fetch-android-apk.mjs` pobiera `gymbrat.apk` z publicznego GitHub Release. Dla repozytorium prywatnego żądanie bez uwierzytelnienia zwróci 404 i build nie dostanie APK. **Najpierw** przenieś plik na publiczny adres (np. R2/CDN) i ustaw `ANDROID_APK_URL` w środowisku budowania, albo pozostaw Release w osobnym, publicznym repozytorium z samymi plikami APK.
+- Sprawdź, czy `deploy-vps.yml` i inne workflow mają dostęp do repo (tokeny, `GITHUB_TOKEN`) i czy obraz w GHCR jest prywatny.
+- Wykonaj skan sekretów w historii (np. `gitleaks detect`) i zrotuj każdy znaleziony sekret według tabeli powyżej, zanim zmienisz widoczność.
