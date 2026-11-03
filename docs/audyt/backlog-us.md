@@ -30,7 +30,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US10 | Bezpieczeństwo aplikacji | P1 | L | Z29, Z30, Z56, Z57 | ZROBIONE W REPO 2026-11-02 (egzekwowanie CSP i rotacja sekretów NA KONIEC; testy nieuruchomione) |
 | US11 | Bezpieczeństwo admina, Java i repo | P1 | L | Z31, Z32, Z33, Z34, Z73 | ZROBIONE W REPO 2026-11-03 (Z33 repo prywatne i włączenie wymogu 2FA NA KONIEC; testy nieuruchomione) |
 | US12 | Spójność liczb (cardio) | P1 | M | Z35, Z38, Z44 | ZROBIONE W REPO 2026-11-03 (testy nieuruchomione; kcal: różnica brutto/netto celowo zostaje) |
-| US13 | Trening i raport ciała: poprawki UX | P1 | L | Z37, Z62, Z63, Z64 | TODO |
+| US13 | Trening i raport ciała: poprawki UX | P1 | L | Z37, Z62, Z63, Z64 | ZROBIONE W REPO 2026-11-03 (testy, E2E i axe nieuruchomione) |
 | US14 | Jakość: lint, E2E, bramki wdrożeniowe | P1 | XL | Z42, Z43, Z45, Z46 | TODO |
 | US15 | Dane i architektura | P1 | XL | Z39, Z40, Z72 | TODO |
 | US16 | Wydajność | P2 | L | Z41, Z70, Z71, Z79 | TODO |
@@ -133,7 +133,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Dane mock (20 min w tygodniu) dają 20 wszędzie, także w stanie „brak planu"; test kontraktowy pilnuje.
 
 ## US13 — Trening i raport ciała: poprawki UX
-**P1 · L · Zależności** brak · **Postęp** 0/4
+**P1 · L · Zależności** brak · **Postęp** 4/4 (kod; testy/E2E/axe nieuruchomione) · **Decyzje** DK-24 w `docs/zespol/decyzje-wlasciciela.md` (sekcja „US13")
 **Cel** Usunąć tarcie i błędy znalezione na mockach w głównych ścieżkach.
 **Podzadania** Z37 obecność w treningu tylko przy udostępnianiu (38× 403 w konsoli) · Z62 seria 0 kg — świadomy wybór · Z63 jedno sterowanie niedokończonym treningiem · Z64 dostępny formularz raportu ciała.
 **Gotowe, gdy** Trening solo nie generuje błędów 403; 0 kg wymaga świadomego wyboru; ekran Trening nie dubluje akcji; pola i skale raportu mają etykiety (axe bez błędów krytycznych).

@@ -23,6 +23,8 @@ import { buildSetSuggestionView } from "@/lib/set-suggestion-view";
 import { buildSupersetLabels } from "@/lib/start-workout-session";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
 import { resolveWeightStep } from "@/lib/weight-step";
+import { exerciseUsesExternalLoad } from "@/lib/exercise-load";
+import { BodyweightConfirmDialog } from "@/components/active-workout/bodyweight-confirm-dialog";
 import { buildSessionProgress } from "@/lib/workout-session-progress";
 import {
   MAX_REPS,
@@ -133,6 +135,9 @@ export function GuidedSessionLayout({
   const [synced, setSynced] = useState<SyncedSet | null>(null);
   const [saveIssue, setSaveIssue] = useState<SaveIssueState | null>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
+  const [bodyweightPromptOpen, setBodyweightPromptOpen] = useState(false);
+  /** Ćwiczenia, dla których użytkownik potwierdził „masa ciała” w tej sesji. */
+  const bodyweightConfirmedRef = useRef<Set<string>>(new Set());
   const repsInputRef = useRef<HTMLInputElement>(null);
   const saveGuardUntilRef = useRef(0);
   /** F2: wartość początkowa dla bieżącej serii — baseline dla `flushDraft` (LR-3). */
@@ -350,6 +355,15 @@ export function GuidedSessionLayout({
     if (issue) {
       setSaveIssue({ reps: true });
       repsInputRef.current?.focus();
+      return;
+    }
+    // Z62: 0 kg przy ćwiczeniu z obciążeniem — świadomy wybór „masa ciała” (raz na ćwiczenie).
+    if (
+      !(weight > 0) &&
+      !bodyweightConfirmedRef.current.has(exercise.id) &&
+      exerciseUsesExternalLoad(exercise)
+    ) {
+      setBodyweightPromptOpen(true);
       return;
     }
     saveGuardUntilRef.current = Date.now() + SAVE_TAP_GUARD_MS;
@@ -757,6 +771,19 @@ export function GuidedSessionLayout({
             : undefined
         }
         finishPending={finishPending}
+      />
+      <BodyweightConfirmDialog
+        open={bodyweightPromptOpen}
+        exerciseName={exercise.name}
+        onBodyweight={() => {
+          bodyweightConfirmedRef.current.add(exercise.id);
+          setBodyweightPromptOpen(false);
+          saveSet();
+        }}
+        onEnterWeight={() => {
+          setBodyweightPromptOpen(false);
+          weightInputRef.current?.focus();
+        }}
       />
     </div>
   );

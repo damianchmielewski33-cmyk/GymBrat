@@ -50,7 +50,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z34 | Test uprawnień tras admina | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z35 | Jedna definicja tygodnia i minut cardio | kod | P1 | M | KOD GOTOWY (`lib/cardio-week-range.ts` + `lib/cardio-week.ts`, wybór trybu w Profilu), TESTY NIEURUCHOMIONE |
 | Z36 | Komunikaty rejestracji bez SMTP | kod | P1 | S | TODO |
-| Z37 | Obecność w treningu tylko przy udostępnianiu | kod | P1 | S | TODO |
+| Z37 | Obecność w treningu tylko przy udostępnianiu | kod | P1 | S | KOD GOTOWY (204 zamiast 403 + klient przestaje wysyłać; test trasy), TESTY NIEURUCHOMIONE |
 | Z38 | Spójne cardio także bez planu | kod | P1 | S | KOD GOTOWY (martwy `/start-workout` usunięty, rejestracja → `/workout-plan`), TESTY NIEURUCHOMIONE |
 | Z39 | Zdjęcia w magazynie obiektowym | kod | P1 | L | TODO |
 | Z40 | Jedno źródło schematu bazy | kod | P1 | L | TODO |
@@ -75,9 +75,9 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z59 | Kontekstowy przycisk pływający | kod | P2 | S | TODO |
 | Z60 | Tytuły stron i nazewnictwo sekcji | kod | P2 | S | TODO |
 | Z61 | Stany ładowania i wykresy bez błędów wymiarów | kod | P2 | S | TODO |
-| Z62 | Seria 0 kg — świadomy wybór | kod | P2 | S | TODO |
-| Z63 | Jedno sterowanie niedokończonym treningiem | kod | P2 | S | TODO |
-| Z64 | Dostępny formularz raportu ciała | kod | P2 | M | TODO |
+| Z62 | Seria 0 kg — świadomy wybór | kod | P2 | S | KOD GOTOWY (okno „Seria bez ciężaru?”, `lib/exercise-load.ts`; E2E 005 p.7 zaktualizowany), TESTY NIEURUCHOMIONE |
+| Z63 | Jedno sterowanie niedokończonym treningiem | kod | P2 | S | KOD GOTOWY (mini-pasek jednowierszowy, ukryty na /treningi); test 375×667 NIEDODANY, TESTY NIEURUCHOMIONE |
+| Z64 | Dostępny formularz raportu ciała | kod | P2 | M | KOD GOTOWY (etykiety, radiogroup, zdjęcia opcjonalne + zgoda), AXE NIEURUCHOMIONE |
 | Z65 | Jeden wzorzec nagłówka ekranu | kod | P2 | M | TODO |
 | Z66 | Tokeny kolorów i kontrast | kod | P2 | M | TODO |
 | Z67 | Jeden komponent kafla statystyki | kod | P2 | S | TODO |

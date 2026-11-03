@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Spokojniejszy trening i dostępny raport ciała",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Trening solo nie generuje już błędów w tle (obecność dla znajomych wysyła się tylko przy udostępnianiu). Seria 0 kg przy ćwiczeniu z obciążeniem pyta, czy to masa ciała. Niedokończony trening ma jedno sterowanie: karta na ekranie Treningi, a na innych ekranach cienki pasek „Wróć”.",
+      "Raport ciała: pola mają etykiety i jednostki, skale 1–10 opisane na końcach i dostępne dla czytnika ekranu. Zdjęcia sylwetki są opcjonalne, a po dodaniu zdjęcia trzeba zaznaczyć zgodę na ich zapis.",
+    ],
+  },
+  {
     title: "Zapowiedź — Te same liczby cardio i tonaż na każdym ekranie",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

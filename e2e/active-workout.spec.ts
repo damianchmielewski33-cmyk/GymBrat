@@ -274,7 +274,7 @@ test.describe("Aktywny trening (004)", () => {
     await expect(progressbar(page).last()).toHaveAttribute("aria-valuetext", "Zapisano 1 z 7 serii");
   });
 
-  test("005 p.7/US-14: brak ciężaru nie blokuje zaliczenia (masa ciała, 0 kg)", async ({
+  test("US13/Z62: 0 kg przy ćwiczeniu z obciążeniem wymaga wyboru „masa ciała”", async ({
     page,
   }) => {
     const later = page.getByRole("button", { name: "Później, odłóż ćwiczenie na później" });
@@ -282,10 +282,16 @@ test.describe("Aktywny trening (004)", () => {
     await later.click();
     await expect(page.getByRole("heading", { name: "Przysiad ze sztangą" })).toBeVisible();
     await expect(weightInput(page)).toHaveValue("");
-    // Pusty ciężar + powtórzenia zapisuje serię jako masę ciała (0 kg) — zaliczoną,
-    // bez komunikatu „Podaj ciężar” (usunięty, 005 sekcja 4; decyzja właściciela p.7).
+    // Pusty ciężar + powtórzenia przy sztandze: pytamy (zmiana decyzji 005 p.7, US13/Z62).
     await page.getByRole("button", { name: "Zapisz serię 1" }).click();
-    await expect(page.getByRole("alert").filter({ hasText: "Podaj ciężar" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Seria bez ciężaru?" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Seria 1, zapisana/ })).toHaveCount(0);
+    // „Wpiszę ciężar” wraca do pola ciężaru bez zapisu.
+    await page.getByRole("button", { name: "Wpiszę ciężar" }).click();
+    await expect(weightInput(page)).toBeFocused();
+    // Świadomy wybór „masa ciała” zapisuje serię jako 0 kg (zaliczoną), pytanie nie wraca.
+    await page.getByRole("button", { name: "Zapisz serię 1" }).click();
+    await page.getByRole("button", { name: "Masa ciała (0 kg)" }).click();
     await expect(page.getByRole("button", { name: /^Seria 1, zapisana: 0 kg/ })).toBeVisible();
     await expect(progressbar(page).last()).toHaveAttribute("aria-valuetext", "Zapisano 1 z 7 serii");
   });

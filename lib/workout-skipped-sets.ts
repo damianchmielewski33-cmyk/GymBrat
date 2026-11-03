@@ -46,7 +46,9 @@ export type SetSaveIssue = "reps";
 
 /**
  * BR-8 / P-2 (po decyzji właściciela 005 p.7): zapis serii wymaga tylko powtórzeń > 0.
- * Ciężar 0 kg jest poprawny (masa ciała) i nigdy nie blokuje zaliczenia. null = dane kompletne.
+ * Ciężar 0 kg jest poprawny (masa ciała) i nie blokuje zaliczenia na poziomie danych. null = dane kompletne.
+ * US13/Z62: UI dodatkowo pyta o świadomy wybór „masa ciała” przy ćwiczeniach z obciążeniem
+ * (`lib/exercise-load.ts`) — to bramka formularza, nie reguła zapisu.
  */
 export function resolveSetSaveIssue(
   weight: number,
