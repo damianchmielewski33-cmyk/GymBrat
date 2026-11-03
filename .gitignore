@@ -56,3 +56,10 @@ android/**/build/
 /public/gymbrat.apk
 /public/gymbrat.apk.tmp
 /dist/gymbrat.apk
+
+# Artefakty testów (Playwright) i śmieci z narzędzi (Z33)
+/test-results/
+/playwright-report/
+/blob-report/
+/undefined
+*.log

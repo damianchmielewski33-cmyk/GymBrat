@@ -28,6 +28,7 @@ export const EXPORT_MAIN_TABLES: ReadonlySet<string> = new Set([
 export const EXPORT_SECRET_TABLES: ReadonlySet<string> = new Set([
   "push_subscriptions",
   "email_verification_codes",
+  "admin_two_factor",
 ]);
 
 export function extraExportTables(userId = "x"): string[] {

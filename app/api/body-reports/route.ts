@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { assertCsrf } from "@/lib/csrf";
 import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
-import { fetchJavaApi, isJavaApiEnabled, passThroughJavaResponse } from "@/lib/java-api";
 import { z } from "zod";
 import { consentRequiredResponse, lacksSensitiveConsent } from "@/lib/consent-guard";
 
@@ -13,11 +12,6 @@ async function handleGET() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Brak autoryzacji" }, { status: 401 });
-  }
-
-  if (isJavaApiEnabled()) {
-    const javaRes = await fetchJavaApi("/api/body-reports", { userId: session.user.id });
-    if (javaRes) return passThroughJavaResponse(javaRes);
   }
 
   const reports = await getBodyReports(session.user.id);
@@ -109,24 +103,6 @@ async function handlePOST(req: Request) {
     (await lacksSensitiveConsent(session.user.id, "photos"))
   ) {
     return consentRequiredResponse("photos");
-  }
-
-  if (isJavaApiEnabled()) {
-    const javaRes = await fetchJavaApi("/api/body-reports", {
-      method: "POST",
-      userId: session.user.id,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(parsed.data),
-    });
-    if (javaRes) {
-      if (javaRes.ok) {
-        revalidatePath("/reports");
-        revalidatePath("/");
-        revalidatePath("/progress");
-        revalidatePath("/progress-analysis");
-      }
-      return passThroughJavaResponse(javaRes);
-    }
   }
 
   const id = await createBodyReport(session.user.id, parsed.data as CreateBodyReportInput);

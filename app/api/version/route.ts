@@ -4,7 +4,6 @@ import { CHANGELOG_ENTRIES } from "@/components/changelog/changelog-data";
 import { isPlannedChangelogEntry } from "@/lib/deploy-changelog";
 import { readDeployProvenance } from "@/lib/gymbrat-source";
 import { checkRateLimitAsync, RATE, rateLimitKey } from "@/lib/rate-limit";
-import { fetchJavaApi, isJavaApiEnabled } from "@/lib/java-api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,28 +43,10 @@ async function handleGET(req: Request) {
     provenance.environment === "development";
   const plannedChangelog = showPlanned ? planned.map(mapEntry) : [];
 
-  let javaBackend: Record<string, unknown> | null = null;
-  if (isJavaApiEnabled()) {
-    try {
-      const javaRes = await fetchJavaApi("/api/version");
-      if (javaRes?.ok) {
-        const payload = (await javaRes.json()) as Record<string, unknown>;
-        const backend = payload.backend;
-        javaBackend =
-          backend && typeof backend === "object"
-            ? (backend as Record<string, unknown>)
-            : { language: "java", raw: payload };
-      }
-    } catch {
-      javaBackend = { language: "java", status: "unreachable" };
-    }
-  }
-
   const res = NextResponse.json({
     ...provenance,
     changelog,
     ...(plannedChangelog.length > 0 ? { plannedChangelog } : {}),
-    ...(javaBackend ? { backend: javaBackend } : {}),
   });
   res.headers.set("Cache-Control", "public, no-store");
   return res;

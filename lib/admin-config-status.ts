@@ -154,17 +154,29 @@ const INTEGRATIONS: IntegrationDef[] = [
     id: "admin-access",
     group: "core",
     label: "Dostęp do panelu admina",
-    description: "PIN odblokowania i konta właściciela z rolą administratora.",
+    description: "Konta właściciela z rolą administratora.",
     level: "required",
     effectWhenMissing:
-      "W produkcji brak PIN-u blokuje odblokowanie panelu. Bez ADMIN_EMAILS rola admina zostaje tylko kontom, które już ją mają w bazie, a ochrona głównego administratora opiera się na pierwszym koncie admina.",
+      "Bez ADMIN_EMAILS rola admina zostaje tylko kontom, które już ją mają w bazie, a ochrona głównego administratora opiera się na pierwszym koncie admina.",
     vars: [
-      { names: ["ADMIN_PIN"] },
       {
         names: ["ADMIN_EMAILS"],
         hint: "Adresy e-mail adminów po przecinku. Jedyna droga do roli admina z konfiguracji; działa tylko dla kont z potwierdzonym e-mailem.",
       },
     ],
+  },
+  {
+    id: "admin-2fa",
+    group: "core",
+    label: "Wymóg 2FA w panelu admina",
+    description: "Panel i API admina wymagają kodu z aplikacji uwierzytelniającej (TOTP).",
+    level: "recommended",
+    effectWhenMissing:
+      "Dostęp do panelu admina zależy tylko od hasła konta z rolą administratora — drugi składnik nie jest wymagany.",
+    hostingHint:
+      "Najpierw wejdź na /admin/2fa, skonfiguruj aplikację uwierzytelniającą i zapisz kody awaryjne. Dopiero potem ustaw ADMIN_2FA_REQUIRED=1 w zmiennych środowiska hostingu i zrób redeploy.",
+    vars: [{ names: ["ADMIN_2FA_REQUIRED"], hint: "Ustaw 1, aby wymagać 2FA." }],
+    link: { href: "/admin/2fa", label: "Konfiguracja 2FA" },
   },
   {
     id: "encryption",
@@ -411,18 +423,6 @@ const INTEGRATIONS: IntegrationDef[] = [
       },
     ],
     link: { href: "/admin/branding", label: "Branding" },
-  },
-  {
-    id: "java-api",
-    group: "core",
-    label: "Backend Java (BFF)",
-    description: "Proxy wybranych /api/* do Spring Boot (java-backend).",
-    level: "optional",
-    effectWhenMissing: "Next obsługuje API samodzielnie — bez osobnego serwera Java.",
-    vars: [
-      { names: ["JAVA_API_BASE_URL"], hint: "np. http://localhost:8080" },
-      { names: ["GYMBRAT_PROXY_TOKEN"], optional: true, hint: "Wymagany, gdy Java API jest włączone." },
-    ],
   },
   {
     id: "ads",

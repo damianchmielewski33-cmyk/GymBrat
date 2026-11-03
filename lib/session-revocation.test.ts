@@ -41,7 +41,7 @@ vi.mock("@/lib/account-takeover", () => ({ signTakeoverToken: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimitAsync: vi.fn(),
   clientIpFromHeaders: () => "ip",
-  RATE: { loginIp: {}, loginEmail: {} },
+  RATE: { loginIp: {}, loginEmail: {}, adminLogin: { limit: 5, windowMs: 900000 } },
 }));
 vi.mock("@/lib/auth-secret", () => ({ getAuthSecret: () => "secret" }));
 

@@ -17,7 +17,6 @@ import { NextResponse } from "next/server";
 import { assertCsrf } from "@/lib/csrf";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import { UserMessages, workoutCompleteZodMessage } from "@/lib/user-facing-errors";
-import { fetchJavaApi, isJavaApiEnabled, passThroughJavaResponse } from "@/lib/java-api";
 import { z } from "zod";
 
 /** UI / input HTML mogą dać ułamkowe powtórzenia — zapisujemy zaokrąglone całkowite. */
@@ -433,26 +432,6 @@ async function handlePOST(req: Request) {
       { ok: false, error: workoutCompleteZodMessage(parsed.error) },
       { status: 400 },
     );
-  }
-
-  if (isJavaApiEnabled()) {
-    const javaRes = await fetchJavaApi("/api/workouts/complete", {
-      method: "POST",
-      userId: session.user.id,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(parsed.data),
-    });
-    if (javaRes) {
-      if (javaRes.ok) {
-        revalidatePath("/");
-        revalidatePath("/reports");
-        revalidatePath("/active-workout");
-        revalidatePath("/workout-history");
-        revalidatePath("/workout-plan");
-        revalidatePath("/progress");
-      }
-      return passThroughJavaResponse(javaRes);
-    }
   }
 
   const title = String(parsed.data.title ?? "Sesja").trim() || "Sesja";

@@ -28,7 +28,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US8 | Operacje i uruchomienie | P0 | L | Z17, Z47, Z48, Z49, Z50 | W TOKU (Z50 kod gotowy; Z17, Z47, Z48, Z49 `[NA KONIEC]`) |
 | US9 | Admin: zamówienia, alerty, finanse | P1 | L | Z22, Z23, Z55, Z75 | ZROBIONE (kod; testy nieuruchomione) 2026-11-02 |
 | US10 | Bezpieczeństwo aplikacji | P1 | L | Z29, Z30, Z56, Z57 | ZROBIONE W REPO 2026-11-02 (egzekwowanie CSP i rotacja sekretów NA KONIEC; testy nieuruchomione) |
-| US11 | Bezpieczeństwo admina, Java i repo | P1 | L | Z31, Z32, Z33, Z34, Z73 | TODO |
+| US11 | Bezpieczeństwo admina, Java i repo | P1 | L | Z31, Z32, Z33, Z34, Z73 | ZROBIONE W REPO 2026-11-03 (Z33 repo prywatne i włączenie wymogu 2FA NA KONIEC; testy nieuruchomione) |
 | US12 | Spójność liczb (cardio) | P1 | M | Z35, Z38, Z44 | TODO |
 | US13 | Trening i raport ciała: poprawki UX | P1 | L | Z37, Z62, Z63, Z64 | TODO |
 | US14 | Jakość: lint, E2E, bramki wdrożeniowe | P1 | XL | Z42, Z43, Z45, Z46 | TODO |
@@ -121,7 +121,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** CSP jest egzekwowane bez naruszeń na głównych ekranach; limity działają przez Upstash; spoofing `x-forwarded-for` nie omija limitów; workflow zależności blokuje High/Critical.
 
 ## US11 — Bezpieczeństwo admina, Java i repo
-**P1 · L · Zależności** US1 (Z18) · **Postęp** 0/5
+**P1 · L · Zależności** US1 (Z18) · **Postęp** 4/5 w repo (Z31, Z73, Z32, Z34 kod gotowy; Z33 higiena drzewa zrobiona, widoczność repo zostaje dla właściciela; testy/tsc/lint NIEURUCHOMIONE) · **Decyzje** DK-22
 **Cel** Zamknąć ryzyka kont uprzywilejowanych, backendu Java i widoczności kodu.
 **Podzadania** Z31 Java fail-closed · Z73 realizacja decyzji o Javie (zależne od decyzji Z18 — zapytaj właściciela; propozycja: usunięcie) · Z32 2FA i blokada dla admina, usunięcie PIN-u · Z33 repo prywatne `[NA KONIEC]` (w repo tylko higiena drzewa: usunięcie `undefined/`, `.gitignore`) · Z34 test uprawnień tras admina.
 **Gotowe, gdy** Java nie ufa nagłówkom bez tokenu (lub jest usunięta); admin ma 2FA; martwy kod PIN usunięty; test enumeruje trasy admina; drzewo robocze czyste.

@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 import { auth } from "@/auth";
-import { isAdminEligible } from "@/lib/admin-session";
+import { isAdmin2faSatisfied, isAdminEligible } from "@/lib/admin-session";
 
-export async function requireAdminApi(): Promise<
+/** Kod błędu, gdy admin nie przeszedł 2FA (UI przekierowuje na /admin/2fa). */
+export const ADMIN_2FA_REQUIRED_CODE = "ADMIN_2FA_REQUIRED";
+
+export async function requireAdminApi(opts: { skip2fa?: boolean } = {}): Promise<
   | { ok: true; session: Session }
   | { ok: false; response: NextResponse }
 > {
@@ -19,6 +22,15 @@ export async function requireAdminApi(): Promise<
     return {
       ok: false,
       response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+    };
+  }
+  if (!opts.skip2fa && !(await isAdmin2faSatisfied(session))) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "Wymagana weryfikacja dwuskładnikowa (2FA).", code: ADMIN_2FA_REQUIRED_CODE },
+        { status: 403 },
+      ),
     };
   }
   return { ok: true, session };

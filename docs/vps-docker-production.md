@@ -115,7 +115,6 @@ Dodatkowo w Fazie 2:
 - Audyt bezpieczeństwa repo (sekrety, env, endpointy) + raport ocen 1–10.
 
 ### Poza fazami (opcjonalnie kiedyś)
-- Kontener `java-backend` + `JAVA_API_BASE_URL`
 - Vercel Pro tylko Preview / awaria — nie primary produkcji
 
 ---

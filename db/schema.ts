@@ -359,6 +359,27 @@ export const siteActivityLog = sqliteTable("site_activity_log", {
     .$defaultFn(() => new Date()),
 });
 
+/**
+ * Z32: drugi składnik (TOTP) konta administratora. `enabled_at = NULL` = konfiguracja rozpoczęta,
+ * niepotwierdzona. Sekret szyfrowany `APP_ENCRYPTION_KEY`; kody awaryjne tylko jako skróty SHA-256.
+ */
+export const adminTwoFactor = sqliteTable("admin_two_factor", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  secretEnc: text("secret_enc").notNull(),
+  enabledAt: integer("enabled_at", { mode: "timestamp_ms" }),
+  /** JSON: tablica skrótów SHA-256 niewykorzystanych kodów awaryjnych. */
+  recoveryHashes: text("recovery_hashes").notNull().default("[]"),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lockedUntil: integer("locked_until", { mode: "timestamp_ms" }),
+  /** Ostatni zużyty krok TOTP (ochrona przed ponownym użyciem kodu). */
+  lastStep: integer("last_step").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 /** Zmiany w panelu administratora (kto, co, kiedy). */
 export const adminAuditLog = sqliteTable(
   "admin_audit_log",

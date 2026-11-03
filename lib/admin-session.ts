@@ -13,7 +13,8 @@ import {
 } from "@/lib/admin-config";
 import { logSecurityEvent } from "@/lib/security-events";
 
-export const ADMIN_UNLOCK_COOKIE = "gymbrat_admin_unlock";
+/** Cookie z podpisanym potwierdzeniem 2FA (Z32), ważne 12 h; zastępuje dawny PIN. */
+export const ADMIN_2FA_COOKIE = "gymbrat_admin_2fa";
 
 const SEP = "|";
 
@@ -55,7 +56,7 @@ export async function isOwnerAdminActor(session: Session | null): Promise<boolea
   return (await getProtectedAdminUserIds()).includes(id);
 }
 
-/** Konto ma prawo wejść do ścieżki /admin (bez PIN jeszcze bez cookie); rola liczona w `jwt` z weryfikacją. */
+/** Konto ma rolę admina (rola liczona w `jwt` z weryfikacją); drugi składnik sprawdza `isAdmin2faSatisfied`. */
 export async function isAdminEligible(session: Session | null): Promise<boolean> {
   return Boolean(session?.user?.id) && session?.user?.role === "admin";
 }
@@ -82,7 +83,7 @@ export async function syncAdminRoleOnLogin(account: {
   return role;
 }
 
-export function signAdminUnlockToken(userId: string): string {
+export function signAdmin2faToken(userId: string): string {
   const secret = getAuthSecret();
   if (!secret) throw new Error("AUTH_SECRET");
   const expMs = Date.now() + 12 * 60 * 60 * 1000;
@@ -91,7 +92,7 @@ export function signAdminUnlockToken(userId: string): string {
   return `${payload}${SEP}${sig}`;
 }
 
-export function verifyAdminUnlockToken(
+export function verifyAdmin2faToken(
   token: string | undefined,
   expectedUserId: string,
 ): boolean {
@@ -116,11 +117,23 @@ export function verifyAdminUnlockToken(
   }
 }
 
-export async function readAdminUnlockVerified(
+export async function readAdmin2faVerified(
   session: Session | null,
 ): Promise<boolean> {
   if (!session?.user?.id) return false;
   const jar = await cookies();
-  const raw = jar.get(ADMIN_UNLOCK_COOKIE)?.value;
-  return verifyAdminUnlockToken(raw, session.user.id);
+  const raw = jar.get(ADMIN_2FA_COOKIE)?.value;
+  return verifyAdmin2faToken(raw, session.user.id);
+}
+
+/** Czy panel wymaga 2FA (env `ADMIN_2FA_REQUIRED=1`, domyślnie wyłączone — DK-22). */
+export function isAdmin2faRequired(env: Record<string, string | undefined> = process.env): boolean {
+  const v = env.ADMIN_2FA_REQUIRED?.trim().toLowerCase();
+  return v === "1" || v === "true";
+}
+
+/** Zalogowany admin spełnia wymóg 2FA (gdy wymóg wyłączony — zawsze tak). */
+export async function isAdmin2faSatisfied(session: Session | null): Promise<boolean> {
+  if (!isAdmin2faRequired()) return true;
+  return readAdmin2faVerified(session);
 }

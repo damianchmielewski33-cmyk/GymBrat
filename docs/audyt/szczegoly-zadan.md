@@ -44,10 +44,10 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z28 | Retencja i automatyczne usuwanie danych | kod+prawnik | P1 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (okresy do zatwierdzenia przez prawnika [NA KONIEC]; flaga nieaktywnych kont domyślnie wyłączona) |
 | Z29 | CSP w trybie egzekwowania | kod | P1 | M | KOD GOTOWY (Report-Only; egzekwowanie CSP_MODE=enforce NA KONIEC po analizie raportów), TESTY NIEURUCHOMIONE |
 | Z30 | Rate limiting produkcyjny i zaufane IP | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
-| Z31 | Java fail-closed (lub usunięcie) | kod | P1 | S | TODO |
-| Z32 | 2FA i blokada dla admina; usunięcie PIN-u | kod | P1 | M | TODO |
-| Z33 | Repo prywatne i higiena drzewa | kod/konfig | P1 | S | TODO |
-| Z34 | Test uprawnień tras admina | kod | P1 | S | TODO |
+| Z31 | Java fail-closed (lub usunięcie) | kod | P1 | S | ZROBIONE przez usunięcie Javy (Z73, ADR 0014) |
+| Z32 | 2FA i blokada dla admina; usunięcie PIN-u | kod | P1 | M | KOD GOTOWY (wymóg za flagą ADMIN_2FA_REQUIRED, włączenie NA KONIEC), TESTY NIEURUCHOMIONE |
+| Z33 | Repo prywatne i higiena drzewa | kod/konfig | P1 | S | HIGIENA W REPO GOTOWA; zmiana widoczności repo NA KONIEC (właściciel) |
+| Z34 | Test uprawnień tras admina | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z35 | Jedna definicja tygodnia i minut cardio | kod | P1 | M | TODO |
 | Z36 | Komunikaty rejestracji bez SMTP | kod | P1 | S | TODO |
 | Z37 | Obecność w treningu tylko przy udostępnianiu | kod | P1 | S | TODO |
@@ -86,7 +86,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z70 | Mniejszy payload RSC (Dieta/Tydzień, Atlas) | kod | P2 | M | TODO |
 | Z71 | Mniej zapisów synchronizacji treningu | kod | P2 | M | TODO |
 | Z72 | CAS w modułach społeczności | kod | P2 | M | TODO |
-| Z73 | Realizacja decyzji o Javie | kod | P2 | M | TODO |
+| Z73 | Realizacja decyzji o Javie | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z74 | Dostępność WCAG AA | kod | P2 | M | TODO |
 | Z75 | Panel finansowy | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z76 | Publiczna strona produktu | kod | P2 | M | TODO |

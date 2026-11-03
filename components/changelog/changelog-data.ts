@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Bezpieczniejszy panel administratora i porządki w repozytorium",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Dwuskładnikowe logowanie do panelu admina (kod z aplikacji uwierzytelniającej + kody awaryjne) z blokadą po 5 błędnych próbach i powiadomieniem e-mail o wejściu; wymóg włączany zmienną ADMIN_2FA_REQUIRED po konfiguracji na /admin/2fa. Martwy PIN administratora został usunięty.",
+      "Usunięty nieużywany backend Java (Spring Boot) oraz jego proxy w API; test pilnuje, że każda trasa admina odrzuca anonima (401) i zwykłego użytkownika (403).",
+    ],
+  },
+  {
     title: "Zapowiedź — Utwardzenie zabezpieczeń HTTP",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

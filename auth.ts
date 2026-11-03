@@ -7,7 +7,7 @@ import { getDb } from "@/db";
 import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import { siteActivityLog, users } from "@/db/schema";
 import { getAuthSecret } from "@/lib/auth-secret";
-import { resolveEffectiveRole } from "@/lib/admin-config";
+import { normalizeAdminEmail, parseAdminEmails, resolveEffectiveRole } from "@/lib/admin-config";
 import { syncAdminRoleOnLogin } from "@/lib/admin-session";
 import {
   findUserByOAuthLink,
@@ -114,6 +114,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .where(eq(users.email, email.toLowerCase()))
           .limit(1);
         if (!user?.passwordHash) return null;
+
+        // Z32 / DK-22: konta admina — ostrzejsza blokada (5 prób na 15 min) niezależnie od IP.
+        if (user.appRole === "admin" || parseAdminEmails().has(normalizeAdminEmail(user.email))) {
+          const adminLimit = await checkRateLimitAsync(
+            `admin-login:${user.id}`,
+            RATE.adminLogin.limit,
+            RATE.adminLogin.windowMs,
+          );
+          if (!adminLimit.ok) throw new LoginRateLimited();
+        }
 
         const { compare } = await import("bcryptjs");
         const valid = await compare(password, user.passwordHash);

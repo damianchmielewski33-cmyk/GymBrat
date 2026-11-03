@@ -187,3 +187,13 @@ export async function sendSupportReceivedEmail(params: {
     text: `Dziękujemy, otrzymaliśmy Twoje zgłoszenie: "${params.subject}".\n\nNumer zgłoszenia: ${params.requestId}\nOdpowiemy najpóźniej do: ${due} (14 dni).\n\n— GymBrat`,
   });
 }
+
+/** Z32: powiadomienie o wejściu do panelu admina (best-effort, tylko czas; bez adresu IP). */
+export async function sendAdminLoginEmail(params: { to: string; at: Date; usedRecoveryCode: boolean }): Promise<boolean> {
+  const when = params.at.toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" });
+  return sendOptionalDailyBriefEmail({
+    to: params.to,
+    subject: "GymBrat — logowanie do panelu administratora",
+    text: `Ktoś właśnie przeszedł weryfikację dwuskładnikową i wszedł do panelu administratora GymBrat (${when}).${params.usedRecoveryCode ? "\n\nUżyto kodu awaryjnego — wygeneruj nowe kody w panelu." : ""}\n\nJeśli to nie Ty: zmień hasło, ustaw nowy AUTH_SECRET (wyloguje wszystkie sesje) i wyłącz 2FA dopiero po zabezpieczeniu konta.\n\n— GymBrat`,
+  });
+}

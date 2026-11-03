@@ -13,7 +13,7 @@ Ogólna kolejność: **1)** wygeneruj nową wartość, **2)** ustaw ją na hosti
 | `UPSTASH_REDIS_REST_TOKEN` | env aplikacji | Limity wracają do pamięci instancji, dopóki token jest błędny. | Panel Konfiguracja: „Limity żądań” = OK. |
 | `SMTP_PASS` | env aplikacji | Kody rejestracji i e-maile przestają wychodzić. | Rejestracja testowa / reset hasła. |
 | `TURSO_AUTH_TOKEN` | env aplikacji | Aplikacja traci dostęp do bazy do czasu redeployu. | Strona główna i `/api/version` odpowiadają. |
-| `ADMIN_PIN` | env aplikacji | Nowy PIN przy kolejnym wejściu w `/admin`. | Wejście w panel. |
+| Sekret TOTP admina (2FA) | baza (`admin_two_factor`, szyfrowany `APP_ENCRYPTION_KEY`) | Po rotacji: `/admin/2fa` → „Wyłącz 2FA” (kodem) i skonfiguruj od nowa; zapisz nowe kody awaryjne. | Wejście w panel nowym kodem. |
 | `AUTH_GOOGLE_SECRET`, `AUTH_FACEBOOK_SECRET` | env aplikacji + konsola dostawcy | Logowanie OAuth nie działa do czasu zgodności obu stron. | Logowanie testowe przez dostawcę. |
 
 ## Po rotacji

@@ -11,11 +11,6 @@ vi.mock("@/lib/rate-limit", () => ({
   checkRateLimitAsync: async () => ({ ok: true, retryAfterSec: 0 }),
   RATE: { bodyReportCreate: { limit: 10, windowMs: 1000 } },
 }));
-vi.mock("@/lib/java-api", () => ({
-  isJavaApiEnabled: () => false,
-  fetchJavaApi: vi.fn(),
-  passThroughJavaResponse: vi.fn(),
-}));
 vi.mock("@/lib/body-reports", () => ({ createBodyReport, getBodyReports: vi.fn() }));
 vi.mock("@/lib/consent-guard", async (orig) => ({
   ...(await orig<typeof import("@/lib/consent-guard")>()),

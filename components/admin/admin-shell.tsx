@@ -157,8 +157,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   async function leavePanel() {
     setLeaving(true);
-    const res = await adminRequest("/api/admin/lock", {
+    const res = await adminRequest("/api/admin/2fa", {
       method: "POST",
+      body: { action: "leave" },
       fallbackError: "Nie udało się wyjść z panelu.",
     });
     if (!res.ok) {

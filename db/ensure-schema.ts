@@ -337,6 +337,19 @@ CREATE TABLE IF NOT EXISTS "bug_reports" (
   );
 
   await client.execute(`
+CREATE TABLE IF NOT EXISTS "admin_two_factor" (
+  "user_id" text PRIMARY KEY NOT NULL,
+  "secret_enc" text NOT NULL,
+  "enabled_at" integer,
+  "recovery_hashes" text DEFAULT '[]' NOT NULL,
+  "failed_attempts" integer DEFAULT 0 NOT NULL,
+  "locked_until" integer,
+  "last_step" integer DEFAULT 0 NOT NULL,
+  "created_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(`
 CREATE TABLE IF NOT EXISTS "support_requests" (
   "id" text PRIMARY KEY NOT NULL,
   "user_id" text NOT NULL,

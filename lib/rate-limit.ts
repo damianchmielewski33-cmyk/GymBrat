@@ -124,7 +124,10 @@ export const RATE = {
   workoutComplete: { limit: 30, windowMs: 60_000 },
   /** Patch cardio po zapisie treningu (LR-4) — rzadka, jednorazowa operacja na ekranie podsumowania. */
   workoutCardioPatch: { limit: 30, windowMs: 60_000 },
+  /** Weryfikacja 2FA admina (na IP); blokada konta po 5 błędach jest w bazie (lib/admin-2fa). */
   adminUnlock: { limit: 8, windowMs: 10 * 60_000 },
+  /** Logowanie hasłem na konto admina (DK-22): 5 prób / 15 min na konto. */
+  adminLogin: { limit: 5, windowMs: 15 * 60_000 },
   adminMutation: { limit: 120, windowMs: 60_000 },
   /** Z22: start płatności (osobny klucz, nie dzieli budżetu z mutacjami admina). */
   checkout: { limit: 20, windowMs: 10 * 60_000 },

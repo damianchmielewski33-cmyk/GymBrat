@@ -89,3 +89,8 @@ Zapisane na podstawie odpowiedzi właściciela (backlog US1). Kod zależny od de
 | # | Zadanie | Decyzja |
 |---|---|---|
 | DK-21 | Z29/Z30/Z56 Utwardzenie HTTP | CSP z nonce budowana w `proxy.ts` (`lib/csp.ts`); **domyślnie Report-Only**, egzekwowanie włącza env `CSP_MODE=enforce` po analizie raportów i teście na Preview (strony renderowane per żądanie, bo nonce). `frame-ancestors` zawsze egzekwowane: domyślnie `'self'` + AWP (DK-5), własna lista w `FRAME_ANCESTORS_ALLOWED`, `none` blokuje. Produkcja za własnym proxy (Caddy): adres klienta tylko z `x-real-ip` (`TRUSTED_IP_HEADER` zmienia), `x-forwarded-for` ignorowany. Brak Upstash na produkcji: wpis „wymagane” w Konfiguracji, limity w pamięci instancji (bez blokowania logowania). |
+
+## US11 — decyzje (2026-11-03)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-22 | Z32 2FA admina | Drugi składnik: **TOTP** (aplikacja uwierzytelniająca, bez nowych bibliotek) + 10 jednorazowych kodów awaryjnych; konfiguracja na `/admin/2fa` (klucz wpisywany ręcznie, bez QR). Wymóg **za flagą `ADMIN_2FA_REQUIRED=1`, domyślnie wyłączony** (włączasz po sprawdzeniu, że kod działa; wpis w Konfiguracji). Blokada: 5 błędnych kodów 2FA lub 5 prób hasła na konto admina → 15 min. Po wejściu do panelu e-mail do admina (best-effort, wymaga SMTP) i wpis w dzienniku zdarzeń bezpieczeństwa. PIN (`ADMIN_PIN`, `/api/admin/lock`, `/unlock`) usunięty (D15). Z31/Z73: backend Java usunięty zgodnie z DK-4 (ADR 0014). |
