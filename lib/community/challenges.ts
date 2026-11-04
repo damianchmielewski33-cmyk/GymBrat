@@ -192,7 +192,6 @@ function toListItem(
   const my = extras.myProgress;
   const group = extras.groupProgress;
   const useGroup = scope === "group" || scope === "global";
-  const effective = useGroup ? group : my;
   return {
     id: row.id,
     scope,

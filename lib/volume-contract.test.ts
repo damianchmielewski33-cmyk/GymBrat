@@ -55,6 +55,7 @@ describe("kontrakt: tonaż i serie są takie same na Pulpicie, w Treningu i w An
 
   it("serie legacy bez flagi done liczą się wszędzie tak samo", () => {
     const legacy = JSON.stringify({
+      kind: "completed_session",
       exercises: [{ name: "Przysiad", sets: [{ reps: 5, weight: 100 }] }],
     });
     expect(computeSessionTonnageKg(legacy)).toBe(500);

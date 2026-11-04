@@ -199,7 +199,7 @@ export async function saveMealTemplatesAction(
 
   function cleanSet(
     templates: MealTemplate[],
-    dayType: MealDayType,
+    _dayType: MealDayType,
   ): MealTemplate[] | { error: string } {
     const cleaned: MealTemplate[] = [];
     for (let i = 0; i < Math.min(templates.length, MAX_MEAL_TEMPLATES); i++) {

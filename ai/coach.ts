@@ -13,6 +13,7 @@ export type AiImage = {
   base64: string;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- schemat służy tylko do typu (z.infer)
 const BodyAnalysisSchema = z.object({
   posture: z.object({
     summary: z.string(),
@@ -38,6 +39,7 @@ const BodyAnalysisSchema = z.object({
 
 export type BodyAnalysis = z.infer<typeof BodyAnalysisSchema>;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- schemat służy tylko do typu (z.infer)
 const ProgressReportSchema = z.object({
   summary: z.string(),
   observations: z.object({

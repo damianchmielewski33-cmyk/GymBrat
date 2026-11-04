@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { assertCsrf } from "@/lib/csrf";
-import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
+import { checkRateLimitAsync, rateLimitKey } from "@/lib/rate-limit";
 import { listChatMessages, sendChatMessage } from "@/lib/community/chat";
 import { UserMessages } from "@/lib/user-facing-errors";
 

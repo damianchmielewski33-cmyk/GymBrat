@@ -172,7 +172,8 @@ export function computeWorkoutDetails(input: {
         const skipped = Boolean(s.skipped);
         const warmup = Boolean(s.warmup);
         const performed =
-          Boolean(s.done) &&
+          // serie legacy bez flagi `done` liczą się jak wykonane (kanon: exerciseVolume)
+          (s.done === undefined || Boolean(s.done)) &&
           !skipped &&
           !warmup &&
           reps != null &&

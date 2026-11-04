@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 /** Import + pierwsza paczka grafik AI (Pollinations). */
 export const maxDuration = 60;
 
-async function handleGET(req: Request) {
+async function handleGET(_req: Request) {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 

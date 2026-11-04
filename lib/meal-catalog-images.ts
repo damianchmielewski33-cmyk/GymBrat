@@ -301,7 +301,7 @@ export async function generateMissingCatalogImages(args?: {
   const limit = Math.max(1, Math.min(40, args?.limit ?? DEFAULT_BATCH));
   const concurrency = Math.max(1, Math.min(4, args?.concurrency ?? DEFAULT_CONCURRENCY));
 
-  let candidates: CatalogMeal[] = [];
+  const candidates: CatalogMeal[] = [];
   if (args?.mealIds?.length) {
     const rows = await db
       .select()

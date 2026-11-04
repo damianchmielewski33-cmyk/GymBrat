@@ -154,7 +154,7 @@ export async function getBodyReports(
               "dataUrl" in p
                 ? await loadStoredPhotoPayload({
                     dataUrl: String(p.dataUrl ?? ""),
-                    objectKey: "objectKey" in p ? p.objectKey : null,
+                    objectKey: "objectKey" in p ? (p.objectKey as string | null) : null,
                   })
                 : "",
             ) ?? "";

@@ -4,7 +4,6 @@
 
 import type {
   WorkoutExerciseState,
-  WorkoutSetState,
 } from "@/components/workout/types";
 import { computeConfidence, volumeConsistencyFromSessions } from "@/lib/live-coach/confidence";
 import { buildE1rmTrendReport } from "@/lib/live-coach/e1rm-trend";

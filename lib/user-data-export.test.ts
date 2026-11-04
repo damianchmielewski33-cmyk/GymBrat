@@ -22,6 +22,9 @@ describe("kompletność eksportu danych (Z26)", () => {
       // zamówienia: osobna sekcja `orders`; users: sekcja `user`
       "subscription_orders",
       "users",
+      // dowody zdarzeń (analityka): `set null` do users, zostają po usunięciu konta (LR-27)
+      "page_views",
+      "site_activity_log",
     ]);
     // Wiersze, które purge/eksport pomijają celowo: dowody zdarzeń (`set null` do users).
     const evidence = new Set(

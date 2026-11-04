@@ -136,7 +136,8 @@ async function finalizeErrorResponse(
   const next: Record<string, unknown> = {
     ...body,
     error: userMessage,
-    code,
+    // kod domenowy trasy (np. REAUTH_REQUIRED, CONSENT_REQUIRED) ma pierwszeństwo przed kodem z katalogu
+    code: typeof body.code === "string" && /^[A-Z][A-Z0-9_]{2,}$/.test(body.code) ? body.code : code,
     status: res.status,
     requestId,
   };

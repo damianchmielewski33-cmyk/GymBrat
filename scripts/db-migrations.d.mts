@@ -1,5 +1,6 @@
 export type MigrationClient = {
-  execute: (q: string | { sql: string; args?: unknown[] }) => Promise<{ rows: Array<Record<string, unknown>> }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  execute: (q: string | { sql: string; args?: any[] }) => Promise<{ rows: Array<Record<string, unknown>> }>;
 };
 export function loadMigrations(dir: string): Array<{ tag: string; statements: string[] }>;
 export function ensureVersionTable(client: MigrationClient): Promise<void>;

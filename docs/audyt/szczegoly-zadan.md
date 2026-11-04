@@ -97,8 +97,8 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z81 | Przypomnienia treningowe za zgodą | kod | P3 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z82 | Mapa drogowa funkcji Premium | decyzja | P3 | S | ZROBIONE (2026-11-02) |
 | Z83 | Aktualizacja dokumentacji projektu | dok | P3 | S | GOTOWE 2026-11-04: `docs/indeks-dokumentacji.md` (status `docs/*.json`), wskazania na backlog US w `wiedza-o-projekcie.md` i `zespol/backlog.md`, wpis w `bledy.md` |
-| Z84 | Uruchomienie bramek jakości | ops+kod | P0 | M | TODO (wymaga dostępu do npm) |
-| Z85 | Lint do stanu bazowego | kod | P1 | M | TODO (dawne Z42) |
+| Z84 | Uruchomienie bramek jakości | ops+kod | P0 | M | ZROBIONE (2026-11-04): npm ci, tsc 0 błędów, vitest 1524/1524, build, deploy:check zielone; poprawki: import getXsrfHeaders, typy route/migracji, kody domenowe w finalizeErrorResponse, numer paragonu, migracja 0044 (baseline), workout-history legacy `done` |
+| Z85 | Lint do stanu bazowego | kod | P1 | M | ZROBIONE (2026-11-04): lint:ci 0 błędów / 0 ostrzeżeń; wyjątki w eslint.config.mjs (reguły React Compiler, location.assign, _prefiks); CI lint blokuje merge |
 | Z86 | E2E, axe i zrzuty ekranów | ops+kod | P1 | M | TODO (Z43, Z46, Z69, Z74) |
 | Z87 | Pomiary, migracje i testy współbieżności | ops+kod | P1 | M | TODO (Z41, Z40, Z72) |
 | Z88 | Dokończenie kodu z US1–US20 | kod | P2 | L | TODO (Z80, Z39, CAS, Z36) |

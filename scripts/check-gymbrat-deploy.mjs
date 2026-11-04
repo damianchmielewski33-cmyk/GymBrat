@@ -76,7 +76,10 @@ function changelogMentionsGymBrat() {
   const file = path.join(root, CHANGELOG_FILE);
   if (!existsSync(file)) fail(`Brak ${CHANGELOG_FILE} — changelog musi żyć w GymBrat.`);
   const text = readFileSync(file, "utf8");
-  if (!text.includes(EXPECTED_SLUG)) {
+  // Slug żyje w jednym miejscu (lib/gymbrat-source.ts); changelog tylko go importuje.
+  const sourceFile = path.join(root, "lib", "gymbrat-source.ts");
+  const sourceText = existsSync(sourceFile) ? readFileSync(sourceFile, "utf8") : "";
+  if (!text.includes(EXPECTED_SLUG) && !(sourceText.includes(EXPECTED_SLUG.split("/")[0]) && sourceText.includes(`"${EXPECTED_SLUG.split("/")[1]}"`))) {
     fail(
       `${CHANGELOG_FILE} musi wskazywać źródło ${EXPECTED_SLUG}. Zmiany GymBrat nie mogą iść z AWP ani innego repo.`,
     );

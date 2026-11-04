@@ -20,6 +20,7 @@ const EXPECTED_PUBLIC_ROUTES = new Set([
   "/api/catalog-meal-image/[id]",
   "/api/client-errors",
   "/api/cron/cleanup",
+  "/api/cron/package-expiry",
   "/api/cron/reminders",
   "/api/csrf",
   "/api/payments/hotpay/notify",

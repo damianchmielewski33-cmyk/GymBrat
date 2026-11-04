@@ -1,3 +1,9 @@
+CREATE TABLE IF NOT EXISTS `subscription_plans` (`id` text PRIMARY KEY NOT NULL, `sku` text NOT NULL, `title` text NOT NULL, `description` text DEFAULT '' NOT NULL, `days` integer NOT NULL, `price_grosze` integer NOT NULL, `active` integer DEFAULT 1 NOT NULL, `sort_order` integer DEFAULT 0 NOT NULL, `updated_at` integer NOT NULL);
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS `subscription_plans_sku_unique` ON `subscription_plans` (`sku`);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `subscription_orders` (`id` text PRIMARY KEY NOT NULL, `user_id` text, `plan_id` text, `plan_sku` text NOT NULL, `days` integer NOT NULL, `amount_grosze` integer NOT NULL, `status` text NOT NULL, `hotpay_payment_id` text, `source` text, `created_at` integer, `paid_at` integer);
+--> statement-breakpoint
 CREATE TABLE `subscription_orders_new` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text,

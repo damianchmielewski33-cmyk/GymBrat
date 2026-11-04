@@ -1,4 +1,3 @@
-import { workouts } from "@/db/schema";
 import { type ExerciseSessionPoint, type ProgressIntelligence } from "@/lib/analytics";
 import { type AchievementDef } from "@/lib/achievements";
 import { type ProgressDietTrainingBlock } from "@/lib/diet-training-weeks";
