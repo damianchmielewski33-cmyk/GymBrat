@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  createPushDedupe,
+  payloadFingerprint,
+} from "@/lib/active-workout-push-dedupe";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { decideCloudHydrateAction, hasActiveLocalSession } from "@/lib/active-workout-cloud";
@@ -254,6 +258,8 @@ export function ActiveWorkoutCloudSync() {
       window.addEventListener("online", onlineHandler, { once: true });
     };
 
+    const dedupe = createPushDedupe();
+
     const push = async (opts?: { keepalive?: boolean }) => {
       if (!hydratedRef.current || unmounted || pausedAuthRef.current) return;
       if (pushingRef.current) {
@@ -307,6 +313,10 @@ export function ActiveWorkoutCloudSync() {
       }
       clearedPushedRef.current = false; // sesja znów aktywna — jedno DELETE przy następnym opróżnieniu
 
+      // Z71: brak zmian od ostatniego udanego zapisu → pomiń PUT (heartbeat co 60 s).
+      const fingerprint = payloadFingerprint(payload);
+      if (dedupe.shouldSkip(fingerprint)) return;
+
       pushingRef.current = true;
       pendingChangeRef.current = false;
       try {
@@ -317,6 +327,7 @@ export function ActiveWorkoutCloudSync() {
           opts,
         );
         if (result.conflict) {
+          dedupe.reset();
           retryAttemptRef.current = 0;
           if (!shouldApplyConflictPayload(payload, result.conflict.payload)) {
             // Pusty/wygaszony stan w chmurze nie wygrywa z aktywną sesją lokalną (005,
@@ -332,6 +343,7 @@ export function ActiveWorkoutCloudSync() {
         } else if (result.ok && result.revision != null) {
           writeRevision(result.revision);
           retryAttemptRef.current = 0;
+          dedupe.markPushed(fingerprint);
         } else if (!result.ok) {
           // Nieudany push (429/5xx/401/403) — backoff albo stop, patrz scheduleRetry (P2).
           scheduleRetry(result.status, result.retryAfterSec);

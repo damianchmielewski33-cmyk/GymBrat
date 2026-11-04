@@ -33,7 +33,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US13 | Trening i raport ciała: poprawki UX | P1 | L | Z37, Z62, Z63, Z64 | ZROBIONE W REPO 2026-11-03 (testy, E2E i axe nieuruchomione) |
 | US14 | Jakość: lint, E2E, bramki wdrożeniowe | P1 | XL | Z42, Z43, Z45, Z46 | CZĘŚCIOWO 2026-11-03: Z45 zrobione i uruchomione; Z43/Z46 kod gotowy, NIEURUCHOMIONE; Z42 (lint) TODO — brak eslinta w sesji |
 | US15 | Dane i architektura | P1 | XL | Z39, Z40, Z72 | GOTOWE W KODZIE 2026-11-03 (za flagami; testy/tsc NIEURUCHOMIONE, brak npm): Z72 pełne; Z40 runner + `SCHEMA_MODE` (domyślnie `ensure`); Z39 S3 dla zdjęć raportów (domyślnie wyłączone), bez miniatur i uploadu z klienta |
-| US16 | Wydajność | P2 | L | Z41, Z70, Z71, Z79 | TODO |
+| US16 | Wydajność | P2 | L | Z41, Z70, Z71, Z79 | GOTOWE W KODZIE 2026-11-04 (testy/tsc/pomiary NIEURUCHOMIONE, brak npm): Z71, Z79, Z70 w kodzie; Z41 skrypt + budżety + krok CI, bez pomiaru na buildzie |
 | US17 | Spójność wizualna i dostępność | P2 | XL | Z59, Z60, Z61, Z65, Z66, Z67, Z68, Z69, Z74 | TODO |
 | US18 | Onboarding, rejestracja i porządki produktu | P2 | L | Z36, Z58, Z77, Z78 | TODO |
 | US19 | Android i soft launch | P1 | XL | Z51, Z52 | TODO |
@@ -151,7 +151,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** `ensure-schema` sprowadzony do kontroli wersji; zdjęcia poza bazą z migracją danych; równoległe zapisy XP/wojen nie gubią punktów (testy współbieżności).
 
 ## US16 — Wydajność
-**P2 · L · Zależności** brak · **Postęp** 0/4
+**P2 · L · Zależności** brak · **Postęp** 4/4 w kodzie, 0/4 zmierzone (brak npm: pomiar przed/po, wartości budżetów i „−50% zapisów” do potwierdzenia) · **Decyzje** DK-27 w `docs/zespol/decyzje-wlasciciela.md`
 **Cel** Zmierzyć i obniżyć koszty wydajności.
 **Podzadania** Z41 pomiar na buildzie produkcyjnym (Lighthouse, 10 ekranów) · Z70 mniejszy payload RSC (`/nutrition/week` 209 kB, `/plany/atlas` 148 kB → < 90 kB) · Z71 mniej zapisów synchronizacji treningu · Z79 mniej pollingu społeczności.
 **Gotowe, gdy** Budżety zapisane i sprawdzane w CI dla 3 ekranów; payload RSC poniżej progu; zapisy synchronizacji −50%.

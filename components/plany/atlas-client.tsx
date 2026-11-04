@@ -1,5 +1,6 @@
 "use client";
 
+import { getExerciseDetail, type ExerciseDetailDTO } from "@/actions/exercise-detail";
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -120,9 +121,33 @@ export function AtlasClient({
     if (searching) setSort("relevance");
   }, [searching]);
 
-  const selectedExercise = useMemo(
+  const selectedBase = useMemo(
     () => (cwiczenie ? catalog.find((e) => e.id === cwiczenie) ?? null : null),
     [catalog, cwiczenie],
+  );
+  const [detail, setDetail] = useState<{
+    id: string;
+    data: ExerciseDetailDTO | null;
+  } | null>(null);
+  useEffect(() => {
+    if (!selectedBase) return;
+    let cancelled = false;
+    void getExerciseDetail(selectedBase.id).then((data) => {
+      if (!cancelled) setDetail({ id: selectedBase.id, data });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedBase]);
+  const selectedExercise = useMemo(
+    () =>
+      selectedBase
+        ? {
+            ...selectedBase,
+            ...(detail?.id === selectedBase.id ? detail.data : null),
+          }
+        : null,
+    [selectedBase, detail],
   );
 
   useEffect(() => {

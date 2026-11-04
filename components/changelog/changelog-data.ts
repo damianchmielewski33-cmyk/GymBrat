@@ -5,6 +5,15 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Szybsze ekrany i mniej transferu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Atlas ćwiczeń i tydzień żywienia ładują się z mniejszą ilością danych: opisy ćwiczeń pobierają się dopiero po otwarciu karty, a starsze tygodnie żywienia doładowują się w miarę przewijania.",
+      "Trening w trakcie zapisuje się do chmury tylko wtedy, gdy coś się zmieniło, a lista znajomych trenujących odpytuje serwer rzadziej, gdy nikt nie trenuje.",
+    ],
+  },
+  {
     title: "Zapowiedź — Dane i wydajność: uczciwe punkty, przygotowanie pod skalę",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

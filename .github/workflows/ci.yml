@@ -84,3 +84,31 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  perf:
+    name: "Budżety wydajności (3 strony publiczne)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Z41: do pierwszego zielonego przebiegu nie blokuje merge. Po nim USUŃ `continue-on-error`.
+    continue-on-error: true
+    env:
+      TURSO_DATABASE_URL: file:./perf.db
+      AUTH_SECRET: ci-perf-secret-not-for-production-use
+      AUTH_TRUST_HOST: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      - name: Schemat bazy lokalnej
+        run: npx drizzle-kit push --force
+      - name: Build produkcyjny
+        run: npm run build
+      - name: Start serwera
+        run: |
+          npm start &
+          npx --yes wait-on http://localhost:3000/login --timeout 60000
+      - name: Budżety (HTML, TTFB) + Lighthouse
+        run: node scripts/perf-budget.mjs --ci --lighthouse

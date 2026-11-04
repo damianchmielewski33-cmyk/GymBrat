@@ -54,7 +54,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z38 | Spójne cardio także bez planu | kod | P1 | S | KOD GOTOWY (martwy `/start-workout` usunięty, rejestracja → `/workout-plan`), TESTY NIEURUCHOMIONE |
 | Z39 | Zdjęcia w magazynie obiektowym | kod | P1 | L | CZĘŚCIOWO 2026-11-03: S3-kompatybilny klient (SigV4, wektor AWS zielony w node), `object_key`, serwowanie z autoryzacją, sprzątanie przy usunięciu konta/retencji, skrypt migracji + rollback, limity; flaga `PHOTO_STORAGE=s3` domyślnie OFF. Brak: miniatur, uploadu z klienta, pozostałych tabel z `data_url` |
 | Z40 | Jedno źródło schematu bazy | kod | P1 | L | CZĘŚCIOWO 2026-11-03: runner `db:migrate:run`/`db:migrate:check`, `SCHEMA_MODE=migrations` wyłącza runtime DDL, test zgodności schema.ts↔migracje (NIEURUCHOMIONY). Domyślnie nadal `ensure`; przełączenie i usunięcie ensure-schema po teście na stagingu |
-| Z41 | Pomiar wydajności na buildzie produkcyjnym | kod/pomiar | P1 | S | TODO |
+| Z41 | Pomiar wydajności na buildzie produkcyjnym | kod/pomiar | P1 | S | CZĘŚCIOWO 2026-11-04: `scripts/perf-budget.mjs`, `docs/wydajnosc/budzety.{json,md}`, job CI (3 strony publiczne, nieblokujący); POMIAR na buildzie NIEWYKONANY, progi auth do zatwierdzenia |
 | Z42 | Lint zielony | kod | P1 | L | TODO — wymaga uruchomienia `npm run lint` (102 błędy); dodano `lint:ci` (`--max-warnings=0`) i job CI nieblokujący |
 | Z43 | E2E krytycznych ścieżek | kod | P1 | L | KOD GOTOWY (`payments.spec.ts`, `registration.spec.ts`, CI), NIEURUCHOMIONE; raport HTML w artefakcie CI |
 | Z44 | Testy kontraktowe liczb między ekranami | kod | P1 | M | KOD GOTOWY (`lib/cardio-week-range.test.ts`, `lib/volume-contract.test.ts`), NIEURUCHOMIONE |
@@ -83,8 +83,8 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z67 | Jeden komponent kafla statystyki | kod | P2 | S | TODO |
 | Z68 | Strefa bezpieczna dolnej nawigacji | kod | P2 | S | TODO |
 | Z69 | Dokończenie przeglądu wizualnego ekranów | pomiar | P2 | M | TODO |
-| Z70 | Mniejszy payload RSC (Dieta/Tydzień, Atlas) | kod | P2 | M | TODO |
-| Z71 | Mniej zapisów synchronizacji treningu | kod | P2 | M | TODO |
+| Z70 | Mniejszy payload RSC (Dieta/Tydzień, Atlas) | kod | P2 | M | GOTOWE W KODZIE 2026-11-04 (cel < 90 kB NIEZMIERZONY): Atlas bez opisów/wskazówek/linków (szczegóły na żądanie), tydzień żywienia 13 tyg. na start + doładowanie |
+| Z71 | Mniej zapisów synchronizacji treningu | kod | P2 | M | GOTOWE W KODZIE 2026-11-04 (testy NIEURUCHOMIONE): pomijanie PUT bez zmian + heartbeat 60 s; payload nie zmniejszany, metryka tylko lokalnie (`stats()`) |
 | Z72 | CAS w modułach społeczności | kod | P2 | M | GOTOWE W KODZIE 2026-11-03 (testy NIEURUCHOMIONE) |
 | Z73 | Realizacja decyzji o Javie | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z74 | Dostępność WCAG AA | kod | P2 | M | TODO |
@@ -92,7 +92,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z76 | Publiczna strona produktu | kod | P2 | M | TODO |
 | Z77 | Usunięcie `inbox` i roli `trener` | kod | P3 | S | TODO |
 | Z78 | Usunięcie martwych komponentów | kod | P3 | S | TODO |
-| Z79 | Mniej pollingu społeczności | kod | P3 | M | TODO |
+| Z79 | Mniej pollingu społeczności | kod | P3 | M | GOTOWE W KODZIE 2026-11-04: adaptacyjny interwał listy „kto trenuje” (×2 do 4×), pauza w tle już była; bez SSE (decyzja DK-27), cache list serwerowych już istniał |
 | Z80 | Rozbicie dużych modułów | kod | P3 | L | TODO |
 | Z81 | Przypomnienia treningowe za zgodą | kod | P3 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z82 | Mapa drogowa funkcji Premium | decyzja | P3 | S | ZROBIONE (2026-11-02) |
