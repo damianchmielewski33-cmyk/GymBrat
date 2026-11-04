@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MIN_AGE_MESSAGE, MIN_USER_AGE } from "@/lib/min-age";
 
 export const activityLevels = ["low", "medium", "high"] as const;
 
@@ -34,7 +35,7 @@ export const registerSchema = z.object({
   age: z.coerce
     .number("Wpisz swój wiek")
     .int("Użyj liczby całkowitej")
-    .min(13, "Minimalny wiek: 13")
+    .min(MIN_USER_AGE, MIN_AGE_MESSAGE)
     .max(120, "Maksymalny wiek: 120"),
   activityLevel: z.enum(activityLevels, {
     message: "Wybierz poziom aktywności",
@@ -45,8 +46,11 @@ export const registerSchema = z.object({
     .int("Użyj liczby całkowitej")
     .min(1, "Minimum 1 dzień")
     .max(7, "Maksimum 7 dni"),
-  /** Na razie rejestracja tylko jako zawodnik (trener — w przyszłości). */
+  /** Rejestracja zawsze jako zawodnik (rola „trener” usunięta, Z77). */
   role: z.literal("zawodnik"),
+  /** Opcjonalne zgody z ekranu rejestracji (Z11); brak = brak zgody, można dać później. */
+  healthConsent: z.boolean().optional(),
+  photosConsent: z.boolean().optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

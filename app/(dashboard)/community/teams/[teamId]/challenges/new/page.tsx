@@ -6,6 +6,8 @@ import { CreateChallengeForm } from "@/components/community/create-challenge-for
 import { listChallengeTemplates } from "@/lib/community/challenges";
 import { getActiveMembership } from "@/lib/community/teams";
 
+export const metadata = { title: "Nowe wyzwanie grupy" };
+
 export default async function NewTeamChallengePage({
   params,
 }: {
@@ -41,7 +43,7 @@ export default async function NewTeamChallengePage({
         <h1 className="font-heading text-[26px] font-semibold text-white">
           Nowe wyzwanie
         </h1>
-        <p className="mt-1 text-[13px] text-white/45">
+        <p className="mt-1 text-[13px] text-white/50">
           Szablony z gotowymi nagrodami XP i odznakami.
         </p>
       </div>

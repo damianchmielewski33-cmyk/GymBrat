@@ -256,7 +256,7 @@ export function AddMealScreen({
           </button>
           <div className="min-w-0 flex-1 text-center">
             <p className="text-base font-semibold">{title}</p>
-            <p className="text-xs text-white/45">
+            <p className="text-xs text-white/50">
               {DIET_DIARY_SLOT_LABELS[slot]} · {dateLabel}
             </p>
           </div>
@@ -272,7 +272,7 @@ export function AddMealScreen({
           <input type="hidden" name="slot" value={slot} />
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5">
             <label className="block">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                 Nazwa
               </span>
               <input
@@ -284,12 +284,12 @@ export function AddMealScreen({
                 placeholder={
                   sub === "product" ? "np. Skyr naturalny" : "np. Kanapka z pracy"
                 }
-                className="mt-2 h-12 w-full rounded-2xl border border-white/10 bg-[#1a1a1a] px-3.5 text-[15px] font-medium text-white outline-none placeholder:text-white/30 focus:border-[var(--gym-gold)]/45"
+                className="mt-2 h-12 w-full rounded-2xl border border-white/10 bg-[#1a1a1a] px-3.5 text-[15px] font-medium text-white outline-none placeholder:text-white/50 focus:border-[var(--gym-gold)]/45"
               />
             </label>
 
             <label className="block rounded-3xl border border-white/10 bg-[#121214] px-4 py-5 text-center">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                 Wartość energetyczna
               </span>
               <span className="mt-2 flex items-baseline justify-center gap-2">
@@ -299,11 +299,11 @@ export function AddMealScreen({
                   onChange={(e) => setKcal(e.target.value)}
                   inputMode="decimal"
                   placeholder={computedKcal != null ? String(computedKcal) : "0"}
-                  className="w-32 border-0 bg-transparent text-center text-5xl font-semibold tabular-nums text-[var(--gym-gold)] outline-none placeholder:text-white/20"
+                  className="w-32 border-0 bg-transparent text-center text-5xl font-semibold tabular-nums text-[var(--gym-gold)] outline-none placeholder:text-white/50"
                 />
                 <span className="text-base text-white/50">kcal</span>
               </span>
-              <span className="mt-1 block text-xs text-white/40">
+              <span className="mt-1 block text-xs text-white/50">
                 {computedKcal != null && !kcal.trim()
                   ? "Policzone z makroskładników"
                   : "Zostaw puste, by policzyć z makro"}
@@ -333,9 +333,9 @@ export function AddMealScreen({
                       onChange={(e) => setVal(e.target.value)}
                       inputMode="decimal"
                       placeholder="0"
-                      className="w-14 border-0 bg-transparent text-center text-2xl font-semibold tabular-nums text-white outline-none placeholder:text-white/20"
+                      className="w-14 border-0 bg-transparent text-center text-2xl font-semibold tabular-nums text-white outline-none placeholder:text-white/50"
                     />
-                    <span className="text-xs text-white/45">g</span>
+                    <span className="text-xs text-white/50">g</span>
                   </span>
                 </label>
               ))}
@@ -394,7 +394,7 @@ export function AddMealScreen({
           <ChevronLeft className="h-5 w-5" aria-hidden />
           Wróć
         </button>
-        <p className="relative mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+        <p className="relative mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
           {kicker}
         </p>
         <h1 className="relative mt-1.5 text-[28px] font-semibold leading-tight tracking-tight text-white">
@@ -441,7 +441,7 @@ export function AddMealScreen({
             placeholder="albo wpisz nazwę: serek, ryż, jabłko…"
             autoFocus
             autoComplete="off"
-            className="h-12 min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#1a1a1a] px-3.5 text-[14px] text-white outline-none placeholder:text-white/35 focus:border-[var(--gym-gold)]/35"
+            className="h-12 min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#1a1a1a] px-3.5 text-[14px] text-white outline-none placeholder:text-white/50 focus:border-[var(--gym-gold)]/35"
           />
         </div>
 
@@ -511,7 +511,7 @@ export function AddMealScreen({
                     "rounded-full px-3 py-1.5 text-[12px] font-semibold transition",
                     listTab === tab.id
                       ? "border border-[var(--gym-gold)]/60 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)]"
-                      : "border border-transparent bg-white/[0.04] text-white/45",
+                      : "border border-transparent bg-white/[0.04] text-white/50",
                   )}
                 >
                   {tab.label}
@@ -519,7 +519,7 @@ export function AddMealScreen({
               ))}
             </div>
 
-            <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
               {listTab === "favorites"
                 ? "Ulubione"
                 : listTab === "recents" || (fromRecents && !query.trim())
@@ -532,10 +532,10 @@ export function AddMealScreen({
             <div className="mt-2">
               {pending && products.length === 0 ? (
                 <div className="flex justify-center py-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+                  <Loader2 className="h-6 w-6 animate-spin text-white/50" />
                 </div>
               ) : products.length === 0 ? (
-                <p className="py-6 text-[13px] text-white/40">
+                <p className="py-6 text-[13px] text-white/50">
                   {hint ??
                     (listTab === "recents"
                       ? "Powtórz produkty z historii dziennika."
@@ -559,7 +559,7 @@ export function AddMealScreen({
                           >
                             {prod.name}
                           </p>
-                          <p className="mt-0.5 text-[12px] text-white/40">
+                          <p className="mt-0.5 text-[12px] text-white/50">
                             {[
                               prod.brand,
                               prod.servingLabel,
@@ -571,7 +571,7 @@ export function AddMealScreen({
                         </div>
                         <p className="shrink-0 text-right text-[12px] tabular-nums text-white/55">
                           {Math.round(prod.calories)} kcal
-                          <span className="mt-0.5 block text-[10px] text-white/35">
+                          <span className="mt-0.5 block text-[10px] text-white/50">
                             / {prod.servingLabel || "porcja"}
                           </span>
                         </p>

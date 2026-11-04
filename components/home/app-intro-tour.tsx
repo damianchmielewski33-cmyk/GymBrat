@@ -66,7 +66,7 @@ export function AppIntroTour({ open }: { open: boolean }) {
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
               {current.kicker}
             </p>
-            <p className="text-[11px] tabular-nums text-white/35">
+            <p className="text-[11px] tabular-nums text-white/50">
               {step + 1} / {total}
             </p>
           </div>

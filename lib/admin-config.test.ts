@@ -37,9 +37,10 @@ describe("resolveEffectiveRole", () => {
     expect(
       resolveEffectiveRole({ appRole: "zawodnik", email: "owner@example.com", emailVerified: false }),
     ).toBe("zawodnik");
+    // Z77: dawna rola „trener” w bazie jest traktowana jak zawodnik.
     expect(
       resolveEffectiveRole({ appRole: "trener", email: "owner@example.com", emailVerified: false }),
-    ).toBe("trener");
+    ).toBe("zawodnik");
   });
 
   it("pusta lista i nieznana rola = zawodnik", () => {

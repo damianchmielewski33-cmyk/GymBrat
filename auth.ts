@@ -7,7 +7,7 @@ import { getDb } from "@/db";
 import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import { siteActivityLog, users } from "@/db/schema";
 import { getAuthSecret } from "@/lib/auth-secret";
-import { resolveEffectiveRole } from "@/lib/admin-config";
+import { normalizeAdminEmail, parseAdminEmails, resolveEffectiveRole } from "@/lib/admin-config";
 import { syncAdminRoleOnLogin } from "@/lib/admin-session";
 import {
   findUserByOAuthLink,
@@ -24,6 +24,8 @@ import { LOGIN_RATE_LIMITED_CODE } from "@/lib/auth-error-codes";
 import {
   checkRateLimitAsync,
   clientIpFromHeaders,
+  isRateLimited,
+  resetRateLimit,
   RATE,
 } from "@/lib/rate-limit";
 
@@ -82,14 +84,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        role: { label: "Role", type: "text" },
       },
       async authorize(credentials, request) {
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
-        const rawRole = credentials?.role as string | undefined;
-        const role: "zawodnik" | "trener" =
-          rawRole === "trener" ? "trener" : "zawodnik";
         if (!email || !password) return null;
 
         // Limit prób logowania (przed zapytaniem do bazy i bcrypt): osobno na IP i na konto.
@@ -115,9 +113,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .limit(1);
         if (!user?.passwordHash) return null;
 
+        // Z32 / DK-22: konta admina — blokada po 5 BŁĘDNYCH hasłach na 15 min. Klucz = konto + IP, więc
+        // obcy z innego adresu nie zablokuje właścicielowi logowania; udane logowanie zeruje licznik.
+        const isAdminAccount =
+          user.appRole === "admin" || parseAdminEmails().has(normalizeAdminEmail(user.email));
+        const adminFailKey = isAdminAccount
+          ? `admin-login-fail:${user.id}:${clientIpFromHeaders(request.headers)}`
+          : null;
+        if (adminFailKey && (await isRateLimited(adminFailKey, RATE.adminLogin.limit, RATE.adminLogin.windowMs))) {
+          throw new LoginRateLimited();
+        }
+
         const { compare } = await import("bcryptjs");
         const valid = await compare(password, user.passwordHash);
-        if (!valid) return null;
+        if (!valid) {
+          if (adminFailKey) await checkRateLimitAsync(adminFailKey, RATE.adminLogin.limit, RATE.adminLogin.windowMs);
+          return null;
+        }
+        if (adminFailKey) await resetRateLimit(adminFailKey, RATE.adminLogin.limit, RATE.adminLogin.windowMs);
 
         const effectiveRole = await syncAdminRoleOnLogin({
           id: user.id,
@@ -125,9 +138,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           appRole: user.appRole,
           emailVerified: user.emailVerifiedAt != null,
         });
-        // Admin loguje się niezależnie od wybranej zakładki; pozostali tylko w swojej roli.
-        if (effectiveRole !== "admin" && effectiveRole !== role) return null;
-
         return {
           id: user.id,
           email: user.email,
@@ -196,6 +206,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = linked.email;
         token.role = await syncAdminRoleOnLogin(linked);
         token.sv = linked.sessionVersion;
+        token.authAt = Date.now();
       } else if (user) {
         if (typeof user.id === "string") {
           token.id = user.id;
@@ -204,6 +215,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (user.role) token.role = user.role;
         if (typeof user.email === "string" && user.email) token.email = user.email;
         token.sv = user.sv ?? 0;
+        token.authAt = Date.now();
       } else {
         const uid =
           typeof token.id === "string" ? token.id : typeof token.sub === "string" ? token.sub : "";
@@ -257,13 +269,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     session({ session, token }) {
+      // Moment ostatniego logowania (nie odświeżania tokenu) — do ponownego uwierzytelnienia (Z14).
+      session.authAt = typeof token.authAt === "number" ? token.authAt : undefined;
       if (session.user) {
         const id =
           (typeof token.id === "string" ? token.id : undefined) ??
           (typeof token.sub === "string" ? token.sub : undefined);
         if (id) session.user.id = id;
         session.user.role =
-          (token.role as "zawodnik" | "trener" | "admin" | undefined) ??
+          (token.role as "zawodnik" | "admin" | undefined) ??
           "zawodnik";
         session.user.profileComplete = token.profileComplete === true;
         if (typeof token.email === "string" && token.email) {

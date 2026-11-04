@@ -370,7 +370,7 @@ export function AdminCatalogClient() {
             aria-label="Prompt do generowania katalogu przepisów"
           />
         ) : (
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/50">
             Prompt jest pod stałe Posiłek 1–5 (tylko makro w profilu) i wymaga zróżnicowanych
             profili B/W/T.
           </p>
@@ -467,7 +467,7 @@ export function AdminCatalogClient() {
           <div className="border-b border-white/10 p-4">
             <div className="relative">
               <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35"
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50"
                 aria-hidden
               />
               <Input
@@ -497,7 +497,7 @@ export function AdminCatalogClient() {
         ) : (
           <div className="max-h-[min(60vh,520px)] overflow-auto">
             <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 bg-zinc-950/95 text-[11px] uppercase tracking-wide text-white/45">
+              <thead className="sticky top-0 bg-zinc-950/95 text-[11px] uppercase tracking-wide text-white/50">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">Tytuł</th>
                   <th className="px-4 py-2.5 font-medium">Posiłek</th>
@@ -509,7 +509,7 @@ export function AdminCatalogClient() {
                   <tr key={m.id} className="hover:bg-white/[0.03]">
                     <td className="px-4 py-2.5">
                       <p>{m.title}</p>
-                      <p className="font-mono text-[11px] text-white/30">{m.id}</p>
+                      <p className="font-mono text-[11px] text-white/50">{m.id}</p>
                     </td>
                     <td className="px-4 py-2.5">
                       <AdminPill>{MEAL_SLOT_LABELS[m.slot] ?? m.slot}</AdminPill>
@@ -526,7 +526,7 @@ export function AdminCatalogClient() {
 
         {filteredMeals.length > shownMeals.length ? (
           <div className="flex items-center justify-between border-t border-white/10 px-4 py-3">
-            <p className="text-xs text-white/45">
+            <p className="text-xs text-white/50">
               Pokazano {shownMeals.length} z {filteredMeals.length}
             </p>
             <Button

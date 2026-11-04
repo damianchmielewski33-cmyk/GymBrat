@@ -19,6 +19,8 @@ async function TeamCelebrations({ userId }: { userId: string }) {
   return <ChallengeCelebrationOverlay celebrations={celebrations} />;
 }
 
+export const metadata = { title: "Grupa" };
+
 export default async function TeamDetailPage({
   params,
 }: {

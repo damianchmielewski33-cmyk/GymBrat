@@ -1,3 +1,4 @@
+import { isDateKeyInRange, type CardioWeekRange } from "@/lib/cardio-week-range";
 import { clamp, inWindow, round0 } from "@/lib/analytics/math";
 import type { AnalyticsCardioSample } from "@/lib/analytics/types";
 
@@ -73,10 +74,14 @@ export function sumCardioCaloriesWeek(args: {
   weightKg: number | null;
   ageYears: number | null;
   sex: SexKind | null;
+  /** Ten sam zakres tygodnia co minuty cardio (US12); bez niego — ostatnie 7 dni. */
+  range?: CardioWeekRange;
 }): number {
   let sum = 0;
   for (const s of args.samples) {
-    if (!inWindow(s.date, args.today, 7)) continue;
+    if (args.range) {
+      if (!isDateKeyInRange(s.date, args.range)) continue;
+    } else if (!inWindow(s.date, args.today, 7)) continue;
     sum += resolveSampleCalories(s, {
       weightKg: args.weightKg,
       ageYears: args.ageYears,

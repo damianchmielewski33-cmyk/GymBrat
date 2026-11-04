@@ -108,7 +108,7 @@ function sortBugs(rows: BugRow[]): BugRow[] {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-white/35">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-white/50">{label}</p>
       <p className="mt-0.5 whitespace-pre-wrap text-sm text-white/85">{children}</p>
     </div>
   );
@@ -221,7 +221,7 @@ export function AdminBugsClient() {
                             {BUG_PRIORITY_LABELS[priority]}
                           </AdminPill>
                         ) : null}
-                        <span className="text-xs text-white/40">{formatWhen(bug.createdAt)}</span>
+                        <span className="text-xs text-white/50">{formatWhen(bug.createdAt)}</span>
                       </div>
                       <p className="text-xs text-white/50">
                         Zgłosił: <span className="text-white/75">{reporterLabel(bug)}</span> ·{" "}
@@ -250,7 +250,7 @@ export function AdminBugsClient() {
                     {legacySteps ? <Field label="Kroki odtworzenia">{legacySteps}</Field> : null}
                     {bug.photos && bug.photos.length > 0 ? (
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-white/35">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-white/50">
                           Zdjęcia
                         </p>
                         <ul className="mt-1.5 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
@@ -275,7 +275,7 @@ export function AdminBugsClient() {
                       </div>
                     ) : null}
                     {(tab === "retest" || tab === "fixed") && bug.resolvedAt ? (
-                      <p className="text-xs text-white/40">
+                      <p className="text-xs text-white/50">
                         {tab === "retest" ? "Przekazano do retestu" : "Naprawiono"}:{" "}
                         {formatWhen(bug.resolvedAt)}
                       </p>

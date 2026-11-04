@@ -13,9 +13,11 @@ import {
   workouts,
 } from "@/db/schema";
 import { maybeDecryptSensitiveField } from "@/lib/app-field-crypto";
+import { loadStoredPhotoPayload } from "@/lib/photo-payload";
+import { buildExtraExport } from "@/lib/user-data-export-extra";
 
 export type UserDataExport = {
-  exportVersion: 1;
+  exportVersion: 2;
   exportedAt: string;
   user: {
     id: string;
@@ -44,6 +46,10 @@ export type UserDataExport = {
   dailyCheckins: Record<string, unknown>[];
   weightLogs: Record<string, unknown>[];
   trainingSessions: Record<string, unknown>[];
+  /** Z26: zamówienia (historia zakupów i dowody zgód). */
+  orders: Record<string, unknown>[];
+  /** Z26: pozostałe dane powiązane z kontem (zgody, przypomnienia, społeczność…): tabela → wiersze. */
+  otherData: Record<string, Record<string, unknown>[]>;
 };
 
 export async function buildUserDataExport(userId: string): Promise<UserDataExport> {
@@ -69,6 +75,8 @@ export async function buildUserDataExport(userId: string): Promise<UserDataExpor
     .from(trainingSessions)
     .where(eq(trainingSessions.userId, userId));
 
+  const extra = await buildExtraExport(db, userId);
+
   const reportIds = reports.map((r) => r.id);
   const photos =
     reportIds.length === 0
@@ -87,13 +95,13 @@ export async function buildUserDataExport(userId: string): Promise<UserDataExpor
     const arr = photosByReport.get(p.reportId) ?? [];
     arr.push({
       id: p.id,
-      dataUrl: maybeDecryptSensitiveField(p.dataUrl) ?? "",
+      dataUrl: maybeDecryptSensitiveField(await loadStoredPhotoPayload(p)) ?? "",
     });
     photosByReport.set(p.reportId, arr);
   }
 
   return {
-    exportVersion: 1,
+    exportVersion: 2,
     exportedAt: new Date().toISOString(),
     user: {
       id: u.id,
@@ -121,5 +129,7 @@ export async function buildUserDataExport(userId: string): Promise<UserDataExpor
     dailyCheckins: checkins.map((c) => ({ ...c })),
     weightLogs: weights.map((w) => ({ ...w })),
     trainingSessions: sessions.map((s) => ({ ...s })),
+    orders: extra.orders,
+    otherData: extra.tables,
   };
 }

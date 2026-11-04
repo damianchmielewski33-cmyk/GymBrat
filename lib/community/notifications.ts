@@ -564,7 +564,7 @@ export async function notifyRankingChange(input: {
     entityId: input.weekKey,
   });
 
-  const { track } = await import("@/lib/analytics/track");
+  const { track } = await import("@/lib/analytics/track-server");
   track.rankingLeaderChanged(input.actorUserId || `system:team:${input.teamId}`, {
     team_id: input.teamId,
     week_key: input.weekKey,
@@ -592,7 +592,7 @@ export async function notifyHallOfFameWin(input: {
   });
 
   {
-    const { track } = await import("@/lib/analytics/track");
+    const { track } = await import("@/lib/analytics/track-server");
     track.hofAwarded(input.userId, {
       season_key: input.seasonKey,
       category_label: input.categoryLabel,

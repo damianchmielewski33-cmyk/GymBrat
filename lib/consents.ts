@@ -65,12 +65,26 @@ export async function getCurrentConsents(
   return out;
 }
 
+/** Czy ostatnia decyzja użytkownika dla danego typu to zgoda (jedno zapytanie). */
+export async function isConsentGranted(
+  userId: string,
+  type: ConsentType,
+): Promise<boolean> {
+  const db = getDb();
+  const [row] = await db
+    .select({ granted: userConsents.granted })
+    .from(userConsents)
+    .where(and(eq(userConsents.userId, userId), eq(userConsents.type, type)))
+    .orderBy(desc(userConsents.decidedAt))
+    .limit(1);
+  return Boolean(row?.granted);
+}
+
 export async function hasGrantedConsent(
   userId: string,
   type: ConsentType,
 ): Promise<boolean> {
-  const map = await getCurrentConsents(userId);
-  return Boolean(map[type]?.granted);
+  return isConsentGranted(userId, type);
 }
 
 export function isConsentType(v: string): v is ConsentType {

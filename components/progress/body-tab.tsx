@@ -1,5 +1,6 @@
 "use client";
 
+import { BRAND_GOLD } from "@/lib/brand-colors";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
@@ -152,11 +153,11 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                 <span className="font-heading text-[15px] text-white/50">kg</span>
               </p>
             ) : (
-              <p className="mt-2 font-metric text-[2rem] leading-none text-white/35">
+              <p className="mt-2 font-metric text-[2rem] leading-none text-white/50">
                 —
               </p>
             )}
-            <p className="mt-1.5 text-[11px] leading-snug text-white/45">
+            <p className="mt-1.5 text-[11px] leading-snug text-white/50">
               {lastLine ?? "Brak raportów wagi — dodaj pierwszy w Raportach."}
             </p>
           </div>
@@ -164,11 +165,11 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
             <p className="font-metric text-[18px] leading-none tabular-nums text-white">
               {fmtSigned(tempo.deltaFromStartKg, " kg", 1)}
             </p>
-            <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-white/40">
+            <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-white/50">
               od startu
             </p>
             {tempo.startKg != null ? (
-              <p className="mt-1 text-[11px] tabular-nums text-white/40">
+              <p className="mt-1 text-[11px] tabular-nums text-white/50">
                 {fmtNum(tempo.startKg, 1)} kg · {formatDayMonth(tempo.startDate)}
               </p>
             ) : null}
@@ -179,7 +180,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
           {editingGoal ? (
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1 space-y-1.5">
-                <p className="text-[11px] text-white/45">
+                <p className="text-[11px] text-white/50">
                   Wpisz wagę docelową (kg).
                 </p>
                 <input
@@ -229,7 +230,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                     setEditingGoal(false);
                     setGoalError(null);
                   }}
-                  className="text-[11px] text-white/40"
+                  className="text-[11px] text-white/50"
                 >
                   Anuluj
                 </button>
@@ -246,7 +247,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                         {fmtNum(targetWeightKg, 1)} kg
                       </span>
                     </p>
-                    <p className="mt-0.5 text-[11px] leading-snug text-white/45">
+                    <p className="mt-0.5 text-[11px] leading-snug text-white/50">
                       {eta ??
                         "Dodaj kolejne raporty, żeby policzyć termin osiągnięcia celu."}
                     </p>
@@ -301,12 +302,12 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
       <ProgressSection title="Obwody" trailing="od startu">
         <Surface variant="list">
           {measures.every((m) => m.currentCm == null) ? (
-            <p className="px-3.5 py-5 text-center text-[13px] text-white/45">
+            <p className="px-3.5 py-5 text-center text-[13px] text-white/50">
               Dodaj obwody w raporcie, żeby zobaczyć trendy.
             </p>
           ) : (
             measures.map((row) => {
-              const color = MEASURE_COLORS[row.key] ?? "#ebc44a";
+              const color = MEASURE_COLORS[row.key] ?? BRAND_GOLD;
               const improved =
                 row.deltaFromStartCm != null &&
                 Math.abs(row.deltaFromStartCm) >= 0.05 &&
@@ -316,7 +317,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
               const deltaTone =
                 row.deltaFromStartCm == null ||
                 Math.abs(row.deltaFromStartCm) < 0.05
-                  ? "text-white/35"
+                  ? "text-white/50"
                   : improved
                     ? "text-emerald-400"
                     : "text-white/70";
@@ -343,7 +344,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                       <>
                         <p className="font-heading text-[15px] leading-none tabular-nums text-white">
                           {fmtNum(row.currentCm, row.currentCm % 1 ? 1 : 0)}
-                          <span className="ml-0.5 text-[10px] text-white/40">
+                          <span className="ml-0.5 text-[10px] text-white/50">
                             cm
                           </span>
                         </p>
@@ -357,7 +358,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                         </p>
                       </>
                     ) : (
-                      <p className="font-heading text-[15px] text-white/30">—</p>
+                      <p className="font-heading text-[15px] text-white/50">—</p>
                     )}
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { BRAND_GOLD } from "@/lib/brand-colors";
 import { useMemo, useState } from "react";
 import {
   Bar,
@@ -28,7 +29,7 @@ import {
 
 const tooltipStyle = {
   backgroundColor: "rgba(12, 12, 14, 0.96)",
-  border: "1px solid rgba(235, 196, 74, 0.28)",
+  border: "1px solid rgba(var(--neon-rgb),0.28)",
   borderRadius: "14px",
   fontSize: "12px",
   color: "rgba(255, 255, 255, 0.92)",
@@ -51,7 +52,7 @@ function outcomeTone(o: ExercisePeriodOutcome): string {
 function barFill(o: ExercisePeriodOutcome): string {
   if (o === "progress") return "#34d399";
   if (o === "regress") return "#9a9182";
-  return "#ebc44a";
+  return BRAND_GOLD;
 }
 
 function OutcomeIcon({ outcome }: { outcome: ExercisePeriodOutcome }) {
@@ -61,7 +62,7 @@ function OutcomeIcon({ outcome }: { outcome: ExercisePeriodOutcome }) {
   if (outcome === "regress") {
     return <ArrowDownRight className="h-3.5 w-3.5 text-[var(--gym-text-secondary)]" aria-hidden />;
   }
-  return <Minus className="h-3.5 w-3.5 text-white/35" aria-hidden />;
+  return <Minus className="h-3.5 w-3.5 text-white/50" aria-hidden />;
 }
 
 function VerdictBadge({ compare }: { compare: ExercisePeriodCompare }) {
@@ -100,11 +101,11 @@ function PercentBar({ metric }: { metric: ExercisePeriodMetric }) {
           <p className="truncate text-[12px] font-medium text-white/80">
             {metric.label}
           </p>
-          <p className="mt-0.5 text-[10px] text-white/40">
+          <p className="mt-0.5 text-[10px] text-white/50">
             {metric.previous != null
               ? `${metric.previous.toLocaleString("pl-PL")}${metric.unit ? ` ${metric.unit}` : ""}`
               : "—"}
-            <span className="mx-1 text-white/25">→</span>
+            <span className="mx-1 text-white/50">→</span>
             {metric.current != null
               ? `${metric.current.toLocaleString("pl-PL")}${metric.unit ? ` ${metric.unit}` : ""}`
               : "—"}
@@ -145,11 +146,11 @@ function ChipList({
 }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
         {title}
       </p>
       {metrics.length === 0 ? (
-        <p className="mt-1.5 text-[12px] text-white/35">{empty}</p>
+        <p className="mt-1.5 text-[12px] text-white/50">{empty}</p>
       ) : (
         <ul className="mt-1.5 flex flex-wrap gap-1.5">
           {metrics.map((m) => (
@@ -234,7 +235,7 @@ export function ExercisePeriodComparePanel({
                 "flex-1 rounded-lg px-2 py-2 text-[12px] font-semibold transition",
                 active
                   ? "bg-[var(--gym-gold)]/20 text-[var(--gym-gold)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.35)]"
-                  : "text-white/45 hover:text-white/70",
+                  : "text-white/50 hover:text-white/70",
               )}
             >
               {t.label}
@@ -243,9 +244,9 @@ export function ExercisePeriodComparePanel({
         })}
       </div>
 
-      <p className="text-[11px] text-white/40">
+      <p className="text-[11px] text-white/50">
         {compare.currentLabel}
-        <span className="mx-1.5 text-white/25">·</span>
+        <span className="mx-1.5 text-white/50">·</span>
         {compare.previousLabel}
       </p>
 
@@ -264,11 +265,16 @@ export function ExercisePeriodComparePanel({
 
       <div className="relative h-[200px] w-full min-w-0">
         {chartData.length < 2 ? (
-          <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-xs text-white/40">
+          <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-xs text-white/50">
             Potrzeba co najmniej dwóch okresów z treningami.
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minHeight={100}
+          initialDimension={{ width: 320, height: 200 }}
+        >
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
               <XAxis
@@ -311,7 +317,7 @@ export function ExercisePeriodComparePanel({
           </ResponsiveContainer>
         )}
       </div>
-      <p className="text-[10px] text-white/35">
+      <p className="text-[10px] text-white/50">
         Słupki:{" "}
         {kind === "week"
           ? "śr. e1RM / objętość w tygodniu"
@@ -329,7 +335,7 @@ export function ExercisePeriodComparePanel({
           ))}
         </ul>
       ) : (
-        <p className="rounded-xl border border-dashed border-white/10 px-3 py-4 text-center text-xs text-white/40">
+        <p className="rounded-xl border border-dashed border-white/10 px-3 py-4 text-center text-xs text-white/50">
           Za mało historii, żeby policzyć procenty. Trenuj dalej — porównania
           pojawią się po kolejnym okresie.
         </p>

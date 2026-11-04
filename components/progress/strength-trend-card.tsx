@@ -70,7 +70,7 @@ export function StrengthTrendCard({
         />
 
         {!hasAny ? (
-          <p className="py-2 text-center text-[13px] text-white/45">
+          <p className="py-2 text-center text-[13px] text-white/50">
             Za mało historii w tym oknie — wróć po kolejnych treningach.
           </p>
         ) : (
@@ -149,7 +149,7 @@ export function StrengthForecastCard({
                     <p className="truncate text-[13px] font-semibold text-white">
                       {item.name}
                     </p>
-                    <p className="mt-0.5 text-[10px] text-white/40">
+                    <p className="mt-0.5 text-[10px] text-white/50">
                       teraz {item.e1rmNow.toLocaleString("pl-PL")} kg · pewność{" "}
                       {confidenceLabelPl(item.confidence)}
                     </p>
@@ -158,7 +158,7 @@ export function StrengthForecastCard({
                     <p className={cn("font-heading text-[13px] tabular-nums", toneText(d30))}>
                       30d {fmtPct(item.e1rmDeltaPct30)}
                     </p>
-                    <p className="mt-0.5 font-heading text-[11px] tabular-nums text-white/45">
+                    <p className="mt-0.5 font-heading text-[11px] tabular-nums text-white/50">
                       90d {fmtPct(item.e1rmDeltaPct90)}
                     </p>
                   </div>

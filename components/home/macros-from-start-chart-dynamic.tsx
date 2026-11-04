@@ -12,7 +12,7 @@ const MacrosFromStartChart = dynamic(
     ssr: false,
     loading: () => (
       <section className="app-card flex h-[300px] items-center justify-center p-5">
-        <p className="text-xs text-white/40">Ładowanie wykresu makro…</p>
+        <p className="text-xs text-white/50">Ładowanie wykresu makro…</p>
       </section>
     ),
   },

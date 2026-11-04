@@ -111,11 +111,11 @@ export function WeightRangeChart({
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
             Waga i pas
           </p>
-          <p className="mt-1 text-xs text-white/40">
+          <p className="mt-1 text-xs text-white/50">
             Dokładne wartości na punktach i w podsumowaniu zakresu
           </p>
         </div>
-        <div className="flex items-center gap-3 text-[10px] text-white/45">
+        <div className="flex items-center gap-3 text-[10px] text-white/50">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-1.5 w-3 rounded-full bg-[var(--gym-gold)]" />
             Waga
@@ -129,26 +129,26 @@ export function WeightRangeChart({
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div className="app-card-raised px-3 py-2.5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
             Waga
           </p>
           <p className="mt-1 font-display text-[22px] tabular-nums text-[var(--gym-gold)]">
             {summary.lastKg != null ? `${formatNum(summary.lastKg)} kg` : "—"}
           </p>
-          <p className="mt-0.5 text-[11px] text-white/40">
+          <p className="mt-0.5 text-[11px] text-white/50">
             {summary.deltaKg != null
               ? `${summary.deltaKg > 0 ? "+" : ""}${formatNum(summary.deltaKg)} kg w zakresie`
               : "brak zmiany"}
           </p>
         </div>
         <div className="app-card-raised px-3 py-2.5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
             Pas
           </p>
           <p className="mt-1 font-display text-[22px] tabular-nums text-[#86efac]">
             {summary.lastWaist != null ? `${formatNum(summary.lastWaist)} cm` : "—"}
           </p>
-          <p className="mt-0.5 text-[11px] text-white/40">
+          <p className="mt-0.5 text-[11px] text-white/50">
             {summary.deltaWaist != null
               ? `${summary.deltaWaist > 0 ? "+" : ""}${formatNum(summary.deltaWaist)} cm w zakresie`
               : "brak zmiany"}
@@ -174,7 +174,7 @@ export function WeightRangeChart({
                 "rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors duration-200",
                 active
                   ? "bg-[var(--gym-gold)] text-black"
-                  : "bg-white/[0.05] text-white/45 hover:bg-white/[0.08] hover:text-white/70",
+                  : "bg-white/[0.05] text-white/50 hover:bg-white/[0.08] hover:text-white/70",
               )}
             >
               {r.label}
@@ -184,7 +184,12 @@ export function WeightRangeChart({
       </div>
 
       <div className="mt-4 h-[260px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minHeight={100}
+          initialDimension={{ width: 320, height: 200 }}
+        >
           <LineChart
             key={range}
             data={filtered}
@@ -314,11 +319,11 @@ export function WeightRangeChart({
       </div>
 
       {filtered.length === 0 ? (
-        <p className="mt-3 text-xs text-white/40">
+        <p className="mt-3 text-xs text-white/50">
           Brak pomiarów w tym zakresie — dodaj ważenie w Analizie albo w raporcie.
         </p>
       ) : (
-        <p className="mt-3 text-[11px] text-white/35">
+        <p className="mt-3 text-[11px] text-white/50">
           {summary.points} pomiarów
           {summary.lastDate ? ` · ostatni: ${formatFullDate(summary.lastDate)}` : ""}
           {" · "}dotknij punkt, żeby zobaczyć dokładną datę i wartość

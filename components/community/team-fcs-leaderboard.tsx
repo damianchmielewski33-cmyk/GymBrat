@@ -26,7 +26,7 @@ function FcsBreakdown({ row }: { row: TeamRankingRow }) {
         const w = FCS_WEIGHTS[key];
         return (
           <li key={key} className="flex items-center gap-2">
-            <span className="w-[7.5rem] shrink-0 truncate text-[10px] text-white/45">
+            <span className="w-[7.5rem] shrink-0 truncate text-[10px] text-white/50">
               {FCS_COMPONENT_LABELS[key]}
             </span>
             <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/10">
@@ -38,7 +38,7 @@ function FcsBreakdown({ row }: { row: TeamRankingRow }) {
             <span className="w-10 shrink-0 text-right font-heading text-[11px] tabular-nums text-white/55">
               {pct(v)}
             </span>
-            <span className="w-8 shrink-0 text-right text-[9px] text-white/30">
+            <span className="w-8 shrink-0 text-right text-[9px] text-white/50">
               ×{Math.round(w * 100)}
             </span>
           </li>
@@ -82,7 +82,7 @@ export function TeamFcsLeaderboard({
               Ranking tygodnia
             </h2>
             {isFcs ? (
-              <p className="mt-0.5 text-[11px] leading-snug text-white/40">
+              <p className="mt-0.5 text-[11px] leading-snug text-white/50">
                 FCS 0–100: progres, regularność, plan, streak, challenge, social,
                 pomoc, live — nie same kg.
               </p>
@@ -95,7 +95,7 @@ export function TeamFcsLeaderboard({
       </div>
 
       {empty ? (
-        <p className="text-[13px] leading-relaxed text-white/45">
+        <p className="text-[13px] leading-relaxed text-white/50">
           Brak wyników w tym tygodniu — zalicz trening, by wejść na tablicę.
         </p>
       ) : (
@@ -127,7 +127,7 @@ export function TeamFcsLeaderboard({
                       "font-heading flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[14px]",
                       row.rank <= 3
                         ? "bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]"
-                        : "text-white/35",
+                        : "text-white/50",
                     )}
                     aria-label={`Miejsce ${row.rank}`}
                   >
@@ -144,13 +144,13 @@ export function TeamFcsLeaderboard({
                   <span className="font-heading text-[15px] tabular-nums text-white/75">
                     {isFcs ? `${row.score}` : row.score}
                     {isFcs ? (
-                      <span className="ml-1 text-[10px] text-white/35">FCS</span>
+                      <span className="ml-1 text-[10px] text-white/50">FCS</span>
                     ) : null}
                   </span>
                   {isFcs && row.components ? (
                     <ChevronDown
                       className={cn(
-                        "h-4 w-4 shrink-0 text-white/35 transition",
+                        "h-4 w-4 shrink-0 text-white/50 transition",
                         expanded && "rotate-180",
                       )}
                       aria-hidden

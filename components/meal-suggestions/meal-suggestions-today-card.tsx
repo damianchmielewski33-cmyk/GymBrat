@@ -73,7 +73,7 @@ export function MealSuggestionsTodayCard({
           <p className="app-label">{t("diet.proposalsFromCatalog")}</p>
           <h2 className="mt-1 text-lg font-semibold text-white">{title}</h2>
           <p className="mt-1 text-sm text-white/55">{description}</p>
-          <p className="mt-2 text-xs text-white/40">{t("diet.noteCatalogNotAi")}</p>
+          <p className="mt-2 text-xs text-white/50">{t("diet.noteCatalogNotAi")}</p>
         </div>
       </div>
 
@@ -91,7 +91,7 @@ export function MealSuggestionsTodayCard({
               </div>
               <div className="space-y-1.5 p-3">
                 <p className="line-clamp-2 text-sm font-semibold text-white">{meal.title}</p>
-                <p className="text-[11px] text-white/45">{MEAL_SLOT_LABELS[meal.slot]}</p>
+                <p className="text-[11px] text-white/50">{MEAL_SLOT_LABELS[meal.slot]}</p>
                 <p className="text-[11px] tabular-nums text-[var(--neon)]">
                   {Math.round(meal.approximateMacros.calories)} kcal · B{" "}
                   {Math.round(meal.approximateMacros.proteinG)} · W{" "}

@@ -70,7 +70,7 @@ export function WarsHub({ data }: { data: HubData }) {
                 <p className="font-medium text-white">{team.name}</p>
                 <div className="mt-1 flex items-center gap-2">
                   <WarLeagueBadge league={stats.league as WarLeague} />
-                  <span className="text-[12px] text-white/45">{stats.lp} LP</span>
+                  <span className="text-[12px] text-white/50">{stats.lp} LP</span>
                 </div>
               </div>
               <button
@@ -90,7 +90,7 @@ export function WarsHub({ data }: { data: HubData }) {
             </div>
           ))}
           {data.queues.length === 0 ? (
-            <p className="text-[13px] text-white/40">
+            <p className="text-[13px] text-white/50">
               Dołącz do grupy, żeby walczyć w Team Wars.
             </p>
           ) : null}

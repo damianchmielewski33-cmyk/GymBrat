@@ -25,7 +25,7 @@ function VerdictBadge({
         ? "bg-white/[0.06] text-[var(--gym-text-secondary)]"
         : verdict === "flat"
           ? "bg-white/[0.08] text-white/60"
-          : "bg-white/[0.06] text-white/40";
+          : "bg-white/[0.06] text-white/50";
   return (
     <span
       className={cn(
@@ -51,7 +51,7 @@ function OutcomeIcon({
   if (outcome === "regress") {
     return <ArrowDownRight className="h-3.5 w-3.5 text-[var(--gym-text-secondary)]" aria-hidden />;
   }
-  return <Minus className="h-3.5 w-3.5 text-white/35" aria-hidden />;
+  return <Minus className="h-3.5 w-3.5 text-white/50" aria-hidden />;
 }
 
 function formatValue(
@@ -96,7 +96,7 @@ function WeekSelect({
 }) {
   return (
     <label className="block min-w-0 flex-1 space-y-1">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50">
         {label}
       </span>
       <select
@@ -183,9 +183,9 @@ export function WeekOverWeekCard({
           <p className="text-[13px] font-semibold text-white/90">
             Porównanie tygodni
           </p>
-          <p className="mt-0.5 text-[11px] leading-snug text-white/40">
+          <p className="mt-0.5 text-[11px] leading-snug text-white/50">
             {compare.thisRangeLabel}
-            <span className="mx-1 text-white/25">·</span>
+            <span className="mx-1 text-white/50">·</span>
             {compare.prevRangeLabel}
           </p>
         </div>
@@ -220,7 +220,7 @@ export function WeekOverWeekCard({
               ? "text-emerald-300"
               : m.outcome === "regress"
                 ? "text-[var(--gym-text-secondary)]"
-                : "text-white/40";
+                : "text-white/50";
           return (
             <li
               key={m.key}
@@ -228,9 +228,9 @@ export function WeekOverWeekCard({
             >
               <div className="min-w-0">
                 <p className="text-[12px] font-medium text-white/80">{m.label}</p>
-                <p className="mt-0.5 text-[11px] text-white/35">
+                <p className="mt-0.5 text-[11px] text-white/50">
                   A {formatValue(m.current, m.unit, m.key)}
-                  <span className="mx-1 text-white/20">·</span>
+                  <span className="mx-1 text-white/50">·</span>
                   B {formatValue(m.previous, m.unit, m.key)}
                 </p>
               </div>

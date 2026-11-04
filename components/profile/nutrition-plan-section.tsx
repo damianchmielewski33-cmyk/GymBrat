@@ -231,7 +231,7 @@ export function NutritionPlanSection({
           </span>
         </div>
 
-        <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium uppercase tracking-wide text-white/45">
+        <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium uppercase tracking-wide text-white/50">
           <span>Pon</span>
           <span>Wt</span>
           <span>Śr</span>

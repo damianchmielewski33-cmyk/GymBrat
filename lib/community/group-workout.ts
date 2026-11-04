@@ -145,7 +145,7 @@ export async function createGroupWorkoutSession(input: {
   })();
 
   {
-    const { track } = await import("@/lib/analytics/track");
+    const { track } = await import("@/lib/analytics/track-server");
     track.liveStarted(input.hostUserId, {
       session_id: sessionId,
       team_id: input.teamId,
@@ -266,7 +266,7 @@ export async function joinGroupWorkoutSession(input: {
   })();
 
   {
-    const { track } = await import("@/lib/analytics/track");
+    const { track } = await import("@/lib/analytics/track-server");
     track.liveJoined(input.userId, {
       session_id: session.id,
       team_id: session.teamId,
@@ -465,7 +465,7 @@ export async function leaveGroupWorkoutSession(input: {
   }
 
   if (session?.teamId) {
-    const { track } = await import("@/lib/analytics/track");
+    const { track } = await import("@/lib/analytics/track-server");
     track.liveEnded(input.userId, {
       session_id: input.sessionId,
       team_id: session.teamId,

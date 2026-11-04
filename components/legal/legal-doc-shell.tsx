@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AuthHeroBrand } from "@/components/auth/auth-hero-brand";
+import { LEGAL_DOCS_APPROVED_BY_LAWYER, LEGAL_VERSIONS } from "@/lib/legal-versions";
 import { PRIVACY_PATH, REGULAMIN_PATH } from "@/lib/legal-seller";
 import { cn } from "@/lib/utils";
 
@@ -19,9 +20,18 @@ export function LegalDocShell({
     <div className="mx-auto w-full max-w-2xl space-y-6 px-4 pb-16 pt-6">
       <AuthHeroBrand
         headline={title}
-        support={`Ostatnia aktualizacja: ${updated}`}
+        support={`Ostatnia aktualizacja: ${updated} · wersja ${LEGAL_VERSIONS.documents}`}
         compact
       />
+
+      {!LEGAL_DOCS_APPROVED_BY_LAWYER ? (
+        <p
+          role="status"
+          className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100/95"
+        >
+          Wersja robocza — dokument oczekuje na zatwierdzenie prawnika.
+        </p>
+      ) : null}
 
       {incomplete ? (
         <p

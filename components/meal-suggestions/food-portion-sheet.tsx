@@ -32,11 +32,11 @@ const UNITS: { id: FoodAmountUnit; label: string }[] = [
 function MacroPill({ label, value, unit }: { label: string; value: number; unit: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2 text-center">
-      <p className="text-[10px] uppercase tracking-wider text-white/45">{label}</p>
+      <p className="text-[10px] uppercase tracking-wider text-white/50">{label}</p>
       <p className="mt-0.5 text-sm font-semibold tabular-nums text-white">
         {Math.round(value * 10) / 10}
         {unit ? (
-          <span className="ml-0.5 text-[10px] font-normal text-white/40">{unit}</span>
+          <span className="ml-0.5 text-[10px] font-normal text-white/50">{unit}</span>
         ) : null}
       </p>
     </div>
@@ -104,7 +104,7 @@ export function FoodPortionSheet({
 
         <div className="space-y-4 px-4 pb-6">
           <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-white/45">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-white/50">
               Ilość
             </p>
             <div className="flex gap-2">
@@ -134,7 +134,7 @@ export function FoodPortionSheet({
               </div>
             </div>
             {unit === "pcs" && product.gramsPerPiece ? (
-              <p className="mt-1.5 text-xs text-white/40">
+              <p className="mt-1.5 text-xs text-white/50">
                 1 szt. ≈ {product.gramsPerPiece} g
               </p>
             ) : null}
@@ -147,7 +147,7 @@ export function FoodPortionSheet({
             <MacroPill label="Tłuszcz" value={macros?.fatG ?? 0} unit="g" />
           </div>
           {macros ? (
-            <p className="text-xs text-white/40">Dla {macros.label}</p>
+            <p className="text-xs text-white/50">Dla {macros.label}</p>
           ) : (
             <p className="text-xs text-amber-200/90">Podaj poprawną ilość większą od zera.</p>
           )}

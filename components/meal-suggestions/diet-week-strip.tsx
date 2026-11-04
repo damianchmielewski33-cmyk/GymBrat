@@ -45,7 +45,7 @@ export function DietWeekStrip({
             <span
               className={cn(
                 "text-[11px] font-medium uppercase",
-                active ? "text-white" : "text-white/40",
+                active ? "text-white" : "text-white/50",
               )}
             >
               {letter}

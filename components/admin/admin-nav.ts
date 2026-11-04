@@ -3,7 +3,11 @@ import {
   Bug,
   Dumbbell,
   ImageIcon,
+  LifeBuoy,
   Package,
+  Receipt,
+  ShieldCheck,
+  Wallet,
   Settings2,
   UtensilsCrossed,
   Users,
@@ -37,6 +41,8 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/users", label: "Konta", shortLabel: "Konta", icon: Users },
       { href: "/admin/packages", label: "Pakiety i ceny", shortLabel: "Pakiety", icon: Package },
+      { href: "/admin/orders", label: "Zamówienia", shortLabel: "Zamówienia", icon: Receipt },
+      { href: "/admin/finance", label: "Finanse", shortLabel: "Finanse", icon: Wallet },
     ],
   },
   {
@@ -52,6 +58,8 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/settings", label: "Konfiguracja", shortLabel: "Konfig.", icon: Settings2, badge: "config" },
       { href: "/admin/bugs", label: "Błędy", shortLabel: "Błędy", icon: Bug, badge: "bugs" },
+      { href: "/admin/support", label: "Wsparcie", shortLabel: "Wsparcie", icon: LifeBuoy },
+      { href: "/admin/2fa", label: "Bezpieczeństwo (2FA)", shortLabel: "2FA", icon: ShieldCheck },
     ],
   },
 ];

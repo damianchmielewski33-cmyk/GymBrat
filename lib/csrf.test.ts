@@ -40,7 +40,7 @@ describe("assertCsrf", () => {
 
   it("allows POST when Origin matches X-Forwarded-Host (Render internal URL)", () => {
     const tok = "b".repeat(64);
-    const r = new Request("http://localhost:10000/api/admin/unlock", {
+    const r = new Request("http://localhost:10000/api/admin/2fa", {
       method: "POST",
       headers: {
         origin: "https://gymbrat.onrender.com",

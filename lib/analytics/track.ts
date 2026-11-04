@@ -4,6 +4,7 @@ import {
   type CommunityEventProps,
 } from "@/lib/analytics/community-events";
 import { posthogCapture } from "@/lib/analytics/posthog";
+import { canUseAnalytics } from "@/lib/consent-preferences";
 
 type TrackOpts = {
   distinctId: string;
@@ -12,9 +13,10 @@ type TrackOpts = {
 };
 
 /**
- * Typed Community → PostHog. Bezpieczne fire-and-forget.
+ * Surowa wysyłka do PostHog — BEZ sprawdzania zgody. Wołać wyłącznie po sprawdzeniu zgody:
+ * w przeglądarce przez `trackCommunityEvent`, na serwerze przez `track-server.ts` (zgoda z bazy).
  */
-export function trackCommunityEvent<E extends CommunityEventName>(
+export function emitCommunityEvent<E extends CommunityEventName>(
   event: E,
   properties: CommunityEventProps[E],
   opts: TrackOpts,
@@ -39,13 +41,30 @@ export function trackCommunityEvent<E extends CommunityEventName>(
   });
 }
 
-/** Alias wygodny przy importach z lib/community. */
-export const track = {
+/**
+ * Typed Community → PostHog (przeglądarka). Tylko po zgodzie na analitykę (Z12);
+ * na serwerze nic nie wysyła — serwer używa `@/lib/analytics/track-server`.
+ */
+export function trackCommunityEvent<E extends CommunityEventName>(
+  event: E,
+  properties: CommunityEventProps[E],
+  opts: TrackOpts,
+): void {
+  if (typeof window === "undefined") return;
+  if (!canUseAnalytics()) return;
+  emitCommunityEvent(event, properties, opts);
+}
+
+type TrackEmit = typeof trackCommunityEvent;
+
+/** Fabryka aliasów `track.*` nad wybranym nadawcą (przeglądarka lub serwer ze zgodą). */
+export function createTrack(emit: TrackEmit) {
+  return {
   teamCreated: (
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.teamCreated],
   ) =>
-    trackCommunityEvent(CommunityEvents.teamCreated, props, {
+    emit(CommunityEvents.teamCreated, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -53,7 +72,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.teamJoined],
   ) =>
-    trackCommunityEvent(CommunityEvents.teamJoined, props, {
+    emit(CommunityEvents.teamJoined, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -61,7 +80,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.postPublished],
   ) =>
-    trackCommunityEvent(CommunityEvents.postPublished, props, {
+    emit(CommunityEvents.postPublished, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -69,7 +88,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.postReacted],
   ) =>
-    trackCommunityEvent(CommunityEvents.postReacted, props, {
+    emit(CommunityEvents.postReacted, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -77,7 +96,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.postCommented],
   ) =>
-    trackCommunityEvent(CommunityEvents.postCommented, props, {
+    emit(CommunityEvents.postCommented, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -85,7 +104,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.challengeCreated],
   ) =>
-    trackCommunityEvent(CommunityEvents.challengeCreated, props, {
+    emit(CommunityEvents.challengeCreated, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -93,7 +112,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.challengeJoined],
   ) =>
-    trackCommunityEvent(CommunityEvents.challengeJoined, props, {
+    emit(CommunityEvents.challengeJoined, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -101,7 +120,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.challengeCompleted],
   ) =>
-    trackCommunityEvent(CommunityEvents.challengeCompleted, props, {
+    emit(CommunityEvents.challengeCompleted, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -109,7 +128,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.liveStarted],
   ) =>
-    trackCommunityEvent(CommunityEvents.liveStarted, props, {
+    emit(CommunityEvents.liveStarted, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -117,7 +136,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.liveJoined],
   ) =>
-    trackCommunityEvent(CommunityEvents.liveJoined, props, {
+    emit(CommunityEvents.liveJoined, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -125,7 +144,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.liveEnded],
   ) =>
-    trackCommunityEvent(CommunityEvents.liveEnded, props, {
+    emit(CommunityEvents.liveEnded, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -133,7 +152,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.rankingViewed],
   ) =>
-    trackCommunityEvent(CommunityEvents.rankingViewed, props, {
+    emit(CommunityEvents.rankingViewed, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -141,7 +160,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.rankingLeaderChanged],
   ) =>
-    trackCommunityEvent(CommunityEvents.rankingLeaderChanged, props, {
+    emit(CommunityEvents.rankingLeaderChanged, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -149,7 +168,7 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.hofViewed],
   ) =>
-    trackCommunityEvent(CommunityEvents.hofViewed, props, {
+    emit(CommunityEvents.hofViewed, props, {
       distinctId,
       teamId: props.team_id,
     }),
@@ -157,8 +176,12 @@ export const track = {
     distinctId: string,
     props: CommunityEventProps[typeof CommunityEvents.hofAwarded],
   ) =>
-    trackCommunityEvent(CommunityEvents.hofAwarded, props, {
+    emit(CommunityEvents.hofAwarded, props, {
       distinctId,
       teamId: props.team_id,
     }),
 };
+}
+
+/** Alias wygodny w komponentach klienckich (z bramką zgody w przeglądarce). */
+export const track = createTrack(trackCommunityEvent);

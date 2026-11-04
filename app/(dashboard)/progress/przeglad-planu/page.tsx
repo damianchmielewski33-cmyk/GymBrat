@@ -20,6 +20,8 @@ import { loadPlanAdherence, loadPlanRevisions } from "@/lib/plan-review-data";
 import { getProgressHubData } from "@/lib/progress-hub";
 import { resolveExerciseMuscles } from "@/lib/resolve-exercise-muscles";
 
+export const metadata = { title: "Przegląd planu" };
+
 export default async function PlanReviewPage() {
   const session = await auth();
   const userId = session?.user?.id;

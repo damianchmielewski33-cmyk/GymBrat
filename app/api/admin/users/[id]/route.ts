@@ -19,7 +19,7 @@ import {
 export const runtime = "nodejs";
 
 const patchSchema = z.object({
-  appRole: z.enum(["zawodnik", "trener", "admin"]).optional(),
+  appRole: z.enum(["zawodnik", "admin"]).optional(),
   firstName: z.string().trim().max(80).nullable().optional(),
   lastName: z.string().trim().max(80).nullable().optional(),
   name: z.string().trim().max(120).nullable().optional(),

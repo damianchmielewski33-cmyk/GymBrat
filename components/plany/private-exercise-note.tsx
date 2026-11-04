@@ -80,7 +80,7 @@ export function PrivateExerciseNote({
   }
 
   return (
-    <section className="rounded-[22px] border border-dashed border-[rgba(235,196,74,0.4)] bg-[rgba(235,196,74,0.03)] p-4">
+    <section className="rounded-[22px] border border-dashed border-[rgba(var(--neon-rgb),0.4)] bg-[rgba(var(--neon-rgb),0.03)] p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Lock className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />

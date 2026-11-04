@@ -1,5 +1,7 @@
 # Backlog zespołu
 
+> **Nieaktualny jako plan prac.** Obowiązującym backlogiem jest [docs/audyt/backlog-us.md](../audyt/backlog-us.md) (US1–US20, statusy na bieżąco). Ten plik zostaje jako zapis kolejności z analizy bazowej z 2026-10-23.
+
 Kolejność zadań wynikająca z analizy bazowej (2026-10-23) i decyzji właściciela (`docs/zespol/decyzje-wlasciciela.md`). Każda pozycja to osobne zadanie z kartą w `docs/zadania/` i pracą agenta `webdev`.
 
 ## Po stronie właściciela (bez kodu)

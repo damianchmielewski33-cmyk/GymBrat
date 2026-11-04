@@ -198,7 +198,7 @@ export function HomeStartPanels({
         >
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.08] px-4 pb-3 pt-4 sm:px-5">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/50">
                 Szczegóły
               </p>
               <p
@@ -276,14 +276,14 @@ export function HomeStartPanels({
                     <span className="font-heading block text-[14px] font-semibold leading-snug text-white sm:text-[15px]">
                       {tile.title}
                     </span>
-                    <span className="mt-0.5 block line-clamp-2 text-xs leading-snug text-white/45 sm:line-clamp-none">
+                    <span className="mt-0.5 block line-clamp-2 text-xs leading-snug text-white/50 sm:line-clamp-none">
                       {tile.subtitle}
                     </span>
                   </span>
                 </span>
                 <ChevronDown
                   className={cn(
-                    "h-5 w-5 shrink-0 text-white/35 transition-transform duration-200",
+                    "h-5 w-5 shrink-0 text-white/50 transition-transform duration-200",
                     isOpen ? "rotate-180 text-[var(--neon)]" : "",
                   )}
                   aria-hidden

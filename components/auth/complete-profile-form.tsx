@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import { cn } from "@/lib/utils";
 import { activityLevels } from "@/lib/validations/register";
+import { MIN_USER_AGE } from "@/lib/min-age";
 
 const activityCopy: Record<
   (typeof activityLevels)[number],
@@ -74,7 +75,7 @@ export function CompleteProfileForm({ initial }: { initial: Initial }) {
       ) : null}
 
       <section className="space-y-4">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-white/50">
           Dane podstawowe
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -102,7 +103,7 @@ export function CompleteProfileForm({ initial }: { initial: Initial }) {
       </section>
 
       <section className="space-y-4">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-white/50">
           Parametry ciała
         </p>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -140,17 +141,20 @@ export function CompleteProfileForm({ initial }: { initial: Initial }) {
               name="age"
               type="number"
               inputMode="numeric"
-              min={13}
+              min={MIN_USER_AGE}
               max={120}
               required
               defaultValue={initial.age ?? ""}
             />
+            <p className="text-[11px] leading-snug text-white/50">
+              Aplikacja jest dla osób od {MIN_USER_AGE} lat. Podając wiek, oświadczasz, że masz co najmniej {MIN_USER_AGE} lat.
+            </p>
           </div>
         </div>
       </section>
 
       <section className="space-y-3">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-white/50">
           Poziom aktywności
         </p>
         <div className="grid gap-2 sm:grid-cols-3" role="radiogroup">
@@ -175,7 +179,7 @@ export function CompleteProfileForm({ initial }: { initial: Initial }) {
                 <span className="block text-sm font-semibold text-white">
                   {label}
                 </span>
-                <span className="mt-0.5 block text-[11px] text-white/45">
+                <span className="mt-0.5 block text-[11px] text-white/50">
                   {hint}
                 </span>
               </button>
@@ -185,7 +189,7 @@ export function CompleteProfileForm({ initial }: { initial: Initial }) {
       </section>
 
       <section className="space-y-3">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-white/50">
           Cel na tydzień
         </p>
         <p className="text-center font-metric text-4xl tabular-nums text-[var(--gym-gold)]">

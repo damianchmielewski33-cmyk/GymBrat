@@ -33,7 +33,7 @@ function RemainingBlock({
           </>
         )}
       </p>
-      <p className="mt-2 text-xs text-white/45">
+      <p className="mt-2 text-xs text-white/50">
         {goal != null && Number.isFinite(goal) ? (
           <>
             Spożyte {Math.round(consumed)} / cel {Math.round(goal)} {unit}
@@ -47,7 +47,7 @@ function RemainingBlock({
           <>Spożyte: {Math.round(consumed)} {unit}</>
         )}
       </p>
-      <p className="mt-1 text-xs text-white/35">{hint}</p>
+      <p className="mt-1 text-xs text-white/50">{hint}</p>
     </div>
   );
 }

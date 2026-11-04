@@ -19,7 +19,7 @@ function DeltaBadge({
 
   if (percent === null || absolute === null) {
     return (
-      <span className="inline-flex min-w-0 flex-wrap items-center gap-1 text-xs text-white/40">
+      <span className="inline-flex min-w-0 flex-wrap items-center gap-1 text-xs text-white/50">
         <Minus className="h-3 w-3 shrink-0" />
         brak danych porównawczych
         {planLabel?.trim() ? ` (${planLabel.trim()})` : ""}
@@ -132,11 +132,11 @@ function LastWorkoutMeta({
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/55">
       <span className="font-medium text-white/80">{title}</span>
-      <span className="text-white/30">·</span>
+      <span className="text-white/50">·</span>
       <span>{timeAgo}</span>
       {durationMinutes != null && durationMinutes > 0 && (
         <>
-          <span className="text-white/30">·</span>
+          <span className="text-white/50">·</span>
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
             {durationMinutes} min
@@ -174,7 +174,7 @@ export function LastWorkoutStats({
   return (
     <div className={embedded ? "space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6" : "space-y-4"}>
       <div className="flex flex-col gap-1">
-        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/40">
+        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
           Ostatni trening
         </p>
         <LastWorkoutMeta

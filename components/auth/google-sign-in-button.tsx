@@ -155,7 +155,7 @@ export function AuthProviderDivider({ label = "lub" }: { label?: string }) {
   return (
     <div className="flex items-center gap-3" role="separator" aria-label={label}>
       <div className="h-px flex-1 bg-white/12" />
-      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
         {label}
       </span>
       <div className="h-px flex-1 bg-white/12" />

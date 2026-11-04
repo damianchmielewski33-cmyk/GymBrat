@@ -77,15 +77,18 @@ export async function getOrCreateTeamWarStats(teamId: string) {
     }
     return row;
   }
-  await db.insert(teamWarStats).values({
-    teamId,
-    league: "bronze",
-    lp: 0,
-    wins: 0,
-    losses: 0,
-    draws: 0,
-    seasonKey,
-  });
+  await db
+    .insert(teamWarStats)
+    .values({
+      teamId,
+      league: "bronze",
+      lp: 0,
+      wins: 0,
+      losses: 0,
+      draws: 0,
+      seasonKey,
+    })
+    .onConflictDoNothing();
   return {
     teamId,
     league: "bronze" as WarLeague,
@@ -320,40 +323,55 @@ async function applyWarResults(
   teamB: string,
   result: "a" | "b" | "draw",
 ) {
-  const statsA = await getOrCreateTeamWarStats(teamA);
-  const statsB = await getOrCreateTeamWarStats(teamB);
+  await getOrCreateTeamWarStats(teamA);
+  await getOrCreateTeamWarStats(teamB);
   const db = getDb();
 
+  // Z72: optymistyczne CAS (porównanie lp/wins/losses/draws) z ponowieniem,
+  // żeby równoległe rozliczenia wojen nie gubiły statystyk.
   const patch = async (
     teamId: string,
-    stats: typeof statsA,
+    _stats: unknown,
     outcome: "win" | "loss" | "draw",
   ) => {
     const delta =
       outcome === "win" ? WAR_WIN_LP : outcome === "loss" ? -WAR_LOSS_LP : WAR_DRAW_LP;
-    const next = applyLpDelta(stats.lp, delta);
-    await db
-      .update(teamWarStats)
-      .set({
-        lp: next.lp,
-        league: next.league,
-        wins: stats.wins + (outcome === "win" ? 1 : 0),
-        losses: stats.losses + (outcome === "loss" ? 1 : 0),
-        draws: stats.draws + (outcome === "draw" ? 1 : 0),
-        updatedAt: new Date(),
-      })
-      .where(eq(teamWarStats.teamId, teamId));
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const stats = await getOrCreateTeamWarStats(teamId);
+      const next = applyLpDelta(stats.lp, delta);
+      const res = await db
+        .update(teamWarStats)
+        .set({
+          lp: next.lp,
+          league: next.league,
+          wins: stats.wins + (outcome === "win" ? 1 : 0),
+          losses: stats.losses + (outcome === "loss" ? 1 : 0),
+          draws: stats.draws + (outcome === "draw" ? 1 : 0),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(teamWarStats.teamId, teamId),
+            eq(teamWarStats.lp, stats.lp),
+            eq(teamWarStats.wins, stats.wins),
+            eq(teamWarStats.losses, stats.losses),
+            eq(teamWarStats.draws, stats.draws),
+          ),
+        );
+      if (res.rowsAffected === 1) return;
+    }
+    throw new Error("team_war_stats_cas_exhausted");
   };
 
   if (result === "draw") {
-    await patch(teamA, statsA, "draw");
-    await patch(teamB, statsB, "draw");
+    await patch(teamA, null, "draw");
+    await patch(teamB, null, "draw");
   } else if (result === "a") {
-    await patch(teamA, statsA, "win");
-    await patch(teamB, statsB, "loss");
+    await patch(teamA, null, "win");
+    await patch(teamB, null, "loss");
   } else {
-    await patch(teamA, statsA, "loss");
-    await patch(teamB, statsB, "win");
+    await patch(teamA, null, "loss");
+    await patch(teamB, null, "win");
   }
 }
 

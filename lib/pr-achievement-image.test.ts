@@ -26,4 +26,15 @@ describe("pr-achievement-image", () => {
     expect(formatPrWeightLabel(102.5)).toBe("102,5 KG");
     expect(formatPrDateLabel(Date.UTC(2026, 8, 27, 12, 0, 0))).toMatch(/27\.09\.2026/);
   });
+
+  it("Z27: URL i prompt nie zawierają nazwy ćwiczenia ani ciężaru; seed nie zależy od nich", () => {
+    const a = getPrAchievementImageUrl({ exerciseName: "Martwy ciąg Jana Kowalskiego", valueKg: 217.5, atMs: Date.UTC(2026, 8, 27) });
+    const b = getPrAchievementImageUrl({ exerciseName: "Przysiad", valueKg: 60, atMs: Date.UTC(2026, 8, 27) });
+    expect(a).toBe(b);
+    const decoded = decodeURIComponent(a).toLowerCase();
+    for (const secret of ["martwy", "kowalski", "217", "przysiad"]) {
+      expect(decoded).not.toContain(secret);
+    }
+    expect(buildPrAchievementImagePrompt({ exerciseName: "Sekret", valueKg: 999 })).not.toMatch(/sekret|999/i);
+  });
 });

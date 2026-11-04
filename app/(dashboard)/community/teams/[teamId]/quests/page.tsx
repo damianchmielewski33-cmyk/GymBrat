@@ -7,6 +7,8 @@ import {
   listQuestTemplates,
 } from "@/lib/community/team-quests";
 
+export const metadata = { title: "Misje grupy" };
+
 export default async function TeamQuestsPage({
   params,
 }: {

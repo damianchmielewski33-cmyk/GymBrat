@@ -28,7 +28,7 @@ function ScoreSelect({
   const options = ["", ...Array.from({ length: 10 }, (_, i) => String(i + 1))];
   return (
     <label className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+      <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
         <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-black/25 text-[var(--neon)]">
           {icon}
         </span>
@@ -96,7 +96,7 @@ export function DailyCheckinPanel({
 
   const closed = existing?.dayClosedAtMs != null;
   const inputClass =
-    "h-11 rounded-xl border-white/12 bg-white/[0.06] px-3.5 text-[15px] text-white shadow-inner shadow-black/20 outline-none transition placeholder:text-white/25 focus-visible:border-[var(--neon)]/40 focus-visible:ring-2 focus-visible:ring-[var(--neon)]/25";
+    "h-11 rounded-xl border-white/12 bg-white/[0.06] px-3.5 text-[15px] text-white shadow-inner shadow-black/20 outline-none transition placeholder:text-white/50 focus-visible:border-[var(--neon)]/40 focus-visible:ring-2 focus-visible:ring-[var(--neon)]/25";
 
   return (
     <div className="space-y-4">
@@ -142,7 +142,7 @@ export function DailyCheckinPanel({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
               Waga (kg) — opcjonalnie
             </label>
             <Input
@@ -155,7 +155,7 @@ export function DailyCheckinPanel({
             />
           </div>
           <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
               Notatka (opcjonalnie)
             </label>
             <Textarea
@@ -163,7 +163,7 @@ export function DailyCheckinPanel({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="np. mało snu, ciężki dzień, jutro cardio…"
-              className="min-h-20 rounded-xl border-white/12 bg-white/[0.06] text-white placeholder:text-white/25"
+              className="min-h-20 rounded-xl border-white/12 bg-white/[0.06] text-white placeholder:text-white/50"
             />
           </div>
         </div>

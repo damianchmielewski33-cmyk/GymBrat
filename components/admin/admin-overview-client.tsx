@@ -259,7 +259,12 @@ export function AdminOverviewClient() {
               description="Rozkład wizyt według zmapowanych ścieżek aplikacji."
             >
               <div className="h-[280px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minHeight={100}
+          initialDimension={{ width: 320, height: 200 }}
+        >
                   <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                     <XAxis type="number" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} />
@@ -281,7 +286,12 @@ export function AdminOverviewClient() {
               description={`Suma wejść w przedziałach godzinowych${hourly?.peak ? ` (szczyt ${hourly.peak.label})` : ""}.`}
             >
               <div className="h-[280px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minHeight={100}
+          initialDimension={{ width: 320, height: 200 }}
+        >
                   <BarChart data={hourData}>
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -305,7 +315,7 @@ export function AdminOverviewClient() {
             >
               <div className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                 <div className="min-w-[880px]">
-                  <div className="grid grid-cols-[140px_repeat(24,minmax(0,1fr))] gap-1 text-[10px] text-white/45">
+                  <div className="grid grid-cols-[140px_repeat(24,minmax(0,1fr))] gap-1 text-[10px] text-white/50">
                     <div />
                     {Array.from({ length: 24 }, (_, h) => (
                       <div key={h} className="text-center font-mono">
@@ -331,7 +341,7 @@ export function AdminOverviewClient() {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 flex items-center justify-between gap-3 text-xs text-white/45">
+                  <div className="mt-3 flex items-center justify-between gap-3 text-xs text-white/50">
                     <span>Skala: 0 → {heatMax}</span>
                     <span className="font-mono">
                       {hourly?.range?.from && hourly?.range?.to
@@ -363,7 +373,7 @@ export function AdminOverviewClient() {
             {activityLogOpen ? (
               <div className="max-h-[420px] overflow-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="sticky top-0 bg-zinc-950/95 text-[11px] uppercase tracking-wide text-white/45">
+                  <thead className="sticky top-0 bg-zinc-950/95 text-[11px] uppercase tracking-wide text-white/50">
                     <tr>
                       <th className="px-5 py-3 font-medium">Czas</th>
                       <th className="px-5 py-3 font-medium">Zdarzenie</th>

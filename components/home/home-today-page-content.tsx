@@ -5,13 +5,14 @@ import { HomePrzemianaSectionLoader } from "@/components/home/home-przemiana-sec
 import { HomePrzemianaSkeleton } from "@/components/home/home-przemiana-skeleton";
 import { HomeTodayView } from "@/components/home/home-today-view";
 import { getDb } from "@/db";
-import { userSettings, users } from "@/db/schema";
+import { userSettings, users, workouts } from "@/db/schema";
 import { parseFirstDietSupplements } from "@/lib/diet-supplements";
 import { getHomeStartDashboard } from "@/lib/home-start";
 import { shouldShowIntroTour } from "@/lib/intro-tour-steps";
 import { addCalendarDays } from "@/lib/local-date";
 import { getTreningiHubStats } from "@/lib/treningi-hub-stats";
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
+import { shouldShowOnboarding } from "@/lib/plan-from-history";
 
 function weightKgPerWeek(
   series: Array<{ date: string; kg: number }>,
@@ -41,11 +42,13 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
   let dash: Awaited<ReturnType<typeof getHomeStartDashboard>>;
   let plans: Awaited<ReturnType<typeof getWorkoutPlansWithLastWorkout>>;
   let hub: Awaited<ReturnType<typeof getTreningiHubStats>>;
+  let workoutCount = 0;
 
   try {
     const db = getDb();
     let userCreated: { createdAt: Date } | undefined;
-    [[settingsRow], [userCreated], dash, plans, hub] = await Promise.all([
+    let countRow: { n: number } | undefined;
+    [[settingsRow], [userCreated], dash, plans, hub, [countRow]] = await Promise.all([
       db
         .select({
           onboardingCompletedAt: userSettings.onboardingCompletedAt,
@@ -64,7 +67,12 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
       getHomeStartDashboard(userId),
       getWorkoutPlansWithLastWorkout(),
       getTreningiHubStats(userId),
+      db
+        .select({ n: count() })
+        .from(workouts)
+        .where(eq(workouts.userId, userId)),
     ]);
+    workoutCount = Number(countRow?.n ?? 0);
     accountCreatedAt = userCreated?.createdAt ?? null;
   } catch (e) {
     console.error(
@@ -110,7 +118,11 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
     <HomeTodayView
       reportCount={dash.reportCount}
       daysSinceLastReport={dash.daysSinceLastReport}
-      showOnboarding={!settingsRow?.onboardingCompletedAt}
+      showOnboarding={shouldShowOnboarding({
+        onboardingCompleted: Boolean(settingsRow?.onboardingCompletedAt),
+        workoutCount,
+      })}
+      canBuildPlanFromHistory={workoutCount > 0}
       showIntroTour={shouldShowIntroTour({
         introTourCompletedAt: settingsRow?.introTourCompletedAt,
         accountCreatedAt,

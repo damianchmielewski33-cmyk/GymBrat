@@ -1,3 +1,4 @@
+import { shouldShowReportCount } from "@/lib/plan-from-history";
 import Link from "next/link";
 import { NotificationBell } from "@/components/community/notification-bell";
 import { AppMenuButton } from "@/components/layout/app-menu-button";
@@ -65,7 +66,7 @@ export async function HomeTodayHeader({ userId }: { userId: string }) {
             </>
           ) : null}
         </h1>
-        <p className="mt-1.5 text-[13px] text-white/45">
+        <p className="mt-1.5 text-[13px] text-white/50">
           <Link
             href="/reports?new=1"
             className={
@@ -76,13 +77,20 @@ export async function HomeTodayHeader({ userId }: { userId: string }) {
           >
             {reportCountdownLabel}
           </Link>
-          {" · "}
-          {data.reportCount}{" "}
-          {data.reportCount === 1
-            ? "raport"
-            : data.reportCount >= 2 && data.reportCount <= 4
-              ? "raporty"
-              : "raportów"}
+          {shouldShowReportCount({
+            reportCount: data.reportCount,
+            accountCreatedAt: data.accountCreatedAt,
+          }) ? (
+            <>
+              {" · "}
+              {data.reportCount}{" "}
+              {data.reportCount === 1
+                ? "raport"
+                : data.reportCount >= 2 && data.reportCount <= 4
+                  ? "raporty"
+                  : "raportów"}
+            </>
+          ) : null}
         </p>
       </div>
 

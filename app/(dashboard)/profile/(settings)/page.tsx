@@ -14,6 +14,8 @@ import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { parseRemindersJson } from "@/lib/reminders-types";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
 
+export const metadata = { title: "Profil" };
+
 export default async function ProfileOverviewPage() {
   const session = await auth();
   const userId = session?.user?.id;

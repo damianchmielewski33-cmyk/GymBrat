@@ -145,7 +145,7 @@ export function AdminPackagesClient() {
                 title={
                   <span className="flex flex-wrap items-center gap-2">
                     {p.days} dni
-                    <span className="font-mono text-xs font-normal text-white/40">{p.sku}</span>
+                    <span className="font-mono text-xs font-normal text-white/50">{p.sku}</span>
                   </span>
                 }
                 description={`Obecnie w sklepie: ${formatPlnFromGrosze(p.priceGrosze)}`}

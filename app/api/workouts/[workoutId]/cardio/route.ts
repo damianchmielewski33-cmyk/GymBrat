@@ -15,9 +15,8 @@ import { z } from "zod";
  * Patch cardio po zapisie treningu (ADR 0004 p. 2, LR-4). Wartości absolutne (cały stan),
  * nie delty. Autoryzacja właściciela sprawdzana przed zapisem, 404 (nie 403) przy cudzym
  * rekordzie — zgodnie ze wzorcem `workoutPlanMismatch`/`cardio-photo`, żeby nie ujawniać
- * istnienia cudzego wiersza. Celowo bez proxy do Javy (Java nie ma trwałego magazynu
- * treningów — p. 9 ADR), działa wyłącznie przez Drizzle/TypeScript niezależnie od
- * `JAVA_API_BASE_URL`.
+ * istnienia cudzego wiersza. Działa wyłącznie przez Drizzle/TypeScript (backend Java
+ * został usunięty — ADR 0014).
  */
 
 export const runtime = "nodejs";

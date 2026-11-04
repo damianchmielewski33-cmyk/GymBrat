@@ -89,7 +89,7 @@ export function HomePrzemianaSection({
               style={{ left: `${pos}%` }}
             />
             <div
-              className="pointer-events-none absolute top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--gym-gold)] text-black shadow-[0_0_20px_rgba(235,196,74,0.45)]"
+              className="pointer-events-none absolute top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--gym-gold)] text-black shadow-[0_0_20px_rgba(var(--neon-rgb),0.45)]"
               style={{ left: `${pos}%` }}
             >
               <MoveHorizontal className="h-4 w-4" />

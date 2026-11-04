@@ -18,7 +18,7 @@ export function TeamQuestHistory({
         Historia misji
       </h2>
       {history.length === 0 ? (
-        <p className="text-[13px] text-white/40">Jeszcze brak ukończonych misji.</p>
+        <p className="text-[13px] text-white/50">Jeszcze brak ukończonych misji.</p>
       ) : (
         <ul className="space-y-2">
           {history.map((h) => (
@@ -29,7 +29,7 @@ export function TeamQuestHistory({
               <p className="text-[14px] text-white">
                 {h.emoji} {h.title}
               </p>
-              <p className="mt-1 text-[12px] text-white/45">
+              <p className="mt-1 text-[12px] text-white/50">
                 {h.completedAt.toLocaleDateString("pl-PL")} ·{" "}
                 {h.totalValue.toLocaleString("pl-PL")} {h.unitLabel} ·{" "}
                 {h.participantsCount} osób · {h.rewardTitle}

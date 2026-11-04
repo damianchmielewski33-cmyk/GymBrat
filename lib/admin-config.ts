@@ -1,15 +1,4 @@
-/** PIN odblokowujący panel po zalogowaniu (zmienny przez ENV w produkcji). */
-export function getAdminPin(): string {
-  const v = process.env.ADMIN_PIN?.trim();
-  if (v) return v;
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("Missing ADMIN_PIN");
-  }
-  // Dev-only fallback: ułatwia lokalne uruchomienie bez konfiguracji sekretów.
-  return "1998";
-}
-
-export type AppRole = "zawodnik" | "trener" | "admin";
+export type AppRole = "zawodnik" | "admin";
 
 export function normalizeAdminEmail(email: string | null | undefined): string {
   return (email ?? "").trim().toLowerCase();
@@ -40,5 +29,6 @@ export function resolveEffectiveRole(input: {
   if (input.emailVerified && parseAdminEmails().has(normalizeAdminEmail(input.email))) {
     return "admin";
   }
-  return input.appRole === "trener" ? "trener" : "zawodnik";
+  // Z77: dawna rola „trener” została usunięta — takie konta są zawodnikami.
+  return "zawodnik";
 }

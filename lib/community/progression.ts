@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import {
@@ -126,39 +126,50 @@ export async function awardProgressionXp(
   }
 }
 
+/**
+ * Z72: atomowe doliczanie XP (upsert z `xp = xp + amount`), bez odczytu-modyfikacji-zapisu.
+ * Równoległe nagrody sumują się poprawnie; poziom liczony z zwróconej sumy.
+ */
 async function creditUserXp(userId: string, amount: number) {
   const db = getDb();
   const [row] = await db
-    .select()
-    .from(userCommunityXp)
-    .where(eq(userCommunityXp.userId, userId))
-    .limit(1);
-  const prevXp = row?.xpTotal ?? 0;
-  const prevLevel = row?.level ?? 1;
-  const nextXp = prevXp + amount;
+    .insert(userCommunityXp)
+    .values({
+      userId,
+      xpTotal: amount,
+      level: 1,
+      prestige: 0,
+      prestigeXpLifetime: amount,
+    })
+    .onConflictDoUpdate({
+      target: userCommunityXp.userId,
+      set: {
+        xpTotal: sql`${userCommunityXp.xpTotal} + ${amount}`,
+        prestigeXpLifetime: sql`coalesce(${userCommunityXp.prestigeXpLifetime}, 0) + ${amount}`,
+        updatedAt: new Date(),
+      },
+    })
+    .returning({ xpTotal: userCommunityXp.xpTotal });
+  const nextXp = row?.xpTotal ?? amount;
+  const prevXp = nextXp - amount;
+  const prevLevel = Math.min(
+    USER_MAX_LEVEL,
+    levelFromXp(prevXp, USER_MAX_LEVEL, 100),
+  );
   const nextLevel = Math.min(
     USER_MAX_LEVEL,
     levelFromXp(nextXp, USER_MAX_LEVEL, 100),
   );
-  if (row) {
-    await db
-      .update(userCommunityXp)
-      .set({
-        xpTotal: nextXp,
-        level: nextLevel,
-        prestigeXpLifetime: (row.prestigeXpLifetime ?? 0) + amount,
-        updatedAt: new Date(),
-      })
-      .where(eq(userCommunityXp.userId, userId));
-  } else {
-    await db.insert(userCommunityXp).values({
-      userId,
-      xpTotal: nextXp,
-      level: nextLevel,
-      prestige: 0,
-      prestigeXpLifetime: amount,
-    });
-  }
+  // Poziom tylko rośnie (przy równoległych kredytach wygrywa najwyższy).
+  await db
+    .update(userCommunityXp)
+    .set({ level: nextLevel })
+    .where(
+      and(
+        eq(userCommunityXp.userId, userId),
+        sql`${userCommunityXp.level} < ${nextLevel}`,
+      ),
+    );
   for (const reward of rewardsUnlockedBetween(
     USER_LEVEL_REWARDS,
     prevLevel,
@@ -172,7 +183,7 @@ async function creditUserXp(userId: string, amount: number) {
         emoji: reward.emoji,
       });
     } catch {
-      /* */
+      /* unikalny klucz — nagroda już przyznana */
     }
     if (reward.cosmeticKey) {
       try {
@@ -194,84 +205,74 @@ async function creditSeasonXp(
 ) {
   const db = getDb();
   const [row] = await db
-    .select()
-    .from(userSeasonXp)
+    .insert(userSeasonXp)
+    .values({ userId, seasonKey, xpTotal: amount, level: 1 })
+    .onConflictDoUpdate({
+      target: [userSeasonXp.userId, userSeasonXp.seasonKey],
+      set: { xpTotal: sql`${userSeasonXp.xpTotal} + ${amount}` },
+    })
+    .returning({ xpTotal: userSeasonXp.xpTotal });
+  const nextLevel = levelFromXp(row?.xpTotal ?? amount, SEASON_MAX_LEVEL, 80);
+  await db
+    .update(userSeasonXp)
+    .set({ level: nextLevel })
     .where(
       and(
         eq(userSeasonXp.userId, userId),
         eq(userSeasonXp.seasonKey, seasonKey),
+        sql`${userSeasonXp.level} < ${nextLevel}`,
       ),
-    )
-    .limit(1);
-  const nextXp = (row?.xpTotal ?? 0) + amount;
-  const nextLevel = levelFromXp(nextXp, SEASON_MAX_LEVEL, 80);
-  if (row) {
-    await db
-      .update(userSeasonXp)
-      .set({ xpTotal: nextXp, level: nextLevel })
-      .where(
-        and(
-          eq(userSeasonXp.userId, userId),
-          eq(userSeasonXp.seasonKey, seasonKey),
-        ),
-      );
-  } else {
-    await db.insert(userSeasonXp).values({
-      userId,
-      seasonKey,
-      xpTotal: nextXp,
-      level: nextLevel,
-    });
-  }
+    );
 }
 
 async function creditTeamXp(teamId: string, amount: number) {
   const db = getDb();
   const [row] = await db
-    .select()
-    .from(teamXp)
-    .where(eq(teamXp.teamId, teamId))
-    .limit(1);
-  const prevLevel = row?.level ?? 1;
-  const nextXp = (row?.xpTotal ?? 0) + amount;
-  const nextLevel = levelFromXp(nextXp, TEAM_MAX_LEVEL, 200);
-  if (row) {
-    await db
-      .update(teamXp)
-      .set({ xpTotal: nextXp, level: nextLevel, updatedAt: new Date() })
-      .where(eq(teamXp.teamId, teamId));
-  } else {
-    await db.insert(teamXp).values({
-      teamId,
-      xpTotal: nextXp,
-      level: nextLevel,
-    });
-  }
-  void prevLevel;
+    .insert(teamXp)
+    .values({ teamId, xpTotal: amount, level: 1 })
+    .onConflictDoUpdate({
+      target: teamXp.teamId,
+      set: {
+        xpTotal: sql`${teamXp.xpTotal} + ${amount}`,
+        updatedAt: new Date(),
+      },
+    })
+    .returning({ xpTotal: teamXp.xpTotal });
+  const nextLevel = levelFromXp(row?.xpTotal ?? amount, TEAM_MAX_LEVEL, 200);
+  await db
+    .update(teamXp)
+    .set({ level: nextLevel })
+    .where(and(eq(teamXp.teamId, teamId), sql`${teamXp.level} < ${nextLevel}`));
   void TEAM_LEVEL_REWARDS;
 }
 
 async function creditCommunityXp(amount: number) {
   const db = getDb();
   const [row] = await db
-    .select()
-    .from(communityXp)
-    .where(eq(communityXp.id, COMMUNITY_ID))
-    .limit(1);
-  const nextXp = (row?.xpTotal ?? 0) + amount;
-  const nextLevel = levelFromXp(nextXp, COMMUNITY_MAX_LEVEL, 5000);
-  if (row) {
-    await db
-      .update(communityXp)
-      .set({ xpTotal: nextXp, level: nextLevel, updatedAt: new Date() })
-      .where(eq(communityXp.id, COMMUNITY_ID));
-  } else {
-    await db.insert(communityXp).values({
-      id: COMMUNITY_ID,
-      xpTotal: nextXp,
-      level: nextLevel,
-    });
-  }
+    .insert(communityXp)
+    .values({ id: COMMUNITY_ID, xpTotal: amount, level: 1 })
+    .onConflictDoUpdate({
+      target: communityXp.id,
+      set: {
+        xpTotal: sql`${communityXp.xpTotal} + ${amount}`,
+        updatedAt: new Date(),
+      },
+    })
+    .returning({ xpTotal: communityXp.xpTotal });
+  const nextLevel = levelFromXp(
+    row?.xpTotal ?? amount,
+    COMMUNITY_MAX_LEVEL,
+    5000,
+  );
+  await db
+    .update(communityXp)
+    .set({ level: nextLevel })
+    .where(
+      and(
+        eq(communityXp.id, COMMUNITY_ID),
+        sql`${communityXp.level} < ${nextLevel}`,
+      ),
+    );
 }
 
 export async function prestigeUp(userId: string): Promise<
@@ -294,7 +295,7 @@ export async function prestigeUp(userId: string): Promise<
   }
   const next = (row.prestige ?? 0) + 1;
   const meta = PRESTIGE_META[next]!;
-  await db
+  const cas = await db
     .update(userCommunityXp)
     .set({
       prestige: next,
@@ -305,7 +306,16 @@ export async function prestigeUp(userId: string): Promise<
       titleKey: `prestige_${next}`,
       updatedAt: new Date(),
     })
-    .where(eq(userCommunityXp.userId, userId));
+    .where(
+      and(
+        eq(userCommunityXp.userId, userId),
+        eq(userCommunityXp.prestige, row.prestige ?? 0),
+        sql`${userCommunityXp.level} >= ${USER_MAX_LEVEL}`,
+      ),
+    );
+  if (cas.rowsAffected !== 1) {
+    return { ok: false, error: "Prestiż został już zmieniony. Odśwież stronę." };
+  }
   try {
     await db.insert(userBadges).values({
       userId,

@@ -1,3 +1,4 @@
+import { trackKpi, KpiEvents } from "@/lib/analytics/track-kpi";
 import { withApiErrors } from "@/lib/errors/api";
 import { and, desc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
@@ -17,7 +18,6 @@ import { NextResponse } from "next/server";
 import { assertCsrf } from "@/lib/csrf";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import { UserMessages, workoutCompleteZodMessage } from "@/lib/user-facing-errors";
-import { fetchJavaApi, isJavaApiEnabled, passThroughJavaResponse } from "@/lib/java-api";
 import { z } from "zod";
 
 /** UI / input HTML mogą dać ułamkowe powtórzenia — zapisujemy zaokrąglone całkowite. */
@@ -435,26 +435,6 @@ async function handlePOST(req: Request) {
     );
   }
 
-  if (isJavaApiEnabled()) {
-    const javaRes = await fetchJavaApi("/api/workouts/complete", {
-      method: "POST",
-      userId: session.user.id,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(parsed.data),
-    });
-    if (javaRes) {
-      if (javaRes.ok) {
-        revalidatePath("/");
-        revalidatePath("/reports");
-        revalidatePath("/active-workout");
-        revalidatePath("/workout-history");
-        revalidatePath("/workout-plan");
-        revalidatePath("/progress");
-      }
-      return passThroughJavaResponse(javaRes);
-    }
-  }
-
   const title = String(parsed.data.title ?? "Sesja").trim() || "Sesja";
   const cardioMinutes = Number(parsed.data.cardioMinutes ?? 0);
   const cardioExtras = parsed.data.cardio ?? null;
@@ -574,6 +554,8 @@ async function handlePOST(req: Request) {
     }
     throw err;
   }
+
+  trackKpi(KpiEvents.workoutCompleted, session.user.id, { kind: "strength" });
 
   const { publishTeamFeedAfterWorkout } = await import(
     "@/lib/community/team-feed-auto"

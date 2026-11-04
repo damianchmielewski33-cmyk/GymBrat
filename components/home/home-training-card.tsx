@@ -20,6 +20,7 @@ import {
 } from "@/lib/workout-plan-queue";
 import { calendarDateKey } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
+import { PlanFromHistoryButton } from "@/components/home/plan-from-history-button";
 
 /** Bez subskrypcji — służy tylko do rozróżnienia SSR od klienta (hydracja). */
 const subscribeNever = () => () => {};
@@ -68,6 +69,7 @@ export function HomeTrainingCard({
   cardioGoalMinutes,
   cardioSheetWeek,
   extraCardio = null,
+  canBuildPlanFromHistory = false,
 }: {
   recommendedPlanId: string | null;
   planName: string | null;
@@ -84,6 +86,7 @@ export function HomeTrainingCard({
     weekLabel: string;
   };
   extraCardio?: ExtraCardioAdvice | null;
+  canBuildPlanFromHistory?: boolean;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -174,7 +177,7 @@ export function HomeTrainingCard({
             className="pointer-events-none absolute inset-0 opacity-80"
             style={{
               background:
-                "linear-gradient(165deg, rgba(235,196,74,0.14) 0%, transparent 55%)",
+                "linear-gradient(165deg, rgba(var(--neon-rgb),0.14) 0%, transparent 55%)",
             }}
             aria-hidden
           />
@@ -195,6 +198,7 @@ export function HomeTrainingCard({
               <Play className="h-4 w-4 fill-current" aria-hidden />
               Utwórz plan
             </Link>
+            {canBuildPlanFromHistory ? <PlanFromHistoryButton /> : null}
           </div>
         </section>
         {cardioCard}
@@ -211,8 +215,8 @@ export function HomeTrainingCard({
           className="pointer-events-none absolute inset-0 opacity-90"
           style={{
             background: unfinished
-              ? "linear-gradient(145deg, rgba(235,196,74,0.28) 0%, rgba(40,28,8,0.55) 42%, transparent 70%)"
-              : "linear-gradient(165deg, rgba(235,196,74,0.16) 0%, transparent 58%)",
+              ? "linear-gradient(145deg, rgba(var(--neon-rgb),0.28) 0%, rgba(40,28,8,0.55) 42%, transparent 70%)"
+              : "linear-gradient(165deg, rgba(var(--neon-rgb),0.16) 0%, transparent 58%)",
           }}
           aria-hidden
         />
@@ -318,13 +322,13 @@ export function HomeTrainingCard({
                               )}
                             >
                               {day.name}
-                              <span className="font-normal text-white/45">
+                              <span className="font-normal text-white/50">
                                 {" "}
                                 · {day.exerciseCount} ćw.
                                 {inQueue ? " · w kolejce" : ""}
                               </span>
                             </p>
-                            <p className="mt-0.5 text-[12px] text-white/40">
+                            <p className="mt-0.5 text-[12px] text-white/50">
                               {day.lastWorkoutDate
                                 ? formatPlanLastDoneRelative(
                                     day.lastWorkoutDate,
@@ -338,7 +342,7 @@ export function HomeTrainingCard({
                               "shrink-0 text-[12px] tabular-nums",
                               lastDate
                                 ? "text-white/55"
-                                : "text-white/30",
+                                : "text-white/50",
                             )}
                             title={
                               day.lastWorkoutDate

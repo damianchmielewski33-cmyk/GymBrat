@@ -28,7 +28,7 @@ const legendStyle = {
 export function WorkoutTrendChart({ data }: { data: WorkoutTrendPoint[] }) {
   if (data.length < 2) {
     return (
-      <p className="mt-3 text-center text-xs text-white/40">
+      <p className="mt-3 text-center text-xs text-white/50">
         Potrzebujesz co najmniej 2 treningów, aby zobaczyć wykres trendu.
       </p>
     );
@@ -36,7 +36,12 @@ export function WorkoutTrendChart({ data }: { data: WorkoutTrendPoint[] }) {
 
   return (
     <div className="h-[220px] w-full min-w-0 sm:h-[280px]">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minHeight={100}
+          initialDimension={{ width: 320, height: 200 }}
+        >
         <LineChart
           data={data}
           margin={{ top: 8, right: 6, left: 2, bottom: 6 }}

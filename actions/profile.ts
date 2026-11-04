@@ -2,17 +2,19 @@
 
 import { guardAction } from "@/lib/action-guard";
 import { compare, hash } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
-import { userSettings, users, weightLogs } from "@/db/schema";
+import { userConsents, userSettings, users, weightLogs } from "@/db/schema";
+import { CURRENT_CONSENT_TEXT_VERSION } from "@/lib/consents-client";
 import { getCurrentWeightKg } from "@/lib/current-weight";
 import { fitnessGoalsToJson, parseFitnessGoalsJson } from "@/lib/fitness-goals";
 import { WEIGHT_KG_MAX, WEIGHT_KG_MIN } from "@/lib/kcal-from-macros";
 import { activityLevels } from "@/lib/validations/register";
 import { UserMessages } from "@/lib/user-facing-errors";
+import { MIN_USER_AGE } from "@/lib/min-age";
 
 function optionalCoercedNumber(min: number, max: number, int = false) {
   return z.preprocess((v) => {
@@ -28,7 +30,7 @@ const bodyParamsSchema = z.object({
   lastName: z.string().trim().min(1).max(80),
   weightKg: optionalCoercedNumber(WEIGHT_KG_MIN, WEIGHT_KG_MAX),
   heightCm: optionalCoercedNumber(100, 250, true),
-  age: optionalCoercedNumber(13, 120, true),
+  age: optionalCoercedNumber(MIN_USER_AGE, 120, true),
   sex: z.enum(["male", "female", ""]).optional(),
   /** Puste = nie nadpisuj (U-3). */
   activityLevel: z.union([z.enum(activityLevels), z.literal("")]).optional(),
@@ -124,6 +126,26 @@ export async function updateBodyParams(input: unknown) {
   }
 
   await db.update(users).set(patch).where(eq(users.id, userId));
+
+  if (data.age != null) {
+    // Z13: podanie wieku ≥ 16 (walidacja schematu) = oświadczenie, zapis w rejestrze zgód
+    // tylko gdy ostatnie oświadczenie nie jest już aktualne (append-only, bez duplikatów).
+    const [lastDecl] = await db
+      .select({ granted: userConsents.granted })
+      .from(userConsents)
+      .where(and(eq(userConsents.userId, userId), eq(userConsents.type, "age_16")))
+      .orderBy(desc(userConsents.decidedAt))
+      .limit(1);
+    if (!lastDecl?.granted) {
+      await db.insert(userConsents).values({
+        userId,
+        type: "age_16",
+        granted: true,
+        textVersion: CURRENT_CONSENT_TEXT_VERSION,
+        source: "age_gate",
+      });
+    }
+  }
 
   if (data.weeklySessionsTarget != null) {
     const [row] = await db

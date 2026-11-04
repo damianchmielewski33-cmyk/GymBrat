@@ -40,7 +40,7 @@ export function PublicProfileActions({
           Znajomi
         </span>
       ) : (
-        <span className="rounded-xl border border-white/10 px-3.5 py-2 text-[12px] text-white/40">
+        <span className="rounded-xl border border-white/10 px-3.5 py-2 text-[12px] text-white/50">
           Relacja: {friendship}
         </span>
       )}

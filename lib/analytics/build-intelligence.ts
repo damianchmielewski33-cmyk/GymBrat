@@ -1,3 +1,8 @@
+import {
+  isDateKeyInRange,
+  resolveCardioWeekRange,
+  type CardioWeekMode,
+} from "@/lib/cardio-week-range";
 import { computeAdherenceScore } from "@/lib/analytics/adherence-score";
 import { sumCardioCaloriesWeek, type SexKind } from "@/lib/analytics/cardio-calories";
 import { computeCardioLoad } from "@/lib/analytics/cardio-load";
@@ -27,6 +32,8 @@ export type BuildIntelligenceInput = {
   today: string;
   weeklySessionsTarget: number;
   weeklyCardioGoalMinutes: number;
+  /** Jak liczyć tydzień cardio (ustawienie użytkownika); domyślnie pon–niedz. */
+  cardioWeekMode?: CardioWeekMode;
   ageYears: number | null;
   weightKg: number | null;
   sex: SexKind | null;
@@ -121,10 +128,11 @@ export function buildProgressIntelligence(
     today: input.today,
   });
 
-  const cardioMinWeek = cardioMinutesInWindow(
-    input.cardioSamples,
-    input.today,
-    7,
+  const weekRange = resolveCardioWeekRange(input.today, input.cardioWeekMode);
+  const cardioMinWeek = round1(
+    input.cardioSamples
+      .filter((s) => isDateKeyInRange(s.date, weekRange))
+      .reduce((a, s) => a + s.minutes, 0),
   );
   const cardioAdherencePct =
     input.weeklyCardioGoalMinutes > 0
@@ -169,6 +177,7 @@ export function buildProgressIntelligence(
   const caloriesEstimatedWeek = sumCardioCaloriesWeek({
     samples: input.cardioSamples,
     today: input.today,
+    range: weekRange,
     weightKg: input.weightKg,
     ageYears: input.ageYears,
     sex: input.sex,

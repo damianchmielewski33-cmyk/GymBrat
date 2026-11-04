@@ -55,4 +55,17 @@ android/**/build/
 # APK pobierany przy buildzie Vercel (scripts/fetch-android-apk.mjs)
 /public/gymbrat.apk
 /public/gymbrat.apk.tmp
+# Kopie z wersją w nazwie tworzy scripts/fetch-android-apk.mjs przy każdym buildzie (Z33)
+/public/gymbrat-*.apk
 /dist/gymbrat.apk
+
+# Artefakty testów (Playwright) i śmieci z narzędzi (Z33)
+/test-results/
+/playwright-report/
+/blob-report/
+/undefined
+*.log
+
+# E2E (US14)
+/e2e/.auth/
+e2e.db*

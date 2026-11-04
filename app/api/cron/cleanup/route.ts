@@ -1,6 +1,11 @@
 import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
+import { getDb } from "@/db";
+import { ensureCriticalSchema } from "@/db/ensure-schema";
+import { expirePendingOrders } from "@/lib/order-admin";
 import { runDbCleanup } from "@/lib/db-retention";
+import { sendInactivityWarningEmail } from "@/lib/email";
+import { getExtraRetentionPolicy, runBugReportRetention, runInactiveRetention } from "@/lib/retention-extra";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +28,23 @@ async function handle(req: Request) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
   const result = await runDbCleanup();
-  return NextResponse.json({ ok: true, ...result });
+
+  // Z28: retencja wg projektu prawnego (zgłoszenia błędów zawsze; nieaktywne konta/zdjęcia tylko za flagą).
+  await ensureCriticalSchema();
+  const db = getDb();
+  const now = Date.now();
+  const policy = getExtraRetentionPolicy();
+  const bugReports = await runBugReportRetention(db, now, policy);
+  const inactive = await runInactiveRetention(db, now, policy, {
+    sendWarning: sendInactivityWarningEmail,
+  });
+  // Z22: wygaszenie nieopłaconych zamówień (pending > 24 h).
+  const expiredOrders = await expirePendingOrders(db, now);
+  return NextResponse.json({
+    ok: true,
+    ...result,
+    extra: { bugReports, inactive, expiredOrders, inactiveAccountsEnabled: policy.inactiveAccountsEnabled },
+  });
 }
 
 /** Vercel Cron woła GET (z Authorization: Bearer CRON_SECRET). */

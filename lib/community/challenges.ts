@@ -329,7 +329,7 @@ export async function createChallengeFromTemplate(input: {
   }
 
   {
-    const { track } = await import("@/lib/analytics/track");
+    const { track } = await import("@/lib/analytics/track-server");
     track.challengeCreated(input.actorUserId, {
       challenge_id: id,
       team_id: scope === "global" ? null : input.teamId,
@@ -516,7 +516,7 @@ export async function joinChallenge(input: {
   }
 
   if (!input.skipAnalytics) {
-    const { track } = await import("@/lib/analytics/track");
+    const { track } = await import("@/lib/analytics/track-server");
     track.challengeJoined(input.userId, {
       challenge_id: input.challengeId,
       team_id: ch.teamId,
@@ -880,7 +880,7 @@ async function awardChallengeRewards(input: {
   }
 
   {
-    const { track } = await import("@/lib/analytics/track");
+    const { track } = await import("@/lib/analytics/track-server");
     track.challengeCompleted(input.userId, {
       challenge_id: input.challengeId,
       team_id: input.challenge.teamId,

@@ -55,7 +55,7 @@ function formatSavedAt(iso: string | undefined): string {
 function PendingHint() {
   const { pending } = useFormStatus();
   if (!pending) return null;
-  return <span className="text-xs text-white/45">Zapisywanie…</span>;
+  return <span className="text-xs text-white/50">Zapisywanie…</span>;
 }
 
 /**
@@ -134,7 +134,7 @@ export function ProfileSaveBlock({
               {formatSavedAt(state.savedAt)}
             </span>
           ) : dirty && !autoSubmitOnChange ? (
-            <span className="text-xs text-white/45">Niezapisane zmiany</span>
+            <span className="text-xs text-white/50">Niezapisane zmiany</span>
           ) : null}
         </div>
       </form>

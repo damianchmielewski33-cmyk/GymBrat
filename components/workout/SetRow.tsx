@@ -62,7 +62,7 @@ export function SetRow({
       <div className="grid grid-cols-1 gap-3 py-3 sm:grid-cols-[44px_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1fr)] sm:items-center sm:gap-2 sm:py-2">
         {/* Nr serii */}
         <div className="flex items-center justify-between sm:block sm:text-center">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-white/35 sm:hidden">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50 sm:hidden">
             Seria
           </span>
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-sm font-semibold text-white/80">
@@ -72,10 +72,10 @@ export function SetRow({
 
         {/* Poprzednio */}
         <div className="flex flex-col justify-center sm:min-h-[3rem]">
-          <span className="mb-1 text-[10px] font-medium uppercase tracking-wider text-white/35 sm:hidden">
+          <span className="mb-1 text-[10px] font-medium uppercase tracking-wider text-white/50 sm:hidden">
             Poprzednio
           </span>
-          <p className="text-center text-xs tabular-nums text-white/40 sm:text-sm">{previousLabel}</p>
+          <p className="text-center text-xs tabular-nums text-white/50 sm:text-sm">{previousLabel}</p>
         </div>
 
         {/* Ciężar */}

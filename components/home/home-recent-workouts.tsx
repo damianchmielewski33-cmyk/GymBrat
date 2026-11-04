@@ -28,7 +28,7 @@ export function HomeRecentWorkouts({
 
       <div className="app-card overflow-hidden">
         {shown.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-white/40">
+          <div className="px-4 py-8 text-center text-sm text-white/50">
             Brak zapisanych treningów — odpal pierwszą sesję z karty powyżej.
           </div>
         ) : (
@@ -62,7 +62,7 @@ export function HomeRecentWorkouts({
                       <span className="block truncate text-[15px] font-semibold text-white">
                         {w.title}
                       </span>
-                      <span className="mt-0.5 block truncate text-[12px] text-white/45">
+                      <span className="mt-0.5 block truncate text-[12px] text-white/50">
                         {meta}
                       </span>
                     </span>
@@ -73,16 +73,16 @@ export function HomeRecentWorkouts({
                             value={w.volumeKg}
                             className="text-[20px] leading-none text-white"
                           />
-                          <span className="text-[11px] text-white/45">kg</span>
+                          <span className="text-[11px] text-white/50">kg</span>
                         </span>
                       ) : (
-                        <span className="font-metric text-[20px] text-white/35">
+                        <span className="font-metric text-[20px] text-white/50">
                           —
                         </span>
                       )}
                     </span>
                     <ChevronRight
-                      className="h-4 w-4 shrink-0 text-white/30"
+                      className="h-4 w-4 shrink-0 text-white/50"
                       aria-hidden
                     />
                   </Link>
@@ -102,11 +102,11 @@ export function HomeRecentWorkouts({
               <span className="block text-sm font-semibold text-white">
                 Historia treningów
               </span>
-              <span className="mt-0.5 block text-[12px] text-white/45">
+              <span className="mt-0.5 block text-[12px] text-white/50">
                 każda seria, poprawki do 7 dni
               </span>
             </span>
-            <ChevronRight className="h-4 w-4 text-white/30" aria-hidden />
+            <ChevronRight className="h-4 w-4 text-white/50" aria-hidden />
           </Link>
         </div>
       </div>

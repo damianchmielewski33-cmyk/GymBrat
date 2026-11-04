@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalDocShell, LegalSection } from "@/components/legal/legal-doc-shell";
+import { LEGAL_DOCS_UPDATED_LABEL } from "@/lib/legal-versions";
 import { getLegalSeller, PRIVACY_PATH } from "@/lib/legal-seller";
 
 export const metadata: Metadata = {
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function RegulaminPage() {
   const s = getLegalSeller();
-  const updated = "17 października 2026";
+  const updated = LEGAL_DOCS_UPDATED_LABEL;
 
   return (
     <LegalDocShell title="Regulamin" updated={updated} incomplete={!s.complete}>
@@ -171,6 +172,11 @@ export default function RegulaminPage() {
           Użytkownika lub Sprzedawcę na zasadach określonych w Regulaminie.
         </p>
         <p>
+          Z Serwisu mogą korzystać osoby w wieku co najmniej 16 lat; zakup Pakietu
+          jest dostępny dla osób pełnoletnich. Rejestrując się, Użytkownik
+          oświadcza, że spełnia te wymogi.
+        </p>
+        <p>
           Użytkownik zobowiązuje się podawać prawdziwe dane, chronić dane
           logowania oraz nie udostępniać Konta osobom trzecim.
         </p>
@@ -255,8 +261,10 @@ export default function RegulaminPage() {
           </li>
         </ul>
         <p>
-          Składając Zamówienie i zaznaczając wymaganą zgodę przy zakupie,
-          Konsument potwierdza powyższe. W pozostałych przypadkach oświadczenie
+          Składając Zamówienie i zaznaczając dwie wymagane zgody przy zakupie
+          (akceptacja Regulaminu oraz żądanie rozpoczęcia świadczenia przed upływem
+          terminu odstąpienia), Konsument potwierdza powyższe; dowód zgody (czas i
+          wersję tekstu) zapisujemy przy Zamówieniu. W pozostałych przypadkach oświadczenie
           o odstąpieniu należy wysłać na e-mail: {s.email}.
         </p>
       </LegalSection>
@@ -265,7 +273,8 @@ export default function RegulaminPage() {
         <p>
           Reklamacje dotyczące Pakietu, płatności lub działania Serwisu należy
           składać na adres {s.email}
-          {s.phone ? ` lub telefonicznie: ${s.phone}` : ""}.
+          {s.phone ? ` lub telefonicznie: ${s.phone}` : ""}, a także formularzem
+          na stronie /pomoc (dla zalogowanych).
         </p>
         <p>
           Reklamacja powinna zawierać: dane Kontaktowe, opis problemu oraz —
@@ -333,7 +342,7 @@ export default function RegulaminPage() {
         </p>
       </LegalSection>
 
-      <p className="border-t border-white/[0.08] pt-4 text-[13px] text-white/45">
+      <p className="border-t border-white/[0.08] pt-4 text-[13px] text-white/50">
         Adres Regulaminu:{" "}
         <a
           href={`${s.siteUrl}/regulamin`}

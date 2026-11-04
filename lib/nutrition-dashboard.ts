@@ -157,20 +157,27 @@ export function hasExplicitNutritionDayKind(
  * Tygodnie od bieżącego wstecz (pn→nd), najnowszy pierwszy.
  * `pastWeeks` = ile pełnych tygodni przed bieżącym (domyślnie ~rok).
  */
-export async function loadNutritionWeekHistory(
+/** Z70: początkowa porcja tygodni na /nutrition/week (bieżący + 12); starsze doładowywane. */
+export const NUTRITION_WEEK_INITIAL_WEEKS = 13;
+export const NUTRITION_WEEK_CHUNK = 13;
+
+/** Tygodnie `fromWeek..toWeek-1` wstecz od bieżącego (0 = bieżący). */
+export async function loadNutritionWeekRange(
   userId: string,
   settings: NutritionSettingsState,
   todayKey: string,
-  pastWeeks: number = NUTRITION_WEEK_HISTORY_PAST_WEEKS,
+  fromWeek: number,
+  toWeek: number,
 ): Promise<PreviousWeekNutritionSheetWeek[]> {
   const thisMonday = weekDateKeysMondayFirst(todayKey)[0]!;
   const anchors: string[] = [];
   const allDateKeys: string[] = [];
-  for (let w = 0; w <= pastWeeks; w++) {
+  for (let w = Math.max(0, fromWeek); w < toWeek; w++) {
     const monday = addCalendarDays(thisMonday, -7 * w);
     anchors.push(monday);
     allDateKeys.push(...weekDateKeysMondayFirst(monday));
   }
+  if (anchors.length === 0) return [];
   const uniqueKeys = [...new Set(allDateKeys)];
   const mealAggs = await getMealLogAggregatesForDates(userId, uniqueKeys);
 
@@ -188,6 +195,15 @@ export async function loadNutritionWeekHistory(
   );
 
   return weeksData.map((week) => weekSheetFromRollup(week, settings.dayTypes));
+}
+
+export async function loadNutritionWeekHistory(
+  userId: string,
+  settings: NutritionSettingsState,
+  todayKey: string,
+  pastWeeks: number = NUTRITION_WEEK_HISTORY_PAST_WEEKS,
+): Promise<PreviousWeekNutritionSheetWeek[]> {
+  return loadNutritionWeekRange(userId, settings, todayKey, 0, pastWeeks + 1);
 }
 
 /**

@@ -22,7 +22,6 @@ Grupy tras i ramy:
 | Ścieżka | Cel | Komponenty |
 |---|---|---|
 | `active-workout/page.tsx` | Sesja na żywo (pełny ekran, bez belki) | `active-workout/active-workout-view` (`guided-session-layout`, `session-chrome`, `rest-break-screen`, `live-coach-banner`, `ghost-race-hud`, `workout-finished-screen`), `workout/SetRow`, `workout/plate-calculator-sheet` |
-| `start-workout/page.tsx` | Przekierowanie na `/workout-plan` | - |
 | `workout-history/page.tsx`, `[id]/page.tsx`, `[id]/edit/page.tsx` | Historia, szczegół, korekta sesji | `workout-history/*`, `ScreenHeader` |
 | `profile/workout-plan/page.tsx` | Edytor planu | `workout-plan/workout-plan-editor`, `workout-plan-word-import` |
 | `cardio/page.tsx`, `cardio/record/page.tsx`, `cardio/[id]/page.tsx` | Hub cardio, nagrywanie trasy (pełny ekran), szczegół | `cardio/cardio-hub-view`, `cardio-record-client`, `cardio-detail-client`, `cardio-route-map` |
@@ -155,9 +154,24 @@ Nagłówek: `AppPageHeader`; sekcja: `SectionLabel` lub `ProgressSection`; konte
 | 8 | Zakładki/segmenty w 5 wersjach, `ui/tabs` nieużywane | `progress/progress-tabs.tsx`, `progress-ui.tsx` `SegmentedControl`, `community/community-hub-tabs.tsx`, `community/team-subnav.tsx`, `community/hof/hof-period-tabs.tsx`, `ui/tabs.tsx` | Średni |
 | 9 | Nagłówki ekranów: `AppPageHeader` vs `ScreenHeader`/`ScreenHeading` vs `AdminPageHeader` vs inline (`(dashboard)/inbox/page.tsx` `text-3xl`, kicker `white/40` zamiast złotego) | `layout/screen.tsx`, `admin/admin-ui.tsx` | Średni |
 | 10 | Brak skali typografii i promieni (setki `text-[Npx]`, `rounded-[Npx]`); `--radius-*` praktycznie pominięte | całe `components/` | Średni |
-| 11 | Martwe komponenty (0 importów): `home/add-meal-sheet.tsx`, `workout/WorkoutSummary.tsx`, `workout/ExerciseCard.tsx`, `workout/RestTimerBar.tsx`, `workout-plan/workout-card.tsx`, `active-workout/workout-plan-card.tsx`, `active-workout/workout-glass-card.tsx`, `ui/tabs.tsx`, `ui/progress.tsx`, `ui/avatar.tsx`, `ui/separator.tsx`; nieużywana klasa `.iron-panel`, tokeny `--chart-*` | jak w kolumnie | Średni (do potwierdzenia przez `architekt`) |
+| 11 | **USUNIĘTE w US18 (Z78, 2026-11-04):** martwe komponenty (0 importów): `home/add-meal-sheet.tsx`, `workout/WorkoutSummary.tsx`, `workout/ExerciseCard.tsx`, `workout/RestTimerBar.tsx`, `workout-plan/workout-card.tsx`, `active-workout/workout-plan-card.tsx`, `active-workout/workout-glass-card.tsx`, `ui/tabs.tsx`, `ui/progress.tsx`, `ui/avatar.tsx`, `ui/separator.tsx`; nieużywana klasa `.iron-panel`, tokeny `--chart-*` | jak w kolumnie | Średni (do potwierdzenia przez `architekt`) |
 | 12 | Pary o zbliżonej roli: `meal-suggestions/food-portion-screen.tsx` vs `food-portion-sheet.tsx`; `auth/auth-shell.tsx` vs `auth/auth-page-frame.tsx`; `home/weight-range-chart.tsx` vs `progress/weight-average-chart.tsx`; `home/meal-logs-list.tsx` vs `meal-suggestions/diet-diary-sections.tsx`; `nutrition/*` vs hub `meal-suggestions` | jak w kolumnie | Średni |
 | 13 | Rozproszenie katalogów domeny treningu: `workout/` (PascalCase: `SetRow.tsx`, `RestTimerBar.tsx`), `workout-plan/`, `treningi/`, `active-workout/`, `workout-history/` | `components/` | Niski |
 | 14 | Ładowanie: szkielety vs spinnery vs `ScreenLoading`; brak `loading.tsx` w admin i podtrasach | sekcja 5 | Niski |
 | 15 | Kolor PWA `#07080d` / root `themeColor` vs `--gym-black #070708`; statyczny manifest z `/next.svg` | `app/layout.tsx`, `app/api/branding/manifest/route.ts`, `public/manifest.webmanifest` | Niski |
 | 16 | Brak trybu jasnego mimo martwego bloku `.dark` | `app/globals.css`, `app/layout.tsx` | Niski (decyzja produktowa) |
+
+## Nazewnictwo sekcji i tytuły stron (Z60, 2026-11-04)
+
+Tytuł karty = „Nazwa · GymBrat” (szablon w `app/layout.tsx`, nazwę ustawia `metadata.title` trasy; test `lib/page-titles.test.ts`).
+
+| Sekcja (dolna belka) | Nazwa | Uwagi |
+|---|---|---|
+| `/` | Start | pulpit dnia |
+| `/workout-plan` | Treningi | hub treningów |
+| `/meal-suggestions` | **Dieta** | dziennik, plan, przepisy, skan |
+| `/nutrition/today`, `/nutrition/week` | **Bilans dnia / tygodnia** | podsumowanie makro (decyzja DK-28) |
+| `/progress` | Analiza | |
+| `/community/teams` | Społeczność / Grupy | |
+| `/reports` | Raport ciała | |
+| `/profile/*` | Profil | |

@@ -27,7 +27,7 @@ export function DiscoverView({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Szukaj po nazwie…"
-          className="min-h-11 flex-1 rounded-xl border border-white/15 bg-black/40 px-3 text-[14px] text-white placeholder:text-white/30"
+          className="min-h-11 flex-1 rounded-xl border border-white/15 bg-black/40 px-3 text-[14px] text-white placeholder:text-white/50"
         />
         <button
           type="button"
@@ -55,7 +55,7 @@ export function DiscoverView({
             >
               <p className="text-[14px] text-white">{u.displayName}</p>
               {u.bio ? (
-                <p className="mt-0.5 text-[12px] text-white/40">{u.bio}</p>
+                <p className="mt-0.5 text-[12px] text-white/50">{u.bio}</p>
               ) : null}
             </Link>
           ))}
@@ -71,7 +71,7 @@ export function DiscoverView({
             className="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"
           >
             <p className="text-[14px] text-white">{t.name}</p>
-            <p className="mt-0.5 text-[12px] text-white/40">
+            <p className="mt-0.5 text-[12px] text-white/50">
               {t.memberCount} członków
               {t.description ? ` · ${t.description.slice(0, 80)}` : ""}
             </p>

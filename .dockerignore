@@ -40,7 +40,6 @@ public/gymbrat.apk.tmp
 public/gymbrat-*.apk
 
 # Java local compose
-java-backend/target
 
 # Testy / E2E / docs niepotrzebne w runtime
 e2e

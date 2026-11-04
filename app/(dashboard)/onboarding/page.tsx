@@ -19,6 +19,8 @@ async function submitOnboarding(formData: FormData) {
   redirect("/");
 }
 
+export const metadata = { title: "Pierwsze kroki" };
+
 export default async function OnboardingPage() {
   const session = await auth();
   const userId = session?.user?.id;
@@ -57,7 +59,7 @@ export default async function OnboardingPage() {
               required
             />
           </div>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/50">
             Token Fitatu i makra ustawisz w{" "}
             <Link href="/profile" className={screenLinkClass}>
               profilu

@@ -14,6 +14,8 @@ import {
   listTeamChallenges,
 } from "@/lib/community/challenges";
 
+export const metadata = { title: "Wyzwania grupy" };
+
 export default async function TeamChallengesPage({
   params,
 }: {
@@ -53,7 +55,7 @@ export default async function TeamChallengesPage({
         <h1 className="font-heading text-[24px] font-semibold text-white sm:text-[26px]">
           Wyzwania grupy
         </h1>
-        <p className="mt-1 text-[13px] text-white/45">
+        <p className="mt-1 text-[13px] text-white/50">
           Indywidualne, grupowe i sezonowe — postęp, XP i odznaki.
         </p>
       </div>

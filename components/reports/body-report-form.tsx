@@ -1,36 +1,17 @@
 "use client";
-
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-  type ChangeEvent,
-  type ReactNode,
-} from "react";
-import Image from "next/image";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Camera,
-  Check,
-  ClipboardList,
-  ImageIcon,
-  Ruler,
-  Sparkles,
-  X,
-  Zap,
-} from "lucide-react";
+import { ArrowRight, Check, ClipboardList, ImageIcon, Ruler, Sparkles, Zap } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
-import {
-  ReportSubmitPopup,
-  type ReportSubmitPhase,
-  type ReportSubmitSummary,
-} from "@/components/reports/report-submit-popup";
-import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
-import { cn } from "@/lib/utils";
+import { ReportSubmitPopup, type ReportSubmitPhase, type ReportSubmitSummary } from "@/components/reports/report-submit-popup";
+import { ensureCsrfCookie } from "@/lib/client-csrf";
+import { ConsentRequiredDialog } from "@/components/consent/consent-required-dialog";
+import { SENSITIVE_CONSENT_COPY, type SensitiveConsentType } from "@/lib/consents-client";
+import { setSensitiveConsentAction } from "@/actions/consents";
+import { FieldLabel, GhostBackButton, GoldButton, MeasureInput, PhotoSlotCard, ProgressSegments, ScoreBars, StepBadge, TakNieToggle } from "@/components/reports/body-report-form-parts";
+import { type BodyReportFieldHints, DRAFT_KEY, type DraftPayload, PHOTO_SLOTS, type PhotoSlot, TOTAL_STEPS, fileToReportPhotoDataUrl, formatHintNumber, parseDecimal } from "@/components/reports/body-report-form-utils";
+
+export type { BodyReportFieldHints } from "@/components/reports/body-report-form-utils";
 
 type BodyReportFormProps = {
   maxPhotos?: number;
@@ -39,491 +20,6 @@ type BodyReportFormProps = {
   /** Wartości z ostatniego raportu — podpowiedzi w tle pól (placeholder / ghost). */
   lastHints?: BodyReportFieldHints | null;
 };
-
-export type BodyReportFieldHints = {
-  weightKg?: number | null;
-  waistCm?: number | null;
-  chestCm?: number | null;
-  thighCm?: number | null;
-  armCm?: number | null;
-  dayEnergy?: number | null;
-  trainingEnergy?: number | null;
-  digestionScore?: number | null;
-  sleepQuality?: number | null;
-  cardioCompliance?: string | null;
-  dietCompliance?: string | null;
-  trainingCompliance?: string | null;
-};
-
-function formatHintNumber(n: number | null | undefined, digits = 1): string | undefined {
-  if (n == null || !Number.isFinite(n)) return undefined;
-  const rounded = Number(n.toFixed(digits));
-  return String(rounded).replace(".", ",");
-}
-
-type PhotoSlot = "front" | "side" | "back";
-
-const PHOTO_SLOTS: { key: PhotoSlot; label: string }[] = [
-  { key: "front", label: "PRZÓD" },
-  { key: "side", label: "BOK" },
-  { key: "back", label: "TYŁ" },
-];
-
-const TOTAL_STEPS = 5;
-const DRAFT_KEY = "gymbrat:body-report-draft:v1";
-
-type DraftPayload = {
-  step: number;
-  weightKg: string;
-  waistCm: string;
-  chestCm: string;
-  thighCm: string;
-  armCm: string;
-  dayEnergy: number | null;
-  trainingEnergy: number | null;
-  digestionScore: number | null;
-  sleepQuality: number | null;
-  cardioCompliance: "" | "tak" | "nie";
-  dietCompliance: "" | "tak" | "nie";
-  trainingCompliance: "" | "tak" | "nie";
-  complianceNotes: string;
-  additionalInfo: string;
-  /** Zdjęcia w draftcie pomijamy (za duże na sessionStorage). */
-};
-
-async function fileToResizedDataUrl(
-  file: File,
-  opts: { maxSide: number; quality: number },
-): Promise<string> {
-  const bitmap = await createImageBitmap(file);
-  const { width, height } = bitmap;
-  const max = Math.max(width, height);
-  const scale = max > opts.maxSide ? opts.maxSide / max : 1;
-  const w = Math.max(1, Math.round(width * scale));
-  const h = Math.max(1, Math.round(height * scale));
-
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Brak canvas context");
-  ctx.drawImage(bitmap, 0, 0, w, h);
-  return canvas.toDataURL("image/jpeg", opts.quality);
-}
-
-/** Kompresja pod limit API (~1.5M znaków na zdjęcie). */
-async function fileToReportPhotoDataUrl(file: File): Promise<string> {
-  const attempts = [
-    { maxSide: 960, quality: 0.72 },
-    { maxSide: 720, quality: 0.62 },
-    { maxSide: 560, quality: 0.55 },
-  ];
-  let last = "";
-  for (const opts of attempts) {
-    last = await fileToResizedDataUrl(file, opts);
-    if (last.length <= 1_200_000) return last;
-  }
-  return last;
-}
-
-function parseDecimal(raw: string): number | null {
-  const t = raw.trim().replace(/\s/g, "").replace(",", ".");
-  if (!t || t === "." || t === ",") return null;
-  const n = Number(t);
-  if (!Number.isFinite(n)) return null;
-  return n;
-}
-
-function GoldButton({
-  children,
-  className,
-  disabled,
-  type = "button",
-  onClick,
-}: {
-  children: ReactNode;
-  className?: string;
-  disabled?: boolean;
-  type?: "button" | "submit";
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type={type}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "gold-btn inline-flex h-12 min-w-[7.5rem] items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold tracking-wide",
-        "disabled:pointer-events-none disabled:opacity-45",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#121214]",
-        className,
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function GhostBackButton({
-  onClick,
-  disabled,
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "gym-btn-outline inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold",
-        "disabled:opacity-40",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50",
-      )}
-    >
-      <ArrowLeft className="h-4 w-4" aria-hidden />
-      Wstecz
-    </button>
-  );
-}
-
-function ProgressSegments({ step }: { step: number }) {
-  return (
-    <div className="mt-4 flex gap-1.5" aria-hidden>
-      {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-        <div
-          key={i}
-          className={cn(
-            "h-1 flex-1 rounded-full transition-colors",
-            i < step ? "bg-[var(--gym-gold)]" : "bg-white/12",
-          )}
-        />
-      ))}
-    </div>
-  );
-}
-
-function StepBadge({
-  icon,
-  step,
-  title,
-  subtitle,
-}: {
-  icon: ReactNode;
-  step: number;
-  title: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="mt-5 flex gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-gold)]/40 bg-[var(--gym-gold)]/12 text-[var(--gym-gold)]">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">
-          Krok {step} z {TOTAL_STEPS}
-        </p>
-        <h3 className="font-heading text-xl font-semibold text-white">{title}</h3>
-        <p className="mt-0.5 text-sm text-white/50">{subtitle}</p>
-      </div>
-    </div>
-  );
-}
-
-function FieldLabel({ children, required }: { children: ReactNode; required?: boolean }) {
-  return (
-    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]/90">
-      {children}
-      {required ? <span className="text-[var(--gym-gold)]">, wymagane</span> : null}
-    </p>
-  );
-}
-
-function MeasureInput({
-  id,
-  label,
-  value,
-  onChange,
-  required,
-  large,
-  invalid,
-  hint,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  required?: boolean;
-  large?: boolean;
-  invalid?: boolean;
-  /** Podpowiedź z ostatniego raportu (placeholder w tle). */
-  hint?: string;
-}) {
-  return (
-    <div>
-      <FieldLabel required={required}>{label}</FieldLabel>
-      <input
-        id={id}
-        inputMode="decimal"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={hint ?? "—"}
-        aria-invalid={invalid || undefined}
-        className={cn(
-          "w-full rounded-xl border bg-black/50 px-3 text-white outline-none transition placeholder:text-white/30",
-          "focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25",
-          large ? "h-14 text-2xl font-semibold tabular-nums" : "h-12 text-lg tabular-nums",
-          invalid ? "border-red-500/55" : "border-[var(--gym-gold)]/22",
-        )}
-      />
-      {hint && !value.trim() ? (
-        <p className="mt-1 text-[10px] text-white/30">Ostatnio: {hint}</p>
-      ) : null}
-    </div>
-  );
-}
-
-function ScoreBars({
-  label,
-  value,
-  onChange,
-  invalid,
-  hint,
-  readOnly,
-}: {
-  label: string;
-  value: number | null;
-  onChange?: (v: number) => void;
-  invalid?: boolean;
-  hint?: number | null;
-  readOnly?: boolean;
-}) {
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p
-          className={cn(
-            "text-[10px] font-semibold uppercase tracking-[0.16em]",
-            invalid ? "text-red-300" : "text-white/55",
-          )}
-        >
-          {label}
-        </p>
-        {value != null ? (
-          <p className="text-[11px] font-semibold tabular-nums text-[var(--gym-gold)]">
-            {value}/10
-          </p>
-        ) : hint != null && !readOnly ? (
-          <p className="text-[10px] text-white/30">ostatnio {hint}</p>
-        ) : null}
-      </div>
-      <div
-        className="flex h-10 items-end gap-1"
-        role={readOnly ? "img" : "radiogroup"}
-        aria-label={label}
-      >
-        {Array.from({ length: 10 }, (_, i) => {
-          const n = i + 1;
-          const active = value != null && n <= value;
-          const ghost = value == null && hint != null && n <= hint;
-          if (readOnly) {
-            return (
-              <div
-                key={n}
-                className={cn(
-                  "h-full min-w-0 flex-1 rounded-full",
-                  active
-                    ? "bg-gradient-to-t from-[var(--gym-gold-deep)] to-[var(--gym-gold)] shadow-[0_0_10px_rgba(212,175,55,0.35)]"
-                    : "border border-white/12 bg-transparent",
-                )}
-              />
-            );
-          }
-          return (
-            <button
-              key={n}
-              type="button"
-              role="radio"
-              aria-checked={value === n}
-              onClick={() => onChange?.(n)}
-              className={cn(
-                "h-full min-w-0 flex-1 rounded-full transition",
-                active
-                  ? "bg-gradient-to-t from-[var(--gym-gold-deep)] to-[var(--gym-gold)] shadow-[0_0_10px_rgba(212,175,55,0.35)]"
-                  : ghost
-                    ? "border border-[var(--gym-gold)]/25 bg-[var(--gym-gold)]/10"
-                    : "border border-white/18 bg-transparent hover:border-white/35",
-              )}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function TakNieToggle({
-  label,
-  value,
-  onChange,
-  invalid,
-  hint,
-  readOnly,
-}: {
-  label: string;
-  value: "" | "tak" | "nie";
-  onChange?: (v: "tak" | "nie") => void;
-  invalid?: boolean;
-  hint?: string | null;
-  readOnly?: boolean;
-}) {
-  const hintLabel =
-    hint === "tak" || hint === "nie" ? `ostatnio: ${hint}` : null;
-  if (readOnly) {
-    const tone =
-      value === "tak"
-        ? "bg-[#7ddea0] text-black"
-        : value === "nie"
-          ? "bg-[#e07a6a] text-black"
-          : "border border-white/15 bg-white/[0.04] text-white/50";
-    return (
-      <div className="min-w-0 flex-1">
-        <p className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
-          {label}
-        </p>
-        <div
-          className={cn(
-            "flex h-11 items-center justify-center rounded-xl text-sm font-semibold uppercase tracking-wide",
-            tone,
-          )}
-        >
-          {value === "tak" ? "Tak" : value === "nie" ? "Nie" : "—"}
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="min-w-0 flex-1">
-      <p
-        className={cn(
-          "mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em]",
-          invalid ? "text-red-300" : "text-white/50",
-        )}
-      >
-        {label}
-      </p>
-      {hintLabel && !value ? (
-        <p className="mb-1.5 text-center text-[9px] text-white/30">{hintLabel}</p>
-      ) : (
-        <p className="mb-1.5 h-[14px]" aria-hidden />
-      )}
-      <div className="grid grid-cols-2 gap-1.5">
-        <button
-          type="button"
-          onClick={() => onChange?.("tak")}
-          className={cn(
-            "h-11 rounded-xl text-sm font-semibold uppercase tracking-wide transition",
-            value === "tak"
-              ? "bg-[#7ddea0] text-black"
-              : hint === "tak" && !value
-                ? "border border-[#7ddea0]/40 bg-[#7ddea0]/10 text-white/70"
-                : "border border-white/15 bg-white/[0.04] text-white/70 hover:bg-white/[0.07]",
-          )}
-        >
-          Tak
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange?.("nie")}
-          className={cn(
-            "h-11 rounded-xl text-sm font-semibold uppercase tracking-wide transition",
-            value === "nie"
-              ? "bg-[#e07a6a] text-black"
-              : hint === "nie" && !value
-                ? "border border-[#e07a6a]/40 bg-[#e07a6a]/10 text-white/70"
-                : "border border-white/15 bg-white/[0.04] text-white/70 hover:bg-white/[0.07]",
-          )}
-        >
-          Nie
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function PhotoSlotCard({
-  label,
-  src,
-  disabled,
-  onPick,
-  onClear,
-}: {
-  label: string;
-  src: string | null;
-  disabled?: boolean;
-  onPick: (file: File) => void;
-  onClear: () => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (file) onPick(file);
-  };
-
-  return (
-    <div className="relative min-h-[9.5rem] overflow-hidden rounded-2xl border border-[var(--gym-gold)]/25 bg-black/45">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        tabIndex={-1}
-        disabled={disabled}
-        onChange={onChange}
-      />
-      {src ? (
-        <>
-          <Image
-            src={src}
-            alt={label}
-            fill
-            unoptimized
-            className="object-cover"
-            sizes="120px"
-          />
-          <button
-            type="button"
-            onClick={onClear}
-            className="absolute right-1.5 top-1.5 rounded-md bg-black/70 px-1.5 py-1 text-white/85"
-            aria-label={`Usuń zdjęcie ${label}`}
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-          <p className="absolute bottom-2 left-0 right-0 text-center text-[10px] font-bold tracking-[0.16em] text-[var(--gym-gold)]">
-            {label}
-          </p>
-        </>
-      ) : (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => inputRef.current?.click()}
-          className="gold-btn flex h-full min-h-[9.5rem] w-full flex-col items-center justify-center gap-2 rounded-none px-2 py-4 text-center disabled:opacity-50"
-        >
-          <Camera className="h-6 w-6" aria-hidden />
-          <span className="text-[11px] font-bold tracking-[0.16em]">{label}</span>
-          <span className="h-px w-10 bg-black/20" aria-hidden />
-          <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-black/55">
-            Lub z galerii
-          </span>
-        </button>
-      )}
-    </div>
-  );
-}
 
 export function BodyReportForm({
   maxPhotos = 8,
@@ -535,6 +31,7 @@ export function BodyReportForm({
   const { notifySaved } = useSaveFeedback();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [consentNeeded, setConsentNeeded] = useState<SensitiveConsentType | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const wantNew =
     searchParams.get("new") === "1" || searchParams.get("new") === "true";
@@ -564,6 +61,8 @@ export function BodyReportForm({
     back: null,
   });
   const [submitPhase, setSubmitPhase] = useState<ReportSubmitPhase>("idle");
+  /** Z64: zgoda na zdjęcia sylwetki — wymagana tylko, gdy użytkownik dodał zdjęcie. */
+  const [photosConsent, setPhotosConsent] = useState(false);
   const [submitSummary, setSubmitSummary] = useState<ReportSubmitSummary | null>(
     null,
   );
@@ -593,6 +92,7 @@ export function BodyReportForm({
     setComplianceNotes("");
     setAdditionalInfo("");
     setSlotPhotos({ front: null, side: null, back: null });
+    setPhotosConsent(false);
   };
 
   const openWizard = (opts?: { restoreDraft?: boolean }) => {
@@ -768,9 +268,12 @@ export function BodyReportForm({
       return true;
     }
     if (s === 4) {
-      const missing = PHOTO_SLOTS.filter((slot) => !slotPhotos[slot.key]);
-      if (missing.length > 0) {
-        setFieldError("Dodaj zdjęcia: przód, bok i tył — wszystkie trzy są wymagane.");
+      // Zdjęcia są opcjonalne; jeśli któreś dodano, potrzebna świadoma zgoda (art. 9 RODO).
+      const hasAnyPhoto = PHOTO_SLOTS.some((slot) => Boolean(slotPhotos[slot.key]));
+      if (hasAnyPhoto && !photosConsent) {
+        setFieldError(
+          "Zaznacz zgodę na zapis zdjęć sylwetki albo usuń dodane zdjęcia.",
+        );
         return false;
       }
       return true;
@@ -826,6 +329,15 @@ export function BodyReportForm({
     setSubmitPhase("saving");
     start(async () => {
       try {
+        if (photos.length > 0 && photosConsent) {
+          // Zaznaczony checkbox = zapis zgody na zdjęcia (dowód: źródło „body_report”).
+          const consent = await setSensitiveConsentAction("photos", true, "body_report");
+          if (!consent.ok) {
+            setSubmitPhase("idle");
+            setError(consent.error);
+            return;
+          }
+        }
         await ensureCsrfCookie();
         const res = await fetch("/api/body-reports", {
           method: "POST",
@@ -852,9 +364,19 @@ export function BodyReportForm({
             photoDataUrls: photos.slice(0, maxPhotos),
           }),
         });
-        const json = (await res.json()) as { ok: boolean; error?: string };
+        const json = (await res.json()) as {
+          ok: boolean;
+          error?: string;
+          code?: string;
+          consent?: SensitiveConsentType;
+        };
         if (!json.ok) {
           setSubmitPhase("idle");
+          // Z11: serwer wymaga zgody (dane o ciele / zdjęcia) — pokaż okno zgody i ponów zapis.
+          if (json.code === "CONSENT_REQUIRED" && json.consent) {
+            setConsentNeeded(json.consent);
+            return;
+          }
           setError(json.error ?? "Nie udało się zapisać raportu.");
           return;
         }
@@ -869,15 +391,27 @@ export function BodyReportForm({
   };
 
   const submitPopup = (
-    <ReportSubmitPopup
-      phase={submitPhase}
-      summary={submitSummary}
-      onClose={() => {
-        setSubmitPhase("idle");
-        setSubmitSummary(null);
-        router.refresh();
-      }}
-    />
+    <>
+      <ReportSubmitPopup
+        phase={submitPhase}
+        summary={submitSummary}
+        onClose={() => {
+          setSubmitPhase("idle");
+          setSubmitSummary(null);
+          router.refresh();
+        }}
+      />
+      {consentNeeded ? (
+        <ConsentRequiredDialog
+          type={consentNeeded}
+          onCancel={() => setConsentNeeded(null)}
+          onGranted={() => {
+            setConsentNeeded(null);
+            submit();
+          }}
+        />
+      ) : null}
+    </>
   );
 
   if (!isOpen) {
@@ -927,7 +461,7 @@ export function BodyReportForm({
           <button
             type="button"
             onClick={() => closeWizard({ clearDraft: true })}
-            className="text-[11px] font-medium uppercase tracking-wide text-white/40 underline-offset-2 hover:text-white/70 hover:underline"
+            className="text-[11px] font-medium uppercase tracking-wide text-white/50 underline-offset-2 hover:text-white/70 hover:underline"
           >
             Anuluj
           </button>
@@ -1082,13 +616,17 @@ export function BodyReportForm({
           dietCompliance === "nie" ||
           trainingCompliance === "nie" ? (
             <div className="mt-5">
-              <FieldLabel required>Czego nie udało się zrealizować i w jakim zakresie?</FieldLabel>
+              <FieldLabel required htmlFor="complianceNotes">
+                Czego nie udało się zrealizować i w jakim zakresie?
+              </FieldLabel>
               <textarea
+                id="complianceNotes"
+                aria-required="true"
                 rows={3}
                 value={complianceNotes}
                 onChange={(e) => setComplianceNotes(e.target.value)}
                 placeholder="np. cardio 1× zamiast 2×, delegacja w tygodniu"
-                className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
+                className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/50 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
               />
             </div>
           ) : null}
@@ -1101,7 +639,7 @@ export function BodyReportForm({
             icon={<ImageIcon className="h-5 w-5" />}
             step={4}
             title="Zdjęcia sylwetki"
-            subtitle="Przód, bok i tył — wszystkie trzy wymagane."
+            subtitle="Opcjonalne: przód, bok i tył."
           />
           <div className="mt-5 grid grid-cols-3 gap-2.5">
             {PHOTO_SLOTS.map((slot) => (
@@ -1117,6 +655,31 @@ export function BodyReportForm({
               />
             ))}
           </div>
+          {PHOTO_SLOTS.some((slot) => Boolean(slotPhotos[slot.key])) ? (
+            <div className="mt-4 rounded-xl border border-[var(--gym-gold)]/25 bg-black/35 p-3">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  id="photosConsent"
+                  type="checkbox"
+                  checked={photosConsent}
+                  onChange={(e) => setPhotosConsent(e.target.checked)}
+                  aria-required="true"
+                  aria-invalid={Boolean(fieldError) && !photosConsent ? true : undefined}
+                  className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--gym-gold)]"
+                />
+                <span className="text-[13px] leading-relaxed text-white/75">
+                  <span className="font-semibold text-white">
+                    Wyrażam zgodę na zapis zdjęć sylwetki, wymagane.
+                  </span>{" "}
+                  {SENSITIVE_CONSENT_COPY.photos.body}
+                </span>
+              </label>
+            </div>
+          ) : (
+            <p className="mt-4 text-[12px] text-white/50">
+              Możesz pominąć ten krok — zdjęcia nie są wymagane do zapisu raportu.
+            </p>
+          )}
         </div>
       ) : null}
 
@@ -1143,7 +706,7 @@ export function BodyReportForm({
                 key={label}
                 className="rounded-2xl border border-white/10 bg-black/35 px-3 py-2.5"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
                   {label}
                 </p>
                 <p className="mt-1 text-sm font-semibold tabular-nums text-[var(--gym-gold)]">{val}</p>
@@ -1192,7 +755,7 @@ export function BodyReportForm({
                         className="aspect-[3/4] w-full object-cover"
                       />
                     ) : (
-                      <div className="flex aspect-[3/4] items-center justify-center text-[10px] text-white/35">
+                      <div className="flex aspect-[3/4] items-center justify-center text-[10px] text-white/50">
                         Brak
                       </div>
                     )}
@@ -1206,13 +769,14 @@ export function BodyReportForm({
           </div>
 
           <div className="mt-4">
-            <FieldLabel>Informacje dodatkowe</FieldLabel>
+            <FieldLabel htmlFor="additionalInfo">Informacje dodatkowe (opcjonalne)</FieldLabel>
             <textarea
+              id="additionalInfo"
               rows={3}
               value={additionalInfo}
               onChange={(e) => setAdditionalInfo(e.target.value)}
               placeholder="Opcjonalnie…"
-              className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
+              className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/50 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
             />
           </div>
         </div>

@@ -13,6 +13,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
+      url: `${origin}/start`,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${origin}/login`,
       changeFrequency: "monthly",
       priority: 0.5,
@@ -31,6 +36,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${origin}/polityka-prywatnosci`,
       changeFrequency: "monthly",
       priority: 0.7,
+    },
+    {
+      url: `${origin}/pomoc`,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
+      url: `${origin}/usun-konto`,
+      changeFrequency: "yearly",
+      priority: 0.4,
     },
   ];
 }

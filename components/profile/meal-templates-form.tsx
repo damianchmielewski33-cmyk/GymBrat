@@ -167,7 +167,7 @@ export function MealTemplatesForm({
             {Math.round(dayTotals.fatG)}T
             <span className="ml-2 text-white/90">
               {dayTotals.calories}{" "}
-              <span className="text-sm font-normal text-white/45">kcal</span>
+              <span className="text-sm font-normal text-white/50">kcal</span>
             </span>
           </>
         }
@@ -208,7 +208,7 @@ export function MealTemplatesForm({
                 <p className="text-[13px] font-semibold text-[var(--gym-gold)]">
                   {defaultMealTemplateName(index + 1)}
                 </p>
-                <p className="text-xs tabular-nums text-white/45">
+                <p className="text-xs tabular-nums text-white/50">
                   ≈ {kcal} kcal
                 </p>
               </div>

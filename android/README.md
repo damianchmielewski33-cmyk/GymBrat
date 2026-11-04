@@ -1,8 +1,7 @@
 # Aplikacja Android GymBrat (WebView + Java)
 
 Natywna powłoka Android w **Javie** otwiera produkcyjny GymBrat w pełnoekranowym WebView.
-Backend API (Java / Spring Boot) leży w `../java-backend` — wersja APK, health oraz domenowe REST.
-Front web pozostaje w Next.js; przy `JAVA_API_BASE_URL` Next proxuje do Javy.
+Aplikacja korzysta z API w Next.js (`/api/android/version`, `/api/android/download`); backend Java został usunięty (ADR 0014).
 
 ## Co dostajesz
 

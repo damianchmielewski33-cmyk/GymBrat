@@ -217,7 +217,7 @@ export function FoodSearchScan({
 
       <div className="flex gap-2">
         <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -257,7 +257,7 @@ export function FoodSearchScan({
                   >
                     {p.name}
                   </p>
-                  <p className="mt-0.5 text-xs text-white/45">
+                  <p className="mt-0.5 text-xs text-white/50">
                     {[p.brand, p.servingLabel, p.barcode ? `EAN ${p.barcode}` : null]
                       .filter(Boolean)
                       .join(" · ")}
@@ -265,7 +265,7 @@ export function FoodSearchScan({
                 </div>
                 <p className="shrink-0 text-xs tabular-nums text-[var(--neon)]">
                   {Math.round(p.proteinG)}B · {Math.round(p.carbsG)}W · {Math.round(p.fatG)}T
-                  <span className="block text-[10px] text-white/35">
+                  <span className="block text-[10px] text-white/50">
                     / {p.servingLabel || "porcja"}
                   </span>
                 </p>
@@ -274,7 +274,7 @@ export function FoodSearchScan({
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-white/40">
+        <p className="text-sm text-white/50">
           {searchHint ?? "Wpisz nazwę produktu albo użyj aparatu — wyniki pojawią się poniżej."}
         </p>
       )}

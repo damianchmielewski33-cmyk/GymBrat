@@ -6,6 +6,8 @@ import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { resolveDietSupplementItems } from "@/lib/diet-supplements";
 
+export const metadata = { title: "Suplementy" };
+
 export default async function SupplementsPage() {
   const session = await auth();
   const userId = session?.user?.id;

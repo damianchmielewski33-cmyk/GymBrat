@@ -26,7 +26,7 @@ function MetricBlock({
         <span className="text-white/55">{label}</span>
         <span className="font-mono text-white/85">
           {c} {unit}
-          <span className="ml-1 text-[11px] font-sans text-white/40">
+          <span className="ml-1 text-[11px] font-sans text-white/50">
             (brak celu)
           </span>
         </span>
@@ -306,7 +306,7 @@ function PreviousWeeksSection({ weeks }: { weeks: PreviousWeekNutritionSheetWeek
               className="rounded-2xl border border-white/10 bg-black/25 p-4"
             >
               <p className="text-sm font-semibold text-white">{w.weekLabel}</p>
-              <p className="mt-0.5 text-[11px] text-white/45">
+              <p className="mt-0.5 text-[11px] text-white/50">
                 Archiwum — ten sam sposób liczenia co bieżący tydzień (wpisy posiłków vs cele).
               </p>
               <div className="mt-3">
@@ -315,7 +315,7 @@ function PreviousWeeksSection({ weeks }: { weeks: PreviousWeekNutritionSheetWeek
               <details className="group mt-3 rounded-xl border border-white/10 bg-white/[0.03]">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-xs font-medium text-white outline-none marker:content-none [&::-webkit-details-marker]:hidden">
                   <span>Szczegóły dni ({w.dayRows.length})</span>
-                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-white/45 transition group-open:rotate-180" />
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-white/50 transition group-open:rotate-180" />
                 </summary>
                 <div className="border-t border-white/10 px-3 pb-3 pt-2">
                   <ul className="space-y-3">
@@ -395,7 +395,7 @@ function pastDaysMacroSummary(pastRows: WeekDayNutritionRow[]): ReactNode {
 
   if (lines.length === 0) {
     return (
-      <p className="text-xs text-white/45">
+      <p className="text-xs text-white/50">
         Brak minionych dni z ustawionymi celami makroskładników — podpowiedź pojawi się po kolejnych
         wpisach.
       </p>
@@ -430,7 +430,7 @@ export function WeekNutritionSheetBody({
 
   return (
     <div className="max-h-[min(75vh,620px)] space-y-4 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <p className="text-xs text-white/45">
+      <p className="text-xs text-white/50">
         Poniedziałek–niedziela bieżącego tygodnia (strefa jak na stronie Start). Spożycie to suma
         wpisów posiłków na dany dzień; przy celu — bilans względem profilu.
       </p>
@@ -467,7 +467,7 @@ export function WeekNutritionSheetBody({
         <details className="group rounded-2xl border border-white/10 bg-white/[0.03]">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-white outline-none marker:content-none [&::-webkit-details-marker]:hidden">
             <span>Wcześniejsze dni tygodnia ({pastRows.length})</span>
-            <ChevronDown className="h-4 w-4 shrink-0 text-white/45 transition group-open:rotate-180" />
+            <ChevronDown className="h-4 w-4 shrink-0 text-white/50 transition group-open:rotate-180" />
           </summary>
           <div className="border-t border-white/10 px-4 pb-4 pt-2">
             <ul className="space-y-3">

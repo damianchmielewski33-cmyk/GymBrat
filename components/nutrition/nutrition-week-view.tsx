@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { loadMoreNutritionWeeks } from "@/actions/nutrition-weeks";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { AppPageHeader } from "@/components/layout/screen";
 import { SectionLabel } from "@/components/ui/section-label";
@@ -250,13 +251,33 @@ function heroKcal(macros: MacroBalance[]): MacroBalance | null {
 
 export function NutritionWeekView({
   todayKey,
-  weeks,
+  weeks: initialWeeks,
 }: {
   todayKey: string;
-  /** Najnowszy pierwszy: [bieżący, -1 tyg., …]. */
+  /** Najnowszy pierwszy: [bieżący, -1 tyg., …]. Starsze doładowywane na żądanie (Z70). */
   weeks: PreviousWeekNutritionSheetWeek[];
 }) {
   const [viewIndex, setViewIndex] = useState(0);
+  const [weeks, setWeeks] = useState(initialWeeks);
+  const [done, setDone] = useState(false);
+  const loadingRef = useRef(false);
+
+  // Prefetch kolejnej porcji, gdy użytkownik zbliża się do końca załadowanej historii.
+  useEffect(() => {
+    if (done || loadingRef.current) return;
+    if (viewIndex < weeks.length - 4) return;
+    loadingRef.current = true;
+    void loadMoreNutritionWeeks(weeks.length)
+      .then((res) => {
+        if (res.weeks.length) setWeeks((prev) => [...prev, ...res.weeks]);
+        if (res.done || res.weeks.length === 0) setDone(true);
+      })
+      .catch(() => setDone(true))
+      .finally(() => {
+        loadingRef.current = false;
+      });
+  }, [viewIndex, weeks.length, done]);
+
   // key resetuje filtr, porównanie i rozwiniętą kartę przy zmianie tygodnia.
   return (
     <NutritionWeekBody

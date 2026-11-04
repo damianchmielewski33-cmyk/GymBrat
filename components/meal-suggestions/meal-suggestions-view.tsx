@@ -110,7 +110,7 @@ function DeleteMealButton({
     <>
       <button
         type="button"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:bg-white/10 hover:text-rose-200"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-rose-200"
         aria-label="Usuń"
         onClick={() => setOpen(true)}
       >
@@ -155,7 +155,7 @@ function tabButtonClass(active: boolean) {
   return cn(
     "relative z-[1] rounded-full px-4 py-1.5 text-[13px] leading-none transition-colors duration-200",
     active
-      ? "font-semibold text-[#1A1408]"
+      ? "font-semibold text-[var(--gym-on-gold)]"
       : "font-medium text-white/65 hover:text-white/90",
   );
 }
@@ -659,7 +659,7 @@ export function MealSuggestionsView({
                         <p className="truncate text-sm text-white/80">
                           {e.name ?? "Posiłek"}
                         </p>
-                        <p className="text-xs tabular-nums text-white/40">
+                        <p className="text-xs tabular-nums text-white/50">
                           {Math.round(e.calories)} kcal
                         </p>
                       </div>
@@ -667,7 +667,7 @@ export function MealSuggestionsView({
                         type="button"
                         aria-label="Edytuj wpis"
                         onClick={() => setEditingLog(e)}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-white"
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/50 hover:bg-white/[0.06] hover:text-white"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>

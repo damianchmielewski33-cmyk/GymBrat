@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalDocShell, LegalSection } from "@/components/legal/legal-doc-shell";
-import { getLegalSeller, REGULAMIN_PATH } from "@/lib/legal-seller";
+import { LEGAL_DOCS_UPDATED_LABEL } from "@/lib/legal-versions";
+import { DELETE_ACCOUNT_PATH, getLegalSeller, REGULAMIN_PATH } from "@/lib/legal-seller";
 
 export const metadata: Metadata = {
   title: "Polityka prywatności",
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function PolitykaPrywatnosciPage() {
   const s = getLegalSeller();
-  const updated = "17 października 2026";
+  const updated = LEGAL_DOCS_UPDATED_LABEL;
 
   return (
     <LegalDocShell
@@ -76,6 +77,18 @@ export default function PolitykaPrywatnosciPage() {
             raporty, ustawienia,
           </li>
           <li>
+            dane o zdrowiu i ciele (szczególna kategoria — art. 9 RODO), tylko
+            za Twoją wyraźną zgodą: raporty ciała (waga, obwody, samopoczucie),
+            tętno i inne parametry wpisane przy aktywności (np. kardio),
+            zdjęcia sylwetki i zdjęcia z urządzeń treningowych; zgody udzielasz
+            osobno dla danych o zdrowiu i dla zdjęć i możesz je wycofać w
+            każdej chwili w Profilu → Konto,
+          </li>
+          <li>
+            zgody i oświadczenia (m.in. wiek, zgody na przypomnienia i dane
+            wrażliwe) wraz z wersją tekstu i czasem — jako dowód ich udzielenia,
+          </li>
+          <li>
             dane płatności pakietu: identyfikatory zamówienia / transakcji u
             operatora płatności (bez pełnych danych kart),
           </li>
@@ -98,7 +111,11 @@ export default function PolitykaPrywatnosciPage() {
             prawnie uzasadniony interes Administratora: bezpieczeństwo Serwisu,
             przeciwdziałanie nadużyciom, statystyki zagregowane (lit. f),
           </li>
-          <li>zgoda — gdy jest wymagana (lit. a), np. marketing.</li>
+          <li>
+            zgoda — gdy jest wymagana (lit. a oraz, dla danych o zdrowiu i
+            zdjęć sylwetki, art. 9 ust. 2 lit. a): dane o zdrowiu i ciele,
+            zdjęcia, przypomnienia, analityka, reklamy.
+          </li>
         </ul>
       </LegalSection>
 
@@ -116,16 +133,42 @@ export default function PolitykaPrywatnosciPage() {
           </li>
           <li>
             dostawcy analityki / reklam (np. AdMob) — gdy wyświetlane są
-            reklamy przy braku aktywnego Pakietu.
+            reklamy przy braku aktywnego Pakietu,
+          </li>
+          <li>
+            dostawcy monitoringu błędów i analityki (np. Sentry, PostHog) — tylko po
+            Twojej zgodzie na analitykę, bez treści zdrowotnych,
+          </li>
+          <li>dostawca poczty e-mail (wiadomości transakcyjne i przypomnienia),</li>
+          <li>
+            dostawca generowania grafik AI (Pollinations) — otrzymuje wyłącznie
+            ogólne opisy grafik, bez Twoich danych osobowych; grafiki AI są
+            oznaczane.
           </li>
         </ul>
+        <p>
+          Część dostawców może przetwarzać dane poza Europejskim Obszarem
+          Gospodarczym (np. w USA). W takim przypadku stosujemy mechanizmy z
+          rozdziału V RODO (decyzja stwierdzająca odpowiedni stopień ochrony
+          albo standardowe klauzule umowne). Aktualną listę podmiotów i
+          mechanizmów udostępniamy na żądanie.
+        </p>
       </LegalSection>
 
       <LegalSection id="okres" title="5. Okres przechowywania">
         <p>
           Dane Konta przechowujemy przez czas trwania umowy oraz przez okres
           przedawnienia roszczeń / obowiązków prawnych. Dane płatności — zgodnie
-          z wymogami rachunkowymi i polityką operatora płatności.
+          z wymogami rachunkowymi i polityką operatora płatności (do 5 lat od końca
+          roku podatkowego; po usunięciu Konta dokumentacja sprzedaży jest
+          niepowiązana z Kontem).
+        </p>
+        <p>
+          Konta nieaktywne przez 24 miesiące usuwamy po wcześniejszym ostrzeżeniu
+          e-mail, a zdjęcia sylwetki — po 12 miesiącach nieaktywności. Zgłoszenia
+          błędów usuwamy po 12 miesiącach od rozwiązania (zrzuty ekranu po 90
+          dniach). Dane z dzienników technicznych przechowujemy od kilku dni do 180
+          dni.
         </p>
       </LegalSection>
 
@@ -137,7 +180,16 @@ export default function PolitykaPrywatnosciPage() {
         </p>
         <p>
           Wnioski: {s.email}. W Profilu → „Prywatność i zgody” możesz pobrać
-          eksport JSON/CSV oraz trwale usunąć Konto.
+          eksport JSON/CSV oraz trwale usunąć Konto. Instrukcja usunięcia konta (także bez
+          logowania): <Link href={DELETE_ACCOUNT_PATH} className="text-[var(--gym-gold)] underline-offset-2 hover:underline">{DELETE_ACCOUNT_PATH}</Link>.
+        </p>
+      </LegalSection>
+
+      <LegalSection id="wiek" title="6a. Minimalny wiek">
+        <p>
+          Z Serwisu mogą korzystać osoby w wieku co najmniej 16 lat; zakup
+          Pakietu jest dostępny dla osób pełnoletnich. Wiek potwierdzasz
+          oświadczeniem przy rejestracji.
         </p>
       </LegalSection>
 
@@ -159,7 +211,7 @@ export default function PolitykaPrywatnosciPage() {
         </p>
       </LegalSection>
 
-      <p className="border-t border-white/[0.08] pt-4 text-[13px] text-white/45">
+      <p className="border-t border-white/[0.08] pt-4 text-[13px] text-white/50">
         Zobacz także{" "}
         <Link
           href={REGULAMIN_PATH}

@@ -57,7 +57,7 @@ export function FriendsPageClient({
             required
             autoComplete="email"
             placeholder="email@przyklad.pl"
-            className="min-h-12 flex-1 rounded-2xl border border-white/20 bg-black/50 px-4 text-base text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45 sm:text-sm"
+            className="min-h-12 flex-1 rounded-2xl border border-white/20 bg-black/50 px-4 text-base text-white placeholder:text-white/50 outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45 sm:text-sm"
           />
           <Button
             type="submit"
@@ -70,7 +70,7 @@ export function FriendsPageClient({
             {invitePending ? "Wysyłanie…" : "Zaproś"}
           </Button>
         </form>
-        <p className="text-[12px] text-white/40">
+        <p className="text-[12px] text-white/50">
           Zaproszenie tylko do istniejącego konta. Możesz też dodać kogoś z listy
           członków grupy.
         </p>
@@ -111,7 +111,7 @@ export function FriendsPageClient({
                       ) : null}
                     </p>
                     {f.email ? (
-                      <p className="mt-0.5 truncate text-[12px] text-white/40">
+                      <p className="mt-0.5 truncate text-[12px] text-white/50">
                         {f.email}
                       </p>
                     ) : null}
@@ -186,7 +186,7 @@ function PendingRow({ item }: { item: FriendPendingItem }) {
         <p className="truncate text-[15px] font-semibold text-white">
           {item.displayName}
         </p>
-        <p className="mt-0.5 text-[12px] text-white/45">
+        <p className="mt-0.5 text-[12px] text-white/50">
           {item.outgoing
             ? "Wysłane — czekasz na akceptację"
             : "Chce Cię dodać do znajomych"}
@@ -265,7 +265,7 @@ function ShareToggle({
           <p className="text-[13px] font-medium text-white">
             Udostępniaj trening
           </p>
-          <p className="mt-0.5 text-[11px] text-white/40">
+          <p className="mt-0.5 text-[11px] text-white/50">
             {mutual
               ? "Wzajemnie włączone — możecie się podglądać."
               : theyShare
@@ -307,7 +307,7 @@ function RemoveFriendButton({ friendshipId }: { friendshipId: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="text-[12px] text-white/35 underline-offset-2 hover:text-white/60 hover:underline"
+        className="text-[12px] text-white/50 underline-offset-2 hover:text-white/60 hover:underline"
       >
         Usuń znajomego
       </button>

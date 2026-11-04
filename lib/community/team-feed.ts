@@ -252,7 +252,7 @@ export async function createTeamPost(input: {
   });
 
   {
-    const { track } = await import("@/lib/analytics/track");
+    const { track } = await import("@/lib/analytics/track-server");
     const AUTO_TYPES = new Set([
       "workout_complete",
       "personal_record",
@@ -704,7 +704,7 @@ export async function addTeamPostComment(input: {
   });
 
   {
-    const { track } = await import("@/lib/analytics/track");
+    const { track } = await import("@/lib/analytics/track-server");
     track.postCommented(input.authorUserId, {
       team_id: input.teamId,
       post_id: input.postId,
@@ -859,7 +859,7 @@ export async function setTeamPostReaction(input: {
   });
 
   if (reactionAction) {
-    const { track } = await import("@/lib/analytics/track");
+    const { track } = await import("@/lib/analytics/track-server");
     track.postReacted(input.userId, {
       team_id: input.teamId,
       post_id: input.postId,

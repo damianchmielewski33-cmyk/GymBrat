@@ -7,6 +7,8 @@ import {
   type HofPeriodKind,
 } from "@/lib/community/hof-types";
 
+export const metadata = { title: "Galeria sław" };
+
 export default async function HallOfFamePage({
   searchParams,
 }: {

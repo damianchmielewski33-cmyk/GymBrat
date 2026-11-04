@@ -9,11 +9,14 @@ import {
 describe("auth-public-paths", () => {
   it("GET / i ekrany auth są publiczne — bez 307 na logowanie", () => {
     expect(isAnonymousPublicPath("/")).toBe(true);
+    expect(isAnonymousPublicPath("/start")).toBe(true);
     expect(isAnonymousPublicPath("/login")).toBe(true);
     expect(isAnonymousPublicPath("/register")).toBe(true);
     expect(isAnonymousPublicPath("/regulamin")).toBe(true);
     expect(isAnonymousPublicPath("/polityka-prywatnosci")).toBe(true);
     expect(isAnonymousPublicPath("/login/zabezpiecz-konto")).toBe(true);
+    expect(isAnonymousPublicPath("/usun-konto")).toBe(true);
+    expect(isAnonymousPublicPath("/pomoc")).toBe(true);
     expect(isAnonymousPublicPath("/reports")).toBe(false);
     expect(isAnonymousPublicPath("/profile")).toBe(false);
   });
@@ -36,6 +39,7 @@ describe("auth-public-paths", () => {
     expect(mustCompleteProfile("/plany/atlas", false)).toBe(true);
     expect(mustCompleteProfile("/complete-profile", false)).toBe(false);
     expect(mustCompleteProfile("/regulamin", false)).toBe(false);
+    expect(mustCompleteProfile("/usun-konto", false)).toBe(false);
     expect(mustCompleteProfile("/", true)).toBe(false);
   });
 });

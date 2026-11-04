@@ -66,7 +66,7 @@ describe("actions/auth", () => {
   });
 
   beforeEach(async () => {
-    for (const t of ["users", "user_settings", "email_verification_codes", "admin_audit_log", "site_activity_log"]) {
+    for (const t of ["users", "user_settings", "email_verification_codes", "admin_audit_log", "site_activity_log", "user_consents"]) {
       await client.execute(`DELETE FROM ${t}`);
     }
     state.sendMail.mockReset();
@@ -121,6 +121,36 @@ describe("actions/auth", () => {
     expect(await registerUser(form("real@example.com", sent.code))).toEqual({ ok: true });
     const rs = await client.execute(`SELECT email_verified_at FROM users WHERE email = 'real@example.com'`);
     expect(rs.rows[0]!.email_verified_at).not.toBeNull();
+  });
+
+  it("rejestracja zapisuje oświadczenie 16+ i tylko zaznaczone zgody (Z11, Z13)", async () => {
+    setEnv({ NODE_ENV: "test" });
+    await sendRegisterCode({ email: "zgody@example.com" });
+    expect(
+      await registerUser({ ...form("zgody@example.com", "123456"), healthConsent: true }),
+    ).toEqual({ ok: true });
+    const rs = await client.execute(
+      `SELECT type, granted, source FROM user_consents ORDER BY type`,
+    );
+    expect(rs.rows.map((r) => String(r.type))).toEqual(["age_16", "health"]);
+    expect(rs.rows.every((r) => Number(r.granted) === 1 && r.source === "registration")).toBe(true);
+  });
+
+  it("rejestracja bez zaznaczonych zgód zapisuje tylko oświadczenie wieku", async () => {
+    setEnv({ NODE_ENV: "test" });
+    await sendRegisterCode({ email: "bez@example.com" });
+    expect(await registerUser(form("bez@example.com", "123456"))).toEqual({ ok: true });
+    const rs = await client.execute(`SELECT type FROM user_consents`);
+    expect(rs.rows.map((r) => String(r.type))).toEqual(["age_16"]);
+  });
+
+  it("wiek 15 jest odrzucany (min. 16) i nie tworzy konta", async () => {
+    setEnv({ NODE_ENV: "test" });
+    await sendRegisterCode({ email: "mlody@example.com" });
+    const result = await registerUser({ ...form("mlody@example.com", "123456"), age: 15 });
+    expect(result).toMatchObject({ ok: false, code: "invalid_form" });
+    expect(await count("users")).toBe(0);
+    expect(await count("user_consents")).toBe(0);
   });
 
   it("kod 4-cyfrowy (1234) odrzuca już schemat", async () => {

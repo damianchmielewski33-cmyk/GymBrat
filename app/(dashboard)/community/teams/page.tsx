@@ -17,6 +17,8 @@ import {
 } from "@/lib/community/teams";
 import { cn } from "@/lib/utils";
 
+export const metadata = { title: "Grupy" };
+
 export default async function CommunityTeamsPage({
   searchParams,
 }: {
@@ -78,7 +80,7 @@ export default async function CommunityTeamsPage({
             Szukaj publicznych grup
           </label>
           <Search
-            className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-white/35"
+            className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-white/50"
             aria-hidden
           />
           <input
@@ -88,7 +90,7 @@ export default async function CommunityTeamsPage({
             placeholder="Nazwa lub opis grupy"
             enterKeyHint="search"
             autoComplete="off"
-            className="min-h-12 w-full rounded-2xl border border-white/20 bg-black/50 py-2.5 pr-4 pl-10 text-base text-white placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45 sm:text-sm"
+            className="min-h-12 w-full rounded-2xl border border-white/20 bg-black/50 py-2.5 pr-4 pl-10 text-base text-white placeholder:text-white/50 outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45 sm:text-sm"
           />
         </form>
         <Suspense fallback={<TeamsListSkeleton cards={2} />}>
@@ -182,7 +184,7 @@ async function MyTeamsSection({
                   <span aria-hidden>{invite.team.avatarEmoji}</span>{" "}
                   {invite.team.name}
                 </p>
-                <p className="mt-0.5 text-[12px] text-white/45">
+                <p className="mt-0.5 text-[12px] text-white/50">
                   {invite.team.memberCount} członków · rola {invite.role}
                 </p>
               </div>
@@ -245,7 +247,7 @@ async function DiscoverTeamsSection({
 
   if (discover.length === 0) {
     return (
-      <p className="px-1 text-[13px] text-white/45" role="status">
+      <p className="px-1 text-[13px] text-white/50" role="status">
         {q
           ? "Brak publicznych grup dla tego zapytania."
           : "Brak publicznych grup do odkrycia — utwórz pierwszą."}

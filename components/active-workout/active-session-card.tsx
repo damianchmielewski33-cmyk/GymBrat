@@ -35,13 +35,13 @@ export function ActiveSessionCard({
           emptyContent ?? (
             <>
             <div className="mb-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">
                 Trening
               </p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-[1.65rem]">
                 Aktywny trening
               </h1>
-              <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-white/45">
+              <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-white/50">
                 Wybierz plan po prawej, aby wczytać ćwiczenia w układzie z dziennika treningowego.
               </p>
             </div>
@@ -51,7 +51,7 @@ export function ActiveSessionCard({
               </div>
               <div>
                 <p className="text-[17px] font-semibold text-white">Wybierz plan</p>
-                <p className="mt-2 max-w-md text-[13px] text-white/45">
+                <p className="mt-2 max-w-md text-[13px] text-white/50">
                   Po prawej kliknij <span className="text-[#FF9500]">Rozpocznij trening</span>.
                 </p>
               </div>

@@ -4,9 +4,14 @@ import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NutritionWeekView } from "@/components/nutrition/nutrition-week-view";
-import { loadNutritionWeekHistory } from "@/lib/nutrition-dashboard";
+import {
+  loadNutritionWeekRange,
+  NUTRITION_WEEK_INITIAL_WEEKS,
+} from "@/lib/nutrition-dashboard";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { calendarDateKey } from "@/lib/local-date";
+
+export const metadata = { title: "Bilans tygodnia" };
 
 export default async function NutritionWeekPage() {
   const session = await auth();
@@ -32,7 +37,14 @@ export default async function NutritionWeekPage() {
       nutritionDayTypesJson: null,
     },
   );
-  const weeks = await loadNutritionWeekHistory(userId, settings, todayKey);
+  // Z70: tylko pierwsza porcja tygodni; starsze doładowuje klient (loadMoreNutritionWeeks).
+  const weeks = await loadNutritionWeekRange(
+    userId,
+    settings,
+    todayKey,
+    0,
+    NUTRITION_WEEK_INITIAL_WEEKS,
+  );
 
   return <NutritionWeekView todayKey={todayKey} weeks={weeks} />;
 }

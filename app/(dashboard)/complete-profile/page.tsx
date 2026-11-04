@@ -12,6 +12,8 @@ import { users } from "@/db/schema";
 import { hasAuthSessionCookie } from "@/lib/auth-session-cookie";
 import { isUserBodyProfileComplete } from "@/lib/profile-complete";
 
+export const metadata = { title: "Uzupełnij profil" };
+
 export default async function CompleteProfilePage() {
   const session = await auth().catch(() => null);
   const userId = session?.user?.id;

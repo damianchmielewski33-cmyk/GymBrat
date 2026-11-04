@@ -21,7 +21,7 @@ export function TeamCard({
           background: `linear-gradient(145deg, ${team.bannerColor} 0%, #050505 88%)`,
         }}
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(235,196,74,0.18),transparent_55%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(var(--neon-rgb),0.18),transparent_55%)]" />
         <div className="relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/15 bg-black/55 text-2xl shadow-[0_8px_24px_rgba(0,0,0,0.45)] backdrop-blur-sm">
           <span aria-hidden>{team.avatarEmoji}</span>
         </div>
@@ -32,7 +32,7 @@ export function TeamCard({
             <h3 className="truncate font-heading text-[17px] font-semibold tracking-tight text-white">
               {team.name}
             </h3>
-            <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-white/45">
+            <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-white/50">
               {team.description || "Bez opisu — dołącz i ustaw ton grupy."}
             </p>
           </div>
@@ -47,13 +47,13 @@ export function TeamCard({
             </span>
           )}
         </div>
-        <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2.5 text-[12px] text-white/45">
+        <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2.5 text-[12px] text-white/50">
           <span className="inline-flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5 text-white/35" aria-hidden />
+            <Users className="h-3.5 w-3.5 text-white/50" aria-hidden />
             <span className="font-metric tabular-nums text-white/70">
               {team.memberCount}
             </span>
-            <span className="text-white/30">/</span>
+            <span className="text-white/50">/</span>
             <span className="tabular-nums">{team.maxMembers}</span>
           </span>
           {team.myRole ? (

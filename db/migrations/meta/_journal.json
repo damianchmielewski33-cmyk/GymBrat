@@ -204,6 +204,62 @@
       "when": 1803000000000,
       "tag": "0035_plan_revisions",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1804000000000,
+      "tag": "0036_orders_consents_anonymize",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1805000000000,
+      "tag": "0037_users_retention",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1806000000000,
+      "tag": "0038_support_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1806100000000,
+      "tag": "0039_orders_admin",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1806200000000,
+      "tag": "0040_admin_two_factor",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1806300000000,
+      "tag": "0041_cardio_week_mode",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1806400000000,
+      "tag": "0042_photo_object_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1806500000000,
+      "tag": "0043_remove_trener_role",
+      "breakpoints": true
     }
   ]
 }

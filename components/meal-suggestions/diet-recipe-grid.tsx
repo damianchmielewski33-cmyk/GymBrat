@@ -56,7 +56,7 @@ function ChefHats({
             cls,
             !dimRest || i <= level
               ? "text-[var(--gym-gold)]"
-              : "text-white/20",
+              : "text-white/50",
           )}
         />
       ))}
@@ -207,7 +207,7 @@ export function DietRecipeGrid({
           </span>
           <ChevronDown
             className={cn(
-              "h-3.5 w-3.5 shrink-0 text-white/40 transition-transform",
+              "h-3.5 w-3.5 shrink-0 text-white/50 transition-transform",
               catOpen && "rotate-180",
             )}
           />
@@ -265,7 +265,7 @@ export function DietRecipeGrid({
       </p>
 
       {filtered.length === 0 ? (
-        <p className="py-8 text-center text-sm text-white/40">
+        <p className="py-8 text-center text-sm text-white/50">
           {meals.length === 0
             ? "Brak przepisów w katalogu — wgraj JSON w panelu admina."
             : "Brak dań bliskich temu makro — zmień cel w Profilu albo filtry."}

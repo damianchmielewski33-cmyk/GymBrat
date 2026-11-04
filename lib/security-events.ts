@@ -20,7 +20,12 @@ export type SecurityEventType =
   | "admin_role_granted"
   | "admin_role_denied"
   | "backfill_verified"
-  | "password_reset";
+  | "password_reset"
+  | "admin_2fa_enabled"
+  | "admin_2fa_disabled"
+  | "admin_2fa_verified"
+  | "admin_2fa_failed"
+  | "admin_2fa_locked";
 
 export type SecurityEventInput = {
   type: SecurityEventType;

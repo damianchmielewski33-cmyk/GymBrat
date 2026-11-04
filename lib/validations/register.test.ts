@@ -39,6 +39,7 @@ describe("registerSchema (US-1, BR-1)", () => {
     ["heightCm", "99"],
     ["heightCm", "180.5"],
     ["age", "12"],
+    ["age", "15"],
     ["age", "121"],
     ["weeklySessionsTarget", "0"],
     ["weeklySessionsTarget", "8"],

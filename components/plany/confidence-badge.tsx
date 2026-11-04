@@ -26,7 +26,7 @@ export function ConfidenceBadge({
         level === "high" &&
           "border-[rgba(62,207,114,0.5)] text-white",
         level === "name_check" &&
-          "border-[rgba(235,196,74,0.55)] text-[var(--gym-gold)]",
+          "border-[rgba(var(--neon-rgb),0.55)] text-[var(--gym-gold)]",
         level === "low" &&
           "border-[rgba(255,51,71,0.55)] text-[#ffd0d5]",
         level === "corrected" &&

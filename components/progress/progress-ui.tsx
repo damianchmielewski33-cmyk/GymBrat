@@ -1,5 +1,6 @@
 "use client";
 
+import { StatTile as UiStatTile } from "@/components/ui/stat-tile";
 import { useId, useState, type ReactNode } from "react";
 import { ArrowDownRight, ArrowUpRight, ChevronDown, Info, Minus } from "lucide-react";
 import { SectionLabel } from "@/components/ui/section-label";
@@ -118,7 +119,7 @@ export function Eyebrow({
   );
 }
 
-/** Mały kafelek metryki (etykieta, wartość, podpis) — opcjonalnie klikalny. */
+/** Mały kafelek metryki (etykieta, wartość, podpis) — nakładka na `components/ui/stat-tile` (Z67). */
 export function StatTile({
   label,
   value,
@@ -134,41 +135,16 @@ export function StatTile({
   onClick?: () => void;
   className?: string;
 }) {
-  const body = (
-    <>
-      <Eyebrow>{label}</Eyebrow>
-      <div
-        className={cn(
-          "mt-1.5 font-metric text-[length:var(--text-kpi)] leading-none tabular-nums text-white",
-          valueClassName,
-        )}
-      >
-        {value}
-      </div>
-      {hint ? (
-        <p className="mt-1.5 text-[length:var(--text-label)] leading-snug text-[var(--gym-text-secondary)]">
-          {hint}
-        </p>
-      ) : null}
-    </>
+  return (
+    <UiStatTile
+      label={label}
+      value={value}
+      hint={hint}
+      valueClassName={valueClassName}
+      onClick={onClick}
+      className={className}
+    />
   );
-  const base = "app-panel border border-white/10 px-3 py-2.5";
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          base,
-          "block w-full text-left transition active:scale-[0.98] hover:border-white/20",
-          className,
-        )}
-      >
-        {body}
-      </button>
-    );
-  }
-  return <div className={cn(base, className)}>{body}</div>;
 }
 
 /** Segmenty (zakładki, okresy). */
@@ -259,14 +235,14 @@ export function CollapsibleCard({
             {title}
           </span>
           {summary ? (
-            <span className="mt-0.5 block truncate text-[11px] leading-snug text-white/45">
+            <span className="mt-0.5 block truncate text-[11px] leading-snug text-white/50">
               {summary}
             </span>
           ) : null}
         </span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 shrink-0 text-white/40 transition-transform",
+            "h-4 w-4 shrink-0 text-white/50 transition-transform",
             open && "rotate-180",
           )}
           aria-hidden
@@ -302,7 +278,7 @@ export function Explainer({
 
 export function EmptyNote({ children }: { children: ReactNode }) {
   return (
-    <div className="app-panel px-3.5 py-4 text-center text-[13px] leading-snug text-white/45">
+    <div className="app-panel px-3.5 py-4 text-center text-[13px] leading-snug text-white/50">
       {children}
     </div>
   );

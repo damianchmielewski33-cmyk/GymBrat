@@ -8,6 +8,7 @@ import { assertCsrf } from "@/lib/csrf";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import dns from "node:dns/promises";
 import net from "node:net";
+import { consentRequiredResponse, lacksSensitiveConsent } from "@/lib/consent-guard";
 
 export const runtime = "nodejs";
 
@@ -114,6 +115,10 @@ async function handlePOST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Brak autoryzacji" }, { status: 401 });
+  }
+
+  if (await lacksSensitiveConsent(session.user.id, "health")) {
+    return consentRequiredResponse("health");
   }
 
   let form: FormData;

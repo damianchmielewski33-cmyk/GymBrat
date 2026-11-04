@@ -178,7 +178,7 @@ export function NextWorkoutTile({
         type="button"
         onClick={() => setPickerOpen((v) => !v)}
         aria-expanded={pickerOpen}
-        className="flex w-full items-center justify-center gap-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40"
+        className="flex w-full items-center justify-center gap-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50"
       >
         Inny dzień
         <ChevronDown
@@ -227,7 +227,7 @@ export function NextWorkoutTile({
                   <span
                     className={cn(
                       "shrink-0 text-[12px] tabular-nums",
-                      lastDate ? "text-white/55" : "text-white/30",
+                      lastDate ? "text-white/55" : "text-white/50",
                     )}
                   >
                     {lastDate ?? "—"}

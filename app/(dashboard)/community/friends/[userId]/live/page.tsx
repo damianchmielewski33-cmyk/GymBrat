@@ -6,6 +6,8 @@ import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { canWatchFriendLive } from "@/lib/community/friendships";
 
+export const metadata = { title: "Trening znajomego" };
+
 export default async function FriendLivePage({
   params,
 }: {

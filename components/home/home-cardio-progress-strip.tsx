@@ -49,12 +49,12 @@ export function HomeCardioProgressStrip({
           />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
             Cardio · ten tydzień
           </p>
           <p className="mt-0.5 font-heading text-[15px] leading-none tabular-nums text-white">
             <span className="text-[var(--gym-gold)]">{mins}</span>
-            <span className="text-white/35"> / {weeklyGoal} min</span>
+            <span className="text-white/50"> / {weeklyGoal} min</span>
           </p>
         </div>
         {onAddCardio ? (

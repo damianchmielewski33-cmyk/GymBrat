@@ -299,22 +299,39 @@ export async function applyQuestProgressAfterWorkout(input: {
 
     if (existing?.lastWorkoutId === input.workout.workoutId) continue;
 
-    if (existing) {
-      await db
+    // Z72: atomowy przyrost (amount = amount + delta) z warunkiem idempotencji
+    // po lastWorkoutId; brak wiersza → insert, a przy wyścigu (unique) → ponowny update.
+    const bump = () =>
+      db
         .update(teamQuestContributions)
         .set({
-          amount: existing.amount + delta,
+          amount: sql`${teamQuestContributions.amount} + ${delta}`,
           lastWorkoutId: input.workout.workoutId,
           updatedAt: new Date(),
         })
-        .where(eq(teamQuestContributions.id, existing.id));
+        .where(
+          and(
+            eq(teamQuestContributions.questId, quest.id),
+            eq(teamQuestContributions.userId, input.userId),
+            sql`(${teamQuestContributions.lastWorkoutId} is null or ${teamQuestContributions.lastWorkoutId} != ${input.workout.workoutId})`,
+          ),
+        );
+
+    if (existing) {
+      const res = await bump();
+      if (res.rowsAffected !== 1) continue; // ten sam trening policzony równolegle
     } else {
-      await db.insert(teamQuestContributions).values({
-        questId: quest.id,
-        userId: input.userId,
-        amount: delta,
-        lastWorkoutId: input.workout.workoutId,
-      });
+      try {
+        await db.insert(teamQuestContributions).values({
+          questId: quest.id,
+          userId: input.userId,
+          amount: delta,
+          lastWorkoutId: input.workout.workoutId,
+        });
+      } catch {
+        const res = await bump();
+        if (res.rowsAffected !== 1) continue;
+      }
     }
 
     await tryCompleteQuest(quest.id);
@@ -347,10 +364,12 @@ async function tryCompleteQuest(questId: string): Promise<void> {
 
   const activeContribs = contribs.filter((c) => c.amount > 0);
 
-  await db
+  // Z72: tylko jedno wywołanie przejdzie active → completed.
+  const claimed = await db
     .update(teamQuests)
     .set({ status: "completed", completedAt: new Date() })
-    .where(eq(teamQuests.id, questId));
+    .where(and(eq(teamQuests.id, questId), eq(teamQuests.status, "active")));
+  if (claimed.rowsAffected !== 1) return;
   await db
     .delete(teamActiveQuestLock)
     .where(

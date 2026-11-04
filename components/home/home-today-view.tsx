@@ -36,6 +36,8 @@ export type HomeTodayViewProps = {
   reportCount: number;
   daysSinceLastReport: number | null;
   showOnboarding: boolean;
+  /** Są treningi w historii, ale brak planu — pokaż „Utwórz plan z ostatnich treningów”. */
+  canBuildPlanFromHistory: boolean;
   /** Instrukcja startowa (popupy Dalej) po założeniu konta. */
   showIntroTour: boolean;
   recommendedPlanId: string | null;
@@ -102,6 +104,7 @@ export function HomeTodayView(props: HomeTodayViewProps) {
           cardioGoalMinutes={props.cardioGoalMinutes}
           cardioSheetWeek={props.cardioSheetWeek}
           extraCardio={props.extraCardio}
+          canBuildPlanFromHistory={props.canBuildPlanFromHistory}
         />
       </div>
 

@@ -5,7 +5,9 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
-import { userSettings } from "@/db/schema";
+import { userConsents, userSettings } from "@/db/schema";
+import { CURRENT_CONSENT_TEXT_VERSION } from "@/lib/consents-client";
+import { isConsentGranted } from "@/lib/consents";
 import { remindersPrefsSchema, remindersToJson, type RemindersPrefs } from "@/lib/reminders-types";
 
 export async function saveRemindersPrefsAction(input: unknown) {
@@ -35,6 +37,24 @@ export async function saveRemindersPrefsAction(input: unknown) {
       weeklyCardioGoalMinutes: 150,
       remindersJson: json,
       updatedAt: new Date(),
+    });
+  }
+
+  // Z81: włączenie przypomnień to wyraźna zgoda `push`, wyłączenie wszystkich ją cofa (rejestr append-only).
+  const wantsReminders = Boolean(
+    parsed.data.workoutTime ||
+      parsed.data.mealTime ||
+      parsed.data.checkinTime ||
+      parsed.data.emailDailyBrief,
+  );
+  const currently = await isConsentGranted(session.user.id, "push");
+  if (wantsReminders !== currently) {
+    await db.insert(userConsents).values({
+      userId: session.user.id,
+      type: "push",
+      granted: wantsReminders,
+      textVersion: CURRENT_CONSENT_TEXT_VERSION,
+      source: "reminders",
     });
   }
 

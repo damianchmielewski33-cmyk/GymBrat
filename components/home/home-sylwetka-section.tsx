@@ -132,7 +132,7 @@ export function HomeSylwetkaSection({
                   <span className="text-[15px] font-medium text-white/55">kg</span>
                 </>
               ) : (
-                <span className="font-metric text-[48px] leading-none text-white/35">
+                <span className="font-metric text-[48px] leading-none text-white/50">
                   —
                 </span>
               )}
@@ -157,7 +157,7 @@ export function HomeSylwetkaSection({
                   <span className="text-[14px] font-medium text-white/55">cm</span>
                 </>
               ) : (
-                <span className="font-metric text-[32px] leading-none text-white/35">
+                <span className="font-metric text-[32px] leading-none text-white/50">
                   —
                 </span>
               )}
