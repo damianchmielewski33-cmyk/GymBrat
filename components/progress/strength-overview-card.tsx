@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 const PRESETS: ReadonlyArray<{ id: OverviewPreset; label: string }> = [
   { id: "7", label: "7 dni" },
   { id: "30", label: "30 dni" },
-  { id: "90", label: "3 mies." },
+  { id: "90", label: "90 dni" },
   { id: "range", label: "Własny" },
 ];
 

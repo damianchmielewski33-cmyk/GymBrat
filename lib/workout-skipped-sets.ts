@@ -16,6 +16,40 @@ export function hasExternalWeight(weight: number | null | undefined): boolean {
   return weight != null && Number.isFinite(weight) && weight > 0;
 }
 
+/** Seria odczytana do statystyk siły (znormalizowane powtórzenia i ciężar). */
+export type StrengthSetReading = {
+  /** Zaliczona seria robocza: done, nie pominięta, nie rozgrzewka, powtórzenia > 0. */
+  performed: boolean;
+  reps: number | null;
+  /** Ciężar zewnętrzny w kg (>= 0; 0 = masa ciała / brak). */
+  weight: number;
+};
+
+/**
+ * Jedna reguła „zaliczonej serii roboczej” dla wszystkich statystyk siły
+ * (seria ćwiczenia, hub Postępów, widok zbiorczy): normalizuje powtórzenia (zaokrąglone,
+ * null gdy brak) i ciężar (skończony, >= 0) oraz mówi, czy seria się liczy.
+ * Ciężar nie blokuje zaliczenia — 0 kg + powtórzenia = masa ciała (por. isSkippedWorkoutSet).
+ */
+export function readSetForStrengthStats(s: {
+  reps?: unknown;
+  weight?: unknown;
+  done?: unknown;
+  skipped?: unknown;
+  warmup?: unknown;
+}): StrengthSetReading {
+  const reps =
+    typeof s.reps === "number" && Number.isFinite(s.reps) ? Math.round(s.reps) : null;
+  const rawWeight =
+    typeof s.weight === "number" && Number.isFinite(s.weight)
+      ? s.weight
+      : Number(s.weight ?? 0);
+  const weight = Number.isFinite(rawWeight) ? Math.max(0, rawWeight) : 0;
+  const performed =
+    Boolean(s.done) && !s.skipped && !s.warmup && hasPerformedReps(reps);
+  return { performed, reps, weight };
+}
+
 /**
  * Seria zaliczona bez realnego wykonania (flaga pomiń albo brak powtórzeń).
  * Decyzja właściciela (005, p.7 / ADR 0004 p.6): 0 kg + powtórzenia > 0 (masa ciała)

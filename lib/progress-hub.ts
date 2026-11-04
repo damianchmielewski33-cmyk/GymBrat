@@ -23,12 +23,12 @@ import { resolveExerciseIdentity } from "@/lib/exercise-identity";
 import { buildProgressIntensitySummary, isHardSet, isIntensityEligibleSet, summarizeSessionIntensity, type SessionIntensity } from "@/lib/intensity-analysis";
 import { getCardioWeekSummary } from "@/lib/cardio-week";
 import { countableCardioMinutes, isCompletedStrengthSession, isStandaloneCardioLog, parseWorkoutSessionJson } from "@/lib/workout-cardio-attribution";
-import { hasExternalWeight, hasPerformedReps } from "@/lib/workout-skipped-sets";
+import { hasExternalWeight, readSetForStrengthStats } from "@/lib/workout-skipped-sets";
 import { buildWeekTrainingCompare, compareProgressWeekPicks, type ProgressWeekPick } from "@/lib/week-training-compare";
 import { resolveExerciseMuscles } from "@/lib/resolve-exercise-muscles";
 import type { MuscleRegionId } from "@/lib/resolve-exercise-muscles";
 import type { ProgressTabId } from "@/lib/progress-tabs";
-import { DAY_LABELS, clampNonNegative, mondayOfWeek, safeRound1, totalRepsFromExercises, trendOf, volumeFromExercises, weekShortLabel } from "@/lib/progress-hub-helpers";
+import { DAY_LABELS, mondayOfWeek, safeRound1, totalRepsFromExercises, trendOf, volumeFromExercises, weekShortLabel } from "@/lib/progress-hub-helpers";
 import type { ProgressExerciseRow, ProgressGoalBar, ProgressHubData, ProgressMaxItem, ProgressMeasureKey, ProgressMeasureRow, ProgressMetricKind, ProgressPhotoItem, ProgressPlanGroup, ProgressVolumeSession, ProgressWeekBar, ProgressWeekDay, ProgressWeightPoint } from "@/lib/progress-hub-types";
 
 export type { ProgressExerciseRow, ProgressExerciseStatus, ProgressGoalBar, ProgressHubData, ProgressMaxItem, ProgressMeasureKey, ProgressMeasureRow, ProgressMetricKind, ProgressPhotoItem, ProgressPlanGroup, ProgressTempo, ProgressVolumeSession, ProgressWeekBar, ProgressWeekDay, ProgressWeekSummary, ProgressWeightPoint, VolumeTrendKind } from "@/lib/progress-hub-types";
@@ -464,17 +464,8 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
       let daySetsCount = 0;
       const dayLoads: Array<{ w: number; eff: boolean }> = [];
       for (const s of e.sets ?? []) {
-        const reps =
-          typeof s.reps === "number" && Number.isFinite(s.reps)
-            ? Math.round(s.reps)
-            : null;
-        const weight =
-          typeof s.weight === "number" && Number.isFinite(s.weight)
-            ? s.weight
-            : Number(s.weight ?? 0);
-        const w = clampNonNegative(weight);
-        if (!Boolean(s.done) || Boolean(s.skipped) || Boolean((s as { warmup?: boolean }).warmup) || !hasPerformedReps(reps))
-          continue;
+        const { reps, weight: w, performed } = readSetForStrengthStats(s);
+        if (!performed) continue;
         daySetsCount += 1;
         dayTotalReps += reps!;
         if (reps! > dayBestSetReps) dayBestSetReps = reps!;

@@ -3,8 +3,8 @@
  * serie sesyjne wszystkich ćwiczeń z ciężarem, pogrupowane po tożsamości ćwiczenia
  * i kategorii z katalogu. Zapytanie do bazy: `strength-overview-data.ts`.
  *
- * Reguły „zaliczonej serii” są takie same jak w `getExerciseProgressSeries`
- * (done, nie pominięta, nie rozgrzewka, są powtórzenia, jest ciężar zewnętrzny).
+ * Reguła „zaliczonej serii” jest wspólna z `getExerciseProgressSeries` i hubem Postępów
+ * (`readSetForStrengthStats`); tu dodatkowo wymagamy ciężaru zewnętrznego (e1RM).
  */
 
 import { resolveExerciseIdentity } from "@/lib/exercise-identity";
@@ -19,7 +19,7 @@ import {
   safeNormalizeExercises,
   safeParseCompletedSession,
 } from "@/lib/workout-history";
-import { hasExternalWeight, hasPerformedReps } from "@/lib/workout-skipped-sets";
+import { hasExternalWeight, readSetForStrengthStats } from "@/lib/workout-skipped-sets";
 
 export type WorkoutRow = { date: string; exercisesJson: string };
 
@@ -46,11 +46,6 @@ type ExerciseAgg = {
   groupLabel: string;
   days: Map<string, DayAgg>;
 };
-
-function finiteNonNegative(n: unknown): number {
-  const v = typeof n === "number" ? n : Number(n ?? 0);
-  return Number.isFinite(v) && v > 0 ? v : 0;
-}
 
 /**
  * Czysta funkcja: surowe sesje → serie per ćwiczenie (tylko dni z ciężarem, bestE1rm > 0).
@@ -88,16 +83,7 @@ export function buildOverviewSeries(rows: WorkoutRow[]): OverviewSeriesInput[] {
       }
 
       for (const s of e.sets ?? []) {
-        const reps =
-          typeof s.reps === "number" && Number.isFinite(s.reps)
-            ? Math.round(s.reps)
-            : null;
-        const w = finiteNonNegative(s.weight);
-        const performed =
-          Boolean(s.done) &&
-          !Boolean(s.skipped) &&
-          !Boolean((s as { warmup?: boolean }).warmup) &&
-          hasPerformedReps(reps);
+        const { reps, weight: w, performed } = readSetForStrengthStats(s);
         if (!performed || !hasExternalWeight(w)) continue;
 
         let day = agg.days.get(dateKey);

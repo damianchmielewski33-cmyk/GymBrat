@@ -15,7 +15,7 @@ import {
   safeNormalizeExercises,
   safeParseCompletedSession,
 } from "@/lib/workout-history";
-import { hasExternalWeight, hasPerformedReps } from "@/lib/workout-skipped-sets";
+import { hasExternalWeight, readSetForStrengthStats } from "@/lib/workout-skipped-sets";
 
 export type ExerciseMetricKind = "kg" | "reps";
 
@@ -59,11 +59,6 @@ export type ExerciseIntensitySummary = {
   sessionsWithRir: number;
   sessionsWithRpe: number;
 };
-
-function clampNonNegative(n: number): number {
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, n);
-}
 
 function safeRound1(n: number): number {
   return Math.round(n * 10) / 10;
@@ -274,20 +269,7 @@ export async function getExerciseProgressSeries(params: {
       }
 
       for (const s of e.sets ?? []) {
-        const reps =
-          typeof s.reps === "number" && Number.isFinite(s.reps)
-            ? Math.round(s.reps)
-            : null;
-        const weight =
-          typeof s.weight === "number" && Number.isFinite(s.weight)
-            ? s.weight
-            : Number(s.weight ?? 0);
-        const w = clampNonNegative(weight);
-        const performed =
-          Boolean(s.done) &&
-          !Boolean(s.skipped) &&
-          !Boolean((s as { warmup?: boolean }).warmup) &&
-          hasPerformedReps(reps);
+        const { reps, weight: w, performed } = readSetForStrengthStats(s);
         if (performed) {
           dayTotalReps += reps!;
           if (reps! > dayBestReps && !hasExternalWeight(w)) {

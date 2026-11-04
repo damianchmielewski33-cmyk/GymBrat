@@ -10,6 +10,7 @@ import {
   isExerciseIncomplete,
   isLastOpenWorkoutSet,
   isSkippedWorkoutSet,
+  readSetForStrengthStats,
   resolveAdvanceAfterSet,
   resolveSkippedAfterEdit,
   resolveSetSaveIssue,
@@ -306,5 +307,42 @@ describe("resolveSkippedAfterEdit (edycja zapisanej serii)", () => {
   it("nie dotyka serii niezaliczonej ani jawnego skipped", () => {
     expect(resolveSkippedAfterEdit({ weight: 0, reps: null, done: false }, { weight: 50 })).toBeUndefined();
     expect(resolveSkippedAfterEdit(saved, { weight: 0, skipped: true })).toBeUndefined();
+  });
+});
+
+describe("readSetForStrengthStats (wspólna reguła „zaliczonej serii” dla statystyk siły)", () => {
+  it("zalicza zrobioną serię z powtórzeniami i ciężarem", () => {
+    expect(readSetForStrengthStats({ reps: 8, weight: 60, done: true })).toEqual({
+      performed: true,
+      reps: 8,
+      weight: 60,
+    });
+  });
+
+  it("zalicza masę ciała (0 kg + powtórzenia), ale z ciężarem 0", () => {
+    expect(readSetForStrengthStats({ reps: 10, weight: 0, done: true })).toEqual({
+      performed: true,
+      reps: 10,
+      weight: 0,
+    });
+  });
+
+  it("nie zalicza serii niezrobionej, pominiętej, rozgrzewkowej ani bez powtórzeń", () => {
+    expect(readSetForStrengthStats({ reps: 8, weight: 60, done: false }).performed).toBe(false);
+    expect(readSetForStrengthStats({ reps: 8, weight: 60, done: true, skipped: true }).performed).toBe(false);
+    expect(readSetForStrengthStats({ reps: 8, weight: 60, done: true, warmup: true }).performed).toBe(false);
+    expect(readSetForStrengthStats({ reps: 0, weight: 60, done: true }).performed).toBe(false);
+    expect(readSetForStrengthStats({ reps: null, weight: 60, done: true }).performed).toBe(false);
+  });
+
+  it("normalizuje powtórzenia (zaokrąglenie, brak liczby → null) i ciężar (>= 0, skończony)", () => {
+    expect(readSetForStrengthStats({ reps: 4.6, done: true }).reps).toBe(5);
+    expect(readSetForStrengthStats({ reps: Number.NaN, done: true }).reps).toBeNull();
+    expect(readSetForStrengthStats({ reps: "8", done: true }).reps).toBeNull();
+    expect(readSetForStrengthStats({ weight: -5 }).weight).toBe(0);
+    expect(readSetForStrengthStats({ weight: Number.POSITIVE_INFINITY }).weight).toBe(0);
+    expect(readSetForStrengthStats({ weight: "82.5" }).weight).toBe(82.5);
+    expect(readSetForStrengthStats({ weight: "abc" }).weight).toBe(0);
+    expect(readSetForStrengthStats({}).weight).toBe(0);
   });
 });
