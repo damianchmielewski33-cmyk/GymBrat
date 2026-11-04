@@ -1,5 +1,10 @@
+/**
+ * Strukturalnie zgodny z `Client` z @libsql/client. Składnia metody (nie właściwości) daje
+ * dwuwariantność parametru, a `any[]` w `args` pozwala przekazać `InArgs` bez rzutowania.
+ */
 export type MigrationClient = {
-  execute: (q: string | { sql: string; args?: unknown[] }) => Promise<{ rows: Array<Record<string, unknown>> }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  execute(q: string | { sql: string; args?: any[] }): Promise<{ rows: any[] }>;
 };
 export function loadMigrations(dir: string): Array<{ tag: string; statements: string[] }>;
 export function ensureVersionTable(client: MigrationClient): Promise<void>;
