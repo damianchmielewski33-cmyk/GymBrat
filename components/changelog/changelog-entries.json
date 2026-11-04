@@ -1,5 +1,14 @@
 [
   {
+    "title": "Zapowiedź — Postępy ćwiczenia: porównanie 3 miesięcy i dowolnego zakresu",
+    "planned": true,
+    "bullets": [
+      "Porównania okresów w szczegółach ćwiczenia mają nową zakładkę „3 mies.” (kwartał kalendarzowy) obok tygodnia, miesiąca i roku.",
+      "Zakładka „Własny” pozwala wybrać zakres od–do i porównać go z poprzednim okresem tej samej długości; wykres pokazuje tygodnie z obu okresów.",
+      "Gdy w którymś okresie są mniej niż 2 sesje, widzisz ostrzeżenie, że wynik może być przypadkowy; brak sesji w poprzednim okresie nie daje już fałszywego wzrostu."
+    ]
+  },
+  {
     "title": "Zapowiedź — Strona startowa, pomiar zainteresowania i porządek w kodzie",
     "planned": true,
     "bullets": [
