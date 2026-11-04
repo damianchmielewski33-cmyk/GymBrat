@@ -13,6 +13,8 @@ export const ANONYMOUS_PUBLIC_PATHS = new Set([
   /** Potwierdzenie przejęcia konta niezweryfikowanego (ADR 0001 D4) — bez sesji. */
   TAKEOVER_CONFIRM_PATH,
   "/register",
+  /** Z76: publiczna strona produktu z cennikiem. */
+  "/start",
   /** Reset hasła kodem z e-maila — bez sesji. */
   "/forgot-password",
   "/regulamin",

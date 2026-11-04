@@ -1,3 +1,4 @@
+import { trackKpi, KpiEvents } from "@/lib/analytics/track-kpi";
 import { withApiErrors } from "@/lib/errors/api";
 import { and, desc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
@@ -553,6 +554,8 @@ async function handlePOST(req: Request) {
     }
     throw err;
   }
+
+  trackKpi(KpiEvents.workoutCompleted, session.user.id, { kind: "strength" });
 
   const { publishTeamFeedAfterWorkout } = await import(
     "@/lib/community/team-feed-auto"

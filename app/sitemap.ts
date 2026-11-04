@@ -13,6 +13,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
+      url: `${origin}/start`,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${origin}/login`,
       changeFrequency: "monthly",
       priority: 0.5,

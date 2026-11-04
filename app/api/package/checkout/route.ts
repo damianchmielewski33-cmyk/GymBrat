@@ -1,3 +1,4 @@
+import { trackKpi, KpiEvents } from "@/lib/analytics/track-kpi";
 import { withApiErrors } from "@/lib/errors/api";
 import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
@@ -148,6 +149,13 @@ async function handlePOST(req: Request) {
       { ok: false, error: "Nie udało się utworzyć zamówienia." },
       { status: 500 },
     );
+  }
+
+  if (!reusedId) {
+    trackKpi(KpiEvents.checkoutStarted, session.user.id, {
+      plan_sku: plan.sku,
+      amount_grosze: plan.priceGrosze,
+    });
   }
 
   const origin = new URL(req.url).origin;

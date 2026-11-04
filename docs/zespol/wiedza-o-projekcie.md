@@ -1,5 +1,7 @@
 # Baza wiedzy o projekcie GymBrat
 
+> **Aktualny plan prac: [docs/audyt/backlog-us.md](../audyt/backlog-us.md)** (US1–US20, statusy i decyzje DK w `decyzje-wlasciciela.md`); szczegóły podzadań: [szczegoly-zadan.md](../audyt/szczegoly-zadan.md). Poniższa lista „Znane problemy linii bazowej” to stan z 2026-10-23 — większość pozycji bezpieczeństwa i jakości została zaadresowana w US1–US18 (sprawdź statusy w backlogu US). Indeks całej dokumentacji i status plików `docs/*.json`: [docs/indeks-dokumentacji.md](../indeks-dokumentacji.md).
+
 Stan na 2026-10-23. Dokumenty powstały z analizy kodu przez zespół agentów (bez zmian w aplikacji). Każdy agent przed zadaniem czyta dokument swojej dziedziny i ten indeks; gdy zadanie zmienia opisany stan, aktualizuje swój dokument.
 
 | Obszar | Dokument | Właściciel |

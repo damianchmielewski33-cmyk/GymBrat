@@ -9,6 +9,7 @@ import {
 describe("auth-public-paths", () => {
   it("GET / i ekrany auth są publiczne — bez 307 na logowanie", () => {
     expect(isAnonymousPublicPath("/")).toBe(true);
+    expect(isAnonymousPublicPath("/start")).toBe(true);
     expect(isAnonymousPublicPath("/login")).toBe(true);
     expect(isAnonymousPublicPath("/register")).toBe(true);
     expect(isAnonymousPublicPath("/regulamin")).toBe(true);

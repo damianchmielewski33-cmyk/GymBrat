@@ -1,3 +1,4 @@
+import { trackKpi, KpiEvents } from "@/lib/analytics/track-kpi";
 import { withApiErrors } from "@/lib/errors/api";
 import { and, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -159,6 +160,10 @@ async function handlePOST(req: Request) {
       // Z20: e-mail z potwierdzeniem tylko przy faktycznym przejściu pending → paid; błąd wysyłki
       // (np. brak SMTP) nie może zepsuć księgowania ani odpowiedzi dla HotPay.
       if (paidRows.length > 0) {
+        trackKpi(KpiEvents.checkoutCompleted, order.userId, {
+          plan_sku: order.planSku,
+          amount_grosze: order.amountGrosze,
+        });
         await sendOrderConfirmation(db, order);
       }
     } else if (["cancelled", "failed", "expired", "amount_mismatch"].includes(order.status)) {

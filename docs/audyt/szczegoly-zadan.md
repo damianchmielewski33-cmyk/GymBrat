@@ -66,7 +66,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z50 | Wsparcie klienta i reklamacje | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z51 | Publikacja Android w Google Play | ops+kod | P1 | L | TODO |
 | Z52 | Soft launch i decyzja go/no-go | ops | P1 | M | TODO |
-| Z53 | KPI i lejek | kod | P1 | M | TODO |
+| Z53 | KPI i lejek | kod | P1 | M | GOTOWE W KODZIE 2026-11-04: `lib/analytics/{kpi-events,track-kpi}.ts` (5 zdarzeń po zgodzie), `docs/analityka/kpi.md`; dashboard/lejek w PostHog do założenia przez właściciela; test nieuruchomiony |
 | Z54 | Kody promocyjne i Badania — definicja albo usunięcie | decyzja+kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (część „decyzja”: DK-9; strony ukryte flagą) |
 | Z55 | Zmiana cen bez wdrożenia | kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z56 | Ograniczenie osadzania w iframe | kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
@@ -89,14 +89,14 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z73 | Realizacja decyzji o Javie | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z74 | Dostępność WCAG AA | kod | P2 | M | PROCEDURA 2026-11-04: skrypt axe (wymaga `npm i -D axe-core`) + dokument; audyt NIEWYKONANY |
 | Z75 | Panel finansowy | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
-| Z76 | Publiczna strona produktu | kod | P2 | M | TODO |
+| Z76 | Publiczna strona produktu | kod | P2 | M | GOTOWE W KODZIE 2026-11-04: `/start` (opis, cennik z bazy, makiety, linki prawne, SEO/OG, sitemap); zamiast zrzutów makiety z komponentów — prawdziwe zrzuty do dodania |
 | Z77 | Usunięcie `inbox` i roli `trener` | kod | P3 | S | GOTOWE W KODZIE 2026-11-04: trasa, rola i UI usunięte; migracja 0043 + idempotentny UPDATE w `ensure-schema` |
 | Z78 | Usunięcie martwych komponentów | kod | P3 | S | GOTOWE W KODZIE 2026-11-04: usunięte 9 plików i `.iron-panel` (tokeny `--chart-*` zostają) |
 | Z79 | Mniej pollingu społeczności | kod | P3 | M | GOTOWE W KODZIE 2026-11-04: adaptacyjny interwał listy „kto trenuje” (×2 do 4×), pauza w tle już była; bez SSE (decyzja DK-27), cache list serwerowych już istniał |
-| Z80 | Rozbicie dużych modułów | kod | P3 | L | TODO |
+| Z80 | Rozbicie dużych modułów | kod | P3 | L | CZĘŚCIOWO 2026-11-04: `home-start.ts` 1067→195 l. (6 modułów), `teams.ts` 1379→346 l. (5 modułów), changelog → `changelog-entries.json`; `progress-hub.ts` 1714→1404 l. (typy i helpery wydzielone; reszta to jedna ~1300-liniowa funkcja `loadProgressHubData` — wymaga refaktoru z uruchomionymi testami), `body-report-form.tsx` 1370→805 l. (części UI i utils wydzielone; reszta to jeden komponent). Importy zachowane przez re-eksporty |
 | Z81 | Przypomnienia treningowe za zgodą | kod | P3 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z82 | Mapa drogowa funkcji Premium | decyzja | P3 | S | ZROBIONE (2026-11-02) |
-| Z83 | Aktualizacja dokumentacji projektu | dok | P3 | S | TODO |
+| Z83 | Aktualizacja dokumentacji projektu | dok | P3 | S | GOTOWE 2026-11-04: `docs/indeks-dokumentacji.md` (status `docs/*.json`), wskazania na backlog US w `wiedza-o-projekcie.md` i `zespol/backlog.md`, wpis w `bledy.md` |
 
 Kolejność i zależności: patrz backlog-us.md.
 

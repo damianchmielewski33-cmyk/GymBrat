@@ -18,6 +18,8 @@ import { missingProductionEnv, parseEnvFile } from "./deploy-required-env.mjs";
 
 const EXPECTED_SLUG = "damianchmielewski33-cmyk/GymBrat";
 const CHANGELOG_FILE = "components/changelog/changelog-data.ts";
+/** Z80: treść wpisów (dane); `CHANGELOG_FILE` dokleja do nich źródło GymBrat. */
+const CHANGELOG_DATA_FILE = "components/changelog/changelog-entries.json";
 const USER_FACING =
   /^(app\/|components\/|public\/|actions\/|proxy\.ts|next\.config\.ts)/;
 const SKIP_ACTORS = new Set(["dependabot[bot]", "dependabot"]);
@@ -82,6 +84,17 @@ function changelogMentionsGymBrat() {
   if (!/sourceRepo:\s*GYMBRAT_GITHUB_SLUG/.test(text)) {
     fail(`${CHANGELOG_FILE}: każdy wpis musi mieć sourceRepo z repozytorium GymBrat.`);
   }
+  const dataFile = path.join(root, CHANGELOG_DATA_FILE);
+  if (!existsSync(dataFile)) fail(`Brak ${CHANGELOG_DATA_FILE} — dane changelogu.`);
+  let entries;
+  try {
+    entries = JSON.parse(readFileSync(dataFile, "utf8"));
+  } catch {
+    fail(`${CHANGELOG_DATA_FILE} nie jest poprawnym JSON-em.`);
+  }
+  if (!Array.isArray(entries) || entries.some((e) => e && "sourceRepo" in e)) {
+    fail(`${CHANGELOG_DATA_FILE}: tablica wpisów bez pola sourceRepo (źródło dokleja ${CHANGELOG_FILE}).`);
+  }
 }
 
 const slug = resolveSlug();
@@ -98,10 +111,11 @@ const actor = process.env.GITHUB_ACTOR ?? "";
 if (event === "pull_request" && !SKIP_ACTORS.has(actor)) {
   const files = changedFiles();
   const touchesUi = files.some((file) => USER_FACING.test(file));
-  const updatesChangelog = files.includes(CHANGELOG_FILE);
+  const updatesChangelog =
+    files.includes(CHANGELOG_FILE) || files.includes(CHANGELOG_DATA_FILE);
   if (touchesUi && !updatesChangelog) {
     fail(
-      "PR rusza UI/publiczne pliki GymBrat, ale nie aktualizuje changelogu. Opisz zmianę jasno w components/changelog/changelog-data.ts (źródło: to repozytorium).",
+      "PR rusza UI/publiczne pliki GymBrat, ale nie aktualizuje changelogu. Opisz zmianę jasno w components/changelog/changelog-entries.json (źródło: to repozytorium).",
     );
   }
 }

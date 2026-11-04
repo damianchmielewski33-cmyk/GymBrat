@@ -1,5 +1,6 @@
 "use server";
 
+import { trackKpi, KpiEvents } from "@/lib/analytics/track-kpi";
 import { currentClientIp, guardAction } from "@/lib/action-guard";
 import { hash } from "bcryptjs";
 import { eq, sql, and, desc, isNull, lt } from "drizzle-orm";
@@ -387,5 +388,6 @@ export async function registerUser(
     throw new AppError("INTERNAL");
   }
 
+  trackKpi(KpiEvents.userRegistered, userId, { role: data.role });
   return { ok: true };
 }
