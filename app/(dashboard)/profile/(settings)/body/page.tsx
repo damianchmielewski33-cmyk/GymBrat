@@ -13,6 +13,8 @@ import {
 } from "@/lib/current-weight";
 import { calendarDateKey } from "@/lib/local-date";
 
+export const metadata = { title: "Ciało i dane" };
+
 export default async function ProfileBodyPage() {
   const session = await auth();
   const userId = session?.user?.id;

@@ -20,7 +20,7 @@ export function WarSeasonStandings({
         Ranking ligowy sezonu
       </h2>
       {standings.length === 0 ? (
-        <p className="text-[13px] text-white/40">Brak jeszcze meczów w sezonie.</p>
+        <p className="text-[13px] text-white/50">Brak jeszcze meczów w sezonie.</p>
       ) : (
         <ol className="space-y-2">
           {standings.map((s, i) => (
@@ -29,12 +29,12 @@ export function WarSeasonStandings({
               className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5"
             >
               <div className="flex items-center gap-3">
-                <span className="font-metric w-6 text-white/40">#{i + 1}</span>
+                <span className="font-metric w-6 text-white/50">#{i + 1}</span>
                 <div>
                   <p className="text-[14px] text-white">{s.name}</p>
                   <div className="mt-0.5 flex items-center gap-2">
                     <WarLeagueBadge league={s.league as WarLeague} />
-                    <span className="text-[11px] text-white/40">
+                    <span className="text-[11px] text-white/50">
                       {s.wins}W {s.losses}L {s.draws}D
                     </span>
                   </div>

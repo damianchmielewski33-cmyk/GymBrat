@@ -146,7 +146,7 @@ export function RestTimerBar({ remaining, onStart, onStop }: RestTimerBarProps) 
                 >
                   Auto po serii: {autoStart ? "wł." : "wył."}
                 </button>
-                <span className="text-[10px] text-white/35">Domyślnie</span>
+                <span className="text-[10px] text-white/50">Domyślnie</span>
                 <div className="flex flex-wrap gap-1">
                   {DEFAULT_OPTIONS_SEC.map((s) => (
                     <button

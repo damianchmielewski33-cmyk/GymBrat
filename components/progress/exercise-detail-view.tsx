@@ -1,5 +1,6 @@
 "use client";
 
+import { BRAND_GOLD, BRAND_GOLD_BRIGHT } from "@/lib/brand-colors";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -30,7 +31,7 @@ import type {
   StagnationItem,
 } from "@/lib/analytics";
 
-const GOLD = "#ebc44a";
+const GOLD = BRAND_GOLD;
 
 function confidenceLabelPl(c: PredictionConfidence): string {
   switch (c) {
@@ -47,7 +48,7 @@ const RPE_COLOR = "#fb7185";
 
 const tooltipStyle = {
   backgroundColor: "rgba(12, 12, 14, 0.96)",
-  border: "1px solid rgba(235, 196, 74, 0.28)",
+  border: "1px solid rgba(var(--neon-rgb),0.28)",
   borderRadius: "14px",
   fontSize: "12px",
   color: "rgba(255, 255, 255, 0.92)",
@@ -143,7 +144,7 @@ export function ExerciseDetailView({
             {name}
           </h1>
           {matchedNames.length > 1 ? (
-            <p className="mt-1 text-[11px] text-white/40">
+            <p className="mt-1 text-[11px] text-white/50">
               Dopasowano: {matchedNames.slice(0, 4).join(", ")}
             </p>
           ) : null}
@@ -179,11 +180,16 @@ export function ExerciseDetailView({
 
         <div role="img" aria-label={`Wykres ${chartLabel}, ${chartPoints.length} sesji`} className="relative mt-3 h-[220px] w-full min-w-0">
           {chartPoints.length < 2 ? (
-            <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-xs text-white/40">
+            <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-xs text-white/50">
               Potrzeba co najmniej dwóch treningów do wykresu.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minHeight={100}
+          initialDimension={{ width: 320, height: 200 }}
+        >
               <LineChart data={chartPoints} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis
@@ -214,7 +220,7 @@ export function ExerciseDetailView({
                   stroke={GOLD}
                   strokeWidth={2.4}
                   dot={{ r: 3, fill: GOLD, stroke: "#0c0c0e", strokeWidth: 1.5 }}
-                  activeDot={{ r: 5.5, fill: "#f7e28f", stroke: GOLD }}
+                  activeDot={{ r: 5.5, fill: BRAND_GOLD_BRIGHT, stroke: GOLD }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -300,7 +306,7 @@ export function ExerciseDetailView({
         </div>
 
         {intensity.targetComparedCount > 0 ? (
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/50">
             Zgodność z RIR z planu: {intensity.targetHitPct ?? 0}% (
             {intensity.targetComparedCount} porównań)
           </p>
@@ -308,11 +314,16 @@ export function ExerciseDetailView({
 
         <div className="relative h-[200px] w-full min-w-0">
           {intensityPoints.length < 2 || (!hasRir && !hasRpe) ? (
-            <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-xs text-white/40">
+            <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-xs text-white/50">
               Potrzeba co najmniej dwóch treningów z RIR/RPE.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minHeight={100}
+          initialDimension={{ width: 320, height: 200 }}
+        >
               <LineChart
                 data={intensityPoints}
                 margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
@@ -370,7 +381,7 @@ export function ExerciseDetailView({
           )}
         </div>
         {hasRir || hasRpe ? (
-          <p className="text-[10px] text-white/35">
+          <p className="text-[10px] text-white/50">
             {hasRir ? (
               <span className="mr-3 inline-flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> RIR
@@ -406,30 +417,30 @@ export function ExerciseDetailView({
           {prediction ? (
             <div className="grid grid-cols-2 gap-2 text-[12px]">
               <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wider text-white/40">
+                <p className="text-[10px] uppercase tracking-wider text-white/50">
                   e1RM 30 dni
                 </p>
                 <p className="mt-1 font-metric text-[18px] text-white">
                   {prediction.e1rm30d.toLocaleString("pl-PL")} kg
                 </p>
-                <p className="mt-0.5 text-[10px] text-white/35">
+                <p className="mt-0.5 text-[10px] text-white/50">
                   teraz {prediction.e1rmNow} · pewność{" "}
                   {confidenceLabelPl(prediction.confidence)}
                 </p>
               </div>
               <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wider text-white/40">
+                <p className="text-[10px] uppercase tracking-wider text-white/50">
                   e1RM 90 dni
                 </p>
                 <p className="mt-1 font-metric text-[18px] text-white">
                   {prediction.e1rm90d.toLocaleString("pl-PL")} kg
                 </p>
-                <p className="mt-0.5 text-[10px] text-white/35">
+                <p className="mt-0.5 text-[10px] text-white/50">
                   {prediction.sampleCount} sesji
                 </p>
               </div>
               <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wider text-white/40">
+                <p className="text-[10px] uppercase tracking-wider text-white/50">
                   Tonaż 30 dni
                 </p>
                 <p className="mt-1 font-heading text-[16px] text-white">
@@ -437,7 +448,7 @@ export function ExerciseDetailView({
                 </p>
               </div>
               <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wider text-white/40">
+                <p className="text-[10px] uppercase tracking-wider text-white/50">
                   Tonaż 90 dni
                 </p>
                 <p className="mt-1 font-heading text-[16px] text-white">
@@ -446,7 +457,7 @@ export function ExerciseDetailView({
               </div>
             </div>
           ) : (
-            <p className="text-[12px] text-white/40">
+            <p className="text-[12px] text-white/50">
               Predykcja wymaga min. 8 treningów z historią e1RM / objętości.
             </p>
           )}
@@ -506,7 +517,7 @@ export function ExerciseDetailView({
       <section className="space-y-3">
         <SectionLabel index="02" title="Treningi" trailing={`${points.length}`} />
         {points.length === 0 ? (
-          <div className="app-card px-4 py-8 text-center text-sm text-white/45">
+          <div className="app-card px-4 py-8 text-center text-sm text-white/50">
             Brak historii dla tego ćwiczenia.
           </div>
         ) : (
@@ -532,7 +543,7 @@ export function ExerciseDetailView({
                 >
                   <div>
                     <p className="text-sm text-white">{formatShortDate(p.date)}</p>
-                    <p className="mt-0.5 text-[11px] text-white/40">
+                    <p className="mt-0.5 text-[11px] text-white/50">
                       {p.bestWeight > 0
                         ? `${p.bestWeight} kg × ${p.bestReps}`
                         : p.bestReps > 0
@@ -555,7 +566,7 @@ export function ExerciseDetailView({
                           "pl-PL",
                         )}
                       </p>
-                      <p className="text-[10px] text-white/35">
+                      <p className="text-[10px] text-white/50">
                         {isReps ? "powt. łącznie" : "kg objętości"}
                       </p>
                     </div>
@@ -583,13 +594,13 @@ function Kpi({
 }) {
   return (
     <div className="app-card px-2.5 py-3 text-center">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+      <p className="text-[9px] font-semibold uppercase tracking-wider text-white/50">
         {label}
       </p>
       <p className="mt-1.5 font-metric text-xl tabular-nums text-white">
         <AnimatedMetric value={value} decimals={decimals} />
       </p>
-      {hint ? <p className="text-[10px] text-white/35">{hint}</p> : null}
+      {hint ? <p className="text-[10px] text-white/50">{hint}</p> : null}
     </div>
   );
 }
@@ -607,14 +618,14 @@ function MiniStat({
 }) {
   return (
     <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2.5 text-center">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+      <p className="text-[9px] font-semibold uppercase tracking-wider text-white/50">
         {label}
       </p>
       <p className="mt-1 font-metric text-xl tabular-nums text-white">
         {value != null ? (
           <>
             <AnimatedMetric value={value} decimals={decimals} />
-            {suffix ? <span className="text-sm text-white/35">{suffix}</span> : null}
+            {suffix ? <span className="text-sm text-white/50">{suffix}</span> : null}
           </>
         ) : (
           "—"
@@ -637,7 +648,7 @@ function RecordRow({
     <div className="flex items-center justify-between gap-3 px-4 py-3">
       <div>
         <p className="text-sm text-white/85">{label}</p>
-        <p className="text-[11px] text-white/40">
+        <p className="text-[11px] text-white/50">
           {date ? formatShortDate(date) : "—"}
         </p>
       </div>

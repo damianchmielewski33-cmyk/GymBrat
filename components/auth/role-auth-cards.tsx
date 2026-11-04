@@ -92,14 +92,14 @@ export function RoleAuthCards({
               className="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full bg-violet-500/8 blur-2xl"
             />
             <div className="relative flex flex-col gap-4">
-              <div className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-black/50 text-white/45">
+              <div className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-black/50 text-white/50">
                 <ClipboardList className="h-10 w-10" strokeWidth={1.5} aria-hidden />
               </div>
               <div>
                 <span className="font-heading text-xl font-semibold tracking-tight text-white/70">
                   Trener
                 </span>
-                <p className="mt-1.5 text-sm leading-snug text-white/45">
+                <p className="mt-1.5 text-sm leading-snug text-white/50">
                   Planuj, analizuj i prowadź zawodników — interfejs pod Ciebie.
                 </p>
                 <p className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs leading-snug text-amber-100/95">
@@ -111,7 +111,7 @@ export function RoleAuthCards({
                 </p>
               </div>
             </div>
-            <span className="absolute right-4 top-4 rounded-full border border-white/10 bg-black/40 px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-white/45">
+            <span className="absolute right-4 top-4 rounded-full border border-white/10 bg-black/40 px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-white/50">
               Wkrótce
             </span>
           </div>

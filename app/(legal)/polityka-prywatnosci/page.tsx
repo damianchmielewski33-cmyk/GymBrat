@@ -211,7 +211,7 @@ export default function PolitykaPrywatnosciPage() {
         </p>
       </LegalSection>
 
-      <p className="border-t border-white/[0.08] pt-4 text-[13px] text-white/45">
+      <p className="border-t border-white/[0.08] pt-4 text-[13px] text-white/50">
         Zobacz także{" "}
         <Link
           href={REGULAMIN_PATH}

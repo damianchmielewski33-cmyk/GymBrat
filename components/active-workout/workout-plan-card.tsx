@@ -59,10 +59,10 @@ export function WorkoutPlanCard({
         />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-semibold text-white">{name}</p>
-          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-white/40">
+          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-white/50">
             <Calendar className="h-3 w-3 shrink-0" />
             <span className="truncate">{lastActivityLabel}</span>
-            <span className="text-white/25">·</span>
+            <span className="text-white/50">·</span>
             <span>{n} ćw.</span>
           </p>
         </div>
@@ -75,7 +75,7 @@ export function WorkoutPlanCard({
               <Play className="h-4 w-4 fill-current" />
             </span>
           )}
-          <ChevronRight className="h-4 w-4 text-white/25" />
+          <ChevronRight className="h-4 w-4 text-white/50" />
         </div>
       </button>
       {empty ? (

@@ -179,7 +179,7 @@ function AddMealSheetForm({
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
               Wartości odżywcze
             </p>
-            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-white/40">
+            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-white/50">
               <Calculator className="h-3 w-3" />
               4·B + 4·W + 9·T
             </span>
@@ -200,7 +200,7 @@ function AddMealSheetForm({
                   placeholder="—"
                   className={`${inputClass} pr-9`}
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/35">
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/50">
                   g
                 </span>
               </div>
@@ -220,7 +220,7 @@ function AddMealSheetForm({
                   placeholder="—"
                   className={`${inputClass} pr-9`}
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/35">
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/50">
                   g
                 </span>
               </div>
@@ -240,7 +240,7 @@ function AddMealSheetForm({
                   placeholder="—"
                   className={`${inputClass} pr-9`}
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/35">
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/50">
                   g
                 </span>
               </div>
@@ -267,7 +267,7 @@ function AddMealSheetForm({
                 <>
                   <p className="font-heading text-3xl font-semibold tabular-nums tracking-tight text-white">
                     {finalKcal}{" "}
-                    <span className="text-lg font-normal text-white/45">kcal</span>
+                    <span className="text-lg font-normal text-white/50">kcal</span>
                   </p>
                   <p className="text-xs text-emerald-200/75">
                     {hasManualKcal
@@ -276,7 +276,7 @@ function AddMealSheetForm({
                   </p>
                 </>
               ) : (
-                <p className="text-sm text-white/45">
+                <p className="text-sm text-white/50">
                   Uzupełnij makroskładniki lub wpisz kcal ręcznie.
                 </p>
               )}
@@ -302,11 +302,11 @@ function AddMealSheetForm({
               placeholder={computedKcal != null ? String(computedKcal) : "—"}
               className={`${inputClass} pr-16`}
             />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/35">
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/50">
               kcal
             </span>
           </div>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/50">
             Jeśli wpiszesz kcal, aplikacja zapisze je dokładnie tak (np. z etykiety).
             Jeśli zostawisz puste, wyliczymy z makroskładników (4·B + 4·W + 9·T).
           </p>

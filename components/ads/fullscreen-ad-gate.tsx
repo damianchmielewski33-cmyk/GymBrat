@@ -124,7 +124,7 @@ export function FullscreenAdOverlay({
   return createPortal(
     <div className="fixed inset-0 z-[1400] flex flex-col bg-black text-white">
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/40">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/50">
           Reklama · {placement}
         </p>
         <div className="flex min-h-[220px] w-full max-w-sm flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] p-6">

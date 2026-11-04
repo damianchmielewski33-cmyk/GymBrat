@@ -1,10 +1,12 @@
 import { MessageCircle } from "lucide-react";
 
+export const metadata = { title: "Skrzynka" };
+
 export default function InboxPage() {
   return (
     <div className="space-y-5">
       <header className="space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
           Wiadomości
         </p>
         <h1 className="text-3xl font-semibold text-white">Skrzynka</h1>

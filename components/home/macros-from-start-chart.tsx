@@ -1,5 +1,6 @@
 "use client";
 
+import { BRAND_GOLD } from "@/lib/brand-colors";
 import {
   CartesianGrid,
   Legend,
@@ -47,7 +48,7 @@ export function MacrosFromStartChart({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="app-label">Od startu</p>
-          <p className="mt-1 text-xs text-white/45">
+          <p className="mt-1 text-xs text-white/50">
             Makro dzienne · białko, węgle, tłuszcz i pozostałe kcal
             {delta ? ` · ${delta}` : ""}
           </p>
@@ -56,11 +57,16 @@ export function MacrosFromStartChart({
 
       <div className="mt-4 h-[240px] w-full">
         {data.length === 0 ? (
-          <p className="flex h-full items-center justify-center text-xs text-white/40">
+          <p className="flex h-full items-center justify-center text-xs text-white/50">
             Dodaj posiłki w Diecie — tu pojawi się wykres makro i pozostałych kalorii.
           </p>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minHeight={100}
+          initialDimension={{ width: 320, height: 200 }}
+        >
             <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
               <XAxis
@@ -105,7 +111,7 @@ export function MacrosFromStartChart({
                 type="monotone"
                 dataKey="protein"
                 name="Białko"
-                stroke="#ebc44a"
+                stroke={BRAND_GOLD}
                 strokeWidth={2}
                 dot={false}
                 connectNulls

@@ -12,6 +12,8 @@ import { getDb } from "@/db";
 import { userSettings, users } from "@/db/schema";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 
+export const metadata = { title: "Ustawienia diety" };
+
 export default async function ProfileDietPage() {
   const session = await auth();
   const userId = session?.user?.id;

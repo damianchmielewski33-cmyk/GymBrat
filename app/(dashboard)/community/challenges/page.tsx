@@ -16,6 +16,8 @@ import {
 import { getUserProgressionView } from "@/lib/community/progression";
 import { getUserReputation } from "@/lib/community/reputation";
 
+export const metadata = { title: "Wyzwania" };
+
 export default async function GlobalChallengesPage() {
   const session = await auth();
   const userId = session?.user?.id;
@@ -47,7 +49,7 @@ export default async function GlobalChallengesPage() {
         <h1 className="mt-1.5 font-heading text-[24px] font-semibold tracking-tight text-white sm:text-[28px]">
           Wyzwania globalne
         </h1>
-        <p className="mt-2 text-[13px] leading-relaxed text-white/45">
+        <p className="mt-2 text-[13px] leading-relaxed text-white/50">
           Cała społeczność GymBrat — wspólny postęp, XP, reputacja i odznaki.
         </p>
       </header>
@@ -59,10 +61,10 @@ export default async function GlobalChallengesPage() {
         className="app-card relative overflow-hidden p-5"
         aria-labelledby="xp-heading"
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(235,196,74,0.14),transparent_55%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(var(--neon-rgb),0.14),transparent_55%)]" />
         <div className="relative flex items-end justify-between gap-3">
           <div>
-            <p id="xp-heading" className="text-[11px] uppercase tracking-wide text-white/40">
+            <p id="xp-heading" className="text-[11px] uppercase tracking-wide text-white/50">
               Twój poziom
             </p>
             <p className="font-metric text-[40px] leading-none text-white">
@@ -70,7 +72,7 @@ export default async function GlobalChallengesPage() {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] uppercase tracking-wide text-white/40">XP</p>
+            <p className="text-[11px] uppercase tracking-wide text-white/50">XP</p>
             <p className="font-metric text-[22px] text-[var(--gym-gold)]">
               {xp.xpTotal.toLocaleString("pl-PL")}
             </p>
@@ -81,7 +83,7 @@ export default async function GlobalChallengesPage() {
             value={xp.pct}
             label={`Postęp do poziomu ${xp.level + 1}: ${xp.pct}%`}
           />
-          <p className="mt-2 text-[11px] text-white/40">
+          <p className="mt-2 text-[11px] text-white/50">
             {xp.intoLevel} / {xp.needForNext} XP do poziomu {xp.level + 1}
           </p>
         </div>

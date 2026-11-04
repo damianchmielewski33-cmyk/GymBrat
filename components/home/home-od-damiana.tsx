@@ -34,7 +34,7 @@ export function HomeOdDamiana({
           <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-white/85">
             {text.trim()}
           </p>
-          <p className="mt-3 text-[12px] text-white/40">
+          <p className="mt-3 text-[12px] text-white/50">
             Damian{dateKey ? ` · ${formatShort(dateKey)}` : ""}
           </p>
         </div>

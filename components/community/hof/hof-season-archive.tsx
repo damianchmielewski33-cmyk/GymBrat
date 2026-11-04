@@ -11,7 +11,7 @@ export function HofSeasonArchive({
         Archiwum sezonów
       </h2>
       {archive.length === 0 ? (
-        <p className="text-[13px] text-white/40">
+        <p className="text-[13px] text-white/50">
           Po zamknięciu okresów pojawią się tu oficjalne podia.
         </p>
       ) : (
@@ -23,7 +23,7 @@ export function HofSeasonArchive({
                 className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[13px] transition hover:border-[var(--gym-gold)]/30"
               >
                 <span className="text-white">{s.title}</span>
-                <span className="text-white/40">{s.key}</span>
+                <span className="text-white/50">{s.key}</span>
               </Link>
             </li>
           ))}

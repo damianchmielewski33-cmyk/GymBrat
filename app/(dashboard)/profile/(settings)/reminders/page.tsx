@@ -14,6 +14,8 @@ import { isConsentGranted } from "@/lib/consents";
 import { parseRemindersJson } from "@/lib/reminders-types";
 import { getVapidPublicKey, isWebPushConfigured } from "@/lib/web-push";
 
+export const metadata = { title: "Przypomnienia" };
+
 export default async function ProfileRemindersPage() {
   const session = await auth();
   const userId = session?.user?.id;

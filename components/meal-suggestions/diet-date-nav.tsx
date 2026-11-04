@@ -40,7 +40,7 @@ export function DietDateNav({
             <p className="text-[16px] font-semibold tracking-tight text-white">
               Dziś
             </p>
-            <p className="mt-0.5 text-[12px] font-medium capitalize tracking-wide text-white/45">
+            <p className="mt-0.5 text-[12px] font-medium capitalize tracking-wide text-white/50">
               {long}
             </p>
           </>

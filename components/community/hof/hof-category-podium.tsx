@@ -3,7 +3,7 @@ import type { HofCategoryBoard } from "@/lib/community/hof-types";
 export function HofCategoryPodium({ board }: { board: HofCategoryBoard }) {
   if (board.leaders.length === 0) {
     return (
-      <div className="app-card p-4 text-[13px] text-white/40">
+      <div className="app-card p-4 text-[13px] text-white/50">
         {board.emoji} {board.label} — brak danych w tym okresie.
       </div>
     );
@@ -24,7 +24,7 @@ export function HofCategoryPodium({ board }: { board: HofCategoryBoard }) {
                 className={
                   l.rank === 1
                     ? "font-metric text-[18px] text-[var(--gym-gold)]"
-                    : "font-heading text-[16px] text-white/45"
+                    : "font-heading text-[16px] text-white/50"
                 }
               >
                 #{l.rank}

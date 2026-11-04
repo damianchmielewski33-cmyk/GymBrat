@@ -160,6 +160,12 @@
   --radius-card: 1.375rem; /* 22px ≈ radius-3xl */
   --radius-panel: 1rem; /* 16px */
   --radius-nav: 1.875rem; /* 30px belka */
+
+  /* Z68: strefa dolnej nawigacji — jedno źródło dla paddingu treści i pływających widżetów. */
+  --bottom-nav-h: 4.5rem;     /* wysokość belki z zakładkami */
+  --fab-overhang: 1.5rem;     /* wystawanie środkowego przycisku nad belkę */
+  --bottom-gap: 0.65rem;      /* odstęp belki od krawędzi ekranu */
+  --bottom-chrome: calc(var(--bottom-nav-h) + var(--fab-overhang) + var(--bottom-gap));
 }
 
 /* Alias kept for auth / legacy classNames — same tokens as :root */

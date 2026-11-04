@@ -150,12 +150,12 @@ export function ConsentSettingsCard({
           value={new Date(decidedAt).toLocaleString("pl-PL")}
         />
       ) : (
-        <p className="text-xs leading-relaxed text-white/40">
+        <p className="text-xs leading-relaxed text-white/50">
           Nie zapisano jeszcze wyboru — baner pojawi się przy starcie.
         </p>
       )}
 
-      <p className="text-xs leading-relaxed text-white/40">
+      <p className="text-xs leading-relaxed text-white/50">
         Niezbędne pliki cookie (sesja, CSRF) są zawsze włączone.{" "}
         <Link
           href={`${PRIVACY_PATH}#cookies`}

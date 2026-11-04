@@ -5,6 +5,8 @@ import { getExercisesAsCatalog } from "@/lib/exercises/exercises-repository";
 import { createEmptyWorkoutPlan } from "@/lib/workout-plan/plan-draft";
 import { CATALOG_EXERCISES } from "@/lib/workout-exercise-catalog";
 
+export const metadata = { title: "Edytor planu" };
+
 export default async function NowyPlanEdytorPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");

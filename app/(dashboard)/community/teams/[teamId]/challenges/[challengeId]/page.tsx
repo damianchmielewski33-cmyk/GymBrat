@@ -7,6 +7,8 @@ import {
   listPendingCelebrations,
 } from "@/lib/community/challenges";
 
+export const metadata = { title: "Wyzwanie grupy" };
+
 export default async function TeamChallengeDetailPage({
   params,
 }: {

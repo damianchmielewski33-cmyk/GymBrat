@@ -113,7 +113,7 @@ export function ExerciseGoalsEditor({
             type="button"
             disabled={pending}
             onClick={() => persist(targets.filter((x) => x.name !== t.name))}
-            className="shrink-0 text-[11px] text-white/45 disabled:opacity-50"
+            className="shrink-0 text-[11px] text-white/50 disabled:opacity-50"
             aria-label={`Usuń cel ${t.name}`}
           >
             Usuń
@@ -176,7 +176,7 @@ export function ExerciseGoalsEditor({
                 setAdding(false);
                 setError(null);
               }}
-              className="text-white/40"
+              className="text-white/50"
             >
               Anuluj
             </button>

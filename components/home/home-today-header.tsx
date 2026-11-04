@@ -65,7 +65,7 @@ export async function HomeTodayHeader({ userId }: { userId: string }) {
             </>
           ) : null}
         </h1>
-        <p className="mt-1.5 text-[13px] text-white/45">
+        <p className="mt-1.5 text-[13px] text-white/50">
           <Link
             href="/reports?new=1"
             className={

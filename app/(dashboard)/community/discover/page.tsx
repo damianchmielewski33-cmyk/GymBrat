@@ -4,6 +4,8 @@ import { CommunityHubTabs } from "@/components/community/community-hub-tabs";
 import { DiscoverView } from "@/components/community/discover-view";
 import { listPublicTeams } from "@/lib/community/discover";
 
+export const metadata = { title: "Odkrywaj" };
+
 export default async function DiscoverPage() {
   const session = await auth();
   const userId = session?.user?.id;
@@ -18,7 +20,7 @@ export default async function DiscoverPage() {
         <h1 className="mt-1.5 font-heading text-[26px] font-semibold text-white">
           Odkrywaj
         </h1>
-        <p className="mt-2 text-[13px] text-white/45">
+        <p className="mt-2 text-[13px] text-white/50">
           Szukaj atletów i publicznych grup GymBrat.
         </p>
       </header>

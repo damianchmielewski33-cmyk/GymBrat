@@ -127,7 +127,7 @@ export function MealCatalogBrowser({
             }
           >
             {MEAL_SLOT_LABELS[s]}
-            <span className="ml-1 text-white/40">({getMealsBySlot(s, meals).length})</span>
+            <span className="ml-1 text-white/50">({getMealsBySlot(s, meals).length})</span>
           </button>
         ))}
       </div>
@@ -165,11 +165,11 @@ export function MealCatalogBrowser({
             setVisibleCount(12);
           }}
           placeholder="Szukaj w bazie (np. kurczak, owsianka)…"
-          className="h-10 border-white/12 bg-white/[0.05] text-white placeholder:text-white/35 sm:max-w-[320px]"
+          className="h-10 border-white/12 bg-white/[0.05] text-white placeholder:text-white/50 sm:max-w-[320px]"
         />
       </div>
 
-      <p className="text-xs text-white/45">
+      <p className="text-xs text-white/50">
         {MEAL_SLOT_LABELS[slot]}: {filtered.length} z {slotMeals.length} pozycji
       </p>
 
@@ -192,14 +192,14 @@ export function MealCatalogBrowser({
                 {Math.round(meal.approximateMacros.carbsG)} · T{" "}
                 {Math.round(meal.approximateMacros.fatG)}
               </p>
-              <p className="text-[11px] text-white/45">~{meal.prepMinutes} min · zobacz przepis</p>
+              <p className="text-[11px] text-white/50">~{meal.prepMinutes} min · zobacz przepis</p>
             </div>
           </button>
         ))}
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-6 text-center text-sm text-white/45">Brak dań dla tych filtrów.</p>
+        <p className="py-6 text-center text-sm text-white/50">Brak dań dla tych filtrów.</p>
       ) : null}
 
       {visibleCount < filtered.length ? (
@@ -237,7 +237,7 @@ export function MealCatalogBrowser({
                       </SheetDescription>
                     ) : null}
                   </SheetHeader>
-                  <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-white/45">
+                  <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-white/50">
                     <Clock3 className="h-3.5 w-3.5" aria-hidden />
                     ok. {detail.meal.prepMinutes} min · 1 porcja
                   </p>
@@ -285,7 +285,7 @@ export function MealCatalogBrowser({
                       <p className="font-display text-sm tabular-nums text-[var(--gym-gold)]">
                         {m.value}
                       </p>
-                      <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/40">
+                      <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/50">
                         {m.label}
                       </p>
                     </div>
@@ -293,7 +293,7 @@ export function MealCatalogBrowser({
                 </div>
 
                 <div className="mt-6">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
                     Składniki · gramatura
                   </p>
                   <ul className="mt-3 divide-y divide-white/[0.06] rounded-2xl border border-white/[0.08] bg-[#121214]">
@@ -315,7 +315,7 @@ export function MealCatalogBrowser({
                 </div>
 
                 <div className="mt-6 pb-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
                     Jak przygotować
                   </p>
                   <ol className="mt-3 space-y-3">
@@ -351,7 +351,7 @@ export function MealCatalogBrowser({
                       defaultDiarySlot ?? catalogSlotToDiary(detail.meal.slot)
                     }
                   />
-                  <p className="mt-2 text-center text-[10px] text-white/35">
+                  <p className="mt-2 text-center text-[10px] text-white/50">
                     Makro przybliżone dla jednej porcji. Odważ składniki wagą kuchenną.
                   </p>
                 </div>

@@ -183,7 +183,7 @@ export function TeamDetailClient({
           <p className="app-label text-[var(--gym-gold)]">Zaproszenia</p>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[12px] text-white/45">Kod grupy</p>
+              <p className="text-[12px] text-white/50">Kod grupy</p>
               <p className="font-mono text-xl tracking-[0.22em] text-white">
                 {team.inviteCode}
               </p>
@@ -205,7 +205,7 @@ export function TeamDetailClient({
                     <p className="truncate text-sm text-white">
                       {invite.inviteeName ?? invite.inviteeEmail}
                     </p>
-                    <p className="text-[11px] text-white/40">
+                    <p className="text-[11px] text-white/50">
                       {teamRoleLabel(invite.role)}
                     </p>
                   </div>
@@ -228,7 +228,7 @@ export function TeamDetailClient({
               Aktywne treningi
             </h2>
           </div>
-          <span className="text-[12px] text-white/40">
+          <span className="text-[12px] text-white/50">
             {team.liveGroupSessions.length || team.liveNow.length}
           </span>
         </div>
@@ -244,7 +244,7 @@ export function TeamDetailClient({
                   <p className="truncate text-sm font-semibold text-white">
                     {session.title}
                   </p>
-                  <p className="text-[11px] text-white/45">Trening grupowy · live</p>
+                  <p className="text-[11px] text-white/50">Trening grupowy · live</p>
                 </div>
                 {team.isMember ? (
                   <JoinGroupWorkoutButton sessionId={session.id} />
@@ -255,7 +255,7 @@ export function TeamDetailClient({
         ) : null}
 
         {team.liveNow.length === 0 && team.liveGroupSessions.length === 0 ? (
-          <p className="text-[12px] leading-snug text-white/40">
+          <p className="text-[12px] leading-snug text-white/50">
             Nikt nie trenuje teraz.
           </p>
         ) : team.liveNow.length > 0 ? (
@@ -292,7 +292,7 @@ export function TeamDetailClient({
             <Dumbbell className="h-4 w-4 text-white/70" aria-hidden />
             <h2 className="text-[15px] font-semibold text-white">Tablica grupy</h2>
           </div>
-          <p className="text-[13px] leading-relaxed text-white/45">
+          <p className="text-[13px] leading-relaxed text-white/50">
             Dołącz do grupy, aby zobaczyć feed i publikować.
           </p>
         </section>
@@ -304,7 +304,7 @@ export function TeamDetailClient({
             <h2 className="text-[15px] font-semibold text-white">
               Workout Chat
             </h2>
-            <span className="text-[11px] text-white/40">
+            <span className="text-[11px] text-white/50">
               tap · nie zajmuje ekranu
             </span>
           </div>
@@ -329,7 +329,7 @@ export function TeamDetailClient({
           <h2 className="text-[15px] font-semibold text-white">Osiągnięcia</h2>
         </div>
         {team.achievementSummaries.length === 0 ? (
-          <p className="text-[13px] text-white/45">
+          <p className="text-[13px] text-white/50">
             Osiągnięcia grupy pojawią się wraz z aktywnością członków.
           </p>
         ) : (
@@ -380,14 +380,14 @@ export function TeamDetailClient({
                   />
                 ) : null}
               </span>
-              <span className="shrink-0 text-[11px] uppercase tracking-wide text-white/40">
+              <span className="shrink-0 text-[11px] uppercase tracking-wide text-white/50">
                 {teamRoleLabel(member.role)}
               </span>
             </li>
           ))}
         </ul>
         {team.members.length > 8 ? (
-          <p className="text-[12px] text-white/40">
+          <p className="text-[12px] text-white/50">
             +{team.members.length - 8} więcej
           </p>
         ) : null}
@@ -409,12 +409,12 @@ export function TeamDetailClient({
           ) : null}
         </div>
         {!team.isMember ? (
-          <div className="app-card p-5 text-[13px] text-white/45">
+          <div className="app-card p-5 text-[13px] text-white/50">
             Dołącz do grupy, aby brać udział w wyzwaniach.
           </div>
         ) : challenges.length === 0 ? (
           <div className="app-card space-y-3 p-5">
-            <p className="text-[13px] leading-relaxed text-white/45">
+            <p className="text-[13px] leading-relaxed text-white/50">
               Brak aktywnych wyzwań — uruchom 50 treningów, 100 km, 10k pompek
               albo 500 serii nóg.
             </p>

@@ -60,11 +60,11 @@ function TrendMark({ trend }: { trend: "up" | "down" | "flat" | "none" }) {
   if (trend === "none") return null;
   if (trend === "up") return <span aria-hidden className="text-white/55">↗</span>;
   if (trend === "down") return <span aria-hidden className="text-white/55">↘</span>;
-  return <span aria-hidden className="text-white/40">→</span>;
+  return <span aria-hidden className="text-white/50">→</span>;
 }
 
 function scoreColor(n: number | null | undefined): string {
-  if (n == null) return "text-white/35";
+  if (n == null) return "text-white/50";
   if (n >= 8) return "text-emerald-400";
   if (n >= 6) return "text-[var(--gym-gold)]";
   return "text-red-400/90";
@@ -77,7 +77,7 @@ function ComplianceIcon({ value }: { value: string | null }) {
   if (value === "nie") {
     return <X className="mx-auto h-4 w-4 text-red-400" aria-label="Nie" />;
   }
-  return <span className="text-white/35">·</span>;
+  return <span className="text-white/50">·</span>;
 }
 
 type HistoryView = "pomiary" | "samopoczucie" | "plan";
@@ -141,7 +141,7 @@ export function BodyReportHistory({ reports }: Props) {
                   "shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition",
                   view === id
                     ? "bg-[var(--gym-gold)]/20 text-[var(--gym-gold)]"
-                    : "text-white/45 hover:bg-white/[0.05] hover:text-white/70",
+                    : "text-white/50 hover:bg-white/[0.05] hover:text-white/70",
                 )}
               >
                 {label}
@@ -152,7 +152,7 @@ export function BodyReportHistory({ reports }: Props) {
           <div className="overflow-x-auto overscroll-x-contain rounded-b-3xl pb-3 [-webkit-overflow-scrolling:touch] [scrollbar-color:rgba(255,255,255,0.18)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent">
             <table className="min-w-[640px] w-full border-collapse text-sm">
               <thead>
-                <tr className="text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                <tr className="text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
                   <th className="sticky left-0 z-10 bg-[#161618] px-3 py-3 sm:px-4">Data</th>
                   {view === "pomiary" ? (
                     <>

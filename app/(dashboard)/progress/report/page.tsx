@@ -9,6 +9,8 @@ import { getPremiumReport } from "@/lib/premium-report-access";
 const nf = (n: number | null, unit: string) =>
   n == null ? "—" : `${n.toLocaleString("pl-PL", { maximumFractionDigits: 1 })} ${unit}`;
 
+export const metadata = { title: "Raport postępów" };
+
 export default async function PremiumReportPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/progress/report");
@@ -20,7 +22,9 @@ export default async function PremiumReportPage() {
     if (e instanceof AppError && e.code === "PREMIUM_REQUIRED") {
       return (
         <div className="space-y-4">
-          <AppPageHeader kicker="Premium" title="Raport postępów" />
+          <AppPageHeader
+        backHref="/progress"
+        backLabel="Analiza" kicker="Premium" title="Raport postępów" />
           <div className="app-card space-y-3 p-5 text-sm text-white/75">
             <p>Szczegółowy raport postępów do wydruku lub zapisu jako PDF jest dostępny w pakiecie Premium.</p>
             <Link href="/package" className="inline-block text-[var(--gym-gold)] underline">

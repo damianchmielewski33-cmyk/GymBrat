@@ -104,7 +104,7 @@ function MenuRowView({
         className={cn(
           "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border",
           row.disabled
-            ? "border-white/[0.08] bg-white/[0.03] text-white/30"
+            ? "border-white/[0.08] bg-white/[0.03] text-white/50"
             : danger
               ? "border-[var(--destructive)]/35 bg-[var(--destructive)]/10 text-[var(--destructive)]"
               : gold || active
@@ -119,7 +119,7 @@ function MenuRowView({
           className={cn(
             "block text-[14px] font-semibold leading-snug",
             row.disabled
-              ? "text-white/40"
+              ? "text-white/50"
               : danger
                 ? "text-[color-mix(in_srgb,var(--destructive)_85%,white)]"
                 : active
@@ -151,7 +151,7 @@ function MenuRowView({
     row.disabled
       ? "cursor-not-allowed opacity-70"
       : active
-        ? "border border-[rgba(235,196,74,0.35)] bg-[rgba(235,196,74,0.10)]"
+        ? "border border-[rgba(var(--neon-rgb),0.35)] bg-[rgba(var(--neon-rgb),0.10)]"
         : danger
           ? "hover:bg-[var(--destructive)]/10"
           : "border border-transparent hover:bg-white/[0.04]",

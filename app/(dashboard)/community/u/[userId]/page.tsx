@@ -15,6 +15,8 @@ import {
 } from "@/lib/community/social-profile";
 import { ReputationBadge } from "@/components/community/reputation-badge";
 
+export const metadata = { title: "Profil sportowca" };
+
 export default async function PublicProfilePage({
   params,
 }: {
@@ -63,7 +65,7 @@ export default async function PublicProfilePage({
           <p className="mt-2 text-[14px] text-white/55">{card.bio}</p>
         ) : null}
         {access === "teaser" ? (
-          <p className="mt-2 text-[13px] text-white/45">
+          <p className="mt-2 text-[13px] text-white/50">
             Profil ograniczony — zaproś do znajomych lub obserwuj (gdy publiczny).
           </p>
         ) : null}
@@ -75,7 +77,7 @@ export default async function PublicProfilePage({
               ? ` · ${progression.prestigeLabel}`
               : ""}
           </span>
-          <span className="text-[12px] text-white/40">
+          <span className="text-[12px] text-white/50">
             {counts.followers} obserwujących · {counts.following} obserwuje
           </span>
         </div>

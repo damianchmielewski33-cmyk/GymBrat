@@ -60,7 +60,7 @@ function MeterCard({ meter }: { meter: UsageMeter }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/45">
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/50">
             {meter.label}
           </p>
           <p className={cn("font-heading mt-1.5 text-2xl font-semibold tabular-nums", tone.text)}>
@@ -71,12 +71,12 @@ function MeterCard({ meter }: { meter: UsageMeter }) {
             {showBar ? (
               <>
                 {" "}
-                <span className="text-white/35">/</span> {meter.limitLabel}
+                <span className="text-white/50">/</span> {meter.limitLabel}
               </>
             ) : null}
           </p>
         </div>
-        <span className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] uppercase tracking-wide text-white/40">
+        <span className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] uppercase tracking-wide text-white/50">
           {meter.source}
         </span>
       </div>
@@ -95,7 +95,7 @@ function MeterCard({ meter }: { meter: UsageMeter }) {
       )}
 
       {meter.detail ? (
-        <p className="mt-2.5 text-[11px] leading-snug text-white/40">{meter.detail}</p>
+        <p className="mt-2.5 text-[11px] leading-snug text-white/50">{meter.detail}</p>
       ) : null}
     </div>
   );
@@ -212,7 +212,7 @@ export function AdminMonitoringPanel() {
       )}
 
       {data?.hints?.length ? (
-        <ul className="space-y-1 border-t border-white/10 pt-4 text-[11px] text-white/40">
+        <ul className="space-y-1 border-t border-white/10 pt-4 text-[11px] text-white/50">
           {data.hints.map((h) => (
             <li key={h}>• {h}</li>
           ))}

@@ -224,7 +224,7 @@ function IntensityCard({
               intensity.hardSetPct != null ? (
                 <>
                   <AnimatedMetric value={intensity.hardSetPct} decimals={0} />
-                  <span className="text-[12px] text-white/35">%</span>
+                  <span className="text-[12px] text-white/50">%</span>
                 </>
               ) : (
                 "—"
@@ -311,14 +311,14 @@ export function StrengthTab({
         className="app-panel flex items-center justify-between px-3.5 py-3 text-[14px] font-semibold text-white"
       >
         Objętość tygodniowa i regeneracja mięśni
-        <span aria-hidden className="text-white/45">›</span>
+        <span aria-hidden className="text-white/50">›</span>
       </Link>
       <Link
         href="/progress/przeglad-planu"
         className="app-panel flex items-center justify-between px-3.5 py-3 text-[14px] font-semibold text-white"
       >
         Przegląd planu — propozycje zmian
-        <span aria-hidden className="text-white/45">›</span>
+        <span aria-hidden className="text-white/50">›</span>
       </Link>
 
       <ProgressSection

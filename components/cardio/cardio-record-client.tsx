@@ -231,7 +231,7 @@ export function CardioRecordClient() {
       <section className="relative z-10 shrink-0 rounded-t-[28px] bg-black px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-12px_40px_rgba(0,0,0,0.55)]">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
               Dystans
             </p>
             <p className="mt-1 font-metric text-[44px] leading-none text-white">
@@ -240,7 +240,7 @@ export function CardioRecordClient() {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
               Czas
             </p>
             <p className="mt-1 text-[32px] font-semibold tabular-nums leading-none text-white">
@@ -251,33 +251,33 @@ export function CardioRecordClient() {
 
         <div className="mt-4 grid grid-cols-3 gap-2">
           <div className="rounded-2xl border border-white/[0.08] bg-[#121212] px-2.5 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50">
               Tempo
             </p>
             <p className="mt-1.5 text-[20px] font-semibold tabular-nums leading-none text-white">
               {pace}
             </p>
-            <p className="mt-1 text-[10px] text-white/35">min/km</p>
+            <p className="mt-1 text-[10px] text-white/50">min/km</p>
           </div>
           <div className="rounded-2xl border border-white/[0.08] bg-[#121212] px-2.5 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50">
               Kroki
             </p>
             <div className="mt-1.5 flex items-center gap-1.5">
-              <Footprints className="h-3.5 w-3.5 text-white/35" aria-hidden />
+              <Footprints className="h-3.5 w-3.5 text-white/50" aria-hidden />
               <p className="text-[20px] font-semibold tabular-nums leading-none text-white">
                 {steps}
               </p>
             </div>
           </div>
           <div className="rounded-2xl border border-white/[0.08] bg-[#121212] px-2.5 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50">
               Punkty GPS
             </p>
             <p className="mt-1.5 text-[20px] font-semibold tabular-nums leading-none text-white">
               {points.length}
             </p>
-            <p className="mt-1 text-[10px] tabular-nums text-white/35">
+            <p className="mt-1 text-[10px] tabular-nums text-white/50">
               {accuracyM != null ? `± ${Math.round(accuracyM)} m` : geoOk === false ? "brak GPS" : "—"}
             </p>
           </div>
@@ -296,7 +296,7 @@ export function CardioRecordClient() {
           {pending ? "Zapisuję…" : "Stop"}
         </button>
 
-        <p className="mt-3 text-[11px] leading-relaxed text-white/40">
+        <p className="mt-3 text-[11px] leading-relaxed text-white/50">
           Nagrywanie działa, gdy apka jest otwarta: ekran nie zgaśnie. Nie blokuj
           telefonu i nie przełączaj się na inne aplikacje, bo trasa przestanie
           się rysować.

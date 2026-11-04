@@ -19,6 +19,8 @@ import { getDb } from "@/db";
 import { oauthAccounts, users } from "@/db/schema";
 import { getCurrentConsents } from "@/lib/consents";
 
+export const metadata = { title: "Konto i prywatność" };
+
 export default async function ProfileAccountPage({
   searchParams,
 }: {

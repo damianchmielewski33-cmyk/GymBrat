@@ -11,6 +11,8 @@ import {
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { calendarDateKey } from "@/lib/local-date";
 
+export const metadata = { title: "Bilans tygodnia" };
+
 export default async function NutritionWeekPage() {
   const session = await auth();
   const userId = session?.user?.id;

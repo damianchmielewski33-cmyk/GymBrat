@@ -65,7 +65,7 @@ export function SensitiveConsentsCard({ initial }: { initial: SensitiveConsentsI
         description="Powiadomienia push i skrót e-mail o wybranej godzinie. Bez zgody nic nie wysyłamy."
         disabled={pending}
       />
-      <p className="text-xs leading-relaxed text-white/40">
+      <p className="text-xs leading-relaxed text-white/50">
         Cofnięcie zgody wstrzymuje dalszy zapis takich danych. Dane już zapisane usuniesz
         w ustawieniach konta (usunięcie konta kasuje wszystko).
       </p>

@@ -22,7 +22,7 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
       <p className="text-[11px] uppercase tracking-wide text-white/50">{label}</p>
       <p className="mt-1 text-xl font-semibold text-white">{value}</p>
-      {hint ? <p className="mt-0.5 text-[11px] text-white/45">{hint}</p> : null}
+      {hint ? <p className="mt-0.5 text-[11px] text-white/50">{hint}</p> : null}
     </div>
   );
 }

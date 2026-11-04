@@ -160,7 +160,7 @@ export function BodyParamsForm({ initial }: { initial: BodyParamsInitial }) {
               description: o.description,
             }))}
           />
-          <p className="text-xs leading-snug text-white/40">
+          <p className="text-xs leading-snug text-white/50">
             Wpływa na szacunek zapotrzebowania kalorycznego. Nic nie zaznaczaj,
             jeśli nie chcesz zmieniać.
           </p>

@@ -33,7 +33,7 @@ export function CardioLogTypePicker({ value, onChange, disabled }: Props) {
               "inline-flex min-h-11 items-center justify-center rounded-full border px-2 text-[12px] font-semibold transition",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
               pressed
-                ? "border-[rgba(235,196,74,0.55)] bg-[rgba(235,196,74,0.14)] text-[var(--gym-gold)]"
+                ? "border-[rgba(var(--neon-rgb),0.55)] bg-[rgba(var(--neon-rgb),0.14)] text-[var(--gym-gold)]"
                 : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]",
               disabled && "opacity-60",
             )}

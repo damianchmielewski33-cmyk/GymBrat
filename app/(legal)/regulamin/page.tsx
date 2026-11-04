@@ -342,7 +342,7 @@ export default function RegulaminPage() {
         </p>
       </LegalSection>
 
-      <p className="border-t border-white/[0.08] pt-4 text-[13px] text-white/45">
+      <p className="border-t border-white/[0.08] pt-4 text-[13px] text-white/50">
         Adres Regulaminu:{" "}
         <a
           href={`${s.siteUrl}/regulamin`}

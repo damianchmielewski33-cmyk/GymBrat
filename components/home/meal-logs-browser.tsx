@@ -51,7 +51,7 @@ export function MealLogsBrowser({
               )}
             >
               {isToday ? "Dziś" : toLabel(k)}
-              <span className="ml-2 font-mono text-[10px] text-white/35">
+              <span className="ml-2 font-mono text-[10px] text-white/50">
                 {k}
               </span>
             </button>

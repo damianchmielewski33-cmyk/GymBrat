@@ -62,7 +62,7 @@ export function CardioWeekModePicker({ initialMode }: { initialMode: CardioWeekM
             >
               {opt.label}
             </p>
-            <p className="mt-0.5 text-xs text-white/45">{opt.hint}</p>
+            <p className="mt-0.5 text-xs text-white/50">{opt.hint}</p>
           </button>
         );
       })}

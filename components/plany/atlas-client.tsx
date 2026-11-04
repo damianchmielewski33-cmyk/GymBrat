@@ -478,7 +478,7 @@ export function AtlasClient({
                       </p>
                     </div>
                     <ChevronRight
-                      className="h-5 w-5 shrink-0 text-white/40"
+                      className="h-5 w-5 shrink-0 text-white/50"
                       aria-hidden
                     />
                   </button>

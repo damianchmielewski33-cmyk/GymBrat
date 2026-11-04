@@ -143,7 +143,7 @@ export function MacroProgressHero({
           <p
             className={cn(
               "truncate text-[11px] tabular-nums tracking-tight",
-              overGoal ? "text-rose-300/90" : "text-white/45",
+              overGoal ? "text-rose-300/90" : "text-white/50",
             )}
           >
             {mode === "remaining"
@@ -157,7 +157,7 @@ export function MacroProgressHero({
                   }`}
           </p>
         ) : (
-          <p className="truncate text-[11px] text-white/40">
+          <p className="truncate text-[11px] text-white/50">
             Ustaw cel w profilu
           </p>
         )}
@@ -214,7 +214,7 @@ export function MacroProgressHero({
                 className="text-[clamp(1.6rem,6.5vw,2.1rem)] leading-none"
               />
             </p>
-            <p className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-white/45">
+            <p className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-white/50">
               {mode === "remaining" && kcalGoal != null
                 ? `/ ${Math.round(kcalGoal)} kcal`
                 : "kcal"}
@@ -256,7 +256,7 @@ export function MacroProgressHero({
                         over ? (
                           <>
                             +{Math.abs(remaining)}{" "}
-                            <span className="text-[11px] font-medium text-white/40">
+                            <span className="text-[11px] font-medium text-white/50">
                               g nad
                             </span>
                           </>
@@ -268,13 +268,13 @@ export function MacroProgressHero({
                               durationMs={700}
                               className="text-[13px] leading-none sm:text-[15px]"
                             />
-                            <span className="ml-1 text-[11px] font-medium text-white/40">
+                            <span className="ml-1 text-[11px] font-medium text-white/50">
                               g
                             </span>
                           </>
                         )
                       ) : (
-                        <span className="text-white/30">—</span>
+                        <span className="text-white/50">—</span>
                       )}
                     </p>
                   ) : (
@@ -290,12 +290,12 @@ export function MacroProgressHero({
                         className="text-[17px] leading-none sm:text-[19px]"
                       />
                       {row.goal != null ? (
-                        <span className="text-[11px] font-medium text-white/35">
+                        <span className="text-[11px] font-medium text-white/50">
                           {" "}
                           / {Math.round(row.goal)}
                         </span>
                       ) : null}
-                      <span className="ml-1 text-[11px] font-medium text-white/40">
+                      <span className="ml-1 text-[11px] font-medium text-white/50">
                         g
                       </span>
                     </p>
@@ -320,7 +320,7 @@ export function MacroProgressHero({
         </div>
       </div>
 
-      <div className="relative mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.07] pt-3 text-[11px] tabular-nums text-white/45">
+      <div className="relative mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.07] pt-3 text-[11px] tabular-nums text-white/50">
         {macroRows.map((row, i) => (
           <p
             key={row.key}

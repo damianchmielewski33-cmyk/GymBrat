@@ -103,7 +103,7 @@ export function SetMetricField({
             onFocus={(e) => e.currentTarget.select()}
             onBlur={onBlur}
             className={cn(
-              "h-14 min-w-0 flex-1 bg-transparent px-0 text-left font-metric text-[50px] leading-[56px] tabular-nums tracking-tight outline-none placeholder:text-white/30 compact:h-11 compact:text-[40px] compact:leading-[44px]",
+              "h-14 min-w-0 flex-1 bg-transparent px-0 text-left font-metric text-[50px] leading-[56px] tabular-nums tracking-tight outline-none placeholder:text-white/50 compact:h-11 compact:text-[40px] compact:leading-[44px]",
               accent ? "text-[var(--gym-gold)]" : "text-white",
             )}
           />

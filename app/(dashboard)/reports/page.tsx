@@ -20,6 +20,8 @@ function daysUntilNextReport(
   return Math.ceil((next.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
 }
 
+export const metadata = { title: "Raport ciała" };
+
 export default async function ReportsPage() {
   const session = await auth();
   const userId = session?.user?.id;
@@ -64,6 +66,8 @@ export default async function ReportsPage() {
       </Suspense>
 
       <AppPageHeader
+        backHref="/progress"
+        backLabel="Analiza"
         kicker="Raporty"
         title="Dodaj raport"
         description={

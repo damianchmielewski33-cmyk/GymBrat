@@ -56,7 +56,7 @@ function ExerciseStepper({
   return (
     <div>
       <Label className="mb-1.5 block text-[13px]">{label}</Label>
-      <div className="flex h-12 overflow-hidden rounded-2xl border border-[rgba(235,196,74,0.35)] bg-black/50">
+      <div className="flex h-12 overflow-hidden rounded-2xl border border-[rgba(var(--neon-rgb),0.35)] bg-black/50">
         <button
           type="button"
           className="grid h-12 w-12 place-items-center text-white"
@@ -221,7 +221,7 @@ export function PlanEditorClient({
           className={cn(
             "rounded-full border px-3 py-1 text-[12px] font-semibold",
             dirty
-              ? "border-[rgba(235,196,74,0.45)] text-[var(--gym-gold)]"
+              ? "border-[rgba(var(--neon-rgb),0.45)] text-[var(--gym-gold)]"
               : "border-white/15 text-[var(--gym-text-secondary)]",
           )}
           role="status"
@@ -399,7 +399,7 @@ export function PlanEditorClient({
                                 className={cn(
                                   "h-11 rounded-[14px] border text-[14px] font-medium tabular-nums",
                                   on
-                                    ? "border-[rgba(235,196,74,0.6)] bg-[rgba(235,196,74,0.12)] font-bold text-white"
+                                    ? "border-[rgba(var(--neon-rgb),0.6)] bg-[rgba(var(--neon-rgb),0.12)] font-bold text-white"
                                     : "border-[var(--gym-border-gold)] text-white/80",
                                 )}
                                 onClick={() =>

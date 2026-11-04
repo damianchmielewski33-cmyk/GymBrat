@@ -47,11 +47,11 @@ function ComplianceRing({
         </svg>
         <div className="relative z-[1] flex items-baseline gap-0.5 leading-none">
           {pct == null ? (
-            <p className="font-metric text-[22px] text-white/35">—</p>
+            <p className="font-metric text-[22px] text-white/50">—</p>
           ) : (
             <>
               <AnimatedMetric value={Math.round(value)} className="text-[22px] text-white" />
-              <span className="text-[10px] font-medium text-white/40">%</span>
+              <span className="text-[10px] font-medium text-white/50">%</span>
             </>
           )}
         </div>
@@ -68,7 +68,7 @@ function ComplianceRing({
         className={cn(
           "rounded-full border px-2 py-0.5 text-[10px] font-medium",
           pct == null
-            ? "border-white/[0.08] text-white/35"
+            ? "border-white/[0.08] text-white/50"
             : pct >= 80
               ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
               : pct >= 50
@@ -104,7 +104,7 @@ function DotRow({
         className="flex min-w-0 flex-1 items-center gap-[2px] overflow-hidden"
       >
         {slots.length === 0 ? (
-          <p className="text-[11px] text-white/30">Brak danych</p>
+          <p className="text-[11px] text-white/50">Brak danych</p>
         ) : (
           slots.map((s, i) => (
             <span
@@ -135,14 +135,14 @@ function DotRow({
 function FormTile({ label, value }: { label: string; value: number | null }) {
   return (
     <div className="rounded-[16px] border border-white/[0.08] bg-white/[0.03] px-1.5 py-2.5 text-center">
-      <p className="truncate text-[11px] font-medium text-white/45">{label}</p>
+      <p className="truncate text-[11px] font-medium text-white/50">{label}</p>
       {value != null ? (
         <AnimatedMetric
           value={value}
           className="mt-1 text-[22px] leading-none text-white"
         />
       ) : (
-        <p className="mt-1 font-metric text-[22px] leading-none text-white/35">—</p>
+        <p className="mt-1 font-metric text-[22px] leading-none text-white/50">—</p>
       )}
       <div className="mx-auto mt-2 h-1 w-[70%] overflow-hidden rounded-full bg-white/[0.08]">
         <div

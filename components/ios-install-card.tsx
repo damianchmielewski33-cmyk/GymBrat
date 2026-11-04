@@ -92,7 +92,7 @@ export function IosInstallCard() {
         <li>Wybierz „Dodaj do ekranu początkowego”, potem Dodaj.</li>
         <li>Od tej pory uruchamiaj GymBrat z nowej ikony — pełny ekran, bez paska adresu.</li>
       </ol>
-      <p className="mt-3 text-xs text-white/45">
+      <p className="mt-3 text-xs text-white/50">
         Szczegóły i opcjonalny sideload na Macu: dokument w repozytorium{" "}
         <span className="text-white/60">docs/ios-instalacja-bez-developer.md</span>.
       </p>

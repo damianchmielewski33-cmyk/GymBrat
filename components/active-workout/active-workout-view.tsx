@@ -870,7 +870,7 @@ export function ActiveWorkoutView({
                 !storeHydrated || !cloudHydrated || sessionExitPending ? (
                   <div className="flex flex-1 flex-col items-center justify-center gap-2 px-2 py-16 text-center">
                     <div className="h-9 w-9 animate-pulse rounded-full bg-white/[0.08]" />
-                    <p className="text-sm text-white/45">{t("session.loading")}</p>
+                    <p className="text-sm text-white/50">{t("session.loading")}</p>
                   </div>
                 ) : (
                   <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
@@ -881,7 +881,7 @@ export function ActiveWorkoutView({
                       <p className="text-[17px] font-semibold text-white">
                         {t("session.disabledTitle")}
                       </p>
-                      <p className="mt-2 max-w-md text-[13px] text-white/45">
+                      <p className="mt-2 max-w-md text-[13px] text-white/50">
                         {t("session.disabledBody")}
                       </p>
                     </div>

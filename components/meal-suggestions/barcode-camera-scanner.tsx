@@ -870,7 +870,7 @@ export function BarcodeCameraScanner({
                   onChange={(e) => setManualCode(e.target.value)}
                   placeholder="Wpisz kod EAN"
                   inputMode="numeric"
-                  className="h-11 min-w-0 flex-1 rounded-xl border border-white/20 bg-white/[0.06] px-3 text-sm text-white outline-none placeholder:text-white/35"
+                  className="h-11 min-w-0 flex-1 rounded-xl border border-white/20 bg-white/[0.06] px-3 text-sm text-white outline-none placeholder:text-white/50"
                 />
                 <button
                   type="button"

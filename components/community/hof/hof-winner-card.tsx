@@ -16,14 +16,14 @@ export function HofWinnerCard({
   const meta = HOF_CATEGORY_META[board.category];
   return (
     <article
-      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_0_40px_-12px_rgba(235,196,74,0.35)] transition duration-500 hover:border-[var(--gym-gold)]/40"
+      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_0_40px_-12px_rgba(var(--neon-rgb),0.35)] transition duration-500 hover:border-[var(--gym-gold)]/40"
       style={{
         animation: `hofCardIn 0.55s ease-out ${delayMs}ms both`,
       }}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(235,196,74,0.12),transparent_50%)] opacity-80 transition group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(var(--neon-rgb),0.12),transparent_50%)] opacity-80 transition group-hover:opacity-100" />
       <div className="relative">
-        <p className="text-[11px] uppercase tracking-wide text-white/40">
+        <p className="text-[11px] uppercase tracking-wide text-white/50">
           {board.emoji} {board.label}
         </p>
         <h3 className="mt-2 font-heading text-[20px] font-semibold text-white">
@@ -34,7 +34,7 @@ export function HofWinnerCard({
         </p>
         <Link
           href={`/community/u/${champion.userId}`}
-          className="mt-3 inline-flex text-[12px] text-white/45 underline-offset-2 hover:text-white hover:underline"
+          className="mt-3 inline-flex text-[12px] text-white/50 underline-offset-2 hover:text-white hover:underline"
         >
           Profil
         </Link>

@@ -72,22 +72,22 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z56 | Ograniczenie osadzania w iframe | kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z57 | Skan zależności i rotacja sekretów | kod+dok | P2 | S | WORKFLOW I PROCEDURA GOTOWE; sama rotacja NA KONIEC |
 | Z58 | Onboarding świadomy historii | kod | P2 | M | TODO |
-| Z59 | Kontekstowy przycisk pływający | kod | P2 | S | TODO |
-| Z60 | Tytuły stron i nazewnictwo sekcji | kod | P2 | S | TODO |
-| Z61 | Stany ładowania i wykresy bez błędów wymiarów | kod | P2 | S | TODO |
+| Z59 | Kontekstowy przycisk pływający | kod | P2 | S | GOTOWE W KODZIE 2026-11-04: środkowy przycisk belki kontekstowy (`lib/context-fab.ts`); test 375 px do wykonania |
+| Z60 | Tytuły stron i nazewnictwo sekcji | kod | P2 | S | GOTOWE W KODZIE 2026-11-04: tytuły w 65 trasach + test; nazwy w `docs/ux/00-system-projektowy-stan.md` |
+| Z61 | Stany ładowania i wykresy bez błędów wymiarów | kod | P2 | S | GOTOWE W KODZIE 2026-11-04: szkielet i `error.tsx` Analizy, 13 wykresów z `minHeight`/`initialDimension`; brak „width(-1)” do potwierdzenia w przeglądarce |
 | Z62 | Seria 0 kg — świadomy wybór | kod | P2 | S | KOD GOTOWY (okno „Seria bez ciężaru?”, `lib/exercise-load.ts`; E2E 005 p.7 zaktualizowany), TESTY NIEURUCHOMIONE |
 | Z63 | Jedno sterowanie niedokończonym treningiem | kod | P2 | S | KOD GOTOWY (mini-pasek jednowierszowy, ukryty na /treningi); test 375×667 NIEDODANY, TESTY NIEURUCHOMIONE |
 | Z64 | Dostępny formularz raportu ciała | kod | P2 | M | KOD GOTOWY (etykiety, radiogroup, zdjęcia opcjonalne + zgoda), AXE NIEURUCHOMIONE |
-| Z65 | Jeden wzorzec nagłówka ekranu | kod | P2 | M | TODO |
-| Z66 | Tokeny kolorów i kontrast | kod | P2 | M | TODO |
-| Z67 | Jeden komponent kafla statystyki | kod | P2 | S | TODO |
-| Z68 | Strefa bezpieczna dolnej nawigacji | kod | P2 | S | TODO |
-| Z69 | Dokończenie przeglądu wizualnego ekranów | pomiar | P2 | M | TODO |
+| Z65 | Jeden wzorzec nagłówka ekranu | kod | P2 | M | CZĘŚCIOWO 2026-11-04: `AppPageHeader` z `backHref`/`backLabel`, 9 podekranów; brak zrzutów przed/po i przeglądu pozostałych ekranów (Z69) |
+| Z66 | Tokeny kolorów i kontrast | kod | P2 | M | GOTOWE W KODZIE 2026-11-04: test zakazujący literałów, 674 zamiany kontrastu tekstu; kontrast policzony (nie narzędziem na renderze) |
+| Z67 | Jeden komponent kafla statystyki | kod | P2 | S | GOTOWE W KODZIE 2026-11-04: `components/ui/stat-tile.tsx` + 4 nakładki; wygląd do potwierdzenia wizualnie |
+| Z68 | Strefa bezpieczna dolnej nawigacji | kod | P2 | S | CZĘŚCIOWO 2026-11-04: tokeny `--bottom-*` w paddingu treści i widżetach; test 375×667/412×915 NIEWYKONANY; `thumb-action-bar` i globalny pasek treningu bez zmian |
+| Z69 | Dokończenie przeglądu wizualnego ekranów | pomiar | P2 | M | PROCEDURA 2026-11-04: `scripts/ui-review.mjs` + `docs/ux/przeglad-wizualny-i-wcag.md`; zrzuty NIEWYKONANE |
 | Z70 | Mniejszy payload RSC (Dieta/Tydzień, Atlas) | kod | P2 | M | GOTOWE W KODZIE 2026-11-04 (cel < 90 kB NIEZMIERZONY): Atlas bez opisów/wskazówek/linków (szczegóły na żądanie), tydzień żywienia 13 tyg. na start + doładowanie |
 | Z71 | Mniej zapisów synchronizacji treningu | kod | P2 | M | GOTOWE W KODZIE 2026-11-04 (testy NIEURUCHOMIONE): pomijanie PUT bez zmian + heartbeat 60 s; payload nie zmniejszany, metryka tylko lokalnie (`stats()`) |
 | Z72 | CAS w modułach społeczności | kod | P2 | M | GOTOWE W KODZIE 2026-11-03 (testy NIEURUCHOMIONE) |
 | Z73 | Realizacja decyzji o Javie | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
-| Z74 | Dostępność WCAG AA | kod | P2 | M | TODO |
+| Z74 | Dostępność WCAG AA | kod | P2 | M | PROCEDURA 2026-11-04: skrypt axe (wymaga `npm i -D axe-core`) + dokument; audyt NIEWYKONANY |
 | Z75 | Panel finansowy | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z76 | Publiczna strona produktu | kod | P2 | M | TODO |
 | Z77 | Usunięcie `inbox` i roli `trener` | kod | P3 | S | TODO |

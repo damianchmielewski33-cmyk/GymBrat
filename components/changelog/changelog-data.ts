@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Spójny wygląd i lepsza czytelność",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Każda karta przeglądarki ma teraz czytelny tytuł („Bilans tygodnia · GymBrat”), a podekrany mają jednolitą strzałkę wstecz.",
+      "Środkowy przycisk dolnej belki zmienia się z ekranem: „Start” na Treningach, „Dodaj posiłek” w Diecie, „Raport” w Analizie. Dolna belka i pływające widżety nie zasłaniają już treści.",
+      "Jaśniejszy tekst pomocniczy (kontrast zgodny z WCAG AA), jeden wspólny kafel statystyk, szkielet ładowania i obsługa błędu w Analizie oraz wykresy bez błędów wymiarów.",
+    ],
+  },
+  {
     title: "Zapowiedź — Szybsze ekrany i mniej transferu",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

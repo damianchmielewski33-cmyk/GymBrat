@@ -123,7 +123,7 @@ export function AndroidAppVersionCard() {
           )}
 
           {latest ? (
-            <p className="text-xs text-white/45">
+            <p className="text-xs text-white/50">
               Najnowsza kompilacja {latest.versionCode}
               {latest.notes ? ` · ${latest.notes}` : null}
             </p>
@@ -131,7 +131,7 @@ export function AndroidAppVersionCard() {
             <p className="text-xs text-rose-300/90">{error}</p>
           ) : null}
 
-          <p className="text-xs text-white/35">
+          <p className="text-xs text-white/50">
             Po zapisaniu zezwól na instalację z tego źródła. Jeśli masz starą
             GymBrat z innym podpisem — najpierw ją odinstaluj.
           </p>
@@ -167,7 +167,7 @@ export function AndroidAppVersionCard() {
             {installed.versionName}
           </dd>
           {installed.versionCode != null ? (
-            <dd className="mt-0.5 text-xs text-white/45">
+            <dd className="mt-0.5 text-xs text-white/50">
               Kompilacja {installed.versionCode}
             </dd>
           ) : null}
@@ -232,7 +232,7 @@ export function AndroidAppVersionCard() {
 
       {!updateAvailable && latest ? (
         <div className="mt-4 border-t border-white/10 pt-4">
-          <p className="mb-2 text-xs text-white/45">
+          <p className="mb-2 text-xs text-white/50">
             Potrzebujesz świeżego pliku instalacyjnego (np. po odinstalowaniu)?
           </p>
           <ApkDownloadButton
@@ -243,7 +243,7 @@ export function AndroidAppVersionCard() {
         </div>
       ) : null}
 
-      <p className="mt-3 text-[11px] text-white/35">
+      <p className="mt-3 text-[11px] text-white/50">
         Link awaryjny:{" "}
         <a
           href={

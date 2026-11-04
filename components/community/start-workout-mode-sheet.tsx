@@ -63,7 +63,7 @@ export function StartWorkoutModeSheet({
               <span className="block text-[15px] font-semibold text-white">
                 Samodzielnie
               </span>
-              <span className="mt-0.5 block text-[12px] text-white/45">
+              <span className="mt-0.5 block text-[12px] text-white/50">
                 Klasyczny start — bez widżetu grupy
               </span>
             </span>
@@ -85,14 +85,14 @@ export function StartWorkoutModeSheet({
                 <span className="block text-[15px] font-semibold text-white">
                   Trening grupowy
                 </span>
-                <span className="mt-0.5 block text-[12px] text-white/45">
+                <span className="mt-0.5 block text-[12px] text-white/50">
                   Grupa widzi Twoje ćwiczenie, serię i progres (&lt;1s)
                 </span>
               </span>
             </div>
 
             {teams.length === 0 ? (
-              <p className="mt-3 text-[12px] text-white/40">
+              <p className="mt-3 text-[12px] text-white/50">
                 Dołącz do grupy w Społeczności, by startować wspólnie.
               </p>
             ) : (
@@ -121,7 +121,7 @@ export function StartWorkoutModeSheet({
                       <span className="block truncate text-sm font-semibold text-white">
                         {team.name}
                       </span>
-                      <span className="text-[11px] text-white/40">
+                      <span className="text-[11px] text-white/50">
                         {team.memberCount} członków
                       </span>
                     </span>

@@ -12,6 +12,8 @@ import {
   MUSCLE_CATEGORIES,
 } from "@/lib/workout-exercise-catalog";
 
+export const metadata = { title: "Atlas ćwiczeń" };
+
 export default async function AtlasPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");

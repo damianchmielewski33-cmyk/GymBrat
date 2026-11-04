@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { parseProgressTab } from "@/lib/progress-tabs";
 
 /** Legacy route — hub Postępy lives at `/progress`. */
+export const metadata = { title: "Analiza" };
+
 export default async function ProgressAnalysisRedirect({
   searchParams,
 }: {

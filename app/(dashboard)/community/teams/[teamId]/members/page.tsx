@@ -1,12 +1,12 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { TeamMembersPanel } from "@/components/community/team-members-panel";
 import { TeamSubnav } from "@/components/community/team-subnav";
 import { AppPageHeader } from "@/components/layout/screen";
 import { getFriendshipRelation } from "@/lib/community/friendships";
 import { getTeamDetail } from "@/lib/community/teams";
+
+export const metadata = { title: "Członkowie grupy" };
 
 export default async function TeamMembersPage({
   params,
@@ -39,14 +39,9 @@ export default async function TeamMembersPage({
   return (
     <div className="space-y-5">
       <TeamSubnav teamId={teamId} />
-      <Link
-        href={`/community/teams/${teamId}`}
-        className="inline-flex min-h-10 items-center gap-1.5 text-[13px] text-white/60 hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        {team.name}
-      </Link>
       <AppPageHeader
+        backHref={`/community/teams/${teamId}`}
+        backLabel={team.name}
         kicker="Grupy"
         title="Członkowie"
         description="Role: Właściciel · Administrator · Moderator · Członek — możesz też dodać znajomego i udostępnić trening wzajemnie."

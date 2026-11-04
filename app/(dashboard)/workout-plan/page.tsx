@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { DashboardRouteSkeleton } from "@/components/layout/dashboard-route-skeleton";
 import { WorkoutPlanPageContent } from "@/components/treningi/workout-plan-page-content";
 
+export const metadata = { title: "Treningi" };
+
 export default async function WorkoutPlanPage() {
   const session = await auth();
   const userId = session?.user?.id;

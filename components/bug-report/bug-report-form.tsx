@@ -138,7 +138,7 @@ export function BugReportForm() {
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <Label htmlFor="bug-description">Opis błędu</Label>
-            <span className="text-[11px] text-white/40">
+            <span className="text-[11px] text-white/50">
               {photos.length}/{MAX_PHOTOS} zdjęć
             </span>
           </div>
@@ -206,7 +206,7 @@ export function BugReportForm() {
 
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-white/85">
-            Priorytet <span className="text-white/45">(wymagany)</span>
+            Priorytet <span className="text-white/50">(wymagany)</span>
           </legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {BUG_PRIORITIES.map((value) => {

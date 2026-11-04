@@ -45,7 +45,7 @@ export function EmptyAppGuide({
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/45">
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/50">
             Pierwsze kroki
           </p>
           <h2 id="empty-app-guide-heading" className="font-heading mt-1 text-lg font-semibold text-white">
@@ -66,7 +66,7 @@ export function EmptyAppGuide({
               {s.done ? (
                 <CheckCircle2 className="h-5 w-5" aria-hidden />
               ) : (
-                <Circle className="h-5 w-5 text-white/35" aria-hidden />
+                <Circle className="h-5 w-5 text-white/50" aria-hidden />
               )}
             </div>
             <div className="min-w-0 flex-1">

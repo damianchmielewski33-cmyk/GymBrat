@@ -8,6 +8,8 @@ import {
   ProfileSection,
 } from "@/components/profile/profile-ui";
 
+export const metadata = { title: "Aplikacja" };
+
 export default function ProfileAppPage() {
   return (
     <div className="space-y-4">

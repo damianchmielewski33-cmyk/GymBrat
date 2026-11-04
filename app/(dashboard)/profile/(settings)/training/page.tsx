@@ -17,6 +17,8 @@ import { userSettings } from "@/db/schema";
 import { parseCardioWeekMode } from "@/lib/cardio-week-range";
 import { parseProgressDeltaUnit } from "@/lib/progress-delta-unit";
 
+export const metadata = { title: "Trening i postępy" };
+
 export default async function ProfileTrainingPage() {
   const session = await auth();
   const userId = session?.user?.id;

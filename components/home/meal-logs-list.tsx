@@ -135,7 +135,7 @@ export function MealLogsList({
   const finalEditKcal = hasManualEditKcal ? Math.round(manualEditKcal) : computedEditKcal;
 
   const inputClass =
-    "h-11 rounded-xl border-white/12 bg-white/[0.06] px-3.5 text-[15px] text-white shadow-inner shadow-black/20 outline-none transition placeholder:text-white/25 focus-visible:border-[var(--neon)]/40 focus-visible:ring-2 focus-visible:ring-[var(--neon)]/25";
+    "h-11 rounded-xl border-white/12 bg-white/[0.06] px-3.5 text-[15px] text-white shadow-inner shadow-black/20 outline-none transition placeholder:text-white/50 focus-visible:border-[var(--neon)]/40 focus-visible:ring-2 focus-visible:ring-[var(--neon)]/25";
 
   const shell = embedded
     ? "relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-6"
@@ -163,7 +163,7 @@ export function MealLogsList({
         )}
 
         {entries.length === 0 ? (
-          <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-6 text-center text-sm text-white/45">
+          <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-6 text-center text-sm text-white/50">
             Brak wpisów na ten dzień. Użyj przycisku „Dodaj posiłek”, aby je dodać.
           </p>
         ) : (
@@ -177,7 +177,7 @@ export function MealLogsList({
                   <p className="font-medium text-white">
                     {m.name?.trim() ? m.name : "Posiłek"}
                   </p>
-                  <p className="mt-0.5 text-xs text-white/45">
+                  <p className="mt-0.5 text-xs text-white/50">
                     {formatTime(m.createdAtMs)}
                   </p>
                   <p className="mt-2 font-mono text-xs text-white/65">
@@ -230,7 +230,7 @@ export function MealLogsList({
               <input type="hidden" name="date" value={dateKey} />
 
               <div className="space-y-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-                <Label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                <Label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                   Nazwa
                 </Label>
                 <Input
@@ -244,10 +244,10 @@ export function MealLogsList({
 
               <div className="space-y-3 rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-transparent p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                     Wartości odżywcze
                   </p>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-white/40">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-white/50">
                     <Calculator className="h-3 w-3" />
                     4·B + 4·W + 9·T
                   </span>
@@ -274,7 +274,7 @@ export function MealLogsList({
                         placeholder="—"
                         className={`${inputClass} pr-9`}
                       />
-                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/35">
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/50">
                         g
                       </span>
                     </div>
@@ -291,7 +291,7 @@ export function MealLogsList({
                         placeholder="—"
                         className={`${inputClass} pr-9`}
                       />
-                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/35">
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/50">
                         g
                       </span>
                     </div>
@@ -308,7 +308,7 @@ export function MealLogsList({
                         placeholder="—"
                         className={`${inputClass} pr-9`}
                       />
-                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/35">
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/50">
                         g
                       </span>
                     </div>
@@ -328,16 +328,16 @@ export function MealLogsList({
                     <Flame className="h-5 w-5 text-orange-300/90" />
                   </div>
                   <div className="min-w-0 flex-1 space-y-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                       Kalorie
                     </p>
                     {finalEditKcal != null ? (
                       <p className="font-heading text-3xl font-semibold tabular-nums text-white">
                         {finalEditKcal}{" "}
-                        <span className="text-lg font-normal text-white/45">kcal</span>
+                        <span className="text-lg font-normal text-white/50">kcal</span>
                       </p>
                     ) : (
-                      <p className="text-sm text-white/45">
+                      <p className="text-sm text-white/50">
                         Uzupełnij makroskładniki lub wpisz kcal ręcznie.
                       </p>
                     )}
@@ -346,7 +346,7 @@ export function MealLogsList({
               </div>
 
               <div className="space-y-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-                <Label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                <Label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                   Kcal (opcjonalnie)
                 </Label>
                 <div className="relative">
@@ -359,11 +359,11 @@ export function MealLogsList({
                     placeholder={computedEditKcal != null ? String(computedEditKcal) : "—"}
                     className={`${inputClass} pr-16`}
                   />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/35">
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/50">
                     kcal
                   </span>
                 </div>
-                <p className="text-xs text-white/45">
+                <p className="text-xs text-white/50">
                   Zostaw puste, żeby liczyć kcal z makroskładników. Wpisz wartość, żeby nadpisać
                   (np. z etykiety).
                 </p>

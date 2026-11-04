@@ -93,7 +93,7 @@ export function ProfileChipGroup({
                 {o.label}
               </span>
               {o.description ? (
-                <span className="mt-0.5 text-xs text-white/45">
+                <span className="mt-0.5 text-xs text-white/50">
                   {o.description}
                 </span>
               ) : null}
@@ -157,7 +157,7 @@ export function ProfileSwitch({
           {label}
         </span>
         {description ? (
-          <span className="mt-0.5 block text-xs leading-snug text-white/45">
+          <span className="mt-0.5 block text-xs leading-snug text-white/50">
             {description}
           </span>
         ) : null}

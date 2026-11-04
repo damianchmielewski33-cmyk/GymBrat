@@ -27,9 +27,10 @@ export function MainCardShell({
 }) {
   return (
     <section
+      id="next-workout"
       aria-labelledby={titleId}
       className={cn(
-        "app-card relative overflow-hidden p-4 compact:p-3.5",
+        "app-card relative scroll-mt-4 overflow-hidden p-4 compact:p-3.5",
         minHeightClass,
         accent &&
           "border-[var(--gym-gold)]/35 shadow-[0_0_40px_color-mix(in_srgb,var(--gym-gold)_12%,transparent)]",

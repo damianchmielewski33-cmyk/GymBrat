@@ -39,7 +39,7 @@ export function WarMatchCard({
           <p className="mt-1 font-metric text-[28px] text-white">
             {war.scoreA.toFixed(1)}
           </p>
-          <p className="text-[11px] text-white/40">FCS</p>
+          <p className="text-[11px] text-white/50">FCS</p>
         </div>
         <div className="text-center">
           <p className="text-[11px] uppercase tracking-widest text-rose-300/80">
@@ -62,7 +62,7 @@ export function WarMatchCard({
           <p className="mt-1 font-metric text-[28px] text-white">
             {war.scoreB.toFixed(1)}
           </p>
-          <p className="text-[11px] text-white/40">FCS</p>
+          <p className="text-[11px] text-white/50">FCS</p>
         </div>
       </div>
       <div className="relative mt-4 h-2 overflow-hidden rounded-full bg-white/10">
@@ -73,7 +73,7 @@ export function WarMatchCard({
           }}
         />
       </div>
-      <p className="relative mt-2 text-center text-[11px] text-white/40">
+      <p className="relative mt-2 text-center text-[11px] text-white/50">
         {WAR_LEAGUE_META.bronze.label}+ · live score odświeżany przy wejściu
       </p>
     </article>

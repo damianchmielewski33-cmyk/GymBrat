@@ -226,7 +226,7 @@ export function TeamTodayHubView({ hub }: { hub: TeamTodayHub }) {
           <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-gold)]">
             Tydzień w pierścieniach
           </p>
-          <p className="text-[11px] text-white/40">Poniedziałek–niedziela</p>
+          <p className="text-[11px] text-white/50">Poniedziałek–niedziela</p>
         </div>
         <div
           className="flex items-center gap-4"
@@ -277,7 +277,7 @@ export function TeamTodayHubView({ hub }: { hub: TeamTodayHub }) {
             </div>
             {hub.rings.training.usingDefaultTarget ||
             hub.rings.cardio.usingDefaultTarget ? (
-              <p className="text-[11px] text-white/40">
+              <p className="text-[11px] text-white/50">
                 Używamy domyślnego celu.{" "}
                 <Link href="/profile" className="text-[var(--gym-gold)] underline">
                   Zmień w profilu
@@ -312,7 +312,7 @@ export function TeamTodayHubView({ hub }: { hub: TeamTodayHub }) {
                   style={{ width: `${Math.min(100, lvl.pct)}%` }}
                 />
               </div>
-              <p className="mt-1 text-[11px] text-white/40 tabular-nums">
+              <p className="mt-1 text-[11px] text-white/50 tabular-nums">
                 {lvl.intoLevel} / {lvl.needForNext} XP do poziomu {lvl.level + 1}
               </p>
             </div>
@@ -373,7 +373,7 @@ export function TeamTodayHubView({ hub }: { hub: TeamTodayHub }) {
               {hub.mission.quest.unitLabel}
             </p>
             {hub.memberCount < 3 ? (
-              <p className="mt-2 text-[12px] text-white/45">
+              <p className="mt-2 text-[12px] text-white/50">
                 Misje zespołowe działają najlepiej w grupie 3+ osób. Zaproś kogoś,
                 aby przyspieszyć.
               </p>
@@ -408,7 +408,7 @@ export function TeamTodayHubView({ hub }: { hub: TeamTodayHub }) {
           </Link>
         </div>
         {!hub.war.hasPlayed ? (
-          <p className="mt-2 text-[12px] text-white/45">
+          <p className="mt-2 text-[12px] text-white/50">
             Jeszcze nie graliście. Dołączcie do kolejki wojny.
           </p>
         ) : null}
@@ -424,7 +424,7 @@ export function TeamTodayHubView({ hub }: { hub: TeamTodayHub }) {
             Odznaki · {hub.badges.unlockedCount}/{hub.badges.totalCount} zdobytych
           </span>
         </div>
-        <span className="text-white/40">→</span>
+        <span className="text-white/50">→</span>
       </Link>
 
       <Sheet open={consentOpen} onOpenChange={setConsentOpen}>
@@ -608,7 +608,7 @@ export function BadgeCatalogClient({
             <p className="mt-2 text-center text-[13px] font-medium text-white">
               {b.title}
             </p>
-            <p className="mt-0.5 text-center text-[10px] uppercase tracking-wide text-white/40">
+            <p className="mt-0.5 text-center text-[10px] uppercase tracking-wide text-white/50">
               {b.category === "team_quest"
                 ? "Misja"
                 : b.category === "hof"
@@ -618,12 +618,12 @@ export function BadgeCatalogClient({
                     : "Wyzwanie"}
             </p>
             {b.unlocked && b.unlockedAt ? (
-              <p className="mt-1 text-center text-[11px] text-white/45">
+              <p className="mt-1 text-center text-[11px] text-white/50">
                 {new Date(b.unlockedAt).toLocaleDateString("pl-PL")}
               </p>
             ) : null}
             {!b.unlocked && b.targetValue != null ? (
-              <p className="mt-1 text-center text-[11px] tabular-nums text-white/45">
+              <p className="mt-1 text-center text-[11px] tabular-nums text-white/50">
                 {b.progress ?? 0}/{b.targetValue}
                 {b.unitLabel ? ` ${b.unitLabel}` : ""}
               </p>

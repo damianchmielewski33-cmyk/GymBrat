@@ -1,5 +1,6 @@
 "use client";
 
+import { BRAND_GOLD } from "@/lib/brand-colors";
 import { useMemo } from "react";
 import {
   Area,
@@ -15,11 +16,11 @@ import {
 } from "recharts";
 import type { ProgressWeightPoint } from "@/lib/progress-hub";
 
-const GOLD = "#ebc44a";
+const GOLD = BRAND_GOLD;
 
 const tooltipStyle = {
   backgroundColor: "rgba(12, 12, 14, 0.96)",
-  border: "1px solid rgba(235, 196, 74, 0.28)",
+  border: "1px solid rgba(var(--neon-rgb),0.28)",
   borderRadius: "14px",
   fontSize: "12px",
   color: "rgba(255, 255, 255, 0.92)",
@@ -90,7 +91,7 @@ export function WeightAverageChart({
 
   if (data.length === 0) {
     return (
-      <div className="flex h-[220px] items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 text-center text-xs text-white/40">
+      <div className="flex h-[220px] items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 text-center text-xs text-white/50">
         Dodaj raporty lub ważenia, żeby zobaczyć wykres wagi.
       </div>
     );
@@ -98,7 +99,12 @@ export function WeightAverageChart({
 
   return (
     <div className="h-[220px] w-full min-w-0">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minHeight={100}
+          initialDimension={{ width: 320, height: 200 }}
+        >
         <ComposedChart
           data={data}
           margin={{ top: 8, right: 4, left: 0, bottom: 0 }}

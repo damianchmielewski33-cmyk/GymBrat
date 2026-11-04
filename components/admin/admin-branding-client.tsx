@@ -209,7 +209,7 @@ export function AdminBrandingClient() {
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={s.asset.url} alt="" className="h-full w-full object-contain" />
                         ) : (
-                          <ImageIcon className="h-6 w-6 text-white/25" aria-hidden />
+                          <ImageIcon className="h-6 w-6 text-white/50" aria-hidden />
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -219,7 +219,7 @@ export function AdminBrandingClient() {
                             {s.asset ? "Własna" : "Domyślna"}
                           </AdminPill>
                           {s.asset ? (
-                            <span className="text-[11px] text-white/40">
+                            <span className="text-[11px] text-white/50">
                               {formatUpdated(s.asset.updatedAt)}
                             </span>
                           ) : null}

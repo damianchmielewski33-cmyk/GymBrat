@@ -336,7 +336,7 @@ function CardioLogSheetDialog({
           className="pointer-events-none absolute inset-0 opacity-90"
           style={{
             background:
-              "linear-gradient(165deg, rgba(235,196,74,0.16) 0%, transparent 58%)",
+              "linear-gradient(165deg, rgba(var(--neon-rgb),0.16) 0%, transparent 58%)",
           }}
           aria-hidden
         />
@@ -560,7 +560,7 @@ function CardioLogSheetDialog({
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_8px_28px_rgba(235,196,74,0.45)] disabled:opacity-60"
+                className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_8px_28px_rgba(var(--neon-rgb),0.45)] disabled:opacity-60"
               >
                 {pending ? (
                   <>

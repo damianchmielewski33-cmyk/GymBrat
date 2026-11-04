@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { CardioDetailClient } from "@/components/cardio/cardio-detail-client";
 import { getCardioActivity } from "@/lib/cardio-queries";
 
+export const metadata = { title: "Szczegóły cardio" };
+
 export default async function CardioDetailPage({
   params,
 }: {

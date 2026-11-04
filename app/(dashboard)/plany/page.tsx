@@ -7,6 +7,8 @@ import { summarizePlanDayMuscles } from "@/lib/plan-day-muscles";
 import { planSetCount } from "@/lib/workout-plan/plan-draft";
 import { CATALOG_EXERCISES } from "@/lib/workout-exercise-catalog";
 
+export const metadata = { title: "Plany" };
+
 export default async function PlanyPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");

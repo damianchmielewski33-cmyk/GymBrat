@@ -119,3 +119,8 @@ Zapisane na podstawie odpowiedzi właściciela (backlog US1). Kod zależny od de
 | # | Zadanie | Decyzja |
 |---|---|---|
 | DK-27 | Z41/Z70/Z71/Z79 Wydajność | **Zakres:** Z71 + Z70 + Z79 w kodzie, Z41 jako skrypt/budżety bez pomiaru (npm zablokowany). **Z79:** bez SSE (ryzykowne na serverless) — dłuższy/adaptacyjny interwał, pauza w tle, krótki cache list. **Z70:** Atlas wysyła klientowi katalog bez opisów/wskazówek/linków YouTube (akcja `getExerciseDetail` na żądanie karty); `/nutrition/week` ładuje 13 tygodni, starsze doładowuje `loadMoreNutritionWeeks`. **Z71:** `PUT` aktywnej sesji pomijany, gdy payload identyczny jak ostatnio wysłany (heartbeat co 60 s). **Z41:** budżety w `docs/wydajnosc/budzety.json` — progi dla ekranów po zalogowaniu są propozycją do zatwierdzenia po pierwszym pomiarze. |
+
+## US17 — decyzje (2026-11-04)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-28 | Z59/Z60/Z61/Z65/Z66/Z67/Z68/Z69/Z74 Spójność i dostępność | **Zakres:** kod Z59–Z61, Z65–Z68; Z69 i Z74 jako procedura + skrypt (brak uruchomionej aplikacji). **Z60:** „Dieta” = hub (dziennik/plan/przepisy), „Bilans” = makro dnia/tygodnia. **Z59:** środkowy przycisk belki: Treningi „Start”, Dieta „Dodaj posiłek”, Analiza i Start „Raport”; pozostałe ekrany bez zmian (Społeczność, Profil, plany — brak przycisku). **Z65:** główne sekcje logo + menu, podekrany strzałka wstecz + tytuł (`AppPageHeader`), bez nowego komponentu; migracja ekranów łamiących regułę. **Z66 (decyzja wykonawcza do potwierdzenia):** tekst pomocniczy `text-white/20…45` podniesiony do `/50` (AA) — zmienia hierarchię wizualną na ~170 plikach. |

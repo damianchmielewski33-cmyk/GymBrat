@@ -160,3 +160,18 @@ Nagłówek: `AppPageHeader`; sekcja: `SectionLabel` lub `ProgressSection`; konte
 | 14 | Ładowanie: szkielety vs spinnery vs `ScreenLoading`; brak `loading.tsx` w admin i podtrasach | sekcja 5 | Niski |
 | 15 | Kolor PWA `#07080d` / root `themeColor` vs `--gym-black #070708`; statyczny manifest z `/next.svg` | `app/layout.tsx`, `app/api/branding/manifest/route.ts`, `public/manifest.webmanifest` | Niski |
 | 16 | Brak trybu jasnego mimo martwego bloku `.dark` | `app/globals.css`, `app/layout.tsx` | Niski (decyzja produktowa) |
+
+## Nazewnictwo sekcji i tytuły stron (Z60, 2026-11-04)
+
+Tytuł karty = „Nazwa · GymBrat” (szablon w `app/layout.tsx`, nazwę ustawia `metadata.title` trasy; test `lib/page-titles.test.ts`).
+
+| Sekcja (dolna belka) | Nazwa | Uwagi |
+|---|---|---|
+| `/` | Start | pulpit dnia |
+| `/workout-plan` | Treningi | hub treningów |
+| `/meal-suggestions` | **Dieta** | dziennik, plan, przepisy, skan |
+| `/nutrition/today`, `/nutrition/week` | **Bilans dnia / tygodnia** | podsumowanie makro (decyzja DK-28) |
+| `/progress` | Analiza | |
+| `/community/teams` | Społeczność / Grupy | |
+| `/reports` | Raport ciała | |
+| `/profile/*` | Profil | |

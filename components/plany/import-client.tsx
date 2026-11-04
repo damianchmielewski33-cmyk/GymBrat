@@ -246,7 +246,7 @@ export function ImportClient() {
               {error}
             </InlineBanner>
           ) : null}
-          <div className="mt-5 rounded-[22px] border border-dashed border-[rgba(235,196,74,0.5)] p-5 text-center">
+          <div className="mt-5 rounded-[22px] border border-dashed border-[rgba(var(--neon-rgb),0.5)] p-5 text-center">
             <FileUp className="mx-auto h-8 w-8 text-[var(--gym-gold)]" aria-hidden />
             <p className="mt-3 text-[15px] font-semibold text-white">
               Wybierz plik z urządzenia
@@ -314,7 +314,7 @@ export function ImportClient() {
                 className={cn(
                   "rounded-full border px-2.5 py-1 text-[12px] font-semibold",
                   onlyReview
-                    ? "border-[rgba(235,196,74,0.55)] text-[var(--gym-gold)]"
+                    ? "border-[rgba(var(--neon-rgb),0.55)] text-[var(--gym-gold)]"
                     : "border-white/15 text-[var(--gym-text-secondary)]",
                 )}
                 onClick={() => setOnlyReview((v) => !v)}
@@ -387,7 +387,7 @@ export function ImportClient() {
                           ex.confidence === "low" && !ex.corrected
                             ? "border-[rgba(255,51,71,0.35)]"
                             : ex.confidence === "name_check" && !ex.corrected
-                              ? "border-[rgba(235,196,74,0.35)]"
+                              ? "border-[rgba(var(--neon-rgb),0.35)]"
                               : "border-white/10",
                         )}
                       >

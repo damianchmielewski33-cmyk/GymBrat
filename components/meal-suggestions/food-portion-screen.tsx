@@ -73,14 +73,14 @@ function SlotImpactCard({
   return (
     <div className="rounded-[18px] border border-white/[0.08] bg-[#161616] px-4 py-3.5">
       <p className="text-[12px] leading-snug text-white/55">
-        <span className="text-white/40">W posiłku zostało:</span>{" "}
+        <span className="text-white/50">W posiłku zostało:</span>{" "}
         <span className="tabular-nums text-white/80">
           B {fmt0(left.proteinG)} g · W {fmt0(left.carbsG)} g · T {fmt0(left.fatG)}{" "}
           g · {fmt0(left.calories)} kcal
         </span>
       </p>
       <p className="mt-1.5 text-[12px] leading-snug text-white/55">
-        <span className="text-white/40">Po dodaniu:</span>{" "}
+        <span className="text-white/50">Po dodaniu:</span>{" "}
         <span className="tabular-nums text-white/80">
           B {fmt0(after.proteinG)} g · W {fmt0(after.carbsG)} g · T{" "}
           {fmt0(after.fatG)} g · {fmt0(after.calories)} kcal
@@ -235,7 +235,7 @@ export function FoodPortionScreen({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {brandLine ? (
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
                 {brandLine}
               </p>
             ) : null}
@@ -251,7 +251,7 @@ export function FoodPortionScreen({
               {macros ? fmt0(macros.calories) : "—"}{" "}
               <span className="text-[16px] font-medium text-white/70">kcal</span>
             </p>
-            <p className="mt-1 text-[12px] text-white/40">
+            <p className="mt-1 text-[12px] text-white/50">
               w {Number.isFinite(amount) ? fmt0(amount) : "—"} {amountUnitLabel}
             </p>
           </div>
@@ -280,7 +280,7 @@ export function FoodPortionScreen({
                   className="w-full bg-transparent text-center font-display text-[40px] font-semibold leading-none tabular-nums text-white outline-none"
                   aria-label="Ilość"
                 />
-                <p className="mt-1 text-[13px] text-white/40">{amountUnitLabel}</p>
+                <p className="mt-1 text-[13px] text-white/50">{amountUnitLabel}</p>
               </div>
               <button
                 type="button"
@@ -357,11 +357,11 @@ export function FoodPortionScreen({
                     <p className="font-display text-[22px] font-semibold leading-none tabular-nums text-white">
                       {value}
                     </p>
-                    <p className="mt-1.5 text-[11px] text-white/40">{label}</p>
+                    <p className="mt-1.5 text-[11px] text-white/50">{label}</p>
                   </div>
                 ))}
               </div>
-              <p className="mt-3 text-center text-[11px] tabular-nums text-white/35">
+              <p className="mt-3 text-center text-[11px] tabular-nums text-white/50">
                 Na 100 g: B {fmt1(per100.proteinG)} · W {fmt1(per100.carbsG)} · T{" "}
                 {fmt1(per100.fatG)} · {fmt0(per100.calories)} kcal
               </p>

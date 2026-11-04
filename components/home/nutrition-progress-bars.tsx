@@ -70,7 +70,7 @@ function BarBlock({
             <span className={isOver ? "text-rose-300" : "text-white"}>
               {percent.toFixed(1)}%
             </span>
-            <span className="mt-0.5 block text-sm font-normal leading-snug text-white/45 sm:ml-1 sm:mt-0 sm:inline sm:text-base">
+            <span className="mt-0.5 block text-sm font-normal leading-snug text-white/50 sm:ml-1 sm:mt-0 sm:inline sm:text-base">
               realizacji celu kalorycznego
             </span>
           </p>

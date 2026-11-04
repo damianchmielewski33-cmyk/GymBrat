@@ -5,6 +5,8 @@ import { isPackageCheckoutEnabled } from "@/lib/feature-flags";
 import { listSubscriptionPlans } from "@/lib/subscription-plans";
 import { getUserPackageStatus } from "@/lib/user-package";
 
+export const metadata = { title: "Pakiet" };
+
 export default async function PackagePage({
   searchParams,
 }: {

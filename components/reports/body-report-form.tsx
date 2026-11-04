@@ -224,7 +224,7 @@ function StepBadge({
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">
           Krok {step} z {TOTAL_STEPS}
         </p>
         <h3 className="font-heading text-xl font-semibold text-white">{title}</h3>
@@ -301,14 +301,14 @@ function MeasureInput({
         placeholder={hint ?? "—"}
         aria-invalid={invalid || undefined}
         className={cn(
-          "w-full rounded-xl border bg-black/50 px-3 text-white outline-none transition placeholder:text-white/30",
+          "w-full rounded-xl border bg-black/50 px-3 text-white outline-none transition placeholder:text-white/50",
           "focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25",
           large ? "h-14 text-2xl font-semibold tabular-nums" : "h-12 text-lg tabular-nums",
           invalid ? "border-red-500/55" : "border-[var(--gym-gold)]/22",
         )}
       />
       {hint && !value.trim() ? (
-        <p id={`${id}-hint`} className="mt-1 text-[10px] text-white/30">
+        <p id={`${id}-hint`} className="mt-1 text-[10px] text-white/50">
           Ostatnio: {hint}
         </p>
       ) : null}
@@ -353,7 +353,7 @@ function ScoreBars({
             {value}/10
           </p>
         ) : hint != null && !readOnly ? (
-          <p className="text-[10px] text-white/30">ostatnio {hint}</p>
+          <p className="text-[10px] text-white/50">ostatnio {hint}</p>
         ) : null}
       </div>
       <div
@@ -405,7 +405,7 @@ function ScoreBars({
         })}
       </div>
       {readOnly ? null : (
-        <div className="mt-1 flex justify-between text-[10px] text-white/35" aria-hidden>
+        <div className="mt-1 flex justify-between text-[10px] text-white/50" aria-hidden>
           <span>1 – {lowLabel}</span>
           <span>10 – {highLabel}</span>
         </div>
@@ -465,7 +465,7 @@ function TakNieToggle({
         {label}
       </p>
       {hintLabel && !value ? (
-        <p className="mb-1.5 text-center text-[9px] text-white/30">{hintLabel}</p>
+        <p className="mb-1.5 text-center text-[9px] text-white/50">{hintLabel}</p>
       ) : (
         <p className="mb-1.5 h-[14px]" aria-hidden />
       )}
@@ -1026,7 +1026,7 @@ export function BodyReportForm({
           <button
             type="button"
             onClick={() => closeWizard({ clearDraft: true })}
-            className="text-[11px] font-medium uppercase tracking-wide text-white/40 underline-offset-2 hover:text-white/70 hover:underline"
+            className="text-[11px] font-medium uppercase tracking-wide text-white/50 underline-offset-2 hover:text-white/70 hover:underline"
           >
             Anuluj
           </button>
@@ -1191,7 +1191,7 @@ export function BodyReportForm({
                 value={complianceNotes}
                 onChange={(e) => setComplianceNotes(e.target.value)}
                 placeholder="np. cardio 1× zamiast 2×, delegacja w tygodniu"
-                className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
+                className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/50 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
               />
             </div>
           ) : null}
@@ -1241,7 +1241,7 @@ export function BodyReportForm({
               </label>
             </div>
           ) : (
-            <p className="mt-4 text-[12px] text-white/40">
+            <p className="mt-4 text-[12px] text-white/50">
               Możesz pominąć ten krok — zdjęcia nie są wymagane do zapisu raportu.
             </p>
           )}
@@ -1271,7 +1271,7 @@ export function BodyReportForm({
                 key={label}
                 className="rounded-2xl border border-white/10 bg-black/35 px-3 py-2.5"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
                   {label}
                 </p>
                 <p className="mt-1 text-sm font-semibold tabular-nums text-[var(--gym-gold)]">{val}</p>
@@ -1320,7 +1320,7 @@ export function BodyReportForm({
                         className="aspect-[3/4] w-full object-cover"
                       />
                     ) : (
-                      <div className="flex aspect-[3/4] items-center justify-center text-[10px] text-white/35">
+                      <div className="flex aspect-[3/4] items-center justify-center text-[10px] text-white/50">
                         Brak
                       </div>
                     )}
@@ -1341,7 +1341,7 @@ export function BodyReportForm({
               value={additionalInfo}
               onChange={(e) => setAdditionalInfo(e.target.value)}
               placeholder="Opcjonalnie…"
-              className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
+              className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/50 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
             />
           </div>
         </div>

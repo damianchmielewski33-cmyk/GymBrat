@@ -109,7 +109,7 @@ export function TeamFeedComposer({
                 onClick={() => insertMention(c)}
               >
                 <span className="text-white">{c.displayName}</span>
-                <span className="text-[12px] text-white/40">@{c.handle}</span>
+                <span className="text-[12px] text-white/50">@{c.handle}</span>
               </button>
             ))}
           </div>

@@ -35,7 +35,7 @@ function IngredientGroup({
   if (items.length === 0) return null;
   return (
     <div className="mt-3">
-      <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-white/45">
+      <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-white/50">
         {TAG_LABELS[kind]}
       </p>
       <div className="flex flex-wrap gap-1.5">
@@ -118,7 +118,7 @@ export function FoodNutritionDetailsPanel({
       </div>
 
       <div className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/45">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">
           Pozostałe
         </p>
         <div className="flex gap-6 text-sm">
@@ -135,7 +135,7 @@ export function FoodNutritionDetailsPanel({
             </span>
           </div>
         </div>
-        <p className="mt-2 text-[10px] leading-snug text-white/35">
+        <p className="mt-2 text-[10px] leading-snug text-white/50">
           *Opiera się o dane, które posiadamy (np. które dostarczył producent)
         </p>
       </div>
@@ -144,7 +144,7 @@ export function FoodNutritionDetailsPanel({
         <div className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/45">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">
                 Składniki
               </p>
               {details?.ingredientsText ? (
@@ -152,7 +152,7 @@ export function FoodNutritionDetailsPanel({
                   {details.ingredientsText}
                 </p>
               ) : (
-                <p className="text-sm text-white/40">Brak danych o składzie</p>
+                <p className="text-sm text-white/50">Brak danych o składzie</p>
               )}
             </div>
             {score ? (

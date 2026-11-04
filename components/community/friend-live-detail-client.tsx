@@ -1,5 +1,6 @@
 "use client";
 
+import { StatTile } from "@/components/ui/stat-tile";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Eye } from "lucide-react";
@@ -89,7 +90,7 @@ export function FriendLiveDetailClient({
         <h1 className="font-heading text-[24px] font-semibold text-white">
           {name}
         </h1>
-        <p className="text-[13px] text-white/45">
+        <p className="text-[13px] text-white/50">
           Tylko odczyt — nie dołączasz do sesji i nie publikujesz własnego
           status w ich treningu.
         </p>
@@ -110,7 +111,7 @@ export function FriendLiveDetailClient({
           </Link>
         </div>
       ) : loading && !live ? (
-        <div className="app-card animate-pulse p-8 text-center text-white/40">
+        <div className="app-card animate-pulse p-8 text-center text-white/50">
           Ładowanie…
         </div>
       ) : !live ? (
@@ -118,7 +119,7 @@ export function FriendLiveDetailClient({
           <p className="text-[14px] text-white/60">
             {name} nie trenuje teraz (albo status wygasł).
           </p>
-          <p className="text-[12px] text-white/35">
+          <p className="text-[12px] text-white/50">
             Dostaniesz powiadomienie, gdy znajomy z mutual share zacznie
             trening.
           </p>
@@ -141,7 +142,7 @@ export function FriendLiveDetailClient({
           </div>
 
           <div>
-            <p className="text-[11px] uppercase tracking-wide text-white/35">
+            <p className="text-[11px] uppercase tracking-wide text-white/50">
               Ćwiczenie
             </p>
             <p className="mt-1 font-heading text-[22px] font-semibold text-white">
@@ -166,7 +167,7 @@ export function FriendLiveDetailClient({
           </div>
 
           <div>
-            <div className="mb-1.5 flex justify-between text-[11px] text-white/40">
+            <div className="mb-1.5 flex justify-between text-[11px] text-white/50">
               <span>Postęp</span>
               <span className="tabular-nums">{p?.progressPercent ?? 0}%</span>
             </div>
@@ -184,7 +185,7 @@ export function FriendLiveDetailClient({
             </p>
           ) : null}
 
-          <p className="inline-flex items-center gap-1.5 text-[12px] text-white/35">
+          <p className="inline-flex items-center gap-1.5 text-[12px] text-white/50">
             <Eye className="h-3.5 w-3.5" aria-hidden />
             Odświeżanie ~1 s
           </p>
@@ -195,12 +196,5 @@ export function FriendLiveDetailClient({
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-white/[0.06] bg-black/30 px-3 py-2.5">
-      <p className="text-[10px] uppercase tracking-wide text-white/35">{label}</p>
-      <p className="mt-1 font-metric text-[18px] tabular-nums text-white">
-        {value}
-      </p>
-    </div>
-  );
+  return <StatTile surface="inset" label={label} value={value} valueClassName="text-[18px]" />;
 }

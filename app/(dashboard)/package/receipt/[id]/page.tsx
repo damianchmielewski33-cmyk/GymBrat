@@ -7,6 +7,8 @@ import { getUserOrder } from "@/lib/orders";
 import { formatOrderDate, formatPln } from "@/lib/orders-format";
 import { getIssuedReceipt } from "@/lib/receipts";
 
+export const metadata = { title: "Potwierdzenie zamówienia" };
+
 export default async function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
@@ -18,7 +20,9 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="space-y-4">
-      <AppPageHeader kicker="Pakiet" title="Potwierdzenie zakupu" />
+      <AppPageHeader
+        backHref="/package/orders"
+        backLabel="Zamówienia" kicker="Pakiet" title="Potwierdzenie zakupu" />
       {!receipt ? (
         <ReceiptForm orderId={id} />
       ) : (

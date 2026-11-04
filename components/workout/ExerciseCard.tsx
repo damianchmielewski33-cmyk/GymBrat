@@ -61,13 +61,13 @@ export function ExerciseCard({
         <h3 className="text-[17px] font-semibold leading-snug tracking-tight text-white">
           {exercise.name}
         </h3>
-        <p className="mt-0.5 text-[12px] text-white/40">
+        <p className="mt-0.5 text-[12px] text-white/50">
           {exercise.sets.length} {exercise.sets.length === 1 ? "seria" : "serii"}
         </p>
       </div>
 
       {/* Nagłówki tabeli — ukryte na mobile (SetRow ma własne etykiety) */}
-      <div className="hidden border-b border-white/[0.06] bg-[#151515] px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/35 sm:grid sm:grid-cols-[44px_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1fr)_48px] sm:gap-2 sm:px-5">
+      <div className="hidden border-b border-white/[0.06] bg-[#151515] px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/50 sm:grid sm:grid-cols-[44px_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1fr)_48px] sm:gap-2 sm:px-5">
         <span className="text-center">#</span>
         <span className="text-center">Poprzednio</span>
         <span className="text-center">kg</span>
@@ -91,11 +91,11 @@ export function ExerciseCard({
 
       <div className="flex flex-col gap-3 border-t border-white/[0.06] bg-[#151515] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
             Tonaż ćwiczenia
           </p>
           <p className="mt-0.5 text-lg font-semibold tabular-nums text-white">
-            {formatVolumeKg(exTotal)} <span className="text-sm font-normal text-white/45">kg</span>
+            {formatVolumeKg(exTotal)} <span className="text-sm font-normal text-white/50">kg</span>
           </p>
         </div>
         <motion.button

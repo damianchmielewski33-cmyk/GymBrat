@@ -529,7 +529,7 @@ export function RegisterForm({
         {registrationClosed ? null : (
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
                 Krok {stepIndex + 1 - firstStepIndex} z {steps.length - firstStepIndex}
               </p>
               {stepIndex > firstStepIndex ? (
@@ -901,7 +901,7 @@ export function RegisterForm({
                     className={cn(errors.age && "border-destructive")}
                     {...register("age")}
                   />
-                  <p className="text-[11px] leading-snug text-white/40">
+                  <p className="text-[11px] leading-snug text-white/50">
                     Aplikacja jest dla osób od {MIN_USER_AGE} lat. Podając wiek, oświadczasz, że masz co najmniej {MIN_USER_AGE} lat.
                   </p>
                   {errors.age ? (
@@ -986,7 +986,7 @@ export function RegisterForm({
                   className="w-full accent-[var(--gym-gold)]"
                   aria-label="Dni treningowe w tygodniu"
                 />
-                <div className="flex justify-between text-[11px] text-white/35">
+                <div className="flex justify-between text-[11px] text-white/50">
                   <span>1</span>
                   <span>7</span>
                 </div>
@@ -998,7 +998,7 @@ export function RegisterForm({
                 ) : null}
 
                 <fieldset className="space-y-2.5 rounded-xl border border-white/[0.08] bg-black/30 px-3 py-3">
-                  <legend className="px-1 text-[11px] font-semibold uppercase tracking-wider text-white/40">
+                  <legend className="px-1 text-[11px] font-semibold uppercase tracking-wider text-white/50">
                     Zgody (opcjonalne)
                   </legend>
                   <label className="flex items-start gap-3">
@@ -1027,7 +1027,7 @@ export function RegisterForm({
                       {SENSITIVE_CONSENT_COPY.photos.body}
                     </span>
                   </label>
-                  <p className="text-[11px] text-white/35">
+                  <p className="text-[11px] text-white/50">
                     Możesz pominąć — zgodę wyrazisz później przy pierwszym zapisie albo w Profilu.
                   </p>
                 </fieldset>
@@ -1052,7 +1052,7 @@ export function RegisterForm({
         ) : null}
 
         {oauthContinue && oauthPrefill?.email ? (
-          <p className="text-center text-xs text-white/45">
+          <p className="text-center text-xs text-white/50">
             Rejestracja:{" "}
             <span className="font-medium text-white/75">
               {oauthPrefill.email}

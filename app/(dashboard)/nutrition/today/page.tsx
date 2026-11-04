@@ -9,6 +9,8 @@ import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { calendarDateKey } from "@/lib/local-date";
 import { buildMacroBalanceViewModel } from "@/lib/nutrition-day-balance";
 
+export const metadata = { title: "Bilans dnia" };
+
 export default async function NutritionTodayPage() {
   const session = await auth();
   const userId = session?.user?.id;

@@ -34,7 +34,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US14 | Jakość: lint, E2E, bramki wdrożeniowe | P1 | XL | Z42, Z43, Z45, Z46 | CZĘŚCIOWO 2026-11-03: Z45 zrobione i uruchomione; Z43/Z46 kod gotowy, NIEURUCHOMIONE; Z42 (lint) TODO — brak eslinta w sesji |
 | US15 | Dane i architektura | P1 | XL | Z39, Z40, Z72 | GOTOWE W KODZIE 2026-11-03 (za flagami; testy/tsc NIEURUCHOMIONE, brak npm): Z72 pełne; Z40 runner + `SCHEMA_MODE` (domyślnie `ensure`); Z39 S3 dla zdjęć raportów (domyślnie wyłączone), bez miniatur i uploadu z klienta |
 | US16 | Wydajność | P2 | L | Z41, Z70, Z71, Z79 | GOTOWE W KODZIE 2026-11-04 (testy/tsc/pomiary NIEURUCHOMIONE, brak npm): Z71, Z79, Z70 w kodzie; Z41 skrypt + budżety + krok CI, bez pomiaru na buildzie |
-| US17 | Spójność wizualna i dostępność | P2 | XL | Z59, Z60, Z61, Z65, Z66, Z67, Z68, Z69, Z74 | TODO |
+| US17 | Spójność wizualna i dostępność | P2 | XL | Z59, Z60, Z61, Z65, Z66, Z67, Z68, Z69, Z74 | CZĘŚCIOWO 2026-11-04 (testy/tsc/lint/podgląd NIEURUCHOMIONE): Z59, Z60, Z61, Z65, Z66, Z67, Z68 w kodzie; Z69 i Z74 tylko procedura + skrypt (zrzuty i axe do wykonania na uruchomionej aplikacji) |
 | US18 | Onboarding, rejestracja i porządki produktu | P2 | L | Z36, Z58, Z77, Z78 | TODO |
 | US19 | Android i soft launch | P1 | XL | Z51, Z52 | TODO |
 | US20 | Analityka, strona produktu, refaktor, dokumentacja | P2 | XL | Z53, Z76, Z80, Z83 | TODO |
@@ -157,7 +157,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Budżety zapisane i sprawdzane w CI dla 3 ekranów; payload RSC poniżej progu; zapisy synchronizacji −50%.
 
 ## US17 — Spójność wizualna i dostępność
-**P2 · XL · Zależności** brak · **Postęp** 0/9
+**P2 · XL · Zależności** brak · **Postęp** 7/9 w kodzie (bez podglądu wizualnego), 2/9 do wykonania po uruchomieniu aplikacji (Z69, Z74) · **Decyzje** DK-28 w `docs/zespol/decyzje-wlasciciela.md`
 **Cel** Jeden wygląd i zachowanie ekranów oraz WCAG AA.
 **Podzadania** Z69 dokończenie przeglądu wizualnego ekranów · Z65 jeden wzorzec nagłówka · Z66 tokeny kolorów i kontrast · Z67 jeden kafel statystyki · Z68 strefa bezpieczna dolnej nawigacji · Z59 kontekstowy przycisk pływający · Z60 tytuły stron i nazewnictwo · Z61 stany ładowania i wykresy bez błędów wymiarów · Z74 WCAG AA (axe, 10 ekranów).
 **Gotowe, gdy** `ScreenHeader` i kafel stosowane na wszystkich ekranach z listy defektów; brak literałów koloru marki poza `globals.css`; tytuły stron per trasa; brak ostrzeżeń „width(-1)"; axe bez błędów krytycznych.

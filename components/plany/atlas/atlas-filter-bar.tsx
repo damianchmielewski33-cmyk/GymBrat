@@ -72,7 +72,7 @@ export function AtlasFilterBar({
               className={cn(
                 "inline-flex h-11 shrink-0 items-center gap-1 rounded-full border px-3.5 text-[13px]",
                 on
-                  ? "border-[rgba(235,196,74,0.6)] bg-[rgba(235,196,74,0.1)] font-semibold text-white"
+                  ? "border-[rgba(var(--neon-rgb),0.6)] bg-[rgba(var(--neon-rgb),0.1)] font-semibold text-white"
                   : "border-[var(--gym-border-gold)] text-white/80",
               )}
               onClick={() => onOpen(chip.key)}

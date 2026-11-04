@@ -451,7 +451,7 @@ export function AdminExercisesClient() {
                   ) : null}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm text-white">{c.title}</p>
-                    <p className="text-xs text-white/45">{c.channelTitle}</p>
+                    <p className="text-xs text-white/50">{c.channelTitle}</p>
                   </div>
                   <Button
                     type="button"
@@ -501,7 +501,7 @@ export function AdminExercisesClient() {
         <div className="flex flex-col gap-2 border-b border-white/10 p-4 lg:flex-row">
           <div className="relative min-w-0 flex-1">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35"
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50"
               aria-hidden
             />
             <Input
@@ -590,7 +590,7 @@ export function AdminExercisesClient() {
                     ) : (
                       <AdminPill tone="warn">brak filmu</AdminPill>
                     )}
-                    <span className="font-mono text-[11px] text-white/30">
+                    <span className="font-mono text-[11px] text-white/50">
                       {row.id}
                     </span>
                   </div>
@@ -610,7 +610,7 @@ export function AdminExercisesClient() {
 
         {!loading && total > rows.length ? (
           <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
-            <p className="text-xs text-white/45">
+            <p className="text-xs text-white/50">
               Pokazano {rows.length} z {total}
             </p>
             <Button

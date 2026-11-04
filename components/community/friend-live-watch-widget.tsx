@@ -38,7 +38,7 @@ export function FriendLiveWatchWidget() {
   const onActiveWorkout = pathname.startsWith("/active-workout");
   const dockClass = onActiveWorkout
     ? "right-3 top-[max(0.75rem,calc(env(safe-area-inset-top)+0.35rem))]"
-    : "right-3 bottom-[calc(7.25rem+env(safe-area-inset-bottom))] md:right-5";
+    : "right-3 bottom-[calc(var(--bottom-chrome)+0.6rem+env(safe-area-inset-bottom))] md:right-5";
 
   const pullWatch = useCallback(async () => {
     if (!watchingUserId) {
@@ -161,7 +161,7 @@ export function FriendLiveWatchWidget() {
                 <p className="truncate text-[13px] font-semibold text-white">
                   {name}
                 </p>
-                <p className="text-[11px] text-white/45">Podgląd (bez dołączania)</p>
+                <p className="text-[11px] text-white/50">Podgląd (bez dołączania)</p>
               </div>
               <div className="flex shrink-0 gap-1">
                 <button
@@ -190,12 +190,12 @@ export function FriendLiveWatchWidget() {
                   {p.reps != null ? ` · ${p.reps} powt.` : ""}
                   {p.weight > 0 ? ` · ${p.weight} kg` : ""}
                 </p>
-                <p className="tabular-nums text-white/45">
+                <p className="tabular-nums text-white/50">
                   {formatElapsed(p.elapsedSeconds)} · {p.progressPercent}%
                 </p>
               </div>
             ) : (
-              <p className="text-[12px] text-white/45">Czeka na status…</p>
+              <p className="text-[12px] text-white/50">Czeka na status…</p>
             )}
             <Link
               href={`/community/friends/${watchingUserId}/live`}

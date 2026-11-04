@@ -1,3 +1,6 @@
+import { StatTile } from "@/components/ui/stat-tile";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { AnimatedDumbbellMark } from "@/components/branding/animated-dumbbell-mark";
 import { BrandMark } from "@/components/layout/brand-mark";
@@ -17,7 +20,7 @@ export const screenLinkClass =
 export const screenCtaClass =
   "gym-btn-primary h-11 rounded-2xl px-5 text-base focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]";
 export const screenInputClass =
-  "min-h-11 border-white/20 bg-black/50 text-base text-white placeholder:text-white/40 sm:text-sm";
+  "min-h-11 border-white/20 bg-black/50 text-base text-white placeholder:text-white/50 sm:text-sm";
 
 /** Left-aligned dashboard page header (gold kicker + title). */
 export const appPageKickerClass =
@@ -36,6 +39,8 @@ export function AppPageHeader({
   actions,
   className,
   titleAs: TitleTag = "h1",
+  backHref,
+  backLabel,
 }: {
   kicker?: string;
   title: ReactNode;
@@ -43,6 +48,9 @@ export function AppPageHeader({
   actions?: ReactNode;
   className?: string;
   titleAs?: "h1" | "h2" | "p";
+  /** Z65: podekran = strzałka wstecz + tytuł. Główne sekcje (logo + menu w ramie) nie ustawiają. */
+  backHref?: string;
+  backLabel?: string;
 }) {
   return (
     <header
@@ -52,6 +60,15 @@ export function AppPageHeader({
       )}
     >
       <div className="min-w-0 flex-1">
+        {backHref ? (
+          <Link
+            href={backHref}
+            className="-ml-1 mb-1 inline-flex min-h-10 items-center gap-1.5 rounded-md px-1 text-[13px] text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            {backLabel ?? "Wstecz"}
+          </Link>
+        ) : null}
         {kicker ? <p className={appPageKickerClass}>{kicker}</p> : null}
         <TitleTag
           className={cn(
@@ -75,6 +92,7 @@ export function AppPageHeader({
   );
 }
 
+/** Z67: nakładka na kanoniczny `components/ui/stat-tile` (układ wyśrodkowany). */
 export function AppStatTile({
   value,
   label,
@@ -87,19 +105,13 @@ export function AppStatTile({
   className?: string;
 }) {
   return (
-    <div className={cn("app-card px-3 py-3 text-center", className)}>
-      <p
-        className={cn(
-          "font-metric text-[length:var(--text-kpi)] leading-none tabular-nums sm:text-[26px]",
-          tone === "gold" && "text-[var(--gym-gold)]",
-          tone === "mint" && "text-[var(--gym-success)]",
-          tone === "muted" && "text-white/70",
-        )}
-      >
-        {value}
-      </p>
-      <p className="app-label mt-1.5">{label}</p>
-    </div>
+    <StatTile
+      layout="centered"
+      value={value}
+      label={label}
+      tone={tone}
+      className={className}
+    />
   );
 }
 

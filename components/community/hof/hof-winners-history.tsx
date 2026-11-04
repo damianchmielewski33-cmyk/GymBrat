@@ -30,11 +30,11 @@ export function HofWinnersHistory({
           const meta = HOF_CATEGORY_META[cat];
           return (
             <div key={cat} className="app-card p-4">
-              <p className="text-[12px] text-white/45">
+              <p className="text-[12px] text-white/50">
                 {meta.emoji} {meta.label}
               </p>
               {rows.length === 0 ? (
-                <p className="mt-2 text-[13px] text-white/35">Brak archiwum.</p>
+                <p className="mt-2 text-[13px] text-white/50">Brak archiwum.</p>
               ) : (
                 <ul className="mt-2 space-y-1.5">
                   {rows.map((r) => (
@@ -44,9 +44,9 @@ export function HofWinnersHistory({
                     >
                       <span className="text-white/80">
                         {r.displayName}{" "}
-                        <span className="text-white/35">· {r.title}</span>
+                        <span className="text-white/50">· {r.title}</span>
                       </span>
-                      <span className="shrink-0 text-white/45">
+                      <span className="shrink-0 text-white/50">
                         {r.scoreLabel}
                       </span>
                     </li>

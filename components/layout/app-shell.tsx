@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { resolveContextFab, type ContextFab } from "@/lib/context-fab";
 import { hapticTap } from "@/lib/haptics";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { BrandMark } from "@/components/layout/brand-mark";
@@ -95,11 +96,10 @@ export function AppShell({
     // edytor dnia: /plany/<id>, ale nie /plany/atlas
     (/^\/plany\/[^/]+\/?$/.test(pathname) && !pathname.startsWith("/plany/atlas"));
   const hideChromeHeader = pathname === "/";
-  // /plany* — zarządzanie planem, bez FAB Raport (UX 008)
-  const showReportFab =
-    pathname === "/" ||
-    pathname.startsWith("/workout-plan") ||
-    pathname.startsWith("/progress");
+  // Z59: kontekstowy środkowy przycisk (Treningi → Start, Dieta → Dodaj posiłek, Analiza/Start → Raport).
+  // /plany* — zarządzanie planem, bez przycisku (UX 008).
+  const contextFab = resolveContextFab(pathname);
+  const showReportFab = contextFab != null;
 
   return (
     <div
@@ -136,8 +136,8 @@ export function AppShell({
           sessionFullscreen
             ? "h-[100dvh] max-h-[100dvh] overflow-hidden px-0 py-0"
             : hideBottomNav
-              ? "px-[var(--space-screen-x)] py-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-[var(--space-screen-x-sm)] sm:py-4"
-              : "px-[var(--space-screen-x)] py-3 pb-[calc(7.75rem+env(safe-area-inset-bottom))] sm:px-[var(--space-screen-x-sm)] sm:py-4",
+              ? "px-[var(--space-screen-x)] py-3 pb-[calc(var(--bottom-gap)+4.5rem+env(safe-area-inset-bottom))] sm:px-[var(--space-screen-x-sm)] sm:py-4"
+              : "px-[var(--space-screen-x)] py-3 pb-[calc(var(--bottom-chrome)+1rem+env(safe-area-inset-bottom))] sm:px-[var(--space-screen-x-sm)] sm:py-4",
         )}
       >
         {children}
@@ -156,7 +156,7 @@ export function AppShell({
           <div className={cn("pointer-events-auto relative mx-auto px-3", APP_SHELL_MAX)}>
             {showReportFab ? (
               <Suspense fallback={null}>
-                <ReportFab />
+                <ContextFabButton fab={contextFab} />
               </Suspense>
             ) : null}
             <div
@@ -178,27 +178,29 @@ export function AppShell({
   );
 }
 
-/** Środkowy FAB „Raport” — absolutnie na środku belki. */
-function ReportFab() {
+/** Środkowy przycisk belki — absolutnie na środku, treść zależy od ekranu (Z59). */
+function ContextFabButton({ fab }: { fab: ContextFab | null }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const wizardOpen =
+    fab?.kind === "report" &&
     pathname.startsWith("/reports") &&
     (searchParams.get("new") === "1" || searchParams.get("new") === "true");
 
+  if (!fab) return null;
   if (wizardOpen) {
     return <span className="sr-only">Dodawanie raportu w toku</span>;
   }
 
   return (
     <Link
-      href="/reports?new=1"
+      href={fab.href}
       onClick={() => hapticTap()}
-      className="gym-btn-primary absolute left-1/2 top-0 z-10 inline-flex h-12 min-h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 rounded-full px-5 text-sm font-semibold shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]"
-      aria-label="Dodaj raport"
+      className="gym-btn-primary absolute left-1/2 top-0 z-10 inline-flex h-12 min-h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 whitespace-nowrap rounded-full px-5 text-sm font-semibold shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]"
+      aria-label={fab.ariaLabel}
     >
       <Plus className="h-4 w-4" aria-hidden />
-      Raport
+      {fab.label}
     </Link>
   );
 }

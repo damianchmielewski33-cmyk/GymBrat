@@ -9,7 +9,7 @@ export function ActivityFeedList({
   empty: string;
 }) {
   if (posts.length === 0) {
-    return <p className="text-[13px] text-white/40">{empty}</p>;
+    return <p className="text-[13px] text-white/50">{empty}</p>;
   }
   return (
     <ul className="space-y-2">
@@ -28,10 +28,10 @@ export function ActivityFeedList({
               </Link>
               <p className="mt-0.5 text-[14px] text-white">{p.title}</p>
               {p.body ? (
-                <p className="mt-1 text-[12px] text-white/45">{p.body}</p>
+                <p className="mt-1 text-[12px] text-white/50">{p.body}</p>
               ) : null}
             </div>
-            <span className="shrink-0 text-[11px] text-white/35">
+            <span className="shrink-0 text-[11px] text-white/50">
               {p.createdAt.toLocaleDateString("pl-PL")}
             </span>
           </div>

@@ -73,7 +73,7 @@ function FeedbackPopupDialog({
             className={cn(
               "pointer-events-none absolute inset-0 opacity-90",
               isSuccess
-                ? "bg-[radial-gradient(520px_220px_at_50%_-20%,rgba(235,196,74,0.22),transparent_60%)]"
+                ? "bg-[radial-gradient(520px_220px_at_50%_-20%,rgba(var(--neon-rgb),0.22),transparent_60%)]"
                 : "bg-[radial-gradient(520px_220px_at_50%_-20%,rgba(244,63,94,0.2),transparent_60%)]",
             )}
             aria-hidden

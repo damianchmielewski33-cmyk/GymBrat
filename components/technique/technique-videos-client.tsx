@@ -120,6 +120,8 @@ export function TechniqueVideosClient() {
   return (
     <div className="mx-auto w-full max-w-lg space-y-6 pb-10">
       <AppPageHeader
+        backHref="/workout-plan"
+        backLabel="Treningi"
         kicker="Trening"
         title="Korekta techniki"
         description="MVP lokalne — filmy zostają na tym urządzeniu (localStorage)."
@@ -185,7 +187,7 @@ export function TechniqueVideosClient() {
                     <p className="truncate text-sm font-semibold text-white">
                       {v.name}
                     </p>
-                    <p className="mt-0.5 text-[12px] text-white/45">
+                    <p className="mt-0.5 text-[12px] text-white/50">
                       {formatWhen(v.createdAt)} · {formatBytes(v.sizeBytes)}
                     </p>
                   </div>

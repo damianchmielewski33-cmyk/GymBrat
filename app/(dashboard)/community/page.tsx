@@ -7,6 +7,8 @@ import { CommunityLevelBanner } from "@/components/community/progression-card";
 import { listMyTeams } from "@/lib/community/teams";
 import { getCommunityLevel } from "@/lib/community/progression";
 
+export const metadata = { title: "Społeczność" };
+
 export default async function CommunityHomePage() {
   const session = await auth();
   const userId = session?.user?.id;
@@ -24,7 +26,7 @@ export default async function CommunityHomePage() {
         <h1 className="mt-1.5 font-heading text-[26px] font-semibold text-white">
           Mój Team
         </h1>
-        <p className="mt-2 text-[13px] text-white/45">
+        <p className="mt-2 text-[13px] text-white/50">
           Hub Twoich grup, wojen i misji — szybki start w Community.
         </p>
       </header>
@@ -40,7 +42,7 @@ export default async function CommunityHomePage() {
           <Swords className="h-5 w-5 text-rose-300" />
           <div>
             <p className="text-[14px] font-medium text-white">Wojny</p>
-            <p className="text-[11px] text-white/40">Team Wars · FCS</p>
+            <p className="text-[11px] text-white/50">Team Wars · FCS</p>
           </div>
         </Link>
         <Link
@@ -50,7 +52,7 @@ export default async function CommunityHomePage() {
           <Trophy className="h-5 w-5 text-[var(--gym-gold)]" />
           <div>
             <p className="text-[14px] font-medium text-white">Galeria sławy</p>
-            <p className="text-[11px] text-white/40">Hall of Fame</p>
+            <p className="text-[11px] text-white/50">Hall of Fame</p>
           </div>
         </Link>
         <Link
@@ -60,7 +62,7 @@ export default async function CommunityHomePage() {
           <Users className="h-5 w-5 text-white/70" />
           <div>
             <p className="text-[14px] font-medium text-white">Wyzwania</p>
-            <p className="text-[11px] text-white/40">Global XP</p>
+            <p className="text-[11px] text-white/50">Global XP</p>
           </div>
         </Link>
       </div>
@@ -78,7 +80,7 @@ export default async function CommunityHomePage() {
           </Link>
         </div>
         {teams.length === 0 ? (
-          <p className="text-[13px] text-white/40">
+          <p className="text-[13px] text-white/50">
             Nie masz jeszcze grupy.{" "}
             <Link href="/community/teams/new" className="text-[var(--gym-gold)]">
               Utwórz
@@ -95,7 +97,7 @@ export default async function CommunityHomePage() {
                   <span className="text-[14px] text-white">
                     {t.avatarEmoji} {t.name}
                   </span>
-                  <span className="text-[12px] text-white/40">Misje →</span>
+                  <span className="text-[12px] text-white/50">Misje →</span>
                 </Link>
               </li>
             ))}

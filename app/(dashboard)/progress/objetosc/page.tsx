@@ -56,6 +56,8 @@ const PUSH_PULL_LABEL = {
   insufficient: "Za mało danych z 30 dni, by ocenić balans.",
 } as const;
 
+export const metadata = { title: "Objętość treningowa" };
+
 export default async function ProgressVolumePage() {
   const session = await auth();
   const userId = session?.user?.id;
@@ -120,7 +122,7 @@ export default async function ProgressVolumePage() {
                     {rec.daysSince != null ? ` (${rec.daysSince} dni temu)` : ""}
                   </p>
                   {r.acuteChronic.ratio != null ? (
-                    <p className="text-[11px] tabular-nums text-white/45">
+                    <p className="text-[11px] tabular-nums text-white/50">
                       Ostre/przewlekłe {r.acuteChronic.ratio} ·{" "}
                       {ACWR_LABEL[r.acuteChronic.band]}
                     </p>

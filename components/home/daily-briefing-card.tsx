@@ -25,7 +25,7 @@ export async function DailyBriefingCard({
             <p className="font-heading text-lg font-semibold leading-tight text-white">
               Briefing dnia
             </p>
-            <p className="mt-1 text-xs text-white/45">
+            <p className="mt-1 text-xs text-white/50">
               Skrót z Twoich danych w aplikacji — treningi, makro i postępy.
             </p>
           </div>

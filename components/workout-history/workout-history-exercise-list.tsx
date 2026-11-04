@@ -40,7 +40,7 @@ function SetPill({
       className={cn(
         "inline-flex h-9 min-w-[72px] items-center justify-center gap-1 rounded-xl border px-2.5 font-heading text-[13px] tabular-nums",
         isPr
-          ? "border-[var(--gym-gold)] bg-[rgba(235,196,74,0.1)] font-semibold text-[var(--gym-gold)]"
+          ? "border-[var(--gym-gold)] bg-[rgba(var(--neon-rgb),0.1)] font-semibold text-[var(--gym-gold)]"
           : "border-white/14 text-white/80",
       )}
       aria-label={aria}

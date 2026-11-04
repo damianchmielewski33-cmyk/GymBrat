@@ -33,7 +33,7 @@ export function PrAchievementGraphic({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/35 bg-black shadow-[0_0_40px_rgba(235,196,74,0.12)]",
+        "relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/35 bg-black shadow-[0_0_40px_rgba(var(--neon-rgb),0.12)]",
         className,
       )}
     >
@@ -51,7 +51,7 @@ export function PrAchievementGraphic({
             className="absolute inset-0 bg-[#0a0a0a]"
             style={{
               backgroundImage:
-                "radial-gradient(ellipse at 50% 35%, rgba(235,196,74,0.22), transparent 55%), linear-gradient(180deg, #121212 0%, #050505 100%)",
+                "radial-gradient(ellipse at 50% 35%, rgba(var(--neon-rgb),0.22), transparent 55%), linear-gradient(180deg, #121212 0%, #050505 100%)",
             }}
           />
         )}
@@ -67,7 +67,7 @@ export function PrAchievementGraphic({
           </p>
           <p
             className="mt-2 font-display text-[52px] font-semibold leading-none tracking-tight text-white"
-            style={{ textShadow: "0 0 24px rgba(235,196,74,0.35)" }}
+            style={{ textShadow: "0 0 24px rgba(var(--neon-rgb),0.35)" }}
           >
             {weightLabel}
           </p>
@@ -76,7 +76,7 @@ export function PrAchievementGraphic({
           </p>
           <p className="mt-2 text-sm tabular-nums text-white/80">{dateLabel}</p>
           {!failed ? (
-            <p className="mt-auto text-[10px] uppercase tracking-[0.14em] text-white/45">
+            <p className="mt-auto text-[10px] uppercase tracking-[0.14em] text-white/50">
               Tło wygenerowane przez AI
             </p>
           ) : null}

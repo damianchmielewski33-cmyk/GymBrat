@@ -12,6 +12,8 @@ import { calendarDateKey } from "@/lib/local-date";
 import { decodeExerciseProgressKey } from "@/lib/progress-tabs";
 import { withDbRetry } from "@/db/with-retry";
 
+export const metadata = { title: "Ćwiczenie" };
+
 export default async function ProgressExercisePage({
   params,
   searchParams,

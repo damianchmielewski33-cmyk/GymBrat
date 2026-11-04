@@ -338,7 +338,7 @@ export function PackagePageClient({
       ))}
 
       {plans.length === 0 ? (
-        <p className="text-sm text-white/45">Brak aktywnych pakietów w ofercie.</p>
+        <p className="text-sm text-white/50">Brak aktywnych pakietów w ofercie.</p>
       ) : null}
 
       <p className="text-[12px] leading-relaxed text-white/50">

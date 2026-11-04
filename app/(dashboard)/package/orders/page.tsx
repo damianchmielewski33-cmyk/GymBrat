@@ -10,6 +10,8 @@ import {
   orderStatusLabel,
 } from "@/lib/orders-format";
 
+export const metadata = { title: "Zamówienia" };
+
 export default async function OrdersPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/package/orders");
@@ -18,6 +20,8 @@ export default async function OrdersPage() {
   return (
     <div className="space-y-4">
       <AppPageHeader
+        backHref="/package"
+        backLabel="Pakiet"
         kicker="Pakiet"
         title="Moje zamówienia"
         description="Historia zakupów i potwierdzenia zakupu."

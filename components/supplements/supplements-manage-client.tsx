@@ -143,13 +143,13 @@ export function SupplementsManageClient({
               {editing ? (
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50">
                       Edycja dawki
                     </p>
                     <button
                       type="button"
                       onClick={() => removeRow(row.key)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/35 hover:bg-white/[0.06] hover:text-rose-200"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/[0.06] hover:text-rose-200"
                       aria-label="Usuń"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -157,7 +157,7 @@ export function SupplementsManageClient({
                   </div>
                   <div className="grid gap-2.5 sm:grid-cols-[1.35fr_1fr]">
                     <label className="block min-w-0">
-                      <span className="mb-1 block text-[11px] text-white/45">
+                      <span className="mb-1 block text-[11px] text-white/50">
                         Nazwa
                       </span>
                       <input
@@ -166,11 +166,11 @@ export function SupplementsManageClient({
                           patch(row.key, "name", e.target.value)
                         }
                         placeholder="np. Magnez"
-                        className="h-11 w-full rounded-xl border border-white/12 bg-black/40 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-[var(--gym-gold)]/45"
+                        className="h-11 w-full rounded-xl border border-white/12 bg-black/40 px-3 text-sm text-white outline-none placeholder:text-white/50 focus:border-[var(--gym-gold)]/45"
                       />
                     </label>
                     <label className="block min-w-0">
-                      <span className="mb-1 block text-[11px] text-white/45">
+                      <span className="mb-1 block text-[11px] text-white/50">
                         Ilość / dawka
                       </span>
                       <input
@@ -180,7 +180,7 @@ export function SupplementsManageClient({
                           patch(row.key, "amount", e.target.value)
                         }
                         placeholder="np. 2 · 2×/dzień"
-                        className="h-11 w-full rounded-xl border border-white/12 bg-black/40 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-[var(--gym-gold)]/45"
+                        className="h-11 w-full rounded-xl border border-white/12 bg-black/40 px-3 text-sm text-white outline-none placeholder:text-white/50 focus:border-[var(--gym-gold)]/45"
                       />
                     </label>
                   </div>
@@ -209,7 +209,7 @@ export function SupplementsManageClient({
                       {displayName}
                     </p>
                     {note ? (
-                      <p className="mt-0.5 text-[12px] text-white/40">{note}</p>
+                      <p className="mt-0.5 text-[12px] text-white/50">{note}</p>
                     ) : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -218,7 +218,7 @@ export function SupplementsManageClient({
                         "text-[13px] font-semibold uppercase leading-none tracking-[0.04em] tabular-nums",
                         qty
                           ? "text-[var(--gym-gold)]"
-                          : "text-white/30",
+                          : "text-white/50",
                       )}
                     >
                       {displayQty}

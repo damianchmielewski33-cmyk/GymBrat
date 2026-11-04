@@ -20,7 +20,7 @@ export function ReputationCard({
     <section className="app-card space-y-4 p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">
             Reputacja Community
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -29,7 +29,7 @@ export function ReputationCard({
               {reputation.points} RP
             </span>
           </div>
-          <p className="mt-1.5 text-[12px] leading-snug text-white/45">
+          <p className="mt-1.5 text-[12px] leading-snug text-white/50">
             {meta.exclusive}
           </p>
         </div>
@@ -38,7 +38,7 @@ export function ReputationCard({
 
       {reputation.nextTier ? (
         <div>
-          <div className="mb-1.5 flex justify-between text-[11px] text-white/40">
+          <div className="mb-1.5 flex justify-between text-[11px] text-white/50">
             <span>Do {REPUTATION_TIER_META[reputation.nextTier].label}</span>
             <span className="font-metric tabular-nums">
               {reputation.pointsToNext} RP
@@ -70,7 +70,7 @@ export function ReputationCard({
                 "rounded-lg border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide",
                 unlocked
                   ? REPUTATION_TIER_META[t].pillClass
-                  : "border-white/8 bg-white/[0.03] text-white/25",
+                  : "border-white/8 bg-white/[0.03] text-white/50",
               )}
             >
               {REPUTATION_TIER_META[t].label}

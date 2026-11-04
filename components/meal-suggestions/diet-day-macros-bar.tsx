@@ -34,21 +34,21 @@ function MacroCol({
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50">
         {label}
       </p>
       <p className="mt-0.5 text-[11px] tabular-nums leading-tight text-white/90">
         {Math.round(consumed)}
         {goal != null ? (
-          <span className="text-white/40"> / {Math.round(goal)}</span>
+          <span className="text-white/50"> / {Math.round(goal)}</span>
         ) : null}{" "}
-        <span className="text-white/40">{unit}</span>
+        <span className="text-white/50">{unit}</span>
       </p>
       {remaining != null ? (
         <p
           className={cn(
             "mt-0.5 text-[10px] tabular-nums leading-tight",
-            over ? "text-rose-400" : "text-white/40",
+            over ? "text-rose-400" : "text-white/50",
           )}
         >
           {over

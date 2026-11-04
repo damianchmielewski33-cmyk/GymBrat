@@ -176,7 +176,7 @@ export function EditMealLogSheet({
               className="h-11 border-white/12 bg-white/[0.06] text-white"
             />
             {finalKcal != null ? (
-              <p className="flex items-center gap-1.5 text-xs text-white/45">
+              <p className="flex items-center gap-1.5 text-xs text-white/50">
                 <Calculator className="h-3.5 w-3.5" />
                 Do zapisu: {finalKcal} kcal
               </p>
