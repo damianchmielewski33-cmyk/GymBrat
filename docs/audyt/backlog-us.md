@@ -1,6 +1,6 @@
 # Backlog US — komercjalizacja GymBrat (20 user stories)
 
-**Jedyne źródło prawdy dla poleceń „zrealizuj us5".** Numeracja `US1…US20` jest stała. Każdy US to duży, spójny pakiet prac złożony z podzadań `Z` (szczegółowe opisy, kryteria akceptacji i wskazówki o plikach: [szczegoly-zadan.md](szczegoly-zadan.md), sekcje `## Zn`). Powstał z audytu z 2026-11-01: [audyt](2026-11-01-audyt-przedkomercyjny.md) (identyfikatory PAY/SEC/ARCH/PERF/UX/BIZ/NEW).
+**Jedyne źródło prawdy dla poleceń „zrealizuj us5".** Numeracja `US1…US21` jest stała. Każdy US to duży, spójny pakiet prac złożony z podzadań `Z` (szczegółowe opisy, kryteria akceptacji i wskazówki o plikach: [szczegoly-zadan.md](szczegoly-zadan.md), sekcje `## Zn`). Powstał z audytu z 2026-11-01: [audyt](2026-11-01-audyt-przedkomercyjny.md) (identyfikatory PAY/SEC/ARCH/PERF/UX/BIZ/NEW).
 
 ## Jak realizować „zrealizuj usN"
 
@@ -38,8 +38,9 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US18 | Onboarding, rejestracja i porządki produktu | P2 | L | Z36, Z58, Z77, Z78 | GOTOWE W KODZIE 2026-11-04 (testy/tsc/lint NIEUSUNIĘTE z listy do uruchomienia, brak npm): Z36 (już było), Z58, Z77, Z78; test przepływu rejestracji z kodem e-mail zależy od SMTP (Z17, US8) |
 | US19 | Android i soft launch | P1 | XL | Z51, Z52 | TODO |
 | US20 | Analityka, strona produktu, refaktor, dokumentacja | P2 | XL | Z53, Z76, Z80, Z83 | CZĘŚCIOWO 2026-11-04 (testy/tsc/lint NIEURUCHOMIONE, brak npm): Z53 zdarzenia + definicje (dashboard w PostHog zakłada właściciel), Z76 `/start`, Z83 dokumentacja; Z80 częściowo: `home-start` (195 l.) i `teams` (346 l.) < 500, changelog → JSON, `progress-hub` (1404 l.) i `body-report-form` (805 l.) nadal > 500 |
+| US21 | Domknięcie: weryfikacja, długi i prace właściciela po US1–US20 | P0 | XL | Z84, Z85, Z86, Z87, Z88, Z89, Z90 | TODO |
 
-Weryfikacja pokrycia: 6+4+4+4+4+4+2+5+4+4+5+3+4+4+3+4+9+4+2+4 = 83 podzadania (każde Z1–Z83 występuje dokładnie raz).
+Weryfikacja pokrycia: 6+4+4+4+4+4+2+5+4+4+5+3+4+4+3+4+9+4+2+4 = 83 podzadania (każde Z1–Z83 występuje dokładnie raz). US21 dodaje Z84–Z90 (łącznie 90): to **domknięcia** niedokończonych prac z US1–US20, nie nowe funkcje; oryginalne Z1–Z83 zostają w swoich US ze swoimi statusami.
 
 ## Zasada: prace poza kodem na sam koniec (decyzja właściciela)
 
@@ -55,7 +56,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 ## Kolejność i zależności między US
 
 **Faza 1 — kod i dokumenty w repo:** `US2` (webhook; bloker płatności) → `US3` (zgody) → `US4`, `US5`, `US6` → `US7` (szkice dokumentów) → `US9`–`US15` wg priorytetu → `US16`–`US18`, `US20`; w `US8` tylko Z50 (wsparcie w aplikacji), w `US11` tylko część w repo (Z31, Z32, Z34, Z73), w `US10` Z29, Z30, Z56 i dokument rotacji z Z57.
-**Faza 2 — na sam koniec, prace poza kodem:** `US1` (decyzje) → konfiguracja i ops z US8 (Z17, Z47, Z48, Z49) → Z33, rotacja sekretów (Z57) → zatwierdzenia prawne (Z15, Z28) → domknięcie decyzji z pól „Decyzje" → `US19` (Z51 publikacja, Z52 soft launch, decyzja go/no-go).
+**Faza 2 — na sam koniec, prace poza kodem:** `US1` (decyzje) → konfiguracja i ops z US8 (Z17, Z47, Z48, Z49) → Z33, rotacja sekretów (Z57) → zatwierdzenia prawne (Z15, Z28) → domknięcie decyzji z pól „Decyzje" → `US21` (domknięcie: weryfikacja, długi, prace właściciela) → `US19` (Z51 publikacja, Z52 soft launch, decyzja go/no-go).
 
 ---
 
@@ -179,3 +180,10 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Cel** Dane do decyzji biznesowych, pozyskanie klientów i porządek w kodzie/dokumentach.
 **Podzadania** Z53 KPI i lejek (aktywacja, retencja, konwersja w PostHog po zgodzie) · Z76 publiczna strona produktu z cennikiem · Z80 rozbicie dużych modułów (< 500 linii) · Z83 aktualizacja dokumentacji projektu.
 **Gotowe, gdy** Dashboard KPI z definicjami; publiczna strona z SEO/OG; wskazane moduły podzielone bez regresji testów; dokumentacja wskazuje na ten backlog.
+
+## US21 — Domknięcie: weryfikacja, długi i prace właściciela po US1–US20
+**P0 · XL · Zależności** wszystkie US1–US20 (kod w repo gotowy lub częściowy) · **Postęp** 0/7
+**Cel** Zebrać w jednym miejscu wszystko, co po US1–US20 nie zostało wykonane albo zweryfikowane, i doprowadzić do stanu „Definition of Launch" (sekcja 13 audytu).
+**Podzadania** Z84 uruchomienie bramek jakości (wymaga npm) · Z85 lint (domknięcie Z42) · Z86 E2E, axe i zrzuty (Z43, Z46, Z69, Z74) · Z87 pomiary, migracje i testy współbieżności (Z41, Z40, Z72) · Z88 dokończenie kodu (Z80, Z39, CAS, Z36) · Z89 prace właściciela `[NA KONIEC]` · Z90 zatwierdzenia prawne i domknięcie decyzji.
+**Kolejność** Z84 → Z85 → Z88 → Z86 → Z87 (agent, gdy będzie dostęp do npm) → Z89 → Z90 → `US19` (Z51, Z52).
+**Gotowe, gdy** `npm ci`, `vitest`, `tsc`, `lint:ci`, `build`, `deploy:check`, E2E i axe zielone; wszystkie `[NA KONIEC]` zamknięte przez właściciela; US2–US18 i US20 mają status `ZROBIONE`; można przejść do US19.
