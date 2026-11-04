@@ -1,9 +1,10 @@
 [
   {
-    "title": "Zapowiedź — Postępy ćwiczenia: porównanie 3 miesięcy i dowolnego zakresu",
+    "title": "Zapowiedź — Postępy siły: 3 miesiące, dowolny zakres i widok zbiorczy",
     "planned": true,
     "bullets": [
       "Porównania okresów w szczegółach ćwiczenia mają nową zakładkę „3 mies.” (kwartał kalendarzowy) obok tygodnia, miesiąca i roku.",
+      "W zakładce Siła pojawia się karta „Siła w czasie”: indeks siły (mediana zmian e1RM po wszystkich ćwiczeniach), podział na grupy mięśniowe i lista ćwiczeń dla 7 dni, 30 dni, 3 miesięcy lub własnego zakresu — zawsze względem poprzedniego okresu tej samej długości.",
       "Zakładka „Własny” pozwala wybrać zakres od–do i porównać go z poprzednim okresem tej samej długości; wykres pokazuje tygodnie z obu okresów.",
       "Gdy w którymś okresie są mniej niż 2 sesje, widzisz ostrzeżenie, że wynik może być przypadkowy; brak sesji w poprzednim okresie nie daje już fałszywego wzrostu."
     ]

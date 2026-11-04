@@ -11,6 +11,7 @@ import {
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { MiniSparkline } from "@/components/home/mini-sparkline";
 import { MuscleBalancePanel } from "@/components/progress/muscle-balance-panel";
+import { StrengthOverviewCard } from "@/components/progress/strength-overview-card";
 import { StrengthTrendCard } from "@/components/progress/strength-trend-card";
 import {
   CollapsibleCard,
@@ -305,6 +306,8 @@ export function StrengthTab({
   return (
     <div className="space-y-5">
       <StrengthTrendCard velocity={intelligence.velocity} period={period} onPeriodChange={onPeriodChange} />
+
+      <StrengthOverviewCard />
 
       <Link
         href="/progress/objetosc"
