@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Check, ClipboardList, ImageIcon, Ruler, Sparkles, Zap } from "lucide-react";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { ReportSubmitPopup, type ReportSubmitPhase, type ReportSubmitSummary } from "@/components/reports/report-submit-popup";
-import { ensureCsrfCookie } from "@/lib/client-csrf";
+import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { ConsentRequiredDialog } from "@/components/consent/consent-required-dialog";
 import { SENSITIVE_CONSENT_COPY, type SensitiveConsentType } from "@/lib/consents-client";
 import { setSensitiveConsentAction } from "@/actions/consents";
