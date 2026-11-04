@@ -6,6 +6,7 @@ import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { subscriptionOrders, users } from "@/db/schema";
 import { sendOrderConfirmationEmail } from "@/lib/email";
+import { toAppError } from "@/lib/errors/app-error";
 import { logServerError, newRequestId } from "@/lib/errors/server-log";
 import { logPaymentAlert } from "@/lib/payment-alerts";
 import { verifyHotpayNotificationHash } from "@/lib/hotpay";
@@ -37,7 +38,7 @@ async function sendOrderConfirmation(db: ReturnType<typeof getDb>, order: OrderR
       amountGrosze: order.amountGrosze,
     });
   } catch (err) {
-    logServerError(err, { requestId: newRequestId(), origin: "hotpay.notify.email" });
+    logServerError(toAppError(err), { requestId: newRequestId(), origin: "hotpay.notify.email" }, err);
   }
 }
 

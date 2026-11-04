@@ -6,7 +6,7 @@ import { getPremiumReport } from "@/lib/premium-report-access";
 export const runtime = "nodejs";
 
 /** Raport Premium jako JSON. Bez aktywnego pakietu → 402 (`PREMIUM_REQUIRED`). */
-async function handleGET() {
+async function handleGET(_req?: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Brak autoryzacji" }, { status: 401 });
