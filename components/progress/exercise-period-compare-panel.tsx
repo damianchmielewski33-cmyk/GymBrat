@@ -15,17 +15,27 @@ import {
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 import type {
+  ExerciseCompareKind,
   ExercisePeriodCompare,
   ExercisePeriodCompares,
-  ExercisePeriodKind,
   ExercisePeriodMetric,
   ExercisePeriodOutcome,
 } from "@/lib/exercise-period-compare";
 import {
+  MAX_RANGE_DAYS,
+  MIN_RELIABLE_SESSIONS,
+  buildExerciseRangeCompare,
   formatPeriodDeltaPct,
+  normalizeCompareRange,
   shortPeriodAxisLabel,
 } from "@/lib/exercise-period-compare";
+import type {
+  ExerciseMetricKind,
+  ExerciseProgressPoint,
+} from "@/lib/exercise-progress";
+import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
 
 const tooltipStyle = {
   backgroundColor: "rgba(12, 12, 14, 0.96)",
@@ -37,11 +47,22 @@ const tooltipStyle = {
   padding: "10px 12px",
 };
 
-const TABS: { id: ExercisePeriodKind; label: string }[] = [
+const TABS: { id: ExerciseCompareKind; label: string }[] = [
   { id: "week", label: "Tydzień" },
   { id: "month", label: "Miesiąc" },
+  { id: "quarter", label: "3 mies." },
   { id: "year", label: "Rok" },
+  { id: "range", label: "Własny" },
 ];
+
+/** Podpis pod wykresem — co oznaczają słupki w danym trybie. */
+const BAR_CAPTION: Record<ExerciseCompareKind, string> = {
+  week: "śr. e1RM / objętość w tygodniu",
+  month: "śr. e1RM / objętość w miesiącu",
+  quarter: "śr. e1RM / objętość w kwartale kalendarzowym (3 mies.)",
+  year: "śr. e1RM / objętość w roku",
+  range: "śr. e1RM / objętość w tygodniach wybranego i poprzedniego okresu",
+};
 
 function outcomeTone(o: ExercisePeriodOutcome): string {
   if (o === "progress") return "text-emerald-300";
@@ -177,17 +198,37 @@ function ChipList({
 
 export function ExercisePeriodComparePanel({
   compares,
+  points,
+  metric = "kg",
 }: {
   compares: ExercisePeriodCompares;
+  /** Punkty ćwiczenia — włączają zakładkę „Własny” (zakres dowolny). */
+  points?: ExerciseProgressPoint[];
+  metric?: ExerciseMetricKind;
 }) {
-  const [kind, setKind] = useState<ExercisePeriodKind>("week");
-  const compare = compares[kind];
+  const [kind, setKind] = useState<ExerciseCompareKind>("week");
+  const [rangeTo, setRangeTo] = useState<string>(() => calendarDateKey());
+  const [rangeFrom, setRangeFrom] = useState<string>(() =>
+    addCalendarDays(calendarDateKey(), -29),
+  );
+
+  const tabs = points ? TABS : TABS.filter((t) => t.id !== "range");
+  const rangeValid = normalizeCompareRange(rangeFrom, rangeTo) != null;
+
+  const compare = useMemo<ExercisePeriodCompare>(() => {
+    if (kind === "range") {
+      return buildExerciseRangeCompare(points ?? [], metric, rangeFrom, rangeTo);
+    }
+    return compares[kind];
+  }, [kind, compares, points, metric, rangeFrom, rangeTo]);
+
+  const axisKind = kind === "range" ? "week" : kind;
 
   const chartData = useMemo(
     () =>
       compare.series.map((s) => ({
         ...s,
-        axis: shortPeriodAxisLabel(kind, s.key),
+        axis: shortPeriodAxisLabel(axisKind, s.key),
         fill: barFill(
           s.deltaPct == null
             ? "flat"
@@ -198,7 +239,7 @@ export function ExercisePeriodComparePanel({
                 : "regress",
         ),
       })),
-    [compare.series, kind],
+    [compare.series, axisKind],
   );
 
   const scoredMetrics = compare.metrics.filter((m) => m.outcome !== "none");
@@ -222,7 +263,7 @@ export function ExercisePeriodComparePanel({
         role="tablist"
         aria-label="Okres porównania"
       >
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const active = t.id === kind;
           return (
             <button
@@ -232,7 +273,7 @@ export function ExercisePeriodComparePanel({
               aria-selected={active}
               onClick={() => setKind(t.id)}
               className={cn(
-                "flex-1 rounded-lg px-2 py-2 text-[12px] font-semibold transition",
+                "flex-1 rounded-lg px-1 py-2 text-[11px] font-semibold transition sm:px-2 sm:text-[12px]",
                 active
                   ? "bg-[var(--gym-gold)]/20 text-[var(--gym-gold)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.35)]"
                   : "text-white/50 hover:text-white/70",
@@ -244,11 +285,63 @@ export function ExercisePeriodComparePanel({
         })}
       </div>
 
+      {kind === "range" ? (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <label className="space-y-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50">
+                Od
+              </span>
+              <Input
+                type="date"
+                value={rangeFrom}
+                max={rangeTo || undefined}
+                onChange={(e) => setRangeFrom(e.target.value)}
+                aria-label="Początek zakresu porównania"
+                aria-invalid={!rangeValid}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50">
+                Do
+              </span>
+              <Input
+                type="date"
+                value={rangeTo}
+                min={rangeFrom || undefined}
+                onChange={(e) => setRangeTo(e.target.value)}
+                aria-label="Koniec zakresu porównania"
+                aria-invalid={!rangeValid}
+              />
+            </label>
+          </div>
+          <p
+            className={cn(
+              "text-[11px]",
+              rangeValid ? "text-white/50" : "text-[var(--gym-gold)]",
+            )}
+            role={rangeValid ? undefined : "alert"}
+          >
+            {rangeValid
+              ? "Porównanie z poprzednim okresem tej samej długości."
+              : `Wybierz poprawny zakres: data „od” nie późniejsza niż „do”, maks. ${MAX_RANGE_DAYS} dni.`}
+          </p>
+        </div>
+      ) : null}
+
       <p className="text-[11px] text-white/50">
         {compare.currentLabel}
         <span className="mx-1.5 text-white/50">·</span>
         {compare.previousLabel}
       </p>
+
+      {compare.lowConfidence && compare.verdict !== "insufficient" ? (
+        <p className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] text-white/55">
+          Mniej niż {MIN_RELIABLE_SESSIONS} sesje w jednym z okresów — wynik
+          może być przypadkowy (forma dnia, jedna słabsza sesja), traktuj go
+          orientacyjnie.
+        </p>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <ChipList
@@ -318,13 +411,7 @@ export function ExercisePeriodComparePanel({
         )}
       </div>
       <p className="text-[10px] text-white/50">
-        Słupki:{" "}
-        {kind === "week"
-          ? "śr. e1RM / objętość w tygodniu"
-          : kind === "month"
-            ? "śr. e1RM / objętość w miesiącu"
-            : "śr. e1RM / objętość w roku"}
-        . Kolor: zielony = wzrost względem poprzedniego okresu, różowy =
+        Słupki: {BAR_CAPTION[kind]}. Kolor: zielony = wzrost względem poprzedniego okresu, różowy =
         spadek.
       </p>
 

@@ -396,7 +396,11 @@ export function ExerciseDetailView({
         ) : null}
       </section>
 
-      <ExercisePeriodComparePanel compares={periodCompares} />
+      <ExercisePeriodComparePanel
+        compares={periodCompares}
+        points={points}
+        metric={metric}
+      />
 
       {(prediction || stagnation) && (
         <section className="app-card space-y-3 p-4">
