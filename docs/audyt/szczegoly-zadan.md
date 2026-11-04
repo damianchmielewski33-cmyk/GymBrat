@@ -1,4 +1,4 @@
-# Szczegóły zadań (podzadania Z1–Z83)
+# Szczegóły zadań (podzadania Z1–Z90)
 
 Szczegółowe opisy drobnych zadań z audytu z 2026-11-01. **Nie wydawaj poleceń „zrealizuj zN" — pracuje się na dużych US1–US20 z [backlog-us.md](backlog-us.md)**, a każdy US wskazuje, które zadania Z zawiera. Ten plik to „specyfikacja" podzadań: story, kryteria akceptacji, zależności, pliki. Przy realizacji US czytaj tu tylko sekcje `## Zn` wymienione w danym US (Ctrl+F `## Z5 `).
 
@@ -97,6 +97,13 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z81 | Przypomnienia treningowe za zgodą | kod | P3 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z82 | Mapa drogowa funkcji Premium | decyzja | P3 | S | ZROBIONE (2026-11-02) |
 | Z83 | Aktualizacja dokumentacji projektu | dok | P3 | S | GOTOWE 2026-11-04: `docs/indeks-dokumentacji.md` (status `docs/*.json`), wskazania na backlog US w `wiedza-o-projekcie.md` i `zespol/backlog.md`, wpis w `bledy.md` |
+| Z84 | Uruchomienie bramek jakości | ops+kod | P0 | M | TODO (wymaga dostępu do npm) |
+| Z85 | Lint do stanu bazowego | kod | P1 | M | TODO (dawne Z42) |
+| Z86 | E2E, axe i zrzuty ekranów | ops+kod | P1 | M | TODO (Z43, Z46, Z69, Z74) |
+| Z87 | Pomiary, migracje i testy współbieżności | ops+kod | P1 | M | TODO (Z41, Z40, Z72) |
+| Z88 | Dokończenie kodu z US1–US20 | kod | P2 | L | TODO (Z80, Z39, CAS, Z36) |
+| Z89 | Prace właściciela poza kodem | ops [NA KONIEC] | P0 | XL | TODO |
+| Z90 | Zatwierdzenia prawne i domknięcie decyzji | prawo [NA KONIEC] | P0 | M | TODO |
 
 Kolejność i zależności: patrz backlog-us.md.
 
@@ -543,3 +550,38 @@ Kolejność i zależności: patrz backlog-us.md.
 **Typ** dok · **P3** · S · **Zależności** brak
 **Story** Jako zespół chcemy aktualnej dokumentacji.
 **AC** `docs/zespol/wiedza-o-projekcie.md` i `docs/zespol/backlog.md` wskazują na ten plik; oznaczenie nieaktualnych `docs/*.json` (D13); wpisy „zrobione" w `docs/bledy-do-naprawy/bledy.md`.
+
+## Z84 — Uruchomienie bramek jakości  *(domknięcie US2–US20)*
+**Typ** ops+kod · **P0** · M · **Zależności** dostęp do `registry.npmjs.org` w środowisku agenta lub u właściciela · **Źródło** raporty US2–US20
+**Story** Jako właściciel chcę mieć pewność, że kod z US2–US20 faktycznie działa, bo żadne z tych zmian nie przeszły testów (brak npm).
+**AC** `npm ci`; `npx vitest run` (baza z 2026-11-01: 1237 zielonych — nie pogorszyć); `npx tsc --noEmit` czysty; `npm run build`; `npm run deploy:check` (u właściciela: wielkość liter remote `GymBrat`). Napraw regresje po stronie kodu z US2–US20 (w tym rozbicia modułów w Z80: `home-start*`, `teams*`, `body-report-form*`, `progress-hub*`, `changelog-entries.json`). Nowe testy dodane w US15–US20 uruchomione co najmniej raz: `plan-from-history`, `track-kpi`, `remove-trener-role`, `progression.concurrency`, `schema-migrations`, `brand-color-literals`, `context-fab`, `page-titles`.
+
+## Z85 — Lint do stanu bazowego  *(dawne Z42)*
+**Typ** kod · **P1** · M · **Zależności** Z84 · **Źródło** US14
+**Story** Jako deweloper chcę, aby `npm run lint:ci` przechodził i blokował merge.
+**AC** Lint bez błędów (baza 2026-11-01: 102) albo jawna lista wyjątków z uzasadnieniem; po zielonym lincie CI przestaje być `continue-on-error` dla lint.
+
+## Z86 — E2E, axe i zrzuty ekranów  *(Z43, Z46, Z69, Z74)*
+**Typ** ops+kod · **P1** · M · **Zależności** Z84, uruchomiona aplikacja (`npm run build && npm start` + baza testowa) · **Źródło** US14, US17
+**Story** Jako właściciel chcę zobaczyć, że zrzuty, dostępność i ścieżki E2E działają na prawdziwej aplikacji.
+**AC** `npx playwright test` zielony (baza: 9/41 — poprawa); `node scripts/ui-review.mjs --axe` uruchomiony, zrzuty 375 px zapisane, błędy axe (krytyczne i poważne) naprawione; test przepływu rejestracji z kodem e-mail (Z36) po ustawieniu SMTP (Z17); przegląd pozostałych ekranów z Z65.
+
+## Z87 — Pomiary, migracje i testy współbieżności  *(Z41, Z40, Z72)*
+**Typ** ops+kod · **P1** · M · **Zależności** Z84 · **Źródło** US15, US16
+**Story** Jako właściciel chcę mieć zmierzoną wydajność i bezpieczne migracje.
+**AC** `npm run perf:budget` na zbudowanej aplikacji (budżety z `docs/wydajnosc/budzety.json`; korekta budżetów wg pomiaru); `db:migrate:run` sprawdzony na kopii bazy, potem decyzja o `SCHEMA_MODE=migrations` na produkcji; `progression.concurrency.test.ts` i testy `team-wars`/`team-quests` przechodzą; jeśli włączany magazyn zdjęć — `scripts/migrate-photos-to-storage.ts` na kopii bazy.
+
+## Z88 — Dokończenie kodu z US1–US20
+**Typ** kod · **P2** · L · **Zależności** Z84 (testy jako siatka bezpieczeństwa) · **Źródło** US15, US20, bledy.md
+**Story** Jako deweloper chcę domknąć świadomie odłożone fragmenty kodu.
+**AC** (a) Z80: `lib/progress-hub.ts` (funkcja `loadProgressHubData` ~1300 l. podzielona na sekcje: siła, sylwetka, tydzień, inteligencja) i `components/reports/body-report-form.tsx` (komponent `BodyReportForm` podzielony na kroki) < 500 linii, testy bez regresji; (b) Z39: miniatury zdjęć i upload bezpośrednio z klienta do magazynu S3; (c) CAS/atomowość w `lib/community/hof.ts`, `lib/meal-catalog-images.ts`, `lib/app-settings.ts` (pozycja z `bledy.md`); (d) po Z53: ewentualny ekran KPI w panelu admina (poza PostHog) — tylko jeśli właściciel zdecyduje.
+
+## Z89 — Prace właściciela poza kodem  *(wszystkie `[NA KONIEC]`)*
+**Typ** ops [NA KONIEC] · **P0** · XL · **Zależności** brak (agent przygotowuje checklisty)
+**Story** Jako właściciel chcę jedną listę wszystkiego, co muszę zrobić ręcznie.
+**AC** Odhaczone: **US1** — Z1, Z2, Z3, Z18, Z19, Z82 (decyzje) oraz część „decyzja” z Z54; **US8** — Z17 (SMTP, SPF/DKIM/DMARC, zmienne), Z47 (staging i klucze HotPay), Z48 (test przywracania backupu), Z49 (alerty Sentry/uptime); **US10/US11** — Z33 (repo prywatne), `CSP_MODE=enforce`, `/admin/2fa` i `ADMIN_2FA_REQUIRED=1`, Z57 (rotacja sekretów); **US2/US9** — sekrety GitHub dla bramki produkcyjnej, klucze HotPay sandbox → produkcja i E2E płatności; **US15** — zmienne S3 (jeśli magazyn zdjęć); **US20/Z53** — dashboard „GymBrat KPI” w PostHog wg `docs/analityka/kpi.md`; **US20/Z76** — prawdziwe zrzuty ekranu na `/start`; **US8** — kontakt/dane sprzedawcy na `/regulamin` i `/pomoc` (`LEGAL_SELLER_*`).
+
+## Z90 — Zatwierdzenia prawne i domknięcie decyzji
+**Typ** prawo [NA KONIEC] · **P0** · M · **Zależności** Z89 (dane sprzedawcy), szkice z US7
+**Story** Jako właściciel chcę mieć dokumenty zatwierdzone przez człowieka-prawnika i spójne decyzje.
+**AC** Prawnik zatwierdził regulamin, politykę prywatności, DPIA i okresy retencji (Z15, Z28) — dopiero wtedy zmienić stałą `LEGAL_DOCS_APPROVED_BY_LAWYER` na `true` w `lib/legal-versions.ts` (mała zmiana w kodzie) i podbić wersje dokumentów bez „szkic”; przegląd decyzji pozostawionych w polach „Decyzje” US2–US20 (`DK-19…DK-30`) i pozycji „wymagających właściciela” w `bledy.md` (Q-P2 tętno/kroki jako dane zdrowotne, U-1, N-7h-1, LR-7).
