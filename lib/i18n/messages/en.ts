@@ -13,7 +13,6 @@ export const en = {
     progress: "Progress",
     history: "History",
     messages: "Messages",
-    inbox: "Inbox",
     profile: "Profile",
     admin: "Admin",
     community: "Community",

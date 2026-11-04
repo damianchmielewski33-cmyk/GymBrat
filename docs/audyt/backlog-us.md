@@ -35,7 +35,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US15 | Dane i architektura | P1 | XL | Z39, Z40, Z72 | GOTOWE W KODZIE 2026-11-03 (za flagami; testy/tsc NIEURUCHOMIONE, brak npm): Z72 pełne; Z40 runner + `SCHEMA_MODE` (domyślnie `ensure`); Z39 S3 dla zdjęć raportów (domyślnie wyłączone), bez miniatur i uploadu z klienta |
 | US16 | Wydajność | P2 | L | Z41, Z70, Z71, Z79 | GOTOWE W KODZIE 2026-11-04 (testy/tsc/pomiary NIEURUCHOMIONE, brak npm): Z71, Z79, Z70 w kodzie; Z41 skrypt + budżety + krok CI, bez pomiaru na buildzie |
 | US17 | Spójność wizualna i dostępność | P2 | XL | Z59, Z60, Z61, Z65, Z66, Z67, Z68, Z69, Z74 | CZĘŚCIOWO 2026-11-04 (testy/tsc/lint/podgląd NIEURUCHOMIONE): Z59, Z60, Z61, Z65, Z66, Z67, Z68 w kodzie; Z69 i Z74 tylko procedura + skrypt (zrzuty i axe do wykonania na uruchomionej aplikacji) |
-| US18 | Onboarding, rejestracja i porządki produktu | P2 | L | Z36, Z58, Z77, Z78 | TODO |
+| US18 | Onboarding, rejestracja i porządki produktu | P2 | L | Z36, Z58, Z77, Z78 | GOTOWE W KODZIE 2026-11-04 (testy/tsc/lint NIEUSUNIĘTE z listy do uruchomienia, brak npm): Z36 (już było), Z58, Z77, Z78; test przepływu rejestracji z kodem e-mail zależy od SMTP (Z17, US8) |
 | US19 | Android i soft launch | P1 | XL | Z51, Z52 | TODO |
 | US20 | Analityka, strona produktu, refaktor, dokumentacja | P2 | XL | Z53, Z76, Z80, Z83 | TODO |
 
@@ -163,7 +163,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** `ScreenHeader` i kafel stosowane na wszystkich ekranach z listy defektów; brak literałów koloru marki poza `globals.css`; tytuły stron per trasa; brak ostrzeżeń „width(-1)"; axe bez błędów krytycznych.
 
 ## US18 — Onboarding, rejestracja i porządki produktu
-**P2 · L · Zależności** US8 (Z17) dla pełnego przepływu rejestracji · **Postęp** 0/4
+**P2 · L · Zależności** US8 (Z17) dla pełnego przepływu rejestracji · **Postęp** 4/4 w kodzie (bez uruchomienia testów) · **Decyzje** DK-29 w `docs/zespol/decyzje-wlasciciela.md`
 **Cel** Lepszy pierwszy kontakt i usunięcie zaślepek.
 **Podzadania** Z36 komunikaty rejestracji bez SMTP · Z58 onboarding świadomy historii (plan z ostatnich treningów) · Z77 usunięcie `inbox` i roli `trener` · Z78 usunięcie martwych komponentów.
 **Gotowe, gdy** `/register` mówi, jakie metody są dostępne; konto z historią dostaje propozycję planu; brak `inbox`, roli `trener` i martwych komponentów.

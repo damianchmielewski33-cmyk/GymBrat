@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import Link from "next/link";
 import { Film, Trash2, Video } from "lucide-react";
 import { AppPageHeader } from "@/components/layout/screen";
 import { SectionLabel } from "@/components/ui/section-label";
@@ -131,11 +130,7 @@ export function TechniqueVideosClient() {
         <SectionLabel index={1} title="Nagraj technikę" />
         <div className="app-card space-y-4 p-4">
           <p className="text-sm text-white/55">
-            Wybierz nagranie z telefonu. Możesz później wysłać je Damianowi przez{" "}
-            <Link href="/inbox" className="text-[var(--gym-gold)] underline-offset-2 hover:underline">
-              Skrzynkę
-            </Link>
-            .
+            Wybierz nagranie z telefonu. Filmy zostają tylko na tym urządzeniu.
           </p>
           <label
             htmlFor={inputId}

@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { adminRequest } from "@/lib/admin-client";
 
-type AppRole = "zawodnik" | "trener" | "admin";
+type AppRole = "zawodnik" | "admin";
 
 type UserRow = {
   id: string;
@@ -43,18 +43,16 @@ type UsersPayload = {
 
 const ROLE_LABEL: Record<AppRole, string> = {
   zawodnik: "Zawodnik",
-  trener: "Trener",
   admin: "Administrator",
 };
 
 const ROLE_TONE: Record<AppRole, AdminTone> = {
   zawodnik: "neutral",
-  trener: "info",
   admin: "gold",
 };
 
 function isAppRole(v: string | null): v is AppRole {
-  return v === "zawodnik" || v === "trener" || v === "admin";
+  return v === "zawodnik" || v === "admin";
 }
 
 function formatDate(value: Date | string | number): string {
@@ -154,7 +152,7 @@ export function AdminUsersClient() {
         description={
           canGrantAdmin
             ? "Zarządzaj rolami i kontami. Jako główny administrator możesz nadawać rolę admina."
-            : "Zmieniaj role (zawodnik / trener) i usuwaj konta. Rolę admina nadaje tylko główny administrator."
+            : "Zmieniaj role i usuwaj konta. Rolę admina nadaje tylko główny administrator."
         }
       />
 
@@ -183,7 +181,6 @@ export function AdminUsersClient() {
           >
             <option value="all">Wszystkie role</option>
             <option value="zawodnik">Zawodnicy</option>
-            <option value="trener">Trenerzy</option>
             <option value="admin">Administratorzy</option>
           </AdminSelect>
         </div>
@@ -276,11 +273,6 @@ export function AdminUsersClient() {
                                 {role !== "zawodnik" ? (
                                   <DropdownMenuItem onClick={() => void setRole(u, "zawodnik")}>
                                     Ustaw: zawodnik
-                                  </DropdownMenuItem>
-                                ) : null}
-                                {role !== "trener" ? (
-                                  <DropdownMenuItem onClick={() => void setRole(u, "trener")}>
-                                    Ustaw: trener
                                   </DropdownMenuItem>
                                 ) : null}
                                 {canGrantAdmin && role !== "admin" ? (

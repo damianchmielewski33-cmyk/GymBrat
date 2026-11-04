@@ -99,12 +99,12 @@ describe("callback jwt (odświeżenie sesji)", () => {
     expect(await run({ id: "u1", sv: 0 })).toBeNull();
   });
 
-  it("rola przez resolveEffectiveRole (admin z bazy, trener)", async () => {
+  it("rola przez resolveEffectiveRole (admin z bazy, dawny trener = zawodnik)", async () => {
     setAccount({ appRole: "admin" });
     expect(((await run({ id: "u1", sv: 2 })) as { role: string }).role).toBe("admin");
     invalidateAccountAuthState("u1");
     setAccount({ appRole: "trener" });
-    expect(((await run({ id: "u1", sv: 2 })) as { role: string }).role).toBe("trener");
+    expect(((await run({ id: "u1", sv: 2 })) as { role: string }).role).toBe("zawodnik");
   });
 
   it("cache 60 s: jedno zapytanie w oknie, ponowne po wygaśnięciu", async () => {
@@ -118,8 +118,8 @@ describe("callback jwt (odświeżenie sesji)", () => {
 
   it("fail-open przy błędzie bazy: token zachowany, logAuthFailure z throttle", async () => {
     dbError = new Error("db down");
-    const out = (await run({ id: "u1", sv: 2, role: "trener" })) as Record<string, unknown>;
-    expect(out).toMatchObject({ id: "u1", role: "trener" });
+    const out = (await run({ id: "u1", sv: 2, role: "zawodnik" })) as Record<string, unknown>;
+    expect(out).toMatchObject({ id: "u1", role: "zawodnik" });
     expect(logAuthFailure).toHaveBeenCalledWith("auth.jwt.sessionState", dbError, {
       throttle: true,
     });

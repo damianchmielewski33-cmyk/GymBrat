@@ -5,6 +5,16 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Plan z ostatnich treningów i porządki w produkcie",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Jeśli masz już treningi, a nie masz planu, Pulpit proponuje „Utwórz plan z ostatnich treningów” — z ostatnich 30 dni powstaje po jednym dniu planu na każdy rodzaj treningu.",
+      "Baner „Skonfiguruj pierwszy tydzień” nie pojawia się osobom z historią treningów, a licznik raportów w nagłówku jest ukryty, dopóki nie ma raportów (poza pierwszymi 14 dniami konta).",
+      "Usunięto nieużywaną skrzynkę, rolę trenera i martwe komponenty — dotychczasowe konta trenerów działają jak zawodnicy.",
+    ],
+  },
+  {
     title: "Zapowiedź — Spójny wygląd i lepsza czytelność",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

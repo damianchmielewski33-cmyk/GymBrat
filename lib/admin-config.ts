@@ -1,4 +1,4 @@
-export type AppRole = "zawodnik" | "trener" | "admin";
+export type AppRole = "zawodnik" | "admin";
 
 export function normalizeAdminEmail(email: string | null | undefined): string {
   return (email ?? "").trim().toLowerCase();
@@ -29,5 +29,6 @@ export function resolveEffectiveRole(input: {
   if (input.emailVerified && parseAdminEmails().has(normalizeAdminEmail(input.email))) {
     return "admin";
   }
-  return input.appRole === "trener" ? "trener" : "zawodnik";
+  // Z77: dawna rola „trener” została usunięta — takie konta są zawodnikami.
+  return "zawodnik";
 }

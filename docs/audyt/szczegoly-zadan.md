@@ -49,7 +49,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z33 | Repo prywatne i higiena drzewa | kod/konfig | P1 | S | HIGIENA W REPO GOTOWA; zmiana widoczności repo NA KONIEC (właściciel) |
 | Z34 | Test uprawnień tras admina | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z35 | Jedna definicja tygodnia i minut cardio | kod | P1 | M | KOD GOTOWY (`lib/cardio-week-range.ts` + `lib/cardio-week.ts`, wybór trybu w Profilu), TESTY NIEURUCHOMIONE |
-| Z36 | Komunikaty rejestracji bez SMTP | kod | P1 | S | TODO |
+| Z36 | Komunikaty rejestracji bez SMTP | kod | P1 | S | GOTOWE W KODZIE 2026-11-04: `auth-copy.ts` + baner dostawcy e-mail w `/register` (już istniało); test przepływu z kodem e-mail po Z17 |
 | Z37 | Obecność w treningu tylko przy udostępnianiu | kod | P1 | S | KOD GOTOWY (204 zamiast 403 + klient przestaje wysyłać; test trasy), TESTY NIEURUCHOMIONE |
 | Z38 | Spójne cardio także bez planu | kod | P1 | S | KOD GOTOWY (martwy `/start-workout` usunięty, rejestracja → `/workout-plan`), TESTY NIEURUCHOMIONE |
 | Z39 | Zdjęcia w magazynie obiektowym | kod | P1 | L | CZĘŚCIOWO 2026-11-03: S3-kompatybilny klient (SigV4, wektor AWS zielony w node), `object_key`, serwowanie z autoryzacją, sprzątanie przy usunięciu konta/retencji, skrypt migracji + rollback, limity; flaga `PHOTO_STORAGE=s3` domyślnie OFF. Brak: miniatur, uploadu z klienta, pozostałych tabel z `data_url` |
@@ -71,7 +71,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z55 | Zmiana cen bez wdrożenia | kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z56 | Ograniczenie osadzania w iframe | kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z57 | Skan zależności i rotacja sekretów | kod+dok | P2 | S | WORKFLOW I PROCEDURA GOTOWE; sama rotacja NA KONIEC |
-| Z58 | Onboarding świadomy historii | kod | P2 | M | TODO |
+| Z58 | Onboarding świadomy historii | kod | P2 | M | GOTOWE W KODZIE 2026-11-04: `lib/plan-from-history.ts`, `actions/plan-from-history.ts`, przycisk na Pulpicie, baner znika przy treningach, licznik raportów wg reguły; test `plan-from-history.test.ts` nieuruchomiony |
 | Z59 | Kontekstowy przycisk pływający | kod | P2 | S | GOTOWE W KODZIE 2026-11-04: środkowy przycisk belki kontekstowy (`lib/context-fab.ts`); test 375 px do wykonania |
 | Z60 | Tytuły stron i nazewnictwo sekcji | kod | P2 | S | GOTOWE W KODZIE 2026-11-04: tytuły w 65 trasach + test; nazwy w `docs/ux/00-system-projektowy-stan.md` |
 | Z61 | Stany ładowania i wykresy bez błędów wymiarów | kod | P2 | S | GOTOWE W KODZIE 2026-11-04: szkielet i `error.tsx` Analizy, 13 wykresów z `minHeight`/`initialDimension`; brak „width(-1)” do potwierdzenia w przeglądarce |
@@ -90,8 +90,8 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z74 | Dostępność WCAG AA | kod | P2 | M | PROCEDURA 2026-11-04: skrypt axe (wymaga `npm i -D axe-core`) + dokument; audyt NIEWYKONANY |
 | Z75 | Panel finansowy | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z76 | Publiczna strona produktu | kod | P2 | M | TODO |
-| Z77 | Usunięcie `inbox` i roli `trener` | kod | P3 | S | TODO |
-| Z78 | Usunięcie martwych komponentów | kod | P3 | S | TODO |
+| Z77 | Usunięcie `inbox` i roli `trener` | kod | P3 | S | GOTOWE W KODZIE 2026-11-04: trasa, rola i UI usunięte; migracja 0043 + idempotentny UPDATE w `ensure-schema` |
+| Z78 | Usunięcie martwych komponentów | kod | P3 | S | GOTOWE W KODZIE 2026-11-04: usunięte 9 plików i `.iron-panel` (tokeny `--chart-*` zostają) |
 | Z79 | Mniej pollingu społeczności | kod | P3 | M | GOTOWE W KODZIE 2026-11-04: adaptacyjny interwał listy „kto trenuje” (×2 do 4×), pauza w tle już była; bez SSE (decyzja DK-27), cache list serwerowych już istniał |
 | Z80 | Rozbicie dużych modułów | kod | P3 | L | TODO |
 | Z81 | Przypomnienia treningowe za zgodą | kod | P3 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |

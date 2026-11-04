@@ -46,7 +46,7 @@ export const registerSchema = z.object({
     .int("Użyj liczby całkowitej")
     .min(1, "Minimum 1 dzień")
     .max(7, "Maksimum 7 dni"),
-  /** Na razie rejestracja tylko jako zawodnik (trener — w przyszłości). */
+  /** Rejestracja zawsze jako zawodnik (rola „trener” usunięta, Z77). */
   role: z.literal("zawodnik"),
   /** Opcjonalne zgody z ekranu rejestracji (Z11); brak = brak zgody, można dać później. */
   healthConsent: z.boolean().optional(),

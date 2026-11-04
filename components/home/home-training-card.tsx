@@ -20,6 +20,7 @@ import {
 } from "@/lib/workout-plan-queue";
 import { calendarDateKey } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
+import { PlanFromHistoryButton } from "@/components/home/plan-from-history-button";
 
 /** Bez subskrypcji — służy tylko do rozróżnienia SSR od klienta (hydracja). */
 const subscribeNever = () => () => {};
@@ -68,6 +69,7 @@ export function HomeTrainingCard({
   cardioGoalMinutes,
   cardioSheetWeek,
   extraCardio = null,
+  canBuildPlanFromHistory = false,
 }: {
   recommendedPlanId: string | null;
   planName: string | null;
@@ -84,6 +86,7 @@ export function HomeTrainingCard({
     weekLabel: string;
   };
   extraCardio?: ExtraCardioAdvice | null;
+  canBuildPlanFromHistory?: boolean;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -195,6 +198,7 @@ export function HomeTrainingCard({
               <Play className="h-4 w-4 fill-current" aria-hidden />
               Utwórz plan
             </Link>
+            {canBuildPlanFromHistory ? <PlanFromHistoryButton /> : null}
           </div>
         </section>
         {cardioCard}

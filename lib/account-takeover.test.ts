@@ -78,7 +78,7 @@ describe("buildTakeoverStatements (integracja)", () => {
       passwordHash: "old-hash",
       name: "Stary",
       weightKg: 90,
-      appRole: "trener",
+      appRole: "zawodnik",
       sessionVersion: 0,
     });
     await db.insert(schema.userSettings).values({ userId: uid, weeklyCardioGoalMinutes: 300 });

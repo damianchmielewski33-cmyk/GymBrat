@@ -84,14 +84,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        role: { label: "Role", type: "text" },
       },
       async authorize(credentials, request) {
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
-        const rawRole = credentials?.role as string | undefined;
-        const role: "zawodnik" | "trener" =
-          rawRole === "trener" ? "trener" : "zawodnik";
         if (!email || !password) return null;
 
         // Limit prób logowania (przed zapytaniem do bazy i bcrypt): osobno na IP i na konto.
@@ -142,9 +138,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           appRole: user.appRole,
           emailVerified: user.emailVerifiedAt != null,
         });
-        // Admin loguje się niezależnie od wybranej zakładki; pozostali tylko w swojej roli.
-        if (effectiveRole !== "admin" && effectiveRole !== role) return null;
-
         return {
           id: user.id,
           email: user.email,
@@ -284,7 +277,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           (typeof token.sub === "string" ? token.sub : undefined);
         if (id) session.user.id = id;
         session.user.role =
-          (token.role as "zawodnik" | "trener" | "admin" | undefined) ??
+          (token.role as "zawodnik" | "admin" | undefined) ??
           "zawodnik";
         session.user.profileComplete = token.profileComplete === true;
         if (typeof token.email === "string" && token.email) {

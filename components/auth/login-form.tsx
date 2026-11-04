@@ -24,17 +24,7 @@ import {
   SESSION_EXPIRED_MESSAGE,
 } from "@/components/auth/auth-copy";
 import { OAuthPrivacyNote } from "@/components/auth/oauth-privacy-note";
-import { RoleAuthCards } from "@/components/auth/role-auth-cards";
 import { InlineBanner } from "@/components/ui/inline-banner";
-import {
-  isTrainerFlowEnabled,
-  roleFromSearchParam,
-  type AppRole,
-} from "@/lib/auth-role";
-
-/** @deprecated użyj AppRole z @/lib/auth-role */
-export type LoginRole = AppRole;
-
 export function LoginForm({
   googleEnabled = false,
   facebookEnabled = false,
@@ -48,9 +38,6 @@ export function LoginForm({
   const callbackUrl = safeCallbackPath(params.get("callbackUrl"));
   const registered = params.get("registered");
   const oauthExisting = params.get("oauth") === "existing";
-  const trainerEnabled = isTrainerFlowEnabled();
-  const roleFromUrl = roleFromSearchParam(params.get("role"));
-  const role: AppRole = trainerEnabled ? roleFromUrl : "zawodnik";
   // Odczyt jednorazowy: parametry `error` / `session` czyścimy z adresu niżej.
   const [oauthError, setOauthError] = useState(() =>
     oauthErrorMessage(params.get("error")),
@@ -67,15 +54,6 @@ export function LoginForm({
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    if (trainerEnabled) return;
-    if (params.get("role") === "trener") {
-      const next = new URLSearchParams(params.toString());
-      next.set("role", "zawodnik");
-      router.replace(`/login?${next.toString()}`);
-    }
-  }, [trainerEnabled, params, router]);
-
-  useEffect(() => {
     if (!params.has("error") && !params.has("session")) return;
     const next = new URLSearchParams(params.toString());
     next.delete("error");
@@ -84,14 +62,7 @@ export function LoginForm({
     router.replace(query ? `${pathname}?${query}` : pathname);
   }, [params, pathname, router]);
 
-  function onSelectRole(next: AppRole) {
-    if (!trainerEnabled && next === "trener") return;
-    const nextParams = new URLSearchParams(params.toString());
-    nextParams.set("role", next);
-    router.replace(`/login?${nextParams.toString()}`);
-  }
-
-  const registerHref = "/register?role=zawodnik";
+  const registerHref = "/register";
   const hasBanner = Boolean(registered && !error) || Boolean(error);
 
   if (oauthExisting) {
@@ -156,7 +127,6 @@ export function LoginForm({
             const res = await signIn("credentials", {
               email,
               password,
-              role,
               redirect: false,
               callbackUrl,
             });
@@ -172,9 +142,7 @@ export function LoginForm({
                 return;
               }
               setError(
-                trainerEnabled
-                  ? "Nieprawidłowy e-mail lub hasło, albo typ konta (zawodnik / trener) nie zgadza się z profilem."
-                  : "Nieprawidłowy e-mail lub hasło. Sprawdź dane i spróbuj ponownie.",
+                "Nieprawidłowy e-mail lub hasło. Sprawdź dane i spróbuj ponownie.",
               );
               return;
             }
@@ -215,15 +183,6 @@ export function LoginForm({
         <InlineBanner role="status" variant="info">
           {SESSION_EXPIRED_MESSAGE}
         </InlineBanner>
-      ) : null}
-
-      {trainerEnabled ? (
-        <RoleAuthCards
-          role={role}
-          onSelectRole={onSelectRole}
-          trainerLocked={false}
-          heading="Logujesz się jako"
-        />
       ) : null}
 
       {googleEnabled || facebookEnabled ? (
@@ -348,11 +307,7 @@ export function LoginForm({
         aria-busy={pending}
         className="w-full"
       >
-        {pending
-          ? "Logowanie…"
-          : trainerEnabled && role === "trener"
-            ? "Zaloguj się jako trener"
-            : "Zaloguj się"}
+        {pending ? "Logowanie…" : "Zaloguj się"}
       </Button>
       <div className="space-y-3 border-t border-white/10 pt-5">
         <p className="text-center text-sm text-white/60">Pierwszy raz w GymBrat?</p>

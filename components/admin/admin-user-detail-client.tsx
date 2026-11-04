@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { adminRequest } from "@/lib/admin-client";
 import { formatPlnFromGrosze } from "@/lib/subscription-plans-format";
 
-type AppRole = "zawodnik" | "trener" | "admin";
+type AppRole = "zawodnik" | "admin";
 
 type DetailPayload = {
   /** Konto chronione (główny administrator) — liczone na serwerze. */
@@ -287,7 +287,6 @@ export function AdminUserDetailClient({
                     onChange={(e) => setAppRole(e.target.value as AppRole)}
                   >
                     <option value="zawodnik">Zawodnik</option>
-                    <option value="trener">Trener</option>
                     <option value="admin">Administrator</option>
                   </AdminSelect>
                 </AdminField>

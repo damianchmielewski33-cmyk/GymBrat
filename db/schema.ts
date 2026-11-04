@@ -47,7 +47,7 @@ export const users = sqliteTable("users", {
   /** `male` | `female` — opcjonalne; Keytel kcal cardio. */
   sex: text("sex"),
   activityLevel: text("activity_level"),
-  /** `zawodnik` | `trener` | `admin` — admin ustawiany przez ADMIN_EMAILS, bootstrap lub panel. */
+  /** `zawodnik` | `admin` (dawna rola `trener` usunięta, Z77) — admin ustawiany przez ADMIN_EMAILS, bootstrap lub panel. */
   appRole: text("app_role").notNull().default("zawodnik"),
   /** @deprecated kolumna historyczna — integracja Fitatu usunięta, wartość czyszczona przy starcie. */
   fitatuAccessToken: text("fitatu_access_token"),

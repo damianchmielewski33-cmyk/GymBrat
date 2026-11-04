@@ -253,6 +253,13 @@
       "when": 1806400000000,
       "tag": "0042_photo_object_key",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1806500000000,
+      "tag": "0043_remove_trener_role",
+      "breakpoints": true
     }
   ]
 }

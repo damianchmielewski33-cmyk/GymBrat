@@ -1688,6 +1688,10 @@ CREATE TABLE IF NOT EXISTS "user_consents" (
   await tryAddColumn(
     `ALTER TABLE "body_report_photos" ADD COLUMN "object_key" text`,
   );
+  // Z77: rola „trener” usunięta z produktu — istniejące konta stają się zawodnikami (idempotentne).
+  await client.execute(
+    `UPDATE "users" SET "app_role" = 'zawodnik' WHERE "app_role" = 'trener'`,
+  );
   // Redesign Team 012 / ADR 0011
   await tryAddColumn(
     `ALTER TABLE "user_social_profiles" ADD COLUMN "opted_in_to_team_ranking" integer NOT NULL DEFAULT 0`,
