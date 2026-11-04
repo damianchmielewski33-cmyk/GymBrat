@@ -1,3 +1,4 @@
+import { trackKpi, KpiEvents } from "@/lib/analytics/track-kpi";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { PackagePageClient } from "@/components/package/package-page-client";
@@ -14,6 +15,8 @@ export default async function PackagePage({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/package");
+
+  trackKpi(KpiEvents.packageViewed, session.user.id, {});
 
   const sp = await searchParams;
   const [plans, pkg] = await Promise.all([

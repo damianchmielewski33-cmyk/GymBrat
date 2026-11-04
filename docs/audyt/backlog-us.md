@@ -37,7 +37,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US17 | Spójność wizualna i dostępność | P2 | XL | Z59, Z60, Z61, Z65, Z66, Z67, Z68, Z69, Z74 | CZĘŚCIOWO 2026-11-04 (testy/tsc/lint/podgląd NIEURUCHOMIONE): Z59, Z60, Z61, Z65, Z66, Z67, Z68 w kodzie; Z69 i Z74 tylko procedura + skrypt (zrzuty i axe do wykonania na uruchomionej aplikacji) |
 | US18 | Onboarding, rejestracja i porządki produktu | P2 | L | Z36, Z58, Z77, Z78 | GOTOWE W KODZIE 2026-11-04 (testy/tsc/lint NIEUSUNIĘTE z listy do uruchomienia, brak npm): Z36 (już było), Z58, Z77, Z78; test przepływu rejestracji z kodem e-mail zależy od SMTP (Z17, US8) |
 | US19 | Android i soft launch | P1 | XL | Z51, Z52 | TODO |
-| US20 | Analityka, strona produktu, refaktor, dokumentacja | P2 | XL | Z53, Z76, Z80, Z83 | TODO |
+| US20 | Analityka, strona produktu, refaktor, dokumentacja | P2 | XL | Z53, Z76, Z80, Z83 | CZĘŚCIOWO 2026-11-04 (testy/tsc/lint NIEURUCHOMIONE, brak npm): Z53 zdarzenia + definicje (dashboard w PostHog zakłada właściciel), Z76 `/start`, Z83 dokumentacja; Z80 częściowo: `home-start` (195 l.) i `teams` (346 l.) < 500, changelog → JSON, `progress-hub` (1404 l.) i `body-report-form` (805 l.) nadal > 500 |
 
 Weryfikacja pokrycia: 6+4+4+4+4+4+2+5+4+4+5+3+4+4+3+4+9+4+2+4 = 83 podzadania (każde Z1–Z83 występuje dokładnie raz).
 
@@ -175,7 +175,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Aplikacja zatwierdzona w Play; kryteria „Definition of Launch" spełnione; decyzja go/no-go zapisana.
 
 ## US20 — Analityka, strona produktu, refaktor, dokumentacja
-**P2 · XL · Zależności** US3 (Z12 dla Z53), US1 (Z2 dla Z76) · **Postęp** 0/4
+**P2 · XL · Zależności** US3 (Z12 dla Z53), US1 (Z2 dla Z76) · **Postęp** 3/4 w kodzie/dok., Z80 częściowo · **Decyzje** DK-30 w `docs/zespol/decyzje-wlasciciela.md`
 **Cel** Dane do decyzji biznesowych, pozyskanie klientów i porządek w kodzie/dokumentach.
 **Podzadania** Z53 KPI i lejek (aktywacja, retencja, konwersja w PostHog po zgodzie) · Z76 publiczna strona produktu z cennikiem · Z80 rozbicie dużych modułów (< 500 linii) · Z83 aktualizacja dokumentacji projektu.
 **Gotowe, gdy** Dashboard KPI z definicjami; publiczna strona z SEO/OG; wskazane moduły podzielone bez regresji testów; dokumentacja wskazuje na ten backlog.
