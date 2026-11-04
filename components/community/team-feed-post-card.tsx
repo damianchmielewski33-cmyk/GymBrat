@@ -233,7 +233,7 @@ export function TeamFeedPostCard({
                 size="xs"
               />
             ) : null}
-            <p className="text-[11px] text-white/40">
+            <p className="text-[11px] text-white/50">
               {teamPostTypeLabel(post.type)} · {formatTime(post.createdAt)}
             </p>
           </div>
@@ -326,7 +326,7 @@ export function TeamFeedPostCard({
       </div>
 
       {myReaction ? (
-        <p className="text-[11px] text-white/40">
+        <p className="text-[11px] text-white/50">
           Twoja reakcja: {feedReactionMeta(myReaction).emoji}{" "}
           {feedReactionMeta(myReaction).label}
         </p>
@@ -401,7 +401,7 @@ export function TeamFeedPostCard({
         {replyTo ? (
           <button
             type="button"
-            className="text-[11px] text-white/40"
+            className="text-[11px] text-white/50"
             onClick={() => setReplyTo(null)}
           >
             Anuluj odpowiedź

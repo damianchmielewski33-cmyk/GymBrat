@@ -25,6 +25,7 @@ import {
   isCompletedStrengthSession,
   parseWorkoutSessionJson,
 } from "@/lib/workout-cardio-attribution";
+import { CONSENT_REQUIRED_MESSAGES, lacksSensitiveConsent } from "@/lib/consent-guard";
 
 export type CardioSaveResult =
   | { ok: true; id: string; weekMinutesAfter: number; minutes: number; dateKey: string }
@@ -92,6 +93,14 @@ export async function createCardioLog(input: {
     notes,
     date,
   } = metrics.values;
+
+  // Z11: tętno to dane o zdrowiu — zapis tylko ze zgodą `health`.
+  if (
+    (avgHr != null || maxHr != null) &&
+    (await lacksSensitiveConsent(session.user.id, "health"))
+  ) {
+    return { ok: false, error: CONSENT_REQUIRED_MESSAGES.health };
+  }
 
   const logDate = resolveCardioLogDate(date);
   if (!logDate.ok) {
@@ -199,6 +208,13 @@ export async function updateCardioLogAction(
     .where(and(eq(workouts.id, id), eq(workouts.userId, session.user.id)))
     .limit(1);
   if (!row) return { ok: false as const, error: "Nie znaleziono wpisu." };
+
+  if (
+    (avgHrRaw || maxHrRaw) &&
+    (await lacksSensitiveConsent(session.user.id, "health"))
+  ) {
+    return { ok: false as const, error: CONSENT_REQUIRED_MESSAGES.health };
+  }
 
   const existingMinutes = Math.round(row.cardioMinutes ?? 0);
   const minutesRaw = String(formData.get("minutes") ?? "").trim();
@@ -339,6 +355,9 @@ export async function setCardioDevicePhotoAction(
 
   if (dataUrl && dataUrl.length > 2_500_000) {
     return { ok: false as const, error: "Zdjęcie jest za duże (max ~2 MB)." };
+  }
+  if (dataUrl && (await lacksSensitiveConsent(session.user.id, "photos"))) {
+    return { ok: false as const, error: CONSENT_REQUIRED_MESSAGES.photos };
   }
 
   const db = getDb();

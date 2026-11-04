@@ -157,7 +157,7 @@ export function ApkDownloadButton({
 
       {error ? <p className="text-xs text-rose-300/90">{error}</p> : null}
 
-      <p className="text-[11px] leading-relaxed text-white/40">
+      <p className="text-[11px] leading-relaxed text-white/50">
         Awaryjnie (inna przeglądarka / PC):{" "}
         <a
           href={apkPath}

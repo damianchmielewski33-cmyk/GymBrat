@@ -9,9 +9,14 @@ import { getAnalyticsDeployment } from "@/lib/analytics-deployment";
 import {
   emailVerificationCodes,
   siteActivityLog,
+  userConsents,
   userSettings,
   users,
 } from "@/db/schema";
+import {
+  CURRENT_CONSENT_TEXT_VERSION,
+  SENSITIVE_CONSENT_TEXT_VERSION,
+} from "@/lib/consents-client";
 import {
   registerSchema,
   type RegisterInput,
@@ -314,6 +319,27 @@ export async function registerUser(
   const userId = crypto.randomUUID();
   const displayName = `${data.firstName} ${data.lastName}`.trim();
 
+  const consentRows: (typeof userConsents.$inferInsert)[] = [
+    {
+      userId,
+      type: "age_16",
+      granted: true,
+      textVersion: CURRENT_CONSENT_TEXT_VERSION,
+      source: "registration",
+      decidedAt: now,
+    },
+    ...(["health", "photos"] as const)
+      .filter((t) => (t === "health" ? data.healthConsent : data.photosConsent))
+      .map((type) => ({
+        userId,
+        type,
+        granted: true,
+        textVersion: SENSITIVE_CONSENT_TEXT_VERSION,
+        source: "registration",
+        decidedAt: now,
+      })),
+  ];
+
   try {
     // Jeden batch (transakcja): konto, ustawienia, usunięcie kodu (LR-20) i zdarzenie (LR-26).
     await db.batch([
@@ -334,6 +360,9 @@ export async function registerUser(
         createdAt: now,
       }),
       db.insert(userSettings).values(newUserSettingsRow(userId, data.weeklySessionsTarget)),
+      // Z13 + Z11: oświadczenie o wieku 16+ i opcjonalne zgody z ekranu rejestracji — jeden insert
+      // (zawsze niepusty dzięki oświadczeniu), w tej samej transakcji co konto.
+      db.insert(userConsents).values(consentRows),
       db.delete(emailVerificationCodes).where(eq(emailVerificationCodes.id, codeRow.id)),
       securityEventInsert(db, {
         type: "register",

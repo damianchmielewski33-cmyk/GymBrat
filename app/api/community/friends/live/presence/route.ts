@@ -71,7 +71,9 @@ async function handlePOST(req: Request) {
   });
 
   if (!result.ok) {
-    return NextResponse.json({ ok: false, error: result.error }, { status: 403 });
+    // Brak wzajemnego udostępniania to normalny stan (trening solo), nie błąd:
+    // 204 nie zaśmieca konsoli przeglądarki błędami 403 (US13 / Z37).
+    return new NextResponse(null, { status: 204 });
   }
 
   if (parsed.data.notifyStart) {

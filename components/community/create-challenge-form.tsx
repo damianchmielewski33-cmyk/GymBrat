@@ -64,10 +64,10 @@ export function CreateChallengeForm({
               <span className="block text-[14px] font-semibold text-white">
                 {t.title}
               </span>
-              <span className="mt-0.5 block text-[12px] text-white/45">
+              <span className="mt-0.5 block text-[12px] text-white/50">
                 {t.description}
               </span>
-              <span className="mt-1.5 inline-flex flex-wrap gap-1.5 text-[10px] uppercase tracking-wide text-white/40">
+              <span className="mt-1.5 inline-flex flex-wrap gap-1.5 text-[10px] uppercase tracking-wide text-white/50">
                 <span>{challengeScopeLabel(t.scope)}</span>
                 <span>·</span>
                 <span>+{t.rewardXp} XP</span>

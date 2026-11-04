@@ -75,7 +75,7 @@
 - Odniesienia: CWE-287, CWE-640, CWE-269; OWASP A07:2021; ASVS V2.5, V6.
 
 **W2. Fail-open uwierzytelniania w Javie przy braku `GYMBRAT_PROXY_TOKEN` (warunkowa)**
-- Ścieżki: `java-backend/src/main/java/pl/gymbrat/backend/security/UserContextFilter.java` (gdy token pusty, ufa `X-GymBrat-User-Id`), `java-backend/src/main/resources/application.yml` (`proxy-token: ${GYMBRAT_PROXY_TOKEN:}`), `docker-compose.yml` (port `8080:8080` na wszystkich interfejsach), `lib/admin-config-status.ts:352` (token oznaczony jako `optional`).
+- **Zamknięte (US11/Z73, ADR 0014): backend Java usunięty.** Ścieżki historyczne: `java-backend/src/main/java/pl/gymbrat/backend/security/UserContextFilter.java` (gdy token pusty, ufa `X-GymBrat-User-Id`), `java-backend/src/main/resources/application.yml` (`proxy-token: ${GYMBRAT_PROXY_TOKEN:}`), `docker-compose.yml` (port `8080:8080` na wszystkich interfejsach), `lib/admin-config-status.ts:352` (token oznaczony jako `optional`).
 - Scenariusz: jeśli backend Java jest osiągalny z sieci bez skonfigurowanego tokenu, dowolny klient wysyła nagłówek z cudzym `userId` i czyta lub zapisuje raporty ciała (`/api/body-reports`) i treningi.
 - Dotkliwość: wysoka, jeśli wdrożenie spełnia warunek; w przeciwnym razie średnia (brak defense-in-depth).
 - Poprawka (backend): fail-closed (start Springa kończy się błędem bez tokenu poza profilem `local`), token wymagany w `admin-config-status` gdy ustawione `JAVA_API_BASE_URL`, bind portu do `127.0.0.1` w compose, docelowo podpisany JWT (HMAC) z `userId` i krótkim `exp` zamiast samego nagłówka.

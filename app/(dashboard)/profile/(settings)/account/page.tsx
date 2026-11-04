@@ -1,8 +1,10 @@
 import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ConsentSettingsCard } from "@/components/consent/consent-settings-card";
+import { SensitiveConsentsCard } from "@/components/consent/sensitive-consents-card";
 import { AppPageHeader } from "@/components/layout/screen";
 import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import {
@@ -14,22 +16,33 @@ import {
   ProfileSection,
 } from "@/components/profile/profile-ui";
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { oauthAccounts, users } from "@/db/schema";
 import { getCurrentConsents } from "@/lib/consents";
 
-export default async function ProfileAccountPage() {
+export const metadata = { title: "Konto i prywatność" };
+
+export default async function ProfileAccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ delete?: string }>;
+}) {
+  const sp = await searchParams;
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) redirect("/login");
 
   const db = getDb();
-  const [[u], consents] = await Promise.all([
+  const [[u], consents, links] = await Promise.all([
     db
       .select({ passwordHash: users.passwordHash })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1),
     getCurrentConsents(userId),
+    db
+      .select({ provider: oauthAccounts.provider })
+      .from(oauthAccounts)
+      .where(eq(oauthAccounts.userId, userId)),
   ]);
 
   const hasPassword = Boolean(u?.passwordHash);
@@ -67,17 +80,40 @@ export default async function ProfileAccountPage() {
           />
         </ProfileBlock>
         <ProfileBlock
+          title="Dane o ciele, zdjęcia i przypomnienia"
+          description="Osobne zgody. Bez nich nie zapiszemy raportu ciała, zdjęć ani tętna i nie wyślemy przypomnień."
+        >
+          <SensitiveConsentsCard
+            initial={{
+              health: consents.health?.granted ?? false,
+              photos: consents.photos?.granted ?? false,
+              push: consents.push?.granted ?? false,
+            }}
+          />
+        </ProfileBlock>
+        <ProfileBlock
           title="Twoje dane"
           description="Eksport obejmuje dane konta, treningi, dietę i raporty dostępne w aplikacji."
         >
           <DataExportActions />
         </ProfileBlock>
         <ProfileBlock
+          title="Pomoc i reklamacje"
+          description="Pytania, problemy z płatnością lub reklamacja — odpowiadamy w ciągu 14 dni."
+        >
+          <Link href="/pomoc" className="text-sm text-[var(--gym-gold)] underline-offset-2 hover:underline">
+            Przejdź do formularza zgłoszenia
+          </Link>
+        </ProfileBlock>
+        <ProfileBlock
           tone="danger"
           title="Usuń konto"
-          description="Trwale kasuje konto i powiązane dane w GymBrat. Operacji nie można cofnąć."
+          description="Trwale kasuje konto i powiązane dane w GymBrat; wymaga hasła lub świeżego logowania. Operacji nie można cofnąć."
         >
-          <DeleteAccountControl />
+          <DeleteAccountControl
+            oauthProviders={links.map((l) => l.provider)}
+            autoOpen={sp.delete === "1"}
+          />
         </ProfileBlock>
       </ProfileSection>
     </div>

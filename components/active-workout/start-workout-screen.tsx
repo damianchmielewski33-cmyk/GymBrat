@@ -104,7 +104,7 @@ export function StartWorkoutScreen({
 
       <section className="rounded-[22px] border border-white/[0.1] bg-[#121214] p-4">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">
             Ostatni trening
           </p>
           {last ? (
@@ -148,7 +148,7 @@ export function StartWorkoutScreen({
             </div>
           </>
         ) : (
-          <p className="mt-3 text-sm text-white/45">
+          <p className="mt-3 text-sm text-white/50">
             Brak zakończonych sesji — rozpocznij pierwszy trening.
           </p>
         )}
@@ -163,7 +163,7 @@ export function StartWorkoutScreen({
                 <span
                   className={cn(
                     "text-[10px] font-medium uppercase",
-                    on ? "text-[var(--gym-gold)]" : "text-white/35",
+                    on ? "text-[var(--gym-gold)]" : "text-white/50",
                   )}
                 >
                   {label}
@@ -186,7 +186,7 @@ export function StartWorkoutScreen({
 
       <section className="rounded-[22px] border border-white/[0.1] bg-[#121214] p-4">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">
             Ostatnie treningi
           </p>
           <div className="flex gap-1 rounded-full bg-white/[0.04] p-0.5">
@@ -197,7 +197,7 @@ export function StartWorkoutScreen({
                 "rounded-full px-3 py-1 text-[11px] font-semibold",
                 trendMode === "volume"
                   ? "bg-[var(--gym-gold)] text-black"
-                  : "text-white/45",
+                  : "text-white/50",
               )}
             >
               Ciężar
@@ -209,7 +209,7 @@ export function StartWorkoutScreen({
                 "rounded-full px-3 py-1 text-[11px] font-semibold",
                 trendMode === "reps"
                   ? "bg-[var(--gym-gold)] text-black"
-                  : "text-white/45",
+                  : "text-white/50",
               )}
             >
               Powt.
@@ -263,7 +263,7 @@ export function StartWorkoutScreen({
         <div className="rounded-[18px] border border-dashed border-white/15 bg-[#161616] p-5 text-center">
           <Dumbbell className="mx-auto h-8 w-8 text-[var(--gym-gold)]" />
           <p className="mt-3 text-sm font-semibold text-white">Brak planów</p>
-          <p className="mt-1 text-sm text-white/45">
+          <p className="mt-1 text-sm text-white/50">
             Najpierw utwórz plan z ćwiczeniami.
           </p>
           <Link
@@ -282,7 +282,7 @@ export function StartWorkoutScreen({
           </SheetHeader>
           <div className="space-y-3 overflow-y-auto px-4 pb-8">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
               <Input
                 type="search"
                 value={query}
@@ -317,7 +317,7 @@ export function StartWorkoutScreen({
                             </span>
                           ) : null}
                         </p>
-                        <p className="mt-0.5 text-xs text-white/40">
+                        <p className="mt-0.5 text-xs text-white/50">
                           {empty
                             ? "Brak ćwiczeń — uzupełnij plan"
                             : used
@@ -325,7 +325,7 @@ export function StartWorkoutScreen({
                               : "Jeszcze nie trenowano"}
                         </p>
                       </div>
-                      <span className="text-white/35">›</span>
+                      <span className="text-white/50">›</span>
                     </button>
                   </li>
                 );

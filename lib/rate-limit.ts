@@ -48,6 +48,38 @@ export async function checkRateLimitAsync(
   return { ok: true };
 }
 
+/**
+ * Czy klucz jest już wyczerpany — BEZ zużywania próby (np. blokada po błędnych logowaniach admina:
+ * próby zużywamy tylko przy porażce). Błąd Redis → nie blokujemy (fail-open).
+ */
+export async function isRateLimited(key: string, limit: number, windowMs: number): Promise<boolean> {
+  const lim = getUpstashLimiter(limit, windowMs);
+  if (!lim) {
+    const b = buckets.get(key);
+    return Boolean(b && Date.now() <= b.reset && b.n >= limit);
+  }
+  try {
+    const { remaining } = await lim.getRemaining(key);
+    return remaining <= 0;
+  } catch {
+    return false;
+  }
+}
+
+/** Zeruje licznik klucza (np. po udanym logowaniu). */
+export async function resetRateLimit(key: string, limit: number, windowMs: number): Promise<void> {
+  const lim = getUpstashLimiter(limit, windowMs);
+  if (!lim) {
+    buckets.delete(key);
+    return;
+  }
+  try {
+    await lim.resetUsedTokens(key);
+  } catch {
+    /* licznik wygaśnie sam */
+  }
+}
+
 export function checkRateLimit(
   key: string,
   limit: number,
@@ -66,13 +98,29 @@ export function checkRateLimit(
   return { ok: true };
 }
 
-/** Adres klienta z nagłówków proxy (Vercel / Render / Cloudflare ustawiają je po swojej stronie). */
-export function clientIpFromHeaders(headers: Pick<Headers, "get">): string {
-  return (
-    headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    headers.get("x-real-ip") ||
-    "local"
-  );
+/** Domyślny zaufany nagłówek: `X-Real-IP` ustawiany przez Caddy (deploy/Caddyfile, `header_up`). */
+export const DEFAULT_TRUSTED_IP_HEADER = "x-real-ip";
+
+/** Nazwa zaufanego nagłówka z adresem klienta (env `TRUSTED_IP_HEADER`, tylko poprawne nazwy). */
+export function trustedIpHeaderName(env: Record<string, string | undefined> = process.env): string {
+  const raw = env.TRUSTED_IP_HEADER?.trim().toLowerCase();
+  return raw && /^[a-z0-9-]+$/.test(raw) ? raw : DEFAULT_TRUSTED_IP_HEADER;
+}
+
+/**
+ * Adres klienta (Z30). Na produkcji ufamy WYŁĄCZNIE nagłówkowi ustawianemu przez własny reverse
+ * proxy (nadpisuje wartość od klienta); `x-forwarded-for` jest dowolnie ustawiany przez klienta
+ * i nie może wyznaczać klucza limitu. Brak nagłówka → wspólny kubełek `unknown` (bezpieczniej
+ * niż adres z podrobionego nagłówka). Poza produkcją dopuszczamy `x-forwarded-for` (dev/testy).
+ */
+export function clientIpFromHeaders(
+  headers: Pick<Headers, "get">,
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const trusted = headers.get(trustedIpHeaderName(env))?.split(",")[0]?.trim();
+  if (trusted) return trusted;
+  if (env.NODE_ENV === "production") return "unknown";
+  return headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
 }
 
 export function rateLimitKey(label: string, req: Request): string {
@@ -108,8 +156,13 @@ export const RATE = {
   workoutComplete: { limit: 30, windowMs: 60_000 },
   /** Patch cardio po zapisie treningu (LR-4) — rzadka, jednorazowa operacja na ekranie podsumowania. */
   workoutCardioPatch: { limit: 30, windowMs: 60_000 },
+  /** Weryfikacja 2FA admina (na IP); blokada konta po 5 błędach jest w bazie (lib/admin-2fa). */
   adminUnlock: { limit: 8, windowMs: 10 * 60_000 },
+  /** Logowanie hasłem na konto admina (DK-22): 5 BŁĘDNYCH prób / 15 min na konto i adres IP (udane logowanie zeruje). */
+  adminLogin: { limit: 5, windowMs: 15 * 60_000 },
   adminMutation: { limit: 120, windowMs: 60_000 },
+  /** Z22: start płatności (osobny klucz, nie dzieli budżetu z mutacjami admina). */
+  checkout: { limit: 20, windowMs: 10 * 60_000 },
   bodyReportImport: { limit: 12, windowMs: 60_000 },
   /** Import planu treningowego (preview + confirm) — osobny bucket od raportów ciała. */
   workoutPlanImport: { limit: 12, windowMs: 60_000 },

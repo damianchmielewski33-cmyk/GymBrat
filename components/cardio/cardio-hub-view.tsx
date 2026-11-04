@@ -1,5 +1,6 @@
 "use client";
 
+import { BRAND_GOLD } from "@/lib/brand-colors";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -106,13 +107,13 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
 
       <header className="flex items-start justify-between gap-3 px-0.5">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
             Tydzień od {formatWeekFrom(data.weekMonday)}
           </p>
           <h1 className="mt-1.5 text-[28px] font-semibold leading-tight tracking-tight text-white">
             Cardio
           </h1>
-          <p className="mt-1.5 text-[13px] text-white/45">
+          <p className="mt-1.5 text-[13px] text-white/50">
             {wejscLabel(data.entriesThisWeek)}
           </p>
         </div>
@@ -124,16 +125,16 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
             />
             <span className="font-metric text-lg text-white/55">min</span>
           </p>
-          <p className="mt-1 text-[11px] text-white/40">w tym tygodniu</p>
+          <p className="mt-1 text-[11px] text-white/50">w tym tygodniu</p>
         </div>
       </header>
 
-      <section className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/35 bg-[var(--gym-surface-sunken)] p-4 shadow-[0_0_36px_rgba(235,196,74,0.12)]">
+      <section className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/35 bg-[var(--gym-surface-sunken)] p-4 shadow-[0_0_36px_rgba(var(--neon-rgb),0.12)]">
         <div
           className="pointer-events-none absolute inset-0 opacity-90"
           style={{
             background:
-              "linear-gradient(145deg, rgba(235,196,74,0.22) 0%, rgba(40,28,8,0.4) 48%, transparent 75%)",
+              "linear-gradient(145deg, rgba(var(--neon-rgb),0.22) 0%, rgba(40,28,8,0.4) 48%, transparent 75%)",
           }}
           aria-hidden
         />
@@ -144,7 +145,7 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
             </p>
             <p className="mt-1 font-metric text-[2rem] leading-none text-white">
               {data.goalMinutes}
-              <span className="ml-1 text-base text-white/45">min</span>
+              <span className="ml-1 text-base text-white/50">min</span>
             </p>
           </div>
 
@@ -209,18 +210,18 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
         {data.last8.some((w) => w.minutes > 0) ? (
           <div className="space-y-2 border-t border-white/[0.06] pt-3">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] text-white/45">Minuty · 8 tyg.</p>
+              <p className="text-[11px] text-white/50">Minuty · 8 tyg.</p>
               <div className="w-28">
                 <MiniSparkline
                   values={[...data.last8].reverse().map((w) => w.minutes)}
-                  color="#ebc44a"
+                  color={BRAND_GOLD}
                   className="h-7 w-full"
                 />
               </div>
             </div>
             {data.last8.some((w) => w.distanceKm > 0) ? (
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] text-white/45">Dystans · 8 tyg.</p>
+                <p className="text-[11px] text-white/50">Dystans · 8 tyg.</p>
                 <div className="w-28">
                   <MiniSparkline
                     values={[...data.last8].reverse().map((w) => w.distanceKm)}
@@ -232,7 +233,7 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
             ) : null}
             {data.last8.some((w) => w.calories > 0) ? (
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] text-white/45">Kalorie · 8 tyg.</p>
+                <p className="text-[11px] text-white/50">Kalorie · 8 tyg.</p>
                 <div className="w-28">
                   <MiniSparkline
                     values={[...data.last8].reverse().map((w) => w.calories)}
@@ -258,7 +259,7 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             <div className="rounded-xl border border-white/[0.08] bg-black/25 px-3 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/50">
                 Minuty
               </p>
               <p
@@ -268,18 +269,18 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
                     ? "text-emerald-300"
                     : weekCompare.deltaMinutes < 0
                       ? "text-rose-300"
-                      : "text-white/45",
+                      : "text-white/50",
                 )}
               >
                 {formatSignedMinutes(weekCompare.deltaMinutes)}
               </p>
-              <p className="mt-1.5 text-[11px] tabular-nums text-white/40">
+              <p className="mt-1.5 text-[11px] tabular-nums text-white/50">
                 {weekCompare.currentMinutes} · poprz.{" "}
                 {weekCompare.previousMinutes}
               </p>
             </div>
             <div className="rounded-xl border border-white/[0.08] bg-black/25 px-3 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/50">
                 Zmiana
               </p>
               <p
@@ -289,12 +290,12 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
                     ? "text-emerald-300"
                     : (weekCompare.deltaPct ?? 0) < 0
                       ? "text-rose-300"
-                      : "text-white/45",
+                      : "text-white/50",
                 )}
               >
                 {formatSignedPct(weekCompare.deltaPct)}
               </p>
-              <p className="mt-1.5 text-[11px] tabular-nums text-white/40">
+              <p className="mt-1.5 text-[11px] tabular-nums text-white/50">
                 cel {weekCompare.currentGoalPct != null
                   ? `${weekCompare.currentGoalPct}%`
                   : "—"}
@@ -337,7 +338,7 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <div className="min-w-0 flex-1 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/50">
                   Porównaj z
                 </p>
                 <p className="truncate text-[13px] font-semibold text-white">
@@ -369,18 +370,18 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
                     <span
                       className={cn(
                         "w-8 text-[12px] font-semibold",
-                        row.future ? "text-white/30" : "text-white/70",
+                        row.future ? "text-white/50" : "text-white/70",
                       )}
                     >
                       {row.label}
                     </span>
-                    <span className="text-[11px] tabular-nums text-white/45">
+                    <span className="text-[11px] tabular-nums text-white/50">
                       {row.future ? (
                         "—"
                       ) : (
                         <>
                           {row.currentMinutes} min
-                          <span className="text-white/30">
+                          <span className="text-white/50">
                             {" "}
                             · poprz. {row.previousMinutes}
                           </span>
@@ -391,12 +392,12 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
                       className={cn(
                         "min-w-[4.5rem] text-right text-[12px] font-semibold tabular-nums",
                         row.future
-                          ? "text-white/25"
+                          ? "text-white/50"
                           : row.deltaMinutes > 0
                             ? "text-emerald-300"
                             : row.deltaMinutes < 0
                               ? "text-rose-300"
-                              : "text-white/40",
+                              : "text-white/50",
                       )}
                     >
                       {row.future
@@ -427,7 +428,7 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
               );
             })}
           </div>
-          <p className="text-[11px] text-white/40">
+          <p className="text-[11px] text-white/50">
             Złoty pasek — ten tydzień · niebieski — wybrany tydzień
           </p>
         </section>
@@ -445,7 +446,7 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
           </div>
           <div className="overflow-x-auto">
             <div className="min-w-[18rem]">
-              <div className="grid grid-cols-[4.5rem_repeat(7,minmax(0,1fr))] gap-1 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-white/40">
+              <div className="grid grid-cols-[4.5rem_repeat(7,minmax(0,1fr))] gap-1 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-white/50">
                 <span />
                 {CARDIO_WEEKDAY_SHORT.map((d) => (
                   <span key={d}>{d}</span>
@@ -460,7 +461,7 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
                     <span
                       className={cn(
                         "truncate text-[10px] tabular-nums",
-                        wi === 0 ? "text-[var(--gym-gold)]" : "text-white/40",
+                        wi === 0 ? "text-[var(--gym-gold)]" : "text-white/50",
                       )}
                     >
                       {wi === 0 ? "Teraz" : w.label.split("–")[0]}
@@ -477,15 +478,15 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
                           className={cn(
                             "flex h-8 items-center justify-center rounded-md text-[10px] font-semibold tabular-nums",
                             future
-                              ? "bg-white/[0.03] text-white/20"
+                              ? "bg-white/[0.03] text-white/50"
                               : m <= 0
-                                ? "bg-white/[0.04] text-white/25"
+                                ? "bg-white/[0.04] text-white/50"
                                 : "text-black",
                           )}
                           style={
                             !future && m > 0
                               ? {
-                                  backgroundColor: `rgba(235, 196, 74, ${intensity.toFixed(2)})`,
+                                  backgroundColor: `rgba(var(--neon-rgb),${intensity.toFixed(2)})`,
                                 }
                               : undefined
                           }
@@ -511,7 +512,7 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
         />
 
         {data.items.length === 0 ? (
-          <div className="app-panel px-4 py-10 text-center text-sm text-white/45">
+          <div className="app-panel px-4 py-10 text-center text-sm text-white/50">
             Brak wpisów cardio — nagraj trasę albo dodaj wpis ręcznie.
           </div>
         ) : (
@@ -545,23 +546,23 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
                     href={href}
                     className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-white/[0.02]"
                   >
-                    <span className="w-11 shrink-0 text-[12px] tabular-nums text-white/40">
+                    <span className="w-11 shrink-0 text-[12px] tabular-nums text-white/50">
                       {formatDayMonth(item.date)}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[14px] font-semibold text-white">
                         {item.title} · {formatCardioDurationClock(item.minutes)}
                       </span>
-                      <span className="mt-0.5 block text-[11px] text-white/40">
+                      <span className="mt-0.5 block text-[11px] text-white/50">
                         {meta || "—"}
                       </span>
                     </span>
                     <Pencil
-                      className="h-3.5 w-3.5 shrink-0 text-white/35"
+                      className="h-3.5 w-3.5 shrink-0 text-white/50"
                       aria-hidden
                     />
                     <ChevronRight
-                      className="h-4 w-4 shrink-0 text-white/30"
+                      className="h-4 w-4 shrink-0 text-white/50"
                       aria-hidden
                     />
                   </Link>
@@ -599,13 +600,13 @@ function MetricTile({
 }) {
   return (
     <div className="rounded-xl border border-white/10 bg-black/35 px-2.5 py-2.5 text-center">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+      <p className="text-[9px] font-semibold uppercase tracking-wider text-white/50">
         {label}
       </p>
       <p className="mt-1 font-metric text-lg tabular-nums text-white">
         {value}
         {hint && value !== "—" ? (
-          <span className="ml-0.5 text-[11px] text-white/35">{hint}</span>
+          <span className="ml-0.5 text-[11px] text-white/50">{hint}</span>
         ) : null}
       </p>
     </div>

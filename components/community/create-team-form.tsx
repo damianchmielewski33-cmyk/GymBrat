@@ -98,7 +98,7 @@ export function CreateTeamForm() {
               <span className="block text-sm font-semibold text-white">
                 Publiczna
               </span>
-              <span className="mt-0.5 block text-[12px] text-white/45">
+              <span className="mt-0.5 block text-[12px] text-white/50">
                 Widoczna w wyszukiwarce — każdy może dołączyć.
               </span>
             </span>
@@ -115,7 +115,7 @@ export function CreateTeamForm() {
               <span className="block text-sm font-semibold text-white">
                 Prywatna
               </span>
-              <span className="mt-0.5 block text-[12px] text-white/45">
+              <span className="mt-0.5 block text-[12px] text-white/50">
                 Tylko kod zaproszenia lub e-mail invite.
               </span>
             </span>

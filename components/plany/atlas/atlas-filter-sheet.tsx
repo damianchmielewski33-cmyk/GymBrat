@@ -77,7 +77,7 @@ export function AtlasFilterSheet({
                 className={cn(
                   "flex h-12 w-full items-center justify-between rounded-2xl px-3 text-left text-[14px]",
                   disabled ? "opacity-40" : "text-white",
-                  checked && "bg-[rgba(235,196,74,0.08)]",
+                  checked && "bg-[rgba(var(--neon-rgb),0.08)]",
                 )}
                 onClick={() => onToggle(opt.value)}
               >

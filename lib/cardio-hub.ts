@@ -2,12 +2,13 @@ import "server-only";
 
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { userSettings, workouts } from "@/db/schema";
+import { workouts } from "@/db/schema";
 import {
   extractCardioExtrasFromSessionJson,
   formatCardioWeekShortLabel,
   type CardioExtras,
 } from "@/lib/cardio-utils";
+import { getCardioWeekSummary } from "@/lib/cardio-week";
 import type { CardioHubData, CardioHubItem, CardioWeekBar } from "@/lib/cardio-hub-shared";
 
 export type { CardioHubData, CardioHubItem, CardioWeekBar } from "@/lib/cardio-hub-shared";
@@ -42,11 +43,8 @@ function weekShortLabel(monday: string): string {
 }
 
 /**
- * Lekki postęp tygodnia pn–nd (bez historii 8 tyg. / listy wpisów).
- * ADR 0009 §2.3–2.4 — do arkusza „Dodaj cardio” i weekMinutesAfter po zapisie.
- *
- * Uwaga: `getWeeklyCardioProgress` (lib/cardio.ts) nadal liczy okno kroczące
- * 7 dni dla kafelka głównego — ujednolicenie poza zakresem zadania 010.
+ * Postęp tygodnia do arkusza „Dodaj cardio” i weekMinutesAfter po zapisie.
+ * Cienki wrapper na `getCardioWeekSummary` — ta sama liczba co Pulpit i Trening (US12).
  */
 export async function getCardioWeekProgressPnNd(userId: string): Promise<{
   minutesThisWeek: number;
@@ -54,40 +52,12 @@ export async function getCardioWeekProgressPnNd(userId: string): Promise<{
   weekMonday: string;
   weekLabel: string;
 }> {
-  const db = getDb();
-  const today = calendarDateKey();
-  const weekMonday = mondayOfWeek(today);
-  const sunday = addCalendarDays(weekMonday, 6);
-
-  const [goalRow] = await db
-    .select({ goal: userSettings.weeklyCardioGoalMinutes })
-    .from(userSettings)
-    .where(eq(userSettings.userId, userId))
-    .limit(1);
-
-  const rows = await db
-    .select({
-      date: workouts.date,
-      cardioMinutes: workouts.cardioMinutes,
-      exercises: workouts.exercises,
-    })
-    .from(workouts)
-    .where(eq(workouts.userId, userId))
-    .orderBy(desc(workouts.date), desc(workouts.id))
-    .limit(400);
-
-  let minutesThisWeek = 0;
-  for (const row of rows) {
-    if (row.date < weekMonday || row.date > sunday) continue;
-    const parsed = parseWorkoutSessionJson(row.exercises);
-    minutesThisWeek += countableCardioMinutes(parsed, row.cardioMinutes ?? 0);
-  }
-
+  const s = await getCardioWeekSummary(userId);
   return {
-    minutesThisWeek: Math.round(minutesThisWeek),
-    goalMinutes: goalRow?.goal ?? 150,
-    weekMonday,
-    weekLabel: weekShortLabel(weekMonday),
+    minutesThisWeek: s.minutes,
+    goalMinutes: s.goalMinutes,
+    weekMonday: s.range.from,
+    weekLabel: s.weekLabel,
   };
 }
 
@@ -121,11 +91,8 @@ export async function getCardioHubData(userId: string): Promise<CardioHubData> {
   const weekMonday = mondayOfWeek(today);
   const sunday = addCalendarDays(weekMonday, 6);
 
-  const [goalRow] = await db
-    .select({ goal: userSettings.weeklyCardioGoalMinutes })
-    .from(userSettings)
-    .where(eq(userSettings.userId, userId))
-    .limit(1);
+  // Minuty / liczba wpisów / cel — ze wspólnej funkcji (US12), jak Pulpit i Trening.
+  const weekSummary = await getCardioWeekSummary(userId, { todayKey: today });
 
   const rows = await db
     .select({
@@ -139,8 +106,6 @@ export async function getCardioHubData(userId: string): Promise<CardioHubData> {
     .orderBy(desc(workouts.date), desc(workouts.id))
     .limit(400);
 
-  let minutesThisWeek = 0;
-  let entriesThisWeek = 0;
   let distanceKmThisWeek = 0;
   let caloriesThisWeek = 0;
   let stepsThisWeek = 0;
@@ -202,8 +167,6 @@ export async function getCardioHubData(userId: string): Promise<CardioHubData> {
     }
 
     if (row.date >= weekMonday && row.date <= sunday && counted > 0) {
-      minutesThisWeek += counted;
-      entriesThisWeek += 1;
       if (extras.distanceKm != null) distanceKmThisWeek += extras.distanceKm;
       if (extras.calories != null) caloriesThisWeek += extras.calories;
       if (extras.steps != null) stepsThisWeek += extras.steps;
@@ -264,9 +227,9 @@ export async function getCardioHubData(userId: string): Promise<CardioHubData> {
   return {
     weekMonday,
     todayKey: today,
-    minutesThisWeek,
-    entriesThisWeek,
-    goalMinutes: goalRow?.goal ?? 150,
+    minutesThisWeek: weekSummary.minutes,
+    entriesThisWeek: weekSummary.sessions,
+    goalMinutes: weekSummary.goalMinutes,
     historyTotal: items.length,
     distanceKmThisWeek: safeRound2(distanceKmThisWeek),
     caloriesThisWeek: Math.round(caloriesThisWeek),

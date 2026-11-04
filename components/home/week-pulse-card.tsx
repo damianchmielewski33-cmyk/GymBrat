@@ -94,7 +94,7 @@ function ProgressRow({
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
           {label}
         </p>
         <p
@@ -246,7 +246,7 @@ export function WeekPulseCard(props: WeekPulseProps) {
           <Link
             href={cta.href}
             onClick={dismiss}
-            className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[var(--gym-gold)] text-sm font-semibold text-black shadow-[0_4px_16px_rgba(235,196,74,0.28)]"
+            className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[var(--gym-gold)] text-sm font-semibold text-black shadow-[0_4px_16px_rgba(var(--neon-rgb),0.28)]"
           >
             {cta.label}
           </Link>

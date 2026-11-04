@@ -1,10 +1,12 @@
 import { withApiErrors } from "@/lib/errors/api";
+import { createHash } from "node:crypto";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
-import { subscriptionOrders } from "@/db/schema";
+import { subscriptionOrders, users } from "@/db/schema";
 import { assertCsrf } from "@/lib/csrf";
 import {
   buildHotpayPaymentHash,
@@ -13,6 +15,14 @@ import {
   hotpayPaymentUrl,
   hotpaySekret,
 } from "@/lib/hotpay";
+import { isPackageCheckoutEnabled } from "@/lib/feature-flags";
+import { MIN_PURCHASE_AGE } from "@/lib/min-age";
+import {
+  ORDER_CONSENT_REQUIRED_MESSAGE,
+  ORDER_TERMS_VERSION,
+  orderConsentCanonicalText,
+} from "@/lib/order-consents";
+import { findReusablePendingOrder } from "@/lib/order-admin";
 import { checkRateLimitAsync, RATE } from "@/lib/rate-limit";
 import { getSubscriptionPlanBySku } from "@/lib/subscription-plans";
 
@@ -20,6 +30,9 @@ export const runtime = "nodejs";
 
 const bodySchema = z.object({
   sku: z.string().trim().min(1).max(32),
+  /** Z6: obie zgody wymagane po stronie serwera (UI tylko je przekazuje). */
+  termsAccepted: z.boolean().optional(),
+  immediateServiceConsent: z.boolean().optional(),
 });
 
 async function handlePOST(req: Request) {
@@ -29,6 +42,13 @@ async function handlePOST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Brak autoryzacji" }, { status: 401 });
+  }
+
+  if (!isPackageCheckoutEnabled()) {
+    return NextResponse.json(
+      { ok: false, error: "Zakup pakietu będzie dostępny wkrótce." },
+      { status: 503 },
+    );
   }
 
   if (!hotpayConfigured()) {
@@ -43,8 +63,8 @@ async function handlePOST(req: Request) {
 
   const rl = await checkRateLimitAsync(
     `package-checkout:${session.user.id}`,
-    RATE.adminMutation.limit,
-    RATE.adminMutation.windowMs,
+    RATE.checkout.limit,
+    RATE.checkout.windowMs,
   );
   if (!rl.ok) {
     return NextResponse.json(
@@ -64,6 +84,13 @@ async function handlePOST(req: Request) {
     return NextResponse.json({ ok: false, error: "Wybierz pakiet." }, { status: 400 });
   }
 
+  if (parsed.data.termsAccepted !== true || parsed.data.immediateServiceConsent !== true) {
+    return NextResponse.json(
+      { ok: false, error: ORDER_CONSENT_REQUIRED_MESSAGE },
+      { status: 400 },
+    );
+  }
+
   const plan = await getSubscriptionPlanBySku(parsed.data.sku);
   if (!plan || plan.active !== 1) {
     return NextResponse.json(
@@ -74,7 +101,31 @@ async function handlePOST(req: Request) {
 
   await ensureCriticalSchema();
   const db = getDb();
-  const [order] = await db
+
+  // Z13: pakiet można kupić od 18 lat (zakup przez osobę z ograniczoną zdolnością do czynności prawnych).
+  const [buyer] = await db
+    .select({ age: users.age })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+  if (buyer?.age != null && buyer.age < MIN_PURCHASE_AGE) {
+    return NextResponse.json(
+      { ok: false, error: `Pakiet Premium można kupić od ${MIN_PURCHASE_AGE}. roku życia.` },
+      { status: 403 },
+    );
+  }
+
+  // Z22: ponowne kliknięcie w 15 min używa istniejącego `pending` (ta sama kwota), zamiast mnożyć zamówienia.
+  const reusedId = await findReusablePendingOrder(db, {
+    userId: session.user.id,
+    planSku: plan.sku,
+    amountGrosze: plan.priceGrosze,
+  });
+
+  const acceptedAt = new Date();
+  const [order] = reusedId
+    ? [{ id: reusedId }]
+    : await db
     .insert(subscriptionOrders)
     .values({
       userId: session.user.id,
@@ -84,6 +135,11 @@ async function handlePOST(req: Request) {
       amountGrosze: plan.priceGrosze,
       status: "pending",
       source: "hotpay",
+      // Z6: dowód zgód konsumenckich (czas, wersja, skrót dokładnego tekstu).
+      termsAcceptedAt: acceptedAt,
+      immediateServiceConsentAt: acceptedAt,
+      termsVersion: ORDER_TERMS_VERSION,
+      consentTextHash: createHash("sha256").update(orderConsentCanonicalText(), "utf8").digest("hex"),
     })
     .returning({ id: subscriptionOrders.id });
 

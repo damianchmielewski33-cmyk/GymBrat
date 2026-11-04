@@ -109,3 +109,91 @@ export async function sendRegisterVerificationCodeEmail(params: {
     text: `Twój kod weryfikacyjny do rejestracji w GymBrat: ${params.code}\n\nKod jest ważny przez ${params.minutesValid} min.\n\nJeśli to nie Ty, zignoruj tę wiadomość.`,
   });
 }
+
+/**
+ * Potwierdzenie zakupu pakietu (Z20). Wysyłane po opłaceniu zamówienia; wywołujący łapie błąd,
+ * żeby brak SMTP nie psuł księgowania płatności. Bez danych wrażliwych — tylko plan, okres i kwota.
+ */
+export async function sendOrderConfirmationEmail(params: {
+  to: string;
+  planSku: string;
+  days: number;
+  amountGrosze: number;
+}): Promise<void> {
+  if (!isSmtpConfigured()) return;
+  const transport = createSmtpTransport();
+  const from = getEmailFrom();
+  const replyTo = process.env.EMAIL_REPLY_TO?.trim();
+  const price = `${(Math.max(0, Math.round(params.amountGrosze)) / 100).toFixed(2).replace(".", ",")} zł`;
+
+  await transport.sendMail({
+    from,
+    to: params.to,
+    ...(replyTo ? { replyTo } : {}),
+    subject: "GymBrat — potwierdzenie zakupu pakietu",
+    text: `Dziękujemy za zakup pakietu GymBrat.\n\nPakiet: ${params.planSku} (${params.days} dni)\nKwota: ${price}\n\nPakiet został aktywowany. Historię zamówień i potwierdzenie zakupu znajdziesz w aplikacji: Pakiet → Moje zamówienia.\n\n— GymBrat`,
+  });
+}
+
+/** Z24: przypomnienie o końcu pakietu (wysyłane tylko za zgodą `push`). */
+export async function sendPackageExpiryEmail(params: { to: string; daysLeft: number }): Promise<boolean> {
+  return sendOptionalDailyBriefEmail({
+    to: params.to,
+    subject: "GymBrat — Twój pakiet wkrótce się kończy",
+    text: `Twój pakiet GymBrat kończy się za ${params.daysLeft} ${params.daysLeft === 1 ? "dzień" : "dni"}.\n\nPrzedłużenie liczymy od końca bieżącego pakietu, więc nic nie tracisz: Pakiet → Przedłuż.\n\nNie chcesz takich wiadomości? Wyłącz zgodę na przypomnienia w Profilu → Konto.\n\n— GymBrat`,
+  });
+}
+
+/** Z14: potwierdzenie usunięcia konta. Best-effort — adres nie jest nigdzie zapisywany po wysyłce. */
+export async function sendAccountDeletedEmail(params: { to: string }): Promise<boolean> {
+  return sendOptionalDailyBriefEmail({
+    to: params.to,
+    subject: "GymBrat — konto zostało usunięte",
+    text: "Potwierdzamy usunięcie Twojego konta GymBrat wraz z danymi o treningach, ciele, posiłkach, zdjęciami i powiązaniami logowania.\n\nDokumentacja sprzedaży (zamówienia pakietów) jest przechowywana w formie niepowiązanej z kontem przez okres wymagany prawem.\n\nJeśli to nie Ty usunąłeś konto, skontaktuj się z nami odpowiadając na tę wiadomość.\n\n— GymBrat",
+  });
+}
+
+/** Z28: ostrzeżenie przed usunięciem zdjęć / konta z powodu nieaktywności. */
+export async function sendInactivityWarningEmail(params: {
+  to: string;
+  kind: "photos" | "account";
+  daysToDelete: number;
+}): Promise<boolean> {
+  const what =
+    params.kind === "account"
+      ? "Twoje konto GymBrat wraz ze wszystkimi danymi zostanie usunięte"
+      : "Twoje zdjęcia sylwetki w GymBrat zostaną usunięte (konto i pozostałe dane zostają)";
+  return sendOptionalDailyBriefEmail({
+    to: params.to,
+    subject:
+      params.kind === "account"
+        ? "GymBrat — Twoje konto zostanie usunięte z powodu nieaktywności"
+        : "GymBrat — Twoje zdjęcia zostaną usunięte z powodu nieaktywności",
+    text: `Od dłuższego czasu nie korzystasz z GymBrat. ${what} za ${params.daysToDelete} dni.\n\nAby tego uniknąć, wystarczy się zalogować. Przed usunięciem możesz też pobrać swoje dane w Profilu → Konto.\n\n— GymBrat`,
+  });
+}
+
+/** Z50: potwierdzenie przyjęcia zgłoszenia do wsparcia / reklamacji (best-effort). */
+export async function sendSupportReceivedEmail(params: {
+  to: string;
+  requestId: string;
+  subject: string;
+  dueAt: Date;
+}): Promise<boolean> {
+  const due = params.dueAt.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Warsaw" });
+  return sendOptionalDailyBriefEmail({
+    to: params.to,
+    subject: `GymBrat — przyjęliśmy zgłoszenie (${params.requestId.slice(0, 8)})`,
+    text: `Dziękujemy, otrzymaliśmy Twoje zgłoszenie: "${params.subject}".\n\nNumer zgłoszenia: ${params.requestId}\nOdpowiemy najpóźniej do: ${due} (14 dni).\n\n— GymBrat`,
+  });
+}
+
+/** Z32: powiadomienie o wejściu do panelu admina (best-effort, tylko czas; bez adresu IP). */
+export async function sendAdminLoginEmail(params: { to: string; at: Date; usedRecoveryCode: boolean }): Promise<boolean> {
+  const when = params.at.toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" });
+  return sendOptionalDailyBriefEmail({
+    to: params.to,
+    subject: "GymBrat — logowanie do panelu administratora",
+    text: `Ktoś właśnie przeszedł weryfikację dwuskładnikową i wszedł do panelu administratora GymBrat (${when}).${params.usedRecoveryCode ? "\n\nUżyto kodu awaryjnego — wygeneruj nowe kody w panelu." : ""}\n\nJeśli to nie Ty: zmień hasło, ustaw nowy AUTH_SECRET (wyloguje wszystkie sesje) i wyłącz 2FA dopiero po zabezpieczeniu konta.\n\n— GymBrat`,
+  });
+}

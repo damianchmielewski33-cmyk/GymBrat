@@ -92,7 +92,7 @@ export function HomeObwodySection({
             (row.lowerIsBetter ? delta < 0 : delta > 0);
           const deltaColor =
             delta == null || Math.abs(delta) < 0.05
-              ? "text-white/35"
+              ? "text-white/50"
               : improved
                 ? "text-emerald-400"
                 : "text-rose-400";
@@ -118,10 +118,10 @@ export function HomeObwodySection({
                       decimals={current % 1 === 0 ? 0 : 1}
                       className="text-[26px] leading-none text-white"
                     />
-                    <span className="text-[11px] text-white/45">cm</span>
+                    <span className="text-[11px] text-white/50">cm</span>
                   </div>
                 ) : (
-                  <span className="font-metric text-[26px] leading-none text-white/35">
+                  <span className="font-metric text-[26px] leading-none text-white/50">
                     —
                   </span>
                 )}

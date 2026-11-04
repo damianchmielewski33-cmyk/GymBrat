@@ -8,7 +8,7 @@ Render Free usypia usługę (~15 min) — zły primary dla WWW/APK. Plan faz w `
 
 ## Decyzja
 1. Obraz Next.js `output: "standalone"` → GHCR; na VPS Compose: Caddy + `gymbrat-web` + Uptime Kuma + cron cleanup.
-2. Root `docker-compose.yml` zostaje tylko lokalnym Java BFF; produkcja = `deploy/docker-compose.yml`.
+2. Root `docker-compose.yml` (lokalny Java BFF) został usunięty razem z backendem Java (ADR 0014); produkcja = `deploy/docker-compose.yml`.
 3. Render Free **pozostaje primary** (origin APK bez zmian) do zielonego stagingu + GO-LIVE.
 4. Bez Javy, K8s, R2 i obowiązkowego Sentry w Fazie 1.
 

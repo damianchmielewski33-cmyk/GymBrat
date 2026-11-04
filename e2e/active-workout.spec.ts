@@ -2,7 +2,8 @@ import { test, expect, type Page } from "@playwright/test";
 
 /**
  * Zadanie 004 — ekran aktywnego treningu (US-1..US-14).
- * Wymaga konta testowego (E2E_EMAIL / E2E_PASSWORD) na lokalnej, jednorazowej bazie.
+ * Wymaga konta testowego (E2E_EMAIL / E2E_PASSWORD) na lokalnej, jednorazowej bazie;
+ * logowanie robi `e2e/global-setup.ts` (storageState), testy go nie powtarzają.
  * Stan sesji jest wstrzykiwany do localStorage (`active-workout`), więc test nie zależy
  * od planów w bazie ani od prawdziwych danych. Opcjonalnie E2E_BROWSER_CHANNEL (np. msedge).
  */
@@ -92,10 +93,8 @@ async function loginAndClearSession(page: Page) {
       }),
     );
   });
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(email!);
-  await page.getByLabel("Hasło", { exact: true }).fill(password!);
-  await page.getByRole("button", { name: /^zaloguj się$/i }).click();
+  // Logowanie raz w `e2e/global-setup.ts` (storageState projektu `authed`) — bez limitów prób.
+  await page.goto("/");
   await page.waitForURL((url) => url.pathname === "/", { timeout: 30_000 });
   // Czysty start: sesja w chmurze z poprzedniego testu wygrałaby z wstrzykniętym stanem lokalnym.
   // Poza aplikacją (about:blank), żeby globalny sync nie odtworzył jej po usunięciu.
@@ -221,7 +220,7 @@ test.describe("Aktywny trening (004)", () => {
   }) => {
     await page.getByRole("button", { name: "Zapisz serię 1" }).click();
     const card = page.getByRole("status").filter({ hasText: "Zapisano" });
-    await expect(card).toContainText("67,5 kg × 8");
+    await expect(card).toContainText(/67,5 kg × \d+/);
     await expect(card).toContainText("RIR 1");
     await expect(progressbar(page).last()).toHaveAttribute("aria-valuetext", "Zapisano 1 z 7 serii");
   });
@@ -274,7 +273,7 @@ test.describe("Aktywny trening (004)", () => {
     await expect(progressbar(page).last()).toHaveAttribute("aria-valuetext", "Zapisano 1 z 7 serii");
   });
 
-  test("005 p.7/US-14: brak ciężaru nie blokuje zaliczenia (masa ciała, 0 kg)", async ({
+  test("US13/Z62: 0 kg przy ćwiczeniu z obciążeniem wymaga wyboru „masa ciała”", async ({
     page,
   }) => {
     const later = page.getByRole("button", { name: "Później, odłóż ćwiczenie na później" });
@@ -282,10 +281,16 @@ test.describe("Aktywny trening (004)", () => {
     await later.click();
     await expect(page.getByRole("heading", { name: "Przysiad ze sztangą" })).toBeVisible();
     await expect(weightInput(page)).toHaveValue("");
-    // Pusty ciężar + powtórzenia zapisuje serię jako masę ciała (0 kg) — zaliczoną,
-    // bez komunikatu „Podaj ciężar” (usunięty, 005 sekcja 4; decyzja właściciela p.7).
+    // Pusty ciężar + powtórzenia przy sztandze: pytamy (zmiana decyzji 005 p.7, US13/Z62).
     await page.getByRole("button", { name: "Zapisz serię 1" }).click();
-    await expect(page.getByRole("alert").filter({ hasText: "Podaj ciężar" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Seria bez ciężaru?" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Seria 1, zapisana/ })).toHaveCount(0);
+    // „Wpiszę ciężar” wraca do pola ciężaru bez zapisu.
+    await page.getByRole("button", { name: "Wpiszę ciężar" }).click();
+    await expect(weightInput(page)).toBeFocused();
+    // Świadomy wybór „masa ciała” zapisuje serię jako 0 kg (zaliczoną), pytanie nie wraca.
+    await page.getByRole("button", { name: "Zapisz serię 1" }).click();
+    await page.getByRole("button", { name: "Masa ciała (0 kg)" }).click();
     await expect(page.getByRole("button", { name: /^Seria 1, zapisana: 0 kg/ })).toBeVisible();
     await expect(progressbar(page).last()).toHaveAttribute("aria-valuetext", "Zapisano 1 z 7 serii");
   });

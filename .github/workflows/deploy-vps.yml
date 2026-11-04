@@ -110,6 +110,29 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Checkout (bramka konfiguracji)
+        if: steps.gate.outputs.skip != 'true'
+        uses: actions/checkout@v5
+
+      # US14 / Z45: promote na produkcję blokowany, gdy brak HotPay, SMTP, Upstash,
+      # CRON_SECRET lub ADMIN_EMAILS. Wartości muszą być też w sekretach GitHuba
+      # (Settings → Secrets) — alternatywa bez kopiowania sekretów: uruchom na VPS
+      # `node scripts/check-gymbrat-deploy.mjs --env-file=.env`.
+      - name: Bramka konfiguracji produkcyjnej (deploy:check --production)
+        if: steps.gate.outputs.skip != 'true'
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          HOTPAY_SEKRET: ${{ secrets.HOTPAY_SEKRET }}
+          HOTPAY_NOTIFICATION_PASSWORD: ${{ secrets.HOTPAY_NOTIFICATION_PASSWORD }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+        run: node scripts/check-gymbrat-deploy.mjs --production
+
       - name: Deploy over SSH
         if: steps.gate.outputs.skip != 'true'
         uses: appleboy/ssh-action@v1.2.0

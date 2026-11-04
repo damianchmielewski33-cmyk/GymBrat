@@ -242,13 +242,13 @@ export function AdminEmpty({
   return (
     <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
       {icon ? (
-        <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/40 [&_svg]:h-5 [&_svg]:w-5">
+        <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/50 [&_svg]:h-5 [&_svg]:w-5">
           {icon}
         </span>
       ) : null}
       <p className="text-sm font-medium text-white/80">{title}</p>
       {description ? (
-        <p className="max-w-sm text-xs leading-relaxed text-white/45">{description}</p>
+        <p className="max-w-sm text-xs leading-relaxed text-white/50">{description}</p>
       ) : null}
       {action ? <div className="mt-2">{action}</div> : null}
     </div>
@@ -288,7 +288,7 @@ export function AdminField({
         {label}
       </label>
       {children}
-      {hint ? <p className="text-[11px] leading-snug text-white/40">{hint}</p> : null}
+      {hint ? <p className="text-[11px] leading-snug text-white/50">{hint}</p> : null}
     </div>
   );
 }

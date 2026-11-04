@@ -9,11 +9,6 @@ const userId = "u1";
 vi.mock("@/db", () => ({ getDb: () => db }));
 vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: userId } }) }));
 vi.mock("@/lib/csrf", () => ({ assertCsrf: () => null }));
-vi.mock("@/lib/java-api", () => ({
-  isJavaApiEnabled: () => false,
-  fetchJavaApi: async () => null,
-  passThroughJavaResponse: (res: Response) => res,
-}));
 
 const publishTeamFeedAfterWorkout = vi.fn(async () => undefined);
 vi.mock("@/lib/community/team-feed-auto", () => ({ publishTeamFeedAfterWorkout }));

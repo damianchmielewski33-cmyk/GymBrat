@@ -38,7 +38,7 @@ function SetRow({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="w-7 shrink-0 text-[12px] font-semibold text-white/40">
+      <span className="w-7 shrink-0 text-[12px] font-semibold text-white/50">
         S{index + 1}
       </span>
       <input
@@ -53,7 +53,7 @@ function SetRow({
         className="h-11 w-[72px] rounded-xl border border-white/12 bg-black/40 px-2 text-center font-heading text-[16px] text-white outline-none focus:border-[var(--gym-gold)]/50"
         aria-label={`Ciężar seria ${index + 1}`}
       />
-      <span className="text-white/35">×</span>
+      <span className="text-white/50">×</span>
       <input
         inputMode="numeric"
         value={set.reps != null ? String(set.reps) : ""}
@@ -83,7 +83,7 @@ function SetRow({
           "h-11 shrink-0 rounded-xl border px-3 text-[11px] font-semibold uppercase tracking-wide",
           set.rir != null
             ? "border-[var(--gym-gold)]/40 text-[var(--gym-gold)]"
-            : "border-white/12 text-white/45",
+            : "border-white/12 text-white/50",
         )}
       >
         RIR{set.rir != null ? ` ${set.rir}` : ""}
@@ -97,7 +97,7 @@ function SetRow({
           "h-11 shrink-0 rounded-xl border px-2.5 text-[11px] font-semibold uppercase tracking-wide",
           set.warmup
             ? "border-[var(--gym-gold)]/40 text-[var(--gym-gold)]"
-            : "border-white/12 text-white/45",
+            : "border-white/12 text-white/50",
         )}
       >
         Roz.
@@ -106,7 +106,7 @@ function SetRow({
         type="button"
         onClick={onRemove}
         disabled={!canRemove}
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/40 disabled:opacity-30"
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/50 disabled:opacity-30"
         aria-label="Usuń serię"
       >
         <X className="h-4 w-4" />
@@ -217,14 +217,14 @@ export function WorkoutHistoryEditClient({
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-28">
       <header className="relative space-y-1 pr-12 pt-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
           {initial.weekdayLabel} · Dzień planu {initial.planOccurrence}
         </p>
         <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-white">
           Popraw trening
         </h1>
         <p className="text-[15px] font-medium text-white/85">{initial.title}</p>
-        <p className="text-[12px] text-white/40">
+        <p className="text-[12px] text-white/50">
           Możesz poprawiać do {deadlineLabel}.
         </p>
         <button
@@ -249,7 +249,7 @@ export function WorkoutHistoryEditClient({
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-[15px] font-semibold text-white">{ex.name}</p>
-                <p className="mt-0.5 text-[11px] text-white/40">
+                <p className="mt-0.5 text-[11px] text-white/50">
                   {formatExerciseTargetLine(ex)}
                 </p>
               </div>

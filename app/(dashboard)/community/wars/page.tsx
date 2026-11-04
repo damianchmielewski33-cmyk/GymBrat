@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { WarsHub } from "@/components/community/wars/wars-hub";
 import { getWarsHubData } from "@/lib/community/team-wars";
 
+export const metadata = { title: "Wojny grup" };
+
 export default async function WarsPage() {
   const session = await auth();
   const userId = session?.user?.id;

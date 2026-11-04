@@ -106,7 +106,7 @@ function IntegrationCard({
               ? "text-emerald-300"
               : item.status === "partial"
                 ? "text-amber-300"
-                : "text-white/30",
+                : "text-white/50",
           )}
           aria-hidden
         />
@@ -145,7 +145,7 @@ function IntegrationCard({
                   v.present
                     ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-100"
                     : v.optional
-                      ? "border-white/10 bg-white/[0.03] text-white/40"
+                      ? "border-white/10 bg-white/[0.03] text-white/50"
                       : "border-rose-400/30 bg-rose-500/10 text-rose-100",
                 )}
               >
@@ -363,7 +363,7 @@ export function AdminSettingsClient() {
               >
                 {summary.readiness}%
               </span>
-              <span className="text-xs text-white/45">gotowości</span>
+              <span className="text-xs text-white/50">gotowości</span>
             </div>
             <div className="min-w-0 flex-1 space-y-2">
               <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
@@ -492,7 +492,7 @@ export function AdminSettingsClient() {
             ) : null}
           </div>
         ) : (
-          <p className="text-sm text-white/45">
+          <p className="text-sm text-white/50">
             {loading ? "Pomiar zajętości…" : "Nie udało się odczytać zajętości bazy."}
           </p>
         )}

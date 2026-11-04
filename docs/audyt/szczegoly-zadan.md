@@ -14,88 +14,88 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 
 | Z | Tytuł | Typ | Prio | Rozm. | Status |
 |---|---|---|---|---|---|
-| Z1 | Podmiot sprzedający | decyzja | P0 | S | TODO |
-| Z2 | Model Free/Premium i cennik | decyzja | P0 | S | TODO |
-| Z3 | Decyzja o reklamach (AdMob) | decyzja | P0 | S | TODO |
-| Z4 | Naprawa webhooka HotPay | kod | P0 | S | TODO |
-| Z5 | Weryfikacja kwoty i atomowe księgowanie | kod | P0 | M | TODO |
-| Z6 | Zapis zgód konsumenckich przy zakupie | kod | P0 | M | TODO |
-| Z7 | Anonimizacja zamówień zamiast kaskady | kod | P0 | M | TODO |
-| Z8 | Testy płatności | kod | P0 | M | TODO |
-| Z9 | Realna wartość pakietu | kod | P0 | L | TODO |
-| Z10 | Gating Premium po stronie serwera | kod | P0 | M | TODO |
-| Z11 | Rejestr zgód i zgoda na dane zdrowotne | kod+prawnik | P0 | L | TODO |
-| Z12 | Analityka i monitoring tylko po zgodzie | kod | P0 | M | TODO |
-| Z13 | Minimalny wiek 16 lat | kod | P0 | M | TODO |
-| Z14 | Usuwanie konta z ponownym uwierzytelnieniem | kod | P0 | M | TODO |
-| Z15 | Dokumenty prawne i podmioty przetwarzające | kod+prawnik | P0 | M | TODO |
-| Z16 | Test „trasy API vs proxy" | kod | P0 | S | TODO |
+| Z1 | Podmiot sprzedający | decyzja | P0 | S | ZROBIONE (2026-11-02) |
+| Z2 | Model Free/Premium i cennik | decyzja | P0 | S | ZROBIONE (2026-11-02) |
+| Z3 | Decyzja o reklamach (AdMob) | decyzja | P0 | S | ZROBIONE (2026-11-02) |
+| Z4 | Naprawa webhooka HotPay | kod | P0 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
+| Z5 | Weryfikacja kwoty i atomowe księgowanie | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
+| Z6 | Zapis zgód konsumenckich przy zakupie | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (treść zgód to szkic — do akceptacji prawnika) |
+| Z7 | Anonimizacja zamówień zamiast kaskady | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z8 | Testy płatności | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
+| Z9 | Realna wartość pakietu | kod | P0 | L | KOD GOTOWY, TESTY NIEURUCHOMIONE (raport Premium + flaga checkoutu; AdMob po stronie właściciela) |
+| Z10 | Gating Premium po stronie serwera | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z11 | Rejestr zgód i zgoda na dane zdrowotne | kod+prawnik | P0 | L | KOD GOTOWY, TESTY NIEURUCHOMIONE; treści zgód wymagają zatwierdzenia prawnika (2026-11-02) |
+| Z12 | Analityka i monitoring tylko po zgodzie | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
+| Z13 | Minimalny wiek 16 lat | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
+| Z14 | Usuwanie konta z ponownym uwierzytelnieniem | kod | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (e-mail po usunięciu działa po SMTP z Z17 [NA KONIEC]) |
+| Z15 | Dokumenty prawne i podmioty przetwarzające | kod+prawnik | P0 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (szkice dokumentów i tekstów; zatwierdzenie prawnika i umowy powierzenia [NA KONIEC]) |
+| Z16 | Test „trasy API vs proxy" | kod | P0 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
 | Z17 | SMTP produkcyjny | decyzja+konfig | P0 | S | TODO |
-| Z18 | Decyzja: Java, iframe AWP, repo prywatne | decyzja | P1 | S | TODO |
-| Z19 | Decyzja: płatności na Androidzie | decyzja | P1 | S | TODO |
-| Z20 | Historia zamówień i e-mail z potwierdzeniem | kod | P1 | M | TODO |
-| Z21 | Faktury / paragony | kod | P1 | L | TODO |
-| Z22 | Panel zamówień i zwroty (admin) | kod | P1 | M | TODO |
-| Z23 | Alerty płatności | kod | P1 | S | TODO |
-| Z24 | Przypomnienie o końcu pakietu i odnowienie | kod | P1 | M | TODO |
-| Z25 | Publiczna strona `/usun-konto` | kod | P1 | S | TODO |
-| Z26 | Kompletny eksport danych | kod | P1 | S | TODO |
-| Z27 | Pollinations bez danych osobowych | kod | P1 | S | TODO |
-| Z28 | Retencja i automatyczne usuwanie danych | kod+prawnik | P1 | M | TODO |
-| Z29 | CSP w trybie egzekwowania | kod | P1 | M | TODO |
-| Z30 | Rate limiting produkcyjny i zaufane IP | kod | P1 | S | TODO |
-| Z31 | Java fail-closed (lub usunięcie) | kod | P1 | S | TODO |
-| Z32 | 2FA i blokada dla admina; usunięcie PIN-u | kod | P1 | M | TODO |
-| Z33 | Repo prywatne i higiena drzewa | kod/konfig | P1 | S | TODO |
-| Z34 | Test uprawnień tras admina | kod | P1 | S | TODO |
-| Z35 | Jedna definicja tygodnia i minut cardio | kod | P1 | M | TODO |
-| Z36 | Komunikaty rejestracji bez SMTP | kod | P1 | S | TODO |
-| Z37 | Obecność w treningu tylko przy udostępnianiu | kod | P1 | S | TODO |
-| Z38 | Spójne cardio także bez planu | kod | P1 | S | TODO |
-| Z39 | Zdjęcia w magazynie obiektowym | kod | P1 | L | TODO |
-| Z40 | Jedno źródło schematu bazy | kod | P1 | L | TODO |
-| Z41 | Pomiar wydajności na buildzie produkcyjnym | kod/pomiar | P1 | S | TODO |
-| Z42 | Lint zielony | kod | P1 | L | TODO |
-| Z43 | E2E krytycznych ścieżek | kod | P1 | L | TODO |
-| Z44 | Testy kontraktowe liczb między ekranami | kod | P1 | M | TODO |
-| Z45 | Rozszerzony `deploy:check` | kod | P1 | S | TODO |
-| Z46 | Naprawa i utrzymanie specyfikacji E2E | kod | P1 | M | TODO |
+| Z18 | Decyzja: Java, iframe AWP, repo prywatne | decyzja | P1 | S | ZROBIONE (2026-11-02) |
+| Z19 | Decyzja: płatności na Androidzie | decyzja | P1 | S | ZROBIONE (2026-11-02) |
+| Z20 | Historia zamówień i e-mail z potwierdzeniem | kod | P1 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (e-mail działa po SMTP z Z17 [NA KONIEC]) |
+| Z21 | Faktury / paragony | kod | P1 | L | KOD GOTOWY, TESTY NIEURUCHOMIONE (potwierdzenie zakupu bez VAT wg DK-1; forma do akceptacji księgowego/prawnika) |
+| Z22 | Panel zamówień i zwroty (admin) | kod | P1 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z23 | Alerty płatności | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z24 | Przypomnienie o końcu pakietu i odnowienie | kod | P1 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (e-mail działa po SMTP z Z17 [NA KONIEC]) |
+| Z25 | Publiczna strona `/usun-konto` | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (link w Play Console ustawia właściciel [NA KONIEC]) |
+| Z26 | Kompletny eksport danych | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z27 | Pollinations bez danych osobowych | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z28 | Retencja i automatyczne usuwanie danych | kod+prawnik | P1 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (okresy do zatwierdzenia przez prawnika [NA KONIEC]; flaga nieaktywnych kont domyślnie wyłączona) |
+| Z29 | CSP w trybie egzekwowania | kod | P1 | M | KOD GOTOWY (Report-Only; egzekwowanie CSP_MODE=enforce NA KONIEC po analizie raportów), TESTY NIEURUCHOMIONE |
+| Z30 | Rate limiting produkcyjny i zaufane IP | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z31 | Java fail-closed (lub usunięcie) | kod | P1 | S | ZROBIONE przez usunięcie Javy (Z73, ADR 0014) |
+| Z32 | 2FA i blokada dla admina; usunięcie PIN-u | kod | P1 | M | KOD GOTOWY (wymóg za flagą ADMIN_2FA_REQUIRED, włączenie NA KONIEC), TESTY NIEURUCHOMIONE |
+| Z33 | Repo prywatne i higiena drzewa | kod/konfig | P1 | S | HIGIENA W REPO GOTOWA; zmiana widoczności repo NA KONIEC (właściciel) |
+| Z34 | Test uprawnień tras admina | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z35 | Jedna definicja tygodnia i minut cardio | kod | P1 | M | KOD GOTOWY (`lib/cardio-week-range.ts` + `lib/cardio-week.ts`, wybór trybu w Profilu), TESTY NIEURUCHOMIONE |
+| Z36 | Komunikaty rejestracji bez SMTP | kod | P1 | S | GOTOWE W KODZIE 2026-11-04: `auth-copy.ts` + baner dostawcy e-mail w `/register` (już istniało); test przepływu z kodem e-mail po Z17 |
+| Z37 | Obecność w treningu tylko przy udostępnianiu | kod | P1 | S | KOD GOTOWY (204 zamiast 403 + klient przestaje wysyłać; test trasy), TESTY NIEURUCHOMIONE |
+| Z38 | Spójne cardio także bez planu | kod | P1 | S | KOD GOTOWY (martwy `/start-workout` usunięty, rejestracja → `/workout-plan`), TESTY NIEURUCHOMIONE |
+| Z39 | Zdjęcia w magazynie obiektowym | kod | P1 | L | CZĘŚCIOWO 2026-11-03: S3-kompatybilny klient (SigV4, wektor AWS zielony w node), `object_key`, serwowanie z autoryzacją, sprzątanie przy usunięciu konta/retencji, skrypt migracji + rollback, limity; flaga `PHOTO_STORAGE=s3` domyślnie OFF. Brak: miniatur, uploadu z klienta, pozostałych tabel z `data_url` |
+| Z40 | Jedno źródło schematu bazy | kod | P1 | L | CZĘŚCIOWO 2026-11-03: runner `db:migrate:run`/`db:migrate:check`, `SCHEMA_MODE=migrations` wyłącza runtime DDL, test zgodności schema.ts↔migracje (NIEURUCHOMIONY). Domyślnie nadal `ensure`; przełączenie i usunięcie ensure-schema po teście na stagingu |
+| Z41 | Pomiar wydajności na buildzie produkcyjnym | kod/pomiar | P1 | S | CZĘŚCIOWO 2026-11-04: `scripts/perf-budget.mjs`, `docs/wydajnosc/budzety.{json,md}`, job CI (3 strony publiczne, nieblokujący); POMIAR na buildzie NIEWYKONANY, progi auth do zatwierdzenia |
+| Z42 | Lint zielony | kod | P1 | L | TODO — wymaga uruchomienia `npm run lint` (102 błędy); dodano `lint:ci` (`--max-warnings=0`) i job CI nieblokujący |
+| Z43 | E2E krytycznych ścieżek | kod | P1 | L | KOD GOTOWY (`payments.spec.ts`, `registration.spec.ts`, CI), NIEURUCHOMIONE; raport HTML w artefakcie CI |
+| Z44 | Testy kontraktowe liczb między ekranami | kod | P1 | M | KOD GOTOWY (`lib/cardio-week-range.test.ts`, `lib/volume-contract.test.ts`), NIEURUCHOMIONE |
+| Z45 | Rozszerzony `deploy:check` | kod | P1 | S | ZROBIONE (skrypt uruchomiony, test jednostkowy napisany): `deploy:check --production`/`--env-file`/`--quality`, bramka w `deploy-vps.yml` |
+| Z46 | Naprawa i utrzymanie specyfikacji E2E | kod | P1 | M | KOD GOTOWY (storageState, projekty, CI `ci.yml`), NIEURUCHOMIONE; 4 rozbieżności asercji nierozstrzygnięte w pełni |
 | Z47 | Staging z testowymi kluczami HotPay | konfig | P1 | M | TODO |
 | Z48 | Test przywracania backupu | ops | P1 | S | TODO |
 | Z49 | Monitoring, alerty, status | ops | P1 | M | TODO |
-| Z50 | Wsparcie klienta i reklamacje | kod | P1 | S | TODO |
+| Z50 | Wsparcie klienta i reklamacje | kod | P1 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z51 | Publikacja Android w Google Play | ops+kod | P1 | L | TODO |
 | Z52 | Soft launch i decyzja go/no-go | ops | P1 | M | TODO |
 | Z53 | KPI i lejek | kod | P1 | M | TODO |
-| Z54 | Kody promocyjne i Badania — definicja albo usunięcie | decyzja+kod | P2 | S | TODO |
-| Z55 | Zmiana cen bez wdrożenia | kod | P2 | S | TODO |
-| Z56 | Ograniczenie osadzania w iframe | kod | P2 | S | TODO |
-| Z57 | Skan zależności i rotacja sekretów | kod+dok | P2 | S | TODO |
-| Z58 | Onboarding świadomy historii | kod | P2 | M | TODO |
-| Z59 | Kontekstowy przycisk pływający | kod | P2 | S | TODO |
-| Z60 | Tytuły stron i nazewnictwo sekcji | kod | P2 | S | TODO |
-| Z61 | Stany ładowania i wykresy bez błędów wymiarów | kod | P2 | S | TODO |
-| Z62 | Seria 0 kg — świadomy wybór | kod | P2 | S | TODO |
-| Z63 | Jedno sterowanie niedokończonym treningiem | kod | P2 | S | TODO |
-| Z64 | Dostępny formularz raportu ciała | kod | P2 | M | TODO |
-| Z65 | Jeden wzorzec nagłówka ekranu | kod | P2 | M | TODO |
-| Z66 | Tokeny kolorów i kontrast | kod | P2 | M | TODO |
-| Z67 | Jeden komponent kafla statystyki | kod | P2 | S | TODO |
-| Z68 | Strefa bezpieczna dolnej nawigacji | kod | P2 | S | TODO |
-| Z69 | Dokończenie przeglądu wizualnego ekranów | pomiar | P2 | M | TODO |
-| Z70 | Mniejszy payload RSC (Dieta/Tydzień, Atlas) | kod | P2 | M | TODO |
-| Z71 | Mniej zapisów synchronizacji treningu | kod | P2 | M | TODO |
-| Z72 | CAS w modułach społeczności | kod | P2 | M | TODO |
-| Z73 | Realizacja decyzji o Javie | kod | P2 | M | TODO |
-| Z74 | Dostępność WCAG AA | kod | P2 | M | TODO |
-| Z75 | Panel finansowy | kod | P2 | M | TODO |
+| Z54 | Kody promocyjne i Badania — definicja albo usunięcie | decyzja+kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE (część „decyzja”: DK-9; strony ukryte flagą) |
+| Z55 | Zmiana cen bez wdrożenia | kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z56 | Ograniczenie osadzania w iframe | kod | P2 | S | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z57 | Skan zależności i rotacja sekretów | kod+dok | P2 | S | WORKFLOW I PROCEDURA GOTOWE; sama rotacja NA KONIEC |
+| Z58 | Onboarding świadomy historii | kod | P2 | M | GOTOWE W KODZIE 2026-11-04: `lib/plan-from-history.ts`, `actions/plan-from-history.ts`, przycisk na Pulpicie, baner znika przy treningach, licznik raportów wg reguły; test `plan-from-history.test.ts` nieuruchomiony |
+| Z59 | Kontekstowy przycisk pływający | kod | P2 | S | GOTOWE W KODZIE 2026-11-04: środkowy przycisk belki kontekstowy (`lib/context-fab.ts`); test 375 px do wykonania |
+| Z60 | Tytuły stron i nazewnictwo sekcji | kod | P2 | S | GOTOWE W KODZIE 2026-11-04: tytuły w 65 trasach + test; nazwy w `docs/ux/00-system-projektowy-stan.md` |
+| Z61 | Stany ładowania i wykresy bez błędów wymiarów | kod | P2 | S | GOTOWE W KODZIE 2026-11-04: szkielet i `error.tsx` Analizy, 13 wykresów z `minHeight`/`initialDimension`; brak „width(-1)” do potwierdzenia w przeglądarce |
+| Z62 | Seria 0 kg — świadomy wybór | kod | P2 | S | KOD GOTOWY (okno „Seria bez ciężaru?”, `lib/exercise-load.ts`; E2E 005 p.7 zaktualizowany), TESTY NIEURUCHOMIONE |
+| Z63 | Jedno sterowanie niedokończonym treningiem | kod | P2 | S | KOD GOTOWY (mini-pasek jednowierszowy, ukryty na /treningi); test 375×667 NIEDODANY, TESTY NIEURUCHOMIONE |
+| Z64 | Dostępny formularz raportu ciała | kod | P2 | M | KOD GOTOWY (etykiety, radiogroup, zdjęcia opcjonalne + zgoda), AXE NIEURUCHOMIONE |
+| Z65 | Jeden wzorzec nagłówka ekranu | kod | P2 | M | CZĘŚCIOWO 2026-11-04: `AppPageHeader` z `backHref`/`backLabel`, 9 podekranów; brak zrzutów przed/po i przeglądu pozostałych ekranów (Z69) |
+| Z66 | Tokeny kolorów i kontrast | kod | P2 | M | GOTOWE W KODZIE 2026-11-04: test zakazujący literałów, 674 zamiany kontrastu tekstu; kontrast policzony (nie narzędziem na renderze) |
+| Z67 | Jeden komponent kafla statystyki | kod | P2 | S | GOTOWE W KODZIE 2026-11-04: `components/ui/stat-tile.tsx` + 4 nakładki; wygląd do potwierdzenia wizualnie |
+| Z68 | Strefa bezpieczna dolnej nawigacji | kod | P2 | S | CZĘŚCIOWO 2026-11-04: tokeny `--bottom-*` w paddingu treści i widżetach; test 375×667/412×915 NIEWYKONANY; `thumb-action-bar` i globalny pasek treningu bez zmian |
+| Z69 | Dokończenie przeglądu wizualnego ekranów | pomiar | P2 | M | PROCEDURA 2026-11-04: `scripts/ui-review.mjs` + `docs/ux/przeglad-wizualny-i-wcag.md`; zrzuty NIEWYKONANE |
+| Z70 | Mniejszy payload RSC (Dieta/Tydzień, Atlas) | kod | P2 | M | GOTOWE W KODZIE 2026-11-04 (cel < 90 kB NIEZMIERZONY): Atlas bez opisów/wskazówek/linków (szczegóły na żądanie), tydzień żywienia 13 tyg. na start + doładowanie |
+| Z71 | Mniej zapisów synchronizacji treningu | kod | P2 | M | GOTOWE W KODZIE 2026-11-04 (testy NIEURUCHOMIONE): pomijanie PUT bez zmian + heartbeat 60 s; payload nie zmniejszany, metryka tylko lokalnie (`stats()`) |
+| Z72 | CAS w modułach społeczności | kod | P2 | M | GOTOWE W KODZIE 2026-11-03 (testy NIEURUCHOMIONE) |
+| Z73 | Realizacja decyzji o Javie | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
+| Z74 | Dostępność WCAG AA | kod | P2 | M | PROCEDURA 2026-11-04: skrypt axe (wymaga `npm i -D axe-core`) + dokument; audyt NIEWYKONANY |
+| Z75 | Panel finansowy | kod | P2 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE |
 | Z76 | Publiczna strona produktu | kod | P2 | M | TODO |
-| Z77 | Usunięcie `inbox` i roli `trener` | kod | P3 | S | TODO |
-| Z78 | Usunięcie martwych komponentów | kod | P3 | S | TODO |
-| Z79 | Mniej pollingu społeczności | kod | P3 | M | TODO |
+| Z77 | Usunięcie `inbox` i roli `trener` | kod | P3 | S | GOTOWE W KODZIE 2026-11-04: trasa, rola i UI usunięte; migracja 0043 + idempotentny UPDATE w `ensure-schema` |
+| Z78 | Usunięcie martwych komponentów | kod | P3 | S | GOTOWE W KODZIE 2026-11-04: usunięte 9 plików i `.iron-panel` (tokeny `--chart-*` zostają) |
+| Z79 | Mniej pollingu społeczności | kod | P3 | M | GOTOWE W KODZIE 2026-11-04: adaptacyjny interwał listy „kto trenuje” (×2 do 4×), pauza w tle już była; bez SSE (decyzja DK-27), cache list serwerowych już istniał |
 | Z80 | Rozbicie dużych modułów | kod | P3 | L | TODO |
-| Z81 | Przypomnienia treningowe za zgodą | kod | P3 | M | TODO |
-| Z82 | Mapa drogowa funkcji Premium | decyzja | P3 | S | TODO |
+| Z81 | Przypomnienia treningowe za zgodą | kod | P3 | M | KOD GOTOWY, TESTY NIEURUCHOMIONE (2026-11-02) |
+| Z82 | Mapa drogowa funkcji Premium | decyzja | P3 | S | ZROBIONE (2026-11-02) |
 | Z83 | Aktualizacja dokumentacji projektu | dok | P3 | S | TODO |
 
 Kolejność i zależności: patrz backlog-us.md.

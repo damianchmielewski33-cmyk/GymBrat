@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { isAdminEligible } from "@/lib/admin-session";
+import { isAdmin2faSatisfied, isAdminEligible } from "@/lib/admin-session";
 
 export const runtime = "nodejs";
 
@@ -26,6 +26,11 @@ export default async function AdminPanelLayout({
         </p>
       </div>
     );
+  }
+
+  // Z32: przy włączonym wymogu panel otwiera się dopiero po 2FA.
+  if (!(await isAdmin2faSatisfied(session))) {
+    redirect("/admin/2fa");
   }
 
   return <AdminShell>{children}</AdminShell>;

@@ -81,7 +81,6 @@ describe("admin-config-status", () => {
       "HOTPAY_SEKRET",
       "POLLINATIONS_API_KEY",
       "YOUTUBE_API_KEY",
-      "JAVA_API_BASE_URL",
     ]) {
       expect(names).toContain(required);
     }
@@ -115,13 +114,14 @@ describe("admin-config-status", () => {
     ).toBe("test");
   });
 
-  it("ADMIN_EMAILS nie jest opcjonalne: brak daje stan partial dostępu do panelu", () => {
-    const access = getConfigStatus({ ADMIN_PIN: "1234" }).find((i) => i.id === "admin-access");
-    expect(access?.status).toBe("partial");
+  it("ADMIN_EMAILS jest wymagane do konfiguracji dostępu do panelu; wymóg 2FA ma osobny wpis", () => {
+    const access = getConfigStatus({}).find((i) => i.id === "admin-access");
+    expect(access?.status).toBe("missing");
     expect(access?.missing).toEqual(["ADMIN_EMAILS"]);
-    const ok = getConfigStatus({ ADMIN_PIN: "1234", ADMIN_EMAILS: "a@b.pl" }).find(
-      (i) => i.id === "admin-access",
-    );
+    const ok = getConfigStatus({ ADMIN_EMAILS: "a@b.pl" }).find((i) => i.id === "admin-access");
     expect(ok?.status).toBe("ok");
+    const tfa = getConfigStatus({}).find((i) => i.id === "admin-2fa");
+    expect(tfa?.missing).toEqual(["ADMIN_2FA_REQUIRED"]);
+    expect(getConfigStatus({ ADMIN_2FA_REQUIRED: "1" }).find((i) => i.id === "admin-2fa")?.status).toBe("ok");
   });
 });

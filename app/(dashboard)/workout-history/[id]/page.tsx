@@ -38,6 +38,8 @@ function formatDate(ymd: string) {
   }
 }
 
+export const metadata = { title: "Szczegóły treningu" };
+
 export default async function WorkoutHistoryDetailsPage({
   params,
 }: {

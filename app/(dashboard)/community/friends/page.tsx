@@ -8,6 +8,8 @@ import { AppPageHeader } from "@/components/layout/screen";
 import { getFriendsFeed } from "@/lib/community/activity-feed";
 import { listFriendsAndPending } from "@/lib/community/friendships";
 
+export const metadata = { title: "Znajomi" };
+
 export default async function CommunityFriendsPage() {
   const session = await auth();
   const userId = session?.user?.id;
@@ -37,7 +39,7 @@ export default async function CommunityFriendsPage() {
         />
       </section>
       {friends.length === 0 && pending.length === 0 ? (
-        <p className="flex items-center gap-2 text-[13px] text-white/40">
+        <p className="flex items-center gap-2 text-[13px] text-white/50">
           <UserPlus className="h-4 w-4" aria-hidden />
           Wskazówka: na liście członków grupy też jest „Dodaj do znajomych”.
         </p>

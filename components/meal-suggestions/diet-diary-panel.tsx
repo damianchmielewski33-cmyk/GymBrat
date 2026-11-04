@@ -147,7 +147,7 @@ function MealSlotCard({
                 <p
                   className={cn(
                     "mt-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
-                    cell.key === "kcal" ? "text-white/40" : "text-[var(--gym-gold)]",
+                    cell.key === "kcal" ? "text-white/50" : "text-[var(--gym-gold)]",
                   )}
                 >
                   {cell.label}
@@ -210,7 +210,7 @@ function MealSlotCard({
                       <p className="truncate text-sm text-white/85">
                         {e.name?.trim() || "Posiłek"}
                       </p>
-                      <p className="text-[11px] tabular-nums text-white/40">
+                      <p className="text-[11px] tabular-nums text-white/50">
                         {Math.round(e.calories)} kcal · B
                         {Math.round(e.proteinG)} W{Math.round(e.carbsG)} T
                         {Math.round(e.fatG)}
@@ -220,7 +220,7 @@ function MealSlotCard({
                       type="button"
                       aria-label="Edytuj"
                       onClick={() => onEditLog(e)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:bg-white/[0.06] hover:text-white"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/[0.06] hover:text-white"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
@@ -233,7 +233,7 @@ function MealSlotCard({
                 ))}
               </ul>
             ) : (
-              <p className="border-t border-white/[0.06] px-3.5 py-3.5 text-[13px] text-white/40">
+              <p className="border-t border-white/[0.06] px-3.5 py-3.5 text-[13px] text-white/50">
                 Brak produktów — dodaj skanem, z przepisów albo ręcznie.
               </p>
             )}
@@ -331,7 +331,7 @@ export function DietDiaryPanel({
         className={cn(
           "relative inline-flex h-12 w-full items-center justify-center gap-2.5 overflow-hidden",
           "rounded-full text-[13px] font-bold uppercase tracking-[0.08em]",
-          "text-[#1A1408]",
+          "text-[var(--gym-on-gold)]",
           "transition-[filter] duration-150",
         )}
         style={{

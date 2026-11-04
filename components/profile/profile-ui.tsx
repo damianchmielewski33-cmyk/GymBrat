@@ -88,7 +88,7 @@ export function ProfileBlock({
             {title}
           </h3>
           {description ? (
-            <p className="mt-1 text-[13px] leading-relaxed text-white/45">
+            <p className="mt-1 text-[13px] leading-relaxed text-white/50">
               {description}
             </p>
           ) : null}
@@ -124,7 +124,7 @@ export function ProfileField({
       </label>
       {children}
       {hint ? (
-        <p className="text-xs leading-snug text-white/40">{hint}</p>
+        <p className="text-xs leading-snug text-white/50">{hint}</p>
       ) : null}
     </div>
   );
@@ -149,10 +149,10 @@ export function ProfileComputedValue({
         className,
       )}
     >
-      <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
+      <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-white/50">
         <Calculator className="h-3.5 w-3.5" aria-hidden />
         <span>{label}</span>
-        <span className="normal-case tracking-normal text-white/30">
+        <span className="normal-case tracking-normal text-white/50">
           · wyliczone
         </span>
       </div>
@@ -160,7 +160,7 @@ export function ProfileComputedValue({
         {value}
       </p>
       {hint ? (
-        <p className="mt-1 text-xs leading-snug text-white/40">{hint}</p>
+        <p className="mt-1 text-xs leading-snug text-white/50">{hint}</p>
       ) : null}
     </div>
   );
@@ -183,8 +183,8 @@ export function ProfileSystemState({
         className,
       )}
     >
-      <Lock className="h-3.5 w-3.5 shrink-0 text-white/35" aria-hidden />
-      <span className="text-[11px] text-white/40">{label}</span>
+      <Lock className="h-3.5 w-3.5 shrink-0 text-white/50" aria-hidden />
+      <span className="text-[11px] text-white/50">{label}</span>
       <span className="truncate text-[13px] font-medium text-white/80">
         {value}
       </span>

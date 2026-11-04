@@ -5,6 +5,8 @@ type PageProps = {
 };
 
 /** Stara ścieżka Profil → Plan: trwałe przekierowanie na /plany (AC-1.3, AC-1.4). */
+export const metadata = { title: "Edytor planu treningowego" };
+
 export default async function ProfileWorkoutPlanRedirectPage({
   searchParams,
 }: PageProps) {

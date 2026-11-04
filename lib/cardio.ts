@@ -1,85 +1,18 @@
 import "server-only";
 
-import { and, eq, gte, lte, sql } from "drizzle-orm";
-import { getDb } from "@/db";
-import { trainingSessions, userSettings, workouts } from "@/db/schema";
-import { calendarDateKey } from "@/lib/local-date";
-import {
-  countableCardioMinutes,
-  parseWorkoutSessionJson,
-} from "@/lib/workout-cardio-attribution";
+import { getCardioWeekSummary } from "@/lib/cardio-week";
 
 export * from "@/lib/cardio-utils";
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
 /**
- * Rolling 7-day cardio: sums `workouts` (by local `date`) plus legacy
- * `training_sessions` rows in the same window so older data still counts.
- *
- * ADR 0009: arkusz „Dodaj cardio” używa tygodnia pn–nd (`getCardioWeekProgressPnNd`
- * w `lib/cardio-hub.ts`). Ta funkcja zostaje dla kafelka głównego (rolling) —
- * ujednolicenie to osobne zadanie (BR-2 / Q-C3).
+ * Postęp celu cardio — cienki wrapper na `getCardioWeekSummary`
+ * (jedna definicja tygodnia: `lib/cardio-week-range.ts`, US12).
  */
 export async function getWeeklyCardioProgress(userId: string) {
-  const db = getDb();
-  const now = new Date();
-  const weekAgo = new Date(Date.now() - WEEK_MS);
-
-  const [goalRow] = await db
-    .select({ goal: userSettings.weeklyCardioGoalMinutes })
-    .from(userSettings)
-    .where(eq(userSettings.userId, userId))
-    .limit(1);
-
-  const weeklyGoal = goalRow?.goal ?? 150;
-
-  const todayKey = calendarDateKey(now);
-  const minWorkoutDateKey = calendarDateKey(weekAgo);
-
-  const workoutRows = await db
-    .select({
-      cardioMinutes: workouts.cardioMinutes,
-      exercises: workouts.exercises,
-    })
-    .from(workouts)
-    .where(
-      and(
-        eq(workouts.userId, userId),
-        gte(workouts.date, minWorkoutDateKey),
-        lte(workouts.date, todayKey),
-      ),
-    );
-
-  let fromWorkoutsTotal = 0;
-  for (const row of workoutRows) {
-    const parsed = parseWorkoutSessionJson(row.exercises);
-    fromWorkoutsTotal += countableCardioMinutes(parsed, row.cardioMinutes ?? 0);
-  }
-
-  const [fromLegacySessions] = await db
-    .select({
-      total: sql<number>`coalesce(sum(${trainingSessions.cardioMinutes}), 0)`,
-    })
-    .from(trainingSessions)
-    .where(
-      and(
-        eq(trainingSessions.userId, userId),
-        gte(trainingSessions.startedAt, weekAgo),
-      ),
-    );
-
-  const minutesCompleted =
-    fromWorkoutsTotal + Number(fromLegacySessions?.total ?? 0);
-
-  const pct =
-    weeklyGoal > 0
-      ? Math.min(100, Math.round((minutesCompleted / weeklyGoal) * 1000) / 10)
-      : 0;
-
+  const s = await getCardioWeekSummary(userId);
   return {
-    weeklyGoal,
-    minutesCompleted,
-    percent: pct,
+    weeklyGoal: s.goalMinutes,
+    minutesCompleted: s.minutes,
+    percent: s.percent,
   };
 }

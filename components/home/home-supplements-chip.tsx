@@ -39,11 +39,11 @@ export function HomeSupplementsChip({
         <span className="block text-sm font-semibold text-white">
           Suplementy na dziś
         </span>
-        <span className="mt-0.5 block truncate text-[12px] text-white/45">
+        <span className="mt-0.5 block truncate text-[12px] text-white/50">
           {summary || "Dodaj suplementy i dawki"}
         </span>
       </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
+      <ChevronRight className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
     </Link>
   );
 }

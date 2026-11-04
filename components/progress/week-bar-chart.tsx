@@ -1,5 +1,6 @@
 "use client";
 
+import { BRAND_GOLD } from "@/lib/brand-colors";
 import { useMemo, useState } from "react";
 import {
   Bar,
@@ -22,13 +23,13 @@ const FILTERS = [
 
 type FilterId = (typeof FILTERS)[number]["id"];
 
-const GOLD = "#ebc44a";
+const GOLD = BRAND_GOLD;
 const GREY = "rgba(255,255,255,0.28)";
 const BLUE = "#60a5fa";
 
 const tooltipStyle = {
   backgroundColor: "rgba(12, 12, 14, 0.96)",
-  border: "1px solid rgba(235, 196, 74, 0.28)",
+  border: "1px solid rgba(var(--neon-rgb),0.28)",
   borderRadius: "14px",
   fontSize: "12px",
   color: "rgba(255, 255, 255, 0.92)",
@@ -100,7 +101,12 @@ export function WeekBarChart({ weeks }: { weeks: ProgressWeekBar[] }) {
         ))}
       </div>
       <div className="h-[200px] w-full min-w-0">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minHeight={100}
+          initialDimension={{ width: 320, height: 200 }}
+        >
           <BarChart data={data} margin={{ top: 18, right: 4, left: 0, bottom: 0 }}>
             <XAxis
               dataKey="short"
@@ -153,7 +159,7 @@ export function WeekBarChart({ weeks }: { weeks: ProgressWeekBar[] }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-[11px] leading-relaxed text-white/40">
+      <p className="text-[11px] leading-relaxed text-white/50">
         Złoty słupek to tydzień z kompletem treningów z planu.
       </p>
     </div>

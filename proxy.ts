@@ -4,10 +4,12 @@ import { getToken, type JWT } from "next-auth/jwt";
 import { getAccountAuthState, isTokenRevoked } from "@/lib/account-auth-state";
 import { SESSION_EXPIRED_PARAM } from "@/lib/auth-error-codes";
 import { getAuthSecret } from "@/lib/auth-secret";
+import { applyCspHeaders, buildCsp, createNonce } from "@/lib/csp";
 import { isAuthSessionCookieName } from "@/lib/auth-session-cookie";
 import { errorResponse } from "@/lib/errors/api";
 import { AppError } from "@/lib/errors/app-error";
 import { logServerError, requestIdFrom } from "@/lib/errors/server-log";
+import { isProxyPublicApiPath } from "@/lib/proxy-public-api";
 import { logAuthFailure } from "@/lib/security-events";
 import {
   isAnonymousPublicPath,
@@ -65,7 +67,7 @@ async function isSessionRevoked(token: JWT): Promise<boolean> {
  * Czyści ciasteczka sesji i kieruje na `/login?session=expired`; bez tego strona (brak sesji)
  * i proxy (ciasteczko jest) odbijałyby się nawzajem.
  */
-function revokedSessionResponse(req: NextRequest, pathname: string): NextResponse {
+function revokedSessionResponse(req: NextRequest, pathname: string, pass: () => NextResponse): NextResponse {
   const onExpiredLogin =
     pathname === "/login" && req.nextUrl.searchParams.get("session") === SESSION_EXPIRED_PARAM;
   let res: NextResponse;
@@ -73,7 +75,7 @@ function revokedSessionResponse(req: NextRequest, pathname: string): NextRespons
     const api = errorResponse("UNAUTHORIZED", { requestId: requestIdFrom(req.headers) });
     res = new NextResponse(api.body, { status: api.status, headers: api.headers });
   } else if (onExpiredLogin) {
-    res = NextResponse.next();
+    res = pass();
   } else {
     res = NextResponse.redirect(new URL(`/login?session=${SESSION_EXPIRED_PARAM}`, req.url));
   }
@@ -84,37 +86,15 @@ function revokedSessionResponse(req: NextRequest, pathname: string): NextRespons
 }
 
 /** Ochrona tras (Next.js 16 — eksport musi nazywać się `proxy`). */
-export async function proxy(req: NextRequest) {
+async function routeRequest(req: NextRequest, pass: () => NextResponse) {
   const pathname = req.nextUrl.pathname;
-
-  /** Anonimowe zliczanie wejść — bez JWT (por. tracker klienta). */
-  if (pathname.startsWith("/api/analytics/")) {
-    return NextResponse.next();
-  }
 
   /**
    * Aktualizacje APK: natywna aplikacja Android nie ma sesji NextAuth.
    * Bez tego GET /api/android/version i /gymbrat.apk lądują na HTML logowania.
    */
-  if (
-    pathname.startsWith("/api/android/") ||
-    pathname === "/android-version.json" ||
-    pathname.endsWith(".apk")
-  ) {
-    return NextResponse.next();
-  }
-
-  /**
-   * Crony (Vercel Cron, GitHub Actions, systemd) nie mają sesji NextAuth — każda trasa
-   * w /api/cron/ sama sprawdza `CRON_SECRET`. Bez tego wywołania kończyły się 401.
-   */
-  if (pathname.startsWith("/api/cron/")) {
-    return NextResponse.next();
-  }
-
-  /** Branding / PWA ikony — publiczne (login, favicon, WebView bez sesji). */
-  if (pathname.startsWith("/api/branding")) {
-    return NextResponse.next();
+  if (pathname === "/android-version.json" || pathname.endsWith(".apk")) {
+    return pass();
   }
 
   /**
@@ -122,12 +102,7 @@ export async function proxy(req: NextRequest) {
    * nie 307 na /login.
    */
   if (pathname.startsWith("/.well-known/")) {
-    return NextResponse.next();
-  }
-
-  /** Publiczny provenance wdrożenia — wyłącznie z repozytorium GymBrat. */
-  if (pathname === "/api/version") {
-    return NextResponse.next();
+    return pass();
   }
 
   /** SEO: roboty i podglądy linków (OG) nie mają sesji — robots/sitemap/grafika OG muszą dać 200. */
@@ -137,32 +112,20 @@ export async function proxy(req: NextRequest) {
     pathname === "/opengraph-image" ||
     pathname === "/twitter-image"
   ) {
-    return NextResponse.next();
+    return pass();
   }
 
-  /** Trwałe grafiki katalogu (wygenerowane przy imporcie) — publiczne dla <img>. */
-  if (pathname.startsWith("/api/catalog-meal-image/")) {
-    return NextResponse.next();
-  }
-
-  /** Token CSRF (double-submit) — publiczny GET, bez sesji. */
-  if (pathname === "/api/csrf") {
-    return NextResponse.next();
-  }
-
-  /** CSP raporty (Report-Only) — publiczny POST z przeglądarki. */
-  if (pathname === "/api/security/csp-report") {
-    return NextResponse.next();
-  }
-
-  /** Błędy z przeglądarki → logi serwera; błąd może wystąpić też na /login (bez sesji). */
-  if (pathname === "/api/client-errors") {
-    return NextResponse.next();
+  /**
+   * Trasy API bez sesji NextAuth (crony, webhook HotPay, CSRF itd.) — jedna lista w
+   * `lib/proxy-public-api.ts`, pilnowana testem. Każda sama się uwierzytelnia.
+   */
+  if (isProxyPublicApiPath(pathname)) {
+    return pass();
   }
 
   const token = await readSessionToken(req);
   if (token && (await isSessionRevoked(token))) {
-    return revokedSessionResponse(req, pathname);
+    return revokedSessionResponse(req, pathname, pass);
   }
   const profileComplete = token?.profileComplete === true;
   const oauthExisting = req.nextUrl.searchParams.get("oauth") === "existing";
@@ -174,7 +137,7 @@ export async function proxy(req: NextRequest) {
   if (isAnonymousPublicPath(pathname)) {
     // /login?oauth=existing i ?session=expired — komunikat na ekranie logowania, bez odbicia na Pulpit.
     if (token && pathname === "/login" && (oauthExisting || sessionExpired)) {
-      return NextResponse.next();
+      return pass();
     }
     if (token && shouldBounceAuthenticatedFromAuthPage(pathname, profileComplete)) {
       // Rejestracja Google przy już kompletnym koncie → nie ciche logowanie na Pulpit.
@@ -189,7 +152,7 @@ export async function proxy(req: NextRequest) {
     if (token && pathname === "/" && mustCompleteProfile(pathname, profileComplete)) {
       return NextResponse.redirect(new URL(postAuthDestination(false), req.url));
     }
-    return NextResponse.next();
+    return pass();
   }
 
   if (!token && pathname.startsWith("/api/")) {
@@ -219,7 +182,23 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  return NextResponse.next();
+  return pass();
+}
+
+/**
+ * Wejście proxy: nonce CSP (Z29) trafia do nagłówków żądania — Next dokleja go do własnych
+ * skryptów — a nagłówki CSP do każdej odpowiedzi, także przekierowań.
+ */
+export async function proxy(req: NextRequest) {
+  const nonce = createNonce();
+  const csp = buildCsp({ nonce });
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("content-security-policy", csp.full);
+  const pass = () => NextResponse.next({ request: { headers: requestHeaders } });
+  const res = await routeRequest(req, pass);
+  applyCspHeaders(res.headers, csp);
+  return res;
 }
 
 export const config = {

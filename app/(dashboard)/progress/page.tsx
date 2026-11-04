@@ -1,14 +1,16 @@
 import { Suspense } from "react";
+import { ProgressSkeleton } from "@/components/progress/progress-skeleton";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { ProgressPageContent } from "@/components/progress/progress-page-content";
-import { DashboardRouteSkeleton } from "@/components/layout/dashboard-route-skeleton";
 import { parseProgressTab } from "@/lib/progress-tabs";
 
 function parsePeriod(raw: string | string[] | undefined): "7" | "30" | "90" {
   const value = Array.isArray(raw) ? raw[0] : raw;
   return value === "7" || value === "90" ? value : "30";
 }
+
+export const metadata = { title: "Analiza" };
 
 export default async function ProgressPage({
   searchParams,
@@ -34,7 +36,7 @@ export default async function ProgressPage({
         </h1>
       </header>
 
-      <Suspense fallback={<DashboardRouteSkeleton />}>
+      <Suspense fallback={<ProgressSkeleton />}>
         <ProgressPageContent tab={tab} period={period} />
       </Suspense>
     </div>

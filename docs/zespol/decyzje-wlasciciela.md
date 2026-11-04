@@ -45,3 +45,83 @@ Odpowiedzi właściciela na pytania otwarte zespołu (2026-10-23). Decyzje są w
 | DW-3 | `ADMIN_EMAILS` na Render przed wdrożeniem | Tak, właściciel ustawi przed Promote. |
 | DW-4 | Google OAuth na produkcji | Skonfigurowany i działa. |
 | DW-5 | Reguła R-B z ADR 0001 (unieważnienie hasła i sesji kont, do których Google dołączono po rejestracji hasłem) | Odrzucona. Takie konta dostają tylko `email_verified_at`; hasło i sesje bez zmian. Właściciel akceptuje ryzyko resztkowe: założyciel konta kodem `1234` może nadal znać hasło (ADR 0001, ryzyko A2/S2). |
+
+## US1 — decyzje komercjalizacyjne (2026-11-02)
+Zapisane na podstawie odpowiedzi właściciela (backlog US1). Kod zależny od decyzji ma być konfigurowalny (stała/flaga/env).
+
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-1 | Z1 Podmiot sprzedający | Osoba prywatna, **działalność nierejestrowana** (art. 5 Prawa przedsiębiorców). Warunki: limit przychodu (miesięcznie ok. 75% minimalnego wynagrodzenia) i brak działalności w ostatnich 60 miesiącach. **Do zatwierdzenia przez prawnika-człowieka**; dane sprzedawcy w `lib/legal-seller.ts` bez zmian; faktury (Z21) projektowane jako rachunki/potwierdzenia bez VAT; limit sprzedaży konfigurowalny. Zmienia D17 tylko co do formy sprzedaży. |
+| DK-2 | Z2 Model Free/Premium | Cennik bez zmian (3,99 / 8,99 / 24,99 / 79,99 zł za 7 / 30 / 90 / 365 dni), płatność jednorazowa, bez odnowień automatycznych, bez okresu próbnego. |
+| DK-3 | Z3 Reklamy | **Konfigurujemy AdMob**; pakiet znosi reklamy. Wymaga zgód (CMP) w US3 i konta AdMob po stronie właściciela. Uwaga: obowiązuje D18 (minimalny wiek 16 lat). |
+| DK-4 | Z18 Java | Usuwamy backend Java (Z31 fail-closed na czas przejściowy, Z73 usunięcie). |
+| DK-5 | Z18 iframe AWP | Zostaje bez zmian. |
+| DK-6 | Z18 Repo | Prywatne, **na końcu** (Z33, rotacja sekretów Z57 robi właściciel). |
+| DK-7 | Z19 Android | **Opcja B: Google Play Billing.** Konsekwencje do wyceny w US19/Z51 i US2: drugi kanał płatności, weryfikacja zakupów po stronie serwera, prowizja Google; zakupy cyfrowe w aplikacji Android muszą iść przez Play Billing. |
+| DK-8 | Z82 Mapa Premium | Pierwsze dwie funkcje: zaawansowana analiza postępów i raporty PDF (PDF dotyka danych o ciele: `gymbrat-sensitive-data`). |
+| DK-9 | Z54 / D11 | Kody rabatowe (`/promo-codes`) i Badania (`/labs`) ukryte za flagą do czasu definicji produktu; bez kasowania kodu. Dotyczy tylko części „decyzja" Z54. |
+
+## US3 — decyzje (2026-11-02)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-10 | Z13 Konta < 16 | Blokada do potwierdzenia wieku: konta z wiekiem < 16 wracają na uzupełnienie profilu (min. 16 + oświadczenie w rejestrze zgód). Automatycznego usuwania takich kont nie robimy bez osobnej zgody właściciela i oceny prawnika. Zakup pakietu od 18 lat. |
+| DK-11 | Z81 Przypomnienia | Zostają, za zgodą `push` w rejestrze zgód (włączenie przypomnień zapisuje zgodę, wyłączenie ją cofa). |
+| DK-12 | Z9/Z10 Zakres Premium i karencja | Premium blokuje wyłącznie **nowe** funkcje (raport postępów do wydruku/PDF z zaawansowaną analizą, `/progress/report`); obecne darmowe funkcje nie są zabierane. Reklamy znikają po aktywacji pakietu. **Bez karencji** po wygaśnięciu pakietu. |
+| DK-13 | Z9 Checkout | Zakup pakietu wyłączony flagą (`PREMIUM_CHECKOUT_ENABLED=1` włącza); do czasu włączenia `/package` pokazuje „wkrótce”, a API zwraca 503. |
+| DK-14 | Z24 Przypomnienia o końcu pakietu | Baner w aplikacji przy ≤ 7 dniach + e-mail przy ≤ 3 dniach, tylko za zgodą `push`, raz na okres (wymaga SMTP z Z17). „Przedłuż” wybiera ten sam plan; przedłużenie liczone od końca bieżącego pakietu. |
+| DK-15 | Z14 Ponowne uwierzytelnienie | Usunięcie konta wymaga hasła **albo** świeżego logowania (≤ 5 min; dla Google/Facebook ponowne logowanie z `prompt=login`) oraz frazy USUŃ. Bez kodu e-mail (nie zależy od SMTP). |
+| DK-16 | Z14 Termin usunięcia | Natychmiast i nieodwracalnie (bez karencji). Zamówienia odpinane od konta, dokumentacja sprzedaży zostaje (Z7). |
+| DK-17 | Z14 E-mail po usunięciu | Wysyłany best-effort na adres sprzed usunięcia (po SMTP z Z17); adresu nie zapisujemy. |
+| DK-18 | Z28 Retencja | Nieaktywne konta (24 mies., ostrzeżenie e-mail 30 dni wcześniej) i zdjęcia sylwetki (12 mies.) usuwa cron **domyślnie wyłączony** (flaga `RETENTION_INACTIVE_ACCOUNTS_ENABLED=1`, po zatwierdzeniu okresów przez prawnika i SMTP). Zgłoszenia błędów: zrzuty 90 dni i treść 12 mies. od rozwiązania - od razu. |
+
+## US8 — decyzje (2026-11-02)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-19 | Z50 Wsparcie i reklamacje | Zgłoszenia zapisywane w bazie (`support_requests`) i obsługiwane w panelu admina (`/admin/support`); termin odpowiedzi 14 dni (regulamin §8). Punkt wejścia: publiczna strona `/pomoc` (kontakt, FAQ, formularz dla zalogowanych) z linkami w menu, Profilu → Konto i regulaminie. E-mail potwierdzający best-effort (wymaga SMTP z Z17). Treść FAQ i §8 to szkic do zatwierdzenia przez prawnika. |
+
+
+## US9 — decyzje (2026-11-02)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-20 | Z22/Z75 Zamówienia i finanse | Ręczne „zaksięguj” nadaje pakiet (jak webhook, jednorazowo) i ustawia status `manual`; zwrot = notatka + status `refunded` (zwrot pieniędzy robisz w HotPay), **bez cofania dni pakietu**; przychód w panelu finansowym = zamówienia `paid`, a `manual` i `refunded` pokazane osobno; konwersja = zapłacone / utworzone zamówienia (30 dni). Doprecyzowanie z AC: `pending` > 24 h wygasa (`expired`), ponowne kliknięcie w 15 min używa istniejącego `pending`, alert dla `pending` > 1 h i `paid` bez pakietu (Sentry z tagiem `area=payments` + widżet). Dokument sprzedaży (Z21) nadal wystawiany tylko dla `paid`. |
+
+## US10 — decyzje (2026-11-02)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-21 | Z29/Z30/Z56 Utwardzenie HTTP | CSP z nonce budowana w `proxy.ts` (`lib/csp.ts`); **domyślnie Report-Only**, egzekwowanie włącza env `CSP_MODE=enforce` po analizie raportów i teście na Preview (strony renderowane per żądanie, bo nonce). `frame-ancestors` zawsze egzekwowane: domyślnie `'self'` + AWP (DK-5), własna lista w `FRAME_ANCESTORS_ALLOWED`, `none` blokuje. Produkcja za własnym proxy (Caddy): adres klienta tylko z `x-real-ip` (`TRUSTED_IP_HEADER` zmienia), `x-forwarded-for` ignorowany. Brak Upstash na produkcji: wpis „wymagane” w Konfiguracji, limity w pamięci instancji (bez blokowania logowania). |
+
+## US11 — decyzje (2026-11-03)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-22 | Z32 2FA admina | Drugi składnik: **TOTP** (aplikacja uwierzytelniająca, bez nowych bibliotek) + 10 jednorazowych kodów awaryjnych; konfiguracja na `/admin/2fa` (klucz wpisywany ręcznie, bez QR). Wymóg **za flagą `ADMIN_2FA_REQUIRED=1`, domyślnie wyłączony** (włączasz po sprawdzeniu, że kod działa; wpis w Konfiguracji). Blokada: 5 błędnych kodów 2FA lub 5 błędnych haseł na konto admina z danego adresu IP → 15 min (udane logowanie zeruje licznik; obcy z innego IP nie zablokuje właściciela). Po wejściu do panelu e-mail do admina (best-effort, wymaga SMTP) i wpis w dzienniku zdarzeń bezpieczeństwa. PIN (`ADMIN_PIN`, `/api/admin/lock`, `/unlock`) usunięty (D15). Z31/Z73: backend Java usunięty zgodnie z DK-4 (ADR 0014). |
+
+## US12 — decyzje (2026-11-03)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-23 | Z35/Z38/Z44 Spójność liczb | Jedna definicja tygodnia cardio: **pon–niedz** w strefie `CALENDAR_TIMEZONE` (domyślnie Europe/Warsaw), do minut wliczane **też stare `training_sessions`** (dzień wg tej strefy, nie strefy serwera). Użytkownik może w Profilu → Trening wybrać **„ostatnie 7 dni”** (kolumna `user_settings.cardio_week_mode`, domyślnie `calendar`); wybór dotyczy minut/celu na Start, w Treningach, w arkuszu cardio, w Analizie i w raportach. Silnik dodatkowego cardio (budżet makro) zawsze liczy tydzień kalendarzowy. Martwa strona `/start-workout` usunięta (rejestracja przekierowuje na `/workout-plan`). Tonaż/serie: kanon `workout-session-calculations` (rozgrzewka nie liczy się; seria bez flagi `done` ze starych danych tak). Kcal: Analiza (szacunek brutto) i silnik makro (netto) nadal różne celowo — ujednolicony tylko zakres dni. |
+
+## US13 — decyzje (2026-11-03)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-24 | Z37/Z62/Z63/Z64 UX | **Z62:** seria 0 kg przy ćwiczeniu z obciążeniem (sprzęt po nazwie albo ciężar > 0 w danych) wymaga wyboru „Masa ciała (0 kg)” albo „Wpiszę ciężar” (pytanie raz na ćwiczenie w sesji) — **zmienia wcześniejszą decyzję 005 p.7**, E2E zaktualizowany; reguła zapisu danych bez zmian (0 kg = masa ciała, bez tonażu zewnętrznego). **Z63:** na ekranie Treningi sterowanie to karta „Niedokończony trening” (Kontynuuj/Porzuć), mini-pasek tam ukryty; na pozostałych ekranach mini-pasek to jeden wąski wiersz z akcją „Wróć”, a Zakończ/Pauza/Odrzuć zostały w sesji (menu) i na karcie (Porzuć). **Z64:** pomiary (waga, pas, udo, klatka, ramię) nadal wymagane; **zdjęcia opcjonalne**, a po dodaniu zdjęcia wymagany checkbox zgody (zapisuje zgodę `photos`, źródło `body_report`). **Z37:** brak wzajemnego udostępniania to 204 (nie 403); klient przestaje wysyłać obecność w tej sesji. |
+
+## US14 — decyzje (2026-11-03)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-25 | Z42/Z43/Z45/Z46 Jakość | Sesja bez działających `eslint`/`vitest`/`playwright` (npm zablokowany): **zakres = Z45 w pełni + infrastruktura E2E/CI bez zielonego wyniku; Z42 (lint) zostaje TODO**. **Z45:** `deploy:check` bez opcji jak dotąd (źródło repo, changelog, PR); `--quality` dodaje `lint:ci` i testy; **`--production` (albo `--env-file=<.env>`) blokuje promote** przy braku HotPay, SMTP, Upstash, `CRON_SECRET`, `ADMIN_EMAILS` — wołane w `deploy-vps.yml` przed deployem (wymaga tych wartości w sekretach GitHuba; alternatywa bez kopiowania sekretów: uruchomić na VPS z `--env-file=.env`). **Lint:** bramka `--max-warnings=0` (0 błędów, 0 ostrzeżeń) w skrypcie `lint:ci`. **E2E:** logowanie raz (`storageState`), `next dev` w CI (tryb testowy kodu rejestracji; w buildzie produkcyjnym bez SMTP rejestracja jest wyłączona), bazą `file:./e2e.db` z seedem; jobs `lint` i `e2e` w `ci.yml` na razie `continue-on-error` do pierwszego zielonego przebiegu. |
+
+## US15 — decyzje (2026-11-03)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-26 | Z39/Z40/Z72 Dane i architektura | **Zakres:** Z72 w pełni; Z40 i Z39 bezpiecznie za flagami (domyślnie OFF, produkcja bez zmian). **Z39:** magazyn S3-kompatybilny (R2/S3/MinIO) przez env `PHOTO_STORAGE=s3` + `OBJECT_STORAGE_*`, podpis SigV4 przez `fetch`, bez nowych zależności; obiekt = ten sam szyfrogram pola co w bazie; obejmuje zdjęcia raportów sylwetki (`body_report_photos.object_key`); pozostałe `data_url` (cardio, start, bug-report) do osobnej iteracji; miniatury i upload z przeglądarki poza zakresem (szyfrowanie po stronie serwera, brak biblioteki obrazów). Wycofanie: `--rollback` w skrypcie migracji. **Z40:** runner migracji (`db:migrate:run`, tabela `schema_migrations`) + `SCHEMA_MODE` (`ensure` domyślnie; `migrations` wyłącza DDL w runtime) + test zgodności schema.ts↔migracje. **Z72:** atomowe upserty XP, CAS dla statystyk wojen, prestiżu, wkładu i ukończenia misji, limit członków sprawdzany po zapisie. |
+
+## US16 — decyzje (2026-11-04)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-27 | Z41/Z70/Z71/Z79 Wydajność | **Zakres:** Z71 + Z70 + Z79 w kodzie, Z41 jako skrypt/budżety bez pomiaru (npm zablokowany). **Z79:** bez SSE (ryzykowne na serverless) — dłuższy/adaptacyjny interwał, pauza w tle, krótki cache list. **Z70:** Atlas wysyła klientowi katalog bez opisów/wskazówek/linków YouTube (akcja `getExerciseDetail` na żądanie karty); `/nutrition/week` ładuje 13 tygodni, starsze doładowuje `loadMoreNutritionWeeks`. **Z71:** `PUT` aktywnej sesji pomijany, gdy payload identyczny jak ostatnio wysłany (heartbeat co 60 s). **Z41:** budżety w `docs/wydajnosc/budzety.json` — progi dla ekranów po zalogowaniu są propozycją do zatwierdzenia po pierwszym pomiarze. |
+
+## US17 — decyzje (2026-11-04)
+| # | Zadanie | Decyzja |
+|---|---|---|
+| DK-28 | Z59/Z60/Z61/Z65/Z66/Z67/Z68/Z69/Z74 Spójność i dostępność | **Zakres:** kod Z59–Z61, Z65–Z68; Z69 i Z74 jako procedura + skrypt (brak uruchomionej aplikacji). **Z60:** „Dieta” = hub (dziennik/plan/przepisy), „Bilans” = makro dnia/tygodnia. **Z59:** środkowy przycisk belki: Treningi „Start”, Dieta „Dodaj posiłek”, Analiza i Start „Raport”; pozostałe ekrany bez zmian (Społeczność, Profil, plany — brak przycisku). **Z65:** główne sekcje logo + menu, podekrany strzałka wstecz + tytuł (`AppPageHeader`), bez nowego komponentu; migracja ekranów łamiących regułę. **Z66 (decyzja wykonawcza do potwierdzenia):** tekst pomocniczy `text-white/20…45` podniesiony do `/50` (AA) — zmienia hierarchię wizualną na ~170 plikach. |
+| DK-29 | Z58/Z77/Z78 Onboarding i porządki | **Z58:** plan z ostatnich 30 dni — po jednym dniu na każdą różną nazwę treningu (max 6), ćwiczenia i serie z ostatniego wystąpienia; baner „Skonfiguruj pierwszy tydzień” znika, gdy są jakiekolwiek treningi; licznik raportów w nagłówku tylko gdy raportów > 0 lub konto < 14 dni. **Z77:** migracja `0043` + idempotentny `UPDATE app_role 'trener' → 'zawodnik'` w `ensure-schema`. **Z78:** usunięcie 9 martwych plików i `.iron-panel`. |

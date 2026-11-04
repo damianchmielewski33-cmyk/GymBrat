@@ -9,6 +9,8 @@ type PageProps = {
   searchParams?: Promise<{ plan?: string; open?: string }>;
 };
 
+export const metadata = { title: "Historia treningów" };
+
 export default async function WorkoutHistoryPage({ searchParams }: PageProps) {
   const session = await auth();
   const userId = session?.user?.id;

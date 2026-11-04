@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { BugReportForm } from "@/components/bug-report/bug-report-form";
 
+export const metadata = { title: "Zgłoś błąd" };
+
 export default async function BugReportPage() {
   const session = await auth();
   if (!session?.user?.id) {

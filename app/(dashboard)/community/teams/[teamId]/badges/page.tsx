@@ -6,6 +6,8 @@ import { BadgeCatalogClient } from "@/components/community/team-today-hub";
 import { getBadgeCatalogForUser } from "@/lib/community/badge-catalog";
 import { getTeamDetail } from "@/lib/community/teams";
 
+export const metadata = { title: "Odznaki grupy" };
+
 export default async function TeamBadgesPage({
   params,
 }: {

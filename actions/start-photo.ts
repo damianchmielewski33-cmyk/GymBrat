@@ -4,6 +4,7 @@ import { guardAction } from "@/lib/action-guard";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { saveStartPhotoDataUrl } from "@/lib/start-photo";
+import { consentRequiredResult, lacksSensitiveConsent } from "@/lib/consent-guard";
 
 function revalidateStartPhotoPaths() {
   revalidatePath("/");
@@ -25,6 +26,10 @@ export async function saveStartPhotoAction(dataUrl: string) {
   }
   if (trimmed.length > 1_800_000) {
     return { ok: false as const, error: "Zdjęcie jest za duże." };
+  }
+
+  if (await lacksSensitiveConsent(session.user.id, "photos")) {
+    return consentRequiredResult("photos");
   }
 
   await saveStartPhotoDataUrl(session.user.id, trimmed);

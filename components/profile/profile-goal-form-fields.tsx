@@ -17,7 +17,7 @@ export function ProfileGoalFormFields({ initialGoal }: { initialGoal: number }) 
           defaultValue={initialGoal}
           className="max-w-xs"
         />
-        <p className="text-xs text-white/45">
+        <p className="text-xs text-white/50">
           Zapisane w Turso. Postęp na stronie Start = suma cardio z ostatnich 7 dni ÷ ten
           cel × 100%.
         </p>

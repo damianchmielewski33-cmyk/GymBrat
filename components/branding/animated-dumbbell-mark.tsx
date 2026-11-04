@@ -1,5 +1,6 @@
 "use client";
 
+import { BRAND_GOLD, BRAND_GOLD_BRIGHT, BRAND_GOLD_DEEP } from "@/lib/brand-colors";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +31,7 @@ export function AnimatedDumbbellMark({
       />
       <motion.svg
         viewBox="0 0 120 120"
-        className="relative h-full w-full drop-shadow-[0_8px_24px_rgba(235,196,74,0.35)]"
+        className="relative h-full w-full drop-shadow-[0_8px_24px_rgba(var(--neon-rgb),0.35)]"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         initial={{ y: 10, opacity: 0 }}
@@ -47,13 +48,13 @@ export function AnimatedDumbbellMark({
       >
         <defs>
           <linearGradient id="gb-bar" x1="18" y1="60" x2="102" y2="60" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#c49a1f" />
-            <stop offset="0.5" stopColor="#f7e28f" />
-            <stop offset="1" stopColor="#c49a1f" />
+            <stop stopColor={BRAND_GOLD_DEEP} />
+            <stop offset="0.5" stopColor={BRAND_GOLD_BRIGHT} />
+            <stop offset="1" stopColor={BRAND_GOLD_DEEP} />
           </linearGradient>
           <linearGradient id="gb-plate" x1="0" y1="0" x2="0" y2="1">
-            <stop stopColor="#f7e28f" />
-            <stop offset="0.45" stopColor="#ebc44a" />
+            <stop stopColor={BRAND_GOLD_BRIGHT} />
+            <stop offset="0.45" stopColor={BRAND_GOLD} />
             <stop offset="1" stopColor="#9a7a18" />
           </linearGradient>
         </defs>
@@ -61,13 +62,13 @@ export function AnimatedDumbbellMark({
         <rect x="28" y="54" width="64" height="12" rx="4" fill="url(#gb-bar)" />
         {/* Lewe talerze */}
         <rect x="14" y="38" width="12" height="44" rx="3" fill="url(#gb-plate)" />
-        <rect x="22" y="44" width="8" height="32" rx="2" fill="#ebc44a" />
+        <rect x="22" y="44" width="8" height="32" rx="2" fill={BRAND_GOLD} />
         {/* Prawe talerze */}
         <rect x="94" y="38" width="12" height="44" rx="3" fill="url(#gb-plate)" />
-        <rect x="90" y="44" width="8" height="32" rx="2" fill="#ebc44a" />
+        <rect x="90" y="44" width="8" height="32" rx="2" fill={BRAND_GOLD} />
         {/* Uchwyty */}
-        <rect x="8" y="52" width="8" height="16" rx="2" fill="#f7e28f" />
-        <rect x="104" y="52" width="8" height="16" rx="2" fill="#f7e28f" />
+        <rect x="8" y="52" width="8" height="16" rx="2" fill={BRAND_GOLD_BRIGHT} />
+        <rect x="104" y="52" width="8" height="16" rx="2" fill={BRAND_GOLD_BRIGHT} />
       </motion.svg>
     </div>
   );

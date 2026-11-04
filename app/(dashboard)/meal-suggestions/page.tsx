@@ -5,6 +5,8 @@ import { MealSuggestionsPageContent } from "@/components/meal-suggestions/meal-s
 import { DashboardRouteSkeleton } from "@/components/layout/dashboard-route-skeleton";
 import { parseDietTab } from "@/lib/diet-tabs";
 
+export const metadata = { title: "Dieta" };
+
 export default async function MealSuggestionsPage({
   searchParams,
 }: {

@@ -151,7 +151,7 @@ export function TeamFeedSection({
           mentionCandidates={mentionCandidates}
         />
       ) : (
-        <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-[13px] text-white/45">
+        <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-[13px] text-white/50">
           Dołącz do grupy, aby pisać na feedzie.
         </p>
       )}
@@ -174,12 +174,12 @@ export function TeamFeedSection({
           ))}
           <div ref={sentinelRef} className="h-4" aria-hidden />
           {loadingMore ? (
-            <p className="py-2 text-center text-[12px] text-white/40" role="status">
+            <p className="py-2 text-center text-[12px] text-white/50" role="status">
               Ładowanie…
             </p>
           ) : null}
           {!hasMore && posts.length > PAGE ? (
-            <p className="py-2 text-center text-[11px] text-white/30">
+            <p className="py-2 text-center text-[11px] text-white/50">
               Koniec feedu
             </p>
           ) : null}

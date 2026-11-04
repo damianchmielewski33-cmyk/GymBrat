@@ -43,7 +43,7 @@ export function TeamQuestBoard({
           <Target className="h-6 w-6 text-[var(--gym-gold)]" />
           Misje zespołu
         </h1>
-        <p className="mt-2 text-[13px] text-white/45">
+        <p className="mt-2 text-[13px] text-white/50">
           Cały zespół dokłada wkład z treningów. Jedna aktywna misja naraz.
         </p>
       </header>
@@ -56,7 +56,7 @@ export function TeamQuestBoard({
               <h2 className="font-heading text-[18px] font-semibold text-white">
                 {board.quest.title}
               </h2>
-              <p className="mt-1 text-[12px] text-white/45">
+              <p className="mt-1 text-[12px] text-white/50">
                 Do{" "}
                 {board.quest.endsAt.toLocaleDateString("pl-PL", {
                   day: "numeric",
@@ -75,7 +75,7 @@ export function TeamQuestBoard({
             {board.quest.unitLabel}
           </p>
           <div className="space-y-2">
-            <p className="text-[11px] uppercase tracking-wide text-white/40">
+            <p className="text-[11px] uppercase tracking-wide text-white/50">
               Wkład członków
             </p>
             {board.contributors.map((c, i) => (
@@ -87,7 +87,7 @@ export function TeamQuestBoard({
                   {i === 0 ? "★ " : ""}
                   {c.displayName}
                 </span>
-                <span className="text-white/45">
+                <span className="text-white/50">
                   {c.amount.toLocaleString("pl-PL")} {board.quest.unitLabel}
                 </span>
               </div>
@@ -116,7 +116,7 @@ export function TeamQuestBoard({
                 <span>
                   <span className="mr-2">{t.emoji}</span>
                   <span className="text-[14px] text-white">{t.title}</span>
-                  <span className="mt-0.5 block text-[11px] text-white/40">
+                  <span className="mt-0.5 block text-[11px] text-white/50">
                     {t.durationDays} dni · +{t.rewardXpEach} XP
                   </span>
                 </span>

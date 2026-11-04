@@ -50,7 +50,7 @@ function DeltaChip({
 }) {
   return (
     <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/35 px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50">
         {label}
       </p>
       <p
@@ -61,7 +61,7 @@ function DeltaChip({
       >
         {fmtSigned(delta, ` ${unit}`, 1)}
       </p>
-      <p className="mt-1 text-[11px] tabular-nums text-white/40">
+      <p className="mt-1 text-[11px] tabular-nums text-white/50">
         {fmtNum(from ?? null)} → {fmtNum(to ?? null)} {unit}
       </p>
     </div>
@@ -223,7 +223,7 @@ function PhotoCompareContent({ data }: { data: ProgressHubData["photos"] }) {
               style={{ left: `${pos}%` }}
             />
             <div
-              className="pointer-events-none absolute top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-black/20 bg-[var(--gym-gold)] text-black shadow-[0_0_18px_rgba(235,196,74,0.45)]"
+              className="pointer-events-none absolute top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-black/20 bg-[var(--gym-gold)] text-black shadow-[0_0_18px_rgba(var(--neon-rgb),0.45)]"
               style={{ left: `${pos}%` }}
             >
               <MoveHorizontal className="h-4 w-4" />
@@ -270,7 +270,7 @@ function PhotoCompareContent({ data }: { data: ProgressHubData["photos"] }) {
             <button
               type="button"
               onClick={() => setPickerOpen((v) => !v)}
-              className="block w-full text-center text-[10px] font-medium uppercase tracking-[0.14em] text-white/40"
+              className="block w-full text-center text-[10px] font-medium uppercase tracking-[0.14em] text-white/50"
             >
               {pickerOpen ? "Ukryj zdjęcia z raportów" : "Albo wybierz z raportów"}
             </button>

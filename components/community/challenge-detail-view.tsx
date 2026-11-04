@@ -72,12 +72,12 @@ export function ChallengeDetailClient({
           <div className="relative mt-5 rounded-2xl border border-white/10 bg-black/30 p-4">
             <div className="flex items-end justify-between gap-2">
               <div>
-                <p className="text-[11px] uppercase tracking-wide text-white/40">
+                <p className="text-[11px] uppercase tracking-wide text-white/50">
                   {useGroup ? "Postęp grupy" : "Twój postęp"}
                 </p>
                 <p className="mt-1 font-metric text-[28px] tabular-nums text-white">
                   {progressLabel}
-                  <span className="ml-1 text-[14px] text-white/45">
+                  <span className="ml-1 text-[14px] text-white/50">
                     {challenge.unitLabel}
                   </span>
                 </p>
@@ -93,7 +93,7 @@ export function ChallengeDetailClient({
               tone={challenge.completed ? "mint" : "gold"}
             />
             {!useGroup && challenge.joined ? (
-              <p className="mt-2 text-[11px] text-white/40">
+              <p className="mt-2 text-[11px] text-white/50">
                 Wkład w grupę: {challenge.myProgressDisplay} {challenge.unitLabel}
               </p>
             ) : null}
@@ -101,19 +101,19 @@ export function ChallengeDetailClient({
 
           <div className="relative mt-4 grid grid-cols-3 gap-2">
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-center">
-              <p className="text-[10px] uppercase text-white/40">XP</p>
+              <p className="text-[10px] uppercase text-white/50">XP</p>
               <p className="font-heading text-[16px] text-[var(--gym-gold)]">
                 +{challenge.rewardXp}
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-center">
-              <p className="text-[10px] uppercase text-white/40">Odznaka</p>
+              <p className="text-[10px] uppercase text-white/50">Odznaka</p>
               <p className="truncate text-[13px] font-semibold text-white">
                 {challenge.rewardTitle ?? "—"}
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-center">
-              <p className="text-[10px] uppercase text-white/40">Poziom</p>
+              <p className="text-[10px] uppercase text-white/50">Poziom</p>
               <p className="font-heading text-[16px] text-white">
                 {challenge.myXp.level}
               </p>
@@ -144,7 +144,7 @@ export function ChallengeDetailClient({
           <h2 className="text-[15px] font-semibold text-white">Ranking</h2>
         </div>
         {challenge.leaderboard.length === 0 ? (
-          <p className="text-[13px] text-white/45">
+          <p className="text-[13px] text-white/50">
             Brak wyników — zalicz trening, by wejść na tablicę.
           </p>
         ) : (
@@ -162,7 +162,7 @@ export function ChallengeDetailClient({
                     "font-heading w-6 text-center text-[15px]",
                     row.rank <= 3
                       ? "text-[var(--gym-gold)]"
-                      : "text-white/35",
+                      : "text-white/50",
                   )}
                 >
                   {row.rank}

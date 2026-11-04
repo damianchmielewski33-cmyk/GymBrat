@@ -25,7 +25,7 @@ function ChefHats({ level }: { level: 1 | 2 | 3 }) {
           key={i}
           className={cn(
             "text-sm",
-            i <= level ? "text-[var(--gym-gold)]" : "text-white/20",
+            i <= level ? "text-[var(--gym-gold)]" : "text-white/50",
           )}
         >
           👨‍🍳
@@ -169,7 +169,7 @@ export function DietRecipeFlipCard({
                 {Math.round(macros.fatG)}T · {Math.round(macros.calories)} KCAL
               </p>
               {targetMacroLine || scaled ? (
-                <p className="mt-1 text-[11px] text-white/45">
+                <p className="mt-1 text-[11px] text-white/50">
                   {targetMacroLine ? (
                     <>
                       Cel posiłku:{" "}
@@ -190,7 +190,7 @@ export function DietRecipeFlipCard({
                 <ChefHats level={diff} />
               </div>
 
-              <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
+              <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
                 Składniki
               </p>
               <ul className="mt-2 space-y-1.5">
@@ -210,7 +210,7 @@ export function DietRecipeFlipCard({
                 })}
               </ul>
 
-              <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
+              <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
                 Przygotowanie
               </p>
               <ol className="mt-2 list-decimal space-y-2 pl-4 text-sm leading-relaxed text-white/80">
@@ -232,7 +232,7 @@ export function DietRecipeFlipCard({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="mb-3 text-center font-mono text-[11px] uppercase tracking-wide text-white/45">
+        <p className="mb-3 text-center font-mono text-[11px] uppercase tracking-wide text-white/50">
           {side === "photo"
             ? "Dotknij karty, żeby zobaczyć przepis"
             : "Dotknij karty, żeby wrócić do zdjęcia"}
@@ -246,7 +246,7 @@ export function DietRecipeFlipCard({
           calories={macros.calories}
           defaultSlot={diarySlot}
           triggerLabel="Dodaj do jadłospisu"
-          triggerClassName="inline-flex h-12 w-full items-center justify-center rounded-full bg-[var(--gym-gold)] text-sm font-semibold text-black shadow-[0_4px_16px_rgba(235,196,74,0.28)]"
+          triggerClassName="inline-flex h-12 w-full items-center justify-center rounded-full bg-[var(--gym-gold)] text-sm font-semibold text-black shadow-[0_4px_16px_rgba(var(--neon-rgb),0.28)]"
         />
       </div>
     </div>,

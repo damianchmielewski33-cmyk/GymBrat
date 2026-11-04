@@ -110,7 +110,7 @@ function Chip({
         "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-medium transition",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
         pressed
-          ? "border-[rgba(235,196,74,0.6)] bg-[rgba(235,196,74,0.1)] font-semibold text-white"
+          ? "border-[rgba(var(--neon-rgb),0.6)] bg-[rgba(var(--neon-rgb),0.1)] font-semibold text-white"
           : "border-[var(--gym-border-gold)] bg-transparent text-white/82",
       )}
     >

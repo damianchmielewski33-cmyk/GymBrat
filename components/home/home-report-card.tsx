@@ -73,11 +73,11 @@ export function HomeReportCard({
   return (
     <section className="app-card space-y-4 p-5">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">
           {nameLabel}
         </p>
         <ClipboardList
-          className="h-4 w-4 shrink-0 text-white/35"
+          className="h-4 w-4 shrink-0 text-white/50"
           aria-hidden
         />
       </div>

@@ -198,7 +198,7 @@ export function RemindersCard({
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-white/90">{row.label}</p>
-                  <p className="mt-0.5 text-xs leading-snug text-white/45">{row.description}</p>
+                  <p className="mt-0.5 text-xs leading-snug text-white/50">{row.description}</p>
                 </div>
                 {on ? (
                   <input
@@ -240,7 +240,7 @@ export function RemindersCard({
           <div className="mt-4 space-y-2">
             <p className="text-[13px] font-medium text-white/75">
               Dni tygodnia{" "}
-              <span className="font-normal text-white/40">— bez wyboru: codziennie</span>
+              <span className="font-normal text-white/50">— bez wyboru: codziennie</span>
             </p>
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Dni tygodnia">
               {WEEKDAYS.map((d) => {

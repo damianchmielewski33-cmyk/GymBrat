@@ -1,0 +1,114 @@
+name: CI
+
+# US14: bramki jakości (lint, typy, testy jednostkowe) i E2E na lokalnej bazie z seedem.
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Typy i testy jednostkowe
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Testy jednostkowe (Vitest)
+        run: npx vitest run
+
+  lint:
+    name: Lint (0 błędów, 0 ostrzeżeń)
+    runs-on: ubuntu-latest
+    # Z42 w toku (102 błędy, 39 ostrzeżeń na 2026-11-01). Po wyzerowaniu USUŃ `continue-on-error`,
+    # żeby lint blokował merge.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      - run: npm run lint:ci
+
+  e2e:
+    name: "E2E (Playwright, lokalna baza file + seed)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Z46: do pierwszego zielonego przebiegu nie blokuje merge. Po nim USUŃ `continue-on-error`.
+    continue-on-error: true
+    env:
+      TURSO_DATABASE_URL: file:./e2e.db
+      AUTH_SECRET: ci-e2e-secret-not-for-production-use
+      AUTH_TRUST_HOST: "true"
+      MOCK_PASSWORD: E2e-Mock-1234!
+      E2E_EMAIL: mock.user@gymbrat.test
+      E2E_PASSWORD: E2e-Mock-1234!
+      # Płatność sandbox: testowe sekrety (tylko ten job, bez prawdziwej bramki).
+      PREMIUM_CHECKOUT_ENABLED: "1"
+      HOTPAY_SEKRET: e2e-sekret
+      HOTPAY_NOTIFICATION_PASSWORD: e2e-notification-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      - name: Przeglądarka Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Schemat bazy lokalnej (e2e.db)
+        run: npx drizzle-kit push --force
+      - name: Seed (konta i dane mock)
+        run: node scripts/seed-local-mock.cjs
+      - name: Testy E2E
+        run: npx playwright test
+      - name: Raport Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  perf:
+    name: "Budżety wydajności (3 strony publiczne)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Z41: do pierwszego zielonego przebiegu nie blokuje merge. Po nim USUŃ `continue-on-error`.
+    continue-on-error: true
+    env:
+      TURSO_DATABASE_URL: file:./perf.db
+      AUTH_SECRET: ci-perf-secret-not-for-production-use
+      AUTH_TRUST_HOST: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      - name: Schemat bazy lokalnej
+        run: npx drizzle-kit push --force
+      - name: Build produkcyjny
+        run: npm run build
+      - name: Start serwera
+        run: |
+          npm start &
+          npx --yes wait-on http://localhost:3000/login --timeout 60000
+      - name: Budżety (HTML, TTFB) + Lighthouse
+        run: node scripts/perf-budget.mjs --ci --lighthouse

@@ -8,6 +8,8 @@ type PageProps = {
   searchParams?: Promise<{ tryb?: string }>;
 };
 
+export const metadata = { title: "Nowy plan" };
+
 export default async function NowyPlanPage({ searchParams }: PageProps) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");

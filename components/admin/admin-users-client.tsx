@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { adminRequest } from "@/lib/admin-client";
 
-type AppRole = "zawodnik" | "trener" | "admin";
+type AppRole = "zawodnik" | "admin";
 
 type UserRow = {
   id: string;
@@ -43,18 +43,16 @@ type UsersPayload = {
 
 const ROLE_LABEL: Record<AppRole, string> = {
   zawodnik: "Zawodnik",
-  trener: "Trener",
   admin: "Administrator",
 };
 
 const ROLE_TONE: Record<AppRole, AdminTone> = {
   zawodnik: "neutral",
-  trener: "info",
   admin: "gold",
 };
 
 function isAppRole(v: string | null): v is AppRole {
-  return v === "zawodnik" || v === "trener" || v === "admin";
+  return v === "zawodnik" || v === "admin";
 }
 
 function formatDate(value: Date | string | number): string {
@@ -154,7 +152,7 @@ export function AdminUsersClient() {
         description={
           canGrantAdmin
             ? "Zarządzaj rolami i kontami. Jako główny administrator możesz nadawać rolę admina."
-            : "Zmieniaj role (zawodnik / trener) i usuwaj konta. Rolę admina nadaje tylko główny administrator."
+            : "Zmieniaj role i usuwaj konta. Rolę admina nadaje tylko główny administrator."
         }
       />
 
@@ -164,7 +162,7 @@ export function AdminUsersClient() {
         <div className="flex flex-col gap-2 border-b border-white/10 p-4 sm:flex-row">
           <div className="relative min-w-0 flex-1">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35"
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50"
               aria-hidden
             />
             <Input
@@ -183,7 +181,6 @@ export function AdminUsersClient() {
           >
             <option value="all">Wszystkie role</option>
             <option value="zawodnik">Zawodnicy</option>
-            <option value="trener">Trenerzy</option>
             <option value="admin">Administratorzy</option>
           </AdminSelect>
         </div>
@@ -203,7 +200,7 @@ export function AdminUsersClient() {
         ) : (
           <div className="max-h-[min(70vh,720px)] overflow-auto">
             <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 z-10 bg-zinc-950/95 text-[11px] uppercase tracking-wide text-white/45">
+              <thead className="sticky top-0 z-10 bg-zinc-950/95 text-[11px] uppercase tracking-wide text-white/50">
                 <tr>
                   <th className="px-4 py-3 font-medium">Użytkownik</th>
                   <th className="px-4 py-3 font-medium">Rola</th>
@@ -230,7 +227,7 @@ export function AdminUsersClient() {
                               {u.name?.trim() || u.email}
                             </p>
                             {u.name?.trim() ? (
-                              <p className="truncate text-xs text-white/45">{u.email}</p>
+                              <p className="truncate text-xs text-white/50">{u.email}</p>
                             ) : null}
                           </div>
                         </div>
@@ -254,7 +251,7 @@ export function AdminUsersClient() {
                           </Link>
                           {isProtected ? (
                             <span
-                              className="inline-flex h-9 w-9 items-center justify-center text-white/20"
+                              className="inline-flex h-9 w-9 items-center justify-center text-white/50"
                               title="Konto chronione"
                               aria-label="Konto chronione"
                             >
@@ -276,11 +273,6 @@ export function AdminUsersClient() {
                                 {role !== "zawodnik" ? (
                                   <DropdownMenuItem onClick={() => void setRole(u, "zawodnik")}>
                                     Ustaw: zawodnik
-                                  </DropdownMenuItem>
-                                ) : null}
-                                {role !== "trener" ? (
-                                  <DropdownMenuItem onClick={() => void setRole(u, "trener")}>
-                                    Ustaw: trener
                                   </DropdownMenuItem>
                                 ) : null}
                                 {canGrantAdmin && role !== "admin" ? (
@@ -308,7 +300,7 @@ export function AdminUsersClient() {
         )}
 
         {!loading && users.length > 0 ? (
-          <p className="border-t border-white/10 px-4 py-2.5 text-xs text-white/40">
+          <p className="border-t border-white/10 px-4 py-2.5 text-xs text-white/50">
             Wyświetlono {filtered.length} z {users.length} kont.
           </p>
         ) : null}

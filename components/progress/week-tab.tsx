@@ -35,10 +35,10 @@ function statusTone(status: DietWeekStatus): string {
     case "over":
       return "bg-amber-400/15 text-amber-200";
     case "no_goal":
-      return "bg-white/[0.06] text-white/45";
+      return "bg-white/[0.06] text-white/50";
     case "no_data":
     default:
-      return "bg-white/[0.06] text-white/40";
+      return "bg-white/[0.06] text-white/50";
   }
 }
 
@@ -101,15 +101,15 @@ function DietTrainingWeekRow({ week }: { week: ProgressDietTrainingWeek }) {
           <p className="text-[13px] font-medium text-white/85">{week.label}</p>
           <StatusPill status={week.status} />
         </div>
-        <p className="mt-1 text-[11px] text-white/40">
+        <p className="mt-1 text-[11px] text-white/50">
           kcal {fmtPctPlain(week.calorieAdherencePct)}
-          <span className="mx-1 text-white/25">·</span>
+          <span className="mx-1 text-white/50">·</span>
           B {fmtPctPlain(week.proteinAdherencePct)}
-          <span className="mx-1 text-white/25">·</span>
+          <span className="mx-1 text-white/50">·</span>
           {week.workouts} tr.
           {week.avgRpe != null ? (
             <>
-              <span className="mx-1 text-white/25">·</span>
+              <span className="mx-1 text-white/50">·</span>
               RPE {fmtIntensity(week.avgRpe)}
             </>
           ) : null}
@@ -134,7 +134,7 @@ function DietTrainingSection({
     <ProgressSection title="Dieta a trening" trailing="8 tyg.">
       <div className="space-y-2">
         {!block.hasGoals ? (
-          <Surface className="text-center text-[13px] text-white/45">
+          <Surface className="text-center text-[13px] text-white/50">
             Ustaw cele kcal/makro w Profilu — wtedy zobaczysz status „W diecie”
             obok tonażu i RPE.
           </Surface>
@@ -153,14 +153,14 @@ function DietTrainingSection({
               <button
                 type="button"
                 onClick={() => setShowAll((v) => !v)}
-                className="w-full text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45 hover:text-white/70"
+                className="w-full text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50 hover:text-white/70"
               >
                 {showAll ? "Pokaż mniej" : `Pokaż wszystkie (${block.weeks.length})`}
               </button>
             ) : null}
           </>
         ) : (
-          <Surface className="py-4 text-center text-[13px] text-white/45">
+          <Surface className="py-4 text-center text-[13px] text-white/50">
             Brak danych tygodniowych do porównania.
           </Surface>
         )}
@@ -185,7 +185,7 @@ function CardioSection({ cardio }: { cardio: ProgressIntelligence["cardio"] }) {
         ? "text-[var(--gym-text-secondary)]"
         : cardio.performance.verdict === "stable"
           ? "text-white/55"
-          : "text-white/40";
+          : "text-white/50";
 
   return (
     <ProgressSection title="Cardio" trailing="strefy tętna">
@@ -208,7 +208,7 @@ function CardioSection({ cardio }: { cardio: ProgressIntelligence["cardio"] }) {
           <div className="grid grid-cols-5 gap-1.5">
             {cardio.zones.map((z) => (
               <div key={z.zone} className="text-center">
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/50">
                   Z{z.zone}
                 </p>
                 <p className="mt-0.5 font-heading text-[13px] tabular-nums text-white">
@@ -247,7 +247,7 @@ function AdherenceSection({
             ] as const
           ).map((cell) => (
             <div key={cell.label} className="text-center">
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-white/50">
                 {cell.label}
               </p>
               <p className="mt-1 font-metric text-[1.15rem] tabular-nums text-white">
@@ -266,13 +266,13 @@ function AdherenceSection({
             ] as const
           ).map(({ label, w }) => (
             <div key={label} className="text-center">
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-white/50">
                 {label}
               </p>
               <p className="mt-1 font-metric text-[1.15rem] tabular-nums text-[var(--gym-gold)]">
                 {w.scorePct}%
               </p>
-              <p className="text-[10px] tabular-nums text-white/35">
+              <p className="text-[10px] tabular-nums text-white/50">
                 {w.done}/{w.planned}
               </p>
             </div>

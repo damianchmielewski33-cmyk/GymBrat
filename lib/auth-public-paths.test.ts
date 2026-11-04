@@ -14,6 +14,8 @@ describe("auth-public-paths", () => {
     expect(isAnonymousPublicPath("/regulamin")).toBe(true);
     expect(isAnonymousPublicPath("/polityka-prywatnosci")).toBe(true);
     expect(isAnonymousPublicPath("/login/zabezpiecz-konto")).toBe(true);
+    expect(isAnonymousPublicPath("/usun-konto")).toBe(true);
+    expect(isAnonymousPublicPath("/pomoc")).toBe(true);
     expect(isAnonymousPublicPath("/reports")).toBe(false);
     expect(isAnonymousPublicPath("/profile")).toBe(false);
   });
@@ -36,6 +38,7 @@ describe("auth-public-paths", () => {
     expect(mustCompleteProfile("/plany/atlas", false)).toBe(true);
     expect(mustCompleteProfile("/complete-profile", false)).toBe(false);
     expect(mustCompleteProfile("/regulamin", false)).toBe(false);
+    expect(mustCompleteProfile("/usun-konto", false)).toBe(false);
     expect(mustCompleteProfile("/", true)).toBe(false);
   });
 });

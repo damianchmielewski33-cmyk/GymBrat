@@ -72,7 +72,7 @@ export function CookieConsentBanner() {
                 <span className="block text-[13px] font-medium text-white/90">
                   Analityka
                 </span>
-                <span className="mt-0.5 block text-[11px] text-white/40">
+                <span className="mt-0.5 block text-[11px] text-white/50">
                   Wejścia na ekrany (page-view), statystyki produktu
                 </span>
               </span>
@@ -88,7 +88,7 @@ export function CookieConsentBanner() {
                 <span className="block text-[13px] font-medium text-white/90">
                   Marketing / reklamy
                 </span>
-                <span className="mt-0.5 block text-[11px] text-white/40">
+                <span className="mt-0.5 block text-[11px] text-white/50">
                   Pełnoekranowe reklamy AdMob przy braku pakietu
                 </span>
               </span>

@@ -9,6 +9,8 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
+export const metadata = { title: "Plan treningowy" };
+
 export default async function PlanEditPage({ params }: PageProps) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");

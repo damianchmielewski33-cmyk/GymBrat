@@ -97,7 +97,7 @@ export function AddMealChoiceBar({
     return (
       <div className="fixed inset-x-0 bottom-0 z-[175] border-t border-white/10 bg-[#121212] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
         <div className="mx-auto flex max-w-lg flex-col gap-2">
-          <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+          <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">
             Dodaj do: {DIET_DIARY_SLOT_LABELS[slot]}
           </p>
           <div className="grid grid-cols-3 gap-2">
@@ -145,7 +145,7 @@ export function AddMealChoiceBar({
                 onClose();
               })
             }
-            className="mt-1 text-center text-xs text-white/45 underline-offset-2 hover:text-white/70 hover:underline"
+            className="mt-1 text-center text-xs text-white/50 underline-offset-2 hover:text-white/70 hover:underline"
           >
             Albo wyszukaj produkt w bazie
           </button>
@@ -179,7 +179,7 @@ export function AddMealChoiceBar({
         </button>
         <div className="min-w-0 flex-1">
           <p className="text-base font-semibold">{title}</p>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/50">
             {DIET_DIARY_SLOT_LABELS[slot]} · {subtitle}
           </p>
         </div>
@@ -190,7 +190,7 @@ export function AddMealChoiceBar({
         <input type="hidden" name="slot" value={slot} />
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
           <label className="block">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-white/50">
               Nazwa
             </span>
             <input
@@ -201,7 +201,7 @@ export function AddMealChoiceBar({
               placeholder={
                 mode === "product" ? "np. Skyr naturalny" : "np. Kanapka z pracy"
               }
-              className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white outline-none placeholder:text-white/30"
+              className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white outline-none placeholder:text-white/50"
             />
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -213,7 +213,7 @@ export function AddMealChoiceBar({
               ] as const
             ).map(([field, label, val, setVal]) => (
               <label key={field} className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-white/50">
                   {label}
                 </span>
                 <input
@@ -227,7 +227,7 @@ export function AddMealChoiceBar({
             ))}
           </div>
           <label className="block">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-white/50">
               Kalorie (kcal)
             </span>
             <input
@@ -240,10 +240,10 @@ export function AddMealChoiceBar({
                   ? `z makro ≈ ${computedKcal}`
                   : "opcjonalnie / z makro"
               }
-              className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm tabular-nums text-white outline-none placeholder:text-white/30"
+              className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm tabular-nums text-white outline-none placeholder:text-white/50"
             />
             {finalKcal != null ? (
-              <p className="mt-1 text-xs text-white/40">
+              <p className="mt-1 text-xs text-white/50">
                 Do zapisu:{" "}
                 <span className="font-semibold text-[var(--gym-gold)]">
                   {finalKcal} kcal

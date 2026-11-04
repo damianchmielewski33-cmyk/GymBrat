@@ -263,7 +263,7 @@ export function WorkoutChatPanel({
           <p className="truncate text-[14px] font-semibold text-white">
             {title}
           </p>
-          <p className="truncate text-[11px] text-white/45">
+          <p className="truncate text-[11px] text-white/50">
             {target.kind === "team"
               ? "Czat grupowy · live"
               : target.kind === "workout"
@@ -301,7 +301,7 @@ export function WorkoutChatPanel({
             value={searchQ}
             onChange={(e) => void runSearch(e.target.value)}
             placeholder="Szukaj w wiadomościach…"
-            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[13px] text-white outline-none placeholder:text-white/35 focus:border-[var(--gym-gold)]/40"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[13px] text-white outline-none placeholder:text-white/50 focus:border-[var(--gym-gold)]/40"
           />
           {searchHits.length > 0 ? (
             <ul className="mt-2 max-h-36 space-y-1 overflow-y-auto">
@@ -326,7 +326,7 @@ export function WorkoutChatPanel({
               ))}
             </ul>
           ) : searchQ.trim().length >= 2 ? (
-            <p className="mt-2 text-[12px] text-white/40">Brak wyników.</p>
+            <p className="mt-2 text-[12px] text-white/50">Brak wyników.</p>
           ) : null}
         </div>
       ) : null}
@@ -350,7 +350,7 @@ export function WorkoutChatPanel({
         ) : null}
 
         {loading && messages.length === 0 ? (
-          <p className="py-10 text-center text-[13px] text-white/40">
+          <p className="py-10 text-center text-[13px] text-white/50">
             Ładowanie czatu…
           </p>
         ) : null}
@@ -371,7 +371,7 @@ export function WorkoutChatPanel({
               {showDay ? (
                 <div className="my-3 flex items-center gap-3 px-2">
                   <div className="h-px flex-1 bg-white/8" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">
                     {day}
                   </span>
                   <div className="h-px flex-1 bg-white/8" />
@@ -384,7 +384,7 @@ export function WorkoutChatPanel({
                 {m.parentMessageId && m.parentPreview ? (
                   <button
                     type="button"
-                    className="mb-1 ml-11 flex max-w-full items-center gap-1.5 truncate border-l-2 border-[var(--gym-gold)]/50 pl-2 text-[11px] text-white/45"
+                    className="mb-1 ml-11 flex max-w-full items-center gap-1.5 truncate border-l-2 border-[var(--gym-gold)]/50 pl-2 text-[11px] text-white/50"
                     onClick={() =>
                       document
                         .getElementById(`chat-msg-${m.parentMessageId}`)
@@ -411,7 +411,7 @@ export function WorkoutChatPanel({
                       <span className="text-[13px] font-semibold text-white">
                         {m.author.displayName}
                       </span>
-                      <span className="text-[10px] text-white/35">
+                      <span className="text-[10px] text-white/50">
                         {formatTime(m.createdAt)}
                         {m.editedAt ? " · edytowano" : ""}
                       </span>
@@ -419,7 +419,7 @@ export function WorkoutChatPanel({
                     <p
                       className={cn(
                         "mt-0.5 whitespace-pre-wrap break-words text-[13.5px] leading-relaxed",
-                        m.deleted ? "italic text-white/35" : "text-white/85",
+                        m.deleted ? "italic text-white/50" : "text-white/85",
                       )}
                     >
                       {m.deleted
@@ -508,7 +508,7 @@ export function WorkoutChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      <div className="min-h-[1.25rem] px-3 pb-1 text-[11px] text-white/40">
+      <div className="min-h-[1.25rem] px-3 pb-1 text-[11px] text-white/50">
         {typingLabel ?? "\u00A0"}
       </div>
 
@@ -525,7 +525,7 @@ export function WorkoutChatPanel({
             type="button"
             aria-label="Anuluj odpowiedź"
             onClick={() => setReplyTo(null)}
-            className="text-white/45 hover:text-white"
+            className="text-white/50 hover:text-white"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -546,7 +546,7 @@ export function WorkoutChatPanel({
                     {initials(m.displayName)}
                   </span>
                   <span className="text-white">{m.displayName}</span>
-                  <span className="text-white/40">@{m.handle}</span>
+                  <span className="text-white/50">@{m.handle}</span>
                 </button>
               </li>
             ))}
@@ -586,7 +586,7 @@ export function WorkoutChatPanel({
             onKeyDown={onKeyDown}
             rows={1}
             placeholder="Napisz wiadomość… (@ do oznaczenia)"
-            className="max-h-28 min-h-[2.5rem] flex-1 resize-none rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-[13.5px] text-white outline-none placeholder:text-white/35 focus:border-[var(--gym-gold)]/40"
+            className="max-h-28 min-h-[2.5rem] flex-1 resize-none rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-[13.5px] text-white outline-none placeholder:text-white/50 focus:border-[var(--gym-gold)]/40"
           />
           <button
             type="button"

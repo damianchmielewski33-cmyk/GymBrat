@@ -67,7 +67,7 @@ function MacroRow({
             NUM_CELL,
             "text-[13px]",
             pctRaw == null
-              ? "text-white/35"
+              ? "text-white/50"
               : over
                 ? "font-semibold text-rose-400"
                 : "text-white/55",
@@ -80,7 +80,7 @@ function MacroRow({
             NUM_CELL,
             "text-[15px] font-semibold",
             remaining == null
-              ? "text-white/35"
+              ? "text-white/50"
               : over
                 ? "text-rose-400"
                 : "text-white",
@@ -189,7 +189,7 @@ function MacroProgressTile({
       </div>
 
       {!hasGoals ? (
-        <p className="mt-4 text-[12px] leading-tight text-white/45">
+        <p className="mt-4 text-[12px] leading-tight text-white/50">
           Ustaw cele w profilu
         </p>
       ) : href ? (

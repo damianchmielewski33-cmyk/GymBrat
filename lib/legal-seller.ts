@@ -75,7 +75,17 @@ export function getLegalSeller(): LegalSeller {
 
 export const REGULAMIN_PATH = "/regulamin";
 export const PRIVACY_PATH = "/polityka-prywatnosci";
+/** Publiczna instrukcja usunięcia konta (Z25; wymóg Google Play). */
+export const DELETE_ACCOUNT_PATH = "/usun-konto";
+
+/** Pomoc i formularz reklamacji (Z50). */
+export const HELP_PATH = "/pomoc";
 
 export function isLegalPublicPath(pathname: string): boolean {
-  return pathname === REGULAMIN_PATH || pathname === PRIVACY_PATH;
+  return (
+    pathname === REGULAMIN_PATH ||
+    pathname === PRIVACY_PATH ||
+    pathname === DELETE_ACCOUNT_PATH ||
+    pathname === HELP_PATH
+  );
 }

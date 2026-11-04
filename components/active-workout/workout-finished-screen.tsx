@@ -374,7 +374,7 @@ export function WorkoutFinishedScreen({
 
           <div className="app-card relative mt-5 overflow-hidden px-4 py-5 sm:px-5">
             <div
-              className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(480px_220px_at_50%_0%,rgba(235,196,74,0.12),transparent_60%)]"
+              className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(480px_220px_at_50%_0%,rgba(var(--neon-rgb),0.12),transparent_60%)]"
               aria-hidden
             />
             <div className="relative">

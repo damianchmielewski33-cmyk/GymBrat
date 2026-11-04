@@ -94,7 +94,7 @@ export function HofPageClient({
       <HofBadgeGallery badges={initial.viewerBadges} />
       <HofSeasonArchive archive={initial.archive} />
 
-      <p className="text-center text-[11px] text-white/35">
+      <p className="text-center text-[11px] text-white/50">
         Okres: {HOF_PERIOD_LABELS[kind]} · klucz {initial.period.key}
       </p>
     </div>

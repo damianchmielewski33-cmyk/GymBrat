@@ -4,11 +4,10 @@ GymBrat is a premium “fitness OS” built with the Next.js App Router: log tra
 
 ### Technologies used
 
-- **Next.js (App Router + RSC)**: front / BFF (UI, sesja NextAuth, proxy do Java)
-- **Java 17 + Spring Boot 3** (`java-backend/`): API domenowe (health, version, Android, body-reports, workouts)
+- **Next.js (App Router + RSC)**: front i API (UI, sesja NextAuth, trasy `/api/*`)
 - **React 19**
 - **Tailwind CSS v4**
-- **Drizzle ORM + Drizzle Kit**: schema-first SQLite/libSQL (legacy / fallback bez `JAVA_API_BASE_URL`)
+- **Drizzle ORM + Drizzle Kit**: schema-first SQLite/libSQL
 - **Turso (libSQL) + `@libsql/client`**: edge-friendly SQLite over the network
 - **NextAuth (Credentials provider)**: JWT sessions
 - **PWA**: Web App Manifest + statyczne pliki service workera w `public/` (bez Webpacka; build na Turbopack)
@@ -16,13 +15,9 @@ GymBrat is a premium “fitness OS” built with the Next.js App Router: log tra
 
 > Note: the repository currently pins `next@16.2.2` in `package.json`. The architecture and docs below apply to Next.js App Router / RSC regardless of minor version.
 
-### Frontend vs backend (Java)
+### Frontend i backend
 
-- **Front**: TypeScript / Next.js — strony, komponenty, Auth.js.
-- **Backend**: `java-backend` (Spring Boot) — REST pod `/api/*`.
-- Ustaw `JAVA_API_BASE_URL` (np. `http://localhost:8080`) oraz opcjonalnie wspólny `GYMBRAT_PROXY_TOKEN`, żeby Next proxował `/api/android/*`, `/api/body-reports`, `/api/workouts/complete` i dołączał meta Javy do `/api/version`.
-- Bez tych zmiennych Next nadal serwuje legacy handlery TypeScript (wygodne na Vercel).
-- Szczegóły: [`java-backend/README.md`](./java-backend/README.md).
+Całość działa w jednej aplikacji Next.js (TypeScript). Backend Java/Spring Boot został usunięty — patrz [ADR 0014](./docs/adr/0014-usuniecie-backendu-java.md).
 
 ### Nutrition (local diary — no Fitatu)
 
@@ -55,7 +50,7 @@ Copy `env.example` to `.env.local` and fill values:
 copy env.example .env.local
 ```
 
-Na górze pliku `env.example` jest skrócona tabela ważniejszych zmiennych (wymagane vs opcjonalne). W produkcji ustaw **`ADMIN_EMAILS`** (CSV) dla kont, które mają dostać rolę administratora przy pierwszym logowaniu; panel `/admin` wymaga też **`ADMIN_PIN`**. Dla Sentry ustaw `NEXT_PUBLIC_SENTRY_DSN` i opcjonalnie `NEXT_PUBLIC_APP_VERSION` / `NEXT_PUBLIC_SENTRY_RELEASE`, żeby zgadzały się wersje z deployem.
+Na górze pliku `env.example` jest skrócona tabela ważniejszych zmiennych (wymagane vs opcjonalne). W produkcji ustaw **`ADMIN_EMAILS`** (CSV) dla kont, które mają dostać rolę administratora przy pierwszym logowaniu; panel `/admin` chroni dodatkowo 2FA (TOTP) — skonfiguruj na `/admin/2fa`, potem ustaw **`ADMIN_2FA_REQUIRED=1`**. Dla Sentry ustaw `NEXT_PUBLIC_SENTRY_DSN` i opcjonalnie `NEXT_PUBLIC_APP_VERSION` / `NEXT_PUBLIC_SENTRY_RELEASE`, żeby zgadzały się wersje z deployem.
 
 Interfejs użytkownika jest **po polsku**; pełna wielojęzyczność nie jest na ten moment wdrożona.
 

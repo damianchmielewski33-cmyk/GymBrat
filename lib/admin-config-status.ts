@@ -117,6 +117,22 @@ export const CONFIG_GROUP_LABELS: Record<ConfigGroupId, { label: string; descrip
 
 const INTEGRATIONS: IntegrationDef[] = [
   {
+    id: "photo-storage",
+    group: "core",
+    label: "Magazyn zdjęć (S3 / R2 / MinIO)",
+    description: "Opcjonalny magazyn obiektowy dla zdjęć raportów sylwetki zamiast bazy (data_url).",
+    level: "optional",
+    effectWhenMissing: "Zdjęcia nadal zapisywane w bazie (zaszyfrowane) — działa jak dotychczas.",
+    vars: [
+      { names: ["PHOTO_STORAGE"], optional: true, hint: "Ustaw s3, aby włączyć magazyn obiektowy." },
+      { names: ["OBJECT_STORAGE_ENDPOINT"], optional: true, hint: "Np. https://<account>.r2.cloudflarestorage.com" },
+      { names: ["OBJECT_STORAGE_BUCKET"], optional: true },
+      { names: ["OBJECT_STORAGE_ACCESS_KEY_ID"], optional: true },
+      { names: ["OBJECT_STORAGE_SECRET_ACCESS_KEY"], optional: true },
+      { names: ["OBJECT_STORAGE_REGION"], optional: true, hint: "Domyślnie auto (R2). AWS: np. eu-central-1." },
+    ],
+  },
+  {
     id: "database",
     group: "core",
     label: "Baza danych (Turso)",
@@ -126,6 +142,11 @@ const INTEGRATIONS: IntegrationDef[] = [
     vars: [
       { names: ["TURSO_DATABASE_URL"], hint: "Lokalnie: file:./local.db" },
       { names: ["TURSO_AUTH_TOKEN"], optional: true, hint: "Wymagany dla Turso w chmurze." },
+      {
+        names: ["SCHEMA_MODE"],
+        optional: true,
+        hint: "Puste/ensure = schemat dopełniany w runtime (domyślnie). migrations = tylko migracje (npm run db:migrate:run przed wdrożeniem).",
+      },
     ],
   },
   {
@@ -154,17 +175,29 @@ const INTEGRATIONS: IntegrationDef[] = [
     id: "admin-access",
     group: "core",
     label: "Dostęp do panelu admina",
-    description: "PIN odblokowania i konta właściciela z rolą administratora.",
+    description: "Konta właściciela z rolą administratora.",
     level: "required",
     effectWhenMissing:
-      "W produkcji brak PIN-u blokuje odblokowanie panelu. Bez ADMIN_EMAILS rola admina zostaje tylko kontom, które już ją mają w bazie, a ochrona głównego administratora opiera się na pierwszym koncie admina.",
+      "Bez ADMIN_EMAILS rola admina zostaje tylko kontom, które już ją mają w bazie, a ochrona głównego administratora opiera się na pierwszym koncie admina.",
     vars: [
-      { names: ["ADMIN_PIN"] },
       {
         names: ["ADMIN_EMAILS"],
         hint: "Adresy e-mail adminów po przecinku. Jedyna droga do roli admina z konfiguracji; działa tylko dla kont z potwierdzonym e-mailem.",
       },
     ],
+  },
+  {
+    id: "admin-2fa",
+    group: "core",
+    label: "Wymóg 2FA w panelu admina",
+    description: "Panel i API admina wymagają kodu z aplikacji uwierzytelniającej (TOTP).",
+    level: "recommended",
+    effectWhenMissing:
+      "Dostęp do panelu admina zależy tylko od hasła konta z rolą administratora — drugi składnik nie jest wymagany.",
+    hostingHint:
+      "Najpierw wejdź na /admin/2fa, skonfiguruj aplikację uwierzytelniającą i zapisz kody awaryjne. Dopiero potem ustaw ADMIN_2FA_REQUIRED=1 w zmiennych środowiska hostingu i zrób redeploy.",
+    vars: [{ names: ["ADMIN_2FA_REQUIRED"], hint: "Ustaw 1, aby wymagać 2FA." }],
+    link: { href: "/admin/2fa", label: "Konfiguracja 2FA" },
   },
   {
     id: "encryption",
@@ -174,6 +207,25 @@ const INTEGRATIONS: IntegrationDef[] = [
     level: "recommended",
     effectWhenMissing: "Wrażliwe pola nie będą szyfrowane.",
     vars: [{ names: ["APP_ENCRYPTION_KEY"], hint: "32 bajty w base64." }],
+  },
+  {
+    id: "csp",
+    group: "core",
+    label: "Polityka CSP (egzekwowanie)",
+    description: "Przeglądarka blokuje niedozwolone skrypty i zasoby (ochrona przed XSS).",
+    level: "recommended",
+    effectWhenMissing:
+      "CSP działa tylko w trybie raportowania (Report-Only) — przeglądarka zgłasza naruszenia do /api/security/csp-report, ale ich nie blokuje.",
+    hostingHint:
+      "Po przejrzeniu raportów CSP w Sentry i teście na Preview ustaw CSP_MODE=enforce w zmiennych środowiska hostingu i zrób redeploy. Osadzanie w iframe: domyślnie tylko AWP; własna lista originów w FRAME_ANCESTORS_ALLOWED (po przecinku, `none` blokuje).",
+    vars: [
+      { names: ["CSP_MODE"], hint: "Ustaw enforce, aby egzekwować politykę." },
+      {
+        names: ["FRAME_ANCESTORS_ALLOWED"],
+        optional: true,
+        hint: "Lista originów dozwolonych do osadzania GymBrat w iframe.",
+      },
+    ],
   },
   {
     id: "cron",
@@ -192,10 +244,20 @@ const INTEGRATIONS: IntegrationDef[] = [
     group: "core",
     label: "Limity żądań (Upstash)",
     description: "Współdzielone limity prób logowania i akcji serwerowych.",
-    level: "recommended",
+    level: "required",
     effectWhenMissing:
-      "Limity działają tylko w pamięci jednej instancji — na wielu instancjach są łatwiejsze do obejścia.",
-    vars: [{ names: ["UPSTASH_REDIS_REST_URL"] }, { names: ["UPSTASH_REDIS_REST_TOKEN"] }],
+      "Limity działają tylko w pamięci jednej instancji (zerują się po restarcie i nie są wspólne dla instancji) — ochrona logowania i płatności przed nadużyciami jest słabsza.",
+    hostingHint:
+      "Załóż bazę Upstash Redis (region UE) i ustaw UPSTASH_REDIS_REST_URL oraz UPSTASH_REDIS_REST_TOKEN w zmiennych środowiska hostingu, potem redeploy. Adres klienta jest brany z nagłówka X-Real-IP ustawianego przez Caddy (zmień nazwą TRUSTED_IP_HEADER, jeśli proxy ustawia inny nagłówek).",
+    vars: [
+      { names: ["UPSTASH_REDIS_REST_URL"] },
+      { names: ["UPSTASH_REDIS_REST_TOKEN"] },
+      {
+        names: ["TRUSTED_IP_HEADER"],
+        optional: true,
+        hint: "Domyślnie x-real-ip (Caddy). Nigdy nie wskazuj nagłówka ustawianego przez klienta.",
+      },
+    ],
   },
   {
     id: "email",
@@ -266,6 +328,15 @@ const INTEGRATIONS: IntegrationDef[] = [
       { names: ["HOTPAY_PAYMENT_URL"], optional: true },
     ],
     link: { href: "/admin/packages", label: "Pakiety i ceny" },
+  },
+  {
+    id: "premium-checkout",
+    group: "users",
+    label: "Sprzedaż pakietu (flaga)",
+    description: "Włącza zakup pakietu Premium po stronie serwera (DK-13).",
+    level: "recommended",
+    effectWhenMissing: "Zakup pakietu jest wyłączony — strona pakietu pokazuje „wkrótce”.",
+    vars: [{ names: ["PREMIUM_CHECKOUT_ENABLED"] }],
   },
   {
     id: "legal",
@@ -373,18 +444,6 @@ const INTEGRATIONS: IntegrationDef[] = [
       },
     ],
     link: { href: "/admin/branding", label: "Branding" },
-  },
-  {
-    id: "java-api",
-    group: "core",
-    label: "Backend Java (BFF)",
-    description: "Proxy wybranych /api/* do Spring Boot (java-backend).",
-    level: "optional",
-    effectWhenMissing: "Next obsługuje API samodzielnie — bez osobnego serwera Java.",
-    vars: [
-      { names: ["JAVA_API_BASE_URL"], hint: "np. http://localhost:8080" },
-      { names: ["GYMBRAT_PROXY_TOKEN"], optional: true, hint: "Wymagany, gdy Java API jest włączone." },
-    ],
   },
   {
     id: "ads",

@@ -1,5 +1,6 @@
 "use client";
 
+import { BRAND_GOLD } from "@/lib/brand-colors";
 import { useMemo, useState } from "react";
 import {
   CartesianGrid,
@@ -26,7 +27,7 @@ type RangeId = (typeof RANGES)[number]["id"];
 
 const DAY_MS = 86_400_000;
 /** Hex for Recharts/SVG props (CSS var nie zawsze działa w atrybutach biblioteki). */
-const GOLD = "#ebc44a";
+const GOLD = BRAND_GOLD;
 const GREEN = "#86efac";
 const Y_AXIS_WIDTH = 38;
 const PLOT_HEIGHT = 112;
@@ -149,7 +150,12 @@ function SeriesChart({
   return (
     <div>
       <div style={{ height }} className="w-full" role="img" aria-label={title}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minHeight={100}
+          initialDimension={{ width: 320, height: 200 }}
+        >
           <LineChart
             data={rows}
             margin={{ top: 22, right: 12, left: 0, bottom: 0 }}
@@ -313,7 +319,7 @@ export function HomeSylwetkaChart({
 
   if (!hasData) {
     return (
-      <div className="rounded-2xl border border-white/[0.06] bg-black/20 px-4 py-8 text-center text-sm text-white/40">
+      <div className="rounded-2xl border border-white/[0.06] bg-black/20 px-4 py-8 text-center text-sm text-white/50">
         Brak pomiarów wagi i pasa — dodaj raport albo ważenie.
       </div>
     );
@@ -372,7 +378,7 @@ export function HomeSylwetkaChart({
       </div>
 
       {view.empty ? (
-        <p className="text-xs text-white/40">Brak pomiarów w tym zakresie.</p>
+        <p className="text-xs text-white/50">Brak pomiarów w tym zakresie.</p>
       ) : (
         <div className="space-y-1">
           {hasWeights ? (

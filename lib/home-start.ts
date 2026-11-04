@@ -16,8 +16,7 @@ import {
   bodyReportPhotoMediaPath,
   startPhotoMediaPath,
 } from "@/lib/user-photo-media";
-import { getWeeklyCardioProgress } from "@/lib/cardio";
-import { getCardioWeekProgressPnNd } from "@/lib/cardio-hub";
+import { getCardioWeekSummary } from "@/lib/cardio-week";
 import {
   addCalendarDays,
   calendarDateKey,
@@ -153,53 +152,6 @@ export type HomeStartDashboard = {
   };
 };
 
-async function sumCardioMinutesInCalendarWeek(
-  userId: string,
-  weekKeys: string[],
-): Promise<number> {
-  const db = getDb();
-  const start = weekKeys[0]!;
-  const end = weekKeys[weekKeys.length - 1]!;
-
-  const workoutRows = await db
-    .select({
-      cardioMinutes: workouts.cardioMinutes,
-      exercises: workouts.exercises,
-    })
-    .from(workouts)
-    .where(
-      and(
-        eq(workouts.userId, userId),
-        gte(workouts.date, start),
-        lte(workouts.date, end),
-      ),
-    );
-
-  let fromWorkouts = 0;
-  for (const row of workoutRows) {
-    const parsed = parseWorkoutSessionJson(row.exercises);
-    fromWorkouts += countableCardioMinutes(parsed, row.cardioMinutes ?? 0);
-  }
-
-  const weekStart = new Date(`${start}T00:00:00`);
-  const weekEnd = new Date(`${end}T23:59:59`);
-
-  const [fromLegacy] = await db
-    .select({
-      total: sql<number>`coalesce(sum(${trainingSessions.cardioMinutes}), 0)`,
-    })
-    .from(trainingSessions)
-    .where(
-      and(
-        eq(trainingSessions.userId, userId),
-        gte(trainingSessions.startedAt, weekStart),
-        lte(trainingSessions.startedAt, weekEnd),
-      ),
-    );
-
-  return fromWorkouts + Number(fromLegacy?.total ?? 0);
-}
-
 /** Ostatnie sesje cardio z metrykami (tempo / kcal) — do szacunku spalania. */
 async function getRecentCardioSamples(
   userId: string,
@@ -280,20 +232,29 @@ async function getRecentCardioSamples(
     .where(
       and(
         eq(trainingSessions.userId, userId),
-        gte(trainingSessions.startedAt, new Date(`${fromKey}T00:00:00`)),
-        lte(trainingSessions.startedAt, new Date(`${todayKey}T23:59:59`)),
+        // ±1 doba zapasu; dzień ustala calendarDateKey, nie strefa procesu serwera.
+        gte(
+          trainingSessions.startedAt,
+          new Date(`${addCalendarDays(fromKey, -1)}T00:00:00Z`),
+        ),
+        lte(
+          trainingSessions.startedAt,
+          new Date(`${addCalendarDays(todayKey, 1)}T23:59:59Z`),
+        ),
         gt(trainingSessions.cardioMinutes, 0),
       ),
     );
   for (const r of legacyRows) {
     const minutes = Math.max(0, Math.round(Number(r.cardioMinutes) || 0));
     if (minutes <= 0 || !r.startedAt) continue;
+    const legacyKey = calendarDateKey(new Date(r.startedAt));
+    if (legacyKey < fromKey || legacyKey > todayKey) continue;
     out.push({
       minutes,
       calories: null,
       paceMinPerKm: null,
       cardioType: null,
-      dateKey: calendarDateKey(new Date(r.startedAt)),
+      dateKey: legacyKey,
     });
   }
   return out;
@@ -724,7 +685,7 @@ async function loadTransformationPhotos(userId: string): Promise<{
         reportIds.length === 1
           ? eq(bodyReportPhotos.reportId, reportIds[0]!)
           : inArray(bodyReportPhotos.reportId, reportIds),
-        sql`${bodyReportPhotos.dataUrl} IS NOT NULL AND length(trim(${bodyReportPhotos.dataUrl})) > 0`,
+        sql`(${bodyReportPhotos.objectKey} IS NOT NULL OR (${bodyReportPhotos.dataUrl} IS NOT NULL AND length(trim(${bodyReportPhotos.dataUrl})) > 0))`,
       ),
     )
     .orderBy(asc(bodyReportPhotos.createdAt), asc(bodyReportPhotos.id));
@@ -939,9 +900,7 @@ async function loadHomeStartDashboard(
     settingsRow,
     nextWorkout,
     workoutsThisWeek,
-    cardioThisWeekMinutes,
-    cardioRolling,
-    cardioSheetWeek,
+    cardioWeek,
     recentCardioSamples,
     workoutStreakWeeks,
     weightFromStart,
@@ -976,9 +935,7 @@ async function loadHomeStartDashboard(
       .then((rows) => rows[0] ?? null),
     getNextWorkoutPlan(userId),
     countDistinctWorkoutDaysInRange(userId, weekStart, weekEnd),
-    sumCardioMinutesInCalendarWeek(userId, weekKeys),
-    getWeeklyCardioProgress(userId),
-    getCardioWeekProgressPnNd(userId),
+    getCardioWeekSummary(userId, { todayKey }),
     getRecentCardioSamples(userId, todayKey),
     getWorkoutStreakWeeks(userId, todayKey),
     getWeightFromStart(userId),
@@ -1038,7 +995,7 @@ async function loadHomeStartDashboard(
         ? userRow.sex
         : null,
     recentCardio: recentCardioSamples,
-    weeklyCardioGoalMinutes: cardioRolling.weeklyGoal,
+    weeklyCardioGoalMinutes: cardioWeek.goalMinutes,
   });
 
   return {
@@ -1047,12 +1004,12 @@ async function loadHomeStartDashboard(
     nextWorkout,
     workoutsThisWeek,
     weeklySessionsTarget,
-    cardioThisWeekMinutes,
-    cardioWeeklyGoal: cardioRolling.weeklyGoal,
+    cardioThisWeekMinutes: cardioWeek.minutes,
+    cardioWeeklyGoal: cardioWeek.goalMinutes,
     cardioSheetWeek: {
-      minutesCompleted: cardioSheetWeek.minutesThisWeek,
-      goalMinutes: cardioSheetWeek.goalMinutes,
-      weekLabel: cardioSheetWeek.weekLabel,
+      minutesCompleted: cardioWeek.minutes,
+      goalMinutes: cardioWeek.goalMinutes,
+      weekLabel: cardioWeek.weekLabel,
     },
     extraCardio,
     workoutStreakWeeks,

@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { adminRequest } from "@/lib/admin-client";
 import { formatPlnFromGrosze } from "@/lib/subscription-plans-format";
 
-type AppRole = "zawodnik" | "trener" | "admin";
+type AppRole = "zawodnik" | "admin";
 
 type DetailPayload = {
   /** Konto chronione (główny administrator) — liczone na serwerze. */
@@ -88,7 +88,7 @@ function fmtWhen(value: string | Date | number | null | undefined): string {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-2 text-sm">
-      <dt className="shrink-0 text-white/45">{label}</dt>
+      <dt className="shrink-0 text-white/50">{label}</dt>
       <dd className="min-w-0 text-right text-white/85">{children}</dd>
     </div>
   );
@@ -287,7 +287,6 @@ export function AdminUserDetailClient({
                     onChange={(e) => setAppRole(e.target.value as AppRole)}
                   >
                     <option value="zawodnik">Zawodnik</option>
-                    <option value="trener">Trener</option>
                     <option value="admin">Administrator</option>
                   </AdminSelect>
                 </AdminField>
@@ -401,7 +400,7 @@ export function AdminUserDetailClient({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-[11px] uppercase tracking-wide text-white/45">
+              <thead className="text-[11px] uppercase tracking-wide text-white/50">
                 <tr>
                   <th className="px-5 py-3 font-medium">Data</th>
                   <th className="px-5 py-3 font-medium">Pakiet</th>
@@ -422,7 +421,7 @@ export function AdminUserDetailClient({
                     <td className="px-5 py-2.5">
                       {o.source}
                       {o.hotpayPaymentId ? (
-                        <span className="ml-1 text-[10px] text-white/35">{o.hotpayPaymentId}</span>
+                        <span className="ml-1 text-[10px] text-white/50">{o.hotpayPaymentId}</span>
                       ) : null}
                     </td>
                   </tr>

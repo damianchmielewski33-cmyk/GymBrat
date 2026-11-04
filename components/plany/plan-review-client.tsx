@@ -82,7 +82,7 @@ export function PlanReviewClient({ cards }: { cards: PlanReviewCard[] }) {
             <h2 className="text-[15px] font-semibold text-white">
               {c.planName}
             </h2>
-            <span className="text-[11px] text-white/45">{c.mesocycleLabel}</span>
+            <span className="text-[11px] text-white/50">{c.mesocycleLabel}</span>
           </div>
           {c.activeRevision ? (
             <div className="app-panel flex items-center justify-between gap-3 px-3.5 py-3 text-[13px] text-white">
@@ -91,7 +91,7 @@ export function PlanReviewClient({ cards }: { cards: PlanReviewCard[] }) {
                   ? "Aktywny tydzień odciążenia"
                   : "Ostatnia zmiana planu"}
                 {c.activeRevision.summary ? `: ${c.activeRevision.summary}` : ""}
-                <span className="block text-[11px] text-white/45">
+                <span className="block text-[11px] text-white/50">
                   {c.activeRevision.date}
                 </span>
               </span>
@@ -155,7 +155,7 @@ export function PlanReviewClient({ cards }: { cards: PlanReviewCard[] }) {
                       onClick={() =>
                         setDismissed((s) => new Set(s).add(p.id))
                       }
-                      className="text-white/40"
+                      className="text-white/50"
                     >
                       Odrzuć
                     </button>

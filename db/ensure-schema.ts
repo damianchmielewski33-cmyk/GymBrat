@@ -1,6 +1,7 @@
 import type { Client } from "@libsql/client";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { getDb } from "./index";
+import { getSchemaMode } from "./schema-mode";
 import * as schema from "./schema";
 import { withDbRetry } from "./with-retry";
 
@@ -15,6 +16,8 @@ let schemaEnsured = false;
  */
 export async function ensureCriticalSchema(): Promise<void> {
   if (schemaEnsured) return;
+  // Z40: w trybie `migrations` schemat pochodzi wyłącznie z migracji — brak DDL w gorących ścieżkach.
+  if (getSchemaMode() === "migrations") return;
   if (!schemaEnsurePromise) {
     schemaEnsurePromise = withDbRetry(() => ensureCriticalSchemaOnce(), {
       attempts: 3,
@@ -157,6 +160,9 @@ CREATE TABLE IF NOT EXISTS "daily_checkins" (
   await tryAddColumn(`ALTER TABLE "user_settings" ADD COLUMN "reminders_json" text`);
   await tryAddColumn(`ALTER TABLE "user_settings" ADD COLUMN "meal_templates_json" text`);
   await tryAddColumn(`ALTER TABLE "user_settings" ADD COLUMN "fitness_goals_json" text`);
+  await tryAddColumn(
+    `ALTER TABLE "user_settings" ADD COLUMN "cardio_week_mode" text NOT NULL DEFAULT 'calendar'`,
+  );
   await tryAddColumn(
     `ALTER TABLE "user_settings" ADD COLUMN "onboarding_completed_at" integer`,
   );
@@ -337,6 +343,43 @@ CREATE TABLE IF NOT EXISTS "bug_reports" (
   );
 
   await client.execute(`
+CREATE TABLE IF NOT EXISTS "admin_two_factor" (
+  "user_id" text PRIMARY KEY NOT NULL,
+  "secret_enc" text NOT NULL,
+  "enabled_at" integer,
+  "recovery_hashes" text DEFAULT '[]' NOT NULL,
+  "failed_attempts" integer DEFAULT 0 NOT NULL,
+  "locked_until" integer,
+  "last_step" integer DEFAULT 0 NOT NULL,
+  "created_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "support_requests" (
+  "id" text PRIMARY KEY NOT NULL,
+  "user_id" text NOT NULL,
+  "kind" text NOT NULL,
+  "subject" text NOT NULL,
+  "message" text NOT NULL,
+  "order_id" text,
+  "contact_email" text NOT NULL,
+  "status" text DEFAULT 'new' NOT NULL,
+  "created_at" integer NOT NULL,
+  "due_at" integer NOT NULL,
+  "resolved_at" integer,
+  "admin_note" text,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "support_requests_status_created" ON "support_requests" ("status", "created_at")`,
+  );
+  await db.$client.execute(
+    `CREATE INDEX IF NOT EXISTS "support_requests_user" ON "support_requests" ("user_id", "created_at")`,
+  );
+
+  await client.execute(`
 CREATE TABLE IF NOT EXISTS "bug_report_photos" (
   "id" text PRIMARY KEY NOT NULL,
   "bug_report_id" text NOT NULL,
@@ -421,6 +464,9 @@ CREATE TABLE IF NOT EXISTS "schema_flags" (
   );
   await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "package_plan_sku" text`);
   await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "admin_note" text`);
+  await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "last_active_at" integer`);
+  await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "inactivity_warned_at" integer`);
+  await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "photos_warned_at" integer`);
   await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "sex" text`);
   await tryAddColumn(`ALTER TABLE "users" ADD COLUMN "email_verified_at" integer`);
   await tryAddColumn(
@@ -444,10 +490,10 @@ CREATE TABLE IF NOT EXISTS "subscription_plans" (
     `CREATE INDEX IF NOT EXISTS "subscription_plans_active_sort" ON "subscription_plans" ("active", "sort_order")`,
   );
 
-  await client.execute(`
-CREATE TABLE IF NOT EXISTS "subscription_orders" (
+  const ORDERS_DDL = (table: string) => `
+CREATE TABLE IF NOT EXISTS "${table}" (
   "id" text PRIMARY KEY NOT NULL,
-  "user_id" text NOT NULL,
+  "user_id" text,
   "plan_id" text,
   "plan_sku" text NOT NULL,
   "days" integer NOT NULL,
@@ -457,15 +503,72 @@ CREATE TABLE IF NOT EXISTS "subscription_orders" (
   "source" text DEFAULT 'hotpay' NOT NULL,
   "created_at" integer NOT NULL,
   "paid_at" integer,
-  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  "terms_accepted_at" integer,
+  "immediate_service_consent_at" integer,
+  "terms_version" text,
+  "consent_text_hash" text,
+  "receipt_number" text,
+  "receipt_issued_at" integer,
+  "buyer_name" text,
+  "buyer_tax_id" text,
+  "fulfilled_at" integer,
+  "late_payment_at" integer,
+  "refunded_at" integer,
+  "admin_note" text,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE SET NULL,
   FOREIGN KEY ("plan_id") REFERENCES "subscription_plans"("id") ON UPDATE NO ACTION ON DELETE SET NULL
-);
-`);
-  await db.$client.execute(
+)`;
+  await client.execute(ORDERS_DDL("subscription_orders"));
+  // Z7: starsza tabela miała `user_id NOT NULL ... ON DELETE CASCADE` (usunięcie konta kasowało zamówienia).
+  // SQLite nie zmienia tego ALTER-em, więc jednorazowo przebudowujemy tabelę w jednej transakcji.
+  const orderCols = await client.execute(`PRAGMA table_info("subscription_orders")`);
+  const userIdCol = orderCols.rows.find((r) => String(r.name) === "user_id");
+  if (userIdCol && Number(userIdCol.notnull) === 1) {
+    const oldCols =
+      '"id", "user_id", "plan_id", "plan_sku", "days", "amount_grosze", "status", "hotpay_payment_id", "source", "created_at", "paid_at"';
+    await client.batch(
+      [
+        `DROP TABLE IF EXISTS "subscription_orders_new"`,
+        ORDERS_DDL("subscription_orders_new"),
+        `INSERT INTO "subscription_orders_new" (${oldCols}) SELECT ${oldCols} FROM "subscription_orders"`,
+        `DROP TABLE "subscription_orders"`,
+        `ALTER TABLE "subscription_orders_new" RENAME TO "subscription_orders"`,
+      ],
+      "write",
+    );
+  }
+  // Tabela mogła powstać już z nowszej migracji bez części kolumn — dopełnij.
+  for (const col of [
+    `"terms_accepted_at" integer`,
+    `"immediate_service_consent_at" integer`,
+    `"terms_version" text`,
+    `"consent_text_hash" text`,
+    `"receipt_number" text`,
+    `"receipt_issued_at" integer`,
+    `"buyer_name" text`,
+    `"buyer_tax_id" text`,
+    `"fulfilled_at" integer`,
+    `"late_payment_at" integer`,
+    `"refunded_at" integer`,
+    `"admin_note" text`,
+  ]) {
+    await tryAddColumn(`ALTER TABLE "subscription_orders" ADD COLUMN ${col}`);
+  }
+  // Z23: zamówienia opłacone przed wprowadzeniem `fulfilled_at` (pakiet i `paid` szły jedną transakcją).
+  await client.execute(
+    `UPDATE "subscription_orders" SET "fulfilled_at" = "paid_at" WHERE "status" IN ('paid','manual') AND "fulfilled_at" IS NULL AND "paid_at" IS NOT NULL`,
+  );
+  await client.execute(
     `CREATE INDEX IF NOT EXISTS "subscription_orders_user_created" ON "subscription_orders" ("user_id", "created_at")`,
   );
-  await db.$client.execute(
+  await client.execute(
     `CREATE INDEX IF NOT EXISTS "subscription_orders_status" ON "subscription_orders" ("status")`,
+  );
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "subscription_orders_receipt_number" ON "subscription_orders" ("receipt_number")`,
+  );
+  await client.execute(
+    `CREATE TABLE IF NOT EXISTS "receipt_counters" ("year" integer PRIMARY KEY NOT NULL, "last_number" integer DEFAULT 0 NOT NULL)`,
   );
 
   await client.execute(`
@@ -1582,6 +1685,13 @@ CREATE TABLE IF NOT EXISTS "user_consents" (
     `CREATE INDEX IF NOT EXISTS "user_consents_user_type_decided" ON "user_consents" ("user_id","type","decided_at")`,
   );
 
+  await tryAddColumn(
+    `ALTER TABLE "body_report_photos" ADD COLUMN "object_key" text`,
+  );
+  // Z77: rola „trener” usunięta z produktu — istniejące konta stają się zawodnikami (idempotentne).
+  await client.execute(
+    `UPDATE "users" SET "app_role" = 'zawodnik' WHERE "app_role" = 'trener'`,
+  );
   // Redesign Team 012 / ADR 0011
   await tryAddColumn(
     `ALTER TABLE "user_social_profiles" ADD COLUMN "opted_in_to_team_ranking" integer NOT NULL DEFAULT 0`,

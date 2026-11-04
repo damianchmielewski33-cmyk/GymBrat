@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Eye, X } from "lucide-react";
 import type { FriendLiveView } from "@/lib/community/friend-types";
+import { nextPollDelay } from "@/lib/community/adaptive-poll";
 import { CLIENT_POLL } from "@/lib/community/realtime-config";
 import { useFriendLiveWatchStore } from "@/lib/stores/friend-live-watch";
 import { cn } from "@/lib/utils";
@@ -37,7 +38,7 @@ export function FriendLiveWatchWidget() {
   const onActiveWorkout = pathname.startsWith("/active-workout");
   const dockClass = onActiveWorkout
     ? "right-3 top-[max(0.75rem,calc(env(safe-area-inset-top)+0.35rem))]"
-    : "right-3 bottom-[calc(7.25rem+env(safe-area-inset-bottom))] md:right-5";
+    : "right-3 bottom-[calc(var(--bottom-chrome)+0.6rem+env(safe-area-inset-bottom))] md:right-5";
 
   const pullWatch = useCallback(async () => {
     if (!watchingUserId) {
@@ -62,18 +63,19 @@ export function FriendLiveWatchWidget() {
     }
   }, [watchingUserId, clearWatching]);
 
-  const pullList = useCallback(async () => {
-    if (watchingUserId) return;
+  const pullList = useCallback(async (): Promise<number> => {
+    if (watchingUserId) return 0;
     try {
       const res = await fetch("/api/community/friends/live", {
         credentials: "include",
         cache: "no-store",
       });
-      if (!res.ok) return;
+      if (!res.ok) return 0;
       const data = (await res.json()) as { friends?: FriendLiveView[] };
       setLiveList(data.friends ?? []);
+      return data.friends?.length ?? 0;
     } catch {
-      /* ignore */
+      return 0;
     }
   }, [watchingUserId]);
 
@@ -81,29 +83,44 @@ export function FriendLiveWatchWidget() {
     if (onWatchPage) return;
 
     let cancelled = false;
-    let timer: ReturnType<typeof setInterval> | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let idleStreak = 0;
 
     const clear = () => {
       if (timer) {
-        clearInterval(timer);
+        clearTimeout(timer);
         timer = null;
       }
     };
 
-    const tick = () => {
+    // Z79: oglądanie znajomego — stały interwał; lista „kto trenuje” — adaptacyjny
+    // (brak live → odstęp rośnie do 4× bazowego, pojawienie się live wraca do bazowego).
+    const tick = async () => {
       if (cancelled || document.visibilityState !== "visible") return;
-      if (watchingUserId) void pullWatch();
-      else void pullList();
+      if (watchingUserId) {
+        await pullWatch();
+        idleStreak = 0;
+      } else {
+        const live = await pullList();
+        idleStreak = live > 0 ? 0 : idleStreak + 1;
+      }
+      schedule();
+    };
+
+    const schedule = () => {
+      clear();
+      if (cancelled || document.visibilityState !== "visible") return;
+      const ms = watchingUserId
+        ? CLIENT_POLL.friendLiveWatchMs
+        : nextPollDelay(CLIENT_POLL.friendLiveListMs, idleStreak);
+      timer = setTimeout(() => void tick(), ms);
     };
 
     const arm = () => {
       clear();
       if (document.visibilityState !== "visible") return;
-      tick();
-      const ms = watchingUserId
-        ? CLIENT_POLL.friendLiveWatchMs
-        : CLIENT_POLL.friendLiveListMs;
-      timer = setInterval(tick, ms);
+      idleStreak = 0;
+      void tick();
     };
 
     arm();
@@ -144,7 +161,7 @@ export function FriendLiveWatchWidget() {
                 <p className="truncate text-[13px] font-semibold text-white">
                   {name}
                 </p>
-                <p className="text-[11px] text-white/45">Podgląd (bez dołączania)</p>
+                <p className="text-[11px] text-white/50">Podgląd (bez dołączania)</p>
               </div>
               <div className="flex shrink-0 gap-1">
                 <button
@@ -173,12 +190,12 @@ export function FriendLiveWatchWidget() {
                   {p.reps != null ? ` · ${p.reps} powt.` : ""}
                   {p.weight > 0 ? ` · ${p.weight} kg` : ""}
                 </p>
-                <p className="tabular-nums text-white/45">
+                <p className="tabular-nums text-white/50">
                   {formatElapsed(p.elapsedSeconds)} · {p.progressPercent}%
                 </p>
               </div>
             ) : (
-              <p className="text-[12px] text-white/45">Czeka na status…</p>
+              <p className="text-[12px] text-white/50">Czeka na status…</p>
             )}
             <Link
               href={`/community/friends/${watchingUserId}/live`}

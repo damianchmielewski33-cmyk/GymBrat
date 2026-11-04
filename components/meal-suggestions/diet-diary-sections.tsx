@@ -28,7 +28,7 @@ function SlotTotals({ entries }: { entries: MealLogDto[] }) {
   const kcal = entries.reduce((s, e) => s + e.calories, 0);
   if (entries.length === 0) return null;
   return (
-    <p className="text-xs tabular-nums text-white/45">
+    <p className="text-xs tabular-nums text-white/50">
       Σ {Math.round(kcal)} kcal · {Math.round(p)}B · {Math.round(c)}W · {Math.round(f)}T
     </p>
   );
@@ -142,7 +142,7 @@ export function DietDiarySections({
               </Button>
             </div>
             {items.length === 0 ? (
-              <p className="px-4 py-4 text-sm text-white/40">Brak produktów w tej sekcji.</p>
+              <p className="px-4 py-4 text-sm text-white/50">Brak produktów w tej sekcji.</p>
             ) : (
               <ul className="divide-y divide-white/[0.05]">
                 {items.map((e) => (
@@ -151,7 +151,7 @@ export function DietDiarySections({
                       <p className="truncate text-sm font-medium text-white">
                         {e.name?.trim() || "Posiłek"}
                       </p>
-                      <p className="mt-0.5 text-xs tabular-nums text-white/45">
+                      <p className="mt-0.5 text-xs tabular-nums text-white/50">
                         {Math.round(e.calories)} kcal · {Math.round(e.proteinG)}B ·{" "}
                         {Math.round(e.carbsG)}W · {Math.round(e.fatG)}T
                       </p>
@@ -169,14 +169,14 @@ export function DietDiarySections({
         <div className="app-card overflow-hidden border-dashed border-white/15">
           <div className="border-b border-white/[0.06] px-4 py-3">
             <h3 className="text-sm font-semibold text-white/80">Bez sekcji</h3>
-            <p className="text-xs text-white/40">Starsze wpisy — możesz je usunąć i dodać ponownie.</p>
+            <p className="text-xs text-white/50">Starsze wpisy — możesz je usunąć i dodać ponownie.</p>
           </div>
           <ul className="divide-y divide-white/[0.05]">
             {unassigned.map((e) => (
               <li key={e.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-white/85">{e.name?.trim() || "Posiłek"}</p>
-                  <p className="mt-0.5 text-xs tabular-nums text-white/40">
+                  <p className="mt-0.5 text-xs tabular-nums text-white/50">
                     {Math.round(e.calories)} kcal · {Math.round(e.proteinG)}B ·{" "}
                     {Math.round(e.carbsG)}W · {Math.round(e.fatG)}T
                   </p>

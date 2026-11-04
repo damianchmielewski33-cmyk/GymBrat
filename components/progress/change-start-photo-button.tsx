@@ -111,7 +111,7 @@ export function ChangeStartPhotoButton({
           type="button"
           disabled={busy}
           onClick={clearCustom}
-          className="block w-full text-center text-[10px] font-medium uppercase tracking-[0.14em] text-white/40 hover:text-white/60 disabled:opacity-45"
+          className="block w-full text-center text-[10px] font-medium uppercase tracking-[0.14em] text-white/50 hover:text-white/60 disabled:opacity-45"
         >
           Przywróć z raportów
         </button>

@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { defaultApkUrl, resolveAndroidVersion } from "@/lib/android-version";
 import { checkRateLimitAsync, rateLimitKey, RATE } from "@/lib/rate-limit";
 import { UserMessages } from "@/lib/user-facing-errors";
-import { fetchJavaApi, isJavaApiEnabled, passThroughJavaResponse } from "@/lib/java-api";
 
 export const runtime = "nodejs";
 
@@ -55,13 +54,6 @@ async function handleGET(req: Request) {
     const info = await resolveAndroidVersion();
     const path = sameOriginApkPath(info.versionName, info.versionCode);
     return withPublicHeaders(NextResponse.redirect(new URL(path, url.origin), 302));
-  }
-
-  if (isJavaApiEnabled()) {
-    const javaRes = await fetchJavaApi("/api/android/download?source=github-fallback");
-    if (javaRes) {
-      return passThroughJavaResponse(javaRes);
-    }
   }
 
   const info = await resolveAndroidVersion();

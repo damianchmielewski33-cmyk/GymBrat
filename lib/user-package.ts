@@ -1,9 +1,10 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
-import { getDb } from "@/db";
+import { and, eq, sql } from "drizzle-orm";
+import { getDb, type Database } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
-import { users } from "@/db/schema";
+import { subscriptionOrders, users } from "@/db/schema";
+import { AppError } from "@/lib/errors/app-error";
 
 export type UserPackageStatus = {
   active: boolean;
@@ -98,6 +99,32 @@ export async function extendUserPackage(args: {
   return ends;
 }
 
+/**
+ * Instrukcja przedłużenia pakietu do wykonania w `db.batch` razem ze zmianą statusu zamówienia
+ * (jedna transakcja). Przedłuża od max(teraz, obecny koniec) + days, a robi to tylko wtedy,
+ * gdy zamówienie `orderId` nadal jest `pending` — dzięki temu powtórka ani równoległe
+ * powiadomienie nie przedłużą pakietu drugi raz. Wstawiać PRZED aktualizacją zamówienia.
+ */
+export function extendUserPackageIfOrderPending(
+  db: Database,
+  args: { userId: string; orderId: string; days: number; planSku: string; now?: number },
+) {
+  const now = args.now ?? Date.now();
+  const addMs = Math.max(1, args.days) * 86_400_000;
+  return db
+    .update(users)
+    .set({
+      packageEndsAt: sql`cast(max(${now}, coalesce(${users.packageEndsAt}, 0)) + ${addMs} as integer)`,
+      packagePlanSku: args.planSku,
+    })
+    .where(
+      and(
+        eq(users.id, args.userId),
+        sql`exists (select 1 from ${subscriptionOrders} where ${subscriptionOrders.id} = ${args.orderId} and ${subscriptionOrders.status} = 'pending')`,
+      ),
+    );
+}
+
 export async function setUserPackageEndsAt(args: {
   userId: string;
   endsAt: Date | null;
@@ -113,4 +140,23 @@ export async function setUserPackageEndsAt(args: {
     patch.packagePlanSku = args.planSku;
   }
   await db.update(users).set(patch).where(eq(users.id, args.userId));
+}
+
+/**
+ * Czy konto ma aktywny pakiet Premium. Bez karencji (DK-12): dostęp kończy się dokładnie
+ * z `packageEndsAt`; `computePackageStatus` traktuje `endsAt <= teraz` jako nieaktywny.
+ */
+export async function isPremiumActive(userId: string): Promise<boolean> {
+  return (await getUserPackageStatus(userId)).active;
+}
+
+/**
+ * Bramka funkcji Premium po stronie serwera (Z10). Wołaj w akcjach, trasach i stronach
+ * Premium PRZED pobraniem danych; UI nigdy nie jest jedyną ochroną.
+ * Rzuca `AppError("PREMIUM_REQUIRED")` → 402 w trasach (`withApiErrors`).
+ */
+export async function requirePremium(userId: string): Promise<UserPackageStatus> {
+  const status = await getUserPackageStatus(userId);
+  if (!status.active) throw new AppError("PREMIUM_REQUIRED");
+  return status;
 }

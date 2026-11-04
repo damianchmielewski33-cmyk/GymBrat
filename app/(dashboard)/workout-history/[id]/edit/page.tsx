@@ -21,6 +21,8 @@ import {
 import { WorkoutHistoryEditClient } from "@/components/workout-history/workout-history-edit-client";
 import type { WorkoutExerciseState } from "@/components/workout/types";
 
+export const metadata = { title: "Edycja treningu" };
+
 export default async function WorkoutHistoryEditPage({
   params,
 }: {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { AuthPageFrame } from "@/components/auth/auth-page-frame";
 import { AppShell } from "@/components/layout/app-shell";
+import { PackageExpiryBanner } from "@/components/package/package-expiry-banner";
 
 /** Node.js: lokalny SQLite (`file:...`) w @libsql/client działa tylko poza Edge. */
 export const runtime = "nodejs";
@@ -25,5 +26,10 @@ export default async function DashboardLayout({
     return <AuthPageFrame>{children}</AuthPageFrame>;
   }
 
-  return <AppShell>{children}</AppShell>;
+  return (
+    <AppShell>
+      <PackageExpiryBanner userId={session.user.id} />
+      {children}
+    </AppShell>
+  );
 }

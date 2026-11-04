@@ -47,7 +47,7 @@ export function WorkoutHistoryStats({
               "rounded-full border px-2.5 py-1 text-[12px]",
               scopeLabel === "Wszystkie treningi"
                 ? "border-white/15 text-[var(--gym-text-secondary)]"
-                : "border-[rgba(235,196,74,0.45)] text-[var(--gym-gold)]",
+                : "border-[rgba(var(--neon-rgb),0.45)] text-[var(--gym-gold)]",
             )}
           >
             {scopeLabel}

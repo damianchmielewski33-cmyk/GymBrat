@@ -20,7 +20,7 @@ export function WeeklyDeficitPanel({ weekLabel, deficitKcal, weightKg }: WeeklyD
         <p className="text-sm text-white/80">
           Brakuje sumy celów kalorii na tydzień, więc nie policzę deficytu.
         </p>
-        <p className="text-xs text-white/45">
+        <p className="text-xs text-white/50">
           Ustaw cele kcal w profilu (trening / odpoczynek), a tutaj zobaczysz deficyt dla{" "}
           {weekLabel}.
         </p>
@@ -40,7 +40,7 @@ export function WeeklyDeficitPanel({ weekLabel, deficitKcal, weightKg }: WeeklyD
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-white/45">
+      <p className="text-xs text-white/50">
         Tydzień: {weekLabel}. Deficyt liczymy jako (suma celów kcal − suma spożycia kcal) dla
         pon.–niedz.
       </p>
@@ -59,7 +59,7 @@ export function WeeklyDeficitPanel({ weekLabel, deficitKcal, weightKg }: WeeklyD
               Uwaga: masz też nadwyżkę {fmt(surplusOnly)} kcal (gdy spożycie &gt; cele).
             </p>
           ) : (
-            <p className="mt-2 text-xs text-white/45">Poniżej zera kalorycznego w tym tygodniu.</p>
+            <p className="mt-2 text-xs text-white/50">Poniżej zera kalorycznego w tym tygodniu.</p>
           )}
         </div>
 
@@ -71,7 +71,7 @@ export function WeeklyDeficitPanel({ weekLabel, deficitKcal, weightKg }: WeeklyD
             {fmt(gLoss)}{" "}
             <span className="text-base font-normal text-white/55">g</span>
           </p>
-          <p className="mt-2 text-xs text-white/45">
+          <p className="mt-2 text-xs text-white/50">
             Około {fmt(kgLoss, 2)} kg (przy {KCAL_PER_KG_FAT} kcal/kg).
           </p>
         </div>
@@ -84,7 +84,7 @@ export function WeeklyDeficitPanel({ weekLabel, deficitKcal, weightKg }: WeeklyD
             {gPerKgBody == null ? "—" : fmt(gPerKgBody, 1)}{" "}
             <span className="text-base font-normal text-white/55">g/kg</span>
           </p>
-          <p className="mt-2 text-xs text-white/45">
+          <p className="mt-2 text-xs text-white/50">
             {gPerKgBody == null
               ? "Uzupełnij masę ciała w profilu, żeby policzyć g/kg."
               : `Wg masy: ${fmt(weightKg!, 1)} kg.`}
@@ -92,7 +92,7 @@ export function WeeklyDeficitPanel({ weekLabel, deficitKcal, weightKg }: WeeklyD
         </div>
       </div>
 
-      <p className="text-[11px] leading-snug text-white/40">
+      <p className="text-[11px] leading-snug text-white/50">
         To przybliżenie „z kalorii” — realna zmiana masy zależy m.in. od wody, glikogenu i dokładności
         wpisów.
       </p>

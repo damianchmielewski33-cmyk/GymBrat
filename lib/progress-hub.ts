@@ -68,6 +68,7 @@ import {
   type ProgressIntensitySummary,
   type SessionIntensity,
 } from "@/lib/intensity-analysis";
+import { getCardioWeekSummary } from "@/lib/cardio-week";
 import {
   countableCardioMinutes,
   isCompletedStrengthSession,
@@ -595,8 +596,6 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
   const dayByDate = new Map(thisWeekDays.map((d) => [d.date, d]));
 
   let tonnageThisWeek = 0;
-  let cardioThisWeek = 0;
-  let cardioEntriesThisWeek = 0;
   let workoutsThisWeek = 0;
 
   const prevMonday = addCalendarDays(monday, -7);
@@ -643,15 +642,6 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
         isStandaloneCardioLog(session, row.cardioMinutes ?? 0)
       ) {
         day.cardio = true;
-      }
-    }
-    if (row.date >= monday && row.date <= sunday) {
-      cardioThisWeek += cardioMin;
-      if (
-        cardioMin > 0 ||
-        isStandaloneCardioLog(session, row.cardioMinutes ?? 0)
-      ) {
-        cardioEntriesThisWeek += 1;
       }
     }
 
@@ -1601,6 +1591,9 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
   const sex: SexKind | null =
     sexRaw === "male" || sexRaw === "female" ? sexRaw : null;
 
+  // Minuty cardio tygodnia — ta sama funkcja co Pulpit i Trening (US12).
+  const cardioWeekSummary = await getCardioWeekSummary(userId, { todayKey: today });
+
   let intelligence: ProgressIntelligence = emptyProgressIntelligence();
   if (wantsIntelligence) {
     try {
@@ -1608,6 +1601,7 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
       today,
       weeklySessionsTarget: weeklyTarget,
       weeklyCardioGoalMinutes: cardioGoal,
+      cardioWeekMode: cardioWeekSummary.mode,
       ageYears: userRow?.age ?? null,
       weightKg: userRow?.weightKg ?? currentKg,
       sex,
@@ -1694,8 +1688,8 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
         days: thisWeekDays,
         tonnageKg: safeRound1(tonnageThisWeek),
         prevWeekTonnageKg,
-        cardioMinutes: Math.round(cardioThisWeek),
-        cardioEntries: cardioEntriesThisWeek,
+        cardioMinutes: cardioWeekSummary.minutes,
+        cardioEntries: cardioWeekSummary.sessions,
         cardioGoalMinutes: cardioGoal,
         streakWeeks,
         monday,

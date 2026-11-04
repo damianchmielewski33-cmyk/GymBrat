@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { CardioHubView } from "@/components/cardio/cardio-hub-view";
 import { getCardioHubData } from "@/lib/cardio-hub";
 
+export const metadata = { title: "Cardio" };
+
 export default async function CardioHubPage() {
   const session = await auth();
   const userId = session?.user?.id;

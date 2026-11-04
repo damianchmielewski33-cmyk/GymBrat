@@ -6,6 +6,8 @@ import { TeamSettingsForm } from "@/components/community/team-settings-form";
 import { AppPageHeader } from "@/components/layout/screen";
 import { getTeamDetail } from "@/lib/community/teams";
 
+export const metadata = { title: "Ustawienia grupy" };
+
 export default async function TeamSettingsPage({
   params,
 }: {

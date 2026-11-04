@@ -105,7 +105,7 @@ export function CardioLogMinutesField({
               className={cn(
                 "inline-flex min-h-11 items-center rounded-full border px-3.5 text-[13px] font-semibold tabular-nums",
                 active
-                  ? "border-[rgba(235,196,74,0.55)] bg-[rgba(235,196,74,0.12)] text-[var(--gym-gold)]"
+                  ? "border-[rgba(var(--neon-rgb),0.55)] bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]"
                   : "border-white/10 text-white/70",
               )}
             >

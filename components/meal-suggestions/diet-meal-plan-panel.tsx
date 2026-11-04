@@ -110,11 +110,11 @@ function ShoppingListCard({
         <div className="min-w-0 flex-1">
           <p className="text-[15px] font-semibold text-white">Lista zakupów</p>
           {items.length === 0 ? (
-            <p className="mt-0.5 text-[12px] leading-snug text-white/40">
+            <p className="mt-0.5 text-[12px] leading-snug text-white/50">
               pusta — dodaj danie ikonką torby na kafelku
             </p>
           ) : (
-            <p className="mt-0.5 text-[12px] text-white/40">
+            <p className="mt-0.5 text-[12px] text-white/50">
               {items.length}{" "}
               {items.length === 1
                 ? "pozycja"
@@ -125,9 +125,9 @@ function ShoppingListCard({
           )}
         </div>
         {open ? (
-          <ChevronDown className="h-4 w-4 shrink-0 text-white/40" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-white/50" />
         ) : (
-          <ChevronRight className="h-4 w-4 shrink-0 text-white/35" />
+          <ChevronRight className="h-4 w-4 shrink-0 text-white/50" />
         )}
       </button>
 
@@ -137,7 +137,7 @@ function ShoppingListCard({
             <button
               type="button"
               onClick={() => onChange(clearShoppingList())}
-              className="text-[11px] font-medium text-white/40 hover:text-white/70"
+              className="text-[11px] font-medium text-white/50 hover:text-white/70"
             >
               Wyczyść
             </button>
@@ -165,13 +165,13 @@ function ShoppingListCard({
                   <p
                     className={cn(
                       "text-sm text-white/90",
-                      item.checked && "text-white/40 line-through",
+                      item.checked && "text-white/50 line-through",
                     )}
                   >
                     {item.name}
                   </p>
                   {item.recipeTitle ? (
-                    <p className="mt-0.5 truncate text-[11px] text-white/35">
+                    <p className="mt-0.5 truncate text-[11px] text-white/50">
                       {item.recipeTitle}
                     </p>
                   ) : null}
@@ -180,7 +180,7 @@ function ShoppingListCard({
                   type="button"
                   aria-label="Usuń z listy"
                   onClick={() => onChange(removeShoppingItem(item.id))}
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white/35 hover:bg-white/[0.06] hover:text-rose-200"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white/50 hover:bg-white/[0.06] hover:text-rose-200"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -254,7 +254,7 @@ function PlanMealCard({
                 <div key={m.label} className="min-w-0 font-metric tabular-nums">
                   <p className="text-[15px] font-semibold leading-none text-white">
                     {m.n}
-                    <span className="ml-0.5 text-[11px] font-medium text-white/40">
+                    <span className="ml-0.5 text-[11px] font-medium text-white/50">
                       g
                     </span>
                   </p>
@@ -270,7 +270,7 @@ function PlanMealCard({
                 <div className="ml-auto min-w-0 font-metric tabular-nums sm:ml-0">
                   <p className="text-[15px] font-semibold leading-none text-white/85">
                     {kcal}
-                    <span className="ml-1 text-[11px] font-medium text-white/40">
+                    <span className="ml-1 text-[11px] font-medium text-white/50">
                       kcal
                     </span>
                   </p>
@@ -286,7 +286,7 @@ function PlanMealCard({
             <ChevronDown
               className={cn(
                 "h-4 w-4",
-                open ? "text-[var(--gym-gold)]" : "text-white/40",
+                open ? "text-[var(--gym-gold)]" : "text-white/50",
               )}
             />
           </motion.span>
@@ -411,7 +411,7 @@ export function DietMealPlanPanel({
             className={cn(
               "rounded-full px-3 py-2 text-[12px] font-semibold transition-colors",
               libraryTab === "mine"
-                ? "bg-gradient-to-b from-[#F5E4A3] via-[#E4C56D] to-[#D1A84A] text-[#1A1408]"
+                ? "bg-gradient-to-b from-[#F5E4A3] via-[#E4C56D] to-[#D1A84A] text-[var(--gym-on-gold)]"
                 : "text-white/55 hover:text-white/80",
             )}
           >
@@ -423,7 +423,7 @@ export function DietMealPlanPanel({
             className={cn(
               "rounded-full px-3 py-2 text-[12px] font-semibold transition-colors",
               libraryTab === "catalog"
-                ? "bg-gradient-to-b from-[#F5E4A3] via-[#E4C56D] to-[#D1A84A] text-[#1A1408]"
+                ? "bg-gradient-to-b from-[#F5E4A3] via-[#E4C56D] to-[#D1A84A] text-[var(--gym-on-gold)]"
                 : "text-white/55 hover:text-white/80",
             )}
           >
@@ -475,7 +475,7 @@ export function DietMealPlanPanel({
               title="Katalog"
               trailing={`${rows.length} slotów`}
             />
-            <p className="px-0.5 text-[12px] leading-relaxed text-white/45">
+            <p className="px-0.5 text-[12px] leading-relaxed text-white/50">
               Przepisy z katalogu GymBrat — dopasowane do równego podziału celu
               dnia na 5 posiłków.
             </p>
@@ -527,9 +527,9 @@ export function DietMealPlanPanel({
                 : ""}
             </p>
             {suppOpen ? (
-              <ChevronDown className="h-4 w-4 text-white/40" />
+              <ChevronDown className="h-4 w-4 text-white/50" />
             ) : (
-              <ChevronRight className="h-4 w-4 text-white/35" />
+              <ChevronRight className="h-4 w-4 text-white/50" />
             )}
           </button>
           {suppOpen ? (
@@ -544,7 +544,7 @@ export function DietMealPlanPanel({
                     <span className="min-w-0 flex-1">
                       <span className="block">{item.name}</span>
                       {item.amount?.trim() ? (
-                        <span className="mt-0.5 block text-[12px] text-white/45">
+                        <span className="mt-0.5 block text-[12px] text-white/50">
                           {item.amount.trim()}
                         </span>
                       ) : null}
@@ -574,7 +574,7 @@ export function DietMealPlanPanel({
         <SectionLabel index={3} title="Zalecenia" />
         <div className="space-y-4 rounded-[22px] border border-white/[0.08] bg-[#0E0E0E]/90 p-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
               Nawodnienie
             </p>
             <p className="mt-1.5 text-sm leading-relaxed text-white/75">
@@ -583,7 +583,7 @@ export function DietMealPlanPanel({
             </p>
           </div>
           <div className="border-t border-white/[0.06] pt-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
               Cardio w tygodniu
             </p>
             <div className="mt-2 flex items-end gap-2">
@@ -591,7 +591,7 @@ export function DietMealPlanPanel({
                 value={weeklyCardioGoalMinutes}
                 className="text-[40px] leading-none text-[var(--gym-gold)]"
               />
-              <span className="mb-1.5 text-sm text-white/45">min</span>
+              <span className="mb-1.5 text-sm text-white/50">min</span>
             </div>
             <p className="mt-1 text-sm text-white/55">
               Tygodniowy cel cardio z Twoich ustawień.
@@ -618,14 +618,14 @@ export function DietMealPlanPanel({
               <p className="text-sm font-semibold text-white">
                 Szybkie wskazówki żywieniowe
               </p>
-              <p className="mt-0.5 text-xs text-white/45">
+              <p className="mt-0.5 text-xs text-white/50">
                 Rozwiń, żeby zobaczyć ściągę
               </p>
             </div>
             {tipsOpen ? (
-              <ChevronDown className="h-4 w-4 shrink-0 text-white/40" />
+              <ChevronDown className="h-4 w-4 shrink-0 text-white/50" />
             ) : (
-              <ChevronRight className="h-4 w-4 shrink-0 text-white/35" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-white/50" />
             )}
           </button>
           {tipsOpen ? (

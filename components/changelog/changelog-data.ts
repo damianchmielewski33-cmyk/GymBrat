@@ -5,6 +5,166 @@ export type ChangelogEntry = ChangelogSourceEntry;
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    title: "Zapowiedź — Plan z ostatnich treningów i porządki w produkcie",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Jeśli masz już treningi, a nie masz planu, Pulpit proponuje „Utwórz plan z ostatnich treningów” — z ostatnich 30 dni powstaje po jednym dniu planu na każdy rodzaj treningu.",
+      "Baner „Skonfiguruj pierwszy tydzień” nie pojawia się osobom z historią treningów, a licznik raportów w nagłówku jest ukryty, dopóki nie ma raportów (poza pierwszymi 14 dniami konta).",
+      "Usunięto nieużywaną skrzynkę, rolę trenera i martwe komponenty — dotychczasowe konta trenerów działają jak zawodnicy.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Spójny wygląd i lepsza czytelność",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Każda karta przeglądarki ma teraz czytelny tytuł („Bilans tygodnia · GymBrat”), a podekrany mają jednolitą strzałkę wstecz.",
+      "Środkowy przycisk dolnej belki zmienia się z ekranem: „Start” na Treningach, „Dodaj posiłek” w Diecie, „Raport” w Analizie. Dolna belka i pływające widżety nie zasłaniają już treści.",
+      "Jaśniejszy tekst pomocniczy (kontrast zgodny z WCAG AA), jeden wspólny kafel statystyk, szkielet ładowania i obsługa błędu w Analizie oraz wykresy bez błędów wymiarów.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Szybsze ekrany i mniej transferu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Atlas ćwiczeń i tydzień żywienia ładują się z mniejszą ilością danych: opisy ćwiczeń pobierają się dopiero po otwarciu karty, a starsze tygodnie żywienia doładowują się w miarę przewijania.",
+      "Trening w trakcie zapisuje się do chmury tylko wtedy, gdy coś się zmieniło, a lista znajomych trenujących odpytuje serwer rzadziej, gdy nikt nie trenuje.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Dane i wydajność: uczciwe punkty, przygotowanie pod skalę",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Punkty doświadczenia, wojny zespołów i misje liczą się poprawnie także przy równoczesnych treningach wielu osób (bez gubienia XP i podwójnych nagród).",
+      "Przygotowanie pod większą skalę: opcjonalny magazyn zdjęć w chmurze (S3/R2) oraz tryb schematu bazy tylko z migracji. Obie opcje są domyślnie wyłączone, więc nic się nie zmienia, dopóki właściciel ich nie włączy.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Bramki jakości przed wdrożeniem",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Kontrola przed wdrożeniem na produkcję blokuje promote, gdy brakuje konfiguracji płatności (HotPay), poczty (SMTP), limitów (Upstash), CRON_SECRET lub ADMIN_EMAILS; może też uruchomić lint i testy.",
+      "Nowy przebieg CI: typy, testy jednostkowe, lint oraz testy E2E rejestracji, płatności i treningu na lokalnej bazie z danymi testowymi (E2E i lint na razie nie blokują merge).",
+    ],
+  },
+  {
+    title: "Zapowiedź — Spokojniejszy trening i dostępny raport ciała",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Trening solo nie generuje już błędów w tle (obecność dla znajomych wysyła się tylko przy udostępnianiu). Seria 0 kg przy ćwiczeniu z obciążeniem pyta, czy to masa ciała. Niedokończony trening ma jedno sterowanie: karta na ekranie Treningi, a na innych ekranach cienki pasek „Wróć”.",
+      "Raport ciała: pola mają etykiety i jednostki, skale 1–10 opisane na końcach i dostępne dla czytnika ekranu. Zdjęcia sylwetki są opcjonalne, a po dodaniu zdjęcia trzeba zaznaczyć zgodę na ich zapis.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Te same liczby cardio i tonaż na każdym ekranie",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Minuty cardio w tygodniu są liczone jedną regułą (pon–niedz, razem ze starszymi wpisami) na Start, w Treningach, w arkuszu „Dodaj cardio”, w Analizie i w raportach — także bez planu treningowego. W Profilu → Trening możesz przełączyć liczenie na „ostatnie 7 dni”.",
+      "Tonaż i serie liczą się tak samo na Start, w Historii i w Analizie (rozgrzewki nie wchodzą do tonażu). Usunięta nieużywana strona /start-workout; testy kontraktowe pilnują zgodności liczb.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Bezpieczniejszy panel administratora i porządki w repozytorium",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Dwuskładnikowe logowanie do panelu admina (kod z aplikacji uwierzytelniającej + kody awaryjne) z blokadą po 5 błędnych próbach i powiadomieniem e-mail o wejściu; wymóg włączany zmienną ADMIN_2FA_REQUIRED po konfiguracji na /admin/2fa. Martwy PIN administratora został usunięty.",
+      "Usunięty nieużywany backend Java (Spring Boot) oraz jego proxy w API; test pilnuje, że każda trasa admina odrzuca anonima (401) i zwykłego użytkownika (403).",
+    ],
+  },
+  {
+    title: "Zapowiedź — Utwardzenie zabezpieczeń HTTP",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Polityka bezpieczeństwa treści (CSP) z nonce dla skryptów: na start tryb raportowania, egzekwowanie włączane zmienną CSP_MODE=enforce po sprawdzeniu raportów; osadzanie w iframe ograniczone do jawnej listy (domyślnie Akademia).",
+      "Limity żądań liczone po adresie klienta z zaufanego nagłówka serwera (podrobiony x-forwarded-for nie omija limitów); brak Upstash widoczny w panelu Konfiguracja jako wymagany. Cotygodniowy skan zależności blokuje luki High/Critical, a procedura rotacji sekretów jest w docs.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Płatności w panelu admina: zamówienia, alerty i finanse",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Nowy dział „Zamówienia”: lista z filtrem statusu, ręczne księgowanie (nadaje pakiet), anulowanie i notatka o zwrocie; nieopłacone zamówienia wygasają po 24 h, a ponowne kliknięcie „Kup” używa świeżego zamówienia zamiast tworzyć kolejne.",
+      "Widżet alertów płatności (opłacone bez pakietu, płatność dla anulowanego zamówienia, niezgodna kwota, oczekujące > 1 h) oraz nowy dział „Finanse”: przychód dzienny i miesięczny, aktywne pakiety, konwersja. Zmiana ceny w „Pakietach” nie wpływa na trwające zamówienia.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Pomoc i reklamacje w aplikacji",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Nowa strona /pomoc: dane kontaktowe, najczęstsze pytania i formularz zgłoszenia lub reklamacji (opcjonalnie z wyborem zamówienia); odpowiadamy w ciągu 14 dni, a potwierdzenie przychodzi e-mailem, gdy poczta jest skonfigurowana.",
+      "Link w menu, w Profilu → Konto i w regulaminie; zgłoszenia trafiają do nowego działu „Wsparcie” w panelu admina z terminem odpowiedzi i oznaczeniem przeterminowanych.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Dokumenty prawne (wersja robocza) i automatyczna retencja danych",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Regulamin i Polityka prywatności opisują dane o zdrowiu i zdjęciach (za zgodą), odbiorców danych, transfery poza EOG, minimalny wiek i okresy przechowywania; strony pokazują wersję dokumentu i oznaczenie „wersja robocza” do czasu zatwierdzenia.",
+      "Automatyczne czyszczenie: zgłoszenia błędów po okresie od rozwiązania oraz — po włączeniu — nieaktywne konta i zdjęcia (z ostrzeżeniem e-mail). Aktywni użytkownicy, administratorzy i konta z pakietem nie są usuwane.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Twoje dane: bezpieczne usuwanie konta, pełny eksport, grafiki AI bez danych",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Usunięcie konta wymaga hasła albo świeżego logowania (Google/Facebook) i frazy potwierdzającej; po usunięciu dostajesz e-mail (gdy poczta jest skonfigurowana). Publiczna strona /usun-konto opisuje proces.",
+      "Eksport danych (JSON) obejmuje teraz wszystkie dane powiązane z kontem: zamówienia, zgody, przypomnienia, społeczność i inne; CSV zawiera skrót i zamówienia.",
+      "Zewnętrzny generator grafik AI nie dostaje już nazwy ćwiczenia ani ciężaru; grafiki AI są oznaczone.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Premium: raport postępów, bramka po stronie serwera, przypomnienia",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Nowy raport postępów (siła, tygodnie, ciało) do wydruku lub zapisu jako PDF — dostępny w pakiecie Premium; sekcja o ciele tylko za zgodą na dane o ciele.",
+      "Funkcje Premium są chronione po stronie serwera (kod 402), a pakiet wygasa dokładnie w dniu końca. Zakup pakietu włączany osobną flagą, do tego czasu strona pakietu pokazuje „wkrótce”.",
+      "Baner „Przedłuż” przy ≤ 7 dniach do końca pakietu oraz opcjonalny e-mail (za zgodą). Kody rabatowe i Badania ukryte do czasu zdefiniowania produktu.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Zamówienia: zgody przy zakupie, historia i potwierdzenie zakupu",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Przed płatnością akceptujesz regulamin i zgodę na natychmiastowe rozpoczęcie usługi — zapisujemy dowód zgody; bez niej zakup nie ruszy.",
+      "Nowy ekran „Moje zamówienia” z historią zakupów, statusem płatności po powrocie z bramki, e-mailem z potwierdzeniem i możliwością wystawienia potwierdzenia zakupu (opcjonalnie z NIP).",
+      "Usunięcie konta nie kasuje dokumentacji sprzedaży — zamówienia zostają odpięte od konta i przechowywane w wymaganym okresie.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Prywatność: zgody na dane o ciele i zdjęcia, wiek 16+",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Raport ciała, zdjęcia sylwetki i tętno zapisujemy dopiero po Twojej zgodzie — okno zgody pojawia się przy pierwszym zapisie, a w Profilu → Konto możesz każdą zgodę cofnąć.",
+      "Analityka i monitoring błędów w przeglądarce włączają się wyłącznie po zgodzie na analitykę; „Tylko niezbędne” niczego nie ładuje.",
+      "Minimalny wiek to 16 lat (konta młodsze proszone o potwierdzenie wieku), a pakiet Premium można kupić od 18 lat. Przypomnienia treningowe wysyłamy tylko za zgodą.",
+    ],
+  },
+  {
+    title: "Zapowiedź — Płatności: automatyczna aktywacja pakietu i weryfikacja kwoty",
+    planned: true,
+    sourceRepo: GYMBRAT_GITHUB_SLUG,
+    bullets: [
+      "Po zapłaceniu pakiet aktywuje się automatycznie: powiadomienie z HotPay nie jest już odrzucane jako żądanie bez logowania.",
+      "Pakiet jest przyznawany tylko za kwotę zgodną z zamówieniem i dokładnie raz — powtórzone lub równoległe powiadomienia go nie przedłużają, a niezgodna kwota trafia do ręcznej obsługi.",
+      "Dodane testy płatności i test pilnujący, które trasy API działają bez sesji.",
+    ],
+  },
+  {
     title: "Zapowiedź — Team: hub „Dziś w zespole”, pierścienie i katalog odznak",
     planned: true,
     sourceRepo: GYMBRAT_GITHUB_SLUG,

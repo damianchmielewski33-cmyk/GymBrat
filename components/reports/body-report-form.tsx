@@ -31,6 +31,9 @@ import {
 } from "@/components/reports/report-submit-popup";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { cn } from "@/lib/utils";
+import { ConsentRequiredDialog } from "@/components/consent/consent-required-dialog";
+import { SENSITIVE_CONSENT_COPY, type SensitiveConsentType } from "@/lib/consents-client";
+import { setSensitiveConsentAction } from "@/actions/consents";
 
 type BodyReportFormProps = {
   maxPhotos?: number;
@@ -221,7 +224,7 @@ function StepBadge({
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">
           Krok {step} z {TOTAL_STEPS}
         </p>
         <h3 className="font-heading text-xl font-semibold text-white">{title}</h3>
@@ -231,11 +234,33 @@ function StepBadge({
   );
 }
 
-function FieldLabel({ children, required }: { children: ReactNode; required?: boolean }) {
-  return (
-    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]/90">
+function FieldLabel({
+  children,
+  required,
+  htmlFor,
+  id,
+}: {
+  children: ReactNode;
+  required?: boolean;
+  /** Powiązanie z polem — czytnik ekranu odczytuje etykietę przy fokusie. */
+  htmlFor?: string;
+  id?: string;
+}) {
+  const className =
+    "mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]/90";
+  const content = (
+    <>
       {children}
       {required ? <span className="text-[var(--gym-gold)]">, wymagane</span> : null}
+    </>
+  );
+  return htmlFor ? (
+    <label id={id} htmlFor={htmlFor} className={className}>
+      {content}
+    </label>
+  ) : (
+    <p id={id} className={className}>
+      {content}
     </p>
   );
 }
@@ -262,23 +287,30 @@ function MeasureInput({
 }) {
   return (
     <div>
-      <FieldLabel required={required}>{label}</FieldLabel>
+      <FieldLabel required={required} htmlFor={id}>
+        {label}
+      </FieldLabel>
       <input
         id={id}
         inputMode="decimal"
+        aria-required={required || undefined}
+        aria-describedby={hint ? `${id}-hint` : undefined}
+        autoComplete="off"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={hint ?? "—"}
         aria-invalid={invalid || undefined}
         className={cn(
-          "w-full rounded-xl border bg-black/50 px-3 text-white outline-none transition placeholder:text-white/30",
+          "w-full rounded-xl border bg-black/50 px-3 text-white outline-none transition placeholder:text-white/50",
           "focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25",
           large ? "h-14 text-2xl font-semibold tabular-nums" : "h-12 text-lg tabular-nums",
           invalid ? "border-red-500/55" : "border-[var(--gym-gold)]/22",
         )}
       />
       {hint && !value.trim() ? (
-        <p className="mt-1 text-[10px] text-white/30">Ostatnio: {hint}</p>
+        <p id={`${id}-hint`} className="mt-1 text-[10px] text-white/50">
+          Ostatnio: {hint}
+        </p>
       ) : null}
     </div>
   );
@@ -291,7 +323,12 @@ function ScoreBars({
   invalid,
   hint,
   readOnly,
+  lowLabel = "bardzo słabo",
+  highLabel = "bardzo dobrze",
 }: {
+  /** Opisy końców skali 1–10 (czytnik ekranu + widoczny podpis). */
+  lowLabel?: string;
+  highLabel?: string;
   label: string;
   value: number | null;
   onChange?: (v: number) => void;
@@ -303,6 +340,7 @@ function ScoreBars({
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
         <p
+          id={`score-${label}`}
           className={cn(
             "text-[10px] font-semibold uppercase tracking-[0.16em]",
             invalid ? "text-red-300" : "text-white/55",
@@ -315,13 +353,19 @@ function ScoreBars({
             {value}/10
           </p>
         ) : hint != null && !readOnly ? (
-          <p className="text-[10px] text-white/30">ostatnio {hint}</p>
+          <p className="text-[10px] text-white/50">ostatnio {hint}</p>
         ) : null}
       </div>
       <div
         className="flex h-10 items-end gap-1"
         role={readOnly ? "img" : "radiogroup"}
-        aria-label={label}
+        aria-label={
+          readOnly
+            ? `${label}: ${value ?? "brak"}${value != null ? " z 10" : ""}`
+            : `${label}, skala 1–10: 1 to ${lowLabel}, 10 to ${highLabel}`
+        }
+        aria-required={readOnly ? undefined : true}
+        aria-invalid={!readOnly && invalid ? true : undefined}
       >
         {Array.from({ length: 10 }, (_, i) => {
           const n = i + 1;
@@ -346,6 +390,7 @@ function ScoreBars({
               type="button"
               role="radio"
               aria-checked={value === n}
+              aria-label={`${n} z 10`}
               onClick={() => onChange?.(n)}
               className={cn(
                 "h-full min-w-0 flex-1 rounded-full transition",
@@ -359,6 +404,12 @@ function ScoreBars({
           );
         })}
       </div>
+      {readOnly ? null : (
+        <div className="mt-1 flex justify-between text-[10px] text-white/50" aria-hidden>
+          <span>1 – {lowLabel}</span>
+          <span>10 – {highLabel}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -414,13 +465,21 @@ function TakNieToggle({
         {label}
       </p>
       {hintLabel && !value ? (
-        <p className="mb-1.5 text-center text-[9px] text-white/30">{hintLabel}</p>
+        <p className="mb-1.5 text-center text-[9px] text-white/50">{hintLabel}</p>
       ) : (
         <p className="mb-1.5 h-[14px]" aria-hidden />
       )}
-      <div className="grid grid-cols-2 gap-1.5">
+      <div
+        className="grid grid-cols-2 gap-1.5"
+        role="radiogroup"
+        aria-label={label}
+        aria-required="true"
+        aria-invalid={invalid || undefined}
+      >
         <button
           type="button"
+          role="radio"
+          aria-checked={value === "tak"}
           onClick={() => onChange?.("tak")}
           className={cn(
             "h-11 rounded-xl text-sm font-semibold uppercase tracking-wide transition",
@@ -435,6 +494,8 @@ function TakNieToggle({
         </button>
         <button
           type="button"
+          role="radio"
+          aria-checked={value === "nie"}
           onClick={() => onChange?.("nie")}
           className={cn(
             "h-11 rounded-xl text-sm font-semibold uppercase tracking-wide transition",
@@ -535,6 +596,7 @@ export function BodyReportForm({
   const { notifySaved } = useSaveFeedback();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [consentNeeded, setConsentNeeded] = useState<SensitiveConsentType | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const wantNew =
     searchParams.get("new") === "1" || searchParams.get("new") === "true";
@@ -564,6 +626,8 @@ export function BodyReportForm({
     back: null,
   });
   const [submitPhase, setSubmitPhase] = useState<ReportSubmitPhase>("idle");
+  /** Z64: zgoda na zdjęcia sylwetki — wymagana tylko, gdy użytkownik dodał zdjęcie. */
+  const [photosConsent, setPhotosConsent] = useState(false);
   const [submitSummary, setSubmitSummary] = useState<ReportSubmitSummary | null>(
     null,
   );
@@ -593,6 +657,7 @@ export function BodyReportForm({
     setComplianceNotes("");
     setAdditionalInfo("");
     setSlotPhotos({ front: null, side: null, back: null });
+    setPhotosConsent(false);
   };
 
   const openWizard = (opts?: { restoreDraft?: boolean }) => {
@@ -768,9 +833,12 @@ export function BodyReportForm({
       return true;
     }
     if (s === 4) {
-      const missing = PHOTO_SLOTS.filter((slot) => !slotPhotos[slot.key]);
-      if (missing.length > 0) {
-        setFieldError("Dodaj zdjęcia: przód, bok i tył — wszystkie trzy są wymagane.");
+      // Zdjęcia są opcjonalne; jeśli któreś dodano, potrzebna świadoma zgoda (art. 9 RODO).
+      const hasAnyPhoto = PHOTO_SLOTS.some((slot) => Boolean(slotPhotos[slot.key]));
+      if (hasAnyPhoto && !photosConsent) {
+        setFieldError(
+          "Zaznacz zgodę na zapis zdjęć sylwetki albo usuń dodane zdjęcia.",
+        );
         return false;
       }
       return true;
@@ -826,6 +894,15 @@ export function BodyReportForm({
     setSubmitPhase("saving");
     start(async () => {
       try {
+        if (photos.length > 0 && photosConsent) {
+          // Zaznaczony checkbox = zapis zgody na zdjęcia (dowód: źródło „body_report”).
+          const consent = await setSensitiveConsentAction("photos", true, "body_report");
+          if (!consent.ok) {
+            setSubmitPhase("idle");
+            setError(consent.error);
+            return;
+          }
+        }
         await ensureCsrfCookie();
         const res = await fetch("/api/body-reports", {
           method: "POST",
@@ -852,9 +929,19 @@ export function BodyReportForm({
             photoDataUrls: photos.slice(0, maxPhotos),
           }),
         });
-        const json = (await res.json()) as { ok: boolean; error?: string };
+        const json = (await res.json()) as {
+          ok: boolean;
+          error?: string;
+          code?: string;
+          consent?: SensitiveConsentType;
+        };
         if (!json.ok) {
           setSubmitPhase("idle");
+          // Z11: serwer wymaga zgody (dane o ciele / zdjęcia) — pokaż okno zgody i ponów zapis.
+          if (json.code === "CONSENT_REQUIRED" && json.consent) {
+            setConsentNeeded(json.consent);
+            return;
+          }
           setError(json.error ?? "Nie udało się zapisać raportu.");
           return;
         }
@@ -869,15 +956,27 @@ export function BodyReportForm({
   };
 
   const submitPopup = (
-    <ReportSubmitPopup
-      phase={submitPhase}
-      summary={submitSummary}
-      onClose={() => {
-        setSubmitPhase("idle");
-        setSubmitSummary(null);
-        router.refresh();
-      }}
-    />
+    <>
+      <ReportSubmitPopup
+        phase={submitPhase}
+        summary={submitSummary}
+        onClose={() => {
+          setSubmitPhase("idle");
+          setSubmitSummary(null);
+          router.refresh();
+        }}
+      />
+      {consentNeeded ? (
+        <ConsentRequiredDialog
+          type={consentNeeded}
+          onCancel={() => setConsentNeeded(null)}
+          onGranted={() => {
+            setConsentNeeded(null);
+            submit();
+          }}
+        />
+      ) : null}
+    </>
   );
 
   if (!isOpen) {
@@ -927,7 +1026,7 @@ export function BodyReportForm({
           <button
             type="button"
             onClick={() => closeWizard({ clearDraft: true })}
-            className="text-[11px] font-medium uppercase tracking-wide text-white/40 underline-offset-2 hover:text-white/70 hover:underline"
+            className="text-[11px] font-medium uppercase tracking-wide text-white/50 underline-offset-2 hover:text-white/70 hover:underline"
           >
             Anuluj
           </button>
@@ -1082,13 +1181,17 @@ export function BodyReportForm({
           dietCompliance === "nie" ||
           trainingCompliance === "nie" ? (
             <div className="mt-5">
-              <FieldLabel required>Czego nie udało się zrealizować i w jakim zakresie?</FieldLabel>
+              <FieldLabel required htmlFor="complianceNotes">
+                Czego nie udało się zrealizować i w jakim zakresie?
+              </FieldLabel>
               <textarea
+                id="complianceNotes"
+                aria-required="true"
                 rows={3}
                 value={complianceNotes}
                 onChange={(e) => setComplianceNotes(e.target.value)}
                 placeholder="np. cardio 1× zamiast 2×, delegacja w tygodniu"
-                className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
+                className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/50 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
               />
             </div>
           ) : null}
@@ -1101,7 +1204,7 @@ export function BodyReportForm({
             icon={<ImageIcon className="h-5 w-5" />}
             step={4}
             title="Zdjęcia sylwetki"
-            subtitle="Przód, bok i tył — wszystkie trzy wymagane."
+            subtitle="Opcjonalne: przód, bok i tył."
           />
           <div className="mt-5 grid grid-cols-3 gap-2.5">
             {PHOTO_SLOTS.map((slot) => (
@@ -1117,6 +1220,31 @@ export function BodyReportForm({
               />
             ))}
           </div>
+          {PHOTO_SLOTS.some((slot) => Boolean(slotPhotos[slot.key])) ? (
+            <div className="mt-4 rounded-xl border border-[var(--gym-gold)]/25 bg-black/35 p-3">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  id="photosConsent"
+                  type="checkbox"
+                  checked={photosConsent}
+                  onChange={(e) => setPhotosConsent(e.target.checked)}
+                  aria-required="true"
+                  aria-invalid={Boolean(fieldError) && !photosConsent ? true : undefined}
+                  className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--gym-gold)]"
+                />
+                <span className="text-[13px] leading-relaxed text-white/75">
+                  <span className="font-semibold text-white">
+                    Wyrażam zgodę na zapis zdjęć sylwetki, wymagane.
+                  </span>{" "}
+                  {SENSITIVE_CONSENT_COPY.photos.body}
+                </span>
+              </label>
+            </div>
+          ) : (
+            <p className="mt-4 text-[12px] text-white/50">
+              Możesz pominąć ten krok — zdjęcia nie są wymagane do zapisu raportu.
+            </p>
+          )}
         </div>
       ) : null}
 
@@ -1143,7 +1271,7 @@ export function BodyReportForm({
                 key={label}
                 className="rounded-2xl border border-white/10 bg-black/35 px-3 py-2.5"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
                   {label}
                 </p>
                 <p className="mt-1 text-sm font-semibold tabular-nums text-[var(--gym-gold)]">{val}</p>
@@ -1192,7 +1320,7 @@ export function BodyReportForm({
                         className="aspect-[3/4] w-full object-cover"
                       />
                     ) : (
-                      <div className="flex aspect-[3/4] items-center justify-center text-[10px] text-white/35">
+                      <div className="flex aspect-[3/4] items-center justify-center text-[10px] text-white/50">
                         Brak
                       </div>
                     )}
@@ -1206,13 +1334,14 @@ export function BodyReportForm({
           </div>
 
           <div className="mt-4">
-            <FieldLabel>Informacje dodatkowe</FieldLabel>
+            <FieldLabel htmlFor="additionalInfo">Informacje dodatkowe (opcjonalne)</FieldLabel>
             <textarea
+              id="additionalInfo"
               rows={3}
               value={additionalInfo}
               onChange={(e) => setAdditionalInfo(e.target.value)}
               placeholder="Opcjonalnie…"
-              className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
+              className="w-full resize-y rounded-xl border border-[var(--gym-gold)]/22 bg-black/45 px-3 py-2.5 text-sm text-white placeholder:text-white/50 outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25"
             />
           </div>
         </div>

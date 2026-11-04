@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import Link from "next/link";
 import { Film, Trash2, Video } from "lucide-react";
 import { AppPageHeader } from "@/components/layout/screen";
 import { SectionLabel } from "@/components/ui/section-label";
@@ -120,6 +119,8 @@ export function TechniqueVideosClient() {
   return (
     <div className="mx-auto w-full max-w-lg space-y-6 pb-10">
       <AppPageHeader
+        backHref="/workout-plan"
+        backLabel="Treningi"
         kicker="Trening"
         title="Korekta techniki"
         description="MVP lokalne — filmy zostają na tym urządzeniu (localStorage)."
@@ -129,11 +130,7 @@ export function TechniqueVideosClient() {
         <SectionLabel index={1} title="Nagraj technikę" />
         <div className="app-card space-y-4 p-4">
           <p className="text-sm text-white/55">
-            Wybierz nagranie z telefonu. Możesz później wysłać je Damianowi przez{" "}
-            <Link href="/inbox" className="text-[var(--gym-gold)] underline-offset-2 hover:underline">
-              Skrzynkę
-            </Link>
-            .
+            Wybierz nagranie z telefonu. Filmy zostają tylko na tym urządzeniu.
           </p>
           <label
             htmlFor={inputId}
@@ -185,7 +182,7 @@ export function TechniqueVideosClient() {
                     <p className="truncate text-sm font-semibold text-white">
                       {v.name}
                     </p>
-                    <p className="mt-0.5 text-[12px] text-white/45">
+                    <p className="mt-0.5 text-[12px] text-white/50">
                       {formatWhen(v.createdAt)} · {formatBytes(v.sizeBytes)}
                     </p>
                   </div>

@@ -3,6 +3,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
+import { touchUserActivity } from "@/lib/user-activity";
 
 /**
  * Stan konta potrzebny do unieważniania sesji JWT (ADR 0001 D5).
@@ -65,6 +66,8 @@ export async function getAccountAuthState(userId: string): Promise<AccountAuthSt
         sessionVersion: row.sessionVersion,
       }
     : MISSING;
+  // Z28: każdy odczyt stanu konta (sesja w użyciu) odświeża znacznik aktywności (z limitem częstotliwości).
+  if (row) touchUserActivity(userId, now);
   const entries = cache();
   if (entries.size >= MAX_ENTRIES) {
     for (const [key, entry] of entries) {

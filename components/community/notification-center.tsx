@@ -132,7 +132,7 @@ function NotificationRow({
           <span className="mt-0.5 block text-[12.5px] leading-relaxed text-white/55">
             {n.body}
           </span>
-          <span className="mt-1.5 flex items-center gap-2 text-[10px] uppercase tracking-wide text-white/35">
+          <span className="mt-1.5 flex items-center gap-2 text-[10px] uppercase tracking-wide text-white/50">
             <span>{notificationKindLabel(n.kind)}</span>
             <span>·</span>
             <span>{relativeTime(n.createdAt)}</span>
@@ -147,7 +147,7 @@ function NotificationRow({
           e.stopPropagation();
           onDelete(n.id);
         }}
-        className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl border border-white/10 bg-black/40 text-white/45 transition hover:border-rose-400/40 hover:bg-rose-500/15 hover:text-rose-200 disabled:opacity-40"
+        className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl border border-white/10 bg-black/40 text-white/50 transition hover:border-rose-400/40 hover:bg-rose-500/15 hover:text-rose-200 disabled:opacity-40"
       >
         <Trash2 className="h-3.5 w-3.5" aria-hidden />
       </button>
@@ -391,7 +391,7 @@ export function NotificationCenterClient() {
           <h1 className="mt-1.5 font-heading text-[24px] font-semibold tracking-tight text-white sm:text-[28px]">
             Powiadomienia
           </h1>
-          <p className="mt-2 text-[13px] leading-relaxed text-white/45">
+          <p className="mt-2 text-[13px] leading-relaxed text-white/50">
             Widoczne powiadomienia oznaczają się same jako przeczytane.
           </p>
         </div>
@@ -448,11 +448,11 @@ export function NotificationCenterClient() {
       </div>
 
       {loading && items.length === 0 ? (
-        <p className="py-10 text-center text-[13px] text-white/40">
+        <p className="py-10 text-center text-[13px] text-white/50">
           Ładowanie…
         </p>
       ) : items.length === 0 ? (
-        <div className="app-card p-8 text-center text-[13px] text-white/45">
+        <div className="app-card p-8 text-center text-[13px] text-white/50">
           Brak powiadomień w tym filtrze.
         </div>
       ) : (
@@ -469,7 +469,7 @@ export function NotificationCenterClient() {
           ))}
           <div ref={sentinelRef} className="h-3" aria-hidden />
           {loadingMore ? (
-            <li className="py-2 text-center text-[12px] text-white/40">
+            <li className="py-2 text-center text-[12px] text-white/50">
               Ładowanie…
             </li>
           ) : null}

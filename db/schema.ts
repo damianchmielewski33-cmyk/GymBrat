@@ -47,7 +47,7 @@ export const users = sqliteTable("users", {
   /** `male` | `female` — opcjonalne; Keytel kcal cardio. */
   sex: text("sex"),
   activityLevel: text("activity_level"),
-  /** `zawodnik` | `trener` | `admin` — admin ustawiany przez ADMIN_EMAILS, bootstrap lub panel. */
+  /** `zawodnik` | `admin` (dawna rola `trener` usunięta, Z77) — admin ustawiany przez ADMIN_EMAILS, bootstrap lub panel. */
   appRole: text("app_role").notNull().default("zawodnik"),
   /** @deprecated kolumna historyczna — integracja Fitatu usunięta, wartość czyszczona przy starcie. */
   fitatuAccessToken: text("fitatu_access_token"),
@@ -57,6 +57,12 @@ export const users = sqliteTable("users", {
   packagePlanSku: text("package_plan_sku"),
   /** Notatka administratora na karcie konta. */
   adminNote: text("admin_note"),
+  /** Ostatnia aktywność (logowanie / użycie); NULL = liczymy od `createdAt`. Retencja nieaktywnych kont (Z28). */
+  lastActiveAt: integer("last_active_at", { mode: "timestamp_ms" }),
+  /** Kiedy wysłano ostrzeżenie o usunięciu konta z powodu nieaktywności (Z28); czyszczone po powrocie. */
+  inactivityWarnedAt: integer("inactivity_warned_at", { mode: "timestamp_ms" }),
+  /** Kiedy wysłano ostrzeżenie o usunięciu zdjęć z powodu nieaktywności (Z28). */
+  photosWarnedAt: integer("photos_warned_at", { mode: "timestamp_ms" }),
   /** Potwierdzenie kontroli adresu (kod z e-maila, Google z `email_verified`); NULL = niezweryfikowany. */
   emailVerifiedAt: integer("email_verified_at", { mode: "timestamp_ms" }),
   /** Wersja sesji: podbicie unieważnia wszystkie wydane JWT (`lib/account-auth-state.ts`). */
@@ -96,16 +102,18 @@ export const subscriptionOrders = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    /**
+     * Nullable + `ON DELETE SET NULL` (Z7): usunięcie konta anonimizuje zamówienie, ale nie kasuje
+     * dokumentacji sprzedaży (retencja 5 lat). Anonimowe wiersze mają `user_id = NULL`.
+     */
+    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
     planId: text("plan_id").references(() => subscriptionPlans.id, {
       onDelete: "set null",
     }),
     planSku: text("plan_sku").notNull(),
     days: integer("days").notNull(),
     amountGrosze: integer("amount_grosze").notNull(),
-    /** pending | paid | failed | cancelled | manual */
+    /** pending | paid | failed | cancelled | expired (pending > 24 h) | manual | refunded | amount_mismatch (kwota z HotPay ≠ cena zamówienia, bez pakietu) */
     status: text("status").notNull().default("pending"),
     hotpayPaymentId: text("hotpay_payment_id"),
     source: text("source").notNull().default("hotpay"),
@@ -113,17 +121,43 @@ export const subscriptionOrders = sqliteTable(
       .notNull()
       .$defaultFn(() => new Date()),
     paidAt: integer("paid_at", { mode: "timestamp_ms" }),
+    /** Z6: dowód zgód konsumenckich przy zakupie (regulamin + natychmiastowe świadczenie). */
+    termsAcceptedAt: integer("terms_accepted_at", { mode: "timestamp_ms" }),
+    immediateServiceConsentAt: integer("immediate_service_consent_at", {
+      mode: "timestamp_ms",
+    }),
+    /** Wersja regulaminu/zgód, na którą klient się zgodził (np. "2026-11-orders-szkic-v1"). */
+    termsVersion: text("terms_version"),
+    /** SHA-256 dokładnego tekstu zgód wyświetlonego klientowi. */
+    consentTextHash: text("consent_text_hash"),
+    /** Z21: numer dokumentu sprzedaży (GB/RRRR/NNNNNN), nadawany po opłaceniu; unikalny. */
+    receiptNumber: text("receipt_number"),
+    receiptIssuedAt: integer("receipt_issued_at", { mode: "timestamp_ms" }),
+    /** Z21: opcjonalne dane nabywcy na dokumencie (imię i nazwisko/firma, NIP). */
+    buyerName: text("buyer_name"),
+    buyerTaxId: text("buyer_tax_id"),
+    /** Z22/Z23: pakiet przyznany (webhook lub księgowanie ręczne); `paid` bez tej daty = alert. */
+    fulfilledAt: integer("fulfilled_at", { mode: "timestamp_ms" }),
+    /** Z22: płatność dotarła dla zamówienia anulowanego/nieudanego/wygasłego lub bez konta — do ręcznej obsługi. */
+    latePaymentAt: integer("late_payment_at", { mode: "timestamp_ms" }),
+    /** Z22: zwrot wykonany poza aplikacją (HotPay) i odnotowany w panelu. */
+    refundedAt: integer("refunded_at", { mode: "timestamp_ms" }),
+    /** Z22: notatki admina (księgowanie, anulowanie, zwrot) — bez danych osobowych klienta. */
+    adminNote: text("admin_note"),
   },
   (t) => [
     index("subscription_orders_user_created").on(t.userId, t.createdAt),
     index("subscription_orders_status").on(t.status),
+    uniqueIndex("subscription_orders_receipt_number").on(t.receiptNumber),
   ],
 );
 
-/**
- * Powiązania OAuth (Google itd.) z kontem `users`.
- * Logowanie hasłem nadal używa `users.password_hash`; konta Google mają losowy hash.
- */
+/** Z21: licznik numeracji dokumentów sprzedaży per rok (atomowy upsert w `db.batch`). */
+export const receiptCounters = sqliteTable("receipt_counters", {
+  year: integer("year").primaryKey(),
+  lastNumber: integer("last_number").notNull().default(0),
+});
+
 export const oauthAccounts = sqliteTable(
   "oauth_accounts",
   {
@@ -225,6 +259,8 @@ export const bodyReportPhotos = sqliteTable("body_report_photos", {
     .references(() => bodyReports.id, { onDelete: "cascade" }),
   /** Data URL (base64) — docelowo można wymienić na URL storage */
   dataUrl: text("data_url").notNull(),
+  /** Z39: klucz obiektu w magazynie S3 (gdy ustawiony, `data_url` jest pusty). */
+  objectKey: text("object_key"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -320,6 +356,27 @@ export const siteActivityLog = sqliteTable("site_activity_log", {
   action: text("action").notNull(),
   metaJson: text("meta_json"),
   deploymentEnv: text("deployment_env"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+/**
+ * Z32: drugi składnik (TOTP) konta administratora. `enabled_at = NULL` = konfiguracja rozpoczęta,
+ * niepotwierdzona. Sekret szyfrowany `APP_ENCRYPTION_KEY`; kody awaryjne tylko jako skróty SHA-256.
+ */
+export const adminTwoFactor = sqliteTable("admin_two_factor", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  secretEnc: text("secret_enc").notNull(),
+  enabledAt: integer("enabled_at", { mode: "timestamp_ms" }),
+  /** JSON: tablica skrótów SHA-256 niewykorzystanych kodów awaryjnych. */
+  recoveryHashes: text("recovery_hashes").notNull().default("[]"),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lockedUntil: integer("locked_until", { mode: "timestamp_ms" }),
+  /** Ostatni zużyty krok TOTP (ochrona przed ponownym użyciem kodu). */
+  lastStep: integer("last_step").notNull().default(0),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -590,6 +647,8 @@ export const userSettings = sqliteTable("user_settings", {
   weeklyCardioGoalMinutes: integer("weekly_cardio_goal_minutes")
     .notNull()
     .default(150),
+  /** Jak liczyć tydzień cardio: "calendar" (pon–niedz) albo "rolling" (ostatnie 7 dni). */
+  cardioWeekMode: text("cardio_week_mode").notNull().default("calendar"),
   /** Co ile dni dodawać raport sylwetki (timer na Pulpicie restartuje się po zapisie). */
   reportCadenceDays: integer("report_cadence_days").notNull().default(14),
   /** JSON: { calories, proteinG, fatG, carbsG } — cele na dzień treningowy */
@@ -804,6 +863,40 @@ export const bugReports = sqliteTable(
   (t) => [
     index("bug_reports_status_created").on(t.status, t.createdAt),
     index("bug_reports_user").on(t.userId),
+  ],
+);
+
+/** Zgłoszenia do wsparcia i reklamacje (Z50); termin odpowiedzi 14 dni zgodnie z regulaminem §8. */
+export const supportRequests = sqliteTable(
+  "support_requests",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** `complaint` | `question` | `order` | `other` */
+    kind: text("kind").notNull(),
+    subject: text("subject").notNull(),
+    message: text("message").notNull(),
+    /** Opcjonalnie: zamówienie, którego dotyczy zgłoszenie (zawsze własne). */
+    orderId: text("order_id"),
+    /** Adres do odpowiedzi (domyślnie e-mail konta). */
+    contactEmail: text("contact_email").notNull(),
+    /** `new` | `in_progress` | `resolved` */
+    status: text("status").notNull().default("new"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    /** Termin odpowiedzi (createdAt + 14 dni). */
+    dueAt: integer("due_at", { mode: "timestamp_ms" }).notNull(),
+    resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
+    adminNote: text("admin_note"),
+  },
+  (t) => [
+    index("support_requests_status_created").on(t.status, t.createdAt),
+    index("support_requests_user").on(t.userId, t.createdAt),
   ],
 );
 

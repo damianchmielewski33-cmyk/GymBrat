@@ -87,20 +87,20 @@ export function ChallengeCelebrationOverlay({
 
         <div className="mt-5 grid grid-cols-2 gap-2">
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
-            <p className="text-[10px] uppercase tracking-wide text-white/40">XP</p>
+            <p className="text-[10px] uppercase tracking-wide text-white/50">XP</p>
             <p className="font-metric text-[22px] text-[var(--gym-gold)]">
               +{current.xpAwarded}
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
-            <p className="text-[10px] uppercase tracking-wide text-white/40">
+            <p className="text-[10px] uppercase tracking-wide text-white/50">
               Poziom
             </p>
             <p className="font-metric text-[22px] text-white">{current.level}</p>
           </div>
         </div>
 
-        <p className="mt-3 text-[12px] text-white/45">
+        <p className="mt-3 text-[12px] text-white/50">
           Łącznie {current.xpTotal.toLocaleString("pl-PL")} XP w społeczności
         </p>
 

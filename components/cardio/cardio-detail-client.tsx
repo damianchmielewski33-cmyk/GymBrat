@@ -200,7 +200,7 @@ export function CardioDetailClient({
             />
             <span className="font-metric text-xl text-white/80">min</span>
           </div>
-          <p className="mt-1 text-[11px] text-white/40">czas</p>
+          <p className="mt-1 text-[11px] text-white/50">czas</p>
         </div>
       </div>
 
@@ -208,7 +208,7 @@ export function CardioDetailClient({
         <div className="grid grid-cols-3 gap-y-5">
           {stats.map((s) => (
             <div key={s.label} className="px-2 text-center">
-              <p className="text-[11px] text-white/45">{s.label}</p>
+              <p className="text-[11px] text-white/50">{s.label}</p>
               <div className="mt-1.5 border-t border-white/[0.06] pt-2">
                 {s.value}
               </div>
@@ -220,7 +220,7 @@ export function CardioDetailClient({
       <button
         type="button"
         onClick={() => void share()}
-        className="gold-btn relative inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold shadow-[0_0_40px_rgba(235,196,74,0.35)]"
+        className="gold-btn relative inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold shadow-[0_0_40px_rgba(var(--neon-rgb),0.35)]"
       >
         <Share2 className="h-5 w-5" />
         Udostępnij
@@ -356,7 +356,7 @@ function ManualEditSheet({
       >
         <h2 className="text-xl font-semibold text-white">Wpis ręczny</h2>
         <input type="hidden" name="id" value={id} />
-        <label className="block text-xs text-white/45">
+        <label className="block text-xs text-white/50">
           Aktywność
           <input
             name="title"
@@ -365,7 +365,7 @@ function ManualEditSheet({
           />
         </label>
         <div className="grid grid-cols-3 gap-2">
-          <label className="block text-xs text-white/45">
+          <label className="block text-xs text-white/50">
             Minuty
             <input
               name="minutes"
@@ -374,7 +374,7 @@ function ManualEditSheet({
               className="mt-1 h-11 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white"
             />
           </label>
-          <label className="block text-xs text-white/45">
+          <label className="block text-xs text-white/50">
             Km
             <input
               name="distanceKm"
@@ -383,7 +383,7 @@ function ManualEditSheet({
               className="mt-1 h-11 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white"
             />
           </label>
-          <label className="block text-xs text-white/45">
+          <label className="block text-xs text-white/50">
             bpm
             <input
               name="avgHr"
@@ -392,7 +392,7 @@ function ManualEditSheet({
               className="mt-1 h-11 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white"
             />
           </label>
-          <label className="block text-xs text-white/45">
+          <label className="block text-xs text-white/50">
             kcal
             <input
               name="calories"
@@ -401,7 +401,7 @@ function ManualEditSheet({
               className="mt-1 h-11 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white"
             />
           </label>
-          <label className="block text-xs text-white/45">
+          <label className="block text-xs text-white/50">
             Kroki
             <input
               name="steps"
@@ -411,7 +411,7 @@ function ManualEditSheet({
             />
           </label>
         </div>
-        <label className="block text-xs text-white/45">
+        <label className="block text-xs text-white/50">
           Notatka
           <textarea
             name="notes"

@@ -26,6 +26,8 @@ export function FriendLivePresenceSync() {
   const notifiedSessionRef = useRef<number | null>(null);
   const lastPushRef = useRef(0);
   const wasActiveRef = useRef(false);
+  /** Klucz sesji, dla której serwer odpowiedział 204 (brak udostępniania) — bez dalszych żądań. */
+  const unsharedSessionRef = useRef<number | null>(null);
 
   const displayName =
     session?.user?.name?.trim() ||
@@ -94,6 +96,7 @@ export function FriendLivePresenceSync() {
       if (wasActiveRef.current) {
         wasActiveRef.current = false;
         notifiedSessionRef.current = null;
+        unsharedSessionRef.current = null;
         void clearRemote();
       }
       return;
@@ -118,12 +121,13 @@ export function FriendLivePresenceSync() {
       });
 
       const sessionKey = state.workoutStartedAtMs ?? now;
+      if (unsharedSessionRef.current === sessionKey) return;
       const notifyStart = notifiedSessionRef.current !== sessionKey;
       if (notifyStart) notifiedSessionRef.current = sessionKey;
 
       try {
         await ensureCsrfCookie();
-        await fetch("/api/community/friends/live/presence", {
+        const res = await fetch("/api/community/friends/live/presence", {
           method: "POST",
           credentials: "same-origin",
           headers: {
@@ -137,6 +141,7 @@ export function FriendLivePresenceSync() {
             startedAtMs: state.workoutStartedAtMs,
           }),
         });
+        if (res.status === 204) unsharedSessionRef.current = sessionKey;
       } catch {
         /* ignore */
       }

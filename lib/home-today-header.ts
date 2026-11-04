@@ -10,6 +10,8 @@ export type HomeTodayHeaderData = {
   firstName: string | null;
   lastName: string | null;
   reportCount: number;
+  /** Data założenia konta — do reguły widoczności licznika raportów (Z58). */
+  accountCreatedAt: Date | null;
   daysSinceLastReport: number | null;
   reportCadenceDays: number;
   packageDaysLeft: number | null;
@@ -29,6 +31,7 @@ export async function getHomeTodayHeaderData(
         firstName: users.firstName,
         lastName: users.lastName,
         name: users.name,
+        createdAt: users.createdAt,
         packageEndsAt: users.packageEndsAt,
         packagePlanSku: users.packagePlanSku,
       })
@@ -90,6 +93,7 @@ export async function getHomeTodayHeaderData(
     firstName,
     lastName,
     reportCount: Number(countRow?.reportCount ?? 0),
+    accountCreatedAt: userRow?.createdAt ?? null,
     daysSinceLastReport,
     reportCadenceDays,
     packageDaysLeft: pkg.active ? pkg.daysLeft : 0,

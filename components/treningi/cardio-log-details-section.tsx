@@ -31,7 +31,7 @@ type Props = {
 };
 
 const fieldClass =
-  "h-12 w-full rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 pr-12 text-sm text-white outline-none placeholder:text-white/30 transition focus:border-[var(--gym-gold)]/45 focus:ring-2 focus:ring-[var(--gym-gold)]/20";
+  "h-12 w-full rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 pr-12 text-sm text-white outline-none placeholder:text-white/50 transition focus:border-[var(--gym-gold)]/45 focus:ring-2 focus:ring-[var(--gym-gold)]/20";
 
 const fieldErrorClass = "border-[var(--destructive)] focus:border-[var(--destructive)]";
 
@@ -174,7 +174,7 @@ export function CardioLogDetailsSection({
                     className={cn(
                       "inline-flex h-11 items-center justify-center rounded-xl border text-[13px] font-semibold tabular-nums",
                       checked
-                        ? "border-[rgba(235,196,74,0.55)] bg-[rgba(235,196,74,0.12)] text-[var(--gym-gold)]"
+                        ? "border-[rgba(var(--neon-rgb),0.55)] bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]"
                         : "border-white/10 text-white/75",
                     )}
                   >
@@ -230,7 +230,7 @@ export function CardioLogDetailsSection({
               onChange={(e) => onChange({ note: e.target.value })}
               onBlur={() => onBlurField("notes")}
               className={cn(
-                "mt-1.5 w-full resize-none rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 py-3 text-sm text-white outline-none placeholder:text-white/30",
+                "mt-1.5 w-full resize-none rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 py-3 text-sm text-white outline-none placeholder:text-white/50",
                 "focus:border-[var(--gym-gold)]/45 focus:ring-2 focus:ring-[var(--gym-gold)]/20",
                 fieldErrors.notes && fieldErrorClass,
               )}

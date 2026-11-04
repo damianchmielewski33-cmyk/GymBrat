@@ -149,3 +149,17 @@ Dodatkowo: zgłoszenia realizujemy też tym samym kanałem co inne prawa (sprzec
 ## 9. Do zatwierdzenia przez prawnika-człowieka
 
 Całość, w szczególności: klasyfikacja Z9 i wybór zgody jako podstawy art. 9; retencje 24/12 mies. i 3 lata dla rejestru zgód; okres 5 lat dla zamówień; ocena statusu przedsiębiorcy; ocena obowiązków DSA dla osoby prywatnej; ocena transferu do Pollinations; progi wieku i zdolność do czynności prawnych 16-17 lat; zgodność z Google Play.
+
+## Zamówienia i dokumenty sprzedaży (US4/Z7, Z21) — stan wdrożenia
+
+**Do zatwierdzenia przez prawnika-człowieka; to opis działania kodu, nie opinia prawna.**
+
+- `subscription_orders` jest dokumentacją sprzedaży i nie jest kasowana razem z kontem. `user_id` jest nullable z `ON DELETE SET NULL`: usunięcie konta odpina zamówienie od osoby (wiersz zostaje z `user_id = NULL`), a zostają tylko dane rozliczeniowe (sku, dni, kwota, status, id płatności HotPay, znaczniki czasu, dowód zgód konsumenckich, numer dokumentu).
+- Okres przechowywania: **5 lat** od końca roku obrotowego (założenie robocze do potwierdzenia przez prawnika/księgowego); po tym okresie wiersze do usunięcia (zadanie operacyjne, jeszcze nieautomatyzowane).
+- Dane nabywcy na dokumencie (`buyer_name`, `buyer_tax_id`) są opcjonalne, podawane przez klienta. Ponieważ stanowią część dokumentu sprzedaży, po usunięciu konta **nie** są kasowane przed końcem okresu przechowywania — do oceny prawnika (alternatywa: kasowanie tych pól przy usunięciu konta, kosztem kompletności dokumentu).
+- Dowód zgód konsumenckich (art. 38 pkt 13 ustawy o prawach konsumenta — treść cyfrowa): `terms_accepted_at`, `immediate_service_consent_at`, `terms_version`, `consent_text_hash` (SHA-256 dokładnego tekstu pokazanego klientowi, `lib/order-consents.ts`).
+- Forma sprzedaży (DK-1): działalność nierejestrowana (art. 5 Prawa przedsiębiorców) — warunki i limit przychodu do weryfikacji; dokument sprzedaży to „Potwierdzenie zakupu” (rachunek bez VAT), nie faktura VAT.
+
+
+## 6. Wdrożenie retencji w kodzie (US7/Z28, 2026-11-02)
+Zaimplementowano okresy z tabeli (sekcja 2) jako **wartości domyślne konfigurowalne zmiennymi środowiskowymi** - szczegóły i flagi w `05-przeglad-prawnika-i-status.md`. Nieaktywne konta (24 mies.) i zdjęcia sylwetki (12 mies.) są kasowane tylko po włączeniu flagi i po wysłanym ostrzeżeniu e-mail (30 dni); zgłoszenia błędów: zrzuty 90 dni i treść 12 mies. od rozwiązania. Ostatnie decyzje właściciela: automat domyślnie wyłączony, zdjęcia za tą samą flagą (DK-18). **Okresy pozostają projektem do zatwierdzenia przez prawnika.**

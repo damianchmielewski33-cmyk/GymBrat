@@ -73,7 +73,7 @@ export function GroupWorkoutFloatingWidget() {
             "fixed z-[60] flex max-w-[min(100vw-1.5rem,20rem)] flex-col items-end gap-2",
             onActiveWorkout
               ? "right-3 top-[max(0.75rem,env(safe-area-inset-top))]"
-              : "right-3 bottom-[calc(7.25rem+env(safe-area-inset-bottom))] md:right-5",
+              : "right-3 bottom-[calc(var(--bottom-chrome)+0.6rem+env(safe-area-inset-bottom))] md:right-5",
           )}
         >
           {!expanded ? (
@@ -116,7 +116,7 @@ export function GroupWorkoutFloatingWidget() {
                   <p className="truncate text-[12px] font-semibold uppercase tracking-wide text-[var(--gym-gold)]">
                     {teamName ? `Grupa · ${teamName}` : "Grupa na żywo"}
                   </p>
-                  <p className="text-[11px] text-white/40">
+                  <p className="text-[11px] text-white/50">
                     {liveCount > 0
                       ? `${liveCount} ${liveCount === 1 ? "osoba trenuje" : "osób trenuje"}`
                       : "Czekamy na resztę…"}
@@ -134,7 +134,7 @@ export function GroupWorkoutFloatingWidget() {
 
               <div className="max-h-[min(42vh,18rem)] space-y-2 overflow-y-auto overscroll-contain p-2.5">
                 {others.length === 0 ? (
-                  <p className="px-2 py-4 text-center text-[12px] leading-relaxed text-white/45">
+                  <p className="px-2 py-4 text-center text-[12px] leading-relaxed text-white/50">
                     Nikt inny jeszcze nie dołączył. Twój progres jest na ekranie
                     treningu — tu zobaczysz partnerów.
                   </p>
@@ -165,7 +165,7 @@ export function GroupWorkoutFloatingWidget() {
                             <p className="font-heading text-[13px] tabular-nums text-white/80">
                               {formatElapsed(pr.elapsedSeconds)}
                             </p>
-                            <p className="text-[10px] text-white/40">
+                            <p className="text-[10px] text-white/50">
                               {pr.phase === "rest"
                                 ? `Przerwa ${pr.restRemaining ?? 0}s`
                                 : pr.phase === "done"
@@ -177,7 +177,7 @@ export function GroupWorkoutFloatingWidget() {
 
                         <div className="mt-2 grid grid-cols-3 gap-1.5 text-center">
                           <div className="rounded-lg bg-black/30 px-1.5 py-1">
-                            <p className="text-[9px] uppercase tracking-wide text-white/35">
+                            <p className="text-[9px] uppercase tracking-wide text-white/50">
                               Seria
                             </p>
                             <p className="font-heading text-[13px] text-white">
@@ -185,7 +185,7 @@ export function GroupWorkoutFloatingWidget() {
                             </p>
                           </div>
                           <div className="rounded-lg bg-black/30 px-1.5 py-1">
-                            <p className="text-[9px] uppercase tracking-wide text-white/35">
+                            <p className="text-[9px] uppercase tracking-wide text-white/50">
                               Powt.
                             </p>
                             <p className="font-heading text-[13px] text-white">
@@ -193,7 +193,7 @@ export function GroupWorkoutFloatingWidget() {
                             </p>
                           </div>
                           <div className="rounded-lg bg-black/30 px-1.5 py-1">
-                            <p className="text-[9px] uppercase tracking-wide text-white/35">
+                            <p className="text-[9px] uppercase tracking-wide text-white/50">
                               kg
                             </p>
                             <p className="font-heading text-[13px] text-white">

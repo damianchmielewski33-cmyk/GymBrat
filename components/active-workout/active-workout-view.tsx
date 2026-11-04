@@ -126,7 +126,7 @@ export function ActiveWorkoutView({
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const [sessionExitPending, setSessionExitPending] = useState(false);
   const [suppressRouteGate, setSuppressRouteGate] = useState(false);
-  /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/start-workout`. */
+  /** Bez tego pierwszy render `/active-workout` widzi pusty stan zanim wczyta się localStorage → fałszywy redirect na `/workout-plan`. */
   const [storeHydrated, setStoreHydrated] = useState(false);
   /** Czekamy na pull chmury, żeby nie wyrzucić sesji z innego urządzenia. */
   const [cloudHydrated, setCloudHydrated] = useState(false);
@@ -288,7 +288,7 @@ export function ActiveWorkoutView({
 
   // Route gating:
   // - `/active-workout` is a strict "session view" and must NOT be accessible without an active session.
-  // - `/start-workout` is the entry point that lets user pick a plan and begin a session.
+  // - `/workout-plan` is the entry point that lets user pick a plan and begin a session.
   useEffect(() => {
     if (display !== "page") return;
     if (suppressRouteGate || !storeHydrated || !cloudHydrated) return;
@@ -870,7 +870,7 @@ export function ActiveWorkoutView({
                 !storeHydrated || !cloudHydrated || sessionExitPending ? (
                   <div className="flex flex-1 flex-col items-center justify-center gap-2 px-2 py-16 text-center">
                     <div className="h-9 w-9 animate-pulse rounded-full bg-white/[0.08]" />
-                    <p className="text-sm text-white/45">{t("session.loading")}</p>
+                    <p className="text-sm text-white/50">{t("session.loading")}</p>
                   </div>
                 ) : (
                   <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-10 text-center">
@@ -881,7 +881,7 @@ export function ActiveWorkoutView({
                       <p className="text-[17px] font-semibold text-white">
                         {t("session.disabledTitle")}
                       </p>
-                      <p className="mt-2 max-w-md text-[13px] text-white/45">
+                      <p className="mt-2 max-w-md text-[13px] text-white/50">
                         {t("session.disabledBody")}
                       </p>
                     </div>

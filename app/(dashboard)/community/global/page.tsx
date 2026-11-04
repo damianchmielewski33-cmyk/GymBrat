@@ -4,6 +4,8 @@ import { CommunityHubTabs } from "@/components/community/community-hub-tabs";
 import { ActivityFeedList } from "@/components/community/activity-feed-list";
 import { getGlobalFeed } from "@/lib/community/activity-feed";
 
+export const metadata = { title: "Ranking globalny" };
+
 export default async function GlobalCommunityPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
@@ -17,7 +19,7 @@ export default async function GlobalCommunityPage() {
         <h1 className="mt-1.5 font-heading text-[26px] font-semibold text-white">
           Global GymBrat
         </h1>
-        <p className="mt-2 text-[13px] text-white/45">
+        <p className="mt-2 text-[13px] text-white/50">
           Publiczna aktywność społeczności — treningi, osiągnięcia, wojny.
         </p>
       </header>

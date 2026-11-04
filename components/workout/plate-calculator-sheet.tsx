@@ -92,7 +92,7 @@ export function PlateCalculatorSheet() {
             </p>
           ) : (
             <div className="space-y-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/45">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/50">
                 Na stronę (symetrycznie)
               </p>
               <p className="text-sm leading-relaxed text-white/85">

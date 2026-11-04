@@ -130,7 +130,7 @@ function MemberRow({
             {member.reputation ? (
               <ReputationBadge reputation={member.reputation} size="xs" />
             ) : null}
-            <p className="text-[12px] text-white/45">
+            <p className="text-[12px] text-white/50">
               {teamRoleLabel(member.role)}
             </p>
           </div>
@@ -171,7 +171,7 @@ function MemberRow({
           <AddFriendFromTeamButton otherUserId={member.userId} />
         ) : null}
         {member.userId !== viewerUserId && friendshipStatus === "pending" ? (
-          <span className="inline-flex min-h-10 items-center rounded-xl border border-white/10 px-3 text-[12px] text-white/45">
+          <span className="inline-flex min-h-10 items-center rounded-xl border border-white/10 px-3 text-[12px] text-white/50">
             Zaproszenie wysłane
           </span>
         ) : null}

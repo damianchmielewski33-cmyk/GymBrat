@@ -157,8 +157,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   async function leavePanel() {
     setLeaving(true);
-    const res = await adminRequest("/api/admin/lock", {
+    const res = await adminRequest("/api/admin/2fa", {
       method: "POST",
+      body: { action: "leave" },
       fallbackError: "Nie udało się wyjść z panelu.",
     });
     if (!res.ok) {
@@ -197,7 +198,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <ShieldCheck className="h-5 w-5" aria-hidden />
       </span>
       <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">GymBrat</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">GymBrat</p>
         <p className="font-heading text-lg font-semibold leading-tight text-white">Administrator</p>
       </div>
     </div>
@@ -233,7 +234,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <nav aria-label="Sekcje panelu admina" className="space-y-4">
           {ADMIN_NAV_GROUPS.map((group) => (
             <div key={group.label} className="space-y-1">
-              <p className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/30">
+              <p className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/50">
                 {group.label}
               </p>
               {group.items.map((item) => (

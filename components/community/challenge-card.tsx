@@ -68,7 +68,7 @@ export function ChallengeCard({
             <h3 className="mt-1.5 truncate font-heading text-[17px] font-semibold tracking-tight text-white">
               {challenge.title}
             </h3>
-            <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-white/45">
+            <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-white/50">
               {challenge.description}
             </p>
           </div>
@@ -76,10 +76,10 @@ export function ChallengeCard({
 
         <div className="relative mt-4">
           <div className="mb-1.5 flex items-center justify-between text-[11px]">
-            <span className="text-white/45">Postęp</span>
+            <span className="text-white/50">Postęp</span>
             <span className="font-metric tabular-nums text-white/80">
               {progressLabel}{" "}
-              <span className="text-white/40">{challenge.unitLabel}</span>
+              <span className="text-white/50">{challenge.unitLabel}</span>
             </span>
           </div>
           <CommunityProgress
@@ -87,7 +87,7 @@ export function ChallengeCard({
             label={`Postęp wyzwania ${challenge.title}: ${pct}%`}
             tone={challenge.completed ? "mint" : "gold"}
           />
-          <div className="mt-2 flex items-center justify-between text-[11px] text-white/40">
+          <div className="mt-2 flex items-center justify-between text-[11px] text-white/50">
             <span>
               {challenge.participantCount}{" "}
               {challenge.participantCount === 1 ? "uczestnik" : "uczestników"}
