@@ -88,8 +88,8 @@ export function AndroidAppVersionCard() {
     }
   }, []);
 
-  const shouldShow =
-    hydrated && (Boolean(installed) || androidPhoneRwd);
+  /** Wersję APK sprawdzamy tylko w zainstalowanej aplikacji (aktualizacje), nie dla odwiedzających. */
+  const shouldShow = hydrated && Boolean(installed);
 
   useEffect(() => {
     if (!shouldShow) return;
@@ -101,41 +101,19 @@ export function AndroidAppVersionCard() {
 
   if (!hydrated) return null;
 
-  /** Pobieranie APK — tylko telefon Android w widoku RWD (nie PC, nie iPhone). */
+  /**
+   * Publiczne pobieranie APK zostało usunięte (decyzja 2026-11-06): Android dystrybuujemy przez
+   * Google Play, a APK dostają wyłącznie testerzy (link niepubliczny). Zainstalowana aplikacja nadal
+   * pokazuje wersję i aktualizację poniżej.
+   */
   if (!installed) {
     if (!androidPhoneRwd) return null;
-
     return (
       <ProfileBlock
         title="Aplikacja Android"
-        description="Pobieranie omija menedżer Chrome (ten często „wisi” na 100%). Po pobraniu wybierz „Zapisz w plikach” albo instalator."
+        description="Aplikacja na Androida pojawi się w Google Play. Do tego czasu możesz korzystać z GymBrat w przeglądarce."
       >
-        <div className="space-y-3">
-          {latest ? (
-            <ApkDownloadButton
-              versionName={latest.versionName}
-              versionCode={latest.versionCode}
-            />
-          ) : (
-            <p className="text-sm text-white/50">
-              {checking ? "Sprawdzanie wersji…" : "Ładowanie informacji o APK…"}
-            </p>
-          )}
-
-          {latest ? (
-            <p className="text-xs text-white/50">
-              Najnowsza kompilacja {latest.versionCode}
-              {latest.notes ? ` · ${latest.notes}` : null}
-            </p>
-          ) : error ? (
-            <p className="text-xs text-rose-300/90">{error}</p>
-          ) : null}
-
-          <p className="text-xs text-white/50">
-            Po zapisaniu zezwól na instalację z tego źródła. Jeśli masz starą
-            GymBrat z innym podpisem — najpierw ją odinstaluj.
-          </p>
-        </div>
+        <p className="text-sm text-white/65">Wkrótce w Google Play.</p>
       </ProfileBlock>
     );
   }

@@ -446,6 +446,22 @@ const INTEGRATIONS: IntegrationDef[] = [
     link: { href: "/admin/branding", label: "Branding" },
   },
   {
+    id: "waitlist",
+    group: "mobile",
+    label: "Landing: lista powiadomień (Google Play)",
+    description:
+      "Adres landingu (osobna domena). Włącza przekierowanie /start na landing oraz zapis na powiadomienie (POST /api/waitlist, CORS tylko z tej domeny). Wymaga też poczty SMTP.",
+    level: "recommended",
+    effectWhenMissing:
+      "Zapis na powiadomienie o premierze zwraca błąd 503, /start zostaje stroną w aplikacji, a linki w e-mailach potwierdzających kierują do aplikacji.",
+    hostingHint:
+      "Ustaw NEXT_PUBLIC_LANDING_URL na pełny adres landingu (np. https://twoja-domena.pl) i zrób redeploy. Opcjonalnie WAITLIST_RETENTION_DAYS (domyślnie 365).",
+    vars: [
+      { names: ["NEXT_PUBLIC_LANDING_URL"], hint: "Pełny adres landingu z https://, bez końcowego /." },
+      { names: ["WAITLIST_RETENTION_DAYS"], optional: true, hint: "Po ilu dniach usuwać potwierdzone wpisy bez wysłanego powiadomienia." },
+    ],
+  },
+  {
     id: "ads",
     group: "mobile",
     label: "Reklamy (AdMob)",

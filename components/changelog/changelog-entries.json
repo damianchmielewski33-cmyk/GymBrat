@@ -11,6 +11,15 @@
     ]
   },
   {
+    "title": "Zapowiedź — Strona reklamowa, zapis na premierę w Google Play i koniec publicznego APK",
+    "planned": true,
+    "bullets": [
+      "Osobna strona reklamowa GymBrat (projekt w katalogu landing/): demo serii, dieta, wykres progresu, plan, raport sylwetki, kalkulator kalorii i białka oraz instrukcja dodania aplikacji do ekranu głównego iPhone'a.",
+      "Zapis na jednorazowy e-mail o premierze w Google Play: wymaga zgody i potwierdzenia linkiem z e-maila, wypis jednym kliknięciem, nieaktywne wpisy są usuwane automatycznie.",
+      "Adres /start przekierowuje na stronę reklamową, gdy ustawiony jest jej adres. Z Profilu zniknęło publiczne pobieranie pliku APK: Android trafi do Google Play."
+    ]
+  },
+  {
     "title": "Zapowiedź — Strona startowa, pomiar zainteresowania i porządek w kodzie",
     "planned": true,
     "bullets": [

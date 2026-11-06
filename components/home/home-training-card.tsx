@@ -127,7 +127,7 @@ export function HomeTrainingCard({
       ? [
           `${selected.exerciseCount} ćw.`,
           selected.lastWorkoutDate
-            ? `ostatnio ${formatPlanLastDoneRelative(selected.lastWorkoutDate, today)}`
+            ? formatPlanLastDoneRelative(selected.lastWorkoutDate, today)
             : "jeszcze nie robiony",
         ].join(" · ")
       : null;

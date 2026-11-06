@@ -15,9 +15,13 @@ const PUBLIC_API_PREFIXES = [
   "/api/cron/",
   /** Trwałe grafiki katalogu (wygenerowane przy imporcie) — publiczne dla <img>. */
   "/api/catalog-meal-image/",
+  /** Lista powiadomień z landingu (zapis, potwierdzenie, wypis): publiczne, własny CORS/Origin i rate limit. */
+  "/api/waitlist/",
 ] as const;
 
 const PUBLIC_API_EXACT = new Set([
+  /** Zapis na listę powiadomień z landingu (POST + preflight): własny Origin/CORS i rate limit. */
+  "/api/waitlist",
   /** Branding / PWA ikony — publiczne (login, favicon, WebView bez sesji). */
   "/api/branding",
   /** Publiczny provenance wdrożenia. */
