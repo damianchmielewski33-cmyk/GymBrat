@@ -11,7 +11,7 @@ type RawChangelogEntry = Omit<ChangelogEntry, "sourceRepo">;
  * Każdy wpis dostaje źródło GymBrat tutaj — w JSON nie ma `sourceRepo`, więc nie da się
  * dopisać wpisu z innego repozytorium. Nowe wpisy dopisuj na początku JSON-a (`planned: true` na PR).
  */
-export const CHANGELOG_ENTRIES: ChangelogEntry[] = (entries as RawChangelogEntry[]).map(
+export const CHANGELOG_ENTRIES: ChangelogEntry[] = (entries as unknown as RawChangelogEntry[]).map(
   (entry) => ({
     ...entry,
     sourceRepo: GYMBRAT_GITHUB_SLUG,
