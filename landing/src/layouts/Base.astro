@@ -1,0 +1,103 @@
+---
+import "@fontsource-variable/bricolage-grotesque/index.css";
+import "@fontsource-variable/instrument-sans/index.css";
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+  path?: string;
+}
+const { title, description, path = "/" } = Astro.props;
+const canonical = new URL(path, Astro.site).href;
+const app = import.meta.env.PUBLIC_APP_URL || "http://localhost:3000";
+const nav = [
+  ["Trening", "#demo"],
+  ["Dieta", "#dieta"],
+  ["Analiza", "#analiza"],
+  ["Plan", "#plan"],
+  ["Raport", "#raport"],
+  ["Kalkulator", "#kalkulator"],
+  ["iPhone", "#iphone"],
+  ["Cennik", "#cennik"],
+];
+const home = path === "/";
+---
+
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0a0a0b" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pl_PL" />
+    <meta property="og:site_name" content="GymBrat" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <a class="skip" href="#glowna">Przejdź do treści</a>
+    <header class="top">
+      <div class="wrap bar">
+        <a class="logo" href="/" translate="no" aria-label="GymBrat, strona główna">Gym<span class="gold">Brat</span></a>
+        <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="nav" aria-label="Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+        </button>
+        <nav class="nav" id="nav" aria-label="Główna nawigacja">
+          {nav.map(([t, h]) => <a class="nv" href={home ? h : "/" + h} data-nav={h.slice(1)}>{t}</a>)}
+          <a class="nv" href={`${app}/login`}>Zaloguj</a>
+        </nav>
+      </div>
+      <div class="prog" aria-hidden="true"><i id="prog"></i></div>
+    </header>
+    <slot />
+    <footer>
+      <div class="wrap">
+        <nav aria-label="Informacje prawne i pomoc">
+          <a href={`${app}/regulamin`}>Regulamin</a>
+          <a href={`${app}/polityka-prywatnosci`}>Polityka prywatności</a>
+          <a href={`${app}/pomoc`}>Pomoc</a>
+          <a href={`${app}/usun-konto`}>Usuwanie konta</a>
+          <a href="/iphone">Instrukcja dla iPhone’a</a>
+        </nav>
+        <p class="muted" style="font-size:13px;margin:16px 0 0">© GymBrat. Dziennik treningowy i żywieniowy.</p>
+      </div>
+    </footer>
+    <script>
+      const btn = document.getElementById("menu-btn");
+      const nav = document.getElementById("nav");
+      btn?.addEventListener("click", () => {
+        const open = nav?.classList.toggle("open");
+        btn.setAttribute("aria-expanded", String(Boolean(open)));
+      });
+      nav?.addEventListener("click", (e) => {
+        if ((e.target as HTMLElement).closest("a")) {
+          nav.classList.remove("open");
+          btn?.setAttribute("aria-expanded", "false");
+        }
+      });
+      const prog = document.getElementById("prog");
+      const onScroll = () => {
+        const d = document.documentElement;
+        const max = d.scrollHeight - window.innerHeight;
+        if (prog) prog.style.transform = `scaleX(${max > 0 ? Math.min(1, window.scrollY / max) : 0})`;
+        const ids = Array.from(document.querySelectorAll<HTMLElement>("[data-nav]")).map((a) => a.dataset.nav!);
+        let act = "";
+        for (const id of ids) {
+          const el = document.getElementById(id);
+          if (el && el.getBoundingClientRect().top < 140) act = id;
+        }
+        document.querySelectorAll<HTMLElement>("[data-nav]").forEach((a) => a.classList.toggle("on", a.dataset.nav === act));
+      };
+      window.addEventListener("scroll", onScroll, { passive: true });
+      onScroll();
+    </script>
+  </body>
+</html>

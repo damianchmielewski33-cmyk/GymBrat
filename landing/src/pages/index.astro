@@ -1,0 +1,275 @@
+---
+import Base from "../layouts/Base.astro";
+
+const app = import.meta.env.PUBLIC_APP_URL || "http://localhost:3000";
+const heroVideo = import.meta.env.PUBLIC_HERO_VIDEO || "";
+const heroPoster = import.meta.env.PUBLIC_HERO_POSTER || "";
+const card = (cls = "") => `rcard ${cls}`;
+---
+
+<Base
+  title="GymBrat — dziennik treningowy i żywieniowy"
+  description="Zapisuj serie, licz tonaż i makro, porównuj tygodnie i oglądaj progres sylwetki. Android: Google Play wkrótce. iPhone: zakładka na ekranie głównym."
+  path="/"
+>
+  <div class="flash" id="flash" hidden role="status"></div>
+
+  <main id="glowna">
+    <!-- HERO -->
+    <section id="demo" class="hero">
+      <svg class="plate" width="900" height="900" viewBox="0 0 900 900" aria-hidden="true">
+        <circle cx="450" cy="450" r="430" fill="none" stroke="#2a2418" stroke-width="2"></circle>
+        <circle cx="450" cy="450" r="360" fill="none" stroke="#33291a" stroke-width="18"></circle>
+        <circle cx="450" cy="450" r="300" fill="none" stroke="#2a2418" stroke-width="2"></circle>
+        <circle cx="450" cy="450" r="230" fill="none" stroke="#c9a45c" stroke-opacity=".25" stroke-width="3"></circle>
+        <circle cx="450" cy="450" r="60" fill="#0a0a0b" stroke="#c9a45c" stroke-opacity=".4" stroke-width="3"></circle>
+      </svg>
+      <div class="wrap row" style="z-index:1">
+        <div style="flex:1 1 480px">
+          <h1 class="h">Trenuj mądrzej, nie tylko ciężej.</h1>
+          <p class="sub">Zapisujesz serie, a GymBrat liczy tonaż i pilnuje przerw. Wypróbuj to obok, zanim zainstalujesz aplikację.</p>
+          <div class="grp" style="gap:12px;align-items:center">
+            <a class="btn fill" href="#pobierz">Zainstaluj aplikację</a>
+            <a class="btn" href="/iphone">Instrukcja dla iPhone’a</a>
+          </div>
+          <p class="muted" style="font-size:13px;margin:18px 0 0">Android: Google Play wkrótce. iPhone: zakładka na ekranie głównym.</p>
+        </div>
+        <div style="flex:1 1 440px;display:flex;flex-direction:column;align-items:center">
+          {heroVideo && (
+            <div style="width:100%;max-width:420px;text-align:center">
+              <div class="vid">
+                <video id="hero-video" muted loop playsinline preload="none" poster={heroPoster || undefined} aria-label="Nagranie ekranu aplikacji GymBrat" data-src={heroVideo}></video>
+              </div>
+              <button type="button" class="btn sound" id="sound-btn" aria-pressed="false">Włącz dźwięk</button>
+            </div>
+          )}
+          <div class="demo" id="demo-card" role="group" aria-label="Interaktywny przykład dziennika treningowego" style="margin-top:16px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <div class="h" style="font-size:26px">Wyciskanie sztangi</div>
+              <span class="muted" style="font-size:12px">Przykład</span>
+            </div>
+            <div style="display:flex;gap:16px;margin:20px 0">
+              <div style="flex:1">
+                <div class="muted" style="font-size:12px;margin-bottom:6px">Ciężar (kg)</div>
+                <div class="stepper"><button type="button" class="step" aria-label="Zmniejsz ciężar" id="w-down">−</button><div class="num val" id="w-val" aria-live="polite">80</div><button type="button" class="step" aria-label="Zwiększ ciężar" id="w-up">+</button></div>
+              </div>
+              <div style="flex:1">
+                <div class="muted" style="font-size:12px;margin-bottom:6px">Powtórzenia</div>
+                <div class="stepper"><button type="button" class="step" aria-label="Mniej powtórzeń" id="r-down">−</button><div class="num val" id="r-val" style="min-width:36px" aria-live="polite">8</div><button type="button" class="step" aria-label="Więcej powtórzeń" id="r-up">+</button></div>
+              </div>
+            </div>
+            <button type="button" class="btn fill" style="width:100%" id="save-set">Zapisz serię</button>
+            <div class="rest" aria-live="polite"><span class="muted" style="font-size:13px" id="rest-text">Przerwa startuje po zapisaniu serii</span><span class="num gold" style="font-size:32px" id="rest-clock">00:00</span></div>
+            <div style="margin-top:14px;min-height:96px" id="set-log"><p class="muted" style="font-size:14px;margin:12px 0 0">Zapisz pierwszą serię, żeby zobaczyć tonaż i start przerwy.</p></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><span class="muted" style="font-size:13px">Tonaż treningu</span><span class="num gold" style="font-size:26px" id="tonnage">0 kg</span></div>
+            <button type="button" class="btn" style="width:100%;margin-top:14px;min-height:44px" id="clear-sets">Wyczyść przykład</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DIETA -->
+    <section id="dieta" class="sec">
+      <div class="wrap row">
+        <div style="flex:1 1 420px" class="reveal">
+          <h2 class="h">Dodaj posiłek i zobacz, co zostało.</h2>
+          <p class="lead" style="margin-bottom:22px">Kliknij produkty z listy. Kalorie i makroskładniki policzą się od razu, a pasek pokaże, ile zostało do celu.</p>
+          <div class="grp" id="foods" role="group" aria-label="Produkty do wyboru"></div>
+          <button type="button" class="tg" style="margin-top:14px" id="foods-clear">Wyczyść dzień</button>
+        </div>
+        <div class="c2 reveal" style="flex:1 1 420px;max-width:520px">
+          <div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap">
+            <svg viewBox="0 0 140 140" width="150" height="150" role="img" id="ring-svg" aria-label="Zjedzono 0 z 2200 kcal">
+              <circle cx="70" cy="70" r="58" fill="none" stroke="#26231c" stroke-width="12"></circle>
+              <circle class="ring" id="ring" cx="70" cy="70" r="58" fill="none" stroke="#dcb862" stroke-width="12" stroke-linecap="round" stroke-dasharray="364.4" stroke-dashoffset="364.4" transform="rotate(-90 70 70)"></circle>
+              <text x="70" y="68" text-anchor="middle" fill="#efe9dc" font-size="30" font-weight="700" id="kcal-left">2 200</text>
+              <text x="70" y="88" text-anchor="middle" fill="#b3ab9b" font-size="12" id="kcal-word">kcal zostało</text>
+            </svg>
+            <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:14px" id="macros"></div>
+          </div>
+          <p class="muted" style="font-size:13px;margin:16px 0 0">Cel przykładowy: 2&nbsp;200 kcal. Wartości produktów są orientacyjne.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANALIZA -->
+    <section id="analiza" class="sec alt">
+      <div class="wrap">
+        <h2 class="h reveal">Zobacz, czy robisz postępy.</h2>
+        <p class="lead">Przesuń kursor po wykresie albo dotknij punktu. Zmień okres i porównaj dwa tygodnie obok siebie.</p>
+        <div class="fx">
+          <div class="c2" style="flex:1 1 520px">
+            <div class="muted" style="font-size:13px">Wyciskanie sztangi, szacowany max · <span id="a-label">dziś</span></div>
+            <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="num" style="font-size:64px;line-height:1.1" id="a-val">110</span><span class="muted">kg</span><span style="margin-left:10px;font-size:15px" id="a-delta"></span></div>
+            <svg class="chart" id="chart" viewBox="0 0 340 170" role="img" aria-label="Wykres szacowanego maksimum"></svg>
+            <div class="grp" style="margin-top:10px" role="group" aria-label="Okres" id="a-ranges"></div>
+            <div style="display:flex;gap:10px;margin-top:10px">
+              <button type="button" class="step" aria-label="Poprzedni punkt" id="a-prev">←</button>
+              <button type="button" class="step" aria-label="Następny punkt" id="a-next">→</button>
+            </div>
+          </div>
+          <div class="c2" style="flex:1 1 320px">
+            <div style="font-weight:600;font-size:18px">Tydzień A kontra B</div>
+            <p class="muted" style="font-size:14px;line-height:1.55;margin:6px 0 16px">Porównanie dwóch tygodni pokazuje, co faktycznie się zmieniło.</p>
+            <div class="grp" style="margin-bottom:12px" role="group" aria-label="Wybór porównania" id="cmp-sets"></div>
+            <div id="cmp-rows"></div>
+            <p class="muted" style="font-size:13px;margin:12px 0 0">Dane przykładowe.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAN -->
+    <section id="plan" class="sec">
+      <div class="wrap row" style="align-items:flex-start">
+        <div style="flex:1 1 380px">
+          <h2 class="h reveal">Ułóż plan z gotowych dni.</h2>
+          <p class="lead" style="margin-bottom:22px">Wybierz dzień i zobacz ćwiczenia z seriami oraz ciężarem z ostatniego treningu.</p>
+          <div class="grp" role="group" aria-label="Dzień planu" id="plan-days"></div>
+          <div class="muted" style="margin-top:18px;font-size:15px" id="plan-meta"></div>
+        </div>
+        <div class="c2" style="flex:1 1 420px;max-width:560px;padding-top:12px;padding-bottom:12px" id="plan-rows" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- RAPORT -->
+    <section id="raport" class="sec">
+      <div class="wrap">
+        <h2 class="h reveal">Raport sylwetki: waga, obwody i zdjęcia w jednym miejscu.</h2>
+        <p class="lead">Przesuń kursor w lewo i w prawo, żeby przejrzeć raport. Na telefonie przeciągnij palcem. Dane w przykładzie są wymyślone.</p>
+        <div class="rview" id="rview" role="region" aria-label="Przykładowy raport sylwetki, przewijany poziomo">
+          <div class="rtrack" id="rtrack">
+            <div class="rcard"><div class="muted" style="font-size:13px">Waga</div><div class="num" style="font-size:64px;line-height:1.1;margin-top:6px">66,1<span class="muted" style="font-size:20px"> kg</span></div><div style="color:var(--ok);font-size:15px">−1,9 kg od startu</div>
+              <svg viewBox="0 0 260 110" width="100%" height="110" style="margin-top:auto" role="img" aria-label="Wykres wagi: spadek z 68 do 66,1 kg"><path pathLength="1" class="dr" d="M8,24 C60,30 90,52 130,60 C170,68 200,84 252,92" fill="none" stroke="#dcb862" stroke-width="3.5" stroke-linecap="round"></path><circle cx="252" cy="92" r="5" fill="#dcb862"></circle></svg></div>
+            <div class="rcard"><div class="muted" style="font-size:13px">Obwody</div>
+              <div style="display:flex;flex-direction:column;gap:14px;margin-top:14px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span>Pas</span><span><span class="num" style="font-size:30px">78</span> <span class="muted" style="font-size:13px">cm</span> <span style="color:var(--ok);font-size:13px">−2</span></span></div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span>Udo</span><span><span class="num" style="font-size:30px">58</span> <span class="muted" style="font-size:13px">cm</span> <span style="color:var(--ok);font-size:13px">+1</span></span></div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span>Klatka</span><span><span class="num" style="font-size:30px">101</span> <span class="muted" style="font-size:13px">cm</span> <span style="color:var(--ok);font-size:13px">+1</span></span></div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span>Ramię</span><span><span class="num" style="font-size:30px">36</span> <span class="muted" style="font-size:13px">cm</span> <span style="color:var(--ok);font-size:13px">+0,5</span></span></div>
+              </div><div class="muted" style="font-size:13px;margin-top:auto">Zmiana od pierwszego raportu.</div></div>
+            <div class="rcard" style="padding:0;overflow:hidden;position:relative"><div style="position:absolute;inset:0;display:flex"><div style="flex:1;background:linear-gradient(160deg,#17171a,#0c0c0e);display:flex;align-items:flex-end;padding:16px"><span class="muted" style="font-size:13px">Start</span></div><div style="flex:1;background:linear-gradient(160deg,#1b1710,#0c0c0e);display:flex;align-items:flex-end;justify-content:flex-end;padding:16px"><span style="font-size:13px;color:#f6e3a1">Teraz</span></div></div><div style="position:absolute;top:0;bottom:0;left:50%;width:3px;background:linear-gradient(180deg,#f6e3a1,#b58f3e)"></div><div class="muted" style="position:absolute;top:18px;left:0;right:0;text-align:center;font-size:13px">Zdjęcia: start i teraz</div></div>
+            <div class="rcard"><div class="muted" style="font-size:13px">Tempo i cel</div><div class="num" style="font-size:52px;line-height:1.1;margin-top:6px">−0,4<span class="muted" style="font-size:18px"> kg / tydz.</span></div><p class="muted" style="font-size:15px;line-height:1.55;margin:10px 0 0">Przy takim tempie cel 65 kg osiągniesz za kilka tygodni.</p>
+              <div style="margin-top:auto"><div class="rbar"><i style="width:68%"></i></div><div class="muted" style="font-size:12px;margin-top:6px">68% drogi do celu</div></div></div>
+            <div class="rcard"><div class="muted" style="font-size:13px">Samopoczucie</div>
+              <div style="display:flex;flex-direction:column;gap:16px;margin-top:16px">
+                <div><div class="pr"><span>Sen</span><span>7 / 10</span></div><div class="rbar" style="margin-top:6px"><i style="width:70%"></i></div></div>
+                <div><div class="pr"><span>Energia</span><span>6 / 10</span></div><div class="rbar" style="margin-top:6px"><i style="width:60%"></i></div></div>
+                <div><div class="pr"><span>Stres</span><span>4 / 10</span></div><div class="rbar" style="margin-top:6px"><i style="width:40%"></i></div></div>
+              </div><div class="muted" style="font-size:13px;margin-top:auto">Wpisujesz w raporcie, w minutę.</div></div>
+            <div class="rcard" style="justify-content:center"><div class="h" style="font-size:30px;line-height:1.1">Zdjęcia i wymiary widzisz tylko Ty.</div><p class="muted" style="font-size:15px;line-height:1.55;margin:12px 0 0">Konto i dane możesz w każdej chwili usunąć w aplikacji.</p></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:18px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:12px;flex:1 1 240px;min-width:0"><span class="muted" style="font-size:13px;white-space:nowrap"><span id="card-no">1</span> / 6</span><div class="rbar" style="flex:1"><i id="pan-bar" style="width:15%"></i></div></div>
+          <div class="grp"><button type="button" class="step" aria-label="Przesuń raport w lewo" id="pan-left">←</button><button type="button" class="step" aria-label="Przesuń raport w prawo" id="pan-right">→</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- KALKULATOR -->
+    <section id="kalkulator" class="sec alt">
+      <div class="wrap">
+        <h2 class="h reveal">Ile kalorii i białka potrzebujesz?</h2>
+        <p class="lead">Ustaw swoje dane, a wynik zmieni się od razu. To punkt wyjścia, który w aplikacji dopasujesz do siebie.</p>
+        <div class="fx">
+          <div class="c2" style="flex:1 1 440px">
+            <div class="muted" style="font-size:13px;margin-bottom:8px">Płeć</div>
+            <div class="grp" role="group" aria-label="Płeć" id="c-sex"></div>
+            <div style="margin-top:18px"><label for="cw" class="pr"><span>Waga</span><b><span id="cw-v">75</span> kg</b></label><input id="cw" type="range" min="45" max="140" step="1" value="75" /></div>
+            <div style="margin-top:8px"><label for="ch" class="pr"><span>Wzrost</span><b><span id="ch-v">178</span> cm</b></label><input id="ch" type="range" min="140" max="210" step="1" value="178" /></div>
+            <div style="margin-top:8px"><label for="ca" class="pr"><span>Wiek</span><b><span id="ca-v">30</span> lat</b></label><input id="ca" type="range" min="18" max="70" step="1" value="30" /></div>
+            <div class="muted" style="font-size:13px;margin:16px 0 8px">Aktywność w tygodniu</div>
+            <div class="grp" role="group" aria-label="Aktywność" id="c-act"></div>
+            <div class="muted" style="font-size:13px;margin:16px 0 8px">Cel</div>
+            <div class="grp" role="group" aria-label="Cel" id="c-goal"></div>
+          </div>
+          <div class="c2" style="flex:1 1 360px" aria-live="polite">
+            <div class="muted" style="font-size:13px">Twoje dzienne zapotrzebowanie</div>
+            <div style="display:flex;align-items:baseline;gap:8px"><span class="num" style="font-size:84px;line-height:1.05" id="r-kcal">0</span><span class="muted">kcal</span></div>
+            <div style="display:flex;flex-direction:column;gap:14px;margin-top:14px" id="r-macros"></div>
+            <a class="btn fill" href={`${app}/register`} style="margin-top:20px;width:100%">Ustaw to w aplikacji</a>
+            <p class="muted" style="font-size:12px;line-height:1.55;margin:14px 0 0">Szacunek według wzoru Mifflina i St Jeora, orientacyjnie, nie porada medyczna. Nie dotyczy osób poniżej 18 lat, w ciąży ani z chorobami wymagającymi diety.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- POBIERZ + POWIADOMIENIE -->
+    <section id="pobierz" class="sec">
+      <div class="wrap row" style="justify-content:space-between;align-items:flex-start">
+        <div style="flex:1 1 420px">
+          <h2 class="h" style="font-size:clamp(30px,4.5vw,44px)">Jedno konto na dwóch telefonach.</h2>
+          <p class="lead" style="margin-bottom:22px">Treningi, dieta i raporty synchronizują się po zalogowaniu tym samym e-mailem.</p>
+          <div class="grp" style="gap:12px">
+            <span class="badge" aria-disabled="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c9a45c" stroke-width="2" aria-hidden="true"><path d="M5 3l14 9-14 9z"></path></svg><span><small>Wkrótce w</small><b>Google Play</b></span></span>
+            <a class="badge" href="#iphone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#efe9dc" stroke-width="2" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5"></rect></svg><span><small>iPhone</small><b>Dodaj do ekranu głównego</b></span></a>
+          </div>
+        </div>
+        <div class="c2" id="powiadom" style="flex:1 1 380px;max-width:480px">
+          <h3 class="h" style="font-size:26px;margin-bottom:8px">Daj znać, gdy ruszy Google Play</h3>
+          <p class="muted" style="margin:0 0 16px;font-size:15px">Jeden e-mail w dniu premiery. Bez newslettera.</p>
+          <form id="wl-form" novalidate data-endpoint={`${app}/api/waitlist`}>
+            <label for="wl-email" style="font-size:14px;display:block;margin-bottom:6px">Adres e-mail</label>
+            <input class="field" id="wl-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="twoj@email.pl" required />
+            <div class="hp" aria-hidden="true"><label>Nie wypełniaj<input name="website" tabindex="-1" autocomplete="off" /></label></div>
+            <div class="check" style="margin-top:14px"><input type="checkbox" id="wl-consent" name="consent" required /><label for="wl-consent">Zgadzam się na jednorazowy e-mail o premierze GymBrat w Google Play. Wyślemy najpierw link potwierdzający; wypis jest możliwy w każdej chwili. Szczegóły w <a href={`${app}/polityka-prywatnosci`}>polityce prywatności</a>.</label></div>
+            <button type="submit" class="btn fill" style="width:100%;margin-top:14px" id="wl-submit">Powiadom mnie</button>
+            <p class="msg" id="wl-msg" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- IPHONE -->
+    <section id="iphone" class="sec alt">
+      <div class="wrap row">
+        <div style="flex:1 1 420px">
+          <h2 class="h reveal">iPhone bez App Store: 4 kroki.</h2>
+          <p class="lead" style="margin-bottom:20px">Kliknij krok albo przycisk „Dalej”. Ilustracja pokazuje, co dokładnie nacisnąć w Safari.</p>
+          <div style="display:flex;flex-direction:column;gap:6px" id="ip-steps"></div>
+          <div class="grp" style="margin-top:16px"><button type="button" class="btn" id="ip-prev">Wstecz</button><button type="button" class="btn fill" id="ip-next">Dalej</button></div>
+          <p class="muted" style="font-size:13px;margin:16px 0 0">Działa na iOS 16 lub nowszym, w Safari. Powiadomienia push na iOS mogą być ograniczone. <a href="/iphone">Pełna instrukcja</a></p>
+        </div>
+        <div style="flex:1 1 320px;display:flex;justify-content:center">
+          <div class="phone" role="img" id="ip-alt" aria-label="Krok 1 z 4">
+            <div class="screen">
+              <div data-scene="0" class="on"><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center"><div class="h" style="font-size:28px;color:#f6e3a1">GymBrat</div><div class="muted" style="font-size:13px">Aplikacja otwarta w Safari</div></div><div style="padding:10px 14px;background:#141416;border-top:1px solid #26231c;font-size:12px;color:var(--muted);text-align:center">app.[DOMENA]</div></div>
+              <div data-scene="1"><div style="flex:1;display:flex;align-items:center;justify-content:center"><div class="h" style="font-size:28px;color:#f6e3a1">GymBrat</div></div><div style="padding:10px 14px 16px;background:#141416;border-top:1px solid #26231c;display:flex;justify-content:space-around;align-items:center"><span class="muted" aria-hidden="true">‹</span><span class="muted" aria-hidden="true">›</span><span class="hl" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:2px solid #dcb862;color:#f6e3a1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M5 14v6h14v-6"></path></svg></span><span class="muted" aria-hidden="true">▢</span></div></div>
+              <div data-scene="2"><div style="margin-top:auto;background:#1b1b1f;border-radius:20px 20px 0 0;padding:14px;display:flex;flex-direction:column;gap:8px"><div style="height:4px;width:40px;background:#4a4a4a;border-radius:2px;margin:0 auto 6px"></div><div style="padding:12px;border-radius:12px;background:#0c0c0e;font-size:14px">Kopiuj</div><div style="padding:12px;border-radius:12px;background:#0c0c0e;font-size:14px">Dodaj zakładkę</div><div class="hl" style="padding:12px;border:2px solid #dcb862;background:#1a1610;font-size:14px;color:#f6e3a1;font-weight:600">Dodaj do ekranu początkowego</div><div style="padding:12px;border-radius:12px;background:#0c0c0e;font-size:14px">Drukuj</div></div></div>
+              <div data-scene="3"><div style="flex:1;padding:36px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;align-content:start"><span style="aspect-ratio:1;border-radius:14px;background:#1b1b1f"></span><span style="aspect-ratio:1;border-radius:14px;background:#1b1b1f"></span><span style="aspect-ratio:1;border-radius:14px;background:#1b1b1f"></span><span class="hl" style="aspect-ratio:1;border-radius:14px;background:linear-gradient(160deg,#f6e3a1,#b58f3e);display:flex;align-items:center;justify-content:center;color:#1a1408;font:800 13px var(--head)">Gym<br />Brat</span></div><div class="muted" style="text-align:center;font-size:12px;padding:0 20px 20px">Otwieraj z ikony: bez paska adresu, pełny ekran.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CENNIK -->
+    <section id="cennik" class="sec">
+      <div class="wrap row">
+        <div style="flex:1 1 380px">
+          <h2 class="h reveal">Zacznij za darmo. Premium, gdy chcesz więcej.</h2>
+          <p class="lead">Nazwy pakietów i ceny zostaną uzupełnione przed publikacją.</p>
+        </div>
+        <div class="c2" style="flex:1 1 380px;max-width:480px">
+          <div class="grp" role="group" aria-label="Okres pakietu" id="per"></div>
+          <div class="ex" style="display:block;border:0;padding:18px 0 0" id="per-card"><div style="font-weight:600;font-size:17px">[NAZWA PAKIETU]</div><div class="num gold" style="font-size:64px;line-height:1.1">[CENA]&nbsp;zł</div><div class="muted" style="font-size:14px"><span id="per-days">30 dni</span> · [OSZCZĘDZASZ X%] względem miesiąca</div></div>
+          <p class="muted" style="font-size:13px;margin:14px 0 0">Ceny brutto. Szczegóły zakupu w regulaminie.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="sec alt">
+      <div class="wrap faq">
+        <h2 class="h" style="margin-bottom:24px">Pytania</h2>
+        <details><summary>Czy jest aplikacja z App Store?</summary><p>Na razie nie. Na iPhonie GymBrat działa jako zakładka na ekranie głównym, z tym samym kontem co na Androidzie.</p></details>
+        <details><summary>Kiedy aplikacja pojawi się w Google Play?</summary><p>Termin nie jest jeszcze ustalony. Zostaw e-mail w sekcji „Pobierz”, a damy znać jednym e-mailem w dniu premiery.</p></details>
+        <details><summary>Co z moimi danymi?</summary><p>Zdjęcia i wymiary widzisz tylko Ty. Konto można usunąć w aplikacji. Szczegóły w polityce prywatności.</p></details>
+        <details><summary>Czy kalkulator to porada dietetyczna?</summary><p>Nie. To orientacyjny szacunek według wzoru Mifflina i St Jeora, punkt wyjścia do własnych ustawień.</p></details>
+      </div>
+    </section>
+  </main>
+
+  <script>import "../scripts/landing.js";</script>
+</Base>

@@ -67,6 +67,62 @@ describe("fatigue-score", () => {
     expect(high.score).toBeGreaterThanOrEqual(50);
     expect(high.recommendation.length).toBeGreaterThan(10);
   });
+
+  it("tydzień to dokładnie 7 dat: trening sprzed 7 dni nie liczy się do bieżącego tygodnia", () => {
+    const today = "2026-10-23"; // piątek
+    const r = computeFatigueScore({
+      sessions: [
+        session("2026-10-16", 10000), // piątek tydzień temu: poza oknem 7 dni
+        session("2026-10-23", 10000),
+      ],
+      cardioLoadByEndDate: () => 0,
+      consecutiveTrainingDays: 1,
+      today,
+    });
+    expect(r.inputs.sessionsThisWeek).toBe(1);
+    expect(r.inputs.weeklyTonnageKg).toBe(10000);
+  });
+
+  it("baza normy dzieli przez liczbę tygodni historii, nie zawsze przez 3", () => {
+    const today = "2026-10-23";
+    // Jedna sesja 10 dni temu (1 tydzień historii) i taki sam tonaż w tym tygodniu:
+    // stosunek = 1,0 → 25 pkt z tonażu (dawniej baza /3 dawała stosunek 3 → 35 pkt).
+    const r = computeFatigueScore({
+      sessions: [session("2026-10-13", 10000), session("2026-10-22", 10000)],
+      cardioLoadByEndDate: () => 0,
+      consecutiveTrainingDays: 0,
+      today,
+    });
+    const tonnage = r.components.find((c) => c.key === "tonnage");
+    expect(r.baselineWeeks).toBe(1);
+    expect(tonnage?.points).toBe(25);
+  });
+
+  it("zgłasza brak RPE i ciężkich serii zamiast cicho liczyć 0 punktów", () => {
+    const today = "2026-10-23";
+    const r = computeFatigueScore({
+      sessions: [
+        session("2026-10-22", 8000, { avgRpe: null, hardSetPct: null }),
+      ],
+      cardioLoadByEndDate: () => 0,
+      consecutiveTrainingDays: 1,
+      today,
+    });
+    expect(r.missingInputs).toEqual(["rpe", "hardSets"]);
+  });
+
+  it("zwraca rozbicie na składniki w granicach maksimów", () => {
+    const r = computeFatigueScore({
+      sessions: [session("2026-10-22", 9000)],
+      cardioLoadByEndDate: () => 280,
+      consecutiveTrainingDays: 1,
+      today: "2026-10-23",
+    });
+    expect(r.components).toHaveLength(7);
+    for (const c of r.components) {
+      expect(c.points).toBeLessThanOrEqual(c.max);
+    }
+  });
 });
 
 describe("recovery-score", () => {

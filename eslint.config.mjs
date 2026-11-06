@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Osobny projekt Astro (landing/), ma własny package.json.
+    "landing/**",
   ]),
   // Z85 - jawna lista wyjatkow. Reguly React Compiler (eslint-plugin-react-hooks v6) to wskazowki
   // optymalizacyjne, nie bledy poprawnosci; projekt nie uzywa React Compiler, a wzorzec

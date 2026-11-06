@@ -866,6 +866,40 @@ export const bugReports = sqliteTable(
   ],
 );
 
+/**
+ * Lista powiadomień o premierze w Google Play (landing). Double opt-in: wpis `pending` do czasu
+ * kliknięcia linku z e-maila. Bez konta użytkownika; usuwana wg retencji (`lib/waitlist.ts`).
+ */
+export const waitlistSignups = sqliteTable(
+  "waitlist_signups",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    /** Znormalizowany (małe litery) adres e-mail. */
+    email: text("email").notNull(),
+    /** `pending` | `confirmed` | `unsubscribed` */
+    status: text("status").notNull().default("pending"),
+    /** SHA-256 jednorazowego tokenu potwierdzenia (sam token tylko w e-mailu). */
+    confirmTokenHash: text("confirm_token_hash"),
+    confirmExpiresAt: integer("confirm_expires_at", { mode: "timestamp_ms" }),
+    /** Wersja treści zgody, którą zaakceptowano (do wykazania zgody). */
+    consentVersion: text("consent_version").notNull(),
+    consentAt: integer("consent_at", { mode: "timestamp_ms" }).notNull(),
+    confirmedAt: integer("confirmed_at", { mode: "timestamp_ms" }),
+    unsubscribedAt: integer("unsubscribed_at", { mode: "timestamp_ms" }),
+    /** Kiedy wysłano e-mail premierowy (jednorazowy). */
+    notifiedAt: integer("notified_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("waitlist_signups_email").on(t.email),
+    index("waitlist_signups_status_created").on(t.status, t.createdAt),
+  ],
+);
+
 /** Zgłoszenia do wsparcia i reklamacje (Z50); termin odpowiedzi 14 dni zgodnie z regulaminem §8. */
 export const supportRequests = sqliteTable(
   "support_requests",
