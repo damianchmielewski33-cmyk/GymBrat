@@ -516,6 +516,51 @@
     }
   }
 
+  /** Hero: ciepła poświata złota przy górnej krawędzi. */
+  .gold-sheen {
+    box-shadow:
+      0 0 44px rgba(var(--neon-rgb), 0.1),
+      inset 0 1px 0 rgba(246, 227, 161, 0.16);
+  }
+
+  /** Złoty pasek postępu (gradient metaliczny). */
+  .gym-meter-gold {
+    background-image: linear-gradient(
+      180deg,
+      #f6e3a1 0%,
+      var(--gym-gold) 55%,
+      var(--gym-gold-deep) 100%
+    );
+  }
+
+  /** Wykres liniowy: linia „rysuje się”, kropka pojawia się na końcu. */
+  .gym-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: gym-draw-in 1s ease-out 0.1s forwards;
+  }
+
+  .gym-draw-dot {
+    opacity: 0;
+    animation: page-enter-opacity 0.3s ease 0.9s forwards;
+  }
+
+  @keyframes gym-draw-in {
+    to { stroke-dashoffset: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gym-draw {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+
+    .gym-draw-dot {
+      animation: none;
+      opacity: 1;
+    }
+  }
+
   /** Sprężyste „wciśnięcie" dla kart-linków, chipów i małych przycisków. */
   .gym-tap {
     transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);

@@ -1,8 +1,6 @@
-import Link from "next/link";
-import { Suspense } from "react";
+import { TriangleAlert } from "lucide-react";
+import { HomeRetryButton } from "@/components/home/home-retry-button";
 import { getWorkoutPlansWithLastWorkout } from "@/actions/workout-plan";
-import { HomePrzemianaSectionLoader } from "@/components/home/home-przemiana-section-loader";
-import { HomePrzemianaSkeleton } from "@/components/home/home-przemiana-skeleton";
 import { HomeTodayView } from "@/components/home/home-today-view";
 import { getDb } from "@/db";
 import { userSettings, users, workouts } from "@/db/schema";
@@ -10,7 +8,6 @@ import { parseFirstDietSupplements } from "@/lib/diet-supplements";
 import { getHomeStartDashboard } from "@/lib/home-start";
 import { shouldShowIntroTour } from "@/lib/intro-tour-steps";
 import { addCalendarDays } from "@/lib/local-date";
-import { getTreningiHubStats } from "@/lib/treningi-hub-stats";
 import { count, eq } from "drizzle-orm";
 import { shouldShowOnboarding } from "@/lib/plan-from-history";
 
@@ -41,14 +38,13 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
   let accountCreatedAt: Date | null = null;
   let dash: Awaited<ReturnType<typeof getHomeStartDashboard>>;
   let plans: Awaited<ReturnType<typeof getWorkoutPlansWithLastWorkout>>;
-  let hub: Awaited<ReturnType<typeof getTreningiHubStats>>;
   let workoutCount = 0;
 
   try {
     const db = getDb();
     let userCreated: { createdAt: Date } | undefined;
     let countRow: { n: number } | undefined;
-    [[settingsRow], [userCreated], dash, plans, hub, [countRow]] = await Promise.all([
+    [[settingsRow], [userCreated], dash, plans, [countRow]] = await Promise.all([
       db
         .select({
           onboardingCompletedAt: userSettings.onboardingCompletedAt,
@@ -66,7 +62,6 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
         .limit(1),
       getHomeStartDashboard(userId),
       getWorkoutPlansWithLastWorkout(),
-      getTreningiHubStats(userId),
       db
         .select({ n: count() })
         .from(workouts)
@@ -80,20 +75,22 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
       e instanceof Error ? e.message : e,
     );
     return (
-      <div className="app-panel space-y-4 px-4 py-5 text-center">
-        <p className="text-[15px] font-semibold text-white">
-          Nie udało się wczytać pulpitu
-        </p>
-        <p className="text-[13px] leading-snug text-white/55">
-          Chwilowy problem z bazą lub hostingu. Odśwież stronę za chwilę —
-          dane treningów i raportów są bezpieczne.
-        </p>
-        <Link
-          href="/"
-          className="gym-btn-primary inline-flex h-11 w-full items-center justify-center rounded-xl text-sm font-semibold"
-        >
-          Odśwież pulpit
-        </Link>
+      <div
+        role="alert"
+        className="flex gap-3 rounded-[14px] border border-[#5a3a22] bg-[#1f1510] p-4 text-white"
+      >
+        <TriangleAlert
+          className="mt-0.5 h-[22px] w-[22px] shrink-0 text-orange-400"
+          aria-hidden
+        />
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">Nie udało się wczytać pulpitu</p>
+          <p className="mt-0.5 text-sm leading-relaxed text-white/60">
+            Chwilowy problem z bazą lub hostingiem. Twoje treningi i raporty
+            są bezpieczne. Spróbuj ponownie za chwilę.
+          </p>
+          <HomeRetryButton />
+        </div>
       </div>
     );
   }
@@ -141,27 +138,6 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
       weightSeries={dash.weightSeries}
       waistSeries={dash.waistSeries}
       compliance={dash.compliance}
-      formToday={dash.formToday}
-      coachNote={dash.coachNote}
-      przemianaSlot={
-        <Suspense fallback={<HomePrzemianaSkeleton />}>
-          <HomePrzemianaSectionLoader
-            userId={userId}
-            weightFromStartKg={dash.weightFromStartKg}
-          />
-        </Suspense>
-      }
-      dimensions={{
-        waistCm: dash.dimensions.waistCm,
-        thighCm: dash.dimensions.thighCm,
-        chestCm: dash.dimensions.chestCm,
-        armCm: dash.dimensions.armCm,
-        waistSpark: dash.dimensions.waistSpark,
-        thighSpark: dash.dimensions.thighSpark,
-        chestSpark: dash.dimensions.chestSpark,
-        armSpark: dash.dimensions.armSpark,
-      }}
-      recentWorkouts={hub.recentWorkouts}
       workoutsThisWeek={dash.workoutsThisWeek}
       cardioThisWeekMinutes={dash.cardioThisWeekMinutes}
       workoutStreakWeeks={dash.workoutStreakWeeks}

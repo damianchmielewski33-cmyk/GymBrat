@@ -11,7 +11,7 @@ import {
   Plus,
   Utensils,
   Dumbbell,
-  Users,
+  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { resolveContextFab, type ContextFab } from "@/lib/context-fab";
@@ -63,7 +63,6 @@ export function AppShell({
       { href: "/workout-plan", label: t("nav.training"), icon: Dumbbell },
       { href: "/meal-suggestions", label: t("nav.diet"), icon: Utensils },
       { href: "/progress", label: t("nav.analysis"), icon: LineChart },
-      { href: "/community/teams", label: t("nav.teams"), icon: Users },
     ],
     [t],
   );
@@ -77,7 +76,6 @@ export function AppShell({
       "/workout-plan",
       "/meal-suggestions",
       "/progress",
-      "/community/teams",
     ];
     for (const href of routes) {
       router.prefetch(href);
@@ -154,20 +152,23 @@ export function AppShell({
           aria-label="Nawigacja główna"
         >
           <div className={cn("pointer-events-auto relative mx-auto px-3", APP_SHELL_MAX)}>
-            {showReportFab ? (
-              <Suspense fallback={null}>
-                <ContextFabButton fab={contextFab} />
-              </Suspense>
-            ) : null}
             <div
               className={cn(
-                "grid grid-cols-5 items-stretch gap-0.5 rounded-[var(--radius-nav)] border border-white/[0.1]",
-                "bg-black/55 px-1.5 pb-1.5 backdrop-blur-2xl",
+                "grid items-stretch gap-0.5 rounded-[var(--radius-nav)] border border-[#33291a] px-1.5 py-1.5",
+                "bg-black/70 backdrop-blur-2xl",
                 "shadow-[0_8px_40px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.04)_inset]",
-                showReportFab ? "pt-7" : "pt-1.5",
+                showReportFab ? "grid-cols-5" : "grid-cols-4",
               )}
             >
-              {tabs.map((item) => (
+              {tabs.slice(0, 2).map((item) => (
+                <TabLink key={item.href} item={item} pathname={pathname} />
+              ))}
+              {showReportFab ? (
+                <Suspense fallback={<span aria-hidden />}>
+                  <ContextFabButton fab={contextFab} />
+                </Suspense>
+              ) : null}
+              {tabs.slice(2).map((item) => (
                 <TabLink key={item.href} item={item} pathname={pathname} />
               ))}
             </div>
@@ -189,19 +190,27 @@ function ContextFabButton({ fab }: { fab: ContextFab | null }) {
 
   if (!fab) return null;
   if (wizardOpen) {
-    return <span className="sr-only">Dodawanie raportu w toku</span>;
+    return (
+      <>
+        <span className="sr-only">Dodawanie raportu w toku</span>
+        <span aria-hidden />
+      </>
+    );
   }
 
+  const Icon = fab.kind === "start" ? Play : Plus;
+
   return (
-    <Link
-      href={fab.href}
-      onClick={() => hapticTap()}
-      className="gym-btn-primary absolute left-1/2 top-0 z-10 inline-flex h-12 min-h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 whitespace-nowrap rounded-full px-5 text-sm font-semibold shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]"
-      aria-label={fab.ariaLabel}
-    >
-      <Plus className="h-4 w-4" aria-hidden />
-      {fab.label}
-    </Link>
+    <div className="flex items-center justify-center">
+      <Link
+        href={fab.href}
+        onClick={() => hapticTap()}
+        className="gold-btn -mt-6 inline-flex h-14 w-14 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold-bright)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]"
+        aria-label={fab.ariaLabel}
+      >
+        <Icon className={cn("h-6 w-6", fab.kind === "start" && "fill-current")} aria-hidden />
+      </Link>
+    </div>
   );
 }
 
@@ -224,9 +233,7 @@ function TabLink({
       : item.href === "/progress"
         ? pathname.startsWith("/progress") ||
           pathname.startsWith("/progress-analysis")
-        : item.href === "/community/teams"
-          ? pathname.startsWith("/community")
-          : pathname.startsWith(item.href);
+        : pathname.startsWith(item.href);
   const visuallyActive = active || optimisticHref === item.href;
 
   return (
@@ -241,17 +248,11 @@ function TabLink({
       className={cn(
         "relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-[var(--radius-card)] px-0.5 py-1.5 text-center text-[length:var(--text-label)] font-semibold transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80 sm:gap-1 sm:text-[length:var(--text-caption)]",
         visuallyActive
-          ? "bg-[var(--gym-gold)]/10 text-[var(--gym-gold)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.45),0_0_18px_rgba(var(--neon-rgb),0.55),0_0_36px_rgba(var(--neon-rgb),0.28)]"
+          ? "bg-[#1a1610] text-[var(--gym-gold-bright)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.35)]"
           : "text-white/55 shadow-none",
         optimisticHref === item.href && !active ? "opacity-90" : null,
       )}
     >
-      {visuallyActive ? (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-[var(--radius-card)] bg-[var(--gym-gold)]/15 blur-md"
-        />
-      ) : null}
       <item.icon className="relative h-5 w-5 sm:h-[1.35rem] sm:w-[1.35rem]" />
       <span className="relative max-w-full truncate leading-none uppercase tracking-[0.06em]">
         {item.label}

@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { ChevronRight, Pill } from "lucide-react";
 import {
   DEFAULT_DIET_SUPPLEMENTS,
   formatSupplementLine,
   type DietSupplement,
 } from "@/lib/diet-supplements";
 
+/** Suplementy na dziś jako chipy; dotknięcie prowadzi do ekranu suplementów. */
 export function HomeSupplementsChip({
   names,
   items,
@@ -22,28 +22,35 @@ export function HomeSupplementsChip({
         ? names.map((n) => ({ name: n.trim() })).filter((s) => s.name)
         : DEFAULT_DIET_SUPPLEMENTS.map((name) => ({ name }));
 
-  const visible = list.slice(0, 3).map(formatSupplementLine);
-  const extra = Math.max(0, list.length - 3);
-  const summary =
-    visible.join(", ") + (extra > 0 ? `, +${extra}` : "");
-
   return (
-    <Link
-      href="/supplements"
-      className="app-card gym-tap flex items-center gap-3 px-3.5 py-3 transition-colors hover:bg-white/[0.04]"
-    >
-      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]">
-        <Pill className="h-4 w-4" aria-hidden />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-white">
+    <section className="app-card p-5" aria-labelledby="home-supp-h">
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="home-supp-h" className="text-[13px] font-semibold text-white/60">
           Suplementy na dziś
-        </span>
-        <span className="mt-0.5 block truncate text-[12px] text-white/50">
-          {summary || "Dodaj suplementy i dawki"}
-        </span>
-      </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
-    </Link>
+        </h2>
+        <Link
+          href="/supplements"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--gym-gold)]"
+        >
+          {list.length === 0 ? "Dodaj" : "Zarządzaj"}
+        </Link>
+      </div>
+      {list.length === 0 ? (
+        <p className="text-sm text-white/60">Dodaj suplementy i dawki.</p>
+      ) : (
+        <ul className="mt-1 flex flex-wrap gap-2">
+          {list.map((s) => (
+            <li key={s.name}>
+              <Link
+                href="/supplements"
+                className="gym-tap inline-flex min-h-11 items-center rounded-xl border border-white/20 bg-black/40 px-3.5 text-sm font-medium text-white"
+              >
+                {formatSupplementLine(s)}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
