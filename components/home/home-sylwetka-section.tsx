@@ -1,19 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowUp, Minus, TrendingUp, type LucideIcon } from "lucide-react";
+import { useState } from "react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
-import { SectionLabel } from "@/components/ui/section-label";
-import { HomeSylwetkaChart } from "@/components/home/home-sylwetka-chart";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { BRAND_GOLD } from "@/lib/brand-colors";
 import type { HomeStartWaistPoint, HomeStartWeightPoint } from "@/lib/home-start";
 
-const WAIST_GREEN = "#86efac";
+type Metric = "weight" | "waist";
 
-function fmtSignedValue(n: number | null, unit: string): string {
-  if (n == null || !Number.isFinite(n)) return "—";
+const MAX_POINTS = 30;
+
+function fmtSigned(n: number, unit: string, extra = ""): string {
   const r = Math.round(n * 10) / 10;
-  const sign = r > 0 ? "+" : "";
-  return `${sign}${String(r).replace(".", ",")} ${unit}`;
+  if (r === 0) return `bez zmian${extra}`;
+  const sign = r > 0 ? "+" : "−";
+  return `${sign}${String(Math.abs(r)).replace(".", ",")} ${unit}${extra}`;
 }
 
 function daysAgoLabel(days: number): string {
@@ -22,66 +24,76 @@ function daysAgoLabel(days: number): string {
   return `${days} dni temu`;
 }
 
-/** Kafelek zmiany od raportu — neutralne kolory, tylko strzałka w kolorze serii. */
-function DeltaTile({
+function shortDate(iso: string): string {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString("pl-PL", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function Sparkline({
+  points,
   label,
-  value,
-  unit,
-  accent,
 }: {
+  points: Array<{ date: string; v: number }>;
   label: string;
-  value: number | null;
-  unit: string;
-  accent: string;
 }) {
-  const valid = value != null && Number.isFinite(value);
-  const rounded = valid ? Math.round(value * 10) / 10 : 0;
-  const Icon: LucideIcon =
-    !valid || rounded === 0 ? Minus : rounded > 0 ? ArrowUp : ArrowDown;
+  if (points.length < 2) {
+    return (
+      <p className="mt-3 text-[13px] text-white/60">
+        Wykres pojawi się po drugim raporcie.
+      </p>
+    );
+  }
+  const vs = points.map((p) => p.v);
+  const min = Math.min(...vs);
+  const max = Math.max(...vs);
+  const span = max - min || 1;
+  const xy = points.map((p, i) => [
+    10 + (i * 320) / (points.length - 1),
+    80 - ((p.v - min) / span) * 64,
+  ]);
+  const last = xy[xy.length - 1]!;
   return (
-    <div className="min-w-0 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-3 py-3 tabular-nums">
-      <p className="flex items-center gap-1.5 truncate text-[16px] font-semibold leading-none text-white">
-        <Icon
-          className="h-3.5 w-3.5 shrink-0"
-          style={{ color: accent }}
-          strokeWidth={2.5}
-          aria-hidden
+    <div className="mt-3">
+      <svg
+        viewBox="0 0 340 90"
+        width="100%"
+        height="90"
+        role="img"
+        aria-label={label}
+        className="block"
+      >
+        <polyline
+          pathLength={1}
+          className="gym-draw"
+          points={xy.map(([x, y]) => `${x.toFixed(0)},${y.toFixed(0)}`).join(" ")}
+          fill="none"
+          stroke={BRAND_GOLD}
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
-        <span className="truncate">{fmtSignedValue(value, unit)}</span>
-      </p>
-      <p className="mt-2 text-[10px] font-semibold uppercase leading-tight tracking-[0.1em] text-white/50">
-        {label}
-      </p>
+        <circle className="gym-draw-dot" cx={last[0]} cy={last[1]} r={5} fill={BRAND_GOLD} />
+      </svg>
+      <div className="mt-1 flex justify-between text-xs text-white/60">
+        <span>{shortDate(points[0]!.date)}</span>
+        <span>{shortDate(points[points.length - 1]!.date)}</span>
+      </div>
     </div>
   );
 }
 
-function TempoTile({ value }: { value: number | null }) {
-  const valid = value != null && Number.isFinite(value);
-  return (
-    <div className="min-w-0 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-3 py-3 tabular-nums">
-      <p className="truncate text-[16px] font-semibold leading-none text-white">
-        {valid ? fmtSignedValue(value, "kg/tydz") : "Za mało danych"}
-      </p>
-      <p className="mt-2 text-[10px] font-semibold uppercase leading-tight tracking-[0.1em] text-white/50">
-        {valid ? "tempo" : "tempo · min. 3 pomiary"}
-      </p>
-    </div>
-  );
-}
-
+/** Sylwetka: jedna karta, przełącznik Waga / Pas; zakresy wykresu są w Analizie. */
 export function HomeSylwetkaSection({
   weightKg,
-  weightDeltaFromPreviousKg,
   weightKgPerWeek,
-  lastReportLabel,
   daysSinceLastReport,
   weightSeries,
   waistSeries,
 }: {
   weightKg: number | null;
   weightDeltaFromPreviousKg: number | null;
-  /** Zostaje w propsach dla zgodności; kafelek „od startu” zniknął z układu. */
   weightFromStartKg?: number | null;
   weightKgPerWeek: number | null;
   lastReportLabel: string | null;
@@ -89,108 +101,113 @@ export function HomeSylwetkaSection({
   weightSeries: HomeStartWeightPoint[];
   waistSeries: HomeStartWaistPoint[];
 }) {
-  const waistSorted = [...waistSeries].sort((a, b) => a.date.localeCompare(b.date));
-  const waistLast = waistSorted[waistSorted.length - 1]?.cm ?? null;
-  const waistPrev = waistSorted[waistSorted.length - 2]?.cm ?? null;
-  const waistDelta =
-    waistLast != null && waistPrev != null ? waistLast - waistPrev : null;
+  const [metric, setMetric] = useState<Metric>("weight");
+
+  const wSorted = [...weightSeries].sort((a, b) => a.date.localeCompare(b.date));
+  const sSorted = [...waistSeries].sort((a, b) => a.date.localeCompare(b.date));
+  const isWeight = metric === "weight";
+
+  const series = (isWeight
+    ? wSorted.map((p) => ({ date: p.date, v: p.kg }))
+    : sSorted.map((p) => ({ date: p.date, v: p.cm }))
+  ).slice(-MAX_POINTS);
+
+  // Jedno źródło prawdy: wartość = ostatni punkt wykresu (gdy jest), inaczej wartość z profilu.
+  const lastPoint = series[series.length - 1]?.v ?? null;
+  const value = isWeight ? (lastPoint ?? weightKg) : lastPoint;
+  const prev = series.length >= 2 ? series[series.length - 2]!.v : null;
+  const delta = value != null && prev != null ? value - prev : null;
+  const unit = isWeight ? "kg" : "cm";
+
+  const deltaText =
+    delta == null
+      ? "Za mało danych do porównania"
+      : `${fmtSigned(delta, unit)} od poprzedniego pomiaru${
+          isWeight && weightKgPerWeek != null
+            ? ` · ${fmtSigned(weightKgPerWeek, "kg/tydz.")}`
+            : ""
+        }`;
+
+  const decimals = value != null && Number.isInteger(value) ? 0 : 1;
+
+  if (wSorted.length === 0 && sSorted.length === 0 && weightKg == null) {
+    return (
+      <section className="app-card p-5" aria-labelledby="home-syl-h">
+        <h2 id="home-syl-h" className="text-[13px] font-semibold text-white/60">
+          Sylwetka
+        </h2>
+        <p className="mt-3 text-[18px] font-semibold text-white">Dodaj pierwszy raport</p>
+        <p className="mt-1 text-sm leading-relaxed text-white/60">
+          Waga, wymiary i zdjęcia widzisz tylko Ty. Po drugim raporcie pojawi się wykres zmian.
+        </p>
+        <Link
+          href="/reports?new=1"
+          className="gym-tap mt-3 flex min-h-12 w-full items-center justify-center rounded-2xl border border-white/20 text-[15px] font-semibold text-white"
+        >
+          Dodaj raport
+        </Link>
+      </section>
+    );
+  }
 
   return (
-    <section className="space-y-3">
-      <SectionLabel
-        title="Sylwetka"
-        trailing={
-          lastReportLabel ? (
-            <span className="inline-flex items-center gap-2">
-              <span>ostatni raport {lastReportLabel}</span>
-              {daysSinceLastReport != null ? (
-                <span className="rounded-full bg-[var(--gym-gold)]/15 px-2 py-0.5 text-[11px] font-semibold text-[var(--gym-gold)]">
-                  {daysAgoLabel(daysSinceLastReport)}
-                </span>
-              ) : null}
-            </span>
-          ) : (
-            "brak raportu"
-          )
+    <section className="app-card p-5" aria-labelledby="home-syl-h">
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="home-syl-h" className="text-[13px] font-semibold text-white/60">
+          Sylwetka
+        </h2>
+        {daysSinceLastReport != null ? (
+          <span className="text-xs text-white/60">
+            Ostatni raport: {daysAgoLabel(daysSinceLastReport)}
+          </span>
+        ) : null}
+      </div>
+      <SegmentedControl
+        className="mt-3"
+        ariaLabel="Wskaźnik sylwetki"
+        value={metric}
+        onChange={setMetric}
+        options={[
+          { value: "weight", label: "Waga" },
+          { value: "waist", label: "Pas" },
+        ]}
+      />
+
+      <p className="mt-4 flex items-baseline gap-2">
+        {value != null ? (
+          <>
+            <AnimatedMetric
+              key={metric}
+              value={value}
+              decimals={decimals}
+              className="text-[56px] leading-none text-white"
+            />
+            <span className="text-[15px] text-white/60">{unit}</span>
+          </>
+        ) : (
+          <span className="font-metric text-[56px] leading-none text-white/50">—</span>
+        )}
+      </p>
+      <p className={"mt-1 text-sm " + (delta == null ? "text-white/60" : "text-emerald-300")}>
+        {deltaText}
+      </p>
+
+      <Sparkline
+        key={metric}
+        points={series}
+        label={
+          isWeight
+            ? `Wykres wagi, ostatnia wartość ${value ?? "brak"} kg`
+            : `Wykres obwodu pasa, ostatnia wartość ${value ?? "brak"} cm`
         }
       />
 
-      <div className="app-card space-y-4 p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-              Waga
-            </p>
-            <div className="mt-1.5 flex items-baseline gap-2">
-              {weightKg != null && Number.isFinite(weightKg) ? (
-                <>
-                  <AnimatedMetric
-                    value={weightKg}
-                    decimals={1}
-                    className="text-[48px] leading-none text-white"
-                  />
-                  <span className="text-[15px] font-medium text-white/55">kg</span>
-                </>
-              ) : (
-                <span className="font-metric text-[48px] leading-none text-white/50">
-                  —
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="min-w-0 text-right">
-            <p
-              className="text-[11px] font-semibold uppercase tracking-[0.16em]"
-              style={{ color: WAIST_GREEN }}
-            >
-              Pas
-            </p>
-            <div className="mt-1.5 flex items-baseline justify-end gap-1.5">
-              {waistLast != null && Number.isFinite(waistLast) ? (
-                <>
-                  <AnimatedMetric
-                    value={waistLast}
-                    decimals={Number.isInteger(waistLast) ? 0 : 1}
-                    className="text-[32px] leading-none text-white"
-                  />
-                  <span className="text-[14px] font-medium text-white/55">cm</span>
-                </>
-              ) : (
-                <span className="font-metric text-[32px] leading-none text-white/50">
-                  —
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2" aria-label="Zmiany od ostatniego raportu">
-          <DeltaTile
-            label="waga od raportu"
-            value={weightDeltaFromPreviousKg}
-            unit="kg"
-            accent="var(--gym-gold)"
-          />
-          <DeltaTile
-            label="pas od raportu"
-            value={waistDelta}
-            unit="cm"
-            accent={WAIST_GREEN}
-          />
-          <TempoTile value={weightKgPerWeek} />
-        </div>
-
-        <HomeSylwetkaChart data={weightSeries} waist={waistSeries} />
-
-        <Link
-          href="/progress"
-          className="gym-tap flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-3.5 text-[14px] font-medium text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white"
-        >
-          <TrendingUp className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />
-          Wszystkie postępy: siła, sylwetka, zdjęcia
-        </Link>
-      </div>
+      <Link
+        href="/progress"
+        className="gym-tap mt-3 flex min-h-12 w-full items-center justify-center rounded-2xl border border-white/20 px-4 text-[15px] font-semibold text-white"
+      >
+        Wszystkie postępy: siła, sylwetka, zdjęcia
+      </Link>
     </section>
   );
 }

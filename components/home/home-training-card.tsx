@@ -5,15 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Play } from "lucide-react";
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
-import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
-import { HomeCardioProgressStrip } from "@/components/home/home-cardio-progress-strip";
 import {
   FullscreenAdOverlay,
   useFullscreenAdGate,
 } from "@/components/ads/fullscreen-ad-gate";
 import { beginWorkoutFromPlanRow } from "@/lib/start-workout-session";
 import { useActiveWorkoutStore } from "@/lib/stores/active-workout";
-import type { ExtraCardioAdvice } from "@/lib/extra-cardio-from-macros";
 import {
   formatPlanLastDoneRelative,
   formatPlanLastDoneShort,
@@ -33,65 +30,21 @@ export type HomeTrainingDayOption = {
   row: WorkoutPlanWithLastWorkoutDTO;
 };
 
-function MiniStat({
-  label,
-  value,
-  unit,
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-}) {
-  return (
-    <div className="flex min-h-[84px] min-w-0 flex-col items-center justify-center px-2 py-3 text-center">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/55">
-        {label}
-      </p>
-      <p className="mt-2 font-display text-2xl leading-none tabular-nums text-[var(--gym-gold)]">
-        {value}
-        {unit ? (
-          <span className="ml-1 text-[11px] font-medium text-[var(--gym-gold)]/70">
-            {unit}
-          </span>
-        ) : null}
-      </p>
-    </div>
-  );
-}
-
 export function HomeTrainingCard({
   recommendedPlanId,
   planName,
   days,
-  workoutsThisWeek,
-  cardioThisWeekMinutes,
-  workoutStreakWeeks,
-  cardioGoalMinutes,
-  cardioSheetWeek,
-  extraCardio = null,
   canBuildPlanFromHistory = false,
 }: {
   recommendedPlanId: string | null;
   planName: string | null;
   exerciseCount: number;
   days: HomeTrainingDayOption[];
-  workoutsThisWeek: number;
-  cardioThisWeekMinutes: number;
-  workoutStreakWeeks: number;
-  cardioGoalMinutes: number;
-  /** Tydzień pn–nd do arkusza (ADR 0009) — nie mylić z rolling kafelka. */
-  cardioSheetWeek: {
-    minutesCompleted: number;
-    goalMinutes: number;
-    weekLabel: string;
-  };
-  extraCardio?: ExtraCardioAdvice | null;
   canBuildPlanFromHistory?: boolean;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [cardioOpen, setCardioOpen] = useState(false);
   const workoutAd = useFullscreenAdGate("before_workout_start");
   const [selectedId, setSelectedId] = useState<string | null>(
     recommendedPlanId ?? days[0]?.id ?? null,
@@ -141,38 +94,10 @@ export function HomeTrainingCard({
     });
   }
 
-  const cardioCard = (
-    <HomeCardioProgressStrip
-      minutesCompleted={cardioThisWeekMinutes}
-      weeklyGoal={cardioGoalMinutes}
-      extraCardio={extraCardio}
-      onAddCardio={() => setCardioOpen(true)}
-    />
-  );
-
-  const cardioSheet = (
-    <CardioLogSheet
-      open={cardioOpen}
-      onClose={() => setCardioOpen(false)}
-      weekProgress={cardioSheetWeek}
-    />
-  );
-
-  // Trzy równe kafelki; żaden nie nawiguje (cele nawigacji jeszcze nieustalone).
-  const weekStats = (
-    <div
-      className="app-card-raised grid grid-cols-2 divide-x divide-white/[0.08]"
-      aria-label="Podsumowanie tygodnia"
-    >
-      <MiniStat label="Treningi w tym tyg." value={String(workoutsThisWeek)} />
-      <MiniStat label="Tygodni z rzędu" value={String(workoutStreakWeeks)} />
-    </div>
-  );
-
   if (!displayName && days.length === 0 && !unfinished) {
     return (
       <div className="space-y-3">
-        <section className="app-card relative overflow-hidden p-5">
+        <section className="app-card gold-sheen relative overflow-hidden p-5">
           <div
             className="pointer-events-none absolute inset-0 opacity-80"
             style={{
@@ -185,11 +110,11 @@ export function HomeTrainingCard({
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
               Trening na dziś
             </p>
-            <h2 className="mt-2 text-[26px] font-semibold leading-tight text-white">
-              Dodaj plan treningowy
+            <h2 className="mt-1.5 font-display text-[44px] leading-none tracking-wide text-white">
+              Zacznij od planu
             </h2>
             <p className="mt-2 text-sm text-white/50">
-              Ustaw dni planu, żeby szybko startować sesję.
+              Ułóż plan z katalogu ćwiczeń albo trenuj bez planu i zapisuj serie na bieżąco.
             </p>
             <Link
               href="/plany"
@@ -201,16 +126,13 @@ export function HomeTrainingCard({
             {canBuildPlanFromHistory ? <PlanFromHistoryButton /> : null}
           </div>
         </section>
-        {cardioCard}
-        {weekStats}
-        {cardioSheet}
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <section className="app-card relative overflow-hidden p-5">
+      <section className="app-card gold-sheen relative overflow-hidden p-5">
         <div
           className="pointer-events-none absolute inset-0 opacity-90"
           style={{
@@ -225,11 +147,11 @@ export function HomeTrainingCard({
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
               {unfinished ? "Niedokończony trening" : "Trening na dziś"}
             </p>
-            <h2 className="mt-2 text-[28px] font-semibold leading-tight text-white">
+            <h2 className="mt-1.5 font-display text-[52px] leading-none tracking-wide text-white" translate="no">
               {displayName}
             </h2>
             {planMeta ? (
-              <p className="mt-1.5 text-[13px] text-white/55">{planMeta}</p>
+              <p className="mt-2 text-sm text-white/60">{planMeta}</p>
             ) : null}
           </div>
 
@@ -280,9 +202,9 @@ export function HomeTrainingCard({
                 onClick={() => setPickerOpen((v) => !v)}
                 aria-expanded={pickerOpen}
                 aria-controls="home-day-picker"
-                className="app-panel gym-tap flex min-h-11 w-full items-center justify-center gap-1.5 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55"
+                className="app-panel gym-tap flex min-h-11 w-full items-center justify-center gap-1.5 px-4 py-3 text-[15px] font-semibold text-white/85"
               >
-                Inny dzień
+                Zmień dzień treningowy
                 <ChevronDown
                   className={cn(
                     "h-3.5 w-3.5 transition",
@@ -370,9 +292,6 @@ export function HomeTrainingCard({
           ) : null}
         </div>
       </section>
-      {cardioCard}
-      {weekStats}
-      {cardioSheet}
       <FullscreenAdOverlay
         open={workoutAd.open}
         onContinue={workoutAd.continueAfterAd}

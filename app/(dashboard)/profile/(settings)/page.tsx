@@ -164,6 +164,12 @@ export default async function ProfileOverviewPage() {
         />
 
         <ProfileOverviewCard
+          href="/community/teams"
+          title="Zespół"
+          summary="Zespoły, wyzwania i społeczność"
+        />
+
+        <ProfileOverviewCard
           href="/profile/app"
           title="Aplikacja"
           summary="Język interfejsu i instalacja na telefonie"

@@ -11,6 +11,16 @@
     ]
   },
   {
+    "title": "Zapowiedź — Nowy, spokojniejszy Pulpit",
+    "planned": true,
+    "bullets": [
+      "Pulpit pokazuje najpierw trening na dziś, potem tydzień (treningi, seria, cardio), jedną kartę makro z przełącznikiem Dziś/Tydzień i Sylwetkę z przełącznikiem Waga/Pas.",
+      "Realizacja założeń to teraz paski zamiast pierścieni, a suplementy są chipami; liczby narastają, paski się wypełniają, a przy ustawieniu „ogranicz ruch” animacje są wyłączone.",
+      "Dolna nawigacja: Pulpit, Trening, przycisk w środku, Dieta, Analiza. Zespół znajdziesz w Profilu.",
+      "Trening ma przełącznik Plan/Historia, Dieta nowy układ bilansu (duża liczba kcal i paski makro), a ekrany ładowania i błędu pulpitu są spójne z resztą."
+    ]
+  },
+  {
     "title": "Zapowiedź — Strona reklamowa, zapis na premierę w Google Play i koniec publicznego APK",
     "planned": true,
     "bullets": [

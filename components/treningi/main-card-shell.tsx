@@ -7,7 +7,7 @@ export const mainCardKickerClass =
 
 /** Tytuł karty głównej (h2); na niskich ekranach 1 linia (budżet „above the fold”). */
 export const mainCardTitleClass =
-  "mt-1.5 line-clamp-2 font-heading text-[length:var(--text-kpi)] font-semibold leading-tight text-white outline-none [overflow-wrap:anywhere] compact:line-clamp-1";
+  "mt-1.5 line-clamp-2 font-display text-[44px] leading-none tracking-wide text-white outline-none [overflow-wrap:anywhere] compact:line-clamp-1";
 
 /**
  * Wspólna rama czterech wariantów karty głównej ekranu Trening (jeden slot, BR-11).
