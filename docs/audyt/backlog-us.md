@@ -182,7 +182,7 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Gotowe, gdy** Dashboard KPI z definicjami; publiczna strona z SEO/OG; wskazane moduły podzielone bez regresji testów; dokumentacja wskazuje na ten backlog.
 
 ## US21 — Domknięcie: weryfikacja, długi i prace właściciela po US1–US20
-**P0 · XL · Zależności** wszystkie US1–US20 (kod w repo gotowy lub częściowy) · **Postęp** 2/7 (Z84, Z85 zrobione 2026-11-04; Z88 częściowo 2026-11-06: Z80 i CAS gotowe, Z39 czeka na decyzję; kolejne: Z86 → Z87)
+**P0 · XL · Zależności** wszystkie US1–US20 (kod w repo gotowy lub częściowy) · **Postęp** 4/7 (Z84, Z85 2026-11-04; Z86 E2E 44/46 + axe 0 poważnych, Z88 kod (bez uploadu z klienta) 2026-11-06; Z87 częściowo — reszta po stronie właściciela; zostają Z89, Z90)
 **Cel** Zebrać w jednym miejscu wszystko, co po US1–US20 nie zostało wykonane albo zweryfikowane, i doprowadzić do stanu „Definition of Launch" (sekcja 13 audytu).
 **Podzadania** Z84 uruchomienie bramek jakości (wymaga npm) · Z85 lint (domknięcie Z42) · Z86 E2E, axe i zrzuty (Z43, Z46, Z69, Z74) · Z87 pomiary, migracje i testy współbieżności (Z41, Z40, Z72) · Z88 dokończenie kodu (Z80, Z39, CAS, Z36) · Z89 prace właściciela `[NA KONIEC]` · Z90 zatwierdzenia prawne i domknięcie decyzji.
 **Kolejność** Z84 → Z85 → Z88 → Z86 → Z87 (agent, gdy będzie dostęp do npm) → Z89 → Z90 → `US19` (Z51, Z52).
