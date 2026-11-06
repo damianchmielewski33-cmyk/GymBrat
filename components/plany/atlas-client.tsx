@@ -344,7 +344,6 @@ export function AtlasClient({
                       type="button"
                       className="app-card flex min-h-[84px] items-center gap-2.5 p-3 text-left"
                       onClick={() => setPartia(id)}
-                      aria-label={`${cat.label}, ${counts[id] ?? 0} ćwiczeń`}
                     >
                       {id === "cardio" ? (
                         <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] text-[var(--gym-gold)]">
@@ -361,7 +360,7 @@ export function AtlasClient({
                           {cat.label}
                         </span>
                         <span className="mt-0.5 block text-[12px] tabular-nums text-[var(--gym-text-secondary)]">
-                          {counts[id] ?? 0}
+                          {counts[id] ?? 0}<span className="sr-only"> ćwiczeń</span>
                         </span>
                       </span>
                     </button>

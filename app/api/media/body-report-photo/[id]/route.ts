@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-async function handleGET(_req: Request, ctx: Ctx) {
+async function handleGET(req: Request, ctx: Ctx) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
@@ -17,7 +17,9 @@ async function handleGET(_req: Request, ctx: Ctx) {
   }
 
   const { id } = await ctx.params;
-  const dataUrl = await getBodyReportPhotoDataUrlForUser(id, userId);
+  const dataUrl = await getBodyReportPhotoDataUrlForUser(id, userId, {
+    thumb: new URL(req.url).searchParams.get("size") === "thumb",
+  });
   if (!dataUrl) {
     return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
   }

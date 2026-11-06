@@ -103,10 +103,20 @@ async function loginAndClearSession(page: Page) {
   const xsrf = (await page.context().cookies()).find((c) => c.name === "gymbrat_xsrf")?.value ?? "";
   const current = await page.request.get("/api/active-workout-session");
   const currentJson = (await current.json().catch(() => null)) as { session?: { revision?: number } | null } | null;
-  const del = await page.request.delete("/api/active-workout-session", {
+  let revision = currentJson?.session?.revision ?? 0;
+  let del = await page.request.delete("/api/active-workout-session", {
     headers: { "x-xsrf-token": decodeURIComponent(xsrf) },
-    data: { revision: currentJson?.session?.revision ?? 0 },
+    data: { revision },
   });
+  // 409: ostatni zapis z poprzedniego testu zmienił rewizję — ponów z aktualną rewizją serwera.
+  for (let i = 0; i < 3 && del.status() === 409; i++) {
+    const body = (await del.json().catch(() => null)) as { session?: { revision?: number } | null } | null;
+    revision = body?.session?.revision ?? revision + 1;
+    del = await page.request.delete("/api/active-workout-session", {
+      headers: { "x-xsrf-token": decodeURIComponent(xsrf) },
+      data: { revision },
+    });
+  }
   expect(del.ok(), `DELETE /api/active-workout-session -> ${del.status()} ${(await del.text()).slice(0, 160)}`).toBeTruthy();
 }
 
@@ -174,7 +184,8 @@ async function openSessionWithSets(page: Page, setsCount: number, doneSetsCount 
   await injectSessionAndOpen(
     page,
     sessionWithSets(setsCount, doneSetsCount),
-    `Zapisz serię ${doneSetsCount + 1}`,
+    // Ostatnia otwarta seria ma etykietę „Zakończ ostatnią serię i zapisz” (LR-2).
+    doneSetsCount === setsCount - 1 ? "Zakończ ostatnią serię i zapisz" : `Zapisz serię ${doneSetsCount + 1}`,
   );
 }
 
@@ -205,7 +216,8 @@ test.describe("Aktywny trening (004)", () => {
     await expect(page.getByText(/seria\s*1\/7/)).toBeVisible();
     await expect(progressbar(page)).toHaveAttribute("aria-valuetext", "Zapisano 0 z 7 serii");
     await expect(weightInput(page)).toHaveValue("67.5");
-    await expect(repsInput(page)).toHaveValue("8");
+    // Podniesienie ciężaru resetuje powtórzenia do dolnej granicy zakresu (6), a nie do celu 8.
+    await expect(repsInput(page)).toHaveValue("6");
     // Sugestia ↑ (67,5 > 65 z poprzedniego treningu) — kierunek także w opisie dla czytnika.
     await expect(
       page.getByRole("button", { name: /^Sugestia: więcej, 67,5 kg/ }),
@@ -311,11 +323,9 @@ test.describe("Aktywny trening (004)", () => {
     await page.getByRole("button", { name: /^Seria 1, zapisana/ }).click();
     await expect(page.getByRole("button", { name: "Popraw serię 1" })).toBeVisible();
     await weightInput(page).fill("");
-    await expect(page.getByRole("button", { name: /^Seria 1, pominięta/ })).toBeVisible();
-    await expect(progressbar(page)).toHaveAttribute(
-      "aria-valuetext",
-      "Zapisano 0 z 7 serii, pominięto 1",
-    );
+    // Decyzja właściciela 005 p.7: ciężar nigdy nie blokuje zaliczenia — seria zostaje zapisana (0 kg).
+    await expect(page.getByRole("button", { name: /^Seria 1, zapisana/ })).toBeVisible();
+    await expect(progressbar(page)).toHaveAttribute("aria-valuetext", "Zapisano 1 z 7 serii");
     await weightInput(page).fill("72");
     await expect(page.getByRole("button", { name: /^Seria 1, zapisana: 72 kg/ })).toBeVisible();
     await expect(progressbar(page)).toHaveAttribute("aria-valuetext", "Zapisano 1 z 7 serii");

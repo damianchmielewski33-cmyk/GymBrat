@@ -94,7 +94,7 @@ function DeleteMealButton({ id }: { id: string }) {
 export function DietDiarySections({
   dateKey,
   entries,
-  defaultSlot,
+  defaultSlot: _defaultSlot,
 }: {
   dateKey: string;
   entries: MealLogDto[];

@@ -22,6 +22,7 @@ export function ChallengeCelebrationOverlay({
     if (!current) return;
     const t = requestAnimationFrame(() => setVisible(true));
     return () => cancelAnimationFrame(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reaguje tylko na zmianę claimId
   }, [current?.claimId]);
 
   if (!current) return null;

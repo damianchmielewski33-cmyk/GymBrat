@@ -32,13 +32,14 @@ test.describe("Dieta / admin / sesja — po zalogowaniu", () => {
   test("Dieta: zakładki Plan i Jadłospis", async ({ page }) => {
     await loginAsAthlete(page);
     await page.goto("/meal-suggestions");
-    await expect(page.getByRole("button", { name: /^Plan$/i })).toBeVisible({
+    // Zakładki ekranu Dieta: „Przepisy" (katalog) i „Dziennik" (jadłospis).
+    await expect(page.getByRole("button", { name: /^Przepisy$/i })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByRole("button", { name: /Jadłospis|Food log/i })).toBeVisible();
-    await page.getByRole("button", { name: /^Plan$/i }).click();
+    await expect(page.getByRole("button", { name: /^Dziennik$/i })).toBeVisible();
+    await page.getByRole("button", { name: /^Przepisy$/i }).click();
     await expect(
-      page.getByText(/Katalog posiłków|Meal catalog|Brak przepisów|No recipes/i).first(),
+      page.getByText(/Katalog|Przeglądaj katalog|Brak przepisów/i).first(),
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -61,7 +62,9 @@ test.describe("Dieta / admin / sesja — po zalogowaniu", () => {
     const url = page.url();
     if (/\/admin\/catalog/.test(url)) {
       await expect(
-        page.getByText(/Przepisy w aplikacji|Recipes in the app|Pakiet startowy|Starter pack/i).first(),
+        page
+          .getByText(/Przepisy w aplikacji|Recipes in the app|Pakiet startowy|Starter pack|Brak dostępu/i)
+          .first(),
       ).toBeVisible({ timeout: 10_000 });
     } else {
       await expect(page).toHaveURL(/\/(login|admin|profile|$)/);

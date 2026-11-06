@@ -23,5 +23,5 @@ export async function listUserPhotoObjectKeys(
 /** Best effort — błąd pojedynczego obiektu nie przerywa usuwania konta/retencji. */
 export async function deleteObjectKeys(keys: string[]): Promise<void> {
   if (!keys.length || !isObjectStorageEnabled()) return;
-  await Promise.all(keys.map((k) => deleteObject(k).catch(() => {})));
+  await Promise.all(keys.flatMap((k) => [k, `${k}.thumb`]).map((k) => deleteObject(k).catch(() => {})));
 }

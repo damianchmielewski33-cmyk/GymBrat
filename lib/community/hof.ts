@@ -83,7 +83,7 @@ export async function ensureHofSeason(
     endsAt: period.endsAt,
     status: period.isClosed ? "archived" : "open",
     archivedAt: period.isClosed ? new Date() : null,
-  });
+  }).onConflictDoNothing();
 }
 
 type Scored = { userId: string; score: number; scoreLabel: string };
@@ -434,8 +434,10 @@ export async function finalizeSeasonIfDue(
   const db = getDb();
   for (const board of boards) {
     for (const leader of board.leaders) {
-      try {
-        await db.insert(hofAwards).values({
+      // CAS: unikalny indeks (sezon, kategoria, miejsce) — tylko zwycięzca wyścigu dostaje wpis i powiadomienie.
+      const inserted = await db
+        .insert(hofAwards)
+        .values({
           seasonKey: period.key,
           category: board.category,
           rank: leader.rank,
@@ -443,10 +445,10 @@ export async function finalizeSeasonIfDue(
           score: leader.score,
           scoreLabel: leader.scoreLabel,
           metaJson: "{}",
-        });
-      } catch {
-        /* unique race */
-      }
+        })
+        .onConflictDoNothing()
+        .returning({ id: hofAwards.id });
+      if (inserted.length === 0) continue;
       if (leader.rank === 1) {
         const badgeKey = `hof_${period.key}_${board.category}`;
         try {

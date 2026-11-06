@@ -46,7 +46,6 @@ function silenceConsole(): void {
     ] as const;
     for (const m of methods) {
       try {
-        // eslint-disable-next-line no-console
         console[m] = NOOP as never;
       } catch {
         /* ignore */

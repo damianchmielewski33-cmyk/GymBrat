@@ -220,7 +220,6 @@ export function DayBalanceCard({
         aria-controls={panelId}
         onClick={onToggle}
         className="flex w-full min-h-16 flex-col gap-2.5 p-4 text-left"
-        aria-label={`${day.weekdayLabel}, ${day.shortDateLabel}, ${day.status === "deviations" ? plOdchylenia(day.highlightsCount) : day.status === "empty" ? "brak wpisów" : day.status === "in_range" ? "w normie" : "status dnia"}, ${expanded ? "zwiń" : "rozwiń"}`}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -244,6 +243,7 @@ export function DayBalanceCard({
             />
           </div>
         </div>
+        <span className="sr-only">{expanded ? "Zwiń" : "Rozwiń"}</span>
         {day.status === "empty" ? null : (
           <div className="grid grid-cols-4 gap-2">
             {day.macros.map((m) => (

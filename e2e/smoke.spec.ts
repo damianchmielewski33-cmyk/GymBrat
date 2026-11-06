@@ -1,8 +1,9 @@
 import { test, expect } from "@playwright/test";
 
-test("strona logowania wyświetla markę GymBrat", async ({ page }) => {
+test("strona logowania wyświetla formularz GymBrat", async ({ page }) => {
   await page.goto("/login");
-  await expect(page.getByRole("link", { name: /gym.?brat/i }).first()).toBeVisible();
+  await expect(page).toHaveTitle(/gym.?brat/i);
+  await expect(page.getByRole("button", { name: /^zaloguj się$/i })).toBeVisible();
 });
 
 test("endpoint wersji Androida jest publiczny i zwraca JSON", async ({ request }) => {
@@ -55,6 +56,6 @@ test("opcja: smoke po zalogowaniu (E2E_EMAIL / E2E_PASSWORD)", async ({ page }) 
   await page.getByRole("button", { name: /^zaloguj się$/i }).click();
   await page.waitForURL((url) => url.pathname === "/", { timeout: 25_000 });
   await expect(
-    page.getByRole("heading", { name: /gotowy na trening/i }),
+    page.getByRole("heading", { name: /^cześć,/i }),
   ).toBeVisible({ timeout: 15_000 });
 });

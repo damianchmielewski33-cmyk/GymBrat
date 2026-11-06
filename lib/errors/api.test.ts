@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- handlery testowe muszą mieć parametr `_req` dla typów */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { errorResponse, withApiErrors } from "@/lib/errors/api";

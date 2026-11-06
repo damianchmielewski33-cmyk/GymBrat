@@ -18,7 +18,7 @@ describe("finance (Z75)", () => {
     expect(today.key).toBe(warsawDayKey(NOW));
     expect(today).toMatchObject({ paidGrosze: 1999, manualGrosze: 399, refundedGrosze: 2499 });
     expect(monthly).toHaveLength(12);
-    expect(monthly[monthly.length - 1]).toMatchObject({ key: "2026-11", paidGrosze: 1999 + 0 });
+    expect(monthly[monthly.length - 1]).toMatchObject({ key: "2026-11", paidGrosze: 1999 + 899 });
     expect(monthly.find((m) => m.key === "2026-09")!.paidGrosze).toBe(7999);
   });
 

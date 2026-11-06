@@ -97,7 +97,7 @@ export async function issueReceipt(
         WHERE EXISTS (SELECT 1 FROM subscription_orders WHERE id = ${orderId} AND user_id = ${userId} AND status = 'paid' AND receipt_number IS NULL)
         ON CONFLICT(year) DO UPDATE SET last_number = last_number + 1`),
       db.run(sql`UPDATE subscription_orders
-        SET receipt_number = 'GB/' || ${year} || '/' || printf('%06d', (SELECT last_number FROM receipt_counters WHERE year = ${year})),
+        SET receipt_number = 'GB/' || CAST(${year} AS INTEGER) || '/' || printf('%06d', (SELECT last_number FROM receipt_counters WHERE year = ${year})),
             receipt_issued_at = ${issuedMs}
         WHERE id = ${orderId} AND user_id = ${userId} AND status = 'paid' AND receipt_number IS NULL`),
     ]);

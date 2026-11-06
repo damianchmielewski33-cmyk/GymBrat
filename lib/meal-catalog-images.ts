@@ -95,19 +95,14 @@ export async function upsertCatalogMealImage(args: {
     }
   }
 
-  if (prev) {
-    await db
-      .update(mealCatalogImages)
-      .set({ mimeType: mime, dataUrl, updatedAt })
-      .where(eq(mealCatalogImages.mealId, args.mealId));
-  } else {
-    await db.insert(mealCatalogImages).values({
-      mealId: args.mealId,
-      mimeType: mime,
-      dataUrl,
-      updatedAt,
+  // Upsert atomowy: równoległe zapisy tej samej grafiki nie kończą się błędem klucza.
+  await db
+    .insert(mealCatalogImages)
+    .values({ mealId: args.mealId, mimeType: mime, dataUrl, updatedAt })
+    .onConflictDoUpdate({
+      target: mealCatalogImages.mealId,
+      set: { mimeType: mime, dataUrl, updatedAt },
     });
-  }
 
   return {
     updatedAt,
@@ -301,7 +296,7 @@ export async function generateMissingCatalogImages(args?: {
   const limit = Math.max(1, Math.min(40, args?.limit ?? DEFAULT_BATCH));
   const concurrency = Math.max(1, Math.min(4, args?.concurrency ?? DEFAULT_CONCURRENCY));
 
-  let candidates: CatalogMeal[] = [];
+  const candidates: CatalogMeal[] = [];
   if (args?.mealIds?.length) {
     const rows = await db
       .select()

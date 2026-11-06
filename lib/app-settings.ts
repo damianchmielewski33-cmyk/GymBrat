@@ -12,13 +12,11 @@ export type AppSettingsRow = {
 async function ensureAppSettingsRow(): Promise<void> {
   await ensureCriticalSchema();
   const db = getDb();
-  const rows = await db.select().from(appSettings).limit(1);
-  if (rows.length > 0) return;
-  await db.insert(appSettings).values({
-    id: "singleton",
-    aiGloballyDisabled: 0,
-    updatedAt: new Date(),
-  });
+  // Atomowo: równoległe pierwsze wywołania nie wywalą się na kluczu głównym.
+  await db
+    .insert(appSettings)
+    .values({ id: "singleton", aiGloballyDisabled: 0, updatedAt: new Date() })
+    .onConflictDoNothing();
 }
 
 export async function getAppSettings(): Promise<AppSettingsRow> {

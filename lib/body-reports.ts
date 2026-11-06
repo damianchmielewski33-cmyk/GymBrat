@@ -1,3 +1,4 @@
+import { makeThumbnailDataUrl, thumbKeyFor } from "@/lib/image-thumbnail";
 import { isObjectStorageEnabled, putObject } from "@/lib/object-storage";
 import { loadStoredPhotoPayload } from "@/lib/photo-payload";
 import { desc, eq, inArray } from "drizzle-orm";
@@ -299,6 +300,9 @@ export async function createBodyReport(userId: string, input: CreateBodyReportIn
         // Z39: zaszyfrowany ładunek trafia do magazynu obiektowego, w bazie tylko klucz.
         const objectKey = `body-reports/${userId}/${reportId}/${crypto.randomUUID()}`;
         await putObject(objectKey, encrypted, "text/plain");
+        // Z88b: miniatura obok pełnego zdjęcia (listy i podglądy nie pobierają oryginału).
+        const thumb = await makeThumbnailDataUrl(dataUrl);
+        if (thumb) await putObject(thumbKeyFor(objectKey), encryptSensitiveField(thumb), "text/plain");
         return { reportId, dataUrl: "", objectKey };
       }),
     );

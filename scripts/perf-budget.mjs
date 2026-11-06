@@ -8,8 +8,9 @@ import { execFileSync } from "node:child_process";
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
-    const [k, v] = a.replace(/^--/, "").split("=");
-    return [k, v ?? "1"];
+    const body = a.replace(/^--/, "");
+    const i = body.indexOf("=");
+    return i < 0 ? [body, "1"] : [body.slice(0, i), body.slice(i + 1)];
   }),
 );
 const base = (args.base ?? "http://localhost:3000").replace(/\/$/, "");

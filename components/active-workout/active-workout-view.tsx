@@ -75,7 +75,7 @@ export function ActiveWorkoutView({
   const {
     startedAt,
     pausedElapsedSeconds,
-    workoutStartedAtMs,
+    workoutStartedAtMs: _workoutStartedAtMs,
     title,
     workoutPlanId,
     exercises,

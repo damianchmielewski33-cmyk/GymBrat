@@ -31,11 +31,8 @@ jobs:
         run: npx vitest run
 
   lint:
-    name: Lint (0 błędów, 0 ostrzeżeń)
     runs-on: ubuntu-latest
-    # Z42 w toku (102 błędy, 39 ostrzeżeń na 2026-11-01). Po wyzerowaniu USUŃ `continue-on-error`,
-    # żeby lint blokował merge.
-    continue-on-error: true
+    name: Lint (0 błędów, 0 ostrzeżeń)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

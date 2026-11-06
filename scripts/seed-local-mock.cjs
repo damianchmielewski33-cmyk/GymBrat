@@ -32,6 +32,11 @@ async function user(email, first, role, packageDays) {
   const fid = await user("mock.friend@gymbrat.test", "Ola", "zawodnik", 30);
   await user("mock.admin@gymbrat.test", "Admin", "admin", 0);
   const now = Date.now();
+  // Plan używany przez e2e/active-workout.spec.ts (serwer odrzuca cudzy workoutPlanId).
+  await c.execute({
+    sql: "insert or ignore into workout_plans (id,user_id,plan_json,created_at,updated_at,sort_order) values (?,?,?,?,?,0)",
+    args: ["e2e-plan", uid, JSON.stringify({ planName: "Push E2E", exercises: [{ name: "Wyciskanie sztangi leżąc", sets: 3, reps: "6-8" }] }), now, now],
+  });
   for (const [u, base] of [[uid, 84], [fid, 61]]) {
     for (let i = 0; i < 12; i++) {
       await c.execute({
@@ -42,7 +47,7 @@ async function user(email, first, role, packageDays) {
     for (let i = 0; i < 10; i++) {
       const ex = [
         { name: "Wyciskanie sztangi leżąc", sets: [0, 1, 2].map((s) => ({ reps: 8 - s, weight: 70 + i + s * 2.5, done: true })) },
-        { name: "Przysiad ze sztangą", sets: [0, 1, 2].map((s) => ({ reps: 6, weight: 100 + i * 2, done: true })) },
+        { name: "Przysiad ze sztangą", sets: [0, 1, 2].map((_s) => ({ reps: 6, weight: 100 + i * 2, done: true })) },
       ];
       await c.execute({
         sql: "insert or ignore into workouts (id,user_id,date,cardio_minutes,exercises,tonnage_kg,operation_id) values (?,?,?,?,?,?,?)",

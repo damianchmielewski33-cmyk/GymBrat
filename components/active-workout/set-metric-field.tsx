@@ -85,7 +85,7 @@ export function SetMetricField({
         </p>
         {error ? null : headerSlot}
       </div>
-      <div className="mt-1 flex items-center justify-between gap-3">
+      <div className="mt-1 flex items-center justify-between gap-3 compact:mt-0">
         <div className="flex min-w-0 flex-1 items-end gap-1">
           <input
             ref={inputRef}

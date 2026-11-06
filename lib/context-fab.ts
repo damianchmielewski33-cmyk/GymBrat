@@ -16,7 +16,7 @@ export function resolveContextFab(pathname: string): ContextFab | null {
       kind: "start",
       href: "/workout-plan#next-workout",
       label: "Start",
-      ariaLabel: "Rozpocznij trening",
+      ariaLabel: "Start, rozpocznij trening",
     };
   }
   if (pathname.startsWith("/meal-suggestions")) {

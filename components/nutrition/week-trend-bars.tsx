@@ -35,7 +35,7 @@ export function WeekTrendBars({ days }: { days: WeekTrendDay[] }) {
             <button
               key={d.dateKey}
               type="button"
-              aria-label={d.ariaLabel}
+              aria-label={`${d.kind === "today" ? "dziś" : d.weekdayShort}, ${d.ariaLabel}`}
               aria-pressed={isSelected}
               onClick={() => setSelected(d.dateKey)}
               className="flex h-full w-full max-w-[44px] flex-1 flex-col items-center justify-end gap-1"
@@ -72,9 +72,6 @@ export function WeekTrendBars({ days }: { days: WeekTrendDay[] }) {
               >
                 {d.kind === "today" ? "dziś" : d.weekdayShort}
               </span>
-              {d.kind === "empty" ? (
-                <span className="sr-only">brak</span>
-              ) : null}
             </button>
           );
         })}

@@ -1,4 +1,4 @@
-import { and, desc, eq, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, ne, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import {

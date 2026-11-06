@@ -86,7 +86,6 @@ export function resolvePeriod(
       m === 12
         ? `${y! + 1}-01-01`
         : `${y}-${String(m! + 1).padStart(2, "0")}-01`;
-    const end = addCalendarDays(nextMonth, -1);
     const key = `${y}-${String(m).padStart(2, "0")}`;
     const endsAt = utcDayStart(nextMonth);
     return {

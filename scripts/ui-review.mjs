@@ -9,8 +9,9 @@ import { chromium } from "playwright";
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
-    const [k, v] = a.replace(/^--/, "").split("=");
-    return [k, v ?? "1"];
+    const body = a.replace(/^--/, "");
+    const i = body.indexOf("=");
+    return i < 0 ? [body, "1"] : [body.slice(0, i), body.slice(i + 1)];
   }),
 );
 const base = (args.base ?? "http://localhost:3000").replace(/\/$/, "");
@@ -43,7 +44,17 @@ if (args.axe) {
 const browser = await chromium.launch();
 const axeResults = [];
 for (const vp of VIEWPORTS) {
-  const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
+  const ctx = await browser.newContext({
+    viewport: { width: vp.width, height: vp.height },
+    // --state=e2e/.auth/user.json: sesja z Playwright (zamiast ręcznego cookie).
+    ...(args.state ? { storageState: args.state } : {}),
+  });
+  // Bez banera cookies na zrzutach.
+  await ctx.addInitScript(() => {
+    try {
+      localStorage.setItem("gymbrat_consent_v1", JSON.stringify({ version: 1, decidedAt: new Date().toISOString(), analytics: false, marketing: false }));
+    } catch {}
+  });
   if (cookie) {
     const [name, ...rest] = cookie.split("=");
     await ctx.addCookies([{ name, value: rest.join("="), url: base }]);

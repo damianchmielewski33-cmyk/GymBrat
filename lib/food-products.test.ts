@@ -15,7 +15,6 @@ import {
 import { FOOD_PRODUCTS_LOCAL } from "@/lib/food-products-data";
 import { defaultPortionForProduct, scaleFoodMacros } from "@/lib/food-portion";
 import {
-  buildNutritionRows,
   carbohydrateExchanges,
   classifyIngredient,
   formatFoodDisplayName,
