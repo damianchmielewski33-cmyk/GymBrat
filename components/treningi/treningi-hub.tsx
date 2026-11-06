@@ -7,6 +7,7 @@ import type { TreningiHubStats } from "@/lib/treningi-hub-stats";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { NextWorkoutCard } from "@/components/treningi/next-workout-card";
 import { NoPlanCard } from "@/components/treningi/no-plan-card";
+import { PlanHistorySwitch } from "@/components/treningi/plan-history-switch";
 import { PlanDaysPanel } from "@/components/treningi/plan-days-panel";
 import { TrainingToolsGrid } from "@/components/treningi/training-tools-grid";
 import { TreningiHeader } from "@/components/treningi/treningi-header";
@@ -117,13 +118,24 @@ export function TreningiHub({ hub, stats, startingPlanId, onBegin }: TreningiHub
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>
-      {days.length > 0 ? (
-        <PlanDaysPanel
-          days={days}
-          todayKey={week.todayKey}
-          nextPlanId={nextPlanId}
-          startingPlanId={startingPlanId}
-          onStart={requestBegin}
+      {days.length > 0 || stats.recentWorkouts.length > 0 ? (
+        <PlanHistorySwitch
+          recentWorkouts={stats.recentWorkouts}
+          plan={
+            days.length > 0 ? (
+              <PlanDaysPanel
+                days={days}
+                todayKey={week.todayKey}
+                nextPlanId={nextPlanId}
+                startingPlanId={startingPlanId}
+                onStart={requestBegin}
+              />
+            ) : (
+              <p className="app-panel px-4 py-6 text-center text-sm text-white/60">
+                Brak dni w planie.
+              </p>
+            )
+          }
         />
       ) : null}
       <TrainingToolsGrid />

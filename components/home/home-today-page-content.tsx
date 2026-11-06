@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { TriangleAlert } from "lucide-react";
+import { HomeRetryButton } from "@/components/home/home-retry-button";
 import { getWorkoutPlansWithLastWorkout } from "@/actions/workout-plan";
 import { HomeTodayView } from "@/components/home/home-today-view";
 import { getDb } from "@/db";
@@ -74,20 +75,22 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
       e instanceof Error ? e.message : e,
     );
     return (
-      <div role="alert" className="app-panel space-y-4 px-4 py-5 text-center">
-        <p className="text-[15px] font-semibold text-white">
-          Nie udało się wczytać pulpitu
-        </p>
-        <p className="text-[13px] leading-snug text-white/55">
-          Chwilowy problem z bazą lub hostingu. Odśwież stronę za chwilę —
-          dane treningów i raportów są bezpieczne.
-        </p>
-        <Link
-          href="/"
-          className="gym-btn-primary inline-flex h-11 w-full items-center justify-center rounded-xl text-sm font-semibold"
-        >
-          Odśwież pulpit
-        </Link>
+      <div
+        role="alert"
+        className="flex gap-3 rounded-[14px] border border-[#5a3a22] bg-[#1f1510] p-4 text-white"
+      >
+        <TriangleAlert
+          className="mt-0.5 h-[22px] w-[22px] shrink-0 text-orange-400"
+          aria-hidden
+        />
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">Nie udało się wczytać pulpitu</p>
+          <p className="mt-0.5 text-sm leading-relaxed text-white/60">
+            Chwilowy problem z bazą lub hostingiem. Twoje treningi i raporty
+            są bezpieczne. Spróbuj ponownie za chwilę.
+          </p>
+          <HomeRetryButton />
+        </div>
       </div>
     );
   }
