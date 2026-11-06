@@ -5,7 +5,7 @@
     { "path": "/register", "auth": false, "ci": true, "htmlKb": 70, "ttfbMs": 800, "lcpMs": 2500 },
     { "path": "/regulamin", "auth": false, "ci": true, "htmlKb": 90, "ttfbMs": 800, "lcpMs": 2500 },
     { "path": "/", "auth": true, "htmlKb": 110, "ttfbMs": 1200, "lcpMs": 2500 },
-    { "path": "/treningi", "auth": true, "htmlKb": 110, "ttfbMs": 1200, "lcpMs": 2500 },
+    { "path": "/workout-plan", "auth": true, "htmlKb": 110, "ttfbMs": 1200, "lcpMs": 2500 },
     { "path": "/active-workout", "auth": true, "htmlKb": 110, "ttfbMs": 1200, "lcpMs": 2500 },
     { "path": "/progress", "auth": true, "htmlKb": 120, "ttfbMs": 1500, "lcpMs": 3000 },
     { "path": "/nutrition/today", "auth": true, "htmlKb": 90, "ttfbMs": 1200, "lcpMs": 2500 },

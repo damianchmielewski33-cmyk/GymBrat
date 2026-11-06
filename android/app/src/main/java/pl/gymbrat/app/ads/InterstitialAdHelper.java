@@ -1,6 +1,7 @@
 package pl.gymbrat.app.ads;
 
 import android.app.Activity;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.webkit.WebView;
@@ -12,6 +13,7 @@ import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
+import com.google.ads.mediation.admob.AdMobAdapter;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
@@ -48,14 +50,18 @@ public final class InterstitialAdHelper {
         }
     }
 
-    /** Zgoda z banneru cookies (kategoria marketing). */
+    /**
+     * Zgoda z banneru cookies (kategoria marketing) = zgoda na PERSONALIZACJĘ reklam.
+     * Reklamy są obowiązkowe w wersji bezpłatnej (regulamin); bez zgody ładujemy
+     * reklamy niespersonalizowane (npa=1). Zmiana zgody unieważnia załadowaną reklamę.
+     */
     public void setMarketingConsent(boolean allowed) {
+        boolean changed = marketingConsent != allowed;
         marketingConsent = allowed;
-        if (allowed && umpAllowsAds) {
+        if (changed) loaded = null;
+        if (umpAllowsAds) {
             ensureSdkInitialized();
             preload();
-        } else {
-            loaded = null;
         }
     }
 
@@ -64,7 +70,7 @@ public final class InterstitialAdHelper {
     }
 
     public boolean canShowAds() {
-        return isConfigured() && umpAllowsAds && marketingConsent && sdkReady;
+        return isConfigured() && umpAllowsAds && sdkReady;
     }
 
     public void show(@Nullable String placement) {
@@ -98,14 +104,20 @@ public final class InterstitialAdHelper {
         if (!isConfigured() || sdkReady || !umpAllowsAds) return;
         MobileAds.initialize(activity, status -> {
             sdkReady = true;
-            if (marketingConsent) preload();
+            preload();
         });
     }
 
     private void preload() {
         if (!canShowAds()) return;
         String unit = BuildConfig.ADMOB_INTERSTITIAL_UNIT_ID.trim();
-        AdRequest request = new AdRequest.Builder().build();
+        AdRequest.Builder builder = new AdRequest.Builder();
+        if (!marketingConsent) {
+            Bundle extras = new Bundle();
+            extras.putString("npa", "1"); // reklamy niespersonalizowane
+            builder.addNetworkExtrasBundle(AdMobAdapter.class, extras);
+        }
+        AdRequest request = builder.build();
         InterstitialAd.load(activity, unit, request, new InterstitialAdLoadCallback() {
             @Override
             public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {

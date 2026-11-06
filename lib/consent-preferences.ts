@@ -104,11 +104,18 @@ export function canUseAnalytics(prefs?: ConsentPreferences | null): boolean {
   return Boolean(p?.analytics);
 }
 
-/** Czy wolno pokazywać reklamy (AdMob / bramka). */
-export function canUseMarketing(prefs?: ConsentPreferences | null): boolean {
+/**
+ * Czy wolno personalizować reklamy (AdMob / bramka) i używać identyfikatorów reklamowych.
+ * Samo wyświetlanie reklam NIE zależy od zgody: są obowiązkowe w wersji bez pakietu
+ * (akceptacja regulaminu). Brak zgody = reklamy niespersonalizowane.
+ */
+export function canPersonalizeAds(prefs?: ConsentPreferences | null): boolean {
   const p = prefs ?? readConsentPreferences();
   return Boolean(p?.marketing);
 }
+
+/** @deprecated Nazwa myląca — użyj canPersonalizeAds. */
+export const canUseMarketing = canPersonalizeAds;
 
 function syncConsentToAndroidBridge(prefs: ConsentPreferences): void {
   if (typeof window === "undefined") return;

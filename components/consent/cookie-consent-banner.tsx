@@ -55,7 +55,8 @@ export function CookieConsentBanner() {
         </p>
         <p className="mt-1.5 text-[13px] leading-snug text-white/55">
           Niezbędne dane (sesja, bezpieczeństwo) działają zawsze. Analityka i
-          reklamy (AdMob) włączysz tylko za zgodą. Szczegóły w{" "}
+          personalizacja reklam (AdMob) działają tylko za zgodą; reklamy w
+          wersji bezpłatnej wyświetlają się zawsze. Szczegóły w{" "}
           <Link
             href={`${PRIVACY_PATH}#cookies`}
             className="text-[var(--gym-gold)] underline-offset-2 hover:underline"
@@ -86,10 +87,10 @@ export function CookieConsentBanner() {
             <label className="flex items-start justify-between gap-3">
               <span className="min-w-0">
                 <span className="block text-[13px] font-medium text-white/90">
-                  Marketing / reklamy
+                  Personalizacja reklam
                 </span>
                 <span className="mt-0.5 block text-[11px] text-white/50">
-                  Pełnoekranowe reklamy AdMob przy braku pakietu
+                  Dopasowanie reklam AdMob do Ciebie; bez zgody reklamy będą niespersonalizowane
                 </span>
               </span>
               <input

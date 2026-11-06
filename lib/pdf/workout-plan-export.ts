@@ -64,7 +64,7 @@ export function planToHtml(plans: PrintablePlan[]): string {
   .toolbar button {
     appearance: none; border: 0; border-radius: 999px; padding: 10px 16px;
     font-size: 14px; font-weight: 600; cursor: pointer;
-    background: #ebc44a; color: #111;
+    background: #c9a45c; color: #111;
   }
   .toolbar button.secondary { background: #eee; color: #333; }
   h1 { font-size: 22px; margin: 0 0 4px; }

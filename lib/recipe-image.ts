@@ -18,8 +18,8 @@ export const RECIPE_IMAGE_FALLBACK =
   encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
       <rect fill="#121214" width="640" height="400"/>
-      <text x="320" y="178" fill="#ebc44a" font-family="system-ui,sans-serif" font-size="20" font-weight="600" text-anchor="middle">Brak grafiki AI</text>
-      <text x="320" y="212" fill="#ebc44a88" font-family="system-ui,sans-serif" font-size="13" text-anchor="middle">Import JSON + POLLINATIONS_API_KEY</text>
+      <text x="320" y="178" fill="#c9a45c" font-family="system-ui,sans-serif" font-size="20" font-weight="600" text-anchor="middle">Brak grafiki AI</text>
+      <text x="320" y="212" fill="#c9a45c88" font-family="system-ui,sans-serif" font-size="13" text-anchor="middle">Import JSON + POLLINATIONS_API_KEY</text>
       <text x="320" y="236" fill="#ffffff55" font-family="system-ui,sans-serif" font-size="12" text-anchor="middle">Admin → Dokończ grafiki AI</text>
     </svg>`,
   );
