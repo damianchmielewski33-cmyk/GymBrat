@@ -1,19 +1,16 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 import { HomeTrainingCard, type HomeTrainingDayOption } from "@/components/home/home-training-card";
 import { HomeSupplementsChip } from "@/components/home/home-supplements-chip";
-import { StartMetricTiles } from "@/components/home/start-metric-tiles";
+import { HomeMacroCard } from "@/components/home/home-macro-card";
+import { HomeWeekCard } from "@/components/home/home-week-card";
 import { HomeSylwetkaSection } from "@/components/home/home-sylwetka-section";
 import { HomeZalozeniaSection } from "@/components/home/home-zalozenia-section";
-import { HomeOdDamiana } from "@/components/home/home-od-damiana";
-import { HomeObwodySection } from "@/components/home/home-obwody-section";
-import { HomeRecentWorkouts } from "@/components/home/home-recent-workouts";
 import { AppIntroTour } from "@/components/home/app-intro-tour";
 import { OnboardingBanner } from "@/components/home/onboarding-banner";
 import type {
   HomeStartDashboard,
-  HomeStartSpark,
   HomeStartTodayMacros,
   HomeStartWaistPoint,
   HomeStartWeekMacros,
@@ -21,7 +18,6 @@ import type {
 } from "@/lib/home-start";
 import type { ExtraCardioAdvice } from "@/lib/extra-cardio-from-macros";
 import type { DietSupplement } from "@/lib/diet-supplements";
-import type { RecentWorkoutItem } from "@/lib/treningi-hub-stats";
 import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
 
 function formatReportShort(iso: string): string {
@@ -54,20 +50,6 @@ export type HomeTodayViewProps = {
   weightSeries: HomeStartWeightPoint[];
   waistSeries: HomeStartWaistPoint[];
   compliance: HomeStartDashboard["compliance"];
-  formToday: HomeStartDashboard["formToday"];
-  coachNote: HomeStartDashboard["coachNote"];
-  przemianaSlot: ReactNode;
-  dimensions: {
-    waistCm: number | null;
-    thighCm: number | null;
-    chestCm: number | null;
-    armCm: number | null;
-    waistSpark: HomeStartSpark[];
-    thighSpark: HomeStartSpark[];
-    chestSpark: HomeStartSpark[];
-    armSpark: HomeStartSpark[];
-  };
-  recentWorkouts: RecentWorkoutItem[];
   workoutsThisWeek: number;
   cardioThisWeekMinutes: number;
   workoutStreakWeeks: number;
@@ -87,39 +69,42 @@ export function HomeTodayView(props: HomeTodayViewProps) {
       ? formatReportShort(addCalendarDays(today, -props.daysSinceLastReport))
       : null;
 
+  const rise = (i: number) => ({ "--i": i }) as CSSProperties;
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <AppIntroTour open={props.showIntroTour} />
       {props.showOnboarding ? <OnboardingBanner /> : null}
 
-      <div className="gym-rise" style={{ "--i": 0 } as CSSProperties}>
+      <div className="gym-rise" style={rise(0)}>
         <HomeTrainingCard
           recommendedPlanId={props.recommendedPlanId}
           planName={props.planName}
           exerciseCount={props.exerciseCount}
           days={props.days}
-          workoutsThisWeek={props.workoutsThisWeek}
-          cardioThisWeekMinutes={props.cardioThisWeekMinutes}
-          workoutStreakWeeks={props.workoutStreakWeeks}
-          cardioGoalMinutes={props.cardioGoalMinutes}
-          cardioSheetWeek={props.cardioSheetWeek}
-          extraCardio={props.extraCardio}
           canBuildPlanFromHistory={props.canBuildPlanFromHistory}
         />
       </div>
 
-      <div className="gym-rise" style={{ "--i": 1 } as CSSProperties}>
-        <HomeSupplementsChip items={props.supplements} />
+      <div className="gym-rise" style={rise(1)}>
+        <HomeWeekCard
+          workoutsThisWeek={props.workoutsThisWeek}
+          workoutStreakWeeks={props.workoutStreakWeeks}
+          cardioMinutes={props.cardioThisWeekMinutes}
+          cardioGoalMinutes={props.cardioGoalMinutes}
+          cardioSheetWeek={props.cardioSheetWeek}
+          extraCardio={props.extraCardio}
+        />
       </div>
 
-      <div className="gym-rise" style={{ "--i": 2 } as CSSProperties}>
-        <StartMetricTiles
+      <div className="gym-rise" style={rise(2)}>
+        <HomeMacroCard
           todayMacros={props.todayMacros}
           weekMacros={props.weekMacros}
         />
       </div>
 
-      <div className="gym-rise" style={{ "--i": 3 } as CSSProperties}>
+      <div className="gym-rise" style={rise(3)}>
         <HomeSylwetkaSection
           weightKg={props.weightKg}
           weightDeltaFromPreviousKg={props.weightDeltaFromPreviousKg}
@@ -132,45 +117,17 @@ export function HomeTodayView(props: HomeTodayViewProps) {
         />
       </div>
 
-      <div className="gym-rise" style={{ "--i": 4 } as CSSProperties}>
+      <div className="gym-rise" style={rise(4)}>
         <HomeZalozeniaSection
           dietPct={props.compliance.dietPct}
           trainingPct={props.compliance.trainingPct}
           cardioPct={props.compliance.cardioPct}
           reportCount={props.reportCount}
-          dietHistory={props.compliance.dietHistory}
-          trainingHistory={props.compliance.trainingHistory}
-          cardioHistory={props.compliance.cardioHistory}
-          formToday={props.formToday}
         />
       </div>
 
-      <div className="gym-rise" style={{ "--i": 5 } as CSSProperties}>
-        <HomeOdDamiana
-          text={props.coachNote?.text ?? null}
-          dateKey={props.coachNote?.dateKey ?? null}
-        />
-      </div>
-
-      <div className="gym-rise" style={{ "--i": 6 } as CSSProperties}>
-        {props.przemianaSlot}
-      </div>
-
-      <div className="gym-rise" style={{ "--i": 7 } as CSSProperties}>
-        <HomeObwodySection
-          waistCm={props.dimensions.waistCm}
-          thighCm={props.dimensions.thighCm}
-          chestCm={props.dimensions.chestCm}
-          armCm={props.dimensions.armCm}
-          waistSpark={props.dimensions.waistSpark}
-          thighSpark={props.dimensions.thighSpark}
-          chestSpark={props.dimensions.chestSpark}
-          armSpark={props.dimensions.armSpark}
-        />
-      </div>
-
-      <div className="gym-rise" style={{ "--i": 8 } as CSSProperties}>
-        <HomeRecentWorkouts workouts={props.recentWorkouts} />
+      <div className="gym-rise" style={rise(5)}>
+        <HomeSupplementsChip items={props.supplements} />
       </div>
     </div>
   );

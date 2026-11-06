@@ -1,5 +1,14 @@
 [
   {
+    "title": "Zapowiedź — Nowy, spokojniejszy Pulpit",
+    "planned": true,
+    "bullets": [
+      "Pulpit pokazuje najpierw trening na dziś, potem tydzień (treningi, seria, cardio), jedną kartę makro z przełącznikiem Dziś/Tydzień i Sylwetkę z przełącznikiem Waga/Pas.",
+      "Realizacja założeń to teraz paski zamiast pierścieni, a suplementy są chipami; liczby narastają, paski się wypełniają, a przy ustawieniu „ogranicz ruch” animacje są wyłączone.",
+      "Dolna nawigacja: Pulpit, Trening, przycisk w środku, Dieta, Analiza. Zespół znajdziesz w Profilu."
+    ]
+  },
+  {
     "title": "Zapowiedź — Strona startowa, pomiar zainteresowania i porządek w kodzie",
     "planned": true,
     "bullets": [

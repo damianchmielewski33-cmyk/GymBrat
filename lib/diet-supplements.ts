@@ -1,7 +1,7 @@
 /** Domyślna lista suplementów (makieta DIETA), gdy brak w ustawieniach. */
 export const DEFAULT_DIET_SUPPLEMENTS = [
   "Chrom",
-  "Kompleks witam",
+  "Kompleks witamin",
   "Omega 3",
   "Magnez",
   "Witamina D",

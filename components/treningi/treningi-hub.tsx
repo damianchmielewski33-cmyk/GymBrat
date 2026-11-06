@@ -107,13 +107,13 @@ export function TreningiHub({ hub, stats, startingPlanId, onBegin }: TreningiHub
         weekEndKey={week.endKey}
         streakWeeks={stats.streakWeeks}
       />
+      {mainCard}
       <WeekProgressCard
         days={days}
         nextPlanId={nextPlanId}
         cardioMinutes={stats.cardioMinutesThisWeek}
         cardioSessions={stats.cardioSessionsThisWeek}
       />
-      {mainCard}
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>
