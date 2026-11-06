@@ -5,6 +5,7 @@ import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { expirePendingOrders } from "@/lib/order-admin";
 import { runDbCleanup } from "@/lib/db-retention";
 import { sendInactivityWarningEmail } from "@/lib/email";
+import { runWaitlistRetention } from "@/lib/waitlist";
 import { getExtraRetentionPolicy, runBugReportRetention, runInactiveRetention } from "@/lib/retention-extra";
 
 export const runtime = "nodejs";
@@ -38,12 +39,14 @@ async function handle(req: Request) {
   const inactive = await runInactiveRetention(db, now, policy, {
     sendWarning: sendInactivityWarningEmail,
   });
+  // Lista powiadomień z landingu: niepotwierdzone, wypisane i przeterminowane wpisy.
+  const waitlist = await runWaitlistRetention(db, now);
   // Z22: wygaszenie nieopłaconych zamówień (pending > 24 h).
   const expiredOrders = await expirePendingOrders(db, now);
   return NextResponse.json({
     ok: true,
     ...result,
-    extra: { bugReports, inactive, expiredOrders, inactiveAccountsEnabled: policy.inactiveAccountsEnabled },
+    extra: { bugReports, inactive, waitlist, expiredOrders, inactiveAccountsEnabled: policy.inactiveAccountsEnabled },
   });
 }
 

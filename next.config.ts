@@ -46,6 +46,24 @@ const nextConfig: NextConfig = {
         : false,
   },
 
+  /**
+   * `/start` → landing na własnej domenie (osobny projekt Astro w `landing/`).
+   * Tylko gdy `NEXT_PUBLIC_LANDING_URL` jest ustawione (poprawny https) — bez niej `/start` zostaje stroną w aplikacji.
+   */
+  async redirects() {
+    const raw = process.env.NEXT_PUBLIC_LANDING_URL?.trim();
+    if (!raw) return [];
+    let destination: string;
+    try {
+      const u = new URL(raw);
+      if (u.protocol !== "https:" && u.hostname !== "localhost") return [];
+      destination = u.origin + "/";
+    } catch {
+      return [];
+    }
+    return [{ source: "/start", destination, permanent: true }];
+  },
+
   async headers() {
     const isProd = process.env.NODE_ENV === "production";
     /**

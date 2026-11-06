@@ -26,6 +26,9 @@ const EXPECTED_PUBLIC_ROUTES = new Set([
   "/api/payments/hotpay/notify",
   "/api/security/csp-report",
   "/api/version",
+  "/api/waitlist",
+  "/api/waitlist/confirm",
+  "/api/waitlist/unsubscribe",
 ]);
 
 /** Wyłączone z `proxy.ts` przez `config.matcher` (`api/auth`, `api/android`) — nie przechodzą przez proxy. */
