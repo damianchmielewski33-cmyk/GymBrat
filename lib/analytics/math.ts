@@ -74,3 +74,26 @@ export function inWindow(
   const t = new Date(`${date}T12:00:00`).getTime();
   return Number.isFinite(t) && t >= start && t <= end;
 }
+
+/**
+ * Ostatnie `days` dni kalendarzowych łącznie z `endInclusive`.
+ * W odróżnieniu od `inWindow` początek jest wyłączony, więc „7 dni” to dokładnie 7 dat
+ * (inWindow obejmuje oba końce, czyli 8 dat).
+ */
+export function inLastDays(
+  date: string,
+  endInclusive: string,
+  days: number,
+): boolean {
+  const end = new Date(`${endInclusive}T12:00:00`).getTime();
+  const start = end - days * 24 * 60 * 60 * 1000;
+  const t = new Date(`${date}T12:00:00`).getTime();
+  return Number.isFinite(t) && t > start && t <= end;
+}
+
+/** Liczba dni kalendarzowych od `fromIso` do `toIso` (może być ujemna). */
+export function daysBetween(fromIso: string, toIso: string): number {
+  const a = new Date(`${fromIso}T12:00:00`).getTime();
+  const b = new Date(`${toIso}T12:00:00`).getTime();
+  return Math.round((b - a) / (24 * 60 * 60 * 1000));
+}

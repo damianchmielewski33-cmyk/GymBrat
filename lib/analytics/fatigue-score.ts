@@ -1,7 +1,16 @@
-import { clamp, inWindow, mean, pctDelta, round0, round1 } from "@/lib/analytics/math";
+import {
+  clamp,
+  daysBetween,
+  inLastDays,
+  mean,
+  pctDelta,
+  round0,
+  round1,
+} from "@/lib/analytics/math";
 import type {
   AnalyticsStrengthSession,
   FatigueBand,
+  FatigueComponent,
   FatigueSnapshot,
 } from "@/lib/analytics/types";
 
@@ -40,25 +49,55 @@ function recommendationFor(band: FatigueBand, score: number): string {
   }
 }
 
+/**
+ * Ile tygodni historii (0–3) tworzy bazę „normy” przed bieżącym tygodniem.
+ * Dzielenie tonażu bazy zawsze przez 3 zawyżało stosunek u osób z krótszą historią.
+ */
+function baselineWeeksOf(
+  baseline: AnalyticsStrengthSession[],
+  endDate: string,
+): number {
+  if (baseline.length === 0) return 0;
+  const earliest = baseline.reduce(
+    (min, s) => (s.date < min ? s.date : min),
+    baseline[0].date,
+  );
+  // Koniec bazy = dzień przed bieżącym tygodniem (end − 7).
+  const spanDays = daysBetween(earliest, addDaysIso(endDate, -7)) + 1;
+  return clamp(Math.ceil(spanDays / 7), 1, 3);
+}
+
 function scoreAtEnd(
   sessions: AnalyticsStrengthSession[],
   cardioLoadWeek: number,
   endDate: string,
   consecutiveTrainingDays: number,
-): { score: number; inputs: FatigueSnapshot["inputs"] } {
-  const weekSessions = sessions.filter((s) => inWindow(s.date, endDate, 7));
-  const prev4w = sessions.filter((s) => inWindow(s.date, endDate, 28));
+): {
+  score: number;
+  inputs: FatigueSnapshot["inputs"];
+  components: FatigueComponent[];
+  missingInputs: FatigueSnapshot["missingInputs"];
+  baselineWeeks: number;
+} {
+  // „7 dni” = dokładnie 7 dat (wcześniej okno obejmowało 8 dat i zliczało ten sam dzień tygodnia dwa razy).
+  const weekSessions = sessions.filter((s) => inLastDays(s.date, endDate, 7));
+  const last28 = sessions.filter((s) => inLastDays(s.date, endDate, 28));
   const weeklyTonnage = weekSessions.reduce((a, s) => a + s.tonnageKg, 0);
-  // Baza przewlekła = 3 tygodnie PRZED bieżącym (bieżący nie zaniża stosunku ostrego do przewlekłego).
+  // Baza przewlekła = tygodnie PRZED bieżącym (dni 8–28), bieżący nie zaniża stosunku.
   const weekSet = new Set(weekSessions);
-  const baseline = prev4w.filter((s) => !weekSet.has(s));
-  const avgWeekly4 =
-    baseline.length > 0
-      ? baseline.reduce((a, s) => a + s.tonnageKg, 0) / 3
+  const baseline = last28.filter((s) => !weekSet.has(s));
+  const baselineWeeks = baselineWeeksOf(baseline, endDate);
+  const avgWeeklyBaseline =
+    baselineWeeks > 0
+      ? baseline.reduce((a, s) => a + s.tonnageKg, 0) / baselineWeeks
       : weeklyTonnage;
 
   const tonnageRatio =
-    avgWeekly4 > 0 ? weeklyTonnage / avgWeekly4 : weekSessions.length > 0 ? 1 : 0;
+    avgWeeklyBaseline > 0
+      ? weeklyTonnage / avgWeeklyBaseline
+      : weekSessions.length > 0
+        ? 1
+        : 0;
   const tonnageComponent = clamp((tonnageRatio - 0.5) * 50, 0, 35);
 
   const weekDates = [...new Set(weekSessions.map((s) => s.date))].sort();
@@ -87,8 +126,7 @@ function scoreAtEnd(
   const avgRpe = mean(
     weekSessions.map((s) => s.avgRpe).filter((x): x is number => x != null),
   );
-  const rpeComponent =
-    avgRpe != null ? clamp((avgRpe - 6) * 6, 0, 18) : 0;
+  const rpeComponent = avgRpe != null ? clamp((avgRpe - 6) * 6, 0, 18) : 0;
 
   const sessionsThisWeek = weekSessions.length;
   const sessionComponent = clamp((sessionsThisWeek - 4) * 4, 0, 12);
@@ -104,6 +142,16 @@ function scoreAtEnd(
           ? 6
           : 0;
 
+  const components: FatigueComponent[] = [
+    { key: "tonnage", points: round1(tonnageComponent), max: 35 },
+    { key: "trend", points: round1(trendComponent), max: 15 },
+    { key: "hardSets", points: round1(hardComponent), max: 20 },
+    { key: "rpe", points: round1(rpeComponent), max: 18 },
+    { key: "sessions", points: round1(sessionComponent), max: 12 },
+    { key: "cardio", points: round1(cardioComponent), max: 15 },
+    { key: "streak", points: restComponent, max: 18 },
+  ];
+
   const raw =
     tonnageComponent +
     trendComponent +
@@ -112,6 +160,12 @@ function scoreAtEnd(
     sessionComponent +
     cardioComponent +
     restComponent;
+
+  const missingInputs: FatigueSnapshot["missingInputs"] = [];
+  if (weekSessions.length > 0) {
+    if (avgRpe == null) missingInputs.push("rpe");
+    if (hardSetPct == null) missingInputs.push("hardSets");
+  }
 
   return {
     score: clamp(round0(raw), 0, 100),
@@ -124,6 +178,9 @@ function scoreAtEnd(
       cardioLoad: round1(cardioLoadWeek),
       consecutiveTrainingDays,
     },
+    components,
+    missingInputs,
+    baselineWeeks,
   };
 }
 
@@ -163,6 +220,9 @@ export function computeFatigueScore(args: {
     delta7d: now.score - prev7.score,
     delta30d: now.score - prev30.score,
     recommendation: recommendationFor(band, now.score),
+    components: now.components,
+    missingInputs: now.missingInputs,
+    baselineWeeks: now.baselineWeeks,
     inputs: now.inputs,
   };
 }
