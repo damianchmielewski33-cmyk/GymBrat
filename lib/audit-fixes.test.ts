@@ -27,8 +27,9 @@ describe("poprawki audytu", () => {
     ).toBe(200);
   });
 
-  it("Epley nie ekstrapoluje powyżej 12 powtórzeń", () => {
-    expect(estimated1RM(50, 30)).toBe(estimated1RM(50, 12));
+  it("Epley: ciężar × (1 + powtórzenia / 30), bez limitu powtórzeń", () => {
+    expect(estimated1RM(100, 3)).toBeCloseTo(110, 5);
+    expect(estimated1RM(50, 30)).toBeCloseTo(100, 5);
   });
 
   it("zakres 12 powtórzeń ma szerokość 3", () => {

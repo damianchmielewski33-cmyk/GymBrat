@@ -179,7 +179,7 @@ export function exerciseChange(
 /** Szacowany max z jednej serii. */
 export function setE1rm(weight: number, reps: number): number {
   if (!(weight > 0) || !(reps > 0)) return 0;
-  return weight * (1 + Math.min(reps, 12) / 30);
+  return weight * (1 + reps / 30);
 }
 
 export const FATIGUE_COMPONENT_LABEL: Record<FatigueComponentKey, string> = {

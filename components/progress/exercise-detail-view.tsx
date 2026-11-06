@@ -202,7 +202,7 @@ export function ExerciseDetailView({
                 <><b className="text-white">Powtórzenia</b> to suma powtórzeń ze wszystkich serii w danym dniu (ćwiczenie z masą ciała).</>
               ) : (
                 <>
-                  <b className="text-white">Szacowany max</b> liczymy ze wzoru Epleya: ciężar × (1 + powtórzenia / 30), dla serii do 12 powtórzeń.
+                  <b className="text-white">Szacowany max</b> liczymy ze wzoru Epleya: ciężar × (1 + powtórzenia / 30).
                   {bestSet ? ` Najlepsza seria ${fmtNum(bestSet.weight, 1)} kg × ${bestSet.reps} daje ${fmtNum(bestSet.e1rm, 0)} kg.` : ""}
                 </>
               )}
