@@ -13,7 +13,7 @@ import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { buildProgressIntensitySummary, summarizeSessionIntensity, type SessionIntensity } from "@/lib/intensity-analysis";
 import { countableCardioMinutes, isCompletedStrengthSession, isStandaloneCardioLog, parseWorkoutSessionJson } from "@/lib/workout-cardio-attribution";
-import type { ProgressTabId } from "@/lib/progress-tabs";
+import type { ProgressDataScope } from "@/lib/progress-tabs";
 import { DAY_LABELS, mondayOfWeek, safeRound1, totalRepsFromExercises, volumeFromExercises, weekShortLabel } from "@/lib/progress-hub-helpers";
 import type { ProgressHubData, ProgressVolumeSession, ProgressWeekDay } from "@/lib/progress-hub-types";
 import { loadProgressHubRows } from "@/lib/progress-hub-queries";
@@ -25,7 +25,7 @@ import { buildIntelligenceSection } from "@/lib/progress-hub-intelligence";
 
 export type { ProgressExerciseRow, ProgressExerciseStatus, ProgressGoalBar, ProgressHubData, ProgressMaxItem, ProgressMeasureKey, ProgressMeasureRow, ProgressMetricKind, ProgressPhotoItem, ProgressPlanGroup, ProgressTempo, ProgressVolumeSession, ProgressWeekBar, ProgressWeekDay, ProgressWeekSummary, ProgressWeightPoint, VolumeTrendKind } from "@/lib/progress-hub-types";
 
-export async function getProgressHubData(userId: string, scope: ProgressTabId | "all" = "all"): Promise<ProgressHubData> {
+export async function getProgressHubData(userId: string, scope: ProgressDataScope | "all" = "all"): Promise<ProgressHubData> {
   await ensureCriticalSchema();
   return withDbRetry(
     () => loadProgressHubData(userId, scope),
@@ -33,7 +33,7 @@ export async function getProgressHubData(userId: string, scope: ProgressTabId | 
   );
 }
 
-async function loadProgressHubData(userId: string, scope: ProgressTabId | "all"): Promise<ProgressHubData> {
+async function loadProgressHubData(userId: string, scope: ProgressDataScope | "all"): Promise<ProgressHubData> {
   const db = getDb();
   const wantsOverview = scope === "przeglad" || scope === "all";
   const wantsStrength = scope === "sila" || scope === "all";
@@ -248,7 +248,7 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
     foldExercisesIntoAggregates({ ex, date: row.date, byExercise, muscleContributions });
   }
 
-  const { last6, volumeCounts, volumeComparedCount, maxes, planGroups } = buildStrengthViews({ volumeSessions, byExercise, planRows, today });
+  const { last6, volumeCounts, volumeComparedCount, maxes, planGroups, allExercises } = buildStrengthViews({ volumeSessions, byExercise, planRows, today });
 
   const lifetimeTotals = wantsOverview ? (await db
     .select({
@@ -354,6 +354,12 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
     analyticsStrengthDates, analyticsCardioSamples, byExercise, muscleContributions,
   });
 
+  const cardioDaySet = new Set(analyticsCardioSamples.map((c) => c.date));
+  const calendar8w = Array.from({ length: 56 }, (_, i) => {
+    const date = addCalendarDays(monday, i - 49);
+    return { date, strength: strengthDaySet.has(date), cardio: cardioDaySet.has(date) };
+  });
+
   return {
     strength: {
       maxes,
@@ -362,6 +368,7 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
       volumeComparedCount,
       intensity,
       planGroups,
+      allExercises,
       sinceDate: firstWorkoutDate,
       workoutCount: totalStrengthSessions,
     },
@@ -408,6 +415,7 @@ async function loadProgressHubData(userId: string, scope: ProgressTabId | "all")
         sunday,
         today,
         daysLeft,
+        calendar8w,
         weekCompare,
         compareWeeks,
       },

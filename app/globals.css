@@ -416,11 +416,11 @@
    * Używane przez Button oraz hardcoded CTA na ekranach.
    */
   .gym-btn-primary {
-    border: 1px solid rgba(255, 232, 160, 0.72);
+    border: 1px solid rgba(246, 227, 161, 0.72);
     background-color: var(--gym-gold);
     background-image: linear-gradient(
       168deg,
-      #fff1b8 0%,
+      #f6e3a1 0%,
       var(--gym-gold-bright) 22%,
       var(--gym-gold) 55%,
       var(--gym-gold-deep) 100%
@@ -461,11 +461,11 @@
 
   /** Alias używany w treningu / przerwie / raporcie — ten sam złoty CTA. */
   .gold-btn {
-    border: 1px solid rgba(255, 232, 160, 0.72);
+    border: 1px solid rgba(246, 227, 161, 0.72);
     background-color: var(--gym-gold);
     background-image: linear-gradient(
       168deg,
-      #fff1b8 0%,
+      #f6e3a1 0%,
       var(--gym-gold-bright) 22%,
       var(--gym-gold) 55%,
       var(--gym-gold-deep) 100%
@@ -550,6 +550,57 @@
   .gold-btn:disabled {
     opacity: 0.45;
     pointer-events: none;
+  }
+
+  /**
+   * Błysk przesuwający się po złotym elemencie (np. główne CTA): 3 przejścia po wejściu i stop.
+   * Dodaj obok `.gold-btn` (wymaga `position: relative` i `overflow: hidden` na elemencie).
+   */
+  .gold-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gold-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 -60%;
+    width: 40%;
+    background: linear-gradient(
+      100deg,
+      transparent,
+      rgba(255, 255, 255, 0.55),
+      transparent
+    );
+    transform: skewX(-20deg);
+    pointer-events: none;
+    animation: gold-sheen 3.2s ease-in-out 1.2s 3;
+  }
+
+  @keyframes gold-sheen {
+    0% {
+      left: -60%;
+    }
+    55%,
+    100% {
+      left: 130%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gold-sheen::after {
+      display: none;
+    }
+  }
+
+  /** Metaliczny wypełniacz paska postępu (złoto jako gradient, nie płaski kolor). */
+  .gym-meter-gold {
+    background-image: linear-gradient(
+      90deg,
+      var(--gym-gold-deep),
+      var(--gym-gold) 55%,
+      #f6e3a1
+    );
   }
 
   .gym-btn-outline {
@@ -997,5 +1048,51 @@
     .pb-thumb-bar {
       padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
     }
+  }
+}
+
+/* Analiza: rysowanie linii wykresu i wjazd wierszy (wyłączone przy prefers-reduced-motion). */
+@keyframes pv-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes pv-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pv-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pv-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: pv-draw 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.pv-area {
+  animation: pv-fade 0.9s ease-out both;
+}
+.pv-rise {
+  animation: pv-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pv-draw,
+  .pv-area,
+  .pv-rise {
+    animation: none;
   }
 }

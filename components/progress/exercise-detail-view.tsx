@@ -1,78 +1,60 @@
 "use client";
 
-import { BRAND_GOLD, BRAND_GOLD_BRIGHT } from "@/lib/brand-colors";
-import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { ArrowLeft, Trophy } from "lucide-react";
-import { AnimatedMetric } from "@/components/ui/animated-metric";
-import { SectionLabel } from "@/components/ui/section-label";
+  Definition,
+  InteractiveLineChart,
+  MeterRow,
+  RangeChips,
+  toneArrow,
+  toneClass,
+  type Tone,
+} from "@/components/progress/progress-charts";
 import type {
   ExerciseIntensitySummary,
   ExerciseMetricKind,
   ExerciseProgressPoint,
   ExercisePrs,
 } from "@/lib/exercise-progress";
-import type { ExercisePeriodCompares } from "@/lib/exercise-period-compare";
-import { ExercisePeriodComparePanel } from "@/components/progress/exercise-period-compare-panel";
-import { SegmentedControl } from "@/components/progress/progress-ui";
+import type { PredictionItem, StagnationItem } from "@/lib/analytics";
+import { confidenceLabelPl } from "@/lib/analytics";
 import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
-import type {
-  PredictionConfidence,
-  PredictionItem,
-  StagnationItem,
-} from "@/lib/analytics";
+import { fmtNum, formatDayMonth, plural } from "@/lib/progress-format";
+import { filterByRange, setE1rm, type ChartRange } from "@/lib/progress-view";
+import { cn } from "@/lib/utils";
 
-const GOLD = BRAND_GOLD;
+type Target = { targetKg?: number; targetReps?: number; deadline?: string } | null;
 
-function confidenceLabelPl(c: PredictionConfidence): string {
-  switch (c) {
-    case "high":
-      return "wysoka";
-    case "medium":
-      return "średnia";
-    case "low":
-      return "niska";
-  }
-}
-const RIR_COLOR = "#34d399";
-const RPE_COLOR = "#fb7185";
+const WEEKDAY = ["nd", "pon", "wt", "śr", "czw", "pt", "sob"];
 
-const tooltipStyle = {
-  backgroundColor: "rgba(12, 12, 14, 0.96)",
-  border: "1px solid rgba(var(--neon-rgb),0.28)",
-  borderRadius: "14px",
-  fontSize: "12px",
-  color: "rgba(255, 255, 255, 0.92)",
-  boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
-  padding: "10px 12px",
-};
-
-function formatShortDate(iso: string) {
-  const d = new Date(`${iso}T12:00:00`);
-  return d.toLocaleDateString("pl-PL", { month: "short", day: "numeric" });
+function dow(iso: string) {
+  return WEEKDAY[new Date(`${iso}T12:00:00`).getDay()] ?? "";
 }
 
-function rirVsTargetLabel(v: ExerciseProgressPoint["rirVsTarget"]): string | null {
-  if (v === "on") return "w celu";
-  if (v === "harder") return "ciężej niż plan";
-  if (v === "easier") return "luźniej niż plan";
-  return null;
+const sign = (n: number) => (n > 0 ? "+" : n < 0 ? "−" : "");
+
+function Card({ children, hero }: { children: React.ReactNode; hero?: boolean }) {
+  return (
+    <section
+      className={
+        hero
+          ? "relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/30 bg-gradient-to-b from-[rgba(var(--neon-rgb),0.14)] via-[var(--gym-surface-sunken)] to-[var(--gym-surface-sunken)] px-4 py-4"
+          : "app-panel px-4 py-4"
+      }
+    >
+      {children}
+    </section>
+  );
 }
 
-function rirTrendLabel(trend: ExerciseIntensitySummary["rirTrend"]): string | null {
-  if (trend === "down") return "ostatnio twardziej";
-  if (trend === "up") return "ostatnio luźniej";
-  if (trend === "flat") return "stabilny RIR";
-  return null;
+function CardTitle({ children, id }: { children: React.ReactNode; id?: string }) {
+  return (
+    <h2 id={id} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
+      {children}
+    </h2>
+  );
 }
 
 export function ExerciseDetailView({
@@ -81,586 +63,378 @@ export function ExerciseDetailView({
   prs,
   intensity,
   metric,
-  matchedNames,
-  periodCompares,
   repRecords = [],
   prediction = null,
   stagnation = null,
-  initialPeriod = "30",
+  target = null,
 }: {
   name: string;
   points: ExerciseProgressPoint[];
   prs: ExercisePrs;
   intensity: ExerciseIntensitySummary;
   metric: ExerciseMetricKind;
-  matchedNames: string[];
-  periodCompares: ExercisePeriodCompares;
+  matchedNames?: string[];
+  periodCompares?: unknown;
   repRecords?: Array<{ reps: number; weight: number; date: string }>;
   prediction?: PredictionItem | null;
   stagnation?: StagnationItem | null;
-  initialPeriod?: "7" | "30" | "90" | "all";
+  initialPeriod?: string;
+  target?: Target;
 }) {
-  const [period, setPeriod] = useState<"7" | "30" | "90" | "all">(initialPeriod);
-  const [chartMetric, setChartMetric] = useState<"e1rm" | "volume">("e1rm");
-  const latest = points.length ? points[points.length - 1]! : null;
   const isReps = metric === "reps";
-  const cutoff = period === "all" ? null : addCalendarDays(calendarDateKey(), -(Number(period) - 1));
-  const periodPoints = useMemo(
-    () => points.filter((p) => cutoff == null || p.date >= cutoff),
-    [points, cutoff],
+  const today = calendarDateKey();
+  const [range, setRange] = useState<ChartRange>("3M");
+  const [selRaw, setSelRaw] = useState<number | null>(null);
+  const [open, setOpen] = useState<number>(0);
+
+  const series = useMemo(
+    () =>
+      points
+        .map((p) => ({ date: p.date, value: isReps ? p.totalReps : p.bestE1rm }))
+        .filter((p) => p.value > 0),
+    [points, isReps],
   );
-  const chartPoints = isReps
-    ? periodPoints.filter((p) => p.totalReps > 0)
-    : chartMetric === "e1rm"
-      ? periodPoints.filter((p) => p.bestE1rm > 0)
-      : periodPoints.filter((p) => p.tonnageKg > 0);
-  const sessions = periodPoints.length;
-  const heaviest = prs.maxWeight;
-  const chartKey = isReps ? "totalReps" : chartMetric === "e1rm" ? "bestE1rm" : "tonnageKg";
-  const chartUnit = isReps ? "powt." : "kg";
-  const chartLabel = isReps ? "Powtórzenia" : chartMetric === "e1rm" ? "e1RM" : "Objętość";
-  const intensityPoints = points.filter(
-    (p) => p.avgRir != null || p.avgRpe != null,
-  );
-  const hasRir = intensityPoints.some((p) => p.avgRir != null);
-  const hasRpe = intensityPoints.some((p) => p.avgRpe != null);
-  const trendHint = rirTrendLabel(intensity.rirTrend);
+  const shown = useMemo(() => filterByRange(series, range, today), [series, range, today]);
+  const sel = selRaw == null ? shown.length - 1 : Math.min(selRaw, shown.length - 1);
+  const cur = shown[sel];
+  const prevPt = sel > 0 ? shown[sel - 1] : null;
+  const diff = cur && prevPt ? Math.round((cur.value - prevPt.value) * 10) / 10 : null;
+  const tone: Tone = diff == null || diff === 0 ? "flat" : diff > 0 ? "up" : "down";
+  const unit = isReps ? "powt." : "kg";
+  const subject = isReps ? "Powtórzenia" : "Szacowany max";
+
+  // Liczby obok wykresu.
+  const bestPoint = useMemo(() => {
+    if (isReps) return null;
+    return points.reduce<ExerciseProgressPoint | null>((b, p) => (!b || p.bestE1rm > b.bestE1rm ? p : b), null);
+  }, [points, isReps]);
+  // Najlepsza seria = ta z najwyższym szacowanym maxem (spójna z definicją pod wykresem).
+  const bestSet = useMemo(() => {
+    if (!bestPoint) return null;
+    const top = (bestPoint.sets ?? []).reduce<{ weight: number; reps: number; e1rm: number } | null>(
+      (b, x) => (x.e1rm > 0 && (!b || x.e1rm > b.e1rm) ? x : b),
+      null,
+    );
+    return top ?? { weight: bestPoint.bestWeight, reps: bestPoint.bestReps, e1rm: bestPoint.bestE1rm };
+  }, [bestPoint]);
+  const cut30 = addCalendarDays(today, -29);
+  const cut60 = addCalendarDays(today, -59);
+  const vol = (from: string, to: string | null) =>
+    points.filter((p) => p.date >= from && (to == null || p.date < to)).reduce((a, p) => a + (isReps ? p.totalReps : p.tonnageKg), 0);
+  const vol30 = vol(cut30, null);
+  const volPrev = vol(cut60, cut30);
+  const volPct = volPrev > 0 ? Math.round(((vol30 - volPrev) / volPrev) * 100) : null;
+  const sessions28 = points.filter((p) => p.date >= addCalendarDays(today, -27)).length;
+  const freq = Math.round((sessions28 / 4) * 10) / 10;
+
+  // Cel.
+  const goalE1rm = target?.targetKg ? Math.round(setE1rm(target.targetKg, target.targetReps ?? 1) * 10) / 10 : null;
+  const nowE1rm = series.length ? series[series.length - 1]!.value : null;
+  const goalLeft = goalE1rm != null && nowE1rm != null ? Math.max(0, Math.round((goalE1rm - nowE1rm) * 10) / 10) : null;
+  const pace = useMemo(() => {
+    const recent = series.filter((p) => p.date >= addCalendarDays(today, -89));
+    if (recent.length < 2) return null;
+    const first = recent[0]!;
+    const last = recent[recent.length - 1]!;
+    const months = (new Date(`${last.date}T12:00:00`).getTime() - new Date(`${first.date}T12:00:00`).getTime()) / (30 * 86400000);
+    return months > 0.3 ? Math.round(((last.value - first.value) / months) * 10) / 10 : null;
+  }, [series, today]);
+  const etaTxt =
+    goalLeft != null && goalLeft > 0 && pace != null && pace > 0
+      ? new Date(Date.now() + (goalLeft / pace) * 30 * 86400000).toLocaleDateString("pl-PL", { day: "numeric", month: "long" })
+      : null;
+
+  // Ostatnie treningi (najnowszy pierwszy).
+  const recent = useMemo(() => [...points].filter((p) => p.sets?.length || p.bestE1rm > 0 || p.totalReps > 0).slice(-5).reverse(), [points]);
+  const barsData = [...recent].reverse();
+  const barVals = barsData.map((p) => (isReps ? p.totalReps : p.bestE1rm));
+  const bMin = barVals.length ? Math.min(...barVals) * 0.92 : 0;
+  const bMax = barVals.length ? Math.max(...barVals) : 1;
+
+  const empty = series.length === 0;
 
   return (
-    <div className="mx-auto w-full max-w-lg space-y-5 pb-10">
-      <div className="flex items-start gap-3">
-        <Link
-          href={`/progress?tab=sila&okres=${period === "all" ? "30" : period}`}
-          className="mt-1 flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-black/25 text-white/70"
-          aria-label="Wróć do Siła"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gym-gold)]">
-            Ćwiczenie
+    <div className="mx-auto w-full max-w-lg space-y-3.5 pb-10">
+      <Link href="/progress?tab=sila" className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--gym-gold-bright)]">
+        ← Siła
+      </Link>
+
+      <Card hero>
+        <h1 translate="no" className="text-[22px] font-semibold text-white">{name}</h1>
+        {empty ? (
+          <p className="mt-3 text-[15px] leading-snug text-white">
+            Nie ma jeszcze zapisanych serii tego ćwiczenia. Wykonaj je w treningu, a pojawi się tutaj wykres.
           </p>
-          <h1 className="mt-1 line-clamp-2 font-heading text-2xl font-semibold leading-8 text-white">
-            {name}
-          </h1>
-          {matchedNames.length > 1 ? (
-            <p className="mt-1 text-[11px] text-white/50">
-              Dopasowano: {matchedNames.slice(0, 4).join(", ")}
-            </p>
-          ) : null}
-        </div>
-      </div>
-
-      <section className="app-card relative overflow-hidden p-5">
-        <div
-          className="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-[var(--gym-gold)]/[0.08] blur-3xl"
-          aria-hidden
-        />
-        {!isReps ? (
-          <SegmentedControl
-            options={[{ id: "e1rm", label: "e1RM" }, { id: "volume", label: "Objętość" }] as const}
-            value={chartMetric}
-            onChange={setChartMetric}
-            ariaLabel="Metryka wykresu"
-          />
-        ) : null}
-        <SegmentedControl
-          className="mt-2"
-          options={[{ id: "7", label: "7 dni" }, { id: "30", label: "30 dni" }, { id: "90", label: "90 dni" }, { id: "all", label: "Wszystko" }] as const}
-          value={period}
-          onChange={(next) => {
-            setPeriod(next);
-            const url = new URL(window.location.href);
-            if (next === "all") url.searchParams.delete("okres");
-            else url.searchParams.set("okres", next);
-            window.history.replaceState(window.history.state, "", url.pathname + url.search);
-          }}
-          ariaLabel="Okres wykresu"
-        />
-
-        <div role="img" aria-label={`Wykres ${chartLabel}, ${chartPoints.length} sesji`} className="relative mt-3 h-[220px] w-full min-w-0">
-          {chartPoints.length < 2 ? (
-            <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-xs text-white/50">
-              Potrzeba co najmniej dwóch treningów do wykresu.
-            </div>
-          ) : (
-            <ResponsiveContainer
-          width="100%"
-          height="100%"
-          minHeight={100}
-          initialDimension={{ width: 320, height: 200 }}
-        >
-              <LineChart data={chartPoints} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={formatShortDate}
-                  tick={{ fill: "rgba(255,255,255,0.38)", fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  minTickGap={28}
-                />
-                <YAxis
-                  tick={{ fill: "rgba(255,255,255,0.38)", fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={36}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  labelFormatter={(v) => formatShortDate(String(v))}
-                  formatter={(value) => [
-                    `${Number(value).toLocaleString("pl-PL")} ${chartUnit}`,
-                    chartLabel,
-                  ]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey={chartKey}
-                  stroke={GOLD}
-                  strokeWidth={2.4}
-                  dot={{ r: 3, fill: GOLD, stroke: "#0c0c0e", strokeWidth: 1.5 }}
-                  activeDot={{ r: 5.5, fill: BRAND_GOLD_BRIGHT, stroke: GOLD }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-        <p className="mt-2 text-[13px] text-[var(--gym-text-secondary)]">
-          {latest ? `Ostatni trening: ${formatShortDate(latest.date)}${isReps ? " · masa ciała" : ""} · ${chartPoints.length} sesji` : "Brak zaliczonych serii"}
-        </p>
-      </section>
-
-      <section className="grid grid-cols-3 gap-2.5">
-        <Kpi label="Treningi" value={sessions} decimals={0} />
-        {isReps ? (
-          <>
-            <Kpi
-              label="Rekord sesji"
-              value={prs.maxTotalReps.value}
-              decimals={0}
-              hint="powt."
-            />
-            <Kpi
-              label="Najlepsza seria"
-              value={prs.maxBestSetReps.value}
-              decimals={0}
-              hint="powt."
-            />
-          </>
         ) : (
           <>
-            <Kpi
-              label="Rekord"
-              value={prs.maxE1rm.value}
-              decimals={1}
-              hint="e1RM"
-            />
-            <Kpi
-              label="Najcięższa seria"
-              value={heaviest.value}
-              decimals={1}
-              hint="kg"
-            />
+            <p className="mt-0.5 text-[13px] text-[var(--gym-text-secondary)]">
+              {subject} w dniu: {cur ? formatDayMonth(cur.date) : "—"}
+            </p>
+            {cur ? (
+              <>
+                <p className="mt-1 flex items-baseline gap-2">
+                  <span className="font-metric text-[72px] leading-none text-white">{fmtNum(cur.value, isReps ? 0 : 0)}</span>
+                  <span className="text-[16px] text-[var(--gym-text-secondary)]">{unit}</span>
+                </p>
+                <p className={cn("text-[15px]", toneClass(tone))}>
+                  {diff == null
+                    ? "pierwszy punkt wykresu"
+                    : `${toneArrow(tone)} ${sign(diff)}${fmtNum(Math.abs(diff), 0)} ${unit} względem poprzedniego punktu`}
+                </p>
+                <InteractiveLineChart
+                  values={shown.map((p) => p.value)}
+                  labels={shown.map((p) => formatDayMonth(p.date))}
+                  selected={sel}
+                  onSelect={setSelRaw}
+                  unit={unit}
+                  subject={subject}
+                  ariaLabel={`${subject}, ${name}, zakres ${range}: od ${fmtNum(shown[0]!.value, 0)} do ${fmtNum(shown[shown.length - 1]!.value, 0)} ${unit}`}
+                />
+              </>
+            ) : (
+              <p className="mt-3 text-[14px] text-[var(--gym-text-secondary)]">Brak treningów w tym zakresie. Wybierz dłuższy.</p>
+            )}
+            <div className="mt-3">
+              <RangeChips value={range} onChange={(r) => { setRange(r); setSelRaw(null); }} />
+            </div>
+            <Definition className="mt-3.5">
+              {isReps ? (
+                <><b className="text-white">Powtórzenia</b> to suma powtórzeń ze wszystkich serii w danym dniu (ćwiczenie z masą ciała).</>
+              ) : (
+                <>
+                  <b className="text-white">Szacowany max</b> liczymy ze wzoru Epleya: ciężar × (1 + powtórzenia / 30), dla serii do 12 powtórzeń.
+                  {bestSet ? ` Najlepsza seria ${fmtNum(bestSet.weight, 1)} kg × ${bestSet.reps} daje ${fmtNum(bestSet.e1rm, 0)} kg.` : ""}
+                </>
+              )}
+            </Definition>
           </>
         )}
-      </section>
+      </Card>
 
-      <section className="app-card space-y-3 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-              Intensywność
-            </p>
-            <p className="mt-1 text-sm text-white/70">
-              {trendHint ??
-                (intensity.sessionsWithRir > 0 || intensity.sessionsWithRpe > 0
-                  ? "RIR / RPE z zaliczonych serii"
-                  : "Brak zapisanych RIR/RPE — użyj „W zapasie” w sesji")}
-            </p>
+      {!empty ? (
+        <Card>
+          <div className="grid grid-cols-3 gap-2.5">
+            <div>
+              <div className="text-[13px] text-[var(--gym-text-secondary)]">Najlepsza seria</div>
+              <div className="font-metric mt-1 text-[28px] leading-[1.1] text-white">
+                {isReps ? `${prs.maxBestSetReps.value} powt.` : bestSet ? `${fmtNum(bestSet.weight, 1)} kg × ${bestSet.reps}` : "—"}
+              </div>
+              <div className="text-[12px] text-[var(--gym-text-secondary)]">
+                {formatDayMonth(isReps ? prs.maxBestSetReps.date : bestPoint?.date)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[13px] text-[var(--gym-text-secondary)]">{isReps ? "Powtórzenia 30 dni" : "Objętość 30 dni"}</div>
+              <div className="font-metric mt-1 text-[28px] leading-[1.1] text-white">{fmtNum(vol30, 0)}{isReps ? "" : " kg"}</div>
+              <div className={cn("text-[12px]", volPct == null ? "text-[var(--gym-text-secondary)]" : toneClass(volPct > 0 ? "up" : volPct < 0 ? "down" : "flat"))}>
+                {volPct == null ? "brak porównania" : `${volPct > 0 ? "▲" : volPct < 0 ? "▼" : "="} ${sign(volPct)}${Math.abs(volPct)}% vs poprzednie 30 dni`}
+              </div>
+            </div>
+            <div>
+              <div className="text-[13px] text-[var(--gym-text-secondary)]">Częstość</div>
+              <div className="font-metric mt-1 text-[28px] leading-[1.1] text-white">{fmtNum(freq, 1)} × tydz.</div>
+              <div className="text-[12px] text-[var(--gym-text-secondary)]">średnia z 4 tygodni</div>
+            </div>
           </div>
-          {intensity.lastTempo ? (
-            <span className="shrink-0 rounded-lg border border-white/12 bg-black/30 px-2 py-1 font-heading text-xs tabular-nums text-[var(--gym-gold)]">
-              tempo {intensity.lastTempo}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          <MiniStat
-            label="Śr. RIR"
-            value={intensity.avgRir}
-            decimals={1}
-          />
-          <MiniStat
-            label="Śr. RPE"
-            value={intensity.avgRpe}
-            decimals={1}
-          />
-          <MiniStat
-            label="Twarde"
-            value={intensity.hardSetPct}
-            decimals={0}
-            suffix="%"
-          />
-        </div>
-
-        {intensity.targetComparedCount > 0 ? (
-          <p className="text-[11px] text-white/50">
-            Zgodność z RIR z planu: {intensity.targetHitPct ?? 0}% (
-            {intensity.targetComparedCount} porównań)
+          <p className="mt-3 text-[13px] text-[var(--gym-text-secondary)]">
+            Objętość to suma ciężar × powtórzenia ze wszystkich serii tego ćwiczenia.
           </p>
-        ) : null}
+        </Card>
+      ) : null}
 
-        <div className="relative h-[200px] w-full min-w-0">
-          {intensityPoints.length < 2 || (!hasRir && !hasRpe) ? (
-            <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-xs text-white/50">
-              Potrzeba co najmniej dwóch treningów z RIR/RPE.
+      {!empty ? (
+        <Card>
+          <CardTitle id="h-cel">Cel</CardTitle>
+          {goalE1rm != null && nowE1rm != null ? (
+            <div className="mt-3">
+              <MeterRow
+                title={`${fmtNum(target!.targetKg!, 1)} kg × ${target!.targetReps ?? 1}`}
+                right={goalLeft === 0 ? "cel osiągnięty" : `zostało ${fmtNum(goalLeft!, 0)} kg szacowanego maxa`}
+                pct={(nowE1rm / goalE1rm) * 100}
+                note={
+                  pace == null
+                    ? "Za mało treningów z ostatnich 3 miesięcy, żeby policzyć tempo."
+                    : pace <= 0
+                      ? `Tempo ostatnich 3 miesięcy: ${sign(pace)}${fmtNum(Math.abs(pace), 1)} kg miesięcznie. Przy takim tempie cel się nie przybliża.`
+                      : `Tempo ostatnich 3 miesięcy: +${fmtNum(pace, 1)} kg miesięcznie.${etaTxt ? ` Przy nim cel około ${etaTxt}.` : ""}`
+                }
+              />
+              <p className="mt-2 text-[12px] text-[var(--gym-text-secondary)]">Cel przeliczamy na szacowany max tym samym wzorem, żeby porównać go z wykresem.</p>
             </div>
           ) : (
-            <ResponsiveContainer
-          width="100%"
-          height="100%"
-          minHeight={100}
-          initialDimension={{ width: 320, height: 200 }}
-        >
-              <LineChart
-                data={intensityPoints}
-                margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={formatShortDate}
-                  tick={{ fill: "rgba(255,255,255,0.38)", fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  minTickGap={28}
-                />
-                <YAxis
-                  domain={[0, 10]}
-                  tick={{ fill: "rgba(255,255,255,0.38)", fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={28}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  labelFormatter={(v) => formatShortDate(String(v))}
-                  formatter={(value, name) => [
-                    Number(value).toLocaleString("pl-PL", {
-                      maximumFractionDigits: 1,
-                    }),
-                    String(name),
-                  ]}
-                />
-                {hasRir ? (
-                  <Line
-                    type="monotone"
-                    dataKey="avgRir"
-                    name="RIR"
-                    stroke={RIR_COLOR}
-                    strokeWidth={2.2}
-                    connectNulls
-                    dot={{ r: 3, fill: RIR_COLOR, stroke: "#0c0c0e", strokeWidth: 1.5 }}
-                  />
-                ) : null}
-                {hasRpe ? (
-                  <Line
-                    type="monotone"
-                    dataKey="avgRpe"
-                    name="RPE"
-                    stroke={RPE_COLOR}
-                    strokeWidth={2.2}
-                    connectNulls
-                    dot={{ r: 3, fill: RPE_COLOR, stroke: "#0c0c0e", strokeWidth: 1.5 }}
-                  />
-                ) : null}
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-        {hasRir || hasRpe ? (
-          <p className="text-[10px] text-white/50">
-            {hasRir ? (
-              <span className="mr-3 inline-flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> RIR
-              </span>
-            ) : null}
-            {hasRpe ? (
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-rose-400" /> RPE
-              </span>
-            ) : null}
-          </p>
-        ) : null}
-      </section>
-
-      <ExercisePeriodComparePanel compares={periodCompares} />
-
-      {(prediction || stagnation) && (
-        <section className="app-card space-y-3 p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
-            Predykcja · stagnacja
-          </p>
-          {stagnation ? (
-            <p className="text-sm text-white/80">
-              {stagnation.statusLabel}
-              {stagnation.daysWithoutProgress > 0
-                ? ` · brak postępu od ${stagnation.daysWithoutProgress} dni`
-                : ""}
-              {stagnation.e1rmDeltaPct30 != null
-                ? ` · e1RM 30 dni ${stagnation.e1rmDeltaPct30 > 0 ? "+" : ""}${stagnation.e1rmDeltaPct30}%`
-                : ""}
+            <p className="mt-2 text-[14px] leading-snug text-[var(--gym-text-secondary)]">
+              Nie ustawiono celu dla tego ćwiczenia. Dodaj go w zakładce Podsumowanie, w sekcji Cele.
             </p>
-          ) : null}
+          )}
+        </Card>
+      ) : null}
+
+      {!empty && (prediction || stagnation) ? (
+        <Card>
+          <CardTitle id="h-prog">Prognoza i trend</CardTitle>
+          <div className="mt-2 space-y-2 text-[14px] leading-snug text-white">
+            {stagnation ? (
+              <p>
+                <b>{stagnation.statusLabel}</b>
+                {stagnation.daysWithoutProgress > 0 ? `, bez wzrostu od ${stagnation.daysWithoutProgress} dni` : ""}
+                {stagnation.e1rmDeltaPct30 != null ? `. Szacowany max w 30 dni: ${sign(stagnation.e1rmDeltaPct30)}${fmtNum(Math.abs(stagnation.e1rmDeltaPct30), 1)}%.` : "."}
+              </p>
+            ) : null}
+            {prediction && !isReps ? (
+              <p>
+                Jeśli utrzymasz obecne tempo: za 30 dni szacowany max około <b>{fmtNum(prediction.e1rm30d, 0)} kg</b>, za 90 dni około{" "}
+                <b>{fmtNum(prediction.e1rm90d, 0)} kg</b> (teraz {fmtNum(prediction.e1rmNow, 0)} kg).
+              </p>
+            ) : null}
+          </div>
           {prediction ? (
-            <div className="grid grid-cols-2 gap-2 text-[12px]">
-              <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wider text-white/50">
-                  e1RM 30 dni
-                </p>
-                <p className="mt-1 font-metric text-[18px] text-white">
-                  {prediction.e1rm30d.toLocaleString("pl-PL")} kg
-                </p>
-                <p className="mt-0.5 text-[10px] text-white/50">
-                  teraz {prediction.e1rmNow} · pewność{" "}
-                  {confidenceLabelPl(prediction.confidence)}
-                </p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wider text-white/50">
-                  e1RM 90 dni
-                </p>
-                <p className="mt-1 font-metric text-[18px] text-white">
-                  {prediction.e1rm90d.toLocaleString("pl-PL")} kg
-                </p>
-                <p className="mt-0.5 text-[10px] text-white/50">
-                  {prediction.sampleCount} sesji
-                </p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wider text-white/50">
-                  Tonaż 30 dni
-                </p>
-                <p className="mt-1 font-heading text-[16px] text-white">
-                  {prediction.tonnage30d.toLocaleString("pl-PL")} kg
-                </p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wider text-white/50">
-                  Tonaż 90 dni
-                </p>
-                <p className="mt-1 font-heading text-[16px] text-white">
-                  {prediction.tonnage90d.toLocaleString("pl-PL")} kg
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-[12px] text-white/50">
-              Predykcja wymaga min. 8 treningów z historią e1RM / objętości.
+            <p className="mt-2 text-[13px] text-[var(--gym-text-secondary)]">
+              Pewność prognozy: {confidenceLabelPl(prediction.confidence)} ({prediction.sampleCount} treningów w próbie). To ekstrapolacja trendu, nie obietnica.
             </p>
-          )}
-        </section>
-      )}
+          ) : null}
+        </Card>
+      ) : null}
 
-      <section className="space-y-3">
-        <SectionLabel index="01" title="Rekordy" />
-        <div className="app-card divide-y divide-white/8 p-0">
-          {isReps ? (
-            <>
-              <RecordRow
-                label="Najwięcej powtórzeń w sesji"
-                value={`${prs.maxTotalReps.value.toLocaleString("pl-PL")} powt.`}
-                date={prs.maxTotalReps.date}
-              />
-              <RecordRow
-                label="Najlepsza seria"
-                value={`${prs.maxBestSetReps.value.toLocaleString("pl-PL")} powt.`}
-                date={prs.maxBestSetReps.date}
-              />
-            </>
-          ) : (
-            <>
-              <RecordRow
-                label="Najwyższe e1RM"
-                value={`${prs.maxE1rm.value.toLocaleString("pl-PL")} kg`}
-                date={prs.maxE1rm.date}
-              />
-              <RecordRow
-                label="Największy ciężar"
-                value={`${prs.maxWeight.value.toLocaleString("pl-PL")} kg`}
-                date={prs.maxWeight.date}
-              />
-              <RecordRow
-                label="Największa objętość"
-                value={`${prs.maxTonnageKg.value.toLocaleString("pl-PL")} kg`}
-                date={prs.maxTonnageKg.date}
-              />
-            </>
-          )}
-        </div>
-        {!isReps && repRecords.length > 0 ? (
-          <div className="app-card divide-y divide-white/8 p-0">
-            {repRecords.map((r) => (
-              <RecordRow
-                key={r.reps}
-                label={`Najcięższe na ${r.reps}+ powt.`}
-                value={`${r.weight.toLocaleString("pl-PL")} kg`}
-                date={r.date}
-              />
+      {!empty ? (
+        <Card>
+          <div className="flex items-baseline justify-between gap-2">
+            <CardTitle id="h-hist">Ostatnie treningi</CardTitle>
+            <span className="text-[13px] text-[var(--gym-text-secondary)]">{isReps ? "powtórzenia z treningu" : "szac. max z treningu"}</span>
+          </div>
+          <div className="mb-1 mt-3.5 flex h-[90px] items-end gap-2" role="img" aria-label={`${subject} w ostatnich treningach`}>
+            {barsData.map((p, i) => {
+              const v = isReps ? p.totalReps : p.bestE1rm;
+              const last = i === barsData.length - 1;
+              return (
+                <div key={p.date} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1">
+                  <span className="text-[12px] text-[#efe9dc]">{fmtNum(v, 0)}</span>
+                  <i
+                    className={cn("block w-full rounded-t-md rounded-b-sm transition-[height] duration-700", last ? "gym-meter-gold" : "bg-[#3a3524]")}
+                    style={{ height: `${Math.max(8, Math.round(((v - bMin) / (bMax - bMin || 1)) * 100))}%` }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="mb-2 flex gap-2">
+            {barsData.map((p) => (
+              <span key={p.date} className="min-w-0 flex-1 text-center text-[12px] text-[var(--gym-text-secondary)]">{formatDayMonth(p.date)}</span>
             ))}
           </div>
-        ) : null}
-      </section>
-
-      <section className="space-y-3">
-        <SectionLabel index="02" title="Treningi" trailing={`${points.length}`} />
-        {points.length === 0 ? (
-          <div className="app-card px-4 py-8 text-center text-sm text-white/50">
-            Brak historii dla tego ćwiczenia.
-          </div>
-        ) : (
-          <ul className="space-y-1.5">
-            {[...points].reverse().map((p) => {
-              const isPr = isReps
-                ? (prs.maxTotalReps.date === p.date &&
-                    p.totalReps === prs.maxTotalReps.value) ||
-                  (prs.maxBestSetReps.date === p.date &&
-                    p.bestReps === prs.maxBestSetReps.value)
-                : (prs.maxE1rm.date === p.date &&
-                    p.bestE1rm === prs.maxE1rm.value) ||
-                  (prs.maxWeight.date === p.date &&
-                    p.bestWeight === prs.maxWeight.value);
-              const vs = rirVsTargetLabel(p.rirVsTarget);
+          <ul>
+            {recent.map((p, i) => {
+              const older = recent[i + 1];
+              const v = isReps ? p.totalReps : p.bestE1rm;
+              const dl = older ? v - (isReps ? older.totalReps : older.bestE1rm) : null;
+              const dtone: Tone = dl == null || Math.abs(dl) < 0.5 ? "flat" : dl > 0 ? "up" : "down";
+              const isOpen = open === i;
+              const sets = p.sets ?? [];
+              const bestE = Math.max(0, ...sets.map((s) => s.e1rm));
               return (
-                <li
-                  key={p.date}
-                  className={cnSession(
-                    "app-card flex items-center justify-between gap-3 px-3.5 py-3",
-                    isPr,
-                  )}
-                >
-                  <div>
-                    <p className="text-sm text-white">{formatShortDate(p.date)}</p>
-                    <p className="mt-0.5 text-[11px] text-white/50">
-                      {p.bestWeight > 0
-                        ? `${p.bestWeight} kg × ${p.bestReps}`
-                        : p.bestReps > 0
-                          ? `maks. ${p.bestReps} powt.`
-                          : "masa ciała"}
-                      {p.avgRir != null ? ` · RIR ${p.avgRir}` : ""}
-                      {p.avgRpe != null ? ` · RPE ${p.avgRpe}` : ""}
-                      {p.tempo ? ` · ${p.tempo}` : ""}
-                      {vs ? ` · ${vs}` : ""}
-                      {isPr ? " · PR" : ""}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-right">
-                    {isPr ? (
-                      <Trophy className="h-3.5 w-3.5 text-[var(--gym-gold)]" />
-                    ) : null}
-                    <div>
-                      <p className="font-metric text-base tabular-nums text-white">
-                        {(isReps ? p.totalReps : p.tonnageKg).toLocaleString(
-                          "pl-PL",
-                        )}
-                      </p>
-                      <p className="text-[10px] text-white/50">
-                        {isReps ? "powt. łącznie" : "kg objętości"}
-                      </p>
+                <li key={p.date} className="border-t border-white/[0.06] py-3 first:border-t-0">
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    onClick={() => setOpen(isOpen ? -1 : i)}
+                    className="flex min-h-14 w-full items-center justify-between gap-3 text-left"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-[16px] font-semibold text-white">
+                        {formatDayMonth(p.date)} <span className="font-normal text-[var(--gym-text-secondary)]">· {dow(p.date)}</span>
+                      </span>
+                      <span className="block text-[13px] text-[var(--gym-text-secondary)]">
+                        {sets.length ? `${sets.length} ${plural(sets.length, "seria", "serie", "serii")} · ` : ""}objętość {fmtNum(p.tonnageKg, 0)} kg
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-2.5">
+                      <span className="text-right">
+                        <span className="font-metric block text-[30px] leading-none text-white">{fmtNum(v, 0)} {unit}</span>
+                        <span className={cn("block text-[12px]", toneClass(dtone))}>
+                          {dl == null ? "najstarszy w liście" : `${toneArrow(dtone)} ${sign(dl)}${fmtNum(Math.abs(dl), 0)} ${unit} vs poprzedni`}
+                        </span>
+                      </span>
+                      <ChevronDown className={cn("h-[18px] w-[18px] shrink-0 text-[var(--gym-text-secondary)] transition-transform", isOpen && "rotate-180")} aria-hidden />
+                    </span>
+                  </button>
+                  {sets.length ? (
+                    <div className="mt-1 flex flex-wrap gap-1.5" aria-label="Serie">
+                      {sets.map((s, j) => (
+                        <span
+                          key={j}
+                          className={cn(
+                            "rounded-lg border px-2.5 py-1 text-[13px] text-white",
+                            s.e1rm > 0 && s.e1rm === bestE ? "border-[var(--gym-gold-bright)] bg-[var(--gym-gold)]/15 font-semibold" : "border-white/10 bg-black/30",
+                          )}
+                        >
+                          {s.weight > 0 ? `${fmtNum(s.weight, 1)} × ${s.reps}` : `${s.reps} powt.`}
+                        </span>
+                      ))}
                     </div>
-                  </div>
+                  ) : null}
+                  {isOpen && sets.length ? (
+                    <div className="mt-2.5">
+                      {sets.map((s, j) => (
+                        <div key={j} className="flex items-baseline justify-between gap-2 border-t border-white/[0.06] py-2 text-[14px]">
+                          <span>
+                            Seria {j + 1}: <b>{s.weight > 0 ? `${fmtNum(s.weight, 1)} kg × ${s.reps}` : `${s.reps} powt.`}</b>
+                          </span>
+                          <span className="text-right text-[13px] text-[var(--gym-text-secondary)]">
+                            {s.rir != null ? `zapas ${s.rir} powt.` : "zapas nie zapisany"}
+                            {s.e1rm > 0 ? ` · szac. max ${fmtNum(s.e1rm, 0)} kg` : ""}
+                          </span>
+                        </div>
+                      ))}
+                      <p className="mt-1.5 text-[13px] text-[var(--gym-text-secondary)]">Zapas (RIR) to liczba powtórzeń, które jeszcze byś zrobił na koniec serii.</p>
+                    </div>
+                  ) : isOpen ? (
+                    <p className="mt-2 text-[13px] text-[var(--gym-text-secondary)]">Ten trening nie ma zapisanych pojedynczych serii.</p>
+                  ) : null}
                 </li>
               );
             })}
           </ul>
-        )}
-      </section>
+          <p className="mt-1 text-[13px] text-[var(--gym-text-secondary)]">Złota ramka oznacza serię z najwyższym szacowanym maxem.</p>
+        </Card>
+      ) : null}
+
+      {!empty && (intensity.avgRir != null || intensity.avgRpe != null || intensity.hardSetPct != null) ? (
+        <Card>
+          <CardTitle id="h-int">Intensywność</CardTitle>
+          <div className="mt-3 grid grid-cols-3 gap-2.5">
+            <div>
+              <div className="text-[13px] text-[var(--gym-text-secondary)]">Zapas (RIR)</div>
+              <div className="font-metric text-[28px] leading-[1.1] text-white">{intensity.avgRir != null ? fmtNum(intensity.avgRir, 1) : "—"}</div>
+            </div>
+            <div>
+              <div className="text-[13px] text-[var(--gym-text-secondary)]">Trudność (RPE)</div>
+              <div className="font-metric text-[28px] leading-[1.1] text-white">{intensity.avgRpe != null ? fmtNum(intensity.avgRpe, 1) : "—"}</div>
+            </div>
+            <div>
+              <div className="text-[13px] text-[var(--gym-text-secondary)]">Ciężkie serie</div>
+              <div className="font-metric text-[28px] leading-[1.1] text-white">{intensity.hardSetPct != null ? `${intensity.hardSetPct}%` : "—"}</div>
+            </div>
+          </div>
+          <Definition className="mt-3">
+            <b className="text-white">RIR</b> to ile powtórzeń jeszcze byś zrobił (0 = do porażki). <b className="text-white">RPE</b> to trudność serii w skali 1–10.
+            <b className="text-white"> Ciężka seria</b> kończy się blisko porażki. Wartości to średnie ze wszystkich zapisanych serii.
+          </Definition>
+        </Card>
+      ) : null}
+
+      {repRecords.length > 0 ? (
+        <Card>
+          <CardTitle id="h-rek">Rekordy wg powtórzeń</CardTitle>
+          <p className="mb-1 mt-1 text-[13px] text-[var(--gym-text-secondary)]">Najcięższy ciężar podniesiony na co najmniej tyle powtórzeń.</p>
+          <ul>
+            {repRecords.map((r) => (
+              <li key={r.reps} className="flex items-center justify-between gap-2 border-b border-white/[0.06] py-2.5 text-[14px] last:border-b-0">
+                <span className="text-white">{r.reps} {r.reps === 1 ? "powtórzenie" : "powt."}</span>
+                <span className="text-right"><b className="text-white">{fmtNum(r.weight, 1)} kg</b> <span className="text-[13px] text-[var(--gym-text-secondary)]">· {formatDayMonth(r.date)}</span></span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
     </div>
   );
-}
-
-function Kpi({
-  label,
-  value,
-  decimals = 0,
-  hint,
-}: {
-  label: string;
-  value: number;
-  decimals?: number;
-  hint?: string;
-}) {
-  return (
-    <div className="app-card px-2.5 py-3 text-center">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-white/50">
-        {label}
-      </p>
-      <p className="mt-1.5 font-metric text-xl tabular-nums text-white">
-        <AnimatedMetric value={value} decimals={decimals} />
-      </p>
-      {hint ? <p className="text-[10px] text-white/50">{hint}</p> : null}
-    </div>
-  );
-}
-
-function MiniStat({
-  label,
-  value,
-  decimals = 0,
-  suffix,
-}: {
-  label: string;
-  value: number | null;
-  decimals?: number;
-  suffix?: string;
-}) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-black/35 px-2 py-2.5 text-center">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-white/50">
-        {label}
-      </p>
-      <p className="mt-1 font-metric text-xl tabular-nums text-white">
-        {value != null ? (
-          <>
-            <AnimatedMetric value={value} decimals={decimals} />
-            {suffix ? <span className="text-sm text-white/50">{suffix}</span> : null}
-          </>
-        ) : (
-          "—"
-        )}
-      </p>
-    </div>
-  );
-}
-
-function RecordRow({
-  label,
-  value,
-  date,
-}: {
-  label: string;
-  value: string;
-  date: string | null;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3">
-      <div>
-        <p className="text-sm text-white/85">{label}</p>
-        <p className="text-[11px] text-white/50">
-          {date ? formatShortDate(date) : "—"}
-        </p>
-      </div>
-      <p className="font-metric text-base tabular-nums text-[var(--gym-gold)]">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function cnSession(base: string, isPr: boolean) {
-  return isPr
-    ? `${base} border border-[var(--gym-gold)]/40`
-    : base;
 }

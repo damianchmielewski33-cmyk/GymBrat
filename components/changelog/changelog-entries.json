@@ -1,5 +1,16 @@
 [
   {
+    "title": "Zapowiedź — Analiza przebudowana od zera",
+    "planned": true,
+    "bullets": [
+      "Pięć zakładek: Podsumowanie, Siła, Ciało, Regularność i Porównanie. Wszystko ważne jest od razu widoczne, a definicje stoją obok liczb (szacowany max, tonaż, RIR, RPE).",
+      "Podsumowanie zaczyna od odpowiedzi słowami (np. „Robisz postępy”), potem trzy liczby: siła, waga i regularność w wybranym okresie 7, 30 lub 90 dni.",
+      "Zmęczenie pokazuje rozbicie na siedem składników z punktami, informację o brakujących danych (RPE, RIR) i o tym, z ilu tygodni liczona jest Twoja norma.",
+      "Interaktywne wykresy wagi i szacowanego maxa: dotknij punktu albo użyj strzałek, wybierz zakres 1M, 3M, 6M lub całość. Szczegół ćwiczenia ma kartę „Ostatnie treningi” z seriami, szacowanym maxem i rozwinięciem.",
+      "Porównanie dwóch dowolnych tygodni (trening, tonaż, cardio, kalorie, białko), progres ćwiczenia tydzień po tygodniu i mapa progresu."
+    ]
+  },
+  {
     "title": "Zapowiedź — Strona startowa, pomiar zainteresowania i porządek w kodzie",
     "planned": true,
     "bullets": [

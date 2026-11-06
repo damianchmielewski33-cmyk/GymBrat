@@ -429,5 +429,14 @@ export function buildStrengthViews(args: {
       });
     }
   }
-  return { last6, volumeCounts, volumeComparedCount, maxes, planGroups };
+  // Lista wszystkich ćwiczeń dla zakładki Siła (z ostatnią historią, bez podziału na plany).
+  const allExercises: ProgressExerciseRow[] = [...byExercise.values()]
+    .filter((e) => e.hasWeighted && e.bestE1rm > 0)
+    .sort((a, b) => b.bestE1rm - a.bestE1rm)
+    .slice(0, 40)
+    .map((e) => {
+      const row = toExerciseRow({ name: e.name, agg: e });
+      return { ...row, history: row.history.slice(-30) };
+    });
+  return { last6, volumeCounts, volumeComparedCount, maxes, planGroups, allExercises };
 }

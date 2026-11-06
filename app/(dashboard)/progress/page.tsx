@@ -5,17 +5,12 @@ import { redirect } from "next/navigation";
 import { ProgressPageContent } from "@/components/progress/progress-page-content";
 import { parseProgressTab } from "@/lib/progress-tabs";
 
-function parsePeriod(raw: string | string[] | undefined): "7" | "30" | "90" {
-  const value = Array.isArray(raw) ? raw[0] : raw;
-  return value === "7" || value === "90" ? value : "30";
-}
-
 export const metadata = { title: "Analiza" };
 
 export default async function ProgressPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string | string[]; okres?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   const session = await auth();
   const userId = session?.user?.id;
@@ -23,21 +18,17 @@ export default async function ProgressPage({
 
   const sp = await searchParams;
   const tab = parseProgressTab(sp?.tab);
-  const period = parsePeriod(sp?.okres);
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-3.5 pb-8">
       <header className="px-0.5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
+        <h1 className="font-heading text-[28px] font-semibold leading-8 tracking-tight text-white">
           Analiza
-        </p>
-        <h1 className="mt-1 font-heading text-[28px] font-semibold leading-8 tracking-tight text-white">
-          Analiza postępów
         </h1>
       </header>
 
       <Suspense fallback={<ProgressSkeleton />}>
-        <ProgressPageContent tab={tab} period={period} />
+        <ProgressPageContent tab={tab} />
       </Suspense>
     </div>
   );

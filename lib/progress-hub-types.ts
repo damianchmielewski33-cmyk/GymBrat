@@ -126,6 +126,8 @@ export type ProgressWeekSummary = {
   today: string;
   /** Dni kalendarzowe do niedzieli włącznie (0 gdy po tygodniu). */
   daysLeft: number;
+  /** Kalendarz ostatnich 8 tygodni (Pn–Nd), od najstarszego dnia; dni po `today` mają false. */
+  calendar8w: Array<{ date: string; strength: boolean; cardio: boolean }>;
   /** Domyślne porównanie: bieżący vs poprzedni (Pn→dziś). */
   weekCompare: WeekTrainingCompare;
   /** Ostatnie ~12 tygodni do wyboru dowolnej pary w UI. */
@@ -160,6 +162,8 @@ export type ProgressHubData = {
     /** RPE / RIR / tempo z ostatnich sesji siłowych. */
     intensity: ProgressIntensitySummary;
     planGroups: ProgressPlanGroup[];
+    /** Wszystkie ćwiczenia z obciążeniem (do 40), z historią ostatnich 30 sesji. */
+    allExercises: ProgressExerciseRow[];
     sinceDate: string | null;
     workoutCount: number;
   };

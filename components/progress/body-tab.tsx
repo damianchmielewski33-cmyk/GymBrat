@@ -3,22 +3,21 @@
 import { BRAND_GOLD } from "@/lib/brand-colors";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatedMetric } from "@/components/ui/animated-metric";
-import { WeightAverageChart } from "@/components/progress/weight-average-chart";
 import { PhotoCompareSection } from "@/components/progress/photos-tab";
 import {
-  CollapsibleCard,
-  Explainer,
-  Eyebrow,
-  ProgressSection,
-  StatTile,
-  Surface,
-} from "@/components/progress/progress-ui";
+  Definition,
+  InteractiveLineChart,
+  RangeChips,
+  toneClass,
+  type Tone,
+} from "@/components/progress/progress-charts";
+import { ProgressSection, Surface } from "@/components/progress/progress-ui";
 import { MiniSparkline } from "@/components/home/mini-sparkline";
 import { saveFitnessGoalsAction } from "@/actions/fitness-goals";
 import { GOAL_TYPE_LABEL, type GoalType } from "@/lib/goal-projection";
 import type { ProgressHubData } from "@/lib/progress-hub";
-import { calendarWeekdaySun0 } from "@/lib/local-date";
+import { calendarDateKey, calendarWeekdaySun0 } from "@/lib/local-date";
+import { filterByRange, type ChartRange } from "@/lib/progress-view";
 import {
   fmtNum,
   fmtSigned,
@@ -26,6 +25,12 @@ import {
   plural,
 } from "@/lib/progress-format";
 import { cn } from "@/lib/utils";
+
+const WEIGHT_RANGES = [
+  { id: "1M", label: "1M" },
+  { id: "3M", label: "3M" },
+  { id: "all", label: "Całość" },
+] as const;
 
 const WEEKDAY = ["nd", "pon", "wt", "śr", "czw", "pt", "sob"] as const;
 
@@ -134,49 +139,93 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
     setEditingGoal(true);
   }
 
+  const [range, setRange] = useState<ChartRange>("3M");
+  const [selRaw, setSelRaw] = useState<number | null>(null);
+  const today = calendarDateKey();
+  const shown = useMemo(() => filterByRange(weights, range, today), [weights, range, today]);
+  const sel = selRaw == null ? shown.length - 1 : Math.min(selRaw, shown.length - 1);
+  const cur = shown[sel];
+  const prevPt = sel > 0 ? shown[sel - 1] : null;
+  const diff = cur && prevPt ? Math.round((cur.kg - prevPt.kg) * 10) / 10 : null;
+  const towardGoal = (d: number) =>
+    targetWeightKg != null && tempo.currentKg != null
+      ? (targetWeightKg < tempo.currentKg ? d < 0 : d > 0)
+      : null;
+  const diffTone: Tone =
+    diff == null || diff === 0 ? "flat" : towardGoal(diff) === false ? "down" : towardGoal(diff) === true ? "up" : "flat";
+  const labels = shown.map((w) => formatDayMonth(w.date));
+
   return (
-    <div className="space-y-5">
-      <Surface variant="hero" className="space-y-3">
-        <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <Eyebrow gold>
-              Ostatni raport
-              {tempo.lastReportDate ? ` · ${formatDayMonth(tempo.lastReportDate)}` : ""}
-            </Eyebrow>
-            {tempo.currentKg != null ? (
-              <p className="mt-2 flex items-baseline gap-1.5">
-                <AnimatedMetric
-                  value={tempo.currentKg}
-                  decimals={1}
-                  className="text-[2rem] leading-none text-white"
-                />
-                <span className="font-heading text-[15px] text-white/50">kg</span>
-              </p>
-            ) : (
-              <p className="mt-2 font-metric text-[2rem] leading-none text-white/50">
-                —
-              </p>
-            )}
-            <p className="mt-1.5 text-[11px] leading-snug text-white/50">
-              {lastLine ?? "Brak raportów wagi — dodaj pierwszy w Raportach."}
+    <div className="space-y-3.5">
+      <section className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/30 bg-gradient-to-b from-[rgba(var(--neon-rgb),0.14)] via-[var(--gym-surface-sunken)] to-[var(--gym-surface-sunken)] px-4 py-4">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
+          Waga{cur ? ` w dniu: ${formatDayMonth(cur.date)}` : ""}
+        </h2>
+        {cur ? (
+          <>
+            <p className="mt-1.5 flex items-baseline gap-2">
+              <span className="font-metric text-[72px] leading-none text-white">{fmtNum(cur.kg, 1)}</span>
+              <span className="text-[16px] text-[var(--gym-text-secondary)]">kg</span>
             </p>
+            <p className={cn("text-[15px]", toneClass(diffTone))}>
+              {diff == null
+                ? "pierwszy pomiar w tym zakresie"
+                : `${diff > 0 ? "▲" : diff < 0 ? "▼" : "="} ${diff > 0 ? "+" : diff < 0 ? "−" : ""}${fmtNum(Math.abs(diff), 1)} kg względem poprzedniego pomiaru`}
+            </p>
+            <InteractiveLineChart
+              values={shown.map((w) => w.kg)}
+              labels={labels}
+              selected={sel}
+              onSelect={setSelRaw}
+              unit="kg"
+              decimals={1}
+              goal={targetWeightKg != null ? { value: targetWeightKg, label: `cel ${fmtNum(targetWeightKg, 1)} kg` } : undefined}
+              subject="Waga"
+              ariaLabel={`Waga, zakres ${range}: od ${fmtNum(shown[0]!.kg, 1)} do ${fmtNum(shown[shown.length - 1]!.kg, 1)} kg${targetWeightKg != null ? `, cel ${fmtNum(targetWeightKg, 1)} kg` : ""}`}
+              prevLabel="Poprzedni pomiar"
+              nextLabel="Następny pomiar"
+            />
+          </>
+        ) : (
+          <p className="mt-3 text-[15px] leading-snug text-white">
+            Brak pomiarów wagi w tym zakresie. Dodaj raport w zakładce Raporty albo wybierz dłuższy zakres.
+          </p>
+        )}
+        <div className="mt-3">
+          <RangeChips
+            value={range}
+            onChange={(r) => {
+              setRange(r);
+              setSelRaw(null);
+            }}
+            options={WEIGHT_RANGES}
+          />
+        </div>
+        <Definition className="mt-3.5">
+          <b className="text-white">Tempo:</b>{" "}
+          {pace != null
+            ? `${fmtSigned(pace, " kg", 2)} tygodniowo (${tempo.kgPerWeekLast6 != null ? "średnia z ostatnich 6 tygodni" : "średnia od startu"}).`
+            : "Za mało raportów, żeby policzyć tempo."}{" "}
+          {targetWeightKg != null ? (
+            <>Cel {fmtNum(targetWeightKg, 1)} kg: {eta ?? "dodaj kolejne raporty, żeby policzyć termin."}</>
+          ) : null}
+        </Definition>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <div>
+            <div className="font-metric text-[26px] leading-none text-white">{fmtSigned(tempo.deltaFromStartKg, "", 1)}</div>
+            <div className="mt-1 text-[12px] text-[var(--gym-text-secondary)]">kg od startu{tempo.startDate ? ` (${formatDayMonth(tempo.startDate)})` : ""}</div>
           </div>
-          <div className="shrink-0 text-right">
-            <p className="font-metric text-[18px] leading-none tabular-nums text-white">
-              {fmtSigned(tempo.deltaFromStartKg, " kg", 1)}
-            </p>
-            <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-white/50">
-              od startu
-            </p>
-            {tempo.startKg != null ? (
-              <p className="mt-1 text-[11px] tabular-nums text-white/50">
-                {fmtNum(tempo.startKg, 1)} kg · {formatDayMonth(tempo.startDate)}
-              </p>
-            ) : null}
+          <div>
+            <div className="font-metric text-[26px] leading-none text-white">{fmtSigned(tempo.deltaVsPrevKg, "", 1)}</div>
+            <div className="mt-1 text-[12px] text-[var(--gym-text-secondary)]">kg vs poprzedni raport</div>
+          </div>
+          <div>
+            <div className="font-metric text-[26px] leading-none text-white">{tempo.reportCount}</div>
+            <div className="mt-1 text-[12px] text-[var(--gym-text-secondary)]">{plural(tempo.reportCount, "raport", "raporty", "raportów")}{lastLine ? `, ostatni ${lastLine}` : ""}</div>
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-2.5">
+        <div className="mt-4 border-t border-white/10 pt-3">
           {editingGoal ? (
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1 space-y-1.5">
@@ -270,36 +319,9 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
           )}
         </div>
 
-      </Surface>
+      </section>
 
-      <ProgressSection
-        title="Wykres i tempo"
-        trailing={`${tempo.reportCount} ${plural(tempo.reportCount, "raport", "raporty", "raportów")}`}
-      >
-        <Surface className="space-y-2">
-          <WeightAverageChart weights={weights} />
-          <Explainer><p>Kropki to raporty. Linia pokazuje średnią z ostatnich raportów. „Zmiana w 6 tyg.” to tempo wyliczone z pomiarów w tym okresie.</p></Explainer>
-        </Surface>
-        <div className="grid grid-cols-3 gap-2">
-          <StatTile
-            label="Zmiana w 6 tyg."
-            value={fmtSigned(tempo.kgPerWeekLast6, "", 2)}
-            hint="kg / tydzień"
-          />
-          <StatTile
-            label="Od startu"
-            value={fmtSigned(tempo.kgPerWeekFromStart, "", 2)}
-            hint="kg / tydzień"
-          />
-          <StatTile
-            label="Ostatni raport"
-            value={fmtSigned(tempo.deltaVsPrevKg, "", 1)}
-            hint="kg vs poprzedni"
-          />
-        </div>
-      </ProgressSection>
-
-      <ProgressSection title="Obwody" trailing="od startu">
+      <ProgressSection title="Obwody" trailing="zmiana od pierwszego raportu">
         <Surface variant="list">
           {measures.every((m) => m.currentCm == null) ? (
             <p className="px-3.5 py-5 text-center text-[13px] text-white/50">
@@ -368,9 +390,12 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
         </Surface>
       </ProgressSection>
 
-      <CollapsibleCard title="Zdjęcia" summary="Porównanie Start i Teraz · pokaż na żądanie" lazy>
+      <section className="app-panel px-4 py-4" aria-labelledby="h-zdj">
+        <h2 id="h-zdj" className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
+          Zdjęcia: start i teraz
+        </h2>
         <PhotoCompareSection />
-      </CollapsibleCard>
+      </section>
     </div>
   );
 }
