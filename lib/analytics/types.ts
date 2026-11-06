@@ -4,6 +4,22 @@ export const ANALYTICS_ALGORITHM_VERSION = "analytics_v1" as const;
 
 export type FatigueBand = "fresh" | "normal" | "fatigued" | "overreached";
 
+export type FatigueComponentKey =
+  | "tonnage"
+  | "trend"
+  | "hardSets"
+  | "rpe"
+  | "sessions"
+  | "cardio"
+  | "streak";
+
+/** Wkład jednego składnika w wynik zmęczenia (punkty z maksimum). */
+export type FatigueComponent = {
+  key: FatigueComponentKey;
+  points: number;
+  max: number;
+};
+
 export type FatigueSnapshot = {
   score: number;
   band: FatigueBand;
@@ -11,6 +27,12 @@ export type FatigueSnapshot = {
   delta7d: number | null;
   delta30d: number | null;
   recommendation: string;
+  /** Rozbicie wyniku na składniki (suma punktów ≈ score, przed obcięciem do 0–100). */
+  components: FatigueComponent[];
+  /** Dane, których brak zaniża wynik (składnik liczony jako 0 pkt). */
+  missingInputs: Array<"rpe" | "hardSets">;
+  /** Ile tygodni historii tworzy bazę „normy” (0–3). Poniżej 2 stosunek tonażu jest mało wiarygodny. */
+  baselineWeeks: number;
   inputs: {
     weeklyTonnageKg: number;
     tonnageTrendPct: number | null;
