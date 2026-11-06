@@ -15,6 +15,11 @@ test("rejestracja → usunięcie konta (RODO) → logowanie niemożliwe", async 
   await page.addInitScript(E2E_CONSENT_INIT);
 
   await page.goto("/register");
+  // Tryb testowy kodu działa tylko w `next dev` bez SMTP; na buildzie produkcyjnym rejestracja jest wyłączona (LR-21).
+  test.skip(
+    await page.getByText("Rejestracja jest chwilowo niedostępna").isVisible({ timeout: 4_000 }).catch(() => false),
+    "Rejestracja e-mail wyłączona (brak SMTP / tryb produkcyjny) — uruchom na `next dev` albo po ustawieniu SMTP (Z17).",
+  );
   await page.getByRole("button", { name: /zarejestruj się przez e-mail/i }).click();
 
   await page.getByLabel("Imię").fill("Ewa");

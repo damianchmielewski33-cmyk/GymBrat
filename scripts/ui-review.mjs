@@ -43,7 +43,17 @@ if (args.axe) {
 const browser = await chromium.launch();
 const axeResults = [];
 for (const vp of VIEWPORTS) {
-  const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
+  const ctx = await browser.newContext({
+    viewport: { width: vp.width, height: vp.height },
+    // --state=e2e/.auth/user.json: sesja z Playwright (zamiast ręcznego cookie).
+    ...(args.state ? { storageState: args.state } : {}),
+  });
+  // Bez banera cookies na zrzutach.
+  await ctx.addInitScript(() => {
+    try {
+      localStorage.setItem("gymbrat_consent_v1", JSON.stringify({ version: 1, decidedAt: new Date().toISOString(), analytics: false, marketing: false }));
+    } catch {}
+  });
   if (cookie) {
     const [name, ...rest] = cookie.split("=");
     await ctx.addCookies([{ name, value: rest.join("="), url: base }]);

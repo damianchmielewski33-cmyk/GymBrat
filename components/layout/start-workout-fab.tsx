@@ -33,7 +33,6 @@ export function StartWorkoutFab() {
           ? "bottom-[calc(10.25rem+env(safe-area-inset-bottom))] md:bottom-[calc(7.25rem+env(safe-area-inset-bottom))]"
           : "bottom-[calc(6.75rem+env(safe-area-inset-bottom))] md:bottom-8",
       )}
-      aria-label="Rozpocznij trening"
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-black/25">
         <Activity className="h-4 w-4 text-[var(--neon)]" aria-hidden />
@@ -43,7 +42,7 @@ export function StartWorkoutFab() {
           Trening
         </span>
         <span className="mt-0.5 block text-[13px] font-semibold tracking-tight">
-          Rozpocznij
+          Rozpocznij<span className="sr-only"> trening</span>
         </span>
       </span>
     </Link>

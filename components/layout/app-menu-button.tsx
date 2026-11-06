@@ -499,7 +499,7 @@ export function AppMenuButton({
             ? "inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-[var(--gym-gold)]/70 bg-[var(--gym-gold)]/10 text-sm font-semibold tracking-wide text-white transition-colors hover:border-[var(--gym-gold)] hover:bg-[var(--gym-gold)]/15"
             : "touch-target inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white",
         )}
-        aria-label={open ? "Zamknij menu" : "Otwórz menu"}
+        aria-label={open ? "Zamknij menu" : variant === "initials" ? `${avatar}, otwórz menu` : "Otwórz menu"}
       >
         {variant === "initials" ? (
           open ? (

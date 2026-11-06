@@ -323,7 +323,7 @@ export function Meter({
         aria-valuemax={100}
         aria-valuenow={0}
         aria-valuetext={ariaValueText}
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? "Postęp"}
         className={cn(height, track, className)}
       />
     );
@@ -343,7 +343,7 @@ export function Meter({
         aria-valuemax={100}
         aria-valuenow={Math.round(Math.min(100, closed + today))}
         aria-valuetext={ariaValueText}
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? "Postęp"}
         className={cn(height, "relative overflow-hidden", track, className)}
       >
         <div className="absolute inset-0 flex">
@@ -376,7 +376,7 @@ export function Meter({
       aria-valuemax={100}
       aria-valuenow={Math.round(filled)}
       aria-valuetext={ariaValueText}
-      aria-label={ariaLabel}
+      aria-label={ariaLabel ?? "Postęp"}
       className={cn(height, "relative overflow-hidden", track, className)}
     >
       <div

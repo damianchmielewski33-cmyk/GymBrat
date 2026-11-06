@@ -41,7 +41,7 @@ async function user(email, first, role, packageDays) {
     }
     for (let i = 0; i < 10; i++) {
       const ex = [
-        { name: "Wyciskanie sztangi leżąc", sets: [0, 1, 2].map((_s) => ({ reps: 8 - s, weight: 70 + i + s * 2.5, done: true })) },
+        { name: "Wyciskanie sztangi leżąc", sets: [0, 1, 2].map((s) => ({ reps: 8 - s, weight: 70 + i + s * 2.5, done: true })) },
         { name: "Przysiad ze sztangą", sets: [0, 1, 2].map((_s) => ({ reps: 6, weight: 100 + i * 2, done: true })) },
       ];
       await c.execute({

@@ -209,9 +209,9 @@ function MacroProgressTile({
       <Link
         href={href}
         className={cn(className, "col-span-2")}
-        aria-label={`${title} — otwórz szczegóły makro`}
       >
         {body}
+        <span className="sr-only">Otwórz szczegóły makro</span>
       </Link>
     );
   }

@@ -72,6 +72,7 @@ export function HomeCardioProgressStrip({
       <div
         className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10"
         role="progressbar"
+        aria-label="Cardio w tym tygodniu"
         aria-valuemin={0}
         aria-valuemax={weeklyGoal}
         aria-valuenow={Math.min(mins, weeklyGoal)}

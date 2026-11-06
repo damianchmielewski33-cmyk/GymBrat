@@ -103,10 +103,20 @@ async function loginAndClearSession(page: Page) {
   const xsrf = (await page.context().cookies()).find((c) => c.name === "gymbrat_xsrf")?.value ?? "";
   const current = await page.request.get("/api/active-workout-session");
   const currentJson = (await current.json().catch(() => null)) as { session?: { revision?: number } | null } | null;
-  const del = await page.request.delete("/api/active-workout-session", {
+  let revision = currentJson?.session?.revision ?? 0;
+  let del = await page.request.delete("/api/active-workout-session", {
     headers: { "x-xsrf-token": decodeURIComponent(xsrf) },
-    data: { revision: currentJson?.session?.revision ?? 0 },
+    data: { revision },
   });
+  // 409: ostatni zapis z poprzedniego testu zmienił rewizję — ponów z aktualną rewizją serwera.
+  for (let i = 0; i < 3 && del.status() === 409; i++) {
+    const body = (await del.json().catch(() => null)) as { session?: { revision?: number } | null } | null;
+    revision = body?.session?.revision ?? revision + 1;
+    del = await page.request.delete("/api/active-workout-session", {
+      headers: { "x-xsrf-token": decodeURIComponent(xsrf) },
+      data: { revision },
+    });
+  }
   expect(del.ok(), `DELETE /api/active-workout-session -> ${del.status()} ${(await del.text()).slice(0, 160)}`).toBeTruthy();
 }
 

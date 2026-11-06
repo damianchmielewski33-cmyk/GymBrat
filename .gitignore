@@ -69,3 +69,6 @@ android/**/build/
 # E2E (US14)
 /e2e/.auth/
 e2e.db*
+
+# zrzuty ui-review (Z86)
+/tmp/
