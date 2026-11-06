@@ -92,7 +92,7 @@ export function SetPills({
       ref={groupRef}
       role="group"
       aria-label="Serie ćwiczenia"
-      className={cn("chip-scroll max-w-full items-center compact:max-w-[9.5rem]")}
+      className={cn("chip-scroll max-w-full items-center compact:-my-1 compact:max-w-[9.5rem]")}
       // `.chip-scroll` dodaje `padding-bottom` na pasek przewijania (ukryty tu przez
       // `scrollbar-width: none`); w kompakcie budżet wysokości nie ma miejsca na te 4 px
       // (ux, przegląd wizualny, defekt 2 — regresja po pierwszej poprawce). Klasa Tailwind

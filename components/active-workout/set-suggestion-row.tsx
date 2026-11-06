@@ -166,7 +166,7 @@ export function SetSuggestionRow({
   return (
     <div
       className={cn(
-        "flex min-h-14 items-center gap-2 rounded-2xl border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] py-1.5 pl-3 pr-1.5 compact:min-h-11 compact:py-0.5",
+        "flex min-h-14 items-center gap-2 rounded-2xl border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] py-1.5 pl-3 pr-1.5 compact:min-h-10 compact:py-0.5",
         className,
       )}
     >
