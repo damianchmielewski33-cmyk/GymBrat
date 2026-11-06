@@ -127,6 +127,14 @@ export default function RegulaminPage() {
           rejestrowania treningów siłowych oraz diety (dziennik żywieniowy,
           cele makro, historia, społeczność i powiązane funkcje).
         </p>
+        <p>
+          Podstawowa wersja Serwisu jest bezpłatna i finansowana z reklam.
+          Korzystając z Serwisu bez aktywnego Pakietu, Użytkownik akceptuje
+          wyświetlanie reklam (m.in. pełnoekranowych); aktywny Pakiet je
+          wyłącza. Zgoda w ustawieniach prywatności dotyczy wyłącznie
+          personalizacji reklam i nie wpływa na ich wyświetlanie — bez zgody
+          wyświetlane są reklamy niespersonalizowane.
+        </p>
         <p>W ramach Serwisu oferowane są w szczególności:</p>
         <ul className="list-disc space-y-1.5 pl-5">
           <li>dostęp do Konta oraz podstawowych funkcji treningowych i dietetycznych,</li>

@@ -35,7 +35,7 @@ const files = SCAN_DIRS.flatMap((d) => walk(path.join(ROOT, d)));
 
 describe("Z66: tokeny koloru marki", () => {
   it("brak literałów koloru marki poza app/globals.css i lib/brand-colors.ts", () => {
-    const re = /#ebc44a|#f7e28f|#c49a1f|#1a1408|235,\s*196,\s*74/i;
+    const re = /#c9a45c|#e6c987|#9c7a35|#1a1408|201,\s*164,\s*92/i;
     const offenders = files
       .map((f) => path.relative(ROOT, f).replaceAll("\\", "/"))
       .filter((rel) => !ALLOWED.has(rel))

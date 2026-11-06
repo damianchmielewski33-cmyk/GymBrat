@@ -120,8 +120,8 @@ export function ConsentSettingsCard({
       <ProfileSwitch
         checked={Boolean(prefs?.marketing)}
         onChange={(v) => patch({ marketing: v })}
-        label="Marketing i reklamy"
-        description="Reklamy pełnoekranowe, gdy nie masz aktywnego pakietu."
+        label="Personalizacja reklam"
+        description="Reklamy są częścią wersji bezpłatnej (pakiet je usuwa). Zgoda pozwala dopasować je do Ciebie; bez niej zobaczysz reklamy niespersonalizowane."
         disabled={pending}
       />
 

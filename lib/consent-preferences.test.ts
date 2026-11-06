@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   canUseAnalytics,
-  canUseMarketing,
+  canPersonalizeAds,
   defaultConsentPreferences,
   parseConsentPreferences,
 } from "@/lib/consent-preferences";
@@ -18,7 +18,7 @@ describe("consent-preferences", () => {
     expect(p?.analytics).toBe(true);
     expect(p?.marketing).toBe(false);
     expect(canUseAnalytics(p)).toBe(true);
-    expect(canUseMarketing(p)).toBe(false);
+    expect(canPersonalizeAds(p)).toBe(false);
   });
 
   it("rejects invalid payloads", () => {

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import type { AdPlacement } from "@/lib/admob-gate";
 import { isInstalledAndroidAppClient } from "@/lib/app-webview";
-import { canUseMarketing, hasConsentDecision } from "@/lib/consent-preferences";
 
 type GateState = "checking" | "skip" | "show";
 
@@ -44,8 +43,9 @@ export function useFullscreenAdGate(placement: AdPlacement) {
   const runWithAd = useCallback(
     async (action: () => void | Promise<void>) => {
       const needsAd = state === "show" || (await refresh());
-      // Bez zgody marketingowej (CMP) — nie pokazujemy reklam, kontynuujemy akcję.
-      if (!needsAd || !hasConsentDecision() || !canUseMarketing()) {
+      // Reklamy są elementem wersji bezpłatnej (regulamin): pokazujemy je każdemu bez pakietu.
+      // Zgoda marketingowa (CMP) steruje wyłącznie personalizacją — patrz canPersonalizeAds.
+      if (!needsAd) {
         await action();
         return;
       }

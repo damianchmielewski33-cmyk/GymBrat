@@ -200,14 +200,16 @@ export default function PolitykaPrywatnosciPage() {
         </p>
         <p>
           Opcjonalnie, tylko po Twojej zgodzie w bannerze cookies (lub w Profilu):
-          analityka wejść (page-view) oraz marketing / reklamy pełnoekranowe
-          AdMob (gdy nie masz aktywnego Pakietu). W aplikacji Android zgody
+          analityka wejść (page-view) oraz personalizacja reklam pełnoekranowych
+          AdMob. Same reklamy są częścią bezpłatnej wersji Serwisu (zgodnie z
+          regulaminem) i wyświetlają się, gdy nie masz aktywnego Pakietu; bez
+          zgody widzisz reklamy niespersonalizowane. W aplikacji Android zgody
           reklamowe AdMob są dodatkowo zbierane przez Google UMP.
         </p>
         <p>
           Zgodę możesz zmienić lub wycofać w każdej chwili w Profilu → Prywatność
-          i zgody. Wycofanie zgody marketingowej zatrzymuje pokazywanie reklam;
-          niezbędne cookies pozostają aktywne.
+          i zgody. Wycofanie zgody marketingowej wyłącza personalizację reklam
+          (reklamy nadal się wyświetlają); niezbędne cookies pozostają aktywne.
         </p>
       </LegalSection>
 

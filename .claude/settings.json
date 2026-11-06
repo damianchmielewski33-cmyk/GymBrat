@@ -16,8 +16,7 @@
       "Read(./docs/ux/**)",
       "Read(./docs/prawo/**)",
       "Read(./docs/testy/**)",
-      "Read(./docs/bezpieczenstwo/**)",
-      "Read(./docs/wydajnosc/**)"
+      "Read(./docs/bezpieczenstwo/**)"
     ]
   },
   "hooks": {
