@@ -135,14 +135,13 @@ export function safeNormalizeExercises(exercises: unknown): CompletedSessionExer
 }
 
 /** Epley estimated 1RM: \(w * (1 + reps/30)\). */
-const E1RM_MAX_REPS = 12;
 
 export function estimated1RM(weight: number, reps: number): number {
   const w = clampNonNegative(weight, 0);
   const r = clampNonNegative(reps, 0);
   if (w <= 0 || r <= 0) return 0;
-  // Epley zawyża 1RM przy wysokich powtórzeniach — powyżej 12 nie ekstrapolujemy.
-  return w * (1 + Math.min(r, E1RM_MAX_REPS) / 30);
+  // Wzór Epleya: ciężar × (1 + powtórzenia / 30).
+  return w * (1 + r / 30);
 }
 
 export function computeWorkoutDetails(input: {

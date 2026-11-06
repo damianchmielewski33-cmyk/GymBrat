@@ -6,29 +6,28 @@ import {
   predictExercise,
   type ExerciseSessionPoint,
 } from "@/lib/analytics";
-import { buildExercisePeriodCompares } from "@/lib/exercise-period-compare";
 import { getExerciseProgressSeries } from "@/lib/exercise-progress";
 import { calendarDateKey } from "@/lib/local-date";
 import { decodeExerciseProgressKey } from "@/lib/progress-tabs";
 import { withDbRetry } from "@/db/with-retry";
+import { getDb } from "@/db";
+import { userSettings } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { parseFitnessGoalsJson } from "@/lib/fitness-goals";
+import { resolveExerciseIdentity } from "@/lib/exercise-identity";
 
 export const metadata = { title: "Ćwiczenie" };
 
 export default async function ProgressExercisePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ key: string }>;
-  searchParams: Promise<{ okres?: string | string[] }>;
 }) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) redirect("/login?callbackUrl=/progress");
 
   const { key } = await params;
-  const query = await searchParams;
-  const rawPeriod = Array.isArray(query?.okres) ? query.okres[0] : query?.okres;
-  const initialPeriod = rawPeriod === "7" || rawPeriod === "90" || rawPeriod === "all" ? rawPeriod : "30";
   const name = decodeExerciseProgressKey(key);
   if (!name) notFound();
 
@@ -43,8 +42,19 @@ export default async function ProgressExercisePage({
     { attempts: 3, label: "exercise-progress" },
   );
 
+  const settingsRow = await withDbRetry(
+    () =>
+      getDb()
+        .select({ fitnessGoalsJson: userSettings.fitnessGoalsJson })
+        .from(userSettings)
+        .where(eq(userSettings.userId, userId))
+        .limit(1)
+        .then((rows) => rows[0] ?? null),
+    { attempts: 2, label: "exercise-goals" },
+  );
+  const goals = parseFitnessGoalsJson(settingsRow?.fitnessGoalsJson ?? null);
+
   const displayName = data.matchedExerciseNames[0] ?? name;
-  const periodCompares = buildExercisePeriodCompares(data.points, data.metric);
 
   const sessionPoints: ExerciseSessionPoint[] = data.points.map((p) => ({
     date: p.date,
@@ -72,6 +82,13 @@ export default async function ProgressExercisePage({
     today,
   });
 
+  const identityKey = resolveExerciseIdentity(displayName).key;
+  const target =
+    goals.exerciseTargets?.find((t) => {
+      const k = resolveExerciseIdentity(t.name).key;
+      return k && k === identityKey;
+    }) ?? null;
+
   return (
     <ExerciseDetailView
       name={displayName}
@@ -81,10 +98,9 @@ export default async function ProgressExercisePage({
       intensity={data.intensity}
       metric={data.metric}
       matchedNames={data.matchedExerciseNames}
-      periodCompares={periodCompares}
       prediction={prediction}
       stagnation={stagnation}
-      initialPeriod={initialPeriod}
+      target={target}
     />
   );
 }

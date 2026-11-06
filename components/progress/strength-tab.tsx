@@ -1,385 +1,255 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowDownRight,
-  ArrowRight,
-  ArrowUpRight,
-  Gauge,
-} from "lucide-react";
-import { AnimatedMetric } from "@/components/ui/animated-metric";
-import { MiniSparkline } from "@/components/home/mini-sparkline";
-import { MuscleBalancePanel } from "@/components/progress/muscle-balance-panel";
-import { StrengthTrendCard } from "@/components/progress/strength-trend-card";
-import {
-  CollapsibleCard,
-  EmptyNote,
-  Explainer,
-  ProgressSection,
-  SegmentedControl,
-  StatTile,
-  Surface,
-} from "@/components/progress/progress-ui";
-import type { ProgressIntelligence } from "@/lib/analytics";
-import { formatDayMonth } from "@/lib/progress-format";
-import type { ProgressExerciseRow, ProgressHubData } from "@/lib/progress-hub";
+import { useMemo, useState } from "react";
+import { Sparkline, toneArrow, toneClass, Definition, type Tone } from "@/components/progress/progress-charts";
+import { Meter } from "@/components/progress/progress-ui";
+import { fmtNum, formatDayMonth } from "@/lib/progress-format";
+import type { ProgressHubData } from "@/lib/progress-hub";
+import { calendarDateKey } from "@/lib/local-date";
 import { exerciseProgressKey } from "@/lib/progress-tabs";
-import { addCalendarDays, calendarDateKey } from "@/lib/local-date";
+import { exerciseChange, type ExerciseChange } from "@/lib/progress-view";
 import { cn } from "@/lib/utils";
 
-type ExerciseMetric = "e1rm" | "volume" | "record";
+type SortId = "growth" | "attention" | "plan";
 
-type ExerciseDisplay = {
-  source: ProgressExerciseRow;
-  status: "pending" | "first" | "compare";
-  trend: "up" | "flat" | "down";
-  hasTrend: boolean;
-  valueLabel: string;
-  subtitle: string;
+const SORTS: ReadonlyArray<{ id: SortId; label: string }> = [
+  { id: "growth", label: "Największy wzrost" },
+  { id: "attention", label: "Wymaga uwagi" },
+  { id: "plan", label: "Wg planu" },
+];
+
+const STATUS_LABEL: Record<Tone, string> = { up: "rośnie", flat: "stoi", down: "spada" };
+
+function Card({ children, hero }: { children: React.ReactNode; hero?: boolean }) {
+  return (
+    <section
+      className={
+        hero
+          ? "relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/30 bg-gradient-to-b from-[rgba(var(--neon-rgb),0.14)] via-[var(--gym-surface-sunken)] to-[var(--gym-surface-sunken)] px-4 py-4"
+          : "app-panel px-4 py-4"
+      }
+    >
+      {children}
+    </section>
+  );
+}
+
+function CardTitle({ id, children }: { id?: string; children: React.ReactNode }) {
+  return (
+    <h2 id={id} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
+      {children}
+    </h2>
+  );
+}
+
+type Row = {
+  name: string;
+  key: string;
+  change: ExerciseChange;
   spark: number[];
-  isNewRecord: boolean;
+  planIndex: number;
 };
 
-function exerciseDisplay(
-  exercise: ProgressExerciseRow,
-  metric: ExerciseMetric,
-  period: "7" | "30" | "90",
-  today: string,
-): ExerciseDisplay {
-  const cutoff = addCalendarDays(today, -(Number(period) - 1));
-  const sessions = exercise.history.filter((point) => point.date >= cutoff);
-  const weighted = exercise.metric === "kg";
-  const noData: ExerciseDisplay = {
-    source: exercise,
-    status: "pending",
-    trend: "flat",
-    hasTrend: false,
-    valueLabel: "—",
-    subtitle: "Brak treningów w tym okresie",
-    spark: [],
-    isNewRecord: false,
-  };
-  if (!sessions.length) return noData;
-
-  if (metric === "record") {
-    const best = sessions.reduce((current, point) => {
-      const value = weighted ? point.bestE1rm : point.bestReps;
-      const bestValue = weighted ? current.bestE1rm : current.bestReps;
-      return value > bestValue ? point : current;
-    });
-    const label = weighted
-      ? `${best.bestWeight} kg × ${best.bestReps}`
-      : `${best.bestReps} powt.`;
-    const newCutoff = addCalendarDays(today, -21);
-    const orderedValues = sessions.map((point) => weighted ? point.bestE1rm : point.bestReps);
-    const previous = orderedValues.length > 1 ? orderedValues[orderedValues.length - 2]! : null;
-    const latest = orderedValues[orderedValues.length - 1]!;
-    const delta = sessions.length >= 3 && previous != null && previous > 0 ? ((latest - previous) / previous) * 100 : null;
-    const trend = delta == null || Math.abs(delta) < 3 ? "flat" : delta > 0 ? "up" : "down";
-    return {
-      source: exercise,
-      status: sessions.length > 1 ? "compare" : "first",
-      trend,
-      hasTrend: delta != null,
-      valueLabel: label,
-      subtitle: `Najlepszy wynik · ${formatDayMonth(best.date)}`,
-      spark: [],
-      isNewRecord: best.date >= newCutoff,
-    };
-  }
-
-  const values = sessions.map((point) =>
-    metric === "e1rm" ? (weighted ? point.bestE1rm : point.bestReps) :
-      (weighted ? point.volumeKg : point.totalReps),
-  ).filter((value) => value > 0);
-  if (!values.length) return noData;
-  const latest = values[values.length - 1]!;
-  const previous = values.length > 1 ? values[values.length - 2]! : null;
-  const deltaPercent = sessions.length >= 3 && previous != null && previous > 0
-    ? Math.round(((latest - previous) / previous) * 100)
-    : null;
-  const trend = deltaPercent == null || Math.abs(deltaPercent) < 3
-    ? "flat"
-    : deltaPercent > 0 ? "up" : "down";
-  const label = metric === "e1rm" && weighted ? `${latest} kg` : `${Math.round(latest)} ${weighted ? "kg" : "powt."}`;
-  const subtitle = deltaPercent == null
-    ? `Za mało danych do trendu. Potrzeba 3 sesji · ${sessions.length}/3`
-    : `${deltaPercent > 0 ? "+" : ""}${deltaPercent}% · ${sessions.length} sesji`;
-
-  return {
-    source: exercise,
-    status: values.length > 1 ? "compare" : "first",
-    trend,
-    hasTrend: deltaPercent != null,
-    valueLabel: label,
-    subtitle,
-    spark: values.slice(-6),
-    isNewRecord: false,
-  };
-}
-
-function ExerciseRow({ display, period }: { display: ExerciseDisplay; period: "7" | "30" | "90" }) {
-  const { source: exercise } = display;
-  const href = `/progress/exercises/${exerciseProgressKey(exercise.name)}?okres=${period}`;
-  return (
-    <Link href={href} className="grid min-h-14 grid-cols-[1fr_auto] items-center gap-2.5 px-3.5 py-3 transition-colors hover:bg-white/[0.02] sm:grid-cols-[1fr_3.5rem_auto]">
-      <div className="min-w-0">
-        <p className="line-clamp-2 text-[15px] font-semibold leading-5 text-white">{exercise.name}</p>
-        <p className="mt-0.5 text-[12px] leading-snug text-[var(--gym-text-secondary)]">{display.subtitle}</p>
-      </div>
-      {display.spark.length >= 2 ? (
-        <div className="hidden w-12 shrink-0 sm:block">
-          <MiniSparkline values={display.spark} color={display.trend === "up" ? "#3ecf72" : "#9a9182"} className="h-5 w-full" />
-        </div>
-      ) : <span className="hidden sm:block" aria-hidden />}
-      <div className="flex shrink-0 items-center justify-end gap-1">
-        <span className={cn("font-heading text-[14px] tabular-nums text-white", display.valueLabel.length > 12 && "max-w-28 text-right text-[12px]")}>{display.valueLabel}</span>
-        {display.isNewRecord ? <span className="rounded-full border border-[var(--gym-gold)]/45 px-2 py-0.5 text-[11px] font-semibold text-[var(--gym-gold)]">Nowy</span> : null}
-        {display.hasTrend ? display.trend === "up" ? <ArrowUpRight className="h-3.5 w-3.5 text-[var(--gym-success)]" aria-hidden /> : display.trend === "down" ? <ArrowDownRight className="h-3.5 w-3.5 text-[var(--gym-text-secondary)]" aria-hidden /> : <ArrowRight className="h-3.5 w-3.5 text-[var(--gym-text-secondary)]" aria-hidden /> : null}
-      </div>
-    </Link>
-  );
-}
-
-function intensityHeadline(data: ProgressHubData["strength"]["intensity"]): string {
-  if (data.sessionsWithIntensity <= 0) {
-    return "Zapisuj RIR (W zapasie) przy seriach — tu zobaczysz trend";
-  }
-  if (data.avgRir != null && data.rirTrend === "down") {
-    return "Ostatnie serie są twardsze (mniej zapasu RIR)";
-  }
-  if (data.avgRir != null && data.rirTrend === "up") {
-    return "Ostatnie serie są lżejsze (więcej zapasu RIR)";
-  }
-  if (data.targetHitPct != null) {
-    return `RIR zgodny z planem w ${data.targetHitPct}% porównań`;
-  }
-  if (data.avgRir != null) {
-    return `Średni RIR z ostatnich treningów: ${data.avgRir}`;
-  }
-  if (data.avgRpe != null) {
-    return `Średnie RPE z ostatnich treningów: ${data.avgRpe}`;
-  }
-  return "Za mało wpisów RIR/RPE do trendu";
-}
-
-function IntensityCard({
-  intensity,
-}: {
-  intensity: ProgressHubData["strength"]["intensity"];
-}) {
-  const title = useMemo(() => intensityHeadline(intensity), [intensity]);
-  const sparkColor =
-    intensity.rirTrend === "down"
-      ? "#fb7185"
-      : intensity.rirTrend === "up"
-        ? "#34d399"
-        : "#9a9182";
-
-  return (
-    <Surface className="space-y-3">
-        <div className="flex items-start gap-2.5">
-          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--neon-rgb),0.12)] text-[var(--gym-gold)]">
-            <Gauge className="h-3.5 w-3.5" aria-hidden />
-          </span>
-          <p className="min-w-0 flex-1 pt-1 text-[13px] font-semibold leading-snug text-white">
-            {title}
-          </p>
-          {intensity.rirSpark.length >= 2 ? (
-            <div className="w-12 shrink-0 pt-0.5">
-              <MiniSparkline
-                values={intensity.rirSpark}
-                color={sparkColor}
-                className="h-7 w-full"
-              />
-            </div>
-          ) : null}
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          <StatTile
-            label="Śr. RIR"
-            value={
-              intensity.avgRir != null ? (
-                <AnimatedMetric value={intensity.avgRir} decimals={1} />
-              ) : (
-                "—"
-              )
-            }
-          />
-          <StatTile
-            label="Śr. RPE"
-            value={
-              intensity.avgRpe != null ? (
-                <AnimatedMetric value={intensity.avgRpe} decimals={1} />
-              ) : (
-                "—"
-              )
-            }
-          />
-          <StatTile
-            label="Twarde serie"
-            value={
-              intensity.hardSetPct != null ? (
-                <>
-                  <AnimatedMetric value={intensity.hardSetPct} decimals={0} />
-                  <span className="text-[12px] text-white/50">%</span>
-                </>
-              ) : (
-                "—"
-              )
-            }
-          />
-        </div>
-
-        {intensity.targetComparedCount > 0 ? (
-          <p className="text-[12px] leading-snug text-white/55">
-            Względem planu: {intensity.targetHitPct ?? 0}% w celu
-            {intensity.harderThanPlanCount > 0
-              ? ` · ${intensity.harderThanPlanCount}× ciężej`
-              : ""}
-            {intensity.easierThanPlanCount > 0
-              ? ` · ${intensity.easierThanPlanCount}× luźniej`
-              : ""}
-          </p>
-        ) : null}
-
-        <Explainer label="Szczegóły i definicje">
-          <p>Twarde serie = RIR ≤ 1 lub RPE ≥ 8.</p>
-          {intensity.temposUsed.length > 0 ? (
-            <p>
-              Tempo z planu: {intensity.temposUsed.join(" · ")}
-              {intensity.tempoExercisePct != null
-                ? ` · w ${intensity.tempoExercisePct}% ćwiczeń`
-                : ""}
-            </p>
-          ) : (
-            <p>Tempo z planu pojawi się tu, gdy ustawisz je przy ćwiczeniach.</p>
-          )}
-        </Explainer>
-    </Surface>
-  );
-}
-
-/**
- * Siła: podsumowanie, lista ćwiczeń, balans i zwijana intensywność.
- */
-export function StrengthTab({
-  data,
-  intelligence,
-  period,
-  onPeriodChange,
-}: {
-  data: ProgressHubData["strength"];
-  intelligence: ProgressIntelligence;
-  period: "7" | "30" | "90";
-  onPeriodChange: (period: "7" | "30" | "90") => void;
-}) {
-  const { planGroups, intensity } = data;
-  const [filter, setFilter] = useState<"all" | "up" | "down" | "flat">("all");
-  const [displayMetric, setDisplayMetric] = useState<ExerciseMetric>("e1rm");
+export function StrengthTab({ data, intelligence }: { data: ProgressHubData["strength"]; intelligence: ProgressHubData["intelligence"] }) {
+  const [sort, setSort] = useState<SortId>("growth");
   const today = calendarDateKey();
-  const periodGroups = planGroups
-    .map((group) => ({
-      ...group,
-      exercises: group.exercises.map((exercise) => exerciseDisplay(exercise, displayMetric, period, today)),
-    }));
-  const eligibleGroups = periodGroups
-    .map((group) => ({ ...group, exercises: group.exercises.filter((exercise) => exercise.status !== "pending") }))
-    .filter((group) => group.exercises.length > 0);
-  const visibleGroups = periodGroups
-    .map((group) => ({ ...group, exercises: filter === "all" ? group.exercises : group.exercises.filter((exercise) => exercise.status !== "pending" && exercise.hasTrend && exercise.trend === filter) }))
-    .filter((group) => group.exercises.length > 0);
-  const exerciseCount = eligibleGroups.reduce((count, group) => count + group.exercises.length, 0);
-  const trendCounts = eligibleGroups.reduce(
-    (counts, group) => {
-      for (const exercise of group.exercises) {
-        if (exercise.hasTrend) counts[exercise.trend] += 1;
+
+  const rows = useMemo<Row[]>(() => {
+    const planOrder = new Map<string, number>();
+    let i = 0;
+    for (const g of data.planGroups) {
+      for (const e of g.exercises) {
+        const k = e.name.toLowerCase();
+        if (!planOrder.has(k)) planOrder.set(k, i++);
       }
-      return counts;
-    },
-    { up: 0, down: 0, flat: 0 },
-  );
+    }
+    return data.allExercises.map((e) => ({
+      name: e.name,
+      key: exerciseProgressKey(e.name),
+      change: exerciseChange(e.history, today, 30),
+      spark: e.history.filter((p) => p.bestE1rm > 0).slice(-8).map((p) => p.bestE1rm),
+      planIndex: planOrder.get(e.name.toLowerCase()) ?? 999,
+    }));
+  }, [data.allExercises, data.planGroups, today]);
+
+  const counts = useMemo(() => {
+    const c = { up: 0, flat: 0, down: 0 };
+    for (const r of rows) c[r.change.status] += 1;
+    return c;
+  }, [rows]);
+
+  const sorted = useMemo(() => {
+    const list = [...rows];
+    if (sort === "growth") list.sort((a, b) => (b.change.deltaKg ?? -Infinity) - (a.change.deltaKg ?? -Infinity));
+    else if (sort === "attention") list.sort((a, b) => (a.change.deltaKg ?? Infinity) - (b.change.deltaKg ?? Infinity));
+    else list.sort((a, b) => a.planIndex - b.planIndex);
+    return list;
+  }, [rows, sort]);
+
+  const groups = intelligence.muscle.groups.filter((g) => g.days30.sets > 0);
+  const maxShare = Math.max(1, ...groups.map((g) => g.days30.sharePct));
+  const lowIds = new Map(intelligence.muscle.alerts.map((a) => [a.lowerId, a]));
+  const weighted = data.maxes.filter((m) => m.kind === "weighted");
+  const bodyweight = data.maxes.filter((m) => m.kind === "bodyweight");
+
+  if (rows.length === 0 && data.maxes.length === 0) {
+    return (
+      <Card>
+        <CardTitle>Siła</CardTitle>
+        <p className="mt-2 text-[15px] leading-snug text-white">
+          Nie ma jeszcze ćwiczeń z ciężarem do oceny. Zapisz kilka treningów z obciążeniem, a pokażemy, które ćwiczenia rosną.
+        </p>
+        <Link href="/active-workout" className="gold-btn mt-4 flex min-h-12 items-center justify-center rounded-xl px-4 text-[15px] font-semibold">
+          Zacznij trening
+        </Link>
+      </Card>
+    );
+  }
 
   return (
-    <div className="space-y-5">
-      <StrengthTrendCard velocity={intelligence.velocity} period={period} onPeriodChange={onPeriodChange} />
-
-      <Link
-        href="/progress/objetosc"
-        className="app-panel flex items-center justify-between px-3.5 py-3 text-[14px] font-semibold text-white"
-      >
-        Objętość tygodniowa i regeneracja mięśni
-        <span aria-hidden className="text-white/50">›</span>
-      </Link>
-      <Link
-        href="/progress/przeglad-planu"
-        className="app-panel flex items-center justify-between px-3.5 py-3 text-[14px] font-semibold text-white"
-      >
-        Przegląd planu — propozycje zmian
-        <span aria-hidden className="text-white/50">›</span>
-      </Link>
-
-      <ProgressSection
-        title="Ćwiczenia"
-        trailing="ostatnie sesje"
-      >
-        {planGroups.length === 0 ? (
-          <EmptyNote>Ustaw plan treningowy albo zalicz pierwsze serie.</EmptyNote>
-        ) : (
-          <div className="space-y-2">
-            <SegmentedControl
-              options={[{ id: "e1rm", label: "e1RM" }, { id: "volume", label: "Tonaż" }, { id: "record", label: "Rekord" }] as const}
-              value={displayMetric}
-              onChange={setDisplayMetric}
-              ariaLabel="Metryka ćwiczeń"
-            />
-            <div role="group" aria-label="Filtr ćwiczeń" className="flex gap-2 overflow-x-auto pb-1">
-              {([
-                { id: "all", label: "Wszystkie", count: exerciseCount },
-                { id: "up", label: "Rośnie", count: trendCounts.up },
-                { id: "down", label: "Spada", count: trendCounts.down },
-                { id: "flat", label: "Stoją", count: trendCounts.flat },
-              ] as const).map((option) => (
-                <button key={option.id} type="button" aria-pressed={filter === option.id} onClick={() => setFilter(option.id)} className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-medium ${filter === option.id ? "border-[var(--gym-gold)]/60 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)]" : "border-[var(--gym-border-gold)] text-white/80"}`}>
-                  {option.label} <span className="tabular-nums text-[var(--gym-text-secondary)]">{option.count}</span>
-                </button>
-              ))}
+    <div className="space-y-3.5">
+      <Card hero>
+        <CardTitle id="h-sila">Ćwiczenia w ostatnich 30 dniach</CardTitle>
+        <div className="mt-3 grid grid-cols-3 gap-2.5">
+          {(["up", "flat", "down"] as const).map((t) => (
+            <div key={t}>
+              <div className={cn("font-metric text-[52px] leading-none", t === "flat" ? "text-white" : toneClass(t))}>{counts[t]}</div>
+              <div className="text-[13px] text-[var(--gym-text-secondary)]">{t === "up" ? "rośnie" : t === "flat" ? "stoi w miejscu" : "spada"}</div>
             </div>
-            {visibleGroups.length === 0 ? <EmptyNote>Brak ćwiczeń w tej grupie w wybranym okresie.</EmptyNote> : visibleGroups.map((group, idx) => (
-              <CollapsibleCard
-                key={group.planId}
-                title={group.planName}
-                summary={`${group.exercises.length} ćw.`}
-                defaultOpen={idx === 0}
-              >
-                <div className="divide-y divide-white/[0.06]">
-                  {group.exercises.map((ex) => (
-                    <ExerciseRow key={`${group.planId}-${ex.source.name}`} display={ex} period={period} />
-                  ))}
-                </div>
-              </CollapsibleCard>
-            ))}
-            <Explainer>
-              <p>
-                Tonaż to suma powtórzeń × ciężar we wszystkich zaliczonych seriach. e1RM to szacowany ciężar na jedno powtórzenie; przy ćwiczeniach z masą ciała porównujemy liczbę powtórzeń.
-              </p>
-            </Explainer>
-          </div>
+          ))}
+        </div>
+        <Definition className="mt-3.5">
+          <b className="text-white">Szacowany max</b> to ciężar, który podniósłbyś raz. Liczymy go z Twoich serii wzorem ciężar × (1 + powtórzenia / 30), więc rośnie nawet bez próby maksymalnej.
+          „Rośnie” znaczy: najlepszy szacowany max z 30 dni jest o co najmniej 1% wyższy niż z 30 dni wcześniej.
+        </Definition>
+      </Card>
+
+      <Card>
+        <CardTitle id="h-lista">Wszystkie ćwiczenia</CardTitle>
+        <div role="group" aria-label="Sortowanie" className="mt-3 flex flex-wrap gap-2">
+          {SORTS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              aria-pressed={s.id === sort}
+              onClick={() => setSort(s.id)}
+              className={cn(
+                "min-h-11 rounded-xl border px-3 text-[13px] font-semibold transition active:scale-[0.97]",
+                s.id === sort
+                  ? "border-[var(--gym-gold)] bg-[var(--gym-gold)]/15 text-[var(--gym-gold-bright)]"
+                  : "border-white/10 bg-black/30 text-[var(--gym-text-secondary)]",
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <ul className="mt-2">
+          {sorted.map((r, i) => {
+            const tone = r.change.status;
+            const delta = r.change.deltaKg;
+            return (
+              <li key={r.key} className="pv-rise" style={{ animationDelay: `${Math.min(i, 10) * 0.04}s` }}>
+                <Link
+                  href={`/progress/exercises/${r.key}`}
+                  className="flex min-h-16 items-center gap-3 border-b border-white/[0.06] py-3 last:border-b-0"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span translate="no" className="block truncate text-[15px] font-semibold text-white">{r.name}</span>
+                    <span className="block text-[13px] text-[var(--gym-text-secondary)]">
+                      szac. max {r.change.currentE1rm != null ? `${fmtNum(r.change.currentE1rm, 0)} kg` : "—"}
+                    </span>
+                  </span>
+                  <Sparkline values={r.spark} color={tone === "down" ? "#ff9f43" : tone === "up" ? "#3ecf72" : "#9a9182"} />
+                  <span className="min-w-[84px] text-right">
+                    <span className={cn("font-metric block text-[26px] leading-none", toneClass(tone))}>
+                      {delta == null ? "—" : `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${fmtNum(Math.abs(delta), 0)} kg`}
+                    </span>
+                    <span className={cn("block text-[12px]", toneClass(tone))}>
+                      <span aria-hidden>{toneArrow(tone)} </span>
+                      {STATUS_LABEL[tone]} (30 dni)
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+
+      <Card>
+        <CardTitle id="h-balans">Balans mięśni</CardTitle>
+        <p className="mb-3.5 mt-1 text-[13px] text-[var(--gym-text-secondary)]">
+          Jaką część objętości treningu (liczby serii efektywnych) dostaje każda partia, 30 dni.
+        </p>
+        {groups.length === 0 ? (
+          <p className="text-[14px] text-[var(--gym-text-secondary)]">Brak serii w ostatnich 30 dniach, więc nie ma czego porównać.</p>
+        ) : (
+          <ul className="space-y-4">
+            {groups.map((g) => {
+              const alert = lowIds.get(g.id);
+              return (
+                <li key={g.id}>
+                  <div className="flex items-baseline justify-between gap-2 text-[14px]">
+                    <span className="font-semibold text-white">{g.label}</span>
+                    <span className="text-[13px] text-[var(--gym-text-secondary)]">
+                      <span className="text-[#efe9dc]">{fmtNum(g.days30.sharePct, 0)}%</span> · {g.days30.sets} serii ·{" "}
+                      {alert ? <span className="text-[#ffb877]">mało w porównaniu z inną partią</span> : "w normie"}
+                    </span>
+                  </div>
+                  <Meter
+                    pct={(g.days30.sharePct / maxShare) * 100}
+                    size="lg"
+                    className="mt-2"
+                    barClassName={alert ? "bg-[var(--gym-skipped)]" : "gym-meter-gold"}
+                    aria-label={`${g.label}: ${fmtNum(g.days30.sharePct, 0)}% objętości`}
+                  />
+                  {alert ? <p className="mt-1 text-[13px] text-[var(--gym-text-secondary)]">{alert.message}</p> : null}
+                </li>
+              );
+            })}
+          </ul>
         )}
-      </ProgressSection>
+      </Card>
 
-      <MuscleBalancePanel muscle={intelligence.muscle} />
-
-      <CollapsibleCard
-        title="Intensywność · ostatnie 6 treningów"
-        summary={`RIR śr. ${intensity.avgRir ?? "—"} · RPE śr. ${intensity.avgRpe ?? "—"}`}
-        icon={<Gauge className="h-3.5 w-3.5" aria-hidden />}
-      >
-        <IntensityCard intensity={intensity} />
-      </CollapsibleCard>
-
+      <Card>
+        <CardTitle id="h-rekordy">Rekordy</CardTitle>
+        {weighted.length === 0 && bodyweight.length === 0 ? (
+          <p className="mt-2 text-[14px] text-[var(--gym-text-secondary)]">Rekordy pojawią się po pierwszych zapisanych seriach.</p>
+        ) : (
+          <ul className="mt-1">
+            {weighted.map((m) => (
+              <li key={m.name} className="flex items-center justify-between gap-3 border-b border-white/[0.06] py-3 last:border-b-0">
+                <span className="min-w-0">
+                  <span translate="no" className="block truncate text-[15px] font-semibold text-white">{m.name}</span>
+                  <span className="block text-[13px] text-[var(--gym-text-secondary)]">
+                    {formatDayMonth(m.date)} · szac. max {fmtNum(m.bestE1rm, 0)} kg
+                  </span>
+                </span>
+                <span className="text-right">
+                  <span className="font-metric block text-[28px] leading-none text-white">
+                    {fmtNum(m.bestWeight, 1)} kg × {m.bestReps}
+                  </span>
+                  {m.isNew ? <span className="text-[12px] font-semibold text-[var(--gym-success)]">▲ nowy rekord (21 dni)</span> : null}
+                </span>
+              </li>
+            ))}
+            {bodyweight.map((m) => (
+              <li key={m.name} className="flex items-center justify-between gap-3 border-b border-white/[0.06] py-3 last:border-b-0">
+                <span className="min-w-0">
+                  <span translate="no" className="block truncate text-[15px] font-semibold text-white">{m.name}</span>
+                  <span className="block text-[13px] text-[var(--gym-text-secondary)]">{formatDayMonth(m.date)} · masa ciała</span>
+                </span>
+                <span className="text-right">
+                  <span className="font-metric block text-[28px] leading-none text-white">{m.bestReps} powt.</span>
+                  {m.isNew ? <span className="text-[12px] font-semibold text-[var(--gym-success)]">▲ nowy rekord (21 dni)</span> : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </div>
   );
 }

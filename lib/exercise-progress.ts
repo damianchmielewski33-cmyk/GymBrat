@@ -19,6 +19,16 @@ import { hasExternalWeight, hasPerformedReps } from "@/lib/workout-skipped-sets"
 
 export type ExerciseMetricKind = "kg" | "reps";
 
+/** Jedna wykonana seria robocza (do karty „Ostatnie treningi”). */
+export type ExerciseSetEntry = {
+  weight: number;
+  reps: number;
+  /** Powtórzenia w zapasie (RIR); null gdy nie zapisano. */
+  rir: number | null;
+  /** Szacowany max z tej serii: ciężar × (1 + powt. / 30); 0 bez obciążenia. */
+  e1rm: number;
+};
+
 export type ExerciseProgressPoint = {
   date: string; // YYYY-MM-DD (workouts.date)
   bestE1rm: number;
@@ -32,6 +42,8 @@ export type ExerciseProgressPoint = {
   targetRir: number | null;
   tempo: string | null;
   rirVsTarget: RirVsTarget | null;
+  /** Serie robocze tego dnia, w kolejności wykonania. */
+  sets?: ExerciseSetEntry[];
 };
 
 /** Najcięższy ciężar podniesiony na co najmniej N powtórzeń. */
@@ -214,6 +226,7 @@ export async function getExerciseProgressSeries(params: {
       scoredSets: number;
       targetRirs: number[];
       tempos: string[];
+      sets: ExerciseSetEntry[];
     }
   >();
 
@@ -255,6 +268,7 @@ export async function getExerciseProgressSeries(params: {
     let dayScored = 0;
     const dayTargets: number[] = [];
     const dayTempos: string[] = [];
+    const daySets: ExerciseSetEntry[] = [];
     let matched = false;
 
     for (const e of ex) {
@@ -289,6 +303,12 @@ export async function getExerciseProgressSeries(params: {
           !Boolean((s as { warmup?: boolean }).warmup) &&
           hasPerformedReps(reps);
         if (performed) {
+          daySets.push({
+            weight: hasExternalWeight(w) ? safeRound1(w) : 0,
+            reps: reps!,
+            rir: optionalRir(s.rir),
+            e1rm: hasExternalWeight(w) ? safeRound1(estimated1RM(w, reps!)) : 0,
+          });
           dayTotalReps += reps!;
           if (reps! > dayBestReps && !hasExternalWeight(w)) {
             dayBestReps = reps!;
@@ -348,6 +368,7 @@ export async function getExerciseProgressSeries(params: {
         scoredSets: dayScored,
         targetRirs: dayTargets,
         tempos: dayTempos,
+        sets: daySets,
       });
     } else {
       const weightWins = dayBestWeight > prev.bestWeight;
@@ -367,6 +388,7 @@ export async function getExerciseProgressSeries(params: {
         scoredSets: prev.scoredSets + dayScored,
         targetRirs: [...prev.targetRirs, ...dayTargets],
         tempos: [...prev.tempos, ...dayTempos],
+        sets: [...prev.sets, ...daySets],
       });
     }
   }
@@ -393,6 +415,7 @@ export async function getExerciseProgressSeries(params: {
           avgRir != null && targetRir != null
             ? compareRirToTarget(avgRir, targetRir)
             : null,
+        sets: v.sets,
       };
     });
 
