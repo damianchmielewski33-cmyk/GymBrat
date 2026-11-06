@@ -1,0 +1,42 @@
+---
+import Base from "../layouts/Base.astro";
+const app = import.meta.env.PUBLIC_APP_URL || "http://localhost:3000";
+const steps = [
+  ["Otwórz stronę w Safari", "Wejdź na adres aplikacji w Safari. Inne przeglądarki na iPhonie mogą nie pokazać opcji dodania."],
+  ["Stuknij „Udostępnij”", "Kwadrat ze strzałką w górę, na dole ekranu."],
+  ["„Dodaj do ekranu początkowego”", "Przewiń listę w dół, wybierz opcję i zostaw nazwę GymBrat, potem Dodaj."],
+  ["Otwieraj z ikony", "Aplikacja startuje pełnoekranowo, bez paska adresu. Zaloguj się lub załóż konto."],
+];
+---
+
+<Base
+  title="GymBrat na iPhonie — dodaj do ekranu głównego"
+  description="Instalacja GymBrat na iPhonie bez App Store: 4 kroki w Safari. Działa na iOS 16 lub nowszym."
+  path="/iphone"
+>
+  <main id="glowna" class="wrap" style="padding-top:48px;padding-bottom:72px;max-width:760px">
+    <p class="gold" style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin:0">iPhone</p>
+    <h1 class="h" style="font-size:clamp(36px,6vw,56px);margin:8px 0 12px">Dodaj GymBrat <span class="gold">do ekranu głównego</span></h1>
+    <p class="lead">To zajmuje minutę, nie wymaga App Store ani konta Apple Developer. Działa na iOS 16 lub nowszym, w Safari.</p>
+    <ol style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px">
+      {steps.map(([t, d], i) => (
+        <li class="c2" style="display:flex;gap:14px;align-items:flex-start">
+          <span class="num" style="flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--gold);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:22px">{i + 1}</span>
+          <span><b style="font-size:18px">{t}</b><br /><span class="muted">{d}</span></span>
+        </li>
+      ))}
+    </ol>
+    <div class="c2" style="margin-top:20px;border-style:dashed">
+      <b>Co warto wiedzieć</b>
+      <ul class="muted" style="margin:8px 0 0;padding-left:18px;line-height:1.7">
+        <li>Aktualizacje wchodzą same, nic nie pobierasz.</li>
+        <li>Powiadomienia push na iOS mogą być ograniczone.</li>
+        <li>Tego samego konta użyjesz na Androidzie w Google Play, gdy aplikacja się tam pojawi.</li>
+      </ul>
+    </div>
+    <div class="grp" style="margin-top:24px">
+      <a class="btn fill" href={`${app}/register`}>Załóż konto</a>
+      <a class="btn" href={`${app}/pomoc`}>Nie działa? Zobacz pomoc</a>
+    </div>
+  </main>
+</Base>

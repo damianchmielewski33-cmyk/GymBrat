@@ -6,17 +6,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     process.env.NEXTAUTH_URL?.trim() ||
     "http://localhost:3000";
   const origin = base.replace(/\/$/, "");
+  /** Gdy `/start` przekierowuje na landing (NEXT_PUBLIC_LANDING_URL), nie podajemy go w mapie strony. */
+  const startRedirected = Boolean(process.env.NEXT_PUBLIC_LANDING_URL?.trim());
+  const start: MetadataRoute.Sitemap = startRedirected
+    ? []
+    : [{ url: `${origin}/start`, changeFrequency: "weekly", priority: 0.9 }];
   return [
     {
       url: `${origin}/`,
       changeFrequency: "weekly",
       priority: 1,
     },
-    {
-      url: `${origin}/start`,
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
+    ...start,
     {
       url: `${origin}/login`,
       changeFrequency: "monthly",

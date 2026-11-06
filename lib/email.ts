@@ -197,3 +197,16 @@ export async function sendAdminLoginEmail(params: { to: string; at: Date; usedRe
     text: `Ktoś właśnie przeszedł weryfikację dwuskładnikową i wszedł do panelu administratora GymBrat (${when}).${params.usedRecoveryCode ? "\n\nUżyto kodu awaryjnego — wygeneruj nowe kody w panelu." : ""}\n\nJeśli to nie Ty: zmień hasło, ustaw nowy AUTH_SECRET (wyloguje wszystkie sesje) i wyłącz 2FA dopiero po zabezpieczeniu konta.\n\n— GymBrat`,
   });
 }
+
+/** Lista powiadomień (landing): link potwierdzający zapis (double opt-in) + link wypisu. Zwraca false, gdy SMTP niedostępne. */
+export async function sendWaitlistConfirmEmail(params: {
+  to: string;
+  confirmUrl: string;
+  unsubscribeUrl: string;
+}): Promise<boolean> {
+  return sendOptionalDailyBriefEmail({
+    to: params.to,
+    subject: "GymBrat — potwierdź zapis na powiadomienie o Google Play",
+    text: `Ktoś (mamy nadzieję, że Ty) poprosił o jednorazowy e-mail w dniu premiery GymBrat w Google Play.\n\nPotwierdź zapis, klikając link (ważny 48 godzin):\n${params.confirmUrl}\n\nJeśli to nie Ty, nic nie rób: adres zostanie usunięty. Wypis w dowolnej chwili:\n${params.unsubscribeUrl}\n\n— GymBrat`,
+  });
+}
