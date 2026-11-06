@@ -7,7 +7,8 @@
       "Podsumowanie zaczyna od odpowiedzi słowami (np. „Robisz postępy”), potem trzy liczby: siła, waga i regularność w wybranym okresie 7, 30 lub 90 dni.",
       "Zmęczenie pokazuje rozbicie na siedem składników z punktami, informację o brakujących danych (RPE, RIR) i o tym, z ilu tygodni liczona jest Twoja norma.",
       "Interaktywne wykresy wagi i szacowanego maxa: dotknij punktu albo użyj strzałek, wybierz zakres 1M, 3M, 6M lub całość. Szczegół ćwiczenia ma kartę „Ostatnie treningi” z seriami, szacowanym maxem i rozwinięciem.",
-      "Porównanie dwóch dowolnych tygodni (trening, tonaż, cardio, kalorie, białko), progres ćwiczenia tydzień po tygodniu i mapa progresu."
+      "Porównanie dwóch dowolnych tygodni (trening, tonaż, cardio, kalorie, białko), progres ćwiczenia tydzień po tygodniu i mapa progresu.",
+      "Szacowany max liczymy czystym wzorem Epleya: ciężar × (1 + powtórzenia / 30), bez limitu powtórzeń."
     ]
   },
   {
