@@ -95,3 +95,72 @@ export function parseDecimal(raw: string): number | null {
   if (!Number.isFinite(n)) return null;
   return n;
 }
+
+/** Walidacja kroku kreatora raportu: komunikat błędu albo `null`, gdy krok jest poprawny. */
+export function validateReportStep(
+  s: number,
+  v: {
+    weightKg: string; waistCm: string; thighCm: string; chestCm: string; armCm: string;
+    dayEnergy: number | null; trainingEnergy: number | null; digestionScore: number | null; sleepQuality: number | null;
+    cardioCompliance: string; dietCompliance: string; trainingCompliance: string; complianceNotes: string;
+    slotPhotos: Record<PhotoSlot, string | null>; photosConsent: boolean;
+  },
+): string | null {
+  const { weightKg, waistCm, thighCm, chestCm, armCm, dayEnergy, trainingEnergy, digestionScore, sleepQuality, cardioCompliance, dietCompliance, trainingCompliance, complianceNotes, slotPhotos, photosConsent } = v;
+    if (s === 1) {
+      const w = parseDecimal(weightKg);
+      if (w == null || w <= 0) {
+        return "Podaj wagę, to pole jest wymagane.";
+      }
+      const waist = parseDecimal(waistCm);
+      const thigh = parseDecimal(thighCm);
+      const chest = parseDecimal(chestCm);
+      const arm = parseDecimal(armCm);
+      if (waist == null || waist <= 0) {
+        return "Podaj obwód pasa (cm).";
+      }
+      if (thigh == null || thigh <= 0) {
+        return "Podaj obwód uda (cm).";
+      }
+      if (chest == null || chest <= 0) {
+        return "Podaj obwód klatki (cm).";
+      }
+      if (arm == null || arm <= 0) {
+        return "Podaj obwód ramienia (cm).";
+      }
+      return null;
+    }
+    if (s === 2) {
+      if (
+        dayEnergy == null ||
+        trainingEnergy == null ||
+        digestionScore == null ||
+        sleepQuality == null
+      ) {
+        return "Kliknij kreski, wszystkie cztery skale wymagane.";
+      }
+      return null;
+    }
+    if (s === 3) {
+      if (!cardioCompliance || !dietCompliance || !trainingCompliance) {
+        return "Odpowiedz TAK lub NIE przy cardio, diecie i treningach.";
+      }
+      const anyNie =
+        cardioCompliance === "nie" ||
+        dietCompliance === "nie" ||
+        trainingCompliance === "nie";
+      if (anyNie && !complianceNotes.trim()) {
+        return "Napisz, czego nie udało się zrealizować i w jakim zakresie.";
+      }
+      return null;
+    }
+    if (s === 4) {
+      // Zdjęcia są opcjonalne; jeśli któreś dodano, potrzebna świadoma zgoda (art. 9 RODO).
+      const hasAnyPhoto = PHOTO_SLOTS.some((slot) => Boolean(slotPhotos[slot.key]));
+      if (hasAnyPhoto && !photosConsent) {
+        return "Zaznacz zgodę na zapis zdjęć sylwetki albo usuń dodane zdjęcia.";
+      }
+      return null;
+    }
+    return null;
+}

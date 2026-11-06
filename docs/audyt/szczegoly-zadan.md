@@ -101,7 +101,7 @@ Lokalne uruchomienie do weryfikacji: `.env.local` z `TURSO_DATABASE_URL=file:./l
 | Z85 | Lint do stanu bazowego | kod | P1 | M | ZROBIONE (2026-11-04): lint:ci 0 błędów / 0 ostrzeżeń; wyjątki w eslint.config.mjs (reguły React Compiler, location.assign, _prefiks); CI lint blokuje merge |
 | Z86 | E2E, axe i zrzuty ekranów | ops+kod | P1 | M | TODO (Z43, Z46, Z69, Z74) |
 | Z87 | Pomiary, migracje i testy współbieżności | ops+kod | P1 | M | TODO (Z41, Z40, Z72) |
-| Z88 | Dokończenie kodu z US1–US20 | kod | P2 | L | TODO (Z80, Z39, CAS, Z36) |
+| Z88 | Dokończenie kodu z US1–US20 | kod | P2 | L | CZĘŚCIOWO (2026-11-06): (a) Z80 ZROBIONE — progress-hub rozbity na 7 modułów (max 433 l.), body-report-form 458 l. + kroki; (c) CAS ZROBIONE — hof, meal-catalog-images, app-settings (upsert / onConflictDoNothing); (b) Z39 miniatury + upload bezpośredni czeka na decyzję właściciela (nowa zależność do obróbki obrazów, CORS bucketu); (d) tylko jeśli właściciel zdecyduje |
 | Z89 | Prace właściciela poza kodem | ops [NA KONIEC] | P0 | XL | TODO |
 | Z90 | Zatwierdzenia prawne i domknięcie decyzji | prawo [NA KONIEC] | P0 | M | TODO |
 

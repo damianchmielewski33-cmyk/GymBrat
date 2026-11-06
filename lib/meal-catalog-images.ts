@@ -95,19 +95,14 @@ export async function upsertCatalogMealImage(args: {
     }
   }
 
-  if (prev) {
-    await db
-      .update(mealCatalogImages)
-      .set({ mimeType: mime, dataUrl, updatedAt })
-      .where(eq(mealCatalogImages.mealId, args.mealId));
-  } else {
-    await db.insert(mealCatalogImages).values({
-      mealId: args.mealId,
-      mimeType: mime,
-      dataUrl,
-      updatedAt,
+  // Upsert atomowy: równoległe zapisy tej samej grafiki nie kończą się błędem klucza.
+  await db
+    .insert(mealCatalogImages)
+    .values({ mealId: args.mealId, mimeType: mime, dataUrl, updatedAt })
+    .onConflictDoUpdate({
+      target: mealCatalogImages.mealId,
+      set: { mimeType: mime, dataUrl, updatedAt },
     });
-  }
 
   return {
     updatedAt,
