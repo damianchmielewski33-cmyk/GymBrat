@@ -45,9 +45,9 @@ const FriendLiveWatchWidget = dynamic(
   { ssr: false },
 );
 
-/** Phone → tablet → desktop: treść w kolumnie, bez „pustego” tabletu. */
+/** Phone → tablet (kolumna) → desktop (lg+: szeroka treść + boczny pasek nawigacji). */
 export const APP_SHELL_MAX =
-  "max-w-lg md:max-w-xl xl:max-w-2xl";
+  "max-w-lg md:max-w-xl lg:max-w-4xl 2xl:max-w-5xl";
 
 export function AppShell({
   children,
@@ -106,6 +106,7 @@ export function AppShell({
         sessionFullscreen
           ? "h-[100dvh] max-h-[100dvh] overflow-hidden"
           : "min-h-screen",
+        !sessionFullscreen && "lg:pl-60",
       )}
     >
       {sessionFullscreen ? null : hideChromeHeader ? (
@@ -114,11 +115,11 @@ export function AppShell({
         <header className="sticky top-0 z-40 bg-black/55 pt-[env(safe-area-inset-top)] backdrop-blur-md">
           <div
             className={cn(
-              "mx-auto flex items-center justify-between gap-2 px-[var(--space-screen-x)] py-2.5 sm:gap-3 sm:px-[var(--space-screen-x-sm)] sm:py-3.5",
+              "mx-auto flex items-center justify-between gap-2 lg:justify-end lg:px-8 px-[var(--space-screen-x)] py-2.5 sm:gap-3 sm:px-[var(--space-screen-x-sm)] sm:py-3.5",
               APP_SHELL_MAX,
             )}
           >
-            <BrandMark className="min-w-0" />
+            <BrandMark className="min-w-0 lg:hidden" />
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <NotificationBell />
               <AppMenuButton variant="icon" />
@@ -136,6 +137,7 @@ export function AppShell({
             : hideBottomNav
               ? "px-[var(--space-screen-x)] py-3 pb-[calc(var(--bottom-gap)+4.5rem+env(safe-area-inset-bottom))] sm:px-[var(--space-screen-x-sm)] sm:py-4"
               : "px-[var(--space-screen-x)] py-3 pb-[calc(var(--bottom-chrome)+1rem+env(safe-area-inset-bottom))] sm:px-[var(--space-screen-x-sm)] sm:py-4",
+          !sessionFullscreen && "lg:px-8 lg:py-6 lg:pb-12",
         )}
       >
         {children}
@@ -146,9 +148,14 @@ export function AppShell({
       <FriendLiveWatchWidget />
       <WorkoutChatLauncher />
 
-      {hideBottomNav ? null : (
+      {sessionFullscreen ? null : (
         <nav
-          className="pointer-events-none fixed inset-x-0 bottom-0 z-50 pb-[max(0.65rem,env(safe-area-inset-bottom))]"
+          className={cn(
+            "pointer-events-none fixed inset-x-0 bottom-0 z-50 pb-[max(0.65rem,env(safe-area-inset-bottom))]",
+            // Desktop: stały boczny pasek zamiast pływającej belki.
+            "lg:pointer-events-auto lg:inset-y-0 lg:right-auto lg:flex lg:w-60 lg:flex-col lg:border-r lg:border-white/[0.08] lg:bg-black/60 lg:p-4 lg:backdrop-blur-xl",
+            hideBottomNav && "hidden lg:flex",
+          )}
           aria-label="Nawigacja główna"
         >
           <div className={cn("pointer-events-auto relative mx-auto px-3", APP_SHELL_MAX)}>
@@ -246,7 +253,7 @@ function TabLink({
       }}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-[var(--radius-card)] px-0.5 py-1.5 text-center text-[length:var(--text-label)] font-semibold transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80 sm:gap-1 sm:text-[length:var(--text-caption)]",
+        "relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-left rounded-[var(--radius-card)] px-0.5 py-1.5 text-center text-[length:var(--text-label)] font-semibold transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80 sm:gap-1 sm:text-[length:var(--text-caption)]",
         visuallyActive
           ? "bg-[#1a1610] text-[var(--gym-gold-bright)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.35)]"
           : "text-white/55 shadow-none",

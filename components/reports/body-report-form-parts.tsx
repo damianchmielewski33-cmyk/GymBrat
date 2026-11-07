@@ -1,8 +1,9 @@
 "use client";
-import { useRef, type ChangeEvent, type ReactNode } from "react";
+import { useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import Image from "next/image";
 import { ArrowLeft, Camera, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { WebcamCaptureDialog, canUseWebcamCapture } from "@/components/ui/webcam-capture-dialog";
 import { TOTAL_STEPS } from "@/components/reports/body-report-form-utils";
 
 export function GoldButton({
@@ -395,6 +396,7 @@ export function PhotoSlotCard({
   onClear: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [webcamOpen, setWebcamOpen] = useState(false);
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -439,7 +441,7 @@ export function PhotoSlotCard({
         <button
           type="button"
           disabled={disabled}
-          onClick={() => inputRef.current?.click()}
+          onClick={() => (canUseWebcamCapture() ? setWebcamOpen(true) : inputRef.current?.click())}
           className="gold-btn flex h-full min-h-[9.5rem] w-full flex-col items-center justify-center gap-2 rounded-none px-2 py-4 text-center disabled:opacity-50"
         >
           <Camera className="h-6 w-6" aria-hidden />
@@ -450,6 +452,18 @@ export function PhotoSlotCard({
           </span>
         </button>
       )}
+      <WebcamCaptureDialog
+        open={webcamOpen}
+        onClose={() => setWebcamOpen(false)}
+        onCapture={(file) => {
+          setWebcamOpen(false);
+          onPick(file);
+        }}
+        onPickFile={() => {
+          setWebcamOpen(false);
+          inputRef.current?.click();
+        }}
+      />
     </div>
   );
 }

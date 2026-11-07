@@ -12,6 +12,7 @@ import { AppProviders } from "@/components/providers/app-providers";
 import { MetalBackdrop } from "@/components/layout/metal-backdrop";
 import { ActiveWorkoutGlobalBar } from "@/components/active-workout/active-workout-global-bar";
 import { IframeSessionBreakout } from "@/components/embed/iframe-session-breakout";
+import { AppEntryLoader } from "@/components/branding/app-entry-loader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -106,6 +107,7 @@ export default async function RootLayout({
         <MetalBackdrop />
         <AppProviders>
           <IframeSessionBreakout />
+          <AppEntryLoader />
           {children}
           <ActiveWorkoutGlobalBar />
         </AppProviders>
