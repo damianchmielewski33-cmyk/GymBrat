@@ -1,3 +1,15 @@
+/** Pozycje iskier: [left %, top vh, opóźnienie s, czas s]. */
+const SPARKS: Array<[number, number, number, number]> = [
+  [10, 70, 0, 9],
+  [86, 55, 2, 12],
+  [46, 82, 4, 10],
+  [92, 38, 1, 13],
+  [6, 30, 5, 11],
+  [64, 90, 3, 9],
+  [26, 20, 6, 14],
+  [78, 72, 2, 12],
+];
+
 export function MetalBackdrop() {
   return (
     <div
@@ -16,20 +28,49 @@ export function MetalBackdrop() {
         }}
       />
 
+      {/* Obracające się złote stożki światła */}
+      <div className="app-bg-cone app-bg-cone--a" />
+      <div className="app-bg-cone app-bg-cone--b" />
+
       {/* Wolno dryfujące ciepłe światła */}
       <div className="app-ambient-orb app-ambient-orb--a" />
       <div className="app-ambient-orb app-ambient-orb--b" />
       <div className="app-ambient-orb app-ambient-orb--c" />
 
-      {/* Delikatna siatka / struktura metalu */}
+      {/* Pulsujące poświaty */}
+      <div className="app-bg-glow left-[8%] top-[48%] h-[300px] w-[300px]" />
+      <div
+        className="app-bg-glow right-[-10%] top-[8%] h-[260px] w-[260px]"
+        style={{ animationDelay: "3s" }}
+      />
+
+      {/* Siatka (powoli przesuwana) i struktura metalu */}
+      <div className="app-bg-grid" />
       <div className="app-ambient-mesh absolute inset-0 opacity-[0.035]" />
+
+      {/* Smuga światła przesuwająca się w dół */}
+      <div className="app-bg-beam" />
+
+      {/* Unoszące się złote iskry */}
+      {SPARKS.map(([left, top, delay, dur], i) => (
+        <span
+          key={i}
+          className="app-bg-spark"
+          style={{
+            left: `${left}%`,
+            top: `${top}vh`,
+            animationDelay: `${delay}s`,
+            animationDuration: `${dur}s`,
+          }}
+        />
+      ))}
 
       {/* Winieta — skupia uwagę na treści */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(75% 65% at 50% 40%, transparent 35%, rgba(0,0,0,0.55) 100%)",
+            "radial-gradient(75% 65% at 50% 40%, transparent 35%, rgba(0,0,0,0.38) 100%)",
         }}
       />
 

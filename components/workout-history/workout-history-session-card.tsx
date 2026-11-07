@@ -143,9 +143,23 @@ export function WorkoutHistorySessionCard({
     <div
       ref={rowRef}
       className={cn(
+        "overflow-hidden rounded-[18px] border bg-[var(--gym-surface)] transition-[border-color,box-shadow] duration-300 motion-reduce:transition-none",
+        expanded
+          ? "border-[var(--gym-gold)]/40 shadow-[0_8px_24px_rgba(0,0,0,0.5),0_0_18px_rgba(var(--neon-rgb),0.1)]"
+          : "border-white/[0.08]",
         highlight && "shadow-[inset_0_0_0_2px_var(--gym-gold)]",
-        "motion-reduce:transition-none",
       )}
+      style={
+        expanded
+          ? {
+              backgroundImage:
+                "linear-gradient(135deg, rgba(var(--neon-rgb),0.14), rgba(0,0,0,0.25))",
+            }
+          : {
+              backgroundImage:
+                "linear-gradient(155deg, rgba(255,255,255,0.06), rgba(0,0,0,0.2))",
+            }
+      }
     >
       <button
         type="button"
@@ -180,9 +194,9 @@ export function WorkoutHistorySessionCard({
           setDeleteOpen(true);
         }}
         className={cn(
-          "flex min-h-[72px] w-full items-center gap-3 px-3.5 py-3 text-left select-none transition",
+          "flex min-h-[68px] w-full items-center gap-3 px-3.5 py-2.5 text-left select-none transition",
           "active:bg-white/[0.04]",
-          (pressing || expanded) && "bg-white/[0.02]",
+          pressing && "bg-white/[0.03]",
         )}
       >
         <div className="w-12 shrink-0">
@@ -196,12 +210,12 @@ export function WorkoutHistorySessionCard({
           >
             {dateParts.weekday}
           </p>
-          <p className="mt-0.5 font-heading text-[15px] tabular-nums leading-tight text-white">
+          <p className="mt-0.5 font-display text-[24px] tabular-nums leading-none text-white">
             {dateParts.day}
           </p>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-semibold text-white">{label}</p>
+          <p className="truncate text-[15px] font-bold text-white">{label}</p>
           <p className="mt-0.5 truncate text-[12px] text-[var(--gym-text-secondary)]">
             {meta}
           </p>
@@ -213,7 +227,7 @@ export function WorkoutHistorySessionCard({
           <WorkoutHistoryCompareChip card={card} />
           <ChevronDown
             className={cn(
-              "ml-auto mt-1.5 block h-5 w-5 text-[var(--gym-text-secondary)] transition",
+              "ml-auto mt-1.5 block h-5 w-5 text-[var(--gym-gold)] transition-transform duration-300 motion-reduce:transition-none",
               expanded && "rotate-180",
             )}
             aria-hidden
@@ -221,11 +235,14 @@ export function WorkoutHistorySessionCard({
         </div>
       </button>
 
-      {expanded ? (
-        <div
-          id={detailsId}
-          className="space-y-4 border-t border-white/[0.06] bg-white/[0.015] px-3.5 pb-4 pt-3"
-        >
+      <div
+        id={detailsId}
+        className="gym-collapse"
+        data-open={expanded}
+        inert={!expanded}
+      >
+        <div>
+        <div className="space-y-4 px-3.5 pb-4 pt-1">
           <WorkoutHistoryCompareBlock card={card} />
           <WorkoutHistoryExerciseList exercises={card.exercises} />
 
@@ -235,7 +252,7 @@ export function WorkoutHistorySessionCard({
                 <Link
                   href={`/workout-history/${card.id}/edit`}
                   className={cn(
-                    "inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-[var(--gym-border-gold)] text-[14px] font-semibold text-white",
+                    "inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-[var(--gym-gold)]/30 bg-white/[0.05] text-[14px] font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.4)]",
                     "transition hover:bg-white/[0.04]",
                   )}
                 >
@@ -247,7 +264,7 @@ export function WorkoutHistorySessionCard({
                 type="button"
                 variant="ghost"
                 className={cn(
-                  "h-12 gap-2 rounded-2xl border border-[rgba(255,51,71,0.45)] text-[14px] font-semibold text-[#ff8593]",
+                  "h-12 gap-2 rounded-full border border-[rgba(255,51,71,0.45)] bg-[rgba(255,51,71,0.06)] text-[14px] font-semibold text-[#ff8593]",
                   editable ? "flex-1" : "w-full",
                   "hover:bg-rose-950/30",
                 )}
@@ -268,7 +285,8 @@ export function WorkoutHistorySessionCard({
             </p>
           </div>
         </div>
-      ) : null}
+        </div>
+      </div>
 
       <WorkoutHistorySessionDeleteDialog
         open={deleteOpen}

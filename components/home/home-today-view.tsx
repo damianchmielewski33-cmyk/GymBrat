@@ -12,6 +12,7 @@ import { OnboardingBanner } from "@/components/home/onboarding-banner";
 import type {
   HomeStartDashboard,
   HomeStartTodayMacros,
+  HomeStartSpark,
   HomeStartWaistPoint,
   HomeStartWeekMacros,
   HomeStartWeightPoint,
@@ -49,6 +50,8 @@ export type HomeTodayViewProps = {
   weekMacros: HomeStartWeekMacros;
   weightSeries: HomeStartWeightPoint[];
   waistSeries: HomeStartWaistPoint[];
+  armSeries?: HomeStartSpark[];
+  chestSeries?: HomeStartSpark[];
   compliance: HomeStartDashboard["compliance"];
   workoutsThisWeek: number;
   cardioThisWeekMinutes: number;
@@ -114,6 +117,8 @@ export function HomeTodayView(props: HomeTodayViewProps) {
           daysSinceLastReport={props.daysSinceLastReport}
           weightSeries={props.weightSeries}
           waistSeries={props.waistSeries}
+          armSeries={props.armSeries}
+          chestSeries={props.chestSeries}
         />
       </div>
 

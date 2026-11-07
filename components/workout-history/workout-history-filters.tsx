@@ -38,8 +38,8 @@ export function WorkoutHistoryFilters({
         role="group"
         aria-label="Filtr dnia planu"
         className={cn(
-          "chip-scroll sticky top-0 z-[1] -mx-4 bg-[var(--gym-black)] px-4 py-2",
-          "[mask-image:linear-gradient(90deg,#000_88%,transparent)]",
+          "chip-scroll sticky top-0 z-[1] -mx-4 bg-[var(--gym-black)]/85 px-4 py-2 backdrop-blur-md",
+          "[mask-image:linear-gradient(90deg,#000_90%,transparent)]",
         )}
       >
         <Chip
@@ -107,16 +107,16 @@ function Chip({
       aria-label={ariaLabel}
       onClick={onClick}
       className={cn(
-        "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-medium transition",
+        "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
         pressed
-          ? "border-[rgba(var(--neon-rgb),0.6)] bg-[rgba(var(--neon-rgb),0.1)] font-semibold text-white"
-          : "border-[var(--gym-border-gold)] bg-transparent text-white/82",
+          ? "scale-[1.03] border-[#f6e3a1]/80 bg-gradient-to-b from-[#f6e3a1] to-[var(--gym-gold)] text-[var(--neon-fg)] shadow-[0_4px_14px_rgba(var(--neon-rgb),0.35)]"
+          : "border-white/10 bg-white/[0.05] text-white/80",
       )}
     >
       {pressed ? (
         <Check
-          className="h-3.5 w-3.5 text-[var(--gym-gold)]"
+          className="h-3.5 w-3.5"
           aria-hidden
         />
       ) : null}
@@ -124,7 +124,7 @@ function Chip({
       <span
         className={cn(
           "text-[12px] tabular-nums",
-          pressed ? "text-[var(--gym-gold)]" : "text-[var(--gym-text-secondary)]",
+          pressed ? "opacity-70" : "text-[var(--gym-text-secondary)]",
         )}
       >
         {count}

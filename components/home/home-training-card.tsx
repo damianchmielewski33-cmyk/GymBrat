@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Play } from "lucide-react";
@@ -142,7 +142,7 @@ export function HomeTrainingCard({
           }}
           aria-hidden
         />
-        <div className="relative space-y-4">
+        <div className="relative space-y-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
               {unfinished ? "Niedokończony trening" : "Trening na dziś"}
@@ -151,11 +151,11 @@ export function HomeTrainingCard({
               {displayName}
             </h2>
             {planMeta ? (
-              <p className="mt-2 text-sm text-white/60">{planMeta}</p>
+              <p className="mt-1.5 text-sm text-white/65">{planMeta}</p>
             ) : null}
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {unfinished ? (
               <Link
                 href="/active-workout"
@@ -196,36 +196,46 @@ export function HomeTrainingCard({
           </div>
 
           {!unfinished && days.length > 1 ? (
-            <div className="space-y-3">
+            <div>
               <button
                 type="button"
                 onClick={() => setPickerOpen((v) => !v)}
                 aria-expanded={pickerOpen}
                 aria-controls="home-day-picker"
-                className="app-panel gym-tap flex min-h-11 w-full items-center justify-center gap-1.5 px-4 py-3 text-[15px] font-semibold text-white/85"
+                className="app-panel gym-tap flex h-12 w-full items-center justify-center gap-2 !rounded-full border border-[var(--gym-gold)]/25 px-4 text-[13px] font-semibold uppercase tracking-[0.1em] text-white/80 shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
               >
-                Zmień dzień treningowy
+                {pickerOpen ? "Zwiń" : "Zmień dzień treningowy"}
                 <ChevronDown
                   className={cn(
-                    "h-3.5 w-3.5 transition",
+                    "h-4 w-4 transition-transform duration-300",
                     pickerOpen && "rotate-180",
                   )}
+                  aria-hidden
                 />
               </button>
 
-              {pickerOpen ? (
-                <ul id="home-day-picker" className="app-panel divide-y divide-white/[0.06] overflow-hidden">
-                  {days.map((day) => {
-                    const inQueue = day.id === recommendedPlanId;
-                    const active = day.id === selected?.id;
-                    const lastDate = formatPlanLastDoneShort(day.lastWorkoutDate);
-                    return (
-                      <li key={day.id}>
-                        <div
+              <div
+                id="home-day-picker"
+                className="gym-collapse"
+                data-open={pickerOpen}
+                inert={!pickerOpen}
+              >
+                <div>
+                  <ul className="flex flex-col gap-1.5 pt-2">
+                    {days.map((day, idx) => {
+                      const inQueue = day.id === recommendedPlanId;
+                      const active = day.id === selected?.id;
+                      const lastDate = formatPlanLastDoneShort(day.lastWorkoutDate);
+                      return (
+                        <li
+                          key={day.id}
                           className={cn(
-                            "flex items-center gap-3 px-4 py-3.5",
-                            (active || inQueue) && "bg-white/[0.03]",
+                            "gym-collapse-item flex min-h-14 items-center gap-2 rounded-2xl border py-1.5 pl-4 pr-2",
+                            active
+                              ? "border-[var(--gym-gold)]/40 bg-[rgba(var(--neon-rgb),0.14)]"
+                              : "border-white/[0.08] bg-black/30",
                           )}
+                          style={{ "--i": idx } as CSSProperties}
                         >
                           <button
                             type="button"
@@ -237,57 +247,52 @@ export function HomeTrainingCard({
                           >
                             <p
                               className={cn(
-                                "font-semibold leading-tight",
+                                "text-[14px] font-bold leading-tight",
                                 inQueue || active
                                   ? "text-[var(--gym-gold)]"
                                   : "text-white",
                               )}
                             >
                               {day.name}
-                              <span className="font-normal text-white/50">
+                              <span className="font-normal text-white/55">
                                 {" "}
                                 · {day.exerciseCount} ćw.
                                 {inQueue ? " · w kolejce" : ""}
                               </span>
                             </p>
-                            <p className="mt-0.5 text-[12px] text-white/50">
+                            <p
+                              className="mt-0.5 text-[12px] text-white/55"
+                              title={
+                                day.lastWorkoutDate
+                                  ? `Ostatnio: ${day.lastWorkoutDate}`
+                                  : "Jeszcze nie robiony"
+                              }
+                            >
                               {day.lastWorkoutDate
-                                ? formatPlanLastDoneRelative(
-                                    day.lastWorkoutDate,
-                                    today,
-                                  )
+                                ? `${formatPlanLastDoneRelative(day.lastWorkoutDate, today)}${lastDate ? ` · ${lastDate}` : ""}`
                                 : "jeszcze nie robiony"}
                             </p>
                           </button>
-                          <span
-                            className={cn(
-                              "shrink-0 text-[12px] tabular-nums",
-                              lastDate
-                                ? "text-white/55"
-                                : "text-white/50",
-                            )}
-                            title={
-                              day.lastWorkoutDate
-                                ? `Ostatnio: ${day.lastWorkoutDate}`
-                                : "Jeszcze nie robiony"
-                            }
-                          >
-                            {lastDate ?? "—"}
-                          </span>
-                          <button
-                            type="button"
-                            disabled={pending || day.exerciseCount === 0}
-                            onClick={() => begin(day.row)}
-                            className="gym-tap -mr-2 inline-flex min-h-11 shrink-0 items-center px-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-gold)] disabled:opacity-40"
-                          >
-                            Start →
-                          </button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : null}
+                          {active ? (
+                            <span className="shrink-0 px-3 text-[12px] font-bold text-[var(--gym-gold)]">
+                              Wybrany ✓
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={pending || day.exerciseCount === 0}
+                              onClick={() => begin(day.row)}
+                              className="gym-tap inline-flex h-11 shrink-0 items-center rounded-full border border-[var(--gym-gold)]/35 bg-[rgba(var(--neon-rgb),0.08)] px-3.5 text-[12px] font-bold uppercase tracking-[0.1em] text-[var(--gym-gold)] disabled:opacity-40"
+                            >
+                              Start →
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
             </div>
           ) : null}
         </div>

@@ -330,7 +330,7 @@ function CardioLogSheetDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="cardio-sheet-title"
-        className="app-dialog relative z-[1] flex h-[min(88dvh,640px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[22px] sm:h-auto sm:max-h-[88dvh] sm:rounded-[22px]"
+        className="app-dialog relative z-[1] flex h-[min(92dvh,760px)] w-full max-w-lg animate-[page-enter_550ms_cubic-bezier(0.22,1,0.36,1)_both] flex-col overflow-hidden rounded-t-[26px] sm:h-auto sm:max-h-[92dvh] sm:rounded-[26px]"
       >
         <div
           className="pointer-events-none absolute inset-0 opacity-90"
@@ -447,6 +447,7 @@ function CardioLogSheetDialog({
               <CardioLogMinutesField
                 minutesText={minutesText}
                 inputRef={minutesInputRef}
+                machine={machine}
                 onMinutesTextChange={(v) => {
                   setMinutesText(v);
                   const result = validateCardioMetrics({
@@ -474,39 +475,76 @@ function CardioLogSheetDialog({
                 errorId="err-minutes"
               />
 
-              <div className="rounded-2xl border border-white/[0.08] px-4 py-3">
+              <div className="rounded-2xl border border-white/[0.08] bg-black/30 px-4 py-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-text-secondary)]">
-                      Dzień
-                    </p>
-                    <p className="mt-1 text-[14px] text-white">{dateLine}</p>
-                  </div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-text-secondary)]">
+                    Dzień
+                  </p>
+                  <p className="text-[12px] text-[var(--gym-text-secondary)]">
+                    {dateLine}
+                  </p>
+                </div>
+                <div className="mt-2 grid grid-cols-4 gap-1.5">
+                  {[
+                    { label: "Dziś", key: "" },
+                    { label: "Wczoraj", key: localDateInputValue(-1) },
+                    { label: "Przedwczoraj", key: localDateInputValue(-2) },
+                  ].map((opt) => {
+                    const active = !dateOpen && dateKey === opt.key;
+                    return (
+                      <button
+                        key={opt.label}
+                        type="button"
+                        disabled={pending}
+                        aria-pressed={active}
+                        onClick={() => {
+                          setDateKey(opt.key);
+                          setDateOpen(false);
+                        }}
+                        className={cn(
+                          "inline-flex min-h-11 items-center justify-center rounded-full border px-1 text-[11px] font-semibold transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none",
+                          active
+                            ? "scale-[1.04] border-[#f6e3a1]/80 bg-gradient-to-b from-[#f6e3a1] to-[var(--gym-gold)] text-[var(--neon-fg)] shadow-[0_4px_14px_rgba(var(--neon-rgb),0.35)]"
+                            : "border-white/10 bg-white/[0.05] text-white/75",
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
                   <button
                     type="button"
                     disabled={pending}
-                    className="inline-flex min-h-11 items-center px-2 text-[13px] font-semibold text-[var(--gym-gold)]"
+                    aria-expanded={dateOpen}
                     onClick={() => setDateOpen((v) => !v)}
+                    className={cn(
+                      "inline-flex min-h-11 items-center justify-center rounded-full border px-1 text-[11px] font-semibold transition-all duration-300 motion-reduce:transition-none",
+                      dateOpen
+                        ? "border-[var(--gym-gold)]/60 text-[var(--gym-gold)]"
+                        : "border-white/10 bg-white/[0.05] text-white/75",
+                    )}
                   >
-                    Zmień
+                    Inny…
                   </button>
                 </div>
-                {dateOpen ? (
-                  <input
-                    type="date"
-                    value={dateKey || calendarDateKey()}
-                    min={minDate}
-                    max={maxDate}
-                    disabled={pending}
-                    aria-invalid={fieldErrors.date != null}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setDateKey(v === calendarDateKey() ? "" : v);
-                      setDateOpen(false);
-                    }}
-                    className="mt-2 h-12 w-full rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 text-sm text-white outline-none"
-                  />
-                ) : null}
+                <div className="gym-collapse" data-open={dateOpen} inert={!dateOpen}>
+                  <div>
+                    <input
+                      type="date"
+                      value={dateKey || calendarDateKey()}
+                      min={minDate}
+                      max={maxDate}
+                      disabled={pending}
+                      aria-label="Wybierz datę"
+                      aria-invalid={fieldErrors.date != null}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setDateKey(v === calendarDateKey() ? "" : v);
+                      }}
+                      className="mt-2 h-12 w-full rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 text-sm text-white outline-none"
+                    />
+                  </div>
+                </div>
                 {fieldErrors.date ? (
                   <p className="mt-1 text-[12px] text-[#ff8593]" role="alert">
                     {fieldErrors.date}
@@ -560,7 +598,7 @@ function CardioLogSheetDialog({
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_8px_28px_rgba(var(--neon-rgb),0.45)] disabled:opacity-60"
+                className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold disabled:opacity-60"
               >
                 {pending ? (
                   <>
@@ -572,7 +610,7 @@ function CardioLogSheetDialog({
                 ) : (
                   <>
                     <Footprints className="h-4 w-4" aria-hidden />
-                    Zapisz {minutesForCta ?? "…"} min{ctaDateSuffix}
+                    Zapisz {minutesForCta ?? "…"} min · {CARDIO_TYPE_LABELS_PL[machine]}{ctaDateSuffix}
                   </>
                 )}
               </button>

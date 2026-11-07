@@ -108,7 +108,12 @@ export function CardioLogDetailsSection({
         />
       </button>
 
-      {open ? (
+      <div
+        className="gym-collapse"
+        data-open={open}
+        inert={!open}
+      >
+        <div>
         <div
           id={panelId}
           className="space-y-3 border-t border-white/[0.06] px-4 pb-4 pt-3"
@@ -251,7 +256,8 @@ export function CardioLogDetailsSection({
             </span>
           </label>
         </div>
-      ) : null}
+        </div>
+      </div>
     </div>
   );
 }
