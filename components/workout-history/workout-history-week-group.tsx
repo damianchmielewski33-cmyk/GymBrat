@@ -35,11 +35,18 @@ export function groupByWeek(cards: WorkoutHistoryCard[]): WeekGroup[] {
 
 export function WorkoutHistoryWeekGroup({
   week,
+  maxVolumeKg = 0,
   children,
 }: {
   week: WeekGroup;
+  /** Największy tonaż tygodnia na liście — skala paska. */
+  maxVolumeKg?: number;
   children: ReactNode;
 }) {
+  const barPct =
+    maxVolumeKg > 0
+      ? Math.max(4, Math.round((week.volumeKg / maxVolumeKg) * 100))
+      : 0;
   const tag = formatHistoryWeekRelativeTag(week.monday);
   const range = formatHistoryWeekRange(week.monday);
   const count = week.cards.length;
@@ -67,16 +74,19 @@ export function WorkoutHistoryWeekGroup({
             {range}
           </h2>
         </div>
-        <p
-          className="shrink-0 text-[12px] tabular-nums text-[var(--gym-text-secondary)]"
-          aria-hidden
-        >
-          {count} tr. · {formatTonnes(week.volumeKg)}
-        </p>
+        <div className="w-28 shrink-0 text-right" aria-hidden>
+          <p className="text-[12px] font-semibold tabular-nums text-[var(--gym-text-secondary)]">
+            {count} tr. · {formatTonnes(week.volumeKg)}
+          </p>
+          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[var(--gym-track)]">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[var(--gym-gold-deep)] to-[#f6e3a1] transition-[width] duration-700 ease-out motion-reduce:transition-none"
+              style={{ width: `${barPct}%` }}
+            />
+          </div>
+        </div>
       </div>
-      <div className="app-panel divide-y divide-white/[0.06] overflow-hidden">
-        {children}
-      </div>
+      <div className="flex flex-col gap-2">{children}</div>
     </section>
   );
 }

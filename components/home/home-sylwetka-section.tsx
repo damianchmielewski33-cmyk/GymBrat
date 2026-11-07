@@ -5,9 +5,13 @@ import { useState } from "react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { BRAND_GOLD } from "@/lib/brand-colors";
-import type { HomeStartWaistPoint, HomeStartWeightPoint } from "@/lib/home-start";
+import type {
+  HomeStartSpark,
+  HomeStartWaistPoint,
+  HomeStartWeightPoint,
+} from "@/lib/home-start";
 
-type Metric = "weight" | "waist";
+type Metric = "weight" | "waist" | "arm" | "chest";
 
 const MAX_POINTS = 30;
 
@@ -91,6 +95,8 @@ export function HomeSylwetkaSection({
   daysSinceLastReport,
   weightSeries,
   waistSeries,
+  armSeries = [],
+  chestSeries = [],
 }: {
   weightKg: number | null;
   weightDeltaFromPreviousKg: number | null;
@@ -100,17 +106,37 @@ export function HomeSylwetkaSection({
   daysSinceLastReport: number | null;
   weightSeries: HomeStartWeightPoint[];
   waistSeries: HomeStartWaistPoint[];
+  armSeries?: HomeStartSpark[];
+  chestSeries?: HomeStartSpark[];
 }) {
   const [metric, setMetric] = useState<Metric>("weight");
 
   const wSorted = [...weightSeries].sort((a, b) => a.date.localeCompare(b.date));
   const sSorted = [...waistSeries].sort((a, b) => a.date.localeCompare(b.date));
   const isWeight = metric === "weight";
+  const byDate = (a: { date: string }, b: { date: string }) =>
+    a.date.localeCompare(b.date);
+  const aSorted = [...armSeries].sort(byDate);
+  const cSorted = [...chestSeries].sort(byDate);
 
-  const series = (isWeight
-    ? wSorted.map((p) => ({ date: p.date, v: p.kg }))
-    : sSorted.map((p) => ({ date: p.date, v: p.cm }))
+  const series = (
+    metric === "weight"
+      ? wSorted.map((p) => ({ date: p.date, v: p.kg }))
+      : metric === "waist"
+        ? sSorted.map((p) => ({ date: p.date, v: p.cm }))
+        : (metric === "arm" ? aSorted : cSorted).map((p) => ({
+            date: p.date,
+            v: p.value,
+          }))
   ).slice(-MAX_POINTS);
+  const metricName =
+    metric === "weight"
+      ? "wagi"
+      : metric === "waist"
+        ? "obwodu pasa"
+        : metric === "arm"
+          ? "obwodu ramienia"
+          : "obwodu klatki";
 
   // Jedno źródło prawdy: wartość = ostatni punkt wykresu (gdy jest), inaczej wartość z profilu.
   const lastPoint = series[series.length - 1]?.v ?? null;
@@ -170,6 +196,8 @@ export function HomeSylwetkaSection({
         options={[
           { value: "weight", label: "Waga" },
           { value: "waist", label: "Pas" },
+          { value: "arm", label: "Ramię" },
+          { value: "chest", label: "Klatka" },
         ]}
       />
 
@@ -195,11 +223,7 @@ export function HomeSylwetkaSection({
       <Sparkline
         key={metric}
         points={series}
-        label={
-          isWeight
-            ? `Wykres wagi, ostatnia wartość ${value ?? "brak"} kg`
-            : `Wykres obwodu pasa, ostatnia wartość ${value ?? "brak"} cm`
-        }
+        label={`Wykres ${metricName}, ostatnia wartość ${value ?? "brak"} ${unit}`}
       />
 
       <Link

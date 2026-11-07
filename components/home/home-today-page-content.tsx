@@ -137,6 +137,8 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
       weekMacros={dash.weekMacros}
       weightSeries={dash.weightSeries}
       waistSeries={dash.waistSeries}
+      armSeries={dash.dimensions.armSpark}
+      chestSeries={dash.dimensions.chestSpark}
       compliance={dash.compliance}
       workoutsThisWeek={dash.workoutsThisWeek}
       cardioThisWeekMinutes={dash.cardioThisWeekMinutes}

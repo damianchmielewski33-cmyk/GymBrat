@@ -76,6 +76,19 @@ export function WorkoutHistoryView({
   }, [filterPlanKey, filtered, removedIds.size, serverKpis]);
 
   const weekGroups = useMemo(() => groupByWeek(filtered), [filtered]);
+  const maxWeekVolumeKg = useMemo(
+    () => Math.max(0, ...weekGroups.map((w) => w.volumeKg)),
+    [weekGroups],
+  );
+  // Do 8 ostatnich tygodni z danymi, od najstarszego do bieżącego.
+  const weekBars = useMemo(
+    () =>
+      weekGroups
+        .slice(0, 8)
+        .reverse()
+        .map((w) => w.volumeKg),
+    [weekGroups],
+  );
 
   const expandedIds = useMemo(() => {
     const next = new Set(userExpandedIds);
@@ -168,6 +181,7 @@ export function WorkoutHistoryView({
           sessionsLimitReached={sessionsLimitReached}
           empty={shownCount === 0}
           liveAnnouncement={liveAnnouncement}
+          weekBars={weekBars}
         />
         <WorkoutHistoryLimitBanner visible={sessionsLimitReached} />
       </div>
@@ -204,7 +218,11 @@ export function WorkoutHistoryView({
       ) : (
         <div>
           {weekGroups.map((week) => (
-            <WorkoutHistoryWeekGroup key={week.monday} week={week}>
+            <WorkoutHistoryWeekGroup
+              key={week.monday}
+              week={week}
+              maxVolumeKg={maxWeekVolumeKg}
+            >
               {week.cards.map((card) => (
                 <WorkoutHistorySessionCard
                   key={card.id}
