@@ -1,0 +1,63 @@
+{
+  "cookies": [
+    {
+      "name": "authjs.csrf-token",
+      "value": "a2f5011863a35b3d1661b9a1b339cfdde5cdedc76e277b181ee52d290d4eca95%7C792d61a4f86e06118e80f05895c8e3f3b441367ed3f674e005442ecee4883a21",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "authjs.callback-url",
+      "value": "http%3A%2F%2Flocalhost%3A3000%2F",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "gymbrat_xsrf",
+      "value": "20b210edab15fc7aedd67a374e4d9f2aa9dc8e43252e4ab1c134f59b29d655e9",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1794048450.647094,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoianpxb2s2RDBMYWVmRkQtQVNyZmJlUnFFTkRJVlZodHlrUXR6VHhqM01jQlhiV0otSW9oS3Nrdm5FNEpELXFJX0FkZTBNWVg3dGNCSF9xaURkSkx1ZVEifQ..VZ4wGznq4O9S6LW8e67d4A.Q9f4Vnxo7eIimC7RGvCM554PBJ2ZI1oTdl9KYWnd37E4I19M6OS1BejktlKhiRNXqr58Nz3IsqdjVzLqAw8beGTgvQAPikmE6VWj3BnDdPaZFWiH9c8Jk82qNtqN4iX7zr_xfPIChAX1M9GznxqXHFLjsp2J9XNW2sCFCyIFGx8rETG5Aahn2bV6ijJxlImGKYx5R4ZQDS7l8GXIsOm9w13phbqDCNZQNs2EyXGsOgMmEj8StmzEFwokvX8F0cq4iNp6_P_DQ_R_M9Y9M4A1BcxBkjhrcf0QyaZGRBc4kSkgVaobht3pCTBudsANM9mIlNmK8tYBtpOofYexr-KmV-fzMrUrBHhCYNUZt_KAAmLR7SgQWSWKS_ynW59sXxWcuMrXd9DdjcrUp73jJz_Eww.a0mh5mfPv2IEoZMPLhUSGt5OKI9v_eB8VUJTzJJv3HU",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1796554050.669956,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3100",
+      "localStorage": [
+        {
+          "name": "gymbrat:deviceId",
+          "value": "1870040f-727a-4cd5-a92f-4f5b052d5568"
+        },
+        {
+          "name": "gymbrat_consent_v1",
+          "value": "{\"version\":1,\"decidedAt\":\"2026-11-06T10:47:30.501Z\",\"analytics\":false,\"marketing\":false}"
+        },
+        {
+          "name": "active-workout",
+          "value": "{\"state\":{\"startedAt\":null,\"pausedElapsedSeconds\":0,\"workoutStartedAtMs\":null,\"title\":\"Sesja\",\"workoutPlanId\":null,\"cardioMinutes\":0,\"cardioExtras\":{\"distanceKm\":null,\"avgHr\":null,\"maxHr\":null,\"calories\":null,\"steps\":null,\"paceMinPerKm\":null,\"cardioType\":null,\"effortScore\":null,\"heartRateZone\":null},\"exercises\":[],\"selectedExerciseId\":null},\"version\":4}"
+        }
+      ]
+    }
+  ]
+}
