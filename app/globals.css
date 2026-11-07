@@ -432,8 +432,8 @@
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.55) inset,
       0 -2px 0 rgba(90, 60, 0, 0.28) inset,
-      0 8px 28px rgba(var(--neon-rgb), 0.48),
-      0 2px 0 rgba(0, 0, 0, 0.38);
+      0 6px 18px rgba(var(--neon-rgb), 0.30),
+      0 2px 6px rgba(0, 0, 0, 0.45);
     transition:
       filter 160ms ease,
       box-shadow 160ms ease,
@@ -445,8 +445,8 @@
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.62) inset,
       0 -2px 0 rgba(90, 60, 0, 0.24) inset,
-      0 12px 36px rgba(var(--neon-rgb), 0.58),
-      0 2px 0 rgba(0, 0, 0, 0.32);
+      0 8px 26px rgba(var(--neon-rgb), 0.42),
+      0 2px 6px rgba(0, 0, 0, 0.4);
   }
 
   .gym-btn-primary:hover:not(:disabled) {
@@ -477,8 +477,8 @@
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.55) inset,
       0 -2px 0 rgba(90, 60, 0, 0.28) inset,
-      0 8px 28px rgba(var(--neon-rgb), 0.48),
-      0 2px 0 rgba(0, 0, 0, 0.38);
+      0 6px 18px rgba(var(--neon-rgb), 0.30),
+      0 2px 6px rgba(0, 0, 0, 0.45);
     transition:
       filter 160ms ease,
       box-shadow 160ms ease,
@@ -490,8 +490,8 @@
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.62) inset,
       0 -2px 0 rgba(90, 60, 0, 0.24) inset,
-      0 12px 36px rgba(var(--neon-rgb), 0.58),
-      0 2px 0 rgba(0, 0, 0, 0.32);
+      0 8px 26px rgba(var(--neon-rgb), 0.42),
+      0 2px 6px rgba(0, 0, 0, 0.4);
   }
 
   .gold-btn:hover:not(:disabled) {
@@ -723,8 +723,8 @@
     height: min(78vw, 420px);
     background: radial-gradient(
       circle,
-      rgba(201, 164, 92, 0.22) 0%,
-      rgba(196, 154, 31, 0.08) 42%,
+      rgba(201, 164, 92, 0.34) 0%,
+      rgba(196, 154, 31, 0.13) 42%,
       transparent 70%
     );
     animation: gym-ambient-drift-a 22s ease-in-out infinite;
@@ -737,8 +737,8 @@
     height: min(70vw, 360px);
     background: radial-gradient(
       circle,
-      rgba(247, 226, 143, 0.14) 0%,
-      rgba(120, 90, 30, 0.06) 45%,
+      rgba(247, 226, 143, 0.22) 0%,
+      rgba(120, 90, 30, 0.10) 45%,
       transparent 72%
     );
     animation: gym-ambient-drift-b 28s ease-in-out infinite;
@@ -751,8 +751,8 @@
     height: min(70vw, 380px);
     background: radial-gradient(
       circle,
-      rgba(180, 130, 40, 0.12) 0%,
-      rgba(40, 28, 12, 0.08) 40%,
+      rgba(180, 130, 40, 0.20) 0%,
+      rgba(40, 28, 12, 0.12) 40%,
       transparent 70%
     );
     animation: gym-ambient-drift-c 32s ease-in-out infinite;

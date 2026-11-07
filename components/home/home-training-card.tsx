@@ -43,11 +43,11 @@ function MiniStat({
   unit?: string;
 }) {
   return (
-    <div className="flex min-h-[84px] min-w-0 flex-col items-center justify-center px-2 py-3 text-center">
+    <div className="flex min-h-[68px] min-w-0 flex-col items-center justify-center px-2 py-2.5 text-center">
       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/55">
         {label}
       </p>
-      <p className="mt-2 font-display text-2xl leading-none tabular-nums text-[var(--gym-gold)]">
+      <p className="mt-1.5 font-display text-2xl leading-none tabular-nums text-[var(--gym-gold)]">
         {value}
         {unit ? (
           <span className="ml-1 text-[11px] font-medium text-[var(--gym-gold)]/70">
@@ -210,7 +210,7 @@ export function HomeTrainingCard({
 
   return (
     <div className="space-y-3">
-      <section className="app-card relative overflow-hidden p-5">
+      <section className="app-card relative overflow-hidden p-4">
         <div
           className="pointer-events-none absolute inset-0 opacity-90"
           style={{
@@ -220,7 +220,7 @@ export function HomeTrainingCard({
           }}
           aria-hidden
         />
-        <div className="relative space-y-4">
+        <div className="relative space-y-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
               {unfinished ? "Niedokończony trening" : "Trening na dziś"}
@@ -229,11 +229,11 @@ export function HomeTrainingCard({
               {displayName}
             </h2>
             {planMeta ? (
-              <p className="mt-1.5 text-[13px] text-white/55">{planMeta}</p>
+              <p className="mt-1.5 text-[13px] text-white/65">{planMeta}</p>
             ) : null}
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {unfinished ? (
               <Link
                 href="/active-workout"
@@ -274,13 +274,13 @@ export function HomeTrainingCard({
           </div>
 
           {!unfinished && days.length > 1 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <button
                 type="button"
                 onClick={() => setPickerOpen((v) => !v)}
                 aria-expanded={pickerOpen}
                 aria-controls="home-day-picker"
-                className="app-panel gym-tap flex min-h-11 w-full items-center justify-center gap-1.5 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55"
+                className="app-panel gym-tap flex h-12 w-full items-center justify-center gap-1.5 !rounded-full px-4 text-[12px] font-semibold uppercase tracking-[0.14em] text-white/70 shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
               >
                 Inny dzień
                 <ChevronDown

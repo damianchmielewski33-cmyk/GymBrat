@@ -1,5 +1,6 @@
 "use client";
 
+import { DESKTOP_TRAINING_MESSAGE, useIsDesktopDevice } from "@/components/active-workout/desktop-training-guard";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import type { WorkoutPlanWithLastWorkoutDTO } from "@/actions/workout-plan";
@@ -30,6 +31,7 @@ export function TreningiHubClient({
 }) {
   const router = useRouter();
   const { notifyError } = useSaveFeedback();
+  const isDesktop = useIsDesktopDevice();
   const [modeOpen, setModeOpen] = useState(false);
   const [pendingRow, setPendingRow] =
     useState<WorkoutPlanWithLastWorkoutDTO | null>(null);
@@ -63,9 +65,13 @@ export function TreningiHubClient({
   );
 
   const onBegin = useCallback((row: WorkoutPlanWithLastWorkoutDTO) => {
+    if (isDesktop) {
+      notifyError(DESKTOP_TRAINING_MESSAGE);
+      return;
+    }
     setPendingRow(row);
     setModeOpen(true);
-  }, []);
+  }, [isDesktop, notifyError]);
 
   const onSolo = useCallback(() => {
     if (!pendingRow) return;

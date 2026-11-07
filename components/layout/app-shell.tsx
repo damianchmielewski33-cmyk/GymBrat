@@ -45,9 +45,9 @@ const FriendLiveWatchWidget = dynamic(
   { ssr: false },
 );
 
-/** Phone → tablet → desktop: treść w kolumnie, bez „pustego” tabletu. */
+/** Phone → tablet (kolumna) → desktop (lg+: szeroka treść + boczny pasek nawigacji). */
 export const APP_SHELL_MAX =
-  "max-w-lg md:max-w-xl xl:max-w-2xl";
+  "max-w-lg md:max-w-xl lg:max-w-4xl 2xl:max-w-5xl";
 
 export function AppShell({
   children,
@@ -108,6 +108,7 @@ export function AppShell({
         sessionFullscreen
           ? "h-[100dvh] max-h-[100dvh] overflow-hidden"
           : "min-h-screen",
+        !sessionFullscreen && "lg:pl-60",
       )}
     >
       {sessionFullscreen ? null : hideChromeHeader ? (
@@ -116,11 +117,11 @@ export function AppShell({
         <header className="sticky top-0 z-40 bg-black/55 pt-[env(safe-area-inset-top)] backdrop-blur-md">
           <div
             className={cn(
-              "mx-auto flex items-center justify-between gap-2 px-[var(--space-screen-x)] py-2.5 sm:gap-3 sm:px-[var(--space-screen-x-sm)] sm:py-3.5",
+              "mx-auto flex items-center justify-between gap-2 lg:justify-end lg:px-8 px-[var(--space-screen-x)] py-2.5 sm:gap-3 sm:px-[var(--space-screen-x-sm)] sm:py-3.5",
               APP_SHELL_MAX,
             )}
           >
-            <BrandMark className="min-w-0" />
+            <BrandMark className="min-w-0 lg:hidden" />
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <NotificationBell />
               <AppMenuButton variant="icon" />
@@ -138,6 +139,7 @@ export function AppShell({
             : hideBottomNav
               ? "px-[var(--space-screen-x)] py-3 pb-[calc(var(--bottom-gap)+4.5rem+env(safe-area-inset-bottom))] sm:px-[var(--space-screen-x-sm)] sm:py-4"
               : "px-[var(--space-screen-x)] py-3 pb-[calc(var(--bottom-chrome)+1rem+env(safe-area-inset-bottom))] sm:px-[var(--space-screen-x-sm)] sm:py-4",
+          !sessionFullscreen && "lg:px-8 lg:py-6 lg:pb-12",
         )}
       >
         {children}
@@ -148,13 +150,25 @@ export function AppShell({
       <FriendLiveWatchWidget />
       <WorkoutChatLauncher />
 
-      {hideBottomNav ? null : (
+      {sessionFullscreen ? null : (
         <nav
-          className="pointer-events-none fixed inset-x-0 bottom-0 z-50 pb-[max(0.65rem,env(safe-area-inset-bottom))]"
+          className={cn(
+            "pointer-events-none fixed inset-x-0 bottom-0 z-50 pb-[max(0.65rem,env(safe-area-inset-bottom))]",
+            // Desktop: stały boczny pasek zamiast pływającej belki.
+            "lg:pointer-events-auto lg:inset-y-0 lg:right-auto lg:flex lg:w-60 lg:flex-col lg:border-r lg:border-white/[0.08] lg:bg-black/60 lg:p-4 lg:backdrop-blur-xl",
+            hideBottomNav && "hidden lg:flex",
+          )}
           aria-label="Nawigacja główna"
         >
-          <div className={cn("pointer-events-auto relative mx-auto px-3", APP_SHELL_MAX)}>
-            {showReportFab ? (
+          <BrandMark className="mb-6 mt-1 hidden px-2 lg:flex" />
+          <div
+            className={cn(
+              "pointer-events-auto relative mx-auto px-3",
+              APP_SHELL_MAX,
+              "lg:mx-0 lg:max-w-none lg:px-0",
+            )}
+          >
+            {showReportFab && !hideBottomNav ? (
               <Suspense fallback={null}>
                 <ContextFabButton fab={contextFab} />
               </Suspense>
@@ -165,6 +179,7 @@ export function AppShell({
                 "bg-black/55 px-1.5 pb-1.5 backdrop-blur-2xl",
                 "shadow-[0_8px_40px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.04)_inset]",
                 showReportFab ? "pt-7" : "pt-1.5",
+                "lg:flex lg:flex-col lg:gap-1 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none",
               )}
             >
               {tabs.map((item) => (
@@ -196,7 +211,7 @@ function ContextFabButton({ fab }: { fab: ContextFab | null }) {
     <Link
       href={fab.href}
       onClick={() => hapticTap()}
-      className="gym-btn-primary absolute left-1/2 top-0 z-10 inline-flex h-12 min-h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 whitespace-nowrap rounded-full px-5 text-sm font-semibold shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]"
+      className="gym-btn-primary absolute left-1/2 top-0 z-10 inline-flex h-12 min-h-12 min-w-[7.25rem] -translate-x-1/2 -translate-y-1/2 lg:static lg:mb-3 lg:w-full lg:translate-x-0 lg:translate-y-0 items-center justify-center gap-1 whitespace-nowrap rounded-full px-5 text-sm font-semibold shadow-[0_8px_28px_rgba(var(--neon-rgb),0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--neon-rgb),0.55)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--gym-black)]"
       aria-label={fab.ariaLabel}
     >
       <Plus className="h-4 w-4" aria-hidden />
@@ -239,7 +254,7 @@ function TabLink({
       }}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-[var(--radius-card)] px-0.5 py-1.5 text-center text-[length:var(--text-label)] font-semibold transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80 sm:gap-1 sm:text-[length:var(--text-caption)]",
+        "relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-left rounded-[var(--radius-card)] px-0.5 py-1.5 text-center text-[length:var(--text-label)] font-semibold transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80 sm:gap-1 sm:text-[length:var(--text-caption)]",
         visuallyActive
           ? "bg-[var(--gym-gold)]/10 text-[var(--gym-gold)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.45),0_0_18px_rgba(var(--neon-rgb),0.55),0_0_36px_rgba(var(--neon-rgb),0.28)]"
           : "text-white/55 shadow-none",

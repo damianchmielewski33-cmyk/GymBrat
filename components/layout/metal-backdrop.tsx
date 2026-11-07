@@ -29,7 +29,7 @@ export function MetalBackdrop() {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(75% 65% at 50% 40%, transparent 35%, rgba(0,0,0,0.55) 100%)",
+            "radial-gradient(75% 65% at 50% 40%, transparent 35%, rgba(0,0,0,0.38) 100%)",
         }}
       />
 

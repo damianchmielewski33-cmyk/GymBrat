@@ -88,7 +88,7 @@ export function HomeTodayView(props: HomeTodayViewProps) {
       : null;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
       <AppIntroTour open={props.showIntroTour} />
       {props.showOnboarding ? <OnboardingBanner /> : null}
 

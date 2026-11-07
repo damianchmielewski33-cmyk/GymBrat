@@ -18,13 +18,14 @@ export function ThumbActionBar({
         "pointer-events-none fixed inset-x-0 z-[48] px-[var(--space-screen-x)] sm:px-[var(--space-screen-x-sm)]",
         "bottom-[calc(4.75rem+env(safe-area-inset-bottom))]",
         "md:bottom-[calc(5rem+env(safe-area-inset-bottom))]",
+        "lg:left-60 lg:bottom-4",
         className,
       )}
     >
       <div
         className={cn(
           "pointer-events-auto mx-auto flex w-full max-w-lg gap-2",
-          "md:max-w-xl xl:max-w-2xl",
+          "md:max-w-xl lg:max-w-4xl 2xl:max-w-5xl",
           "rounded-[var(--radius-panel)] border border-white/[0.08] bg-black/80 p-2 shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl",
         )}
       >
