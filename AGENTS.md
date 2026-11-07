@@ -10,6 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # GymBrat — wdrożenia
 
+- **Jedna gałąź: `master`.** Wszystkie zmiany ze wszystkich sesji idą wyłącznie na `master` (commit + push). Nie twórz nowych gałęzi (ani lokalnych, ani zdalnych), worktree, forków ani PR-ów z osobnych gałęzi. Zacommituj i wypchnij swoją pracę na `master` na koniec każdego zadania; przed pushem `git pull --rebase origin master`. Jeśli znajdziesz inną gałąź lub worktree, scal do `master` i usuń. Preview/Promote dotyczy wdrożenia `master` na hostingu, nie osobnej gałęzi.
 - Źródło zmian produkcyjnych: wyłącznie `github.com/damianchmielewski33-cmyk/GymBrat`.
 - Flow: **PR / Preview (zapowiedź)** → zatwierdzenie → **Promote na produkcję**. Nie ogłaszaj produkcji z samego pusha bez Preview.
 - Changelog (treść: `components/changelog/changelog-entries.json`, źródło dokleja `changelog-data.ts`): na PR `planned: true`; po Promote data + bez `planned`. `sourceRepo` tylko tego repo. Nie kopiuj opisów ani wersji z AWP.
