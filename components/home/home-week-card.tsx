@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
@@ -29,6 +29,12 @@ export function HomeWeekCard({
   const mins = Math.round(cardioMinutes);
   const pct =
     cardioGoalMinutes > 0 ? Math.min(1, mins / cardioGoalMinutes) : 0;
+  // Pierścień startuje od 0 i dopełnia się razem z licznikiem (CSS transition).
+  const [ringPct, setRingPct] = useState(0);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setRingPct(pct));
+    return () => cancelAnimationFrame(id);
+  }, [pct]);
   const reached = cardioGoalMinutes > 0 && mins >= cardioGoalMinutes;
   const overBy = reached ? mins - cardioGoalMinutes : 0;
   const extra =
@@ -85,15 +91,15 @@ export function HomeWeekCard({
               strokeWidth="9"
               strokeLinecap="round"
               strokeDasharray={RING_C}
-              strokeDashoffset={RING_C * (1 - pct)}
+              strokeDashoffset={RING_C * (1 - ringPct)}
               transform="rotate(-90 52 52)"
-              className="transition-[stroke-dashoffset] duration-700 ease-out motion-reduce:transition-none"
+              className="transition-[stroke-dashoffset] duration-[900ms] ease-[cubic-bezier(0.215,0.61,0.355,1)] motion-reduce:transition-none"
             />
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <AnimatedMetric value={mins} className="text-[36px] leading-none text-white" />
-            <span className="mt-0.5 text-[10px] text-white/60">
-              / {cardioGoalMinutes} min cardio
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-[26px]">
+            <AnimatedMetric value={mins} className="text-[28px] leading-none text-white" />
+            <span className="mt-1 whitespace-nowrap text-[10px] leading-none text-white/60">
+              / {cardioGoalMinutes} min
             </span>
           </div>
         </div>
