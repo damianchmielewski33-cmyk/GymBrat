@@ -142,18 +142,20 @@ export function AppEntryLoader() {
     const timeout = window.setTimeout(() => {
       if (cancelled) return;
       ctrl.abort();
-      setPhase("error");
+      // Wolny serwer to nie brak sieci — błąd tylko offline, w innym razie wpuszczamy do aplikacji.
+      if (navigator.onLine === false) setPhase("error");
+      else finish();
     }, TIMEOUT_MS);
 
     const fonts = (document.fonts?.ready ?? Promise.resolve()).then(() => {
       if (!cancelled) setProgress((p) => Math.max(p, 2));
     });
-    const server = fetch("/api/branding/manifest", { cache: "no-store", signal: ctrl.signal }).then(
-      (res) => {
-        if (!res.ok) throw new Error("server");
+    // Manifest jest zasobem pobocznym — jego chwilowa awaria nie może blokować startu.
+    const server = fetch("/api/branding/manifest", { signal: ctrl.signal })
+      .catch(() => undefined)
+      .then(() => {
         if (!cancelled) setProgress((p) => Math.max(p, 3));
-      },
-    );
+      });
     const loaded = new Promise<void>((resolve) => {
       if (document.readyState === "complete") resolve();
       else window.addEventListener("load", () => resolve(), { once: true });
@@ -173,7 +175,9 @@ export function AppEntryLoader() {
         }, wait);
       })
       .catch(() => {
-        if (!cancelled) setPhase("error");
+        if (cancelled) return;
+        if (navigator.onLine === false) setPhase("error");
+        else finish();
       });
 
     return () => {
