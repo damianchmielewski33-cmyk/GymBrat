@@ -48,7 +48,7 @@ import type { DietSupplement } from "@/lib/diet-supplements";
 import type { NutritionDayType } from "@/lib/nutrition-goals";
 import { parseDietTab, type DietTabId } from "@/lib/diet-tabs";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
-import { Pencil, Trash2 } from "lucide-react";
+import { AlertCircle, Pencil, Trash2, X } from "lucide-react";
 import { calendarDateKey } from "@/lib/local-date";
 import { Button } from "@/components/ui/button";
 import {
@@ -77,10 +77,14 @@ function formatDateLabel(dateKey: string): string {
 function DeleteMealButton({
   id,
   name,
+  calories,
+  remainingKcal,
   onDone,
 }: {
   id: string;
   name?: string | null;
+  calories?: number;
+  remainingKcal?: number | null;
   onDone: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -110,21 +114,31 @@ function DeleteMealButton({
     <>
       <button
         type="button"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-rose-200"
+        className="inline-flex h-11 w-9 items-center justify-center rounded-lg text-white/40 transition-colors hover:text-rose-300 active:text-rose-300"
         aria-label="Usuń"
         onClick={() => setOpen(true)}
       >
-        <Trash2 className="h-3.5 w-3.5" />
+        <Trash2 className="h-4 w-4" />
       </button>
       <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent className="app-dialog p-6">
-          <AlertDialogTitle>Usunąć produkt?</AlertDialogTitle>
+        <AlertDialogContent className="app-dialog left-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 rounded-b-none rounded-t-[28px] px-5 pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-5">
+          <div aria-hidden className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
+          <span aria-hidden className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-rose-400/30 bg-rose-400/10 text-rose-300"><Trash2 className="h-5 w-5" /></span>
+          <AlertDialogTitle className="text-xl font-bold">Usunąć produkt?</AlertDialogTitle>
           <AlertDialogDescription className="mt-2 text-white/65">
             {name?.trim()
               ? `„${name.trim()}” zniknie z dziennika, a makro dnia zostanie przeliczone.`
               : "Wpis zniknie z dziennika, a makro dnia zostanie przeliczone."}
           </AlertDialogDescription>
-          <div className="mt-6 flex gap-2">
+          {remainingKcal != null && calories != null ? (
+            <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-3">
+              <span className="text-[13px] text-white/65">Do zjedzenia po usunięciu</span>
+              <span className="text-[14px] font-semibold tabular-nums text-[var(--gym-gold)]">
+                {Math.round(remainingKcal + calories)} kcal
+              </span>
+            </div>
+          ) : null}
+          <div className="mt-5 flex gap-2.5">
             <Button
               type="button"
               variant="outline"
@@ -153,7 +167,7 @@ function DeleteMealButton({
 
 function tabButtonClass(active: boolean) {
   return cn(
-    "relative z-[1] rounded-full px-4 py-1.5 text-[13px] leading-none transition-colors duration-200",
+    "relative z-[1] min-h-9 rounded-full px-4 py-1.5 text-[13px] leading-none transition-colors duration-200",
     active
       ? "font-semibold text-[var(--gym-on-gold)]"
       : "font-medium text-white/65 hover:text-white/90",
@@ -162,10 +176,10 @@ function tabButtonClass(active: boolean) {
 
 function dayKindButtonClass(active: boolean) {
   return cn(
-    "rounded-full border px-3.5 py-2 text-[12px] backdrop-blur-md transition-[border-color,background-color,box-shadow,color] duration-200",
+    "min-h-10 rounded-xl px-2 text-[12px] transition-colors duration-200 disabled:opacity-60",
     active
-      ? "border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/16 font-semibold text-[var(--gym-gold)] shadow-[0_0_20px_rgba(221,187,109,0.22)]"
-      : "border-white/[0.1] bg-white/[0.03] font-medium text-white/50",
+      ? "bg-[var(--gym-gold)]/16 font-semibold text-[var(--gym-gold)] shadow-[inset_0_0_0_1px_rgba(221,187,109,0.45)]"
+      : "font-medium text-white/55 hover:text-white/80",
   );
 }
 
@@ -182,7 +196,7 @@ export function MealSuggestionsView({
   isAdmin = false,
   supplements = [],
   weeklyCardioGoalMinutes = 150,
-  initialTab = "plan",
+  initialTab = "diary",
 }: {
   initialSummary: FitatuDaySummary;
   initialGaps: MacroGaps;
@@ -257,14 +271,24 @@ export function MealSuggestionsView({
     setAddSlot(null);
   });
 
+  const [dayError, setDayError] = useState<string | null>(null);
+  const [dayLoading, setDayLoading] = useState(false);
+  const dateKeyRef = useRef(dateKey);
+  dateKeyRef.current = dateKey;
+
   const refreshDay = useCallback(
     (key: string) => {
+      const switching = key !== dateKeyRef.current;
+      if (switching) setDayLoading(true);
       start(async () => {
         const r = await loadDietDayAction(key);
+        setDayLoading(false);
         if (!r.ok) {
+          setDayError(r.error ?? "Nie udało się wczytać dnia.");
           notifyError(r.error);
           return;
         }
+        setDayError(null);
         setDateKey(r.data.dateKey);
         setGaps(r.data.gaps);
         setLogs(r.data.logs);
@@ -408,11 +432,6 @@ export function MealSuggestionsView({
     });
   }, [dateKey, notifyError, refreshDay]);
 
-  const kcalKicker =
-    dayMacros.caloriesGoal != null
-      ? `${Math.round(dayMacros.caloriesGoal)} KCAL`
-      : null;
-
   const isDiary = tab === "diary";
   const isPlan = tab === "plan";
   const { scrollY } = useScroll();
@@ -444,166 +463,84 @@ export function MealSuggestionsView({
         />
       </motion.div>
 
-      <header className="relative z-[1] space-y-3 px-1 pt-1.5">
-        <div className="flex items-start justify-between gap-3">
+      <header className="relative z-[1] space-y-3 px-1 pt-1">
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            {isPlan ? (
-              <div>
-                <motion.p
-                  key={`plan-kicker-${dayKind}-${kcalKicker}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.25, delay: 0 }}
-                  className={cn(
-                    appPageKickerClass,
-                    "tracking-[0.16em] text-[var(--gym-gold)]/85",
-                  )}
-                >
-                  Dziś zostało
-                  {kcalKicker ? ` · ${kcalKicker}` : ""}
-                </motion.p>
-                <motion.h1
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 380,
-                    damping: 28,
-                    delay: 0.15,
-                  }}
-                  className={cn(appPageTitleClass, "mt-1.5 text-white")}
-                >
-                  Przepisy
-                </motion.h1>
-              </div>
-            ) : (
-              <motion.div
-                key={`diary-title-${dateKey}`}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <p
-                  className={cn(
-                    appPageKickerClass,
-                    "tracking-[0.18em] text-[var(--gym-gold)]/85",
-                  )}
-                >
-                  Co jesz
-                </p>
-                <h1 className={cn(appPageTitleClass, "mt-1.5 text-white")}>
-                  Dziennik
-                </h1>
-              </motion.div>
-            )}
+            <p
+              className={cn(
+                appPageKickerClass,
+                "truncate tracking-[0.16em] text-[var(--gym-gold)]/85",
+              )}
+            >
+              {isPlan ? "Pomysły na dziś" : "Co jesz"}
+            </p>
+            <h1 className={cn(appPageTitleClass, "mt-1 text-white")}>
+              {isPlan ? "Przepisy" : "Dziennik"}
+            </h1>
           </div>
 
-          {/* Segmented control — iOS spring pill */}
-          <motion.div
-            className="relative mt-4 grid shrink-0 grid-cols-2 rounded-full border border-white/[0.1] bg-white/[0.04] p-1 backdrop-blur-md"
-            initial={{ opacity: 0, y: 10, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{
-              type: "spring",
-              stiffness: 400,
-              damping: 28,
-              delay: isPlan ? 0.25 : 0.12,
-            }}
-          >
+          <div className="relative grid shrink-0 grid-cols-2 rounded-full border border-white/[0.1] bg-white/[0.04] p-1">
             <motion.span
               aria-hidden
               className="absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-gradient-to-b from-[#F5E4A3] via-[#E4C56D] to-[#D1A84A] shadow-[0_2px_12px_rgba(221,187,109,0.35)]"
               initial={false}
-              animate={{ left: tab === "plan" ? 4 : "calc(50%)" }}
+              animate={{ left: isDiary ? 4 : "calc(50%)" }}
               transition={{ type: "spring", stiffness: 420, damping: 32 }}
             />
             <button
               type="button"
-              onClick={() => setTab("plan")}
-              className={tabButtonClass(tab === "plan")}
-            >
-              {t("diet.tabPlan")}
-            </button>
-            <button
-              type="button"
               onClick={() => setTab("diary")}
-              className={tabButtonClass(tab === "diary")}
+              aria-pressed={isDiary}
+              className={tabButtonClass(isDiary)}
             >
               {t("diet.tabDiary")}
             </button>
-          </motion.div>
+            <button
+              type="button"
+              onClick={() => setTab("plan")}
+              aria-pressed={isPlan}
+              className={tabButtonClass(isPlan)}
+            >
+              {t("diet.tabPlan")}
+            </button>
+          </div>
         </div>
 
         {isDiary ? (
-          <motion.div
-            key={`diary-date-${dateKey}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.35, delay: 0.2, ease: "easeOut" }}
-          >
-            <DietDateNav dateKey={dateKey} onSelect={(k) => refreshDay(k)} />
-          </motion.div>
+          <DietDateNav dateKey={dateKey} onSelect={(k) => refreshDay(k)} />
         ) : null}
 
-        {isPlan ? (
-          <motion.div
-            className="flex flex-wrap items-center gap-2"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          >
+        <div
+          role="group"
+          aria-label="Rodzaj dnia"
+          className={cn(
+            "grid gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-1",
+            isDiary ? "grid-cols-3" : "grid-cols-2",
+          )}
+        >
+          {(isDiary
+            ? ([
+                { id: "training", label: "Treningowy", active: dayKindChoice === "training", onClick: () => setDayKindOptimistic("training") },
+                { id: "rest", label: "Nietreningowy", active: dayKindChoice === "rest", onClick: () => setDayKindOptimistic("rest") },
+                { id: "default", label: "Domyślnie", active: dayKindChoice === "default", onClick: clearDayKindOptimistic },
+              ] as const)
+            : ([
+                { id: "training", label: "Treningowy", active: dayKindChoice === "training", onClick: () => setDayKindOptimistic("training") },
+                { id: "rest", label: "Nietreningowy", active: dayKindChoice === "rest" || dayKindChoice === "default", onClick: () => setDayKindOptimistic("rest") },
+              ] as const)
+          ).map((o) => (
             <button
+              key={o.id}
               type="button"
               disabled={pending}
-              onClick={() => setDayKindOptimistic("training")}
-              className={dayKindButtonClass(dayKindChoice === "training")}
+              aria-pressed={o.active}
+              onClick={o.onClick}
+              className={dayKindButtonClass(o.active)}
             >
-              Dzień treningowy
+              {o.label}
             </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => setDayKindOptimistic("rest")}
-              className={dayKindButtonClass(
-                dayKindChoice === "rest" || dayKindChoice === "default",
-              )}
-            >
-              Nietreningowy
-            </button>
-          </motion.div>
-        ) : (
-          <motion.div
-            className="flex flex-wrap items-center justify-center gap-2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: 0.24 }}
-          >
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => setDayKindOptimistic("training")}
-              className={dayKindButtonClass(dayKindChoice === "training")}
-            >
-              Treningowy
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => setDayKindOptimistic("rest")}
-              className={dayKindButtonClass(dayKindChoice === "rest")}
-            >
-              Nietreningowy
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={clearDayKindOptimistic}
-              className={dayKindButtonClass(dayKindChoice === "default")}
-            >
-              domyślnie
-            </button>
-          </motion.div>
-        )}
+          ))}
+        </div>
       </header>
 
       <div
@@ -631,6 +568,39 @@ export function MealSuggestionsView({
           />
         ) : (
           <>
+            {dayError ? (
+              <div
+                role="alert"
+                className="mb-3 flex items-start gap-2.5 rounded-2xl border border-rose-400/35 bg-rose-400/[0.08] px-3.5 py-3"
+              >
+                <AlertCircle
+                  className="mt-0.5 h-[18px] w-[18px] shrink-0 text-rose-300"
+                  aria-hidden
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-semibold text-white">
+                    Nie udało się wczytać dnia
+                  </p>
+                  <p className="mt-0.5 text-[13px] text-white/70">
+                    Sprawdź połączenie i spróbuj ponownie.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => refreshDay(dateKey)}
+                    className="mt-1 min-h-9 text-[13px] font-semibold text-rose-300"
+                  >
+                    Spróbuj ponownie
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {dayLoading ? (
+              <div aria-hidden className="space-y-3">
+                <div className="h-[150px] animate-pulse rounded-[20px] bg-white/[0.06]" />
+                <div className="h-24 animate-pulse rounded-[20px] bg-white/[0.06]" />
+                <div className="h-24 animate-pulse rounded-[20px] bg-white/[0.06]" />
+              </div>
+            ) : (
             <DietDiaryPanel
               bySlot={bySlot}
               dayMacros={dayMacros}
@@ -646,6 +616,7 @@ export function MealSuggestionsView({
               onDeleted={() => refreshDay(dateKey)}
               DeleteMealButton={DeleteMealButton}
             />
+            )}
 
             {unassigned.length > 0 ? (
               <section className="mt-3 space-y-2 opacity-80">
@@ -710,26 +681,29 @@ export function MealSuggestionsView({
       />
 
       {dishPickerOpen ? (
-        <div className="fixed inset-0 z-[170] overflow-y-auto bg-[#0c0c0c] px-3 pb-10 pt-[max(0.75rem,env(safe-area-inset-top))]">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-base font-semibold text-white">Wybierz potrawę</p>
+        <div className="fixed inset-0 z-[170] overflow-y-auto bg-black pb-10">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.07] bg-black/90 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
+            <p className="text-[17px] font-semibold text-white">Wybierz potrawę</p>
             <button
               type="button"
-              className="text-sm text-white/55"
+              aria-label="Zamknij"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.1] bg-white/[0.04] text-white/80"
               onClick={() => {
                 setDishPickerOpen(false);
                 setDishPickerSlot(null);
               }}
             >
-              Zamknij
+              <X className="h-4 w-4" />
             </button>
           </div>
+          <div className="px-3 pt-3">
           <MealCatalogBrowser
             dateKey={dateKey}
             meals={catalogMeals}
             isAdmin={isAdmin}
             defaultDiarySlot={dishPickerSlot}
           />
+          </div>
         </div>
       ) : null}
 

@@ -24,37 +24,37 @@ export function DietDateNav({
   const isToday = dateKey === today;
   const long = formatLongDate(dateKey);
 
+  const btn =
+    "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white active:bg-white/[0.1]";
   return (
-    <div className="flex items-center justify-center gap-3 px-1">
+    <div className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-1">
       <button
         type="button"
         aria-label="Poprzedni dzień"
         onClick={() => onSelect(addCalendarDays(dateKey, -1))}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/[0.06] hover:text-white"
+        className={btn}
       >
         <ChevronLeft className="h-5 w-5" />
       </button>
-      <div className="min-w-0 text-center">
-        {isToday ? (
-          <>
-            <p className="text-[16px] font-semibold tracking-tight text-white">
-              Dziś
-            </p>
-            <p className="mt-0.5 text-[12px] font-medium capitalize tracking-wide text-white/50">
-              {long}
-            </p>
-          </>
-        ) : (
-          <p className="text-[15px] font-semibold capitalize tracking-tight text-white">
-            {long}
-          </p>
-        )}
+      <div className="min-w-0 text-center" aria-live="polite">
+        <p className="truncate text-[14px] font-semibold capitalize tracking-tight text-white">
+          {isToday ? `Dziś · ${long}` : long}
+        </p>
+        {!isToday ? (
+          <button
+            type="button"
+            onClick={() => onSelect(today)}
+            className="text-[11px] font-semibold text-[var(--gym-gold)]"
+          >
+            Wróć do dziś
+          </button>
+        ) : null}
       </div>
       <button
         type="button"
         aria-label="Następny dzień"
         onClick={() => onSelect(addCalendarDays(dateKey, 1))}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/[0.06] hover:text-white"
+        className={btn}
       >
         <ChevronRight className="h-5 w-5" />
       </button>

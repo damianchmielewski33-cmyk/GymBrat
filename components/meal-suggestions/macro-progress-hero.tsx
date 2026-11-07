@@ -51,15 +51,17 @@ export function MacroProgressHero({
         : "kcal zostało";
 
   const rows = [
-    { label: "Białko", amount: protein },
-    { label: "Węglowodany", amount: carbs },
-    { label: "Tłuszcze", amount: fat },
-  ].map(({ label: name, amount }) => {
+    { label: "Białko", short: "B", amount: protein, bar: "bg-sky-400", dot: "bg-sky-400" },
+    { label: "Węgle", short: "W", amount: carbs, bar: "bg-amber-300", dot: "bg-amber-300" },
+    { label: "Tłuszcz", short: "T", amount: fat, bar: "bg-rose-300", dot: "bg-rose-300" },
+  ].map(({ label: name, amount, bar, dot }) => {
     const got = Math.round(amount.consumed);
     const goal = amount.goal != null ? Math.round(amount.goal) : null;
     const over = goal != null && got > goal;
     return {
       name,
+      bar,
+      dot,
       got,
       goal,
       over,
@@ -67,65 +69,86 @@ export function MacroProgressHero({
       pct: goal != null && goal > 0 ? Math.min(100, (got / goal) * 100) : 0,
     };
   });
+  const kcalPct =
+    kcalGoal != null && kcalGoal > 0
+      ? Math.min(100, (kcalEaten / kcalGoal) * 100)
+      : 0;
 
   return (
     <section
       aria-label={label}
-      className={cn("app-card gold-sheen p-5", className)}
+      className={cn("app-card gold-sheen p-4", className)}
     >
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[13px] font-semibold text-white/60">{label}</p>
-        {kcalGoal == null ? (
-          <p className="text-xs text-white/60">Ustaw cel w profilu</p>
-        ) : null}
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
+            {label}
+          </p>
+          <p className="mt-1 flex items-baseline gap-2">
+            <AnimatedMetric
+              value={big}
+              durationMs={800}
+              className={cn(
+                "text-[52px] leading-none",
+                overGoal ? "text-orange-300" : "text-white",
+              )}
+            />
+            <span className="text-[13px] text-white/60">{bigLabel}</span>
+          </p>
+        </div>
+        <div className="shrink-0 pb-1 text-right text-[12px] tabular-nums text-white/55">
+          {kcalGoal != null ? (
+            <>
+              <span className="text-[15px] font-semibold text-white">{kcalEaten}</span>
+              {" / "}
+              {Math.round(kcalGoal)} kcal
+            </>
+          ) : (
+            "Ustaw cel w profilu"
+          )}
+        </div>
       </div>
 
-      <p className="mt-3 flex items-baseline gap-2">
-        <AnimatedMetric
-          value={big}
-          durationMs={800}
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
+        <div
           className={cn(
-            "text-[64px] leading-none",
-            overGoal ? "text-orange-300" : "text-white",
+            "h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none",
+            overGoal ? "bg-orange-400" : "gym-meter-gold",
           )}
+          style={{ width: `${kcalPct}%` }}
         />
-        <span className="text-[15px] text-white/60">{bigLabel}</span>
-      </p>
-      {kcalGoal != null ? (
-        <p className="mt-1 text-[13px] text-white/60 tabular-nums">
-          Zjedzone {kcalEaten} z {Math.round(kcalGoal)} kcal
-        </p>
-      ) : null}
+      </div>
 
-      <div className="mt-4 space-y-4">
+      <div className="mt-4 grid grid-cols-3 gap-3 border-t border-white/[0.07] pt-3.5">
         {rows.map((r) => (
-          <div key={r.name}>
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="font-semibold text-white">{r.name}</span>
-              <span className="text-white/60 tabular-nums">
-                <span className="text-white">{r.got}</span>
-                {r.goal != null ? ` / ${r.goal}` : ""}&nbsp;g
-              </span>
-            </div>
-            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/[0.08]">
+          <div key={r.name} className="min-w-0">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/60">
+              <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", r.dot)} />
+              {r.name}
+            </p>
+            <p className="mt-1 text-[13px] tabular-nums text-white/55">
+              <span className="text-[17px] font-semibold text-white">{r.got}</span>
+              {r.goal != null ? ` / ${r.goal}` : ""} g
+            </p>
+            <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/[0.08]">
               <div
                 className={cn(
                   "h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none",
-                  r.over ? "bg-orange-400" : "gym-meter-gold",
+                  r.over ? "bg-orange-400" : r.bar,
                 )}
                 style={{ width: `${r.pct}%` }}
               />
             </div>
             <p
               className={cn(
-                "mt-1.5 text-[13px]",
-                r.over ? "text-orange-300" : "text-white/60",
+                "mt-1 text-[11px] tabular-nums",
+                r.over ? "text-orange-300" : "text-white/50",
               )}
             >
               {r.diff == null
                 ? "Brak celu"
                 : r.over
-                  ? `${r.diff} g ponad cel`
+                  ? `+${r.diff} g`
                   : `${r.diff} g zostało`}
             </p>
           </div>

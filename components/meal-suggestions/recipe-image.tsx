@@ -7,6 +7,7 @@ import {
   RECIPE_IMAGE_MISSING_REASON,
   type RecipeImageSource,
 } from "@/lib/recipe-image";
+import { UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type RecipeImageProps = {
@@ -71,11 +72,29 @@ export const RecipeImage = memo(function RecipeImage({
     setFailedSrc(src);
   }, [src]);
 
+  if (failed) {
+    return (
+      <span
+        className={cn(
+          "relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[#1d1a12] via-[#121212] to-[#0a0a0a]",
+          className,
+        )}
+        role="img"
+        aria-label={alt ?? (title || "Posiłek")}
+      >
+        <UtensilsCrossed
+          className="h-7 w-7 text-[var(--gym-gold)]/50"
+          aria-hidden
+        />
+      </span>
+    );
+  }
+
   return (
     <span className={cn("relative block h-full w-full overflow-hidden", className)}>
       {/* eslint-disable-next-line @next/next/no-img-element -- Pollinations AI / HTTPS */}
       <img
-        src={failed ? fallback : src}
+        src={src}
         alt={alt ?? (title || "Posiłek")}
         loading="lazy"
         decoding="async"
@@ -83,27 +102,6 @@ export const RecipeImage = memo(function RecipeImage({
         onError={onError}
         className="h-full w-full object-cover"
       />
-      {!failed ? (
-        <span
-          className="pointer-events-none absolute right-1 top-1 rounded bg-black/60 px-1 py-px text-[9px] font-semibold leading-none text-white/70"
-          title="Grafika wygenerowana przez AI"
-        >
-          AI
-        </span>
-      ) : null}
-      {failed ? (
-        <span
-          className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/65 to-transparent px-2 pb-2 pt-8 text-center"
-          role="status"
-        >
-          <span className="block text-[10px] font-semibold leading-snug text-[var(--gym-gold)] sm:text-[11px]">
-            Brak grafiki AI
-          </span>
-          <span className="mt-0.5 block text-[9px] leading-snug text-white/55 sm:text-[10px]">
-            Import JSON wymaga POLLINATIONS_API_KEY
-          </span>
-        </span>
-      ) : null}
     </span>
   );
 });

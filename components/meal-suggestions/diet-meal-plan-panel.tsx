@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -12,6 +13,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { DietRecipeGrid } from "@/components/meal-suggestions/diet-recipe-grid";
+import { RecipeImage } from "@/components/meal-suggestions/recipe-image";
+import { addMealProductAction } from "@/actions/meal-log";
+import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { DIET_DIARY_SLOT_LABELS } from "@/lib/diet-diary-slots";
 import { MacroProgressHero } from "@/components/meal-suggestions/macro-progress-hero";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
@@ -24,6 +29,7 @@ import type { MealTemplate } from "@/lib/meal-templates";
 import type { NutritionDayType } from "@/lib/nutrition-goals";
 import {
   buildMealPlanRows,
+  filterCatalogForMealPlan,
   type MealPlanRow,
 } from "@/lib/diet-recipe-match";
 import {
@@ -38,7 +44,6 @@ import {
 import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
-const PLAN_GOLD = "var(--gym-gold)";
 const springSoft = { type: "spring" as const, stiffness: 380, damping: 28 };
 const springExpand = { type: "spring" as const, stiffness: 320, damping: 30 };
 
@@ -63,15 +68,6 @@ const CHEATSHEET_TIPS = [
 
 /** Lista zakupów jest odczytywana ze store (localStorage) — callbacki zmian są zbędne. */
 function ignoreShoppingChange() {}
-
-function mealTileTitle(row: MealPlanRow): string {
-  const label = row.label.trim();
-  const fallback = `Posiłek ${row.index}`;
-  if (!label || label.toLowerCase() === fallback.toLowerCase()) {
-    return fallback;
-  }
-  return `${fallback} · ${label}`;
-}
 
 function ShoppingListCard({
   items,
@@ -210,87 +206,107 @@ function PlanMealCard({
   onToggle: () => void;
   onShoppingChange: (next: ShoppingListItem[]) => void;
 }) {
-  const macros = [
-    { n: Math.round(row.proteinG), label: "Białko" },
-    { n: Math.round(row.carbsG), label: "Węgle" },
-    { n: Math.round(row.fatG), label: "Tłuszcze" },
-  ] as const;
-  const kcal = row.calories > 0 ? Math.round(row.calories) : null;
+  const router = useRouter();
+  const { notifySaved, notifyError } = useSaveFeedback();
+  const [adding, startAdd] = useTransition();
+  const slotLabel = DIET_DIARY_SLOT_LABELS[row.diarySlot];
+  const suggestion = useMemo(
+    () =>
+      filterCatalogForMealPlan({
+        meals: catalogMeals,
+        row,
+        query: "",
+        difficulty: "all",
+        taste: "all",
+        limit: 1,
+      })[0] ?? null,
+    [catalogMeals, row],
+  );
+  const macros = suggestion?.scaledMacros ?? null;
+  const kcal = macros
+    ? Math.round(macros.calories)
+    : row.calories > 0
+      ? Math.round(row.calories)
+      : null;
+
+  const addSuggestion = () => {
+    if (!suggestion || !macros) return;
+    hapticTap();
+    startAdd(async () => {
+      const r = await addMealProductAction({
+        date: dateKey,
+        slot: row.diarySlot,
+        name: suggestion.meal.title,
+        proteinG: macros.proteinG,
+        fatG: macros.fatG,
+        carbsG: macros.carbsG,
+        calories: macros.calories,
+      });
+      if (!r.ok) {
+        notifyError(r.error ?? "Nie udało się dodać posiłku.");
+        return;
+      }
+      notifySaved(`Dodano „${suggestion.meal.title}” do dziennika.`);
+      router.refresh();
+    });
+  };
 
   return (
     <motion.li
-      initial={{ opacity: 0, y: 22 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ ...springSoft, delay: 0.6 + index * 0.06 }}
+      transition={{ ...springSoft, delay: Math.min(index, 5) * 0.05 }}
       className="list-none"
     >
-      <motion.div
-        whileTap={{ scale: 0.98 }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
+      <div
         className={cn(
-          "overflow-hidden rounded-[22px] border",
-          "bg-[#0E0E0E]/92 backdrop-blur-xl",
-          "shadow-[0_12px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.04)]",
-          open
-            ? "border-[rgba(221,187,109,0.32)] shadow-[0_0_0_1px_rgba(221,187,109,0.12),0_16px_48px_rgba(0,0,0,0.5)]"
-            : "border-white/[0.08]",
+          "overflow-hidden rounded-[18px] border bg-gradient-to-b from-white/[0.05] to-white/[0.015]",
+          open ? "border-[rgba(221,187,109,0.32)]" : "border-white/[0.08]",
         )}
       >
-        <button
-          type="button"
-          onClick={() => {
-            hapticTap();
-            onToggle();
-          }}
-          className="flex w-full items-center gap-3 px-4 py-4 text-left"
-          aria-expanded={open}
-        >
-          <div className="min-w-0 flex-1 space-y-3">
-            <p className="truncate text-[16px] font-semibold tracking-tight text-white">
-              {mealTileTitle(row)}
-            </p>
-            <div className="flex flex-wrap items-end gap-x-5 gap-y-2">
-              {macros.map((m) => (
-                <div key={m.label} className="min-w-0 font-metric tabular-nums">
-                  <p className="text-[15px] font-semibold leading-none text-white">
-                    {m.n}
-                    <span className="ml-0.5 text-[11px] font-medium text-white/50">
-                      g
-                    </span>
-                  </p>
-                  <p
-                    className="mt-1 text-[10px] font-semibold uppercase tracking-[0.1em]"
-                    style={{ color: PLAN_GOLD }}
-                  >
-                    {m.label}
-                  </p>
-                </div>
-              ))}
-              {kcal != null ? (
-                <div className="ml-auto min-w-0 font-metric tabular-nums sm:ml-0">
-                  <p className="text-[15px] font-semibold leading-none text-white/85">
-                    {kcal}
-                    <span className="ml-1 text-[11px] font-medium text-white/50">
-                      kcal
-                    </span>
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <motion.span
-            animate={{ rotate: open ? 180 : 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 28 }}
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03]"
+        <div className="flex items-center gap-2 p-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              hapticTap();
+              onToggle();
+            }}
+            className="flex min-h-[64px] min-w-0 flex-1 items-center gap-3 text-left"
+            aria-expanded={open}
+            aria-label={`${slotLabel}: pokaż inne przepisy`}
           >
-            <ChevronDown
-              className={cn(
-                "h-4 w-4",
-                open ? "text-[var(--gym-gold)]" : "text-white/50",
-              )}
-            />
-          </motion.span>
-        </button>
+            <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[14px] border border-white/[0.06] bg-black/40">
+              {suggestion ? (
+                <RecipeImage recipe={suggestion.meal} alt="" />
+              ) : null}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--gym-gold)]">
+                {slotLabel}
+              </span>
+              <span className="mt-0.5 block truncate text-[14px] font-semibold text-white">
+                {suggestion?.meal.title ?? `Posiłek ${row.index}`}
+              </span>
+              <span className="mt-0.5 block text-[12px] tabular-nums text-white/60">
+                {kcal != null ? `${kcal} kcal` : ""}
+                {macros
+                  ? ` · B ${Math.round(macros.proteinG)} · W ${Math.round(macros.carbsG)} · T ${Math.round(macros.fatG)}`
+                  : ""}
+              </span>
+            </span>
+          </button>
+          {suggestion ? (
+            <button
+              type="button"
+              disabled={adding}
+              onClick={addSuggestion}
+              aria-label={`Dodaj do dziennika: ${suggestion.meal.title}`}
+              className="gold-btn inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-black disabled:opacity-55"
+            >
+              <Plus className="h-5 w-5" strokeWidth={2.75} />
+            </button>
+          ) : null}
+        </div>
 
         <AnimatePresence initial={false}>
           {open ? (
@@ -320,7 +336,7 @@ function PlanMealCard({
             </motion.div>
           ) : null}
         </AnimatePresence>
-      </motion.div>
+      </div>
     </motion.li>
   );
 }
@@ -367,7 +383,7 @@ export function DietMealPlanPanel({
   const [openIdState, setOpenId] = useState<string | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
   const [suppOpen, setSuppOpen] = useState(false);
-  const [libraryTab, setLibraryTab] = useState<"mine" | "catalog">("mine");
+  const [libraryTab, setLibraryTab] = useState<"mine" | "catalog">("catalog");
 
   const openId =
     openIdState && rows.some((r) => r.id === openIdState) ? openIdState : null;
@@ -449,36 +465,37 @@ export function DietMealPlanPanel({
                 Dodaj przepis
               </button>
             </div>
-            <div className="rounded-[22px] border border-dashed border-white/12 bg-[#0E0E0E] px-4 py-8 text-center">
-              <p className="text-[15px] font-semibold text-white">
-                Nie masz jeszcze żadnego przepisu
-              </p>
-              <p className="mt-2 text-[13px] leading-relaxed text-white/50">
-                Brak przepisów? Sklonuj coś z katalogu →
-              </p>
+            <div className="flex items-center gap-3 rounded-2xl border border-dashed border-white/[0.14] bg-white/[0.02] p-3.5">
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-semibold text-white">
+                  Brak własnych przepisów
+                </p>
+                <p className="mt-0.5 text-[12px] text-white/50">
+                  Zacznij od gotowych z katalogu.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => {
                   hapticTap();
                   setLibraryTab("catalog");
                 }}
-                className="mt-4 inline-flex h-11 items-center justify-center rounded-full border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] px-5 text-[13px] font-semibold text-[var(--gym-gold)]"
+                className="gold-btn inline-flex h-11 shrink-0 items-center rounded-full px-4 text-[13px] font-bold text-black"
               >
-                Przeglądaj katalog
+                Katalog
               </button>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
-            <SectionLabel
-              index={1}
-              title="Katalog"
-              trailing={`${rows.length} slotów`}
-            />
-            <p className="px-0.5 text-[12px] leading-relaxed text-white/50">
-              Przepisy z katalogu GymBrat — dopasowane do równego podziału celu
-              dnia na 5 posiłków.
-            </p>
+            <div className="flex items-baseline justify-between px-0.5">
+              <h2 className="text-[17px] font-semibold text-white">
+                Na dziś · {rows.length} posiłków
+              </h2>
+              <span className="text-[12px] text-white/55">
+                {rows[0] ? `po ${Math.round(rows[0].calories)} kcal` : ""}
+              </span>
+            </div>
             <ul className="space-y-2.5">
               {rows.map((row, index) => (
                 <PlanMealCard

@@ -1,13 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Pencil, Plus, ScanBarcode, UtensilsCrossed } from "lucide-react";
+import { useMemo } from "react";
+import { motion } from "framer-motion";
+import { Plus, ScanBarcode, UtensilsCrossed } from "lucide-react";
 import { MacroProgressHero } from "@/components/meal-suggestions/macro-progress-hero";
 import {
   DIET_DIARY_SLOT_LABELS,
   type DietDiarySlot,
 } from "@/lib/diet-diary-slots";
+
+const DIET_DIARY_SLOT_KEYS = Object.keys(
+  DIET_DIARY_SLOT_LABELS,
+) as DietDiarySlot[];
 import {
   buildMealPlanRows,
   type MealPlanRow,
@@ -16,10 +20,6 @@ import type { MealLogDto } from "@/lib/meal-logs";
 import type { MealTemplate } from "@/lib/meal-templates";
 import { hapticTap } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
-
-const DIARY_GOLD_RGB = "221, 187, 109";
-
-const springCard = { type: "spring" as const, stiffness: 320, damping: 26 };
 
 function slotTotals(entries: MealLogDto[]) {
   return {
@@ -30,13 +30,15 @@ function slotTotals(entries: MealLogDto[]) {
   };
 }
 
-function MealActionButton({
+function IconAction({
   label,
   onClick,
+  primary,
   children,
 }: {
   label: string;
   onClick: () => void;
+  primary?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -47,15 +49,13 @@ function MealActionButton({
         hapticTap();
         onClick();
       }}
-      whileTap={{ scale: 0.88 }}
-      transition={{ type: "spring", stiffness: 520, damping: 22 }}
+      whileTap={{ scale: 0.9 }}
+      transition={{ type: "spring", stiffness: 520, damping: 24 }}
       className={cn(
-        "inline-flex h-9 w-9 items-center justify-center rounded-full",
-        "border border-[rgba(221,187,109,0.42)] text-[var(--gym-gold)]",
-        "bg-white/[0.02] shadow-[0_0_0_0_rgba(221,187,109,0)]",
-        "transition-[box-shadow,background-color] duration-200",
-        "hover:bg-[rgba(221,187,109,0.1)] hover:shadow-[0_0_16px_rgba(221,187,109,0.28)]",
-        "active:shadow-[0_0_20px_rgba(221,187,109,0.4)]",
+        "inline-flex shrink-0 items-center justify-center rounded-full transition-colors",
+        primary
+          ? "gold-btn h-11 w-11 text-black"
+          : "h-10 w-10 border border-white/[0.1] bg-white/[0.04] text-[var(--gym-gold)] hover:bg-white/[0.08]",
       )}
     >
       {children}
@@ -66,21 +66,19 @@ function MealActionButton({
 function MealSlotCard({
   row,
   entries,
-  expanded,
   index,
-  onToggle,
   onScan,
   onOpenCatalog,
   onAddManual,
   onEditLog,
   onDeleted,
+  remainingKcal,
   DeleteMealButton,
 }: {
   row: MealPlanRow;
+  remainingKcal: number | null;
   entries: MealLogDto[];
-  expanded: boolean;
   index: number;
-  onToggle: () => void;
   onScan: (slot: DietDiarySlot) => void;
   onOpenCatalog: (slot: DietDiarySlot) => void;
   onAddManual: (slot: DietDiarySlot) => void;
@@ -89,157 +87,152 @@ function MealSlotCard({
   DeleteMealButton: React.ComponentType<{
     id: string;
     name?: string | null;
+    calories?: number;
+    remainingKcal?: number | null;
     onDone: () => void;
   }>;
 }) {
   const eaten = slotTotals(entries);
   const targetKcal = Math.round(row.calories);
   const slotLabel = DIET_DIARY_SLOT_LABELS[row.diarySlot];
-  const entryCount = entries.length;
-  const macroCells = [
-    {
-      key: "kcal",
-      value: `${Math.round(eaten.kcal)}/${targetKcal}`,
-      label: "kcal",
-    },
-    { key: "B", value: String(Math.round(eaten.protein)), label: "B" },
-    { key: "W", value: String(Math.round(eaten.carbs)), label: "W" },
-    { key: "T", value: String(Math.round(eaten.fat)), label: "T" },
-  ] as const;
+  const pct =
+    targetKcal > 0 ? Math.min(100, (eaten.kcal / targetKcal) * 100) : 0;
+  const over = targetKcal > 0 && eaten.kcal > targetKcal;
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 20 }}
+      aria-label={`Posiłek ${row.index}`}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ ...springCard, delay: 0.55 + index * 0.05 }}
-      whileTap={{ scale: 1.015 }}
-      className={cn(
-        "overflow-hidden rounded-[20px] border border-white/[0.07]",
-        "bg-[#0E0E0E]/95",
-        "shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_12px_40px_rgba(0,0,0,0.45)]",
-        "transition-[box-shadow] duration-200",
-        "active:shadow-[0_0_0_1px_rgba(221,187,109,0.28),0_0_28px_rgba(221,187,109,0.14)]",
-      )}
+      transition={{
+        duration: 0.28,
+        delay: Math.min(index, 5) * 0.04,
+        ease: "easeOut",
+      }}
+      className="overflow-hidden rounded-[20px] border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
     >
-      <div className="flex items-center gap-2 px-3 py-2.5 sm:px-3.5">
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={expanded}
-          aria-controls={`diet-slot-${row.diarySlot}`}
-          className="min-w-0 flex-1 space-y-1.5 rounded-xl py-0.5 text-left transition-colors hover:bg-white/[0.03] active:bg-white/[0.05]"
+      <div className="flex items-center gap-2 px-3.5 pb-3 pt-3">
+        <span
+          aria-hidden
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] font-metric text-[15px] font-semibold text-[var(--gym-gold)]"
         >
-          <h3 className="truncate text-[14px] font-semibold leading-tight tracking-tight text-white">
-            Posiłek {row.index}
+          {row.index}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-[15px] font-semibold leading-tight text-white">
+            {slotLabel}
           </h3>
-          <div className="grid w-full grid-cols-4 gap-x-0 font-metric tabular-nums">
-            {macroCells.map((cell, i) => (
-              <div
-                key={cell.key}
-                className={cn(
-                  "min-w-0 px-1 first:pl-0 last:pr-0",
-                  i > 0 && "border-l border-white/[0.08]",
-                )}
-              >
-                <p className="truncate text-[13px] font-semibold leading-none text-white">
-                  {cell.value}
-                </p>
-                <p
-                  className={cn(
-                    "mt-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
-                    cell.key === "kcal" ? "text-white/50" : "text-[var(--gym-gold)]",
-                  )}
-                >
-                  {cell.label}
-                </p>
-              </div>
-            ))}
-          </div>
-        </button>
-        <div className="flex shrink-0 items-center gap-1">
-          <MealActionButton
+          <p className="mt-0.5 text-[12px] tabular-nums text-white/55">
+            <span
+              className={cn(
+                "font-semibold",
+                over ? "text-orange-300" : "text-white",
+              )}
+            >
+              {Math.round(eaten.kcal)}
+            </span>
+            {" / "}
+            {targetKcal} kcal
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <IconAction
             label={`Skanuj do ${slotLabel}`}
             onClick={() => onScan(row.diarySlot)}
           >
-            <ScanBarcode className="h-4 w-4" />
-          </MealActionButton>
-          <MealActionButton
+            <ScanBarcode className="h-[18px] w-[18px]" />
+          </IconAction>
+          <IconAction
             label={`Przepisy do ${slotLabel}`}
             onClick={() => onOpenCatalog(row.diarySlot)}
           >
-            <UtensilsCrossed className="h-4 w-4" />
-          </MealActionButton>
-          <MealActionButton
-            label={`Dodaj ręcznie do ${slotLabel}`}
+            <UtensilsCrossed className="h-[18px] w-[18px]" />
+          </IconAction>
+          <IconAction
+            primary
+            label={`Dodaj do ${slotLabel}`}
             onClick={() => onAddManual(row.diarySlot)}
           >
-            <Plus className="h-4 w-4" strokeWidth={2.5} />
-          </MealActionButton>
+            <Plus className="h-5 w-5" strokeWidth={2.75} />
+          </IconAction>
         </div>
       </div>
 
-      <AnimatePresence initial={false}>
-        {expanded ? (
-          <motion.div
-            id={`diet-slot-${row.diarySlot}`}
-            key="body"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{
-              height: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
-              opacity: { duration: 0.22, ease: "easeOut" },
-            }}
-            className="overflow-hidden"
-          >
-            {entryCount > 0 ? (
-              <ul className="divide-y divide-white/[0.05] border-t border-white/[0.06]">
-                {entries.map((e, i) => (
-                  <motion.li
-                    key={e.id}
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.22,
-                      delay: Math.min(i, 6) * 0.035,
-                      ease: "easeOut",
-                    }}
-                    className="flex items-start gap-2 px-3.5 py-2.5"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-white/85">
-                        {e.name?.trim() || "Posiłek"}
-                      </p>
-                      <p className="text-[11px] tabular-nums text-white/50">
-                        {Math.round(e.calories)} kcal · B
-                        {Math.round(e.proteinG)} W{Math.round(e.carbsG)} T
-                        {Math.round(e.fatG)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      aria-label="Edytuj"
-                      onClick={() => onEditLog(e)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/[0.06] hover:text-white"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <DeleteMealButton
-                      id={e.id}
-                      name={e.name}
-                      onDone={onDeleted}
-                    />
-                  </motion.li>
-                ))}
-              </ul>
-            ) : (
-              <p className="border-t border-white/[0.06] px-3.5 py-3.5 text-[13px] text-white/50">
-                Brak produktów — dodaj skanem, z przepisów albo ręcznie.
-              </p>
-            )}
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      <div
+        className="mx-3.5 h-1 overflow-hidden rounded-full bg-white/[0.08]"
+        aria-hidden
+      >
+        <div
+          className={cn(
+            "h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none",
+            over ? "bg-orange-400" : "gym-meter-gold",
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {entries.length > 0 ? (
+        <>
+          <p className="mt-2.5 px-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] tabular-nums">
+            <span className="text-sky-300">B {Math.round(eaten.protein)}</span>
+            <span className="text-white/25">{"  ·  "}</span>
+            <span className="text-amber-200">W {Math.round(eaten.carbs)}</span>
+            <span className="text-white/25">{"  ·  "}</span>
+            <span className="text-rose-300">T {Math.round(eaten.fat)}</span>
+          </p>
+          <ul className="mt-2 border-t border-white/[0.06]">
+            {entries.map((e) => (
+              <li
+                key={e.id}
+                className="flex items-center gap-1 border-b border-white/[0.05] pl-3.5 pr-2 last:border-b-0"
+              >
+                <button
+                  type="button"
+                  onClick={() => onEditLog(e)}
+                  aria-label={`Edytuj: ${e.name?.trim() || "Posiłek"}`}
+                  className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 py-2 text-left active:bg-white/[0.03]"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[14px] font-medium text-white">
+                      {e.name?.trim() || "Posiłek"}
+                    </span>
+                    <span className="mt-0.5 block text-[11px] tabular-nums text-white/50">
+                      B {Math.round(e.proteinG)} · W {Math.round(e.carbsG)} · T{" "}
+                      {Math.round(e.fatG)}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-[14px] font-semibold tabular-nums text-[var(--gym-gold)]">
+                    {Math.round(e.calories)}
+                    <span className="ml-0.5 text-[10px] font-medium text-white/45">
+                      kcal
+                    </span>
+                  </span>
+                </button>
+                <DeleteMealButton
+                  id={e.id}
+                  name={e.name}
+                  calories={e.calories}
+                  remainingKcal={remainingKcal}
+                  onDone={onDeleted}
+                />
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            hapticTap();
+            onAddManual(row.diarySlot);
+          }}
+          className="mt-1 flex min-h-[44px] w-full items-center gap-2 px-3.5 text-left text-[13px] text-white/50 active:text-white/80"
+        >
+          <Plus className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />
+          Dodaj pierwszy produkt
+        </button>
+      )}
+      <div className="h-1.5" aria-hidden />
     </motion.section>
   );
 }
@@ -278,6 +271,8 @@ export function DietDiaryPanel({
   DeleteMealButton: React.ComponentType<{
     id: string;
     name?: string | null;
+    calories?: number;
+    remainingKcal?: number | null;
     onDone: () => void;
   }>;
 }) {
@@ -292,12 +287,14 @@ export function DietDiaryPanel({
     [mealTemplates, dayMacros],
   );
 
-  const [expandedSlot, setExpandedSlot] = useState<DietDiarySlot | null>(null);
+  const isEmptyDay = DIET_DIARY_SLOT_KEYS.every(
+    (k) => (bySlot[k] ?? []).length === 0,
+  );
 
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-3">
       <MacroProgressHero
-        label="Zjedzone"
+        label="Dzisiaj"
         mode="eaten"
         calories={{
           consumed: dayMacros.caloriesConsumed,
@@ -317,56 +314,71 @@ export function DietDiaryPanel({
         }}
       />
 
-      {/* Apple Pay–style scan CTA */}
+      {isEmptyDay ? (
+        <div className="rounded-[22px] border border-dashed border-white/[0.16] bg-white/[0.02] px-5 py-6 text-center">
+          <span
+            aria-hidden
+            className="mx-auto flex h-[52px] w-[52px] items-center justify-center rounded-full border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] text-[var(--gym-gold)]"
+          >
+            <UtensilsCrossed className="h-6 w-6" />
+          </span>
+          <h2 className="mt-3.5 text-[18px] font-bold text-white">
+            Nic tu jeszcze nie ma
+          </h2>
+          <p className="mx-auto mt-1.5 max-w-[260px] text-[13px] leading-relaxed text-white/60">
+            Zeskanuj produkt albo dodaj coś z przepisów, a makro dnia policzy
+            się samo.
+          </p>
+          <div className="mt-4">
+      <motion.button
+            type="button"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, ease: "easeOut" }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              hapticTap();
+              onScan(defaultScanSlot);
+            }}
+            className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-full text-[13px] font-bold uppercase tracking-[0.08em] text-black"
+          >
+            <ScanBarcode className="h-5 w-5" strokeWidth={2.25} />
+            Skanuj kod kreskowy
+          </motion.button>
+          </div>
+        </div>
+      ) : (
       <motion.button
         type="button"
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: 0.42 }}
+        transition={{ duration: 0.28, ease: "easeOut" }}
         whileTap={{ scale: 0.98 }}
         onClick={() => {
           hapticTap();
           onScan(defaultScanSlot);
         }}
-        className={cn(
-          "relative inline-flex h-12 w-full items-center justify-center gap-2.5 overflow-hidden",
-          "rounded-full text-[13px] font-bold uppercase tracking-[0.08em]",
-          "text-[var(--gym-on-gold)]",
-          "transition-[filter] duration-150",
-        )}
-        style={{
-          backgroundImage:
-            "linear-gradient(168deg, #F5E4A3 0%, #E4C56D 42%, #D1A84A 100%)",
-          boxShadow: `
-            0 1px 0 rgba(255,255,255,0.55) inset,
-            0 -2px 0 rgba(90,60,0,0.22) inset,
-            0 8px 28px rgba(${DIARY_GOLD_RGB}, 0.38),
-            0 0 40px rgba(${DIARY_GOLD_RGB}, 0.18)
-          `,
-        }}
+        className="gold-btn inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-full text-[13px] font-bold uppercase tracking-[0.08em] text-black"
       >
         <ScanBarcode className="h-5 w-5" strokeWidth={2.25} />
         Skanuj kod kreskowy
       </motion.button>
 
-      <div className="space-y-2.5">
+      )}
+
+      <div className="space-y-3">
         {rows.map((row, index) => (
           <MealSlotCard
             key={row.id}
             row={row}
             index={index}
             entries={bySlot[row.diarySlot] ?? []}
-            expanded={expandedSlot === row.diarySlot}
-            onToggle={() =>
-              setExpandedSlot((cur) =>
-                cur === row.diarySlot ? null : row.diarySlot,
-              )
-            }
             onScan={onScan}
             onOpenCatalog={onOpenCatalog}
             onAddManual={onAddManual}
             onEditLog={onEditLog}
             onDeleted={onDeleted}
+            remainingKcal={dayMacros.caloriesRemaining}
             DeleteMealButton={DeleteMealButton}
           />
         ))}

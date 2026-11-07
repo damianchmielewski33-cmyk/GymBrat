@@ -1,5 +1,14 @@
 [
   {
+    "title": "Zapowiedź — Dieta przebudowana od zera",
+    "planned": true,
+    "bullets": [
+      "Dziennik jest teraz pierwszym ekranem diety: zwarta karta makro, pasek postępu każdego posiłku i wpisy zawsze na wierzchu.",
+      "Nowe dodawanie posiłków: skan, dania z diety i etykieta w jednym miejscu, skróty do ostatnich i ulubionych produktów.",
+      "Usuwanie wpisu pokazuje, ile kcal zostanie do zjedzenia. Katalog przepisów ma kafelki w dwóch kolumnach i filtry w jednym rzędzie."
+    ]
+  },
+  {
     "title": "Zapowiedź — Analiza przebudowana od zera",
     "planned": true,
     "bullets": [

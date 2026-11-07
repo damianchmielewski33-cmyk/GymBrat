@@ -99,100 +99,103 @@ export function MealCatalogBrowser({
   }
 
   return (
-    <section className="app-card space-y-4 p-5">
-      <div>
-        <p className="app-label">Katalog posiłków</p>
-        <h2 className="mt-1 text-lg font-semibold text-white">
-          {meals.length} przepisów z makro i instrukcją
-        </h2>
-        <p className="mt-1 text-sm text-white/55">
-          Pory katalogu mapują się na sekcje Jadłospisu (np. lunch → obiad, przekąska →
-          podwieczorek). „+” z dziennika ustawia filtr na właściwą porę.
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between gap-3 px-0.5">
+        <h2 className="text-[17px] font-semibold text-white">Katalog posiłków</h2>
+        <p className="text-[12px] tabular-nums text-white/50">
+          {filtered.length} z {slotMeals.length}
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-0.5 [scrollbar-width:none]">
         {MEAL_SLOTS.map((s) => (
           <button
             key={s}
             type="button"
+            aria-pressed={slot === s}
             onClick={() => {
               setSlot(s);
               setVisibleCount(12);
             }}
-            className={
+            className={cn(
+              "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] transition-colors",
               slot === s
-                ? "rounded-full border border-[var(--neon)]/40 bg-[var(--neon)]/15 px-3 py-1.5 text-xs font-semibold text-white"
-                : "rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-white/[0.07]"
-            }
+                ? "border-[var(--gym-gold)]/50 bg-[var(--gym-gold)]/15 font-semibold text-[var(--gym-gold)]"
+                : "border-white/[0.1] bg-white/[0.03] font-medium text-white/65",
+            )}
           >
             {MEAL_SLOT_LABELS[s]}
-            <span className="ml-1 text-white/50">({getMealsBySlot(s, meals).length})</span>
+            <span className="text-[11px] tabular-nums opacity-60">
+              {getMealsBySlot(s, meals).length}
+            </span>
           </button>
         ))}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              { id: "all" as const, label: "Wszystkie" },
-              { id: "high_protein" as const, label: "Więcej białka" },
-              { id: "low_calorie" as const, label: "Lżejsze" },
-            ] as const
-          ).map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => {
-                setMacroFilter(f.id);
-                setVisibleCount(12);
-              }}
-              className={
-                macroFilter === f.id
-                  ? "rounded-full border border-white/25 bg-white/[0.1] px-3 py-1.5 text-xs font-semibold text-white"
-                  : "rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-xs text-white/60"
-              }
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+      <div className="flex items-center gap-2">
         <Input
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
             setVisibleCount(12);
           }}
-          placeholder="Szukaj w bazie (np. kurczak, owsianka)…"
-          className="h-10 border-white/12 bg-white/[0.05] text-white placeholder:text-white/50 sm:max-w-[320px]"
+          placeholder="Szukaj: kurczak, owsianka…"
+          aria-label="Szukaj przepisu"
+          className="h-11 min-w-0 flex-1 border-white/12 bg-white/[0.05] text-white placeholder:text-white/50"
         />
+        <div className="flex shrink-0 gap-1 rounded-full border border-white/[0.1] bg-white/[0.03] p-1">
+          {(
+            [
+              { id: "all" as const, label: "Wszystko" },
+              { id: "high_protein" as const, label: "Białko" },
+              { id: "low_calorie" as const, label: "Lekkie" },
+            ] as const
+          ).map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              aria-pressed={macroFilter === f.id}
+              onClick={() => {
+                setMacroFilter(f.id);
+                setVisibleCount(12);
+              }}
+              className={cn(
+                "min-h-9 rounded-full px-2.5 text-[12px] transition-colors",
+                macroFilter === f.id
+                  ? "bg-white/[0.12] font-semibold text-white"
+                  : "text-white/55",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <p className="text-xs text-white/50">
-        {MEAL_SLOT_LABELS[slot]}: {filtered.length} z {slotMeals.length} pozycji
-      </p>
-
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-2.5">
         {visible.map((meal) => (
           <button
             key={meal.id}
             type="button"
             onClick={() => setSelected(meal)}
-            className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] text-left transition hover:border-white/20 hover:bg-white/[0.05]"
+            className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] text-left transition-colors active:bg-white/[0.06]"
           >
-            <div className="relative aspect-[16/10] w-full bg-black/40">
+            <div className="relative aspect-[4/3] w-full bg-black/40">
               <RecipeImage recipe={meal} alt={meal.title} />
+              <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--gym-gold)] backdrop-blur">
+                {Math.round(meal.approximateMacros.calories)} kcal
+              </span>
             </div>
-            <div className="space-y-2 p-3">
-              <p className="line-clamp-2 text-sm font-semibold text-white">{meal.title}</p>
-              <p className="text-[11px] tabular-nums text-[var(--neon)]">
-                {Math.round(meal.approximateMacros.calories)} kcal · B{" "}
-                {Math.round(meal.approximateMacros.proteinG)} · W{" "}
+            <div className="space-y-1 p-2.5">
+              <p className="line-clamp-2 min-h-[2.5rem] text-[13px] font-semibold leading-snug text-white">
+                {meal.title}
+              </p>
+              <p className="text-[11px] tabular-nums text-white/55">
+                B {Math.round(meal.approximateMacros.proteinG)} · W{" "}
                 {Math.round(meal.approximateMacros.carbsG)} · T{" "}
                 {Math.round(meal.approximateMacros.fatG)}
+                <span className="text-white/35"> · {meal.prepMinutes} min</span>
               </p>
-              <p className="text-[11px] text-white/50">~{meal.prepMinutes} min · zobacz przepis</p>
             </div>
           </button>
         ))}

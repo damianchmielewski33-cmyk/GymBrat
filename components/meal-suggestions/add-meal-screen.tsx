@@ -5,11 +5,14 @@ import { createPortal } from "react-dom";
 import {
   Camera,
   ChevronLeft,
+  Clock,
+  Heart,
   Loader2,
   Plus,
   ScanBarcode,
   Search,
   UtensilsCrossed,
+  Zap,
 } from "lucide-react";
 import {
   lookupFoodByBarcodeAction,
@@ -403,99 +406,88 @@ export function AddMealScreen({
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-        <div className="mt-5 grid grid-cols-2 gap-2.5">
+        <div className="mt-4 grid grid-cols-2 gap-2.5">
           <button
             type="button"
             disabled={scanBusy}
             onClick={() => setScanOpen(true)}
-            className="gold-btn inline-flex h-[52px] items-center justify-center gap-2 rounded-2xl px-3 text-[14px] font-semibold text-black disabled:opacity-55"
+            className="gold-btn col-span-2 inline-flex h-14 items-center justify-center gap-2.5 rounded-2xl px-3 text-[15px] font-bold text-black disabled:opacity-55"
           >
             {scanBusy ? (
               <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
             ) : (
               <ScanBarcode className="h-5 w-5" aria-hidden />
             )}
-            Skanuj kod
+            Skanuj kod kreskowy
           </button>
           <button
             type="button"
             onClick={onOpenDish}
-            className="inline-flex h-[52px] items-center justify-center gap-2 rounded-2xl border border-white/18 bg-transparent px-3 text-[14px] font-semibold text-white transition hover:bg-white/[0.04]"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/[0.12] bg-white/[0.04] px-3 text-[13px] font-semibold text-white transition active:bg-white/[0.08]"
           >
-            <UtensilsCrossed
-              className="h-5 w-5 text-[var(--gym-gold)]"
-              aria-hidden
-            />
+            <UtensilsCrossed className="h-[18px] w-[18px] text-[var(--gym-gold)]" aria-hidden />
             Dania z diety
+          </button>
+          <button
+            type="button"
+            disabled={scanBusy}
+            onClick={() => setScanOpen(true)}
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/[0.12] bg-white/[0.04] px-3 text-[13px] font-semibold text-white transition active:bg-white/[0.08] disabled:opacity-55"
+          >
+            <Camera className="h-[18px] w-[18px] text-[var(--gym-gold)]" aria-hidden />
+            Etykieta
           </button>
         </div>
 
-        <div className="mt-5 flex items-center gap-3">
-          <Search className="h-[18px] w-[18px] shrink-0 text-white" aria-hidden />
+        <div className="relative mt-3">
+          <Search
+            className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-white/50"
+            aria-hidden
+          />
           <input
             value={query}
             onChange={(e) => {
               setListTab("search");
               setQuery(e.target.value);
             }}
-            placeholder="albo wpisz nazwę: serek, ryż, jabłko…"
-            autoFocus
+            placeholder="Szukaj produktu: serek, ryż, jabłko…"
+            aria-label="Szukaj produktu"
             autoComplete="off"
-            className="h-12 min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#1a1a1a] px-3.5 text-[14px] text-white outline-none placeholder:text-white/50 focus:border-[var(--gym-gold)]/35"
+            className="h-12 w-full rounded-2xl border border-white/10 bg-[#161616] pl-10 pr-3.5 text-[14px] text-white outline-none placeholder:text-white/50 focus:border-[var(--gym-gold)]/45"
           />
         </div>
 
-        <button
-          type="button"
-          disabled={scanBusy}
-          onClick={() => setScanOpen(true)}
-          className="mt-3.5 inline-flex h-11 items-center gap-2 rounded-2xl border border-white/14 bg-transparent px-3.5 text-[13px] font-semibold text-white/90 transition hover:bg-white/[0.04] disabled:opacity-55"
-        >
-          <Camera className="h-4 w-4 text-white/75" aria-hidden />
-          Ze zdjęcia etykiety
-        </button>
-
         {emptySearch ? (
-          <div className="mt-6">
-            <p className="text-[15px] leading-snug text-white/85">
-              Wpisz nazwę produktu albo zeskanuj kod.
-            </p>
-            <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            {(
+              [
+                { label: "Ostatnie", hint: "Powtórz z historii", icon: Clock, onClick: () => setListTab("recents") },
+                { label: "Ulubione", hint: "Twoje zapisane", icon: Heart, onClick: () => setListTab("favorites") },
+                { label: "Nowy produkt", hint: "Dodaj własny", icon: Plus, onClick: () => setSub("product") },
+                { label: "Szybkie dodawanie", hint: "Same kalorie i makro", icon: Zap, onClick: () => setSub("quick") },
+              ] as const
+            ).map(({ label, hint, icon: Icon, onClick }) => (
               <button
+                key={label}
                 type="button"
-                onClick={() => setListTab("recents")}
-                className="font-semibold text-white/55 transition hover:text-white"
+                onClick={onClick}
+                className="flex min-h-[84px] flex-col items-start justify-between rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.015] p-3 text-left transition active:bg-white/[0.08]"
               >
-                Ostatnie
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]">
+                  <Icon className="h-4 w-4" aria-hidden />
+                </span>
+                <span>
+                  <span className="block text-[13px] font-semibold text-white">{label}</span>
+                  <span className="block text-[11px] text-white/50">{hint}</span>
+                </span>
               </button>
-              <button
-                type="button"
-                onClick={() => setListTab("favorites")}
-                className="font-semibold text-white/55 transition hover:text-white"
-              >
-                Ulubione
-              </button>
-              <button
-                type="button"
-                onClick={() => setSub("product")}
-                className="font-semibold text-white/55 transition hover:text-white"
-              >
-                Nowy produkt
-              </button>
-              <button
-                type="button"
-                onClick={() => setSub("quick")}
-                className="font-semibold text-white/55 transition hover:text-white"
-              >
-                Szybkie dodawanie
-              </button>
-            </div>
+            ))}
           </div>
         ) : null}
 
         {showBrowseChrome ? (
           <>
-            <div className="mt-5 flex gap-2">
+            <div className="mt-4 grid grid-cols-3 gap-1 rounded-full border border-white/[0.1] bg-white/[0.04] p-1">
               {(
                 [
                   { id: "search" as const, label: "Szukaj" },
@@ -508,10 +500,10 @@ export function AddMealScreen({
                   type="button"
                   onClick={() => setListTab(tab.id)}
                   className={cn(
-                    "rounded-full px-3 py-1.5 text-[12px] font-semibold transition",
+                    "min-h-9 rounded-full px-3 text-[12px] font-semibold transition",
                     listTab === tab.id
-                      ? "border border-[var(--gym-gold)]/60 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)]"
-                      : "border border-transparent bg-white/[0.04] text-white/50",
+                      ? "bg-[var(--gym-gold)]/16 text-[var(--gym-gold)] shadow-[inset_0_0_0_1px_rgba(221,187,109,0.45)]"
+                      : "text-white/55",
                   )}
                 >
                   {tab.label}
@@ -519,7 +511,7 @@ export function AddMealScreen({
               ))}
             </div>
 
-            <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
               {listTab === "favorites"
                 ? "Ulubione"
                 : listTab === "recents" || (fromRecents && !query.trim())
@@ -582,44 +574,6 @@ export function AddMealScreen({
               )}
             </div>
 
-            <div className="mt-6 grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setSub("product")}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-[#141414] px-2 py-3 text-center"
-              >
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]">
-                  <Plus className="h-4 w-4" strokeWidth={2.5} />
-                </span>
-                <span className="text-[11px] font-semibold leading-tight text-white/80">
-                  Nowy produkt
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={onOpenDish}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-[#141414] px-2 py-3 text-center"
-              >
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]">
-                  <UtensilsCrossed className="h-4 w-4" />
-                </span>
-                <span className="text-[11px] font-semibold leading-tight text-white/80">
-                  Nowa potrawa
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSub("quick")}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-[#141414] px-2 py-3 text-center"
-              >
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]">
-                  <Plus className="h-4 w-4" strokeWidth={2.5} />
-                </span>
-                <span className="text-[11px] font-semibold leading-tight text-white/80">
-                  Szybkie dodawanie
-                </span>
-              </button>
-            </div>
           </>
         ) : null}
       </div>
