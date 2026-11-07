@@ -1,12 +1,11 @@
 "use client";
 
+import { AlertTriangle } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+  AppDialog,
+  AppDialogActions,
+  AppDialogButton,
+} from "@/components/ui/app-dialog";
 import { useBoundaryReport } from "@/components/errors/use-boundary-report";
 
 export default function GlobalError({
@@ -21,23 +20,22 @@ export default function GlobalError({
   return (
     <html lang="pl" className="dark">
       <body className="min-h-full font-sans antialiased">
-        <AlertDialog open>
-          <AlertDialogContent>
-            <AlertDialogTitle>Coś poszło nie tak</AlertDialogTitle>
-            <AlertDialogDescription>
-              {info.message}
-              {info.ref ? ` Kod referencyjny: ${info.ref}.` : ""}
-            </AlertDialogDescription>
-            <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-              <Button variant="outline" onClick={() => reset()}>
-                Spróbuj ponownie
-              </Button>
-              <Button onClick={() => window.location.reload()}>
-                Odśwież stronę
-              </Button>
-            </div>
-          </AlertDialogContent>
-        </AlertDialog>
+        <AppDialog
+          open
+          onOpenChange={() => {}}
+          role="alertdialog"
+          tone="danger"
+          icon={AlertTriangle}
+          title="Coś poszło nie tak"
+          description={`${info.message}${info.ref ? ` Kod referencyjny: ${info.ref}.` : ""}`}
+        >
+          <AppDialogActions>
+            <AppDialogButton intent="primary" onClick={() => window.location.reload()}>
+              Odśwież stronę
+            </AppDialogButton>
+            <AppDialogButton onClick={() => reset()}>Spróbuj ponownie</AppDialogButton>
+          </AppDialogActions>
+        </AppDialog>
       </body>
     </html>
   );

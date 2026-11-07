@@ -4,11 +4,10 @@ import { useState } from "react";
 import { Download, Trash2 } from "lucide-react";
 import { signIn, signOut } from "next-auth/react";
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AppDialog,
+  AppDialogActions,
+  AppDialogButton,
+} from "@/components/ui/app-dialog";
 import { Input } from "@/components/ui/input";
 import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 
@@ -154,15 +153,19 @@ export function DeleteAccountControl({
         </p>
       ) : null}
 
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent className="border border-white/10 bg-[#0c0c0c] p-6">
-          <AlertDialogTitle className="text-lg font-semibold text-white">
-            Na pewno usunąć konto?
-          </AlertDialogTitle>
-          <AlertDialogDescription className="mt-2 text-[13px] leading-snug text-white/60">
-            Wpisz <span className="font-semibold text-white">{DELETE_PHRASE}</span>, żeby
-            potwierdzić. Tej operacji nie da się cofnąć.
-          </AlertDialogDescription>
+      <AppDialog
+        open={open}
+        onOpenChange={setOpen}
+        tone="danger"
+        icon={Trash2}
+        title="Usunąć konto na zawsze?"
+        description={
+          <>
+            Skasujemy konto i powiązane z nim dane. Tego nie da się cofnąć. Wpisz{" "}
+            <span className="font-semibold text-white">{DELETE_PHRASE}</span>, żeby potwierdzić.
+          </>
+        }
+      >
           <Input
             type="password"
             value={password}
@@ -207,26 +210,19 @@ export function DeleteAccountControl({
               {error}
             </p>
           ) : null}
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
-            <button
-              type="button"
+          <AppDialogActions className="mt-5">
+            <AppDialogButton
+              intent="danger"
               disabled={busy || !confirmed}
               onClick={() => void onDelete()}
-              className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-rose-400/40 bg-rose-400/15 text-sm font-semibold text-rose-100 disabled:opacity-40"
             >
-              {busy ? "Usuwanie…" : "Usuń na zawsze"}
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => setOpen(false)}
-              className="gym-btn-secondary h-11 flex-1 rounded-xl text-sm font-semibold"
-            >
+              {busy ? "Usuwanie…" : "Usuń konto na zawsze"}
+            </AppDialogButton>
+            <AppDialogButton disabled={busy} onClick={() => setOpen(false)}>
               Anuluj
-            </button>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+            </AppDialogButton>
+          </AppDialogActions>
+      </AppDialog>
     </div>
   );
 }

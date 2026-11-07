@@ -3,12 +3,10 @@
 import { useRef } from "react";
 import { Circle, ListChecks, SkipForward } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+  AppDialog,
+  AppDialogActions,
+  AppDialogButton,
+} from "@/components/ui/app-dialog";
 import type { SkippedWorkoutTarget } from "@/lib/workout-skipped-sets";
 
 type SkippedDialogVariant = "skipped" | "incomplete" | "both";
@@ -66,34 +64,21 @@ export function WorkoutAllSetsDoneDialog({
   const safeButtonRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <AlertDialog
+    <AppDialog
       open={open}
       onOpenChange={(next) => {
         // Esc / tapnięcie poza dialogiem = jak „Wróć do serii” (006.3) — bez zapisu.
         if (!next) onGoToSkipped();
         onOpenChange(next);
       }}
+      role="alertdialog"
+      tone="gold"
+      icon={ListChecks}
+      initialFocus={safeButtonRef}
+      title={titleForVariant(variant)}
+      description={descriptionForVariant(variant)}
     >
-      <AlertDialogContent
-        role="alertdialog"
-        className="app-dialog w-[min(92vw,420px)] p-5 text-white sm:p-6"
-        initialFocus={safeButtonRef}
-      >
-        <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10">
-            <ListChecks className="h-5 w-5 text-[var(--gym-gold)]" aria-hidden />
-          </div>
-          <div className="min-w-0">
-            <AlertDialogTitle className="font-heading text-[20px] font-semibold leading-tight text-white">
-              {titleForVariant(variant)}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="mt-1.5 text-sm leading-relaxed text-[var(--gym-text-secondary)]">
-              {descriptionForVariant(variant)}
-            </AlertDialogDescription>
-          </div>
-        </div>
-
-        <dl className="mt-4 overflow-hidden rounded-2xl border border-white/10 divide-y divide-white/[0.06]">
+        <dl className="mt-4 w-full overflow-hidden rounded-2xl border border-white/10 divide-y divide-white/[0.06] text-left">
           {skippedCount > 0 ? (
             <div className="flex min-h-12 items-center justify-between gap-3 px-3.5 py-2.5">
               <dt className="flex items-center gap-2 text-sm text-white/80">
@@ -124,7 +109,7 @@ export function WorkoutAllSetsDoneDialog({
           ) : null}
         </dl>
 
-        <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
+        <div className="mt-3 w-full rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-left">
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-text-secondary)]">
             Pierwsza do uzupełnienia
           </p>
@@ -142,32 +127,26 @@ export function WorkoutAllSetsDoneDialog({
           </p>
         ) : null}
 
-        <div className="mt-5 flex flex-col gap-2.5">
-          <Button
-            type="button"
-            variant="outline"
-            ref={safeButtonRef}
-            className="h-12 w-full border-[var(--gym-border-gold)] text-white/90"
-            onClick={() => {
-              onGoToSkipped();
-              onOpenChange(false);
-            }}
-          >
-            Wróć do serii
-          </Button>
-          <Button
-            type="button"
-            variant="cta"
-            className="h-14 w-full"
+        <AppDialogActions>
+          <AppDialogButton
+            intent="primary"
             onClick={() => {
               onOpenChange(false);
               onFinish();
             }}
           >
             Zakończ i zapisz
-          </Button>
-        </div>
-      </AlertDialogContent>
-    </AlertDialog>
+          </AppDialogButton>
+          <AppDialogButton
+            ref={safeButtonRef}
+            onClick={() => {
+              onGoToSkipped();
+              onOpenChange(false);
+            }}
+          >
+            Wróć do serii
+          </AppDialogButton>
+        </AppDialogActions>
+    </AppDialog>
   );
 }

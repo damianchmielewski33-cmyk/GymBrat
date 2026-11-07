@@ -11,13 +11,10 @@ import {
 } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+  AppDialog,
+  AppDialogActions,
+  AppDialogButton,
+} from "@/components/ui/app-dialog";
 
 export const SAVE_FEEDBACK_DEFAULT = "Zapisano zmiany.";
 
@@ -43,6 +40,8 @@ export function useSaveFeedback(): SaveFeedbackContextValue {
 }
 
 const AUTO_DISMISS_MS = 3200;
+/** Błędy zostają dłużej, żeby dało się je przeczytać. */
+const ERROR_DISMISS_MS = 6500;
 
 function FeedbackPopupDialog({
   popup,
@@ -54,68 +53,32 @@ function FeedbackPopupDialog({
   const open = popup != null;
   const isSuccess = popup?.variant !== "error";
 
+  const dismissMs = isSuccess ? AUTO_DISMISS_MS : ERROR_DISMISS_MS;
+
   useEffect(() => {
     if (!popup) return;
-    const timer = window.setTimeout(onClose, AUTO_DISMISS_MS);
+    const timer = window.setTimeout(onClose, dismissMs);
     return () => window.clearTimeout(timer);
-  }, [popup, onClose]);
+  }, [popup, onClose, dismissMs]);
 
   return (
-    <AlertDialog
+    <AppDialog
       open={open}
       onOpenChange={(next) => {
         if (!next) onClose();
       }}
+      tone={isSuccess ? "gold" : "danger"}
+      icon={isSuccess ? CheckCircle2 : XCircle}
+      title={isSuccess ? "Gotowe" : "Nie udało się"}
+      description={popup?.message ?? ""}
+      autoCloseMs={popup ? dismissMs : undefined}
     >
-      <AlertDialogContent className="app-dialog w-[min(92vw,380px)] p-0 text-white">
-        <div className="relative overflow-hidden rounded-[22px] px-5 pb-5 pt-6 sm:px-6 sm:pb-6 sm:pt-7">
-          <div
-            className={cn(
-              "pointer-events-none absolute inset-0 opacity-90",
-              isSuccess
-                ? "bg-[radial-gradient(520px_220px_at_50%_-20%,rgba(var(--neon-rgb),0.22),transparent_60%)]"
-                : "bg-[radial-gradient(520px_220px_at_50%_-20%,rgba(244,63,94,0.2),transparent_60%)]",
-            )}
-            aria-hidden
-          />
-
-          <div className="relative flex flex-col items-center text-center">
-            <div
-              className={cn(
-                "flex h-14 w-14 items-center justify-center rounded-full border",
-                isSuccess
-                  ? "border-[var(--gym-gold)]/45 bg-[var(--gym-gold)]/15 text-[var(--gym-gold)]"
-                  : "border-rose-400/40 bg-rose-500/15 text-rose-300",
-              )}
-            >
-              {isSuccess ? (
-                <CheckCircle2 className="h-7 w-7" aria-hidden />
-              ) : (
-                <XCircle className="h-7 w-7" aria-hidden />
-              )}
-            </div>
-
-            <AlertDialogTitle className="mt-4 text-lg font-semibold tracking-tight text-white">
-              {isSuccess ? "Gotowe" : "Coś poszło nie tak"}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="mt-2 text-[15px] leading-relaxed text-white/70">
-              {popup?.message ?? ""}
-            </AlertDialogDescription>
-
-            <Button
-              type="button"
-              className={cn(
-                "mt-6 h-11 w-full rounded-full text-sm font-semibold",
-                isSuccess ? "gold-btn" : "bg-rose-500/90 text-white hover:bg-rose-500",
-              )}
-              onClick={onClose}
-            >
-              OK
-            </Button>
-          </div>
-        </div>
-      </AlertDialogContent>
-    </AlertDialog>
+      <AppDialogActions>
+        <AppDialogButton intent={isSuccess ? "primary" : "danger"} onClick={onClose}>
+          {isSuccess ? "Super" : "Zamknij"}
+        </AppDialogButton>
+      </AppDialogActions>
+    </AppDialog>
   );
 }
 

@@ -4,12 +4,10 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Download } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+  AppDialog,
+  AppDialogActions,
+  AppDialogButton,
+} from "@/components/ui/app-dialog";
 import { useInstalledAndroidAppIdentity } from "@/hooks/use-android-app-identity";
 import {
   androidUpdateLaterStorageKey,
@@ -104,40 +102,31 @@ export function AndroidAppUpdatePrompt() {
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={() => {}}>
-      <AlertDialogContent>
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--neon)]/35 bg-[var(--neon)]/10">
-            <Download className="h-5 w-5 text-[var(--neon)]" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/55">Aplikacja</p>
-            <AlertDialogTitle className="mt-1">Wymagana aktualizacja</AlertDialogTitle>
-            <AlertDialogDescription>
-              Nowa wersja {latest?.versionName ?? ""} jest już dostępna. Masz zainstalowaną wersję{" "}
-              {installed?.versionName ?? "nieznaną"}. Zainstaluj aktualizację, żeby GymBrat działał bez błędów.
-            </AlertDialogDescription>
-            {latest?.notes ? (
-              <p className="mt-2 text-sm text-white/55">{latest.notes}</p>
-            ) : null}
-            {starting ? (
-              <p className="mt-2 text-sm font-medium text-white/80">
-                Pobieranie w tle — zaraz otworzy się instalator. Jeśli nic się nie dzieje, zezwól na instalację
-                z tej aplikacji w ustawieniach telefonu.
-              </p>
-            ) : null}
-          </div>
-        </div>
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={postpone} disabled={starting}>
-            Później
-          </Button>
-          <Button type="button" onClick={startUpdate} disabled={starting}>
-            <Download className="h-4 w-4" />
-            {starting ? "Uruchamianie…" : `Aktualizuj do ${latest?.versionName ?? ""}`}
-          </Button>
-        </div>
-      </AlertDialogContent>
-    </AlertDialog>
+    <AppDialog
+      open={open}
+      onOpenChange={() => {}}
+      tone="gold"
+      icon={Download}
+      title="Wymagana aktualizacja"
+      description={`Nowa wersja ${latest?.versionName ?? ""} jest już dostępna. Masz zainstalowaną wersję ${
+        installed?.versionName ?? "nieznaną"
+      }. Zainstaluj aktualizację, żeby GymBrat działał bez błędów.`}
+    >
+      {latest?.notes ? <p className="mt-3 text-sm text-white/55">{latest.notes}</p> : null}
+      {starting ? (
+        <p className="mt-3 text-sm font-medium text-white/80">
+          Pobieranie w tle — zaraz otworzy się instalator. Jeśli nic się nie dzieje, zezwól na instalację
+          z tej aplikacji w ustawieniach telefonu.
+        </p>
+      ) : null}
+      <AppDialogActions>
+        <AppDialogButton intent="primary" onClick={startUpdate} disabled={starting}>
+          {starting ? "Uruchamianie…" : `Aktualizuj do ${latest?.versionName ?? ""}`}
+        </AppDialogButton>
+        <AppDialogButton onClick={postpone} disabled={starting}>
+          Później
+        </AppDialogButton>
+      </AppDialogActions>
+    </AppDialog>
   );
 }

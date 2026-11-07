@@ -50,13 +50,12 @@ import { parseDietTab, type DietTabId } from "@/lib/diet-tabs";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { AlertCircle, Pencil, Trash2, X } from "lucide-react";
 import { calendarDateKey } from "@/lib/local-date";
-import { Button } from "@/components/ui/button";
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AppDialog,
+  AppDialogActions,
+  AppDialogButton,
+  AppDialogStat,
+} from "@/components/ui/app-dialog";
 import { useOverlayHistoryBack } from "@/hooks/use-overlay-history-back";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { appPageKickerClass, appPageTitleClass } from "@/components/layout/screen";
@@ -120,47 +119,36 @@ function DeleteMealButton({
       >
         <Trash2 className="h-4 w-4" />
       </button>
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent className="app-dialog left-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 rounded-b-none rounded-t-[28px] px-5 pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-5">
-          <div aria-hidden className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
-          <span aria-hidden className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-rose-400/30 bg-rose-400/10 text-rose-300"><Trash2 className="h-5 w-5" /></span>
-          <AlertDialogTitle className="text-xl font-bold">Usunąć produkt?</AlertDialogTitle>
-          <AlertDialogDescription className="mt-2 text-white/65">
-            {name?.trim()
-              ? `„${name.trim()}” zniknie z dziennika, a makro dnia zostanie przeliczone.`
-              : "Wpis zniknie z dziennika, a makro dnia zostanie przeliczone."}
-          </AlertDialogDescription>
-          {remainingKcal != null && calories != null ? (
-            <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-3">
-              <span className="text-[13px] text-white/65">Do zjedzenia po usunięciu</span>
-              <span className="text-[14px] font-semibold tabular-nums text-[var(--gym-gold)]">
-                {Math.round(remainingKcal + calories)} kcal
-              </span>
-            </div>
-          ) : null}
-          <div className="mt-5 flex gap-2.5">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              disabled={pending}
-              onClick={() => setOpen(false)}
-            >
-              Anuluj
-            </Button>
-            <form action={action} className="flex-1">
-              <input type="hidden" name="id" value={id} />
-              <Button
-                type="submit"
-                className="w-full border-rose-400/30 bg-rose-500/90 text-white hover:bg-rose-500"
-                disabled={pending}
-              >
-                {pending ? "Usuwam…" : "Usuń"}
-              </Button>
-            </form>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AppDialog
+        open={open}
+        onOpenChange={setOpen}
+        tone="danger"
+        icon={Trash2}
+        title="Usunąć z dziennika?"
+        description={
+          name?.trim()
+            ? `„${name.trim()}” zniknie z dziennika, a kalorie i makro dnia zostaną przeliczone.`
+            : "Ten wpis zniknie z dziennika, a kalorie i makro dnia zostaną przeliczone."
+        }
+      >
+        {remainingKcal != null && calories != null ? (
+          <AppDialogStat
+            label="Do zjedzenia po usunięciu"
+            value={`${Math.round(remainingKcal + calories)} kcal`}
+          />
+        ) : null}
+        <AppDialogActions>
+          <form action={action} className="w-full">
+            <input type="hidden" name="id" value={id} />
+            <AppDialogButton type="submit" intent="danger" disabled={pending}>
+              {pending ? "Usuwam…" : "Usuń z dziennika"}
+            </AppDialogButton>
+          </form>
+          <AppDialogButton disabled={pending} onClick={() => setOpen(false)}>
+            Anuluj
+          </AppDialogButton>
+        </AppDialogActions>
+      </AppDialog>
     </>
   );
 }

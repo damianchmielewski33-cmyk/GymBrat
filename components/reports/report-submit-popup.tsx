@@ -3,13 +3,10 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+  AppDialog,
+  AppDialogActions,
+  AppDialogButton,
+} from "@/components/ui/app-dialog";
 import { cn } from "@/lib/utils";
 
 export type ReportSubmitPhase = "idle" | "saving" | "success";
@@ -44,53 +41,25 @@ export function ReportSubmitPopup({ phase, summary, onClose }: Props) {
   }, [phase]);
 
   return (
-    <AlertDialog
+    <AppDialog
       open={open}
       onOpenChange={(next) => {
         if (!next && phase === "success") onClose();
       }}
+      tone="gold"
+      icon={phase === "saving" ? Loader2 : CheckCircle2}
+      iconClassName={
+        phase === "saving" ? "animate-spin" : cn("transition-all duration-500", showCheck ? "scale-100 opacity-100" : "scale-75 opacity-0")
+      }
+      title={phase === "saving" ? "Zapisywanie raportu…" : "Raport zapisany"}
+      description={
+        phase === "saving"
+          ? "Chwila — zapisuję pomiary, samopoczucie i zdjęcia."
+          : "Pomiary i samopoczucie są już w historii."
+      }
     >
-      <AlertDialogContent className="w-[min(92vw,420px)] overflow-hidden border-white/10 bg-[#121214]">
-        {phase === "saving" ? (
-          <div className="flex flex-col items-center px-2 py-6 text-center">
-            <div
-              className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10"
-              style={{ boxShadow: "0 0 28px rgba(212,175,55,0.28)" }}
-            >
-              <Loader2
-                className="h-8 w-8 animate-spin text-[var(--gym-gold)]"
-                aria-hidden
-              />
-              <span
-                className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-[var(--gym-gold)]/15"
-                aria-hidden
-              />
-            </div>
-            <AlertDialogTitle className="mt-5 text-lg text-white">
-              Zapisywanie raportu…
-            </AlertDialogTitle>
-            <AlertDialogDescription className="mt-2 text-sm text-white/50">
-              Chwila — zapisuję pomiary, samopoczucie i zdjęcia.
-            </AlertDialogDescription>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center px-2 py-4 text-center">
-            <div
-              className={cn(
-                "flex h-16 w-16 items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-400/10 transition-all duration-500",
-                showCheck ? "scale-100 opacity-100" : "scale-75 opacity-0",
-              )}
-              style={{ boxShadow: "0 0 28px rgba(125,222,160,0.28)" }}
-            >
-              <CheckCircle2 className="h-9 w-9 text-[#7ddea0]" aria-hidden />
-            </div>
-            <AlertDialogTitle className="mt-5 text-lg text-white">
-              Raport dodany
-            </AlertDialogTitle>
-            <AlertDialogDescription className="mt-2 text-sm text-white/50">
-              Pomiary i samopoczucie są już w historii.
-            </AlertDialogDescription>
-
+      {phase === "saving" ? null : (
+        <>
             {summary ? (
               <div className="mt-5 grid w-full grid-cols-2 gap-2 text-left">
                 <SummaryTile
@@ -130,22 +99,14 @@ export function ReportSubmitPopup({ phase, summary, onClose }: Props) {
               </div>
             ) : null}
 
-            <div className="mt-6 flex w-full justify-center">
-              <AlertDialogClose
-                render={
-                  <Button
-                    type="button"
-                    className="h-11 min-w-[8rem] rounded-2xl bg-gradient-to-b from-[#f0d56a] via-[var(--gym-gold)] to-[var(--gym-gold-deep)] font-bold text-[#0a0906] hover:brightness-110"
-                  />
-                }
-              >
-                OK
-              </AlertDialogClose>
-            </div>
-          </div>
-        )}
-      </AlertDialogContent>
-    </AlertDialog>
+            <AppDialogActions>
+              <AppDialogButton intent="primary" onClick={onClose}>
+                Zamknij
+              </AppDialogButton>
+            </AppDialogActions>
+        </>
+      )}
+    </AppDialog>
   );
 }
 

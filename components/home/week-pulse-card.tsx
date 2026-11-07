@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { CalendarCheck } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AppDialog,
+  AppDialogActions,
+  AppDialogButton,
+} from "@/components/ui/app-dialog";
 import { calendarDateKey } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
 
@@ -206,22 +205,18 @@ export function WeekPulseCard(props: WeekPulseProps) {
   }
 
   return (
-    <AlertDialog
+    <AppDialog
       open={open}
       onOpenChange={(next) => {
         if (!next) dismiss();
         else setOpen(true);
       }}
+      tone="gold"
+      icon={CalendarCheck}
+      title="Ten tydzień"
+      description="Szybki przegląd na dziś — kcal, treningi i rytm raportu."
     >
-      <AlertDialogContent className="max-w-[min(100%,24rem)] gap-0 border-white/12 bg-[#121212] p-5 text-white sm:rounded-2xl">
-        <AlertDialogTitle className="font-heading text-xl text-white">
-          Ten tydzień
-        </AlertDialogTitle>
-        <AlertDialogDescription className="mt-1 text-sm text-white/50">
-          Szybki przegląd na dziś — kcal, treningi i rytm raportu.
-        </AlertDialogDescription>
-
-        <div className="mt-5 space-y-3.5">
+        <div className="mt-5 w-full space-y-3.5 text-left">
           <ProgressRow
             label="Zjedzone dziś"
             valueText={kcalText}
@@ -242,22 +237,16 @@ export function WeekPulseCard(props: WeekPulseProps) {
           />
         </div>
 
-        <div className="mt-5 flex flex-col gap-2">
+        <AppDialogActions>
           <Link
             href={cta.href}
             onClick={dismiss}
-            className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[var(--gym-gold)] text-sm font-semibold text-black shadow-[0_4px_16px_rgba(var(--neon-rgb),0.28)]"
+            className="gym-btn-primary inline-flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold"
           >
             {cta.label}
           </Link>
-          <AlertDialogClose
-            onClick={dismiss}
-            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-white/12 bg-transparent text-sm font-medium text-white/70"
-          >
-            Później
-          </AlertDialogClose>
-        </div>
-      </AlertDialogContent>
-    </AlertDialog>
+          <AppDialogButton onClick={dismiss}>Później</AppDialogButton>
+        </AppDialogActions>
+    </AppDialog>
   );
 }
