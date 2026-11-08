@@ -10,6 +10,14 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json ./
 RUN npm ci
+# Lockfile z Windowsa nie zawiera natywnych binarek libsql dla Linux/musl → doinstaluj dla bieżącej architektury.
+RUN case "$(apk --print-arch)" in \
+      x86_64) PKG=linux-x64-musl ;; \
+      aarch64) PKG=linux-arm64-musl ;; \
+      *) echo "Nieobslugiwana architektura" && exit 1 ;; \
+    esac \
+  && V=$(node -p "require('./node_modules/libsql/package.json').version") \
+  && npm install --no-save --no-package-lock --ignore-scripts "@libsql/${PKG}@${V}"
 
 # --- build ---
 FROM node:${NODE_VERSION}-alpine AS builder
@@ -42,6 +50,8 @@ RUN apk add --no-cache libc6-compat wget \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Natywna binarka libsql ładowana dynamicznie (nie zawsze w trace standalone)
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@libsql ./node_modules/@libsql
 
 # Migracje Drizzle (instrumentation / outputFileTracingIncludes)
 COPY --from=builder --chown=nextjs:nodejs /app/db/migrations ./db/migrations
