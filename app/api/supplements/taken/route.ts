@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
+import { assertAnalyticsOrigin } from "@/lib/csrf";
 import { withApiErrors } from "@/lib/errors/api";
 import { setIntakes } from "@/lib/supplement-intake";
 
@@ -16,6 +17,9 @@ const bodySchema = z.object({
 
 /** Odhaczenie z przycisku „Przyjąłem” w powiadomieniu push (cookie sesji, ta sama domena). */
 async function handlePOST(req: Request) {
+  // Service worker nie ma tokenu CSRF — wystarcza kontrola Origin / Sec-Fetch-Site.
+  const originBlock = assertAnalyticsOrigin(req);
+  if (originBlock) return originBlock;
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {

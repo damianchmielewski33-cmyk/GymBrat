@@ -175,9 +175,9 @@ function MealSlotCard({
         <>
           <p className="mt-2.5 px-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] tabular-nums">
             <span className="text-sky-300">B {Math.round(eaten.protein)}</span>
-            <span className="text-white/25">{"  ·  "}</span>
+            <span className="text-white/50">{"  ·  "}</span>
             <span className="text-amber-200">W {Math.round(eaten.carbs)}</span>
-            <span className="text-white/25">{"  ·  "}</span>
+            <span className="text-white/50">{"  ·  "}</span>
             <span className="text-rose-300">T {Math.round(eaten.fat)}</span>
           </p>
           <ul className="mt-2 border-t border-white/[0.06]">
@@ -203,7 +203,7 @@ function MealSlotCard({
                   </span>
                   <span className="shrink-0 text-[14px] font-semibold tabular-nums text-[var(--gym-gold)]">
                     {Math.round(e.calories)}
-                    <span className="ml-0.5 text-[10px] font-medium text-white/45">
+                    <span className="ml-0.5 text-[10px] font-medium text-white/55">
                       kcal
                     </span>
                   </span>

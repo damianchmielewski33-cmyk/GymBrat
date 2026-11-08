@@ -8,7 +8,7 @@
 2. US jest duży: zrób **plan podzadań** (update_plan), realizuj po kolei, po każdym podzadaniu testy i osobny, mały commit/PR tylko jeśli użytkownik poprosi. Jeśli US nie mieści się w jednej sesji, dokończ możliwie najdalej, oznacz zrobione podzadania w polu **Postęp** i powiedz, co zostało.
 3. **Prace poza kodem są na sam koniec** (sekcja „Zasada: prace poza kodem na sam koniec" niżej): pomijaj podzadania `[NA KONIEC]`; jeśli kod zależy od decyzji właściciela, **zapytaj o nią i poczekaj na akceptację** (nie przyjmuj założeń sam), a w międzyczasie rób to, co od niej nie zależy. Podzadanie typu **decyzja** = brak kodu: zadaj właścicielowi pytania (AskUserQuestion), zapisz odpowiedź w `docs/zespol/decyzje-wlasciciela.md`. Podzadanie **kod+prawnik** = kod gotowy, treści prawne wymagają zatwierdzenia przez człowieka — nie deklaruj ich jako zatwierdzone. Podzadania „konfig/ops" (np. ustawienia hostingu) wykonuje właściciel; przygotuj checklistę i weryfikację.
 4. Pracuj jak agent `webdev` (zob. `CLAUDE.md`): zwięźle, minimum odczytów. Zasady repo: `AGENTS.md` (PR/Preview → Promote, changelog `planned: true`, `npm run deploy:check`, funkcje zależne od env w `lib/admin-config-status.ts`). Skille: `gymbrat-server-action`, `gymbrat-db-migration`, `gymbrat-sensitive-data`, `gymbrat-ui`, `gymbrat-ship`.
-5. Przed zakończeniem: testy dla zmiany (`npx vitest run <plik>`), `npx tsc --noEmit`, lint zmienionych plików. Nie pogarszaj stanu bazowego (2026-11-01: testy 1237 zielone, tsc czysty, eslint 102 błędy, E2E 9/41).
+5. Przed zakończeniem: testy dla zmiany (`npx vitest run <plik>`), `npx tsc --noEmit`, lint zmienionych plików. Nie pogarszaj stanu bazowego (2026-11-08: vitest 1552 testy zielone, tsc czysty, eslint 0 błędów; E2E patrz US22/Z93).
 6. Po zakończeniu uzupełnij **Postęp** US i statusy podzadań w tabeli w `szczegoly-zadan.md`; w tabeli poniżej zmień **Status** US na `ZROBIONE (data)` dopiero, gdy wszystkie jego podzadania są zrobione.
 7. Realizuj **tylko** wskazany US; znaleziska poza zakresem zgłoś, nie naprawiaj po cichu.
 
@@ -39,6 +39,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US19 | Android i soft launch | P1 | XL | Z51, Z52 | TODO |
 | US20 | Analityka, strona produktu, refaktor, dokumentacja | P2 | XL | Z53, Z76, Z80, Z83 | CZĘŚCIOWO 2026-11-04 (testy/tsc/lint NIEURUCHOMIONE, brak npm): Z53 zdarzenia + definicje (dashboard w PostHog zakłada właściciel), Z76 `/start`, Z83 dokumentacja; Z80 częściowo: `home-start` (195 l.) i `teams` (346 l.) < 500, changelog → JSON, `progress-hub` (1404 l.) i `body-report-form` (805 l.) nadal > 500 |
 | US21 | Domknięcie: weryfikacja, długi i prace właściciela po US1–US20 | P0 | XL | Z84, Z85, Z86, Z87, Z88, Z89, Z90 | TODO |
+| US22–US31 | Nowy backlog poprawek z analizy 2026-11-08 (higiena, crony, Premium, daty, RODO, koszty…) | P0–P3 | — | Z91–Z124 | TODO — szczegóły: [2026-11-08-analiza-i-backlog-poprawek.md](2026-11-08-analiza-i-backlog-poprawek.md) |
 
 Weryfikacja pokrycia: 6+4+4+4+4+4+2+5+4+4+5+3+4+4+3+4+9+4+2+4 = 83 podzadania (każde Z1–Z83 występuje dokładnie raz). US21 dodaje Z84–Z90 (łącznie 90): to **domknięcia** niedokończonych prac z US1–US20, nie nowe funkcje; oryginalne Z1–Z83 zostają w swoich US ze swoimi statusami.
 

@@ -194,7 +194,7 @@ export function MealCatalogBrowser({
                 B {Math.round(meal.approximateMacros.proteinG)} · W{" "}
                 {Math.round(meal.approximateMacros.carbsG)} · T{" "}
                 {Math.round(meal.approximateMacros.fatG)}
-                <span className="text-white/35"> · {meal.prepMinutes} min</span>
+                <span className="text-white/55"> · {meal.prepMinutes} min</span>
               </p>
             </div>
           </button>

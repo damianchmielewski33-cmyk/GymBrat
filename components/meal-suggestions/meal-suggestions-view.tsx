@@ -113,7 +113,7 @@ function DeleteMealButton({
     <>
       <button
         type="button"
-        className="inline-flex h-11 w-9 items-center justify-center rounded-lg text-white/40 transition-colors hover:text-rose-300 active:text-rose-300"
+        className="inline-flex h-11 w-9 items-center justify-center rounded-lg text-white/55 transition-colors hover:text-rose-300 active:text-rose-300"
         aria-label="Usuń"
         onClick={() => setOpen(true)}
       >
