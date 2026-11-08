@@ -94,7 +94,7 @@ describe("useWorkoutFinishFlow: wejście zakończenia (P2, P3)", () => {
 
     useWorkoutFinishFlow().requestFinish();
 
-    await vi.waitFor(() => expect(flowState().phase).toBe("done"));
+    await vi.waitFor(() => expect(flowState().phase).toBe("done"), { timeout: 4000 });
     expect(submitMock).toHaveBeenCalledTimes(1);
     expect(flowState()).toMatchObject({
       phase: "done",
@@ -137,7 +137,7 @@ describe("useWorkoutFinishFlow: wejście zakończenia (P2, P3)", () => {
 
     useWorkoutFinishFlow().requestFinish();
 
-    await vi.waitFor(() => expect(flowState().phase).toBe("done"));
+    await vi.waitFor(() => expect(flowState().phase).toBe("done"), { timeout: 4000 });
     expect(submitMock).toHaveBeenCalledTimes(1);
     expect(flowState()).toMatchObject({ result: { volumeKg: 0, setsDone: 2 } });
   });
@@ -151,7 +151,7 @@ describe("useWorkoutFinishFlow: wejście zakończenia (P2, P3)", () => {
 
     useWorkoutFinishFlow().confirmFinishFromDialog();
 
-    await vi.waitFor(() => expect(flowState().phase).toBe("done"));
+    await vi.waitFor(() => expect(flowState().phase).toBe("done"), { timeout: 4000 });
     expect(submitMock).toHaveBeenCalledTimes(1);
   });
 
@@ -186,7 +186,7 @@ describe("useWorkoutFinishFlow: wejście zakończenia (P2, P3)", () => {
     // mikrotaskach, nie zakładamy, że wywołanie jest już widoczne synchronicznie.
     await vi.waitFor(() => expect(submitMock).toHaveBeenCalledTimes(1));
     resolveSave(SAVED);
-    await vi.waitFor(() => expect(flowState().phase).toBe("done"));
+    await vi.waitFor(() => expect(flowState().phase).toBe("done"), { timeout: 4000 });
     expect(submitMock).toHaveBeenCalledTimes(1);
   });
 
@@ -206,7 +206,7 @@ describe("useWorkoutFinishFlow: wejście zakończenia (P2, P3)", () => {
 
     useWorkoutFinishFlow().requestFinish();
 
-    await vi.waitFor(() => expect(flowState().phase).toBe("done"));
+    await vi.waitFor(() => expect(flowState().phase).toBe("done"), { timeout: 4000 });
     expect(flowState()).toMatchObject({
       result: { saveStatus: "queued", workoutId: null, planCompare: null },
     });
@@ -275,7 +275,7 @@ describe("useWorkoutFinishFlow: błąd zapisu (AC-3.5, E-5, E-12)", () => {
 
     useWorkoutFinishFlow().retry();
 
-    await vi.waitFor(() => expect(flowState().phase).toBe("done"));
+    await vi.waitFor(() => expect(flowState().phase).toBe("done"), { timeout: 4000 });
     expect(submitMock).toHaveBeenCalledTimes(2);
     const first = submitMock.mock.calls[0]![0] as { operationId: string; endedAt: number };
     const second = submitMock.mock.calls[1]![0] as { operationId: string; endedAt: number };
@@ -323,7 +323,7 @@ describe("useWorkoutFinishFlow: operationId deterministyczny (ADR 0004 p.13, piv
     submitMock.mockResolvedValueOnce(SAVED);
 
     useWorkoutFinishFlow().requestFinish();
-    await vi.waitFor(() => expect(flowState().phase).toBe("done"));
+    await vi.waitFor(() => expect(flowState().phase).toBe("done"), { timeout: 4000 });
 
     const expected = await deriveWorkoutOperationId("plan-xyz", 1_700_000_000_000);
     const sent = submitMock.mock.calls[0]![0] as { operationId: string };

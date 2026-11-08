@@ -240,8 +240,9 @@ export function HomeTrainingCard({
                           <button
                             type="button"
                             onClick={() => {
-                              setSelectedId(day.id);
                               setPickerOpen(false);
+                              // zmiana tytułu po starcie zwijania, by nie dławić animacji
+                              setTimeout(() => setSelectedId(day.id), 120);
                             }}
                             className="min-h-11 min-w-0 flex-1 text-left"
                           >

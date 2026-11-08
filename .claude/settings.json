@@ -9,7 +9,6 @@
       "Read(./tsconfig.tsbuildinfo)",
       "Read(./test-results/**)",
       "Read(./.next/**)",
-      "Read(./public/**)",
       "Read(./docs/zadania/**)",
       "Read(./docs/analiza/**)",
       "Read(./docs/adr/**)",

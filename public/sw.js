@@ -33,13 +33,43 @@ self.addEventListener("push", (event) => {
   const options = {
     body: typeof data.body === "string" ? data.body : "",
     tag: typeof data.tag === "string" ? data.tag : "gymbrat-reminder",
-    data: { url: typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/" },
+    data: {
+      url: typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/",
+      supplements: Array.isArray(data.supplements) ? data.supplements.slice(0, 40) : [],
+    },
   };
+  if (Array.isArray(data.actions)) {
+    options.actions = data.actions
+      .filter((a) => a && typeof a.action === "string" && typeof a.title === "string")
+      .slice(0, 2)
+      .map((a) => ({ action: a.action, title: a.title }));
+  }
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  // „Przyjąłem”: odhacz suplementy bez otwierania aplikacji; przy błędzie otwórz ekran DZIŚ.
+  if (event.action === "taken") {
+    const items = (event.notification.data && event.notification.data.supplements) || [];
+    event.waitUntil(
+      (async () => {
+        try {
+          const res = await fetch("/api/supplements/taken", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ items }),
+          });
+          if (res.ok) return;
+        } catch {
+          /* offline / brak sesji — poniżej otwieramy aplikację */
+        }
+        await self.clients.openWindow(new URL("/", self.location.origin).href);
+      })(),
+    );
+    return;
+  }
   const target = new URL(
     (event.notification.data && event.notification.data.url) || "/",
     self.location.origin,

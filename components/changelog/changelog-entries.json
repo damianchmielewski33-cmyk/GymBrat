@@ -1,5 +1,23 @@
 [
   {
+    "title": "Zapowiedź — Nowy ekran końca treningu",
+    "planned": true,
+    "bullets": [
+      "Zapis treningu pokazuje złoty pierścień zamiast zwykłego loadera (minimum 1,5 s, bez migania).",
+      "Po zapisie znacznik kończy animację i płynnie odsłania podsumowanie: tonaż narasta, a statystyki i rekordy pojawiają się po kolei.",
+      "Najlepsze serie pokazują tylko najlepszą serię każdego ćwiczenia, bez długich list serii."
+    ]
+  },
+  {
+    "title": "Zapowiedź — Suplementy do odhaczania",
+    "planned": true,
+    "bullets": [
+      "Na DZIŚ dotykasz kafelka suplementu, żeby oznaczyć przyjęcie; przy kilku dawkach dziennie licznik pokazuje, ile już wzięto.",
+      "W Suplementach ustawiasz dawkę i godziny przyjęcia (do 6 dziennie).",
+      "Jeśli po godzinie przyjęcia suplement nie jest odhaczony, dostaniesz powiadomienie push (wymaga włączonych przypomnień). Tam, gdzie system pokazuje przyciski, możesz od razu dotknąć „Przyjąłem”."
+    ]
+  },
+  {
     "title": "Zapowiedź — Dieta przebudowana od zera",
     "planned": true,
     "bullets": [

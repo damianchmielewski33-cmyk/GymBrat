@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
+import { normalizeSupplementTimes } from "@/lib/diet-supplements";
 import {
   fitnessGoalsSchema,
   fitnessGoalsToJson,
@@ -76,13 +77,16 @@ export async function saveFitnessGoalsAction(input: unknown) {
 
 /** Zapis listy suplementów (nazwa + dawka) w fitnessGoalsJson. */
 export async function saveSupplementsAction(
-  supplements: Array<{ name: string; amount?: string }>,
+  supplements: Array<{ name: string; amount?: string; times?: string[] }>,
 ) {
   await guardAction("fitness-goals.saveSupplementsAction");
   const cleaned = supplements
     .map((s) => ({
       name: s.name.trim(),
       ...(s.amount?.trim() ? { amount: s.amount.trim() } : {}),
+      ...(normalizeSupplementTimes(s.times).length
+        ? { times: normalizeSupplementTimes(s.times) }
+        : {}),
     }))
     .filter((s) => s.name.length > 0)
     .slice(0, 40);

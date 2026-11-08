@@ -7,6 +7,7 @@ import {
   AppDialog,
   AppDialogActions,
   AppDialogButton,
+  appDialogButtonClass,
 } from "@/components/ui/app-dialog";
 import { calendarDateKey } from "@/lib/local-date";
 import { cn } from "@/lib/utils";
@@ -241,7 +242,7 @@ export function WeekPulseCard(props: WeekPulseProps) {
           <Link
             href={cta.href}
             onClick={dismiss}
-            className="gym-btn-primary inline-flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold"
+            className={appDialogButtonClass("primary")}
           >
             {cta.label}
           </Link>

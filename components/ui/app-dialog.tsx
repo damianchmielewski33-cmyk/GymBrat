@@ -8,7 +8,7 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
@@ -162,26 +162,36 @@ export function AppDialogActions({
 
 export type AppDialogButtonIntent = "primary" | "danger" | "quiet";
 
+/** Klasy przycisku dialogu — też dla linków (`<a>`, `<Link>`). */
+export function appDialogButtonClass(intent: AppDialogButtonIntent = "quiet", className?: string) {
+  return cn(
+    buttonVariants({
+      variant: intent === "primary" ? "cta" : intent === "danger" ? "ghost" : "outline",
+    }),
+    "h-12 w-full rounded-2xl text-[15px] font-semibold transition-[transform,box-shadow,background-color,border-color] duration-150 active:translate-y-px active:scale-[0.985]",
+    intent === "primary" &&
+      "shadow-[0_10px_26px_-8px_rgba(221,187,109,0.6),inset_0_1px_0_rgba(255,255,255,0.35)] hover:shadow-[0_14px_32px_-8px_rgba(221,187,109,0.75),inset_0_1px_0_rgba(255,255,255,0.4)]",
+    intent === "danger" &&
+      "border-rose-500/40 bg-rose-500/15 text-rose-200 shadow-[0_10px_26px_-10px_rgba(244,63,94,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] hover:border-rose-400/55 hover:bg-rose-500/25 hover:text-rose-100 hover:shadow-[0_14px_30px_-10px_rgba(244,63,94,0.7),inset_0_1px_0_rgba(255,255,255,0.1)]",
+    intent === "quiet" &&
+      "border-[var(--gym-border-gold)] text-white/90 shadow-[0_6px_18px_-10px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.05)]",
+    className,
+  );
+}
+
 /** Przycisk akcji dialogu: primary = złoty CTA, danger = czerwony, quiet = obrys. */
 export const AppDialogButton = React.forwardRef<
   HTMLButtonElement,
-  Omit<React.ComponentProps<typeof Button>, "variant"> & { intent?: AppDialogButtonIntent }
+  Omit<React.ComponentProps<typeof Button>, "variant" | "className"> & {
+    intent?: AppDialogButtonIntent;
+    className?: string;
+  }
 >(function AppDialogButton({ intent = "quiet", className, ...props }, ref) {
   return (
     <Button
       ref={ref}
       type="button"
-      variant={intent === "primary" ? "cta" : intent === "danger" ? "ghost" : "outline"}
-      className={cn(
-        "h-12 w-full rounded-2xl text-[15px] font-semibold transition-[transform,box-shadow,background-color,border-color] duration-150 active:translate-y-px active:scale-[0.985]",
-        intent === "primary" &&
-          "shadow-[0_10px_26px_-8px_rgba(221,187,109,0.6),inset_0_1px_0_rgba(255,255,255,0.35)] hover:shadow-[0_14px_32px_-8px_rgba(221,187,109,0.75),inset_0_1px_0_rgba(255,255,255,0.4)]",
-        intent === "danger" &&
-          "border-rose-500/40 bg-rose-500/15 text-rose-200 shadow-[0_10px_26px_-10px_rgba(244,63,94,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] hover:border-rose-400/55 hover:bg-rose-500/25 hover:text-rose-100 hover:shadow-[0_14px_30px_-10px_rgba(244,63,94,0.7),inset_0_1px_0_rgba(255,255,255,0.1)]",
-        intent === "quiet" &&
-          "border-[var(--gym-border-gold)] text-white/90 shadow-[0_6px_18px_-10px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.05)]",
-        className,
-      )}
+      className={appDialogButtonClass(intent, className)}
       {...props}
     />
   );

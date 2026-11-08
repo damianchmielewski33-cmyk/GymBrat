@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ExternalLink } from "lucide-react";
+import {
+  AppDialog,
+  AppDialogActions,
+  appDialogButtonClass,
+} from "@/components/ui/app-dialog";
 import { isLikelyInIframe, promoteGymBratOutOfIframe } from "@/lib/iframe-embed";
 
 /**
@@ -33,25 +39,30 @@ export function IframeSessionBreakout() {
     typeof window !== "undefined" ? window.location.href : "https://gym-brat.vercel.app/";
 
   return (
-    <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-4 bg-[#07080d]/96 px-6 text-center text-white">
-      <p className="font-heading text-xl font-semibold tracking-tight">
-        Otwórz GymBrat poza Akademią
-      </p>
-      <p className="max-w-sm text-sm text-white/65">
-        W osadzonej karcie nie da się poprawnie zalogować ani utrzymać sesji. Uruchom
-        aplikację w pełnym oknie.
-      </p>
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex h-12 items-center justify-center rounded-full bg-[var(--neon)] px-6 text-sm font-semibold text-black"
-        onClick={() => {
-          promoteGymBratOutOfIframe(href);
-        }}
-      >
-        Otwórz GymBrat
-      </a>
-    </div>
+    <AppDialog
+      open
+      onOpenChange={() => {}}
+      role="alertdialog"
+      tone="gold"
+      icon={ExternalLink}
+      overlayClassName="z-[1300]"
+      className="z-[1301]"
+      title="Otwórz GymBrat w pełnym oknie"
+      description="W osadzonej karcie nie da się poprawnie zalogować ani utrzymać sesji."
+    >
+      <AppDialogActions>
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={appDialogButtonClass("primary")}
+          onClick={() => {
+            promoteGymBratOutOfIframe(href);
+          }}
+        >
+          Otwórz GymBrat
+        </a>
+      </AppDialogActions>
+    </AppDialog>
   );
 }

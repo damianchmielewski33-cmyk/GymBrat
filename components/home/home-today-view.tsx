@@ -42,6 +42,7 @@ export type HomeTodayViewProps = {
   exerciseCount: number;
   days: HomeTrainingDayOption[];
   supplements: DietSupplement[] | null;
+  takenSupplements?: string[];
   weightKg: number | null;
   weightDeltaFromPreviousKg: number | null;
   weightFromStartKg: number | null;
@@ -132,7 +133,10 @@ export function HomeTodayView(props: HomeTodayViewProps) {
       </div>
 
       <div className="gym-rise" style={rise(5)}>
-        <HomeSupplementsChip items={props.supplements} />
+        <HomeSupplementsChip
+          items={props.supplements}
+          taken={props.takenSupplements}
+        />
       </div>
     </div>
   );

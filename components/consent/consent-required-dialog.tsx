@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { ShieldCheck } from "lucide-react";
 import { setSensitiveConsentAction } from "@/actions/consents";
+import {
+  AppDialog,
+  AppDialogActions,
+  AppDialogButton,
+} from "@/components/ui/app-dialog";
+import { InlineBanner } from "@/components/ui/inline-banner";
 import {
   SENSITIVE_CONSENT_COPY,
   type SensitiveConsentType,
@@ -34,41 +41,32 @@ export function ConsentRequiredDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 p-3 sm:items-center"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="consent-required-title"
+    <AppDialog
+      open
+      onOpenChange={(next) => {
+        if (!next && !pending) onCancel();
+      }}
+      role="alertdialog"
+      tone="gold"
+      icon={ShieldCheck}
+      title={copy.title}
+      description={copy.body}
+      overlayClassName="z-[1200]"
+      className="z-[1201]"
     >
-      <div className="w-full max-w-md rounded-2xl border border-white/12 bg-[#0c0c0e] p-5 shadow-2xl">
-        <p id="consent-required-title" className="text-[15px] font-semibold text-white">
-          {copy.title}
-        </p>
-        <p className="mt-2 text-[13px] leading-relaxed text-white/60">{copy.body}</p>
-        {error ? (
-          <p role="alert" className="mt-2 text-xs text-red-100">
-            {error}
-          </p>
-        ) : null}
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={accept}
-            disabled={pending}
-            className="gym-btn-primary h-11 rounded-xl text-sm font-semibold"
-          >
-            {copy.cta}
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={pending}
-            className="gym-btn-secondary h-11 rounded-xl text-sm font-semibold"
-          >
-            Nie teraz
-          </button>
-        </div>
-      </div>
-    </div>
+      {error ? (
+        <InlineBanner variant="error" role="alert" className="mt-4 w-full text-left">
+          {error}
+        </InlineBanner>
+      ) : null}
+      <AppDialogActions>
+        <AppDialogButton intent="primary" onClick={accept} disabled={pending}>
+          {pending ? "Zapisuję…" : copy.cta}
+        </AppDialogButton>
+        <AppDialogButton onClick={onCancel} disabled={pending}>
+          Nie teraz
+        </AppDialogButton>
+      </AppDialogActions>
+    </AppDialog>
   );
 }

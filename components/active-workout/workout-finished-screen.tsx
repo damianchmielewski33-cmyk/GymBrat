@@ -17,6 +17,8 @@ import {
   Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AnimatedMetric } from "@/components/ui/animated-metric";
+import { FinishRing } from "@/components/active-workout/finish-ring";
 import { SectionLabel } from "@/components/ui/section-label";
 import { PrAchievementGraphic } from "@/components/reports/pr-achievement-graphic";
 import type { WorkoutFinishedScreenData } from "@/components/active-workout/workout-finish-types";
@@ -30,10 +32,7 @@ import {
   formatWeightRecordLine,
   formatWorkoutDurationPl,
 } from "@/lib/workout-finish-format";
-import {
-  allSetsLineFromSession,
-  bestSetIndexInExercise,
-} from "@/lib/workout-finish-sets-line";
+import { bestSetIndexInExercise } from "@/lib/workout-finish-sets-line";
 import { formatHistoryShortDate } from "@/lib/workout-history-overview";
 import {
   progressDeltaTone,
@@ -58,6 +57,11 @@ function displayExerciseName(name: string): string {
     .replace(/\s*\(\s*film[^)]*\)\s*/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Stopniowe odsłanianie sekcji: opóźnienie w ms liczone od startu ekranu. */
+function rise(delayMs: number): React.CSSProperties {
+  return { "--finish-delay": `${delayMs}ms` } as React.CSSProperties;
 }
 
 function toneClass(tone: "up" | "down" | "flat" | "none"): string {
@@ -171,6 +175,8 @@ export function WorkoutFinishedScreen({
   onClose: () => void;
 }) {
   const [mounted, setMounted] = useState(false);
+  /** Po intro (pierścień + znacznik) zaczyna narastać tonaż. */
+  const [revealed, setRevealed] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
   const [progressDeltaUnit, setProgressDeltaUnit] = useState<ProgressDeltaUnit>("percent");
 
@@ -193,6 +199,9 @@ export function WorkoutFinishedScreen({
   useEffect(() => {
     setMounted(true);
     setProgressDeltaUnit(readProgressDeltaUnitLocal("percent"));
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const t = window.setTimeout(() => setRevealed(true), reduced ? 0 : 1000);
+    return () => window.clearTimeout(t);
   }, []);
 
   useEffect(() => {
@@ -323,9 +332,18 @@ export function WorkoutFinishedScreen({
       className="fixed inset-0 z-[1200] flex flex-col bg-[var(--gym-black)] text-white"
       aria-labelledby="workout-finished-heading"
     >
+      <div
+        className="gym-finish-intro pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-6 bg-[var(--gym-black)]"
+        aria-hidden
+      >
+        <FinishRing mode="done" />
+        <p className="font-display text-[34px] uppercase tracking-wide text-white">
+          Trening zakończony
+        </p>
+      </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
         <div className="mx-auto w-full max-w-lg px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))] sm:px-5">
-          <header className="flex items-start gap-3 pt-1">
+          <header className="gym-finish-rise flex items-start gap-3 pt-1" style={rise(900)}>
             <span className="mt-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10">
               <Trophy className="h-5 w-5 text-[var(--gym-gold)]" strokeWidth={1.5} aria-hidden />
             </span>
@@ -351,7 +369,8 @@ export function WorkoutFinishedScreen({
 
           <div
             role="status"
-            className="mt-3 flex items-center gap-2.5 rounded-2xl border border-white/[0.06] bg-[#101010] px-3.5 py-2.5"
+            style={rise(1600)}
+            className="gym-finish-rise mt-3 flex items-center gap-2.5 rounded-2xl border border-white/[0.06] bg-[#101010] px-3.5 py-2.5"
           >
             {data.saveStatus === "saved" ? (
               <>
@@ -372,7 +391,10 @@ export function WorkoutFinishedScreen({
             )}
           </div>
 
-          <div className="app-card relative mt-5 overflow-hidden px-4 py-5 sm:px-5">
+          <div
+            className="app-card gym-finish-rise relative mt-5 overflow-hidden px-4 py-5 sm:px-5"
+            style={rise(1050)}
+          >
             <div
               className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(480px_220px_at_50%_0%,rgba(var(--neon-rgb),0.12),transparent_60%)]"
               aria-hidden
@@ -382,9 +404,13 @@ export function WorkoutFinishedScreen({
                 Tonaż
               </p>
               <p className="mt-2 flex items-baseline gap-2">
-                <span className="font-metric text-[2.75rem] leading-none tabular-nums text-white sm:text-[3.1rem]">
-                  {formatVolumeKg(data.volumeKg)}
-                </span>
+                <AnimatedMetric
+                  value={revealed ? data.volumeKg : 0}
+                  decimals={Math.round(data.volumeKg * 10) % 10 === 0 ? 0 : 1}
+                  durationMs={1200}
+                  className="text-[3.25rem] leading-none text-white sm:text-[3.6rem]"
+                />
+                <span className="sr-only">{formatVolumeKg(data.volumeKg)}</span>
                 <span className="pb-1 text-base font-semibold uppercase tracking-wide text-white/70">
                   kg
                 </span>
@@ -410,7 +436,7 @@ export function WorkoutFinishedScreen({
               </div>
 
               <div className="mt-5 grid grid-cols-3 gap-0 border-t border-white/10 pt-4">
-                <div className="pr-2">
+                <div className="gym-finish-rise pr-2" style={rise(1500)}>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-text-secondary)]">
                     Czas
                   </p>
@@ -418,7 +444,7 @@ export function WorkoutFinishedScreen({
                     {formatWorkoutDurationPl(data.durationSeconds)}
                   </p>
                 </div>
-                <div className="border-x border-white/[0.07] px-3 text-center">
+                <div className="gym-finish-rise border-x border-white/[0.07] px-3 text-center" style={rise(1620)}>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-text-secondary)]">
                     Serie
                   </p>
@@ -440,7 +466,7 @@ export function WorkoutFinishedScreen({
                     )}
                   </p>
                 </div>
-                <div className="pl-2 text-right">
+                <div className="gym-finish-rise pl-2 text-right" style={rise(1740)}>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--gym-text-secondary)]">
                     Ćwiczenia
                   </p>
@@ -453,7 +479,7 @@ export function WorkoutFinishedScreen({
           </div>
 
           {data.weightRecords.length > 0 ? (
-            <section className="mt-6 space-y-2.5">
+            <section className="gym-finish-rise mt-6 space-y-2.5" style={rise(1900)}>
               <SectionLabel
                 className="items-center"
                 index={recordsSectionIndex}
@@ -461,10 +487,11 @@ export function WorkoutFinishedScreen({
                 trailing={String(data.weightRecords.length)}
               />
               <ul className="app-card divide-y divide-white/[0.06] overflow-hidden">
-                {data.weightRecords.map((row) => (
+                {data.weightRecords.map((row, i) => (
                   <li
                     key={row.exerciseId}
-                    className="grid grid-cols-[minmax(0,1fr)_minmax(5.75rem,auto)] items-center gap-x-3 px-4 py-3.5"
+                    style={rise(2000 + i * 130)}
+                    className="gym-finish-rise grid grid-cols-[minmax(0,1fr)_minmax(5.75rem,auto)] items-center gap-x-3 px-4 py-3.5"
                   >
                     <p className="min-w-0 text-[15px] font-semibold leading-snug text-white/90 line-clamp-2">
                       {displayExerciseName(row.exerciseName)}
@@ -501,7 +528,10 @@ export function WorkoutFinishedScreen({
           ) : null}
 
           {showBestSets ? (
-            <section className="mt-6 space-y-2.5">
+            <section
+              className="gym-finish-rise mt-6 space-y-2.5"
+              style={rise(2400 + Math.min(data.weightRecords.length, 3) * 130)}
+            >
               <SectionLabel
                 className="items-center"
                 index={bestSetsSectionIndex}
@@ -517,9 +547,8 @@ export function WorkoutFinishedScreen({
                 {data.exercises.map((ex) => {
                   const bestIndex = bestSetIndexInExercise(ex.sets, estimated1RM);
                   const bestSet = bestIndex != null ? ex.sets[bestIndex] : null;
-                  const lines = allSetsLineFromSession(ex.sets, estimated1RM);
                   return (
-                    <li key={ex.id} className="px-4 py-3.5">
+                    <li key={ex.id} className="px-4 py-3">
                       <div className="flex items-baseline justify-between gap-3">
                         <p className="min-w-0 text-[15px] font-semibold leading-snug text-white/90 line-clamp-2">
                           {displayExerciseName(ex.name)}
@@ -534,23 +563,6 @@ export function WorkoutFinishedScreen({
                           </p>
                         )}
                       </div>
-                      <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-[var(--gym-text-secondary)]">
-                        {lines.map((line) => (
-                          <li key={line.ordinal}>
-                            {line.ordinal}:{" "}
-                            {line.state === "best" ? (
-                              <>
-                                <span className="font-semibold text-white">{line.label}</span>
-                                <span className="sr-only"> (najlepsza)</span>
-                              </>
-                            ) : line.state === "skipped" ? (
-                              <span className="text-[var(--gym-skipped)]">{line.label}</span>
-                            ) : (
-                              line.label
-                            )}
-                          </li>
-                        ))}
-                      </ul>
                     </li>
                   );
                 })}
@@ -559,7 +571,7 @@ export function WorkoutFinishedScreen({
           ) : null}
 
           {progressSectionVisible ? (
-            <section className="mt-6">
+            <section className="gym-finish-rise mt-6" style={rise(2800)}>
               <Button
                 type="button"
                 variant="outline"
@@ -697,7 +709,7 @@ export function WorkoutFinishedScreen({
             </section>
           ) : null}
 
-          <section className="mt-6">
+          <section className="gym-finish-rise mt-6" style={rise(2900)}>
             {data.workoutId == null ? (
               <div className="min-h-12 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
                 <p className="text-[13px] text-[var(--gym-text-secondary)]">
@@ -857,7 +869,10 @@ export function WorkoutFinishedScreen({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-white/[0.06] bg-[var(--gym-black)]/98 backdrop-blur-md">
+      <div
+        className="gym-finish-rise shrink-0 border-t border-white/[0.06] bg-[var(--gym-black)]/98 backdrop-blur-md"
+        style={rise(1300)}
+      >
         <div className="mx-auto w-full max-w-lg px-4 py-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] sm:px-5">
           <Button type="button" variant="cta" className="h-14 w-full" onClick={onClose}>
             Zamknij

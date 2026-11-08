@@ -3,8 +3,11 @@ import { HomeRetryButton } from "@/components/home/home-retry-button";
 import { getWorkoutPlansWithLastWorkout } from "@/actions/workout-plan";
 import { HomeTodayView } from "@/components/home/home-today-view";
 import { getDb } from "@/db";
-import { userSettings, users, workouts } from "@/db/schema";
-import { parseFirstDietSupplements } from "@/lib/diet-supplements";
+import { supplementIntakes, userSettings, users, workouts } from "@/db/schema";
+import { ensureCriticalSchema } from "@/db/ensure-schema";
+import { calendarDateKey } from "@/lib/local-date";
+import { and } from "drizzle-orm";
+import { intakeKey, parseFirstDietSupplements } from "@/lib/diet-supplements";
 import { getHomeStartDashboard } from "@/lib/home-start";
 import { shouldShowIntroTour } from "@/lib/intro-tour-steps";
 import { addCalendarDays } from "@/lib/local-date";
@@ -106,6 +109,23 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
   const recommendedId =
     dash.nextWorkout?.planId ?? dayOptions[0]?.id ?? null;
 
+  let takenSupplements: string[] = [];
+  try {
+    await ensureCriticalSchema();
+    const rows = await getDb()
+      .select({ name: supplementIntakes.name, slot: supplementIntakes.slot })
+      .from(supplementIntakes)
+      .where(
+        and(
+          eq(supplementIntakes.userId, userId),
+          eq(supplementIntakes.dateKey, calendarDateKey()),
+        ),
+      );
+    takenSupplements = rows.map((r) => intakeKey(r.name, r.slot));
+  } catch (e) {
+    console.error("[home-today] supplements", e instanceof Error ? e.message : e);
+  }
+
   const supplements = parseFirstDietSupplements(
     settingsRow?.fitnessGoalsJson,
     settingsRow?.mealTemplatesJson,
@@ -129,6 +149,7 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
       exerciseCount={dash.nextWorkout?.exerciseCount ?? 0}
       days={dayOptions}
       supplements={supplements}
+      takenSupplements={takenSupplements}
       weightKg={dash.currentWeightKg}
       weightDeltaFromPreviousKg={dash.weightDeltaFromPreviousKg}
       weightFromStartKg={dash.weightFromStartKg}

@@ -12,7 +12,29 @@ export type DietSupplement = {
   name: string;
   /** Dawka / ilość, np. „5 g”, „2000 IU”, „1 kaps.” */
   amount?: string;
+  /** Godziny przyjęcia HH:mm (jedna na dawkę w ciągu dnia). Puste = jedno przyjęcie bez godziny. */
+  times?: string[];
 };
+
+export const MAX_SUPPLEMENT_TIMES = 6;
+const HM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+export function normalizeSupplementTimes(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out = raw.filter(
+    (t): t is string => typeof t === "string" && HM_RE.test(t),
+  );
+  return [...new Set(out)].sort().slice(0, MAX_SUPPLEMENT_TIMES);
+}
+
+/** Sloty przyjęć w ciągu dnia: godziny albo jeden slot "" (bez godziny). */
+export function supplementSlots(s: DietSupplement): string[] {
+  return s.times?.length ? s.times : [""];
+}
+
+export function intakeKey(name: string, slot: string): string {
+  return `${name}|${slot}`;
+}
 
 export function parseDietSupplements(
   raw: string | null | undefined,
@@ -32,7 +54,12 @@ export function parseDietSupplements(
         continue;
       }
       if (item && typeof item === "object") {
-        const o = item as { name?: unknown; amount?: unknown; dose?: unknown };
+        const o = item as {
+          name?: unknown;
+          amount?: unknown;
+          dose?: unknown;
+          times?: unknown;
+        };
         const name = typeof o.name === "string" ? o.name.trim() : "";
         if (!name) continue;
         const amountRaw =
@@ -42,7 +69,12 @@ export function parseDietSupplements(
               ? o.dose
               : "";
         const amount = amountRaw.trim();
-        out.push(amount ? { name, amount } : { name });
+        const times = normalizeSupplementTimes(o.times);
+        out.push({
+          name,
+          ...(amount ? { amount } : {}),
+          ...(times.length ? { times } : {}),
+        });
       }
     }
     // Pusta tablica = świadomie wyczyszczona lista (bez fallbacku do domyślnych).

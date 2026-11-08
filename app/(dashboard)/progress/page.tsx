@@ -28,7 +28,7 @@ export default async function ProgressPage({
       </header>
 
       <Suspense fallback={<ProgressSkeleton />}>
-        <ProgressPageContent tab={tab} />
+        <ProgressPageContent tab={tab} userId={userId} />
       </Suspense>
     </div>
   );

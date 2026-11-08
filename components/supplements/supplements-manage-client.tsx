@@ -3,20 +3,25 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Percent, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Percent, Plus, Trash2, X } from "lucide-react";
 import { saveSupplementsAction } from "@/actions/fitness-goals";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import { SectionLabel } from "@/components/ui/section-label";
-import type { DietSupplement } from "@/lib/diet-supplements";
+import {
+  MAX_SUPPLEMENT_TIMES,
+  normalizeSupplementTimes,
+  type DietSupplement,
+} from "@/lib/diet-supplements";
 import { cn } from "@/lib/utils";
 
-type Row = { key: string; name: string; amount: string };
+type Row = { key: string; name: string; amount: string; times: string[] };
 
 function toRows(items: DietSupplement[]): Row[] {
   return items.map((s, i) => ({
     key: `${i}-${s.name}`,
     name: s.name,
     amount: s.amount ?? "",
+    times: s.times ?? [],
   }));
 }
 
@@ -48,7 +53,7 @@ export function SupplementsManageClient({
   const [rows, setRows] = useState<Row[]>(() =>
     initial.length > 0
       ? toRows(initial)
-      : [{ key: "new-0", name: "", amount: "" }],
+      : [{ key: "new-0", name: "", amount: "", times: [] }],
   );
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const amountInputRef = useRef<HTMLInputElement | null>(null);
@@ -65,19 +70,25 @@ export function SupplementsManageClient({
     );
   }
 
+  function setTimes(key: string, fn: (t: string[]) => string[]) {
+    setRows((prev) =>
+      prev.map((r) => (r.key === key ? { ...r, times: fn(r.times) } : r)),
+    );
+  }
+
   function removeRow(key: string) {
     setRows((prev) => {
       const next = prev.filter((r) => r.key !== key);
       return next.length > 0
         ? next
-        : [{ key: `new-${Date.now()}`, name: "", amount: "" }];
+        : [{ key: `new-${Date.now()}`, name: "", amount: "", times: [] }];
     });
     if (editingKey === key) setEditingKey(null);
   }
 
   function addRow() {
     const key = `new-${Date.now()}`;
-    setRows((prev) => [...prev, { key, name: "", amount: "" }]);
+    setRows((prev) => [...prev, { key, name: "", amount: "", times: [] }]);
     setEditingKey(key);
   }
 
@@ -87,6 +98,9 @@ export function SupplementsManageClient({
         .map((r) => ({
           name: r.name.trim(),
           ...(r.amount.trim() ? { amount: r.amount.trim() } : {}),
+          ...(normalizeSupplementTimes(r.times).length
+            ? { times: normalizeSupplementTimes(r.times) }
+            : {}),
         }))
         .filter((r) => r.name.length > 0);
 
@@ -120,8 +134,8 @@ export function SupplementsManageClient({
           Suplementy
         </h1>
         <p className="mt-2 max-w-md text-[13px] leading-snug text-white/50">
-          „Zmień dawkę” ustawia ilość przy produkcie. Lista widać na DZIŚ i w
-          Planie diety.
+          „Zmień dawkę” ustawia ilość i godziny przyjęcia. Na DZIŚ odhaczasz
+          przyjęte suplementy; bez odhaczenia dostaniesz przypomnienie.
         </p>
       </header>
 
@@ -184,6 +198,55 @@ export function SupplementsManageClient({
                       />
                     </label>
                   </div>
+                  <div>
+                    <span className="mb-1 block text-[11px] text-white/50">
+                      Godziny przyjęcia (przypomnimy, jeśli nie odhaczysz)
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {row.times.map((t, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1 rounded-xl border border-white/12 bg-black/40 pl-2"
+                        >
+                          <input
+                            type="time"
+                            value={t}
+                            aria-label={`Godzina ${i + 1}`}
+                            onChange={(e) =>
+                              setTimes(row.key, (arr) =>
+                                arr.map((x, j) => (j === i ? e.target.value : x)),
+                              )
+                            }
+                            className="h-10 bg-transparent text-sm text-white outline-none"
+                          />
+                          <button
+                            type="button"
+                            aria-label="Usuń godzinę"
+                            onClick={() =>
+                              setTimes(row.key, (arr) =>
+                                arr.filter((_, j) => j !== i),
+                              )
+                            }
+                            className="inline-flex h-10 w-9 items-center justify-center text-white/50 hover:text-rose-200"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </span>
+                      ))}
+                      {row.times.length < MAX_SUPPLEMENT_TIMES ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTimes(row.key, (arr) => [...arr, "08:00"])
+                          }
+                          className="inline-flex h-10 items-center gap-1 rounded-xl border border-dashed border-white/18 px-3 text-[12px] text-white/70"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Dodaj godzinę
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -211,6 +274,11 @@ export function SupplementsManageClient({
                     {note ? (
                       <p className="mt-0.5 text-[12px] text-white/50">{note}</p>
                     ) : null}
+                    {row.times.length > 0 ? (
+                      <p className="mt-0.5 text-[12px] tabular-nums text-white/50">
+                        {normalizeSupplementTimes(row.times).join(" · ")}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
                     <p
@@ -228,7 +296,7 @@ export function SupplementsManageClient({
                       onClick={() => setEditingKey(row.key)}
                       className="inline-flex h-8 items-center justify-center rounded-full border border-[var(--gym-gold)]/55 px-3 text-[12px] font-semibold text-[var(--gym-gold)] transition hover:bg-[var(--gym-gold)]/10"
                     >
-                      zmień dawkę
+                      edytuj
                     </button>
                   </div>
                 </div>

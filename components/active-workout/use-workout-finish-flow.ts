@@ -37,9 +37,13 @@ import type { WorkoutFinishedScreenData } from "@/components/active-workout/work
  */
 let lastAttempt: { endedAt: number; hints: LastPlanHintsMap } | null = null;
 
+/** Minimalny czas animacji zapisu (makieta „Koniec treningu”) — bez migania przy szybkim zapisie. */
+const MIN_SAVING_MS = 1500;
+
 async function doSave(reuse: boolean) {
   const store = useActiveWorkoutStore.getState();
   if (store.finishPending) return;
+  const savingStartedMs = Date.now();
   store.beginFinish();
   store.setFinishFlow({ phase: "saving" });
 
@@ -145,6 +149,11 @@ async function doSave(reuse: boolean) {
     workoutId: result.status === "saved" ? result.workoutId : null,
     planCompare: result.status === "saved" ? result.planCompare : null,
   };
+
+  const remainingMs = MIN_SAVING_MS - (Date.now() - savingStartedMs);
+  if (remainingMs > 0) {
+    await new Promise((resolve) => setTimeout(resolve, remainingMs));
+  }
 
   lastAttempt = null;
   store.reset();

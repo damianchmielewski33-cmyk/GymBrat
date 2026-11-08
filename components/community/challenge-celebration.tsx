@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { markCelebrationSeenAction } from "@/actions/challenges";
 import type { CelebrationPayload } from "@/lib/community/challenges";
+import { AppDialogButton } from "@/components/ui/app-dialog";
 import { cn } from "@/lib/utils";
 
 export function ChallengeCelebrationOverlay({
@@ -105,13 +106,9 @@ export function ChallengeCelebrationOverlay({
           Łącznie {current.xpTotal.toLocaleString("pl-PL")} XP w społeczności
         </p>
 
-        <button
-          type="button"
-          onClick={() => void dismiss()}
-          className="mt-6 w-full rounded-2xl bg-[var(--gym-gold)] py-3.5 text-[14px] font-bold text-black transition hover:brightness-110"
-        >
+        <AppDialogButton intent="primary" className="mt-6" onClick={() => void dismiss()}>
           Dalej, brat
-        </button>
+        </AppDialogButton>
       </div>
     </div>
   );

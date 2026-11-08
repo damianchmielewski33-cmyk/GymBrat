@@ -2429,3 +2429,25 @@ export const reminderDispatches = sqliteTable(
     uniqueIndex("reminder_dispatches_uidx").on(t.userId, t.dateKey, t.kind),
   ],
 );
+
+/** Odhaczenia suplementów: jeden wpis na użytkownika / dzień / suplement / slot godziny ("" = bez godziny). */
+export const supplementIntakes = sqliteTable(
+  "supplement_intakes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    dateKey: text("date_key").notNull(),
+    name: text("name").notNull(),
+    slot: text("slot").notNull().default(""),
+    takenAt: integer("taken_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("supplement_intakes_uidx").on(t.userId, t.dateKey, t.name, t.slot),
+  ],
+);

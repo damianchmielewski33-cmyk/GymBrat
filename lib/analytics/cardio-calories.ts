@@ -1,5 +1,6 @@
 import { isDateKeyInRange, type CardioWeekRange } from "@/lib/cardio-week-range";
 import { clamp, inWindow, round0 } from "@/lib/analytics/math";
+import { metFromSpeedKmh } from "@/lib/extra-cardio-from-macros";
 import type { AnalyticsCardioSample } from "@/lib/analytics/types";
 
 export type SexKind = "male" | "female";
@@ -64,8 +65,53 @@ export function resolveSampleCalories(
       sex: profile.sex,
     });
   }
-  // Fallback MET ~7 kcal/min
-  return round0(sample.minutes * 7);
+  return estimateCardioCaloriesMet(sample, profile.weightKg);
+}
+
+/** MET (brutto) wg typu aktywności, gdy brak tempa. */
+const MET_BY_TYPE: Record<string, number> = {
+  walk: 3.8,
+  treadmill: 5,
+  run: 9,
+  bike: 6.8,
+  elliptical: 5,
+  stairs: 8,
+  swim: 6,
+  other: 5,
+};
+const DEFAULT_WEIGHT_KG = 75;
+const FOOT_TYPES = new Set(["walk", "run", "treadmill"]);
+
+/**
+ * Szacunek bez tętna: MET × waga. Marsz/bieg/bieżnia z dystansem → MET z prędkości
+ * (ta sama tabela co dodatkowe cardio), inaczej MET z typu. Brutto, jak kcal z urządzenia.
+ * Wynik tylko do wyświetlania/analityki — NIE jest zapisywany w `calories`,
+ * bo dodatkowe cardio traktuje zapisane kcal jako dane użytkownika.
+ */
+export function estimateCardioCaloriesMet(
+  sample: Pick<
+    AnalyticsCardioSample,
+    "minutes" | "distanceKm" | "cardioType"
+  >,
+  weightKg: number | null,
+): number {
+  if (!(sample.minutes > 0)) return 0;
+  const w =
+    weightKg != null && weightKg >= 30 && weightKg <= 250
+      ? weightKg
+      : DEFAULT_WEIGHT_KG;
+  const type = sample.cardioType ?? "other";
+  let met: number | null = null;
+  if (
+    FOOT_TYPES.has(type) &&
+    sample.distanceKm != null &&
+    sample.distanceKm > 0
+  ) {
+    const pace = sample.minutes / sample.distanceKm;
+    if (pace >= 2.5 && pace <= 20) met = metFromSpeedKmh(60 / pace);
+  }
+  met ??= MET_BY_TYPE[type] ?? MET_BY_TYPE.other!;
+  return round0((met * w * sample.minutes) / 60);
 }
 
 export function sumCardioCaloriesWeek(args: {

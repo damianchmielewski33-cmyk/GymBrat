@@ -40,6 +40,10 @@ export const fitnessGoalsSchema = z.object({
       z.object({
         name: z.string().trim().min(1).max(80),
         amount: z.string().trim().max(40).optional(),
+        times: z
+          .array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/))
+          .max(6)
+          .optional(),
       }),
     )
     .max(40)

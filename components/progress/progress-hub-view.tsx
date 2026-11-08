@@ -39,9 +39,15 @@ const LOADERS: Record<ProgressDataScope, () => Promise<ProgressTabData[ProgressD
   tydzien: getWeekMetricsAction,
 };
 
-export function ProgressHubView({ initialTab }: { initialTab: ProgressTabId }) {
+export function ProgressHubView({
+  initialTab,
+  initialCache = {},
+}: {
+  initialTab: ProgressTabId;
+  initialCache?: Partial<ProgressTabData>;
+}) {
   const [tab, setTab] = useState<ProgressTabId>(initialTab);
-  const [cache, setCache] = useState<Partial<ProgressTabData>>({});
+  const [cache, setCache] = useState<Partial<ProgressTabData>>(initialCache);
   const [errors, setErrors] = useState<Partial<Record<ProgressDataScope, string>>>({});
   const cacheRef = useRef(cache);
   const inFlightRef = useRef(new Set<ProgressDataScope>());

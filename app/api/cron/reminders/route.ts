@@ -6,9 +6,16 @@ import { ensureCriticalSchema } from "@/db/ensure-schema";
 import {
   pushSubscriptions,
   reminderDispatches,
+  supplementIntakes,
   userSettings,
   users,
 } from "@/db/schema";
+import { parseDietSupplements } from "@/lib/diet-supplements";
+import { calendarDateKey } from "@/lib/local-date";
+import {
+  dueSupplementSlots,
+  SUPPLEMENT_REMINDER_URL,
+} from "@/lib/supplement-reminders";
 import { isConsentGranted } from "@/lib/consents";
 import { sendOptionalDailyBriefEmail } from "@/lib/email";
 import { dueReminders, REMINDER_COPY, type ReminderKind } from "@/lib/reminders-schedule";
@@ -149,6 +156,71 @@ async function handle(req: Request) {
     }
   }
 
+  // Suplementy: przypomnienie, gdy godzina przyjęcia minęła, a suplement nie jest odhaczony.
+  let supplementPushSent = 0;
+  if (pushReady) {
+    const suppRows = await db
+      .select({
+        userId: userSettings.userId,
+        fitnessGoalsJson: userSettings.fitnessGoalsJson,
+        remindersJson: userSettings.remindersJson,
+      })
+      .from(userSettings)
+      .where(isNotNull(userSettings.fitnessGoalsJson));
+
+    for (const r of suppRows) {
+      const supplements = (parseDietSupplements(r.fitnessGoalsJson) ?? []).filter(
+        (s) => s.times?.length,
+      );
+      if (supplements.length === 0) continue;
+      const prefs = parseRemindersJson(r.remindersJson);
+      const { dateKey, slots } = dueSupplementSlots(supplements, prefs, now);
+      if (slots.length === 0) continue;
+      if (!(await isConsentGranted(r.userId, "push"))) continue;
+
+      const taken = await db
+        .select({ name: supplementIntakes.name, slot: supplementIntakes.slot })
+        .from(supplementIntakes)
+        .where(
+          and(
+            eq(supplementIntakes.userId, r.userId),
+            eq(supplementIntakes.dateKey, calendarDateKey(now)),
+          ),
+        );
+      const takenSet = new Set(taken.map((t) => `${t.name}|${t.slot}`));
+      const pending = slots.filter((s) => !takenSet.has(`${s.name}|${s.slot}`));
+
+      const claimed: typeof pending = [];
+      for (const p of pending) {
+        if (await claim(db, r.userId, dateKey, p.dispatchKind)) claimed.push(p);
+      }
+      if (claimed.length === 0) continue;
+
+      const subs = await db
+        .select()
+        .from(pushSubscriptions)
+        .where(eq(pushSubscriptions.userId, r.userId));
+      const names = [...new Set(claimed.map((c) => c.name))];
+      let delivered = 0;
+      for (const sub of subs) {
+        const result = await sendWebPush(sub, {
+          title: "GymBrat — suplementy",
+          body: `Nie odhaczono: ${names.join(", ")}. Oznacz, jeśli już przyjęte.`,
+          url: SUPPLEMENT_REMINDER_URL,
+          tag: "gymbrat-supplements",
+          actions: [{ action: "taken", title: "Przyjąłem" }],
+          supplements: claimed.map((c) => ({ name: c.name, slot: c.slot })),
+        });
+        if (result === "ok") delivered += 1;
+        else if (result === "gone") goneIds.push(sub.id);
+      }
+      supplementPushSent += delivered;
+      if (delivered === 0 && subs.length > 0) {
+        for (const c of claimed) await release(db, r.userId, dateKey, c.dispatchKind);
+      }
+    }
+  }
+
   if (goneIds.length > 0) {
     await db.delete(pushSubscriptions).where(inArray(pushSubscriptions.id, goneIds));
   }
@@ -164,6 +236,7 @@ async function handle(req: Request) {
     skippedNoConsent: dueByTime.length - due.length,
     pushConfigured: pushReady,
     pushSent,
+    supplementPushSent,
     emailSent,
     expiredSubscriptions: goneIds.length,
   });

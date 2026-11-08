@@ -47,6 +47,10 @@ export type PushPayload = {
   /** Ścieżka względna w aplikacji, np. /workout-plan. */
   url: string;
   tag: string;
+  /** Przyciski na karcie powiadomienia (np. „Przyjąłem”); nie wszystkie platformy je pokazują. */
+  actions?: Array<{ action: string; title: string }>;
+  /** Suplementy do odhaczenia przyciskiem akcji `taken`. */
+  supplements?: Array<{ name: string; slot: string }>;
 };
 
 export type PushResult = "ok" | "gone" | "error";
