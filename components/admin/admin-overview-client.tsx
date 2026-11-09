@@ -135,6 +135,11 @@ type HourlyJson = {
   by_day?: { ymd: string; label: string; hours: number[]; total: number }[];
 };
 
+type RetentionJson = {
+  weekly: { cohort_start: string; size: number; retention: (number | null)[] }[];
+  day_retention: { day: number; eligible: number; returned: number; percent: number | null }[];
+};
+
 const PRESETS = [
   { days: 7, label: "7 dni" },
   { days: 14, label: "14 dni" },
@@ -165,6 +170,7 @@ export function AdminOverviewClient() {
   const [{ from, to }, setRange] = useState(() => rangeForDays(14));
   const [analytics, setAnalytics] = useState<AnalyticsJson | null>(null);
   const [hourly, setHourly] = useState<HourlyJson | null>(null);
+  const [retention, setRetention] = useState<RetentionJson | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activityLogOpen, setActivityLogOpen] = useState(false);
@@ -173,6 +179,9 @@ export function AdminOverviewClient() {
     async (showToast = false) => {
       setLoading(true);
       setError(null);
+      void adminRequest<RetentionJson>("/api/admin/analytics/retention").then((r) => {
+        if (r.ok) setRetention(r.data);
+      });
       const [a, h] = await Promise.all([
         adminRequest<AnalyticsJson>(
           `/api/admin/analytics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
@@ -518,6 +527,67 @@ export function AdminOverviewClient() {
               </div>
             </AdminCard>
           </div>
+
+          {retention ? (
+            <AdminCard
+              title="Retencja użytkowników"
+              description="Jaki odsetek nowych kont wraca do aplikacji (ostatnie 8 tygodni rejestracji, niezależnie od zakresu)."
+            >
+              <div className="mb-4 grid grid-cols-3 gap-3">
+                {retention.day_retention.map((r) => (
+                  <AdminStat
+                    key={r.day}
+                    label={`Retencja D${r.day}`}
+                    value={r.percent == null ? "—" : `${r.percent.toFixed(1)}%`}
+                    hint={r.eligible ? `${r.returned} z ${r.eligible} kont` : "za mało danych"}
+                    tone="gold"
+                  />
+                ))}
+              </div>
+              {retention.weekly.some((c) => c.size > 0) ? (
+                <div className="min-w-0 overflow-x-auto">
+                  <table className="w-full min-w-[560px] border-separate border-spacing-1 text-center text-[11px]">
+                    <thead className="text-white/50">
+                      <tr>
+                        <th className="px-2 text-left font-medium">Kohorta (tydz.)</th>
+                        <th className="font-medium">Konta</th>
+                        {retention.weekly.map((_, k) => (
+                          <th key={k} className="font-mono font-medium">
+                            T{k}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {retention.weekly.map((c) => (
+                        <tr key={c.cohort_start}>
+                          <td className="px-2 text-left text-white/70">{shortDay(c.cohort_start)}</td>
+                          <td className="tabular-nums text-white/70">{c.size}</td>
+                          {c.retention.map((v, k) => (
+                            <td
+                              key={k}
+                              title={v == null ? "brak danych" : `${v}% aktywnych w tygodniu ${k}`}
+                              className="h-7 rounded-md tabular-nums text-white/90"
+                              style={{
+                                backgroundColor:
+                                  v == null
+                                    ? "transparent"
+                                    : `rgba(201,164,92,${(0.08 + 0.85 * (v / 100)).toFixed(3)})`,
+                              }}
+                            >
+                              {v == null ? "" : `${Math.round(v)}%`}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-white/45">Brak nowych kont w ostatnich 8 tygodniach.</p>
+              )}
+            </AdminCard>
+          ) : null}
 
           {heatmapDays.length ? (
             <AdminCard
