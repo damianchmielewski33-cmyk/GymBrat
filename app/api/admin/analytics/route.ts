@@ -1,12 +1,17 @@
 import { withApiErrors } from "@/lib/errors/api";
 import { NextResponse } from "next/server";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { requireAdminApi } from "@/lib/admin-api";
-import { localYmdInclusiveUtcRange } from "@/lib/analytics-date-range";
+import {
+  addCalendarDaysYmd,
+  listLocalYmdsInclusive,
+  localYmdInclusiveUtcRange,
+} from "@/lib/analytics-date-range";
+import { wallClockYmdHourFromUtcIso } from "@/lib/analytics-wall-clock";
 import { SCREEN_LABELS } from "@/lib/analytics-screen";
 import { formatActivityTimePl } from "@/lib/activity-display";
 import { getDb } from "@/db";
-import { pageViews, siteActivityLog, users } from "@/db/schema";
+import { pageViews, siteActivityLog, subscriptionOrders, users, workouts } from "@/db/schema";
 
 export const runtime = "nodejs";
 
@@ -24,6 +29,8 @@ function parseRange(searchParams: URLSearchParams):
     return { ok: false };
   }
   if (from > to) return { ok: false };
+  // Limit zakresu (ochrona przed ogromnym zapytaniem).
+  if (listLocalYmdsInclusive(from, to).length > 366) return { ok: false };
   const { fromIso, toIso } = localYmdInclusiveUtcRange(from, to);
   return {
     ok: true,
@@ -97,6 +104,96 @@ async function handleGET(req: Request) {
     authenticated_views: pvRows.filter((r) => r.userId).length,
   };
 
+  // --- Szeregi dzienne (strefa analityki) ---
+  const tz = process.env.ANALYTICS_TIMEZONE?.trim() || "Europe/Warsaw";
+  const days = listLocalYmdsInclusive(fromDate, toDate);
+  const daily = new Map(
+    days.map((d) => [
+      d,
+      { views: 0, tokens: new Set<string>(), signups: 0, workouts: 0, revenue: 0, orders: 0 },
+    ]),
+  );
+  for (const row of pvRows) {
+    const { ymd } = wallClockYmdHourFromUtcIso(row.createdAt, tz);
+    const b = daily.get(ymd);
+    if (!b) continue;
+    b.views += 1;
+    b.tokens.add(row.userId ? `u:${row.userId}` : `v:${row.visitorId}`);
+  }
+
+  const signupRows = await db
+    .select({ createdAt: users.createdAt })
+    .from(users)
+    .where(and(gte(users.createdAt, new Date(fromIso)), lte(users.createdAt, new Date(toIso))));
+  for (const r of signupRows) {
+    const { ymd } = wallClockYmdHourFromUtcIso(new Date(r.createdAt).toISOString(), tz);
+    const b = daily.get(ymd);
+    if (b) b.signups += 1;
+  }
+
+  const workoutRows = await db
+    .select({ date: workouts.date, userId: workouts.userId })
+    .from(workouts)
+    .where(and(gte(workouts.date, fromDate), lte(workouts.date, toDate)));
+  const workoutUsers = new Set<string>();
+  for (const r of workoutRows) {
+    const b = daily.get(r.date);
+    if (!b) continue;
+    b.workouts += 1;
+    workoutUsers.add(r.userId);
+  }
+
+  const paidRows = await db
+    .select({ paidAt: subscriptionOrders.paidAt, amount: subscriptionOrders.amountGrosze })
+    .from(subscriptionOrders)
+    .where(
+      and(
+        inArray(subscriptionOrders.status, ["paid"]),
+        gte(subscriptionOrders.paidAt, new Date(fromIso)),
+        lte(subscriptionOrders.paidAt, new Date(toIso)),
+      ),
+    );
+  let revenueGrosze = 0;
+  for (const r of paidRows) {
+    if (!r.paidAt) continue;
+    const { ymd } = wallClockYmdHourFromUtcIso(new Date(r.paidAt).toISOString(), tz);
+    const b = daily.get(ymd);
+    if (!b) continue;
+    b.revenue += r.amount;
+    b.orders += 1;
+    revenueGrosze += r.amount;
+  }
+
+  const timeline = days.map((ymd) => {
+    const b = daily.get(ymd)!;
+    return {
+      ymd,
+      views: b.views,
+      unique_visitors: b.tokens.size,
+      signups: b.signups,
+      workouts: b.workouts,
+      revenue_pln: Math.round(b.revenue) / 100,
+      orders: b.orders,
+    };
+  });
+
+  // --- Poprzedni okres o tej samej długości (porównanie) ---
+  const prevTo = addCalendarDaysYmd(fromDate, -1);
+  const prevFrom = addCalendarDaysYmd(fromDate, -days.length);
+  const prevRange = localYmdInclusiveUtcRange(prevFrom, prevTo);
+  const prevRows = await db
+    .select({ userId: pageViews.userId, visitorId: pageViews.visitorId })
+    .from(pageViews)
+    .where(and(gte(pageViews.createdAt, prevRange.fromIso), lte(pageViews.createdAt, prevRange.toIso)));
+  const previous = {
+    total_views: prevRows.length,
+    unique_visitors: new Set(prevRows.map((r) => (r.userId ? `u:${r.userId}` : `v:${r.visitorId}`))).size,
+  };
+
+  // --- Rejestracje -> logowanie: lejek ---
+  const registeredVisitors = visitorTokens.size;
+  const authedVisitors = new Set(pvRows.filter((r) => r.userId).map((r) => r.userId as string)).size;
+
   const totalUsers = (await db.select({ id: users.id }).from(users)).length;
 
   const distinctLoggedInVisitors = new Set(
@@ -144,6 +241,17 @@ async function handleGET(req: Request) {
       distinct_logged_in_visitors_in_range: distinctLoggedInVisitors,
     },
     activity_events,
+    timeline,
+    previous,
+    business: {
+      signups: timeline.reduce((a, d) => a + d.signups, 0),
+      workouts: timeline.reduce((a, d) => a + d.workouts, 0),
+      workout_users: workoutUsers.size,
+      revenue_pln: Math.round(revenueGrosze) / 100,
+      orders: paidRows.length,
+      visitors_total: registeredVisitors,
+      visitors_logged_in: authedVisitors,
+    },
   });
 }
 
