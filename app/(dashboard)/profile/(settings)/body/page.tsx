@@ -1,10 +1,8 @@
 import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
-import { User as UserIcon } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AppPageHeader } from "@/components/layout/screen";
 import { BodyParamsForm } from "@/components/profile/body-params-form";
-import { ProfileBlock, ProfileSection } from "@/components/profile/profile-ui";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import {
@@ -45,29 +43,22 @@ export default async function ProfileBodyPage() {
         title="Ciało i dane"
         description="Baza do raportów, kalorii z cardio i zapotrzebowania."
       />
-      <ProfileSection
-        icon={UserIcon}
-        title="Parametry"
-        description={
-          currentWeight
-            ? `Aktualna waga: ${weightHint}`
-            : "Uzupełnij wagę — pokażemy ją też na Start i w Analizie."
-        }
-      >
-        <ProfileBlock title="Dane osobowe i ciało">
-          <BodyParamsForm
-            initial={{
-              firstName: u?.firstName ?? "",
-              lastName: u?.lastName ?? "",
-              weightKg: currentWeight?.weightKg ?? null,
-              heightCm: u?.heightCm ?? null,
-              age: u?.age ?? null,
-              sex: u?.sex ?? null,
-              activityLevel: u?.activityLevel ?? null,
-            }}
-          />
-        </ProfileBlock>
-      </ProfileSection>
+      <p className="text-xs text-white/50">
+        {currentWeight
+          ? `Aktualna waga: ${weightHint}`
+          : "Uzupełnij wagę — pokażemy ją też na Start i w Analizie."}
+      </p>
+      <BodyParamsForm
+        initial={{
+          firstName: u?.firstName ?? "",
+          lastName: u?.lastName ?? "",
+          weightKg: currentWeight?.weightKg ?? null,
+          heightCm: u?.heightCm ?? null,
+          age: u?.age ?? null,
+          sex: u?.sex ?? null,
+          activityLevel: u?.activityLevel ?? null,
+        }}
+      />
     </div>
   );
 }
