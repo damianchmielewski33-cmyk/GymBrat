@@ -195,7 +195,7 @@ export function ForgotPasswordForm({
             ) : null}
 
             {step === "email" ? (
-              <form className="space-y-5" noValidate onSubmit={onSubmitEmail}>
+              <form method="post" className="space-y-5" noValidate onSubmit={onSubmitEmail}>
                 <div className="space-y-2">
                   <Label htmlFor="reset-email">E-mail</Label>
                   <Input
@@ -229,7 +229,7 @@ export function ForgotPasswordForm({
                 </Button>
               </form>
             ) : (
-              <form className="space-y-5" noValidate onSubmit={onSubmitReset}>
+              <form method="post" className="space-y-5" noValidate onSubmit={onSubmitReset}>
                 <div className="space-y-2">
                   <Label htmlFor="reset-code">Kod z e-maila</Label>
                   <Input

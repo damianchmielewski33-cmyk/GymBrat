@@ -97,7 +97,7 @@ export function LoginForm({
   }
 
   return (
-    <form
+    <form method="post"
       className="space-y-6"
       noValidate
       onSubmit={(e) => {

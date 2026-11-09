@@ -49,11 +49,20 @@ export default async function globalSetup(config: FullConfig) {
         }),
       );
     });
-    await page.goto("/login");
-    await page.getByLabel("E-mail").fill(email);
-    await page.getByLabel("Hasło", { exact: true }).fill(password);
-    await page.getByRole("button", { name: /^zaloguj się$/i }).click();
-    await page.waitForURL((url) => url.pathname === "/", { timeout: 60_000 });
+    // Dev: klik przed hydracją wysyła natywny GET formularza (/login?email=…), więc czekamy
+    // na idle sieci i ponawiamy, jeśli strona wróciła na /login.
+    let loggedIn = false;
+    for (let attempt = 0; attempt < 3 && !loggedIn; attempt++) {
+      await page.goto("/login", { waitUntil: "networkidle", timeout: 120_000 });
+      await page.getByLabel("E-mail").fill(email);
+      await page.getByLabel("Hasło", { exact: true }).fill(password);
+      await page.getByRole("button", { name: /^zaloguj się$/i }).click();
+      loggedIn = await page
+        .waitForURL((url) => url.pathname === "/", { timeout: 45_000 })
+        .then(() => true)
+        .catch(() => false);
+    }
+    if (!loggedIn) throw new Error("global-setup: logowanie konta E2E nie powiodło się po 3 próbach.");
     await context.storageState({ path: file });
   } finally {
     await browser.close();
