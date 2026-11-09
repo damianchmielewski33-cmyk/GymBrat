@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 const WEIGHT_RANGES = [
   { id: "1M", label: "1M" },
   { id: "3M", label: "3M" },
-  { id: "all", label: "Całość" },
+  { id: "all", label: "Od początku" },
 ] as const;
 
 const WEEKDAY = ["nd", "pon", "wt", "śr", "czw", "pt", "sob"] as const;
@@ -54,7 +54,7 @@ function etaLabel(input: {
   // Tempo musi iść w stronę celu.
   if (delta === 0) return "Cel osiągnięty";
   if ((delta < 0 && kgPerWeek >= 0) || (delta > 0 && kgPerWeek <= 0)) {
-    return "Przy obecnym tempie cel się oddala";
+    return "W tym tempie cel się oddala";
   }
   const weeks = Math.abs(delta / kgPerWeek);
   if (!Number.isFinite(weeks) || weeks > 520) return null;
@@ -188,7 +188,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
           </>
         ) : (
           <p className="mt-3 text-[15px] leading-snug text-white">
-            Brak pomiarów wagi w tym zakresie. Dodaj raport w zakładce Raporty albo wybierz dłuższy zakres.
+            Nie ma ważeń z tego okresu. Dodaj ważenie w zakładce Raporty albo wybierz dłuższy okres.
           </p>
         )}
         <div className="mt-3">
@@ -202,26 +202,26 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
           />
         </div>
         <Definition className="mt-3.5">
-          <b className="text-white">Tempo:</b>{" "}
+          <b className="text-white">Jak szybko:</b>{" "}
           {pace != null
-            ? `${fmtSigned(pace, " kg", 2)} tygodniowo (${tempo.kgPerWeekLast6 != null ? "średnia z ostatnich 6 tygodni" : "średnia od startu"}).`
-            : "Za mało raportów, żeby policzyć tempo."}{" "}
+            ? `${fmtSigned(pace, " kg", 2)} na tydzień (${tempo.kgPerWeekLast6 != null ? "średnio z ostatnich 6 tygodni" : "średnio od początku"}).`
+            : "Za mało ważeń, żeby policzyć tempo."}{" "}
           {targetWeightKg != null ? (
-            <>Cel {fmtNum(targetWeightKg, 1)} kg: {eta ?? "dodaj kolejne raporty, żeby policzyć termin."}</>
+            <>Cel {fmtNum(targetWeightKg, 1)} kg: {eta ?? "dodaj kolejne ważenia, a policzymy termin."}</>
           ) : null}
         </Definition>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
           <div>
             <div className="font-metric text-[26px] leading-none text-white">{fmtSigned(tempo.deltaFromStartKg, "", 1)}</div>
-            <div className="mt-1 text-[12px] text-[var(--gym-text-secondary)]">kg od startu{tempo.startDate ? ` (${formatDayMonth(tempo.startDate)})` : ""}</div>
+            <div className="mt-1 text-[12px] text-[var(--gym-text-secondary)]">kg od początku{tempo.startDate ? ` (${formatDayMonth(tempo.startDate)})` : ""}</div>
           </div>
           <div>
             <div className="font-metric text-[26px] leading-none text-white">{fmtSigned(tempo.deltaVsPrevKg, "", 1)}</div>
-            <div className="mt-1 text-[12px] text-[var(--gym-text-secondary)]">kg vs poprzedni raport</div>
+            <div className="mt-1 text-[12px] text-[var(--gym-text-secondary)]">kg od ostatniego ważenia</div>
           </div>
           <div>
             <div className="font-metric text-[26px] leading-none text-white">{tempo.reportCount}</div>
-            <div className="mt-1 text-[12px] text-[var(--gym-text-secondary)]">{plural(tempo.reportCount, "raport", "raporty", "raportów")}{lastLine ? `, ostatni ${lastLine}` : ""}</div>
+            <div className="mt-1 text-[12px] text-[var(--gym-text-secondary)]">{plural(tempo.reportCount, "ważenie", "ważenia", "ważeń")}{lastLine ? `, ostatni ${lastLine}` : ""}</div>
           </div>
         </div>
 
@@ -298,7 +298,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                     </p>
                     <p className="mt-0.5 text-[11px] leading-snug text-white/50">
                       {eta ??
-                        "Dodaj kolejne raporty, żeby policzyć termin osiągnięcia celu."}
+                        "Dodaj kolejne ważenia, a policzymy, kiedy osiągniesz cel."}
                     </p>
                   </>
                 ) : (
@@ -321,7 +321,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
 
       </section>
 
-      <ProgressSection title="Obwody" trailing="zmiana od pierwszego raportu">
+      <ProgressSection title="Wymiary ciała" trailing="zmiana od pierwszego pomiaru">
         <Surface variant="list">
           {measures.every((m) => m.currentCm == null) ? (
             <p className="px-3.5 py-5 text-center text-[13px] text-white/50">

@@ -1,8 +1,9 @@
 "use client";
 
+import { HelpHint } from "@/components/progress/help-hint";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Sparkline, toneArrow, toneClass, Definition, type Tone } from "@/components/progress/progress-charts";
+import { Sparkline, toneArrow, toneClass, type Tone } from "@/components/progress/progress-charts";
 import { Meter } from "@/components/progress/progress-ui";
 import { fmtNum, formatDayMonth } from "@/lib/progress-format";
 import type { ProgressHubData } from "@/lib/progress-hub";
@@ -14,9 +15,9 @@ import { cn } from "@/lib/utils";
 type SortId = "growth" | "attention" | "plan";
 
 const SORTS: ReadonlyArray<{ id: SortId; label: string }> = [
-  { id: "growth", label: "Największy wzrost" },
-  { id: "attention", label: "Wymaga uwagi" },
-  { id: "plan", label: "Wg planu" },
+  { id: "growth", label: "Najlepiej idzie" },
+  { id: "attention", label: "Do poprawy" },
+  { id: "plan", label: "Jak w planie" },
 ];
 
 const STATUS_LABEL: Record<Tone, string> = { up: "rośnie", flat: "stoi", down: "spada" };
@@ -96,9 +97,9 @@ export function StrengthTab({ data, intelligence }: { data: ProgressHubData["str
   if (rows.length === 0 && data.maxes.length === 0) {
     return (
       <Card>
-        <CardTitle>Siła</CardTitle>
+        <CardTitle>Twoja siła</CardTitle>
         <p className="mt-2 text-[15px] leading-snug text-white">
-          Nie ma jeszcze ćwiczeń z ciężarem do oceny. Zapisz kilka treningów z obciążeniem, a pokażemy, które ćwiczenia rosną.
+          Jeszcze nie ma z czego liczyć. Zapisz kilka treningów z ciężarem, a pokażemy, w których ćwiczeniach masz więcej siły.
         </p>
         <Link href="/active-workout" className="gold-btn mt-4 flex min-h-12 items-center justify-center rounded-xl px-4 text-[15px] font-semibold">
           Zacznij trening
@@ -110,23 +111,20 @@ export function StrengthTab({ data, intelligence }: { data: ProgressHubData["str
   return (
     <div className="space-y-3.5">
       <Card hero>
-        <CardTitle id="h-sila">Ćwiczenia w ostatnich 30 dniach</CardTitle>
+        <div className="flex items-start justify-between gap-2"><CardTitle id="h-sila">Czy masz więcej siły?</CardTitle><HelpHint term="e1rm" /></div>
         <div className="mt-3 grid grid-cols-3 gap-2.5">
           {(["up", "flat", "down"] as const).map((t) => (
             <div key={t}>
               <div className={cn("font-metric text-[52px] leading-none", t === "flat" ? "text-white" : toneClass(t))}>{counts[t]}</div>
-              <div className="text-[13px] text-[var(--gym-text-secondary)]">{t === "up" ? "rośnie" : t === "flat" ? "stoi w miejscu" : "spada"}</div>
+              <div className="text-[13px] text-[var(--gym-text-secondary)]">{t === "up" ? "idzie w górę" : t === "flat" ? "bez zmian" : "słabiej"}</div>
             </div>
           ))}
         </div>
-        <Definition className="mt-3.5">
-          <b className="text-white">Szacowany max</b> to ciężar, który podniósłbyś raz. Liczymy go z Twoich serii wzorem ciężar × (1 + powtórzenia / 30), więc rośnie nawet bez próby maksymalnej.
-          „Rośnie” znaczy: najlepszy szacowany max z 30 dni jest o co najmniej 1% wyższy niż z 30 dni wcześniej.
-        </Definition>
+        <p className="mt-3.5 text-[13px] leading-snug text-[var(--gym-text-secondary)]">Porównujemy ostatnie 30 dni z 30 dniami wcześniej. „Idzie w górę” znaczy, że podnosisz o co najmniej 1% więcej.</p>
       </Card>
 
       <Card>
-        <CardTitle id="h-lista">Wszystkie ćwiczenia</CardTitle>
+        <CardTitle id="h-lista">Twoje ćwiczenia</CardTitle>
         <div role="group" aria-label="Sortowanie" className="mt-3 flex flex-wrap gap-2">
           {SORTS.map((s) => (
             <button
@@ -179,12 +177,12 @@ export function StrengthTab({ data, intelligence }: { data: ProgressHubData["str
       </Card>
 
       <Card>
-        <CardTitle id="h-balans">Balans mięśni</CardTitle>
+        <div className="flex items-start justify-between gap-2"><CardTitle id="h-balans">Które partie ćwiczysz za mało?</CardTitle><HelpHint term="muscleBalance" /></div>
         <p className="mb-3.5 mt-1 text-[13px] text-[var(--gym-text-secondary)]">
-          Jaką część objętości treningu (liczby serii efektywnych) dostaje każda partia, 30 dni.
+          Ile pracy dostaje każda partia ciała. Liczymy serie z ostatnich 30 dni.
         </p>
         {groups.length === 0 ? (
-          <p className="text-[14px] text-[var(--gym-text-secondary)]">Brak serii w ostatnich 30 dniach, więc nie ma czego porównać.</p>
+          <p className="text-[14px] text-[var(--gym-text-secondary)]">Nie ma serii z ostatnich 30 dni, więc nie mamy czego porównać.</p>
         ) : (
           <ul className="space-y-4">
             {groups.map((g) => {
@@ -195,7 +193,7 @@ export function StrengthTab({ data, intelligence }: { data: ProgressHubData["str
                     <span className="font-semibold text-white">{g.label}</span>
                     <span className="text-[13px] text-[var(--gym-text-secondary)]">
                       <span className="text-[#efe9dc]">{fmtNum(g.days30.sharePct, 0)}%</span> · {g.days30.sets} serii ·{" "}
-                      {alert ? <span className="text-[#ffb877]">mało w porównaniu z inną partią</span> : "w normie"}
+                      {alert ? <span className="text-[#ffb877]">za mało</span> : "w normie"}
                     </span>
                   </div>
                   <Meter
@@ -214,7 +212,7 @@ export function StrengthTab({ data, intelligence }: { data: ProgressHubData["str
       </Card>
 
       <Card>
-        <CardTitle id="h-rekordy">Rekordy</CardTitle>
+        <CardTitle id="h-rekordy">Twoje rekordy</CardTitle>
         {weighted.length === 0 && bodyweight.length === 0 ? (
           <p className="mt-2 text-[14px] text-[var(--gym-text-secondary)]">Rekordy pojawią się po pierwszych zapisanych seriach.</p>
         ) : (

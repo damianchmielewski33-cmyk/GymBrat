@@ -1,5 +1,6 @@
 "use client";
 
+import { HelpHint } from "@/components/progress/help-hint";
 import { useMemo, useState } from "react";
 import { BRAND_GOLD_BRIGHT } from "@/lib/brand-colors";
 import { Definition, toneArrow, toneClass, type Tone } from "@/components/progress/progress-charts";
@@ -106,10 +107,10 @@ export function CompareTab({
 
   const rows: MetricRow[] = [
     { name: "Treningi", a: ma?.workouts ?? null, b: mb?.workouts ?? null, fmt: (v) => String(v), higherIsBetter: true },
-    { name: "Tonaż", a: ma?.tonnageKg ?? null, b: mb?.tonnageKg ?? null, fmt: (v) => `${fmtNum(v, 0)} kg`, higherIsBetter: true },
+    { name: "Podniesione kilogramy", a: ma?.tonnageKg ?? null, b: mb?.tonnageKg ?? null, fmt: (v) => `${fmtNum(v, 0)} kg`, higherIsBetter: true },
     { name: "Cardio", a: ma?.cardioMinutes ?? null, b: mb?.cardioMinutes ?? null, fmt: (v) => `${Math.round(v)} min`, higherIsBetter: true },
-    { name: "Kalorie, średnio dziennie", a: perDay(dietBy.get(a), "caloriesConsumed"), b: perDay(dietBy.get(b), "caloriesConsumed"), fmt: (v) => `${fmtNum(v, 0)} kcal`, higherIsBetter: null },
-    { name: "Białko, średnio dziennie", a: perDay(dietBy.get(a), "proteinConsumed"), b: perDay(dietBy.get(b), "proteinConsumed"), fmt: (v) => `${fmtNum(v, 0)} g`, higherIsBetter: true },
+    { name: "Kalorie dziennie", a: perDay(dietBy.get(a), "caloriesConsumed"), b: perDay(dietBy.get(b), "caloriesConsumed"), fmt: (v) => `${fmtNum(v, 0)} kcal`, higherIsBetter: null },
+    { name: "Białko dziennie", a: perDay(dietBy.get(a), "proteinConsumed"), b: perDay(dietBy.get(b), "proteinConsumed"), fmt: (v) => `${fmtNum(v, 0)} g`, higherIsBetter: true },
   ];
   const calc = rows.map((r) => {
     const d = r.a != null && r.b != null && r.a > 0 ? ((r.b - r.a) / r.a) * 100 : r.a === 0 && r.b != null && r.b > 0 ? 100 : null;
@@ -122,9 +123,9 @@ export function CompareTab({
   const less = calc.filter((c) => c.d != null && c.d <= -0.5).map((c) => `${c.r.name.split(",")[0]!.toLowerCase()} (−${Math.abs(Math.round(c.d!))}%)`);
   const verdict =
     !pa || !pb
-      ? "Brak tygodni do porównania. Zapisz treningi, a pojawią się tutaj."
+      ? "Nie ma jeszcze tygodni do porównania. Zapisz treningi, a pojawią się tutaj."
       : a === b
-        ? "Wybrano ten sam tydzień. Wybierz dwa różne, żeby zobaczyć zmiany."
+        ? "Wybrano ten sam tydzień dwa razy. Wybierz dwa różne, żeby zobaczyć zmiany."
         : `Tydzień B względem A: ${more.length ? `więcej: ${more.join(", ")}` : "nic nie wzrosło"}. ${less.length ? `Mniej: ${less.join(", ")}.` : "Nic nie spadło."}`;
 
   // Progres ćwiczenia tydzień po tygodniu (8 ostatnich tygodni).
@@ -146,10 +147,10 @@ export function CompareTab({
   return (
     <div className="space-y-3.5">
       <Card hero>
-        <CardTitle id="h-cmp">Porównaj dwa tygodnie</CardTitle>
-        <p className="mt-1 text-[13px] text-[var(--gym-text-secondary)]">Wybierz tydzień A i B. Wyższy słupek B oznacza więcej niż w A.</p>
-        <WeekChips label="Tydzień A" weeks={options} value={a} onPick={setA} />
-        <WeekChips label="Tydzień B" weeks={options} value={b} onPick={setB} />
+        <div className="flex items-start justify-between gap-2"><CardTitle id="h-cmp">Czy ten tydzień jest lepszy?</CardTitle><HelpHint term="weeks" /></div>
+        <p className="mt-1 text-[13px] text-[var(--gym-text-secondary)]">Wybierz dwa tygodnie. Zobaczysz, w czym jest lepiej, a w czym gorzej.</p>
+        <WeekChips label="Wcześniej" weeks={options} value={a} onPick={setA} />
+        <WeekChips label="Teraz" weeks={options} value={b} onPick={setB} />
         <Definition className="mt-3.5">
           <span aria-live="polite">{verdict}</span>
           {aligned ? " Bieżący tydzień jeszcze trwa, więc oba tygodnie liczymy od poniedziałku do tego samego dnia tygodnia." : ""}
@@ -191,10 +192,10 @@ export function CompareTab({
       </Card>
 
       <Card>
-        <CardTitle id="h-prog">Progres ćwiczenia tydzień po tygodniu</CardTitle>
-        <p className="mb-3 mt-1 text-[13px] text-[var(--gym-text-secondary)]">Najlepszy szacowany max z każdego tygodnia i zmiana względem poprzedniego tygodnia z treningiem.</p>
+        <CardTitle id="h-prog">Jak idzie jedno ćwiczenie?</CardTitle>
+        <p className="mb-3 mt-1 text-[13px] text-[var(--gym-text-secondary)]">Najwięcej, jaki podniesiesz jeden raz, w każdym tygodniu. Pokazujemy też różnicę względem poprzedniego tygodnia z treningiem.</p>
         {exercises.length === 0 ? (
-          <p className="text-[14px] text-[var(--gym-text-secondary)]">Brak ćwiczeń z ciężarem. Zapisz kilka treningów, a pojawi się tutaj ich progres.</p>
+          <p className="text-[14px] text-[var(--gym-text-secondary)]">Nie ma jeszcze ćwiczeń z ciężarem. Zapisz kilka treningów, a pokażemy tu ich postęp.</p>
         ) : (
           <>
             <div role="group" aria-label="Ćwiczenie" className="flex gap-2 overflow-x-auto pb-1">
@@ -263,8 +264,8 @@ export function CompareTab({
 
       {exercises.length > 0 ? (
         <Card>
-          <CardTitle id="h-map">Mapa progresu</CardTitle>
-          <p className="mb-3 mt-1 text-[13px] text-[var(--gym-text-secondary)]">Zmiana szacowanego maxa w kg względem poprzedniego tygodnia z treningiem, 6 ostatnich tygodni.</p>
+          <CardTitle id="h-map">Wszystkie ćwiczenia, tydzień po tygodniu</CardTitle>
+          <p className="mb-3 mt-1 text-[13px] text-[var(--gym-text-secondary)]">Czy w danym tygodniu było więcej, mniej czy tyle samo niż w poprzednim tygodniu z treningiem. 6 ostatnich tygodni.</p>
           <div className="grid grid-cols-[minmax(0,1.4fr)_repeat(6,minmax(0,1fr))] items-center gap-1">
             <span />
             {mondays.slice(2).map((m, i) => (
@@ -291,10 +292,10 @@ export function CompareTab({
             ))}
           </div>
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-[var(--gym-text-secondary)]">
-            <span><b className="mr-1.5 inline-block h-3.5 w-3.5 rounded bg-[#1f3a29] align-[-2px]" />wzrost (+)</span>
-            <span><b className="mr-1.5 inline-block h-3.5 w-3.5 rounded border border-[#3a3524] bg-[#1b1b1f] align-[-2px]" />bez zmiany (0)</span>
-            <span><b className="mr-1.5 inline-block h-3.5 w-3.5 rounded bg-[#3d2a14] align-[-2px]" />spadek (−)</span>
-            <span>– brak treningu</span>
+            <span><b className="mr-1.5 inline-block h-3.5 w-3.5 rounded bg-[#1f3a29] align-[-2px]" />więcej</span>
+            <span><b className="mr-1.5 inline-block h-3.5 w-3.5 rounded border border-[#3a3524] bg-[#1b1b1f] align-[-2px]" />tyle samo</span>
+            <span><b className="mr-1.5 inline-block h-3.5 w-3.5 rounded bg-[#3d2a14] align-[-2px]" />mniej</span>
+            <span>– bez treningu</span>
           </div>
         </Card>
       ) : null}

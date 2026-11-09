@@ -5,7 +5,8 @@
     "bullets": [
       "Ruch dzień po dniu, rejestracje, treningi i przychód na czytelnych wykresach w jednym stylu.",
       "KPI z porównaniem do poprzedniego okresu oraz konwersją odwiedzin na konta.",
-      "Mapa ciepła i wykres godzinowy podążają za wybranym zakresem dat; poprawiono datę „dziś” liczoną w UTC.","Retencja: D1/D7/D30 oraz kohorty tygodniowe nowych kont."
+      "Mapa ciepła i wykres godzinowy podążają za wybranym zakresem dat; poprawiono datę „dziś” liczoną w UTC.",
+      "Retencja: D1/D7/D30 oraz kohorty tygodniowe nowych kont."
     ]
   },
   {
@@ -48,12 +49,13 @@
     "title": "Zapowiedź — Analiza przebudowana od zera",
     "planned": true,
     "bullets": [
-      "Pięć zakładek: Podsumowanie, Siła, Ciało, Regularność i Porównanie. Wszystko ważne jest od razu widoczne, a definicje stoją obok liczb (szacowany max, tonaż, RIR, RPE).",
+      "Pięć zakładek: Skrót, Siła, Ciało, Regularność i Tygodnie. Wszystko ważne jest od razu widoczne.",
       "Podsumowanie zaczyna od odpowiedzi słowami (np. „Robisz postępy”), potem trzy liczby: siła, waga i regularność w wybranym okresie 7, 30 lub 90 dni.",
       "Zmęczenie pokazuje rozbicie na siedem składników z punktami, informację o brakujących danych (RPE, RIR) i o tym, z ilu tygodni liczona jest Twoja norma.",
       "Interaktywne wykresy wagi i szacowanego maxa: dotknij punktu albo użyj strzałek, wybierz zakres 1M, 3M, 6M lub całość. Szczegół ćwiczenia ma kartę „Ostatnie treningi” z seriami, szacowanym maxem i rozwinięciem.",
       "Porównanie dwóch dowolnych tygodni (trening, tonaż, cardio, kalorie, białko), progres ćwiczenia tydzień po tygodniu i mapa progresu.",
-      "Szacowany max liczymy czystym wzorem Epleya: ciężar × (1 + powtórzenia / 30), bez limitu powtórzeń."
+      "Szacowany max liczymy czystym wzorem Epleya: ciężar × (1 + powtórzenia / 30), bez limitu powtórzeń.",
+      "Prostszy język w całej Analizie: karty zaczynają się od pytania i odpowiedzi słowami, a trudniejsze pojęcia (siła w ćwiczeniu, zmęczenie, gotowość na dziś) tłumaczy przycisk „?” z przykładem."
     ]
   },
   {

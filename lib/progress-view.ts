@@ -183,10 +183,10 @@ export function setE1rm(weight: number, reps: number): number {
 }
 
 export const FATIGUE_COMPONENT_LABEL: Record<FatigueComponentKey, string> = {
-  tonnage: "Tonaż tygodnia",
-  trend: "Trend w tygodniu",
-  hardSets: "Ciężkie serie",
-  rpe: "Wysiłek (RPE)",
+  tonnage: "Ile podniesiono w tygodniu",
+  trend: "Czy tydzień się zaostrzał",
+  hardSets: "Serie do upadku",
+  rpe: "Jak ciężko było (RPE)",
   sessions: "Liczba treningów",
   cardio: "Cardio",
   streak: "Dni treningowe z rzędu",
