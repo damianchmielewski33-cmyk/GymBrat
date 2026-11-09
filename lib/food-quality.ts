@@ -16,6 +16,8 @@ export type FoodQuality = {
   approximate: boolean;
   /** Pozytywy i negatywy do krótkiego opisu. */
   reasons: string[];
+  pros: string[];
+  cons: string[];
   novaGroup: 1 | 2 | 3 | 4 | null;
 };
 
@@ -95,6 +97,8 @@ export function computeFoodQuality(product: FoodProduct): FoodQuality | null {
       source: "openfoodfacts",
       approximate: true,
       reasons: [],
+      pros: [],
+      cons: novaGroup === 4 ? ["wysoko przetworzony"] : [],
       novaGroup,
     };
   }
@@ -116,13 +120,17 @@ export function computeFoodQuality(product: FoodProduct): FoodQuality | null {
   const computedScore = scoreFromPoints(points);
   const score = offGrade && offGrade !== computedGrade ? GRADE_SCORE[offGrade] : computedScore;
 
-  const reasons: string[] = [];
-  if (negSugars >= 6) reasons.push("dużo cukrów");
-  if (negSat >= 6) reasons.push("dużo tłuszczów nasyconych");
-  if (negSalt >= 6) reasons.push("dużo soli");
-  if (negEnergy >= 7) reasons.push("wysoka kaloryczność");
-  if (posFiber >= 3) reasons.push("dużo błonnika");
-  if (posProtein >= 5) reasons.push("dużo białka");
+  const cons: string[] = [];
+  const pros: string[] = [];
+  if (negSugars >= 6) cons.push("dużo cukrów");
+  if (negSat >= 6) cons.push("dużo tłuszczów nasyconych");
+  if (negSalt >= 6) cons.push("dużo soli");
+  if (negEnergy >= 7) cons.push("wysoka kaloryczność");
+  if (novaGroup === 4) cons.push("wysoko przetworzony");
+  if (posFiber >= 3) pros.push("dużo błonnika");
+  if (posProtein >= 5) pros.push("dużo białka");
+  if (salt != null && salt * k <= 0.3) pros.push("mało soli");
+  const reasons = [...cons, ...pros];
 
   return {
     grade,
@@ -130,6 +138,8 @@ export function computeFoodQuality(product: FoodProduct): FoodQuality | null {
     source: offGrade ? "openfoodfacts" : "computed",
     approximate: known < 3 || fiber == null,
     reasons,
+    pros,
+    cons,
     novaGroup,
   };
 }
