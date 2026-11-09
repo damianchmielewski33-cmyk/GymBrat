@@ -1,6 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
+/** Własny port E2E: 3000 bywa zajęty przez inny projekt, a `reuseExistingServer` testował wtedy cudzą aplikację. */
+const E2E_PORT = process.env.E2E_PORT ?? "3100";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${E2E_PORT}`;
 export const AUTH_FILE = "e2e/.auth/user.json";
 
 /**
@@ -20,8 +22,10 @@ export default defineConfig({
     ? [["list"], ["html", { open: "never" }]]
     : [["list"]],
   globalSetup: "./e2e/global-setup.ts",
+  timeout: 60_000,
   use: {
     baseURL,
+    navigationTimeout: 60_000,
     trace: "on-first-retry",
   },
   projects: [
@@ -38,9 +42,10 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: "npx next dev",
+        command: `npx next dev -p ${E2E_PORT}`,
         url: baseURL,
-        reuseExistingServer: !process.env.CI,
+        env: { NEXTAUTH_URL: baseURL, AUTH_URL: baseURL },
+        reuseExistingServer: false,
         timeout: 240_000,
       },
 });
