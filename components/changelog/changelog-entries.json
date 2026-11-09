@@ -1,5 +1,14 @@
 [
   {
+    "title": "Zapowiedź — Jakość produktu i alerty GIS",
+    "planned": true,
+    "bullets": [
+      "Nowy ekran dodawania posiłku: licznik 0–100 pkt z oceną Nutri-Score A–E, grupą NOVA i krótkim uzasadnieniem.",
+      "Pokazujemy, ile soli jest w porcji i jaką część dziennego limitu (5 g) to stanowi.",
+      "Alerty GIS: ostrzeżenie na ekranie produktu, gdy pasuje do wycofanego produktu, oraz lista komunikatów GIS w Diecie."
+    ]
+  },
+  {
     "title": "Zapowiedź — Nowy ekran końca treningu",
     "planned": true,
     "bullets": [

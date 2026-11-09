@@ -1,5 +1,6 @@
 import { FOOD_PRODUCTS_LOCAL } from "@/lib/food-products-data";
 import { emptyDetails, formatFoodDisplayName } from "@/lib/food-nutrition";
+import { parseNovaGroup, parseNutriGrade } from "@/lib/food-quality";
 import { englishFoodQueryVariants } from "@/lib/food-query-i18n";
 import type { FoodNutritionDetails, FoodAmountUnit, FoodProduct } from "@/lib/food-products-types";
 
@@ -306,6 +307,8 @@ type OffProduct = {
   ingredients_text?: string;
   ingredients_text_pl?: string;
   nutriments?: OffNutriments;
+  nutriscore_grade?: string;
+  nova_group?: number | string;
 };
 
 function pickNum(...vals: Array<number | undefined>): number {
@@ -479,6 +482,8 @@ export function mapOpenFoodFactsProduct(raw: OffProduct, barcode: string): FoodP
         ? pkg.amount
         : undefined,
     details,
+    nutriscoreGrade: parseNutriGrade(raw.nutriscore_grade) ?? undefined,
+    novaGroup: parseNovaGroup(raw.nova_group) ?? undefined,
   };
 }
 
@@ -549,7 +554,7 @@ export async function searchOpenFoodFacts(query: string, limit = 12): Promise<Fo
     url.searchParams.set("page_size", String(Math.min(50, Math.max(limit, 30))));
     url.searchParams.set(
       "fields",
-      "code,product_name,product_name_pl,generic_name,generic_name_pl,brands,serving_size,quantity,product_quantity,product_quantity_unit,ingredients_text,ingredients_text_pl,nutriments",
+      "code,product_name,product_name_pl,generic_name,generic_name_pl,brands,serving_size,quantity,product_quantity,product_quantity_unit,ingredients_text,ingredients_text_pl,nutriments,nutriscore_grade,nova_group",
     );
     if (withPoland) {
       url.searchParams.set("tagtype_0", "countries");

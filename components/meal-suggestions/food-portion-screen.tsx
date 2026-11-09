@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, Minus, Plus } from "lucide-react";
+import Link from "next/link";
+import { ChevronLeft, Minus, Plus, ShieldAlert } from "lucide-react";
+import { FoodQualityCard } from "@/components/meal-suggestions/food-quality-card";
+import { GisProductAlert } from "@/components/meal-suggestions/gis-product-alert";
 import type { FoodAmountUnit, FoodProduct } from "@/lib/food-products-types";
 import {
   defaultPortionForProduct,
@@ -257,6 +260,8 @@ export function FoodPortionScreen({
           </div>
         </div>
 
+        <GisProductAlert product={product} />
+
         {/* 01 ILE */}
         <section className="mt-7">
           <p className="font-display text-[12px] font-semibold tracking-[0.08em] text-[var(--gym-gold)]">
@@ -369,10 +374,26 @@ export function FoodPortionScreen({
           ) : null}
         </section>
 
-        {/* 02 POSIŁEK */}
+        {/* 02 JAKOŚĆ */}
         <section className="mt-8">
           <p className="font-display text-[12px] font-semibold tracking-[0.08em] text-[var(--gym-gold)]">
-            02 DO KTÓREGO POSIŁKU
+            02 JAKOŚĆ PRODUKTU
+          </p>
+          <div className="mt-3">
+            <FoodQualityCard product={product} effectiveGrams={macros?.effectiveGrams ?? null} />
+          </div>
+          <Link
+            href="/meal-suggestions/alerty-gis"
+            className="mt-3 inline-flex min-h-[44px] items-center gap-2 text-[12px] text-white/55 underline underline-offset-2"
+          >
+            <ShieldAlert className="h-4 w-4" aria-hidden /> Alerty GIS — wycofane produkty
+          </Link>
+        </section>
+
+        {/* 03 POSIŁEK */}
+        <section className="mt-8">
+          <p className="font-display text-[12px] font-semibold tracking-[0.08em] text-[var(--gym-gold)]">
+            03 DO KTÓREGO POSIŁKU
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {MEAL_PLAN_DIARY_SLOTS.map((s, i) => {

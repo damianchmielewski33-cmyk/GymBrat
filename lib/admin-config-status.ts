@@ -390,6 +390,15 @@ const INTEGRATIONS: IntegrationDef[] = [
     vars: [{ names: ["FDC_API_KEY", "USDA_FDC_API_KEY"] }],
   },
   {
+    id: "gis-alerts",
+    group: "content",
+    label: "Alerty GIS (wycofane produkty)",
+    description: "Źródło ostrzeżeń konsumenckich Głównego Inspektoratu Sanitarnego (RSS lub strona gov.pl).",
+    level: "optional",
+    effectWhenMissing: "Używany jest domyślny adres gov.pl/web/gis/ostrzezenia; przy błędzie źródła alerty są ukryte.",
+    vars: [{ names: ["GIS_ALERTS_FEED_URL"], optional: true }],
+  },
+  {
     id: "errors",
     group: "monitoring",
     label: "Raportowanie błędów (Sentry)",
