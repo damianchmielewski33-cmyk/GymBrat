@@ -58,4 +58,8 @@ export type FoodProduct = {
   packageUnit?: FoodAmountUnit;
   /** Szczegóły mikro / tłuszcze / cukry — na 100 g. */
   details?: FoodNutritionDetails;
+  /** Ocena Nutri-Score z Open Food Facts (A–E), jeśli dostępna. */
+  nutriscoreGrade?: string;
+  /** Grupa NOVA (1–4) z Open Food Facts. */
+  novaGroup?: number;
 };
