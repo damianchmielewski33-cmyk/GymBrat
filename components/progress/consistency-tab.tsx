@@ -1,5 +1,6 @@
 "use client";
 
+import { HelpHint } from "@/components/progress/help-hint";
 import { useMemo, useState } from "react";
 import { Meter } from "@/components/progress/progress-ui";
 import { Definition, MeterRow, WeekBars } from "@/components/progress/progress-charts";
@@ -16,11 +17,11 @@ const METRICS: ReadonlyArray<{ id: Metric; label: string }> = [
 ];
 
 const ZONE_NAME: Record<number, string> = {
-  1: "Z1 · bardzo lekko",
-  2: "Z2 · spokojne tempo",
-  3: "Z3 · umiarkowanie",
-  4: "Z4 · ciężko",
-  5: "Z5 · maksymalnie",
+  1: "Bardzo lekko",
+  2: "Spokojnie",
+  3: "Umiarkowanie",
+  4: "Ciężko",
+  5: "Na maksa",
 };
 
 function Card({ children, hero }: { children: React.ReactNode; hero?: boolean }) {
@@ -58,9 +59,9 @@ function fmtMetricLong(metric: Metric, v: number): string {
 }
 
 const METRIC_NOTE: Record<Metric, string> = {
-  workouts: "Liczba treningów siłowych w tygodniu.",
-  tonnageKg: "Tonaż to suma ciężar × powtórzenia ze wszystkich serii, w tysiącach kg.",
-  cardioMinutes: "Cardio w minutach.",
+  workouts: "Ile treningów siłowych było w tygodniu.",
+  tonnageKg: "Ile łącznie podniesiono we wszystkich seriach, w tysiącach kg.",
+  cardioMinutes: "Ile minut cardio było w tygodniu.",
 };
 
 export function ConsistencyTab({
@@ -121,7 +122,7 @@ export function ConsistencyTab({
   return (
     <div className="space-y-3.5">
       <Card hero>
-        <CardTitle id="h-reg">Ostatnie 8 tygodni</CardTitle>
+        <CardTitle id="h-reg">Czy trenujesz tak, jak w planie?</CardTitle>
         <p className="mt-1.5 flex items-baseline gap-2">
           <span className="font-metric text-[64px] leading-none text-white">{totalWorkouts}</span>
           <span className="text-[16px] text-[var(--gym-text-secondary)]">{plural(totalWorkouts, "trening", "treningi", "treningów")} w 8 tygodniach</span>
@@ -171,7 +172,7 @@ export function ConsistencyTab({
       </Card>
 
       <Card>
-        <CardTitle id="h-wk">Tydzień po tygodniu</CardTitle>
+        <div className="flex items-start justify-between gap-2"><CardTitle id="h-wk">Ile pracy za Tobą?</CardTitle><HelpHint term="tonnage" /></div>
         <div role="group" aria-label="Wskaźnik" className="mb-4 mt-3 grid grid-cols-3 gap-1 rounded-xl border border-white/10 bg-black/30 p-1">
           {METRICS.map((m) => (
             <button
@@ -201,7 +202,7 @@ export function ConsistencyTab({
       </Card>
 
       <Card>
-        <CardTitle id="h-diet">Dieta a trening</CardTitle>
+        <CardTitle id="h-diet">Czy jesz tyle, ile trzeba?</CardTitle>
         {dietTraining.hasGoals && diet && diet.daysLogged > 0 ? (
           <div className="mt-3 space-y-4">
             <p className="text-[13px] text-[var(--gym-text-secondary)]">
@@ -218,9 +219,9 @@ export function ConsistencyTab({
               pct={proteinGoalDay > 0 ? (proteinAvg / proteinGoalDay) * 100 : 0}
               note={
                 proteinGoalDay > 0 && proteinGap > 5
-                  ? `Białka brakuje około ${fmtNum(proteinGap)} g dziennie. Przy treningu siłowym to częsty powód wolniejszego progresu.`
+                  ? `Brakuje średnio ${fmtNum(proteinGap)} g białka dziennie. Przy treningu siłowym białko pomaga budować mięśnie.`
                   : proteinGoalDay > 0
-                    ? "Białko w normie względem celu."
+                    ? "Białka jest tyle, ile trzeba."
                     : undefined
               }
             />
@@ -228,14 +229,14 @@ export function ConsistencyTab({
         ) : (
           <p className="mt-2 text-[14px] leading-snug text-[var(--gym-text-secondary)]">
             {dietTraining.hasGoals
-              ? "W tym tygodniu nie ma jeszcze wpisów w dzienniku. Zapisz posiłki, a porównamy je z celami."
-              : "Ustaw cele żywieniowe i zapisuj posiłki w dzienniku, żeby zobaczyć tutaj, jak dieta wpływa na trening."}
+              ? "W tym tygodniu nie ma jeszcze zapisanych posiłków. Zapisz je, a porównamy z Twoimi celami."
+              : "Ustaw cele żywieniowe i zapisuj posiłki. Zobaczysz tu, czy jesz tyle, ile trzeba przy takim treningu."}
           </p>
         )}
       </Card>
 
       <Card>
-        <CardTitle id="h-car">Cardio w tym tygodniu</CardTitle>
+        <div className="flex items-start justify-between gap-2"><CardTitle id="h-car">Jak ciężkie było cardio?</CardTitle><HelpHint term="cardioZones" /></div>
         <p className="mb-3.5 mt-1 text-[13px] text-[var(--gym-text-secondary)]">
           {Math.round(summary.cardioMinutes)} min. Cel: {summary.cardioGoalMinutes} min.
         </p>
@@ -252,10 +253,10 @@ export function ConsistencyTab({
             ))}
           </ul>
         ) : (
-          <p className="text-[14px] text-[var(--gym-text-secondary)]">Brak cardio z tętnem w tym tygodniu, więc nie ma podziału na strefy.</p>
+          <p className="text-[14px] text-[var(--gym-text-secondary)]">W tym tygodniu nie ma cardio z zapisanym tętnem, więc nie pokażemy podziału.</p>
         )}
         <Definition className="mt-3.5">
-          <b className="text-white">Strefy</b> to zakresy tętna od Z1 (bardzo lekko) do Z5 (maksymalnie). {cardio.performance.verdictLabel}
+          Oceniamy to po Twoim tętnie. {cardio.performance.verdictLabel}
           {cardio.performance.hrThen != null && cardio.performance.hrNow != null
             ? ` Tętno na podobnym wysiłku: ${cardio.performance.hrThen} → ${cardio.performance.hrNow}.`
             : ""}

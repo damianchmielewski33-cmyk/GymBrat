@@ -263,7 +263,7 @@ export function ExerciseDetailView({
             </div>
           ) : (
             <p className="mt-2 text-[14px] leading-snug text-[var(--gym-text-secondary)]">
-              Nie ustawiono celu dla tego ćwiczenia. Dodaj go w zakładce Podsumowanie, w sekcji Cele.
+              Nie ustawiono celu dla tego ćwiczenia. Dodaj go w zakładce Skrót, w sekcji Cele.
             </p>
           )}
         </Card>

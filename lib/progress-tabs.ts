@@ -1,9 +1,9 @@
 export const PROGRESS_TABS = [
-  { id: "podsumowanie", label: "Podsumowanie" },
+  { id: "podsumowanie", label: "Skrót" },
   { id: "sila", label: "Siła" },
   { id: "cialo", label: "Ciało" },
   { id: "regularnosc", label: "Regularność" },
-  { id: "porownanie", label: "Porównanie" },
+  { id: "porownanie", label: "Tygodnie" },
 ] as const;
 
 export type ProgressTabId = (typeof PROGRESS_TABS)[number]["id"];
