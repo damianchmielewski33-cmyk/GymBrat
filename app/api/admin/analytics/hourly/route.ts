@@ -17,13 +17,20 @@ export const runtime = "nodejs";
 
 const TZ = () => process.env.ANALYTICS_TIMEZONE?.trim() || "Europe/Warsaw";
 
-async function handleGET(_req: Request) {
+async function handleGET(req: Request) {
   const gate = await requireAdminApi();
   if (!gate.ok) return gate.response;
 
   const timeZone = TZ();
-  const toYmd = nowLocalYmd(timeZone);
-  const fromYmd = addCalendarDaysYmd(toYmd, -6);
+  const sp = new URL(req.url).searchParams;
+  const qFrom = sp.get("from");
+  const qTo = sp.get("to");
+  const valid =
+    qFrom && qTo && /^\d{4}-\d{2}-\d{2}$/.test(qFrom) && /^\d{4}-\d{2}-\d{2}$/.test(qTo) && qFrom <= qTo;
+  const toYmd = valid ? qTo : nowLocalYmd(timeZone);
+  let fromYmd = valid ? qFrom : addCalendarDaysYmd(toYmd, -6);
+  // Mapa ciepła: maks. 31 dni (czytelność); bierzemy końcówkę zakresu.
+  if (listLocalYmdsInclusive(fromYmd, toYmd).length > 31) fromYmd = addCalendarDaysYmd(toYmd, -30);
   const { fromIso, toIso } = localYmdInclusiveUtcRange(fromYmd, toYmd, timeZone);
 
   const days = listLocalYmdsInclusive(fromYmd, toYmd);

@@ -1,5 +1,14 @@
 [
   {
+    "title": "Zapowiedź — Nowa analityka w panelu admina",
+    "planned": true,
+    "bullets": [
+      "Ruch dzień po dniu, rejestracje, treningi i przychód na czytelnych wykresach w jednym stylu.",
+      "KPI z porównaniem do poprzedniego okresu oraz konwersją odwiedzin na konta.",
+      "Mapa ciepła i wykres godzinowy podążają za wybranym zakresem dat; poprawiono datę „dziś” liczoną w UTC.","Retencja: D1/D7/D30 oraz kohorty tygodniowe nowych kont."
+    ]
+  },
+  {
     "title": "Zapowiedź — Jakość produktu i alerty GIS",
     "planned": true,
     "bullets": [

@@ -2,9 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  ComposedChart,
+  Legend,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -25,13 +31,55 @@ import { Input } from "@/components/ui/input";
 import { adminRequest } from "@/lib/admin-client";
 import { cn } from "@/lib/utils";
 
+const GOLD = "#c9a45c";
+const GOLD_BRIGHT = "#e6c987";
+const SKY = "#7dd3fc";
+const GREEN = "#3ecf72";
+const AXIS = { fill: "rgba(255,255,255,0.5)", fontSize: 11 };
+const GRID = "rgba(255,255,255,0.07)";
+
 const tooltipStyle = {
-  backgroundColor: "rgba(7, 8, 13, 0.92)",
-  border: "1px solid rgba(255, 255, 255, 0.12)",
+  backgroundColor: "rgba(12, 12, 14, 0.96)",
+  border: "1px solid rgba(201, 164, 92, 0.3)",
   borderRadius: "12px",
   fontSize: "12px",
-  color: "rgba(255, 255, 255, 0.9)",
+  color: "rgba(255, 255, 255, 0.92)",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
 };
+const tooltipLabelStyle = { color: GOLD_BRIGHT, fontWeight: 600, marginBottom: 4 };
+const cursorStyle = { fill: "rgba(201,164,92,0.08)" };
+const legendStyle = { fontSize: 12, color: "rgba(255,255,255,0.65)" };
+
+const fmtInt = (n: number) => n.toLocaleString("pl-PL");
+const shortDay = (ymd: string) => `${ymd.slice(8, 10)}.${ymd.slice(5, 7)}`;
+const longDay = (ymd: string) => {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("pl-PL", {
+    timeZone: "UTC",
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+  });
+};
+
+function Delta({ cur, prev }: { cur: number; prev: number }) {
+  if (prev <= 0) return <span className="text-white/45">brak danych z poprzedniego okresu</span>;
+  const pct = ((cur - prev) / prev) * 100;
+  const up = pct >= 0;
+  return (
+    <span className={up ? "text-emerald-300" : "text-rose-300"}>
+      {up ? "▲" : "▼"} {Math.abs(pct).toFixed(0)}% vs poprzedni okres ({fmtInt(prev)})
+    </span>
+  );
+}
+
+function EmptyChart({ children }: { children: string }) {
+  return (
+    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-white/10 text-sm text-white/45">
+      {children}
+    </div>
+  );
+}
 
 type AnalyticsJson = {
   range: { from: string; to: string };
@@ -57,6 +105,25 @@ type AnalyticsJson = {
     actor_label: string;
     time_display: string;
   }[];
+  timeline: {
+    ymd: string;
+    views: number;
+    unique_visitors: number;
+    signups: number;
+    workouts: number;
+    revenue_pln: number;
+    orders: number;
+  }[];
+  previous: { total_views: number; unique_visitors: number };
+  business: {
+    signups: number;
+    workouts: number;
+    workout_users: number;
+    revenue_pln: number;
+    orders: number;
+    visitors_total: number;
+    visitors_logged_in: number;
+  };
 };
 
 type HourlyJson = {
@@ -68,13 +135,20 @@ type HourlyJson = {
   by_day?: { ymd: string; label: string; hours: number[]; total: number }[];
 };
 
+type RetentionJson = {
+  weekly: { cohort_start: string; size: number; retention: (number | null)[] }[];
+  day_retention: { day: number; eligible: number; returned: number; percent: number | null }[];
+};
+
 const PRESETS = [
   { days: 7, label: "7 dni" },
   { days: 14, label: "14 dni" },
   { days: 30, label: "30 dni" },
 ] as const;
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+/** Data lokalna (nie UTC) — spójna z `input type="date"` i strefą analityki. */
+const iso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 function rangeForDays(days: number): { from: string; to: string } {
   const to = new Date();
@@ -96,6 +170,7 @@ export function AdminOverviewClient() {
   const [{ from, to }, setRange] = useState(() => rangeForDays(14));
   const [analytics, setAnalytics] = useState<AnalyticsJson | null>(null);
   const [hourly, setHourly] = useState<HourlyJson | null>(null);
+  const [retention, setRetention] = useState<RetentionJson | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activityLogOpen, setActivityLogOpen] = useState(false);
@@ -104,11 +179,16 @@ export function AdminOverviewClient() {
     async (showToast = false) => {
       setLoading(true);
       setError(null);
+      void adminRequest<RetentionJson>("/api/admin/analytics/retention").then((r) => {
+        if (r.ok) setRetention(r.data);
+      });
       const [a, h] = await Promise.all([
         adminRequest<AnalyticsJson>(
           `/api/admin/analytics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
         ),
-        adminRequest<HourlyJson>("/api/admin/analytics/hourly"),
+        adminRequest<HourlyJson>(
+          `/api/admin/analytics/hourly?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+        ),
       ]);
       if (!a.ok || !h.ok) {
         const msg = "Nie udało się wczytać analityki (upewnij się, że jesteś zalogowany do panelu).";
@@ -139,6 +219,12 @@ export function AdminOverviewClient() {
   );
 
   const hourData = useMemo(() => hourly?.by_hour ?? [], [hourly]);
+  const timeline = useMemo(
+    () => analytics?.timeline.map((d) => ({ ...d, label: shortDay(d.ymd) })) ?? [],
+    [analytics],
+  );
+  const hasRevenue = (analytics?.business.revenue_pln ?? 0) > 0;
+  const hourRange = hourly?.range ? `${hourly.range.from} → ${hourly.range.to}` : "wybrany zakres";
   const heatmapDays = useMemo(() => hourly?.by_day ?? [], [hourly]);
 
   const heatMax = useMemo(() => {
@@ -150,8 +236,8 @@ export function AdminOverviewClient() {
   const heatColor = useCallback(
     (v: number) => {
       if (v <= 0 || heatMax <= 0) return "rgba(255,255,255,0.04)";
-      const alpha = 0.12 + 0.62 * Math.min(1, v / heatMax);
-      return `rgba(255,45,85,${alpha.toFixed(3)})`;
+      const alpha = 0.16 + 0.8 * Math.min(1, v / heatMax);
+      return `rgba(201,164,92,${alpha.toFixed(3)})`;
     },
     [heatMax],
   );
@@ -236,15 +322,59 @@ export function AdminOverviewClient() {
         >
           <AdminStat
             label="Odsłony"
-            value={analytics.totals.total_views}
-            hint={`${analytics.totals.authenticated_views} zalogowanych · ${analytics.totals.anonymous_views} anonimowych`}
+            value={fmtInt(analytics.totals.total_views)}
+            hint={
+              <>
+                <Delta cur={analytics.totals.total_views} prev={analytics.previous.total_views} />
+                <br />
+                {analytics.totals.authenticated_views} zalogowanych · {analytics.totals.anonymous_views} anonimowych
+              </>
+            }
           />
-          <AdminStat label="Unikalni odwiedzający" value={analytics.totals.unique_visitors} />
-          <AdminStat label="Konta w bazie" value={analytics.accounts.registered_total} tone="gold" />
+          <AdminStat
+            label="Unikalni odwiedzający"
+            value={fmtInt(analytics.totals.unique_visitors)}
+            hint={<Delta cur={analytics.totals.unique_visitors} prev={analytics.previous.unique_visitors} />}
+          />
+          <AdminStat
+            label="Nowe konta"
+            value={fmtInt(analytics.business.signups)}
+            hint={`${fmtInt(analytics.accounts.registered_total)} kont w bazie`}
+            tone="gold"
+          />
           <AdminStat
             label="Aktywni zalogowani"
-            value={analytics.accounts.distinct_logged_in_visitors_in_range}
+            value={fmtInt(analytics.accounts.distinct_logged_in_visitors_in_range)}
+            hint={`${fmtInt(analytics.business.workout_users)} z zapisanym treningiem`}
+          />
+          <AdminStat
+            label="Zapisane treningi"
+            value={fmtInt(analytics.business.workouts)}
             hint="w wybranym zakresie"
+          />
+          <AdminStat
+            label="Przychód (opłacone)"
+            value={`${analytics.business.revenue_pln.toLocaleString("pl-PL", { minimumFractionDigits: 2 })} zł`}
+            hint={`${analytics.business.orders} zamówień`}
+            tone="ok"
+          />
+          <AdminStat
+            label="Konwersja odwiedzin → konto"
+            value={
+              analytics.totals.unique_visitors > 0
+                ? `${((analytics.business.signups / analytics.totals.unique_visitors) * 100).toFixed(1)}%`
+                : "—"
+            }
+            hint="nowe konta / unikalni odwiedzający"
+          />
+          <AdminStat
+            label="Udział zalogowanych"
+            value={
+              analytics.business.visitors_total > 0
+                ? `${((analytics.business.visitors_logged_in / analytics.business.visitors_total) * 100).toFixed(0)}%`
+                : "—"
+            }
+            hint="odwiedzający z kontem"
           />
         </div>
       ) : null}
@@ -253,65 +383,216 @@ export function AdminOverviewClient() {
 
       {analytics ? (
         <div className={cn("space-y-6 transition-opacity", loading && "opacity-60")}>
+          <AdminCard
+            title="Ruch dzień po dniu"
+            description="Odsłony i unikalni odwiedzający w wybranym zakresie."
+          >
+            <div className="h-[280px] w-full">
+              {timeline.some((d) => d.views > 0) ? (
+                <ResponsiveContainer width="100%" height="100%" minHeight={100} initialDimension={{ width: 320, height: 200 }}>
+                  <AreaChart data={timeline} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gViews" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={GOLD} stopOpacity={0.45} />
+                        <stop offset="100%" stopColor={GOLD} stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="gUniq" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={SKY} stopOpacity={0.3} />
+                        <stop offset="100%" stopColor={SKY} stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke={GRID} vertical={false} />
+                    <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} minTickGap={16} />
+                    <YAxis tick={AXIS} tickLine={false} axisLine={false} width={44} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      labelStyle={tooltipLabelStyle}
+                      cursor={{ stroke: GOLD, strokeOpacity: 0.4 }}
+                      labelFormatter={(_, p) => (p?.[0]?.payload?.ymd ? longDay(p[0].payload.ymd) : "")}
+                    />
+                    <Legend wrapperStyle={legendStyle} iconType="circle" />
+                    <Area type="monotone" dataKey="views" name="Odsłony" stroke={GOLD} strokeWidth={2} fill="url(#gViews)" activeDot={{ r: 4 }} />
+                    <Area type="monotone" dataKey="unique_visitors" name="Unikalni" stroke={SKY} strokeWidth={2} fill="url(#gUniq)" activeDot={{ r: 4 }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyChart>Brak odsłon w wybranym zakresie.</EmptyChart>
+              )}
+            </div>
+          </AdminCard>
+
           <div className="grid gap-4 lg:grid-cols-2">
             <AdminCard
-              title="Najczęstsze ekrany"
-              description="Rozkład wizyt według zmapowanych ścieżek aplikacji."
+              title="Rejestracje i treningi"
+              description="Nowe konta oraz zapisane treningi dziennie."
             >
-              <div className="h-[280px] w-full">
-                <ResponsiveContainer
-          width="100%"
-          height="100%"
-          minHeight={100}
-          initialDimension={{ width: 320, height: 200 }}
-        >
-                  <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                    <XAxis type="number" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} />
-                    <YAxis
-                      type="category"
-                      dataKey="label"
-                      width={120}
-                      tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
-                    />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="views" fill="var(--gym-gold)" radius={[0, 6, 6, 0]} name="Wejścia" />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="h-[260px] w-full">
+                {timeline.some((d) => d.signups > 0 || d.workouts > 0) ? (
+                  <ResponsiveContainer width="100%" height="100%" minHeight={100} initialDimension={{ width: 320, height: 200 }}>
+                    <ComposedChart data={timeline} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                      <CartesianGrid stroke={GRID} vertical={false} />
+                      <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} minTickGap={16} />
+                      <YAxis tick={AXIS} tickLine={false} axisLine={false} width={36} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        labelStyle={tooltipLabelStyle}
+                        cursor={cursorStyle}
+                        labelFormatter={(_, p) => (p?.[0]?.payload?.ymd ? longDay(p[0].payload.ymd) : "")}
+                      />
+                      <Legend wrapperStyle={legendStyle} iconType="circle" />
+                      <Bar dataKey="workouts" name="Treningi" fill={GOLD} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                      <Line type="monotone" dataKey="signups" name="Nowe konta" stroke={GREEN} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyChart>Brak rejestracji i treningów w zakresie.</EmptyChart>
+                )}
               </div>
             </AdminCard>
 
             <AdminCard
-              title="Ruch wg godzin (ostatnie 7 dni)"
-              description={`Suma wejść w przedziałach godzinowych${hourly?.peak ? ` (szczyt ${hourly.peak.label})` : ""}.`}
+              title="Przychód dzienny"
+              description="Opłacone zamówienia (zł) wg dnia płatności."
             >
-              <div className="h-[280px] w-full">
-                <ResponsiveContainer
-          width="100%"
-          height="100%"
-          minHeight={100}
-          initialDimension={{ width: 320, height: 200 }}
-        >
-                  <BarChart data={hourData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="rgba(255,255,255,0.06)"
-                      vertical={false}
-                    />
-                    <XAxis dataKey="label" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
-                    <YAxis tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} width={36} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="views" fill="var(--gym-gold)" radius={[6, 6, 0, 0]} name="Wejścia" />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="h-[260px] w-full">
+                {hasRevenue ? (
+                  <ResponsiveContainer width="100%" height="100%" minHeight={100} initialDimension={{ width: 320, height: 200 }}>
+                    <BarChart data={timeline} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                      <CartesianGrid stroke={GRID} vertical={false} />
+                      <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} minTickGap={16} />
+                      <YAxis tick={AXIS} tickLine={false} axisLine={false} width={44} />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        labelStyle={tooltipLabelStyle}
+                        cursor={cursorStyle}
+                        labelFormatter={(_, p) => (p?.[0]?.payload?.ymd ? longDay(p[0].payload.ymd) : "")}
+                        formatter={(v) => [`${Number(v).toLocaleString("pl-PL", { minimumFractionDigits: 2 })} zł`, "Przychód"]}
+                      />
+                      <Bar dataKey="revenue_pln" name="Przychód" fill={GREEN} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyChart>Brak opłaconych zamówień w zakresie.</EmptyChart>
+                )}
               </div>
             </AdminCard>
           </div>
 
+          <div className="grid gap-4 lg:grid-cols-2">
+            <AdminCard
+              title="Najczęstsze ekrany"
+              description="Odsłony i unikalni odwiedzający wg ekranu (top 10)."
+            >
+              <div className="h-[320px] w-full">
+                {chartData.length ? (
+                  <ResponsiveContainer width="100%" height="100%" minHeight={100} initialDimension={{ width: 320, height: 200 }}>
+                    <BarChart data={chartData.slice(0, 10)} layout="vertical" margin={{ left: 4, right: 16, top: 4 }}>
+                      <CartesianGrid stroke={GRID} horizontal={false} />
+                      <XAxis type="number" tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
+                      <YAxis type="category" dataKey="label" width={124} tick={{ ...AXIS, fill: "rgba(255,255,255,0.7)" }} tickLine={false} axisLine={false} />
+                      <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} cursor={cursorStyle} />
+                      <Legend wrapperStyle={legendStyle} iconType="circle" />
+                      <Bar dataKey="views" name="Odsłony" fill={GOLD} radius={[0, 5, 5, 0]} barSize={10} />
+                      <Bar dataKey="uniques" name="Unikalni" fill={SKY} radius={[0, 5, 5, 0]} barSize={10} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyChart>Brak odsłon w zakresie.</EmptyChart>
+                )}
+              </div>
+            </AdminCard>
+
+            <AdminCard
+              title="Ruch wg godziny doby"
+              description={`${hourRange}${hourly?.peak && hourly.peak.views > 0 ? ` · szczyt ${hourly.peak.label} (${fmtInt(hourly.peak.views)})` : ""}. Zakres mapy: maks. 31 dni.`}
+            >
+              <div className="h-[320px] w-full">
+                {hourly && hourly.total_views > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%" minHeight={100} initialDimension={{ width: 320, height: 200 }}>
+                    <BarChart data={hourData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+                      <CartesianGrid stroke={GRID} vertical={false} />
+                      <XAxis dataKey="hour" tick={{ ...AXIS, fontSize: 10 }} tickLine={false} axisLine={{ stroke: GRID }} interval={1} tickFormatter={(h) => String(h).padStart(2, "0")} />
+                      <YAxis tick={AXIS} tickLine={false} axisLine={false} width={40} allowDecimals={false} />
+                      <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} cursor={cursorStyle} labelFormatter={(h) => `${String(h).padStart(2, "0")}:00`} />
+                      <Bar dataKey="views" name="Wejścia" radius={[4, 4, 0, 0]}>
+                        {hourData.map((h) => (
+                          <Cell key={h.hour} fill={h.hour === hourly.peak.hour ? GOLD_BRIGHT : GOLD} fillOpacity={h.hour === hourly.peak.hour ? 1 : 0.65} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyChart>Brak wejść w zakresie.</EmptyChart>
+                )}
+              </div>
+            </AdminCard>
+          </div>
+
+          {retention ? (
+            <AdminCard
+              title="Retencja użytkowników"
+              description="Jaki odsetek nowych kont wraca do aplikacji (ostatnie 8 tygodni rejestracji, niezależnie od zakresu)."
+            >
+              <div className="mb-4 grid grid-cols-3 gap-3">
+                {retention.day_retention.map((r) => (
+                  <AdminStat
+                    key={r.day}
+                    label={`Retencja D${r.day}`}
+                    value={r.percent == null ? "—" : `${r.percent.toFixed(1)}%`}
+                    hint={r.eligible ? `${r.returned} z ${r.eligible} kont` : "za mało danych"}
+                    tone="gold"
+                  />
+                ))}
+              </div>
+              {retention.weekly.some((c) => c.size > 0) ? (
+                <div className="min-w-0 overflow-x-auto">
+                  <table className="w-full min-w-[560px] border-separate border-spacing-1 text-center text-[11px]">
+                    <thead className="text-white/50">
+                      <tr>
+                        <th className="px-2 text-left font-medium">Kohorta (tydz.)</th>
+                        <th className="font-medium">Konta</th>
+                        {retention.weekly.map((_, k) => (
+                          <th key={k} className="font-mono font-medium">
+                            T{k}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {retention.weekly.map((c) => (
+                        <tr key={c.cohort_start}>
+                          <td className="px-2 text-left text-white/70">{shortDay(c.cohort_start)}</td>
+                          <td className="tabular-nums text-white/70">{c.size}</td>
+                          {c.retention.map((v, k) => (
+                            <td
+                              key={k}
+                              title={v == null ? "brak danych" : `${v}% aktywnych w tygodniu ${k}`}
+                              className="h-7 rounded-md tabular-nums text-white/90"
+                              style={{
+                                backgroundColor:
+                                  v == null
+                                    ? "transparent"
+                                    : `rgba(201,164,92,${(0.08 + 0.85 * (v / 100)).toFixed(3)})`,
+                              }}
+                            >
+                              {v == null ? "" : `${Math.round(v)}%`}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-white/45">Brak nowych kont w ostatnich 8 tygodniach.</p>
+              )}
+            </AdminCard>
+          ) : null}
+
           {heatmapDays.length ? (
             <AdminCard
-              title="Mapa ciepła wejść (godzina × dzień)"
-              description={`Ostatnie 7 dni w strefie ${hourly?.timezone ?? "Europe/Warsaw"}. Jaśniej = więcej wejść.`}
+              title="Mapa ciepła wejść (dzień × godzina)"
+              description={`${hourRange} w strefie ${hourly?.timezone ?? "Europe/Warsaw"}. Jaśniej = więcej wejść.`}
             >
               <div className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                 <div className="min-w-[880px]">
@@ -342,7 +623,15 @@ export function AdminOverviewClient() {
                     ))}
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-3 text-xs text-white/50">
-                    <span>Skala: 0 → {heatMax}</span>
+                    <span className="flex items-center gap-2">
+                      0
+                      <span
+                        aria-hidden
+                        className="h-2 w-28 rounded-full"
+                        style={{ background: "linear-gradient(90deg, rgba(201,164,92,0.16), rgba(201,164,92,0.96))" }}
+                      />
+                      {heatMax}
+                    </span>
                     <span className="font-mono">
                       {hourly?.range?.from && hourly?.range?.to
                         ? `${hourly.range.from} → ${hourly.range.to}`
