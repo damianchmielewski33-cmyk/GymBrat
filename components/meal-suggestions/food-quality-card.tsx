@@ -103,7 +103,7 @@ export function FoodQualityCard({
                     "inline-flex items-center justify-center rounded-lg font-display font-semibold transition-all",
                     active
                       ? cn("h-10 w-10 text-[20px] text-black", GRADE_STYLE[letter].bg)
-                      : "h-8 w-8 bg-white/[0.06] text-[14px] text-white/40",
+                      : "h-8 w-8 bg-white/[0.06] text-[14px] text-white/60",
                   )}
                 >
                   {letter}
