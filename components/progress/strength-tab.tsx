@@ -118,13 +118,10 @@ export function StrengthTab({ data, intelligence }: { data: ProgressHubData["str
         <p className="mt-1.5 text-[15px] leading-[22px] text-[#d9d2c4]">
           W {counts.up} z {rows.length} {plural(rows.length, "ćwiczenia", "ćwiczeń", "ćwiczeń")} podnosisz więcej niż miesiąc temu.
         </p>
-        <div className="mt-3 grid grid-cols-3 gap-2.5">
-          {(["up", "flat", "down"] as const).map((t) => (
-            <div key={t}>
-              <div className={cn("font-metric text-[52px] leading-none", t === "flat" ? "text-white" : toneClass(t))}>{counts[t]}</div>
-              <div className="text-[13px] text-[var(--gym-text-secondary)]">{t === "up" ? "idzie w górę" : t === "flat" ? "bez zmian" : "słabiej"}</div>
-            </div>
-          ))}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="rounded-full bg-[var(--gym-success)]/15 px-2.5 py-1.5 text-[13px] font-semibold text-[#7fe3a3]">{counts.up} idzie w górę</span>
+          <span className="rounded-full bg-white/[0.08] px-2.5 py-1.5 text-[13px] font-semibold text-[#d9d2c4]">{counts.flat} bez zmian</span>
+          <span className="rounded-full bg-[var(--gym-skipped)]/15 px-2.5 py-1.5 text-[13px] font-semibold text-[#ffb870]">{counts.down} słabiej</span>
         </div>
         <p className="mt-3.5 text-[13px] leading-snug text-[var(--gym-text-secondary)]">Porównujemy ostatnie 30 dni z 30 dniami wcześniej. „Idzie w górę” znaczy, że podnosisz o co najmniej 1% więcej.</p>
       </Card>

@@ -149,6 +149,11 @@ export function CompareTab({
       <Card hero>
         <div className="flex items-start justify-between gap-2"><CardTitle id="h-cmp">Czy ten tydzień jest lepszy?</CardTitle><HelpHint term="weeks" /></div>
         <p className="mt-1 text-[13px] text-[var(--gym-text-secondary)]">Wybierz dwa tygodnie. Zobaczysz, w czym jest lepiej, a w czym gorzej.</p>
+        {pa && pb && a !== b && calc.some((c) => c.d != null) ? (
+          <p className="font-heading mt-3 text-[24px] font-bold leading-[30px] text-white">
+            {more.length > less.length ? "Tak" : more.length < less.length ? "Nie" : "Podobnie"}, w {more.length} z {calc.filter((c) => c.d != null).length} rzeczy jest więcej
+          </p>
+        ) : null}
         <WeekChips label="Wcześniej" weeks={options} value={a} onPick={setA} />
         <WeekChips label="Teraz" weeks={options} value={b} onPick={setB} />
         <Definition className="mt-3.5">
@@ -159,8 +164,8 @@ export function CompareTab({
 
       <Card>
         <div className="flex justify-between gap-2 text-[13px] text-[var(--gym-text-secondary)]">
-          <span><b className="mr-1.5 inline-block h-3 w-3 rounded-sm bg-[#716a5b] align-[-1px]" />A: {options.find((o) => o.monday === a)?.label ?? "—"}</span>
-          <span><b className="gym-meter-gold mr-1.5 inline-block h-3 w-3 rounded-sm align-[-1px]" />B: {options.find((o) => o.monday === b)?.label ?? "—"}</span>
+          <span><b className="mr-1.5 inline-block h-3 w-3 rounded-sm bg-[#716a5b] align-[-1px]" />Wcześniej: {options.find((o) => o.monday === a)?.label ?? "—"}</span>
+          <span><b className="gym-meter-gold mr-1.5 inline-block h-3 w-3 rounded-sm align-[-1px]" />Teraz: {options.find((o) => o.monday === b)?.label ?? "—"}</span>
         </div>
         {calc.map(({ r, d, dir, tone }, i) => {
           const m = Math.max(r.a ?? 0, r.b ?? 0, 1);
@@ -173,8 +178,8 @@ export function CompareTab({
                 </span>
               </div>
               {[
-                { v: r.a, cls: "bg-[#716a5b]", text: "text-[var(--gym-text-secondary)]", l: "A" },
-                { v: r.b, cls: "gym-meter-gold", text: "text-white", l: "B" },
+                { v: r.a, cls: "bg-[#716a5b]", text: "text-[var(--gym-text-secondary)]", l: "Wcześniej" },
+                { v: r.b, cls: "gym-meter-gold", text: "text-white", l: "Teraz" },
               ].map((x) => (
                 <div key={x.l} className="mt-2 flex items-center gap-2.5">
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--gym-track)]" role="img" aria-label={`${x.l}: ${x.v == null ? "brak danych" : r.fmt(x.v)}`}>
@@ -187,7 +192,7 @@ export function CompareTab({
           );
         })}
         <p className="text-[13px] text-[var(--gym-text-secondary)]">
-          Tonaż to suma ciężar × powtórzenia ze wszystkich serii. Dieta pokazuje średnią z dni z wpisem w dzienniku.
+          Podniesione kilogramy to suma ze wszystkich serii (ciężar razy powtórzenia). Jedzenie liczymy ze średniej z dni, w które zapisano posiłki.
         </p>
       </Card>
 
