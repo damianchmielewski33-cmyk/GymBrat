@@ -40,6 +40,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US20 | Analityka, strona produktu, refaktor, dokumentacja | P2 | XL | Z53, Z76, Z80, Z83 | CZĘŚCIOWO 2026-11-04 (testy/tsc/lint NIEURUCHOMIONE, brak npm): Z53 zdarzenia + definicje (dashboard w PostHog zakłada właściciel), Z76 `/start`, Z83 dokumentacja; Z80 częściowo: `home-start` (195 l.) i `teams` (346 l.) < 500, changelog → JSON, `progress-hub` (1404 l.) i `body-report-form` (805 l.) nadal > 500 |
 | US21 | Domknięcie: weryfikacja, długi i prace właściciela po US1–US20 | P0 | XL | Z84, Z85, Z86, Z87, Z88, Z89, Z90 | TODO |
 | US22–US31 | Nowy backlog poprawek z analizy 2026-11-08 (higiena, crony, Premium, daty, RODO, koszty…) | P0–P3 | — | Z91–Z124 | TODO — szczegóły: [2026-11-08-analiza-i-backlog-poprawek.md](2026-11-08-analiza-i-backlog-poprawek.md) |
+| US32 | Moderacja community: filtr, skan zdjęć, alerty admina, regulamin | P0 | XL | Z125–Z134 | TODO — decyzje właściciela 2026-11-10 (sekcja niżej); budowa tablicy ze zdjęciami i wiadomości prywatnych jest częścią US |
 
 Weryfikacja pokrycia: 6+4+4+4+4+4+2+5+4+4+5+3+4+4+3+4+9+4+2+4 = 83 podzadania (każde Z1–Z83 występuje dokładnie raz). US21 dodaje Z84–Z90 (łącznie 90): to **domknięcia** niedokończonych prac z US1–US20, nie nowe funkcje; oryginalne Z1–Z83 zostają w swoich US ze swoimi statusami.
 
@@ -188,3 +189,33 @@ Agent może zrobić wcześniej i w repo: kod, testy, migracje, szkice dokumentó
 **Podzadania** Z84 uruchomienie bramek jakości (wymaga npm) · Z85 lint (domknięcie Z42) · Z86 E2E, axe i zrzuty (Z43, Z46, Z69, Z74) · Z87 pomiary, migracje i testy współbieżności (Z41, Z40, Z72) · Z88 dokończenie kodu (Z80, Z39, CAS, Z36) · Z89 prace właściciela `[NA KONIEC]` · Z90 zatwierdzenia prawne i domknięcie decyzji.
 **Kolejność** Z84 → Z85 → Z88 → Z86 → Z87 (agent, gdy będzie dostęp do npm) → Z89 → Z90 → `US19` (Z51, Z52).
 **Gotowe, gdy** `npm ci`, `vitest`, `tsc`, `lint:ci`, `build`, `deploy:check`, E2E i axe zielone; wszystkie `[NA KONIEC]` zamknięte przez właściciela; US2–US18 i US20 mają status `ZROBIONE`; można przejść do US19.
+
+## US32 — Moderacja community: filtr, skan zdjęć, alerty admina, regulamin
+**P0 · XL · Zależności** US3 (zgody), US7 (dokumenty prawne, retencja), US10 (rate limiting) · **Postęp** 0/10 · **Źródło** polecenie właściciela 2026-11-10 (admin musi wiedzieć, co dzieje się w community; filtr słów i skan zdjęć jak na platformach społecznościowych)
+**Cel** Każda treść użytkowników (czat, tablica ze zdjęciami, wiadomości prywatne, profile, nazwy i opisy drużyn) przechodzi bramkę moderacji; admin dostaje alert zależny od wagi sprawy i ma kolejkę z decyzjami.
+
+**Decyzje właściciela (2026-11-10, zatwierdzone):**
+- Tryb **hybrydowy**: czysty tekst widoczny od razu po filtrze; zdjęcia i treści podejrzane czekają na skan/admina. Skan zdjęcia może być opóźniony; do czasu skanu zdjęcie widzi tylko autor (założenie agenta, do potwierdzenia: właściciel odpowiedział „skan może być opóźniony").
+- Dostawca skanu: chmurowy; priorytet **koszt jak najniższy, najlepiej darmowy**. Propozycja agenta do akceptacji przed kodem: darmowe API moderacji OpenAI (tekst i obrazy; sprawdzić aktualne warunki, limity i wymogi umowy powierzenia) + własna lista słów; dostawca wymieniony w `lib/admin-config-status.ts` i w polityce prywatności.
+- Zakres: czat drużyn i wyzwań (istnieje), **tablica ze zdjęciami (do zbudowania)**, **wiadomości prywatne (do zbudowania)**, profile, nazwy i opisy drużyn. Zdjęcia sylwetki na tablicy dopuszczone; skanowane także zdjęcia w wiadomościach prywatnych.
+- Kategorie do blokowania/oznaczania: groźby, nienawiść i dyskryminacja, treści seksualne, terroryzm i bezpieczeństwo państwa/miast, samookaleczenie, dane osobowe, spam i oszustwa. Wulgaryzmy tylko **oznaczane** dla admina (nie blokowane, nie maskowane). Lista słów **nie** jest edytowalna w panelu.
+- Alerty: push w panelu admina + e-mail; sprawy krytyczne (groźby, terroryzm, zagrożenie życia, małoletni): natychmiastowo i treść od razu ukryta. Zgłoszenia do organów: tylko powiadomienie właściciela, decyzja po jego stronie.
+- Jeden admin (widzi wszystko), bez ról. Kara: **wyciszenie czasowe** (bez auto-banu). Odwołanie od decyzji: tak (formularz). Retencja usuniętych/zablokowanych treści jako dowód: **30 dni**.
+- Wiek minimalny: 16 lat (rekomendacja; do potwierdzenia przez prawnika, na koniec). Regulamin community: agent przygotowuje szkic ([../prawne/regulamin-community-szkic.md](../prawne/regulamin-community-szkic.md)).
+- Zakres startu (rekomendacja agenta): etap 1 (tekst, zgłoszenia, kolejka, alerty) razem z budową tablicy i DM, **bez publikacji zdjęć** do czasu etapu 2 (skan zdjęć); etap 2 uruchamia zdjęcia na tablicy i w DM.
+
+**Podzadania**
+- **Z125** Model danych (migracja wg `gymbrat-db-migration`): `moderation_items` (treść, typ, autor, kategoria, waga, status, wynik skanu), `moderation_reports`, `moderation_actions` (dziennik audytu, niezmienny), `user_mutes`, `moderation_appeals`; retencja 30 dni dla usuniętych/zablokowanych.
+- **Z126** Bramka `moderateContent()` (`lib/moderation/`) wywoływana z każdej akcji zapisu; wynik `allow | hold | block`; filtr słów i wzorców PL (odmiana, warianty ze znakami, spacje); testy jednostkowe na korpusie przykładów.
+- **Z127** Klasyfikator zewnętrzny (tekst) za adapterem, z fallbackiem na samą listę słów i wpisem w `admin-config-status`; limity kosztów i kolejka ponowień.
+- **Z128** Tablica ze zdjęciami (wpisy, komentarze, reakcje) i wiadomości prywatne 1:1 jako bazowe funkcje (`gymbrat-server-action`, `gymbrat-sensitive-data`), z blokowaniem użytkowników i limitami.
+- **Z129** Skan zdjęć: upload do stanu „w weryfikacji" (widoczne tylko dla autora), skan asynchroniczny (cron lub kolejka), OCR tekstu na obrazie, usuwanie metadanych EXIF; wynik steruje widocznością.
+- **Z130** Zgłaszanie treści i profili przez graczy (przycisk „Zgłoś", powody), auto-ukrycie po progu zgłoszeń do decyzji admina.
+- **Z131** Panel admina: kolejka moderacji z kontekstem rozmowy, historią autora i akcjami (zatwierdź, usuń, ostrzeż, wycisz czasowo), widok „co dzieje się w community" (liczniki, ostatnie oznaczone treści), odwołania.
+- **Z132** Alerty: push i e-mail wg wagi (krytyczne natychmiast, wysokie z kolejką, niskie jako podsumowanie dzienne); wpis w `lib/admin-config-status.ts` (brak konfiguracji widoczny w panelu).
+- **Z133** Regulamin community i zasady, akceptacja przy pierwszym wejściu do community, informacja o automatycznym skanowaniu (w tym DM) w polityce prywatności, obsługa zgłoszeń i odwołań; zapis w `lib/legal-versions.ts`.
+- **Z134** `[NA KONIEC]` Zatwierdzenie przez prawnika (regulamin, wiek 16+, skanowanie DM, retencja, procedura zgłoszeń do organów, umowa powierzenia z dostawcą skanu); konfiguracja kluczy dostawcy na hostingu; test alertów na produkcji.
+
+**Kolejność** Z125 → Z126 → Z127 → Z130 → Z128 (czat i profile najpierw, tablica i DM po bramce) → Z131 → Z132 → Z133 → Z129 (zdjęcia dopiero po skanie) → Z134.
+**Gotowe, gdy** każda ścieżka zapisu treści użytkownika przechodzi bramkę (test pokrycia ścieżek); treść z kategorii krytycznej jest ukryta i daje alert w ciągu minut; zdjęcie bez zakończonego skanu nie jest widoczne dla innych; admin ma kolejkę, dziennik decyzji i odwołania; regulamin i polityka są w aplikacji; brak konfiguracji dostawcy widać w panelu.
+
