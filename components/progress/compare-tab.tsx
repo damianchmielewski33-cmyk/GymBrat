@@ -126,7 +126,7 @@ export function CompareTab({
       ? "Nie ma jeszcze tygodni do porównania. Zapisz treningi, a pojawią się tutaj."
       : a === b
         ? "Wybrano ten sam tydzień dwa razy. Wybierz dwa różne, żeby zobaczyć zmiany."
-        : `Tydzień B względem A: ${more.length ? `więcej: ${more.join(", ")}` : "nic nie wzrosło"}. ${less.length ? `Mniej: ${less.join(", ")}.` : "Nic nie spadło."}`;
+        : `Teraz jest ${more.length ? `więcej: ${more.join(", ")}` : "nic więcej niż wcześniej"}. ${less.length ? `Mniej: ${less.join(", ")}.` : "Niczego nie ubyło."}`;
 
   // Progres ćwiczenia tydzień po tygodniu (8 ostatnich tygodni).
   const mondays = useMemo(() => Array.from({ length: 8 }, (_, i) => addCalendarDays(week.summary.monday, (i - 7) * 7)), [week.summary.monday]);

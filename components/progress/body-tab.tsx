@@ -11,7 +11,7 @@ import {
   toneClass,
   type Tone,
 } from "@/components/progress/progress-charts";
-import { ProgressSection, Surface } from "@/components/progress/progress-ui";
+import { Meter, ProgressSection, Surface } from "@/components/progress/progress-ui";
 import { MiniSparkline } from "@/components/home/mini-sparkline";
 import { saveFitnessGoalsAction } from "@/actions/fitness-goals";
 import { GOAL_TYPE_LABEL, type GoalType } from "@/lib/goal-projection";
@@ -161,6 +161,32 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
           Waga{cur ? ` w dniu: ${formatDayMonth(cur.date)}` : ""}
         </h2>
+        {targetWeightKg != null && tempo.currentKg != null ? (
+          <div className="mt-2">
+            <p className="text-[13px] font-semibold text-[var(--gym-gold)]">Czy zbliżasz się do celu?</p>
+            <p className="font-heading mt-1 text-[24px] font-bold leading-[30px] text-white">
+              {Math.abs(tempo.currentKg - targetWeightKg) < 0.1
+                ? "Cel osiągnięty"
+                : `Zostało ${fmtNum(Math.abs(tempo.currentKg - targetWeightKg), 1)} kg`}
+            </p>
+            {tempo.deltaFromStartKg != null && Math.abs(tempo.currentKg - tempo.deltaFromStartKg - targetWeightKg) > 0.1 ? (
+              <>
+                <Meter
+                  pct={Math.max(0, Math.min(100, (Math.abs(tempo.deltaFromStartKg) / Math.abs(tempo.currentKg - tempo.deltaFromStartKg - targetWeightKg)) * 100))}
+                  size="lg"
+                  className="mt-2.5"
+                  barClassName="gym-meter-gold"
+                  aria-label="Postęp do celu"
+                />
+                <div className="mt-1.5 flex justify-between text-[13px] text-[var(--gym-text-secondary)]">
+                  <span>Start {fmtNum(tempo.currentKg - tempo.deltaFromStartKg, 1)} kg</span>
+                  <span className="font-semibold text-white">Teraz {fmtNum(tempo.currentKg, 1)} kg</span>
+                  <span>Cel {fmtNum(targetWeightKg, 1)} kg</span>
+                </div>
+              </>
+            ) : null}
+          </div>
+        ) : null}
         {cur ? (
           <>
             <p className="mt-1.5 flex items-baseline gap-2">

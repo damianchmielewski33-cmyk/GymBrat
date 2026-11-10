@@ -123,6 +123,12 @@ export function ConsistencyTab({
     <div className="space-y-3.5">
       <Card hero>
         <CardTitle id="h-reg">Czy trenujesz tak, jak w planie?</CardTitle>
+        <p className="font-heading mt-2 text-[24px] font-bold leading-[30px] text-white">
+          W tym tygodniu {summary.done} z {summary.target} {plural(summary.target, "treningu", "treningów", "treningów")}
+        </p>
+        <p className="mt-1 text-[15px] leading-[22px] text-[#d9d2c4]">
+          {summary.done >= summary.target ? "Plan na ten tydzień jest wykonany." : `Zostało jeszcze ${summary.target - summary.done}.`}
+        </p>
         <p className="mt-1.5 flex items-baseline gap-2">
           <span className="font-metric text-[64px] leading-none text-white">{totalWorkouts}</span>
           <span className="text-[16px] text-[var(--gym-text-secondary)]">{plural(totalWorkouts, "trening", "treningi", "treningów")} w 8 tygodniach</span>
