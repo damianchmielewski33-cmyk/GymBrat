@@ -123,6 +123,12 @@ export function ConsistencyTab({
     <div className="space-y-3.5">
       <Card hero>
         <CardTitle id="h-reg">Czy trenujesz tak, jak w planie?</CardTitle>
+        <p className="font-heading mt-2 text-[24px] font-bold leading-[30px] text-white">
+          W tym tygodniu {summary.done} z {summary.target} {plural(summary.target, "treningu", "treningów", "treningów")}
+        </p>
+        <p className="mt-1 text-[15px] leading-[22px] text-[#d9d2c4]">
+          {summary.done >= summary.target ? "Plan na ten tydzień jest wykonany." : `Zostało jeszcze ${summary.target - summary.done}.`}
+        </p>
         <p className="mt-1.5 flex items-baseline gap-2">
           <span className="font-metric text-[64px] leading-none text-white">{totalWorkouts}</span>
           <span className="text-[16px] text-[var(--gym-text-secondary)]">{plural(totalWorkouts, "trening", "treningi", "treningów")} w 8 tygodniach</span>
@@ -137,8 +143,32 @@ export function ConsistencyTab({
           {summary.daysLeft > 0 ? `, zostało ${summary.daysLeft} ${plural(summary.daysLeft, "dzień", "dni", "dni")}` : ""}.
         </p>
 
+        <p className="mt-4 text-[13px] font-semibold text-white">Ten tydzień</p>
+        <ul className="mt-2 grid grid-cols-7 gap-1.5" aria-label="Dni tego tygodnia">
+          {weeks[weeks.length - 1]?.map((d, i) => {
+            const kind = d.strength ? "trening" : d.cardio ? "cardio" : "odpoczynek lub brak wpisu";
+            return (
+              <li key={d.date} className="flex flex-col items-center gap-1.5">
+                <span
+                  role="img"
+                  aria-label={`${["poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela"][i]}: ${kind}`}
+                  className={cn(
+                    "block h-9 w-9 border",
+                    d.strength
+                      ? "gym-meter-gold rounded-full border-[var(--gym-gold-bright)]"
+                      : d.cardio
+                        ? "rounded-[10px] border-[var(--gym-gold)] bg-[#1b1b1f]"
+                        : "rounded-full border-[#26231c] bg-[#1b1b1f]",
+                  )}
+                />
+                <span className="text-[12px] text-[var(--gym-text-secondary)]">{["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."][i]}</span>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-5 text-[13px] font-semibold text-white">Ostatnie 8 tygodni</p>
         <div
-          className="mt-4 grid grid-cols-7 gap-1.5"
+          className="mt-2 grid grid-cols-7 gap-1.5"
           role="img"
           aria-label={`Kalendarz ostatnich 8 tygodni: ${totalWorkouts} dni z treningiem siłowym`}
         >
@@ -164,7 +194,7 @@ export function ConsistencyTab({
           ))}
         </div>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-[var(--gym-text-secondary)]">
-          <span><b className="gym-meter-gold mr-1.5 inline-block h-3.5 w-3.5 rounded align-[-2px]" />trening</span>
+          <span><b className="gym-meter-gold mr-1.5 inline-block h-3.5 w-3.5 rounded-full align-[-2px]" />trening</span>
           <span><b className="mr-1.5 inline-block h-3.5 w-3.5 rounded border border-[var(--gym-gold)] bg-[#1b1b1f] align-[-2px]" />cardio</span>
           <span><b className="mr-1.5 inline-block h-3.5 w-3.5 rounded border border-[#26231c] bg-[#1b1b1f] align-[-2px]" />odpoczynek</span>
         </div>

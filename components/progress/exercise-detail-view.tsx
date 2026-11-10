@@ -255,11 +255,11 @@ export function ExerciseDetailView({
                   pace == null
                     ? "Za mało treningów z ostatnich 3 miesięcy, żeby policzyć tempo."
                     : pace <= 0
-                      ? `Tempo ostatnich 3 miesięcy: ${sign(pace)}${fmtNum(Math.abs(pace), 1)} kg miesięcznie. Przy takim tempie cel się nie przybliża.`
-                      : `Tempo ostatnich 3 miesięcy: +${fmtNum(pace, 1)} kg miesięcznie.${etaTxt ? ` Przy nim cel około ${etaTxt}.` : ""}`
+                      ? `Przez ostatnie 3 miesiące: ${sign(pace)}${fmtNum(Math.abs(pace), 1)} kg miesięcznie. Przy takim tempie cel się nie przybliża.`
+                      : `Przez ostatnie 3 miesiące: +${fmtNum(pace, 1)} kg miesięcznie.${etaTxt ? ` Przy nim cel około ${etaTxt}.` : ""}`
                 }
               />
-              <p className="mt-2 text-[12px] text-[var(--gym-text-secondary)]">Cel przeliczamy na szacowany max tym samym wzorem, żeby porównać go z wykresem.</p>
+              <p className="mt-2 text-[12px] text-[var(--gym-text-secondary)]">Cel przeliczamy na ciężar „na jedno powtórzenie”, żeby porównać go z wykresem.</p>
             </div>
           ) : (
             <p className="mt-2 text-[14px] leading-snug text-[var(--gym-text-secondary)]">
@@ -271,7 +271,7 @@ export function ExerciseDetailView({
 
       {!empty && (prediction || stagnation) ? (
         <Card>
-          <CardTitle id="h-prog">Prognoza i trend</CardTitle>
+          <CardTitle id="h-prog">Co dalej?</CardTitle>
           <div className="mt-2 space-y-2 text-[14px] leading-snug text-white">
             {stagnation ? (
               <p>
@@ -282,8 +282,8 @@ export function ExerciseDetailView({
             ) : null}
             {prediction && !isReps ? (
               <p>
-                Jeśli utrzymasz obecne tempo: za 30 dni szacowany max około <b>{fmtNum(prediction.e1rm30d, 0)} kg</b>, za 90 dni około{" "}
-                <b>{fmtNum(prediction.e1rm90d, 0)} kg</b> (teraz {fmtNum(prediction.e1rmNow, 0)} kg).
+                Jeśli utrzymasz obecne tempo: za 30 dni podniesiesz jeden raz około <b>{fmtNum(prediction.e1rm30d, 0)} kg</b>, za 90 dni około{" "}
+                <b>{fmtNum(prediction.e1rm90d, 0)} kg</b> (teraz około {fmtNum(prediction.e1rmNow, 0)} kg).
               </p>
             ) : null}
           </div>
@@ -299,7 +299,7 @@ export function ExerciseDetailView({
         <Card>
           <div className="flex items-baseline justify-between gap-2">
             <CardTitle id="h-hist">Ostatnie treningi</CardTitle>
-            <span className="text-[13px] text-[var(--gym-text-secondary)]">{isReps ? "powtórzenia z treningu" : "szac. max z treningu"}</span>
+            <span className="text-[13px] text-[var(--gym-text-secondary)]">{isReps ? "powtórzenia z treningu" : "ciężar na jedno powtórzenie z treningu"}</span>
           </div>
           <div className="mb-1 mt-3.5 flex h-[90px] items-end gap-2" role="img" aria-label={`${subject} w ostatnich treningach`}>
             {barsData.map((p, i) => {
@@ -380,7 +380,7 @@ export function ExerciseDetailView({
                           </span>
                           <span className="text-right text-[13px] text-[var(--gym-text-secondary)]">
                             {s.rir != null ? `zapas ${s.rir} powt.` : "zapas nie zapisany"}
-                            {s.e1rm > 0 ? ` · szac. max ${fmtNum(s.e1rm, 0)} kg` : ""}
+                            {s.e1rm > 0 ? ` · na jedno powtórzenie ok. ${fmtNum(s.e1rm, 0)} kg` : ""}
                           </span>
                         </div>
                       ))}
@@ -399,18 +399,18 @@ export function ExerciseDetailView({
 
       {!empty && (intensity.avgRir != null || intensity.avgRpe != null || intensity.hardSetPct != null) ? (
         <Card>
-          <CardTitle id="h-int">Intensywność</CardTitle>
+          <CardTitle id="h-int">Jak ciężko trenujesz?</CardTitle>
           <div className="mt-3 grid grid-cols-3 gap-2.5">
             <div>
               <div className="text-[13px] text-[var(--gym-text-secondary)]">Zapas (RIR)</div>
               <div className="font-metric text-[28px] leading-[1.1] text-white">{intensity.avgRir != null ? fmtNum(intensity.avgRir, 1) : "—"}</div>
             </div>
             <div>
-              <div className="text-[13px] text-[var(--gym-text-secondary)]">Trudność (RPE)</div>
+              <div className="text-[13px] text-[var(--gym-text-secondary)]">Jak ciężko (skala 1–10)</div>
               <div className="font-metric text-[28px] leading-[1.1] text-white">{intensity.avgRpe != null ? fmtNum(intensity.avgRpe, 1) : "—"}</div>
             </div>
             <div>
-              <div className="text-[13px] text-[var(--gym-text-secondary)]">Ciężkie serie</div>
+              <div className="text-[13px] text-[var(--gym-text-secondary)]">Serie do upadku</div>
               <div className="font-metric text-[28px] leading-[1.1] text-white">{intensity.hardSetPct != null ? `${intensity.hardSetPct}%` : "—"}</div>
             </div>
           </div>
@@ -423,7 +423,7 @@ export function ExerciseDetailView({
 
       {repRecords.length > 0 ? (
         <Card>
-          <CardTitle id="h-rek">Rekordy wg powtórzeń</CardTitle>
+          <CardTitle id="h-rek">Twoje rekordy</CardTitle>
           <p className="mb-1 mt-1 text-[13px] text-[var(--gym-text-secondary)]">Najcięższy ciężar podniesiony na co najmniej tyle powtórzeń.</p>
           <ul>
             {repRecords.map((r) => (

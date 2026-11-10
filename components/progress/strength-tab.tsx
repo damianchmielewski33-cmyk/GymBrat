@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Sparkline, toneArrow, toneClass, type Tone } from "@/components/progress/progress-charts";
 import { Meter } from "@/components/progress/progress-ui";
-import { fmtNum, formatDayMonth } from "@/lib/progress-format";
+import { fmtNum, formatDayMonth, plural } from "@/lib/progress-format";
 import type { ProgressHubData } from "@/lib/progress-hub";
 import { calendarDateKey } from "@/lib/local-date";
 import { exerciseProgressKey } from "@/lib/progress-tabs";
@@ -20,7 +20,7 @@ const SORTS: ReadonlyArray<{ id: SortId; label: string }> = [
   { id: "plan", label: "Jak w planie" },
 ];
 
-const STATUS_LABEL: Record<Tone, string> = { up: "rośnie", flat: "stoi", down: "spada" };
+const STATUS_LABEL: Record<Tone, string> = { up: "więcej", flat: "bez zmian", down: "mniej" };
 
 function Card({ children, hero }: { children: React.ReactNode; hero?: boolean }) {
   return (
@@ -112,13 +112,16 @@ export function StrengthTab({ data, intelligence }: { data: ProgressHubData["str
     <div className="space-y-3.5">
       <Card hero>
         <div className="flex items-start justify-between gap-2"><CardTitle id="h-sila">Czy masz więcej siły?</CardTitle><HelpHint term="e1rm" /></div>
-        <div className="mt-3 grid grid-cols-3 gap-2.5">
-          {(["up", "flat", "down"] as const).map((t) => (
-            <div key={t}>
-              <div className={cn("font-metric text-[52px] leading-none", t === "flat" ? "text-white" : toneClass(t))}>{counts[t]}</div>
-              <div className="text-[13px] text-[var(--gym-text-secondary)]">{t === "up" ? "idzie w górę" : t === "flat" ? "bez zmian" : "słabiej"}</div>
-            </div>
-          ))}
+        <p className="font-heading mt-2 text-[26px] font-bold leading-[30px] text-white">
+          {counts.up > counts.down ? "Tak, w większości ćwiczeń" : counts.down > counts.up ? "Nie, w części ćwiczeń słabiej" : "Siła jest na podobnym poziomie"}
+        </p>
+        <p className="mt-1.5 text-[15px] leading-[22px] text-[#d9d2c4]">
+          W {counts.up} z {rows.length} {plural(rows.length, "ćwiczenia", "ćwiczeń", "ćwiczeń")} podnosisz więcej niż miesiąc temu.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="rounded-full bg-[var(--gym-success)]/15 px-2.5 py-1.5 text-[13px] font-semibold text-[#7fe3a3]">{counts.up} idzie w górę</span>
+          <span className="rounded-full bg-white/[0.08] px-2.5 py-1.5 text-[13px] font-semibold text-[#d9d2c4]">{counts.flat} bez zmian</span>
+          <span className="rounded-full bg-[var(--gym-skipped)]/15 px-2.5 py-1.5 text-[13px] font-semibold text-[#ffb870]">{counts.down} słabiej</span>
         </div>
         <p className="mt-3.5 text-[13px] leading-snug text-[var(--gym-text-secondary)]">Porównujemy ostatnie 30 dni z 30 dniami wcześniej. „Idzie w górę” znaczy, że podnosisz o co najmniej 1% więcej.</p>
       </Card>
@@ -156,17 +159,17 @@ export function StrengthTab({ data, intelligence }: { data: ProgressHubData["str
                   <span className="min-w-0 flex-1">
                     <span translate="no" className="block truncate text-[15px] font-semibold text-white">{r.name}</span>
                     <span className="block text-[13px] text-[var(--gym-text-secondary)]">
-                      szac. max {r.change.currentE1rm != null ? `${fmtNum(r.change.currentE1rm, 0)} kg` : "—"}
+                      {delta == null ? "za mało danych do porównania" : delta === 0 ? "bez zmian od miesiąca" : `o ${fmtNum(Math.abs(delta), 0)} kg ${delta > 0 ? "więcej" : "mniej"} niż miesiąc temu`}
                     </span>
                   </span>
                   <Sparkline values={r.spark} color={tone === "down" ? "#ff9f43" : tone === "up" ? "#3ecf72" : "#9a9182"} />
                   <span className="min-w-[84px] text-right">
-                    <span className={cn("font-metric block text-[26px] leading-none", toneClass(tone))}>
-                      {delta == null ? "—" : `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${fmtNum(Math.abs(delta), 0)} kg`}
+                    <span className="font-metric block text-[26px] leading-none text-[var(--gym-gold-bright)]">
+                      {r.change.currentE1rm != null ? `${fmtNum(r.change.currentE1rm, 0)} kg` : "—"}
                     </span>
                     <span className={cn("block text-[12px]", toneClass(tone))}>
                       <span aria-hidden>{toneArrow(tone)} </span>
-                      {STATUS_LABEL[tone]} (30 dni)
+                      {STATUS_LABEL[tone]}
                     </span>
                   </span>
                 </Link>
