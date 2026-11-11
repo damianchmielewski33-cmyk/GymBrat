@@ -480,7 +480,7 @@ function NutritionWeekBody({
           }}
         >
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--gym-gold)_12%,transparent),transparent_70%)]"
+            className="pointer-events-none !absolute inset-x-0 top-0 h-24 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--gym-gold)_12%,transparent),transparent_70%)]"
             aria-hidden
           />
           {model.period.state === "no_data" ? (
