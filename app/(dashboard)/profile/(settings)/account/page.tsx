@@ -1,14 +1,11 @@
 import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { ShieldCheck } from "lucide-react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ConsentSettingsCard } from "@/components/consent/consent-settings-card";
-import { SensitiveConsentsCard } from "@/components/consent/sensitive-consents-card";
 import { AppPageHeader } from "@/components/layout/screen";
-import { ChangePasswordForm } from "@/components/profile/change-password-form";
+import { ChangePasswordSheet } from "@/components/profile/change-password-sheet";
+import { SettingsGroup } from "@/components/profile/settings-list";
 import {
-  DataExportActions,
   DeleteAccountControl,
 } from "@/components/profile/personal-data-card";
 import {
@@ -17,7 +14,6 @@ import {
 } from "@/components/profile/profile-ui";
 import { getDb } from "@/db";
 import { oauthAccounts, users } from "@/db/schema";
-import { getCurrentConsents } from "@/lib/consents";
 
 export const metadata = { title: "Konto i prywatność" };
 
@@ -32,13 +28,12 @@ export default async function ProfileAccountPage({
   if (!userId) redirect("/login");
 
   const db = getDb();
-  const [[u], consents, links] = await Promise.all([
+  const [[u], links] = await Promise.all([
     db
       .select({ passwordHash: users.passwordHash })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1),
-    getCurrentConsents(userId),
     db
       .select({ provider: oauthAccounts.provider })
       .from(oauthAccounts)
@@ -51,60 +46,25 @@ export default async function ProfileAccountPage({
     <div className="space-y-4">
       <AppPageHeader
         kicker="Profil"
-        title="Konto i prywatność"
-        description="Hasło, zgody, eksport i usunięcie danych (RODO)."
+        title="Konto i hasło"
+        description="Logowanie, bezpieczeństwo i usunięcie konta."
       />
+      <SettingsGroup title="Bezpieczeństwo">
+        {hasPassword ? (
+          <ChangePasswordSheet />
+        ) : (
+          <p className="px-4 py-4 text-[13px] leading-relaxed text-white/55">
+            Logujesz się przez{" "}
+            {links.map((l) => l.provider).join(", ") || "konto zewnętrzne"} —
+            to konto nie ma hasła do zmiany.
+          </p>
+        )}
+      </SettingsGroup>
       <ProfileSection
         icon={ShieldCheck}
-        title="Bezpieczeństwo i dane"
-        description="Opcjonalne kategorie zgód możesz zmienić w każdej chwili."
+        title="Strefa ryzyka"
+        description="Zgody i eksport danych znajdziesz w Prywatność i dane."
       >
-        {hasPassword ? (
-          <ProfileBlock title="Zmiana hasła">
-            <ChangePasswordForm />
-          </ProfileBlock>
-        ) : null}
-        <ProfileBlock
-          title="Zgody i cookies"
-          description="Niezbędne (sesja) są zawsze włączone. Analityka i marketing są opcjonalne."
-        >
-          <ConsentSettingsCard
-            initial={{
-              analytics: consents.analytics?.granted ?? null,
-              marketing: consents.marketing?.granted ?? null,
-              decidedAt:
-                consents.analytics?.decidedAt?.toISOString() ??
-                consents.marketing?.decidedAt?.toISOString() ??
-                null,
-            }}
-          />
-        </ProfileBlock>
-        <ProfileBlock
-          title="Dane o ciele, zdjęcia i przypomnienia"
-          description="Osobne zgody. Bez nich nie zapiszemy raportu ciała, zdjęć ani tętna i nie wyślemy przypomnień."
-        >
-          <SensitiveConsentsCard
-            initial={{
-              health: consents.health?.granted ?? false,
-              photos: consents.photos?.granted ?? false,
-              push: consents.push?.granted ?? false,
-            }}
-          />
-        </ProfileBlock>
-        <ProfileBlock
-          title="Twoje dane"
-          description="Eksport obejmuje dane konta, treningi, dietę i raporty dostępne w aplikacji."
-        >
-          <DataExportActions />
-        </ProfileBlock>
-        <ProfileBlock
-          title="Pomoc i reklamacje"
-          description="Pytania, problemy z płatnością lub reklamacja — odpowiadamy w ciągu 14 dni."
-        >
-          <Link href="/pomoc" className="text-sm text-[var(--gym-gold)] underline-offset-2 hover:underline">
-            Przejdź do formularza zgłoszenia
-          </Link>
-        </ProfileBlock>
         <ProfileBlock
           tone="danger"
           title="Usuń konto"

@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useId } from "react";
+import { ChevronLeft } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { PROFILE_SECTIONS } from "@/components/profile/profile-sections";
@@ -129,7 +132,7 @@ export function ProfileChipGroup({
   );
 }
 
-/** Przełącznik on/off (role=switch). */
+/** Wiersz z przełącznikiem (cały wiersz klikalny, cel dotyku ≥ 56 px). */
 export function ProfileSwitch({
   checked,
   onChange,
@@ -143,41 +146,40 @@ export function ProfileSwitch({
   description?: string;
   disabled?: boolean;
 }) {
+  const id = useId();
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-4 rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-left transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50 disabled:opacity-50"
-    >
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold text-white/90">
+    <div className="flex min-h-14 items-center justify-between gap-4 py-2.5">
+      <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer">
+        <span className="block text-[15px] font-semibold leading-snug text-white/90">
           {label}
         </span>
         {description ? (
-          <span className="mt-0.5 block text-xs leading-snug text-white/50">
+          <span className="mt-0.5 block text-[13px] leading-snug text-white/50">
             {description}
           </span>
         ) : null}
-      </span>
-      <span
-        aria-hidden
-        className={cn(
-          "relative h-6 w-11 shrink-0 rounded-full border transition-colors",
-          checked
-            ? "border-[var(--gym-gold)]/60 bg-[var(--gym-gold)]/40"
-            : "border-white/15 bg-white/10",
-        )}
-      >
-        <span
-          className={cn(
-            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left]",
-            checked ? "left-[1.375rem]" : "left-0.5",
-          )}
-        />
-      </span>
-    </button>
+      </label>
+      <Switch
+        id={id}
+        checked={checked}
+        onCheckedChange={onChange}
+        disabled={disabled}
+      />
+    </div>
+  );
+}
+
+/** Pasek „wstecz” podstron profilu (ukryty na przeglądzie /profile). */
+export function ProfileBackBar() {
+  const pathname = usePathname();
+  if (pathname === "/profile") return null;
+  return (
+    <Link
+      href="/profile"
+      className="-ml-1 inline-flex min-h-11 items-center gap-1 rounded-full pr-3 text-[14px] font-medium text-white/70 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50"
+    >
+      <ChevronLeft className="h-5 w-5" aria-hidden />
+      Profil
+    </Link>
   );
 }

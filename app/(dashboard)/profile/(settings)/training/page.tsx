@@ -5,6 +5,7 @@ import { Dumbbell } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AppPageHeader } from "@/components/layout/screen";
 import { CardioWeekModePicker } from "@/components/profile/cardio-week-mode-picker";
+import { EditGate } from "@/components/profile/edit-gate";
 import { ProfileGoalForm } from "@/components/profile/profile-goal-form";
 import {
   ProfileBlock,
@@ -52,7 +53,9 @@ export default async function ProfileTrainingPage() {
           title="Cel cardio"
           description="Minuty cardio na tydzień."
         >
-          <ProfileGoalForm initialGoal={s?.goal ?? 150} />
+          <EditGate>
+            <ProfileGoalForm initialGoal={s?.goal ?? 150} />
+          </EditGate>
         </ProfileBlock>
         <ProfileBlock
           title="Tydzień cardio"
@@ -64,7 +67,9 @@ export default async function ProfileTrainingPage() {
           title="Cykl raportów"
           description="Jak często przypominać o raporcie sylwetki."
         >
-          <ReportCadenceForm initialDays={s?.reportCadenceDays ?? 14} />
+          <EditGate>
+            <ReportCadenceForm initialDays={s?.reportCadenceDays ?? 14} />
+          </EditGate>
         </ProfileBlock>
         <ProfileBlock
           title="Jednostka porównań"

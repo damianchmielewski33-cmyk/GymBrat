@@ -1,5 +1,15 @@
 [
   {
+    "title": "Zapowiedź — Nowy profil użytkownika",
+    "planned": true,
+    "bullets": [
+      "Profil jako jedna lista grup (cele, powiadomienia, prywatność, aplikacja) zamiast sześciu zakładek; prywatność i dane mają własną sekcję.",
+      "Pola są tylko do odczytu, dopóki nie klikniesz „Edytuj”; „Anuluj” przywraca poprzednie wartości.",
+      "Zmiana hasła w oknie od dołu z wymaganym obecnym hasłem i linkiem do resetu przez e-mail.",
+      "Nowe przełączniki w standardzie iOS/Material; reklamy są częścią wersji bezpłatnej, bez przełącznika zgody na personalizację w profilu."
+    ]
+  },
+  {
     "title": "Zapowiedź — Nowe statystyki bilansu makro",
     "planned": true,
     "bullets": [

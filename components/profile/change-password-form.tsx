@@ -7,7 +7,7 @@ import { SubmitButton } from "@/components/home/submit-button";
 import { ProfileField } from "@/components/profile/profile-ui";
 import { Input } from "@/components/ui/input";
 
-export function ChangePasswordForm() {
+export function ChangePasswordForm({ onDone }: { onDone?: () => void }) {
   const { notifySaved, notifyError } = useSaveFeedback();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction] = useActionState(changePasswordFormAction, {} as {
@@ -19,6 +19,7 @@ export function ChangePasswordForm() {
     if (state?.ok === true) {
       notifySaved("Hasło zostało zmienione.");
       formRef.current?.reset();
+      onDone?.();
     } else if (state?.ok === false && state.error) {
       const msg =
         state.error === "Current password is incorrect"
@@ -28,11 +29,11 @@ export function ChangePasswordForm() {
             : "Nie udało się zmienić hasła. Sprawdź pola.";
       notifyError(msg);
     }
-  }, [state, notifySaved, notifyError]);
+  }, [state, notifySaved, notifyError, onDone]);
 
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="space-y-4">
         <ProfileField label="Obecne hasło" htmlFor="currentPassword">
           <Input
             id="currentPassword"

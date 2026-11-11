@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { saveNutritionPlanAction } from "@/actions/nutrition-settings";
+import { EditOnly, useEditGate } from "@/components/profile/edit-gate";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
 import type { NutritionGoalsPayload } from "@/lib/nutrition-goals";
 import {
@@ -114,6 +115,7 @@ export function NutritionPlanSection({
   });
   const { notifySaved, notifyError } = useSaveFeedback();
   const saveCycleRef = useRef(false);
+  const finishEdit = useEditGate()?.finish;
 
   useEffect(() => {
     setTrainingFields(parseGoalsPayload(initialTraining));
@@ -130,13 +132,14 @@ export function NutritionPlanSection({
       saveCycleRef.current = false;
       if (state?.ok === true) {
         notifySaved("Zapisano cele żywieniowe i kalendarz.");
+        finishEdit?.();
       } else if (state?.ok === false && state.error === "conflict") {
         notifyError(
           "Te ustawienia zmieniono z innego urządzenia — odśwież stronę.",
         );
       }
     }
-  }, [isPending, state, notifySaved, notifyError]);
+  }, [isPending, state, notifySaved, notifyError, finishEdit]);
 
   function toggleDay(dateKey: string) {
     setDayTypes((prev) => {
@@ -300,9 +303,11 @@ export function NutritionPlanSection({
         )
       ) : null}
 
-      <Button type="submit" variant="cta" disabled={isPending} className="w-full">
-        {isPending ? "Zapisywanie…" : "Zapisz cele i kalendarz"}
-      </Button>
+      <EditOnly>
+        <Button type="submit" variant="cta" disabled={isPending} className="w-full">
+          {isPending ? "Zapisywanie…" : "Zapisz cele i kalendarz"}
+        </Button>
+      </EditOnly>
     </form>
   );
 }

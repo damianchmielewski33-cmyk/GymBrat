@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { AppPageHeader } from "@/components/layout/screen";
+import { EditGate } from "@/components/profile/edit-gate";
 import { BodyParamsForm } from "@/components/profile/body-params-form";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
@@ -48,6 +49,7 @@ export default async function ProfileBodyPage() {
           ? `Aktualna waga: ${weightHint}`
           : "Uzupełnij wagę — pokażemy ją też na Start i w Analizie."}
       </p>
+      <EditGate>
       <BodyParamsForm
         initial={{
           firstName: u?.firstName ?? "",
@@ -59,6 +61,7 @@ export default async function ProfileBodyPage() {
           activityLevel: u?.activityLevel ?? null,
         }}
       />
+      </EditGate>
     </div>
   );
 }

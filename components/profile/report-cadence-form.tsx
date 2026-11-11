@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { updateReportCadenceForm } from "@/actions/report-cadence";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { EditOnly, useEditGate } from "@/components/profile/edit-gate";
 import { SubmitButton } from "@/components/home/submit-button";
 import { ProfileField } from "@/components/profile/profile-ui";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ const PRESETS = [7, 14, 30] as const;
 
 export function ReportCadenceForm({ initialDays }: { initialDays: number }) {
   const { notifySaved, notifyError } = useSaveFeedback();
+  const finishEdit = useEditGate()?.finish;
   const [days, setDays] = useState(String(initialDays));
   const [state, formAction] = useActionState(updateReportCadenceForm, {} as {
     ok?: boolean;
@@ -20,9 +22,12 @@ export function ReportCadenceForm({ initialDays }: { initialDays: number }) {
   });
 
   useEffect(() => {
-    if (state?.ok === true) notifySaved("Zapisano cykl raportów.");
+    if (state?.ok === true) {
+      notifySaved("Zapisano cykl raportów.");
+      finishEdit?.();
+    }
     else if (state?.ok === false && state.error) notifyError(state.error);
-  }, [state, notifySaved, notifyError]);
+  }, [state, notifySaved, notifyError, finishEdit]);
 
   return (
     <form className="space-y-4" action={formAction}>
@@ -60,7 +65,9 @@ export function ReportCadenceForm({ initialDays }: { initialDays: number }) {
           </button>
         ))}
       </div>
-      <SubmitButton>Zapisz cykl raportów</SubmitButton>
+      <EditOnly>
+        <SubmitButton>Zapisz cykl raportów</SubmitButton>
+      </EditOnly>
     </form>
   );
 }

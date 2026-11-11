@@ -1364,3 +1364,20 @@
 @media (prefers-reduced-motion: reduce) {
   .menu-stagger, .menu-unfold { animation: none; }
 }
+
+/* Profil: pola w trybie odczytu (EditGate) wyglądają jak wartości, nie jak edytowalne inputy. */
+.profile-gate:disabled input,
+.profile-gate:disabled select,
+.profile-gate:disabled textarea {
+  opacity: 1;
+  cursor: default;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.025);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.92);
+}
+.profile-gate:disabled button {
+  cursor: default;
+}
+.profile-gate:disabled [data-edit-only] {
+  display: none;
+}

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { saveRemindersPrefsAction } from "@/actions/reminders";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { EditGate, EditOnly, useEditGate } from "@/components/profile/edit-gate";
+import { Switch } from "@/components/ui/switch";
 import { ProfileBlock, ProfileSwitch } from "@/components/profile/profile-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -95,7 +97,6 @@ export function RemindersCard({
   vapidPublicKey: string | null;
 }) {
   const { notifySaved, notifyError } = useSaveFeedback();
-  const [pending, start] = useTransition();
   const [times, setTimes] = useState<Record<TimeKey, string>>({
     workoutTime: initial.workoutTime ?? "",
     mealTime: initial.mealTime ?? "",
@@ -127,8 +128,8 @@ export function RemindersCard({
     );
   }
 
-  function save() {
-    start(async () => {
+  async function save(): Promise<boolean> {
+    {
       const prefs: RemindersPrefs = {
         ...(times.workoutTime ? { workoutTime: times.workoutTime } : {}),
         ...(times.mealTime ? { mealTime: times.mealTime } : {}),
@@ -140,7 +141,7 @@ export function RemindersCard({
       const r = await saveRemindersPrefsAction(prefs);
       if (!r.ok) {
         notifyError(r.error || "Nie udało się zapisać przypomnień.");
-        return;
+        return false;
       }
 
       // Kanał dostarczania na tym urządzeniu (przy zamkniętej aplikacji).
@@ -177,12 +178,24 @@ export function RemindersCard({
       window.dispatchEvent(new Event(REMINDERS_CHANGED_EVENT));
       if (warning) notifyError(warning);
       else notifySaved("Zapisano przypomnienia.");
-    });
+      return true;
+    }
   }
 
   return (
     <div className="space-y-5">
       <ProfileBlock title="Powiadomienia na tym urządzeniu" description={describe(channel)}>
+        <EditGate
+          onCancel={() => {
+            setTimes({
+              workoutTime: initial.workoutTime ?? "",
+              mealTime: initial.mealTime ?? "",
+              checkinTime: initial.checkinTime ?? "",
+            });
+            setDays(initial.daysOfWeek ?? []);
+            setEmail(Boolean(initial.emailDailyBrief));
+          }}
+        >
         <div className="space-y-2">
           {TIME_ROWS.map((row) => {
             const on = Boolean(times[row.key]);
@@ -209,28 +222,13 @@ export function RemindersCard({
                     className="h-10 rounded-lg border border-white/20 bg-black/50 px-2.5 text-sm tabular-nums text-white outline-none focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-[3px] focus-visible:ring-ring/80"
                   />
                 ) : null}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={on}
+                <Switch
+                  checked={on}
                   aria-label={`${row.label}: ${on ? "wyłącz" : "włącz"}`}
-                  onClick={() =>
+                  onCheckedChange={() =>
                     setTimes((p) => ({ ...p, [row.key]: on ? "" : row.fallback }))
                   }
-                  className={cn(
-                    "relative h-6 w-11 shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50",
-                    on
-                      ? "border-[var(--gym-gold)]/60 bg-[var(--gym-gold)]/40"
-                      : "border-white/15 bg-white/10",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left]",
-                      on ? "left-[1.375rem]" : "left-0.5",
-                    )}
-                  />
-                </button>
+                />
               </div>
             );
           })}
@@ -266,6 +264,16 @@ export function RemindersCard({
           </div>
         ) : null}
 
+        <div className="mt-4 divide-y divide-white/[0.07]">
+          <ProfileSwitch
+            checked={email}
+            onChange={setEmail}
+            label="Dzienny skrót e-mail"
+            description="Wiadomość z przypomnieniem o treningu i makro rano (po 7:00) — niezależnie od urządzenia."
+          />
+        </div>
+        <RemindersSaveButton onSave={save} />
+        </EditGate>
         <ChannelStatus
           channel={channel}
           anyTime={anyTime}
@@ -275,22 +283,6 @@ export function RemindersCard({
         />
       </ProfileBlock>
 
-      <ProfileSwitch
-        checked={email}
-        onChange={setEmail}
-        label="Dzienny skrót e-mail"
-        description="Wiadomość z przypomnieniem o treningu i makro rano (po 7:00) — niezależnie od urządzenia."
-      />
-
-      <Button
-        type="button"
-        variant="cta"
-        disabled={pending}
-        className="w-full"
-        onClick={save}
-      >
-        {pending ? "Zapisywanie…" : "Zapisz przypomnienia"}
-      </Button>
     </div>
   );
 }
@@ -392,5 +384,30 @@ function ChannelStatus({
         </Button>
       ) : null}
     </div>
+  );
+}
+
+function RemindersSaveButton({ onSave }: { onSave: () => Promise<boolean> }) {
+  const finish = useEditGate()?.finish;
+  const [pending, setPending] = useState(false);
+  return (
+    <EditOnly>
+      <Button
+        type="button"
+        variant="cta"
+        disabled={pending}
+        className="mt-4 w-full"
+        onClick={async () => {
+          setPending(true);
+          try {
+            if (await onSave()) finish?.();
+          } finally {
+            setPending(false);
+          }
+        }}
+      >
+        {pending ? "Zapisywanie…" : "Zapisz przypomnienia"}
+      </Button>
+    </EditOnly>
   );
 }

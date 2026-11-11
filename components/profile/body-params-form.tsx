@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { updateBodyParamsFormAction } from "@/actions/profile";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { EditOnly, useEditGate } from "@/components/profile/edit-gate";
 import { SubmitButton } from "@/components/home/submit-button";
 import { ProfileField } from "@/components/profile/profile-ui";
 import { Input } from "@/components/ui/input";
@@ -95,7 +96,7 @@ function UnitInput({
         {...props}
       />
       <span
-        className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[13px] font-medium text-white/45"
+        className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[13px] font-medium text-white/55"
         aria-hidden
       >
         {unit}
@@ -133,6 +134,7 @@ function SummaryTile({
 
 export function BodyParamsForm({ initial }: { initial: BodyParamsInitial }) {
   const { notifySaved, notifyError } = useSaveFeedback();
+  const finishEdit = useEditGate()?.finish;
   const [state, formAction] = useActionState(updateBodyParamsFormAction, {} as {
     ok?: boolean;
     error?: string;
@@ -151,10 +153,13 @@ export function BodyParamsForm({ initial }: { initial: BodyParamsInitial }) {
   useEffect(() => setSex(initialSex), [initialSex]);
 
   useEffect(() => {
-    if (state?.ok === true) notifySaved("Zapisano dane profilu.");
+    if (state?.ok === true) {
+      notifySaved("Zapisano dane profilu.");
+      finishEdit?.();
+    }
     else if (state?.ok === false && state.error)
       notifyError("Nie udało się zapisać danych — sprawdź pola.");
-  }, [state, notifySaved, notifyError]);
+  }, [state, notifySaved, notifyError, finishEdit]);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -333,7 +338,9 @@ export function BodyParamsForm({ initial }: { initial: BodyParamsInitial }) {
         </div>
       </FormCard>
 
-      <SubmitButton>Zapisz zmiany</SubmitButton>
+      <EditOnly>
+        <SubmitButton>Zapisz zmiany</SubmitButton>
+      </EditOnly>
     </form>
   );
 }

@@ -20,6 +20,7 @@ export {
   ProfileNav,
   ProfileChipGroup,
   ProfileSwitch,
+  ProfileBackBar,
 } from "@/components/profile/profile-client";
 
 export function ProfileSection({

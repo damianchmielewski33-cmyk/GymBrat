@@ -44,6 +44,7 @@ export function SensitiveConsentsCard({ initial }: { initial: SensitiveConsentsI
 
   return (
     <div className={`space-y-3 ${pending ? "opacity-80" : ""}`}>
+      <div className="divide-y divide-white/[0.07]">
       <ProfileSwitch
         checked={state.health}
         onChange={(v) => change("health", v)}
@@ -65,6 +66,7 @@ export function SensitiveConsentsCard({ initial }: { initial: SensitiveConsentsI
         description="Powiadomienia push i skrót e-mail o wybranej godzinie. Bez zgody nic nie wysyłamy."
         disabled={pending}
       />
+      </div>
       <p className="text-xs leading-relaxed text-white/50">
         Cofnięcie zgody wstrzymuje dalszy zapis takich danych. Dane już zapisane usuniesz
         w ustawieniach konta (usunięcie konta kasuje wszystko).

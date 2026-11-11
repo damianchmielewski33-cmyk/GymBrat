@@ -4,7 +4,6 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   saveConsentAction,
-  saveConsentsBulkAction,
 } from "@/actions/consents";
 import {
   ProfileSwitch,
@@ -95,21 +94,11 @@ export function ConsentSettingsCard({
     });
   }
 
-  function bulk(analytics: boolean, marketing: boolean) {
-    const updated = persistLocal({ analytics, marketing });
-    start(async () => {
-      await saveConsentsBulkAction({
-        analytics: updated.analytics,
-        marketing: updated.marketing,
-        source: "profile",
-      });
-    });
-  }
-
   const decidedAt = prefs?.decidedAt ?? initial?.decidedAt ?? null;
 
   return (
     <div className={`space-y-3 ${pending ? "opacity-80" : ""}`}>
+      <div className="divide-y divide-white/[0.07]">
       <ProfileSwitch
         checked={Boolean(prefs?.analytics)}
         onChange={(v) => patch({ analytics: v })}
@@ -117,31 +106,6 @@ export function ConsentSettingsCard({
         description="Statystyki wejść i użycia aplikacji."
         disabled={pending}
       />
-      <ProfileSwitch
-        checked={Boolean(prefs?.marketing)}
-        onChange={(v) => patch({ marketing: v })}
-        label="Personalizacja reklam"
-        description="Reklamy są częścią wersji bezpłatnej (pakiet je usuwa). Zgoda pozwala dopasować je do Ciebie; bez niej zobaczysz reklamy niespersonalizowane."
-        disabled={pending}
-      />
-
-      <div className="flex flex-wrap gap-2 pt-1">
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => bulk(true, true)}
-          className="gym-btn-secondary h-10 rounded-xl px-3.5 text-[13px] font-semibold"
-        >
-          Akceptuj wszystkie
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => bulk(false, false)}
-          className="gym-btn-outline h-10 rounded-xl px-3.5 text-[13px] font-semibold"
-        >
-          Tylko niezbędne
-        </button>
       </div>
 
       {decidedAt ? (
@@ -156,7 +120,8 @@ export function ConsentSettingsCard({
       )}
 
       <p className="text-xs leading-relaxed text-white/50">
-        Niezbędne pliki cookie (sesja, CSRF) są zawsze włączone.{" "}
+        Niezbędne pliki cookie (sesja, CSRF) są zawsze włączone. Reklamy są
+        częścią bezpłatnej wersji aplikacji (usuwa je pakiet).{" "}
         <Link
           href={`${PRIVACY_PATH}#cookies`}
           className="text-[var(--gym-gold)] underline-offset-2 hover:underline"

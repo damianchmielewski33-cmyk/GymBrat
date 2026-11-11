@@ -55,7 +55,7 @@ export default async function ProfileRemindersPage() {
             >
               Przypomnienia są wstrzymane, dopóki nie wyrazisz zgody. Zapisz ustawienia poniżej —
               zapisanie włączonych przypomnień oznacza zgodę na ich wysyłanie (możesz ją cofnąć
-              w Profilu → Konto).
+              w Profilu → Prywatność i dane).
             </p>
           ) : null}
           <RemindersCard

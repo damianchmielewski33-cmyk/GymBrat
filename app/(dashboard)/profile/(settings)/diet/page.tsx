@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { Utensils } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AppPageHeader } from "@/components/layout/screen";
+import { EditGate } from "@/components/profile/edit-gate";
 import { NutritionPlanSection } from "@/components/profile/nutrition-plan-section";
 import {
   ProfileBlock,
@@ -76,12 +77,14 @@ export default async function ProfileDietPage() {
               zastępuje porady medycznej.
             </p>
           ) : null}
+          <EditGate>
           <NutritionPlanSection
             initialTraining={nutritionInitial.training}
             initialRest={nutritionInitial.rest}
             initialDayTypes={nutritionInitial.dayTypes}
             expectedUpdatedAt={expectedUpdatedAt}
           />
+          </EditGate>
         </ProfileBlock>
       </ProfileSection>
     </div>

@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { updateWeeklyCardioGoalForm } from "@/actions/workout";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { EditOnly, useEditGate } from "@/components/profile/edit-gate";
 import { SubmitButton } from "@/components/home/submit-button";
 import { ProfileField } from "@/components/profile/profile-ui";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ const PRESETS = [90, 150, 210, 300] as const;
 
 export function ProfileGoalForm({ initialGoal }: { initialGoal: number }) {
   const { notifySaved, notifyError } = useSaveFeedback();
+  const finishEdit = useEditGate()?.finish;
   const [goal, setGoal] = useState(String(initialGoal));
   const [state, formAction] = useActionState(updateWeeklyCardioGoalForm, {} as {
     ok?: boolean;
@@ -19,9 +21,12 @@ export function ProfileGoalForm({ initialGoal }: { initialGoal: number }) {
   });
 
   useEffect(() => {
-    if (state?.ok === true) notifySaved("Zapisano tygodniowy cel cardio.");
+    if (state?.ok === true) {
+      notifySaved("Zapisano tygodniowy cel cardio.");
+      finishEdit?.();
+    }
     else if (state?.ok === false && state.error) notifyError("Nie udało się zapisać celu.");
-  }, [state, notifySaved, notifyError]);
+  }, [state, notifySaved, notifyError, finishEdit]);
 
   return (
     <form className="space-y-4" action={formAction}>
@@ -58,7 +63,9 @@ export function ProfileGoalForm({ initialGoal }: { initialGoal: number }) {
           </button>
         ))}
       </div>
-      <SubmitButton>Zapisz cel cardio</SubmitButton>
+      <EditOnly>
+        <SubmitButton>Zapisz cel cardio</SubmitButton>
+      </EditOnly>
     </form>
   );
 }
