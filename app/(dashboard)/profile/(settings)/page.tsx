@@ -211,7 +211,7 @@ export default async function ProfileOverviewPage() {
           href="/profile/app"
           icon={Smartphone}
           title="Aplikacja"
-          value="Język, instalacja na telefonie"
+          value="Instalacja i wersja na telefonie"
         />
         <SettingsRow
           href="/pomoc"

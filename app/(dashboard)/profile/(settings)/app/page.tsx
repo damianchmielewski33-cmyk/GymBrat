@@ -2,7 +2,6 @@ import { Smartphone } from "lucide-react";
 import { AndroidAppVersionCard } from "@/components/android-app-version-card";
 import { IosInstallCard } from "@/components/ios-install-card";
 import { AppPageHeader } from "@/components/layout/screen";
-import { LocaleSwitch } from "@/components/profile/locale-switch";
 import {
   ProfileBlock,
   ProfileSection,
@@ -16,16 +15,12 @@ export default function ProfileAppPage() {
       <AppPageHeader
         kicker="Profil"
         title="Aplikacja"
-        description="Język interfejsu i wersja aplikacji na telefonie."
+        description="Instalacja i wersja aplikacji na telefonie."
       />
       <ProfileSection
         icon={Smartphone}
         title="Ustawienia aplikacji"
-        description="Dotyczy nawigacji i elementów ze słownika — pełne tłumaczenie rozszerzamy stopniowo."
       >
-        <ProfileBlock title="Język interfejsu">
-          <LocaleSwitch />
-        </ProfileBlock>
         <ProfileBlock title="Android">
           <AndroidAppVersionCard />
         </ProfileBlock>

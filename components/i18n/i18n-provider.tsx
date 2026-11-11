@@ -41,9 +41,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw === "en") setLocaleState("en");
-      document.documentElement.lang = raw === "en" ? "en" : "pl";
+      // Aplikacja jest tylko po polsku: porzucamy wcześniej zapisany wybór „en”.
+      window.localStorage.removeItem(STORAGE_KEY);
+      document.documentElement.lang = "pl";
     } catch {
       /* ignore */
     }
