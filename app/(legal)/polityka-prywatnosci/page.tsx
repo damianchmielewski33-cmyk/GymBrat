@@ -82,7 +82,7 @@ export default function PolitykaPrywatnosciPage() {
             tętno i inne parametry wpisane przy aktywności (np. kardio),
             zdjęcia sylwetki i zdjęcia z urządzeń treningowych; zgody udzielasz
             osobno dla danych o zdrowiu i dla zdjęć i możesz je wycofać w
-            każdej chwili w Profilu → Konto,
+            każdej chwili w Profilu → Prywatność i dane,
           </li>
           <li>
             zgody i oświadczenia (m.in. wiek, zgody na przypomnienia i dane
@@ -199,7 +199,7 @@ export default function PolitykaPrywatnosciPage() {
           logowania, CSRF i bezpieczeństwa — bez nich aplikacja nie działa.
         </p>
         <p>
-          Opcjonalnie, tylko po Twojej zgodzie w bannerze cookies (lub w Profilu):
+          Opcjonalnie, tylko po Twojej zgodzie w bannerze cookies (zgodę na analitykę możesz potem zmienić w Profilu):
           analityka wejść (page-view) oraz personalizacja reklam pełnoekranowych
           AdMob. Same reklamy są częścią bezpłatnej wersji Serwisu (zgodnie z
           regulaminem) i wyświetlają się, gdy nie masz aktywnego Pakietu; bez
@@ -207,9 +207,11 @@ export default function PolitykaPrywatnosciPage() {
           reklamowe AdMob są dodatkowo zbierane przez Google UMP.
         </p>
         <p>
-          Zgodę możesz zmienić lub wycofać w każdej chwili w Profilu → Prywatność
-          i zgody. Wycofanie zgody marketingowej wyłącza personalizację reklam
-          (reklamy nadal się wyświetlają); niezbędne cookies pozostają aktywne.
+          Zgodę na analitykę możesz zmienić lub wycofać w każdej chwili w Profilu →
+          Prywatność i dane. Zgodę na personalizację reklam wycofasz, zgłaszając
+          to przez formularz na stronie /pomoc. Wycofanie zgody marketingowej
+          wyłącza personalizację reklam (reklamy nadal się wyświetlają);
+          niezbędne cookies pozostają aktywne.
         </p>
       </LegalSection>
 

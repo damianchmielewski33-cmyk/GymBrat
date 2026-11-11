@@ -77,7 +77,7 @@ Zapisane na podstawie odpowiedzi właściciela (backlog US1). Kod zależny od de
 ## US8 — decyzje (2026-11-02)
 | # | Zadanie | Decyzja |
 |---|---|---|
-| DK-19 | Z50 Wsparcie i reklamacje | Zgłoszenia zapisywane w bazie (`support_requests`) i obsługiwane w panelu admina (`/admin/support`); termin odpowiedzi 14 dni (regulamin §8). Punkt wejścia: publiczna strona `/pomoc` (kontakt, FAQ, formularz dla zalogowanych) z linkami w menu, Profilu → Konto i regulaminie. E-mail potwierdzający best-effort (wymaga SMTP z Z17). Treść FAQ i §8 to szkic do zatwierdzenia przez prawnika. |
+| DK-19 | Z50 Wsparcie i reklamacje | Zgłoszenia zapisywane w bazie (`support_requests`) i obsługiwane w panelu admina (`/admin/support`); termin odpowiedzi 14 dni (regulamin §8). Punkt wejścia: publiczna strona `/pomoc` (kontakt, FAQ, formularz dla zalogowanych) z linkami w menu, Profilu (Pomoc i reklamacje) i regulaminie. E-mail potwierdzający best-effort (wymaga SMTP z Z17). Treść FAQ i §8 to szkic do zatwierdzenia przez prawnika. |
 
 
 ## US9 — decyzje (2026-11-02)

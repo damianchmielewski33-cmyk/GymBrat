@@ -22,7 +22,7 @@ export default function UsunKontoPage() {
 
       <LegalSection id="w-aplikacji" title="1. Usunięcie w aplikacji">
         <ol className="list-decimal space-y-1 pl-5">
-          <li>Zaloguj się i wejdź w Profil → Konto.</li>
+          <li>Zaloguj się i wejdź w Profil → Konto i hasło.</li>
           <li>W sekcji „Usuń konto” wybierz „Usuń konto”.</li>
           <li>
             Wpisz frazę potwierdzającą oraz hasło do konta. Jeśli logujesz się przez Google lub

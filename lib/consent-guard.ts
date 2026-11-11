@@ -9,9 +9,9 @@ export const CONSENT_REQUIRED_CODE = "CONSENT_REQUIRED" as const;
 
 export const CONSENT_REQUIRED_MESSAGES: Record<SensitiveConsentType, string> = {
   health:
-    "Aby zapisać dane o ciele lub zdrowiu, najpierw wyraź zgodę na ich przetwarzanie (Profil → Konto → Zgody).",
+    "Aby zapisać dane o ciele lub zdrowiu, najpierw wyraź zgodę na ich przetwarzanie (Profil → Prywatność i dane).",
   photos:
-    "Aby zapisać zdjęcia, najpierw wyraź zgodę na ich przetwarzanie (Profil → Konto → Zgody).",
+    "Aby zapisać zdjęcia, najpierw wyraź zgodę na ich przetwarzanie (Profil → Prywatność i dane).",
 };
 
 /** true = użytkownik NIE ma aktualnej zgody (ostatnia decyzja ≠ zgoda albo brak decyzji). */

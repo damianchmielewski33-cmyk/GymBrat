@@ -140,7 +140,7 @@ export async function sendPackageExpiryEmail(params: { to: string; daysLeft: num
   return sendOptionalDailyBriefEmail({
     to: params.to,
     subject: "GymBrat — Twój pakiet wkrótce się kończy",
-    text: `Twój pakiet GymBrat kończy się za ${params.daysLeft} ${params.daysLeft === 1 ? "dzień" : "dni"}.\n\nPrzedłużenie liczymy od końca bieżącego pakietu, więc nic nie tracisz: Pakiet → Przedłuż.\n\nNie chcesz takich wiadomości? Wyłącz zgodę na przypomnienia w Profilu → Konto.\n\n— GymBrat`,
+    text: `Twój pakiet GymBrat kończy się za ${params.daysLeft} ${params.daysLeft === 1 ? "dzień" : "dni"}.\n\nPrzedłużenie liczymy od końca bieżącego pakietu, więc nic nie tracisz: Pakiet → Przedłuż.\n\nNie chcesz takich wiadomości? Wyłącz zgodę na przypomnienia w Profilu → Prywatność i dane.\n\n— GymBrat`,
   });
 }
 
@@ -169,7 +169,7 @@ export async function sendInactivityWarningEmail(params: {
       params.kind === "account"
         ? "GymBrat — Twoje konto zostanie usunięte z powodu nieaktywności"
         : "GymBrat — Twoje zdjęcia zostaną usunięte z powodu nieaktywności",
-    text: `Od dłuższego czasu nie korzystasz z GymBrat. ${what} za ${params.daysToDelete} dni.\n\nAby tego uniknąć, wystarczy się zalogować. Przed usunięciem możesz też pobrać swoje dane w Profilu → Konto.\n\n— GymBrat`,
+    text: `Od dłuższego czasu nie korzystasz z GymBrat. ${what} za ${params.daysToDelete} dni.\n\nAby tego uniknąć, wystarczy się zalogować. Przed usunięciem możesz też pobrać swoje dane w Profilu → Prywatność i dane.\n\n— GymBrat`,
   });
 }
 

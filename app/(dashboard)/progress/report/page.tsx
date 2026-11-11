@@ -91,7 +91,7 @@ export default async function PremiumReportPage() {
         </section>
       ) : (
         <p className="text-[12px] text-white/50">
-          Sekcja o ciele jest pominięta — włącz zgodę na dane o ciele w Profilu → Konto.
+          Sekcja o ciele jest pominięta — włącz zgodę na dane o ciele w Profilu → Prywatność i dane.
         </p>
       )}
       <PrintButton />
