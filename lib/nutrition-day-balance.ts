@@ -71,6 +71,48 @@ export type WeekTrendDay = {
   caloriesGoal: number | null;
   kind: "filled" | "today" | "empty" | "no_goal";
   ariaLabel: string;
+  /** Wszystkie makro dnia (do wykresu z przełącznikiem makro). */
+  macros: Record<MacroKey, TrendMacro>;
+  dayType: NutritionDayType;
+};
+
+export type TrendMacro = {
+  consumed: number;
+  goal: number | null;
+  pct: number | null;
+  status: MacroBalance["status"];
+};
+
+/** Średnia dzienna z dni zamkniętych z wpisami (bez dnia w toku). */
+export type WeekAverage = {
+  key: MacroKey;
+  label: string;
+  unit: "g" | "kcal";
+  avgConsumed: number;
+  avgGoal: number | null;
+  /** avgConsumed − avgGoal */
+  avgDelta: number | null;
+  pct: number | null;
+  status: MacroBalance["status"];
+  /** Dni zamknięte, w których cel został przekroczony / niedobór / norma. */
+  daysOver: number;
+  daysUnder: number;
+  daysOk: number;
+  daysCounted: number;
+};
+
+/** Skąd bierze się różnica kcal: wkład makro w nadwyżkę/niedobór. */
+export type KcalDriver = {
+  key: Exclude<MacroKey, "calories">;
+  label: string;
+  /** kcal wynikające z różnicy gramów (białko/węgle ×4, tłuszcz ×9). */
+  kcal: number;
+  grams: number;
+};
+
+export type WeekInsight = {
+  tone: "good" | "warn" | "info";
+  text: string;
 };
 
 export type MacroBalanceViewModel = {
@@ -86,6 +128,9 @@ export type MacroBalanceViewModel = {
   };
   pastDays: DayCardViewModel[];
   trendDays: WeekTrendDay[];
+  /** Dzień do porównania (ostatni zamknięty z wpisami) + średnie dzienne. */
+  weekAverages: WeekAverage[];
+  insights: WeekInsight[];
   deviationCountByMacro: Record<MacroKey, number>;
   totalDeviations: number;
   daysWithDeviations: number;
@@ -355,7 +400,20 @@ function buildTrendDays(
             ? `${wd}: ${Math.round(consumed)} kilokalorii`
             : `${wd}: ${pct} procent celu, ${Math.round(consumed)} z ${Math.round(goal!)} kilokalorii`;
 
+    const macros = {} as Record<MacroKey, TrendMacro>;
+    for (const meta of MACRO_META) {
+      const { consumed: c, goal: g } = dayConsumedGoal(row, meta.key);
+      const b = buildMacroBalance(c, g, meta);
+      macros[meta.key] = {
+        consumed: b.consumed,
+        goal: b.goal,
+        pct: b.adherencePct,
+        status: b.status,
+      };
+    }
     return {
+      macros,
+      dayType: row.dayType,
       dateKey: row.dateKey,
       weekdayShort: weekdayShortLetter(row.dateKey),
       label: wd,
@@ -366,6 +424,142 @@ function buildTrendDays(
       ariaLabel,
     };
   });
+}
+
+/** Średnie dzienne z dni zamkniętych z wpisami — porównywalne z celem dziennym. */
+export function buildWeekAverages(
+  rows: WeekDayNutritionRow[],
+  todayKey: string,
+): WeekAverage[] {
+  const closed = rows.filter(
+    (r) => r.dateKey < todayKey && r.entryCount > 0,
+  );
+  return MACRO_META.map((meta) => {
+    let sumC = 0;
+    let sumG = 0;
+    let goalDays = 0;
+    let over = 0;
+    let under = 0;
+    let ok = 0;
+    for (const r of closed) {
+      const { consumed, goal } = dayConsumedGoal(r, meta.key);
+      sumC += consumed;
+      if (goal != null && goal > 0) {
+        sumG += goal;
+        goalDays += 1;
+        const b = buildMacroBalance(consumed, goal, meta);
+        if (b.status === "surplus") over += 1;
+        else if (b.status === "deficit") under += 1;
+        else ok += 1;
+      }
+    }
+    const n = closed.length;
+    const avgConsumed = n > 0 ? sumC / n : 0;
+    const avgGoal = goalDays > 0 ? sumG / goalDays : null;
+    const b = buildMacroBalance(avgConsumed, avgGoal, meta);
+    return {
+      key: meta.key,
+      label: meta.label,
+      unit: meta.unit,
+      avgConsumed,
+      avgGoal,
+      avgDelta: b.delta,
+      pct: b.adherencePct,
+      status: n > 0 ? b.status : "no_goal",
+      daysOver: over,
+      daysUnder: under,
+      daysOk: ok,
+      daysCounted: n,
+    };
+  });
+}
+
+/** Wkład makro w różnicę kcal dnia (tylko makro z celem). */
+export function kcalDrivers(
+  macros: MacroBalance[],
+): KcalDriver[] {
+  const factor = { protein: 4, carbs: 4, fat: 9 } as const;
+  const out: KcalDriver[] = [];
+  for (const m of macros) {
+    if (m.key === "calories" || m.delta == null) continue;
+    out.push({
+      key: m.key,
+      label: m.label,
+      grams: m.delta,
+      kcal: Math.round(m.delta * factor[m.key]),
+    });
+  }
+  return out;
+}
+
+const NAME_GEN: Record<MacroKey, string> = {
+  calories: "kalorii",
+  protein: "białka",
+  carbs: "węglowodanów",
+  fat: "tłuszczu",
+};
+
+/** Krótkie wnioski słowami dla tygodnia (max 3). */
+export function buildWeekInsights(
+  averages: WeekAverage[],
+  pastDays: DayCardViewModel[],
+): WeekInsight[] {
+  const out: WeekInsight[] = [];
+  const counted = averages[0]?.daysCounted ?? 0;
+  if (counted === 0) return out;
+
+  const kcal = averages.find((a) => a.key === "calories");
+  if (kcal && kcal.avgGoal != null && kcal.avgDelta != null) {
+    const d = Math.round(Math.abs(kcal.avgDelta));
+    if (kcal.status === "surplus") {
+      out.push({
+        tone: "warn",
+        text: `Średnio jesz o ${formatPlNumber(d)} kcal dziennie ponad cel (${kcal.pct}%).`,
+      });
+    } else if (kcal.status === "deficit") {
+      out.push({
+        tone: "warn",
+        text: `Średnio brakuje Ci ${formatPlNumber(d)} kcal dziennie do celu (${kcal.pct}%).`,
+      });
+    } else {
+      out.push({
+        tone: "good",
+        text: `Kalorie w normie: średnio ${formatPlNumber(kcal.avgConsumed)} z ${formatPlNumber(kcal.avgGoal)} kcal dziennie.`,
+      });
+    }
+  }
+
+  const macros = averages.filter(
+    (a) => a.key !== "calories" && a.avgGoal != null && a.pct != null,
+  );
+  const worst = [...macros]
+    .filter((a) => a.status === "surplus" || a.status === "deficit")
+    .sort(
+      (a, b) =>
+        Math.abs((b.pct ?? 100) - 100) - Math.abs((a.pct ?? 100) - 100),
+    )[0];
+  if (worst) {
+    const d = Math.round(Math.abs(worst.avgDelta ?? 0));
+    out.push({
+      tone: "warn",
+      text:
+        worst.status === "surplus"
+          ? `Najbardziej odstaje ${NAME_GEN[worst.key]}: +${d} g dziennie ponad cel, w ${worst.daysOver} z ${worst.daysCounted} dni.`
+          : `Najbardziej odstaje ${NAME_GEN[worst.key]}: −${d} g dziennie poniżej celu, w ${worst.daysUnder} z ${worst.daysCounted} dni.`,
+    });
+  }
+  const best = [...macros]
+    .filter((a) => a.status === "on_track")
+    .sort((a, b) => b.daysOk - a.daysOk)[0];
+  if (best) {
+    out.push({
+      tone: "good",
+      text: `Najlepiej idzie ${NAME_GEN[best.key]}: w normie w ${best.daysOk} z ${best.daysCounted} dni.`,
+    });
+  } else if (pastDays.length > 0 && !worst) {
+    out.push({ tone: "info", text: "Brak odchyleń w zamkniętych dniach." });
+  }
+  return out.slice(0, 3);
 }
 
 export function buildMacroBalanceViewModel(
@@ -404,6 +598,9 @@ export function buildMacroBalanceViewModel(
     }
   }
 
+  const trendDays = buildTrendDays(rows, todayKey);
+  const weekAverages = buildWeekAverages(rows, todayKey);
+
   const weekStart = rows[0]?.dateKey;
   const weekEnd = rows[rows.length - 1]?.dateKey;
   const weekRangeMeta =
@@ -423,7 +620,9 @@ export function buildMacroBalanceViewModel(
       macros: periodRaw.macros,
     },
     pastDays,
-    trendDays: buildTrendDays(rows, todayKey),
+    trendDays,
+    weekAverages,
+    insights: buildWeekInsights(weekAverages, pastDays),
     deviationCountByMacro,
     totalDeviations,
     daysWithDeviations,

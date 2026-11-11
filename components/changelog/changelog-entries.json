@@ -1,5 +1,14 @@
 [
   {
+    "title": "Zapowiedź — Nowe statystyki bilansu makro",
+    "planned": true,
+    "bullets": [
+      "Pierścień kalorii z ile zostało lub o ile ponad cel, plus porównanie z średnią dni zamkniętych.",
+      "Wykres tygodnia z przełącznikiem makro, linią celu, pasmem normy i panelem porównań dnia (vs cel, vs średnia, vs poprzedni dzień).",
+      "Średnie dzienne vs cel oraz wnioski słowami, a w odchyleniach wyjaśnienie, skąd bierze się nadwyżka lub niedobór kcal."
+    ]
+  },
+  {
     "title": "Zapowiedź — Nowa analityka w panelu admina",
     "planned": true,
     "bullets": [

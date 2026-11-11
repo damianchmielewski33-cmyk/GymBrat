@@ -528,7 +528,7 @@ function NutritionWeekBody({
                   />
                 ))}
               </div>
-              <WeekTrendBars days={model.trendDays} />
+              <WeekTrendBars days={model.trendDays} averages={model.weekAverages} />
             </div>
           )}
         </div>
