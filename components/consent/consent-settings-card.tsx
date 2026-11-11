@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import {
   saveConsentAction,
 } from "@/actions/consents";
@@ -10,6 +11,7 @@ import {
   ProfileSystemState,
 } from "@/components/profile/profile-ui";
 import { PRIVACY_PATH } from "@/lib/legal-seller";
+import { openConsentSettings } from "@/lib/consent-preferences";
 import {
   CONSENT_CHANGED_EVENT,
   defaultConsentPreferences,
@@ -107,6 +109,23 @@ export function ConsentSettingsCard({
         disabled={pending}
       />
       </div>
+
+      <button
+        type="button"
+        onClick={openConsentSettings}
+        className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50"
+      >
+        <span className="min-w-0">
+          <span className="block text-[15px] font-semibold text-white">
+            Ustawienia reklam i cookies
+          </span>
+          <span className="block text-[13px] leading-snug text-white/55">
+            Reklamy są częścią wersji bezpłatnej. Tu zmienisz zgodę na ich
+            personalizację i na analitykę.
+          </span>
+        </span>
+        <ChevronRight className="h-5 w-5 shrink-0 text-white/55" aria-hidden />
+      </button>
 
       {decidedAt ? (
         <ProfileSystemState

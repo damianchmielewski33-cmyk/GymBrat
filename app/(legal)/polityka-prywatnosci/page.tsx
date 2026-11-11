@@ -208,8 +208,9 @@ export default function PolitykaPrywatnosciPage() {
         </p>
         <p>
           Zgodę na analitykę możesz zmienić lub wycofać w każdej chwili w Profilu →
-          Prywatność i dane. Zgodę na personalizację reklam wycofasz, zgłaszając
-          to przez formularz na stronie /pomoc. Wycofanie zgody marketingowej
+          Prywatność i dane. Zgodę na personalizację reklam zmienisz lub wycofasz w tym samym miejscu
+          (wiersz „Ustawienia reklam i cookies”), tak samo łatwo jak ją
+          wyrażasz. Wycofanie zgody marketingowej
           wyłącza personalizację reklam (reklamy nadal się wyświetlają);
           niezbędne cookies pozostają aktywne.
         </p>

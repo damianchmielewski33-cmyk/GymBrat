@@ -2,6 +2,13 @@
 
 export const CONSENT_STORAGE_KEY = "gymbrat_consent_v1";
 export const CONSENT_CHANGED_EVENT = "gymbrat:consent-changed";
+/** Ponowne otwarcie okna zgód (np. z Profilu → Prywatność i dane). */
+export const CONSENT_REOPEN_EVENT = "gymbrat:consent-reopen";
+
+export function openConsentSettings(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(CONSENT_REOPEN_EVENT));
+}
 
 export type ConsentPreferences = {
   version: 1;

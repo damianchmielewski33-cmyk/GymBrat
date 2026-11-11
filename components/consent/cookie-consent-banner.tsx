@@ -6,6 +6,8 @@ import { createPortal } from "react-dom";
 import { PRIVACY_PATH } from "@/lib/legal-seller";
 import {
   acceptAllConsent,
+  CONSENT_REOPEN_EVENT,
+  readConsentPreferences,
   hasConsentDecision,
   hydrateConsentToAndroidBridge,
   rejectOptionalConsent,
@@ -21,11 +23,23 @@ export function CookieConsentBanner() {
   const [customize, setCustomize] = useState(false);
   const [analytics, setAnalytics] = useState(false);
   const [marketing, setMarketing] = useState(false);
+  /** Otwarte ponownie z ustawień: od razu szczegóły, z możliwością anulowania. */
+  const [reopened, setReopened] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     hydrateConsentToAndroidBridge();
     if (!hasConsentDecision()) setOpen(true);
+    const onReopen = () => {
+      const cur = readConsentPreferences();
+      setAnalytics(Boolean(cur?.analytics));
+      setMarketing(Boolean(cur?.marketing));
+      setReopened(true);
+      setCustomize(true);
+      setOpen(true);
+    };
+    window.addEventListener(CONSENT_REOPEN_EVENT, onReopen);
+    return () => window.removeEventListener(CONSENT_REOPEN_EVENT, onReopen);
   }, []);
 
   if (!mounted || !open) return null;
@@ -37,6 +51,7 @@ export function CookieConsentBanner() {
     });
     writeConsentPreferences(prefs);
     setOpen(false);
+    setReopened(false);
   }
 
   const node = (
@@ -120,10 +135,16 @@ export function CookieConsentBanner() {
               </button>
               <button
                 type="button"
-                onClick={() => setCustomize(false)}
+                onClick={() => {
+                  if (reopened) {
+                    setOpen(false);
+                    setReopened(false);
+                    setCustomize(false);
+                  } else setCustomize(false);
+                }}
                 className="gym-btn-secondary h-11 rounded-xl text-sm font-semibold"
               >
-                Wróć
+                {reopened ? "Anuluj" : "Wróć"}
               </button>
             </>
           ) : (
