@@ -3,6 +3,7 @@ import type { ExerciseSessionPoint } from "@/lib/analytics/types";
 import {
   applyPlanChanges,
   buildPlanReview,
+  buildSetCountProposal,
   type PlanReviewExercise,
 } from "@/lib/plan-review";
 
@@ -199,5 +200,45 @@ describe("domyślne powtórzenia planu", () => {
     const history = hist([100, 101, 102, 103]).map((p) => ({ ...p, bestReps: 6 }));
     const r = buildPlanReview({ ...base, exercises: [ex({ reps: 10, history })] });
     expect(r.proposals[0]).toMatchObject({ change: { reps: 6 } });
+  });
+});
+
+describe("buildSetCountProposal", () => {
+  const adh = (sessions: number, plannedSets: number, doneSets: number) => ({
+    sessions,
+    plannedSets,
+    doneSets,
+    completion: plannedSets > 0 ? Math.round((doneSets / plannedSets) * 100) / 100 : null,
+  });
+
+  it("notorycznie więcej serii → propozycja zwiększenia (do średniej, max +2)", () => {
+    const p = buildSetCountProposal(ex({ sets: 3, adherence: adh(4, 12, 20) }), false);
+    expect(p?.kind).toBe("add_set");
+    expect(p?.change?.sets).toBe(5);
+  });
+
+  it("jedna dodatkowa seria zwykle → +1", () => {
+    const p = buildSetCountProposal(ex({ sets: 3, adherence: adh(4, 12, 16) }), false);
+    expect(p?.change?.sets).toBe(4);
+  });
+
+  it("notorycznie mniej serii → propozycja zmniejszenia", () => {
+    const p = buildSetCountProposal(ex({ sets: 4, adherence: adh(5, 20, 10) }), false);
+    expect(p?.kind).toBe("remove_set");
+    expect(p?.change?.sets).toBe(3);
+  });
+
+  it("za mało sesji, zmęczenie, regres albo limit serii → brak propozycji", () => {
+    expect(buildSetCountProposal(ex({ sets: 3, adherence: adh(2, 6, 12) }), false)).toBeNull();
+    expect(buildSetCountProposal(ex({ sets: 3, adherence: adh(4, 12, 20) }), true)).toBeNull();
+    expect(
+      buildSetCountProposal(ex({ sets: 3, stagnation: "regressing", adherence: adh(4, 12, 20) }), false),
+    ).toBeNull();
+    expect(buildSetCountProposal(ex({ sets: 6, adherence: adh(4, 24, 36) }), false)).toBeNull();
+    expect(buildSetCountProposal(ex({ sets: 2, adherence: adh(5, 10, 4) }), false)).toBeNull();
+  });
+
+  it("zgodne z planem → brak propozycji", () => {
+    expect(buildSetCountProposal(ex({ sets: 3, adherence: adh(5, 15, 15) }), false)).toBeNull();
   });
 });

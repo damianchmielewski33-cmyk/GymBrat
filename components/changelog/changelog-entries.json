@@ -1,5 +1,14 @@
 [
   {
+    "title": "Zapowiedź — Dopasowanie liczby serii do Twojego treningu",
+    "planned": true,
+    "bullets": [
+      "Gdy w kilku kolejnych treningach robisz więcej serii niż w planie, po treningu zapytamy, czy zwiększyć ich liczbę.",
+      "Gdy robisz ich notorycznie za mało, zaproponujemy zmniejszenie. Propozycję liczy silnik przeglądu planu.",
+      "Nic nie zmienia się bez Twojej zgody; zmianę cofniesz w Przeglądzie planu, a „Nie teraz” wycisza pytanie na 3 tygodnie."
+    ]
+  },
+  {
     "title": "Zapowiedź — Nowy profil użytkownika",
     "planned": true,
     "bullets": [

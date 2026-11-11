@@ -72,6 +72,10 @@ const HIGH_FATIGUE = 70;
 const DELOAD_SET_FACTOR = 0.6;
 const ADHERENCE_MIN_SESSIONS = 4;
 const ADHERENCE_LOW = 0.7;
+/** Notorycznie więcej serii niż w planie: ≥125% zaplanowanych w ≥3 sesjach. */
+const ADHERENCE_HIGH = 1.25;
+const ADHERENCE_HIGH_MIN_SESSIONS = 3;
+const ADHERENCE_HIGH_MAX_STEP = 2;
 const STAGNATION_TARGET_REPS = 8;
 
 export type PlanReviewResult = {
@@ -90,6 +94,55 @@ function hasNewBestRecently(
   return h.some(
     (p) => p.bestE1rm >= best && daysBetweenDateKeys(p.date, today) <= days,
   );
+}
+
+/**
+ * Propozycja liczby serii na podstawie realnego wykonania planu:
+ * notorycznie więcej niż w planie → +serie, notorycznie mniej → −1 seria.
+ * Wspólna dla przeglądu planu i pop-upu po treningu.
+ */
+export function buildSetCountProposal(
+  ex: PlanReviewExercise,
+  fatigued: boolean,
+): PlanProposal | null {
+  const ad = ex.adherence;
+  if (!ad || ad.completion == null) return null;
+  if (
+    ad.sessions >= ADHERENCE_MIN_SESSIONS &&
+    ad.completion < ADHERENCE_LOW &&
+    ex.sets > MIN_SETS_PER_EXERCISE
+  ) {
+    return {
+      id: `adherence-${ex.id}`,
+      kind: "remove_set",
+      exerciseId: ex.id,
+      title: `${ex.name}: −1 seria`,
+      reason: `Wykonujesz ${Math.round(ad.completion * 100)}% zaplanowanych serii (${ad.doneSets}/${ad.plannedSets}) — dopasuj plan do realnej objętości.`,
+      change: { sets: ex.sets - 1 },
+    };
+  }
+  if (
+    ad.sessions >= ADHERENCE_HIGH_MIN_SESSIONS &&
+    ad.completion >= ADHERENCE_HIGH &&
+    ex.sets < MAX_SETS_PER_EXERCISE &&
+    !fatigued &&
+    ex.stagnation !== "regressing"
+  ) {
+    const avgDone = Math.round(ad.doneSets / ad.sessions);
+    const target = Math.min(
+      MAX_SETS_PER_EXERCISE,
+      Math.max(ex.sets + 1, Math.min(avgDone, ex.sets + ADHERENCE_HIGH_MAX_STEP)),
+    );
+    return {
+      id: `adherence-more-${ex.id}`,
+      kind: "add_set",
+      exerciseId: ex.id,
+      title: `${ex.name}: ${ex.sets} → ${target} serii`,
+      reason: `Robisz średnio ${avgDone} serii zamiast ${ex.sets} (${Math.round(ad.completion * 100)}% planu w ${ad.sessions} sesjach) — dopasuj plan do realnej objętości.`,
+      change: { sets: target },
+    };
+  }
+  return null;
 }
 
 export function buildPlanReview(input: PlanReviewInput): PlanReviewResult {
@@ -143,22 +196,9 @@ export function buildPlanReview(input: PlanReviewInput): PlanReviewResult {
       });
       continue;
     }
-    const ad = ex.adherence;
-    if (
-      ad &&
-      ad.completion != null &&
-      ad.sessions >= ADHERENCE_MIN_SESSIONS &&
-      ad.completion < ADHERENCE_LOW &&
-      ex.sets > MIN_SETS_PER_EXERCISE
-    ) {
-      push({
-        id: `adherence-${ex.id}`,
-        kind: "remove_set",
-        exerciseId: ex.id,
-        title: `${ex.name}: −1 seria`,
-        reason: `Wykonujesz ${Math.round(ad.completion * 100)}% zaplanowanych serii (${ad.doneSets}/${ad.plannedSets}) — dopasuj plan do realnej objętości.`,
-        change: { sets: ex.sets - 1 },
-      });
+    const setCount = buildSetCountProposal(ex, fatigued);
+    if (setCount) {
+      push(setCount);
       continue;
     }
     // Domyślne powtórzenia planu nadążają za realnymi wynikami z 3 ostatnich sesji.

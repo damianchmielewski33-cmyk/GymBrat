@@ -18,6 +18,7 @@ import { whenActiveWorkoutCloudHydrated } from "@/lib/active-workout-cloud-ready
 import { ActiveSessionCard } from "@/components/active-workout/active-session-card";
 import { GuidedSessionLayout } from "@/components/active-workout/guided-session-layout";
 import { WorkoutFinishedScreen } from "@/components/active-workout/workout-finished-screen";
+import { PlanSetsSuggestion } from "@/components/active-workout/plan-sets-suggestion";
 import { WorkoutSavingScreen } from "@/components/active-workout/workout-saving-screen";
 import { WorkoutFinishConfirmDialog } from "@/components/active-workout/workout-finish-confirm-dialog";
 import { useWorkoutFinishFlow } from "@/components/active-workout/use-workout-finish-flow";
@@ -838,7 +839,13 @@ export function ActiveWorkoutView({
       ) : null}
 
       {flow.state.phase === "done" ? (
-        <WorkoutFinishedScreen data={flow.state.result} onClose={flow.close} />
+        <>
+          <WorkoutFinishedScreen data={flow.state.result} onClose={flow.close} />
+          <PlanSetsSuggestion
+            planId={workoutPlanId ?? null}
+            enabled={flow.state.result.saveStatus === "saved"}
+          />
+        </>
       ) : null}
 
       <WorkoutDiscardSessionDialog

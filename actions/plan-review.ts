@@ -14,6 +14,15 @@ import {
   replaceExerciseInPlan,
 } from "@/lib/plan-review";
 import { normalizeWorkoutPlan } from "@/lib/workout-plan-utils";
+import { loadPlanAdherence } from "@/lib/plan-review-data";
+import {
+  buildSetCountProposal,
+  MIN_SESSIONS_FOR_REVIEW,
+  type PlanReviewExercise,
+} from "@/lib/plan-review";
+import { resolveExerciseIdentity } from "@/lib/exercise-identity";
+import { calendarDateKey } from "@/lib/local-date";
+import { getProgressHubData } from "@/lib/progress-hub";
 import { CATALOG_EXERCISES } from "@/lib/workout-exercise-catalog";
 import type { WorkoutPlanPayload } from "@/lib/workout-plan-types";
 
@@ -146,4 +155,91 @@ export async function revertPlanRevisionAction(revisionId: string) {
     .set({ revertedAt: new Date() })
     .where(eq(planRevisions.id, rev.id));
   return { ok: true as const };
+}
+
+
+export type SetCountSuggestion = {
+  id: string;
+  exerciseId: string;
+  exerciseName: string;
+  direction: "more" | "fewer";
+  from: number;
+  to: number;
+  reason: string;
+};
+
+/**
+ * Po treningu: czy użytkownik notorycznie robi więcej / mniej serii niż w planie?
+ * Decyzję podejmuje silnik przeglądu planu (`buildSetCountProposal`); nic nie jest
+ * stosowane bez zgody — zatwierdzenie idzie przez `applyPlanReviewAction`.
+ */
+export async function getSetCountSuggestionsAction(
+  planId: string,
+): Promise<SetCountSuggestion[]> {
+  await guardAction("plan-review.getSetCountSuggestionsAction");
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId || typeof planId !== "string" || planId.length > 64) return [];
+
+  await ensureCriticalSchema();
+  const plan = await loadOwnedPlan(userId, planId);
+  if (!plan || plan.exercises.length === 0) return [];
+
+  let fatigueScore = 0;
+  let sessions = 0;
+  const stagnationByKey = new Map<string, PlanReviewExercise["stagnation"]>();
+  try {
+    const data = await getProgressHubData(userId, "sila");
+    fatigueScore = data.intelligence.fatigue.score;
+    sessions = data.strength.workoutCount;
+    for (const st of data.intelligence.stagnation) {
+      stagnationByKey.set(
+        resolveExerciseIdentity(st.name).key || st.exerciseKey,
+        st.status,
+      );
+    }
+  } catch {
+    return [];
+  }
+  if (sessions < MIN_SESSIONS_FOR_REVIEW) return [];
+
+  const { byExerciseId } = await loadPlanAdherence({
+    userId,
+    planId,
+    today: calendarDateKey(),
+    planExercises: plan.exercises.map((e) => ({
+      id: e.id,
+      name: e.name,
+      sets: e.sets,
+    })),
+  });
+
+  const fatigued = fatigueScore >= 70;
+  const out: SetCountSuggestion[] = [];
+  for (const e of plan.exercises) {
+    const p = buildSetCountProposal(
+      {
+        id: e.id,
+        name: e.name,
+        sets: e.sets,
+        reps: e.reps,
+        muscle: null,
+        history: [],
+        stagnation: stagnationByKey.get(resolveExerciseIdentity(e.name).key) ?? null,
+        adherence: byExerciseId.get(e.id) ?? null,
+      },
+      fatigued,
+    );
+    if (!p || p.change?.sets == null) continue;
+    out.push({
+      id: p.id,
+      exerciseId: e.id,
+      exerciseName: e.name,
+      direction: p.kind === "add_set" ? "more" : "fewer",
+      from: e.sets,
+      to: p.change.sets,
+      reason: p.reason,
+    });
+  }
+  return out.slice(0, 3);
 }
