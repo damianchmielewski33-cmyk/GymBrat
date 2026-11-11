@@ -5,11 +5,13 @@ import { useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { AppPageHeader } from "@/components/layout/screen";
 import { SectionLabel } from "@/components/ui/section-label";
-import { EmptyNote, Explainer } from "@/components/progress/progress-ui";
+import { EmptyNote } from "@/components/progress/progress-ui";
 import { cn } from "@/lib/utils";
 import { DayTypeChip } from "@/components/nutrition/day-type-chip";
 import { MacroTodayTile } from "@/components/nutrition/macro-today-tile";
-import { MacroMeter } from "@/components/nutrition/macro-meter";
+import { MacroRing } from "@/components/nutrition/macro-ring";
+import { KcalSplit } from "@/components/nutrition/kcal-split";
+import { WeekAverages } from "@/components/nutrition/week-averages";
 import { WeekTrendBars } from "@/components/nutrition/week-trend-bars";
 import {
   MacroFilterChips,
@@ -18,6 +20,7 @@ import {
 import { DayBalanceCard } from "@/components/nutrition/day-balance-card";
 import {
   formatPlNumber,
+  formatSignedAmount,
   type MacroBalanceViewModel,
   type MacroKey,
 } from "@/lib/nutrition-day-balance";
@@ -83,6 +86,14 @@ export function NutritionTodayView({
   const kcal = today?.macros.find((m) => m.key === "calories") ?? null;
   const tiles = (today?.macros ?? []).filter((m) => m.key !== "calories");
   const noEntriesToday = today != null && !today.hasEntries;
+
+  const kcalAvg = model.weekAverages.find((a) => a.key === "calories") ?? null;
+  const avgNote = (key: MacroKey): string | undefined => {
+    const a = model.weekAverages.find((x) => x.key === key);
+    return a && a.daysCounted > 0
+      ? `śr. dni zamkniętych: ${formatPlNumber(a.avgConsumed)} ${a.unit}`
+      : undefined;
+  };
 
   const overNames = overMacroNames(model);
   const heroMeta =
@@ -157,12 +168,39 @@ export function NutritionTodayView({
                   </p>
                 </div>
               ) : (
-                <MacroTodayTile
-                  macro={kcal}
-                  inProgress
-                  variant="hero"
-                  emptyDay={noEntriesToday}
-                />
+                <div className="flex items-center gap-4">
+                  <MacroRing consumed={kcal.consumed} goal={kcal.goal} />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <p className="font-metric text-[34px] leading-none tabular-nums text-[var(--gym-gold)]">
+                      {formatPlNumber(kcal.consumed)}
+                      <span className="ml-1 font-heading text-[14px] font-semibold text-white/90">
+                        kcal
+                      </span>
+                    </p>
+                    <p className="text-[12px] tabular-nums text-[var(--gym-text-secondary)]">
+                      cel dnia: {formatPlNumber(kcal.goal)} kcal
+                    </p>
+                    <p className="text-[13px] font-semibold tabular-nums text-white/90">
+                      {noEntriesToday
+                        ? "Brak wpisów dziś"
+                        : kcal.direction === "over"
+                          ? `ponad cel o ${formatPlNumber(Math.abs(kcal.delta ?? 0))} kcal`
+                          : `zostało ${formatPlNumber(kcal.remaining ?? 0)} kcal`}
+                    </p>
+                    {kcalAvg && kcalAvg.avgGoal != null && !noEntriesToday ? (
+                      <p className="text-[12px] leading-snug text-[var(--gym-text-secondary)]">
+                        vs średnia dni zamkniętych (
+                        {formatPlNumber(kcalAvg.avgConsumed)} kcal):{" "}
+                        <strong className="font-semibold text-white/90">
+                          {formatSignedAmount(
+                            kcal.consumed - kcalAvg.avgConsumed,
+                            "kcal",
+                          )}
+                        </strong>
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
               )}
               <div className="grid grid-cols-3 gap-2">
                 {tiles.map((m) => (
@@ -171,9 +209,11 @@ export function NutritionTodayView({
                     macro={m}
                     inProgress
                     emptyDay={noEntriesToday}
+                    avgNote={avgNote(m.key)}
                   />
                 ))}
               </div>
+              {!noEntriesToday ? <KcalSplit macros={today.macros} /> : null}
               {noEntriesToday ? (
                 <div className="mt-4 space-y-3">
                   <p className="text-[13px] text-[var(--gym-text-secondary)]">
@@ -202,7 +242,7 @@ export function NutritionTodayView({
       <section className="space-y-3" aria-labelledby="macro-week-heading">
         <SectionLabel
           index="02"
-          title="Tydzień PN→dziś"
+          title="Tydzień: średnio dziennie"
           titleAs="h2"
           trailing={
             <Link
@@ -220,26 +260,18 @@ export function NutritionTodayView({
             </EmptyNote>
           ) : (
             <>
-              <div className="space-y-1">
-                <p className="text-[12px] text-[var(--gym-text-secondary)]">
-                  {model.period.daysWithEntries} z {model.period.daysInWeek} dni
-                  z wpisami
-                </p>
-                <Explainer label="Jak liczymy?">
-                  Suma obejmuje dni z co najmniej jednym wpisem. Dzisiejszy dzień
-                  jest w sumie w trakcie – odcinek jaśniejszy.
-                </Explainer>
-              </div>
-              <div className="space-y-3.5">
-                {model.period.macros.map((m) => (
-                  <MacroMeter
-                    key={m.key}
-                    macro={m}
-                    showTodayNote={m.key === "calories"}
-                  />
-                ))}
-              </div>
-              <WeekTrendBars days={model.trendDays} />
+              <p className="text-[12px] text-[var(--gym-text-secondary)]">
+                {model.period.daysWithEntries} z {model.period.daysInWeek} dni z
+                wpisami
+              </p>
+              <WeekAverages
+                averages={model.weekAverages}
+                insights={model.insights}
+              />
+              <WeekTrendBars
+                days={model.trendDays}
+                averages={model.weekAverages}
+              />
             </>
           )}
         </div>

@@ -45,11 +45,13 @@ export function MacroTodayTile({
   inProgress,
   variant = "tile",
   emptyDay,
+  avgNote,
 }: {
   macro: MacroBalance;
   inProgress: boolean;
   variant?: "tile" | "hero";
   emptyDay?: boolean;
+  avgNote?: string;
 }) {
   const status = statusLine(macro, inProgress);
   const pct = macro.adherencePct;
@@ -149,6 +151,11 @@ export function MacroTodayTile({
         {Icon ? <Icon className="h-3 w-3 shrink-0" aria-hidden /> : null}
         <span className="leading-tight">{status.text}</span>
       </p>
+      {avgNote ? (
+        <p className="mt-1 text-[11px] leading-tight text-[var(--gym-text-secondary)]">
+          {avgNote}
+        </p>
+      ) : null}
     </div>
   );
 }

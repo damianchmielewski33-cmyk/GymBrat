@@ -19,6 +19,7 @@ import { Meter } from "@/components/progress/progress-ui";
 import { DayTypeChip } from "@/components/nutrition/day-type-chip";
 import {
   formatPlNumber,
+  kcalDrivers,
   plOdchylenia,
   type DayCardViewModel,
   type MacroBalance,
@@ -110,6 +111,52 @@ function MiniMacro({ macro }: { macro: MacroBalance }) {
           none={macro.goal == null}
         />
       </div>
+    </div>
+  );
+}
+
+/** „Dlaczego”: wkład białka/węgli/tłuszczu w różnicę kcal względem planu. */
+function KcalWhy({ macros }: { macros: MacroBalance[] }) {
+  const kcal = macros.find((m) => m.key === "calories");
+  if (!kcal || kcal.delta == null || kcal.direction === "in_range") return null;
+  const drivers = kcalDrivers(macros).filter((d) => d.kcal !== 0);
+  if (!drivers.length) return null;
+  const max = Math.max(...drivers.map((d) => Math.abs(d.kcal)));
+  const over = kcal.delta > 0;
+  return (
+    <div className="mt-3 space-y-2 rounded-2xl border border-white/10 bg-black/25 p-3">
+      <p className="text-[12px] font-semibold text-white/90">
+        Skąd {over ? "nadwyżka" : "niedobór"} {formatPlNumber(Math.abs(kcal.delta))} kcal?
+      </p>
+      <ul className="space-y-1.5">
+        {drivers.map((d) => (
+          <li key={d.key} className="space-y-0.5">
+            <div className="flex justify-between text-[12px] tabular-nums">
+              <span className="text-[var(--gym-text-secondary)]">
+                {d.label} {d.grams > 0 ? "+" : "−"}
+                {formatPlNumber(Math.abs(d.grams))} g
+              </span>
+              <span className="font-semibold text-white/90">
+                {d.kcal > 0 ? "+" : "−"}
+                {formatPlNumber(Math.abs(d.kcal))} kcal
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-[var(--gym-track)]">
+              <div
+                className={cn(
+                  "h-full rounded-full",
+                  d.kcal > 0 ? "bg-white/80" : "bg-[var(--gym-gold)]",
+                )}
+                style={{ width: `${(Math.abs(d.kcal) / max) * 100}%` }}
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p className="text-[11px] leading-snug text-[var(--gym-text-secondary)]">
+        Przeliczenie: białko i węgle 4 kcal/g, tłuszcz 9 kcal/g. Tłuszcz
+        „waży” najwięcej, więc małe przekroczenie w gramach daje duży skok kcal.
+      </p>
     </div>
   );
 }
@@ -273,6 +320,9 @@ export function DayBalanceCard({
                 ))}
               </div>
             )}
+            {day.status !== "empty" && filterKey !== "protein" && filterKey !== "carbs" && filterKey !== "fat" ? (
+              <KcalWhy macros={day.macros} />
+            ) : null}
             {day.state !== "in_progress" && day.state !== "no_entries" ? (
               <p className="mt-3 text-[11px] text-[var(--gym-text-secondary)]">
                 Cel wg aktualnego planu żywieniowego.

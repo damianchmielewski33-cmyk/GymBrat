@@ -7,6 +7,7 @@ import {
   classifyMacroBalance,
   formatSignedAmount,
   formatSignedPct,
+  kcalDrivers,
 } from "@/lib/nutrition-day-balance";
 
 function row(
@@ -198,5 +199,59 @@ describe("nutrition-day-balance", () => {
     expect(formatSignedAmount(18, "g")).toBe("+18 g");
     expect(formatSignedPct(-15)).toBe("-15%");
     expect(formatSignedPct(22)).toBe("+22%");
+  });
+});
+
+describe("średnie tygodnia i wyjaśnienia", () => {
+  const rows = [
+    row({
+      dateKey: "2026-11-09",
+      caloriesConsumed: 2400,
+      caloriesGoal: 2000,
+      proteinConsumed: 150,
+      proteinGoal: 200,
+      carbsConsumed: 250,
+      carbsGoal: 200,
+      fatConsumed: 80,
+      fatGoal: 50,
+    }),
+    row({
+      dateKey: "2026-11-10",
+      caloriesConsumed: 2000,
+      caloriesGoal: 2000,
+      proteinConsumed: 200,
+      proteinGoal: 200,
+      carbsConsumed: 200,
+      carbsGoal: 200,
+      fatConsumed: 50,
+      fatGoal: 50,
+    }),
+    row({ dateKey: "2026-11-11" }),
+  ];
+
+  it("liczy średnią dzienną z dni zamkniętych z wpisami", () => {
+    const vm = buildMacroBalanceViewModel(rows, "2026-11-11", "tydzień");
+    const kcal = vm.weekAverages.find((a) => a.key === "calories")!;
+    expect(kcal.daysCounted).toBe(2);
+    expect(kcal.avgConsumed).toBe(2200);
+    expect(kcal.pct).toBe(110);
+    expect(kcal.daysOver).toBe(1);
+    expect(kcal.daysOk).toBe(1);
+    expect(vm.insights.length).toBeGreaterThan(0);
+  });
+
+  it("wykres dnia niesie wszystkie makro", () => {
+    const vm = buildMacroBalanceViewModel(rows, "2026-11-11", "tydzień");
+    expect(vm.trendDays[0]!.macros.fat.pct).toBe(160);
+    expect(vm.trendDays[0]!.macros.protein.status).toBe("deficit");
+  });
+
+  it("kcalDrivers: tłuszcz ×9, białko/węgle ×4", () => {
+    const vm = buildMacroBalanceViewModel(rows, "2026-11-11", "tydzień");
+    const day = vm.pastDays.find((d) => d.dateKey === "2026-11-09")!;
+    const d = kcalDrivers(day.macros);
+    expect(d.find((x) => x.key === "fat")!.kcal).toBe(270);
+    expect(d.find((x) => x.key === "protein")!.kcal).toBe(-200);
+    expect(d.find((x) => x.key === "carbs")!.kcal).toBe(200);
   });
 });
