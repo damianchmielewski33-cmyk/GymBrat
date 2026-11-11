@@ -12,6 +12,7 @@ import {
   ensureAndroidNotificationPermission,
   hasAndroidNativeReminders,
   isInstalledAndroidAppClient,
+  canOpenAndroidAppSettings,
   openAndroidAppSettings,
   openAndroidExactAlarmSettings,
   syncAndroidReminders,
@@ -371,7 +372,12 @@ function ChannelStatus({
       >
         {text}
       </p>
-      {channel === "android" && (blocked || !exactOk) ? (
+      {channel === "android" &&
+      (blocked || !exactOk) &&
+      (blocked
+        ? canOpenAndroidAppSettings()
+        : typeof window !== "undefined" &&
+          typeof window.GymBratAndroid?.openExactAlarmSettings === "function") ? (
         <Button
           type="button"
           variant="secondary"

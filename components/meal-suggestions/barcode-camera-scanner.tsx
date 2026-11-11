@@ -425,6 +425,7 @@ export function BarcodeCameraScanner({
   const [phase, setPhase] = useState<CameraPhase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState("");
+  const [settingsHelp, setSettingsHelp] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchAvailable, setTorchAvailable] = useState(false);
   const [torchBusy, setTorchBusy] = useState(false);
@@ -854,15 +855,32 @@ export function BarcodeCameraScanner({
                   type="button"
                   className="text-sm font-semibold text-[var(--gym-gold-bright)] underline underline-offset-2"
                   onClick={() => {
-                    if (!openAndroidAppSettings()) {
-                      setError(
-                        "Otwórz Ustawienia → Aplikacje → GymBrat → Uprawnienia → Aparat.",
-                      );
-                    }
+                    if (!openAndroidAppSettings()) setSettingsHelp(true);
                   }}
                 >
                   Otwórz ustawienia aplikacji
                 </button>
+              ) : null}
+              {settingsHelp ? (
+                <div
+                  role="status"
+                  className="rounded-xl border border-white/15 bg-white/[0.06] px-3 py-3 text-left text-[13px] leading-snug text-white/85"
+                >
+                  <p className="font-semibold text-white">
+                    Ta wersja aplikacji nie otworzy ustawień automatycznie.
+                  </p>
+                  <ol className="mt-1.5 list-decimal space-y-0.5 pl-5">
+                    <li>Otwórz Ustawienia telefonu → Aplikacje → GymBrat.</li>
+                    <li>Wybierz Uprawnienia → Aparat → Zezwól.</li>
+                    <li>Wróć do GymBrat i spróbuj ponownie.</li>
+                  </ol>
+                  <a
+                    href="/profile/app"
+                    className="mt-2 inline-block font-semibold text-[var(--gym-gold-bright)] underline underline-offset-2"
+                  >
+                    Zaktualizuj aplikację, by przycisk działał
+                  </a>
+                </div>
               ) : null}
               <div className="flex gap-2">
                 <input

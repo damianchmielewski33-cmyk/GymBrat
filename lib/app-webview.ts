@@ -316,6 +316,12 @@ export function ensureAndroidCameraPermission(): Promise<boolean> {
   });
 }
 
+/** Czy zainstalowany APK potrafi otworzyć ustawienia aplikacji (starsze wersje nie mają metody). */
+export function canOpenAndroidAppSettings(): boolean {
+  if (typeof window === "undefined") return false;
+  return typeof window.GymBratAndroid?.openAppSettings === "function";
+}
+
 export function openAndroidAppSettings(): boolean {
   if (typeof window === "undefined") return false;
   try {
