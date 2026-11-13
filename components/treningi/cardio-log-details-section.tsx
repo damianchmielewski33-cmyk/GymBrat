@@ -235,7 +235,7 @@ export function CardioLogDetailsSection({
               onChange={(e) => onChange({ note: e.target.value })}
               onBlur={() => onBlurField("notes")}
               className={cn(
-                "mt-1.5 w-full resize-none rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 py-3 text-sm text-white outline-none placeholder:text-white/50",
+                "mt-1.5 w-full resize-none rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 py-3 text-sm text-white outline-none focus-ring placeholder:text-white/50",
                 "focus:border-[var(--gym-gold)]/45 focus:ring-2 focus:ring-[var(--gym-gold)]/20",
                 fieldErrors.notes && fieldErrorClass,
               )}

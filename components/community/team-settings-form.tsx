@@ -132,7 +132,7 @@ export function TeamSettingsForm({ team }: { team: TeamDetailView }) {
           <form
             ref={archiveFormRef}
             action={archiveAction}
-            className="app-card space-y-3 border-red-500/20 p-5"
+            className="app-card space-y-3 border-state-error/20 p-5"
             onSubmit={(e) => {
               if (!allowArchiveRef.current) {
                 e.preventDefault();
@@ -143,7 +143,7 @@ export function TeamSettingsForm({ team }: { team: TeamDetailView }) {
             }}
           >
             <input type="hidden" name="teamId" value={team.id} />
-            <p className="text-sm font-semibold text-red-300">Strefa właściciela</p>
+            <p className="text-sm font-semibold text-state-error">Strefa właściciela</p>
             <p className="text-[length:var(--text-body-sm)] text-white/55">
               Archiwizacja ukrywa grupę i blokuje nowe dołączenia.
             </p>

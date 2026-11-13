@@ -281,13 +281,13 @@ export function NutritionPlanSection({
       </div>
 
       {clientError ? (
-        <p className="text-sm text-rose-300">{clientError}</p>
+        <p className="text-sm text-state-error">{clientError}</p>
       ) : null}
       {state.ok === false ? (
         state.error === "conflict" ? (
           <div
             role="alert"
-            className="rounded-xl border border-amber-400/35 bg-amber-400/10 px-4 py-3 text-[13px] leading-relaxed text-amber-100/90"
+            className="rounded-xl border border-state-warning/35 bg-state-warning/10 px-4 py-3 text-[13px] leading-relaxed text-state-warning/90"
           >
             Te ustawienia zmieniono z innego urządzenia — wczytaj najnowsze dane.
             <button
@@ -299,7 +299,7 @@ export function NutritionPlanSection({
             </button>
           </div>
         ) : (
-          <p className="text-sm text-rose-300">{state.error}</p>
+          <p className="text-sm text-state-error">{state.error}</p>
         )
       ) : null}
 

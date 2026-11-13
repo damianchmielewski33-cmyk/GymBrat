@@ -44,7 +44,7 @@ export function RirPicker({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onChange(v)}
               className={cn(
-                "h-12 rounded-[14px] text-[16px] font-bold tabular-nums transition motion-safe:active:scale-[0.97] compact:h-11",
+                "h-12 rounded-xl text-[16px] font-bold tabular-nums transition motion-safe:active:scale-[0.97] compact:h-11",
                 active
                   ? "gym-btn-primary"
                   : "border border-[var(--gym-border-gold)] bg-[var(--gym-black)] text-white/80 hover:border-[var(--gym-gold)]/40",

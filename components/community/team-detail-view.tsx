@@ -97,7 +97,7 @@ export function TeamDetailClient({
         <div className="space-y-3 px-4 pb-5 pt-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="font-heading text-[28px] font-semibold leading-tight tracking-tight text-white sm:text-[30px]">
+              <h1 className="text-[length:var(--text-title-lg)] font-heading font-semibold leading-tight tracking-tight text-white">
                 {team.name}
               </h1>
               <p className="mt-1.5 text-[12px] leading-relaxed text-white/50">
@@ -223,7 +223,7 @@ export function TeamDetailClient({
       <section className="app-card space-y-3 p-5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-emerald-300" aria-hidden />
+            <Zap className="h-4 w-4 text-state-success" aria-hidden />
             <h2 className="text-[15px] font-semibold text-white">
               Aktywne treningi
             </h2>
@@ -238,7 +238,7 @@ export function TeamDetailClient({
             {team.liveGroupSessions.map((session) => (
               <li
                 key={session.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-2.5"
+                className="flex items-center justify-between gap-3 rounded-xl border border-state-success/20 bg-state-success/[0.07] px-3 py-2.5"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-white">
@@ -263,11 +263,11 @@ export function TeamDetailClient({
             {team.liveNow.map((row) => (
               <li
                 key={row.userId}
-                className="flex items-center gap-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.06] px-3 py-2.5"
+                className="flex items-center gap-3 rounded-xl border border-state-success/15 bg-state-success/[0.06] px-3 py-2.5"
               >
                 <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-state-success/60" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-state-success" />
                 </span>
                 <span className="text-sm font-medium text-white">
                   {row.displayName}

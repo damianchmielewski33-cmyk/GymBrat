@@ -67,7 +67,7 @@ function Delta({ cur, prev }: { cur: number; prev: number }) {
   const pct = ((cur - prev) / prev) * 100;
   const up = pct >= 0;
   return (
-    <span className={up ? "text-emerald-300" : "text-rose-300"}>
+    <span className={up ? "text-state-success" : "text-state-error"}>
       {up ? "▲" : "▼"} {Math.abs(pct).toFixed(0)}% vs poprzedni okres ({fmtInt(prev)})
     </span>
   );

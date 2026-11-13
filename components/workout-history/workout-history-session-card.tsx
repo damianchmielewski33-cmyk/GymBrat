@@ -143,7 +143,7 @@ export function WorkoutHistorySessionCard({
     <div
       ref={rowRef}
       className={cn(
-        "overflow-hidden rounded-[18px] border bg-[var(--gym-surface)] transition-[border-color,box-shadow] duration-300 motion-reduce:transition-none",
+        "overflow-hidden rounded-2xl border bg-[var(--gym-surface)] transition-[border-color,box-shadow] duration-300 motion-reduce:transition-none",
         expanded
           ? "border-[var(--gym-gold)]/40 shadow-[0_8px_24px_rgba(0,0,0,0.5),0_0_18px_rgba(var(--neon-rgb),0.1)]"
           : "border-white/[0.08]",
@@ -266,7 +266,7 @@ export function WorkoutHistorySessionCard({
                 className={cn(
                   "h-12 gap-2 rounded-full border border-[rgba(255,51,71,0.45)] bg-[rgba(255,51,71,0.06)] text-[14px] font-semibold text-[#ff8593]",
                   editable ? "flex-1" : "w-full",
-                  "hover:bg-rose-950/30",
+                  "hover:bg-state-error/30",
                 )}
                 onClick={() => {
                   setDeleteError(null);

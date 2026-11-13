@@ -66,7 +66,7 @@ function ExerciseStepper({
           −
         </button>
         <input
-          className="min-w-0 flex-1 bg-transparent text-center text-lg font-semibold tabular-nums text-white outline-none"
+          className="min-w-0 flex-1 bg-transparent text-center text-lg font-semibold tabular-nums text-white outline-none focus-ring"
           inputMode="numeric"
           value={value}
           aria-live="polite"
@@ -297,7 +297,7 @@ export function PlanEditorClient({
           Krótko, np. nazwa dnia. Widać ją w Treningach.
         </p>
         {nameError ? (
-          <p className="mt-1 text-[12px] text-rose-300" role="alert">
+          <p className="mt-1 text-[12px] text-state-error" role="alert">
             {nameError}
           </p>
         ) : null}
@@ -333,7 +333,7 @@ export function PlanEditorClient({
                 <li
                   key={ex.id}
                   className={cn(
-                    "overflow-hidden rounded-[22px] border border-[var(--gym-border-gold)] bg-[var(--gym-surface)]",
+                    "overflow-hidden rounded-3xl border border-[var(--gym-border-gold)] bg-[var(--gym-surface)]",
                     ex.supersetGroupId ? "border-l-2 border-l-[var(--gym-gold)]" : null,
                   )}
                 >
@@ -397,7 +397,7 @@ export function PlanEditorClient({
                                 role="radio"
                                 aria-checked={on}
                                 className={cn(
-                                  "h-11 rounded-[14px] border text-[14px] font-medium tabular-nums",
+                                  "h-11 rounded-xl border text-[14px] font-medium tabular-nums",
                                   on
                                     ? "border-[rgba(var(--neon-rgb),0.6)] bg-[rgba(var(--neon-rgb),0.12)] font-bold text-white"
                                     : "border-[var(--gym-border-gold)] text-white/80",
@@ -536,7 +536,7 @@ export function PlanEditorClient({
                         <Button
                           type="button"
                           variant="ghost"
-                          className="h-11 text-rose-300"
+                          className="h-11 text-state-error"
                           aria-label="Usuń ćwiczenie"
                           onClick={() => setRemoveId(ex.id)}
                         >
@@ -593,7 +593,7 @@ export function PlanEditorClient({
       </div>
 
       <Sheet open={pickerOpen} onOpenChange={setPickerOpen}>
-        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-[22px]">
+        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-3xl">
           <SheetHeader>
             <SheetTitle className="text-white">Dodaj ćwiczenie</SheetTitle>
           </SheetHeader>

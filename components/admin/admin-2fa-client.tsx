@@ -114,12 +114,12 @@ export function Admin2faClient() {
         description="Panel administratora chroni drugi składnik: kod z aplikacji uwierzytelniającej (TOTP)."
       />
       {!status.required ? (
-        <p className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-[13px] text-amber-100">
+        <p className="rounded-xl border border-state-warning/30 bg-state-warning/10 p-3 text-[13px] text-state-warning">
           Wymóg 2FA jest wyłączony (ADMIN_2FA_REQUIRED). Skonfiguruj 2FA i sprawdź, że kod działa, a dopiero potem włącz wymóg na hostingu.
         </p>
       ) : null}
       {error ? (
-        <p className="text-sm text-rose-300" role="alert">
+        <p className="text-sm text-state-error" role="alert">
           {error}
         </p>
       ) : null}
@@ -154,12 +154,12 @@ export function Admin2faClient() {
       ) : (
         <div className="space-y-3">
           <p className="flex items-center gap-2 text-sm text-white/80">
-            <ShieldCheck className="size-4 text-emerald-300" aria-hidden />
+            <ShieldCheck className="size-4 text-state-success" aria-hidden />
             2FA włączone · pozostało kodów awaryjnych: {status.recoveryCodesLeft}
             {status.verified ? " · sesja zweryfikowana" : ""}
           </p>
           {status.lockedUntil ? (
-            <p className="text-[13px] text-rose-300">Zbyt wiele błędnych kodów — spróbuj po {new Date(status.lockedUntil).toLocaleTimeString("pl-PL")}.</p>
+            <p className="text-[13px] text-state-error">Zbyt wiele błędnych kodów — spróbuj po {new Date(status.lockedUntil).toLocaleTimeString("pl-PL")}.</p>
           ) : null}
           {codeInput}
           <div className="flex flex-wrap gap-2">

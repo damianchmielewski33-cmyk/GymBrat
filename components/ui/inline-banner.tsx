@@ -7,18 +7,18 @@ import { cn } from "@/lib/utils";
 const VARIANTS = {
   success: {
     icon: CheckCircle2,
-    box: "border-emerald-500/30 bg-emerald-500/10 text-emerald-50 shadow-[0_12px_36px_-14px_rgba(16,185,129,0.45)]",
-    badge: "bg-emerald-400/15 text-emerald-300",
+    box: "border-state-success/30 bg-state-success/10 text-state-success shadow-[0_12px_36px_-14px_rgba(16,185,129,0.45)]",
+    badge: "bg-state-success/15 text-state-success",
   },
   warning: {
     icon: AlertTriangle,
-    box: "border-amber-500/30 bg-amber-500/10 text-amber-50 shadow-[0_12px_36px_-14px_rgba(245,158,11,0.45)]",
-    badge: "bg-amber-400/15 text-amber-300",
+    box: "border-state-warning/30 bg-state-warning/10 text-state-warning shadow-[0_12px_36px_-14px_rgba(245,158,11,0.45)]",
+    badge: "bg-state-warning/15 text-state-warning",
   },
   error: {
     icon: XCircle,
-    box: "border-rose-500/35 bg-rose-500/10 text-rose-50 shadow-[0_12px_36px_-14px_rgba(244,63,94,0.5)]",
-    badge: "bg-rose-400/15 text-rose-300",
+    box: "border-state-error/35 bg-state-error/10 text-state-error shadow-[0_12px_36px_-14px_rgba(244,63,94,0.5)]",
+    badge: "bg-state-error/15 text-state-error",
   },
   info: {
     icon: Info,

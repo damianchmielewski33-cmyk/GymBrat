@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { withDbRetry } from "@/db/with-retry";
 import {
@@ -19,6 +17,7 @@ import {
 } from "@/lib/analytics/volume-landmarks";
 import { calendarDateKey } from "@/lib/local-date";
 import { getProgressHubData } from "@/lib/progress-hub";
+import { BackLink } from "@/components/ui/back-link";
 
 const STATUS_LABEL: Record<VolumeStatus, string> = {
   none: "brak serii",
@@ -29,9 +28,9 @@ const STATUS_LABEL: Record<VolumeStatus, string> = {
 
 const STATUS_BAR: Record<VolumeStatus, string> = {
   none: "bg-white/20",
-  below: "bg-amber-400",
+  below: "bg-state-warning",
   ok: "bg-[var(--gym-success)]",
-  above: "bg-rose-400",
+  above: "bg-state-error",
 };
 
 const RECOVERY_LABEL: Record<MuscleRecoveryState, string> = {
@@ -79,13 +78,8 @@ export default async function ProgressVolumePage() {
   return (
     <div className="mx-auto w-full max-w-lg space-y-4 pb-8">
       <header className="px-0.5">
-        <Link
-          href="/progress?tab=sila"
-          className="inline-flex items-center gap-1 text-[12px] text-white/55"
-        >
-          <ArrowLeft className="size-3.5" /> Analiza
-        </Link>
-        <h1 className="mt-1 font-heading text-[28px] font-semibold leading-8 tracking-tight text-white">
+        <BackLink href="/progress?tab=sila" label="Analiza" />
+        <h1 className="text-[length:var(--text-title-lg)] mt-1 font-heading font-semibold leading-8 tracking-tight text-white">
           Objętość tygodniowa
         </h1>
         <p className="mt-1 text-[12px] text-white/55">

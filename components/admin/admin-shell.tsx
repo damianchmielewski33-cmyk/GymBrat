@@ -32,7 +32,7 @@ function NavBadge({ count, tone }: { count: number; tone: "danger" | "warn" }) {
     <span
       className={cn(
         "ml-auto inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-bold leading-none text-white",
-        tone === "danger" ? "bg-red-500" : "bg-amber-500 text-black",
+        tone === "danger" ? "bg-state-error" : "bg-state-warning text-black",
       )}
     >
       {count > 99 ? "99+" : count}
@@ -77,7 +77,7 @@ function NavLink({
           <span
             className={cn(
               "absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-0.5 text-[9px] font-bold leading-none text-white",
-              badge.tone === "danger" ? "bg-red-500" : "bg-amber-500 text-black",
+              badge.tone === "danger" ? "bg-state-error" : "bg-state-warning text-black",
             )}
           >
             {badge.count > 9 ? "9+" : badge.count}

@@ -270,7 +270,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                   value={goalTypeDraft}
                   onChange={(e) => setGoalTypeDraft(e.target.value as GoalType | "")}
                   aria-label="Typ celu"
-                  className="h-10 w-full max-w-[200px] rounded-xl border border-white/15 bg-black/40 px-3 text-[14px] text-white outline-none"
+                  className="h-10 w-full max-w-[200px] rounded-xl border border-white/15 bg-black/40 px-3 text-[14px] text-white outline-none focus-ring"
                 >
                   <option value="">Typ celu (opcjonalnie)</option>
                   {(Object.keys(GOAL_TYPE_LABEL) as GoalType[]).map((t) => (
@@ -284,10 +284,10 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                   value={deadlineDraft}
                   onChange={(e) => setDeadlineDraft(e.target.value)}
                   aria-label="Termin celu"
-                  className="h-10 w-full max-w-[200px] rounded-xl border border-white/15 bg-black/40 px-3 text-[14px] text-white outline-none"
+                  className="h-10 w-full max-w-[200px] rounded-xl border border-white/15 bg-black/40 px-3 text-[14px] text-white outline-none focus-ring"
                 />
                 {goalError ? (
-                  <p className="text-[11px] text-rose-300">{goalError}</p>
+                  <p className="text-[11px] text-state-error">{goalError}</p>
                 ) : null}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -367,7 +367,7 @@ export function BodyTab({ body }: { body: ProgressHubData["body"] }) {
                 Math.abs(row.deltaFromStartCm) < 0.05
                   ? "text-white/50"
                   : improved
-                    ? "text-emerald-400"
+                    ? "text-state-success"
                     : "text-white/70";
 
               return (

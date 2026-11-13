@@ -486,7 +486,7 @@ export function AdminExercisesClient() {
               <Button
                 type="button"
                 variant="outline"
-                className="border-rose-400/40 text-rose-300"
+                className="border-state-error/40 text-state-error"
                 disabled={busyId === editId}
                 onClick={() => void deactivate(editId)}
               >

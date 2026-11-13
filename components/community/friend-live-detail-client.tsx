@@ -3,12 +3,13 @@
 import { StatTile } from "@/components/ui/stat-tile";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import type { FriendLiveView } from "@/lib/community/friend-types";
 import { CLIENT_POLL } from "@/lib/community/realtime-config";
 import { useFriendLiveWatchStore } from "@/lib/stores/friend-live-watch";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { BackLink } from "@/components/ui/back-link";
 
 function formatElapsed(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -77,17 +78,11 @@ export function FriendLiveDetailClient({
 
   return (
     <div className="space-y-5 pb-10">
-      <Link
-        href="/community/friends"
-        className="inline-flex items-center gap-1.5 text-[13px] text-white/50 hover:text-white"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-        Znajomi
-      </Link>
+      <BackLink href="/community/friends" label="Znajomi" />
 
       <header className="space-y-1">
         <p className="app-label text-[var(--gym-gold)]">Podgląd treningu</p>
-        <h1 className="font-heading text-[24px] font-semibold text-white">
+        <h1 className="text-[length:var(--text-title-lg)] font-heading font-semibold text-white">
           {name}
         </h1>
         <p className="text-[13px] text-white/50">
@@ -126,10 +121,10 @@ export function FriendLiveDetailClient({
         </div>
       ) : (
         <div className="app-card space-y-4 p-5">
-          <div className="flex items-center gap-2 text-emerald-300">
+          <div className="flex items-center gap-2 text-state-success">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-state-success opacity-50" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-state-success" />
             </span>
             <span className="text-[12px] font-semibold uppercase tracking-wide">
               Na żywo ·{" "}

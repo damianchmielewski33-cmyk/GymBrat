@@ -102,8 +102,8 @@ export function DailyCheckinPanel({
     <div className="space-y-4">
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-500/10">
-            <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-state-success/25 bg-state-success/10">
+            <CheckCircle2 className="h-6 w-6 text-state-success" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-white">Codzienny check-in</p>
@@ -169,7 +169,7 @@ export function DailyCheckinPanel({
         </div>
 
         {saveState?.error ? (
-          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200/95">
+          <div className="rounded-xl border border-state-error/30 bg-state-error/10 px-3 py-2 text-sm text-state-error/95">
             {saveState.error}
           </div>
         ) : null}
@@ -200,7 +200,7 @@ export function DailyCheckinPanel({
           </Button>
         </div>
         {closeState?.error ? (
-          <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200/95">
+          <div className="mt-3 rounded-xl border border-state-error/30 bg-state-error/10 px-3 py-2 text-sm text-state-error/95">
             {closeState.error}
           </div>
         ) : null}

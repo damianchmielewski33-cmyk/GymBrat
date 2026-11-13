@@ -50,12 +50,12 @@ export function WeeklyDeficitPanel({ weekLabel, deficitKcal, weightKg }: WeeklyD
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/55">
             Deficyt
           </p>
-          <p className="font-heading mt-2 text-3xl font-semibold tracking-tight text-emerald-200">
+          <p className="font-heading mt-2 text-3xl font-semibold tracking-tight text-state-success">
             {fmt(deficitOnly)}{" "}
             <span className="text-base font-normal text-white/55">kcal</span>
           </p>
           {surplusOnly > 0 ? (
-            <p className="mt-2 text-xs text-rose-200/90">
+            <p className="mt-2 text-xs text-state-error/90">
               Uwaga: masz też nadwyżkę {fmt(surplusOnly)} kcal (gdy spożycie &gt; cele).
             </p>
           ) : (

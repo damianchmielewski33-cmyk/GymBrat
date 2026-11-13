@@ -21,7 +21,7 @@ export type AppDialogTone = "danger" | "gold" | "neutral";
 const TONE: Record<AppDialogTone, { glow: string; badge: string }> = {
   danger: {
     glow: "rgba(244,63,94,0.20)",
-    badge: "border-rose-400/35 bg-rose-500/12 text-rose-300",
+    badge: "border-state-error/35 bg-state-error/12 text-state-error",
   },
   gold: {
     glow: "rgba(221,187,109,0.20)",
@@ -74,7 +74,7 @@ export function AppDialog({
         className={cn(
           "app-dialog overflow-hidden p-0 text-white",
           // zawsze na środku ekranu
-          "w-[min(92vw,400px)] rounded-[28px]",
+          "w-[min(92vw,400px)] rounded-3xl",
           className,
         )}
       >
@@ -172,7 +172,7 @@ export function appDialogButtonClass(intent: AppDialogButtonIntent = "quiet", cl
     intent === "primary" &&
       "shadow-[0_10px_26px_-8px_rgba(221,187,109,0.6),inset_0_1px_0_rgba(255,255,255,0.35)] hover:shadow-[0_14px_32px_-8px_rgba(221,187,109,0.75),inset_0_1px_0_rgba(255,255,255,0.4)]",
     intent === "danger" &&
-      "border-rose-500/40 bg-rose-500/15 text-rose-200 shadow-[0_10px_26px_-10px_rgba(244,63,94,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] hover:border-rose-400/55 hover:bg-rose-500/25 hover:text-rose-100 hover:shadow-[0_14px_30px_-10px_rgba(244,63,94,0.7),inset_0_1px_0_rgba(255,255,255,0.1)]",
+      "border-state-error/40 bg-state-error/15 text-state-error shadow-[0_10px_26px_-10px_rgba(244,63,94,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] hover:border-state-error/55 hover:bg-state-error/25 hover:text-state-error hover:shadow-[0_14px_30px_-10px_rgba(244,63,94,0.7),inset_0_1px_0_rgba(255,255,255,0.1)]",
     intent === "quiet" &&
       "border-[var(--gym-border-gold)] text-white/90 shadow-[0_6px_18px_-10px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.05)]",
     className,

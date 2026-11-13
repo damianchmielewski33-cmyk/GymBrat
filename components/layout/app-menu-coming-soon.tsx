@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { BackLink } from "@/components/ui/back-link";
 
 /** Lekki placeholder pod funkcje z makiety menu (pakiet, kody, badania). */
 export function AppMenuComingSoon({
@@ -11,13 +10,7 @@ export function AppMenuComingSoon({
 }) {
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-8">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 text-sm text-white/80"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Wróć
-      </Link>
+      <BackLink href="/" label="Wróć" />
       <header className="space-y-1.5 px-0.5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]/80">
           Wkrótce

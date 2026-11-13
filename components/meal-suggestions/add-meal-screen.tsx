@@ -302,7 +302,7 @@ export function AddMealScreen({
                   onChange={(e) => setKcal(e.target.value)}
                   inputMode="decimal"
                   placeholder={computedKcal != null ? String(computedKcal) : "0"}
-                  className="w-32 border-0 bg-transparent text-center text-5xl font-semibold tabular-nums text-[var(--gym-gold)] outline-none placeholder:text-white/50"
+                  className="w-32 border-0 bg-transparent text-center text-5xl font-semibold tabular-nums text-[var(--gym-gold)] outline-none focus-ring placeholder:text-white/50"
                 />
                 <span className="text-base text-white/50">kcal</span>
               </span>
@@ -317,8 +317,8 @@ export function AddMealScreen({
               {(
                 [
                   ["proteinG", "Białka", "bg-sky-400", protein, setProtein],
-                  ["carbsG", "Węglowodany", "bg-amber-400", carbs, setCarbs],
-                  ["fatG", "Tłuszcze", "bg-rose-400", fat, setFat],
+                  ["carbsG", "Węglowodany", "bg-state-warning", carbs, setCarbs],
+                  ["fatG", "Tłuszcze", "bg-state-error", fat, setFat],
                 ] as const
               ).map(([field, label, dot, val, setVal]) => (
                 <label
@@ -336,7 +336,7 @@ export function AddMealScreen({
                       onChange={(e) => setVal(e.target.value)}
                       inputMode="decimal"
                       placeholder="0"
-                      className="w-14 border-0 bg-transparent text-center text-2xl font-semibold tabular-nums text-white outline-none placeholder:text-white/50"
+                      className="w-14 border-0 bg-transparent text-center text-2xl font-semibold tabular-nums text-white outline-none focus-ring placeholder:text-white/50"
                     />
                     <span className="text-xs text-white/50">g</span>
                   </span>
@@ -347,8 +347,8 @@ export function AddMealScreen({
             {hasMacros ? (
               <div aria-hidden className="flex h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
                 <span className="bg-sky-400" style={{ flexGrow: p * 4 }} />
-                <span className="bg-amber-400" style={{ flexGrow: c * 4 }} />
-                <span className="bg-rose-400" style={{ flexGrow: f * 9 }} />
+                <span className="bg-state-warning" style={{ flexGrow: c * 4 }} />
+                <span className="bg-state-error" style={{ flexGrow: f * 9 }} />
               </div>
             ) : null}
           </div>
@@ -400,7 +400,7 @@ export function AddMealScreen({
         <p className="relative mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
           {kicker}
         </p>
-        <h1 className="relative mt-1.5 text-[28px] font-semibold leading-tight tracking-tight text-white">
+        <h1 className="text-[length:var(--text-title-lg)] relative mt-1.5 font-semibold leading-tight tracking-tight text-white">
           Dodaj do dziennika
         </h1>
       </header>

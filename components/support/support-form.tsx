@@ -60,9 +60,9 @@ export function SupportForm({ orders, defaultEmail }: { orders: SupportOrderOpti
 
   if (done) {
     return (
-      <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100" role="status">
+      <div className="rounded-2xl border border-state-success/30 bg-state-success/10 p-4 text-sm text-state-success" role="status">
         <p className="font-semibold">Zgłoszenie przyjęte (nr {done.id.slice(0, 8)}).</p>
-        <p className="mt-1 text-emerald-100/80">
+        <p className="mt-1 text-state-success/80">
           Odpowiemy najpóźniej do {supportDueLabel(new Date(done.dueAt))} ({SUPPORT_RESPONSE_DAYS} dni).
           {done.emailSent ? " Potwierdzenie wysłaliśmy e-mailem." : ""}
         </p>
@@ -111,7 +111,7 @@ export function SupportForm({ orders, defaultEmail }: { orders: SupportOrderOpti
         <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} maxLength={200} />
       </label>
       {error ? (
-        <p className="text-sm text-rose-300" role="alert">
+        <p className="text-sm text-state-error" role="alert">
           {error}
         </p>
       ) : null}

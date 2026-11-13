@@ -95,7 +95,7 @@ function IntegrationCard({
       id={`config-${item.id}`}
       className={cn(
         "scroll-mt-6 rounded-2xl border bg-black/25 p-4",
-        attention ? "border-amber-400/25" : "border-white/10",
+        attention ? "border-state-warning/25" : "border-white/10",
       )}
     >
       <div className="flex items-start gap-3">
@@ -103,9 +103,9 @@ function IntegrationCard({
           className={cn(
             "mt-0.5 h-5 w-5 shrink-0",
             item.status === "ok"
-              ? "text-emerald-300"
+              ? "text-state-success"
               : item.status === "partial"
-                ? "text-amber-300"
+                ? "text-state-warning"
                 : "text-white/50",
           )}
           aria-hidden
@@ -120,7 +120,7 @@ function IntegrationCard({
 
           {item.status !== "ok" ? (
             <div className="space-y-1.5">
-              <p className="text-xs leading-relaxed text-amber-100/80">
+              <p className="text-xs leading-relaxed text-state-warning/80">
                 <span className="font-semibold">Skutek: </span>
                 {item.effectWhenMissing}
               </p>
@@ -143,10 +143,10 @@ function IntegrationCard({
                 className={cn(
                   "inline-flex max-w-full min-w-0 items-center gap-1 rounded-md border px-2 py-1 font-mono text-[11px]",
                   v.present
-                    ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-100"
+                    ? "border-state-success/25 bg-state-success/10 text-state-success"
                     : v.optional
                       ? "border-white/10 bg-white/[0.03] text-white/50"
-                      : "border-rose-400/30 bg-rose-500/10 text-rose-100",
+                      : "border-state-error/30 bg-state-error/10 text-state-error",
                 )}
               >
                 {v.present ? (
@@ -206,9 +206,9 @@ function StorageBar({ usage }: { usage: Usage }) {
           className={cn(
             "h-full rounded-full",
             usage.overHard
-              ? "bg-rose-400"
+              ? "bg-state-error"
               : usage.overSoft
-                ? "bg-amber-400"
+                ? "bg-state-warning"
                 : "bg-gradient-to-r from-[var(--gym-gold-deep)] to-[var(--gym-gold-bright)]",
           )}
           style={{ width: `${pct}%` }}
@@ -355,10 +355,10 @@ export function AdminSettingsClient() {
                 className={cn(
                   "font-heading text-5xl font-semibold tabular-nums",
                   summary.requiredIssues > 0
-                    ? "text-rose-300"
+                    ? "text-state-error"
                     : summary.recommendedIssues > 0
-                      ? "text-amber-200"
-                      : "text-emerald-300",
+                      ? "text-state-warning"
+                      : "text-state-success",
                 )}
               >
                 {summary.readiness}%

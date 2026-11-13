@@ -71,7 +71,7 @@ export async function HomeTodayHeader({ userId }: { userId: string }) {
             href="/reports?new=1"
             className={
               daysToReport === 0 || daysToReport == null
-                ? "gym-tap inline-flex min-h-8 items-center rounded-full bg-[var(--gym-gold)]/15 px-2.5 font-semibold text-[var(--gym-gold)]"
+                ? "gym-tap inline-flex min-h-11 items-center rounded-full bg-[var(--gym-gold)]/15 px-2.5 font-semibold text-[var(--gym-gold)]"
                 : "font-semibold text-white"
             }
           >

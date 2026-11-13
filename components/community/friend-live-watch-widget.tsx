@@ -199,7 +199,7 @@ export function FriendLiveWatchWidget() {
             )}
             <Link
               href={`/community/friends/${watchingUserId}/live`}
-              className="mt-2.5 inline-flex min-h-9 w-full items-center justify-center rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10 text-[12px] font-semibold text-[var(--gym-gold)]"
+              className="mt-2.5 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10 text-[12px] font-semibold text-[var(--gym-gold)]"
             >
               Szczegóły
             </Link>
@@ -217,11 +217,11 @@ export function FriendLiveWatchWidget() {
       <button
         type="button"
         onClick={() => setWatching(first.userId, first.displayName)}
-        className="inline-flex max-w-[16rem] items-center gap-2 rounded-full border border-emerald-400/30 bg-black/80 px-3 py-2 text-[12px] font-semibold text-emerald-300 shadow-lg backdrop-blur-md"
+        className="inline-flex max-w-[16rem] items-center gap-2 rounded-full border border-state-success/30 bg-black/80 px-3 py-2 text-[12px] font-semibold text-state-success shadow-lg backdrop-blur-md"
       >
         <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-state-success opacity-60" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-state-success" />
         </span>
         <span className="truncate">
           {first.displayName} trenuje

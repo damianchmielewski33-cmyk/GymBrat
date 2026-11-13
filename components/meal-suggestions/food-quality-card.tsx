@@ -16,17 +16,17 @@ import { cn } from "@/lib/utils";
 const GRADES: NutriGrade[] = ["A", "B", "C", "D", "E"];
 
 export const GRADE_STYLE: Record<NutriGrade, { text: string; bg: string; stroke: string; label: string }> = {
-  A: { text: "text-emerald-300", bg: "bg-emerald-400", stroke: "#3ecf72", label: "Bardzo dobra jakość" },
+  A: { text: "text-state-success", bg: "bg-state-success", stroke: "#3ecf72", label: "Bardzo dobra jakość" },
   B: { text: "text-lime-300", bg: "bg-lime-400", stroke: "#a3e635", label: "Dobra jakość" },
-  C: { text: "text-amber-300", bg: "bg-amber-400", stroke: "#fbbf24", label: "Przeciętna jakość" },
-  D: { text: "text-orange-300", bg: "bg-orange-400", stroke: "#fb923c", label: "Słaba jakość" },
-  E: { text: "text-rose-300", bg: "bg-rose-500", stroke: "#f43f5e", label: "Zła jakość" },
+  C: { text: "text-state-warning", bg: "bg-state-warning", stroke: "#fbbf24", label: "Przeciętna jakość" },
+  D: { text: "text-state-warning", bg: "bg-state-warning", stroke: "#fb923c", label: "Słaba jakość" },
+  E: { text: "text-state-error", bg: "bg-state-error", stroke: "#f43f5e", label: "Zła jakość" },
 };
 
 const SALT_STYLE: Record<SaltLevel, { bar: string; text: string; label: string }> = {
-  low: { bar: "bg-emerald-400", text: "text-emerald-300", label: "Mało soli" },
-  medium: { bar: "bg-amber-400", text: "text-amber-300", label: "Średnio soli" },
-  high: { bar: "bg-rose-400", text: "text-rose-300", label: "Dużo soli" },
+  low: { bar: "bg-state-success", text: "text-state-success", label: "Mało soli" },
+  medium: { bar: "bg-state-warning", text: "text-state-warning", label: "Średnio soli" },
+  high: { bar: "bg-state-error", text: "text-state-error", label: "Dużo soli" },
 };
 
 function fmt(n: number, digits = 1): string {
@@ -90,8 +90,8 @@ function Chip({ tone, children }: { tone: "pro" | "con"; children: string }) {
       className={cn(
         "rounded-full border px-2.5 py-1.5 text-[12px]",
         tone === "pro"
-          ? "border-emerald-400/40 bg-emerald-400/[0.08] text-emerald-200"
-          : "border-rose-400/40 bg-rose-400/[0.08] text-rose-200",
+          ? "border-state-success/40 bg-state-success/[0.08] text-state-success"
+          : "border-state-error/40 bg-state-error/[0.08] text-state-error",
       )}
     >
       {tone === "pro" ? "+ " : "− "}
@@ -124,7 +124,7 @@ export function FoodQualityCard({
 
   if (!quality && !salt) {
     return (
-      <div className="rounded-[22px] border border-white/[0.08] bg-[#161616] px-5 py-7 text-center">
+      <div className="rounded-3xl border border-white/[0.08] bg-[#161616] px-5 py-7 text-center">
         <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.07]">
           <AlertCircle className="h-6 w-6 text-white/75" aria-hidden />
         </span>
@@ -140,7 +140,7 @@ export function FoodQualityCard({
   const g = quality ? GRADE_STYLE[quality.grade] : null;
 
   return (
-    <div className="rounded-[22px] border border-white/[0.08] bg-[#161616] px-4 py-[18px]">
+    <div className="rounded-3xl border border-white/[0.08] bg-[#161616] px-4 py-[18px]">
       {quality && g ? (
         <>
           <div className="flex items-center gap-4">
@@ -154,7 +154,7 @@ export function FoodQualityCard({
                     <span
                       key={letter}
                       className={cn(
-                        "inline-flex items-center justify-center rounded-[9px] font-display",
+                        "inline-flex items-center justify-center rounded-lg font-display",
                         active
                           ? cn("h-[38px] w-[38px] text-[26px] text-black", GRADE_STYLE[letter].bg)
                           : "h-7 w-7 bg-white/[0.07] text-[18px] text-white/60",

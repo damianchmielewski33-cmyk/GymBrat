@@ -150,7 +150,7 @@ export function PlanSetsSuggestion({
         </ul>
       )}
       {error ? (
-        <p role="alert" className="mt-3 text-[13px] text-rose-300">
+        <p role="alert" className="mt-3 text-[13px] text-state-error">
           {error}
         </p>
       ) : null}

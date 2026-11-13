@@ -107,7 +107,7 @@ export function ProfileSaveBlock({
         {conflict ? (
           <div
             role="alert"
-            className="rounded-xl border border-amber-400/35 bg-amber-400/10 px-4 py-3 text-[13px] leading-relaxed text-amber-100/90"
+            className="rounded-xl border border-state-warning/35 bg-state-warning/10 px-4 py-3 text-[13px] leading-relaxed text-state-warning/90"
           >
             Te ustawienia zmieniono z innego urządzenia — wczytaj najnowsze dane.
             <button
@@ -119,7 +119,7 @@ export function ProfileSaveBlock({
             </button>
           </div>
         ) : state && !state.ok && state.error ? (
-          <p role="alert" className="text-[13px] text-rose-300/90">
+          <p role="alert" className="text-[13px] text-state-error/90">
             {state.error}
           </p>
         ) : null}
@@ -130,7 +130,7 @@ export function ProfileSaveBlock({
           ) : null}
           <PendingHint />
           {state?.ok ? (
-            <span className="text-xs text-emerald-300/80">
+            <span className="text-xs text-state-success/80">
               {formatSavedAt(state.savedAt)}
             </span>
           ) : dirty && !autoSubmitOnChange ? (

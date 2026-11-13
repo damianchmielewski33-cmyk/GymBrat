@@ -535,7 +535,7 @@ export function BadgeCatalogClient({
         <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-gold)]">
           Twoja kolekcja
         </p>
-        <h1 className="font-heading text-[28px] font-semibold text-white">Odznaki</h1>
+        <h1 className="text-[length:var(--text-title-lg)] font-heading font-semibold text-white">Odznaki</h1>
         <p className="mt-1 text-[13px] text-white/50">
           {unlockedCount} z {totalCount} zdobytych
         </p>

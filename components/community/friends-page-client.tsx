@@ -105,7 +105,7 @@ export function FriendsPageClient({
                     <p className="truncate text-[15px] font-semibold text-white">
                       {f.displayName}
                       {f.isLive ? (
-                        <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
+                        <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-state-success/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-state-success">
                           Na żywo
                         </span>
                       ) : null}

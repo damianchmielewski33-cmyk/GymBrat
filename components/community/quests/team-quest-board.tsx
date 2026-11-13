@@ -1,14 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { ArrowLeft, Target } from "lucide-react";
+import { Target } from "lucide-react";
 import { startTeamQuestAction } from "@/actions/community-quests";
 import { TeamQuestProgressBar } from "@/components/community/quests/team-quest-progress-bar";
 import { TeamQuestHistory } from "@/components/community/quests/team-quest-history";
 import type { TeamQuestTemplate } from "@/lib/community/team-quest-types";
 import type { getQuestBoardView, listQuestHistory } from "@/lib/community/team-quests";
+import { BackLink } from "@/components/ui/back-link";
 
 type Board = Awaited<ReturnType<typeof getQuestBoardView>>;
 type History = Awaited<ReturnType<typeof listQuestHistory>>;
@@ -29,17 +29,11 @@ export function TeamQuestBoard({
 
   return (
     <div className="space-y-5">
-      <Link
-        href={`/community/teams/${teamId}`}
-        className="inline-flex min-h-10 items-center gap-1.5 text-[13px] text-white/60 hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Grupa
-      </Link>
+      <BackLink href={`/community/teams/${teamId}`} label="Grupa" />
 
       <header>
         <p className="app-label text-[var(--gym-gold)]">Team Quests</p>
-        <h1 className="mt-1.5 flex items-center gap-2 font-heading text-[24px] font-semibold text-white">
+        <h1 className="text-[length:var(--text-title-lg)] mt-1.5 flex items-center gap-2 font-heading font-semibold text-white">
           <Target className="h-6 w-6 text-[var(--gym-gold)]" />
           Misje zespołu
         </h1>

@@ -149,13 +149,13 @@ export function ApkDownloadButton({
       ) : null}
 
       {phase === "done" ? (
-        <p className="text-xs text-emerald-300/90">
+        <p className="text-xs text-state-success/90">
           Gotowe — w udostępnianiu wybierz „Zapisz w plikach” albo instalator. Potem
           otwórz zapisany APK.
         </p>
       ) : null}
 
-      {error ? <p className="text-xs text-rose-300/90">{error}</p> : null}
+      {error ? <p className="text-xs text-state-error/90">{error}</p> : null}
 
       <p className="text-[11px] leading-relaxed text-white/50">
         Awaryjnie (inna przeglądarka / PC):{" "}

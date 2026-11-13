@@ -170,10 +170,10 @@ export function MeasureInput({
         placeholder={hint ?? "—"}
         aria-invalid={invalid || undefined}
         className={cn(
-          "w-full rounded-xl border bg-black/50 px-3 text-white outline-none transition placeholder:text-white/50",
+          "w-full rounded-xl border bg-black/50 px-3 text-white outline-none focus-ring transition placeholder:text-white/50",
           "focus-visible:border-[var(--gym-gold)]/55 focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/25",
           large ? "h-14 text-2xl font-semibold tabular-nums" : "h-12 text-lg tabular-nums",
-          invalid ? "border-red-500/55" : "border-[var(--gym-gold)]/22",
+          invalid ? "border-state-error/55" : "border-[var(--gym-gold)]/22",
         )}
       />
       {hint && !value.trim() ? (
@@ -212,7 +212,7 @@ export function ScoreBars({
           id={`score-${label}`}
           className={cn(
             "text-[10px] font-semibold uppercase tracking-[0.16em]",
-            invalid ? "text-red-300" : "text-white/55",
+            invalid ? "text-state-error" : "text-white/55",
           )}
         >
           {label}
@@ -328,7 +328,7 @@ export function TakNieToggle({
       <p
         className={cn(
           "mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em]",
-          invalid ? "text-red-300" : "text-white/50",
+          invalid ? "text-state-error" : "text-white/50",
         )}
       >
         {label}

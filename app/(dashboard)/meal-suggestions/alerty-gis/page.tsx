@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronLeft, ExternalLink, ShieldCheck } from "lucide-react";
+import { ExternalLink, ShieldCheck } from "lucide-react";
 import { auth } from "@/auth";
 import { InlineBanner } from "@/components/ui/inline-banner";
 import { fetchGisAlerts, GIS_DEFAULT_FEED_URL } from "@/lib/gis-alerts";
+import { BackLink } from "@/components/ui/back-link";
 
 export const metadata = { title: "Alerty GIS" };
 
@@ -20,13 +20,8 @@ export default async function GisAlertsPage() {
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 pb-24 pt-4">
-      <Link
-        href="/meal-suggestions"
-        className="inline-flex h-11 items-center gap-0.5 text-[15px] font-medium text-white/90"
-      >
-        <ChevronLeft className="h-6 w-6" aria-hidden /> Wróć
-      </Link>
-      <h1 className="mt-2 font-display text-[28px] font-semibold tracking-tight text-white">Alerty GIS</h1>
+      <BackLink href="/meal-suggestions" label="Wróć" />
+      <h1 className="text-[length:var(--text-title-lg)] mt-2 font-display font-semibold tracking-tight text-white">Alerty GIS</h1>
       <p className="mt-1 text-[13px] text-white/60">
         Publiczne ostrzeżenia konsumenckie i wycofania produktów ze sklepów publikowane przez Główny
         Inspektorat Sanitarny. Dane odświeżamy co kilka godzin.
@@ -38,8 +33,8 @@ export default async function GisAlertsPage() {
             Nie udało się pobrać alertów GIS. Spróbuj ponownie później lub sprawdź stronę GIS bezpośrednio.
           </InlineBanner>
         ) : alerts.length === 0 ? (
-          <div className="flex items-center gap-3 rounded-[18px] border border-white/[0.08] bg-[#161616] px-4 py-4 text-[14px] text-white/70">
-            <ShieldCheck className="h-6 w-6 shrink-0 text-emerald-300" aria-hidden />
+          <div className="flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-[#161616] px-4 py-4 text-[14px] text-white/70">
+            <ShieldCheck className="h-6 w-6 shrink-0 text-state-success" aria-hidden />
             Brak aktywnych ostrzeżeń w pobranym źródle.
           </div>
         ) : (
@@ -49,7 +44,7 @@ export default async function GisAlertsPage() {
               href={a.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block rounded-[18px] border border-white/[0.08] bg-[#161616] px-4 py-3.5"
+              className="block rounded-2xl border border-white/[0.08] bg-[#161616] px-4 py-3.5"
             >
               <p className="text-[14px] font-medium leading-snug text-white">{a.title}</p>
               <p className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] text-white/50">

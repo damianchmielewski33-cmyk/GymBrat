@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { CreateChallengeForm } from "@/components/community/create-challenge-form";
 import { listChallengeTemplates } from "@/lib/community/challenges";
 import { getActiveMembership } from "@/lib/community/teams";
+import { BackLink } from "@/components/ui/back-link";
 
 export const metadata = { title: "Nowe wyzwanie grupy" };
 
@@ -32,15 +31,9 @@ export default async function NewTeamChallengePage({
 
   return (
     <div className="space-y-4">
-      <Link
-        href={`/community/teams/${teamId}/challenges`}
-        className="inline-flex items-center gap-1.5 text-[13px] text-white/60 hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Wyzwania
-      </Link>
+      <BackLink href={`/community/teams/${teamId}/challenges`} label="Wyzwania" />
       <div>
-        <h1 className="font-heading text-[26px] font-semibold text-white">
+        <h1 className="text-[length:var(--text-title-lg)] font-heading font-semibold text-white">
           Nowe wyzwanie
         </h1>
         <p className="mt-1 text-[13px] text-white/50">

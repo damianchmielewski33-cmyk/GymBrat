@@ -38,7 +38,7 @@ function RemainingBlock({
           <>
             Spożyte {Math.round(consumed)} / cel {Math.round(goal)} {unit}
             {over > 0 ? (
-              <span className="ml-1 text-rose-300/90">
+              <span className="ml-1 text-state-error/90">
                 (nadwyżka {Math.round(over)} {unit})
               </span>
             ) : null}

@@ -106,7 +106,7 @@ function SetRow({
         type="button"
         onClick={onRemove}
         disabled={!canRemove}
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/50 disabled:opacity-30"
+        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white/50 disabled:opacity-30"
         aria-label="Usuń serię"
       >
         <X className="h-4 w-4" />
@@ -280,7 +280,7 @@ export function WorkoutHistoryEditClient({
       </ul>
 
       {error ? (
-        <p className="text-sm text-red-300" role="alert">
+        <p className="text-sm text-state-error" role="alert">
           {error}
         </p>
       ) : null}

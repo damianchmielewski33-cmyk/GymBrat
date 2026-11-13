@@ -248,7 +248,7 @@ export function LoginForm({
           }
         />
         {fieldErrors.email ? (
-          <p id="email-error" className="text-xs text-red-100">
+          <p id="email-error" className="text-xs text-state-error">
             {fieldErrors.email}
           </p>
         ) : null}
@@ -295,7 +295,7 @@ export function LoginForm({
           </button>
         </div>
         {fieldErrors.password ? (
-          <p id="password-error" className="text-xs text-red-100">
+          <p id="password-error" className="text-xs text-state-error">
             {fieldErrors.password}
           </p>
         ) : null}

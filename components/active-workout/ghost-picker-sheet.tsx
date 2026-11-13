@@ -139,7 +139,7 @@ export function GhostPickerSheet({ planId }: { planId: string | null }) {
           id={panelId}
           role="region"
           aria-label="Ghost"
-          className="absolute left-1/2 top-full z-30 mt-2 max-h-80 w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 space-y-2 overflow-y-auto rounded-[18px] border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] p-3 text-left shadow-[0_12px_32px_rgba(0,0,0,0.55)]"
+          className="absolute left-1/2 top-full z-30 mt-2 max-h-80 w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 space-y-2 overflow-y-auto rounded-2xl border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] p-3 text-left shadow-[0_12px_32px_rgba(0,0,0,0.55)]"
         >
           {enabled && !picking ? (
             <>

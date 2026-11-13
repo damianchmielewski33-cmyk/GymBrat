@@ -23,7 +23,7 @@ export default async function CommunityHomePage() {
     <div className="space-y-5">
       <header>
         <p className="app-label text-[var(--gym-gold)]">Społeczność</p>
-        <h1 className="mt-1.5 font-heading text-[26px] font-semibold text-white">
+        <h1 className="text-[length:var(--text-title-lg)] mt-1.5 font-heading font-semibold text-white">
           Mój Team
         </h1>
         <p className="mt-2 text-[13px] text-white/50">
@@ -37,9 +37,9 @@ export default async function CommunityHomePage() {
       <div className="grid gap-3 sm:grid-cols-3">
         <Link
           href="/community/wars"
-          className="app-card flex items-center gap-3 p-4 transition hover:border-rose-400/35"
+          className="app-card flex items-center gap-3 p-4 transition hover:border-state-error/35"
         >
-          <Swords className="h-5 w-5 text-rose-300" />
+          <Swords className="h-5 w-5 text-state-error" />
           <div>
             <p className="text-[14px] font-medium text-white">Wojny</p>
             <p className="text-[11px] text-white/50">Team Wars · FCS</p>

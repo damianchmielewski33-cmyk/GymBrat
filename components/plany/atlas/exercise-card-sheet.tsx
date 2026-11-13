@@ -49,7 +49,7 @@ export function ExerciseCardSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[92vh] overflow-y-auto rounded-t-[22px] border-white/10 pb-28"
+        className="max-h-[92vh] overflow-y-auto rounded-t-3xl border-white/10 pb-28"
       >
         <SheetHeader>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gym-text-secondary)]">

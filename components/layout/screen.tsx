@@ -1,8 +1,7 @@
 import { StatTile } from "@/components/ui/stat-tile";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { AnimatedDumbbellMark } from "@/components/branding/animated-dumbbell-mark";
+import { BackLink } from "@/components/ui/back-link";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { cn } from "@/lib/utils";
 
@@ -61,13 +60,7 @@ export function AppPageHeader({
     >
       <div className="min-w-0 flex-1">
         {backHref ? (
-          <Link
-            href={backHref}
-            className="-ml-1 mb-1 inline-flex min-h-10 items-center gap-1.5 rounded-md px-1 text-[13px] text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-            {backLabel ?? "Wstecz"}
-          </Link>
+          <BackLink href={backHref} label={backLabel ?? "Wstecz"} className="mb-1" />
         ) : null}
         {kicker ? <p className={appPageKickerClass}>{kicker}</p> : null}
         <TitleTag

@@ -42,7 +42,7 @@ export function WarMatchCard({
           <p className="text-[11px] text-white/50">FCS</p>
         </div>
         <div className="text-center">
-          <p className="text-[11px] uppercase tracking-widest text-rose-300/80">
+          <p className="text-[11px] uppercase tracking-widest text-state-error/80">
             vs
           </p>
           <p className="mt-2 text-[12px] text-white/50">
@@ -67,7 +67,7 @@ export function WarMatchCard({
       </div>
       <div className="relative mt-4 h-2 overflow-hidden rounded-full bg-white/10">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-[var(--gym-gold)] to-rose-400 transition-all duration-700"
+          className="h-full rounded-full bg-gradient-to-r from-[var(--gym-gold)] to-state-error transition-all duration-700"
           style={{
             width: `${Math.min(100, Math.max(8, leadA ? 55 + (war.scoreA - war.scoreB) : 45 - (war.scoreB - war.scoreA)))}%`,
           }}

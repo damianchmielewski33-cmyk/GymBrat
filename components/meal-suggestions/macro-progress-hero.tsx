@@ -52,8 +52,8 @@ export function MacroProgressHero({
 
   const rows = [
     { label: "Białko", short: "B", amount: protein, bar: "bg-sky-400", dot: "bg-sky-400" },
-    { label: "Węgle", short: "W", amount: carbs, bar: "bg-amber-300", dot: "bg-amber-300" },
-    { label: "Tłuszcz", short: "T", amount: fat, bar: "bg-rose-300", dot: "bg-rose-300" },
+    { label: "Węgle", short: "W", amount: carbs, bar: "bg-state-warning", dot: "bg-state-warning" },
+    { label: "Tłuszcz", short: "T", amount: fat, bar: "bg-state-error", dot: "bg-state-error" },
   ].map(({ label: name, amount, bar, dot }) => {
     const got = Math.round(amount.consumed);
     const goal = amount.goal != null ? Math.round(amount.goal) : null;
@@ -90,7 +90,7 @@ export function MacroProgressHero({
               durationMs={800}
               className={cn(
                 "text-[52px] leading-none",
-                overGoal ? "text-orange-300" : "text-white",
+                overGoal ? "text-state-warning" : "text-white",
               )}
             />
             <span className="text-[13px] text-white/60">{bigLabel}</span>
@@ -113,7 +113,7 @@ export function MacroProgressHero({
         <div
           className={cn(
             "h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none",
-            overGoal ? "bg-orange-400" : "gym-meter-gold",
+            overGoal ? "bg-state-warning" : "gym-meter-gold",
           )}
           style={{ width: `${kcalPct}%` }}
         />
@@ -134,7 +134,7 @@ export function MacroProgressHero({
               <div
                 className={cn(
                   "h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none",
-                  r.over ? "bg-orange-400" : r.bar,
+                  r.over ? "bg-state-warning" : r.bar,
                 )}
                 style={{ width: `${r.pct}%` }}
               />
@@ -142,7 +142,7 @@ export function MacroProgressHero({
             <p
               className={cn(
                 "mt-1 text-[11px] tabular-nums",
-                r.over ? "text-orange-300" : "text-white/50",
+                r.over ? "text-state-warning" : "text-white/50",
               )}
             >
               {r.diff == null

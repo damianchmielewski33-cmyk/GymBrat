@@ -67,7 +67,7 @@ function BarBlock({
         <div className="min-w-0 flex-1">
           <p className="app-label">{title}</p>
           <p className="font-heading mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
-            <span className={isOver ? "text-rose-300" : "text-white"}>
+            <span className={isOver ? "text-state-error" : "text-white"}>
               {percent.toFixed(1)}%
             </span>
             <span className="mt-0.5 block text-sm font-normal leading-snug text-white/50 sm:ml-1 sm:mt-0 sm:inline sm:text-base">
@@ -84,7 +84,7 @@ function BarBlock({
         <motion.div
           className={`h-full rounded-full ${
             isOver
-              ? "bg-gradient-to-r from-rose-400 to-rose-600"
+              ? "bg-gradient-to-r from-state-error to-state-error"
               : "bg-gradient-to-r from-[var(--gym-gold-deep)] via-[var(--neon)] to-[var(--gym-gold-bright)]"
           }`}
           initial={{ width: 0 }}

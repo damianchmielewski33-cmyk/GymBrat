@@ -80,10 +80,10 @@ export async function HomeTodayPageContent({ userId }: { userId: string }) {
     return (
       <div
         role="alert"
-        className="flex gap-3 rounded-[14px] border border-[#5a3a22] bg-[#1f1510] p-4 text-white"
+        className="flex gap-3 rounded-xl border border-[#5a3a22] bg-[#1f1510] p-4 text-white"
       >
         <TriangleAlert
-          className="mt-0.5 h-[22px] w-[22px] shrink-0 text-orange-400"
+          className="mt-0.5 h-[22px] w-[22px] shrink-0 text-state-warning"
           aria-hidden
         />
         <div className="min-w-0 flex-1">

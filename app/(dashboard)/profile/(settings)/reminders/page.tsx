@@ -51,7 +51,7 @@ export default async function ProfileRemindersPage() {
           {needsConsent ? (
             <p
               role="status"
-              className="mb-3 rounded-xl border border-amber-300/25 bg-amber-300/[0.07] px-4 py-3 text-[13px] leading-snug text-amber-100/90"
+              className="mb-3 rounded-xl border border-state-warning/25 bg-state-warning/[0.07] px-4 py-3 text-[13px] leading-snug text-state-warning/90"
             >
               Przypomnienia są wstrzymane, dopóki nie wyrazisz zgody. Zapisz ustawienia poniżej —
               zapisanie włączonych przypomnień oznacza zgodę na ich wysyłanie (możesz ją cofnąć

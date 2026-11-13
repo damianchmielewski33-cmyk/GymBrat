@@ -89,7 +89,7 @@ export function CardioLogMinutesField({
           aria-label="Minuty"
           onChange={(e) => onMinutesTextChange(e.target.value)}
           className={cn(
-            "h-14 w-28 rounded-2xl border bg-black/50 text-center font-metric text-4xl tabular-nums outline-none",
+            "h-14 w-28 rounded-2xl border bg-black/50 text-center font-metric text-4xl tabular-nums outline-none focus-ring",
             "focus:ring-2 focus:ring-[var(--gym-gold)]/25",
             error
               ? "border-[var(--destructive)] text-white"

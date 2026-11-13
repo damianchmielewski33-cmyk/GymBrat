@@ -360,14 +360,14 @@ function ChannelStatus({
       className={cn(
         "mt-4 flex flex-col gap-2.5 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
         tone === "ok"
-          ? "border-emerald-300/25 bg-emerald-300/[0.07]"
-          : "border-amber-300/25 bg-amber-300/[0.07]",
+          ? "border-state-success/25 bg-state-success/[0.07]"
+          : "border-state-warning/25 bg-state-warning/[0.07]",
       )}
     >
       <p
         className={cn(
           "text-[13px] leading-snug",
-          tone === "ok" ? "text-emerald-100/90" : "text-amber-100/85",
+          tone === "ok" ? "text-state-success/90" : "text-state-warning/85",
         )}
       >
         {text}

@@ -216,7 +216,7 @@ export function HomeSylwetkaSection({
           <span className="font-metric text-[56px] leading-none text-white/50">—</span>
         )}
       </p>
-      <p className={"mt-1 text-sm " + (delta == null ? "text-white/60" : "text-emerald-300")}>
+      <p className={"mt-1 text-sm " + (delta == null ? "text-white/60" : "text-state-success")}>
         {deltaText}
       </p>
 

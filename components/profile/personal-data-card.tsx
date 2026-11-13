@@ -68,7 +68,7 @@ export function DataExportActions() {
         ))}
       </div>
       {error ? (
-        <p className="text-[13px] text-rose-300" role="alert">
+        <p className="text-[13px] text-state-error" role="alert">
           {error}
         </p>
       ) : null}
@@ -142,13 +142,13 @@ export function DeleteAccountControl({
           setError(null);
           setOpen(true);
         }}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-rose-400/35 bg-rose-400/10 px-4 text-sm font-semibold text-rose-200 transition-colors hover:bg-rose-400/20 disabled:opacity-50 sm:w-auto"
+        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-state-error/35 bg-state-error/10 px-4 text-sm font-semibold text-state-error transition-colors hover:bg-state-error/20 disabled:opacity-50 sm:w-auto"
       >
         <Trash2 className="h-4 w-4" aria-hidden />
         Usuń konto
       </button>
       {error && !open ? (
-        <p className="text-[13px] text-rose-300" role="alert">
+        <p className="text-[13px] text-state-error" role="alert">
           {error}
         </p>
       ) : null}
@@ -173,7 +173,7 @@ export function DeleteAccountControl({
             placeholder="Hasło do konta"
             autoComplete="current-password"
             aria-label="Hasło do konta"
-            className="mt-4 focus-visible:border-rose-400/50"
+            className="mt-4 focus-visible:border-state-error/50"
           />
           {provider ? (
             <p className="mt-2 text-[12px] leading-snug text-white/50">
@@ -195,7 +195,7 @@ export function DeleteAccountControl({
             </p>
           ) : null}
           {needsReauth && !provider ? (
-            <p className="mt-2 text-[12px] text-amber-200/80">Podaj hasło, aby potwierdzić tożsamość.</p>
+            <p className="mt-2 text-[12px] text-state-warning/80">Podaj hasło, aby potwierdzić tożsamość.</p>
           ) : null}
           <Input
             value={confirmText}
@@ -203,10 +203,10 @@ export function DeleteAccountControl({
             placeholder={DELETE_PHRASE}
             autoComplete="off"
             aria-label={`Wpisz ${DELETE_PHRASE}, aby potwierdzić`}
-            className="mt-4 focus-visible:border-rose-400/50"
+            className="mt-4 focus-visible:border-state-error/50"
           />
           {error ? (
-            <p className="mt-2 text-[13px] text-rose-300" role="alert">
+            <p className="mt-2 text-[13px] text-state-error" role="alert">
               {error}
             </p>
           ) : null}

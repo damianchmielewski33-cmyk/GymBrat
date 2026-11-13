@@ -19,9 +19,9 @@ import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { cn } from "@/lib/utils";
 
 const PRIORITY_RING: Record<BugPriority, string> = {
-  critical: "border-red-500/70 bg-red-500/15 text-red-100",
-  high: "border-orange-400/70 bg-orange-400/15 text-orange-100",
-  normal: "border-amber-300/70 bg-amber-300/15 text-amber-50",
+  critical: "border-state-error/70 bg-state-error/15 text-state-error",
+  high: "border-state-warning/70 bg-state-warning/15 text-state-warning",
+  normal: "border-state-warning/70 bg-state-warning/15 text-state-warning",
   low: "border-sky-400/70 bg-sky-400/15 text-sky-100",
 };
 
@@ -168,7 +168,7 @@ export function BugReportForm() {
                   <button
                     type="button"
                     aria-label={`Usuń zdjęcie ${i + 1}`}
-                    className="absolute right-1.5 top-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white"
+                    className="absolute right-1.5 top-1.5 inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/70 text-white"
                     onClick={() =>
                       setPhotos((prev) => prev.filter((_, idx) => idx !== i))
                     }

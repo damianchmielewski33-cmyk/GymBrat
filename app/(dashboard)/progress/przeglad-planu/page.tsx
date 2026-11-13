@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { getWorkoutPlans } from "@/actions/workout-plan";
 import { withDbRetry } from "@/db/with-retry";
@@ -19,6 +17,7 @@ import { suggestAlternatives } from "@/lib/plan-alternatives";
 import { loadPlanAdherence, loadPlanRevisions } from "@/lib/plan-review-data";
 import { getProgressHubData } from "@/lib/progress-hub";
 import { resolveExerciseMuscles } from "@/lib/resolve-exercise-muscles";
+import { BackLink } from "@/components/ui/back-link";
 
 export const metadata = { title: "Przegląd planu" };
 
@@ -126,13 +125,8 @@ export default async function PlanReviewPage() {
   return (
     <div className="mx-auto w-full max-w-lg space-y-4 pb-8">
       <header className="px-0.5">
-        <Link
-          href="/progress?tab=sila"
-          className="inline-flex items-center gap-1 text-[12px] text-white/55"
-        >
-          <ArrowLeft className="size-3.5" /> Analiza
-        </Link>
-        <h1 className="mt-1 font-heading text-[28px] font-semibold leading-8 tracking-tight text-white">
+        <BackLink href="/progress?tab=sila" label="Analiza" />
+        <h1 className="text-[length:var(--text-title-lg)] mt-1 font-heading font-semibold leading-8 tracking-tight text-white">
           Przegląd planu
         </h1>
         <p className="mt-1 text-[12px] text-white/55">

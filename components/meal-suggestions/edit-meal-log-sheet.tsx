@@ -117,7 +117,7 @@ export function EditMealLogSheet({
               name="slot"
               value={slot}
               onChange={(e) => setSlot(e.target.value as DietDiarySlot | "")}
-              className="h-11 w-full rounded-xl border border-white/12 bg-white/[0.06] px-3 text-sm text-white outline-none"
+              className="h-11 w-full rounded-xl border border-white/12 bg-white/[0.06] px-3 text-sm text-white outline-none focus-ring"
             >
               <option value="">Bez sekcji</option>
               {DIET_DIARY_SLOTS.map((s) => (

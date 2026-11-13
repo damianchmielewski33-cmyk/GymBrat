@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ArrowLeft, Crown } from "lucide-react";
+import { Crown } from "lucide-react";
 import { HofBadgeGallery } from "@/components/community/hof/hof-badge-gallery";
 import { HofCategoryPodium } from "@/components/community/hof/hof-category-podium";
 import { HofPeriodTabs } from "@/components/community/hof/hof-period-tabs";
@@ -15,6 +14,7 @@ import {
   HOF_PERIOD_LABELS,
   type HofPeriodKind,
 } from "@/lib/community/hof-types";
+import { BackLink } from "@/components/ui/back-link";
 
 export function HofPageClient({
   initial,
@@ -38,13 +38,7 @@ export function HofPageClient({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/community"
-        className="inline-flex min-h-10 items-center gap-1.5 text-[13px] text-white/60 transition hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Community
-      </Link>
+      <BackLink href="/community" label="Community" />
 
       <header className="relative overflow-hidden rounded-2xl border border-[var(--gym-gold)]/25 bg-gradient-to-br from-[var(--gym-gold)]/15 via-black/40 to-transparent p-5">
         <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[var(--gym-gold)]/20 blur-3xl" />
@@ -52,7 +46,7 @@ export function HofPageClient({
           <Crown className="mt-1 h-7 w-7 text-[var(--gym-gold)]" aria-hidden />
           <div>
             <p className="app-label text-[var(--gym-gold)]">Galeria sławy</p>
-            <h1 className="mt-1 font-heading text-[26px] font-semibold tracking-tight text-white sm:text-[30px]">
+            <h1 className="text-[length:var(--text-title-lg)] mt-1 font-heading font-semibold tracking-tight text-white">
               {initial.period.title}
             </h1>
             <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-white/50">

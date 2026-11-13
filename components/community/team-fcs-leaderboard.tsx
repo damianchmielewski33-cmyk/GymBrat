@@ -45,7 +45,7 @@ function FcsBreakdown({ row }: { row: TeamRankingRow }) {
         );
       })}
       {row.newcomerBoost && row.newcomerBoost > 0 ? (
-        <li className="flex items-center gap-1.5 pt-1 text-[11px] text-emerald-300/90">
+        <li className="flex items-center gap-1.5 pt-1 text-[11px] text-state-success/90">
           <Sparkles className="h-3 w-3" aria-hidden />
           Bonus nowicjusza +{row.newcomerBoost}
         </li>
@@ -136,7 +136,7 @@ export function TeamFcsLeaderboard({
                   <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-white">
                     {row.displayName}
                     {row.newcomerBoost && row.newcomerBoost > 0 ? (
-                      <span className="ml-1.5 text-[10px] font-normal text-emerald-300/80">
+                      <span className="ml-1.5 text-[10px] font-normal text-state-success/80">
                         nowy
                       </span>
                     ) : null}

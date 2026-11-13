@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useId } from "react";
-import { ChevronLeft } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { PROFILE_SECTIONS } from "@/components/profile/profile-sections";
+import { BackLink } from "@/components/ui/back-link";
 
 /** Zakładki podstron profilu — prawdziwe trasy (ADR 0006 / UX U-5). */
 export function ProfileTabs() {
@@ -174,12 +174,6 @@ export function ProfileBackBar() {
   const pathname = usePathname();
   if (pathname === "/profile") return null;
   return (
-    <Link
-      href="/profile"
-      className="-ml-1 inline-flex min-h-11 items-center gap-1 rounded-full pr-3 text-[14px] font-medium text-white/70 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/50"
-    >
-      <ChevronLeft className="h-5 w-5" aria-hidden />
-      Profil
-    </Link>
+    <BackLink href="/profile" label="Profil" />
   );
 }

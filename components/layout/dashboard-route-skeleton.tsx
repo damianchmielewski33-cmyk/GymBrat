@@ -1,7 +1,7 @@
 function Sk({ className }: { className: string }) {
   return (
     <div
-      className={`rounded-[10px] bg-gradient-to-r from-white/[0.05] via-white/[0.1] to-white/[0.05] bg-[length:200%_100%] motion-safe:animate-pulse ${className}`}
+      className={`rounded-lg bg-gradient-to-r from-white/[0.05] via-white/[0.1] to-white/[0.05] bg-[length:200%_100%] motion-safe:animate-pulse ${className}`}
     />
   );
 }

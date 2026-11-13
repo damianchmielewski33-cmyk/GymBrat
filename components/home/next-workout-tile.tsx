@@ -28,7 +28,7 @@ function MiniStat({
     tone === "gold"
       ? "border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/10 text-[var(--gym-gold-bright)]"
       : tone === "mint"
-        ? "border-emerald-400/35 bg-emerald-400/10 text-emerald-300"
+        ? "border-state-success/35 bg-state-success/10 text-state-success"
         : "border-sky-400/35 bg-sky-400/10 text-sky-300";
 
   return (

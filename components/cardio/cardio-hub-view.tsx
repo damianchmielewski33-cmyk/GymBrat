@@ -3,13 +3,7 @@
 import { BRAND_GOLD } from "@/lib/brand-colors";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Pencil,
-  Play,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Play } from "lucide-react";
 import { AnimatedMetric } from "@/components/ui/animated-metric";
 import { SectionLabel } from "@/components/ui/section-label";
 import { CardioLogSheet } from "@/components/treningi/cardio-log-sheet";
@@ -29,6 +23,7 @@ import {
 } from "@/lib/cardio-week-stats";
 import { cn } from "@/lib/utils";
 import { MiniSparkline } from "@/components/home/mini-sparkline";
+import { BackLink } from "@/components/ui/back-link";
 
 function formatWeekFrom(monday: string): string {
   try {
@@ -97,20 +92,14 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-10">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 text-sm text-white/80"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Wróć
-      </Link>
+      <BackLink href="/" label="Wróć" />
 
       <header className="flex items-start justify-between gap-3 px-0.5">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
             Tydzień od {formatWeekFrom(data.weekMonday)}
           </p>
-          <h1 className="mt-1.5 text-[28px] font-semibold leading-tight tracking-tight text-white">
+          <h1 className="text-[length:var(--text-title-lg)] mt-1.5 font-semibold leading-tight tracking-tight text-white">
             Cardio
           </h1>
           <p className="mt-1.5 text-[13px] text-white/50">
@@ -266,9 +255,9 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
                 className={cn(
                   "mt-1 font-display text-[26px] leading-none tabular-nums",
                   weekCompare.deltaMinutes > 0
-                    ? "text-emerald-300"
+                    ? "text-state-success"
                     : weekCompare.deltaMinutes < 0
-                      ? "text-rose-300"
+                      ? "text-state-error"
                       : "text-white/50",
                 )}
               >
@@ -287,9 +276,9 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
                 className={cn(
                   "mt-1 font-display text-[26px] leading-none tabular-nums",
                   (weekCompare.deltaPct ?? 0) > 0
-                    ? "text-emerald-300"
+                    ? "text-state-success"
                     : (weekCompare.deltaPct ?? 0) < 0
-                      ? "text-rose-300"
+                      ? "text-state-error"
                       : "text-white/50",
                 )}
               >
@@ -394,9 +383,9 @@ export function CardioHubView({ data }: { data: CardioHubData }) {
                         row.future
                           ? "text-white/50"
                           : row.deltaMinutes > 0
-                            ? "text-emerald-300"
+                            ? "text-state-success"
                             : row.deltaMinutes < 0
-                              ? "text-rose-300"
+                              ? "text-state-error"
                               : "text-white/50",
                       )}
                     >

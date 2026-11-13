@@ -57,7 +57,7 @@ function MealDeleteForm({ mealId }: { mealId: string }) {
           type="submit"
           variant="outline"
           size="sm"
-          className="border-rose-400/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+          className="border-state-error/25 bg-state-error/10 text-state-error hover:bg-state-error/20"
         >
           <Trash2 className="mr-1.5 h-3.5 w-3.5" />
           Usuń
@@ -319,13 +319,13 @@ export function MealLogsList({
               <div
                 className={`rounded-2xl border p-4 ${
                   editHasMacros
-                    ? "border-emerald-500/25 bg-emerald-500/[0.07]"
+                    ? "border-state-success/25 bg-state-success/[0.07]"
                     : "border-white/[0.08] bg-white/[0.03]"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25">
-                    <Flame className="h-5 w-5 text-orange-300/90" />
+                    <Flame className="h-5 w-5 text-state-warning/90" />
                   </div>
                   <div className="min-w-0 flex-1 space-y-1">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
@@ -370,7 +370,7 @@ export function MealLogsList({
               </div>
 
               {updateState?.error ? (
-                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200/95">
+                <div className="rounded-xl border border-state-error/30 bg-state-error/10 px-3 py-2 text-sm text-state-error/95">
                   {updateState.error}
                 </div>
               ) : null}

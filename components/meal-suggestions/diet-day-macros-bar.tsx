@@ -29,7 +29,7 @@ function MacroCol({
         <div
           className={cn(
             "h-full rounded-full transition-[width] duration-500 ease-out",
-            over ? "bg-rose-400" : barClass,
+            over ? "bg-state-error" : barClass,
           )}
           style={{ width: `${pct}%` }}
         />
@@ -48,7 +48,7 @@ function MacroCol({
         <p
           className={cn(
             "mt-0.5 text-[10px] tabular-nums leading-tight",
-            over ? "text-rose-400" : "text-white/50",
+            over ? "text-state-error" : "text-white/50",
           )}
         >
           {over
@@ -116,7 +116,7 @@ export function DietDayMacrosBar({
           consumed={fatConsumed}
           goal={fatGoal}
           unit="g"
-          barClass="bg-amber-400"
+          barClass="bg-state-warning"
         />
         <MacroCol
           label="Węgl."

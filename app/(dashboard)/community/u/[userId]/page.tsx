@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { ActivityFeedList } from "@/components/community/activity-feed-list";
 import { PublicProfileActions } from "@/components/community/public-profile-actions";
@@ -14,6 +12,7 @@ import {
   getPublicUserCard,
 } from "@/lib/community/social-profile";
 import { ReputationBadge } from "@/components/community/reputation-badge";
+import { BackLink } from "@/components/ui/back-link";
 
 export const metadata = { title: "Profil sportowca" };
 
@@ -43,13 +42,7 @@ export default async function PublicProfilePage({
 
   return (
     <div className="space-y-5">
-      <Link
-        href="/community/discover"
-        className="inline-flex min-h-10 items-center gap-1.5 text-[13px] text-white/60 hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Odkrywaj
-      </Link>
+      <BackLink href="/community/discover" label="Odkrywaj" />
 
       <header
         className={`relative overflow-hidden rounded-2xl border border-white/10 p-5 ${
@@ -58,7 +51,7 @@ export default async function PublicProfilePage({
             : "bg-black/40"
         }`}
       >
-        <h1 className="font-heading text-[28px] font-semibold text-white">
+        <h1 className="text-[length:var(--text-title-lg)] font-heading font-semibold text-white">
           {card.displayName}
         </h1>
         {card.bio && access === "full" ? (

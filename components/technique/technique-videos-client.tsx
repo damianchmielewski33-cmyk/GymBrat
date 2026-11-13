@@ -152,7 +152,7 @@ export function TechniqueVideosClient() {
               e.target.value = "";
             }}
           />
-          {error ? <p className="text-sm text-red-400">{error}</p> : null}
+          {error ? <p className="text-sm text-state-error">{error}</p> : null}
         </div>
       </section>
 
@@ -189,7 +189,7 @@ export function TechniqueVideosClient() {
                   <button
                     type="button"
                     onClick={() => remove(v.id)}
-                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 text-white/50 hover:text-red-400"
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 text-white/50 hover:text-state-error"
                     aria-label="Usuń film"
                   >
                     <Trash2 className="h-4 w-4" />

@@ -42,7 +42,7 @@ function DeltaBadge({
   return (
     <span
       className={`inline-flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5 text-xs font-medium ${
-        isPositive ? "text-emerald-400" : "text-rose-400"
+        isPositive ? "text-state-success" : "text-state-error"
       }`}
     >
       {isPositive ? (

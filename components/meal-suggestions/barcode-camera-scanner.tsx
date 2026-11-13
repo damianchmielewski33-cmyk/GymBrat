@@ -837,7 +837,7 @@ export function BarcodeCameraScanner({
       </div>
 
       {torchHint ? (
-        <p className="pointer-events-none absolute inset-x-4 top-[max(4.25rem,calc(env(safe-area-inset-top)+3.25rem))] z-[100] rounded-xl bg-black/70 px-3 py-2 text-center text-[12px] text-amber-100 backdrop-blur-md">
+        <p className="pointer-events-none absolute inset-x-4 top-[max(4.25rem,calc(env(safe-area-inset-top)+3.25rem))] z-[100] rounded-xl bg-black/70 px-3 py-2 text-center text-[12px] text-state-warning backdrop-blur-md">
           {torchHint}
         </p>
       ) : null}
@@ -849,7 +849,7 @@ export function BarcodeCameraScanner({
         <div className="mx-3 mb-2 rounded-2xl bg-black/72 px-4 py-4 text-center backdrop-blur-md sm:mx-5">
           {showError ? (
             <div className="space-y-3">
-              <p className="text-[14px] leading-snug text-amber-100">{error}</p>
+              <p className="text-[14px] leading-snug text-state-warning">{error}</p>
               {isInstalledAndroidAppClient() ? (
                 <button
                   type="button"
@@ -888,7 +888,7 @@ export function BarcodeCameraScanner({
                   onChange={(e) => setManualCode(e.target.value)}
                   placeholder="Wpisz kod EAN"
                   inputMode="numeric"
-                  className="h-11 min-w-0 flex-1 rounded-xl border border-white/20 bg-white/[0.06] px-3 text-sm text-white outline-none placeholder:text-white/50"
+                  className="h-11 min-w-0 flex-1 rounded-xl border border-white/20 bg-white/[0.06] px-3 text-sm text-white outline-none focus-ring placeholder:text-white/50"
                 />
                 <button
                   type="button"

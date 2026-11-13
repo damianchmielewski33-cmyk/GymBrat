@@ -260,7 +260,7 @@ export function PlanListClient({
                         <Button
                           type="button"
                           variant="outline"
-                          className="h-9 w-11 px-0"
+                          className="h-11 w-11 px-0"
                           disabled={index === 0 || pending}
                           aria-label={`Przesuń ${item.plan.planName} w górę`}
                           aria-disabled={index === 0}
@@ -271,7 +271,7 @@ export function PlanListClient({
                         <Button
                           type="button"
                           variant="outline"
-                          className="h-9 w-11 px-0"
+                          className="h-11 w-11 px-0"
                           disabled={index >= plans.length - 1 || pending}
                           aria-label={`Przesuń ${item.plan.planName} w dół`}
                           aria-disabled={index >= plans.length - 1}
@@ -322,7 +322,7 @@ export function PlanListClient({
       </section>
 
       <Sheet open={!!menuPlan} onOpenChange={(o) => !o && setMenuPlanId(null)}>
-        <SheetContent side="bottom" className="rounded-t-[22px] border-white/10">
+        <SheetContent side="bottom" className="rounded-t-3xl border-white/10">
           <SheetHeader>
             <SheetTitle className="text-white">
               {menuPlan?.plan.planName ?? "Plan"}
@@ -351,7 +351,7 @@ export function PlanListClient({
             <Button
               type="button"
               variant="outline"
-              className="h-12 justify-start gap-2 border-rose-400/40 text-rose-300"
+              className="h-12 justify-start gap-2 border-state-error/40 text-state-error"
               onClick={() => {
                 if (menuPlan) setDeleteId(menuPlan.id);
               }}

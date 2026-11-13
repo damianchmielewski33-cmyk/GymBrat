@@ -456,7 +456,7 @@ export function AdminCatalogClient() {
             size="sm"
             disabled={busy || !hasMeals}
             onClick={() => setClearOpen(true)}
-            className="border-rose-400/30 text-rose-200 hover:bg-rose-500/10"
+            className="border-state-error/30 text-state-error hover:bg-state-error/10"
           >
             <Trash2 className="mr-1.5 h-4 w-4" aria-hidden />
             {t("adminCatalog.clearDb")}

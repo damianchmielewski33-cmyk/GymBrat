@@ -60,7 +60,7 @@ export function ChallengeDetailClient({
               <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--gym-gold)]">
                 {challenge.scopeLabel}
               </p>
-              <h1 className="mt-1 font-heading text-[24px] font-semibold leading-tight text-white">
+              <h1 className="text-[length:var(--text-title-lg)] mt-1 font-heading font-semibold leading-tight text-white">
                 {challenge.title}
               </h1>
               <p className="mt-2 text-[13px] leading-relaxed text-white/50">

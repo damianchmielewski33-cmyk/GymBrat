@@ -330,7 +330,7 @@ function CardioLogSheetDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="cardio-sheet-title"
-        className="app-dialog relative z-[1] flex h-[min(92dvh,760px)] w-full max-w-lg animate-[page-enter_550ms_cubic-bezier(0.22,1,0.36,1)_both] flex-col overflow-hidden rounded-t-[26px] sm:h-auto sm:max-h-[92dvh] sm:rounded-[26px]"
+        className="app-dialog relative z-[1] flex h-[min(92dvh,760px)] w-full max-w-lg animate-[page-enter_550ms_cubic-bezier(0.22,1,0.36,1)_both] flex-col overflow-hidden rounded-t-3xl sm:h-auto sm:max-h-[92dvh] sm:rounded-3xl"
       >
         <div
           className="pointer-events-none absolute inset-0 opacity-90"
@@ -541,7 +541,7 @@ function CardioLogSheetDialog({
                         const v = e.target.value;
                         setDateKey(v === calendarDateKey() ? "" : v);
                       }}
-                      className="mt-2 h-12 w-full rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 text-sm text-white outline-none"
+                      className="mt-2 h-12 w-full rounded-xl border border-white/12 bg-[var(--gym-surface-raised)] px-3 text-sm text-white outline-none focus-ring"
                     />
                   </div>
                 </div>

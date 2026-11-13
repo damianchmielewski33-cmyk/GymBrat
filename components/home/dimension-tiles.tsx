@@ -70,9 +70,9 @@ function DimensionTile({
   const decreased = delta != null && delta < 0;
   const improved = delta != null && (lowerIsBetter ? decreased : !decreased && delta !== 0);
   const deltaColor = improved
-    ? "text-emerald-400"
+    ? "text-state-success"
     : decreased
-      ? "text-rose-400"
+      ? "text-state-error"
       : "text-white/55";
 
   return (

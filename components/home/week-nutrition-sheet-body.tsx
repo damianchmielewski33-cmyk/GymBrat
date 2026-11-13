@@ -45,12 +45,12 @@ function MetricBlock({
     );
   } else if (diff < 0) {
     status = (
-      <span className="text-rose-300/95">
+      <span className="text-state-error/95">
         Przekroczenie o {Math.round(Math.abs(diff))} {unit}
       </span>
     );
   } else {
-    status = <span className="text-emerald-300/90">Zgodnie z celem</span>;
+    status = <span className="text-state-success/90">Zgodnie z celem</span>;
   }
 
   return (
@@ -147,10 +147,10 @@ function MacroGaugeRow({
     statusClass = "text-sky-200/95";
   } else if (remain < 0) {
     statusText = `Nadwyżka ok. ${Math.round(Math.abs(remain))} ${unit}`;
-    statusClass = "text-rose-200/95";
+    statusClass = "text-state-error/95";
   } else {
     statusText = "Zgodnie z sumą celów tygodnia";
-    statusClass = "text-emerald-200/95";
+    statusClass = "text-state-success/95";
   }
 
   return (
@@ -201,7 +201,7 @@ function WeekMacroBalanceVisual({
 
   if (!hasMacroGoals && !hasKcalGoal) {
     return (
-      <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-amber-100/90">
+      <div className="rounded-2xl border border-state-warning/25 bg-state-warning/10 p-4 text-sm text-state-warning/90">
         Ustaw cele makroskładników w profilu (trening / odpoczynek), żeby zobaczyć bilans tygodnia na
         wykresach.
       </div>
@@ -234,7 +234,7 @@ function WeekMacroBalanceVisual({
               consumed={rollup.sumCaloriesConsumed}
               goal={rollup.sumCaloriesGoal}
               unit="kcal"
-              gradientClass="from-amber-400 via-orange-400 to-rose-400"
+              gradientClass="from-state-warning via-state-warning to-state-error"
               compact={compact}
             />
           ) : null}
@@ -258,7 +258,7 @@ function WeekMacroBalanceVisual({
               consumed={rollup.sumFatConsumed}
               goal={rollup.sumFatGoal}
               unit="g"
-              gradientClass="from-amber-300 to-yellow-500"
+              gradientClass="from-state-warning to-state-warning"
               compact={compact}
             />
           ) : null}
@@ -313,7 +313,7 @@ function PreviousWeeksSection({ weeks }: { weeks: PreviousWeekNutritionSheetWeek
                 <WeekMacroBalanceVisual rollup={w.rollup} compact />
               </div>
               <details className="group mt-3 rounded-xl border border-white/10 bg-white/[0.03]">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-xs font-medium text-white outline-none marker:content-none [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-xs font-medium text-white outline-none focus-ring marker:content-none [&::-webkit-details-marker]:hidden">
                   <span>Szczegóły dni ({w.dayRows.length})</span>
                   <ChevronDown className="h-3.5 w-3.5 shrink-0 text-white/50 transition group-open:rotate-180" />
                 </summary>
@@ -465,7 +465,7 @@ export function WeekNutritionSheetBody({
 
       {!flatLegacy && pastRows.length > 0 ? (
         <details className="group rounded-2xl border border-white/10 bg-white/[0.03]">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-white outline-none marker:content-none [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-white outline-none focus-ring marker:content-none [&::-webkit-details-marker]:hidden">
             <span>Wcześniejsze dni tygodnia ({pastRows.length})</span>
             <ChevronDown className="h-4 w-4 shrink-0 text-white/50 transition group-open:rotate-180" />
           </summary>

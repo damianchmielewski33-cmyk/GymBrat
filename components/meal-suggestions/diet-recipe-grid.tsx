@@ -166,7 +166,7 @@ export function DietRecipeGrid({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="danie albo składnik, np. kurczak bez ryżu"
-          className="h-11 w-full rounded-full border border-white/10 bg-black/45 py-2 pl-10 pr-3 text-sm text-white outline-none placeholder:text-[var(--gym-gold)]/55"
+          className="h-11 w-full rounded-full border border-white/10 bg-black/45 py-2 pl-10 pr-3 text-sm text-white outline-none focus-ring placeholder:text-[var(--gym-gold)]/55"
         />
       </div>
 

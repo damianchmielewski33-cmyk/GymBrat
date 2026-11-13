@@ -704,7 +704,7 @@ export function RegisterForm({
                     {...register("firstName")}
                   />
                   {errors.firstName ? (
-                    <p className="text-xs text-red-100">
+                    <p className="text-xs text-state-error">
                       {errors.firstName.message}
                     </p>
                   ) : null}
@@ -719,7 +719,7 @@ export function RegisterForm({
                     {...register("lastName")}
                   />
                   {errors.lastName ? (
-                    <p className="text-xs text-red-100">
+                    <p className="text-xs text-state-error">
                       {errors.lastName.message}
                     </p>
                   ) : null}
@@ -752,7 +752,7 @@ export function RegisterForm({
                     {...register("email")}
                   />
                   {errors.email ? (
-                    <p className="text-xs text-red-100">
+                    <p className="text-xs text-state-error">
                       {errors.email.message}
                     </p>
                   ) : null}
@@ -803,7 +803,7 @@ export function RegisterForm({
                   </p>
                 ) : null}
                 {errors.emailCode ? (
-                  <p id="emailCode-error" className="text-xs text-red-100">
+                  <p id="emailCode-error" className="text-xs text-state-error">
                     {errors.emailCode.message}
                   </p>
                 ) : null}
@@ -842,7 +842,7 @@ export function RegisterForm({
                   </button>
                 </div>
                 {errors.password ? (
-                  <p className="text-xs text-red-100">
+                  <p className="text-xs text-state-error">
                     {errors.password.message}
                   </p>
                 ) : null}
@@ -866,7 +866,7 @@ export function RegisterForm({
                     {...register("weightKg")}
                   />
                   {errors.weightKg ? (
-                    <p className="text-xs text-red-100">
+                    <p className="text-xs text-state-error">
                       {errors.weightKg.message}
                     </p>
                   ) : null}
@@ -884,7 +884,7 @@ export function RegisterForm({
                     {...register("heightCm")}
                   />
                   {errors.heightCm ? (
-                    <p className="text-xs text-red-100">
+                    <p className="text-xs text-state-error">
                       {errors.heightCm.message}
                     </p>
                   ) : null}
@@ -905,7 +905,7 @@ export function RegisterForm({
                     Aplikacja jest dla osób od {MIN_USER_AGE} lat. Podając wiek, oświadczasz, że masz co najmniej {MIN_USER_AGE} lat.
                   </p>
                   {errors.age ? (
-                    <p className="text-xs text-red-100">
+                    <p className="text-xs text-state-error">
                       {errors.age.message}
                     </p>
                   ) : null}
@@ -953,7 +953,7 @@ export function RegisterForm({
                 </div>
                 <input type="hidden" {...register("activityLevel")} />
                 {errors.activityLevel ? (
-                  <p className="text-xs text-red-100">
+                  <p className="text-xs text-state-error">
                     {errors.activityLevel.message}
                   </p>
                 ) : null}
@@ -992,7 +992,7 @@ export function RegisterForm({
                 </div>
                 <input type="hidden" {...register("weeklySessionsTarget")} />
                 {errors.weeklySessionsTarget ? (
-                  <p className="text-xs text-red-100">
+                  <p className="text-xs text-state-error">
                     {errors.weeklySessionsTarget.message}
                   </p>
                 ) : null}

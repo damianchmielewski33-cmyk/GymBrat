@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { auth } from "@/auth";
 import { ChallengeCard } from "@/components/community/challenge-card";
 import { ChallengeCelebrationOverlay } from "@/components/community/challenge-celebration";
@@ -15,6 +14,7 @@ import {
 } from "@/lib/community/challenges";
 import { getUserProgressionView } from "@/lib/community/progression";
 import { getUserReputation } from "@/lib/community/reputation";
+import { BackLink } from "@/components/ui/back-link";
 
 export const metadata = { title: "Wyzwania" };
 
@@ -36,17 +36,11 @@ export default async function GlobalChallengesPage() {
     <div className="space-y-5">
       <ChallengeCelebrationOverlay celebrations={celebrations} />
 
-      <Link
-        href="/community/teams"
-        className="inline-flex min-h-10 items-center gap-1.5 text-[13px] text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gym-gold)]/45"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Grupy
-      </Link>
+      <BackLink href="/community/teams" label="Grupy" />
 
       <header>
         <p className="app-label text-[var(--gym-gold)]">Społeczność</p>
-        <h1 className="mt-1.5 font-heading text-[24px] font-semibold tracking-tight text-white sm:text-[28px]">
+        <h1 className="text-[length:var(--text-title-lg)] mt-1.5 font-heading font-semibold tracking-tight text-white">
           Wyzwania globalne
         </h1>
         <p className="mt-2 text-[13px] leading-relaxed text-white/50">

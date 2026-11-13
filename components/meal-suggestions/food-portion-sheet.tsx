@@ -149,7 +149,7 @@ export function FoodPortionSheet({
           {macros ? (
             <p className="text-xs text-white/50">Dla {macros.label}</p>
           ) : (
-            <p className="text-xs text-amber-200/90">Podaj poprawną ilość większą od zera.</p>
+            <p className="text-xs text-state-warning/90">Podaj poprawną ilość większą od zera.</p>
           )}
 
           {!lockedSlot ? (

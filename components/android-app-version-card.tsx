@@ -156,7 +156,7 @@ export function AndroidAppVersionCard() {
             className={cn(
               "mt-1 text-sm font-semibold",
               error
-                ? "text-rose-300"
+                ? "text-state-error"
                 : updateAvailable
                   ? "text-[var(--gym-gold-bright)]"
                   : "text-white",

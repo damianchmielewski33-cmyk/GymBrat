@@ -245,7 +245,7 @@ export function AdminUsersClient() {
                         <div className="flex items-center justify-end gap-2">
                           <Link
                             href={`/admin/users/${encodeURIComponent(u.id)}`}
-                            className="inline-flex h-9 items-center justify-center rounded-lg border border-white/12 bg-white/[0.05] px-3 text-xs font-medium text-white/90 transition-colors hover:bg-white/10"
+                            className="inline-flex h-11 items-center justify-center rounded-lg border border-white/12 bg-white/[0.05] px-3 text-xs font-medium text-white/90 transition-colors hover:bg-white/10"
                           >
                             Szczegóły
                           </Link>
@@ -281,7 +281,7 @@ export function AdminUsersClient() {
                                   </DropdownMenuItem>
                                 ) : null}
                                 <DropdownMenuItem
-                                  className="text-red-300 focus:text-red-200"
+                                  className="text-state-error focus:text-state-error"
                                   onClick={() => setDeleteTarget(u)}
                                 >
                                   Usuń konto

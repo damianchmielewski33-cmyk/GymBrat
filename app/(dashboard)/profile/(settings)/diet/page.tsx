@@ -70,7 +70,7 @@ export default async function ProfileDietPage() {
           {isMinorAccount ? (
             <p
               role="note"
-              className="mb-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3.5 py-3 text-[13px] leading-relaxed text-amber-100/90"
+              className="mb-4 rounded-xl border border-state-warning/30 bg-state-warning/10 px-3.5 py-3 text-[13px] leading-relaxed text-state-warning/90"
             >
               Masz mniej niż 18 lat. Przy celu z deficytem kalorycznym
               skonsultuj plan z rodzicem lub dietetykiem — aplikacja nie

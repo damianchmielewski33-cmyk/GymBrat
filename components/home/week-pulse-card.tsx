@@ -86,7 +86,7 @@ function ProgressRow({
     ratio == null ? 0 : Math.min(100, Math.max(0, Math.round(ratio * 100)));
   const bar =
     tone === "ok"
-      ? "bg-emerald-400"
+      ? "bg-state-success"
       : tone === "warn"
         ? "bg-[var(--gym-gold)]"
         : "bg-white/25";
@@ -100,7 +100,7 @@ function ProgressRow({
         <p
           className={cn(
             "text-sm font-semibold tabular-nums",
-            tone === "ok" && "text-emerald-300",
+            tone === "ok" && "text-state-success",
             tone === "warn" && "text-[var(--gym-gold-bright)]",
             tone === "muted" && "text-white/70",
           )}

@@ -161,7 +161,7 @@ export function HomeSupplementsChip({
             })}
           </ul>
           {error ? (
-            <p role="alert" className="mt-2 text-[12px] text-rose-300">
+            <p role="alert" className="mt-2 text-[12px] text-state-error">
               {error}
             </p>
           ) : null}

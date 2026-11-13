@@ -22,7 +22,7 @@ export default async function ProgressPage({
   return (
     <div className="mx-auto w-full max-w-lg space-y-3.5 pb-8">
       <header className="px-0.5">
-        <h1 className="font-heading text-[28px] font-semibold leading-8 tracking-tight text-white">
+        <h1 className="text-[length:var(--text-title-lg)] font-heading font-semibold leading-8 tracking-tight text-white">
           Analiza
         </h1>
       </header>

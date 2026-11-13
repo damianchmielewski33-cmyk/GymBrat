@@ -38,7 +38,7 @@ function Row({ name, pct }: { name: string; pct: number | null }) {
         <div
           className={
             "h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none " +
-            (shown != null && shown > 100 ? "bg-orange-400" : "gym-meter-gold")
+            (shown != null && shown > 100 ? "bg-state-warning" : "gym-meter-gold")
           }
           style={{ width: `${width}%` }}
         />

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { auth } from "@/auth";
 import { ChallengeCard } from "@/components/community/challenge-card";
 import { ChallengeCelebrationOverlay } from "@/components/community/challenge-celebration";
@@ -13,6 +13,7 @@ import {
   listPendingCelebrations,
   listTeamChallenges,
 } from "@/lib/community/challenges";
+import { BackLink } from "@/components/ui/back-link";
 
 export const metadata = { title: "Wyzwania grupy" };
 
@@ -43,16 +44,10 @@ export default async function TeamChallengesPage({
     <div className={canCreate ? "space-y-4 pb-thumb-bar" : "space-y-4"}>
       <ChallengeCelebrationOverlay celebrations={celebrations} />
       <TeamSubnav teamId={teamId} />
-      <Link
-        href={`/community/teams/${teamId}`}
-        className="inline-flex min-h-10 items-center gap-1.5 text-[13px] text-white/60 hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Grupa
-      </Link>
+      <BackLink href={`/community/teams/${teamId}`} label="Grupa" />
 
       <div>
-        <h1 className="font-heading text-[24px] font-semibold text-white sm:text-[26px]">
+        <h1 className="text-[length:var(--text-title-lg)] font-heading font-semibold text-white">
           Wyzwania grupy
         </h1>
         <p className="mt-1 text-[13px] text-white/50">

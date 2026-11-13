@@ -113,7 +113,7 @@ function DeleteMealButton({
     <>
       <button
         type="button"
-        className="inline-flex h-11 w-9 items-center justify-center rounded-lg text-white/55 transition-colors hover:text-rose-300 active:text-rose-300"
+        className="inline-flex h-11 w-9 items-center justify-center rounded-lg text-white/55 transition-colors hover:text-state-error active:text-state-error"
         aria-label="Usuń"
         onClick={() => setOpen(true)}
       >
@@ -559,10 +559,10 @@ export function MealSuggestionsView({
             {dayError ? (
               <div
                 role="alert"
-                className="mb-3 flex items-start gap-2.5 rounded-2xl border border-rose-400/35 bg-rose-400/[0.08] px-3.5 py-3"
+                className="mb-3 flex items-start gap-2.5 rounded-2xl border border-state-error/35 bg-state-error/[0.08] px-3.5 py-3"
               >
                 <AlertCircle
-                  className="mt-0.5 h-[18px] w-[18px] shrink-0 text-rose-300"
+                  className="mt-0.5 h-[18px] w-[18px] shrink-0 text-state-error"
                   aria-hidden
                 />
                 <div className="min-w-0 flex-1">
@@ -575,7 +575,7 @@ export function MealSuggestionsView({
                   <button
                     type="button"
                     onClick={() => refreshDay(dateKey)}
-                    className="mt-1 min-h-9 text-[13px] font-semibold text-rose-300"
+                    className="mt-1 min-h-9 text-[13px] font-semibold text-state-error"
                   >
                     Spróbuj ponownie
                   </button>
@@ -584,9 +584,9 @@ export function MealSuggestionsView({
             ) : null}
             {dayLoading ? (
               <div aria-hidden className="space-y-3">
-                <div className="h-[150px] animate-pulse rounded-[20px] bg-white/[0.06]" />
-                <div className="h-24 animate-pulse rounded-[20px] bg-white/[0.06]" />
-                <div className="h-24 animate-pulse rounded-[20px] bg-white/[0.06]" />
+                <div className="h-[150px] animate-pulse rounded-2xl bg-white/[0.06]" />
+                <div className="h-24 animate-pulse rounded-2xl bg-white/[0.06]" />
+                <div className="h-24 animate-pulse rounded-2xl bg-white/[0.06]" />
               </div>
             ) : (
             <DietDiaryPanel

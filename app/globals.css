@@ -30,6 +30,10 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
+  /* Kolory stanów (błąd / sukces / ostrzeżenie): używaj state-error, state-success, state-warning. */
+  --color-state-error: #ff8593;
+  --color-state-success: #7ddea0;
+  --color-state-warning: #f5c451;
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
@@ -111,7 +115,7 @@
   --input:              rgba(255, 255, 255, 0.12);
   --ring:               rgba(247, 226, 143, 0.95);
 
-  --chart-1: rgba(201, 164, 92, 0.95);
+  --chart-1: rgba(var(--neon-rgb), 0.95);
   --chart-2: rgba(255, 255, 255, 0.88);
   --chart-3: rgba(255, 255, 255, 0.64);
   --chart-4: rgba(255, 255, 255, 0.44);
@@ -126,9 +130,12 @@
   --sidebar-accent:            rgba(255, 255, 255, 0.07);
   --sidebar-accent-foreground: rgba(255, 255, 255, 0.92);
   --sidebar-border:            rgba(255, 255, 255, 0.10);
-  --sidebar-ring:              rgba(201, 164, 92, 0.58);
+  --sidebar-ring:              rgba(var(--neon-rgb), 0.58);
 
   --neon-rgb:   201, 164, 92;
+  --gym-highlight: #f6e3a1;
+  --gym-highlight-rgb: 246, 227, 161;
+  --gym-deep-rgb: 180, 130, 40;
   --neon-hover: var(--gym-gold-bright);
   --neon-fg:    #120f05;
 
@@ -208,6 +215,115 @@
   --gym-trend-down:     #ff5a5a;
   --gym-skipped:        #ff9f43;
   --gym-text-secondary: #9a9182;
+}
+
+/* ── Motywy aplikacji (kolor akcentu na czerni). Domyślny „gold” = :root. Wybór zapisany w user_settings.app_theme. ── */
+[data-theme="pink"] {
+  --gym-gold: #ff5fb5;
+  --gym-gold-bright: #ff9ad5;
+  --gym-gold-deep: #b0106b;
+  --gym-on-gold: #2a0618;
+  --neon-rgb: 255, 95, 181;
+  --neon-fg: #2a0618;
+  --gym-highlight: #ffc2e8;
+  --gym-highlight-rgb: 255, 194, 232;
+  --gym-deep-rgb: 176, 16, 107;
+  --gym-surface-gold: #1c0a14;
+  --gym-border-gold: #4a1535;
+  --gym-track: #3a1230;
+  --gym-text-secondary: #b79aa9;
+  --primary-foreground: #2a0618;
+  --sidebar-primary-foreground: #2a0618;
+  --ring: rgba(255, 154, 213, 0.95);
+}
+[data-theme="violet"] {
+  --gym-gold: #a478f0;
+  --gym-gold-bright: #c7a6ff;
+  --gym-gold-deep: #6a35c8;
+  --gym-on-gold: #120824;
+  --neon-rgb: 164, 120, 240;
+  --neon-fg: #120824;
+  --gym-highlight: #e4d4ff;
+  --gym-highlight-rgb: 228, 212, 255;
+  --gym-deep-rgb: 106, 53, 200;
+  --gym-surface-gold: #120d1c;
+  --gym-border-gold: #2f2347;
+  --gym-track: #251b3a;
+  --gym-text-secondary: #9a92ab;
+  --primary-foreground: #120824;
+  --sidebar-primary-foreground: #120824;
+  --ring: rgba(199, 166, 255, 0.95);
+}
+[data-theme="teal"] {
+  --gym-gold: #2cc9b5;
+  --gym-gold-bright: #8ff0e0;
+  --gym-gold-deep: #0e8a7c;
+  --gym-on-gold: #04201c;
+  --neon-rgb: 44, 201, 181;
+  --neon-fg: #04201c;
+  --gym-highlight: #c8fff5;
+  --gym-highlight-rgb: 200, 255, 245;
+  --gym-deep-rgb: 14, 138, 124;
+  --gym-surface-gold: #0b1816;
+  --gym-border-gold: #1c3a35;
+  --gym-track: #14302c;
+  --gym-text-secondary: #8fa8a4;
+  --primary-foreground: #04201c;
+  --sidebar-primary-foreground: #04201c;
+  --ring: rgba(143, 240, 224, 0.95);
+}
+[data-theme="red"] {
+  --gym-gold: #f0505e;
+  --gym-gold-bright: #ff9a9a;
+  --gym-gold-deep: #b01c2b;
+  --gym-on-gold: #2a0508;
+  --neon-rgb: 240, 80, 94;
+  --neon-fg: #2a0508;
+  --gym-highlight: #ffd0d0;
+  --gym-highlight-rgb: 255, 208, 208;
+  --gym-deep-rgb: 176, 28, 43;
+  --gym-surface-gold: #1a0c0e;
+  --gym-border-gold: #3d1c20;
+  --gym-track: #2f1519;
+  --gym-text-secondary: #ab9294;
+  --primary-foreground: #2a0508;
+  --sidebar-primary-foreground: #2a0508;
+  --ring: rgba(255, 154, 154, 0.95);
+}
+[data-theme="blue"] {
+  --gym-gold: #4f8ef0;
+  --gym-gold-bright: #9cc8ff;
+  --gym-gold-deep: #2557b8;
+  --gym-on-gold: #051228;
+  --neon-rgb: 79, 142, 240;
+  --neon-fg: #051228;
+  --gym-highlight: #d0e4ff;
+  --gym-highlight-rgb: 208, 228, 255;
+  --gym-deep-rgb: 37, 87, 184;
+  --gym-surface-gold: #0b121c;
+  --gym-border-gold: #1c2e48;
+  --gym-track: #14233a;
+  --gym-text-secondary: #8f9db0;
+  --primary-foreground: #051228;
+  --sidebar-primary-foreground: #051228;
+  --ring: rgba(156, 200, 255, 0.95);
+}
+
+/* Róż: błyszczący (refleks szklany + poświata) — przyciski i paski postępu. */
+[data-theme="pink"] .gold-btn,
+[data-theme="pink"] .gym-btn-primary {
+  border-color: rgba(255, 220, 240, 0.7);
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.16) 46%, rgba(255, 255, 255, 0) 50%),
+    linear-gradient(135deg, #ffc2e8 0%, #ff5fb5 25%, #ff1f8e 55%, #b0106b 85%, #ff6fc0 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 -3px 6px rgba(90, 0, 50, 0.5) inset,
+    0 0 22px rgba(255, 31, 142, 0.55),
+    0 8px 18px rgba(176, 16, 107, 0.45);
+}
+html[data-theme="pink"] body {
+  background: radial-gradient(120% 70% at 100% 0%, #2a0a1e 0%, #050304 60%);
 }
 
 @layer base {
@@ -416,11 +532,11 @@
    * Używane przez Button oraz hardcoded CTA na ekranach.
    */
   .gym-btn-primary {
-    border: 1px solid rgba(246, 227, 161, 0.72);
+    border: 1px solid rgba(var(--gym-highlight-rgb), 0.72);
     background-color: var(--gym-gold);
     background-image: linear-gradient(
       168deg,
-      #f6e3a1 0%,
+      var(--gym-highlight) 0%,
       var(--gym-gold-bright) 22%,
       var(--gym-gold) 55%,
       var(--gym-gold-deep) 100%
@@ -461,11 +577,11 @@
 
   /** Alias używany w treningu / przerwie / raporcie — ten sam złoty CTA. */
   .gold-btn {
-    border: 1px solid rgba(246, 227, 161, 0.72);
+    border: 1px solid rgba(var(--gym-highlight-rgb), 0.72);
     background-color: var(--gym-gold);
     background-image: linear-gradient(
       168deg,
-      #f6e3a1 0%,
+      var(--gym-highlight) 0%,
       var(--gym-gold-bright) 22%,
       var(--gym-gold) 55%,
       var(--gym-gold-deep) 100%
@@ -520,14 +636,14 @@
   .gold-sheen {
     box-shadow:
       0 0 44px rgba(var(--neon-rgb), 0.1),
-      inset 0 1px 0 rgba(246, 227, 161, 0.16);
+      inset 0 1px 0 rgba(var(--gym-highlight-rgb), 0.16);
   }
 
   /** Złoty pasek postępu (gradient metaliczny). */
   .gym-meter-gold {
     background-image: linear-gradient(
       180deg,
-      #f6e3a1 0%,
+      var(--gym-highlight) 0%,
       var(--gym-gold) 55%,
       var(--gym-gold-deep) 100%
     );
@@ -680,7 +796,7 @@
       90deg,
       var(--gym-gold-deep),
       var(--gym-gold) 55%,
-      #f6e3a1
+      var(--gym-highlight)
     );
   }
 
@@ -804,7 +920,7 @@
     height: min(78vw, 420px);
     background: radial-gradient(
       circle,
-      rgba(201, 164, 92, 0.34) 0%,
+      rgba(var(--neon-rgb), 0.34) 0%,
       rgba(196, 154, 31, 0.13) 42%,
       transparent 70%
     );
@@ -818,7 +934,7 @@
     height: min(70vw, 360px);
     background: radial-gradient(
       circle,
-      rgba(247, 226, 143, 0.22) 0%,
+      rgba(var(--gym-highlight-rgb), 0.22) 0%,
       rgba(120, 90, 30, 0.1) 45%,
       transparent 72%
     );
@@ -832,7 +948,7 @@
     height: min(70vw, 380px);
     background: radial-gradient(
       circle,
-      rgba(180, 130, 40, 0.2) 0%,
+      rgba(var(--gym-deep-rgb), 0.2) 0%,
       rgba(40, 28, 12, 0.12) 40%,
       transparent 70%
     );
@@ -1270,7 +1386,7 @@
   top: -18%;
   width: min(140vw, 560px);
   height: min(140vw, 560px);
-  background: conic-gradient(from 0deg, rgba(246,227,161,0), rgba(201,164,92,0.45), rgba(246,227,161,0) 40%, rgba(180,130,40,0.3) 70%, rgba(246,227,161,0));
+  background: conic-gradient(from 0deg, rgba(var(--gym-highlight-rgb), 0), rgba(var(--neon-rgb), 0.45), rgba(var(--gym-highlight-rgb), 0) 40%, rgba(var(--gym-deep-rgb), 0.3) 70%, rgba(var(--gym-highlight-rgb), 0));
   animation: bg-spin 38s linear infinite;
 }
 .app-bg-cone--b {
@@ -1278,7 +1394,7 @@
   bottom: -10%;
   width: min(130vw, 520px);
   height: min(130vw, 520px);
-  background: conic-gradient(from 90deg, rgba(246,227,161,0), rgba(201,164,92,0.4), rgba(246,227,161,0) 45%, rgba(180,130,40,0.28) 75%, rgba(246,227,161,0));
+  background: conic-gradient(from 90deg, rgba(var(--gym-highlight-rgb), 0), rgba(var(--neon-rgb), 0.4), rgba(var(--gym-highlight-rgb), 0) 45%, rgba(var(--gym-deep-rgb), 0.28) 75%, rgba(var(--gym-highlight-rgb), 0));
   animation: bg-spin 52s linear infinite reverse;
 }
 .app-bg-grid {
@@ -1296,7 +1412,7 @@
   position: absolute;
   border-radius: 9999px;
   filter: blur(60px);
-  background: radial-gradient(circle, rgba(201,164,92,0.22), transparent 70%);
+  background: radial-gradient(circle, rgba(var(--neon-rgb), 0.22), transparent 70%);
   animation: bg-breathe 10s ease-in-out infinite;
 }
 .app-bg-beam {
@@ -1304,7 +1420,7 @@
   inset-inline: 0;
   top: 0;
   height: 160px;
-  background: linear-gradient(180deg, transparent, rgba(246,227,161,0.07), transparent);
+  background: linear-gradient(180deg, transparent, rgba(var(--gym-highlight-rgb), 0.07), transparent);
   animation: bg-beam 16s ease-in-out infinite;
 }
 .app-bg-spark {
@@ -1312,8 +1428,8 @@
   width: 3px;
   height: 3px;
   border-radius: 9999px;
-  background: #f6e3a1;
-  box-shadow: 0 0 8px #f6e3a1;
+  background: var(--gym-highlight);
+  box-shadow: 0 0 8px var(--gym-highlight);
   animation: bg-spark-rise 11s ease-in infinite;
 }
 
@@ -1380,4 +1496,12 @@
 }
 .profile-gate:disabled [data-edit-only] {
   display: none;
+}
+
+/** Widoczny fokus klawiatury dla elementów z `outline-none` (gdzie nie ma własnego ringu). */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }

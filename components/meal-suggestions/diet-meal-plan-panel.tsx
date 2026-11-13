@@ -91,7 +91,7 @@ function ShoppingListCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: 0.72, ease: [0.22, 1, 0.36, 1] }}
-      className="overflow-hidden rounded-[22px] border border-white/[0.08] bg-[#0E0E0E]/90 shadow-[0_12px_40px_rgba(0,0,0,0.4)]"
+      className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0E0E0E]/90 shadow-[0_12px_40px_rgba(0,0,0,0.4)]"
     >
       <button
         type="button"
@@ -176,7 +176,7 @@ function ShoppingListCard({
                   type="button"
                   aria-label="Usuń z listy"
                   onClick={() => onChange(removeShoppingItem(item.id))}
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white/50 hover:bg-white/[0.06] hover:text-rose-200"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white/50 hover:bg-white/[0.06] hover:text-state-error"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -260,7 +260,7 @@ function PlanMealCard({
     >
       <div
         className={cn(
-          "overflow-hidden rounded-[18px] border bg-gradient-to-b from-white/[0.05] to-white/[0.015]",
+          "overflow-hidden rounded-2xl border bg-gradient-to-b from-white/[0.05] to-white/[0.015]",
           open ? "border-[rgba(221,187,109,0.32)]" : "border-white/[0.08]",
         )}
       >
@@ -275,7 +275,7 @@ function PlanMealCard({
             aria-expanded={open}
             aria-label={`${slotLabel}: pokaż inne przepisy`}
           >
-            <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[14px] border border-white/[0.06] bg-black/40">
+            <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/[0.06] bg-black/40">
               {suggestion ? (
                 <RecipeImage recipe={suggestion.meal} alt="" />
               ) : null}
@@ -459,7 +459,7 @@ export function DietMealPlanPanel({
                 type="button"
                 disabled
                 title="Własne przepisy — wkrótce"
-                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] px-3 text-[12px] font-semibold text-[var(--gym-gold)] opacity-70"
+                className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] px-3 text-[12px] font-semibold text-[var(--gym-gold)] opacity-70"
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden />
                 Dodaj przepis
@@ -527,7 +527,7 @@ export function DietMealPlanPanel({
           title="Suplementy"
           trailing={`${supplements.length}`}
         />
-        <div className="overflow-hidden rounded-[22px] border border-white/[0.08] bg-[#0E0E0E]/90">
+        <div className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0E0E0E]/90">
           <button
             type="button"
             onClick={() => setSuppOpen((v) => !v)}
@@ -589,7 +589,7 @@ export function DietMealPlanPanel({
         transition={{ duration: 0.35, delay: 0.84 }}
       >
         <SectionLabel index={3} title="Zalecenia" />
-        <div className="space-y-4 rounded-[22px] border border-white/[0.08] bg-[#0E0E0E]/90 p-4">
+        <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-[#0E0E0E]/90 p-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
               Nawodnienie
@@ -624,7 +624,7 @@ export function DietMealPlanPanel({
         transition={{ duration: 0.35, delay: 0.9 }}
       >
         <SectionLabel index={4} title="Ściąga" />
-        <div className="overflow-hidden rounded-[22px] border border-white/[0.08] bg-[#0E0E0E]/90">
+        <div className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0E0E0E]/90">
           <button
             type="button"
             onClick={() => setTipsOpen((v) => !v)}

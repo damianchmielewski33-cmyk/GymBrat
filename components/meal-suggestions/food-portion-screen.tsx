@@ -74,7 +74,7 @@ function SlotImpactCard({
   }
 
   return (
-    <div className="rounded-[18px] border border-white/[0.08] bg-[#161616] px-4 py-3.5">
+    <div className="rounded-2xl border border-white/[0.08] bg-[#161616] px-4 py-3.5">
       <div className="flex justify-between text-[12px] text-white/60">
         <span>W posiłku zostało</span>
         <span>Po dodaniu</span>
@@ -324,7 +324,7 @@ export function FoodPortionScreen({
           <p className="font-heading text-[12px] font-bold tracking-[0.1em] text-[var(--gym-gold)]">
             01 · ILE
           </p>
-          <div className="mt-3 rounded-[22px] border border-white/[0.08] bg-[#161616] px-3.5 pb-3.5 pt-[18px]">
+          <div className="mt-3 rounded-3xl border border-white/[0.08] bg-[#161616] px-3.5 pb-3.5 pt-[18px]">
             <div className="flex items-center justify-center gap-4">
               <button
                 type="button"
@@ -472,7 +472,7 @@ export function FoodPortionScreen({
             if (!macros) return;
             onConfirm({ product, amount, unit, macros });
           }}
-          className="gold-btn inline-flex h-[52px] w-full items-center justify-center rounded-[18px] font-heading text-[16px] font-bold disabled:opacity-40"
+          className="gold-btn inline-flex h-[52px] w-full items-center justify-center rounded-2xl font-heading text-[16px] font-bold disabled:opacity-40"
         >
           {pending ? "Dodaję…" : "Dodaj do dziennika"}
         </button>

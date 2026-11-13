@@ -102,7 +102,7 @@ export function StartWorkoutScreen({
         <h1 className="font-heading mt-1 text-3xl font-semibold text-white">Trening</h1>
       </header>
 
-      <section className="rounded-[22px] border border-white/[0.1] bg-[#121214] p-4">
+      <section className="rounded-3xl border border-white/[0.1] bg-[#121214] p-4">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">
             Ostatni trening
@@ -154,7 +154,7 @@ export function StartWorkoutScreen({
         )}
       </section>
 
-      <section className="rounded-[22px] border border-white/[0.1] bg-[#121214] px-2 py-3">
+      <section className="rounded-3xl border border-white/[0.1] bg-[#121214] px-2 py-3">
         <div className="flex items-end justify-between gap-1">
           {dayLabels.map((label, i) => {
             const on = workoutDaysThisWeek[i] ?? false;
@@ -184,7 +184,7 @@ export function StartWorkoutScreen({
         </div>
       </section>
 
-      <section className="rounded-[22px] border border-white/[0.1] bg-[#121214] p-4">
+      <section className="rounded-3xl border border-white/[0.1] bg-[#121214] p-4">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">
             Ostatnie treningi
@@ -260,7 +260,7 @@ export function StartWorkoutScreen({
       </div>
 
       {plans.length === 0 ? (
-        <div className="rounded-[18px] border border-dashed border-white/15 bg-[#161616] p-5 text-center">
+        <div className="rounded-2xl border border-dashed border-white/15 bg-[#161616] p-5 text-center">
           <Dumbbell className="mx-auto h-8 w-8 text-[var(--gym-gold)]" />
           <p className="mt-3 text-sm font-semibold text-white">Brak planów</p>
           <p className="mt-1 text-sm text-white/50">

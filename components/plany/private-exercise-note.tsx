@@ -80,7 +80,7 @@ export function PrivateExerciseNote({
   }
 
   return (
-    <section className="rounded-[22px] border border-dashed border-[rgba(var(--neon-rgb),0.4)] bg-[rgba(var(--neon-rgb),0.03)] p-4">
+    <section className="rounded-3xl border border-dashed border-[rgba(var(--neon-rgb),0.4)] bg-[rgba(var(--neon-rgb),0.03)] p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Lock className="h-4 w-4 text-[var(--gym-gold)]" aria-hidden />
@@ -178,7 +178,7 @@ export function PrivateExerciseNote({
             <Button
               type="button"
               variant="ghost"
-              className="h-11 w-full text-rose-300"
+              className="h-11 w-full text-state-error"
               onClick={() => setConfirmClear(true)}
             >
               Usuń swój link i notatkę
@@ -242,7 +242,7 @@ export function PrivateExerciseNote({
             <Button
               type="button"
               variant="ghost"
-              className="h-11 gap-2 px-0 text-rose-300"
+              className="h-11 gap-2 px-0 text-state-error"
               onClick={() => setConfirmClear(true)}
             >
               <Trash2 className="h-4 w-4" aria-hidden />

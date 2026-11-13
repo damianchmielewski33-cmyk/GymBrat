@@ -20,6 +20,7 @@ import { useI18n } from "@/components/i18n/i18n-provider";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { AppMenuButton } from "@/components/layout/app-menu-button";
 import { NotificationBell } from "@/components/community/notification-bell";
+import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
 import { ReminderRunnerBoot } from "@/components/reminders/reminder-runner-boot";
 
 /** Ciężkie widgety Community / trening — poza krytycznym bundlem shella (LCP). */
@@ -161,7 +162,7 @@ export function AppShell({
           <div className={cn("pointer-events-auto relative mx-auto px-3", APP_SHELL_MAX)}>
             <div
               className={cn(
-                "grid items-stretch gap-0.5 rounded-[var(--radius-nav)] border border-[#33291a] px-1.5 py-1.5",
+                "grid items-stretch gap-0.5 rounded-[var(--radius-nav)] border border-[var(--gym-border-gold)] px-1.5 py-1.5",
                 "bg-black/70 backdrop-blur-2xl",
                 "shadow-[0_8px_40px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.04)_inset]",
                 showReportFab ? "grid-cols-5" : "grid-cols-4",
@@ -180,6 +181,7 @@ export function AppShell({
               ))}
             </div>
           </div>
+          <ThemeToggleButton className="pointer-events-auto mt-auto hidden lg:flex" />
         </nav>
       )}
     </div>
@@ -255,7 +257,7 @@ function TabLink({
       className={cn(
         "relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-left rounded-[var(--radius-card)] px-0.5 py-1.5 text-center text-[length:var(--text-label)] font-semibold transition-[color,box-shadow,background-color,opacity,transform] duration-150 active:scale-[0.96] active:opacity-80 sm:gap-1 sm:text-[length:var(--text-caption)]",
         visuallyActive
-          ? "bg-[#1a1610] text-[var(--gym-gold-bright)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.35)]"
+          ? "bg-[var(--gym-surface-gold)] text-[var(--gym-gold-bright)] shadow-[0_0_0_1px_rgba(var(--neon-rgb),0.35)]"
           : "text-white/55 shadow-none",
         optimisticHref === item.href && !active ? "opacity-90" : null,
       )}

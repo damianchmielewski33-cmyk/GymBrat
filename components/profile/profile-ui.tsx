@@ -83,7 +83,7 @@ export function ProfileBlock({
           <h3
             className={cn(
               "text-[15px] font-semibold leading-snug",
-              tone === "danger" ? "text-rose-200" : "text-white",
+              tone === "danger" ? "text-state-error" : "text-white",
             )}
           >
             {title}

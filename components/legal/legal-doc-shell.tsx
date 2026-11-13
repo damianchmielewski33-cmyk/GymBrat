@@ -27,7 +27,7 @@ export function LegalDocShell({
       {!LEGAL_DOCS_APPROVED_BY_LAWYER ? (
         <p
           role="status"
-          className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100/95"
+          className="rounded-2xl border border-state-warning/30 bg-state-warning/10 px-4 py-3 text-sm leading-relaxed text-state-warning/95"
         >
           Wersja robocza — dokument oczekuje na zatwierdzenie prawnika.
         </p>
@@ -36,7 +36,7 @@ export function LegalDocShell({
       {incomplete ? (
         <p
           role="status"
-          className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100/95"
+          className="rounded-2xl border border-state-warning/30 bg-state-warning/10 px-4 py-3 text-sm leading-relaxed text-state-warning/95"
         >
           Uzupełnij dane sprzedawcy w zmiennych środowiskowych (
           <code className="text-[12px]">LEGAL_SELLER_*</code>,{" "}

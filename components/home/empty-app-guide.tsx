@@ -75,7 +75,7 @@ export function EmptyAppGuide({
             </div>
             <Link
               href={s.href}
-              className="inline-flex h-9 shrink-0 items-center justify-center self-center rounded-lg border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold text-white/90 transition hover:bg-white/[0.10]"
+              className="inline-flex h-11 shrink-0 items-center justify-center self-center rounded-lg border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold text-white/90 transition hover:bg-white/[0.10]"
             >
               {s.cta}
             </Link>

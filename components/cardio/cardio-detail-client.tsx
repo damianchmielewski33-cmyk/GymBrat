@@ -2,14 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import {
-  ArrowLeft,
-  Camera,
-  Pencil,
-  Share2,
-  Trash2,
-} from "lucide-react";
-import Link from "next/link";
+import { Camera, Pencil, Share2, Trash2 } from "lucide-react";
 import {
   deleteCardioLogAction,
   setCardioDevicePhotoAction,
@@ -27,6 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { cardioDevicePhotoMediaPath } from "@/lib/user-photo-media";
 import { useSaveFeedback } from "@/components/feedback/save-feedback";
+import { BackLink } from "@/components/ui/back-link";
 
 type Props = {
   id: string;
@@ -176,13 +170,7 @@ export function CardioDetailClient({
 
   return (
     <div className="space-y-5">
-      <Link
-        href="/workout-plan"
-        className="inline-flex items-center gap-1.5 text-sm text-white/80"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Wróć
-      </Link>
+      <BackLink href="/workout-plan" label="Wróć" />
 
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
         {dateLabel}
@@ -341,7 +329,7 @@ function ManualEditSheet({
     <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/75 sm:items-center">
       <button type="button" className="absolute inset-0" aria-label="Zamknij" onClick={onClose} />
       <form
-        className="relative z-[1] w-full max-w-lg space-y-3 rounded-t-[28px] border border-white/10 bg-[#0c0c0c] p-5 sm:rounded-[28px]"
+        className="relative z-[1] w-full max-w-lg space-y-3 rounded-t-3xl border border-white/10 bg-[#0c0c0c] p-5 sm:rounded-3xl"
         action={(fd) => {
           start(async () => {
             const res = await updateCardioLogAction({}, fd);

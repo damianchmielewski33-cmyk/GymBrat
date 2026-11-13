@@ -183,7 +183,7 @@ export function ExerciseGoalsEditor({
           </div>
         </div>
       ) : null}
-      {error ? <p className="text-[11px] text-rose-300">{error}</p> : null}
+      {error ? <p className="text-[11px] text-state-error">{error}</p> : null}
     </Surface>
   );
 }

@@ -134,10 +134,10 @@ export function TeamFeedSection({
           Tablica grupy
         </h2>
         {canPost ? (
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90">
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-state-success/90">
             <span className="relative flex h-2 w-2" aria-hidden>
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/50" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-state-success/50" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-state-success" />
             </span>
             <span>Na żywo</span>
             <span className="sr-only">Aktualizacje w czasie rzeczywistym</span>

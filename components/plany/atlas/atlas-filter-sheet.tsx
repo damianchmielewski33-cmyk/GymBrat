@@ -47,7 +47,7 @@ export function AtlasFilterSheet({
     <Sheet open={!!openKey} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="bottom"
-        className="max-h-[80vh] overflow-y-auto rounded-t-[22px] border-white/10"
+        className="max-h-[80vh] overflow-y-auto rounded-t-3xl border-white/10"
       >
         <SheetHeader className="flex-row items-center justify-between space-y-0">
           <SheetTitle className="text-white">

@@ -356,7 +356,7 @@ export function WorkoutChatPanel({
         ) : null}
 
         {error ? (
-          <p className="py-6 text-center text-[13px] text-rose-300/90">
+          <p className="py-6 text-center text-[13px] text-state-error/90">
             {error}
           </p>
         ) : null}
@@ -475,7 +475,7 @@ export function WorkoutChatPanel({
                       <button
                         type="button"
                         aria-label="Usuń"
-                        className="touch-target inline-flex items-center justify-center rounded-lg text-white/60 hover:bg-rose-500/20 hover:text-rose-300"
+                        className="touch-target inline-flex items-center justify-center rounded-lg text-white/60 hover:bg-state-error/20 hover:text-state-error"
                         onClick={() => void deleteMessage(m.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -490,7 +490,7 @@ export function WorkoutChatPanel({
                       <button
                         key={emoji}
                         type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-[16px] hover:bg-white/10"
+                        className="flex h-11 w-11 items-center justify-center rounded-lg text-[16px] hover:bg-white/10"
                         onClick={() => {
                           void toggleReaction(m.id, emoji);
                           setEmojiFor(null);
@@ -559,7 +559,7 @@ export function WorkoutChatPanel({
               <button
                 key={emoji}
                 type="button"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[16px] hover:bg-white/10"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-[16px] hover:bg-white/10"
                 onClick={() => {
                   setDraft((d) => d + emoji);
                   setComposerEmoji(false);

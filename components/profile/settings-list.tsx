@@ -52,7 +52,7 @@ export function SettingsRow({
         className={cn(
           "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border",
           tone === "danger"
-            ? "border-rose-300/30 bg-rose-300/10 text-rose-200"
+            ? "border-state-error/30 bg-state-error/10 text-state-error"
             : "border-[var(--gym-gold)]/30 bg-[var(--gym-gold)]/10 text-[var(--gym-gold)]",
         )}
       >

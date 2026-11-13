@@ -169,7 +169,7 @@ export function CompleteProfileForm({ initial }: { initial: Initial }) {
                 aria-checked={active}
                 onClick={() => setActivityLevel(level)}
                 className={cn(
-                  "min-h-[3.25rem] rounded-xl border px-3 py-3 text-left outline-none transition-all",
+                  "min-h-[3.25rem] rounded-xl border px-3 py-3 text-left outline-none focus-ring transition-all",
                   "focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]",
                   active
                     ? "border-[var(--neon)]/60 bg-[var(--neon)]/15"

@@ -30,7 +30,7 @@ export function PlanFromHistoryButton() {
         {pending ? "Tworzę plan…" : "Utwórz plan z ostatnich treningów"}
       </button>
       {error ? (
-        <p role="alert" className="text-center text-[12px] text-red-300">
+        <p role="alert" className="text-center text-[12px] text-state-error">
           {error}
         </p>
       ) : null}

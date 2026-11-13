@@ -53,7 +53,7 @@ export function HomeWeekCard({
           Ten tydzień
         </h2>
         {reached ? (
-          <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
+          <span className="rounded-full border border-state-success/30 bg-state-success/10 px-2.5 py-0.5 text-[11px] font-bold text-state-success">
             Cel cardio osiągnięty
           </span>
         ) : null}
@@ -131,7 +131,7 @@ export function HomeWeekCard({
               {extraCovered ? (
                 <>
                   {" "}Masz już {overBy} min ponad tygodniowy cel,{" "}
-                  <b className="text-emerald-300">nadwyżka jest pokryta</b>.
+                  <b className="text-state-success">nadwyżka jest pokryta</b>.
                 </>
               ) : reached ? null : (
                 <>{" "}Do celu tygodnia zostało {Math.max(0, cardioGoalMinutes - mins)} min.</>

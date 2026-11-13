@@ -26,7 +26,7 @@ export function CommunityProgress({
       <div
         className={cn(
           "h-full rounded-full transition-[width] duration-500 ease-out",
-          tone === "mint" ? "bg-emerald-400" : "bg-[var(--gym-gold)]",
+          tone === "mint" ? "bg-state-success" : "bg-[var(--gym-gold)]",
           "shadow-[0_0_12px_rgba(var(--neon-rgb),0.35)]",
         )}
         style={{ width: `${pct}%` }}

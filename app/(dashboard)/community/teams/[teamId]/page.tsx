@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
-import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { ChallengeCelebrationOverlay } from "@/components/community/challenge-celebration";
 import { TeamDetailClient } from "@/components/community/team-detail-view";
@@ -13,6 +11,7 @@ import { listTeamMentionCandidates } from "@/lib/community/feed-mentions";
 import { listTeamFeed } from "@/lib/community/team-feed";
 import { getTeamTodayHub } from "@/lib/community/team-hub";
 import { getTeamDetail } from "@/lib/community/teams";
+import { BackLink } from "@/components/ui/back-link";
 
 async function TeamCelebrations({ userId }: { userId: string }) {
   const celebrations = await listPendingCelebrations(userId);
@@ -53,13 +52,7 @@ export default async function TeamDetailPage({
       <Suspense fallback={null}>
         <TeamCelebrations userId={userId} />
       </Suspense>
-      <Link
-        href="/community/teams"
-        className="inline-flex items-center gap-1.5 text-[13px] text-white/60 hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Grupy
-      </Link>
+      <BackLink href="/community/teams" label="Grupy" />
       <TeamDetailClient
         team={team}
         viewerUserId={userId}

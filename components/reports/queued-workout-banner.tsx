@@ -22,7 +22,7 @@ export function QueuedWorkoutBanner() {
 
   return (
     <InlineBanner variant="warning" className="mb-6" role="status">
-      Ostatni trening został <strong className="text-amber-100">zapisany w kolejce</strong> (brak
+      Ostatni trening został <strong className="text-state-warning">zapisany w kolejce</strong> (brak
       sieci). Wysyłka do serwera nastąpi automatycznie po odzyskaniu połączenia — możesz też
       odświeżyć stronę, gdy internet wróci.
     </InlineBanner>

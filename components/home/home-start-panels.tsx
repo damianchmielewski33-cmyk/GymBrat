@@ -189,7 +189,7 @@ export function HomeStartPanels({
 
         <div
           className={cn(
-            "glass-panel relative z-[1] flex max-h-[min(92dvh,920px)] w-full flex-col overflow-hidden rounded-t-[1.35rem] md:max-h-[min(85vh,820px)] md:w-[min(560px,94vw)] md:rounded-[14px]",
+            "glass-panel relative z-[1] flex max-h-[min(92dvh,920px)] w-full flex-col overflow-hidden rounded-t-[1.35rem] md:max-h-[min(85vh,820px)] md:w-[min(560px,94vw)] md:rounded-xl",
           )}
           role="dialog"
           aria-modal="true"

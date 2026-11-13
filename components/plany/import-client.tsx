@@ -246,7 +246,7 @@ export function ImportClient() {
               {error}
             </InlineBanner>
           ) : null}
-          <div className="mt-5 rounded-[22px] border border-dashed border-[rgba(var(--neon-rgb),0.5)] p-5 text-center">
+          <div className="mt-5 rounded-3xl border border-dashed border-[rgba(var(--neon-rgb),0.5)] p-5 text-center">
             <FileUp className="mx-auto h-8 w-8 text-[var(--gym-gold)]" aria-hidden />
             <p className="mt-3 text-[15px] font-semibold text-white">
               Wybierz plik z urządzenia
@@ -355,7 +355,7 @@ export function ImportClient() {
                     aria-checked={day.selected}
                     aria-label={`Zapisz dzień ${day.planName}`}
                     className={cn(
-                      "relative h-7 w-12 rounded-full",
+                      "relative h-7 w-12 rounded-full before:absolute before:-inset-2 before:content-['']",
                       day.selected ? "bg-[var(--gym-gold)]" : "bg-white/12",
                     )}
                     onClick={() =>

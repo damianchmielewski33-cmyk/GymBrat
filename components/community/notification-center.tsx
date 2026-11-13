@@ -147,7 +147,7 @@ function NotificationRow({
           e.stopPropagation();
           onDelete(n.id);
         }}
-        className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl border border-white/10 bg-black/40 text-white/50 transition hover:border-rose-400/40 hover:bg-rose-500/15 hover:text-rose-200 disabled:opacity-40"
+        className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl border border-white/10 bg-black/40 text-white/50 transition hover:border-state-error/40 hover:bg-state-error/15 hover:text-state-error disabled:opacity-40"
       >
         <Trash2 className="h-3.5 w-3.5" aria-hidden />
       </button>
@@ -388,7 +388,7 @@ export function NotificationCenterClient() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="app-label text-[var(--gym-gold)]">Społeczność</p>
-          <h1 className="mt-1.5 font-heading text-[24px] font-semibold tracking-tight text-white sm:text-[28px]">
+          <h1 className="text-[length:var(--text-title-lg)] mt-1.5 font-heading font-semibold tracking-tight text-white">
             Powiadomienia
           </h1>
           <p className="mt-2 text-[13px] leading-relaxed text-white/50">
@@ -411,7 +411,7 @@ export function NotificationCenterClient() {
               type="button"
               disabled={deleting || marking}
               onClick={() => setConfirmDeleteAll(true)}
-              className="min-h-11 rounded-2xl border border-rose-400/25 px-3.5 text-[12px] font-semibold text-rose-200/80 transition hover:border-rose-400/45 hover:text-rose-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40"
+              className="min-h-11 rounded-2xl border border-state-error/25 px-3.5 text-[12px] font-semibold text-state-error/80 transition hover:border-state-error/45 hover:text-state-error disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-state-error/40"
             >
               {deleting ? "Usuwanie…" : "Usuń wszystkie"}
             </button>

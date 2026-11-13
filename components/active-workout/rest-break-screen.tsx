@@ -148,7 +148,7 @@ function NextCard({ next, exercisesTotal }: { next: RestNextStep; exercisesTotal
     next.lastSessionSet != null &&
     (next.lastSessionSet.weight > 0 || (next.lastSessionSet.reps ?? 0) > 0);
   return (
-    <section className="rounded-[18px] border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] p-3 compact:px-3 compact:py-2.5">
+    <section className="rounded-2xl border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] p-3 compact:px-3 compact:py-2.5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
         {sameExercise
           ? "Następnie"
@@ -178,7 +178,7 @@ function NextCard({ next, exercisesTotal }: { next: RestNextStep; exercisesTotal
 function WorkoutEndCard({ progress }: { progress: SessionProgress }) {
   const skipped = progress.skippedSets;
   return (
-    <section className="rounded-[18px] border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] p-3 compact:px-3 compact:py-2.5">
+    <section className="rounded-2xl border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] p-3 compact:px-3 compact:py-2.5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gym-gold)]">
         Serie zaliczone
       </p>

@@ -31,7 +31,7 @@ export function HelpHint({ term }: { term: GlossaryKey }) {
           if (!o) setMore(false);
         }}
       >
-        <SheetContent side="bottom" className="gap-4 rounded-t-[26px] px-5 pb-8 pt-4" showCloseButton={false}>
+        <SheetContent side="bottom" className="gap-4 rounded-t-3xl px-5 pb-8 pt-4" showCloseButton={false}>
           <div>
             <p className="text-[13px] font-semibold text-[var(--gym-gold)]">Co to znaczy?</p>
             <SheetTitle className="font-heading text-[22px] font-bold leading-7 text-white">{g.title}</SheetTitle>

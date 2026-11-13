@@ -475,7 +475,7 @@ export function WorkoutFinishedScreen({
                 <li
                   key={row.exerciseId}
                   style={rise(1900 + i * 130)}
-                  className="gym-finish-rise flex items-center gap-3 rounded-[18px] border border-[var(--gym-gold)]/50 bg-gradient-to-br from-[var(--gym-gold)]/20 to-[var(--gym-gold)]/[0.04] px-3.5 py-3"
+                  className="gym-finish-rise flex items-center gap-3 rounded-2xl border border-[var(--gym-gold)]/50 bg-gradient-to-br from-[var(--gym-gold)]/20 to-[var(--gym-gold)]/[0.04] px-3.5 py-3"
                 >
                   <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gym-gold)]/20">
                     <Trophy className="h-[18px] w-[18px] text-[var(--gym-gold-bright)]" strokeWidth={1.6} aria-hidden />

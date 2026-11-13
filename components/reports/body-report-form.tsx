@@ -407,12 +407,12 @@ export function BodyReportForm({
       <ProgressSegments step={step} />
 
       {error ? (
-        <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <p className="mt-4 rounded-xl border border-state-error/30 bg-state-error/10 px-3 py-2 text-sm text-state-error">
           {error}
         </p>
       ) : null}
       {fieldError ? (
-        <p className="mt-4 text-sm font-medium text-red-300">{fieldError}</p>
+        <p className="mt-4 text-sm font-medium text-state-error">{fieldError}</p>
       ) : null}
 
       {step === 1 ? (

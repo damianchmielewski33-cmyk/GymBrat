@@ -218,8 +218,8 @@ export function CardioRecordClient() {
           </Link>
           <div className="pointer-events-none inline-flex items-center gap-2 rounded-full bg-black/55 px-3.5 py-2 backdrop-blur-md">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/70" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-state-success/70" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-state-success" />
             </span>
             <span className="text-[13px] font-medium text-white">
               Nagrywam trasę
@@ -228,7 +228,7 @@ export function CardioRecordClient() {
         </div>
       </div>
 
-      <section className="relative z-10 shrink-0 rounded-t-[28px] bg-black px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-12px_40px_rgba(0,0,0,0.55)]">
+      <section className="relative z-10 shrink-0 rounded-t-3xl bg-black px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-12px_40px_rgba(0,0,0,0.55)]">
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">

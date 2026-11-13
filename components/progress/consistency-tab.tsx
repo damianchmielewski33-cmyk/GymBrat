@@ -157,7 +157,7 @@ export function ConsistencyTab({
                     d.strength
                       ? "gym-meter-gold rounded-full border-[var(--gym-gold-bright)]"
                       : d.cardio
-                        ? "rounded-[10px] border-[var(--gym-gold)] bg-[#1b1b1f]"
+                        ? "rounded-lg border-[var(--gym-gold)] bg-[#1b1b1f]"
                         : "rounded-full border-[#26231c] bg-[#1b1b1f]",
                   )}
                 />

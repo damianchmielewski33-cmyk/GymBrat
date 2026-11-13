@@ -11,9 +11,9 @@ export type AdminTone = "neutral" | "ok" | "warn" | "danger" | "info" | "gold";
 
 const TONE_PILL: Record<AdminTone, string> = {
   neutral: "border-white/12 bg-white/[0.05] text-white/65",
-  ok: "border-emerald-400/30 bg-emerald-500/12 text-emerald-200",
-  warn: "border-amber-400/30 bg-amber-500/12 text-amber-200",
-  danger: "border-rose-400/35 bg-rose-500/12 text-rose-200",
+  ok: "border-state-success/30 bg-state-success/12 text-state-success",
+  warn: "border-state-warning/30 bg-state-warning/12 text-state-warning",
+  danger: "border-state-error/35 bg-state-error/12 text-state-error",
   info: "border-sky-400/30 bg-sky-500/12 text-sky-200",
   gold: "border-[var(--gym-gold)]/35 bg-[var(--gym-gold)]/12 text-[var(--gym-gold)]",
 };
@@ -144,11 +144,11 @@ export function AdminStat({
 }) {
   const valueTone =
     tone === "ok"
-      ? "text-emerald-200"
+      ? "text-state-success"
       : tone === "warn"
-        ? "text-amber-200"
+        ? "text-state-warning"
         : tone === "danger"
-          ? "text-rose-200"
+          ? "text-state-error"
           : tone === "gold"
             ? "text-[var(--gym-gold)]"
             : "text-white";
@@ -207,11 +207,11 @@ export function AdminNotice({
 }) {
   const styles =
     tone === "danger"
-      ? "border-rose-500/35 bg-rose-500/10 text-rose-100"
+      ? "border-state-error/35 bg-state-error/10 text-state-error"
       : tone === "warn"
-        ? "border-amber-500/35 bg-amber-500/10 text-amber-100"
+        ? "border-state-warning/35 bg-state-warning/10 text-state-warning"
         : tone === "ok"
-          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+          ? "border-state-success/30 bg-state-success/10 text-state-success"
           : "border-white/12 bg-white/[0.04] text-white/75";
   return (
     <div

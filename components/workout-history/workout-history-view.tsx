@@ -140,7 +140,7 @@ export function WorkoutHistoryView({
         <BackLink onClick={handleBack} />
         <AppPageHeader kicker="Trening" title="Historia treningów" />
         <div className="app-card mt-4 border border-white/[0.08] px-5 py-10 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[18px] border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] text-[var(--gym-gold)]">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] text-[var(--gym-gold)]">
             <Dumbbell className="h-8 w-8" aria-hidden />
           </div>
           <h3 className="mt-4 text-[15px] font-semibold text-white">

@@ -55,7 +55,7 @@ export function ChallengeCard({
                 {challenge.scopeLabel}
               </span>
               {challenge.completed ? (
-                <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-300">
+                <span className="rounded-full border border-state-success/30 bg-state-success/10 px-2 py-1 text-[10px] font-semibold text-state-success">
                   Ukończone
                 </span>
               ) : null}

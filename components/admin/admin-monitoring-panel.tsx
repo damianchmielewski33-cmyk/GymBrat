@@ -19,15 +19,15 @@ function statusTone(status: MeterStatus): {
   switch (status) {
     case "critical":
       return {
-        bar: "bg-gradient-to-r from-rose-500 to-rose-400",
-        text: "text-rose-300",
-        ring: "border-rose-500/35",
+        bar: "bg-gradient-to-r from-state-error to-state-error",
+        text: "text-state-error",
+        ring: "border-state-error/35",
       };
     case "warn":
       return {
-        bar: "bg-gradient-to-r from-amber-500 to-[var(--gym-gold)]",
-        text: "text-amber-200",
-        ring: "border-amber-500/30",
+        bar: "bg-gradient-to-r from-state-warning to-[var(--gym-gold)]",
+        text: "text-state-warning",
+        ring: "border-state-warning/30",
       };
     case "unconfigured":
     case "error":

@@ -17,7 +17,7 @@ export default async function DiscoverPage() {
     <div className="space-y-5">
       <header>
         <p className="app-label text-[var(--gym-gold)]">Społeczność</p>
-        <h1 className="mt-1.5 font-heading text-[26px] font-semibold text-white">
+        <h1 className="text-[length:var(--text-title-lg)] mt-1.5 font-heading font-semibold text-white">
           Odkrywaj
         </h1>
         <p className="mt-2 text-[13px] text-white/50">

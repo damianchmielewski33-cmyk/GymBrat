@@ -4,7 +4,7 @@ export function TeamQuestProgressBar({ pct }: { pct: number }) {
     <div className="relative">
       <div className="h-3 overflow-hidden rounded-full bg-white/10">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-[var(--gym-gold)] via-amber-300 to-[var(--neon)] transition-all duration-700"
+          className="h-full rounded-full bg-gradient-to-r from-[var(--gym-gold)] via-state-warning to-[var(--neon)] transition-all duration-700"
           style={{ width: `${clamped}%` }}
         />
       </div>

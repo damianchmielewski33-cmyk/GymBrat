@@ -47,15 +47,15 @@ export function GisProductAlert({
   return (
     <div
       role="alert"
-      className="mt-4 rounded-[18px] border border-rose-500/50 bg-rose-500/10 px-4 py-3.5 text-rose-50"
+      className="mt-4 rounded-2xl border border-state-error/50 bg-state-error/10 px-4 py-3.5 text-state-error"
     >
-      <p className="flex items-center gap-2 text-[14px] font-semibold text-rose-100">
-        <ShieldAlert className="h-5 w-5 shrink-0 text-rose-300" aria-hidden />
+      <p className="flex items-center gap-2 text-[14px] font-semibold text-state-error">
+        <ShieldAlert className="h-5 w-5 shrink-0 text-state-error" aria-hidden />
         Możliwy alert GIS dla tego produktu
       </p>
       <ul className="mt-2 space-y-1">
         {alerts.map((a) => (
-          <li key={a.id} className="text-[13px] leading-snug text-rose-50/85">
+          <li key={a.id} className="text-[13px] leading-snug text-state-error/85">
             <a
               href={a.url}
               target="_blank"
@@ -66,12 +66,12 @@ export function GisProductAlert({
               <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
             </a>
             {fmtDate(a.publishedAt) ? (
-              <span className="block text-[12px] text-rose-50/70">{fmtDate(a.publishedAt)}</span>
+              <span className="block text-[12px] text-state-error/70">{fmtDate(a.publishedAt)}</span>
             ) : null}
           </li>
         ))}
       </ul>
-      <p className="text-[12px] text-rose-50/70">Sprawdź numer partii na opakowaniu w komunikacie GIS.</p>
+      <p className="text-[12px] text-state-error/70">Sprawdź numer partii na opakowaniu w komunikacie GIS.</p>
     </div>
   );
 }

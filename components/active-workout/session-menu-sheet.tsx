@@ -15,7 +15,7 @@ import type {
 import { cn } from "@/lib/utils";
 
 const actionClass =
-  "inline-flex min-h-11 items-center justify-center rounded-[14px] border border-[var(--gym-border-gold)] bg-[var(--gym-black)] px-3 text-center text-[13px] font-semibold text-white transition hover:border-[var(--gym-gold)]/40";
+  "inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--gym-border-gold)] bg-[var(--gym-black)] px-3 text-center text-[13px] font-semibold text-white transition hover:border-[var(--gym-gold)]/40";
 
 function dotClass(seg: SessionProgressSegment): string {
   if (seg.state === "saved") return "bg-[var(--gym-success)]";
@@ -101,7 +101,7 @@ export function SessionMenuSheet({
           </button>
         </header>
 
-        <div className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-[22px] border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] p-1.5">
+        <div className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] p-1.5">
           <ul>
             {exercises.map((ex, i) => {
               const group = progress.groups[i];
@@ -114,7 +114,7 @@ export function SessionMenuSheet({
                     onClick={() => onSelectExercise(ex.id)}
                     aria-current={active ? "step" : undefined}
                     className={cn(
-                      "flex min-h-14 w-full items-center gap-2.5 rounded-[14px] px-2.5 py-2 text-left",
+                      "flex min-h-14 w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left",
                       active ? "bg-[var(--gym-gold)]/8" : "hover:bg-white/[0.03]",
                     )}
                   >

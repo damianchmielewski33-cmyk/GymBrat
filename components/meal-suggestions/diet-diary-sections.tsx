@@ -71,7 +71,7 @@ function DeleteMealButton({ id }: { id: string }) {
         <input type="hidden" name="id" value={id} />
         <button
           type="submit"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-rose-400/20 text-rose-200/90 hover:bg-rose-500/15"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-state-error/20 text-state-error/90 hover:bg-state-error/15"
           aria-label="Usuń"
         >
           <Trash2 className="h-3.5 w-3.5" />

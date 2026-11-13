@@ -37,7 +37,7 @@ export function ReceiptForm({ orderId }: { orderId: string }) {
         <input className={field} value={nip} maxLength={20} inputMode="numeric" onChange={(e) => setNip(e.target.value)} />
       </label>
       {error ? (
-        <p role="alert" className="text-[13px] text-red-300">
+        <p role="alert" className="text-[13px] text-state-error">
           {error}
         </p>
       ) : null}

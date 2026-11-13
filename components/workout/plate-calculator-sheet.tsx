@@ -87,7 +87,7 @@ export function PlateCalculatorSheet() {
           </div>
 
           {!breakdown ? (
-            <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-100/90">
+            <p className="rounded-xl border border-state-warning/25 bg-state-warning/10 px-3 py-2 text-sm text-state-warning/90">
               Podaj wartość większą niż masa sztangi (np. 60–350 kg).
             </p>
           ) : (
@@ -99,7 +99,7 @@ export function PlateCalculatorSheet() {
                 {formatPlateList(breakdown.left.plates)}
               </p>
               {breakdown.left.remainderKg > 0.02 ? (
-                <p className="text-xs text-amber-200/85">
+                <p className="text-xs text-state-warning/85">
                   Reszta na stronę (poza zestawem): ~{breakdown.left.remainderKg.toFixed(2)} kg — sprawdź,
                   czy masz mniejsze talerze.
                 </p>
@@ -113,7 +113,7 @@ export function PlateCalculatorSheet() {
                   kg
                 </p>
                 {!breakdown.exact ? (
-                  <p className="mt-1 text-amber-200/80">
+                  <p className="mt-1 text-state-warning/80">
                     Nie da się dokładnie uzyskać {breakdown.targetTotalKg} kg tym zestawem — pokazano
                     najbliższy niżej.
                   </p>

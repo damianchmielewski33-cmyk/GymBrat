@@ -14,9 +14,9 @@ import type { FoodProduct } from "@/lib/food-products-types";
 import { cn } from "@/lib/utils";
 
 const TAG_STYLES: Record<IngredientTagKind, string> = {
-  healthy: "border-l-[3px] border-l-emerald-400 bg-emerald-500/10 text-emerald-100",
+  healthy: "border-l-[3px] border-l-emerald-400 bg-state-success/10 text-state-success",
   safe: "border-l-[3px] border-l-sky-400 bg-sky-500/10 text-sky-100",
-  harmful: "border-l-[3px] border-l-rose-400 bg-rose-500/10 text-rose-100",
+  harmful: "border-l-[3px] border-l-rose-400 bg-state-error/10 text-state-error",
 };
 
 const TAG_LABELS: Record<IngredientTagKind, string> = {
@@ -163,8 +163,8 @@ export function FoodNutritionDetailsPanel({
                     score.score >= 3.5
                       ? "bg-[var(--gym-gold)] text-black"
                       : score.score >= 2.5
-                        ? "bg-amber-500/90 text-black"
-                        : "bg-rose-500/90 text-white",
+                        ? "bg-state-warning/90 text-black"
+                        : "bg-state-error/90 text-white",
                   )}
                 >
                   <span className="text-[8px] font-semibold uppercase leading-tight tracking-wide opacity-80">

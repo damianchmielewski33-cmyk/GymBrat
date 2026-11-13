@@ -34,13 +34,13 @@ function Row({
         <div
           className={
             "h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none " +
-            (over ? "bg-orange-400" : "gym-meter-gold")
+            (over ? "bg-state-warning" : "gym-meter-gold")
           }
           style={{ width: `${pct}%` }}
         />
       </div>
       {diff != null ? (
-        <p className={"mt-1.5 text-[13px] " + (over ? "text-orange-300" : "text-white/60")}>
+        <p className={"mt-1.5 text-[13px] " + (over ? "text-state-warning" : "text-white/60")}>
           {over ? `${diff} g ponad cel` : `${diff} g zostało`}
         </p>
       ) : (
@@ -90,7 +90,7 @@ export function HomeMacroCard({
             prefix={kcalLeft < 0 ? "+" : ""}
             className={
               "text-[64px] leading-none " +
-              (kcalLeft < 0 ? "text-orange-300" : "text-white")
+              (kcalLeft < 0 ? "text-state-warning" : "text-white")
             }
           />
           <span className="text-[15px] text-white/60">

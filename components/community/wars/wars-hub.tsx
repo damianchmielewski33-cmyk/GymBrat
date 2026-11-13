@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { ArrowLeft, Swords } from "lucide-react";
+import { Swords } from "lucide-react";
 import { WarLeagueBadge } from "@/components/community/wars/war-league-badge";
 import { WarMatchCard } from "@/components/community/wars/war-match-card";
 import { WarSeasonStandings } from "@/components/community/wars/war-season-standings";
@@ -13,6 +12,7 @@ import {
 } from "@/actions/community-wars";
 import type { getWarsHubData } from "@/lib/community/team-wars";
 import type { WarLeague } from "@/lib/community/team-war-types";
+import { BackLink } from "@/components/ui/back-link";
 
 type HubData = Awaited<ReturnType<typeof getWarsHubData>>;
 
@@ -22,20 +22,14 @@ export function WarsHub({ data }: { data: HubData }) {
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/community"
-        className="inline-flex min-h-10 items-center gap-1.5 text-[13px] text-white/60 hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Community
-      </Link>
+      <BackLink href="/community" label="Community" />
 
-      <header className="relative overflow-hidden rounded-2xl border border-rose-400/25 bg-gradient-to-br from-rose-500/15 via-black/40 to-transparent p-5">
+      <header className="relative overflow-hidden rounded-2xl border border-state-error/25 bg-gradient-to-br from-state-error/15 via-black/40 to-transparent p-5">
         <div className="flex items-start gap-3">
-          <Swords className="mt-1 h-7 w-7 text-rose-300" />
+          <Swords className="mt-1 h-7 w-7 text-state-error" />
           <div>
-            <p className="app-label text-rose-300">Team Wars</p>
-            <h1 className="mt-1 font-heading text-[26px] font-semibold text-white">
+            <p className="app-label text-state-error">Team Wars</p>
+            <h1 className="text-[length:var(--text-title-lg)] mt-1 font-heading font-semibold text-white">
               Wojny drużyn
             </h1>
             <p className="mt-2 text-[13px] text-white/50">
@@ -76,7 +70,7 @@ export function WarsHub({ data }: { data: HubData }) {
               <button
                 type="button"
                 disabled={pending}
-                className="rounded-xl border border-rose-400/40 bg-rose-500/15 px-3.5 py-2 text-[12px] font-medium text-rose-100 disabled:opacity-50"
+                className="rounded-xl border border-state-error/40 bg-state-error/15 px-3.5 py-2 text-[12px] font-medium text-state-error disabled:opacity-50"
                 onClick={() =>
                   start(async () => {
                     if (queued) await cancelWarQueueAction(team.teamId);

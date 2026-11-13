@@ -162,7 +162,7 @@ export function ForgotPasswordForm({
         ) : step === "done" ? (
           <div className="space-y-5 text-center">
             <CheckCircle2
-              className="mx-auto h-12 w-12 text-emerald-300"
+              className="mx-auto h-12 w-12 text-state-success"
               aria-hidden
             />
             <p className="text-sm text-white/65">
@@ -213,7 +213,7 @@ export function ForgotPasswordForm({
                     aria-describedby={fieldError.email ? "reset-email-error" : undefined}
                   />
                   {fieldError.email ? (
-                    <p id="reset-email-error" className="text-xs text-red-100">
+                    <p id="reset-email-error" className="text-xs text-state-error">
                       {fieldError.email}
                     </p>
                   ) : null}
@@ -245,7 +245,7 @@ export function ForgotPasswordForm({
                     aria-describedby={fieldError.code?.trim() ? "reset-code-error" : undefined}
                   />
                   {fieldError.code?.trim() ? (
-                    <p id="reset-code-error" className="text-xs text-red-100">
+                    <p id="reset-code-error" className="text-xs text-state-error">
                       {fieldError.code}
                     </p>
                   ) : null}
@@ -281,7 +281,7 @@ export function ForgotPasswordForm({
                     id="reset-password-hint"
                     className={cn(
                       "text-xs",
-                      fieldError.password ? "text-red-100" : "text-white/50",
+                      fieldError.password ? "text-state-error" : "text-white/50",
                     )}
                   >
                     Minimum 8 znaków.

@@ -72,7 +72,7 @@ export function SensitiveConsentsCard({ initial }: { initial: SensitiveConsentsI
         w ustawieniach konta (usunięcie konta kasuje wszystko).
       </p>
       {error ? (
-        <p role="alert" className="text-xs text-red-100">
+        <p role="alert" className="text-xs text-state-error">
           {error}
         </p>
       ) : null}

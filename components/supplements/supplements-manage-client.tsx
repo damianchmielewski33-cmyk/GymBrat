@@ -145,7 +145,7 @@ export function SupplementsManageClient({
         trailing={String(namedCount || rows.length)}
       />
 
-      <ul className="overflow-hidden rounded-[18px] border border-white/[0.07] bg-[#141414] divide-y divide-white/[0.06]">
+      <ul className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#141414] divide-y divide-white/[0.06]">
         {rows.map((row) => {
           const editing = editingKey === row.key;
           const { qty, note } = splitAmount(row.amount);
@@ -163,7 +163,7 @@ export function SupplementsManageClient({
                     <button
                       type="button"
                       onClick={() => removeRow(row.key)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/[0.06] hover:text-rose-200"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/[0.06] hover:text-state-error"
                       aria-label="Usuń"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -217,7 +217,7 @@ export function SupplementsManageClient({
                                 arr.map((x, j) => (j === i ? e.target.value : x)),
                               )
                             }
-                            className="h-10 bg-transparent text-sm text-white outline-none"
+                            className="h-10 bg-transparent text-sm text-white outline-none focus-ring"
                           />
                           <button
                             type="button"
@@ -227,7 +227,7 @@ export function SupplementsManageClient({
                                 arr.filter((_, j) => j !== i),
                               )
                             }
-                            className="inline-flex h-10 w-9 items-center justify-center text-white/50 hover:text-rose-200"
+                            className="inline-flex h-10 w-9 items-center justify-center text-white/50 hover:text-state-error"
                           >
                             <X className="h-4 w-4" />
                           </button>

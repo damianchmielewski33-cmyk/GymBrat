@@ -56,7 +56,7 @@ function DeltaChip({
       <p
         className={cn(
           "mt-1 font-metric text-[1.1rem] leading-none tabular-nums",
-          good ? "text-emerald-300" : "text-white",
+          good ? "text-state-success" : "text-white",
         )}
       >
         {fmtSigned(delta, ` ${unit}`, 1)}

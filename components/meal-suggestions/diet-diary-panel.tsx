@@ -109,7 +109,7 @@ function MealSlotCard({
         delay: Math.min(index, 5) * 0.04,
         ease: "easeOut",
       }}
-      className="overflow-hidden rounded-[20px] border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
+      className="overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
     >
       <div className="flex items-center gap-2 px-3.5 pb-3 pt-3">
         <span
@@ -126,7 +126,7 @@ function MealSlotCard({
             <span
               className={cn(
                 "font-semibold",
-                over ? "text-orange-300" : "text-white",
+                over ? "text-state-warning" : "text-white",
               )}
             >
               {Math.round(eaten.kcal)}
@@ -165,7 +165,7 @@ function MealSlotCard({
         <div
           className={cn(
             "h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none",
-            over ? "bg-orange-400" : "gym-meter-gold",
+            over ? "bg-state-warning" : "gym-meter-gold",
           )}
           style={{ width: `${pct}%` }}
         />
@@ -176,9 +176,9 @@ function MealSlotCard({
           <p className="mt-2.5 px-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] tabular-nums">
             <span className="text-sky-300">B {Math.round(eaten.protein)}</span>
             <span className="text-white/50">{"  ·  "}</span>
-            <span className="text-amber-200">W {Math.round(eaten.carbs)}</span>
+            <span className="text-state-warning">W {Math.round(eaten.carbs)}</span>
             <span className="text-white/50">{"  ·  "}</span>
-            <span className="text-rose-300">T {Math.round(eaten.fat)}</span>
+            <span className="text-state-error">T {Math.round(eaten.fat)}</span>
           </p>
           <ul className="mt-2 border-t border-white/[0.06]">
             {entries.map((e) => (
@@ -315,7 +315,7 @@ export function DietDiaryPanel({
       />
 
       {isEmptyDay ? (
-        <div className="rounded-[22px] border border-dashed border-white/[0.16] bg-white/[0.02] px-5 py-6 text-center">
+        <div className="rounded-3xl border border-dashed border-white/[0.16] bg-white/[0.02] px-5 py-6 text-center">
           <span
             aria-hidden
             className="mx-auto flex h-[52px] w-[52px] items-center justify-center rounded-full border border-[var(--gym-border-gold)] bg-[var(--gym-surface-gold)] text-[var(--gym-gold)]"

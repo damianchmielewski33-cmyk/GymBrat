@@ -65,17 +65,17 @@ function TrendMark({ trend }: { trend: "up" | "down" | "flat" | "none" }) {
 
 function scoreColor(n: number | null | undefined): string {
   if (n == null) return "text-white/50";
-  if (n >= 8) return "text-emerald-400";
+  if (n >= 8) return "text-state-success";
   if (n >= 6) return "text-[var(--gym-gold)]";
-  return "text-red-400/90";
+  return "text-state-error/90";
 }
 
 function ComplianceIcon({ value }: { value: string | null }) {
   if (value === "tak") {
-    return <Check className="mx-auto h-4 w-4 text-emerald-400" aria-label="Tak" />;
+    return <Check className="mx-auto h-4 w-4 text-state-success" aria-label="Tak" />;
   }
   if (value === "nie") {
-    return <X className="mx-auto h-4 w-4 text-red-400" aria-label="Nie" />;
+    return <X className="mx-auto h-4 w-4 text-state-error" aria-label="Nie" />;
   }
   return <span className="text-white/50">·</span>;
 }

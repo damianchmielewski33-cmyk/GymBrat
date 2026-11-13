@@ -201,7 +201,7 @@ export function AddMealChoiceBar({
               placeholder={
                 mode === "product" ? "np. Skyr naturalny" : "np. Kanapka z pracy"
               }
-              className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white outline-none placeholder:text-white/50"
+              className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm text-white outline-none focus-ring placeholder:text-white/50"
             />
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -221,7 +221,7 @@ export function AddMealChoiceBar({
                   value={val}
                   onChange={(e) => setVal(e.target.value)}
                   inputMode="decimal"
-                  className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm tabular-nums text-white outline-none"
+                  className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm tabular-nums text-white outline-none focus-ring"
                 />
               </label>
             ))}
@@ -240,7 +240,7 @@ export function AddMealChoiceBar({
                   ? `z makro ≈ ${computedKcal}`
                   : "opcjonalnie / z makro"
               }
-              className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm tabular-nums text-white outline-none placeholder:text-white/50"
+              className="mt-1.5 h-12 w-full rounded-xl border border-white/12 bg-[#121212] px-3 text-sm tabular-nums text-white outline-none focus-ring placeholder:text-white/50"
             />
             {finalKcal != null ? (
               <p className="mt-1 text-xs text-white/50">

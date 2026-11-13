@@ -221,7 +221,7 @@ export default async function WorkoutHistoryDetailsPage({
                         <td className="py-2 pr-2 sm:pr-4">{s.e1rm > 0 ? formatCompact(s.e1rm) : "—"}</td>
                         <td className="py-2 pr-2 sm:pr-4">
                           {s.done ? (
-                            <span className="inline-flex rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 text-xs text-emerald-200">
+                            <span className="inline-flex rounded-full border border-state-success/25 bg-state-success/10 px-2 py-0.5 text-xs text-state-success">
                               zal.
                             </span>
                           ) : (

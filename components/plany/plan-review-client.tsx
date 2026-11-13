@@ -75,7 +75,7 @@ export function PlanReviewClient({ cards }: { cards: PlanReviewCard[] }) {
 
   return (
     <div className="space-y-4">
-      {error ? <p className="text-[13px] text-rose-300">{error}</p> : null}
+      {error ? <p className="text-[13px] text-state-error">{error}</p> : null}
       {cards.map((c) => (
         <section key={c.planId} className="space-y-2">
           <div className="flex items-baseline justify-between gap-2">
