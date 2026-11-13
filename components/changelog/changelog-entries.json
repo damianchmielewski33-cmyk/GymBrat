@@ -1,5 +1,14 @@
 [
   {
+    "title": "Zapowiedź — Motywy i kolor aplikacji",
+    "planned": true,
+    "bullets": [
+      "Nowy motyw „Róż i czerń” — błyszczący róż na czarnym tle, obok klasycznego złota.",
+      "Dodatkowe kolory akcentu: fiolet, turkus, czerwień i błękit (Profil → Wygląd).",
+      "Przycisk zmiany motywu jest na pasku bocznym i w menu. Wybór zapisuje się na koncie i działa na każdym urządzeniu."
+    ]
+  },
+  {
     "title": "Zapowiedź — Dopasowanie liczby serii do Twojego treningu",
     "planned": true,
     "bullets": [

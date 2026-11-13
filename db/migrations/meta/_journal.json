@@ -281,6 +281,13 @@
       "when": 1806800000000,
       "tag": "0046_supplement_intakes",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1806900000000,
+      "tag": "0047_user_settings_app_theme",
+      "breakpoints": true
     }
   ]
 }

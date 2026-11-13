@@ -7,6 +7,7 @@ import {
   Bell,
   Dumbbell,
   KeyRound,
+  Palette,
   ShieldCheck,
   Smartphone,
   User,
@@ -207,6 +208,12 @@ export default async function ProfileOverviewPage() {
       </SettingsGroup>
 
       <SettingsGroup title="Aplikacja">
+        <SettingsRow
+          href="/profile/appearance"
+          icon={Palette}
+          title="Wygląd"
+          value="Motyw i kolor akcentu"
+        />
         <SettingsRow
           href="/profile/app"
           icon={Smartphone}

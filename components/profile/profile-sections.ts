@@ -5,6 +5,7 @@ export const PROFILE_SECTIONS = [
   { id: "reminders", label: "Przypomnienia", href: "/profile/reminders" },
   { id: "privacy", label: "Prywatność", href: "/profile/privacy" },
   { id: "account", label: "Konto", href: "/profile/account" },
+  { id: "appearance", label: "Wygląd", href: "/profile/appearance" },
   { id: "app", label: "Aplikacja", href: "/profile/app" },
 ] as const;
 

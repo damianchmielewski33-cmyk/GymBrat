@@ -164,6 +164,9 @@ CREATE TABLE IF NOT EXISTS "daily_checkins" (
     `ALTER TABLE "user_settings" ADD COLUMN "cardio_week_mode" text NOT NULL DEFAULT 'calendar'`,
   );
   await tryAddColumn(
+    `ALTER TABLE "user_settings" ADD COLUMN "app_theme" text NOT NULL DEFAULT 'gold'`,
+  );
+  await tryAddColumn(
     `ALTER TABLE "user_settings" ADD COLUMN "onboarding_completed_at" integer`,
   );
   await tryAddColumn(

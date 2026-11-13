@@ -649,6 +649,8 @@ export const userSettings = sqliteTable("user_settings", {
     .default(150),
   /** Jak liczyć tydzień cardio: "calendar" (pon–niedz) albo "rolling" (ostatnie 7 dni). */
   cardioWeekMode: text("cardio_week_mode").notNull().default("calendar"),
+  /** Motyw / kolor akcentu aplikacji: `gold` | `pink` | `violet` | `teal` | `red` | `blue` (lib/app-theme.ts). */
+  appTheme: text("app_theme").notNull().default("gold"),
   /** Co ile dni dodawać raport sylwetki (timer na Pulpicie restartuje się po zapisie). */
   reportCadenceDays: integer("report_cadence_days").notNull().default(14),
   /** JSON: { calories, proteinG, fatG, carbsG } — cele na dzień treningowy */

@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ComponentType, type CSSProperties } from "react";
@@ -388,6 +389,7 @@ export function AppMenuButton({
                 onNavigate={close}
               />
             ) : null}
+            <ThemeToggleButton />
             <button
               type="button"
               onClick={() => {

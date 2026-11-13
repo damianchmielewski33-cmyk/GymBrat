@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+import { THEME_COOKIE, parseAppTheme } from "@/lib/app-theme";
 import type { Metadata, Viewport } from "next";
 import { connection } from "next/server";
 import Script from "next/script";
@@ -95,9 +97,11 @@ export default async function RootLayout({
 }>) {
   // CSP z nonce (Z29): strony muszą być renderowane per żądanie, żeby skrypty dostały nonce z proxy.
   if (process.env.NODE_ENV === "production") await connection();
+  const theme = parseAppTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
     <html
       lang="pl"
+      data-theme={theme}
       className={`dark ${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${bebasNeue.variable} h-full`}
     >
       <body className="min-h-full font-sans antialiased">
