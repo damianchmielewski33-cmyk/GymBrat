@@ -5,8 +5,8 @@ const valid = {
   firstName: "Zażółć",
   lastName: "Gęślą-Jaźń",
   email: "a@example.com",
-  emailCode: "123456",
   password: "haslo1234",
+  confirmPassword: "haslo1234",
   weightKg: "80",
   heightCm: "180",
   age: "30",
@@ -20,15 +20,25 @@ describe("registerSchema (US-1, BR-1)", () => {
     expect(registerSchema.safeParse(valid).success).toBe(true);
   });
 
-  it.each(["1234", "12345", "1234567", "12 456", "abcdef", "", "12345a"])(
-    "odrzuca kod %j (tylko 6 cyfr)",
-    (emailCode) => {
-      expect(registerSchema.safeParse({ ...valid, emailCode }).success).toBe(false);
-    },
-  );
+  it("odrzuca różne hasła w polach hasło i powtórz hasło", () => {
+    const r = registerSchema.safeParse({ ...valid, confirmPassword: "inne-haslo1" });
+    expect(r.success).toBe(false);
+    expect(!r.success && r.error.issues[0]?.path).toEqual(["confirmPassword"]);
+  });
 
-  it("przycina białe znaki wokół kodu", () => {
-    expect(registerSchema.safeParse({ ...valid, emailCode: " 123456 " }).success).toBe(true);
+  it("obwody są opcjonalne: puste pola przechodzą, wartości są liczbami", () => {
+    const empty = registerSchema.safeParse({ ...valid, abdomenCm: "", chestCm: "", armCm: "" });
+    expect(empty.success).toBe(true);
+    const filled = registerSchema.safeParse({ ...valid, abdomenCm: "88,5".replace(",", "."), chestCm: "102", armCm: "36" });
+    expect(filled.success && filled.data.abdomenCm).toBe(88.5);
+  });
+
+  it.each([
+    ["abdomenCm", "10"],
+    ["chestCm", "300"],
+    ["armCm", "abc"],
+  ])("odrzuca obwód %s=%j", (field, value) => {
+    expect(registerSchema.safeParse({ ...valid, [field]: value }).success).toBe(false);
   });
 
   it.each([

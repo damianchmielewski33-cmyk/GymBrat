@@ -53,22 +53,17 @@ describe("getRegisterEmailMode", () => {
 });
 
 describe("getRegistrationAvailability", () => {
-  it("blocked tylko gdy brak e-maila i obu dostawców", () => {
-    expect(getRegistrationAvailability(env({ NODE_ENV: "production" })).blocked).toBe(true);
-    expect(
-      getRegistrationAvailability(env({ NODE_ENV: "production", ...GOOGLE })).blocked,
-    ).toBe(false);
-    expect(
-      getRegistrationAvailability(env({ NODE_ENV: "production", ...FACEBOOK })).blocked,
-    ).toBe(false);
-    expect(getRegistrationAvailability(env({ NODE_ENV: "production", ...SMTP })).blocked).toBe(
-      false,
-    );
+  it("rejestracja e-mailem jest aktywna od razu, także na produkcji bez SMTP", () => {
+    for (const extra of [{}, GOOGLE, FACEBOOK, SMTP]) {
+      const a = getRegistrationAvailability(env({ NODE_ENV: "production", ...extra }));
+      expect(a.emailMode).toBe("instant");
+      expect(a.blocked).toBe(false);
+    }
   });
 
-  it("tryb testowy nie blokuje rejestracji", () => {
+  it("zwraca dostępność dostawców OAuth", () => {
     expect(getRegistrationAvailability(env({ NODE_ENV: "development" }))).toEqual({
-      emailMode: "test",
+      emailMode: "instant",
       google: false,
       facebook: false,
       blocked: false,

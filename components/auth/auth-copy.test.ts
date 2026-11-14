@@ -8,7 +8,7 @@ function availability(
   blocked = !methods.email && !methods.google && !methods.facebook,
 ): RegistrationAvailability {
   return {
-    emailMode: methods.email ? "smtp" : "disabled",
+    emailMode: methods.email ? "instant" : "disabled",
     google: methods.google,
     facebook: methods.facebook,
     blocked,

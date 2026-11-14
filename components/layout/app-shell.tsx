@@ -181,7 +181,7 @@ export function AppShell({
               ))}
             </div>
           </div>
-          <ThemeToggleButton className="pointer-events-auto mt-auto hidden lg:flex" />
+          <ThemeToggleButton className="pointer-events-auto mt-auto hidden lg:block" />
         </nav>
       )}
     </div>

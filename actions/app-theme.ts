@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { APP_THEMES, THEME_COOKIE, type AppTheme } from "@/lib/app-theme";
+import { ensureAppThemeColumn } from "@/lib/app-theme-db";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -27,23 +28,36 @@ export async function updateAppThemeAction(raw: unknown): Promise<{
   const db = getDb();
   const userId = session.user.id;
 
-  const [existing] = await db
-    .select({ userId: userSettings.userId })
-    .from(userSettings)
-    .where(eq(userSettings.userId, userId))
-    .limit(1);
+  const save = async () => {
+    const [existing] = await db
+      .select({ userId: userSettings.userId })
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1);
 
-  if (existing) {
-    await db
-      .update(userSettings)
-      .set({ appTheme: theme, updatedAt: new Date() })
-      .where(eq(userSettings.userId, userId));
-  } else {
-    await db.insert(userSettings).values({
-      userId,
-      weeklyCardioGoalMinutes: 150,
-      appTheme: theme,
-    });
+    if (existing) {
+      await db
+        .update(userSettings)
+        .set({ appTheme: theme, updatedAt: new Date() })
+        .where(eq(userSettings.userId, userId));
+    } else {
+      await db.insert(userSettings).values({
+        userId,
+        weeklyCardioGoalMinutes: 150,
+        appTheme: theme,
+      });
+    }
+  };
+  try {
+    await save();
+  } catch {
+    // Baza bez kolumny `app_theme` (przed migracją) — dodaj ją i spróbuj raz jeszcze.
+    await ensureAppThemeColumn();
+    try {
+      await save();
+    } catch {
+      return { ok: false, error: "Nie udało się zapisać motywu. Spróbuj ponownie." };
+    }
   }
 
   // Ciasteczko tylko do pierwszego renderu bez migania; źródło prawdy to baza.

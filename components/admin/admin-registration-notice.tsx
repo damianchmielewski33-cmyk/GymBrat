@@ -11,6 +11,7 @@ import {
 
 type RegistrationNoticeState =
   | { kind: "closed" }
+  | { kind: "instant" }
   | { kind: "email-disabled"; providers: string };
 
 /**
@@ -22,6 +23,7 @@ export function registrationNoticeState(
   integrations: Pick<ConfigIntegration, "id" | "status">[],
 ): RegistrationNoticeState | null {
   if (summary.registrationBlocked) return { kind: "closed" };
+  if (summary.emailRegistrationMode === "instant") return { kind: "instant" };
   if (summary.emailRegistrationMode !== "disabled") return null;
   const ok = (id: string) => integrations.some((i) => i.id === id && i.status === "ok");
   const google = ok("google");
@@ -44,17 +46,23 @@ export function AdminRegistrationNotice({
 }) {
   const closed = state.kind === "closed";
   const Icon = closed ? UserX : MailX;
+  const title = closed
+    ? "Nikt nie może teraz założyć konta"
+    : state.kind === "instant"
+      ? "Potwierdzanie e-maila przy rejestracji jest wyłączone"
+      : "Rejestracja e-mailem jest wyłączona";
+  const body = closed
+    ? "Brak wysyłki e-mail (SMTP) i logowania przez Google lub Facebook. Istniejące konta logują się normalnie. Skonfiguruj SMTP albo Google na hostingu."
+    : state.kind === "instant"
+      ? "Nowe konta są aktywne od razu, bez linku z e-maila. Potwierdzanie adresu włączymy po skonfigurowaniu wysyłki e-mail (SMTP)."
+      : `Brak wysyłki e-mail (SMTP). Nowe konta można zakładać tylko przez ${state.providers}.`;
   return (
     <AdminNotice tone={closed ? "danger" : "warn"} action={action}>
       <p className="flex items-center gap-2 font-semibold">
         <Icon className="h-4 w-4 shrink-0" aria-hidden />
-        {closed ? "Nikt nie może teraz założyć konta" : "Rejestracja e-mailem jest wyłączona"}
+        {title}
       </p>
-      <p className="mt-1">
-        {closed
-          ? "Brak wysyłki e-mail (SMTP) i logowania przez Google lub Facebook. Istniejące konta logują się normalnie. Skonfiguruj SMTP albo Google na hostingu."
-          : `Brak wysyłki e-mail (SMTP). Nowe konta można zakładać tylko przez ${state.providers}.`}
-      </p>
+      <p className="mt-1">{body}</p>
       {hostingIssues > 1 ? (
         <p className="mt-1">
           Łącznie do skonfigurowania: {formatHostingFunctionCount(hostingIssues)}.

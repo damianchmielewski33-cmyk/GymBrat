@@ -24,7 +24,7 @@ vi.mock("@/lib/email", async (importOriginal) => ({
 }));
 
 const { requestPasswordReset, resetPassword } = await import("@/actions/password-reset");
-const { registerUser, sendRegisterCode } = await import("@/actions/auth");
+const { registerUser } = await import("@/actions/auth");
 
 const SMTP = { SMTP_HOST: "smtp.example.com", SMTP_USER: "u", SMTP_PASS: "p" };
 const EMAIL = "jan@example.com";
@@ -38,16 +38,15 @@ function setEnv(vars: Record<string, string>) {
   for (const [k, v] of Object.entries(vars)) vi.stubEnv(k, v);
 }
 
-/** Konto zakładane w trybie testowym (kod 123456), potem env przełączany wg potrzeb testu. */
+/** Konto zakładane rejestracją (aktywne od razu), potem env przełączany wg potrzeb testu. */
 async function seedUser() {
   setEnv({});
-  await sendRegisterCode({ email: EMAIL });
   const res = await registerUser({
     firstName: "Jan",
     lastName: "Kowalski",
     email: EMAIL,
-    emailCode: "123456",
     password: "stare-haslo-123",
+    confirmPassword: "stare-haslo-123",
     weightKg: 80,
     heightCm: 180,
     age: 30,
@@ -125,13 +124,6 @@ describe("actions/password-reset", () => {
 
     const rs = await client.execute(`SELECT password_hash FROM users`);
     expect(await compare("stare-haslo-123", String(rs.rows[0]!.password_hash))).toBe(true);
-  });
-
-  it("kod rejestracji nie działa przy resecie", async () => {
-    setEnv({});
-    await sendRegisterCode({ email: "inny@example.com" });
-    const res = await resetPassword({ email: "inny@example.com", code: "123456", password: "nowe-haslo-456" });
-    expect(res.ok === false && res.code).toBe("code_expired");
   });
 
   it("za krótkie hasło: invalid_form z błędem pola", async () => {

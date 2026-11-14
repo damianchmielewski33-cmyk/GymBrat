@@ -11,19 +11,16 @@ import {
   ChevronLeft,
   Eye,
   EyeOff,
-  FlaskConical,
+  ImagePlus,
   Mail,
   MailX,
   ShieldCheck,
   UserX,
   X,
 } from "lucide-react";
-import {
-  registerUser,
-  sendRegisterCode,
-  type RegisterErrorCode,
-  type RegisterState,
-} from "@/actions/auth";
+import { registerUser, type RegisterState } from "@/actions/auth";
+import { fileToReportPhotoDataUrl } from "@/components/reports/body-report-form-utils";
+import { ensureCsrfCookie, getXsrfHeaders } from "@/lib/client-csrf";
 import { setSensitiveConsentAction } from "@/actions/consents";
 import { updateBodyParams } from "@/actions/profile";
 import { SENSITIVE_CONSENT_COPY } from "@/lib/consents-client";
@@ -42,7 +39,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InlineBanner } from "@/components/ui/inline-banner";
-import { plural } from "@/lib/progress-format";
 import type { RegistrationAvailability } from "@/lib/register-email-mode";
 import { cn } from "@/lib/utils";
 import {
@@ -66,39 +62,35 @@ const activityCopy: Record<
 
 type StepId =
   | "welcome"
-  | "name"
-  | "email"
-  | "password"
   | "body"
   | "activity"
-  | "goal";
+  | "goal"
+  | "photo"
+  | "name"
+  | "email"
+  | "password";
 
+/** Najpierw parametry ciała i zdjęcie startowe, potem dane konta (imię, e-mail, hasło ×2). */
 const STEPS: StepId[] = [
   "welcome",
-  "name",
-  "email",
-  "password",
   "body",
   "activity",
   "goal",
+  "photo",
+  "name",
+  "email",
+  "password",
 ];
 
-/** Błędy kodu pokazujemy przy polu kodu na kroku „email”. */
-const CODE_ERROR_CODES: ReadonlySet<RegisterErrorCode> = new Set([
-  "code_missing",
-  "code_expired",
-  "code_invalid",
-  "code_attempts_exhausted",
-]);
-
-const RESEND_COOLDOWN_SECONDS = 60;
+/** Maks. rozmiar wybieranego zdjęcia (przed kompresją w przeglądarce). */
+const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
 
 function isOffline(): boolean {
   return typeof navigator !== "undefined" && navigator.onLine === false;
 }
 
 /** Kroki po Google/Facebook — bez welcome / e-mail / hasła. */
-const OAUTH_STEPS: StepId[] = ["name", "body", "activity", "goal"];
+const OAUTH_STEPS: StepId[] = ["name", "body", "activity", "goal", "photo"];
 
 const STEP_COPY: Record<
   StepId,
@@ -110,49 +102,83 @@ const STEP_COPY: Record<
     // Zależy od dostępnych metod — patrz `registerWelcomeCopy`.
     support: "",
   },
-  name: {
-    kicker: "Krok 2",
-    title: "Jak masz na imię?",
-    support: "Tak będziemy Cię witać na Pulpicie i w profilu.",
-  },
-  email: {
-    kicker: "Krok 3",
-    title: "Twój e-mail",
-    support: "Wyślemy krótki kod, żeby potwierdzić adres.",
-  },
-  password: {
-    kicker: "Krok 4",
-    title: "Ustaw hasło",
-    support: "Minimum 8 znaków — do logowania e-mailem.",
-  },
   body: {
-    kicker: "Krok 5",
+    kicker: "Krok 2",
     title: "Parametry ciała",
-    support: "Potrzebne do Pulpitu, diety (g/kg) i podpowiedzi treningowych.",
+    support:
+      "Punkt startowy dla Pulpitu, diety (g/kg) i Postępów. Obwody możesz pominąć.",
   },
   activity: {
-    kicker: "Krok 6",
+    kicker: "Krok 3",
     title: "Aktywność na co dzień",
     support: "Pomaga dopasować obciążenie i szacunki regeneracji.",
   },
   goal: {
-    kicker: "Krok 7",
+    kicker: "Krok 4",
     title: "Cel na tydzień",
     support: "Ile dni w tygodniu chcesz trenować? Zobaczysz to w Postępach.",
   },
+  photo: {
+    kicker: "Krok 5",
+    title: "Zdjęcie startowe",
+    support:
+      "Opcjonalne. Zobaczysz je w porównaniu przemiany. Widzisz je tylko Ty.",
+  },
+  name: {
+    kicker: "Krok 6",
+    title: "Jak masz na imię?",
+    support: "Tak będziemy Cię witać na Pulpicie i w profilu.",
+  },
+  email: {
+    kicker: "Krok 7",
+    title: "Twój e-mail",
+    support: "Na ten adres założymy konto. Będzie aktywne od razu.",
+  },
+  password: {
+    kicker: "Krok 8",
+    title: "Ustaw hasło",
+    support: "Minimum 8 znaków — do logowania e-mailem.",
+  },
 };
+
+/** Zapisuje pomiary startowe i zdjęcie jako pierwszy raport sylwetki (wymaga sesji i zgód). */
+async function saveStartReport(
+  values: RegisterFormValues,
+  photoFile: File | null,
+): Promise<void> {
+  if (!values.healthConsent) return;
+  const num = (v: unknown): number | null => {
+    if (v === "" || v == null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const photoDataUrls =
+    photoFile && values.photosConsent
+      ? [await fileToReportPhotoDataUrl(photoFile)]
+      : [];
+  await ensureCsrfCookie();
+  await fetch("/api/body-reports", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...getXsrfHeaders() },
+    body: JSON.stringify({
+      weightKg: num(values.weightKg),
+      abdomenCm: num(values.abdomenCm),
+      chestCm: num(values.chestCm),
+      armCm: num(values.armCm),
+      photoDataUrls,
+    }),
+  });
+}
 
 export function RegisterForm({
   availability,
-  emailTestCode = null,
   oauthContinue = false,
   oauthPrefill = null,
   accountResetNotice = false,
 }: {
   /** Dostępne metody rejestracji — liczone na serwerze. */
   availability: RegistrationAvailability;
-  /** Kod trybu testowego (tylko dev/test bez SMTP); na produkcji zawsze `null`. */
-  emailTestCode?: string | null;
   /** Po Google/Facebook — kontynuacja wizarda rejestracji (nie Pulpit). */
   oauthContinue?: boolean;
   oauthPrefill?: {
@@ -178,7 +204,6 @@ export function RegisterForm({
   const step = steps[stepIndex]!;
   const [rootError, setRootError] = useState<string | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
-  const passwordRef = useRef<HTMLInputElement | null>(null);
   const focusProviderOnWelcome = useRef(false);
   /** Odmowa serwera `registration_disabled` w trakcie rejestracji (UX 1F). */
   const [emailBlockedMessage, setEmailBlockedMessage] = useState<string | null>(null);
@@ -187,7 +212,6 @@ export function RegisterForm({
   const googleEnabled = availability.google;
   const facebookEnabled = availability.facebook;
   const emailEnabled = availability.emailMode !== "disabled" && !emailBlocked;
-  const emailTestMode = availability.emailMode === "test" && Boolean(emailTestCode);
   const welcome = registerWelcomeCopy(availability, emailBlocked);
   const registrationClosed = step === "welcome" && welcome.kind === "closed";
 
@@ -219,11 +243,14 @@ export function RegisterForm({
       firstName: oauthPrefill?.firstName ?? "",
       lastName: oauthPrefill?.lastName ?? "",
       email: oauthPrefill?.email ?? "",
-      emailCode: oauthContinue ? "000000" : "",
       password: oauthContinue ? "oauth-placeholder-8" : "",
+      confirmPassword: oauthContinue ? "oauth-placeholder-8" : "",
       weightKg: "",
       heightCm: "",
       age: "",
+      abdomenCm: "",
+      chestCm: "",
+      armCm: "",
       activityLevel: "medium",
       weeklySessionsTarget: 4,
       role: "zawodnik",
@@ -237,6 +264,7 @@ export function RegisterForm({
     register,
     handleSubmit,
     watch,
+    getValues,
     setError,
     setValue,
     trigger,
@@ -244,30 +272,34 @@ export function RegisterForm({
   } = form;
 
   const activityLevel = watch("activityLevel");
-  const emailValue = watch("email");
-  const emailCodeValue = watch("emailCode");
   const weeklySessionsTarget = Number(watch("weeklySessionsTarget") || 4);
   const [showPassword, setShowPassword] = useState(false);
-  const [codeInfo, setCodeInfo] = useState<string | null>(null);
-  const [sendingCode, setSendingCode] = useState(false);
-  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   useEffect(() => {
-    if (cooldownSeconds <= 0) return;
-    const t = window.setTimeout(() => setCooldownSeconds((v) => v - 1), 1000);
-    return () => window.clearTimeout(t);
-  }, [cooldownSeconds]);
+    if (!photoFile) {
+      setPhotoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(photoFile);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photoFile]);
 
-  useEffect(() => {
-    const raw = (emailCodeValue ?? "").toString();
-    const digits = raw.replace(/\D/g, "").slice(0, 6);
-    if (digits !== raw) {
-      setValue("emailCode", digits, { shouldValidate: digits.length === 6 });
+  function onPickPhoto(file: File | null) {
+    setRootError(null);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setRootError("Wybierz plik ze zdjęciem (JPG, PNG, HEIC).");
+      return;
     }
-    if (digits.length === 6 && step === "email") {
-      queueMicrotask(() => passwordRef.current?.focus());
+    if (file.size > MAX_PHOTO_BYTES) {
+      setRootError("Zdjęcie jest za duże (maks. 15 MB). Wybierz inne.");
+      return;
     }
-  }, [emailCodeValue, setValue, step]);
+    setPhotoFile(file);
+  }
 
   const copy = oauthContinue
     ? {
@@ -303,6 +335,24 @@ export function RegisterForm({
       const ok = await trigger([...fields]);
       if (!ok) return;
     }
+    // Zgody są opcjonalne, ale zapis obwodów i zdjęcia bez nich byłby niezgodny z RODO.
+    const { healthConsent, photosConsent, abdomenCm, chestCm, armCm } = getValues();
+    if (
+      step === "body" &&
+      !healthConsent &&
+      [abdomenCm, chestCm, armCm].some((v) => v !== "" && v != null)
+    ) {
+      setRootError("Zaznacz zgodę na dane o zdrowiu, żeby zapisać obwody — albo wyczyść pola obwodów.");
+      return;
+    }
+    if (step === "photo" && photoFile && !photosConsent) {
+      setRootError("Zaznacz zgodę na zdjęcia, żeby zapisać zdjęcie startowe — albo je usuń.");
+      return;
+    }
+    if (step === "photo" && photoFile && !healthConsent) {
+      setRootError("Zdjęcie startowe wymaga też zgody na dane o zdrowiu (krok „Parametry ciała”).");
+      return;
+    }
     if (stepIndex >= steps.length - 1) {
       await handleSubmit(onSubmit)();
       return;
@@ -332,51 +382,6 @@ export function RegisterForm({
     jumpBackTo("welcome");
   }
 
-  async function onSendCode() {
-    setRootError(null);
-    setCodeInfo(null);
-    const email = (emailValue ?? "").trim().toLowerCase();
-    if (!email) {
-      setRootError("Wpisz e-mail, aby wysłać kod.");
-      return;
-    }
-    if (isOffline()) {
-      setRootError(OFFLINE_REGISTER_MESSAGE);
-      return;
-    }
-    setSendingCode(true);
-    try {
-      const res = await sendRegisterCode({ email });
-      if (!res.ok) {
-        if (res.code === "registration_disabled") {
-          setEmailBlockedMessage(res.error);
-          return;
-        }
-        if (res.code === "code_resend_too_soon") {
-          setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
-        }
-        setRootError(res.error);
-        return;
-      }
-      // LR-19 / LR-29: „wysłany” tylko po faktycznym nadaniu wiadomości.
-      setCodeInfo(
-        res.mode === "test"
-          ? `Tryb testowy: wiadomość nie została wysłana. Użyj kodu ${emailTestCode ?? ""}.`
-          : `Kod wysłany na ${email}. Sprawdź skrzynkę i folder SPAM. Kod jest ważny 10 minut.`,
-      );
-      setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
-      document.getElementById("emailCode")?.focus();
-    } catch {
-      setRootError(
-        isOffline()
-          ? OFFLINE_REGISTER_MESSAGE
-          : "Nie udało się wysłać kodu. Spróbuj ponownie za chwilę.",
-      );
-    } finally {
-      setSendingCode(false);
-    }
-  }
-
   async function onSubmitOauth(values: RegisterFormValues) {
     setRootError(null);
     const result = await updateBodyParams({
@@ -395,6 +400,8 @@ export function RegisterForm({
     // Z11: zgody z ekranu rejestracji także w ścieżce po Google (osobne wpisy w rejestrze).
     if (values.healthConsent) await setSensitiveConsentAction("health", true, "registration");
     if (values.photosConsent) await setSensitiveConsentAction("photos", true, "registration");
+    // Pomiary i zdjęcie to dodatek: błąd zapisu nie może zablokować dokończenia rejestracji.
+    await saveStartReport(values, photoFile).catch(() => undefined);
     try {
       await updateSession();
     } catch {
@@ -410,7 +417,6 @@ export function RegisterForm({
     }
 
     setRootError(null);
-    setCodeInfo(null);
     if (isOffline()) {
       setRootError(OFFLINE_REGISTER_MESSAGE);
       return;
@@ -432,8 +438,8 @@ export function RegisterForm({
         jumpBackTo("email");
         return;
       }
-      if (CODE_ERROR_CODES.has(result.code)) {
-        setError("emailCode", { message: result.error });
+      if (result.code === "account_exists") {
+        setError("email", { message: result.error });
         jumpBackTo("email");
         return;
       }
@@ -481,13 +487,14 @@ export function RegisterForm({
       );
       return;
     }
+    // Sesja już jest: zapisujemy pomiary startowe i zdjęcie (best effort, bez blokowania wejścia).
+    await saveStartReport(values, photoFile).catch(() => undefined);
     window.location.assign(`${window.location.origin}/workout-plan`);
   }
 
-  const { ref: passwordRhfRef, ...passwordRegister } = register("password");
-
+  const isLastStep = stepIndex === steps.length - 1;
   const primaryLabel =
-    step === "goal"
+    isLastStep
       ? isSubmitting
         ? oauthContinue
           ? "Kończenie rejestracji…"
@@ -728,89 +735,27 @@ export function RegisterForm({
             ) : null}
 
             {step === "email" ? (
-              <div className="space-y-4">
-                {emailTestMode ? (
-                  <InlineBanner role="status" variant="warning">
-                    <span className="flex items-start gap-2">
-                      <FlaskConical className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-                      <span>
-                        <strong className="block font-semibold">Tryb testowy</strong>
-                        E-maile nie są wysyłane. Wpisz kod {emailTestCode}.
-                      </span>
-                    </span>
-                  </InlineBanner>
-                ) : null}
-                <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    autoFocus
-                    aria-invalid={errors.email ? true : undefined}
-                    className={cn(errors.email && "border-destructive")}
-                    {...register("email")}
-                  />
-                  {errors.email ? (
-                    <p className="text-xs text-state-error">
-                      {errors.email.message}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex items-end gap-3">
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <Label htmlFor="emailCode">Kod z e-maila</Label>
-                    <Input
-                      id="emailCode"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      placeholder={emailTestMode ? (emailTestCode ?? undefined) : "6 cyfr"}
-                      aria-invalid={errors.emailCode ? true : undefined}
-                      aria-describedby={
-                        errors.emailCode ? "emailCode-error" : undefined
-                      }
-                      className={cn(errors.emailCode && "border-destructive")}
-                      {...register("emailCode")}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    disabled={
-                      emailBlocked ||
-                      sendingCode ||
-                      !emailValue?.trim() ||
-                      cooldownSeconds > 0
-                    }
-                    aria-busy={sendingCode}
-                    aria-label={
-                      cooldownSeconds > 0
-                        ? `Wyślij kod ponownie za ${cooldownSeconds} ${plural(cooldownSeconds, "sekundę", "sekundy", "sekund")}`
-                        : undefined
-                    }
-                    className="h-11 shrink-0 bg-white/10 text-white hover:bg-white/15"
-                    onClick={() => void onSendCode()}
-                  >
-                    {sendingCode
-                      ? "Wysyłanie…"
-                      : cooldownSeconds > 0
-                        ? `Wyślij ponownie (${cooldownSeconds} s)`
-                        : "Wyślij kod"}
-                  </Button>
-                </div>
-                {codeInfo ? (
-                  <p role="status" className="text-[13px] leading-relaxed text-white/65">
-                    {codeInfo}
-                  </p>
-                ) : null}
-                {errors.emailCode ? (
-                  <p id="emailCode-error" className="text-xs text-state-error">
-                    {errors.emailCode.message}
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  autoFocus
+                  aria-invalid={errors.email ? true : undefined}
+                  className={cn(errors.email && "border-destructive")}
+                  {...register("email")}
+                />
+                {errors.email ? (
+                  <p className="text-xs text-state-error">
+                    {errors.email.message}
                   </p>
                 ) : null}
               </div>
             ) : null}
 
             {step === "password" ? (
+              <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="password">Hasło</Label>
                 <div className="relative">
@@ -820,12 +765,8 @@ export function RegisterForm({
                     autoComplete="new-password"
                     autoFocus
                     aria-invalid={errors.password ? true : undefined}
-                    ref={(el) => {
-                      passwordRef.current = el;
-                      passwordRhfRef(el);
-                    }}
                     className={cn("pr-12", errors.password && "border-destructive")}
-                    {...passwordRegister}
+                    {...register("password")}
                   />
                   <button
                     type="button"
@@ -847,9 +788,27 @@ export function RegisterForm({
                   </p>
                 ) : null}
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Powtórz hasło</Label>
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  aria-invalid={errors.confirmPassword ? true : undefined}
+                  className={cn(errors.confirmPassword && "border-destructive")}
+                  {...register("confirmPassword")}
+                />
+                {errors.confirmPassword ? (
+                  <p className="text-xs text-state-error">
+                    {errors.confirmPassword.message}
+                  </p>
+                ) : null}
+              </div>
+              </div>
             ) : null}
 
             {step === "body" ? (
+              <div className="space-y-5">
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="weightKg">Waga (kg)</Label>
@@ -910,6 +869,58 @@ export function RegisterForm({
                     </p>
                   ) : null}
                 </div>
+              </div>
+
+              <fieldset className="space-y-3 rounded-xl border border-white/[0.08] bg-black/30 px-3 py-3">
+                <legend className="px-1 text-[11px] font-semibold uppercase tracking-wider text-white/50">
+                  Obwody (opcjonalnie)
+                </legend>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {(
+                    [
+                      ["abdomenCm", "Brzuch (cm)"],
+                      ["chestCm", "Klatka (cm)"],
+                      ["armCm", "Ramię (cm)"],
+                    ] as const
+                  ).map(([name, label]) => (
+                    <div key={name} className="space-y-2">
+                      <Label htmlFor={name}>{label}</Label>
+                      <Input
+                        id={name}
+                        type="number"
+                        inputMode="decimal"
+                        step="0.5"
+                        min={20}
+                        max={250}
+                        aria-invalid={errors[name] ? true : undefined}
+                        className={cn(errors[name] && "border-destructive")}
+                        {...register(name)}
+                      />
+                      {errors[name] ? (
+                        <p className="text-xs text-state-error">
+                          {String(errors[name]?.message ?? "")}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    {...register("healthConsent")}
+                    className="mt-1 h-4 w-4 accent-[var(--gym-gold)]"
+                  />
+                  <span className="text-[12px] leading-snug text-white/60">
+                    <span className="block font-medium text-white/85">
+                      {SENSITIVE_CONSENT_COPY.health.title}
+                    </span>
+                    {SENSITIVE_CONSENT_COPY.health.body}
+                  </span>
+                </label>
+                <p className="text-[11px] text-white/50">
+                  Zgoda jest potrzebna tylko do zapisania obwodów. Możesz ją pominąć i dodać pomiary później w Raportach.
+                </p>
+              </fieldset>
               </div>
             ) : null}
 
@@ -996,41 +1007,67 @@ export function RegisterForm({
                     {errors.weeklySessionsTarget.message}
                   </p>
                 ) : null}
+              </div>
+            ) : null}
 
-                <fieldset className="space-y-2.5 rounded-xl border border-white/[0.08] bg-black/30 px-3 py-3">
-                  <legend className="px-1 text-[11px] font-semibold uppercase tracking-wider text-white/50">
-                    Zgody (opcjonalne)
-                  </legend>
-                  <label className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      {...register("healthConsent")}
-                      className="mt-1 h-4 w-4 accent-[var(--gym-gold)]"
+            {step === "photo" ? (
+              <div className="space-y-4">
+                {photoPreview ? (
+                  <div className="flex items-center gap-4 rounded-2xl border border-white/12 bg-black/30 p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- podgląd lokalnego pliku (blob:) */}
+                    <img
+                      src={photoPreview}
+                      alt="Podgląd zdjęcia startowego"
+                      className="h-28 w-20 rounded-lg object-cover"
                     />
-                    <span className="text-[12px] leading-snug text-white/60">
-                      <span className="block font-medium text-white/85">
-                        {SENSITIVE_CONSENT_COPY.health.title}
-                      </span>
-                      {SENSITIVE_CONSENT_COPY.health.body}
-                    </span>
-                  </label>
-                  <label className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <p className="truncate text-sm text-white/75">{photoFile?.name}</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPhotoFile(null)}
+                      >
+                        Usuń zdjęcie
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="startPhoto"
+                    className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-white/20 bg-black/30 px-4 py-8 text-center text-sm text-white/65 transition hover:border-white/35 focus-within:ring-2 focus-within:ring-[var(--ring)]"
+                  >
+                    <ImagePlus className="h-6 w-6 text-[var(--gym-gold)]" aria-hidden />
+                    <span className="font-semibold text-white">Dodaj zdjęcie startowe</span>
+                    <span className="text-xs text-white/50">Możesz pominąć i dodać je później w Raportach.</span>
                     <input
-                      type="checkbox"
-                      {...register("photosConsent")}
-                      className="mt-1 h-4 w-4 accent-[var(--gym-gold)]"
+                      id="startPhoto"
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={(e) => {
+                        onPickPhoto(e.target.files?.[0] ?? null);
+                        e.target.value = "";
+                      }}
                     />
-                    <span className="text-[12px] leading-snug text-white/60">
-                      <span className="block font-medium text-white/85">
-                        {SENSITIVE_CONSENT_COPY.photos.title}
-                      </span>
-                      {SENSITIVE_CONSENT_COPY.photos.body}
-                    </span>
                   </label>
-                  <p className="text-[11px] text-white/50">
-                    Możesz pominąć — zgodę wyrazisz później przy pierwszym zapisie albo w Profilu.
-                  </p>
-                </fieldset>
+                )}
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    {...register("photosConsent")}
+                    className="mt-1 h-4 w-4 accent-[var(--gym-gold)]"
+                  />
+                  <span className="text-[12px] leading-snug text-white/60">
+                    <span className="block font-medium text-white/85">
+                      {SENSITIVE_CONSENT_COPY.photos.title}
+                    </span>
+                    {SENSITIVE_CONSENT_COPY.photos.body}
+                  </span>
+                </label>
+                <p className="text-[11px] text-white/50">
+                  Zgoda dotyczy tylko zdjęć. Bez zdjęcia możesz ją pominąć. Zdjęcie zapiszemy po zalogowaniu, jako pierwszy raport sylwetki.
+                </p>
               </div>
             ) : null}
           </motion.div>

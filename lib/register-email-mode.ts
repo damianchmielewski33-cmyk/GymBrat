@@ -15,13 +15,28 @@ import {
  */
 export type RegisterEmailMode = "smtp" | "test" | "disabled";
 
+/**
+ * Jak aktywuje się konto założone e-mailem.
+ * - `instant`: od razu po rejestracji, bez potwierdzenia adresu (do czasu skonfigurowania SMTP).
+ *   Konto zostaje z `emailVerifiedAt = NULL`, więc adres nie daje uprawnień admina (`resolveEffectiveRole`),
+ *   a prawdziwy właściciel adresu może je przejąć przez Google (`lib/account-takeover.ts`).
+ * - `link`: aktywacja linkiem z e-maila (etap 3 planu, jeszcze niewdrożony).
+ * - `disabled`: rejestracja e-mailem wyłączona (np. awaryjnie); zostają Google/Facebook.
+ */
+export type RegisterActivationMode = "instant" | "link" | "disabled";
+
 export type RegistrationAvailability = {
-  emailMode: RegisterEmailMode;
+  emailMode: RegisterActivationMode;
   google: boolean;
   facebook: boolean;
-  /** Nikt nie założy konta: brak SMTP (i trybu testowego) oraz brak dostawców OAuth. */
+  /** Nikt nie założy konta: e-mail wyłączony i brak dostawców OAuth (obecnie nie zdarza się). */
   blocked: boolean;
 };
+
+/** Jedno źródło prawdy o aktywacji kont. Do wdrożenia linku: zwracać `link`, gdy SMTP działa. */
+export function getRegisterActivationMode(): RegisterActivationMode {
+  return "instant";
+}
 
 /** Kod trybu testowego (6 cyfr, jak prawdziwy kod). Nigdy nie działa na hostingu. */
 export const TEST_REGISTER_CODE = "123456";
@@ -41,7 +56,7 @@ export function getRegisterEmailMode(
 export function getRegistrationAvailability(
   env: NodeJS.ProcessEnv = process.env,
 ): RegistrationAvailability {
-  const emailMode = getRegisterEmailMode(env);
+  const emailMode = getRegisterActivationMode();
   const google = isGoogleAuthConfigured(env);
   const facebook = isFacebookAuthConfigured(env);
   return {

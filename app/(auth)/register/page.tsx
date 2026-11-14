@@ -6,10 +6,7 @@ import { RegisterForm } from "@/components/auth/register-form";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { isUserBodyProfileComplete } from "@/lib/profile-complete";
-import {
-  getRegistrationAvailability,
-  TEST_REGISTER_CODE,
-} from "@/lib/register-email-mode";
+import { getRegistrationAvailability } from "@/lib/register-email-mode";
 
 type Search = Promise<{
   oauth?: string | string[];
@@ -79,9 +76,6 @@ export default async function RegisterPage({
       >
         <RegisterForm
           availability={availability}
-          emailTestCode={
-            availability.emailMode === "test" ? TEST_REGISTER_CODE : null
-          }
           oauthContinue={oauthContinue}
           oauthPrefill={oauthPrefill}
           accountResetNotice={oauthContinue && accountResetNotice}

@@ -6,7 +6,7 @@ import {
   summarizeConfig,
 } from "@/lib/admin-config-status";
 
-const NOT_BLOCKED = { registrationBlocked: false, emailRegistrationMode: "smtp" } as const;
+const NOT_BLOCKED = { registrationBlocked: false, emailRegistrationMode: "instant" } as const;
 
 describe("admin-config-status", () => {
   it("oznacza brak wszystkich zmiennych jako missing i wymienia brakujące nazwy", () => {
@@ -109,9 +109,9 @@ describe("admin-config-status", () => {
     expect(blocked.emailRegistrationMode).toBe("disabled");
     expect(summarizeConfig(items, NOT_BLOCKED).registrationBlocked).toBe(false);
     expect(
-      summarizeConfig(items, { registrationBlocked: false, emailRegistrationMode: "test" })
+      summarizeConfig(items, { registrationBlocked: false, emailRegistrationMode: "link" })
         .emailRegistrationMode,
-    ).toBe("test");
+    ).toBe("link");
   });
 
   it("ADMIN_EMAILS jest wymagane do konfiguracji dostępu do panelu; wymóg 2FA ma osobny wpis", () => {

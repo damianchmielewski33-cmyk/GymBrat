@@ -3,7 +3,7 @@
  * Nigdy nie zwracamy WARTOŚCI zmiennych — tylko informację, czy są ustawione.
  */
 
-import type { RegisterEmailMode } from "@/lib/register-email-mode";
+import type { RegisterActivationMode } from "@/lib/register-email-mode";
 
 export type ConfigLevel = "required" | "recommended" | "optional";
 export type ConfigStatus = "ok" | "partial" | "missing";
@@ -80,10 +80,10 @@ export type ConfigSummary = {
    */
   registrationBlocked: boolean;
   /**
-   * Tryb rejestracji e-mailem: `smtp` (kody wysyłane), `test` (tylko lokalnie, kod testowy),
-   * `disabled` (brak SMTP na hostingu). Liczone na serwerze (`getRegisterEmailMode`).
+   * Aktywacja kont założonych e-mailem: `instant` (od razu, bez potwierdzenia adresu), `link`
+   * (link z e-maila) albo `disabled`. Liczone na serwerze (`getRegisterActivationMode`).
    */
-  emailRegistrationMode: RegisterEmailMode;
+  emailRegistrationMode: RegisterActivationMode;
 };
 
 export type ConfigSummaryFlags = Pick<ConfigSummary, "registrationBlocked" | "emailRegistrationMode">;
