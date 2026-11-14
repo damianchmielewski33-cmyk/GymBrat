@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { NutritionWeekView } from "@/components/nutrition/nutrition-week-view";
+import { NutritionStatsView } from "@/components/nutrition/nutrition-stats-view";
 import {
   loadNutritionWeekRange,
   NUTRITION_WEEK_INITIAL_WEEKS,
@@ -46,5 +46,5 @@ export default async function NutritionWeekPage() {
     NUTRITION_WEEK_INITIAL_WEEKS,
   );
 
-  return <NutritionWeekView todayKey={todayKey} weeks={weeks} />;
+  return <NutritionStatsView todayKey={todayKey} weeks={weeks} initialTab="week" />;
 }

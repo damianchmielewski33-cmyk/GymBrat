@@ -157,8 +157,8 @@ export function hasExplicitNutritionDayKind(
  * Tygodnie od bieżącego wstecz (pn→nd), najnowszy pierwszy.
  * `pastWeeks` = ile pełnych tygodni przed bieżącym (domyślnie ~rok).
  */
-/** Z70: początkowa porcja tygodni na /nutrition/week (bieżący + 12); starsze doładowywane. */
-export const NUTRITION_WEEK_INITIAL_WEEKS = 13;
+/** Z70: początkowa porcja tygodni na /nutrition/week (bieżący + 13, pokrywa okno 90 dni); starsze doładowywane. */
+export const NUTRITION_WEEK_INITIAL_WEEKS = 14;
 export const NUTRITION_WEEK_CHUNK = 13;
 
 /** Tygodnie `fromWeek..toWeek-1` wstecz od bieżącego (0 = bieżący). */

@@ -1,5 +1,14 @@
 [
   {
+    "title": "Zapowiedź — Przebudowane statystyki diety",
+    "planned": true,
+    "bullets": [
+      "Statystyki bilansu mają nowy, czytelniejszy układ: duży wynik na górze, makro w osobnych kartach i proste opisy odchyleń.",
+      "Przełącznik zakresu: Dziś, Tydzień, Miesiąc i 3 miesiące — z średnim odchyleniem od diety, liczbą dni w normie, z nadwyżką i z niedoborem.",
+      "Kalendarz odchyleń: dotknij dnia, aby zobaczyć pełny dziennik żywienia z podziałem na posiłki."
+    ]
+  },
+  {
     "title": "Zapowiedź — Motywy i kolor aplikacji",
     "planned": true,
     "bullets": [

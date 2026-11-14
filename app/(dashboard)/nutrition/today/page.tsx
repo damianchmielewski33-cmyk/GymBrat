@@ -3,11 +3,13 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { userSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { NutritionTodayView } from "@/components/nutrition/nutrition-today-view";
-import { loadNutritionWeekHistory } from "@/lib/nutrition-dashboard";
+import { NutritionStatsView } from "@/components/nutrition/nutrition-stats-view";
+import {
+  loadNutritionWeekRange,
+  NUTRITION_WEEK_INITIAL_WEEKS,
+} from "@/lib/nutrition-dashboard";
 import { nutritionSettingsFromDbRow } from "@/lib/nutrition-goals";
 import { calendarDateKey } from "@/lib/local-date";
-import { buildMacroBalanceViewModel } from "@/lib/nutrition-day-balance";
 
 export const metadata = { title: "Bilans dnia" };
 
@@ -35,13 +37,13 @@ export default async function NutritionTodayPage() {
       nutritionDayTypesJson: null,
     },
   );
-  const weeks = await loadNutritionWeekHistory(userId, settings, todayKey, 0);
-  const currentWeek = weeks[0] ?? null;
-  const viewModel = buildMacroBalanceViewModel(
-    currentWeek?.dayRows ?? [],
+  const weeks = await loadNutritionWeekRange(
+    userId,
+    settings,
     todayKey,
-    currentWeek?.weekLabel ?? "Bieżący tydzień",
+    0,
+    NUTRITION_WEEK_INITIAL_WEEKS,
   );
 
-  return <NutritionTodayView model={viewModel} />;
+  return <NutritionStatsView todayKey={todayKey} weeks={weeks} initialTab="today" />;
 }
