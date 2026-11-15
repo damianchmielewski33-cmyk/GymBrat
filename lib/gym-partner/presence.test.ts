@@ -1,12 +1,13 @@
 import type { Client } from "@libsql/client";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Database } from "@/db";
-import { friendships, users } from "@/db/schema";
+import { friendships, gymPartnerPresence, users } from "@/db/schema";
 import { createMemoryDb } from "@/db/test-memory-db";
 import {
   clearPresence,
   listIncoming,
   listNearbyPartners,
+  purgeExpiredPresence,
   respondToRequest,
   sendRequest,
   setPresence,
@@ -55,6 +56,14 @@ describe("partnerzy treningowi (baza w pamięci)", () => {
     const fr = await db.select().from(friendships);
     expect(fr).toHaveLength(1);
     expect(fr[0].status).toBe("accepted");
+  });
+
+  it("wygasła pozycja jest niewidoczna i usuwana", async () => {
+    await setPresence("c", { lat: 52.23, lng: 21.012, ...base });
+    await db.update(gymPartnerPresence).set({ expiresAt: new Date(Date.now() - 1000) });
+    expect(await listNearbyPartners("a", { lat: 52.2297, lng: 21.0122 }, 5000)).toEqual([]);
+    await purgeExpiredPresence();
+    expect(await db.select().from(gymPartnerPresence)).toHaveLength(0);
   });
 
   it("po ukryciu nie jest widoczny", async () => {

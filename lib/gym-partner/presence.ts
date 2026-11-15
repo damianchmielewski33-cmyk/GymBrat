@@ -1,4 +1,4 @@
-import { and, eq, gt, gte, lte, ne, or, inArray } from "drizzle-orm";
+import { and, eq, gt, gte, lte, ne, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import {
@@ -47,6 +47,8 @@ export async function setPresence(
 ): Promise<MyPresence> {
   await ensureCriticalSchema();
   const db = getDb();
+  // Minimalizacja danych: wygasłe pozycje usuwamy przy okazji (oraz w cronie cleanup).
+  await purgeExpiredPresence();
   const pos = fuzzLocation(input.lat, input.lng);
   const expiresAt = new Date(Date.now() + input.durationHours * 3_600_000);
   const row = {
@@ -262,5 +264,5 @@ export async function purgeExpiredPresence(): Promise<void> {
   await ensureCriticalSchema();
   await getDb()
     .delete(gymPartnerPresence)
-    .where(or(lte(gymPartnerPresence.expiresAt, new Date())));
+    .where(lte(gymPartnerPresence.expiresAt, new Date()));
 }

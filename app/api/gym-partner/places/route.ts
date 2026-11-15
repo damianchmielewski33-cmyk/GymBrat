@@ -26,6 +26,11 @@ export async function GET(req: Request) {
       { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
     );
   }
+  // Globalny budżet kosztów (płatne API): ochrona przed masowym użyciem z wielu kont.
+  const budget = await checkRateLimitAsync("gym-places:global", 3000, 24 * 60 * 60_000);
+  if (!budget.ok) {
+    return NextResponse.json({ error: "busy" }, { status: 429, headers: { "Retry-After": String(budget.retryAfterSec) } });
+  }
   const parsed = query.safeParse(Object.fromEntries(new URL(req.url).searchParams));
   if (!parsed.success || !isValidCoord(parsed.data.lat, parsed.data.lng)) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });

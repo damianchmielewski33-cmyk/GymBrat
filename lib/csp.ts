@@ -48,7 +48,8 @@ export function createNonce(): string {
 }
 
 function connectSources(env: Env): string[] {
-  const out = ["'self'"];
+  // Mapa Google (Maps JavaScript API) pobiera dane przez fetch z maps.googleapis.com.
+  const out = ["'self'", "https://maps.googleapis.com"];
   // Sentry (przeglądarka) — origin z DSN; PostHog tylko gdy klucz publiczny jest ustawiony.
   const sentry = safeOrigin(env.NEXT_PUBLIC_SENTRY_DSN ?? env.SENTRY_DSN);
   if (sentry) out.push(sentry);

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { ensureCriticalSchema } from "@/db/ensure-schema";
 import { expirePendingOrders } from "@/lib/order-admin";
+import { purgeExpiredPresence } from "@/lib/gym-partner/presence";
 import { runDbCleanup } from "@/lib/db-retention";
 import { sendInactivityWarningEmail } from "@/lib/email";
 import { runWaitlistRetention } from "@/lib/waitlist";
@@ -29,6 +30,7 @@ async function handle(req: Request) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
   const result = await runDbCleanup();
+  await purgeExpiredPresence();
 
   // Z28: retencja wg projektu prawnego (zgłoszenia błędów zawsze; nieaktywne konta/zdjęcia tylko za flagą).
   await ensureCriticalSchema();
