@@ -61,6 +61,40 @@ export function parsePlaces(json: unknown): GymPlace[] {
   return out;
 }
 
+const TEXT_ENDPOINT = "https://places.googleapis.com/v1/places:searchText";
+
+/** Wyszukiwanie po nazwie/marce (np. „zdrofit”) — najbliższe wyniki wokół użytkownika. */
+export async function searchGymsByText(
+  query: string,
+  lat: number,
+  lng: number,
+  radiusMeters: number,
+): Promise<GymPlace[]> {
+  const key = process.env.GOOGLE_PLACES_API_KEY;
+  if (!key) throw new Error("GOOGLE_PLACES_API_KEY missing");
+  const res = await fetch(TEXT_ENDPOINT, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": key,
+      "X-Goog-FieldMask": FIELD_MASK,
+    },
+    body: JSON.stringify({
+      textQuery: `${query} siłownia`,
+      languageCode: "pl",
+      maxResultCount: 20,
+      rankPreference: "DISTANCE",
+      locationBias: {
+        circle: { center: { latitude: lat, longitude: lng }, radius: radiusMeters },
+      },
+    }),
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`Places API ${res.status}`);
+  return parsePlaces(await res.json());
+}
+
 /** Places API (New) — bez cache'owania wyników (warunki Google). */
 export async function searchNearbyGyms(
   lat: number,

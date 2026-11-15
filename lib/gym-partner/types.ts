@@ -59,4 +59,6 @@ export type GymPlace = {
   mapsUrl: string | null;
   openNow: boolean | null;
   hours: string[];
+  /** Odległość od użytkownika (km, 1 miejsce) — tylko w wynikach wyszukiwania. */
+  distanceKm?: number;
 };

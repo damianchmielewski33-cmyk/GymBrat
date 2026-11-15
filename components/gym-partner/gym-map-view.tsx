@@ -68,6 +68,9 @@ export function GymMapView({
   const [geoError, setGeoError] = useState<string | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [gyms, setGyms] = useState<GymPlace[]>([]);
+  const [query, setQuery] = useState("");
+  const [activeQuery, setActiveQuery] = useState("");
+  const [searching, setSearching] = useState(false);
   const [partners, setPartners] = useState<NearbyPartner[]>([]);
   const [presence, setPresence] = useState<MyPresence | null>(initialPresence);
   const [incoming, setIncoming] = useState(initialIncoming);
@@ -123,25 +126,42 @@ export function GymMapView({
   // Dane po ustaleniu pozycji
   useEffect(() => {
     if (!pos) return;
-    mapRef.current?.setCenter(pos);
-    mapRef.current?.setZoom(14);
+    if (!activeQuery) {
+      mapRef.current?.setCenter(pos);
+      mapRef.current?.setZoom(14);
+    }
     const ctrl = new AbortController();
     if (placesConfigured) {
-      fetch(`/api/gym-partner/places?lat=${pos.lat}&lng=${pos.lng}&radius=5000`, {
+      const params = new URLSearchParams({
+        lat: String(pos.lat),
+        lng: String(pos.lng),
+        radius: activeQuery ? "30000" : "5000",
+      });
+      if (activeQuery) params.set("q", activeQuery);
+      setSearching(true);
+      fetch(`/api/gym-partner/places?${params}`, {
         signal: ctrl.signal,
         cache: "no-store",
       })
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-        .then((j: { places: GymPlace[] }) => setGyms(j.places))
+        .then((j: { places: GymPlace[] }) => {
+          setGyms(j.places);
+          if (activeQuery && j.places.length === 0) {
+            setNotice(`Nie znaleziono siłowni „${activeQuery}” w pobliżu.`);
+          }
+        })
         .catch(() => {
-          if (!ctrl.signal.aborted) setNotice("Nie udało się pobrać siłowni w okolicy.");
+          if (!ctrl.signal.aborted) setNotice("Nie udało się pobrać siłowni.");
+        })
+        .finally(() => {
+          if (!ctrl.signal.aborted) setSearching(false);
         });
     }
     void listNearbyPartnersAction(pos).then((r) => {
       if (r.ok) setPartners(r.partners);
     });
     return () => ctrl.abort();
-  }, [pos, placesConfigured, presence]);
+  }, [pos, placesConfigured, presence, activeQuery]);
 
   // Markery
   useEffect(() => {
@@ -192,6 +212,17 @@ export function GymMapView({
       });
       add(m);
     }
+    if (activeQuery && gyms.length > 0) {
+      const bounds = new google.maps.LatLngBounds();
+      for (const g of gyms) bounds.extend({ lat: g.lat, lng: g.lng });
+      if (pos) bounds.extend(pos);
+      map.fitBounds(bounds, 60);
+      const first = markersRef.current[0];
+      if (first) {
+        infoRef.current?.setContent(gymInfoHtml(gyms[0]));
+        infoRef.current?.open({ map, anchor: first });
+      }
+    }
     if (pos) {
       add(
         new google.maps.Marker({
@@ -209,7 +240,7 @@ export function GymMapView({
         }),
       );
     }
-  }, [gyms, partners, pos, mapError]);
+  }, [gyms, partners, pos, mapError, activeQuery]);
 
   function startSharing() {
     if (!pos) return;
@@ -277,6 +308,46 @@ export function GymMapView({
         <span>● <span className="text-green-400">szuka partnera</span></span>
         <span>● <span className="text-blue-400">Ty</span></span>
       </div>
+
+      {placesConfigured ? (
+        <form
+          className="flex gap-2"
+          role="search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!pos) {
+              setNotice("Najpierw użyj mojej lokalizacji.");
+              return;
+            }
+            setNotice(null);
+            setActiveQuery(query.trim());
+          }}
+        >
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            maxLength={60}
+            placeholder="Szukaj siłowni, np. Zdrofit"
+            aria-label="Szukaj siłowni po nazwie"
+            className={fieldCls}
+          />
+          <button type="submit" className={btnCls} disabled={searching}>
+            Szukaj
+          </button>
+          {activeQuery ? (
+            <button
+              type="button"
+              className={ghostBtnCls}
+              onClick={() => {
+                setQuery("");
+                setActiveQuery("");
+              }}
+            >
+              Wyczyść
+            </button>
+          ) : null}
+        </form>
+      ) : null}
 
       {!pos ? (
         <div className="space-y-2 rounded-2xl border border-white/10 bg-black/30 p-4">
@@ -409,11 +480,11 @@ export function GymMapView({
 
       {gyms.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="text-[14px] font-semibold text-white">Siłownie w okolicy ({gyms.length})</h2>
+          <h2 className="text-[14px] font-semibold text-white">{activeQuery ? `Najbliższe: ${activeQuery}` : "Siłownie w okolicy"} ({gyms.length})</h2>
           {gyms.map((g) => (
             <div key={g.id} className="rounded-xl border border-white/10 bg-black/30 p-3">
               <p className="text-[14px] font-semibold text-white">{g.name}</p>
-              <p className="text-[12px] text-white/55">{g.address}</p>
+              <p className="text-[12px] text-white/55">{g.address}{g.distanceKm !== undefined ? ` · ${g.distanceKm} km` : ""}</p>
               <p className="mt-1 text-[12px] text-white/70">
                 {g.openNow === null ? "Brak danych o godzinach" : g.openNow ? "Otwarte teraz" : "Zamknięte teraz"}
                 {g.hours[0] ? ` · ${g.hours[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1] ?? g.hours[0]}` : ""}

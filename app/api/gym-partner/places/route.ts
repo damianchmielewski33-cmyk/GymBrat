@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
-import { isValidCoord } from "@/lib/gym-partner/geo";
-import { searchNearbyGyms } from "@/lib/gym-partner/places";
+import { haversineMeters, isValidCoord } from "@/lib/gym-partner/geo";
+import { searchGymsByText, searchNearbyGyms } from "@/lib/gym-partner/places";
 
 const query = z.object({
   lat: z.coerce.number(),
   lng: z.coerce.number(),
-  radius: z.coerce.number().min(500).max(10_000).default(5000),
+  radius: z.coerce.number().min(500).max(30_000).default(5000),
+  q: z.string().trim().max(60).optional(),
 });
 
 export async function GET(req: Request) {
@@ -30,7 +31,19 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
   try {
-    const places = await searchNearbyGyms(parsed.data.lat, parsed.data.lng, parsed.data.radius);
+    const { lat, lng, radius, q } = parsed.data;
+    const raw = q
+      ? await searchGymsByText(q, lat, lng, radius)
+      : await searchNearbyGyms(lat, lng, radius);
+    const places = q
+      ? raw
+          .map((p) => ({
+            ...p,
+            distanceKm: Math.round(haversineMeters({ lat, lng }, p) / 100) / 10,
+          }))
+          .sort((a, b) => a.distanceKm - b.distanceKm)
+          .slice(0, 10)
+      : raw;
     return NextResponse.json({ places }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json({ error: "upstream" }, { status: 502 });
