@@ -2453,3 +2453,56 @@ export const supplementIntakes = sqliteTable(
     uniqueIndex("supplement_intakes_uidx").on(t.userId, t.dateKey, t.name, t.slot),
   ],
 );
+
+/**
+ * Partnerzy treningowi na mapie (opt-in, zgoda `gym_location`). Przechowujemy WYŁĄCZNIE
+ * pozycję zaokrągloną do siatki ~500 m (nigdy dokładnej) i tylko do `expiresAt`.
+ */
+export const gymPartnerPresence = sqliteTable(
+  "gym_partner_presence",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Środek komórki siatki (stopnie), nie pozycja użytkownika. */
+    lat: real("lat").notNull(),
+    lng: real("lng").notNull(),
+    /** masa | redukcja | sila | kondycja | ogolny */
+    goal: text("goal").notNull(),
+    /** poczatkujacy | sredni | zaawansowany */
+    level: text("level").notNull(),
+    /** teraz | rano | popoludnie | wieczor */
+    preferredTime: text("preferred_time").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("gym_partner_presence_geo_idx").on(t.expiresAt, t.lat, t.lng)],
+);
+
+export const gymPartnerRequests = sqliteTable(
+  "gym_partner_requests",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    fromUserId: text("from_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    toUserId: text("to_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** pending | accepted | declined */
+    status: text("status").notNull().default("pending"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    respondedAt: integer("responded_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    uniqueIndex("gym_partner_requests_pair_uidx").on(t.fromUserId, t.toUserId),
+    index("gym_partner_requests_to_status_idx").on(t.toUserId, t.status),
+    index("gym_partner_requests_from_status_idx").on(t.fromUserId, t.status),
+  ],
+);

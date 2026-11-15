@@ -17,6 +17,8 @@ export const CONSENT_TYPES = [
   "push",
   /** US3/Z13: oświadczenie o wieku 16+ (zapis dowodowy, nie zgoda marketingowa). */
   "age_16",
+  /** Partnerzy treningowi: udostępnienie przybliżonej lokalizacji innym użytkownikom. */
+  "gym_location",
 ] as const;
 export type ConsentType = (typeof CONSENT_TYPES)[number];
 
@@ -31,6 +33,7 @@ export const CONSENT_SOURCES = [
   "photos_upload",
   "reminders",
   "age_gate",
+  "gym_partner",
 ] as const;
 export type ConsentSource = (typeof CONSENT_SOURCES)[number];
 

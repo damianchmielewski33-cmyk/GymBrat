@@ -1724,6 +1724,45 @@ CREATE TABLE IF NOT EXISTS "user_consents" (
     `CREATE INDEX IF NOT EXISTS "user_consents_user_type_decided" ON "user_consents" ("user_id","type","decided_at")`,
   );
 
+  // Partnerzy treningowi na mapie (pozycja tylko zaokrąglona, wygasa).
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "gym_partner_presence" (
+  "user_id" text PRIMARY KEY NOT NULL,
+  "lat" real NOT NULL,
+  "lng" real NOT NULL,
+  "goal" text NOT NULL,
+  "level" text NOT NULL,
+  "preferred_time" text NOT NULL,
+  "expires_at" integer NOT NULL,
+  "updated_at" integer NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "gym_partner_presence_geo_idx" ON "gym_partner_presence" ("expires_at","lat","lng")`,
+  );
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "gym_partner_requests" (
+  "id" text PRIMARY KEY NOT NULL,
+  "from_user_id" text NOT NULL,
+  "to_user_id" text NOT NULL,
+  "status" text DEFAULT 'pending' NOT NULL,
+  "created_at" integer NOT NULL,
+  "responded_at" integer,
+  FOREIGN KEY ("from_user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY ("to_user_id") REFERENCES "users"("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+`);
+  await client.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "gym_partner_requests_pair_uidx" ON "gym_partner_requests" ("from_user_id","to_user_id")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "gym_partner_requests_to_status_idx" ON "gym_partner_requests" ("to_user_id","status")`,
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS "gym_partner_requests_from_status_idx" ON "gym_partner_requests" ("from_user_id","status")`,
+  );
+
   await tryAddColumn(
     `ALTER TABLE "body_report_photos" ADD COLUMN "object_key" text`,
   );

@@ -1,5 +1,14 @@
 [
   {
+    "title": "Zapowiedź — Mapa siłowni i partnerzy treningowi",
+    "planned": true,
+    "bullets": [
+      "Nowa zakładka Community → Mapa: siłownie w okolicy z marką, godzinami otwarcia i linkiem do strony.",
+      "Włącz „Szukam partnera” i pokaż się na mapie z przybliżoną pozycją (ok. 500 m), na 1–4 godziny — wyłącznie za Twoją zgodą.",
+      "Zaproś kogoś na wspólny trening; po akceptacji trafiacie do znajomych."
+    ]
+  },
+  {
     "title": "Zapowiedź — Przebudowane statystyki diety",
     "planned": true,
     "bullets": [

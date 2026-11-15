@@ -82,8 +82,8 @@ export function buildCsp(opts: { nonce: string; env?: Env; isProd?: boolean }): 
     `script-src 'self' 'nonce-${opts.nonce}' 'strict-dynamic'`,
     // Next/Tailwind wymagają inline styles.
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://image.pollinations.ai https://gen.pollinations.ai https://images.unsplash.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com",
-    "font-src 'self' data:",
+    "img-src 'self' data: blob: https://image.pollinations.ai https://gen.pollinations.ai https://images.unsplash.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
     `connect-src ${connectSources(env).join(" ")}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
