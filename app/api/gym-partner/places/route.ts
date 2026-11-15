@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
+import { withApiErrors } from "@/lib/errors/api";
+import { requirePremium } from "@/lib/user-package";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { haversineMeters, isValidCoord } from "@/lib/gym-partner/geo";
 import { searchGymsByText, searchNearbyGyms } from "@/lib/gym-partner/places";
@@ -12,10 +14,12 @@ const query = z.object({
   q: z.string().trim().max(60).optional(),
 });
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Funkcja płatna (koszt Google Places) — tylko dla aktywnego Premium; 402 przed jakimkolwiek zapytaniem.
+  await requirePremium(userId);
   if (!process.env.GOOGLE_PLACES_API_KEY) {
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
   }
@@ -54,3 +58,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "upstream" }, { status: 502 });
   }
 }
+
+export const GET = withApiErrors(handleGET);

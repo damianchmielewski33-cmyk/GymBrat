@@ -23,13 +23,22 @@ import {
   type MyPresence,
   type NearbyPartner,
 } from "@/lib/gym-partner/types";
+import { isPremiumActive } from "@/lib/user-package";
 import { UserMessages } from "@/lib/user-facing-errors";
 
 export type GpResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
-async function requireUserId(): Promise<string | null> {
+const PREMIUM_MSG = "Mapa siłowni i partnerzy treningowi są dostępni w pakiecie Premium.";
+
+/** Zalogowany użytkownik z aktywnym Premium; inaczej null + powód. */
+async function requirePremiumUser(): Promise<
+  { userId: string } | { error: string }
+> {
   const session = await auth();
-  return session?.user?.id ?? null;
+  const userId = session?.user?.id;
+  if (!userId) return { error: UserMessages.sessionExpired };
+  if (!(await isPremiumActive(userId))) return { error: PREMIUM_MSG };
+  return { userId };
 }
 
 async function recordConsent(userId: string, granted: boolean) {
@@ -57,8 +66,9 @@ export async function startSharingAction(
   input: unknown,
 ): Promise<GpResult<{ presence: MyPresence }>> {
   await guardAction("gym-partner.startSharingAction", { limit: 20, windowMs: 10 * 60_000 });
-  const userId = await requireUserId();
-  if (!userId) return { ok: false, error: UserMessages.sessionExpired };
+  const gate = await requirePremiumUser();
+  if ("error" in gate) return { ok: false, error: gate.error };
+  const { userId } = gate;
   const parsed = startSchema.safeParse(input);
   if (!parsed.success || !isValidCoord(parsed.data.lat, parsed.data.lng)) {
     return { ok: false, error: "Nieprawidłowe dane. Zaznacz zgodę i spróbuj ponownie." };
@@ -71,8 +81,9 @@ export async function startSharingAction(
 
 export async function stopSharingAction(): Promise<GpResult> {
   await guardAction("gym-partner.stopSharingAction");
-  const userId = await requireUserId();
-  if (!userId) return { ok: false, error: UserMessages.sessionExpired };
+  const gate = await requirePremiumUser();
+  if ("error" in gate) return { ok: false, error: gate.error };
+  const { userId } = gate;
   await clearPresence(userId);
   await recordConsent(userId, false);
   revalidatePath("/community/map");
@@ -86,8 +97,9 @@ export async function listNearbyPartnersAction(
   input: unknown,
 ): Promise<GpResult<{ partners: NearbyPartner[] }>> {
   await guardAction("gym-partner.listNearbyPartnersAction", { limit: 60, windowMs: 10 * 60_000 });
-  const userId = await requireUserId();
-  if (!userId) return { ok: false, error: UserMessages.sessionExpired };
+  const gate = await requirePremiumUser();
+  if ("error" in gate) return { ok: false, error: gate.error };
+  const { userId } = gate;
   const parsed = nearbySchema.safeParse(input);
   if (!parsed.success || !isValidCoord(parsed.data.lat, parsed.data.lng)) {
     return { ok: false, error: "Nieprawidłowa lokalizacja." };
@@ -100,8 +112,9 @@ const idSchema = z.string().min(1).max(64);
 
 export async function sendPartnerRequestAction(toUserId: unknown): Promise<GpResult> {
   await guardAction("gym-partner.sendPartnerRequestAction", { limit: 20, windowMs: 60 * 60_000 });
-  const userId = await requireUserId();
-  if (!userId) return { ok: false, error: UserMessages.sessionExpired };
+  const gate = await requirePremiumUser();
+  if ("error" in gate) return { ok: false, error: gate.error };
+  const { userId } = gate;
   const id = idSchema.safeParse(toUserId);
   if (!id.success) return { ok: false, error: "Nieprawidłowy użytkownik." };
   const res = await sendRequest(userId, id.data);
@@ -113,8 +126,9 @@ export async function respondPartnerRequestAction(
   accept: unknown,
 ): Promise<GpResult> {
   await guardAction("gym-partner.respondPartnerRequestAction");
-  const userId = await requireUserId();
-  if (!userId) return { ok: false, error: UserMessages.sessionExpired };
+  const gate = await requirePremiumUser();
+  if ("error" in gate) return { ok: false, error: gate.error };
+  const { userId } = gate;
   const id = idSchema.safeParse(requestId);
   if (!id.success || typeof accept !== "boolean") {
     return { ok: false, error: "Nieprawidłowe zaproszenie." };
