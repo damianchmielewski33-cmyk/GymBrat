@@ -147,7 +147,23 @@ export async function setUserPackageEndsAt(args: {
  * z `packageEndsAt`; `computePackageStatus` traktuje `endsAt <= teraz` jako nieaktywny.
  */
 export async function isPremiumActive(userId: string): Promise<boolean> {
+  if (await isAdminUser(userId)) return true;
   return (await getUserPackageStatus(userId)).active;
+}
+
+/**
+ * Administrator ma dostęp do wszystkich funkcji Premium bez pakietu. Dotyczy WYŁĄCZNIE bramek
+ * funkcji (`isPremiumActive`, `requirePremium`) — reklamy i widok pakietu nadal korzystają z
+ * prawdziwego `getUserPackageStatus`, więc admin widzi reklamy jak zwykły użytkownik bez pakietu.
+ */
+export async function isAdminUser(userId: string): Promise<boolean> {
+  await ensureCriticalSchema();
+  const [row] = await getDb()
+    .select({ appRole: users.appRole })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return row?.appRole === "admin";
 }
 
 /**
@@ -157,6 +173,6 @@ export async function isPremiumActive(userId: string): Promise<boolean> {
  */
 export async function requirePremium(userId: string): Promise<UserPackageStatus> {
   const status = await getUserPackageStatus(userId);
-  if (!status.active) throw new AppError("PREMIUM_REQUIRED");
+  if (!status.active && !(await isAdminUser(userId))) throw new AppError("PREMIUM_REQUIRED");
   return status;
 }

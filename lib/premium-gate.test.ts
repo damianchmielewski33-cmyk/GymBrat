@@ -19,6 +19,7 @@ describe("requirePremium (Z10)", () => {
     await db.insert(schema.users).values([
       { id: "free", email: "f@example.com", passwordHash: "x" },
       { id: "active", email: "a@example.com", passwordHash: "x", packageEndsAt: new Date(now + 86_400_000), packagePlanSku: "m1" },
+      { id: "admin", email: "ad@example.com", passwordHash: "x", appRole: "admin" },
       { id: "expired", email: "e@example.com", passwordHash: "x", packageEndsAt: new Date(now - 1000), packagePlanSku: "m1" },
     ]);
   });
@@ -27,6 +28,13 @@ describe("requirePremium (Z10)", () => {
   it("aktywny pakiet przechodzi", async () => {
     await expect(requirePremium("active")).resolves.toMatchObject({ active: true });
     expect(await isPremiumActive("active")).toBe(true);
+  });
+
+  it("administrator ma funkcje Premium bez pakietu, ale status pakietu pozostaje prawdziwy (reklamy)", async () => {
+    await expect(requirePremium("admin")).resolves.toMatchObject({ active: false });
+    expect(await isPremiumActive("admin")).toBe(true);
+    const { getUserPackageStatus } = await import("@/lib/user-package");
+    expect((await getUserPackageStatus("admin")).active).toBe(false);
   });
 
   it("brak pakietu i pakiet wygasły (bez karencji) → PREMIUM_REQUIRED / 402", async () => {
