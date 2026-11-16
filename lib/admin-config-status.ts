@@ -380,6 +380,9 @@ const INTEGRATIONS: IntegrationDef[] = [
     vars: [
       { names: ["NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"] },
       { names: ["GOOGLE_PLACES_API_KEY"] },
+      { names: ["GYM_PLACES_MONTHLY_LIST_LIMIT"], optional: true, hint: "domyślnie 4500 (darmowy próg Google)" },
+      { names: ["GYM_PLACES_MONTHLY_DETAILS_LIMIT"], optional: true, hint: "domyślnie 900" },
+      { names: ["GYM_MAPS_MONTHLY_LOAD_LIMIT"], optional: true, hint: "domyślnie 9000" },
     ],
     link: { href: "/community/map", label: "Mapa siłowni" },
   },

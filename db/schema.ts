@@ -2506,3 +2506,12 @@ export const gymPartnerRequests = sqliteTable(
     index("gym_partner_requests_from_status_idx").on(t.fromUserId, t.status),
   ],
 );
+
+/** Miesięczne liczniki zużycia płatnych API (klucz zawiera miesiąc, np. `gym-list:2026-11`). */
+export const apiUsageCounters = sqliteTable("api_usage_counters", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(0),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});

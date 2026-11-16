@@ -1,15 +1,13 @@
 import type { GymPlace } from "@/lib/gym-partner/types";
 
 const ENDPOINT = "https://places.googleapis.com/v1/places:searchNearby";
+/** Maska „Pro” (tańsze zapytanie, większy darmowy próg): bez godzin i strony www — te pobieramy po kliknięciu. */
 const FIELD_MASK = [
   "places.id",
   "places.displayName",
   "places.formattedAddress",
   "places.location",
-  "places.websiteUri",
   "places.googleMapsUri",
-  "places.regularOpeningHours.openNow",
-  "places.regularOpeningHours.weekdayDescriptions",
 ].join(",");
 
 type RawPlace = {
@@ -123,4 +121,37 @@ export async function searchNearbyGyms(
   });
   if (!res.ok) throw new Error(`Places API ${res.status}`);
   return parsePlaces(await res.json());
+}
+
+const PLACE_ID = /^[A-Za-z0-9_-]{10,200}$/;
+
+export type PlaceDetails = Pick<GymPlace, "website" | "openNow" | "hours">;
+
+export function parseDetails(json: unknown): PlaceDetails {
+  const p = json as RawPlace | null;
+  return {
+    website: safeHttpUrl(p?.websiteUri),
+    openNow:
+      typeof p?.regularOpeningHours?.openNow === "boolean" ? p.regularOpeningHours.openNow : null,
+    hours: Array.isArray(p?.regularOpeningHours?.weekdayDescriptions)
+      ? p.regularOpeningHours.weekdayDescriptions.filter((x) => typeof x === "string")
+      : [],
+  };
+}
+
+/** Place Details (Enterprise: godziny + strona) — wołane tylko po kliknięciu siłowni. */
+export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
+  const key = process.env.GOOGLE_PLACES_API_KEY;
+  if (!key) throw new Error("GOOGLE_PLACES_API_KEY missing");
+  if (!PLACE_ID.test(placeId)) throw new Error("bad place id");
+  const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=pl`, {
+    cache: "no-store",
+    headers: {
+      "X-Goog-Api-Key": key,
+      "X-Goog-FieldMask": "id,websiteUri,regularOpeningHours.openNow,regularOpeningHours.weekdayDescriptions",
+    },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`Places API ${res.status}`);
+  return parseDetails(await res.json());
 }

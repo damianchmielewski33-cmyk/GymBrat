@@ -4,6 +4,7 @@
     "planned": true,
     "bullets": [
       "Funkcja dostępna w pakiecie Premium.",
+      "Godziny otwarcia i strona siłowni ładują się po kliknięciu, dzięki czemu mapa mieści się w darmowych limitach Google.",
       "Nowa zakładka Community → Mapa: siłownie w okolicy z marką, godzinami otwarcia i linkiem do strony.",
       "Włącz „Szukam partnera” i pokaż się na mapie z przybliżoną pozycją (ok. 500 m), na 1–4 godziny — wyłącznie za Twoją zgodą.",
       "Wyszukiwarka siłowni po nazwie (np. „Zdrofit”): mapa pokazuje najbliższe, a w oknie szczegółów są godziny otwarcia i link do strony.",

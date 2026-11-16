@@ -1724,6 +1724,13 @@ CREATE TABLE IF NOT EXISTS "user_consents" (
     `CREATE INDEX IF NOT EXISTS "user_consents_user_type_decided" ON "user_consents" ("user_id","type","decided_at")`,
   );
 
+  await client.execute(`
+CREATE TABLE IF NOT EXISTS "api_usage_counters" (
+  "key" text PRIMARY KEY NOT NULL,
+  "count" integer DEFAULT 0 NOT NULL,
+  "updated_at" integer NOT NULL
+);
+`);
   // Partnerzy treningowi na mapie (pozycja tylko zaokrąglona, wygasa).
   await client.execute(`
 CREATE TABLE IF NOT EXISTS "gym_partner_presence" (

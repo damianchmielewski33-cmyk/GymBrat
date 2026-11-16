@@ -5,6 +5,7 @@ import { withApiErrors } from "@/lib/errors/api";
 import { requirePremium } from "@/lib/user-package";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { haversineMeters, isValidCoord } from "@/lib/gym-partner/geo";
+import { consumeBudget } from "@/lib/gym-partner/budget";
 import { searchGymsByText, searchNearbyGyms } from "@/lib/gym-partner/places";
 
 const query = z.object({
@@ -30,14 +31,13 @@ async function handleGET(req: Request) {
       { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
     );
   }
-  // Globalny budżet kosztów (płatne API): ochrona przed masowym użyciem z wielu kont.
-  const budget = await checkRateLimitAsync("gym-places:global", 3000, 24 * 60 * 60_000);
-  if (!budget.ok) {
-    return NextResponse.json({ error: "busy" }, { status: 429, headers: { "Retry-After": String(budget.retryAfterSec) } });
-  }
   const parsed = query.safeParse(Object.fromEntries(new URL(req.url).searchParams));
   if (!parsed.success || !isValidCoord(parsed.data.lat, parsed.data.lng)) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  }
+  // Miesięczny budżet całej aplikacji (darmowy próg Google) — rezerwacja tuż przed wywołaniem.
+  if (!(await consumeBudget("list"))) {
+    return NextResponse.json({ error: "budget_exhausted" }, { status: 429 });
   }
   try {
     const { lat, lng, radius, q } = parsed.data;

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { CommunityHubTabs } from "@/components/community/community-hub-tabs";
 import { GymMapView } from "@/components/gym-partner/gym-map-view";
 import Link from "next/link";
+import { consumeBudget } from "@/lib/gym-partner/budget";
 import { isPremiumActive } from "@/lib/user-package";
 import { getMyPresence, listIncoming } from "@/lib/gym-partner/presence";
 
@@ -40,6 +41,10 @@ export default async function GymMapPage() {
     );
   }
 
+  // Załadowanie mapy to płatna jednostka Google — miesięczny budżet (darmowy próg).
+  const mapKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+  const mapAllowed = mapKey ? await consumeBudget("map") : false;
+
   const [presence, incoming] = await Promise.all([
     getMyPresence(userId),
     listIncoming(userId),
@@ -58,7 +63,8 @@ export default async function GymMapPage() {
       </header>
       <CommunityHubTabs />
       <GymMapView
-        mapsKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""}
+        mapsKey={mapAllowed ? mapKey : ""}
+        mapBudgetExhausted={Boolean(mapKey) && !mapAllowed}
         placesConfigured={Boolean(process.env.GOOGLE_PLACES_API_KEY)}
         initialPresence={presence}
         initialIncoming={incoming}

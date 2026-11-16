@@ -35,7 +35,19 @@ function esc(s: string) {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-function gymInfoHtml(g: GymPlace): string {
+type Details = Pick<GymPlace, "website" | "openNow" | "hours">;
+
+/** Pamięć podręczna po stronie przeglądarki (oszczędza darmowy limit Google). */
+const LIST_TTL_MS = 10 * 60_000;
+const listCache = new Map<string, { at: number; places: GymPlace[] }>();
+
+function gymInfoHtml(base: GymPlace, details: Details | "loading" | "error" | undefined): string {
+  if (details === "loading" || details === undefined) {
+    return `<div style="color:#111;max-width:240px"><div style="font-weight:700">${esc(base.name)}</div><div style="font-size:12px">${esc(base.address ?? "")}</div><div style="margin-top:6px;font-size:12px">Ładowanie godzin…</div></div>`;
+  }
+  const g: GymPlace =
+    details === "error" ? base : { ...base, ...details };
+  const failed = details === "error" ? "<div style='margin-top:6px;font-size:12px'>Nie udało się pobrać godzin (limit lub błąd). <a href=\"" + esc(base.mapsUrl ?? "#") + "\" target=\"_blank\" rel=\"noopener noreferrer\">Otwórz w Mapach Google</a></div>" : "";
   const open =
     g.openNow === null ? "" : g.openNow ? "<b style='color:#15803d'>Otwarte teraz</b>" : "<b style='color:#b91c1c'>Zamknięte</b>";
   const hours = g.hours.length
@@ -46,17 +58,22 @@ function gymInfoHtml(g: GymPlace): string {
     : g.mapsUrl
       ? `<div style="margin-top:6px"><a href="${esc(g.mapsUrl)}" target="_blank" rel="noopener noreferrer">Otwórz w Mapach Google</a></div>`
       : "";
+  if (details === "error") {
+    return `<div style="color:#111;max-width:240px"><div style="font-weight:700">${esc(g.name)}</div><div style="font-size:12px">${esc(g.address ?? "")}</div>${failed}</div>`;
+  }
   return `<div style="color:#111;max-width:240px"><div style="font-weight:700">${esc(g.name)}</div><div style="font-size:12px">${esc(g.address ?? "")}</div>${open}${hours}${link}</div>`;
 }
 
 export function GymMapView({
   mapsKey,
   placesConfigured,
+  mapBudgetExhausted,
   initialPresence,
   initialIncoming,
 }: {
   mapsKey: string;
   placesConfigured: boolean;
+  mapBudgetExhausted: boolean;
   initialPresence: MyPresence | null;
   initialIncoming: IncomingRequest[];
 }) {
@@ -68,6 +85,8 @@ export function GymMapView({
   const [geoError, setGeoError] = useState<string | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [gyms, setGyms] = useState<GymPlace[]>([]);
+  const detailsRef = useRef(new Map<string, Details | "loading" | "error">());
+  const [detailsMap, setDetailsMap] = useState<Record<string, Details | "error">>({});
   const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -83,6 +102,37 @@ export function GymMapView({
     durationHours: 2 as 1 | 2 | 4,
     consent: false,
   });
+
+  /** Godziny i strona www pobierane dopiero po kliknięciu (płatne pole Places), z cache w pamięci. */
+  const openGym = useCallback(
+    (g: GymPlace, anchor?: google.maps.Marker) => {
+      const map = mapRef.current;
+      const show = () => {
+        if (!map || !anchor) return;
+        infoRef.current?.setContent(gymInfoHtml(g, detailsRef.current.get(g.id)));
+        infoRef.current?.open({ map, anchor });
+      };
+      const cached = detailsRef.current.get(g.id);
+      if (cached && cached !== "loading") {
+        show();
+        return;
+      }
+      detailsRef.current.set(g.id, "loading");
+      show();
+      fetch(`/api/gym-partner/place?id=${encodeURIComponent(g.id)}`, { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+        .then((j: { details: Details }) => {
+          detailsRef.current.set(g.id, j.details);
+          setDetailsMap((m) => ({ ...m, [g.id]: j.details }));
+        })
+        .catch(() => {
+          detailsRef.current.set(g.id, "error");
+          setDetailsMap((m) => ({ ...m, [g.id]: "error" }));
+        })
+        .finally(show);
+    },
+    [],
+  );
 
   const locate = useCallback(() => {
     if (!navigator.geolocation) {
@@ -138,12 +188,23 @@ export function GymMapView({
         radius: activeQuery ? "30000" : "5000",
       });
       if (activeQuery) params.set("q", activeQuery);
+      const cacheKey = `${pos.lat.toFixed(2)},${pos.lng.toFixed(2)},${activeQuery.toLowerCase()}`;
+      const hit = listCache.get(cacheKey);
       setSearching(true);
-      fetch(`/api/gym-partner/places?${params}`, {
-        signal: ctrl.signal,
-        cache: "no-store",
-      })
-        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      (hit && Date.now() - hit.at < LIST_TTL_MS
+        ? Promise.resolve({ places: hit.places })
+        : fetch(`/api/gym-partner/places?${params}`, {
+            signal: ctrl.signal,
+            cache: "no-store",
+          }).then((r) =>
+            r.ok
+              ? r.json().then((j: { places: GymPlace[] }) => {
+                  listCache.set(cacheKey, { at: Date.now(), places: j.places });
+                  return j;
+                })
+              : Promise.reject(new Error(String(r.status))),
+          )
+      )
         .then((j: { places: GymPlace[] }) => {
           setGyms(j.places);
           if (activeQuery && j.places.length === 0) {
@@ -151,7 +212,9 @@ export function GymMapView({
           }
         })
         .catch(() => {
-          if (!ctrl.signal.aborted) setNotice("Nie udało się pobrać siłowni.");
+          if (!ctrl.signal.aborted) {
+            setNotice("Nie udało się pobrać siłowni (możliwe, że wyczerpano miesięczny limit). Spróbuj później.");
+          }
         })
         .finally(() => {
           if (!ctrl.signal.aborted) setSearching(false);
@@ -184,10 +247,7 @@ export function GymMapView({
           strokeWeight: 2,
         },
       });
-      m.addListener("click", () => {
-        infoRef.current?.setContent(gymInfoHtml(g));
-        infoRef.current?.open({ map, anchor: m });
-      });
+      m.addListener("click", () => openGym(g, m));
       add(m);
     }
     for (const p of partners) {
@@ -218,10 +278,7 @@ export function GymMapView({
       if (pos) bounds.extend(pos);
       map.fitBounds(bounds, 60);
       const first = markersRef.current[0];
-      if (first) {
-        infoRef.current?.setContent(gymInfoHtml(gyms[0]));
-        infoRef.current?.open({ map, anchor: first });
-      }
+      if (first) openGym(gyms[0], first);
     }
     if (pos) {
       add(
@@ -240,7 +297,7 @@ export function GymMapView({
         }),
       );
     }
-  }, [gyms, partners, pos, mapError, activeQuery]);
+  }, [gyms, partners, pos, mapError, activeQuery, openGym]);
 
   function startSharing() {
     if (!pos) return;
@@ -298,7 +355,10 @@ export function GymMapView({
           <div ref={mapEl} className="h-[55vh] min-h-[320px] w-full" aria-label="Mapa siłowni" />
         ) : (
           <div className="flex min-h-[200px] items-center justify-center p-6 text-center text-[13px] text-white/60">
-            {mapError ?? "Mapa nie jest jeszcze skonfigurowana (brak klucza Google Maps)."}
+            {mapError ??
+              (mapBudgetExhausted
+                ? "Miesięczny limit map został wyczerpany. Lista partnerów nadal działa; mapa wróci w przyszłym miesiącu."
+                : "Mapa nie jest jeszcze skonfigurowana (brak klucza Google Maps).")}
           </div>
         )}
       </div>
@@ -485,15 +545,31 @@ export function GymMapView({
             <div key={g.id} className="rounded-xl border border-white/10 bg-black/30 p-3">
               <p className="text-[14px] font-semibold text-white">{g.name}</p>
               <p className="text-[12px] text-white/55">{g.address}{g.distanceKm !== undefined ? ` · ${g.distanceKm} km` : ""}</p>
-              <p className="mt-1 text-[12px] text-white/70">
-                {g.openNow === null ? "Brak danych o godzinach" : g.openNow ? "Otwarte teraz" : "Zamknięte teraz"}
-                {g.hours[0] ? ` · ${g.hours[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1] ?? g.hours[0]}` : ""}
-              </p>
-              {g.website ? (
-                <a href={g.website} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[12px] text-[var(--gym-gold)] underline">
-                  Strona siłowni
-                </a>
-              ) : null}
+              {(() => {
+                const d = detailsMap[g.id];
+                if (!d) {
+                  return (
+                    <button type="button" className="mt-1 text-[12px] text-[var(--gym-gold)] underline" onClick={() => openGym(g)}>
+                      Pokaż godziny i stronę
+                    </button>
+                  );
+                }
+                if (d === "error") return <p className="mt-1 text-[12px] text-white/50">Brak danych (limit lub błąd).</p>;
+                const day = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+                return (
+                  <>
+                    <p className="mt-1 text-[12px] text-white/70">
+                      {d.openNow === null ? "Brak danych o godzinach" : d.openNow ? "Otwarte teraz" : "Zamknięte teraz"}
+                      {d.hours[0] ? ` · ${d.hours[day] ?? d.hours[0]}` : ""}
+                    </p>
+                    {d.website ? (
+                      <a href={d.website} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[12px] text-[var(--gym-gold)] underline">
+                        Strona siłowni
+                      </a>
+                    ) : null}
+                  </>
+                );
+              })()}
             </div>
           ))}
         </section>
