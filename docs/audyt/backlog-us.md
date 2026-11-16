@@ -41,6 +41,7 @@ Prio: P0 blokuje komercjalizację · P1 przed startem sprzedaży · P2 krótko p
 | US21 | Domknięcie: weryfikacja, długi i prace właściciela po US1–US20 | P0 | XL | Z84, Z85, Z86, Z87, Z88, Z89, Z90 | TODO |
 | US22–US31 | Nowy backlog poprawek z analizy 2026-11-08 (higiena, crony, Premium, daty, RODO, koszty…) | P0–P3 | — | Z91–Z124 | TODO — szczegóły: [2026-11-08-analiza-i-backlog-poprawek.md](2026-11-08-analiza-i-backlog-poprawek.md) |
 | US32 | Moderacja community: filtr, skan zdjęć, alerty admina, regulamin | P0 | XL | Z125–Z134 | TODO — decyzje właściciela 2026-11-10 (sekcja niżej); budowa tablicy ze zdjęciami i wiadomości prywatnych jest częścią US |
+| US33 | Mapa siłowni i partnerzy treningowi (Google Maps + Places, opt-in, pozycja ~500 m) | P1 | L | — | KOD GOTOWY 2026-11-15 (tsc + testy lib/gym-partner zielone; brak kluczy Google na hostingu; tekst zgody `gym_location` i polityka prywatności do zatwierdzenia prawnika; brak moderacji — bez tekstu swobodnego; Premium-only; miesięczne budżety w darmowym progu Google: list 4500, details 900, map 9000) |
 
 Weryfikacja pokrycia: 6+4+4+4+4+4+2+5+4+4+5+3+4+4+3+4+9+4+2+4 = 83 podzadania (każde Z1–Z83 występuje dokładnie raz). US21 dodaje Z84–Z90 (łącznie 90): to **domknięcia** niedokończonych prac z US1–US20, nie nowe funkcje; oryginalne Z1–Z83 zostają w swoich US ze swoimi statusami.
 

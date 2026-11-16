@@ -8,6 +8,7 @@ const TABS = [
   { href: "/community/friends", label: "Znajomi", match: (p: string) => p.startsWith("/community/friends") },
   { href: "/community/global", label: "Global GymBrat", match: (p: string) => p.startsWith("/community/global") },
   { href: "/community/discover", label: "Odkrywaj", match: (p: string) => p.startsWith("/community/discover") },
+  { href: "/community/map", label: "Mapa", match: (p: string) => p.startsWith("/community/map") },
 ] as const;
 
 export function CommunityHubTabs() {

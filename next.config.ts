@@ -74,7 +74,7 @@ const nextConfig: NextConfig = {
     const base = [
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
+      { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(self)" },
       { key: "Cross-Origin-Opener-Policy", value: "unsafe-none" },
       { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
       { key: "X-Permitted-Cross-Domain-Policies", value: "none" },

@@ -48,7 +48,8 @@ export function createNonce(): string {
 }
 
 function connectSources(env: Env): string[] {
-  const out = ["'self'"];
+  // Mapa Google (Maps JavaScript API) pobiera dane przez fetch z maps.googleapis.com.
+  const out = ["'self'", "https://maps.googleapis.com"];
   // Sentry (przeglądarka) — origin z DSN; PostHog tylko gdy klucz publiczny jest ustawiony.
   const sentry = safeOrigin(env.NEXT_PUBLIC_SENTRY_DSN ?? env.SENTRY_DSN);
   if (sentry) out.push(sentry);
@@ -82,8 +83,8 @@ export function buildCsp(opts: { nonce: string; env?: Env; isProd?: boolean }): 
     `script-src 'self' 'nonce-${opts.nonce}' 'strict-dynamic'`,
     // Next/Tailwind wymagają inline styles.
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://image.pollinations.ai https://gen.pollinations.ai https://images.unsplash.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com",
-    "font-src 'self' data:",
+    "img-src 'self' data: blob: https://image.pollinations.ai https://gen.pollinations.ai https://images.unsplash.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
     `connect-src ${connectSources(env).join(" ")}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",

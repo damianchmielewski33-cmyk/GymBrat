@@ -288,6 +288,20 @@
       "when": 1806900000000,
       "tag": "0047_user_settings_app_theme",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1807000000000,
+      "tag": "0048_gym_partner",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1807100000000,
+      "tag": "0049_api_usage_counters",
+      "breakpoints": true
     }
   ]
 }

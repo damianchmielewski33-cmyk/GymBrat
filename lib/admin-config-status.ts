@@ -367,6 +367,26 @@ const INTEGRATIONS: IntegrationDef[] = [
     link: { href: "/admin/catalog", label: "Katalog przepisów" },
   },
   {
+    id: "gym-map",
+    group: "content",
+    label: "Mapa siłowni i partnerzy treningowi (Google Maps)",
+    description:
+      "Wbudowana mapa siłowni w okolicy (marka, godziny, strona www) i widok osób szukających partnera.",
+    level: "optional",
+    effectWhenMissing:
+      "Zakładka „Mapa” w Community pokazuje komunikat o braku konfiguracji; lista partnerów działa, ale bez mapy i siłowni.",
+    hostingHint:
+      "W Google Cloud włącz Maps JavaScript API i Places API (New). Klucz przeglądarkowy → NEXT_PUBLIC_GOOGLE_MAPS_API_KEY (ograniczenie: referrer domeny), klucz serwerowy → GOOGLE_PLACES_API_KEY (ograniczenie: Places API). Wymagane konto rozliczeniowe.",
+    vars: [
+      { names: ["NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"] },
+      { names: ["GOOGLE_PLACES_API_KEY"] },
+      { names: ["GYM_PLACES_MONTHLY_LIST_LIMIT"], optional: true, hint: "domyślnie 4500 (darmowy próg Google)" },
+      { names: ["GYM_PLACES_MONTHLY_DETAILS_LIMIT"], optional: true, hint: "domyślnie 900" },
+      { names: ["GYM_MAPS_MONTHLY_LOAD_LIMIT"], optional: true, hint: "domyślnie 9000" },
+    ],
+    link: { href: "/community/map", label: "Mapa siłowni" },
+  },
+  {
     id: "youtube-technique-search",
     group: "content",
     label: "Wyszukiwanie filmów techniki (YouTube)",
